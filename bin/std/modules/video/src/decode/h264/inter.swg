@@ -702,7 +702,7 @@ private func storeWeightedRow(dst: [*] u8, width: s32, value: Simd.U8x16)
     case 8:  Simd.storeLow8(dst, value)
     case 4:  Simd.storeLow4(dst, value)
     case 2:  dst[as u16] = (cast #bit(Simd.U16x8) value)[0]
-    default: Debug.assert(false)
+    default: Swag.assert(false)
     }
 }
 

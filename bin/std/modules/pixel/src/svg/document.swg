@@ -52,7 +52,7 @@ impl Document
     // Creates an empty document with positive dimensions.
     func create(width, height: f32)->Document
     {
-        Debug.assert(width > 0 and height > 0, "invalid dimensions")
+        Swag.assert(width > 0 and height > 0, "invalid dimensions")
 
         var result: retval
         result.width  = width

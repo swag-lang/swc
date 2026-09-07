@@ -1241,7 +1241,7 @@ impl PdfView
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*PdfView
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let result = Wnd.create'PdfView(parent, null, position, id)
 
         // A document view is a traversal stop: opening a file must leave the keyboard on the
@@ -1304,7 +1304,7 @@ impl PdfView
     // reader. On return they own the content that previously belonged to the view, if any.
     mtd exchangeDocument(reader: *Pdf.Reader, page: *Pdf.Page)
     {
-        Debug.assert(reader.pageCount() != 0)
+        Swag.assert(reader.pageCount() != 0)
         .adoptDocument(reader)
 
         // The page the host decoded is the one the first frame needs, so it is taken as it is

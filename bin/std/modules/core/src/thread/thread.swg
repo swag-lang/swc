@@ -41,7 +41,7 @@ impl Thread
     // Releases resources owned by this value.
     mtd opDrop()
     {
-        Debug.assert(!.isValid(), "thread is not terminated")
+        Swag.assert(!.isValid(), "thread is not terminated")
     }
 
     // Returns true if the thread is valid
@@ -79,7 +79,7 @@ impl Thread
     // Creates a suspended thread with a cloned runtime context.
     mtd init(lambda: func||(Thread), userParam: *void? = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) fail
     {
-        Debug.assert(!.isValid(), "thread already created")
+        Swag.assert(!.isValid(), "thread already created")
 
         .context = Swag.getContext()[]
         Swag.init(&.context.tempAllocator, 1)
@@ -98,14 +98,14 @@ impl Thread
     // Starts this suspended thread.
     mtd start() fail
     {
-        Debug.assert(.isValid())
+        Swag.assert(.isValid())
         startNative(.handle)
     }
 
     // Changes this thread's scheduling priority.
     mtd setPriority(priority: ThreadPriority) fail
     {
-        Debug.assert(.isValid())
+        Swag.assert(.isValid())
         if .priority == priority do
             return
         setPriorityNative(.handle, priority)
@@ -115,7 +115,7 @@ impl Thread
     // Waits for this thread to finish and releases its handle.
     mtd wait()
     {
-        Debug.assert(.isValid())
+        Swag.assert(.isValid())
         waitOneNative(.handle)
         closeNative(.handle)
         .handle = null
@@ -124,7 +124,7 @@ impl Thread
     // Returns whether this thread has finished without blocking.
     mtd isDone()->bool
     {
-        Debug.assert(.isValid())
+        Swag.assert(.isValid())
         return isDoneNative(.handle)
     }
 }
@@ -156,7 +156,7 @@ func wait(threads: *Thread...)
         for i in count
         {
             let thread = threads[start + cast(u64) i]
-            Debug.assert(thread.isValid())
+            Swag.assert(thread.isValid())
             handles[i] = thread.handle
         }
 

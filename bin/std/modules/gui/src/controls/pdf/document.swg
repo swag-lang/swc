@@ -67,14 +67,14 @@ impl Document
     // Appends a page and transfers its owned content into the document.
     mtd addPage(page: #move Page)
     {
-        Debug.assert(page.width > 0 and page.height > 0 and Math.isFinite(page.width) and Math.isFinite(page.height), "invalid page dimensions")
+        Swag.assert(page.width > 0 and page.height > 0 and Math.isFinite(page.width) and Math.isFinite(page.height), "invalid page dimensions")
         .pages.add(#move page)
     }
 
     // Removes the page at `index` and preserves the order of the remaining pages.
     mtd removePage(index: u64)
     {
-        Debug.assert(index < .pages.count, "page index out of range")
+        Swag.assert(index < .pages.count, "page index out of range")
         .pages.removeAt(index)
     }
 
@@ -83,7 +83,7 @@ impl Document
     // The pointer remains valid until a page is added to or removed from the document.
     mtd editPage(index: u64)->*Page
     {
-        Debug.assert(index < .pages.count, "page index out of range")
+        Swag.assert(index < .pages.count, "page index out of range")
         return &.pages[index]
     }
 

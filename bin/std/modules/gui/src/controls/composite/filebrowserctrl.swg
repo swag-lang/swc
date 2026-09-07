@@ -45,7 +45,7 @@ impl NavigationHistory
     // The caller must first check [[Gui.NavigationHistory.canGoBack]].
     mtd goBack()->String
     {
-        Debug.assert(.canGoBack(), "file-browser history has no previous folder")
+        Swag.assert(.canGoBack(), "file-browser history has no previous folder")
         .index -= 1
         return .entries[.index]
     }
@@ -55,7 +55,7 @@ impl NavigationHistory
     // The caller must first check [[Gui.NavigationHistory.canGoForward]].
     mtd goForward()->String
     {
-        Debug.assert(.canGoForward(), "file-browser history has no next folder")
+        Swag.assert(.canGoForward(), "file-browser history has no next folder")
         .index += 1
         return .entries[.index]
     }
@@ -486,7 +486,7 @@ impl FileBrowserCtrl
     #[Swag.Discardable]
     func create(parent: *Wnd, opt: FileDlgOptions = {}, position: Math.Rectangle = {})->*FileBrowserCtrl
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let fileBrowser = Wnd.create'FileBrowserCtrl(parent, "", position)
         fileBrowser.options         = opt
         fileBrowser.backgroundStyle = .Window

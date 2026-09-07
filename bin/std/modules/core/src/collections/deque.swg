@@ -148,7 +148,7 @@ impl Deque
     // Returns a pointer to the front element and asserts if the queue is empty.
     mtd frontPtr()->*T
     {
-        Debug.assert(.count > 0, "deque is empty")
+        Swag.assert(.count > 0, "deque is empty")
         .ensureFrontSegment()
         return &.frontItems[.frontItems.count - 1]
     }
@@ -156,7 +156,7 @@ impl Deque
     // Returns a copy of the front element and asserts if the queue is empty.
     mtd const front()->T
     {
-        Debug.assert(.count > 0, "deque is empty")
+        Swag.assert(.count > 0, "deque is empty")
         let result: retval = .opIndexPtr(0)[]
         return result
     }
@@ -164,7 +164,7 @@ impl Deque
     // Returns a pointer to the back element and asserts if the queue is empty.
     mtd backPtr()->*T
     {
-        Debug.assert(.count > 0, "deque is empty")
+        Swag.assert(.count > 0, "deque is empty")
         .ensureBackSegment()
         return &.backItems[.backItems.count - 1]
     }
@@ -172,7 +172,7 @@ impl Deque
     // Returns a copy of the back element and asserts if the queue is empty.
     mtd const back()->T
     {
-        Debug.assert(.count > 0, "deque is empty")
+        Swag.assert(.count > 0, "deque is empty")
         let result: retval = .opIndexPtr(.count - 1)[]
         return result
     }
@@ -180,7 +180,7 @@ impl Deque
     // Removes and returns the front element and asserts if the queue is empty.
     mtd popFront()->T
     {
-        Debug.assert(.count > 0, "deque is empty")
+        Swag.assert(.count > 0, "deque is empty")
         .ensureFrontSegment()
         .count -= 1
         return .frontItems.popBack()
@@ -189,7 +189,7 @@ impl Deque
     // Removes and returns the back element and asserts if the queue is empty.
     mtd popBack()->T
     {
-        Debug.assert(.count > 0, "deque is empty")
+        Swag.assert(.count > 0, "deque is empty")
         .ensureBackSegment()
         .count -= 1
         return .backItems.popBack()

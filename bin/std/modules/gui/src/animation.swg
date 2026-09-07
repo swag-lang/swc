@@ -178,9 +178,9 @@ private impl AnimationGroup
 {
     mtd addTrack(target: *Wnd, channel: AnimationChannel, options: AnimationOptions, kind: AnimationValueKind)->*AnimationTrack
     {
-        Debug.assert(target != null)
-        Debug.assert(options.delay.seconds >= 0)
-        Debug.assert(options.duration.seconds >= 0)
+        Swag.assert(target != null)
+        Swag.assert(options.delay.seconds >= 0)
+        Swag.assert(options.duration.seconds >= 0)
         let track = Memory.new'AnimationTrack()
         track.target  = target
         track.channel = channel
@@ -758,7 +758,7 @@ impl Animator
             .app = first.target.app()
         for track in group.tracks
         {
-            Debug.assert(track!.target.app() == .app)
+            Swag.assert(track!.target.app() == .app)
             .startTrack(track!)
         }
 
@@ -988,7 +988,7 @@ impl Animator
     // `direction` is normally `1` for forward navigation and `-1` for backward navigation.
     mtd transitionPage(outgoing: *Wnd?, incoming: *Wnd, direction = 1'f32)->AnimationHandle
     {
-        Debug.assert(incoming != null)
+        Swag.assert(incoming != null)
         if outgoing == incoming
         {
             incoming.show()
@@ -1042,8 +1042,8 @@ impl Animator
     // Animates one layout-managed window to a new preferred height.
     mtd animateLayoutHeight(target: *Wnd, height: f32)->AnimationHandle
     {
-        Debug.assert(target != null)
-        Debug.assert(height >= 0)
+        Swag.assert(target != null)
+        Swag.assert(height >= 0)
         let from = target.position.height
         if from == height
         {

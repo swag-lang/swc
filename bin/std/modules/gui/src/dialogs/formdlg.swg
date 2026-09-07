@@ -46,8 +46,8 @@ impl FormDlg
     #[Swag.Discardable]
     func create(from: *Surface, options: FormDlgOptions = {})->*FormDlg
     {
-        Debug.assert(from != null)
-        Debug.assert(options.width > 0 and options.height > 0, "form dialog dimensions must be positive")
+        Swag.assert(from != null)
+        Swag.assert(options.width > 0 and options.height > 0, "form dialog dimensions must be positive")
 
         let result  = Wnd.create'FormDlg()
         let flags   = options.resizable ? SurfaceFlags.Resizable : SurfaceFlags.None

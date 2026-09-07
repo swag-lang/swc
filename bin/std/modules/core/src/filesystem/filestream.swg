@@ -53,8 +53,8 @@ impl FileStream
     // Reads at most `length` bytes, completing host-sized chunks until the stream ends.
     mtd read(buffer: *void?, length: u64)->u64 fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.canRead)
+        Swag.assert(.isOpen())
+        Swag.assert(.canRead)
         if !length do
             return 0
 
@@ -75,8 +75,8 @@ impl FileStream
     // Writes at most `length` bytes, completing host-sized chunks while progress is made.
     mtd write(buffer: const *void?, length: u64)->u64 fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.canWrite)
+        Swag.assert(.isOpen())
+        Swag.assert(.canWrite)
         if !length do
             return 0
 
@@ -106,17 +106,17 @@ impl FileStream
     // Returns the current file length in bytes.
     mtd size()->u64 fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.canSeek)
+        Swag.assert(.isOpen())
+        Swag.assert(.canSeek)
         return .sizeNative()
     }
 
     // Changes the file length and preserves the current position while it remains in range.
     mtd resize(newSize: u64) fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.canSeek)
-        Debug.assert(.canWrite)
+        Swag.assert(.isOpen())
+        Swag.assert(.canSeek)
+        Swag.assert(.canWrite)
 
         let oldPosition = .position()
         .seek(.Begin, newSize)
@@ -127,24 +127,24 @@ impl FileStream
     // Commits buffered file data and metadata to the underlying device.
     mtd flush() fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.canWrite)
+        Swag.assert(.isOpen())
+        Swag.assert(.canWrite)
         .flushNative()
     }
 
     // Returns the current absolute byte position.
     mtd position()->u64 fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.canSeek)
+        Swag.assert(.isOpen())
+        Swag.assert(.canSeek)
         return .positionNative()
     }
 
     // Moves to `offset` bytes from `origin`.
     mtd seek(origin: SeekOrigin, offset: u64) fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.canSeek)
+        Swag.assert(.isOpen())
+        Swag.assert(.canSeek)
         .seekNative(origin, offset)
     }
 

@@ -80,7 +80,7 @@ impl HmacSha256
     // Includes `data` in the running authentication code.
     mtd update(data: const [..] u8)
     {
-        Debug.assert(.initialized, "HMAC-SHA-256 needs an initialized sequence")
+        Swag.assert(.initialized, "HMAC-SHA-256 needs an initialized sequence")
         .inner.update(data)
     }
 
@@ -88,7 +88,7 @@ impl HmacSha256
     // Call [[reset]] before reusing this value.
     mtd finalize()->HmacSha256Digest
     {
-        Debug.assert(.initialized, "HMAC-SHA-256 needs an initialized sequence")
+        Swag.assert(.initialized, "HMAC-SHA-256 needs an initialized sequence")
         var innerHash = sha256Bytes(.inner.finalize())
         .outer.update(innerHash)
         let result = sha256Bytes(.outer.finalize())

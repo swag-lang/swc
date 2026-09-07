@@ -53,7 +53,7 @@ public impl Md5
     mtd update(data: const [..] u8)
     {
         // Only deal with 32 bits size
-        Debug.assert(data.count <= Swag.U32.Max)
+        Swag.assert(data.count <= Swag.U32.Max)
 
         let input    = data.buffer
         let inputLen = cast(u32) data.count

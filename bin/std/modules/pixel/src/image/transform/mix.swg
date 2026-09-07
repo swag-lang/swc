@@ -11,7 +11,7 @@ impl Image
 
     mtd const doMix(dstImage: *Image, srcImage: Image, x, y: s32, mode = MixMode.Copy)
     {
-        Debug.assert(srcImage.pixelFormat.hasAlpha() or mode != .SourceOver)
+        Swag.assert(srcImage.pixelFormat.hasAlpha() or mode != .SourceOver)
 
         Memory.copy(dstImage.pixels.buffer, .pixels.buffer, .byteCount)
 
@@ -78,8 +78,8 @@ impl Image
     // Mix with another image
     public mtd mix(srcImage: Image, x, y: s32, mode = MixMode.Copy)
     {
-        Debug.assert(.pixelFormat.isPacked() and srcImage.pixelFormat.isPacked(), "mixing planar images is unsupported")
-        Debug.assert(.pixels.buffer != null)
+        Swag.assert(.pixelFormat.isPacked() and srcImage.pixelFormat.isPacked(), "mixing planar images is unsupported")
+        Swag.assert(.pixels.buffer != null)
         .allocWorkingBuffer()
         .doMix(.safeWorkingBuffer(), srcImage, x, y, mode)
         .applyWorkingBuffer()
@@ -88,8 +88,8 @@ impl Image
     // Mix with another image
     public mtd const mixed(srcImage: Image, x, y: s32, mode = MixMode.Copy)->Image
     {
-        Debug.assert(.pixels.buffer != null)
-        Debug.assert(.pixelFormat.isPacked() and srcImage.pixelFormat.isPacked(), "mixing planar images is unsupported")
+        Swag.assert(.pixels.buffer != null)
+        Swag.assert(.pixelFormat.isPacked() and srcImage.pixelFormat.isPacked(), "mixing planar images is unsupported")
         var result: retval = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
         .doMix(&result, srcImage, x, y, mode)
         return result

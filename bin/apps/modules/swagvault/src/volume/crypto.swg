@@ -115,9 +115,9 @@ namespace Crypto
     // Encrypts and authenticates one record in a single pass over the data.
     func seal(keys: const *Keys, kind: u32, recordId: u64, plaintext: const [..] u8, nonce: [..] u8, ciphertext: [..] u8, tag: [..] u8) fail
     {
-        Debug.assert(nonce.count == NonceSize)
-        Debug.assert(ciphertext.count == plaintext.count)
-        Debug.assert(tag.count == TagSize)
+        Swag.assert(nonce.count == NonceSize)
+        Swag.assert(ciphertext.count == plaintext.count)
+        Swag.assert(tag.count == TagSize)
         Core.Crypto.randomBytes(nonce)
         try Core.Crypto.chacha20Poly1305Seal(keys.record, nonce, plaintext, associatedData(kind, recordId), ciphertext, tag)
     }

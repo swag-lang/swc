@@ -38,7 +38,7 @@ func unlock() => g_lock.unlock()
 // => call 'lock' before if necessary, and 'unlock' after
 func silent(value: bool)
 {
-    Debug.assert(value or g_SilentMode > 0)
+    Swag.assert(value or g_SilentMode > 0)
     g_SilentMode += value ? 1 : -1
 }
 

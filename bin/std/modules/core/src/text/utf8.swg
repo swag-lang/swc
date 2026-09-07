@@ -504,7 +504,7 @@ func decodeRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 // 'dest' must be at least 4 bytes long
 func encodeRune(dest: [..] u8, src: rune)->u32
 {
-    Debug.assert(dest.count >= 4, "destination buffer is too small")
+    Swag.assert(dest.count >= 4, "destination buffer is too small")
 
     switch
     {
@@ -628,7 +628,7 @@ func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
             }
         }
 
-        Debug.assert(destLength >= 4, "destination buffer is too small")
+        Swag.assert(destLength >= 4, "destination buffer is too small")
         let cpt = encodeRune(Swag.makeSlice(destPtr, destLength), cast(rune) srcPtr[])
         srcPtr     += 1
         srcLength  -= 1
@@ -757,7 +757,7 @@ func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
 
         let {c, eat} = Utf16.decodeRune(Swag.makeSlice(srcPtr, srcLength))
 
-        Debug.assert(destLength >= 4, "destination buffer is too small")
+        Swag.assert(destLength >= 4, "destination buffer is too small")
         let eatDest = encodeRune(Swag.makeSlice(destPtr, destLength), c)
         destPtr, count += eatDest
         destLength     -= eatDest
@@ -775,7 +775,7 @@ func fromUtf16(src: const [..] u16)->String
     var result: retval
     result.reserve(4 * src.count)
     result.length = fromUtf16(Swag.makeSlice(result.buffer, result.capacity), src)
-    Debug.assert(result.length + 1 < result.capacity)
+    Swag.assert(result.length + 1 < result.capacity)
     let buffer = result.buffer!
     buffer[result.length] = 0
     return result
@@ -868,7 +868,7 @@ func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bo
         }
 
         let val = countBytesAt(Swag.makeSlice(dataof, countof))
-        Debug.assert(val <= countof, "invalid utf8 character")
+        Swag.assert(val <= countof, "invalid utf8 character")
         resultByte += val
         resultChar += 1
         dataof     += val
@@ -898,7 +898,7 @@ func countRunes(buffer: const [..] u8)->u64
         }
 
         let val = countBytesAt(Swag.makeSlice(dataof, countof))
-        Debug.assert(val <= countof)
+        Swag.assert(val <= countof)
         cpt     += 1
         dataof  += val
         countof -= val

@@ -129,7 +129,7 @@ impl ConcatBuffer
     #[Swag.NoDoc]
     mtd grow(numBytes: u64)
     {
-        Debug.assert(.isAtEnd)
+        Swag.assert(.isAtEnd)
 
         if .lastBucket
         {
@@ -189,14 +189,14 @@ impl ConcatBuffer
     // This can only be called when the buffer is empty.
     mtd setAllocator(alloc: Swag.IAllocator)
     {
-        Debug.assert(.firstBucket == null, "buffer is not empty")
+        Swag.assert(.firstBucket == null, "buffer is not empty")
         .allocator = alloc
     }
 
     // Sets the minimum size for new buckets allocated by the buffer.
     mtd setBucketSize(size: u64)
     {
-        Debug.assert(size >= 4)
+        Swag.assert(size >= 4)
         .granularity = size
     }
 
@@ -494,7 +494,7 @@ impl ConcatBuffer
     // The slice is released through the buffer's allocator; its bucket header remains embedded.
     mtd setFirstBucket(data: [..] u8)
     {
-        Debug.assert(.firstBucket == null)
+        Swag.assert(.firstBucket == null)
         Swag.init(&.viewFirstBucket, 1)
         .viewFirstBucket.data                 = data.buffer
         .viewFirstBucket.size                 = data.count
@@ -530,7 +530,7 @@ impl ConcatBuffer
     private mtd eatBuffer()->{ data: [*] u8, size: u64, capacity: u64 }
     {
         // Must be linear ?
-        Debug.assert(.lastBucket == .firstBucket)
+        Swag.assert(.lastBucket == .firstBucket)
 
         let firstBucket = .firstBucket!
         let rdata       = firstBucket.data!
@@ -590,7 +590,7 @@ impl ConcatBuffer
             curPtr += b.count
         }
 
-        Debug.assert(curPtr == newDatas + total)
+        Swag.assert(curPtr == newDatas + total)
         .release()
 
         // Make one single bucket

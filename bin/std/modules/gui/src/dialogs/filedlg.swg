@@ -156,7 +156,7 @@ impl FileDlg
     #[Swag.Discardable]
     func create(from: *Surface, opt: FileDlgOptions = {})->*FileDlg
     {
-        Debug.assert(from != null)
+        Swag.assert(from != null)
         let dlg = Wnd.create'FileDlg()
         dlg.options = opt
 

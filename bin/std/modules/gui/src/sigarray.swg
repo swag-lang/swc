@@ -36,7 +36,7 @@ impl SigArray
     // Ends one nested callback suspension.
     mtd enable()
     {
-        Debug.assert(.suspendDepth > 0, "signal is not disabled")
+        Swag.assert(.suspendDepth > 0, "signal is not disabled")
         .suspendDepth -= 1
     }
 
@@ -63,7 +63,7 @@ impl SigArray
             return
 
         // Be sure the call has the right number of arguments
-        Debug.assert(params.count == (#typeof(T).parameters).count)
+        Swag.assert(params.count == (#typeof(T).parameters).count)
 
         for fn in .callbacks
         {

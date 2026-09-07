@@ -50,7 +50,7 @@ func loadFonts() fail
 
 func gdipCheck(status: GpStatus)
 {
-    Debug.assert(status == GdipOk, "GDI+ call failed")
+    Swag.assert(status == GdipOk, "GDI+ call failed")
 }
 
 func initGdiPlus()

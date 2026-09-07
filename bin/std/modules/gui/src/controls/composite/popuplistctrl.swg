@@ -469,7 +469,7 @@ impl PopupListCtrl
     // Sets the item highlighted when the popup opens, or clears it with U32.Max.
     mtd setSelectedIndex(index: u32)
     {
-        Debug.assert(index == Swag.U32.Max or index < .items.count and !.items[index]!.isSeparator)
+        Swag.assert(index == Swag.U32.Max or index < .items.count and !.items[index]!.isSeparator)
         .selectedIndex = index
     }
 }

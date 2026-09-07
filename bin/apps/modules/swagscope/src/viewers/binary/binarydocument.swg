@@ -82,7 +82,7 @@ impl BinaryDocument
         if .kind == .Scc do
             loadSccImagePreviews(fileName, &.previews)
 
-        Debug.assert(.report.level == 0, "a format reader left a group open")
+        Swag.assert(.report.level == 0, "a format reader left a group open")
         .prependFileSummary()
 
         // Reports and previews own everything they retain. Keep the mapping for offset-driven

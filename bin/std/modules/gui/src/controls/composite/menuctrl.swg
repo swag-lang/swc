@@ -1189,7 +1189,7 @@ public impl MenuCtrl
     #[Swag.Discardable]
     func createPopup(parent: *Wnd, id: WndId? = null, owner: *Wnd? = null)->*MenuCtrl
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let topView     = parent.topView()
         let popupParent = parent == topView or topView.isAncestorOf(parent) ? topView : parent.topWindow()
         with let res    = Wnd.create'MenuCtrl(popupParent, null, {}, id)
@@ -1208,7 +1208,7 @@ public impl MenuCtrl
     #[Swag.Discardable]
     func createBar(parent: *Wnd, pos: Math.Rectangle = {}, id: WndId? = null, owner: *Wnd? = null)->*MenuCtrl
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         with let res = Wnd.create'MenuCtrl(parent, null, pos, id)
         {
             .focusPolicy = .Click
@@ -1226,14 +1226,14 @@ public impl MenuCtrl
     // Returns the item at `index`.
     mtd const itemAt(index: u32)->*PopupMenuItem
     {
-        Debug.assert(index < .items.count, "menu item index is out of range")
+        Swag.assert(index < .items.count, "menu item index is out of range")
         return .items[index]!
     }
 
     // Removes one item and invalidates cached menu layout.
     mtd removeItemAt(index: u32)
     {
-        Debug.assert(index < .items.count, "menu item index is out of range")
+        Swag.assert(index < .items.count, "menu item index is out of range")
         .hideSubVisible()
         .removeTimer()
         .items.deleteAt(index)
@@ -1400,7 +1400,7 @@ public impl MenuCtrl
 
     private mtd doModalImpl(surfacePos: Math.Point, pos: PopupPosition, autoDestroy: bool, button: *IconButton?)->WndId?
     {
-        Debug.assert(!.bar)
+        Swag.assert(!.bar)
 
         .clearPopupBarAnchor()
         if button do

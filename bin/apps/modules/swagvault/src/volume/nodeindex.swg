@@ -46,7 +46,7 @@ impl NodeIndex
             if children.value.lastId
             {
                 let previous = .siblings.tryFind(children.value.lastId)
-                Debug.assert(previous != null)
+                Swag.assert(previous != null)
                 previous!.value.nextId = node.id
             }
             else do
@@ -68,14 +68,14 @@ impl NodeIndex
         .byParent.remove(childIndexKey(node.parentId, node.name.toString()))
         let links    = .siblings.tryFind(node.id)
         let children = .childLists.tryFind(node.parentId)
-        Debug.assert(links != null and children != null)
+        Swag.assert(links != null and children != null)
 
         let previousId = links!.value.previousId
         let nextId     = links!.value.nextId
         if previousId
         {
             let previous = .siblings.tryFind(previousId)
-            Debug.assert(previous != null)
+            Swag.assert(previous != null)
             previous!.value.nextId = nextId
         }
         else do
@@ -84,7 +84,7 @@ impl NodeIndex
         if nextId
         {
             let next = .siblings.tryFind(nextId)
-            Debug.assert(next != null)
+            Swag.assert(next != null)
             next!.value.previousId = previousId
         }
         else do
@@ -98,7 +98,7 @@ impl NodeIndex
     mtd updateNodePosition(nodeId, index: u64)
     {
         let entry = .byId.tryFind(nodeId)
-        Debug.assert(entry != null)
+        Swag.assert(entry != null)
         entry!.value = index
     }
 
@@ -141,12 +141,12 @@ impl NodeIndex
         if node.parentId != parentId or node.name.toString() != name
         {
             let position = .nodePosition(node.id)
-            Debug.assert(position != Swag.U64.Max)
+            Swag.assert(position != Swag.U64.Max)
             .remove(node)
             node.parentId = parentId
             node.name     = name
             let added = .add(node, position)
-            Debug.assert(added)
+            Swag.assert(added)
         }
 
         return true

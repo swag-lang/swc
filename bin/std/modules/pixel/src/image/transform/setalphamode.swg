@@ -9,8 +9,8 @@ impl Image
     // values outside zero through one; normalized integer formats round to their stored precision.
     public mtd convertAlphaTo(newMode: AlphaMode)
     {
-        Debug.assert(.isValid(), "image is invalid")
-        Debug.assert(.pixelFormat.hasAlpha(), "alpha association requires an alpha channel")
+        Swag.assert(.isValid(), "image is invalid")
+        Swag.assert(.pixelFormat.hasAlpha(), "alpha association requires an alpha channel")
         if newMode == .alphaMode do
             return
 

@@ -1164,7 +1164,7 @@ impl EditBox
     #[Swag.Discardable]
     func create(parent: *Wnd, content: string?, position: Math.Rectangle = {}, id: WndId? = null, flags: EditBoxFlags = .None)->*EditBox
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         var pos = position
         if pos.height == 0 do
             pos.height = parent.themeMetrics().editBox_Height
@@ -1269,7 +1269,7 @@ impl EditBox
     // Accepts signed 64-bit integers in the inclusive range.
     mtd setSignedIntegerRange(min = Swag.S64.Min, max = Swag.S64.Max)
     {
-        Debug.assert(min <= max, "minimum cannot exceed maximum")
+        Swag.assert(min <= max, "minimum cannot exceed maximum")
         .inputMode     = .SignedInteger
         .minMaxS64.min = min
         .minMaxS64.max = max
@@ -1280,7 +1280,7 @@ impl EditBox
     // Accepts unsigned 64-bit integers in the inclusive range.
     mtd setUnsignedIntegerRange(min = 0'u64, max = Swag.U64.Max)
     {
-        Debug.assert(min <= max, "minimum cannot exceed maximum")
+        Swag.assert(min <= max, "minimum cannot exceed maximum")
         .inputMode     = .UnsignedInteger
         .minMaxU64.min = min
         .minMaxU64.max = max
@@ -1291,7 +1291,7 @@ impl EditBox
     // Accepts unsigned hexadecimal integers in the inclusive range.
     mtd setHexadecimalRange(min = 0'u64, max = Swag.U64.Max)
     {
-        Debug.assert(min <= max, "minimum cannot exceed maximum")
+        Swag.assert(min <= max, "minimum cannot exceed maximum")
         .inputMode     = .Hexadecimal
         .minMaxU64.min = min
         .minMaxU64.max = max
@@ -1302,7 +1302,7 @@ impl EditBox
     // Accepts 64-bit floating-point values in the inclusive range.
     mtd setFloatingPointRange(min = -Swag.F64.Max, max = Swag.F64.Max)
     {
-        Debug.assert(min <= max, "minimum cannot exceed maximum")
+        Swag.assert(min <= max, "minimum cannot exceed maximum")
         .inputMode     = .FloatingPoint
         .minMaxF64.min = min
         .minMaxF64.max = max
@@ -1358,14 +1358,14 @@ impl EditBox
     // Changes the maximum rune count; zero removes the limit.
     mtd setMaximumLength(length: s32)
     {
-        Debug.assert(length >= 0, "maximum length cannot be negative")
+        Swag.assert(length >= 0, "maximum length cannot be negative")
         .maximumLength = length
     }
 
     // Changes the extra trailing inset.
     mtd setTrailingMargin(margin: f32)
     {
-        Debug.assert(margin >= 0, "trailing margin cannot be negative")
+        Swag.assert(margin >= 0, "trailing margin cannot be negative")
         if .trailingMargin == margin do
             return
         .trailingMargin = margin

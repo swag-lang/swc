@@ -92,7 +92,7 @@ impl RichEditCtrl
     // Removes and returns the newest undo record.
     mtd popUndo()
     {
-        Debug.assert(.undoCounter != 0)
+        Swag.assert(.undoCounter != 0)
         .undoCounter -= 1
 
         for i in .toUndo.count

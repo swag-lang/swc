@@ -119,7 +119,7 @@ impl String
     // Returns a slice of this value.
     mtd const opSlice(lower, upper: u64)->string
     {
-        Debug.assert(lower <= upper and lower < .length and upper < .length)
+        Swag.assert(lower <= upper and lower < .length and upper < .length)
         return Swag.makeString(.buffer + lower, (upper + 1) - lower)
     }
 
@@ -459,7 +459,7 @@ impl String
         }
 
         Debug.safetyBoundCheck(byteIndex < .length, "index out of range")
-        Debug.assert(value != 0)
+        Swag.assert(value != 0)
 
         .grow(.length + 2)
         let buffer = .buffer!
@@ -518,7 +518,7 @@ impl String
     // Append a rune to the String
     mtd append(value: rune)
     {
-        Debug.assert(Utf8.isValidRune(value), "invalid rune")
+        Swag.assert(Utf8.isValidRune(value), "invalid rune")
         var tmp: [4] u8
         let eat = Utf8.encodeRune(tmp, value)
         .grow(.length + eat + 1)

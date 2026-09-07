@@ -83,7 +83,7 @@ impl ImageRect
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ImageRect
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let result = Wnd.create'ImageRect(parent, null, position, id)
         result.movie.sigFrameChanged += func|result|(movie)
         {
@@ -160,7 +160,7 @@ impl ImageRect
     // Changes the duration of every frame, in seconds.
     mtd setFrameDuration(seconds: f32)
     {
-        Debug.assert(seconds > 0, "frame duration must be positive")
+        Swag.assert(seconds > 0, "frame duration must be positive")
         .movie.frameDurationSeconds = seconds
         .movie.usesFrameDurations   = false
     }

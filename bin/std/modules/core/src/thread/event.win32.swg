@@ -36,7 +36,7 @@ impl Event
     // Initialize event
     mtd init(manual, initState = false)
     {
-        Debug.assert(.handle == null)
+        Swag.assert(.handle == null)
         .handle = expect CreateEventA(null, manual ? TRUE : FALSE, initState ? TRUE : FALSE, null)
     }
 
@@ -52,21 +52,21 @@ impl Event
     // Signal the event
     mtd signal()
     {
-        Debug.assert(.isValid())
+        Swag.assert(.isValid())
         expect SetEvent(.handle)
     }
 
     // Reset the event state
     mtd reset()
     {
-        Debug.assert(.isValid())
+        Swag.assert(.isValid())
         expect ResetEvent(.handle)
     }
 
     // Wait for the event to be signaled
     mtd wait()
     {
-        Debug.assert(.isValid())
+        Swag.assert(.isValid())
         expect WaitForSingleObject(.handle, INFINITE)
     }
 }

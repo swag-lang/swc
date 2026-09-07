@@ -265,7 +265,7 @@ impl RichEditCtrl
     {
         if runes.isEmpty() do
             return
-        Debug.assert(runes.count == nstyles.count)
+        Swag.assert(runes.count == nstyles.count)
         if .lines.isEmpty() do
             .newLine(0)
 

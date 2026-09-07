@@ -137,7 +137,7 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
             {
                 let spec = cast(string) Swag.makeSlice(strFormat.buffer + 1, strFormat.count - 1)
                 let {argIdx, eatCount, ?} = expect StrConv.parseU64(spec)
-                Debug.assert(eatCount != 0, "missing argument index after '#'")
+                Swag.assert(eatCount != 0, "missing argument index after '#'")
                 useIdx = cast(u32) argIdx
 
                 // An optional conversion format follows ':'.
@@ -149,7 +149,7 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
                 paramIdx += 1
 
             // Deal with the parameter
-            Debug.assert(useIdx < numParams, "not enough 'format' parameters")
+            Swag.assert(useIdx < numParams, "not enough 'format' parameters")
             StrConv.convertAny(buf, values[useIdx], convFmt, cast(string?) strFormat)
         }
         else

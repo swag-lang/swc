@@ -62,8 +62,8 @@ impl OrderedSet
     // The set must be empty so that no key was positioned by another ordering.
     mtd initialize(comparator: func(const *K, const *K)->s32)
     {
-        Debug.assert(comparator != null)
-        Debug.assert(.isEmpty(), "ordered set is not empty")
+        Swag.assert(comparator != null)
+        Swag.assert(.isEmpty(), "ordered set is not empty")
         .comparator = cast(*void) comparator
     }
 
@@ -91,7 +91,7 @@ impl OrderedSet
         if .comparator do
             return (cast(func(const *K, const *K)->s32) .comparator!)(&left, &right)
 
-        Debug.assert(false, "ordered set has not been initialized with a comparator")
+        Swag.assert(false, "ordered set has not been initialized with a comparator")
         return 0
     }
 

@@ -262,7 +262,7 @@ impl CaptureSaveQueue
     // the previous save first, so the slot holds one writer per file at all times.
     mtd adopt(job: *CaptureSaveJob)
     {
-        Debug.assert(!.pending)
+        Swag.assert(!.pending)
         .pending = job
     }
 
@@ -667,7 +667,7 @@ impl Capture
     {
         var result: Guid128
         let valid = Guid128.tryParse(text, &result)
-        Debug.assert(valid)
+        Swag.assert(valid)
         return result
     }
 
@@ -827,7 +827,7 @@ impl Capture
     // file, so editing never waits on compression or disk.
     mtd scheduleSave() fail
     {
-        Debug.assert(!g_CaptureSaves.pending)
+        Swag.assert(!g_CaptureSaves.pending)
         let job = try .snapshotSave()
         g_CaptureSaves.adopt(job)
         job.task.submit(func|job|()

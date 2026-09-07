@@ -1,17 +1,6 @@
 #global public
 #global namespace Debug
 
-// Performs the assert operation.
-#[Swag.Macro]
-func assert(expr: #code->bool, message: string? = null, loc = #callerlocation)
-{
-    #static if ASSERT
-    {
-        if !#inject(expr) do
-            Swag.panic(message, loc)
-    }
-}
-
 // Performs the safety operation.
 #[Swag.Macro]
 func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: string? = null, loc = #callerlocation)

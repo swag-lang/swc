@@ -22,10 +22,10 @@ public impl Image
     // Resizes the image, preserving aspect ratio when one dimension is zero.
     mtd resize(newWidth, newHeight: s32, mode = ResizeMode.Nearest)
     {
-        Debug.assert(newWidth >= 0 and newHeight >= 0 and (newWidth > 0 or newHeight > 0))
+        Swag.assert(newWidth >= 0 and newHeight >= 0 and (newWidth > 0 or newHeight > 0))
         let nw = newWidth != 0 ? newWidth : cast(s32) (newHeight * (.width / cast(f32) .height))
         let nh = newHeight != 0 ? newHeight : cast(s32) (newWidth * (.height / cast(f32) .width))
-        Debug.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
+        Swag.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
         if nw == .width and nh == .height do
             return
         .allocWorkingBuffer(nw, nh, .pixelFormat)
@@ -36,10 +36,10 @@ public impl Image
     // Returns a resized copy, preserving aspect ratio when one dimension is zero.
     mtd const resized(newWidth, newHeight: s32, mode = ResizeMode.Nearest)->Image
     {
-        Debug.assert(newWidth >= 0 and newHeight >= 0 and (newWidth > 0 or newHeight > 0))
+        Swag.assert(newWidth >= 0 and newHeight >= 0 and (newWidth > 0 or newHeight > 0))
         let nw = newWidth != 0 ? newWidth : cast(s32) (newHeight * (.width / cast(f32) .height))
         let nh = newHeight != 0 ? newHeight : cast(s32) (newWidth * (.height / cast(f32) .width))
-        Debug.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
+        Swag.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
         if nw == .width and nh == .height
         {
             var result: retval = me
@@ -294,7 +294,7 @@ namespace ResizeTools
         {
         case 24: doIt'24()
         case 32: doIt'32()
-        default: Debug.assert(false)
+        default: Swag.assert(false)
         }
     }
 
@@ -347,7 +347,7 @@ namespace ResizeTools
         {
         case 24: doIt'24()
         case 32: doIt'32()
-        default: Debug.assert(false)
+        default: Swag.assert(false)
         }
     }
 

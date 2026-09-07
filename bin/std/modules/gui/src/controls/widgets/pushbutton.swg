@@ -272,7 +272,7 @@ impl PushButton
     #[Swag.Discardable]
     func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: WndId? = null, form = PushButtonForm.Normal)->*PushButton
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         var pos = position
         if pos.height == 0 do
             pos.height = parent.themeMetrics().btnPush_Height

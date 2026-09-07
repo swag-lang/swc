@@ -69,7 +69,7 @@ impl SliderCtrl
     #[Swag.Discardable]
     func create(parent: *Wnd, name: string?, position: Math.Rectangle = {}, id: WndId? = null)->*SliderCtrl
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let metrics = parent.themeMetrics()
         var pos     = position
         if pos.width == 0 do
@@ -125,7 +125,7 @@ impl SliderCtrl
     // Changes the label width, value-editor width, and spacing between child controls.
     mtd setLayoutMetrics(labelWidth, valueWidth, spacing: f32 = 8)
     {
-        Debug.assert(labelWidth >= 0 and valueWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
+        Swag.assert(labelWidth >= 0 and valueWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
         if .labelWidth == labelWidth and .valueWidth == valueWidth and .spacing == spacing do
             return
         .labelWidth = labelWidth

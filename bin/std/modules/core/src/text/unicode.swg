@@ -172,7 +172,7 @@ public func fromUtf8(dest: [..] rune, src: const [..] u8)->u32
     var {c, eat} = Utf8.decodeRune(src)
     while eat != 0
     {
-        Debug.assert(count != dest.count, "destination buffer is too small")
+        Swag.assert(count != dest.count, "destination buffer is too small")
 
         destPtr[]      = c
         destPtr, count += 1

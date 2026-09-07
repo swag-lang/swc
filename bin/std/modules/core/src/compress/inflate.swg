@@ -448,7 +448,7 @@ impl Inflate
         var repeatZ:      HuffmanTable
         var codeLengthHt: HuffmanTable
 
-        Debug.assert(.windowSize > 0)
+        Swag.assert(.windowSize > 0)
 
         for
         {

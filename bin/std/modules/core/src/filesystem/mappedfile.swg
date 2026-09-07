@@ -65,7 +65,7 @@ impl MappedFile
     // Returns the current file length in bytes.
     mtd size()->u64 fail
     {
-        Debug.assert(.isOpen())
+        Swag.assert(.isOpen())
         return .stream.size()
     }
 
@@ -75,16 +75,16 @@ impl MappedFile
     // region for this file. Existing regions are never resized implicitly.
     mtd resize(newSize: u64) fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.access == .ReadWrite)
+        Swag.assert(.isOpen())
+        Swag.assert(.access == .ReadWrite)
         .stream.resize(newSize)
     }
 
     // Flushes file data and metadata through the underlying file handle.
     mtd flush() fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.access == .ReadWrite)
+        Swag.assert(.isOpen())
+        Swag.assert(.access == .ReadWrite)
         .stream.flush()
     }
 
@@ -95,7 +95,7 @@ impl MappedFile
     // be closed or flushed after this [[Core.File.MappedFile]] is closed.
     mtd map(offset, length: u64)->MappedRegion fail
     {
-        Debug.assert(.isOpen())
+        Swag.assert(.isOpen())
 
         let fileSize = .size()
         if offset > fileSize or length > fileSize - offset do
@@ -165,15 +165,15 @@ impl MappedRegion
     // Returns a read-only view of the mapped bytes.
     mtd const bytes()->const [..] u8
     {
-        Debug.assert(.isOpen())
+        Swag.assert(.isOpen())
         return Swag.makeSlice(.view, .length)
     }
 
     // Returns a writable view of shared or copy-on-write bytes.
     mtd writableBytes()->[..] u8
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.access != .Read)
+        Swag.assert(.isOpen())
+        Swag.assert(.access != .Read)
         return Swag.makeSlice(.view, .length)
     }
 
@@ -184,7 +184,7 @@ impl MappedRegion
     // filesystem's guarantees.
     mtd flush() fail
     {
-        Debug.assert(.isOpen())
+        Swag.assert(.isOpen())
         if .access != .ReadWrite or !.length do
             return
         .flushNative()

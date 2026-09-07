@@ -17,7 +17,7 @@ impl Image
     // Flip image vertically
     public mtd flip()
     {
-        Debug.assert(.pixels.buffer != null)
+        Swag.assert(.pixels.buffer != null)
         .allocWorkingBuffer()
         .doFlip(.safeWorkingBuffer())
         .applyWorkingBuffer()
@@ -26,7 +26,7 @@ impl Image
     // Flip image vertically
     public mtd const flipped()->Image
     {
-        Debug.assert(.pixels.buffer != null)
+        Swag.assert(.pixels.buffer != null)
         var result: retval = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
         .doFlip(&result)
         return result

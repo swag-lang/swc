@@ -35,7 +35,7 @@ struct TraceOptions
 // ```
 func trace(image: const *Image, options: TraceOptions = {})->Document
 {
-    Debug.assert(image != null and image.isValid())
+    Swag.assert(image != null and image.isValid())
 
     var result: retval = Document.create(image.width, image.height)
 

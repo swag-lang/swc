@@ -270,9 +270,9 @@ private impl FormLayoutCtrl
     // Gives the row appended last its single trailing control.
     mtd attachToLastRow(control: *Wnd)
     {
-        Debug.assert(!.rows.isEmpty(), "a trailing control needs a field row to extend")
+        Swag.assert(!.rows.isEmpty(), "a trailing control needs a field row to extend")
         let row = .rows.backPtr()
-        Debug.assert(row.action == null, "a form row holds a single trailing control")
+        Swag.assert(row.action == null, "a form row holds a single trailing control")
         row.action = control
         .invalidateLayout()
     }
@@ -284,7 +284,7 @@ impl FormLayoutCtrl
     #[Swag.Discardable]
     func create(parent: *Wnd, options: FormLayoutOptions = {}, position: Math.Rectangle = {})->*FormLayoutCtrl
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let result = Wnd.create'FormLayoutCtrl(parent, null, position)
         result.options         = options
         result.backgroundStyle = .Transparent
@@ -299,8 +299,8 @@ impl FormLayoutCtrl
     #[Swag.Discardable]
     mtd addField(label: string, field: *Wnd, action: *Wnd? = null, help: string? = null)->u64
     {
-        Debug.assert(field.parent == me, "form field needs the form as its parent")
-        Debug.assert(!action or action.parent == me, "form action needs the form as its parent")
+        Swag.assert(field.parent == me, "form field needs the form as its parent")
+        Swag.assert(!action or action.parent == me, "form action needs the form as its parent")
 
         var row = FormLayoutRow{
             label: Label.create(me, label, flags: .options.labelFlags),
@@ -403,7 +403,7 @@ impl FormLayoutCtrl
     // language switch without rebuilding the form and losing what the fields hold.
     mtd setRowLabel(index: u64, label: string)
     {
-        Debug.assert(index < .rows.count, "no such form row")
+        Swag.assert(index < .rows.count, "no such form row")
         .rows[index].label.setText(label)
         .invalidateLayout()
     }
@@ -411,9 +411,9 @@ impl FormLayoutCtrl
     // Replaces the help text of row `index`, which must already have one.
     mtd setRowHelp(index: u64, help: string)
     {
-        Debug.assert(index < .rows.count, "no such form row")
+        Swag.assert(index < .rows.count, "no such form row")
         let row = &.rows[index]
-        Debug.assert(row.help != null, "this form row carries no help text")
+        Swag.assert(row.help != null, "this form row carries no help text")
         row.help!.setText(help)
         .invalidateLayout()
     }

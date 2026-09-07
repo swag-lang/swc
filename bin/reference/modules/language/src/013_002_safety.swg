@@ -27,6 +27,34 @@ with 'buildCfg.safetyGuards'.
 */
 
 /**
+# Assertions
+
+'Swag.assert(condition, message)' is the standard assertion for programmer invariants.
+'SafetyWhat.Assert' follows the same defaults as other runtime safety guards: enabled
+in 'devmode', disabled in 'release'. Set 'buildCfg.safetyGuards |= .Assert' to keep
+assertions in a release module, or use a local 'Swag.Safety' override.
+
+When disabled, the assertion emits no code and evaluates none of its arguments.
+Arguments still type-check. The invariant remains a precondition for subsequent
+flow-narrowed code. Keep required side effects outside the assertion.
+'#assert' is a separate compile-time check and is unaffected by this flag.
+*/
+#test
+{
+    #[Swag.Safety(.Assert, true)]
+    {
+        #assert(#safety(Swag.SafetyWhat.Assert))
+        Swag.assert(10 > 0, "positive value")
+    }
+
+    #[Swag.Safety(.Assert, false)]
+    {
+        #assert(!#safety(Swag.SafetyWhat.Assert))
+        Swag.assert(false)
+    }
+}
+
+/**
 # Overflow Safety
 Example:
 #[Swag.Safety(.Overflow, true)]

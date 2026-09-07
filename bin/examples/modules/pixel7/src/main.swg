@@ -88,7 +88,7 @@ func sourceVariant(source: Image, pixelFormat: PixelFormat, withAlphaBorder = fa
     if !withAlphaBorder do
         return result
 
-    Debug.assert(pixelFormat.hasAlpha())
+    Swag.assert(pixelFormat.hasAlpha())
     var pixel = result.pixels.buffer!
     for y in result.height
     {
@@ -132,7 +132,7 @@ func paletteVariant(source: Image, withAlpha: bool)->Image
 
 func nonNullBytes(bytes: [..] u8?)->const [..] u8
 {
-    Debug.assert(bytes != null)
+    Swag.assert(bytes != null)
     return Swag.makeSlice(cast([*] u8) bytes.buffer!, bytes.count)
 }
 

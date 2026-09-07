@@ -182,7 +182,7 @@ internal func readPixelValue(source: const [*] u8, format: PixelFormat)->PixelVa
         result = {source[as f32], (source + 4)[as f32], (source + 8)[as f32], (source + 12)[as f32]}
 
     case .Yuv420:
-        Debug.assert(false, "a planar pixel cannot be read from packed storage")
+        Swag.assert(false, "a planar pixel cannot be read from packed storage")
     }
 
     return result
@@ -253,7 +253,7 @@ internal func writePixelValue(destination: [*] u8, format: PixelFormat, value: P
             (destination + 12)[as f32] = value.a
 
     case .Yuv420:
-        Debug.assert(false, "a planar pixel cannot be written to packed storage")
+        Swag.assert(false, "a planar pixel cannot be written to packed storage")
     }
 }
 
@@ -313,14 +313,14 @@ impl Image
     // ```
     func create(width, height: s32, pixelFormat: PixelFormat, buffer: const [..] u8? = null, alphaMode = AlphaMode.Straight)->Image
     {
-        Debug.assert(width > 0 and height > 0, "invalid dimensions")
+        Swag.assert(width > 0 and height > 0, "invalid dimensions")
 
         var result: retval
         result.init(width, height, pixelFormat, alphaMode)
         result.allocPixels()
         if buffer
         {
-            Debug.assert(buffer.count == result.byteCount, "pixel buffer size does not match image geometry")
+            Swag.assert(buffer.count == result.byteCount, "pixel buffer size does not match image geometry")
             Memory.copy(cast([*] u8) result.pixels.buffer!, buffer.buffer, buffer.count)
         }
 
@@ -362,12 +362,12 @@ impl Image
     // afterward, or supply storage through a higher-level creation operation.
     internal mtd init(width, height: s32, pixelFormat: PixelFormat, alphaMode = AlphaMode.Straight)
     {
-        Debug.assert(width > 0 and height > 0, "invalid dimensions")
+        Swag.assert(width > 0 and height > 0, "invalid dimensions")
         let bitsPerPixel = pixelFormat.bitsPerPixel()
-        Debug.assert(pixelFormat.isPacked(), "an image holds a packed pixel format")
-        Debug.assert(pixelFormat.hasAlpha() or alphaMode == .Straight, "a format without alpha cannot be premultiplied")
+        Swag.assert(pixelFormat.isPacked(), "an image holds a packed pixel format")
+        Swag.assert(pixelFormat.hasAlpha() or alphaMode == .Straight, "a format without alpha cannot be premultiplied")
         let bytesPerPixel = cast(u8) (bitsPerPixel >> 3)
-        Debug.assert(width <= 0x7FFFFFFF's32 / cast(s32) bytesPerPixel, "image row is too large")
+        Swag.assert(width <= 0x7FFFFFFF's32 / cast(s32) bytesPerPixel, "image row is too large")
 
         .release()
         .width         = width
@@ -383,7 +383,7 @@ impl Image
     // Allocates the pixel buffer without initializing its bytes.
     internal mtd allocPixels()
     {
-        Debug.assert(.byteCount != 0)
+        Swag.assert(.byteCount != 0)
 
         // Do not use pixels.resize to avoid initializing all the pixels
         // Pixels are not defined after a call to 'allocPixels', as design
@@ -481,7 +481,7 @@ impl Image
     #[Swag.Macro]
     mtd visitPixels(pixelUserData: *void? = null, stride: s32 = 1, stmt: #code(var pix, image, index: u64, x: s32, y: s32, userData))
     {
-        Debug.assert(stride > 0)
+        Swag.assert(stride > 0)
 
         let self: const *Image = me
         let step               = cast(u64) (.bytesPerPixel * stride)
@@ -537,7 +537,7 @@ impl Image
     // Sets every byte of the pixel buffer to zero.
     mtd clear()
     {
-        Debug.assert(.isValid(), "image is invalid")
+        Swag.assert(.isValid(), "image is invalid")
         let pixels = .pixels.buffer!
         Memory.clear(pixels, .byteCount)
     }
@@ -668,7 +668,7 @@ impl Image
     // Returns the color at the given coordinate, clamped to the image bounds.
     mtd const pixelColor(pixX, pixY: s32)->Color
     {
-        Debug.assert(.isValid(), "image is invalid")
+        Swag.assert(.isValid(), "image is invalid")
         if .alphaMode == .Premultiplied
         {
             let x      = Math.clamp(pixX, 0, .width - 1)
@@ -716,14 +716,14 @@ impl Image
             break
         }
 
-        Debug.assert(false)
+        Swag.assert(false)
         return Color.fromArgb(0'u32)
     }
 
     // Returns the width divided by the height.
     mtd const aspectRatio()->f32
     {
-        Debug.assert(.isValid(), "image is invalid")
+        Swag.assert(.isValid(), "image is invalid")
         return cast(f32) .width / cast(f32) .height
     }
 

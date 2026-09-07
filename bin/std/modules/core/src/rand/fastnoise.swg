@@ -37,9 +37,9 @@ impl FastNoise
 {
     private mtd const validateFractalParameters()
     {
-        Debug.assert(.octaves > 0)
-        Debug.assert(.lacunarity > 0)
-        Debug.assert(.gain >= 0)
+        Swag.assert(.octaves > 0)
+        Swag.assert(.lacunarity > 0)
+        Swag.assert(.gain >= 0)
     }
 
     mtd const fractalBounding()->f32
@@ -176,10 +176,10 @@ impl FastNoise
     // Samples the configured noise at the given coordinates.
     public mtd const sample(x, y: f32)->f32
     {
-        Debug.assert(.octaves > 0)
-        Debug.assert(.frequency >= 0)
-        Debug.assert(.lacunarity > 0)
-        Debug.assert(.gain >= 0)
+        Swag.assert(.octaves > 0)
+        Swag.assert(.frequency >= 0)
+        Swag.assert(.lacunarity > 0)
+        Swag.assert(.gain >= 0)
 
         var result: f32
 

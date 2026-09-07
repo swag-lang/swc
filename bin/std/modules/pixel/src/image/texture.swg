@@ -56,7 +56,7 @@ impl Texture
     // storage was really allocated with.
     internal mtd attach(handle: TextureHandle, pixelFormat: PixelFormat, width, height: s32)
     {
-        Debug.assert(handle != InvalidTextureHandle and width > 0 and height > 0)
+        Swag.assert(handle != InvalidTextureHandle and width > 0 and height > 0)
         .handle      = handle
         .pixelFormat = pixelFormat
         .width       = width

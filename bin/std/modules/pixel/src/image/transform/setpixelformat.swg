@@ -117,7 +117,7 @@ impl Image
     // association is retained whenever both formats store alpha.
     public mtd convertTo(newPf: PixelFormat)
     {
-        Debug.assert(.pixels.buffer != null)
+        Swag.assert(.pixels.buffer != null)
 
         if newPf == .pixelFormat do
             return
@@ -133,7 +133,7 @@ impl Image
     // Conversion semantics match [[Image.convertTo]].
     public mtd const convertedTo(newPf: PixelFormat)->Image
     {
-        Debug.assert(.pixels.buffer != null)
+        Swag.assert(.pixels.buffer != null)
 
         if newPf == .pixelFormat do
             return me

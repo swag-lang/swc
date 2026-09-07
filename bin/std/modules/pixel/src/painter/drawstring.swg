@@ -369,7 +369,7 @@ impl Painter
     // and records glyph indices, advances, and cluster positions.
     func shapeRunInto(result: *ShapedRun, text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32, wordSpacing = 0.0'f32)
     {
-        Debug.assert(font != null, "invalid font")
+        Swag.assert(font != null, "invalid font")
 
         result.font          = font
         result.tabSize       = tabSize
@@ -426,8 +426,8 @@ impl Painter
     // glyph sequence and cluster mapping.
     func shapeRunForFont(run: const *ShapedRun, font: *Font)->ShapedRun
     {
-        Debug.assert(font != null, "invalid font")
-        Debug.assert(run.font.cache.typeFace == font.cache.typeFace, "cannot reuse glyph indexes with another typeface")
+        Swag.assert(font != null, "invalid font")
+        Swag.assert(run.font.cache.typeFace == font.cache.typeFace, "cannot reuse glyph indexes with another typeface")
 
         var result: retval
         result.font          = font
@@ -819,7 +819,7 @@ impl Painter
     // per-glyph drift accumulate until a space between two chunks visually vanishes.
     func computeLayout(pos: Math.Rectangle, text: *RichString, format: RichStringFormat, deviceScale = 1.0'f32)
     {
-        Debug.assert(format.font.regular != null, "invalid default font")
+        Swag.assert(format.font.regular != null, "invalid default font")
         text.layoutRect  = pos
         text.layoutScale = deviceScale
 

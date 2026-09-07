@@ -58,7 +58,7 @@ impl Image
     // Flip image horizontally
     public mtd mirror()
     {
-        Debug.assert(.pixels.buffer != null)
+        Swag.assert(.pixels.buffer != null)
         .allocWorkingBuffer()
         .doMirror(.safeWorkingBuffer())
         .applyWorkingBuffer()
@@ -67,7 +67,7 @@ impl Image
     // Flip image horizontally
     public mtd const mirrored()->Image
     {
-        Debug.assert(.pixels.buffer != null)
+        Swag.assert(.pixels.buffer != null)
         var result: retval = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
         .doMirror(&result)
         return result

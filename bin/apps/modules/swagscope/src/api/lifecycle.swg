@@ -74,7 +74,7 @@ impl BackgroundLoad
 {
     mtd start(fileName: string, load: func(string)->T fail)
     {
-        Debug.assert(!.started)
+        Swag.assert(!.started)
         .fileName = fileName
         .load     = load
         .started  = true
@@ -90,7 +90,7 @@ impl BackgroundLoad
     // Publishes the loaded value and returns the captured failure message.
     mtd finish(value: *T)->String
     {
-        Debug.assert(.isDone())
+        Swag.assert(.isDone())
         .wait()
         value[] = #move .value
         let result = Errors.message(.error)

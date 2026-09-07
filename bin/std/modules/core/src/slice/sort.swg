@@ -116,7 +116,7 @@ func(T) sort(values: [..] T, descending = false)
 // number of elements
 func(T) sort(values: [..] T, compare: func||(T, T)->s32)
 {
-    Debug.assert(compare != null)
+    Swag.assert(compare != null)
     if values.count <= 10 do
         insertionSort(values, compare)
     else do
@@ -133,7 +133,7 @@ func(T) isSorted(values: const [..] T)->bool
 // Returns true if the slice is sorted
 func(T) isSorted(values: const [..] T, compare: func||(T, T)->s32)->bool
 {
-    Debug.assert(compare != null)
+    Swag.assert(compare != null)
     let countof = values.count
     if countof <= 1 do
         return true

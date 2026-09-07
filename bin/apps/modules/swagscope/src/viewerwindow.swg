@@ -502,7 +502,7 @@ impl IWnd for ViewerInfoBar
 
 func viewerWindowFor(view: *Wnd)->*ViewerWindow
 {
-    Debug.assert(view.parent != null)
+    Swag.assert(view.parent != null)
     if view.parent!.userData do
         return cast(*ViewerWindow) view.parent!.userData!
 
@@ -541,7 +541,7 @@ impl ViewerChoiceLoad
 {
     mtd start(index: *ViewerPluginRegistry, fileName: string, recent: const [..] String)
     {
-        Debug.assert(!.started)
+        Swag.assert(!.started)
 
         // The operation is reusable. A completed result was moved to the window, so rebuild every
         // owning field before the worker appends the next folder and history snapshot.
@@ -591,7 +591,7 @@ impl ViewerChoiceLoad
 
     mtd finish()->ViewerClassifiedFile
     {
-        Debug.assert(.isDone())
+        Swag.assert(.isDone())
         .task.wait()
         .started = false
         return #move .result

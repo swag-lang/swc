@@ -101,7 +101,7 @@ impl Button
     // Overrides the icon draw size; zero on either axis preserves that axis from the icon descriptor.
     mtd setIconSize(width, height: f32)
     {
-        Debug.assert(width >= 0 and height >= 0, "icon size cannot be negative")
+        Swag.assert(width >= 0 and height >= 0, "icon size cannot be negative")
         if .iconWidth == width and .iconHeight == height do
             return
         .iconWidth  = width

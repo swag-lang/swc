@@ -11,8 +11,8 @@ impl Decoder
 {
     func coeffBufGetp(cb: CoeffBuf, blkX, blkY: s32)->[*] s16
     {
-        Debug.assert(blkX < cb.blockNumX)
-        Debug.assert(blkY < cb.blockNumY)
+        Swag.assert(blkX < cb.blockNumX)
+        Swag.assert(blkY < cb.blockNumY)
         return cast([*] s16) (cast([*] u8) cb.pdata.buffer! + blkX * cb.blockSize + blkY * (cb.blockSize * cb.blockNumX))
     }
 

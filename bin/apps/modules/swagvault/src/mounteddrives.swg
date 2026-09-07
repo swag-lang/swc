@@ -246,7 +246,7 @@ impl MountedDrives
     // holds a mount only while it shows it.
     mtd detach(index: u64)->*MountedVault?
     {
-        Debug.assert(index < .drives.count)
+        Swag.assert(index < .drives.count)
         let result = .drives[index].volume
         .drives.removeAtOrdered(index)
         .refresh()

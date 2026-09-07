@@ -71,7 +71,7 @@ impl ConvertFormatFloat
         if cpt < countof
         {
             let {userWidth, eatCount, ?} = expect parseU64(Swag.makeString(buffer + cpt, cast(u64) (countof - cpt)))
-            Debug.assert(userWidth <= 255, "precision overflow")
+            Swag.assert(userWidth <= 255, "precision overflow")
             if eatCount do
                 .precision = cast(s8) userWidth
         }
@@ -151,7 +151,7 @@ impl ConvertFormatInt
         if cpt >= countof do
             return
         let {userWidth, eatCount, ?} = expect parseU64(Swag.makeString(buffer + cpt, cast(u64) countof - cpt))
-        Debug.assert(userWidth <= 255, "padding width overflow")
+        Swag.assert(userWidth <= 255, "padding width overflow")
         if eatCount do
             .width = cast(u8) userWidth
     }
@@ -319,7 +319,7 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
 func convertStruct(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, strFormat: string?)
 {
     let kindof = cast(const *Swag.TypeInfoStruct) Swag.kindOf(value)!
-    Debug.assert(kindof.kind == TypeInfoKind.Struct, "this is not a structure")
+    Swag.assert(kindof.kind == TypeInfoKind.Struct, "this is not a structure")
     let ptr = cast(const [*] u8?) value.buffer
 
     // Core.String
@@ -357,7 +357,7 @@ func convertStruct(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat
 func convertFloat(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatFloat)
 {
     let kindof = cast(const *Swag.TypeInfoNative) Swag.kindOf(value)!
-    Debug.assert(kindof.flags & TypeInfoFlags.Float != 0, "value to convert is not a float")
+    Swag.assert(kindof.flags & TypeInfoFlags.Float != 0, "value to convert is not a float")
 
     let dataof = value.buffer
 
@@ -375,8 +375,8 @@ func convertFloat(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatFloat
 func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
 {
     let kindof = cast(const *Swag.TypeInfoNative) Swag.kindOf(value)!
-    Debug.assert(kindof.flags & TypeInfoFlags.Integer != 0, "value to convert is not an integer")
-    Debug.assert(0 < fmt.base and fmt.base <= 16, "invalid convert base")
+    Swag.assert(kindof.flags & TypeInfoFlags.Integer != 0, "value to convert is not an integer")
+    Swag.assert(0 < fmt.base and fmt.base <= 16, "invalid convert base")
 
     let dataof = value.buffer
     var bits   = kindof.sizeof * 8
@@ -483,7 +483,7 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
 // Convert a float to an utf8 string, and put the result in a ConcatBuffer
 func convertFloatAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, strFormat: string?)
 {
-    Debug.assert(Swag.kindOf(value).flags & TypeInfoFlags.Float != 0, "value to convert is not a float")
+    Swag.assert(Swag.kindOf(value).flags & TypeInfoFlags.Float != 0, "value to convert is not a float")
 
     var fmt = convFmt.formatFloat
     fmt.setFormat(strFormat)
@@ -493,7 +493,7 @@ func convertFloatAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertForm
 // Convert an integer to an utf8 string, and put the result in a ConcatBuffer
 func convertIntAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, strFormat: string?)
 {
-    Debug.assert(Swag.kindOf(value).flags & TypeInfoFlags.Integer != 0, "value to convert is not an integer")
+    Swag.assert(Swag.kindOf(value).flags & TypeInfoFlags.Integer != 0, "value to convert is not an integer")
 
     var fmt = convFmt.formatInt
     fmt.setFormat(strFormat)

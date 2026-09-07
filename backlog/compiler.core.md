@@ -484,7 +484,7 @@ definition provider and does not consume resolved compiler symbols.
   compiler instance that had already been destroyed. That defect is fixed by interning the handed
   storage for the lifetime of the process, but the *class* — long-lived imported modules holding a
   pointer into per-instance state — was only caught because a heap block happened to be reused with
-  bytes that failed a `Debug.assert` inside `Path.extension`, in the Release compiler binary only,
+  bytes that failed an assertion inside `Path.extension`, in the Release compiler binary only,
   roughly once per run.
 - Observation: nothing makes such a stale reference fail deterministically, so a suite regression
   cannot be written that reliably turns red without the fix: the dead storage usually still holds

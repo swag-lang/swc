@@ -148,7 +148,7 @@ impl PalettePicker
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*PalettePicker
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let result = Wnd.create'PalettePicker(parent, null, position, id)
         result.focusPolicy = .Tab
         return result
@@ -157,8 +157,8 @@ impl PalettePicker
     // Changes color-item size and spacing.
     mtd setItemMetrics(size: s32, spacing: s32)
     {
-        Debug.assert(size > 0, "palette item size must be positive")
-        Debug.assert(spacing >= 0, "palette spacing cannot be negative")
+        Swag.assert(size > 0, "palette item size must be positive")
+        Swag.assert(spacing >= 0, "palette spacing cannot be negative")
         if .itemSize == size and .spacing == spacing do
             return
         .itemSize = size
@@ -170,7 +170,7 @@ impl PalettePicker
     // Selects one color by index and optionally emits [[Gui.PalettePicker.sigSelectionChanged]].
     mtd setSelectedIndex(index: s32, notify = true)
     {
-        Debug.assert(index >= 0 and index < .colors.count, "palette color index is out of range")
+        Swag.assert(index >= 0 and index < .colors.count, "palette color index is out of range")
         if .selectedIndex == index do
             return
         .selectedIndex = index
@@ -206,9 +206,9 @@ impl PalettePicker
     // Appends evenly spaced hues without duplicating the circular endpoint.
     mtd addHueRamp(count: s32, saturation, lightness: f32)
     {
-        Debug.assert(count >= 0, "palette color count cannot be negative")
-        Debug.assert(saturation >= 0 and saturation <= 1, "saturation must be between zero and one")
-        Debug.assert(lightness >= 0 and lightness <= 1, "lightness must be between zero and one")
+        Swag.assert(count >= 0, "palette color count cannot be negative")
+        Swag.assert(saturation >= 0 and saturation <= 1, "saturation must be between zero and one")
+        Swag.assert(lightness >= 0 and lightness <= 1, "lightness must be between zero and one")
         for i in count
         {
             var color = Color.fromHsl(i / cast(f32) count, saturation, lightness)
@@ -222,7 +222,7 @@ impl PalettePicker
     // Appends a lightness ramp that includes both endpoints when possible.
     mtd addLightnessRamp(count: s32, base: Color)
     {
-        Debug.assert(count >= 0, "palette color count cannot be negative")
+        Swag.assert(count >= 0, "palette color count cannot be negative")
         let {hue, saturation, ?} = base.toHsl()
         for i in count
         {
@@ -238,8 +238,8 @@ impl PalettePicker
     // Appends a saturation ramp that includes both endpoints when possible.
     mtd addSaturationRamp(count: s32, base: Color, lightness: f32 = 0.5)
     {
-        Debug.assert(count >= 0, "palette color count cannot be negative")
-        Debug.assert(lightness >= 0 and lightness <= 1, "lightness must be between zero and one")
+        Swag.assert(count >= 0, "palette color count cannot be negative")
+        Swag.assert(lightness >= 0 and lightness <= 1, "lightness must be between zero and one")
         let {hue, ?, ?} = base.toHsl()
         for i in count
         {

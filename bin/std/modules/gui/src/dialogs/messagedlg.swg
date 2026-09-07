@@ -37,7 +37,7 @@ public impl MessageDlg
     #[Swag.Discardable]
     func create(from: *Surface, message: string, options: MessageDlgOptions = {})->*MessageDlg
     {
-        Debug.assert(from != null)
+        Swag.assert(from != null)
         let dlg = Wnd.create'MessageDlg()
 
         let srf = dlg.createSurface(from, 0, 0, 500, 300)
@@ -206,8 +206,8 @@ public impl MessageDlg
     // Docks one extension below the message content.
     mtd setExtension(wndExtension: *Wnd)
     {
-        Debug.assert(.extension == null)
-        Debug.assert(.contentView != null, "a message dialog needs its standard content view before adding an extension")
+        Swag.assert(.extension == null)
+        Swag.assert(.contentView != null, "a message dialog needs its standard content view before adding an extension")
 
         wndExtension.setParent(.contentView)
         .extension           = wndExtension
@@ -218,7 +218,7 @@ public impl MessageDlg
     // Changes the large icon tint.
     mtd setIconColor(color: Color)
     {
-        Debug.assert((.labelIcon != null))
+        Swag.assert((.labelIcon != null))
         .labelIcon.setIconColor(color)
     }
 

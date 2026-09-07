@@ -160,7 +160,7 @@ impl Surface
     // platform side in tests.
     internal mtd setDpiScaleRaw(scale: f32)
     {
-        Debug.assert(scale > 0)
+        Swag.assert(scale > 0)
         .dpiScale = scale
 
         // A move to a denser monitor must resharpen the shared theme atlas.
@@ -184,7 +184,7 @@ impl Surface
     mtd updateFlags(add: SurfaceFlags = .None, remove = SurfaceFlags.None)
     {
         // Cannot be changed at runtime
-        Debug.assert(!(add & .ToolWindow) and !(remove & .ToolWindow))
+        Swag.assert(!(add & .ToolWindow) and !(remove & .ToolWindow))
 
         .flags.add(add)
         .flags.remove(remove)

@@ -830,7 +830,7 @@ internal impl Application
     // Registers a surface with initialized renderer state; its creator owns its lifetime.
     mtd registerSurface(surface: *Surface)
     {
-        Debug.assert(!.surfaces.contains(surface), "surface is already registered")
+        Swag.assert(!.surfaces.contains(surface), "surface is already registered")
         .surfaces.add(surface)
     }
 
@@ -950,7 +950,7 @@ impl Application
     // `minimum` must be nonnegative and `maximum` must be at least `minimum`.
     mtd setFrameDeltaRange(minimum, maximum: f32)
     {
-        Debug.assert(minimum >= 0 and maximum >= minimum, "frame delta range must be nonnegative and ordered")
+        Swag.assert(minimum >= 0 and maximum >= minimum, "frame delta range must be nonnegative and ordered")
         .timing.minimumDeltaSeconds = minimum
         .timing.maximumDeltaSeconds = maximum
     }
@@ -961,7 +961,7 @@ impl Application
     // application. When omitted, the first surface selects [[Pixel.RenderOgl]].
     mtd setRenderer(renderer: Pixel.IRenderer)
     {
-        Debug.assert(!.mainSurface, "renderer must be selected before creating a surface")
+        Swag.assert(!.mainSurface, "renderer must be selected before creating a surface")
         .renderer = renderer
     }
 
@@ -1151,7 +1151,7 @@ impl Application
     // makes a sheet a delta over whatever palette is already applied.
     mtd loadTheme(name: string) fail
     {
-        Debug.assert((.theme != null), "the theme exists once the first surface is created")
+        Swag.assert((.theme != null), "the theme exists once the first surface is created")
 
         var resName: String = "themes/"
         resName += name
@@ -1274,7 +1274,7 @@ impl Application
     {
         var result: Guid128
         let valid = Guid128.tryParse(text, &result)
-        Debug.assert(valid)
+        Swag.assert(valid)
         return result
     }
 
@@ -1375,7 +1375,7 @@ impl Application
         {
             let oldParent = wnd.parent!
             let detached  = oldParent.detachChild(wnd)
-            Debug.assert(detached)
+            Swag.assert(detached)
             oldParent.invalidate()
         }
 
@@ -1463,7 +1463,7 @@ impl Application
     mtd addTimer(time: Time.Duration, target: *Wnd)->*Timer
     {
         let timer = Memory.new'Timer()
-        Debug.assert(time.milliseconds() > 0, "timer period must be positive")
+        Swag.assert(time.milliseconds() > 0, "timer period must be positive")
         timer.periodMilliseconds = time.milliseconds()
         timer.target             = target
         if .duringTimerEvents do
@@ -1524,7 +1524,7 @@ impl Application
     // drops a destroyed window from the list, so a normal teardown needs nothing.
     mtd registerFrameEvent(target: *Wnd)
     {
-        Debug.assert(!.frameEvents.contains(target))
+        Swag.assert(!.frameEvents.contains(target))
         .frameEvents.add(target)
     }
 
@@ -1536,7 +1536,7 @@ impl Application
 
     internal mtd registerHookEvents(target: *Wnd)
     {
-        Debug.assert(!.hookOnEvent.contains(target))
+        Swag.assert(!.hookOnEvent.contains(target))
         .hookOnEvent.add(target)
     }
 

@@ -288,7 +288,7 @@ struct PropHeadlessCancelData
             Swag.assert(edit.text() == "9")
             host.keyPress(Input.Key.Escape)
             Swag.assert(prop.edView.hasFocus())
-            Debug.assert(data.value == 42 and data.text == "before" and data.bounded == 10,
+            Swag.assert(data.value == 42 and data.text == "before" and data.bounded == 10,
                          Format.toString("kind %, item %: value %, text %, bounded %", kind, index, data.value, data.text, data.bounded).toString())
             Swag.assert(changes == 0 and !prop.canUndo())
         }

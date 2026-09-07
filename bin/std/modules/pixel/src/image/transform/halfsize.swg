@@ -58,7 +58,7 @@ impl Image
     // Halves both image dimensions with a 2x2 box filter.
     public mtd halve()
     {
-        Debug.assert(.width > 1 and .height > 1)
+        Swag.assert(.width > 1 and .height > 1)
         .allocWorkingBuffer(.width / 2, .height / 2, .pixelFormat)
         .doHalfSize(.safeWorkingBuffer())
         .applyWorkingBuffer()
@@ -67,7 +67,7 @@ impl Image
     // Returns a copy with both dimensions halved by a 2x2 box filter.
     public mtd const halved()->Image
     {
-        Debug.assert(.width > 1 and .height > 1)
+        Swag.assert(.width > 1 and .height > 1)
         var result: retval = create(.width / 2, .height / 2, .pixelFormat, alphaMode: me.alphaMode)
         .doHalfSize(&result)
         return result

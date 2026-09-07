@@ -148,7 +148,7 @@ namespace WinFsp
             if .holdsRuntime
             {
                 .holdsRuntime = false
-                Debug.assert(g_WinFsp.mountCount != 0)
+                Swag.assert(g_WinFsp.mountCount != 0)
                 g_WinFsp.mountCount -= 1
                 if !g_WinFsp.mountCount do
                     unloadWinFsp()

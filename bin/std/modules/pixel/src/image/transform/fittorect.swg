@@ -8,7 +8,7 @@ public impl Image
     // `width` by `height` pixels.
     mtd cover(width, height: s32, mode = ResizeMode.Bicubic)
     {
-        Debug.assert(width > 0 and height > 0)
+        Swag.assert(width > 0 and height > 0)
         let targetAspect = width / cast(f32) height
         let imageAspect  = .aspectRatio()
 

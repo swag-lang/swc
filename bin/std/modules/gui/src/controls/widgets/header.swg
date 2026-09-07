@@ -323,8 +323,8 @@ impl Header
     // Shows a sort direction for one logical column.
     mtd setSortIndicator(column: u32, direction: HeaderSortDirection)
     {
-        Debug.assert(column < .items.count)
-        Debug.assert(direction != .None)
+        Swag.assert(column < .items.count)
+        Swag.assert(direction != .None)
         .sortColumn    = column
         .sortDirection = direction
         .invalidate()
@@ -344,7 +344,7 @@ impl Header
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*Header
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
 
         let metrics = parent.themeMetrics()
         var pos     = position
@@ -372,14 +372,14 @@ impl Header
     // Returns the column at one display-order index.
     mtd const itemAt(index: u32)->*HeaderItem
     {
-        Debug.assert(index < .items.count)
+        Swag.assert(index < .items.count)
         return .items[index]!
     }
 
     // Returns the item for one logical column identifier.
     mtd const itemForColumn(column: u32)->*HeaderItem
     {
-        Debug.assert(column < .items.count)
+        Swag.assert(column < .items.count)
 
         for item in .items
         {
@@ -393,14 +393,14 @@ impl Header
     // Returns the effective width at one display-order index.
     mtd const itemWidthAt(index: u32)->f32
     {
-        Debug.assert(index < .items.count)
+        Swag.assert(index < .items.count)
         return .itemWidthForColumn(.items[index]!.column)
     }
 
     // Returns the effective width for one logical column identifier.
     mtd const itemWidthForColumn(column: u32)->f32
     {
-        Debug.assert(column < .items.count)
+        Swag.assert(column < .items.count)
 
         for itemIt in .items
         {
@@ -415,14 +415,14 @@ impl Header
     // Returns the leading position at one display-order index.
     mtd itemPositionAt(index: u32)->f32
     {
-        Debug.assert(index < cast(u32) .items.count)
+        Swag.assert(index < cast(u32) .items.count)
         return .itemPositionForColumn(.items[index]!.column)
     }
 
     // Returns the leading position for one logical column identifier.
     mtd itemPositionForColumn(column: u32)->f32
     {
-        Debug.assert(column < .items.count)
+        Swag.assert(column < .items.count)
 
         var x = .padding.x
         let m = .themeMetrics().header_Separator
@@ -452,14 +452,14 @@ impl Header
     // Sets an item width by display-order index and applies its configured limits.
     mtd setItemWidth(index: u32, width: f32)
     {
-        Debug.assert(index < .items.count)
+        Swag.assert(index < .items.count)
         .setItemWidthForColumn(.items[index]!.column, width)
     }
 
     // Sets an item width by logical column identifier and applies its configured limits.
     mtd setItemWidthForColumn(column: u32, width: f32)
     {
-        Debug.assert(column < .items.count)
+        Swag.assert(column < .items.count)
 
         let item = .itemForColumn(column)!
         var move = Math.max(width, item.minimumWidth)
@@ -476,9 +476,9 @@ impl Header
     // A maximum of zero leaves the column unbounded.
     mtd setItemWidthLimits(index: u32, minimum: f32 = 0, maximum: f32 = 0)
     {
-        Debug.assert(index < .items.count)
-        Debug.assert(minimum >= 0)
-        Debug.assert(maximum == 0 or maximum >= minimum)
+        Swag.assert(index < .items.count)
+        Swag.assert(minimum >= 0)
+        Swag.assert(maximum == 0 or maximum >= minimum)
         let item = .items[index]!
         item.minimumWidth = minimum
         item.maximumWidth = maximum

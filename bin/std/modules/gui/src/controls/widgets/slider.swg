@@ -608,8 +608,8 @@ impl Slider
     // `steps` may span the complete range, which creates a two-value control at the bounds.
     func setBounds(me, min, max: f32, steps: f32 = 0)
     {
-        Debug.assert(min < max)
-        Debug.assert(steps >= 0 and steps <= (max - min))
+        Swag.assert(min < max)
+        Swag.assert(steps >= 0 and steps <= (max - min))
         .min = min
         .max = max
         if steps > 0 do
@@ -622,12 +622,12 @@ impl Slider
     // Sets both range endpoints and emits at most one change notification.
     mtd setRange(lower, upper: f32)
     {
-        Debug.assert(lower <= upper)
-        Debug.assert(.flags.has(.Range))
+        Swag.assert(lower <= upper)
+        Swag.assert(.flags.has(.Range))
         let diff     = .max - .min
         let newLower = .clamp((lower - .min) / diff)
         let newUpper = .clamp((upper - .min) / diff)
-        Debug.assert(newLower <= newUpper)
+        Swag.assert(newLower <= newUpper)
 
         let changed = !.hasLowerValue or !.hasUpperValue or newLower != .lowerRatio or newUpper != .upperRatio
         .hasLowerValue, .hasUpperValue = true
@@ -646,7 +646,7 @@ impl Slider
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null, range = false, vertical = false)->*Slider
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         var pos = position
 
         if pos.height == 0

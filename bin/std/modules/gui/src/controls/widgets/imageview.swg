@@ -342,7 +342,7 @@ impl ImageView
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ImageView
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let result = Wnd.create'ImageView(parent, null, position, id)
         result.focusPolicy = .Click
         return result

@@ -53,9 +53,9 @@ impl Icon
     // Replaces the referenced frame and logical draw size.
     mtd set(imageList: *ImageList, index: s32, width = 0'f32, height = 0'f32)
     {
-        Debug.assert(imageList.isValid(), "image list is invalid")
-        Debug.assert(index >= 0 and index < imageList.frameCount, "icon frame index is out of range")
-        Debug.assert(width >= 0 and height >= 0, "icon size cannot be negative")
+        Swag.assert(imageList.isValid(), "image list is invalid")
+        Swag.assert(index >= 0 and index < imageList.frameCount, "icon frame index is out of range")
+        Swag.assert(width >= 0 and height >= 0, "icon size cannot be negative")
 
         .imageList = imageList
         .index     = index

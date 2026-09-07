@@ -111,7 +111,7 @@ impl Driver
 {
     mtd create(kind: DriverKind = .Default) fail
     {
-        Debug.assert(!.isCreated)
+        Swag.assert(!.isCreated)
         .driverIsClosing     = false
         .allocationAllocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
 

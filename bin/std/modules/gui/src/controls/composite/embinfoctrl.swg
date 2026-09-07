@@ -128,9 +128,9 @@ impl InfoBar
     #[Swag.Discardable]
     func create(parent: *Wnd, message: string?, kind: InfoBarKind, flags = InfoBarFlags.None, height: f32 = 40, autoDismissDelay: Time.Duration = 4's)->*InfoBar
     {
-        Debug.assert(parent != null)
-        Debug.assert(height > 0, "information bar height must be positive")
-        Debug.assert(autoDismissDelay.seconds > 0, "auto-dismiss delay must be positive")
+        Swag.assert(parent != null)
+        Swag.assert(height > 0, "information bar height must be positive")
+        Swag.assert(autoDismissDelay.seconds > 0, "auto-dismiss delay must be positive")
 
         let theme    = parent.theme()
         with let bar = Wnd.create'InfoBar(parent, {0, 0, 0, height})

@@ -76,8 +76,8 @@ impl IconBar
     #[Swag.Discardable]
     func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: WndId? = null, orientation = IconBarOrientation.Horizontal, itemPadding = 4'f32)->*IconBar
     {
-        Debug.assert(parent != null)
-        Debug.assert(iconSize >= 0 and itemPadding >= 0)
+        Swag.assert(parent != null)
+        Swag.assert(iconSize >= 0 and itemPadding >= 0)
         let result = Wnd.create'IconBar(parent, null, position, id)
         result.iconSize    = iconSize
         result.itemPadding = itemPadding
@@ -141,7 +141,7 @@ impl IconBar
     // Changes padding around every icon and immediately recomputes the bar size.
     mtd setItemPadding(padding: f32)
     {
-        Debug.assert(padding >= 0)
+        Swag.assert(padding >= 0)
         if .itemPadding == padding do
             return
         .itemPadding = padding
@@ -152,7 +152,7 @@ impl IconBar
     // Changes the square icon size and immediately updates every child button.
     mtd setIconSize(size: f32)
     {
-        Debug.assert(size >= 0)
+        Swag.assert(size >= 0)
         if .iconSize == size do
             return
         .iconSize = size

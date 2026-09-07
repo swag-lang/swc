@@ -22,7 +22,7 @@ impl Image
         let cy = Math.clamp(y, 0, .height - 1)
         let cw = Math.min(w, .width - cx)
         let ch = Math.min(h, .height - cy)
-        Debug.assert(cw > 0 and ch > 0)
+        Swag.assert(cw > 0 and ch > 0)
 
         .allocWorkingBuffer(cw, ch, .pixelFormat)
         .doCrop(.safeWorkingBuffer(), cx, cy, cw, ch)
@@ -41,7 +41,7 @@ impl Image
         let cy = Math.clamp(y, 0, .height - 1)
         let cw = Math.min(w, .width - cx)
         let ch = Math.min(h, .height - cy)
-        Debug.assert(cw > 0 and ch > 0)
+        Swag.assert(cw > 0 and ch > 0)
 
         var result: retval = create(cw, ch, .pixelFormat, alphaMode: me.alphaMode)
         .doCrop(&result, cx, cy, cw, ch)

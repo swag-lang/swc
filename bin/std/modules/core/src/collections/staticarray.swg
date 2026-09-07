@@ -108,7 +108,7 @@ impl StaticArray
         .clear()
         if !countof do
             return
-        Debug.assert(countof <= N, "slice is too big")
+        Swag.assert(countof <= N, "slice is too big")
         var dataof = arr.buffer
 
         #static if Reflection.hasPostCopy(T)
@@ -199,7 +199,7 @@ impl StaticArray
     {
         if newCount == .count do
             return
-        Debug.assert(newCount <= N, "size is too big")
+        Swag.assert(newCount <= N, "size is too big")
         if newCount > .count
         {
             let data = cast([*] T) &.buffer[0]
@@ -239,7 +239,7 @@ impl StaticArray
     {
         if .contains(value) do
             return
-        Debug.assert(.count != N, "the array is full")
+        Swag.assert(.count != N, "the array is full")
         .buffer[.count] = #nodrop #fwd value
         .count          += 1
     }
@@ -248,7 +248,7 @@ impl StaticArray
     // Asserts if the array is full. The value is copied; pass it with '#move' to move it instead.
     mtd add(value: #fwd T)
     {
-        Debug.assert(.count != N, "the array is full")
+        Swag.assert(.count != N, "the array is full")
         .buffer[.count] = #nodrop #fwd value
         .count          += 1
     }
@@ -257,7 +257,7 @@ impl StaticArray
     // The new memory is not initialized. Asserts if the array does not have enough capacity.
     mtd emplaceAddress(num: u32 = 1)->[*] T
     {
-        Debug.assert(.count + num <= N, "the array is full")
+        Swag.assert(.count + num <= N, "the array is full")
         .count += num
         return cast([*] T) &.buffer[0] + .count - num
     }
@@ -266,7 +266,7 @@ impl StaticArray
     // The new memory is default-initialized. Asserts if the array does not have enough capacity.
     mtd emplaceInitAddress(num: u32 = 1)->[*] T
     {
-        Debug.assert(.count + num <= N, "the array is full")
+        Swag.assert(.count + num <= N, "the array is full")
         .count += num
         var res = cast([*] T) &.buffer[0] + .count - num
         Swag.init(res, num)
@@ -278,10 +278,10 @@ impl StaticArray
     // The value is copied; pass it with '#move' to move it instead.
     mtd insertAt(index: u64, value: #fwd T)
     {
-        Debug.assert(index <= .count, "index out of range")
+        Swag.assert(index <= .count, "index out of range")
         if index == .count do
             return .add(#fwd value)
-        Debug.assert(.count != N, "the array is full")
+        Swag.assert(.count != N, "the array is full")
         .count += 1
 
         #static if Reflection.hasPostMove(T)
@@ -314,10 +314,10 @@ impl StaticArray
             return .insertAt(index, copy.toSlice())
         }
 
-        Debug.assert(index <= .count, "index out of range")
+        Swag.assert(index <= .count, "index out of range")
         if index == .count do
             return .add(values)
-        Debug.assert(.count + sliceCount <= N, "the array is full")
+        Swag.assert(.count + sliceCount <= N, "the array is full")
         .count += sliceCount
 
         #static if Reflection.hasPostMove(T)
@@ -359,10 +359,10 @@ impl StaticArray
             return .emplaceAt(index, copy.toSlice())
         }
 
-        Debug.assert(index <= .count, "index out of range")
+        Swag.assert(index <= .count, "index out of range")
         if index == .count do
             return .add(values)
-        Debug.assert(.count + sliceCount <= N, "the array is full")
+        Swag.assert(.count + sliceCount <= N, "the array is full")
         .count += sliceCount
 
         #static if Reflection.hasPostMove(T)
@@ -403,7 +403,7 @@ impl StaticArray
             return .add(copy.toSlice())
         }
 
-        Debug.assert(.count + sliceCount <= N, "the array is full")
+        Swag.assert(.count + sliceCount <= N, "the array is full")
         var oldCount = .count
         .count += sliceCount
 
@@ -429,7 +429,7 @@ impl StaticArray
     {
         if !num do
             return
-        Debug.assert(index + num <= .count, "index out of range")
+        Swag.assert(index + num <= .count, "index out of range")
         let oldCount   = .count
         let shiftCount = .count - (index + num)
 
@@ -473,7 +473,7 @@ impl StaticArray
     // This is very fast, but the order of elements is not preserved.
     mtd removeAt(index: u64)
     {
-        Debug.assert(index < .count, "index out of range")
+        Swag.assert(index < .count, "index out of range")
         let oldCount = .count
         .count -= 1
         if index == .count
@@ -498,7 +498,7 @@ impl StaticArray
     {
         if !numValues do
             return
-        Debug.assert(index + numValues <= .count, "index out of range")
+        Swag.assert(index + numValues <= .count, "index out of range")
         let oldCount = .count
         .count -= numValues
 
@@ -571,7 +571,7 @@ impl StaticArray
     // Sorts the array using a custom comparison function.
     mtd sort(cb: func||(T, T)->s32)
     {
-        Debug.assert(cb != null)
+        Swag.assert(cb != null)
         Slice.sort(.toSlice(), cb)
     }
 
@@ -579,7 +579,7 @@ impl StaticArray
     // Asserts if the array is empty.
     mtd front()->T
     {
-        Debug.assert(.count > 0, "array is empty")
+        Swag.assert(.count > 0, "array is empty")
         let result: retval = .buffer[0]
         return result
     }
@@ -588,7 +588,7 @@ impl StaticArray
     // Asserts if the array is empty.
     mtd frontPtr()->*T
     {
-        Debug.assert(.count > 0, "array is empty")
+        Swag.assert(.count > 0, "array is empty")
         return &.buffer[0]
     }
 
@@ -596,7 +596,7 @@ impl StaticArray
     // Asserts if the array is empty.
     mtd back()->T
     {
-        Debug.assert(.count > 0, "array is empty")
+        Swag.assert(.count > 0, "array is empty")
         let result: retval = .buffer[.count - 1]
         return result
     }
@@ -605,7 +605,7 @@ impl StaticArray
     // Asserts if the array is empty.
     mtd backPtr()->*T
     {
-        Debug.assert(.count > 0, "array is empty")
+        Swag.assert(.count > 0, "array is empty")
         return &.buffer[.count - 1]
     }
 
@@ -613,7 +613,7 @@ impl StaticArray
     // Asserts if the array is empty.
     mtd popBack()->T
     {
-        Debug.assert(.count > 0, "array is empty")
+        Swag.assert(.count > 0, "array is empty")
         var result: retval
         let backIndex = .count - 1
         result = #relocate .buffer[backIndex]
@@ -630,7 +630,7 @@ impl StaticArray
     // Asserts if the array is empty.
     mtd removeBack()
     {
-        Debug.assert(.count > 0, "array is empty")
+        Swag.assert(.count > 0, "array is empty")
         let backIndex = .count - 1
         Swag.drop(&.buffer[backIndex])
         #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)

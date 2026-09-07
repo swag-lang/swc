@@ -197,7 +197,7 @@ private func addCrcTypeIdentity(crc: u32, type: typeinfo?)
     {
         // The same logical type registers again from another module; anything else is
         // two types colliding on one crc, which would resolve unpredictably.
-        Debug.assert(existing.value.fullname == type.fullname, "type crc collision")
+        Swag.assert(existing.value.fullname == type.fullname, "type crc collision")
         return
     }
 

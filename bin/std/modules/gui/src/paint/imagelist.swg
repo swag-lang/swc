@@ -45,16 +45,16 @@ impl ImageList
     // Replaces the atlas descriptor after validating its frame geometry.
     mtd set(texture: Texture, frameWidth = 0, frameHeight = 0, frameCount = 0)
     {
-        Debug.assert(texture.isValid(), "texture is invalid")
+        Swag.assert(texture.isValid(), "texture is invalid")
 
         let resolvedWidth  = frameWidth != 0 ? frameWidth : texture.width
         let resolvedHeight = frameHeight != 0 ? frameHeight : texture.height
-        Debug.assert(resolvedWidth > 0 and resolvedWidth <= texture.width, "invalid frame width")
-        Debug.assert(resolvedHeight > 0 and resolvedHeight <= texture.height, "invalid frame height")
+        Swag.assert(resolvedWidth > 0 and resolvedWidth <= texture.width, "invalid frame width")
+        Swag.assert(resolvedHeight > 0 and resolvedHeight <= texture.height, "invalid frame height")
 
         let capacity      = (texture.width / resolvedWidth) * (texture.height / resolvedHeight)
         let resolvedCount = frameCount != 0 ? frameCount : capacity
-        Debug.assert(resolvedCount > 0 and resolvedCount <= capacity, "invalid frame count")
+        Swag.assert(resolvedCount > 0 and resolvedCount <= capacity, "invalid frame count")
 
         .texture     = texture
         .frameWidth  = resolvedWidth

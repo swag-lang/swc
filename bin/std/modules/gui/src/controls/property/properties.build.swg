@@ -175,7 +175,7 @@ internal impl Properties
         if reg
         {
             let item = reg.itf.construct(me, value, data, parentItem)
-            Debug.assert(item != null)
+            Swag.assert(item != null)
             item.sigRefresh.call(item)
             return
         }

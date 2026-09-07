@@ -52,7 +52,7 @@ impl BreadcrumbCtrl
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*BreadcrumbCtrl
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         var pos = position
         if pos.height == 0 do
             pos.height = parent.themeMetrics().btnPush_Height
@@ -91,14 +91,14 @@ impl BreadcrumbCtrl
     // Returns the level at `index`.
     mtd const itemAt(index: u64)->*BreadcrumbItem
     {
-        Debug.assert(index < .items.count, "breadcrumb item index is out of range")
+        Swag.assert(index < .items.count, "breadcrumb item index is out of range")
         return &.items[index]
     }
 
     // Removes `index` and every level after it.
     mtd removeItemsFrom(index: u64)
     {
-        Debug.assert(index <= .items.count, "breadcrumb item index is out of range")
+        Swag.assert(index <= .items.count, "breadcrumb item index is out of range")
         while .items.count > index do
             .items.removeBack()
         .hotItem    = Swag.U64.Max
@@ -111,7 +111,7 @@ impl BreadcrumbCtrl
     // Changes body padding, icon spacing, and child-arrow padding.
     mtd setLayoutMetrics(horizontalPadding, iconSpacing, arrowPadding: f32)
     {
-        Debug.assert(horizontalPadding >= 0 and iconSpacing >= 0 and arrowPadding >= 0, "layout metrics cannot be negative")
+        Swag.assert(horizontalPadding >= 0 and iconSpacing >= 0 and arrowPadding >= 0, "layout metrics cannot be negative")
         if .padX == horizontalPadding and .iconGap == iconSpacing and .arrowPad == arrowPadding do
             return
         .padX     = horizontalPadding

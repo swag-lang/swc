@@ -139,7 +139,7 @@ impl Watcher
     // have changed without a corresponding record and requires a complete rescan.
     mtd next(waitMilliseconds = Swag.U32.Max)->WatchBatch fail
     {
-        Debug.assert(.isOpen())
+        Swag.assert(.isOpen())
         return .nextNative(waitMilliseconds)
     }
 }

@@ -103,7 +103,7 @@ impl Generator
     // 'max' is excluded
     mtd nextU32(min, max: u32)->u32
     {
-        Debug.assert(max > min, "[[max]] must be greater than [[min]]")
+        Swag.assert(max > min, "[[max]] must be greater than [[min]]")
         let range = max - min
         let limit = Swag.U32.Max - Swag.U32.Max % range
         var value = .nextU32()
@@ -117,7 +117,7 @@ impl Generator
     // 'max' is excluded
     mtd nextU64(min, max: u64)->u64
     {
-        Debug.assert(max > min, "[[max]] must be greater than [[min]]")
+        Swag.assert(max > min, "[[max]] must be greater than [[min]]")
         let range = max - min
         let limit = Swag.U64.Max - Swag.U64.Max % range
         var value = .nextU64()
@@ -132,7 +132,7 @@ impl Generator
     #[Swag.Safety(.Overflow, false)]
     mtd nextS32(min, max: s32)->s32
     {
-        Debug.assert(max > min, "[[max]] must be greater than [[min]]")
+        Swag.assert(max > min, "[[max]] must be greater than [[min]]")
         let minBits = cast #bit (u32) min
         let maxBits = cast #bit (u32) max
         let range   = cast #wrap (u32) (maxBits - minBits)
@@ -149,7 +149,7 @@ impl Generator
     #[Swag.Safety(.Overflow, false)]
     mtd nextS64(min, max: s64)->s64
     {
-        Debug.assert(max > min, "[[max]] must be greater than [[min]]")
+        Swag.assert(max > min, "[[max]] must be greater than [[min]]")
         let minBits = cast #bit (u64) min
         let maxBits = cast #bit (u64) max
         let range   = cast #wrap (u64) (maxBits - minBits)
@@ -165,7 +165,7 @@ impl Generator
     // 'max' is excluded
     mtd nextF32(min, max: f32)->f32
     {
-        Debug.assert(max > min, "[[max]] must be greater than [[min]]")
+        Swag.assert(max > min, "[[max]] must be greater than [[min]]")
         let range = max - min
         let value = .nextF32()
         return min + (value * range)
@@ -175,7 +175,7 @@ impl Generator
     // 'max' is excluded
     mtd nextF64(min, max: f64)->f64
     {
-        Debug.assert(max > min, "[[max]] must be greater than [[min]]")
+        Swag.assert(max > min, "[[max]] must be greater than [[min]]")
         let range = max - min
         let value = .nextF64()
         return min + (value * range)

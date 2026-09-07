@@ -53,7 +53,7 @@ func decodeRune(buffer: const [..] u16)->{ c: rune, eat: u32 }
 // 'dest' must be at least 2 u16 long
 func encodeRune(dest: [..] u16, src: rune)->u32
 {
-    Debug.assert(dest.count >= 2, "destination buffer is too small")
+    Swag.assert(dest.count >= 2, "destination buffer is too small")
     switch
     {
     case 0 <= src and src < Surr1, Surr3 <= src and src < SurrSelf:
@@ -100,7 +100,7 @@ func fromUtf8(dest: [..] u16, src: const [..] u8)->u64
 
         let {c, eat} = Utf8.decodeRune(Swag.makeSlice(srcPtr, srcLength))
 
-        Debug.assert(destLength >= 2, "destination buffer is too small")
+        Swag.assert(destLength >= 2, "destination buffer is too small")
         let eatDest = encodeRune(Swag.makeSlice(destPtr, destLength), c)
         destPtr, count += eatDest
         destLength     -= eatDest
@@ -131,7 +131,7 @@ func fromUnicode(dest: [..] u16, src: const [..] rune)->u64
 
     for ch in src
     {
-        Debug.assert(remain >= 2, "destination buffer is too small")
+        Swag.assert(remain >= 2, "destination buffer is too small")
         let cpt = encodeRune(Swag.makeSlice(dataof, remain), ch)
         dataof += cpt
         remain -= cpt

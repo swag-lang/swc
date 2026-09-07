@@ -911,7 +911,7 @@ impl MathExpression
     // cached box metrics.
     mtd measure(font: *Font, options: MathLayoutOptions = {})->MathMetrics
     {
-        Debug.assert(font != null, "math layout needs a font")
+        Swag.assert(font != null, "math layout needs a font")
         mathLayoutNode(.root, font, options.style, .Default, options)
         return .root.metrics
     }

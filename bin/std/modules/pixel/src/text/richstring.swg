@@ -413,7 +413,7 @@ impl RichString
         }
 
         // Remaining chunk
-        Debug.assert(startChunk <= .raw.length)
+        Swag.assert(startChunk <= .raw.length)
         if startChunk < .raw.length do
             .addChunk(.raw.length)
     }

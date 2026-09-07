@@ -267,8 +267,8 @@ public impl FontCache
     // MSDF font of the same size are two distinct views.
     private mtd createView(typeFace: *TypeFace, size, refSize, spread: u32, atlasMode, intent: FontRenderMode, forceBold, forceItalic: bool)->*Font
     {
-        Debug.assert(typeFace != null)
-        Debug.assert(size > 0)
+        Swag.assert(typeFace != null)
+        Swag.assert(size > 0)
 
         for it in .fonts
         {
@@ -334,7 +334,7 @@ public impl FontCache
     // of their own, so loading the same one through two caches parses it once.
     mtd createFont(fullname: string, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font fail
     {
-        Debug.assert(fullname.count != 0)
+        Swag.assert(fullname.count != 0)
         let typeFace = try TypeFace.load(fullname)
         return .createFont(typeFace, size, mode, forceBold, forceItalic)
     }

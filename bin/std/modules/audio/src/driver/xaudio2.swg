@@ -47,7 +47,7 @@ impl XAudio2DriverNative
     // Create the xaudio2 engine
     mtd createXAudio2(initCOM: bool = true) fail
     {
-        Debug.assert(!.xAudio2)
+        Swag.assert(!.xAudio2)
 
         var result: HRESULT
         defer #fail .destroyXAudio2()
@@ -215,7 +215,7 @@ impl Voice
 {
     func createXAudio2(voice: *Voice, createFlags = VoiceCreateFlags.Default) fail
     {
-        Debug.assert(g_Driver.xAudio2.xAudio2 != null, "driver should be created first")
+        Swag.assert(g_Driver.xAudio2.xAudio2 != null, "driver should be created first")
 
         let file = voice.file!
 

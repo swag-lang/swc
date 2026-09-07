@@ -186,7 +186,7 @@ impl ListLine
     // Returns the cell assigned to `column`.
     mtd itemAt(column: u32)->*ListItem
     {
-        Debug.assert(column < .items.count)
+        Swag.assert(column < .items.count)
         for itemIt in .items
         {
             let item = itemIt!
@@ -1061,7 +1061,7 @@ impl ListCtrl
     // Sets an explicit content width; zero derives it from the view or header.
     mtd setHorizontalExtent(width: f32)
     {
-        Debug.assert(width >= 0, "horizontal extent cannot be negative")
+        Swag.assert(width >= 0, "horizontal extent cannot be negative")
         if .horizontalExtent == width do
             return
         .horizontalExtent = width
@@ -1071,7 +1071,7 @@ impl ListCtrl
     // Sets a fixed row height; zero derives it from the current font.
     mtd setLineHeight(height: f32)
     {
-        Debug.assert(height >= 0, "line height cannot be negative")
+        Swag.assert(height >= 0, "line height cannot be negative")
         if .fixedLineHeight == height do
             return
         .fixedLineHeight = height
@@ -1081,7 +1081,7 @@ impl ListCtrl
     // Changes the indentation applied at each hierarchy level.
     mtd setIndentWidth(width: f32)
     {
-        Debug.assert(width >= 0, "indent width cannot be negative")
+        Swag.assert(width >= 0, "indent width cannot be negative")
         if .indentWidth == width do
             return
         .indentWidth = width
@@ -1091,7 +1091,7 @@ impl ListCtrl
     // Changes the square icon draw size; zero preserves icon descriptor sizes.
     mtd setIconSize(size: f32)
     {
-        Debug.assert(size >= 0, "icon size cannot be negative")
+        Swag.assert(size >= 0, "icon size cannot be negative")
         if .iconSize == size do
             return
         .iconSize = size
@@ -1110,7 +1110,7 @@ impl ListCtrl
     // Changes the leading text margin shared by all rows.
     mtd setLeftTextMargin(margin: f32)
     {
-        Debug.assert(margin >= 0, "left text margin cannot be negative")
+        Swag.assert(margin >= 0, "left text margin cannot be negative")
         if .leftTextMargin == margin do
             return
         .leftTextMargin = margin
@@ -1121,7 +1121,7 @@ impl ListCtrl
     #[Swag.Discardable]
     func createSimple(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ListCtrl
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         with let list = Wnd.create'ListCtrl(parent, "", position, id)
         {
             // The list is one stop of the keyboard traversal, and the view inside it is what
@@ -1146,7 +1146,7 @@ impl ListCtrl
     #[Swag.Discardable]
     func createMultiColumns(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ListCtrl
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let list = Wnd.create'ListCtrl(parent, "", position, id)
 
         let fwnd = list.createView'Wnd()
@@ -1238,7 +1238,7 @@ impl ListCtrl
     // Reports whether the row at `index` is selected.
     mtd const isLineSelected(idx: u32)->bool
     {
-        Debug.assert(idx < .lineCount())
+        Swag.assert(idx < .lineCount())
         if .selectionMode == .None do
             return false
         if .isVirtual do
@@ -1251,7 +1251,7 @@ impl ListCtrl
     mtd selectLine(idx: u32, select: bool = true)
     {
         let lineCount = .lineCount()
-        Debug.assert(idx < lineCount)
+        Swag.assert(idx < lineCount)
 
         if .selectionMode == .None or lineCount == 0 do
             return
@@ -1282,8 +1282,8 @@ impl ListCtrl
     mtd selectLines(start, end: u32, select: bool = true)
     {
         let lineCount = .lineCount()
-        Debug.assert(start < lineCount)
-        Debug.assert(end < lineCount)
+        Swag.assert(start < lineCount)
+        Swag.assert(end < lineCount)
 
         if .selectionMode == .None or lineCount == 0 do
             return
@@ -1317,18 +1317,18 @@ impl ListCtrl
     // Reports whether the row at `index` is checked.
     mtd const isLineChecked(index: u32)->bool
     {
-        Debug.assert(!.isVirtual, "virtual lists do not support checked rows")
-        Debug.assert(index < .lines.count, "list row index is out of range")
+        Swag.assert(!.isVirtual, "virtual lists do not support checked rows")
+        Swag.assert(index < .lines.count, "list row index is out of range")
         return .checkModel.isSelected(.lines[index]!.index)
     }
 
     // Changes the checked state of one checkable row.
     mtd setLineChecked(index: u32, checked: bool = true, notify = true)
     {
-        Debug.assert(!.isVirtual, "virtual lists do not support checked rows")
-        Debug.assert(index < .lines.count, "list row index is out of range")
+        Swag.assert(!.isVirtual, "virtual lists do not support checked rows")
+        Swag.assert(index < .lines.count, "list row index is out of range")
         let line = .lines[index]!
-        Debug.assert(line.canCheck, "the list row is not checkable")
+        Swag.assert(line.canCheck, "the list row is not checkable")
         if .checkModel.isSelected(line.index) == checked do
             return
         .checkModel.setSelected(line.index, checked)
@@ -1341,7 +1341,7 @@ impl ListCtrl
     mtd setLineChecked(line: *ListLine, checked: bool = true, notify = true)
     {
         let result = .idxLineToIdxList.tryFind(line.index)
-        Debug.assert(result != null, "the list row is not visible in this control")
+        Swag.assert(result != null, "the list row is not visible in this control")
         .setLineChecked(result!.value, checked, notify)
     }
 
@@ -1423,8 +1423,8 @@ impl ListCtrl
     // Returns the visible row at `index`.
     mtd const lineAt(idx: u32)->*ListLine?
     {
-        Debug.assert(!.isVirtual, "virtual lists do not retain row objects")
-        Debug.assert(idx < .lines.count, "list row index is out of range")
+        Swag.assert(!.isVirtual, "virtual lists do not retain row objects")
+        Swag.assert(idx < .lines.count, "list row index is out of range")
         return .lines[idx]
     }
 
@@ -1454,7 +1454,7 @@ impl ListCtrl
     // Creates an empty root or child row and returns its retained object.
     mtd createLine(parentLine: *ListLine?)->*ListLine
     {
-        Debug.assert(!.isVirtual, "createLine cannot be called on a virtual list")
+        Swag.assert(!.isVirtual, "createLine cannot be called on a virtual list")
 
         if parentLine
         {
@@ -1503,14 +1503,14 @@ impl ListCtrl
     // Adds a named column to the list header.
     mtd addColumn(name: string, width: f32 = 100, icon: Icon = {})
     {
-        Debug.assert((.header != null))
+        Swag.assert((.header != null))
         .header.addColumn(name, width, icon)
     }
 
     // Changes one header column width.
     mtd setColumnWidth(idx: u32, width: f32)
     {
-        Debug.assert((.header != null))
+        Swag.assert((.header != null))
         .header.setItemWidth(idx, width)
     }
 
@@ -1555,7 +1555,7 @@ impl ListCtrl
     // Scrolls enough to make the row at `idx` fully visible.
     mtd ensureVisibleLine(idx: u32)
     {
-        Debug.assert(idx < .lineCount())
+        Swag.assert(idx < .lineCount())
 
         let lineHeight    = .lineHeight()
         let viewHeight    = .listView.paddedClientRect().height
@@ -1584,7 +1584,7 @@ impl ListCtrl
     // Moves keyboard focus to one row without changing selection.
     mtd setFocusedIndex(index: u32, ensureVisible = true)
     {
-        Debug.assert(index < .lineCount(), "list row index is out of range")
+        Swag.assert(index < .lineCount(), "list row index is out of range")
         if !.isVirtual and .lines[index]!.separator do
             return
         if .focusIndex == index do

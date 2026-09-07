@@ -15,7 +15,7 @@ impl Duration
     #[ConstExpr, Implicit, Inline]
     mtd(suffix: string) opSetLiteral(value: s32)
     {
-        Debug.assert(value >= 0)
+        Swag.assert(value >= 0)
         #static switch suffix
         {
         case "s":   .seconds = value
@@ -34,7 +34,7 @@ impl Duration
         // Creates a duration from seconds.
         func fromSeconds(value: f64)->Duration
         {
-            Debug.assert(value >= 0 and Math.isFinite(value))
+            Swag.assert(value >= 0 and Math.isFinite(value))
             return Duration{value}
         }
 

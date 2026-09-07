@@ -40,7 +40,7 @@ impl ComboCtrl
     #[Swag.Discardable]
     func create(parent: *Wnd, name: string?, position: Math.Rectangle = {}, id: WndId? = null)->*ComboCtrl
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let metrics = parent.themeMetrics()
         var pos     = position
         if pos.width == 0 do
@@ -62,7 +62,7 @@ impl ComboCtrl
     // Changes label width, combo width, and spacing, then reapplies layout.
     mtd setLayoutMetrics(labelWidth, comboWidth, spacing: f32 = 5)
     {
-        Debug.assert(labelWidth >= 0 and comboWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
+        Swag.assert(labelWidth >= 0 and comboWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
         if .labelWidth == labelWidth and .comboWidth == comboWidth and .spacing == spacing do
             return
         .labelWidth = labelWidth

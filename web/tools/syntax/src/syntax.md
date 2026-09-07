@@ -25,5 +25,5 @@ struct(T) IsSet
     }
 
     #assert Powers[3] == 8
-    Debug.assert(clamp(12, 0, 10) == 10)
+    Swag.assert(clamp(12, 0, 10) == 10)
 }

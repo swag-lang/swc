@@ -310,7 +310,7 @@ impl Decoder
     {
         if .preparedData
         {
-            Debug.assert(.pictureSlices.count == 1)
+            Swag.assert(.pictureSlices.count == 1)
             if .pictureSlices[0].header.type == SliceTypeB do
                 .awaitReferenceProgress(false)
             .pictureSlices[0].decodeData()
@@ -383,7 +383,7 @@ impl Decoder
     // Reconstructs, filters, and pads the access unit left by [[parseAccessUnit]].
     mtd finishAccessUnit()->*Frame fail
     {
-        Debug.assert(.current != null)
+        Swag.assert(.current != null)
         defer .releasePictureReferences()
         if .inlineRecon
         {
@@ -412,7 +412,7 @@ impl Decoder
     // Pins every borrowed slice reference while later pictures may change reference marking.
     private mtd holdPictureReferences()
     {
-        Debug.assert(!.referencesHeld)
+        Swag.assert(!.referencesHeld)
         for &slice in .pictureSlices
         {
             for list in 2'u64

@@ -36,8 +36,17 @@ const IntrinsicCompileTimeMinimum = Swag.min(12's32, 7's32)
 /**
 # Failure Behavior
 
-'Swag.assert' and 'Swag.panic' stop execution. Compiler-facing code can report
-diagnostics with 'Swag.compilerError' and 'Swag.compilerWarning'. Memory and math
+'Swag.assert(condition, message)' is the standard assertion for programmer invariants,
+available without importing Core. It stops execution when an enabled assertion is false.
+'Swag.SafetyWhat.Assert' controls its emission through 'BuildCfg.safetyGuards' and
+'#[Swag.Safety(.Assert, true/false)]': enabled in devmode, disabled in release.
+Disabled assertions evaluate none of their arguments, so keep required side effects
+outside them. Arguments still type-check, and the asserted invariant still narrows
+subsequent code. A message is optional and is evaluated only on failure.
+
+Use '#assert' for an unconditional compile-time assertion, and 'Swag.panic' for an
+unconditional stop.
+Compiler-facing code can report diagnostics with 'Swag.compilerError' and 'Swag.compilerWarning'. Memory and math
 intrinsics are also subject to the safety and sanity policies described later in
 this reference.
 
@@ -46,3 +55,16 @@ this reference.
 > while 'Swag.memcpy' ignores value lifecycle hooks. The caller remains responsible
 > for lifetime, bounds, alignment, and element semantics.
 */
+
+#test
+{
+    #[Swag.Safety(.Assert, true)]
+    {
+        Swag.assert(2 + 2 == 4, "arithmetic invariant")
+    }
+
+    #[Swag.Safety(.Assert, false)]
+    {
+        Swag.assert(false, "this assertion emits no code")
+    }
+}

@@ -82,7 +82,7 @@ public impl Poly1305
     // Includes `data` in the running authentication code.
     mtd update(data: const [..] u8)
     {
-        Debug.assert(.initialized, "Poly1305 needs an initialized sequence")
+        Swag.assert(.initialized, "Poly1305 needs an initialized sequence")
 
         var offset = 0'u64
         while offset < data.count
@@ -103,7 +103,7 @@ public impl Poly1305
     // keyed state. Call [[Core.Crypto.Poly1305.reset]] before reusing this value.
     mtd finalize()->Poly1305Tag
     {
-        Debug.assert(.initialized, "Poly1305 needs an initialized sequence")
+        Swag.assert(.initialized, "Poly1305 needs an initialized sequence")
 
         // A partial block carries its terminator inside the block itself, which
         // is what separates a short message from a padded longer one.

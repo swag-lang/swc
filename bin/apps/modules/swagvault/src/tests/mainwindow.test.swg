@@ -103,6 +103,7 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     defer host.shutdown()
 
     Swag.assert(window.privacyMode)
+    Swag.assert(!window.protectHidden.isChecked())
     Swag.assert(window.privacyModeControl.isChecked())
     Swag.assert(!window.mountedDrives.startupEnabled)
 
@@ -369,6 +370,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.resizeButton.enable(true)
     window.passwordButton.enable(true)
     window.keyFilesButton.enable(true)
+    window.hiddenButton.enable(true)
 
     let full = Gui.FocusOrder.collect(window)
     Swag.assert(full.stops.count == 10)
@@ -387,19 +389,21 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     // the dominant action still comes last on its card because the bar stacks from its right edge.
     window.showTab(1)
     let opened = Gui.FocusOrder.collect(window)
-    Swag.assert(opened.stops.count == 11)
+    Swag.assert(opened.stops.count == 13)
     Swag.assert(opened.stops[0] == cast(*Wnd) window.tabs)
     Swag.assert(opened.stops[1] == cast(*Wnd) window.mountPath)
     Swag.assert(opened.stops[2] == cast(*Wnd) window.browseMount)
     Swag.assert(opened.stops[3] == cast(*Wnd) window.mountPassword)
-    Swag.assert(opened.stops[4] == cast(*Wnd) window.mountKeyFiles.add)
+    Swag.assert(opened.stops[4] == cast(*Wnd) window.hiddenButton)
+    Swag.assert(opened.stops[5] == cast(*Wnd) window.mountKeyFiles.add)
     Swag.assert(!window.mountKeyFiles.generate.isVisible())
-    Swag.assert(opened.stops[5] == cast(*Wnd) window.drive)
-    Swag.assert(opened.stops[6] == cast(*Wnd) window.readOnly)
-    Swag.assert(opened.stops[7] == cast(*Wnd) window.keyFilesButton)
-    Swag.assert(opened.stops[8] == cast(*Wnd) window.passwordButton)
-    Swag.assert(opened.stops[9] == cast(*Wnd) window.resizeButton)
-    Swag.assert(opened.stops[10] == cast(*Wnd) window.mountButton)
+    Swag.assert(opened.stops[6] == cast(*Wnd) window.drive)
+    Swag.assert(opened.stops[7] == cast(*Wnd) window.readOnly)
+    Swag.assert(opened.stops[8] == cast(*Wnd) window.protectHidden)
+    Swag.assert(opened.stops[9] == cast(*Wnd) window.keyFilesButton)
+    Swag.assert(opened.stops[10] == cast(*Wnd) window.passwordButton)
+    Swag.assert(opened.stops[11] == cast(*Wnd) window.resizeButton)
+    Swag.assert(opened.stops[12] == cast(*Wnd) window.mountButton)
 
     window.showTab(3)
     let options = Gui.FocusOrder.collect(window)
@@ -665,6 +669,17 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
         let keyFiles = FormDlg.create(&host.surface, options)
         discard buildKeyFileChangeForm(keyFiles, currentFiles.toSlice())
         assertFormFits(&host, keyFiles)
+
+        options.width = 520
+        options.title = appStrings().ui_CreateHidden
+        let hidden = FormDlg.create(&host.surface, options)
+        discard buildHiddenCreateForm(hidden)
+        assertFormFits(&host, hidden)
+
+        options.title = appStrings().ui_ProtectHidden
+        let protection = FormDlg.create(&host.surface, options)
+        discard buildHiddenProtectionForm(protection)
+        assertFormFits(&host, protection)
     }
 }
 
@@ -924,4 +939,45 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "surface")
+}
+
+// The hidden creation action and optional protection share the normal open-vault page.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+    window.showTab(1)
+    window.mountPath.setText("C:\\vault.bin")
+    window.hiddenButton.enable(true)
+    window.refreshStatus()
+    host.settleAnimations(window, 6)
+    var image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "surface.open")
+}
+
+// A saved startup choice asks for hidden access again; neither its bytes nor a manual checkbox
+// become ordinary saved mount settings.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+    window.privacyMode = false
+    window.startupVaults.add({String.from("C:\\vault.bin"), String.from("mount-x"), true, false, true})
+    var keyFiles: Array'String
+    window.operation.hiddenAccess.setInputs("private hidden credentials", keyFiles.toSlice())
+    window.protectHidden.setState(.Checked)
+    let state = saveMainWindowState(window)
+    Swag.assert(!containsStateBytes(state.toSlice(), "private hidden credentials"))
+    window.startupVaults.clear()
+    window.protectHidden.setState(.Unchecked)
+    loadMainWindowState(window, state.toSlice())
+    Swag.assert(window.startupVaults.count == 1 and window.startupVaults[0].protectHidden)
+    Swag.assert(!window.protectHidden.isChecked())
 }

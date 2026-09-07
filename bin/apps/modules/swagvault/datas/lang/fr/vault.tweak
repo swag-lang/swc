@@ -136,3 +136,17 @@ msg_ErrSparse            Le conteneur est sparse. Convertissez-le en fichier ent
 msg_ErrDiskFull          Il n'y a plus de place dans le conteneur.
 msg_ErrIo                Le conteneur n'a pas pu être lu ou écrit.
 msg_ErrInvalidRequest    Le conteneur ne peut pas répondre à cette demande.
+
+ui_CreateHidden    Créer un volume caché…
+ui_ProtectHidden    Protéger le volume caché en écriture
+ui_HiddenPassword    MOT DE PASSE DU VOLUME CACHÉ
+ui_HiddenCreateHelp    Utilise un espace libre contigu du coffre. Remplace tout volume caché précédent. Activez la protection à chaque montage du volume contenant pour éviter son écrasement.
+ui_HiddenProtectionHelp    Saisissez l'accès caché pour protéger son espace. Une écriture conflictuelle bloque les suivantes jusqu'au démontage. Le lecteur caché n'est pas monté.
+msg_HiddenProtected    La protection du volume caché empêche cette modification. Démontez le volume avant de continuer.
+
+ui_OuterReserve    ESPACE À GARDER POUR LE VOLUME CONTENANT
+ui_OuterReserveHelp    Minimum disponible pour les fichiers ordinaires. Limite seulement la création cachée ; ce choix n'est pas enregistré dans le volume contenant.
+
+msg_MountedProtected    Le lecteur % est monté avec protection du volume caché.
+
+msg_HiddenCreateCanceled    Création cachée annulée ; un ancien volume caché peut être endommagé.

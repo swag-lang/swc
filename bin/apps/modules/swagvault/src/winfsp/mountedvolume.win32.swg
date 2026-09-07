@@ -18,9 +18,9 @@ namespace WinFsp
         //
         // `readOnly` travels no further than [[Volume.open]] and the volume parameters WinFsp is
         // given: the drive is what carries the state, so nothing here has to remember it.
-        mtd open(path: string, password: const [..] u8, mountPoint: string, readOnly = false) fail
+        mtd open(path: string, password: const [..] u8, mountPoint: string, readOnly = false, protectionPassword: const [..] u8 = "") fail
         {
-            .volume     = Volume.open(path, password, readOnly)
+            .volume     = Volume.open(path, password, readOnly, protectionPassword)
             .volumeOpen = true
             traceWinFspStage("calling WinFspMount.start from MountedVolume.open")
             discard catch .mount.start(&.volume, mountPoint) as mountError
@@ -55,10 +55,10 @@ namespace WinFsp
 }
 
 // Creates the Windows mount behind the platform-neutral application handle.
-func mountVaultNative(path: string, password: const [..] u8, destination: string, readOnly: bool)->*void fail
+func mountVaultNative(path: string, password: const [..] u8, destination: string, readOnly: bool, protectionPassword: const [..] u8)->*void fail
 {
     let mounted = Memory.new'WinFsp.MountedVolume()
-    discard catch mounted.open(path, password, destination, readOnly) as mountError
+    discard catch mounted.open(path, password, destination, readOnly, protectionPassword) as mountError
     if mountError != null
     {
         Memory.delete(mounted)

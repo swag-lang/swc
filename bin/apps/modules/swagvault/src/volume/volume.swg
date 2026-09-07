@@ -137,7 +137,7 @@ impl VolumeProgress
 #[Swag.NoCopy]
 struct Volume
 {
-    file:               File.FileStream
+    file:               VolumeStorage
     keys:               Crypto.Keys
     master:             [Crypto.MasterKeySize] u8
     slotSalt:           [Crypto.SaltSize] u8     // One random salt shared by every password slot.
@@ -239,6 +239,8 @@ impl Volume
     // answer whether it asks to write a byte, to rename an entry, or to rewrite a key slot.
     mtd requireWritable() fail
     {
+        if .file.protectionTriggered do
+            failWith("Hidden-volume protection has stopped writes until unmount.", .HiddenProtected)
         if .readOnly do
             failWith("The container is mounted read only.", .WriteProtected)
     }
@@ -307,8 +309,8 @@ impl Volume
             .label         = ProductName
         }
 
-        result.file = File.open(path, .CreateNew, .ReadWrite, .Read)
-        created     = true
+        result.file.stream = File.open(path, .CreateNew, .ReadWrite, .Read)
+        created            = true
         result.file.resize(result.physicalSize)
 
         // Fill the whole container with random bytes before anything real is
@@ -369,7 +371,11 @@ impl Volume
     // be trusted to leave the container alone: the operating system refuses the write, and every
     // operation that would have needed one fails with [[ErrorKind.WriteProtected]] before it is
     // attempted. It is also what lets a container be read while another tool holds it.
-    func open(path: string, password: const [..] u8, readOnly = false)->Volume fail
+    //
+    // The password selects the outer or hidden filesystem. Supplying protectionPassword
+    // authenticates the hidden range and rejects outer writes into it for this handle only.
+    // Empty protection bytes leave normal allocation and writes unrestricted.
+    func open(path: string, password: const [..] u8, readOnly = false, protectionPassword: const [..] u8 = "")->Volume fail
     {
         if (try File.attributes(path)).has(.SparseFile) do
             failWith("Sparse container files are not supported.", .SparseContainer)
@@ -379,14 +385,17 @@ impl Volume
         result.readOnly = readOnly
         result.path     = path
         if readOnly do
-            result.file = File.open(path, .Open, .Read, .Read)
+            result.file.stream = File.open(path, .Open, .Read, .Read)
         else do
-            result.file = File.open(path, .Open, .ReadWrite, .Read)
+            result.file.stream = File.open(path, .Open, .ReadWrite, .Read)
         var completed = false
         defer
         {
-            if !completed do
+            if !completed
+            {
+                result.dirty = false
                 result.close()
+            }
         }
 
         result.physicalSize = result.file.size()
@@ -395,7 +404,26 @@ impl Volume
         result.containerSize = result.physicalSize
         result.blockCount    = (result.physicalSize - DataOffset) / BlockRecordSize
 
-        try result.unlock(password)
+        discard catch result.unlock(password) as outerError
+        if outerError != null
+        {
+            let region = try HiddenLocator.find(&result.file.stream, password)
+            result.file.base     = region.first
+            result.file.limit    = region.count
+            result.physicalSize  = region.count
+            result.containerSize = region.count
+            result.blockCount    = (region.count - DataOffset) / BlockRecordSize
+            try result.unlock(password)
+        }
+
+        if protectionPassword.count
+        {
+            if result.file.base do
+                failWith("Hidden-volume protection needs the outer volume password.", .InvalidInput)
+            let region = try HiddenLocator.find(&result.file.stream, protectionPassword)
+            result.file.protectedFirst = region.first
+            result.file.protectedEnd   = region.first + region.count
+        }
 
         var first = try result.readHeader(0)
         defer Core.Crypto.secureClear(first.plain.toSlice())
@@ -422,15 +450,128 @@ impl Volume
         if parseError != null do
             failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
 
+        if result.file.protectedEnd do
+            try result.validateHiddenRegion({result.file.protectedFirst, result.file.protectedEnd - result.file.protectedFirst})
+
         // A shrink publishes its authenticated geometry before truncating the now-unused tail.
         // If the process stopped between those steps, the next writable open completes the
         // truncation; a read-only open simply ignores the unauthenticated excess bytes.
-        if !readOnly and result.file.size() > result.physicalSize
+        if !readOnly and !result.file.base and !result.file.protectedEnd and result.file.size() > result.physicalSize
         {
             result.file.resize(result.physicalSize)
             result.file.flush()
         }
 
+        completed = true
+        return result
+    }
+
+    // Checks that the entire hidden view still belongs to one genuinely free outer extent.
+    mtd validateHiddenRegion(region: FreeExtent) fail
+    {
+        if region.first < DataOffset or region.first > .containerSize or region.count > .containerSize - region.first do
+            failWith("The hidden region no longer fits the outer volume.", .HiddenProtected)
+        for extent in .blocks.free
+        {
+            let first = DataOffset + extent.first * BlockRecordSize
+            let end   = first + extent.count * BlockRecordSize
+            if region.first >= first and region.first <= end and region.count <= end - region.first do
+                return
+        }
+
+        failWith("The outer volume has allocated part of the hidden region.", .HiddenProtected)
+    }
+
+    // Creates one hidden volume inside a contiguous free outer extent. The outer handle is
+    // consumed before returning: a writable outer and its hidden view can never coexist here.
+    // Creating another hidden volume replaces the previous hidden access and may overwrite it.
+    func createHidden(path: string, outerPassword, hiddenPassword: const [..] u8, requestedSize: u64, progress: *VolumeProgress? = null, outerReserve: u64 = MinimumBlocks * BlockSize)->Volume fail
+    {
+        if requestedSize < MinimumSize do
+            failWith("The hidden volume is too small for its metadata.", .SizeTooSmall)
+        if !hiddenPassword.count do
+            failWith("A hidden volume needs a password or key files.", .PasswordRequired)
+        var outer = try Volume.open(path, outerPassword)
+        if outer.file.base do
+            failWith("A hidden volume needs an outer container.", .InvalidInput)
+        if (try outer.findKeySlot(hiddenPassword)) != Swag.U64.Max do
+            failWith("Hidden and outer access need different credentials.", .InvalidInput)
+        try outer.checkpoint()
+        let hiddenBlocks  = requestedSize / BlockRecordSize + (requestedSize % BlockRecordSize != 0 ? 1'u64 : 0)
+        let reserveBlocks = outerReserve / BlockSize + (outerReserve % BlockSize != 0 ? 1'u64 : 0)
+        let freeBlocks    = outer.blocks.freeBlockCount()
+        if hiddenBlocks > freeBlocks or Math.max(reserveBlocks, MinimumBlocks) > freeBlocks - hiddenBlocks do
+            failWith("The hidden capacity leaves too little free space for the outer volume.", .DiskFull)
+        var region: FreeExtent
+        for extent in outer.blocks.free
+        {
+            let size = extent.count * BlockRecordSize
+            if size >= requestedSize and size > region.count do
+                region = {DataOffset + extent.first * BlockRecordSize, size}
+        }
+
+        if region.count < requestedSize do
+            failWith("No contiguous free region fits the hidden volume.", .DiskFull)
+        region.first += region.count - requestedSize
+        region.count = requestedSize
+        try outer.validateHiddenRegion(region)
+        if progress and progress!.isCanceled() do
+            failWith("Container creation was canceled.", .Canceled)
+
+        var result: retval
+        result.file.stream   = #move outer.file.stream
+        result.file.base     = region.first
+        result.file.limit    = region.count
+        result.path          = path
+        result.containerSize = requestedSize
+        result.physicalSize  = requestedSize
+        result.blockCount    = (requestedSize - DataOffset) / BlockRecordSize
+        result.nextNodeId    = RootNodeId + 1
+        result.label         = ProductName
+        var completed = false
+        defer
+        {
+            if !completed
+            {
+                result.dirty = false
+                result.close()
+            }
+        }
+
+        if progress do
+            progress!.setTotal(requestedSize)
+
+        // Clearing old journal records is essential when this free extent held an older volume.
+        try result.randomizeRange(0, requestedSize, progress, 0, "Container creation was canceled.")
+        Core.Crypto.randomBytes(result.master)
+        Core.Crypto.randomBytes(result.slotSalt)
+        result.file.writeAllAt(0, result.slotSalt)
+        result.keys = try Crypto.deriveKeys(result.master)
+        let slot = try randomKeySlotIndex()
+        result.keySlotMask = keySlotBit(slot)
+        let now = volumeTimeNow()
+        with var root: Node
+        {
+            .id             = RootNodeId
+            .parentId       = RootNodeId
+            .attributes     = FileAttributeDirectory
+            .creationTime   = now
+            .lastAccessTime = now
+            .lastWriteTime  = now
+            .changeTime     = now
+        }
+
+        result.nodes.add(#move root)
+        let indexed = result.nodeLookup.add(&result.nodes[0], 0)
+        Debug.assert(indexed)
+        result.blocks.initialize(result.blockCount)
+        result.dirty = true
+        try result.checkpoint()
+
+        // Remove every old hidden access before publishing the replacement's first locator.
+        for index in KeySlotCount do
+            try HiddenLocator.erase(&result.file.stream, index)
+        try result.writeKeySlot(slot, hiddenPassword)
         completed = true
         return result
     }
@@ -478,8 +619,15 @@ impl Volume
         var slot = try KeySlot.create(slotKey, .master, index)
         defer slot.clear()
         let record = try slot.encode()
-        .file.writeAllAt(keySlotPayloadOffset(index), record)
+        .file.writeAllAt(keySlotPayloadOffset(index), record[until KeySlotPlainSize])
         .file.flush()
+        if .file.base
+        {
+            try HiddenLocator.write(&.file.stream, index, password, {.file.base, .file.limit})
+            let verified = try HiddenLocator.find(&.file.stream, password)
+            if verified.first != .file.base or verified.count != .file.limit do
+                failWith("The replacement hidden locator could not be verified.", .Io)
+        }
     }
 
     // Overwrites the key slot at `index` with random bytes, so the password it
@@ -489,8 +637,10 @@ impl Volume
         try .requireWritable()
         var record: [KeySlotPayloadSize] u8
         Core.Crypto.randomBytes(record)
-        .file.writeAllAt(keySlotPayloadOffset(index), record)
+        .file.writeAllAt(keySlotPayloadOffset(index), record[until KeySlotPlainSize])
         .file.flush()
+        if .file.base do
+            try HiddenLocator.erase(&.file.stream, index)
     }
 
     // Reports which slot `password` opens, or `Swag.U64.Max` when none does.
@@ -529,6 +679,9 @@ impl Volume
     // which refuses to add an unprotected way into a container that has one.
     mtd changePassword(current, replacement: const [..] u8) fail
     {
+        if .file.base and (!replacement.count or (try HiddenLocator.opensOuter(&.file.stream, replacement))) do
+            failWith("Hidden access needs nonempty credentials distinct from outer access.", .InvalidInput)
+
         let currentIndex = try .findKeySlot(current)
         if currentIndex == Swag.U64.Max do
             failWith("The current password is incorrect.", .AccessDenied)
@@ -561,6 +714,11 @@ impl Volume
                 failWith("The replacement key slot could not be verified.", .Io)
         }
 
+        // An already occupied hidden slot can have lost its locator independently. Repair and
+        // verify that access before revoking the current one as well.
+        if .file.base and existingReplacement != Swag.U64.Max do
+            try .writeKeySlot(replacementIndex, replacement)
+
         // Only a verified replacement makes the previous access removable.
         try .eraseKeySlot(currentIndex)
         .keySlotMask  &= ~keySlotBit(currentIndex)
@@ -580,6 +738,9 @@ impl Volume
     // protection is [[Volume.changePassword]] with an empty replacement.
     mtd addPassword(additional: const [..] u8)->u64 fail
     {
+        if .file.base and (!additional.count or (try HiddenLocator.opensOuter(&.file.stream, additional))) do
+            failWith("Hidden access needs nonempty credentials distinct from outer access.", .InvalidInput)
+
         if !additional.count do
             failWith("A password is required.", .PasswordRequired)
         if (try .findKeySlot(additional)) != Swag.U64.Max do
@@ -643,6 +804,8 @@ impl Volume
     mtd grow(requestedSize: u64, progress: *VolumeProgress? = null) fail
     {
         try .requireWritable()
+        if .file.base or .file.protectedEnd do
+            failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
         if progress and progress!.isCanceled() do
             failWith("Growing the container was canceled.", .Canceled)
         if requestedSize <= .containerSize do
@@ -707,6 +870,8 @@ impl Volume
     mtd reapplyCamouflage(progress: *VolumeProgress? = null) fail
     {
         try .requireWritable()
+        if .file.base or .file.protectedEnd do
+            failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
         let previousPhysical = .physicalSize
         let targetPhysical   = try camouflageSize(.containerSize, previousPhysical)
         let addedPhysical    = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
@@ -764,6 +929,8 @@ impl Volume
     mtd shrink(requestedSize: u64, progress: *VolumeProgress? = null) fail
     {
         try .requireWritable()
+        if .file.base or .file.protectedEnd do
+            failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
         if progress and progress!.isCanceled() do
             failWith("Resizing the container was canceled.", .Canceled)
         if requestedSize < MinimumSize do

@@ -24,7 +24,7 @@ struct Node
 
 impl Node
 {
-    mtd isDirectory()->bool => (.attributes & FileAttributeDirectory) != 0
+    mtd const isDirectory()->bool => (.attributes & FileAttributeDirectory) != 0
 
     mtd blockSearch(logical: u64)->{found: bool, index: u64}
     {

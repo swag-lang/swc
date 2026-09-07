@@ -58,20 +58,6 @@ module's roadmap.
 - Document the trap VeraCrypt also documents: restoring a backed-up header reinstates the passwords
   that were current when the backup was taken.
 
-### app.vault.006 — Hidden volume
-
-- Recorded: 2026-08-06 08:32
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Owner: Swag Vault
-- The current format has fixed key-slot, header, journal, and data regions. `Crypto.recordLocator`
-  derives authentication markers from keys and record coordinates; it does not choose a hidden
-  header's physical location. No inner-volume layout or protected-region write policy exists.
-- First define the threat model and on-disk layout, including how an outer mount avoids overwriting
-  an inner volume and what information mounting, free space, and failure behavior reveal. The UI
-  can expose a hidden-volume mode only after that contract has independent review.
-- Sequencing: last. A hidden volume that leaks is worse than no hidden volume, because it promises
-  a protection it does not deliver.
-
 ### app.vault.010 — Crash tests do not interrupt writes and checkpoints
 
 - Recorded: 2026-08-09 11:30

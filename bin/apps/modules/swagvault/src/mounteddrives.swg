@@ -12,6 +12,7 @@ struct MountedDrive
     atStartup:      bool               // Whether Swag Vault mounts this container again the next time it starts.
     totalBytes:     u64                // Capacity exposed by the mounted filesystem.
     availableBytes: u64                // Free capacity observed when the row was last refreshed.
+    protectHidden:  bool               // Hidden access must be requested again on a writable startup mount.
 }
 
 // Columns of the mounted-drives list, in the order `MountedDrives.create` adds them.

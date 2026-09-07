@@ -20,6 +20,13 @@ const SurfaceId   = "swag.vault"
     }
 
     try Jobs.initialize()
+    #static if #hastag("vault.hidden-copy")
+    {
+        discard catch runHiddenCopy() as copyError
+        if copyError != null do
+            Console.println("Copy stopped: ", Errors.message(copyError))
+        Env.exit(copyError == null ? 0 : 1)
+    }
 
     // Persisted non-sensitive preferences. A failure to prepare the folder only
     // costs the memory between runs, never the application start.

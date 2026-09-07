@@ -30,10 +30,10 @@ struct MountedVault
 
 impl MountedVault
 {
-    mtd open(path: string, password: const [..] u8, destination: string, readOnly = false) fail
+    mtd open(path: string, password: const [..] u8, destination: string, readOnly = false, protectionPassword: const [..] u8 = "") fail
     {
         Debug.assert(.handle == null)
-        .handle = mountVaultNative(path, password, destination, readOnly)
+        .handle = mountVaultNative(path, password, destination, readOnly, protectionPassword)
     }
 
     mtd close() fail

@@ -10,6 +10,18 @@ using Core, Gui
 // [[appStrings]]; never keep a copy across a language switch.
 struct AppStrings
 {
+    msg_HiddenCreateCanceled: string = "Hidden creation canceled; a previous hidden volume may be damaged."
+    msg_MountedProtected:     string = "Drive % is mounted with hidden-volume protection."
+    ui_OuterReserve:          string = "KEEP FREE FOR THE OUTER VOLUME"
+    ui_OuterReserveHelp:      string = "Minimum space left for ordinary files. This choice only limits hidden creation; it is not stored in the outer filesystem."
+
+    ui_CreateHidden:         string = "Create hidden volume…"
+    ui_ProtectHidden:        string = "Protect the hidden volume when writing"
+    ui_HiddenPassword:       string = "HIDDEN VOLUME PASSWORD"
+    ui_HiddenCreateHelp:     string = "Uses contiguous free space in this vault. Replaces any previous hidden volume. Outer writes can destroy it unless protection is enabled at each mount."
+    ui_HiddenProtectionHelp: string = "Enter the hidden access to protect its space. A conflicting write stops all further writes until unmount. The hidden drive is not mounted."
+
+    msg_HiddenProtected: string = "Hidden-volume protection prevents this change. Unmount before continuing."
     ui_WindowTitle:      string = "Swag Vault — Private virtual drives"
     ui_Subtitle:         string = "Encrypted storage that looks and behaves like a regular Windows drive."
     ui_CreateCardTitle:  string = "Create a new vault"

@@ -18,6 +18,13 @@ bin\swc.exe --num-cores 6 tools\apps.swgs dm smoke swagvault --num-cores 6
 Release program configuration. The application tool builds and places runtime dependencies before
 launching the program; use it when running from a checkout.
 
+## Hidden volumes
+
+Create a hidden filesystem inside an existing container's contiguous free space, with independent
+password and key files. Choose its capacity and the minimum space to leave for ordinary files.
+Hidden-volume protection is optional at mount: without it, ordinary writes can overwrite hidden
+data. See [hidden-volume workflow, format, and limitations](hidden-volumes.md).
+
 ## Mounting and runtime files
 
 The packaged application includes `winfsp-x64.dll`, `winfsp-x64.sys`, its shared Swag dependencies,

@@ -42,6 +42,7 @@ namespace WinFsp
             case .NotFound:          return StatusObjectNameNotFound
             case .AlreadyExists:     return StatusObjectNameCollision
             case .AccessDenied:      return StatusAccessDenied
+            case .HiddenProtected:   return StatusMediaWriteProtected
             case .WriteProtected:    return StatusMediaWriteProtected
             case .NotDirectory:      return StatusNotADirectory
             case .IsDirectory:       return StatusFileIsDirectory

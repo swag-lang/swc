@@ -41,33 +41,35 @@ internal enum StatusTone
 // tone, which is why `setStatus` takes no second argument.
 internal enum StatusMessage
 {
-    Ready                  // Nothing has run yet, or the last operation finished cleanly.
-    Randomizing            // The container is being filled with random bytes; `statusProgress` says how far.
-    StopRequested          // The user asked the running operation to stop.
-    CreateCanceled         // Creation stopped on request and left nothing behind.
-    StartingDriver         // The portable filesystem driver is starting.
-    Unmounting             // The drive is being synchronized and unmounted.
-    CreateStopped          // Container creation stopped.
-    Created                // The container was created and is ready to mount.
-    MountStopped           // Mounting stopped.
-    Mounted                // A drive is mounted; `statusDrive` names its letter.
-    MountedReadOnly        // A drive is mounted for reading alone; `statusDrive` names its letter.
-    Unmounted              // The drive was unmounted safely.
-    Resizing               // Blocks are being moved or added; `statusProgress` says how far.
-    Camouflaging           // The random physical tail is being refreshed.
-    ResizeCanceled         // Resizing stopped on request and left the previous geometry.
-    ResizeStopped          // Resizing stopped.
-    Resized                // The container has another capacity; `statusDrive` says how much it holds.
-    Camouflaged            // The logical capacity stayed unchanged and the physical size changed.
-    AutoUnmounted          // A configured security event closed every protected drive.
-    AutoUnmountStopped     // The drives closed, but at least one final synchronization stopped.
-    ChangingPassword       // The key slot is being rewritten.
-    PasswordChanged        // The container now opens with the new password.
-    PasswordRemoved        // The container now opens without a password.
-    PasswordStopped        // The password change stopped.
-    ChangingKeyFiles       // A verified key-slot rotation is in progress.
-    KeyFilesChanged        // The container now opens with the selected key files.
-    KeyFilesStopped        // The key-file change stopped.
+    Ready                    // Nothing has run yet, or the last operation finished cleanly.
+    Randomizing              // The container is being filled with random bytes; `statusProgress` says how far.
+    StopRequested            // The user asked the running operation to stop.
+    HiddenCreateCanceled     // Hidden creation stopped; replacing an older hidden volume can damage it.
+    CreateCanceled           // Creation stopped on request and left nothing behind.
+    StartingDriver           // The portable filesystem driver is starting.
+    Unmounting               // The drive is being synchronized and unmounted.
+    CreateStopped            // Container creation stopped.
+    Created                  // The container was created and is ready to mount.
+    MountStopped             // Mounting stopped.
+    Mounted                  // A drive is mounted; `statusDrive` names its letter.
+    MountedProtected         // The outer drive refuses writes into its authenticated hidden region.
+    MountedReadOnly          // A drive is mounted for reading alone; `statusDrive` names its letter.
+    Unmounted                // The drive was unmounted safely.
+    Resizing                 // Blocks are being moved or added; `statusProgress` says how far.
+    Camouflaging             // The random physical tail is being refreshed.
+    ResizeCanceled           // Resizing stopped on request and left the previous geometry.
+    ResizeStopped            // Resizing stopped.
+    Resized                  // The container has another capacity; `statusDrive` says how much it holds.
+    Camouflaged              // The logical capacity stayed unchanged and the physical size changed.
+    AutoUnmounted            // A configured security event closed every protected drive.
+    AutoUnmountStopped       // The drives closed, but at least one final synchronization stopped.
+    ChangingPassword         // The key slot is being rewritten.
+    PasswordChanged          // The container now opens with the new password.
+    PasswordRemoved          // The container now opens without a password.
+    PasswordStopped          // The password change stopped.
+    ChangingKeyFiles         // A verified key-slot rotation is in progress.
+    KeyFilesChanged          // The container now opens with the selected key files.
+    KeyFilesStopped          // The key-file change stopped.
 }
 
 // Rows of the "create a new vault" form, in the order `createNewVaultCard` adds them.
@@ -86,11 +88,12 @@ internal enum CreateRow
 // Rows of the "open an existing vault" form, in the order `createOpenVaultCard` adds them.
 internal enum MountRow
 {
-    Path         // Container file to open.
-    Password     // Password unlocking the container, or empty when it has none.
-    KeyFiles     // Ordered files combined with the password.
-    Drive        // Drive letter the volume appears on.
-    ReadOnly     // Whether the drive opens for reading alone.
+    Path              // Container file to open.
+    Password          // Password unlocking the container, or empty when it has none.
+    KeyFiles          // Ordered files combined with the password.
+    Drive             // Drive letter the volume appears on.
+    ReadOnly          // Whether the drive opens for reading alone.
+    ProtectHidden     // Whether mounting asks for hidden access before enabling writes.
 }
 
 // Rows of the automatic-unmount form, in the order `createOptionsCard` adds them.
@@ -142,6 +145,7 @@ struct StartupVault
     drive:         String     // Stable backend destination identifier; the name preserves saved-state compatibility.
     needsPassword: bool       // Whether opening it needs transient access input; serialized name kept for compatibility.
     readOnly:      bool       // Whether it was mounted read only, which the next start repeats.
+    protectHidden: bool       // Reauthenticate hidden access before a writable startup mount.
 }
 
 // Settings of the last mount that completed successfully.
@@ -160,14 +164,18 @@ struct MountSettings
 // polls `job` with `timer` until the result is ready to be reported.
 struct VaultOperation
 {
-    job:            Jobs.Job           // Worker scheduled for `kind`.
-    kind:           OperationKind      // Work the job performs, or `None` while the window is idle.
-    timer:          *Timer?            // Polls the job while it runs.
-    error:          any?               // Failure captured by the job, or null when it succeeded.
-    path:           String             // Container file the operation acts on.
-    mount:          String             // Stable backend destination identifier requested by a mount operation.
-    mountLabel:     String             // Host-facing destination name reported when the operation completes.
-    size:           u64                // Container size requested by a create or a grow.
+    job:            Jobs.Job          // Worker scheduled for `kind`.
+    kind:           OperationKind     // Work the job performs, or `None` while the window is idle.
+    timer:          *Timer?           // Polls the job while it runs.
+    error:          any?              // Failure captured by the job, or null when it succeeded.
+    path:           String            // Container file the operation acts on.
+    mount:          String            // Stable backend destination identifier requested by a mount operation.
+    mountLabel:     String            // Host-facing destination name reported when the operation completes.
+    size:           u64               // Container size requested by a create or a grow.
+    outerReserve:   u64
+    createHidden:   bool
+    protectHidden:  bool
+    hiddenAccess:   VaultAccess
     camouflageOnly: bool               // Whether resize only refreshes the random physical tail.
     access:         VaultAccess        // Current password and key files, owned and cleared by the operation.
     replacement:    VaultAccess        // Access installed by a password or key-file change.
@@ -230,6 +238,8 @@ struct MainWindow
         mountPassword:  *PasswordEdit
         mountKeyFiles:  *KeyFileField
         drive:          *ComboBox
+        protectHidden:  *CheckButton
+        hiddenButton:   *PushButton
         readOnly:       *CheckButton
         mountButton:    *PushButton
         passwordButton: *PushButton
@@ -338,6 +348,9 @@ internal func caughtMessage(err: any?)->String
 
         case .AccessDenied:
             return s.msg_ErrAccessDenied
+
+        case .HiddenProtected:
+            return s.msg_HiddenProtected
 
         case .WriteProtected:
             return s.msg_ErrReadOnly
@@ -1079,6 +1092,7 @@ impl MainWindow
              .Unmounting,
              .Mounted,
              .MountedReadOnly,
+             .MountedProtected,
              .Resizing,
              .Camouflaging,
              .ChangingPassword,
@@ -1088,6 +1102,7 @@ impl MainWindow
 
         case .Ready,
              .CreateCanceled,
+             .HiddenCreateCanceled,
              .Created,
              .Unmounted,
              .ResizeCanceled,
@@ -1106,33 +1121,35 @@ impl MainWindow
         let texts = appStrings()
         switch #complete .statusMessage
         {
-        case .Ready:              return String.from(texts.msg_Ready)
-        case .Randomizing:        return Format.toString(texts.msg_Randomizing, .statusProgress)
-        case .StopRequested:      return String.from(texts.msg_StopRequested)
-        case .CreateCanceled:     return String.from(texts.msg_CreateCanceled)
-        case .StartingDriver:     return String.from(texts.msg_StartingDriver)
-        case .Unmounting:         return String.from(texts.msg_Unmounting)
-        case .CreateStopped:      return String.from(texts.msg_CreateStopped)
-        case .Created:            return String.from(texts.msg_Created)
-        case .MountStopped:       return String.from(texts.msg_MountStopped)
-        case .Mounted:            return Format.toString(texts.msg_Mounted, .statusDrive)
-        case .MountedReadOnly:    return Format.toString(texts.msg_MountedReadOnly, .statusDrive)
-        case .Unmounted:          return String.from(texts.msg_Unmounted)
-        case .Resizing:           return Format.toString(texts.msg_Resizing, .statusProgress)
-        case .Camouflaging:       return Format.toString(texts.msg_Camouflaging, .statusProgress)
-        case .ResizeCanceled:     return String.from(texts.msg_ResizeCanceled)
-        case .ResizeStopped:      return String.from(texts.msg_ResizeStopped)
-        case .Resized:            return Format.toString(texts.msg_Resized, .statusDrive)
-        case .Camouflaged:        return String.from(texts.msg_Camouflaged)
-        case .AutoUnmounted:      return String.from(texts.msg_AutoUnmounted)
-        case .AutoUnmountStopped: return String.from(texts.msg_AutoUnmountStopped)
-        case .ChangingPassword:   return String.from(texts.msg_ChangingPassword)
-        case .PasswordChanged:    return String.from(texts.msg_PasswordChanged)
-        case .PasswordRemoved:    return String.from(texts.msg_PasswordRemoved)
-        case .PasswordStopped:    return String.from(texts.msg_PasswordStopped)
-        case .ChangingKeyFiles:   return String.from(texts.msg_ChangingPassword)
-        case .KeyFilesChanged:    return String.from(texts.msg_KeyFilesChanged)
-        case .KeyFilesStopped:    return String.from(texts.msg_KeyFilesStopped)
+        case .Ready:                return String.from(texts.msg_Ready)
+        case .Randomizing:          return Format.toString(texts.msg_Randomizing, .statusProgress)
+        case .StopRequested:        return String.from(texts.msg_StopRequested)
+        case .HiddenCreateCanceled: return String.from(texts.msg_HiddenCreateCanceled)
+        case .CreateCanceled:       return String.from(texts.msg_CreateCanceled)
+        case .StartingDriver:       return String.from(texts.msg_StartingDriver)
+        case .Unmounting:           return String.from(texts.msg_Unmounting)
+        case .CreateStopped:        return String.from(texts.msg_CreateStopped)
+        case .Created:              return String.from(texts.msg_Created)
+        case .MountStopped:         return String.from(texts.msg_MountStopped)
+        case .Mounted:              return Format.toString(texts.msg_Mounted, .statusDrive)
+        case .MountedProtected:     return Format.toString(texts.msg_MountedProtected, .statusDrive)
+        case .MountedReadOnly:      return Format.toString(texts.msg_MountedReadOnly, .statusDrive)
+        case .Unmounted:            return String.from(texts.msg_Unmounted)
+        case .Resizing:             return Format.toString(texts.msg_Resizing, .statusProgress)
+        case .Camouflaging:         return Format.toString(texts.msg_Camouflaging, .statusProgress)
+        case .ResizeCanceled:       return String.from(texts.msg_ResizeCanceled)
+        case .ResizeStopped:        return String.from(texts.msg_ResizeStopped)
+        case .Resized:              return Format.toString(texts.msg_Resized, .statusDrive)
+        case .Camouflaged:          return String.from(texts.msg_Camouflaged)
+        case .AutoUnmounted:        return String.from(texts.msg_AutoUnmounted)
+        case .AutoUnmountStopped:   return String.from(texts.msg_AutoUnmountStopped)
+        case .ChangingPassword:     return String.from(texts.msg_ChangingPassword)
+        case .PasswordChanged:      return String.from(texts.msg_PasswordChanged)
+        case .PasswordRemoved:      return String.from(texts.msg_PasswordRemoved)
+        case .PasswordStopped:      return String.from(texts.msg_PasswordStopped)
+        case .ChangingKeyFiles:     return String.from(texts.msg_ChangingPassword)
+        case .KeyFilesChanged:      return String.from(texts.msg_KeyFilesChanged)
+        case .KeyFilesStopped:      return String.from(texts.msg_KeyFilesStopped)
         }
     }
 
@@ -1209,7 +1226,13 @@ impl MainWindow
             window.chooseContainer(window.mountPath, false)
         }
 
-        .mountPassword = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword)
+        .mountPassword           = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword)
+        .hiddenButton            = form.addRowAction(appStrings().ui_CreateHidden)
+        .hiddenButton.sigPressed += func|window = me|(btn)
+        {
+            discard btn
+            window.createHiddenContainer()
+        }
         .mountKeyFiles = KeyFileField.create(form, canGenerate: false)
         discard form.addField(appStrings().ui_KeyFiles, .mountKeyFiles, help: appStrings().ui_KeyFilesHelp)
 
@@ -1221,7 +1244,12 @@ impl MainWindow
 
         // Under the letter rather than beside the password: it says what the drive will be, not
         // how the container is opened, and a reader deciding on a letter is already there.
-        .readOnly = form.addOptionField(appStrings().ui_ReadOnly, help: appStrings().ui_ReadOnlyHelp)
+        .readOnly            = form.addOptionField(appStrings().ui_ReadOnly)
+        .protectHidden       = form.addOptionField(appStrings().ui_ProtectHidden)
+        .readOnly.sigChanged += func|window = me|(button)
+        {
+            window.protectHidden.enable(!button.isChecked())
+        }
 
         // The action bar stacks from its right edge, so the dominant action is created first and
         // ends up under the reader's thumb, with the two secondary ones to its left.
@@ -1359,6 +1387,7 @@ impl MainWindow
         .passwordButton.enable(.canModifyVault())
         .keyFilesButton.enable(.canModifyVault())
         .resizeButton.enable(.canModifyVault())
+        .hiddenButton.enable(.canModifyVault())
         .mountedDrives.unmountButton.enable(.mountedDrives.selectedIndex() != Swag.U64.Max)
     }
 
@@ -1426,8 +1455,9 @@ impl MainWindow
         .mountCard.form.setRowHelp(cast(u64) MountRow.KeyFiles, texts.ui_KeyFilesHelp)
         .mountCard.form.setRowLabel(cast(u64) MountRow.Drive, texts.ui_DriveLetter)
         .mountCard.form.setRowHelp(cast(u64) MountRow.Drive, texts.ui_DriveHelp)
-        .mountCard.form.setRowHelp(cast(u64) MountRow.ReadOnly, texts.ui_ReadOnlyHelp)
         .readOnly.setText(texts.ui_ReadOnly)
+        .protectHidden.setText(texts.ui_ProtectHidden)
+        .hiddenButton.setText(texts.ui_CreateHidden)
         .mountPath.setPlaceholder(texts.ui_ExistingContainer)
         .mountPassword.setPlaceholder(texts.ui_ContainerPassword)
         .mountKeyFiles.retranslate()
@@ -1621,6 +1651,9 @@ impl MainWindow
             return
         }
 
+        .operation.createHidden  = false
+        .operation.protectHidden = false
+        .operation.hiddenAccess.clear()
         .operation.path = path
         .operation.size = size.bytes
         .operation.access.setInputs(.createPassword.bytes(), .createKeyFiles.paths.toSlice())
@@ -1630,6 +1663,87 @@ impl MainWindow
         .setStatus(.Randomizing)
         .setState(.Creating)
         .beginOperation(.Create)
+    }
+
+    // The open card identifies the outer container; this form owns only the new hidden access.
+    mtd createHiddenContainer()
+    {
+        if .state != .Ready or !.canModifyVault() do
+            return
+        if .isMounted(.mountPath.text())
+        {
+            .showError(appStrings().msg_UnmountFirst)
+            return
+        }
+
+        var options: FormDlgOptions
+        options.title             = appStrings().ui_CreateHidden
+        options.confirmButtonText = appStrings().ui_CreateVault
+        options.width             = 520
+        let dialog = FormDlg.create(.surface!, options)
+        let fields = buildHiddenCreateForm(dialog)
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+        if !Core.Crypto.constantTimeEqual(fields.password.bytes(), fields.confirm.bytes())
+        {
+            .showError(appStrings().msg_PasswordMismatch)
+            return
+        }
+
+        let size = parseCapacity(fields.capacity.text(), fields.unit.selectedIndex)
+        if !size.error.isEmpty()
+        {
+            .showError(size.error.toString())
+            return
+        }
+
+        let reserve = parseCapacity(fields.reserve.text(), fields.reserveUnit.selectedIndex)
+        if !reserve.error.isEmpty()
+        {
+            .showError(reserve.error.toString())
+            return
+        }
+
+        .operation.outerReserve = reserve.bytes
+        .operation.hiddenAccess.setInputs(fields.password.bytes(), fields.keyFiles.paths.toSlice())
+        if !.operation.hiddenAccess.isProtected()
+        {
+            .showError(appStrings().msg_PasswordRequired)
+            return
+        }
+
+        .operation.path          = .mountPath.text()
+        .operation.size          = size.bytes
+        .operation.createHidden  = true
+        .operation.protectHidden = false
+        .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
+        .operation.resultKeyFiles = fields.keyFiles.paths
+        .mountPassword.clear()
+        .statusProgress = 0
+        .setStatus(.Randomizing)
+        .setState(.Creating)
+        .showTab(0)
+        .beginOperation(.Create)
+    }
+
+    mtd askHiddenProtection()->bool
+    {
+        var options: FormDlgOptions
+        options.title             = appStrings().ui_ProtectHidden
+        options.confirmButtonText = appStrings().ui_MountDrive
+        options.width             = 520
+        let dialog = FormDlg.create(.surface!, options)
+        let fields = buildHiddenProtectionForm(dialog)
+        if dialog.doModal() != Dialog.BtnOk do
+            return false
+        .operation.hiddenAccess.setInputs(fields.password.bytes(), fields.keyFiles.paths.toSlice())
+        if !.operation.hiddenAccess.isProtected()
+        {
+            .showError(appStrings().msg_PasswordRequired)
+            return false
+        }
+
+        return true
     }
 
     // Asks the running creation or growth to stop.
@@ -1669,6 +1783,12 @@ impl MainWindow
             return
         }
 
+        .operation.createHidden = false
+        .operation.hiddenAccess.clear()
+        .operation.protectHidden = .protectHidden.isChecked() and !.readOnly.isChecked()
+        .protectHidden.setState(.Unchecked)
+        if .operation.protectHidden and !.askHiddenProtection() do
+            return
         .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
         .mountPassword.clear()
         .startMount(String.from(path), mountPoint, false, .readOnly.state == .Checked)
@@ -1682,7 +1802,7 @@ impl MainWindow
         .operation.mountLabel     = .mountPointLabel(.operation.mount.toString())
         .operation.fromStartup    = fromStartup
         .operation.readOnly       = readOnly
-        .operation.usedProtection = .operation.access.isProtected()
+        .operation.usedProtection = .operation.access.isProtected() or .operation.protectHidden
         .operation.securityEpoch  = .securityEpoch
         .setStatus(.StartingDriver)
         .setState(.Mounting)
@@ -1841,6 +1961,19 @@ impl MainWindow
 
     mtd runOperation()
     {
+        defer .operation.hiddenAccess.clear()
+        var hiddenCredential: VaultCredential
+        if .operation.createHidden or .operation.protectHidden
+        {
+            hiddenCredential = catch .operation.hiddenAccess.derive() as hiddenError
+            if hiddenError != null
+            {
+                .operation.error = hiddenError
+                .operation.access.clear()
+                return
+            }
+        }
+
         var current: VaultCredential
         if .operation.kind != .None and .operation.kind != .Unmount
         {
@@ -1860,14 +1993,24 @@ impl MainWindow
             return
 
         case .Create:
-            var volume = catch Volume.create(.operation.path.toString(), current.toSlice(), .operation.size, &.operation.progress) as createError
-            .operation.error = createError
-            if createError == null do
-                volume.close()
+            if .operation.createHidden
+            {
+                var volume = catch Volume.createHidden(.operation.path.toString(), current.toSlice(), hiddenCredential.toSlice(), .operation.size, &.operation.progress, .operation.outerReserve) as createError
+                .operation.error = createError
+                if createError == null do
+                    volume.close()
+            }
+            else
+            {
+                var volume = catch Volume.create(.operation.path.toString(), current.toSlice(), .operation.size, &.operation.progress) as createError
+                .operation.error = createError
+                if createError == null do
+                    volume.close()
+            }
 
         case .Mount:
             let mounted = Memory.new'MountedVault()
-            discard catch mounted.open(.operation.path.toString(), current.toSlice(), .operation.mount.toString(), .operation.readOnly) as mountError
+            discard catch mounted.open(.operation.path.toString(), current.toSlice(), .operation.mount.toString(), .operation.readOnly, hiddenCredential.toSlice()) as mountError
             .operation.error = mountError
             if mountError != null
             {
@@ -1924,6 +2067,7 @@ impl MainWindow
 
         .operation.access.clear()
         .operation.replacement.clear()
+        .operation.hiddenAccess.clear()
     }
 
     // Refreshes the status line of the operation that is still running.
@@ -1962,7 +2106,7 @@ impl MainWindow
             {
                 // A creation the user stopped is an outcome, not a failure, so it reports on
                 // the status line and never opens a dialog.
-                .setStatus(.CreateCanceled)
+                .setStatus(.operation.createHidden ? .HiddenCreateCanceled : .CreateCanceled)
             }
             elif .operation.error != null
             {
@@ -1973,7 +2117,14 @@ impl MainWindow
             {
                 .setStatus(.Created)
                 .mountPath.setText(.operation.path)
-                .mountKeyFiles.setPaths(.createKeyFiles.paths.toSlice())
+                if .operation.createHidden
+                {
+                    .mountKeyFiles.setPaths(.operation.resultKeyFiles.toSlice())
+                    .protectHidden.setState(.Unchecked)
+                    .showTab(1)
+                }
+                else do
+                    .mountKeyFiles.setPaths(.createKeyFiles.paths.toSlice())
             }
 
         case .Mount:
@@ -2004,7 +2155,7 @@ impl MainWindow
             {
                 .rememberMountedDrive()
                 .statusDrive = .operation.mountLabel
-                .setStatus(.operation.readOnly ? .MountedReadOnly : .Mounted)
+                .setStatus(.operation.readOnly ? .MountedReadOnly : (.operation.protectHidden ? .MountedProtected : .Mounted))
             }
 
             .fillDriveChoice()
@@ -2062,6 +2213,8 @@ impl MainWindow
         .operation.volume            = null
         .operation.usedProtection    = false
         .operation.leavesUnprotected = false
+        .operation.createHidden      = false
+        .operation.protectHidden     = false
         .operation.removesPassword   = false
         .operation.accessChange      = .Password
         .operation.fromStartup       = false
@@ -2097,6 +2250,7 @@ impl MainWindow
             .mountLabel    = me.operation.mountLabel
             .needsPassword = me.operation.usedProtection
             .readOnly      = me.operation.readOnly
+            .protectHidden = me.operation.protectHidden
             .atStartup     = !me.privacyMode and known != Swag.U64.Max
         }
 
@@ -2111,8 +2265,9 @@ impl MainWindow
         // the drive it was last seen on rather than on the one it was first marked with.
         if !.privacyMode and known != Swag.U64.Max
         {
-            .startupVaults[known].drive    = .operation.mount
-            .startupVaults[known].readOnly = .operation.readOnly
+            .startupVaults[known].drive         = .operation.mount
+            .startupVaults[known].protectHidden = .operation.protectHidden
+            .startupVaults[known].readOnly      = .operation.readOnly
         }
 
         .mountedDrives.drives.add(#move entry)
@@ -2166,7 +2321,7 @@ impl MainWindow
 
             if known != Swag.U64.Max do
                 .startupVaults.removeAtOrdered(known)
-            .startupVaults.add({one.path, one.drive, one.needsPassword, one.readOnly})
+            .startupVaults.add({one.path, one.drive, one.needsPassword, one.readOnly, one.protectHidden})
         }
 
         catch g_App.saveState()
@@ -2189,6 +2344,15 @@ impl MainWindow
             .operation.access.clear()
             if entry.needsPassword and !.askStartupAccess(entry.path.toString()) do
                 continue
+
+            .operation.protectHidden = entry.protectHidden and !entry.readOnly
+            .operation.hiddenAccess.clear()
+            if .operation.protectHidden and !.askHiddenProtection()
+            {
+                .operation.access.clear()
+                .operation.protectHidden = false
+                continue
+            }
 
             .startMount(entry.path, entry.drive, true, entry.readOnly)
             return
@@ -2276,6 +2440,7 @@ impl MainWindow
         .mountedDrives.drives.clear()
         .operation.access.clear()
         .operation.replacement.clear()
+        .operation.hiddenAccess.clear()
         .operation.resultKeyFiles.clear()
         .createPassword.clear()
         .confirmPassword.clear()

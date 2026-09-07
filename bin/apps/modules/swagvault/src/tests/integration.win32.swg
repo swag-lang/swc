@@ -260,12 +260,12 @@ namespace Integration
             return result
         }
 
-        mtd mountVolume(passwordBytes: const [..] u8) fail
+        mtd mountVolume(passwordBytes: const [..] u8, protectionPassword: const [..] u8 = "") fail
         {
             if .mountedActive do
                 failWith("The integration volume is already mounted.")
             let mounted = Memory.new'WinFsp.MountedVolume()
-            discard catch mounted.open(.container, passwordBytes, .mountPoint) as mountError
+            discard catch mounted.open(.container, passwordBytes, .mountPoint, protectionPassword: protectionPassword) as mountError
             if mountError != null
             {
                 Memory.delete(mounted)
@@ -544,6 +544,50 @@ namespace Integration
         try verify(!Directory.exists(driveRoot(box.mountPoint)), "the final unmount must release the drive letter")
     }
 
+    func runHiddenScenarios() fail
+    {
+        var box   = try Sandbox.create()
+        var outer = try Volume.create(box.container, password(), ContainerSize)
+        outer.close()
+        const HiddenPassword = "independent hidden integration access"
+        var hidden = try Volume.createHidden(box.container, password(), HiddenPassword, 16'u64 * 1024 * 1024)
+        hidden.close()
+        try box.mountVolume(HiddenPassword)
+        let secret = Path.combine(driveRoot(box.mountPoint), "secret.txt")
+        discard File.writeAllBytes(secret, "hidden integration bytes")
+        try box.unmountVolume()
+
+        try box.mountVolume(password(), HiddenPassword)
+        try verify(!File.exists(secret), "the outer mount must not expose hidden entries")
+        let ordinary = Path.combine(driveRoot(box.mountPoint), "ordinary.bin")
+        var stream   = try File.open(ordinary, .CreateNew, .ReadWrite, .Read)
+        var chunk    = try createPayload(1024 * 1024)
+        var stopped  = false
+        var written  = 0'u64
+        for 64
+        {
+            discard catch stream.writeAllAt(written, chunk.toSlice()) as writeError
+            if writeError != null
+            {
+                stopped = true
+                break
+            }
+
+            written += chunk.count
+        }
+
+        stream.close()
+        try verify(written > 0 and stopped and box.mounted!.volume.file.protectionTriggered, "ordinary Windows writes must succeed until hidden protection stops them")
+        discard catch box.unmountVolume()
+        try box.mountVolume(HiddenPassword)
+        try verify((try File.readAllText(secret)) == "hidden integration bytes", "hidden data must survive a protected outer write collision")
+        try box.unmountVolume()
+        try box.mountVolume(password())
+        try verify(box.mounted!.volume.file.protectedEnd == 0, "protection must be opt-in on every ordinary mount")
+        try box.unmountVolume()
+        try box.closeSandbox()
+    }
+
     func runInSandbox(box: *Sandbox)->u32 fail
     {
         g_CheckCount = 0
@@ -594,6 +638,8 @@ namespace Integration
         trace("STAGE: persistence scenarios")
         try runPersistenceScenarios(box, payload.toSlice())
         trace("STAGE: persistence scenarios complete")
+        Console.println("Checking hidden-volume mounts and optional write protection...")
+        try runHiddenScenarios()
         try box.closeSandbox()
         trace("STAGE: sandbox removed")
         return g_CheckCount

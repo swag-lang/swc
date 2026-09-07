@@ -8,6 +8,7 @@ using Core
 // sentence, so a kind exists when one of those two has to tell it apart.
 enum ErrorKind
 {
+    HiddenProtected       // A hidden region stopped writes or prevents changing geometry.
     General               // Nothing more precise is known.
     InvalidInput          // The operation was asked for something it cannot do.
     PasswordRequired      // The operation needs a password and got none.

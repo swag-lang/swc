@@ -11,7 +11,7 @@
         // The integration harness runs headless and reports through stdout, so
         // that build alone needs a console.
         .backendKind    = .Executable
-        .backendSubKind = #hastag("vault.integration") ? .Console : .Default
+        .backendSubKind = (#hastag("vault.integration") or #hastag("vault.hidden-copy")) ? .Console : .Default
 
         .name              = "swagvault"
         .resAppName        = "Swag Vault"

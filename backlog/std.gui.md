@@ -513,11 +513,6 @@ says what would have to be true.
 **A web or mobile target.** The retained tree and the painter could in principle drive either. That
 is a different product and it should not shape decisions here.
 
-
-The entries below were open investigations when the unified backlog was introduced. Update their
-next action in place as the evidence matures. They retain their former order until re-triaged, so
-position in this imported block carries no priority claim.
-
 An entry noticed while working on an application belongs here when `std/gui` is where it will be
 fixed; an entry that will be fixed inside the application goes to that application's own file, such
 as [app.capture.md](app.capture.md).

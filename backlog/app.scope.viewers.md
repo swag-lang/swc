@@ -27,31 +27,47 @@ and remove plugin ABI, dynamic-loading, packaging, and version-skew failure mode
 ## Registered viewer audit map
 
 `createViewerPluginRegistry` registers seventeen viewers. Each has a focused test file; tests
-elsewhere in the application add host search, replacement, streaming, and lifecycle coverage. The
-counts are an audit snapshot, not a target: new behavior must add the state or interaction that
-proves it.
+elsewhere in the application add host search, replacement, streaming, and lifecycle coverage.
+The linked owning suites are the live audit map; new behavior must add the state or interaction
+that proves it.
 
-| Viewer | Tests / goldens | Current core | Remaining reading capabilities and owner |
-| --- | ---: | --- | --- |
-| Archive | 6 / 1 | ZIP tree, stored/Deflate verification, entry preview through the normal viewer registry | nested provenance and format breadth; [app.scope.binary.008](app.scope.binary.md), [app.scope.binary.010](app.scope.binary.md) |
-| Binary | 23 / 2 | bounded hierarchical format reports, previews, navigation, filtering | reusable declarative schemas and findings; [app.scope.binary.md](app.scope.binary.md) |
-| Code | 7 / 1 | bounded streamed source with lexical coloring and search | outline, folding, breadcrumbs, minimap, structure cues, references; [app.scope.text.md](app.scope.text.md) |
-| Font | 4 / 1 | specimen plus paged glyph map | faces, glyph addressing, metrics, OpenType features, validation; [app.scope.font.md](app.scope.font.md) |
-| Hexadecimal | 25 / 4 | bounded typed grid, search inspector, analysis, offsets | templates, diff, structure links, accessibility; [app.scope.hexa.md](app.scope.hexa.md) |
-| HTML | 3 / 1 | safe offline rendered document, zoom, visible-text search | DOM/source/box inspection, resource ledger, local history; [app.scope.document.md](app.scope.document.md) |
-| Image | 5 / 1 | pan, zoom, fit, rotation, mirroring, animated and independent image sets | color/metadata plus histogram, pixel probe, comparison; [app.scope.image.md](app.scope.image.md) |
-| InDesign | 11 / 3 | bounded native preview and IDML page reader | page composition, text selection, object inventory, and output fidelity; [InDesign roadmap](app.scope.indesign.md) |
-| Markdown | 7 / 2 | rendered themes, reading measures, progressive layout, search | outline, synchronized source, resource security diagnostics; [app.scope.document.md](app.scope.document.md) |
-| MIDI | 4 / 1 | parsed tracks, notes, tempo/meter/key and piano roll | playback, mixer/event lanes, scalable timeline; [app.scope.midi.md](app.scope.midi.md) |
-| OpenDocument | 12 / 3 | safe ODT/ODS/ODP/ODG text, sheets, slides, and pages | complete ODF semantics, layout, accessibility, and conformance; [OpenDocument roadmap](app.scope.opendocument.md) |
-| PDF | 5 / 2 | page rendering, search, page jump, fit and zoom | thumbnails, bookmarks, continuous/facing layouts, components; [app.scope.document.md](app.scope.document.md) |
-| Sound | 9 / 1 | streamed playback, seek, volume/mute and bounded waveform | ranges, loop/scrub, spectrogram, meters and analysis; [app.scope.audio.md](app.scope.audio.md) |
-| Subtitle | 3 / 1 | timed searchable transcript with validated cue/time jumps | current-cue timeline, waveform/media check, source/styled modes; [app.scope.text.md](app.scope.text.md) |
-| Table | 6 / 1 | parsed CSV/TSV grid and cell search | dialect control, typed columns, sort/filter, fixed-width input, bounded rows; [app.scope.text.md](app.scope.text.md) |
-| Text | 2 / 1 | bounded decoded stream, encoding override, wrap, zoom, statistics and search | address/gutter, result panes, bookmarks, Unicode and pathological lines; [app.scope.text.md](app.scope.text.md) |
-| Video | 19 / 2 | progressive A/V playback, seek, tracks and subtitles | chapters, bookmarks, direct frame/time addressing, inspection; [app.scope.video.md](app.scope.video.md) |
+| Viewer | Owning suite | Current core | Remaining reading capabilities and owner |
+| --- | --- | --- | --- |
+| Archive | [tests](../bin/apps/modules/swagscope/src/tests/viewer.archive.test.swg) | ZIP tree, stored/Deflate verification, entry preview through the normal viewer registry | nested provenance and format breadth; [app.scope.binary.008](app.scope.binary.md), [app.scope.binary.010](app.scope.binary.md) |
+| Binary | [tests](../bin/apps/modules/swagscope/src/tests/viewer.binary.test.swg) | bounded hierarchical format reports, previews, navigation, filtering | reusable declarative schemas and findings; [app.scope.binary.md](app.scope.binary.md) |
+| Code | [tests](../bin/apps/modules/swagscope/src/tests/viewer.code.test.swg) | bounded streamed source with lexical coloring and search | outline, folding, breadcrumbs, minimap, structure cues, references; [app.scope.text.md](app.scope.text.md) |
+| Font | [tests](../bin/apps/modules/swagscope/src/tests/viewer.font.test.swg) | specimen plus paged glyph map | faces, glyph addressing, metrics, OpenType features, validation; [app.scope.font.md](app.scope.font.md) |
+| Hexadecimal | [tests](../bin/apps/modules/swagscope/src/tests/viewer.hex.test.swg) | bounded typed grid, search inspector, analysis, offsets | templates, diff, structure links, accessibility; [app.scope.hexa.md](app.scope.hexa.md) |
+| HTML | [tests](../bin/apps/modules/swagscope/src/tests/viewer.html.test.swg) | safe offline rendered document, zoom, visible-text search | DOM/source/box inspection, resource ledger, local history; [app.scope.document.md](app.scope.document.md) |
+| Image | [tests](../bin/apps/modules/swagscope/src/tests/viewer.image.test.swg) | pan, zoom, fit, rotation, mirroring, animated and independent image sets | color/metadata plus histogram, pixel probe, comparison; [app.scope.image.md](app.scope.image.md) |
+| InDesign | [tests](../bin/apps/modules/swagscope/src/tests/viewer.indesign.test.swg) | bounded native preview and IDML page reader | page composition, text selection, object inventory, and output fidelity; [InDesign roadmap](app.scope.indesign.md) |
+| Markdown | [tests](../bin/apps/modules/swagscope/src/tests/viewer.markdown.test.swg) | rendered themes, reading measures, progressive layout, search | outline, synchronized source, resource security diagnostics; [app.scope.document.md](app.scope.document.md) |
+| MIDI | [tests](../bin/apps/modules/swagscope/src/tests/viewer.midi.test.swg) | parsed tracks, notes, tempo/meter/key and piano roll | playback, mixer/event lanes, scalable timeline; [app.scope.midi.md](app.scope.midi.md) |
+| OpenDocument | [tests](../bin/apps/modules/swagscope/src/tests/viewer.opendocument.test.swg) | safe ODT/ODS/ODP/ODG text, sheets, slides, and pages | complete ODF semantics, layout, accessibility, and conformance; [OpenDocument roadmap](app.scope.opendocument.md) |
+| PDF | [tests](../bin/apps/modules/swagscope/src/tests/viewer.pdf.test.swg) | page rendering, search, page jump, fit and zoom | thumbnails, bookmarks, continuous/facing layouts, components; [app.scope.document.md](app.scope.document.md) |
+| Sound | [tests](../bin/apps/modules/swagscope/src/tests/viewer.sound.test.swg) | streamed playback, seek, volume/mute and bounded waveform | ranges, loop/scrub, spectrogram, meters and analysis; [app.scope.audio.md](app.scope.audio.md) |
+| Subtitle | [tests](../bin/apps/modules/swagscope/src/tests/viewer.subtitle.test.swg) | timed searchable transcript with validated cue/time jumps | current-cue timeline, waveform/media check, source/styled modes; [app.scope.text.md](app.scope.text.md) |
+| Table | [tests](../bin/apps/modules/swagscope/src/tests/viewer.table.test.swg) | parsed CSV/TSV grid and cell search | dialect control, typed columns, sort/filter, fixed-width input, bounded rows; [app.scope.text.md](app.scope.text.md) |
+| Text | [tests](../bin/apps/modules/swagscope/src/tests/viewer.text.test.swg) | bounded decoded stream, encoding override, wrap, zoom, statistics and search | address/gutter, result panes, bookmarks, Unicode and pathological lines; [app.scope.text.md](app.scope.text.md) |
+| Video | [tests](../bin/apps/modules/swagscope/src/tests/viewer.video.test.swg) | progressive A/V playback, seek, tracks and subtitles | chapters, bookmarks, direct frame/time addressing, inspection; [app.scope.video.md](app.scope.video.md) |
 
 ## Entries
+
+### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-07 13:22 — Replace stale copied test counts with links to the owning suites
+- Evidence: all seventeen viewers now have focused tests and a viewer-specific golden, but fixture
+  depth still ranges from two owning Text tests plus host integration cases to the large Binary,
+  Hexadecimal, and Video suites. The audit still found no declared matrix for real-world variants,
+  malformed input, large files, cancellation, keyboard-only use, themes, DPI, memory ceilings, or
+  selection-to-first-content latency under rapid adjacent-file browsing.
+- Next: publish one matrix per registered viewer with representative public fixtures, required
+  malformed cases, bounded-resource assertions, interaction checks, visual states, and time-to-first-
+  content budgets for cold open, warm open, and replacement before the previous viewer settles.
+- Complete when: the application smoke validates every registered viewer in light and dark themes,
+  the matrix names unsupported variants honestly, corpus licences are recorded, and regressions in
+  format choice, cancellation, accessibility, resource bounds, or preview latency fail a focused suite.
 
 ### app.scope.viewers.003 — Viewer state is forgotten when a file or application closes
 
@@ -161,22 +177,6 @@ proves it.
 - Complete when: opening and analysis operations remain interruptible, replacement files retire old
   work promptly, the overlay names the current phase, and cancellation never becomes an error.
 - Related: app.scope.hexa.006, std.gui.pdf.029
-
-### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-04 23:07 — git: Recount the rest of what the backlog quotes
-- Evidence: all seventeen viewers now have focused tests and a viewer-specific golden, but fixture
-  depth still ranges from two owning Text tests plus host integration cases to the large Binary,
-  Hexadecimal, and Video suites. The audit still found no declared matrix for real-world variants,
-  malformed input, large files, cancellation, keyboard-only use, themes, DPI, memory ceilings, or
-  selection-to-first-content latency under rapid adjacent-file browsing.
-- Next: publish one matrix per registered viewer with representative public fixtures, required
-  malformed cases, bounded-resource assertions, interaction checks, visual states, and time-to-first-
-  content budgets for cold open, warm open, and replacement before the previous viewer settles.
-- Complete when: the application smoke validates every registered viewer in light and dark themes,
-  the matrix names unsupported variants honestly, corpus licences are recorded, and regressions in
-  format choice, cancellation, accessibility, resource bounds, or preview latency fail a focused suite.
 
 ### app.scope.viewers.001 — Select-all in a streamed document silently means the resident window
 

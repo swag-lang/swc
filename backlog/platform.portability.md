@@ -36,6 +36,40 @@ new platform implements capabilities rather than copies policy.
 The following entries implement the target backends and remove the Windows-bound behavior exposed
 by portable modules and products. The earlier entries prepare and enforce the same boundaries.
 
+### platform.portability.062 — Drag and drop has no second-platform integration
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-07 16:28 — moved misplaced surface-port acceptance text back to platform.portability.050
+
+Map the platform's data-transfer and gesture service to the drag and drop contract the Win32
+backend already implements.
+
+- Related: platform.portability.050
+
+### platform.portability.050 — No second-platform surface and presentation backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-07 13:22 — Restore the surface acceptance boundary and correct obsolete process-only dependencies
+
+The filenames already expose most of the seam: `surface.win32.swg`, `application.win32.swg`,
+`clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`. The retained tree, layouts,
+themes, controls and the toolkit-owned file dialog are platform-neutral. That is a good boundary,
+but five replacement files are not yet a porting plan.
+
+Choose one platform and implement the application loop, surface creation/destruction, native
+resize/move/minimize, renderer presentation, and cursor as the first independently testable slice.
+
+- Complete when: a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
+  second platform. Platform-neutral events expose no native message numbers, and Windows and
+  headless contract tests remain green. Focus, DPI, clipboard and input integrations retain
+  their own entries and tests.
+- Boundary: a GUI port does not complete the applications. Swag Capture still requires
+  platform.portability.071; Swag Vault requires platform.portability.078 or .079. Both also
+  need the runtime, filesystem and font services used by their common code.
+- Related: platform.portability.003, platform.portability.033, platform.portability.034,
+  platform.portability.035, platform.portability.051, platform.portability.057,
+  platform.portability.058, platform.portability.060
+
 ### platform.portability.022 — Application-to-application messaging has no portable contract
 
 - Recorded: 2026-08-09 11:06
@@ -702,22 +736,6 @@ independently of stack-symbol presentation.
 Implement keyboard and gamepad acquisition for the chosen second platform while keeping normalized
 state and policy in common code.
 
-### platform.portability.050 — No second-platform surface and presentation backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Inherited from [platform.portability.032](#platformportability032--process-services-have-no-second-platform-backend), and gated by it.
-The filenames already expose most of the seam: `surface.win32.swg`, `application.win32.swg`,
-`clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`. The retained tree, layouts,
-themes, controls and the toolkit-owned file dialog are platform-neutral. That is a good boundary,
-but five replacement files are not yet a porting plan.
-
-Choose one platform and implement the application loop, surface creation/destruction, native
-resize/move/minimize, renderer presentation, and cursor as the first independently testable slice.
-
-- Related: platform.portability.051, platform.portability.057, platform.portability.060
-
 ### platform.portability.053 — No second-platform text-input routing
 
 - Recorded: 2026-08-09 11:30
@@ -783,28 +801,6 @@ Map the platform's composition and candidate-window service to the input-method 
 platform.portability.049.
 
 - Related: platform.portability.049, platform.portability.050
-
-### platform.portability.062 — Drag and drop has no second-platform integration
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Map the platform's data-transfer and gesture service to the drag and drop contract the Win32
-backend already implements.
-
-- Related: platform.portability.050
-
-Platform-neutral events must not expose native message numbers, and the Win32 backend should keep
-passing its existing tests throughout the extraction. The headless backend remains the contract
-test; backend integration tests then prove native focus, DPI, clipboard and input on each system.
-platform.portability.050 is complete when a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
-second platform. The higher integrations retain their own completion identifiers.
-
-This only removes the interface blocker for the applications. Swag Capture still needs its separate
-capture backend in [platform.portability.071](#platformportability071--cross-platform-capture-backend); Swag Vault still
-needs the FUSE backend in [platform.portability.078](#platformportability078--no-linux-fuse-backend), plus the
-Core and Pixel platform work under platform.portability.032. Keeping those dependencies explicit prevents a GUI port
-from being mistaken for two ported products.
 
 ### platform.portability.063 — Spatialization is coupled to an unused X3DAudio handle
 

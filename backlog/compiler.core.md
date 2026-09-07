@@ -550,11 +550,6 @@ definition provider and does not consume resolved compiler symbols.
 - **A second language front end.** The compiler architecture is optimized for Swag; a second parser and semantic model would dilute the persisted-state and tooling work above.
 - **A package registry inside the compiler backlog.** Path and workspace dependencies remain compiler responsibilities. Registry identity, trust, lockfiles, acquisition, and publishing need a separate product backlog once their scope and owner are defined.
 
-
-The entries below were open investigations when the unified backlog was introduced. Update their
-next action in place as the evidence matures. They retain their former order until re-triaged, so
-position in this imported block carries no priority claim.
-
 Frontend, semantic analysis, and code generation defects: something observed in `swc` itself, with
 a reproduction and a next investigation step. Optimization passes and generated-code performance
 are [compiler.optimization.md](compiler.optimization.md); the borrow, lifetime and sanity analyses

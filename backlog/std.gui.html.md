@@ -66,6 +66,20 @@ mean, and CSS surface that is read and silently dropped.
 
 ## Entries
 
+### std.gui.html.009 — Inline and embedded SVG images are not rendered
+
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-07 13:14 — Local SVG images already render; narrow the remaining work to inline and embedded SVG
+- Evidence: `HtmlImageCache.fetch` in `controls/html/image.swg` parses local `.svg` files through
+  `Svg.Drawing`, rasterizes them with a 2,048-pixel bound, and preserves their natural layout size.
+  `htmlview.test.swg` verifies intrinsic dimensions and CSS overrides. Inline `<svg>` remains in
+  `HtmlDocument.isSkippedTag`, and data URIs still go through the raster-only `Image.fromDataUri`.
+- Next: route bounded embedded SVG bytes through the existing SVG engine and define how an inline
+  subtree preserves its namespace, dimensions, styles, and offline resource policy.
+- Complete when: inline `<svg>` and `data:image/svg+xml` render through the same bounded path as
+  local SVG, their dimensions are honored, unsupported content has a visible placeholder, and
+  regression fixtures preserve the working local-image path.
+
 ### std.gui.html.014 — Legacy presentational HTML support is incomplete
 
 - Recorded: 2026-08-18 14:57
@@ -194,20 +208,6 @@ mean, and CSS surface that is read and silently dropped.
 - Complete when: a child whose parent's used height is definite resolves percentage heights
   against it, the definiteness propagates down a chain of definite heights, and an indefinite
   parent still falls back to content height as it does today.
-
-### std.gui.html.009 — SVG never draws, in a toolkit that rasterizes SVG for its own theme
-
-- Recorded: 2026-08-18 14:57
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Intent: two halves. Inline `<svg>` is on the `isSkippedTag` list, so a page's diagrams and
-  icons vanish silently. And `<img src="figure.svg">` fails because `Pixel.Image.load` has no
-  SVG codec — while the same `pixel` module parses and rasterizes SVG for the theme atlas every
-  application ships. The capability exists one layer down and is not wired to either path. A
-  `data:image/svg+xml` reference degrades to the placeholder for the same missing-codec reason.
-- Complete when: an `<img>` referencing a local `.svg` rasterizes at its laid-out size through
-  the existing SVG engine, an inline `<svg>` subtree renders through the same code with its
-  width and height honoured, and an SVG feature the rasterizer lacks degrades to the placeholder
-  rather than to nothing.
 
 ### std.gui.html.010 — A gradient is read as no background at all
 

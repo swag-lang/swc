@@ -775,5 +775,5 @@ Compiler defects are in [compiler.core.md](compiler.core.md).
 Each comparative investigation carries an `Elsewhere` line: what the neighbouring languages do about the same
 question. A wart no one else has and a convention half the industry shares are different problems,
 and the line exists so the difference is on the page before anyone argues from taste. It is not an
-argument that Swag should follow the majority — several entries below record a rule Swag shares
+argument that Swag should follow the majority — several entries record a rule Swag shares
 with exactly one language and keeps deliberately.

@@ -34,21 +34,23 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-07 16:28 |
+| [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-07 16:07 |
+| [std.video.md](std.video.md) | `std/video` | 2026-09-07 13:30 |
+| [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers | 2026-09-07 13:22 |
+| [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-07 13:14 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-07 12:38 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-07 11:57 |
 | [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-07 11:56 |
-| [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-07 11:24 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-07 11:12 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-07 10:43 |
-| [app.capture.md](app.capture.md) | The Swag Capture application | 2026-09-07 08:13 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-06 21:57 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-06 21:01 |
 | [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-09-06 19:13 |
-| [std.video.md](std.video.md) | `std/video` | 2026-09-06 18:27 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-06 17:53 |
+| [app.capture.md](app.capture.md) | The Swag Capture application | 2026-09-06 17:42 |
 | [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-06 17:42 |
 | [app.scope.midi.md](app.scope.midi.md) | The Swag Scope MIDI viewer | 2026-09-06 17:42 |
-| [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-06 17:42 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-06 17:42 |
 | [std.gui.markdown.md](std.gui.markdown.md) | The Markdown engine behind `Gui.Markdown.View` | 2026-09-06 17:42 |
 | [app.scope.audio.md](app.scope.audio.md) | The Swag Scope sound viewer | 2026-09-06 07:51 |
@@ -59,7 +61,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [app.scope.indesign.md](app.scope.indesign.md) | The Swag Scope InDesign viewer | 2026-09-06 07:51 |
 | [app.scope.opendocument.md](app.scope.opendocument.md) | The Swag Scope OpenDocument decoder and reader | 2026-09-06 07:51 |
 | [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers | 2026-09-06 07:51 |
-| [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers | 2026-09-06 07:51 |
 | [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-06 07:51 |
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command | 2026-09-06 07:51 |
 | [compiler.distribution.md](compiler.distribution.md) | Release delivery, first use, local learning, and agent-grade command discovery | 2026-09-06 07:51 |
@@ -67,7 +68,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-06 07:51 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-06 07:51 |
 | [std.audio.md](std.audio.md) | `std/audio` | 2026-09-06 07:51 |
-| [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-06 07:51 |
 | [std.gui.pdf.md](std.gui.pdf.md) | The PDF engine and `PdfView` inside `std/gui` | 2026-09-06 07:51 |
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` | 2026-09-06 07:51 |
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-05 16:27 |

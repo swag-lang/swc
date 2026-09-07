@@ -4,28 +4,27 @@ Seven long-running campaigns, one prompt each, ready to copy into a fresh sessio
 tasks: each one is a target that takes many rounds to reach, and each prompt is written to keep an
 agent working through the rounds instead of stopping at the first thing that does not work.
 
-Each prompt is self-contained. It names the goal, the numbers as they stand today, the loop to run,
+Each prompt is self-contained. It names the goal, the evidence to collect, the loop to run,
 the rules that must not be broken, and — most importantly — the condition under which the campaign
 is allowed to end. Every number quoted below was measured on this tree and is reproducible with the
-command next to it; an agent that acts on a stale number is guessing, so every prompt starts by
-re-measuring.
+command next to it. Re-measure historical numbers when the campaign needs them; use a fresh
+source inventory for code-quality campaigns.
 
 | Campaign | Target |
 | --- | --- |
-| [1. Generated-code performance](#1-generated-code-performance) | Reach clang-cl and MSVC on `bench/` |
-| [2. Safety without annotations](#2-safety-without-annotations) | Rust-class guarantees with nothing for the user to write |
-| [3. Compiler code mass](#3-compiler-code-mass) | A much smaller `swc`, byte-for-byte as capable |
+| [1. Repository health reset](#1-repository-health-reset) | Restore a clean, current, all-green baseline |
+| [2. Generated-code performance](#2-generated-code-performance) | Reach clang-cl and MSVC on `bench/` |
+| [3. Safety without annotations](#3-safety-without-annotations) | Rust-class guarantees with nothing for the user to write |
 | [4. Compilation speed](#4-compilation-speed) | The fastest thing that does this work |
 | [5. Compiler memory](#5-compiler-memory) | A fraction of the resident set, at the same speed |
-| [6. Repository health reset](#6-repository-health-reset) | Restore a clean, current, all-green baseline |
-| [7. Compiler code health](#7-compiler-code-health) | Apply risk-free mechanical cleanup to swc itself |
+| [6. Compiler code health](#6-compiler-code-health) | Apply risk-free mechanical cleanup to swc itself |
+| [7. Swag code and API quality](#7-swag-code-and-api-quality) | Make all of `bin/` an exemplary showcase of idiomatic Swag |
 
-Campaigns 3, 4 and 5 constrain each other on purpose: shrinking the sources must not cost speed,
-speed must not cost memory, and memory must not cost speed. Run them one at a time, and let each
-one re-measure the other two's numbers before claiming a win.
+Campaigns 4 and 5 constrain each other on purpose: speed must not cost memory, and memory must not
+cost speed. Run them one at a time, and let each one re-measure both numbers before claiming a win.
 
-Campaigns 1 through 5 and campaign 7 run in their own worktree, never in the main checkout.
-Campaign 6 runs directly on `master`; each prompt states its own rule. For the isolated campaigns,
+Campaign 1 runs directly on `master`. Campaigns 2 through 7 run in their own worktree, never in
+the main checkout; each prompt states its own rule. For the isolated campaigns,
 the worktree is not a formality. A campaign spans many rounds, keeps binaries and measurements
 around, and reverts whole rounds; a shared tree picks up foreign uncommitted edits from other
 sessions, and
@@ -34,635 +33,7 @@ measured. The failures that produces look exactly like the bug the campaign was 
 
 ---
 
-## 1. Generated-code performance
-
-```
-You are running a long optimization campaign on the swc backend. Read AGENTS.md and the skills it
-points to first, then backlog/compiler.core.md, backlog/compiler.optimization.md, and bench/README.md.
-
-WORK IN A SEPARATE WORKTREE
-
-Do not run this campaign in the main checkout. Create an isolated worktree and do everything there:
-
-  git worktree add --detach ../swc-perf HEAD
-
-This is not hygiene, it is measurement validity. A shared tree picks up foreign uncommitted edits
-from other sessions, and MSBuild's incremental build then links that in-flight code into the
-swc.exe you are timing - so a number moves and it is not yours. It also lets you abandon a whole
-round with one checkout instead of unpicking it, which you will do often here.
-
-START OPTIMIZING IN THE FIRST HALF HOUR
-
-Build the compiler in the worktree and go straight to THE LOOP. Nothing comes before your first
-change. The entry point of this campaign is one comparison - what clang-cl and MSVC emit for a hot
-loop against what we emit for the same loop - and that comparison needs a compiler and two dumps,
-not a validated tree.
-
-Do NOT open with a baseline test ladder or a baseline bench campaign. Both are hours of machine
-time spent answering a question you do not have yet, and the emitted code answers the question you
-do have for free. Before your first change specifically:
-
-  - Do not run tests.swgs, in any configuration.
-  - Do not record a bench campaign.
-  - Do not build measurement harnesses, per-configuration sweeps, or sentinels for failures you
-    have not seen.
-
-Validation is triggered by having something to validate; RULES says what to run then. The clock is
-needed later than it looks, because step 6 judges on emitted code - so record the baseline campaign
-in the same session as the campaign it is compared with, not before the work starts.
-
-If a rung is already red when you do run it, name it in a sentence and move on: it is pre-existing
-and it is not yours.
-
-GOAL
-
-Bring the code swc generates to the state of the art: match clang-cl and MSVC on every task in
-bench/, on a machine where all three are measured in the same campaign. Concretely:
-
-  - No task slower than 1.25x the FASTER of clang-cl and MSVC.
-  - Geometric mean across all tasks at or below 1.15x that same best-of-both.
-  - No task regressed, ever, at any point in the campaign.
-
-This is the only thing being optimized here. Compile time is not a competing goal in this
-campaign - see RULES.
-
-Where it stands, campaign 20260806-174758 (run ms, lower is better):
-
-  task      swag    clang-cl  msvc    swag / best-of-both
-  chacha     1.71     1.23     1.58     1.39x
-  csvagg    25.86    16.20    16.31     1.60x
-  dijkstra  35.94    38.21    25.91     1.39x
-  leven     18.16    11.84    16.24     1.53x
-  raytrace  14.81     9.40     9.27     1.60x
-  sha256     3.20     2.05     2.39     1.56x
-  wordfreq  65.72    47.55    52.83     1.38x
-  geometric mean                        1.49x
-
-That table is one campaign on one machine, so read it as a starting order and nothing more: it says
-which task to open, and your own campaign overrides it the moment you record one. Do not re-measure
-it first. Every task in it sits between 1.38x and 1.60x, so whichever one you open has a real gap
-waiting, and that gap is visible in the emitted code - two dumps, not twenty-five minutes.
-
-THE LOOP
-
-Pick the task with the worst ratio that you have not already exhausted, then:
-
-  1. Read the assembly clang-cl AND MSVC produce for that task before you read ours. It is the
-     answer sheet: it tells you what the win actually is, and it has repeatedly turned out to be
-     something other than the transformation that looked obvious from our side (it does not
-     vectorize the ChaCha rounds at all - it keeps sixteen words in sixteen registers). Read both:
-     clang is not the best on every task, and where the two agree there is nothing left to decide.
-
-       clang-cl /nologo /O2 /EHsc /std:c++20 /FA /c bench\src\cpp\<task>.cpp
-       cl       /nologo /O2 /EHsc /std:c++20 /FA /c bench\src\cpp\<task>.cpp   (from vcvars64)
-
-  2. Dump our micro code for the same function and find the specific difference: instruction
-     count, memory operations in the loop, spills, dependency chain length. Name the mechanism
-     before you touch a pass. Copy the task's swagnat source, add `#global #[Swag.PrintMicro]`,
-     build it with the configuration the bench uses, and strip the ANSI colour before reading.
-     Two traps in that dump, both of which invent loops that do not exist: instruction references
-     RESTART at every function, so the map from a jump target back to an instruction has to be
-     rebuilt per function; and a jump's target is the LAST number on its line, because the operand
-     text also carries the width (`b32`), and 32 is a live reference often enough to matter.
-  3. Implement the smallest change that addresses that mechanism, in src/Backend/Micro/Passes
-     or the encoder.
-  4. Re-dump and re-count the same loops. This is the inner loop of the campaign and it costs
-     seconds - one build, one count. Iterate here, not on the clock. Compare per loop and never on
-     a total: an outer loop's span contains its inner loops, so a saving inside one shows up as a
-     loss outside it.
-  5. Validate correctness once the counts say the change is real, not before. swc tools/tests.swgs
-     dm, then swc tools/tests.swgs dm --all-cfg. Running these before there is a change to validate
-     is the most reliable way this campaign wastes a session. A checksum mismatch in bench means
-     you measured nothing.
-  6. Judge the change against clang-cl and MSVC's output, not against the clock. The clock on this
-     machine drifts more than most single changes are worth (two campaigns of the SAME binary
-     measured a geometric mean of 1.41x and 1.54x, and drift inside one sweep reached +37%), and
-     the context factor does not remove it. So: a change that provably moves the emitted code
-     toward what the best compilers emit is kept even when the measurement is flat or slightly
-     negative. They are right; matching them comes first, and beating them comes later.
-     What "provably" means here is the per-loop count, which is deterministic: instructions and
-     memory operations per iteration of each hot loop, before and after, next to the same loop in
-     clang's assembly. A change is only reverted when the emitted code is not better - not when the
-     benchmark fails to see that it is.
-     One consequence worth planning around: a change can be a necessary step whose own measurement
-     is flat, or even briefly negative, because it enables the next one. Say so, keep it, and name
-     the follow-up.
-  7. Reach for the clock only once the emitted code says the change is real and you want its size:
-     cd bench && py driver.py --tasks <task> --quick. Partial sweeps are never recorded; they are
-     for your inner loop only.
-  8. Record a full campaign only when you have a result worth keeping:
-     swc tools\bench.swgs --label "what changed". That takes ~25 minutes; do not spend one per
-     experiment, and record the baseline it is compared against in the same session - a baseline
-     measured hours earlier is a different machine.
-
-DO NOT STOP AT THE FIRST FAILURE
-
-Most of these experiments will fail. That is the normal shape of this work, and three of the
-entries already in backlog/compiler.optimization.md are failed attempts written down so the next
-one does not repeat them. When something does not work:
-
-  - Revert it cleanly.
-  - Write down what it ruled out, with the measurement, as a compiler.optimization.NNN entry in
-    backlog/compiler.optimization.md (allocate the next file-scoped identifier as backlog/README.md states).
-  - Take the next hypothesis from the same mechanism, or move to the next task.
-
-The campaign ends when the goal above is met, or when you have run out of hypotheses on every task
-- meaning three consecutive rounds across the whole task set left the emitted code no closer to
-what clang-cl and MSVC emit. It does not end because one pass turned out to miscompile, one idea
-lost 2%, or one task resisted.
-
-RULES
-
-  - Correctness first, always. swc tools/tests.swgs dm and --all-cfg must be green before any number is
-    believed, and the Release sequence before anything is recorded. A pass that miscompiles under
-    the JIT but passes unit tests is the known failure mode here - swc tools/scripts.swgs dm is what
-    catches it; keep that coverage when extending scalar float folds.
-  - Generated-code quality outranks compile time in this campaign. A backend optimization that
-    works is never reverted because it costs compile time: generating better code legitimately
-    takes longer, and campaign 4 is where compile time is bought back. Measure the cost, say it
-    explicitly, and then make the implementation cheaper - a slow analysis is a slow analysis, not
-    a reason to give up the optimization. Only a change that is BOTH slower to compile AND not
-    better in the generated code gets reverted.
-  - Never change what a bench task computes. That silently resets the history.
-  - A/B two swc.exe binaries by CPU time, alternating order, sampling before the process exits.
-  - Leads you cannot chase now go in backlog/compiler.optimization.md with evidence and a concrete `Next:`
-    step. If the evidence establishes implementation work, update that entry in place.
-
-REPORT
-
-After each round, one table: what you tried, what it measured, kept or reverted, and why. At the
-end of the campaign, the new ratio table next to the one above.
-```
-
----
-
-## 2. Safety without annotations
-
-```
-You are running a long campaign on Swag's safety guarantees. Read AGENTS.md and the skills it
-points to first, then backlog/compiler.safety.md, backlog/compiler.core.md, and the language
-reference page bin/reference/modules/language/src/013_004_borrowing.swg, which states what the
-language currently guarantees.
-
-WORK IN A SEPARATE WORKTREE
-
-Do not run this campaign in the main checkout. Create an isolated worktree and do everything there:
-
-  git worktree add --detach ../swc-safety HEAD
-
-A new check reshapes what the whole tree compiles to, and you will revert entire rounds. An
-isolated tree makes that one checkout, and it keeps foreign uncommitted edits from other sessions
-out of the binary you are sweeping with - otherwise a hit you are triaging may come from someone
-else's in-flight code rather than from your check.
-
-Know the trap that comes WITH a worktree, because it has already cost a session: a scratch module
-compiled with swc test -d <dir> resolves swag@std OUTSIDE the worktree, so it silently measures the
-main checkout's standard library rather than yours. Any probe of behavior that crosses a module
-boundary has to live in bin/unittests inside the worktree.
-
-Before the first change, build and run the full test sequence AT BASELINE in the new worktree and
-record the result. Any failure there is pre-existing, not yours.
-
-GOAL
-
-Bring Swag to Rust-class memory safety WITHOUT asking the user to annotate anything. No lifetime
-parameters, no borrow syntax, no ownership sigils beyond what already exists. The compiler infers
-what it needs from the code as written, or it says nothing. That constraint is the whole point of
-the campaign: the value is a guarantee that costs the reader no syntax.
-
-The classes that must be caught at compile time, with no annotation:
-
-  - Use after free, use after move.
-  - A view (string, slice, pointer into a container) read after the storage it views was moved,
-    reallocated, or dropped.
-  - A container mutated while a view into it is live - iterator invalidation.
-  - A borrow escaping the scope that owns it, including through a return value, an out parameter,
-    a container store, or a captured closure.
-
-Where it stands: all four classes are caught, and the line is drawn. The borrow rules live in
-src/Compiler/Sema/Helpers/SemaEscape.cpp, are always on, and consult no attribute and no build
-configuration - they are the language, and the reference says so. What stays under
-#[Swag.Sanity] is the other half: the backend analyses that PROVE a runtime fault (division by
-zero, overflow, null dereference, constant out-of-bounds, undefined read, use after free, use
-after move) in src/Backend/Sanitizer/Checks. Tests live in bin/unittests/sanity - borrow_escape,
-borrow_invalidation, collection_mutation - and bin/unittests/safety.
-
-What is left is precision, and the live entries in `backlog/compiler.safety.md` are the authority.
-They currently include parameter-owned views, macro and inline expansions judged against the
-wrong body, and a backend check the language rule has made unreachable from source. Re-read that
-file before choosing a round;
-do not preserve this summary after an entry moves or is retired.
-
-THE LOOP
-
-For each check, in this order, and do not skip step 1:
-
-  1. Write the tests first, both halves. The positives that MUST fire, in bin/unittests/sanity,
-     and - this is the half that decides whether the check is usable - the negatives that must
-     stay SILENT: an interface or pointer to the value itself, a method that only reads or assigns
-     fields, a view rebound after the container grew, a container of views whose owner outlives
-     them. A check with no negative tests is a check that will be turned off.
-  2. Implement the smallest analysis that passes both halves.
-  3. Sweep the whole tree for false positives, and mean the whole tree: swc tools/build.swgs,
-     swc tools/std.swgs, swc tools/apps.swgs, swc tools/examples.swgs, swc tools/reference.swgs. The baseline is zero
-     hits. Every workspace being clean today proves nothing, because nothing fires - the sweep only
-     becomes evidence once the check works.
-     A 'build' sweep is HALF a sweep: it never compiles the '#test' bodies, and a quarter of the
-     standard library's interesting code lives there (Array's self-append test is where the first
-     false positive of the invalidation check turned up, long after build.swgs came back clean).
-     Sweep with 'test' as well, or just run swc tools/tests.swgs dm and read its first failure.
-  4. Triage every hit, one at a time, into exactly one of two buckets: a real defect in bin/ (fix
-     it, it is a genuine find) or a false positive (fix the analysis). There is no third bucket.
-  5. Never silence a false positive by narrowing the check until it stops firing. That is how a
-     check ends up complete and useless, firing on nothing. If a shape genuinely cannot be judged,
-     say so as a finding and leave the check firing on what it can prove.
-  6. swc tools/tests.swgs dm, then --all-cfg, then the Release sequence.
-
-DO NOT STOP AT THE FIRST FAILURE
-
-A new check that lights up forty call sites across bin/ has not failed - it has just started. Work
-the list down. Expect several rounds where the analysis gets weaker before it gets stronger, and
-expect at least one shape that needs a piece of information sema does not currently keep. When
-that happens, the answer is usually to extend the summary that already crosses module boundaries
-(#[Swag.BorrowSummary]), not to give up on the shape.
-
-A round ends when its class is caught, the whole tree is clean, and what the language guarantees is
-written down in the reference. It does not end because a check was noisy, because one shape needed
-information that was not there, or because a sweep came back with hits.
-
-RULES
-
-  - Zero annotations. If a check can only be made sound by asking the user to write something, it
-    is out of scope - say so and record why.
-  - False positives are the only thing that can kill this. Weigh every design choice by what it
-    would reject that is correct.
-  - Probes that test a summary crossing a module boundary must live in bin/unittests. A scratch
-    module compiled with swc test -d <dir> resolves swag@std OUTSIDE your worktree and silently
-    measures the main checkout's standard library.
-  - A clean sweep is only evidence once you have proved the check fires. Plant a deliberate fault
-    in a module that imports std, watch it be reported, then remove it - a check that silently
-    reaches nothing looks exactly like a clean tree.
-  - A language rule must reach the same verdict in every build configuration, so never branch it on
-    something the configuration also drives. Testing '#[Inline]' is the trap: it reads like a
-    property of the callee and behaves like a property of the build, and it made a view visible in
-    devmode and invisible in release. Ask what actually happened - an expanded call no longer
-    resolves to a CallExpr - instead of asking what was requested. '--all-cfg' is what catches
-    this, and it catches nothing if you only ever run the default configuration.
-  - Compile time is a constraint: a whole-program analysis that doubles sema is not acceptable.
-    Measure it.
-  - Every defect the analysis finds in bin/ gets fixed in the same campaign. That is the proof the
-    check is worth having.
-
-REPORT
-
-Per round: the check, the tests added, the sweep result, every hit and which bucket it went in. At
-the end: what the language now guarantees, always-on, with no annotation - written as prose a user
-could read.
-```
-
----
-
-## 3. Compiler code mass
-
-```
-You are running a code-quality campaign on the swc C++ sources. Read AGENTS.md and the skills it
-points to first - especially .agents/skills/modify-swag-codebase/references/cpp-coding-rules.md -
-then the focused Sema tests in src/Unittest/Sema/Test.Sema.DecisionProcedures.cpp.
-
-WORK IN A SEPARATE WORKTREE
-
-Do not run this campaign in the main checkout. Create an isolated worktree and do everything there:
-
-  git worktree add --detach ../swc-shrink HEAD
-
-This campaign reverts rounds by design - the four-part proof below is built to reject them - and a
-reverted round has to be reverted CLEANLY, across dozens of files, with nothing of it left behind.
-That is one checkout in an isolated tree and an archaeology session in a shared one. It also keeps
-foreign uncommitted edits out of the binary whose size and timing you are comparing, which is the
-whole basis of the proof.
-
-Before the first change, build and run the full test sequence AT BASELINE in the new worktree, and
-record the baseline swc.exe size, compile-time median and peak memory there. Every later round is
-compared against those three numbers, not against numbers from another tree.
-
-GOAL
-
-Make swc dramatically smaller in source without giving up one instruction of capability, one
-millisecond of compile time, or one megabyte of compiler memory. The sentence this campaign is
-trying to earn is: "swc is tiny, and it does all of that."
-
-Where it stands, reproducible from src/:
-
-  find . \( -name "*.cpp" -o -name "*.h" -o -name "*.inc" \) \
-       -not -path "./Support/Memory/mimalloc/*" -not -path "./Unittest/*" -exec cat {} + | wc -l
-
-  As of 2026-09-04: 246 030 lines across 642 files, excluding vendored mimalloc and the C++ unit
-  tests. Compiler 134 802 · Backend 64 173 · Support 17 128 · Main 14 715 · Format 9 179 ·
-  Doc 5 846. Recompute this baseline before starting a campaign.
-  The largest single files: SemaEscape.cpp 4702, Pass.RegisterAllocation.cpp 4551,
-  X64Encoder.cpp 4025, CompilerInstance.Module.cpp 3741, Match.Func.cpp 3162,
-  SemaInline.cpp 3105, CodeGen.Intrinsic.Call.cpp 2684, SemaClone.cpp 2574.
-
-THE ONLY KIND OF CHANGE ALLOWED
-
-One-for-one, no possible side effect. Every edit must be provably behavior-preserving by
-inspection alone:
-
-  - Delete dead code, unreachable branches, unused helpers, and unused parameters.
-  - Collapse verbatim or near-verbatim duplicates into one shared function.
-  - Replace hand-written switch/if ladders with the table they already are.
-  - Remove a layer that only forwards.
-  - Simplify control flow whose shape is the same on every path.
-
-Explicitly NOT allowed, however tempting:
-
-  - Any change to what the compiler accepts, rejects, emits, or reports.
-  - "While I am here" bug fixes. Those are separate commits, or findings.
-  - Templating families of near-identical functions to make them look shorter. Measured on this
-    repository: every instantiation gets its own body, /OPT:ICF only folds the ones that come out
-    identical, and the interesting ones - differing by a constant - never do. Round two of that
-    sweep removed 210 lines and GREW the executable by 3 072 bytes.
-  - Sharing a small helper that was being inlined. The same measurement found 1 536 bytes came
-    back purely from having to put two helpers back inline in their headers.
-
-Source deletion is nearly free in the image, which is why the size proof below is a tolerance and
-not a target: /OPT:ICF on top of LTCG already folds byte-identical bodies, so a full round of
-1 398 removed lines moved bin/swc.exe by only 10 240 bytes, 0.2%. Should the image itself ever
-become the goal, measure where it actually goes first - dump the section sizes and the largest
-COMDATs (link /dump /headers, a /MAP file) and separate code from the read-only data the
-diagnostic, token and instruction tables contribute. Only two levers are likely to matter, and
-both must be weighed against the rule that the compiler may never get slower: cutting template
-instantiation in the hot headers, and trimming inlining pressure (/Ob1 on the cold
-command/report/doc translation units only, never on sema, codegen, or the micro passes).
-
-THE PROOF, EVERY ROUND
-
-A round is not done until all four hold:
-
-  1. swc tools/tests.swgs dm, then swc tools/tests.swgs dm --all-cfg, then Release build, then
-     swc tools/tests.swgs. All green.
-  2. bin/swc.exe size within +/-0.3% of where the round started.
-  3. Compile time within noise: A/B the two swc.exe binaries on the same workload, CPU time,
-     medians over at least eight order-alternated rounds, --num-cores 1.
-  4. Peak compiler memory within noise on the same workload.
-
-If any of the four moves, the round is reverted, not explained.
-
-THE LOOP
-
-  1. Pick one subsystem. Start where the mass is and where the tests are strongest - Backend/Micro
-     and Format both have real C++ suites and are the safest ground.
-  2. Read for duplication and for layers, not for style. Grep for repeated bodies.
-  3. Cut. Aim for at least 500 net lines removed in the round.
-  4. Run the four-part proof.
-  5. Commit the round on its own so it can be reverted alone.
-
-Sema is 85 710 physical lines across 154 files and has two focused C++ test units totaling only
-374 physical lines. It remains dangerous to refactor blind. The table-driven tests for overload
-ranking, cast legality, and generic deduction live in
-src/Unittest/Sema/Test.Sema.DecisionProcedures.cpp; extend them before changing those decision
-procedures, and add an equally focused seam before refactoring another semantic subsystem.
-
-DO NOT STOP AT THE FIRST FAILURE
-
-A reverted round is normal - it means the four-part proof did its job. Note what moved and why,
-pick a different subsystem, and continue. A subsystem that resists three rounds is a subsystem to
-leave alone and record as such.
-
-The campaign ends when three consecutive rounds fail to find 500 removable lines anywhere in the
-tree. It does not end because one refactor grew the binary or one suite went red.
-
-REPORT
-
-Per round: subsystem, lines before and after, exe size delta, compile-time A/B medians, memory
-delta. Cumulative total at the top, so the number is one line at any moment.
-```
-
----
-
-## 4. Compilation speed
-
-```
-You are running a compile-speed campaign on swc. Read AGENTS.md and the skills it points to first,
-then backlog/compiler.core.md compiler.core.001, compiler.core.002, compiler.core.004, compiler.core.006 and compiler.core.007.
-
-WORK IN A SEPARATE WORKTREE
-
-Do not run this campaign in the main checkout. Create an isolated worktree and do everything there:
-
-  git worktree add --detach ../swc-speed HEAD
-
-Every claim in this campaign is a timing, and a timing taken in a shared tree is worthless: foreign
-uncommitted edits from other sessions get linked into your swc.exe by MSBuild's incremental build,
-and a second build running on the same machine moves the number by more than anything you will
-change. The levers below are also large, staged rewrites - a module interface format, a caching
-layer - which need somewhere they can be half-finished without blocking anyone.
-
-Before the first change, build and run the full test sequence AT BASELINE in the new worktree, and
-record every workload's time there once the instrument below exists. Those are the numbers every
-later round is measured against.
-
-GOAL
-
-Make swc the fastest thing that does this work - not just faster than C++ and Rust toolchains,
-which it already is, but fast enough that the edit-build loop stops being a loop. All three
-commands count: build, doc, format.
-
-Targets, all on this machine, all re-measured before you start:
-
-  - std/core rebuild (291 files, 50 690 lines): 2.1 s today, fast-debug. Target under 1.0 s.
-  - Warm no-op build of the same: target under 100 ms.
-  - Edit one file in core, rebuild: today this rebuilds all 291 files. Target under 300 ms.
-  - Hello world, source to linked executable: 89 ms today. Target under 50 ms.
-  - swc tools/web.swgs (the whole documentation site) and swc tools/format.swgs (every Swag workspace):
-    unmeasured today. Measure them, then halve them.
-
-For context on where the bar already is, from campaign 20260806-174758: swc builds the bench tasks
-in 93-132 ms against clang-cl's 481-647 ms and rustc's 425-585 ms. This campaign is not about
-beating them. It is about the loop a person actually sits in.
-
-START BY BUILDING THE INSTRUMENT
-
-Do this before any optimization; nothing below can be judged without it, and it is compiler.core.004 in
-backlog/compiler.core.md.
-
-Today the only compiler-side numbers recorded anywhere are hello_build_ms and hello_build_peak_mb
-in bench/history.json - one four-line program. Across eleven campaigns it reads 92, 61, 74, 68, 74,
-64, 66, 85, 81, 95, 67 ms: noise around a flat line, on a workload too small to contain what costs.
-
-Add real workloads to the campaign: a full core rebuild, a warm no-op, a one-file-touched rebuild,
-a full doc generation, a full format pass. Wall time and peak working set for each, recorded in
-history.json the same way and normalized the same way.
-
-Use external profilers for per-stage investigation. Do not add optional counters, allocation
-tracking, or profiling-only branches to the compiler: the benchmark campaign owns stable wall-time
-and peak-working-set measurements, while focused external traces answer transient questions.
-
-THE LOOP
-
-  1. Profile the target workload. Name the stage that costs, with a number.
-  2. Form one hypothesis about why, and predict what the fix should buy before you write it.
-  3. Implement the smallest version of it.
-  4. Measure against the prediction. A fix that lands far off its prediction means the model was
-     wrong - go back to step 1 rather than keeping an accidental win.
-  5. swc tools/tests.swgs dm, --all-cfg, Release sequence.
-  6. Record it in the campaign.
-
-THE FOUR STRUCTURAL LEVERS, IN ORDER
-
-They are not independent, and taking them out of order wastes the work:
-
-  1. The module boundary is re-parsed Swag source. core publishes 16 files and 12 328 lines per
-     configuration, and every dependent module lexes, parses and re-analyzes all of it. A binary
-     module interface, loaded lazily by name, is compiler.core.001 and it unlocks compiler.core.002, compiler.core.006 and compiler.core.008.
-  2. Incrementality stops at the module. Editing one line rebuilds 291 files. Per-file frontend
-     caching first, then per-function codegen caching - the second is where the win is and it is
-     unreachable without lever 1.
-  3. Every invocation re-analyzes the prelude: 8 files, 19 494 tokens, 237 functions before a
-     single line of user code. That is 62% of hello world. This is lever 1 applied to the prelude
-     - do it AFTER lever 1, or the compiler ends up with two module-loading mechanisms.
-  4. Modules build one at a time. The job system parallelizes hard WITHIN a module and the
-     workspace scheduler runs modules serially, on a 22-worker machine. The compile-speed branch
-     already prototypes the DAG scheduler. Finish it against the memory number, because N
-     concurrent modules multiply peak memory by N - coordinate with campaign 5.
-
-Doc and format have had no attention at all and are probably cheaper wins than any of the four.
-Measure them before assuming otherwise.
-
-DO NOT STOP AT THE FIRST FAILURE
-
-These are large changes and the first attempt at a binary module interface will not be the one
-that ships. Land it in pieces that each keep the tree green. When a piece does not pay, revert it,
-record the measurement in backlog/repo.tooling.md, and take the next piece - the four levers
-above are months of work and the campaign is designed to survive individual failures.
-
-The campaign ends when the five targets are met. It does not end because one lever turned out to
-be harder than it looked.
-
-RULES
-
-  - Never trade correctness for speed. The full sequence is green or the change does not exist.
-  - Never trade generated-code quality for compile speed without measuring both. Run bench.
-  - Never trade memory for speed without measuring both - campaign 5 owns that number and a
-    regression there is a regression here.
-  - A measurement taken once is a guess. Medians over order-alternated runs, or it is not a number.
-
-REPORT
-
-The five targets as a table, current versus target, refreshed every round. Under it, what changed
-and what it bought.
-```
-
----
-
-## 5. Compiler memory
-
-```
-You are running a memory campaign on swc. Read AGENTS.md and the skills it points to first, then
-backlog/compiler.core.md compiler.core.005.
-
-WORK IN A SEPARATE WORKTREE
-
-Do not run this campaign in the main checkout. Create an isolated worktree and do everything there:
-
-  git worktree add --detach ../swc-memory HEAD
-
-Peak working set is the number this campaign lives on, and it is contaminated by anything else
-happening in the tree or on the machine: foreign uncommitted edits linked in by MSBuild's
-incremental build change what the compiler allocates, and a second build running concurrently
-changes what the OS reports. You will also free things early and crash the compiler on purpose -
-that belongs in a tree nobody else is standing in.
-
-Before the first change, build and run the full test sequence AT BASELINE in the new worktree, and
-record baseline peak memory AND wall time for every workload there. Both, always, from the start:
-the constraint of this campaign is that one moves and the other does not.
-
-GOAL
-
-Make swc need a fraction of what it needs today, at the same speed. Memory is what bounds how many
-modules can compile at once, and it is what makes the difference between a language you can run as
-a script and one you cannot.
-
-Where it stands (2026-09-05, Release swc.exe, --num-cores 6, after the first round: finished
-jobs release their Sema and CodeGen, 64 KiB arena blocks, api-export index dropped):
-
-  - std/core rebuild (50 690 lines): 517 MB peak working set in devmode, 360 MB in release.
-    Before the round: 731 MB and 638 MB. That is still roughly 10 KB of resident memory per
-    source line in devmode.
-  - Hello world: 60 MB peak (was 73 MB). To print one line.
-  - Building the bench tasks: swc peaks at 58-66 MB (was 74-83 MB) where clang-cl peaks at
-    69 MB and MSVC at 82-101 MB. rustc peaks at 201 MB.
-  - The largest block still resident at peak is the static sanitizer's flow state; see
-    compiler.core.005 for the attribution and the next lever.
-
-Targets:
-
-  - core rebuild under 250 MB devmode.
-  - Hello world under 50 MB.
-  - Bench task builds at or below clang-cl's 69 MB.
-  - Compile time unchanged, measured, not assumed.
-
-START BY MAKING THE NUMBER ATTRIBUTABLE
-
-There is no per-subsystem memory accounting today - only an OS peak. The split between AST, types,
-symbols, constants and Micro is currently UNKNOWN. Capture that split with an external heap
-profiler against the exact campaign workload; do not add per-allocation tracking or optional
-profiling branches to the compiler. Then attack what the trace shows, not what it seemed like.
-
-TWO SUSPECTS WORTH CHECKING EARLY
-
-Both are already written down and neither is confirmed:
-
-  - Nothing is released between stages. Post-codegen, the whole AST and every Micro function are
-    probably still resident for the entire module.
-  - Per-function Micro state is retained for the whole module rather than freed as each function
-    finishes.
-
-Confirm or kill each with the accounting before writing a fix.
-
-THE LOOP
-
-  1. Measure peak and the per-subsystem split on the target workload.
-  2. Name the largest attributable block and why it is alive at peak.
-  3. Free it earlier, store it smaller, or do not build it at all - in that order of preference.
-     "Do not build it" is usually the real answer and usually the one that gets skipped.
-  4. Re-measure peak AND wall time. A memory win that costs speed is not a win here; the whole
-     constraint of this campaign is that both hold.
-  5. swc tools/tests.swgs dm, --all-cfg, Release sequence.
-  6. Record both numbers in the campaign history.
-
-DO NOT STOP AT THE FIRST FAILURE
-
-Freeing something early will crash the compiler the first time, because something downstream still
-reads it. That is the expected outcome, not a reason to abandon the lever: it identifies the real
-lifetime of the data, which is the information you were after. Find the reader, decide whether it
-should be reading that at that point, and either move the free or restructure the reader.
-
-Expect to be wrong about which subsystem dominates. The accounting exists precisely because
-everyone's intuition here has been wrong before.
-
-The campaign ends when the four targets are met with compile time unchanged. It does not end
-because one attempt to free the AST early crashed, or because one subsystem turned out to be
-smaller than expected.
-
-RULES
-
-  - Peak working set is the number, not allocations or bytes requested.
-  - Compile time is a hard constraint. Measure it every round, medians over order-alternated runs.
-  - The runtime allocator's arenas are never returned to the OS by design. Understand that before
-    reading any peak: a fix that only reduces allocation churn may not move the peak at all.
-  - Coordinate with campaign 4 lever 4: the parallel module scheduler multiplies peak memory by
-    the number of concurrent modules, so this campaign gates that one.
-
-REPORT
-
-Peak memory per workload as a table, current versus target, next to wall time for the same
-workload - always both, so a trade is visible the moment it happens.
-```
-
----
-
-## 6. Repository health reset
+## 1. Repository health reset
 
 ```
 You are running a repository-wide health reset on swc. Read AGENTS.md and every skill it points to
@@ -902,7 +273,517 @@ when every end condition above is true.
 
 ---
 
-## 7. Compiler code health
+## 2. Generated-code performance
+
+```
+You are running a long optimization campaign on the swc backend. Read AGENTS.md and the skills it
+points to first, then backlog/compiler.core.md, backlog/compiler.optimization.md, and bench/README.md.
+
+WORK IN A SEPARATE WORKTREE
+
+Do not run this campaign in the main checkout. Create an isolated worktree and do everything there:
+
+  git worktree add --detach ../swc-perf HEAD
+
+This is not hygiene, it is measurement validity. A shared tree picks up foreign uncommitted edits
+from other sessions, and MSBuild's incremental build then links that in-flight code into the
+swc.exe you are timing - so a number moves and it is not yours. It also lets you abandon a whole
+round with one checkout instead of unpicking it, which you will do often here.
+
+START OPTIMIZING IN THE FIRST HALF HOUR
+
+Build the compiler in the worktree and go straight to THE LOOP. Nothing comes before your first
+change. The entry point of this campaign is one comparison - what clang-cl and MSVC emit for a hot
+loop against what we emit for the same loop - and that comparison needs a compiler and two dumps,
+not a validated tree.
+
+Do NOT open with a baseline test ladder or a baseline bench campaign. Both are hours of machine
+time spent answering a question you do not have yet, and the emitted code answers the question you
+do have for free. Before your first change specifically:
+
+  - Do not run tests.swgs, in any configuration.
+  - Do not record a bench campaign.
+  - Do not build measurement harnesses, per-configuration sweeps, or sentinels for failures you
+    have not seen.
+
+Validation is triggered by having something to validate; RULES says what to run then. The clock is
+needed later than it looks, because step 6 judges on emitted code - so record the baseline campaign
+in the same session as the campaign it is compared with, not before the work starts.
+
+If a rung is already red when you do run it, name it in a sentence and move on: it is pre-existing
+and it is not yours.
+
+GOAL
+
+Bring the code swc generates to the state of the art: match clang-cl and MSVC on every task in
+bench/, on a machine where all three are measured in the same campaign. Concretely:
+
+  - No task slower than 1.25x the FASTER of clang-cl and MSVC.
+  - Geometric mean across all tasks at or below 1.15x that same best-of-both.
+  - No task regressed, ever, at any point in the campaign.
+
+This is the only thing being optimized here. Compile time is not a competing goal in this
+campaign - see RULES.
+
+Where it stands, campaign 20260806-174758 (run ms, lower is better):
+
+  task      swag    clang-cl  msvc    swag / best-of-both
+  chacha     1.71     1.23     1.58     1.39x
+  csvagg    25.86    16.20    16.31     1.60x
+  dijkstra  35.94    38.21    25.91     1.39x
+  leven     18.16    11.84    16.24     1.53x
+  raytrace  14.81     9.40     9.27     1.60x
+  sha256     3.20     2.05     2.39     1.56x
+  wordfreq  65.72    47.55    52.83     1.38x
+  geometric mean                        1.49x
+
+That table is one campaign on one machine, so read it as a starting order and nothing more: it says
+which task to open, and your own campaign overrides it the moment you record one. Do not re-measure
+it first. Every task in it sits between 1.38x and 1.60x, so whichever one you open has a real gap
+waiting, and that gap is visible in the emitted code - two dumps, not twenty-five minutes.
+
+THE LOOP
+
+Pick the task with the worst ratio that you have not already exhausted, then:
+
+  1. Read the assembly clang-cl AND MSVC produce for that task before you read ours. It is the
+     answer sheet: it tells you what the win actually is, and it has repeatedly turned out to be
+     something other than the transformation that looked obvious from our side (it does not
+     vectorize the ChaCha rounds at all - it keeps sixteen words in sixteen registers). Read both:
+     clang is not the best on every task, and where the two agree there is nothing left to decide.
+
+       clang-cl /nologo /O2 /EHsc /std:c++20 /FA /c bench\src\cpp\<task>.cpp
+       cl       /nologo /O2 /EHsc /std:c++20 /FA /c bench\src\cpp\<task>.cpp   (from vcvars64)
+
+  2. Dump our micro code for the same function and find the specific difference: instruction
+     count, memory operations in the loop, spills, dependency chain length. Name the mechanism
+     before you touch a pass. Copy the task's swagnat source, add `#global #[Swag.PrintMicro]`,
+     build it with the configuration the bench uses, and strip the ANSI colour before reading.
+     Two traps in that dump, both of which invent loops that do not exist: instruction references
+     RESTART at every function, so the map from a jump target back to an instruction has to be
+     rebuilt per function; and a jump's target is the LAST number on its line, because the operand
+     text also carries the width (`b32`), and 32 is a live reference often enough to matter.
+  3. Implement the smallest change that addresses that mechanism, in src/Backend/Micro/Passes
+     or the encoder.
+  4. Re-dump and re-count the same loops. This is the inner loop of the campaign and it costs
+     seconds - one build, one count. Iterate here, not on the clock. Compare per loop and never on
+     a total: an outer loop's span contains its inner loops, so a saving inside one shows up as a
+     loss outside it.
+  5. Validate correctness once the counts say the change is real, not before. swc tools/tests.swgs
+     dm, then swc tools/tests.swgs dm --all-cfg. Running these before there is a change to validate
+     is the most reliable way this campaign wastes a session. A checksum mismatch in bench means
+     you measured nothing.
+  6. Judge the change against clang-cl and MSVC's output, not against the clock. The clock on this
+     machine drifts more than most single changes are worth (two campaigns of the SAME binary
+     measured a geometric mean of 1.41x and 1.54x, and drift inside one sweep reached +37%), and
+     the context factor does not remove it. So: a change that provably moves the emitted code
+     toward what the best compilers emit is kept even when the measurement is flat or slightly
+     negative. They are right; matching them comes first, and beating them comes later.
+     What "provably" means here is the per-loop count, which is deterministic: instructions and
+     memory operations per iteration of each hot loop, before and after, next to the same loop in
+     clang's assembly. A change is only reverted when the emitted code is not better - not when the
+     benchmark fails to see that it is.
+     One consequence worth planning around: a change can be a necessary step whose own measurement
+     is flat, or even briefly negative, because it enables the next one. Say so, keep it, and name
+     the follow-up.
+  7. Reach for the clock only once the emitted code says the change is real and you want its size:
+     cd bench && py driver.py --tasks <task> --quick. Partial sweeps are never recorded; they are
+     for your inner loop only.
+  8. Record a full campaign only when you have a result worth keeping:
+     swc tools\bench.swgs --label "what changed". That takes ~25 minutes; do not spend one per
+     experiment, and record the baseline it is compared against in the same session - a baseline
+     measured hours earlier is a different machine.
+
+DO NOT STOP AT THE FIRST FAILURE
+
+Most of these experiments will fail. That is the normal shape of this work, and three of the
+entries already in backlog/compiler.optimization.md are failed attempts written down so the next
+one does not repeat them. When something does not work:
+
+  - Revert it cleanly.
+  - Write down what it ruled out, with the measurement, as a compiler.optimization.NNN entry in
+    backlog/compiler.optimization.md (allocate the next file-scoped identifier as backlog/README.md states).
+  - Take the next hypothesis from the same mechanism, or move to the next task.
+
+The campaign ends when the goal above is met, or when you have run out of hypotheses on every task
+- meaning three consecutive rounds across the whole task set left the emitted code no closer to
+what clang-cl and MSVC emit. It does not end because one pass turned out to miscompile, one idea
+lost 2%, or one task resisted.
+
+RULES
+
+  - Correctness first, always. swc tools/tests.swgs dm and --all-cfg must be green before any number is
+    believed, and the Release sequence before anything is recorded. A pass that miscompiles under
+    the JIT but passes unit tests is the known failure mode here - swc tools/scripts.swgs dm is what
+    catches it; keep that coverage when extending scalar float folds.
+  - Generated-code quality outranks compile time in this campaign. A backend optimization that
+    works is never reverted because it costs compile time: generating better code legitimately
+    takes longer, and campaign 4 is where compile time is bought back. Measure the cost, say it
+    explicitly, and then make the implementation cheaper - a slow analysis is a slow analysis, not
+    a reason to give up the optimization. Only a change that is BOTH slower to compile AND not
+    better in the generated code gets reverted.
+  - Never change what a bench task computes. That silently resets the history.
+  - A/B two swc.exe binaries by CPU time, alternating order, sampling before the process exits.
+  - Leads you cannot chase now go in backlog/compiler.optimization.md with evidence and a concrete `Next:`
+    step. If the evidence establishes implementation work, update that entry in place.
+
+REPORT
+
+After each round, one table: what you tried, what it measured, kept or reverted, and why. At the
+end of the campaign, the new ratio table next to the one above.
+```
+
+---
+
+## 3. Safety without annotations
+
+```
+You are running a long campaign on Swag's safety guarantees. Read AGENTS.md and the skills it
+points to first, then backlog/compiler.safety.md, backlog/compiler.core.md, and the language
+reference page bin/reference/modules/language/src/013_004_borrowing.swg, which states what the
+language currently guarantees.
+
+WORK IN A SEPARATE WORKTREE
+
+Do not run this campaign in the main checkout. Create an isolated worktree and do everything there:
+
+  git worktree add --detach ../swc-safety HEAD
+
+A new check reshapes what the whole tree compiles to, and you will revert entire rounds. An
+isolated tree makes that one checkout, and it keeps foreign uncommitted edits from other sessions
+out of the binary you are sweeping with - otherwise a hit you are triaging may come from someone
+else's in-flight code rather than from your check.
+
+Know the trap that comes WITH a worktree, because it has already cost a session: a scratch module
+compiled with swc test -d <dir> resolves swag@std OUTSIDE the worktree, so it silently measures the
+main checkout's standard library rather than yours. Any probe of behavior that crosses a module
+boundary has to live in bin/unittests inside the worktree.
+
+Before the first change, build and run the full test sequence AT BASELINE in the new worktree and
+record the result. Any failure there is pre-existing, not yours.
+
+GOAL
+
+Bring Swag to Rust-class memory safety WITHOUT asking the user to annotate anything. No lifetime
+parameters, no borrow syntax, no ownership sigils beyond what already exists. The compiler infers
+what it needs from the code as written, or it says nothing. That constraint is the whole point of
+the campaign: the value is a guarantee that costs the reader no syntax.
+
+The classes that must be caught at compile time, with no annotation:
+
+  - Use after free, use after move.
+  - A view (string, slice, pointer into a container) read after the storage it views was moved,
+    reallocated, or dropped.
+  - A container mutated while a view into it is live - iterator invalidation.
+  - A borrow escaping the scope that owns it, including through a return value, an out parameter,
+    a container store, or a captured closure.
+
+Where it stands: all four classes are caught, and the line is drawn. The borrow rules live in
+src/Compiler/Sema/Helpers/SemaEscape.cpp, are always on, and consult no attribute and no build
+configuration - they are the language, and the reference says so. What stays under
+#[Swag.Sanity] is the other half: the backend analyses that PROVE a runtime fault (division by
+zero, overflow, null dereference, constant out-of-bounds, undefined read, use after free, use
+after move) in src/Backend/Sanitizer/Checks. Tests live in bin/unittests/sanity - borrow_escape,
+borrow_invalidation, collection_mutation - and bin/unittests/safety.
+
+What is left is precision, and the live entries in `backlog/compiler.safety.md` are the authority.
+They currently include parameter-owned views, macro and inline expansions judged against the
+wrong body, and a backend check the language rule has made unreachable from source. Re-read that
+file before choosing a round;
+do not preserve this summary after an entry moves or is retired.
+
+THE LOOP
+
+For each check, in this order, and do not skip step 1:
+
+  1. Write the tests first, both halves. The positives that MUST fire, in bin/unittests/sanity,
+     and - this is the half that decides whether the check is usable - the negatives that must
+     stay SILENT: an interface or pointer to the value itself, a method that only reads or assigns
+     fields, a view rebound after the container grew, a container of views whose owner outlives
+     them. A check with no negative tests is a check that will be turned off.
+  2. Implement the smallest analysis that passes both halves.
+  3. Sweep the whole tree for false positives, and mean the whole tree: swc tools/build.swgs,
+     swc tools/std.swgs, swc tools/apps.swgs, swc tools/examples.swgs, swc tools/reference.swgs. The baseline is zero
+     hits. Every workspace being clean today proves nothing, because nothing fires - the sweep only
+     becomes evidence once the check works.
+     A 'build' sweep is HALF a sweep: it never compiles the '#test' bodies, and a quarter of the
+     standard library's interesting code lives there (Array's self-append test is where the first
+     false positive of the invalidation check turned up, long after build.swgs came back clean).
+     Sweep with 'test' as well, or just run swc tools/tests.swgs dm and read its first failure.
+  4. Triage every hit, one at a time, into exactly one of two buckets: a real defect in bin/ (fix
+     it, it is a genuine find) or a false positive (fix the analysis). There is no third bucket.
+  5. Never silence a false positive by narrowing the check until it stops firing. That is how a
+     check ends up complete and useless, firing on nothing. If a shape genuinely cannot be judged,
+     say so as a finding and leave the check firing on what it can prove.
+  6. swc tools/tests.swgs dm, then --all-cfg, then the Release sequence.
+
+DO NOT STOP AT THE FIRST FAILURE
+
+A new check that lights up forty call sites across bin/ has not failed - it has just started. Work
+the list down. Expect several rounds where the analysis gets weaker before it gets stronger, and
+expect at least one shape that needs a piece of information sema does not currently keep. When
+that happens, the answer is usually to extend the summary that already crosses module boundaries
+(#[Swag.BorrowSummary]), not to give up on the shape.
+
+A round ends when its class is caught, the whole tree is clean, and what the language guarantees is
+written down in the reference. It does not end because a check was noisy, because one shape needed
+information that was not there, or because a sweep came back with hits.
+
+RULES
+
+  - Zero annotations. If a check can only be made sound by asking the user to write something, it
+    is out of scope - say so and record why.
+  - False positives are the only thing that can kill this. Weigh every design choice by what it
+    would reject that is correct.
+  - Probes that test a summary crossing a module boundary must live in bin/unittests. A scratch
+    module compiled with swc test -d <dir> resolves swag@std OUTSIDE your worktree and silently
+    measures the main checkout's standard library.
+  - A clean sweep is only evidence once you have proved the check fires. Plant a deliberate fault
+    in a module that imports std, watch it be reported, then remove it - a check that silently
+    reaches nothing looks exactly like a clean tree.
+  - A language rule must reach the same verdict in every build configuration, so never branch it on
+    something the configuration also drives. Testing '#[Inline]' is the trap: it reads like a
+    property of the callee and behaves like a property of the build, and it made a view visible in
+    devmode and invisible in release. Ask what actually happened - an expanded call no longer
+    resolves to a CallExpr - instead of asking what was requested. '--all-cfg' is what catches
+    this, and it catches nothing if you only ever run the default configuration.
+  - Compile time is a constraint: a whole-program analysis that doubles sema is not acceptable.
+    Measure it.
+  - Every defect the analysis finds in bin/ gets fixed in the same campaign. That is the proof the
+    check is worth having.
+
+REPORT
+
+Per round: the check, the tests added, the sweep result, every hit and which bucket it went in. At
+the end: what the language now guarantees, always-on, with no annotation - written as prose a user
+could read.
+```
+
+---
+
+## 4. Compilation speed
+
+```
+You are running a compile-speed campaign on swc. Read AGENTS.md and the skills it points to first,
+then backlog/compiler.core.md compiler.core.001, compiler.core.002, compiler.core.004, compiler.core.006 and compiler.core.007.
+
+WORK IN A SEPARATE WORKTREE
+
+Do not run this campaign in the main checkout. Create an isolated worktree and do everything there:
+
+  git worktree add --detach ../swc-speed HEAD
+
+Every claim in this campaign is a timing, and a timing taken in a shared tree is worthless: foreign
+uncommitted edits from other sessions get linked into your swc.exe by MSBuild's incremental build,
+and a second build running on the same machine moves the number by more than anything you will
+change. The levers below are also large, staged rewrites - a module interface format, a caching
+layer - which need somewhere they can be half-finished without blocking anyone.
+
+Before the first change, build and run the full test sequence AT BASELINE in the new worktree, and
+record every workload's time there once the instrument below exists. Those are the numbers every
+later round is measured against.
+
+GOAL
+
+Make swc the fastest thing that does this work - not just faster than C++ and Rust toolchains,
+which it already is, but fast enough that the edit-build loop stops being a loop. All three
+commands count: build, doc, format.
+
+Targets, all on this machine, all re-measured before you start:
+
+  - std/core rebuild (291 files, 50 690 lines): 2.1 s today, fast-debug. Target under 1.0 s.
+  - Warm no-op build of the same: target under 100 ms.
+  - Edit one file in core, rebuild: today this rebuilds all 291 files. Target under 300 ms.
+  - Hello world, source to linked executable: 89 ms today. Target under 50 ms.
+  - swc tools/web.swgs (the whole documentation site) and swc tools/format.swgs (every Swag workspace):
+    unmeasured today. Measure them, then halve them.
+
+For context on where the bar already is, from campaign 20260806-174758: swc builds the bench tasks
+in 93-132 ms against clang-cl's 481-647 ms and rustc's 425-585 ms. This campaign is not about
+beating them. It is about the loop a person actually sits in.
+
+START BY BUILDING THE INSTRUMENT
+
+Do this before any optimization; nothing below can be judged without it, and it is compiler.core.004 in
+backlog/compiler.core.md.
+
+Today the only compiler-side numbers recorded anywhere are hello_build_ms and hello_build_peak_mb
+in bench/history.json - one four-line program. Across eleven campaigns it reads 92, 61, 74, 68, 74,
+64, 66, 85, 81, 95, 67 ms: noise around a flat line, on a workload too small to contain what costs.
+
+Add real workloads to the campaign: a full core rebuild, a warm no-op, a one-file-touched rebuild,
+a full doc generation, a full format pass. Wall time and peak working set for each, recorded in
+history.json the same way and normalized the same way.
+
+Use external profilers for per-stage investigation. Do not add optional counters, allocation
+tracking, or profiling-only branches to the compiler: the benchmark campaign owns stable wall-time
+and peak-working-set measurements, while focused external traces answer transient questions.
+
+THE LOOP
+
+  1. Profile the target workload. Name the stage that costs, with a number.
+  2. Form one hypothesis about why, and predict what the fix should buy before you write it.
+  3. Implement the smallest version of it.
+  4. Measure against the prediction. A fix that lands far off its prediction means the model was
+     wrong - go back to step 1 rather than keeping an accidental win.
+  5. swc tools/tests.swgs dm, --all-cfg, Release sequence.
+  6. Record it in the campaign.
+
+THE FOUR STRUCTURAL LEVERS, IN ORDER
+
+They are not independent, and taking them out of order wastes the work:
+
+  1. The module boundary is re-parsed Swag source. core publishes 16 files and 12 328 lines per
+     configuration, and every dependent module lexes, parses and re-analyzes all of it. A binary
+     module interface, loaded lazily by name, is compiler.core.001 and it unlocks compiler.core.002, compiler.core.006 and compiler.core.008.
+  2. Incrementality stops at the module. Editing one line rebuilds 291 files. Per-file frontend
+     caching first, then per-function codegen caching - the second is where the win is and it is
+     unreachable without lever 1.
+  3. Every invocation re-analyzes the prelude: 8 files, 19 494 tokens, 237 functions before a
+     single line of user code. That is 62% of hello world. This is lever 1 applied to the prelude
+     - do it AFTER lever 1, or the compiler ends up with two module-loading mechanisms.
+  4. Modules build one at a time. The job system parallelizes hard WITHIN a module and the
+     workspace scheduler runs modules serially, on a 22-worker machine. The compile-speed branch
+     already prototypes the DAG scheduler. Finish it against the memory number, because N
+     concurrent modules multiply peak memory by N - coordinate with campaign 5.
+
+Doc and format have had no attention at all and are probably cheaper wins than any of the four.
+Measure them before assuming otherwise.
+
+DO NOT STOP AT THE FIRST FAILURE
+
+These are large changes and the first attempt at a binary module interface will not be the one
+that ships. Land it in pieces that each keep the tree green. When a piece does not pay, revert it,
+record the measurement in backlog/repo.tooling.md, and take the next piece - the four levers
+above are months of work and the campaign is designed to survive individual failures.
+
+The campaign ends when the five targets are met. It does not end because one lever turned out to
+be harder than it looked.
+
+RULES
+
+  - Never trade correctness for speed. The full sequence is green or the change does not exist.
+  - Never trade generated-code quality for compile speed without measuring both. Run bench.
+  - Never trade memory for speed without measuring both - campaign 5 owns that number and a
+    regression there is a regression here.
+  - A measurement taken once is a guess. Medians over order-alternated runs, or it is not a number.
+
+REPORT
+
+The five targets as a table, current versus target, refreshed every round. Under it, what changed
+and what it bought.
+```
+
+---
+
+## 5. Compiler memory
+
+```
+You are running a memory campaign on swc. Read AGENTS.md and the skills it points to first, then
+backlog/compiler.core.md compiler.core.005.
+
+WORK IN A SEPARATE WORKTREE
+
+Do not run this campaign in the main checkout. Create an isolated worktree and do everything there:
+
+  git worktree add --detach ../swc-memory HEAD
+
+Peak working set is the number this campaign lives on, and it is contaminated by anything else
+happening in the tree or on the machine: foreign uncommitted edits linked in by MSBuild's
+incremental build change what the compiler allocates, and a second build running concurrently
+changes what the OS reports. You will also free things early and crash the compiler on purpose -
+that belongs in a tree nobody else is standing in.
+
+Before the first change, build and run the full test sequence AT BASELINE in the new worktree, and
+record baseline peak memory AND wall time for every workload there. Both, always, from the start:
+the constraint of this campaign is that one moves and the other does not.
+
+GOAL
+
+Make swc need a fraction of what it needs today, at the same speed. Memory is what bounds how many
+modules can compile at once, and it is what makes the difference between a language you can run as
+a script and one you cannot.
+
+Where it stands (2026-09-05, Release swc.exe, --num-cores 6, after the first round: finished
+jobs release their Sema and CodeGen, 64 KiB arena blocks, api-export index dropped):
+
+  - std/core rebuild (50 690 lines): 517 MB peak working set in devmode, 360 MB in release.
+    Before the round: 731 MB and 638 MB. That is still roughly 10 KB of resident memory per
+    source line in devmode.
+  - Hello world: 60 MB peak (was 73 MB). To print one line.
+  - Building the bench tasks: swc peaks at 58-66 MB (was 74-83 MB) where clang-cl peaks at
+    69 MB and MSVC at 82-101 MB. rustc peaks at 201 MB.
+  - The largest block still resident at peak is the static sanitizer's flow state; see
+    compiler.core.005 for the attribution and the next lever.
+
+Targets:
+
+  - core rebuild under 250 MB devmode.
+  - Hello world under 50 MB.
+  - Bench task builds at or below clang-cl's 69 MB.
+  - Compile time unchanged, measured, not assumed.
+
+START BY MAKING THE NUMBER ATTRIBUTABLE
+
+There is no per-subsystem memory accounting today - only an OS peak. The split between AST, types,
+symbols, constants and Micro is currently UNKNOWN. Capture that split with an external heap
+profiler against the exact campaign workload; do not add per-allocation tracking or optional
+profiling branches to the compiler. Then attack what the trace shows, not what it seemed like.
+
+TWO SUSPECTS WORTH CHECKING EARLY
+
+Both are already written down and neither is confirmed:
+
+  - Nothing is released between stages. Post-codegen, the whole AST and every Micro function are
+    probably still resident for the entire module.
+  - Per-function Micro state is retained for the whole module rather than freed as each function
+    finishes.
+
+Confirm or kill each with the accounting before writing a fix.
+
+THE LOOP
+
+  1. Measure peak and the per-subsystem split on the target workload.
+  2. Name the largest attributable block and why it is alive at peak.
+  3. Free it earlier, store it smaller, or do not build it at all - in that order of preference.
+     "Do not build it" is usually the real answer and usually the one that gets skipped.
+  4. Re-measure peak AND wall time. A memory win that costs speed is not a win here; the whole
+     constraint of this campaign is that both hold.
+  5. swc tools/tests.swgs dm, --all-cfg, Release sequence.
+  6. Record both numbers in the campaign history.
+
+DO NOT STOP AT THE FIRST FAILURE
+
+Freeing something early will crash the compiler the first time, because something downstream still
+reads it. That is the expected outcome, not a reason to abandon the lever: it identifies the real
+lifetime of the data, which is the information you were after. Find the reader, decide whether it
+should be reading that at that point, and either move the free or restructure the reader.
+
+Expect to be wrong about which subsystem dominates. The accounting exists precisely because
+everyone's intuition here has been wrong before.
+
+The campaign ends when the four targets are met with compile time unchanged. It does not end
+because one attempt to free the AST early crashed, or because one subsystem turned out to be
+smaller than expected.
+
+RULES
+
+  - Peak working set is the number, not allocations or bytes requested.
+  - Compile time is a hard constraint. Measure it every round, medians over order-alternated runs.
+  - The runtime allocator's arenas are never returned to the OS by design. Understand that before
+    reading any peak: a fix that only reduces allocation churn may not move the peak at all.
+  - Coordinate with campaign 4 lever 4: the parallel module scheduler multiplies peak memory by
+    the number of concurrent modules, so this campaign gates that one.
+
+REPORT
+
+Peak memory per workload as a table, current versus target, next to wall time for the same
+workload - always both, so a trade is visible the moment it happens.
+```
+
+---
+
+## 6. Compiler code health
 
 ```
 You are running a mechanical code-health campaign on the swc compiler itself. Read AGENTS.md and
@@ -1074,4 +955,148 @@ Report the worktree path and branch, starting commit, coherent cleanup batches, 
 or dependency reductions, comments added or removed, internal renames, code reductions, skipped
 non-mechanical findings, SWC_BUILD_NUM change, files changed, and every validation command with its
 result. Report structural dependency counts when useful, but no timing or memory measurements.
+```
+
+---
+
+## 7. Swag code and API quality
+
+```
+You are running a repository-wide Swag code and API quality campaign across bin/. Read AGENTS.md,
+then the skills modify-swag-codebase, validate-swag-changes, write-idiomatic-swag-code,
+design-swag-bin-modules, and write-swag-public-api-docs. Read tools/README.md, backlog/README.md,
+and the relevant domain backlogs. Apply the application, visual identity, theme, dialog, compiler
+message, and syntax-reflection skills whenever a batch enters their scope.
+
+GOAL
+
+Make bin/ the reference showcase for the Swag language. A reader should be able to copy its code
+and learn the best current language idioms, clear design, safe resource handling, and coherent
+APIs. This is an implementation campaign: clean up, improve, refactor, simplify, and finish the
+code and its public contracts. An inventory of problems alone does not satisfy the goal.
+
+Quality is judged by correctness, clarity, consistency, useful API completeness, and the code a
+caller actually writes. Shorter code is valuable when it expresses the same intent more clearly;
+line count and use of the newest syntax are not goals of their own.
+
+WORK IN A SEPARATE WORKTREE
+
+Record the starting commit and status, then create an isolated branch and worktree:
+
+  git worktree add -b codex/bin-quality ../swc-bin-quality HEAD
+
+Do all campaign work there. Preserve unrelated local changes and do not copy uncommitted changes
+from the main checkout. Use the worktree's bin/swc.dm.exe or bin/swc.exe explicitly so its runtime
+and standard library are the ones being validated. Follow machine-load admission before every
+build and test, and cap both tool compilation and child compiler invocations at six workers.
+
+COVER ALL OF BIN/
+
+Inventory the actual tree, including every project-owned .swg and .swgs source, module descriptor,
+and public API. Cover runtime, every standard module, every application, examples, standalone
+scripts, executable language-reference pages, compiler suites, module tests, and test helpers.
+Discover additional directories from the tree instead of treating this list as exhaustive.
+
+Keep a coverage table under the ignored .tmp directory with each area, reviewed files and API
+families, findings, retained changes, validation, and remaining work. Every project-owned source
+must receive a semantic review; a pattern search or formatter pass alone is not review. Inspect
+public declarations together with implementations, documentation, tests, and representative callers.
+Inspect every member of a repeated family before marking that family complete.
+
+Classify generated sources, vendored sources, binary assets, fixtures, and compilation artifacts
+explicitly. Review project-owned generation inputs and integration code; regenerate derived output
+through its owning tool. Preserve upstream code and fixtures whose unusual form is intentional.
+Compiler regression inputs may deliberately use awkward syntax, redundant code, or failing code:
+preserve the exact behavior they test instead of modernizing away their purpose.
+
+WHAT TO IMPROVE
+
+  - Idiomatic Swag: apply the current language reference and write-idiomatic-swag-code to value
+    returns, inference, ownership and moves, borrowing, cleanup, error propagation, interfaces,
+    iteration, collections, pattern matching, and compile-time facilities where they improve the
+    code. Replace stale idioms and unnecessary low-level work with existing language or library
+    facilities. Do not imitate another language or introduce clever syntax without reader value.
+  - Simplification: remove dead code, redundant state, needless temporaries and wrappers, repeated
+    conversions, unnecessary nesting, and duplicate implementations. Collapse real duplication at
+    its owning abstraction; keep algorithms and invariants visible. Prefer a cohesive helper or
+    type over copy-paste, but do not create a framework for hypothetical callers.
+  - Structure: give modules, types, functions, and files a clear responsibility. Separate reusable
+    library behavior from application policy, keep implementation details private, clarify names,
+    reduce unnecessary dependencies, and align related implementations around one consistent design.
+  - Correctness and resources: inspect bounds, empty inputs, overflow, partial failure, allocation,
+    ownership, view lifetime, cleanup, cancellation, and concurrency where present. Preserve
+    evaluation order and numeric semantics during cleanup. Fix discovered behavioral defects at
+    their root and add regression coverage at the owning boundary.
+  - API quality: review whole operation families for naming, symmetry, useful completeness, type
+    consistency, parameter order, defaults, mutability, ownership, borrowing, lifetime, allocation,
+    failure behavior, and module boundaries. Verify contracts through real caller code. Simplify
+    awkward caller sequences, remove accidental public surface, and fill demonstrated gaps without
+    speculative API growth. Make error behavior predictable and failure states well defined.
+  - API changes: make a deliberate before/after contract decision, assess compatibility, and update
+    every in-repository caller, test, example, reference page, and public comment in the same batch.
+    Respect documented compatibility requirements and explain any migration for external callers;
+    do not leave half-renamed families or compatibility wrappers with no concrete requirement.
+  - Teaching quality: examples and reference code must show the recommended way to solve their
+    problem. Keep them small and complete, with correct failure handling and resource cleanup.
+    Public documentation must explain contracts, edge cases, and ownership, and use examples that
+    compile against the final API. Replace stale or narrating comments with clear code or concise
+    explanations of the reason behind a non-obvious choice.
+  - Efficiency: remove demonstrably unnecessary copying, allocation, repeated work, or poor data
+    structure choices. Measure changes whose performance depends on workload; preserve deliberate
+    fast paths unless evidence supports the replacement. Do not trade clarity for speculative speed.
+
+THE LOOP
+
+  1. Pick one cohesive area or cross-module API family from the coverage table. Read its full
+     implementation and callers, establish the current contract, and identify concrete weaknesses.
+  2. State the intended improvement and the narrowest validation that observes it. Distinguish a
+     behavior-preserving refactor from a bug fix or public contract change.
+  3. Implement the complete improvement, including all affected consumers and documentation.
+     Search the repository for stale names, duplicated alternatives, and obsolete usage patterns.
+     Keep unrelated cleanup in separate, reviewable batches.
+  4. Review the diff for correctness, idiomatic language use, ownership, API consistency, and
+     teaching value. Remove cosmetic churn, accidental generated changes, and line-ending noise.
+  5. Run the validation selected by validate-swag-changes: the owning module's focused tests,
+     compiler regression boundary, affected consumer, example/script smoke, or reference page.
+     Add configurations, compiler builds, and broader coverage only when the changed behavior
+     requires them. Inspect affected goldens; never promote a difference merely to make tests pass.
+  6. Update coverage and continue through every remaining area. A green build, one cleaned module,
+     or a large diff does not mean the whole tree has been reviewed.
+
+IMPROVE THE PLATFORM WHEN IT GETS IN THE WAY
+
+When idiomatic Swag is awkward because of a library defect, compiler defect, or missing language
+capability, investigate the cause. Fix understood, relevant platform defects with their focused
+regression coverage; do not spread local workarounds across bin/. Compiler source edits require
+SWC_BUILD_NUM to move, and surface syntax changes require reference and editor updates.
+
+For an unresolved design decision or a defect that needs separate investigation, search the whole
+backlog, then update or create the owning domain entry with concrete evidence and a next action.
+Keep the finding visible in the coverage table. Recording a defect does not make that area perfect
+or the campaign complete; report the exact remaining limitation.
+
+THE CAMPAIGN MAY END ONLY WHEN
+
+  - Every project-owned Swag source and public API family under bin/ has been reviewed, with
+    explicit coverage and justified exclusions for generated or upstream material.
+  - Every actionable improvement found in scope is implemented and validated; every remaining
+    design or external blocker is identified precisely and prevents a claim of full completion.
+  - APIs, implementations, callers, tests, examples, and documentation agree, with no stale names,
+    partial migration, unexplained duplicate implementation, or obsolete recommended idiom.
+  - Validation selected from the complete final diff is green, including affected consumers and
+    inspected golden outputs. No disabled test, weakened assertion, or unreviewed golden hides a
+    regression. Earlier evidence is rerun when a later change invalidates it.
+  - Formatting is consistent, required generated documentation is current, and no temporary output,
+    accidental upstream edit, or line-ending-only change remains in the final diff.
+
+Do not stop after the easy style fixes or the first directory. Continue until the coverage table
+accounts for the whole tree. If completion is blocked, deliver the validated improvements and
+state exactly what remains; never claim that bin/ is perfect on the strength of a sample.
+
+REPORT
+
+Report the worktree and branch, reviewed areas and exclusions, meaningful before/after examples,
+refactorings and simplifications, API contract changes and caller migrations, defects fixed,
+platform findings, documentation updates, and every validation command and result. Include the
+final coverage table and any remaining blockers so the whole-tree review can be verified.
 ```

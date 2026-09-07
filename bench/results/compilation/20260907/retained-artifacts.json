@@ -1,0 +1,20 @@
+{
+  "base_commit": "8d3f0498b",
+  "retained_build": 393,
+  "source_sha256": {
+    "src/Backend/Micro/MicroPassHelpers.h": "e0bfae0c51c23c33e8430c8581388d5e17c5a749c8468a2504e5ac3a3787c814",
+    "src/Backend/Native/NativeObjFileWriterCoff.cpp": "2d02cf61a81f47b9ba613084b08a9560f92c798bc63437de5f61b5be678f789e",
+    "src/Backend/Native/NativeRDataCollector.cpp": "be8914921a4e901f5b6aec1dce344a2aac240c661e013455e781e74b42a32bdf",
+    "src/Compiler/Sema/Symbol/Symbol.Function.cpp": "0c0fc0b765c64ca90586b2b9311f1af71f36e10257de7af1d064458224ac5fce",
+    "src/Main/Version.h": "5968b0cdfb9036fc570d4102165eb171ff16fbf69d87bc91fa80b4043a273a8d",
+    "src/Unittest/Micro/Test.Micro.LoopInvariantCodeMotion.cpp": "b4bb7dff593987359687cc0a08dfb73e10ea256bbcf9f93c2feefa8eaabe26e8",
+    "src/Unittest/Native/Test.Native.NativeArtifact.cpp": "4e283094fa3f5ad6f1967b531d00ab1756480f693f09a249e599d616d2aa77ad"
+  },
+  "binaries": {
+    "swc.baseline.exe": "4023f9c1dd270d6f40596bc8462a198588bcc258f1a0029f0904b03ae3c76463",
+    "swc.dominance.exe": "3438631bed9489ec36343ae42367092f9da469100ad7b3e659b96f0d4345f542",
+    "swc.exe": "3438631bed9489ec36343ae42367092f9da469100ad7b3e659b96f0d4345f542",
+    "swc.dm.exe": "4463266148f3ab3058400f562e23cb8d156d177686080ab32ed473921a882371"
+  },
+  "source_commit": "c44de46b4"
+}

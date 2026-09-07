@@ -1,0 +1,13 @@
+wordfreq B/A kernel 1.0517 checksum 130489
+
+csvagg B/A kernel 0.9992 checksum 24828641
+
+sha256 B/A kernel 1.0149 checksum 2503168387
+
+dijkstra B/A kernel 0.9326 checksum 4431000
+
+raytrace B/A kernel 0.9996 checksum 56061776
+
+leven B/A kernel 0.9435 checksum 67441
+
+chacha B/A kernel 0.8784 checksum 633277775

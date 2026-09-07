@@ -37,6 +37,46 @@ the executable Micro instruction stream has no explicit phi instruction.
   control-flow proofs, or a focused experiment identifies the register-residency constraint.
 - Related: compiler.optimization.026.
 
+### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
+
+- Recorded: 2026-09-05 22:13
+- Updated: 2026-09-07 10:37 — Attribute GUI and Pixel SSA cost and record the rejected storage experiment
+- Area: compiler/backend, compilation time
+- Found while: the compile-speed campaign, profiling `bench/compile.py core_rebuild` (std/core in
+  `devmode`, six worker cores, Release 0.1.367 with a PDB, a user-mode sampling profiler).
+- Observation: `runLoopPasses` is the largest single item of a full rebuild — 13.9 % of all
+  thread samples, about 40 % of the CPU actually spent (a third of the samples are workers
+  parked on the job queue) — and it is the largest item of a hello world build too (22 %) and of
+  `swc sema` on an empty file (14 %, the JIT lowering of the prelude's `#run`). Inside it the
+  SSA state is the cost: `MicroSsaState::build`, `ensureFor`, `renameBlock`, `reachingDef` and
+  `createPhi` add up to about 8.5 % of samples, more than any transform. `runPass` invalidates the
+  whole shared SSA state as soon as a pass reports `passChanged`, so every sweep of the fixed
+  point rebuilds it from scratch for the next pass that asks, however local the mutation was.
+  `devmode` is `O1`, "everything that does not cost compilation time", and this does.
+- Updated evidence (2026-09-06): external sampling of Release compiler 0.1.383 rebuilding a
+  private copy of tracked `bin/std` sources, six workers, still finds SSA construction prominent.
+  For `core` in `devmode`, 30 of 151 samples inside `JobManager::executeJob` include
+  `MicroSsaState::build`; in `release`, 25 of 131 do. The corresponding `CodeGenJob` counts are
+  110 and 99. These are inclusive stack counts, with each sample counted once per function;
+  they are attribution evidence, not independent percentages to add or unprofiled timings.
+  Repeated builds by the same baseline compiler also produce different raw PE `.text` hashes,
+  so a whole-section hash alone cannot establish whether an SSA change preserves code quality.
+- Updated evidence (2026-09-07): Release compiler 0.1.390, six workers, an isolated Pixel rebuild
+  gave 518 CPU-weighted external stack samples. SSA construction accounted for 22.15% of the
+  sampled CPU, renaming for 11.63%, and the entry-snapshot call in `renameBlock` for 5.82%.
+  The corresponding GUI-only profile attributed 12.94% to SSA construction. These are inclusive
+  shares, not costs to add together. Each block snapshots every active tracked register, and
+  each mutating pass can repeat the work. Reusing block scratch storage alone did not establish
+  a consistent speed/memory improvement and was removed; `repo.tooling.008` records that trial.
+- Next: trace rebuilds and mutating passes externally on GUI and Pixel to size the win, then keep the
+  SSA state valid across the mutations that preserve it — a deleted instruction, a renamed
+  operand, a folded constant — and rebuild only the blocks a pass touched otherwise. Measure with
+  `bench/compile.py --against` on `core_rebuild` and `hello_build`, and with `bench.swgs` so the
+  generated code is proven unchanged.
+- Complete when: `core_rebuild` and `hello_build` move by the share the profile attributes to SSA
+  rebuilds, at identical generated code on the seven bench tasks, and the `native` suite is green.
+- Related: compiler.core.004, compiler.core.030.
+
 ### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
 
 - Recorded: 2026-09-06 14:53
@@ -89,39 +129,6 @@ the executable Micro instruction stream has no explicit phi instruction.
 - Complete when: the call disappears with correct cross-file binding and better emitted code,
   or a focused experiment identifies which remaining eligibility rule prevents the gain.
 - Related: std.video.005.
-
-### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
-
-- Recorded: 2026-09-05 22:13
-- Updated: 2026-09-06 15:21 — git: Refresh module compilation profiles and measurement caveats
-- Area: compiler/backend, compilation time
-- Found while: the compile-speed campaign, profiling `bench/compile.py core_rebuild` (std/core in
-  `devmode`, six worker cores, Release 0.1.367 with a PDB, a user-mode sampling profiler).
-- Observation: `runLoopPasses` is the largest single item of a full rebuild — 13.9 % of all
-  thread samples, about 40 % of the CPU actually spent (a third of the samples are workers
-  parked on the job queue) — and it is the largest item of a hello world build too (22 %) and of
-  `swc sema` on an empty file (14 %, the JIT lowering of the prelude's `#run`). Inside it the
-  SSA state is the cost: `MicroSsaState::build`, `ensureFor`, `renameBlock`, `reachingDef` and
-  `createPhi` add up to about 8.5 % of samples, more than any transform. `runPass` invalidates the
-  whole shared SSA state as soon as a pass reports `passChanged`, so every sweep of the fixed
-  point rebuilds it from scratch for the next pass that asks, however local the mutation was.
-  `devmode` is `O1`, "everything that does not cost compilation time", and this does.
-- Updated evidence (2026-09-06): external sampling of Release compiler 0.1.383 rebuilding a
-  private copy of tracked `bin/std` sources, six workers, still finds SSA construction prominent.
-  For `core` in `devmode`, 30 of 151 samples inside `JobManager::executeJob` include
-  `MicroSsaState::build`; in `release`, 25 of 131 do. The corresponding `CodeGenJob` counts are
-  110 and 99. These are inclusive stack counts, with each sample counted once per function;
-  they are attribution evidence, not independent percentages to add or unprofiled timings.
-  Repeated builds by the same baseline compiler also produce different raw PE `.text` hashes,
-  so a whole-section hash alone cannot establish whether an SSA change preserves code quality.
-- Next: count rebuilds and mutating passes per function on std/core to size the win, then keep the
-  SSA state valid across the mutations that preserve it — a deleted instruction, a renamed
-  operand, a folded constant — and rebuild only the blocks a pass touched otherwise. Measure with
-  `bench/compile.py --against` on `core_rebuild` and `hello_build`, and with `bench.swgs` so the
-  generated code is proven unchanged.
-- Complete when: `core_rebuild` and `hello_build` move by the share the profile attributes to SSA
-  rebuilds, at identical generated code on the seven bench tasks, and the `native` suite is green.
-- Related: compiler.core.004, compiler.core.030.
 
 ### compiler.optimization.005 — Complex loop-carried frame slots still lose registers
 

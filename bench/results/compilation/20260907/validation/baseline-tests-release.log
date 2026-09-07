@@ -1,0 +1,863 @@
+
+  ◆  swag        run • tools • devmode
+  ✓  checked     60 files • 168_512 tokens • 213 ms
+  ✓  tuned       419 functions • 503 ms
+
+  ◆  swag        run • tests • devmode
+  ✓  checked     60 files • 170_085 tokens • 206 ms
+  ✓  tuned       312 functions • 505 ms
+repository tooling regression checks passed
+  ✓  executed    1 main • 22 s 406 ms
+  ✓  clean       22 s 691 ms
+
+  ◆  swag        test • bin/unittests/lexer • release
+  ✓  checked     19 files • 30_783 tokens • 2 ms
+  ✓  verified    1 us
+  ✓  tested      0 tests • 2 ms
+  ✓  clean       3 ms
+
+  ◆  swag        test • bin/unittests/errors/lexer • release
+  ✓  checked     35 files • 30_242 tokens • 2 ms
+  ✓  verified    2 us
+  ✓  tested      0 tests • 3 ms
+  ✓  clean       3 ms
+
+  ◆  swag        test • bin/unittests/parser • release
+  ✓  checked     36 files • 34_222 tokens • 3 ms
+  ✓  verified    1 us
+  ✓  tested      0 tests • 3 ms
+  ✓  clean       3 ms
+
+  ◆  swag        test • bin/unittests/errors/parser • release
+  ✓  checked     61 files • 31_409 tokens • 5 ms
+  ✓  verified    4 us
+  ✓  tested      0 tests • 5 ms
+  ✓  clean       5 ms
+
+  ◆  swag        test • bin/unittests/sema • release
+  ✓  checked     273 files • 145_031 tokens • 341 ms
+  ✓  verified    15 us
+  ✓  tested      0 tests • 345 ms
+  ✓  clean       360 ms
+
+  ◆  swag        test • bin/unittests/errors/sema • release
+  ✓  checked     281 files • 66_192 tokens • 149 ms
+  ✓  verified    26 us
+  ✓  tested      0 tests • 154 ms
+  ✓  clean       164 ms
+
+  ◆  swag        test • bin/unittests/lexer • devmode
+  ✓  checked     19 files • 30_783 tokens • 2 ms
+  ✓  verified    1 us
+  ✓  tested      0 tests • 2 ms
+  ✓  clean       2 ms
+
+  ◆  swag        test • bin/unittests/errors/lexer • devmode
+  ✓  checked     35 files • 30_242 tokens • 2 ms
+  ✓  verified    2 us
+  ✓  tested      0 tests • 2 ms
+  ✓  clean       3 ms
+
+  ◆  swag        test • bin/unittests/parser • devmode
+  ✓  checked     36 files • 34_222 tokens • 2 ms
+  ✓  verified    1 us
+  ✓  tested      0 tests • 3 ms
+  ✓  clean       3 ms
+
+  ◆  swag        test • bin/unittests/errors/parser • devmode
+  ✓  checked     61 files • 31_409 tokens • 4 ms
+  ✓  verified    4 us
+  ✓  tested      0 tests • 4 ms
+  ✓  clean       5 ms
+
+  ◆  swag        test • bin/unittests/sema • devmode
+  ✓  checked     273 files • 145_031 tokens • 413 ms
+  ✓  verified    14 us
+  ✓  tested      0 tests • 418 ms
+  ✓  clean       430 ms
+
+  ◆  swag        test • bin/unittests/errors/sema • devmode
+  ✓  checked     281 files • 66_192 tokens • 225 ms
+  ✓  verified    30 us
+  ✓  tested      0 tests • 229 ms
+  ✓  clean       239 ms
+
+  ◆  swag        test • bin/unittests/jit • release
+  ✓  checked     348 files • 231_423 tokens • 602 ms
+  ✓  tuned       3_006 functions • 232 ms
+  ✓  executed    1_381 passed • 324 ms
+  ✓  verified    48 us
+  ✓  tested      1_381 passed • 929 ms
+  ✓  clean       948 ms
+
+  ◆  swag        test • bin/unittests/safety • release
+  ✓  checked     57 files • 55_336 tokens • 213 ms
+  ✓  tuned       450 functions • 29 ms
+  ✓  executed    133 passed • 37 ms
+  ✓  verified    7 us
+  ✓  tested      133 passed • 251 ms
+  ✓  clean       254 ms
+
+  ◆  swag        test • bin/unittests/sanity • release
+  ✓  checked     34 files • 48_978 tokens • 72 ms
+  ✓  tuned       263 functions • 27 ms
+  ✓  executed    39 passed • 31 ms
+  ✓  verified    4 us
+  ✓  tested      39 passed • 103 ms
+  ✓  clean       107 ms
+
+  ◆  swag        test • bin/unittests/native • release
+  ✓  checked     640 files • 512_366 tokens • 1 s 35 ms
+  ✓  tuned       7_678 functions • 1 s 19 ms
+  ✓  executed    3_018 passed • 1 s 263 ms
+  ✓  forged      5_310 functions • native.test.exe • 2 s 390 ms
+  ✓  ran         260 ms
+  ✓  verified    45 us
+  ✓  tested      3_018 passed • 4 s 956 ms
+  ✓  clean       5 s 15 ms
+
+  ◆  swag        clean • workspace
+
+Removed
+  Artifacts       C:/Perso/swag-lang/swc-speed-20260907/bin/unittests/workspace/.output (46 files, 6.4 MB)
+  Intermediate    C:/Perso/swag-lang/swc-speed-20260907/bin/unittests/workspace/.tmp (34 files, 31.6 KB)
+  Dependencies    C:/Perso/swag-lang/swc-speed-20260907/bin/unittests/workspace/.dep (41 files, 12.5 MB)
+  Total           121 files, 18.9 MB
+  ✓  clean       45 ms
+
+  ◆  swag        clean • std
+
+Removed
+  Artifacts       C:/Perso/swag-lang/swc-speed-20260907/bin/std/.output (251 files, 199.9 MB)
+  Intermediate    C:/Perso/swag-lang/swc-speed-20260907/bin/std/.tmp (95 files, 1.1 MB)
+  Total           346 files, 201.0 MB
+  ✓  clean       106 ms
+  ◆  swag        build • workspace [consumer_exe] • release
+  ✓  module      win32 • 26 files • 68 ms
+  ✓  module      xinput • 23 files • 63 ms
+  ✓  module      core • 343 files • core.dll • 1 s 449 ms
+  ✓  workspace   std [2 roots] • 3 modules • 1 s 884 ms
+  ✓  module      api_export_provider • 26 files • 68 ms
+  ✓  module      api_static_provider • 23 files • api_static_provider.lib • 90 ms
+  ✓  module      runtime_context_base_static • 15 files • runtime_context_base_static.lib • 82 ms
+  ✓  module      runtime_context_bridge_dll • 18 files • runtime_context_bridge_dll.dll • 112 ms
+  ✓  module      runtime_context_direct_static • 15 files • runtime_context_direct_static.lib • 92 ms
+  ✓  module      consumer_exe • 57 files • consumer_exe.exe • 480 ms
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 3 s 238 ms
+  ✓  clean       3 s 238 ms
+  ◆  swag        build • workspace [consumer_exe] • release
+  ↻  module      api_export_provider • up-to-date • 5 us
+  ↻  module      api_static_provider • up-to-date • api_static_provider.lib • 4 us
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 3 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 4 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 4 us
+  ↻  module      consumer_exe • up-to-date • consumer_exe.exe • 4 us
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 46 ms
+  ✓  clean       46 ms
+
+  ◆  swag        build • setup-cache-probe [probe] • release
+  ✓  checked     15 files • 32_942 tokens • 27 ms
+  ✓  tuned       172 functions • 46 ms
+  ✓  forged      320 functions • probe.exe • 49 ms
+  ✓  module      probe • 15 files • probe.exe • 79 ms
+  ✓  workspace   setup-cache-probe [probe] • 1 module • 145 ms
+  ✓  clean       145 ms
+
+  ◆  swag        build • setup-cache-probe [probe] • release
+  ✓  checked     15 files • 32_942 tokens • 28 ms
+  ✓  tuned       172 functions • 52 ms
+  ✓  forged      320 functions • renamed.exe • 55 ms
+  ✓  module      probe • 15 files • renamed.exe • 86 ms
+  ✓  workspace   setup-cache-probe [probe] • 1 module • 150 ms
+  ✓  clean       150 ms
+  ◆  swag        run • workspace [tag_cache] • release
+  ✓  checked     16 files • 32_993 tokens • 24 ms
+  ✓  tuned       172 functions • 54 ms
+  ✓  forged      320 functions • tag_cache.exe • 58 ms
+  ✓  module      tag_cache • 16 files • tag_cache.exe • 85 ms
+cache-tag=disabled
+  ✓  ran         65 ms
+  ✓  workspace   workspace [tag_cache] • 1 module • 217 ms
+  ✓  clean       217 ms
+  ◆  swag        run • workspace [tag_cache] • release
+  ✓  checked     16 files • 32_993 tokens • 29 ms
+  ✓  tuned       173 functions • 52 ms
+  ✓  forged      321 functions • tag_cache.exe • 55 ms
+  ✓  module      tag_cache • 16 files • tag_cache.exe • 86 ms
+cache-tag=0
+  ✓  ran         51 ms
+  ✓  workspace   workspace [tag_cache] • 1 module • 213 ms
+  ✓  clean       213 ms
+  ◆  swag        run • workspace [tag_cache] • release
+  ✓  checked     16 files • 32_993 tokens • 28 ms
+  ✓  tuned       173 functions • 57 ms
+  ✓  forged      321 functions • tag_cache.exe • 60 ms
+  ✓  module      tag_cache • 16 files • tag_cache.exe • 91 ms
+cache-tag=42
+  ✓  ran         61 ms
+  ✓  workspace   workspace [tag_cache] • 1 module • 229 ms
+  ✓  clean       229 ms
+  ◆  swag        run • workspace [tag_cache] • release
+cache-tag=42
+  ✓  ran         19 ms
+  ↻  module      tag_cache • up-to-date • tag_cache.exe • 19 ms
+  ✓  workspace   workspace [tag_cache] • 1 module • 23 ms
+  ✓  clean       24 ms
+  ◆  swag        run • workspace [tag_cache] • release
+  ✓  checked     16 files • 32_993 tokens • 25 ms
+  ✓  tuned       172 functions • 50 ms
+  ✓  forged      320 functions • tag_cache.exe • 53 ms
+  ✓  module      tag_cache • 16 files • tag_cache.exe • 81 ms
+cache-tag=disabled
+  ✓  ran         48 ms
+  ✓  workspace   workspace [tag_cache] • 1 module • 198 ms
+  ✓  clean       198 ms
+
+  ◆  swag        clean • workspace
+
+Removed
+  Artifacts       C:/Perso/swag-lang/swc-speed-20260907/bin/unittests/workspace/.output (25 files, 1.9 MB)
+  Intermediate    C:/Perso/swag-lang/swc-speed-20260907/bin/unittests/workspace/.tmp (9 files, 10.2 KB)
+  Dependencies    C:/Perso/swag-lang/swc-speed-20260907/bin/unittests/workspace/.dep (41 files, 7.2 MB)
+  Total           75 files, 9.1 MB
+  ✓  clean       21 ms
+
+  ◆  swag        doc • workspace [consumer_exe]
+  ✓  module      win32 • 26 files • 74 ms
+  ✓  module      xinput • 23 files • 74 ms
+  ✓  module      core • 343 files • core.dll • 1 s 658 ms
+  ✓  workspace   std [2 roots] • 3 modules • 2 s 171 ms
+  ✓  module      api_export_provider • 26 files • 150 ms
+  ✓  module      api_static_provider • 23 files • api_static_provider.lib • 133 ms
+  ✓  module      runtime_context_base_static • 15 files • runtime_context_base_static.lib • 125 ms
+  ✓  module      runtime_context_bridge_dll • 18 files • runtime_context_bridge_dll.dll • 158 ms
+  ✓  module      runtime_context_direct_static • 15 files • runtime_context_direct_static.lib • 139 ms
+  ✓  module      consumer_exe • 57 files • consumer_exe.exe • 649 ms
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 1 s 838 ms
+  ✓  module      api_export_provider • 26 files • 120 ms
+  ✓  module      api_static_provider • 23 files • 46 ms
+  ✓  module      runtime_context_base_static • 15 files • 37 ms
+  ✓  module      runtime_context_bridge_dll • 18 files • 46 ms
+  ✓  module      runtime_context_direct_static • 15 files • 35 ms
+  ✓  module      consumer_exe • 57 files • workspace.consumer.html • 297 ms
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 5 s 5 ms
+  ✓  clean       5 s 6 ms
+
+  ◆  swag        test • workspace [sandbox_consumer] • release
+  ✓  module      win32 • 26 files • 88 ms
+  ✓  module      xinput • 23 files • 96 ms
+  ✓  module      core • 343 files • core.dll • 2 s 74 ms
+  ✓  workspace   std [core] • 3 modules • 2 s 647 ms
+  ✓  module      runtime_context_base_static • 15 files • runtime_context_base_static.lib • 151 ms
+  ✓  module      runtime_context_bridge_dll • 18 files • runtime_context_bridge_dll.dll • 154 ms
+  ✓  module      sandbox_consumer • 72 files • sandbox_consumer.exe • 517 ms
+  ✓  workspace   workspace [sandbox_consumer] • 3 modules • 1 s 135 ms
+  ✓  checked     72 files • 149_985 tokens • 280 ms
+  ✓  tuned       188 functions • 36 ms
+  ✓  executed    1 passed • 38 ms
+  ✓  verified    12 us
+  ✓  tested      1 passed • 323 ms
+  ✓  module      sandbox_consumer • 72 files • 1 passed • 325 ms
+  ✓  workspace   workspace [sandbox_consumer] • 1 module • 1 passed • 4 s 372 ms
+  ✓  clean       4 s 373 ms
+
+  ◆  swag        build • workspace [consumer_exe] • release
+  ✓  module      api_export_provider • 26 files • 73 ms
+  ✓  module      api_static_provider • 23 files • api_static_provider.lib • 98 ms
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 6 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 5 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 4 us
+  ✓  module      consumer_exe • 57 files • consumer_exe.exe • 412 ms
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 897 ms
+  ✓  clean       897 ms
+
+  ◆  swag        build • workspace [runtime_context_dynamic_dll] • release
+  ✓  checked     46 files • 147_045 tokens • 209 ms
+  ✓  tuned       434 functions • 28 ms
+  ✓  forged      430 functions • runtime_context_dynamic_dll.dll • 34 ms
+  ✓  module      runtime_context_dynamic_dll • 46 files • runtime_context_dynamic_dll.dll • 259 ms
+  ✓  workspace   workspace [runtime_context_dynamic_dll] • 1 module • 372 ms
+  ✓  clean       372 ms
+
+  ◆  swag        test • workspace [runtime_context_dynamic_consumer] • release
+  ✓  checked     46 files • 146_822 tokens • 218 ms
+  ✓  tuned       193 functions • 34 ms
+  ✓  forged      427 functions • runtime_context_dynamic_consumer.test.exe • 51 ms
+  ✓  ran         101 ms
+  ✓  verified    9 us
+  ✓  tested      1 passed • 373 ms
+  ✓  module      runtime_context_dynamic_consumer • 46 files • 1 passed • runtime_context_dynamic_consumer.test.exe • 376 ms
+  ✓  workspace   workspace [runtime_context_dynamic_consumer] • 1 module • 1 passed • 477 ms
+  ✓  clean       477 ms
+
+  ◆  swag        test • workspace [consumer_exe] • release
+  ↻  module      api_export_provider • up-to-date • 5 us
+  ↻  module      api_static_provider • up-to-date • api_static_provider.lib • 5 us
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 5 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 5 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 4 us
+  ↻  module      consumer_exe • up-to-date • consumer_exe.exe • 6 us
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 17 ms
+  ✓  checked     57 files • 158_122 tokens • 254 ms
+  ✓  tuned       318 functions • 156 ms
+  ✓  forged      489 functions • consumer_exe.test.exe • 190 ms
+SWAG_WORKSPACE_TEST_RAN
+  ✓  ran         101 ms
+  ✓  verified    12 us
+  ✓  tested      4 passed • 552 ms
+  ✓  module      consumer_exe • 57 files • 4 passed • consumer_exe.test.exe • 559 ms
+  ✓  workspace   workspace [consumer_exe] • 1 module • 4 passed • 881 ms
+  ✓  clean       881 ms
+  ◆  swag        test • workspace [consumer_exe] • release
+  ↻  module      api_export_provider • up-to-date • 5 us
+  ↻  module      api_static_provider • up-to-date • api_static_provider.lib • 4 us
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 4 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 4 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 3 us
+  ↻  module      consumer_exe • up-to-date • consumer_exe.exe • 5 us
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 14 ms
+SWAG_WORKSPACE_TEST_RAN
+  ✓  ran         28 ms
+  ↻  module      consumer_exe • up-to-date • consumer_exe.test.exe • 33 ms
+  ✓  workspace   workspace [consumer_exe] • 1 module • 4 passed • 89 ms
+  ✓  clean       89 ms
+
+  ◆  swag        test • workspace [standalone_exe] • release
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 4 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 4 us
+  ✓  module      standalone_exe • 49 files • standalone_exe.exe • 285 ms
+  ✓  workspace   workspace [standalone_exe] • 3 modules • 371 ms
+  ✓  checked     49 files • 148_414 tokens • 213 ms
+  ✓  tuned       198 functions • 32 ms
+  ✓  forged      430 functions • standalone_exe.test.exe • 70 ms
+  ✓  ran         98 ms
+  ✓  verified    12 us
+  ✓  tested      2 passed • 384 ms
+  ✓  module      standalone_exe • 49 files • 2 passed • standalone_exe.test.exe • 389 ms
+  ✓  workspace   workspace [standalone_exe] • 1 module • 2 passed • 862 ms
+  ✓  clean       863 ms
+
+  ◆  swag        test • workspace [verify_expectations] • release
+  ↻  module      api_export_provider • up-to-date • 6 us
+  ✓  module      verify_expectations • 50 files • 227 ms
+  ✓  workspace   workspace [verify_expectations] • 2 modules • 300 ms
+  ✓  checked     50 files • 148_824 tokens • 230 ms
+  ✓  verified    6 us
+  ✓  tested      0 tests • 232 ms
+  ✓  module      verify_expectations • 50 files • 0 tests • 235 ms
+  ✓  workspace   workspace [verify_expectations] • 1 module • 0 tests • 640 ms
+  ✓  clean       640 ms
+  ◆  swag        test • workspace [verify_expectations] • release
+  ↻  module      api_export_provider • up-to-date • 6 us
+  ↻  module      verify_expectations • up-to-date • 5 us
+  ✓  workspace   workspace [verify_expectations] • 2 modules • 6 ms
+  ✓  checked     50 files • 148_824 tokens • 253 ms
+  ✓  verified    6 us
+  ✓  tested      0 tests • 255 ms
+  ✓  module      verify_expectations • 50 files • 0 tests • 257 ms
+  ✓  workspace   workspace [verify_expectations] • 1 module • 0 tests • 313 ms
+  ✓  clean       314 ms
+  ◆  swag        run • workspace [consumer_exe] • release
+  ↻  module      api_export_provider • up-to-date • 8 us
+  ↻  module      api_static_provider • up-to-date • api_static_provider.lib • 6 us
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 5 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 9 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 6 us
+SWAG_WORKSPACE_MAIN_RAN
+  ↻  module      consumer_exe • up-to-date • consumer_exe.exe • 116 ms
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 649 ms
+  ✓  clean       649 ms
+  ◆  swag        test • workspace [consumer_exe] • release
+  ↻  module      api_export_provider • up-to-date • 6 us
+  ↻  module      api_static_provider • up-to-date • api_static_provider.lib • 6 us
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 5 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 7 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 5 us
+  ↻  module      consumer_exe • up-to-date • consumer_exe.exe • 7 us
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 478 ms
+SWAG_WORKSPACE_TEST_RAN
+  ✓  ran         27 ms
+  ↻  module      consumer_exe • up-to-date • consumer_exe.test.exe • 32 ms
+  ✓  workspace   workspace [consumer_exe] • 1 module • 4 passed • 568 ms
+  ✓  clean       568 ms
+
+  ◆  swag        test • workspace [consumer_exe] • release
+  ↻  module      api_export_provider • up-to-date • 6 us
+  ↻  module      api_static_provider • up-to-date • api_static_provider.lib • 6 us
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 7 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 6 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 5 us
+  ↻  module      consumer_exe • up-to-date • consumer_exe.exe • 6 us
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 21 ms
+  ✓  ran         38 ms
+  ↻  module      consumer_exe • up-to-date • consumer_exe.test.exe • 43 ms
+  ✓  workspace   workspace [consumer_exe] • 1 module • 1 passed • 120 ms
+  ✓  clean       122 ms
+
+  ◆  swag        test • bin/unittests/jit • devmode
+  ✓  checked     348 files • 231_384 tokens • 1 s 168 ms
+  ✓  tuned       3_007 functions • 365 ms
+  ✓  executed    1_381 passed • 481 ms
+  ✓  verified    30 us
+  ✓  tested      1_381 passed • 1 s 653 ms
+  ✓  clean       1 s 677 ms
+
+  ◆  swag        test • bin/unittests/safety • devmode
+  ✓  checked     57 files • 55_336 tokens • 326 ms
+  ✓  tuned       450 functions • 41 ms
+  ✓  executed    133 passed • 52 ms
+  ✓  verified    9 us
+  ✓  tested      133 passed • 379 ms
+  ✓  clean       382 ms
+
+  ◆  swag        test • bin/unittests/sanity • devmode
+  ✓  checked     34 files • 48_978 tokens • 111 ms
+  ✓  tuned       264 functions • 42 ms
+  ✓  executed    39 passed • 48 ms
+  ✓  verified    5 us
+  ✓  tested      39 passed • 160 ms
+  ✓  clean       165 ms
+
+  ◆  swag        test • bin/unittests/native • devmode
+  ✓  checked     640 files • 512_341 tokens • 1 s 826 ms
+  ✓  tuned       7_679 functions • 1 s 816 ms
+  ✓  executed    3_018 passed • 2 s 184 ms
+  ✓  forged      5_309 functions • native.test.exe • 2 s 657 ms
+  ✓  ran         282 ms
+  ✓  verified    64 us
+  ✓  tested      3_018 passed • 6 s 961 ms
+  ✓  clean       7 s 15 ms
+
+  ◆  swag        clean • workspace
+
+Removed
+  Artifacts       C:/Perso/swag-lang/swc-speed-20260907/bin/unittests/workspace/.output (46 files, 4.8 MB)
+  Intermediate    C:/Perso/swag-lang/swc-speed-20260907/bin/unittests/workspace/.tmp (32 files, 31.2 KB)
+  Dependencies    C:/Perso/swag-lang/swc-speed-20260907/bin/unittests/workspace/.dep (41 files, 7.2 MB)
+  Total           119 files, 12.1 MB
+  ✓  clean       26 ms
+
+  ◆  swag        clean • std
+
+Removed
+  Artifacts       C:/Perso/swag-lang/swc-speed-20260907/bin/std/.output (41 files, 7.2 MB)
+  Intermediate    C:/Perso/swag-lang/swc-speed-20260907/bin/std/.tmp (3 files, 4.2 KB)
+  Total           44 files, 7.2 MB
+  ✓  clean       7 ms
+  ◆  swag        build • workspace [consumer_exe] • devmode
+  ✓  module      win32 • 26 files • 69 ms
+  ✓  module      xinput • 23 files • 75 ms
+  ✓  module      core • 343 files • core.dll • 1 s 800 ms
+  ✓  workspace   std [2 roots] • 3 modules • 2 s 278 ms
+  ✓  module      api_export_provider • 26 files • 61 ms
+  ✓  module      api_static_provider • 23 files • api_static_provider.lib • 83 ms
+  ✓  module      runtime_context_base_static • 15 files • runtime_context_base_static.lib • 82 ms
+  ✓  module      runtime_context_bridge_dll • 18 files • runtime_context_bridge_dll.dll • 132 ms
+  ✓  module      runtime_context_direct_static • 15 files • runtime_context_direct_static.lib • 106 ms
+  ✓  module      consumer_exe • 57 files • consumer_exe.exe • 405 ms
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 3 s 589 ms
+  ✓  clean       3 s 589 ms
+  ◆  swag        build • workspace [consumer_exe] • devmode
+  ↻  module      api_export_provider • up-to-date • 4 us
+  ↻  module      api_static_provider • up-to-date • api_static_provider.lib • 4 us
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 3 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 4 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 3 us
+  ↻  module      consumer_exe • up-to-date • consumer_exe.exe • 3 us
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 43 ms
+  ✓  clean       43 ms
+
+  ◆  swag        build • setup-cache-probe [probe] • devmode
+  ✓  checked     15 files • 32_942 tokens • 63 ms
+  ✓  tuned       173 functions • 28 ms
+  ✓  forged      320 functions • probe.exe • 32 ms
+  ✓  module      probe • 15 files • probe.exe • 99 ms
+  ✓  workspace   setup-cache-probe [probe] • 1 module • 171 ms
+  ✓  clean       171 ms
+
+  ◆  swag        build • setup-cache-probe [probe] • devmode
+  ✓  checked     15 files • 32_942 tokens • 64 ms
+  ✓  tuned       173 functions • 28 ms
+  ✓  forged      320 functions • renamed.exe • 31 ms
+  ✓  module      probe • 15 files • renamed.exe • 98 ms
+  ✓  workspace   setup-cache-probe [probe] • 1 module • 177 ms
+  ✓  clean       178 ms
+  ◆  swag        run • workspace [tag_cache] • devmode
+  ✓  checked     16 files • 32_993 tokens • 61 ms
+  ✓  tuned       173 functions • 26 ms
+  ✓  forged      320 functions • tag_cache.exe • 29 ms
+  ✓  module      tag_cache • 16 files • tag_cache.exe • 93 ms
+cache-tag=disabled
+  ✓  ran         80 ms
+  ✓  workspace   workspace [tag_cache] • 1 module • 259 ms
+  ✓  clean       259 ms
+  ◆  swag        run • workspace [tag_cache] • devmode
+  ✓  checked     16 files • 32_993 tokens • 55 ms
+  ✓  tuned       174 functions • 23 ms
+  ✓  forged      321 functions • tag_cache.exe • 26 ms
+  ✓  module      tag_cache • 16 files • tag_cache.exe • 84 ms
+cache-tag=0
+  ✓  ran         53 ms
+  ✓  workspace   workspace [tag_cache] • 1 module • 215 ms
+  ✓  clean       215 ms
+  ◆  swag        run • workspace [tag_cache] • devmode
+  ✓  checked     16 files • 32_993 tokens • 55 ms
+  ✓  tuned       174 functions • 23 ms
+  ✓  forged      321 functions • tag_cache.exe • 26 ms
+  ✓  module      tag_cache • 16 files • tag_cache.exe • 84 ms
+cache-tag=42
+  ✓  ran         69 ms
+  ✓  workspace   workspace [tag_cache] • 1 module • 230 ms
+  ✓  clean       230 ms
+  ◆  swag        run • workspace [tag_cache] • devmode
+cache-tag=42
+  ✓  ran         16 ms
+  ↻  module      tag_cache • up-to-date • tag_cache.exe • 16 ms
+  ✓  workspace   workspace [tag_cache] • 1 module • 23 ms
+  ✓  clean       23 ms
+  ◆  swag        run • workspace [tag_cache] • devmode
+  ✓  checked     16 files • 32_993 tokens • 64 ms
+  ✓  tuned       173 functions • 32 ms
+  ✓  forged      320 functions • tag_cache.exe • 35 ms
+  ✓  module      tag_cache • 16 files • tag_cache.exe • 103 ms
+cache-tag=disabled
+  ✓  ran         70 ms
+  ✓  workspace   workspace [tag_cache] • 1 module • 259 ms
+  ✓  clean       259 ms
+
+  ◆  swag        clean • workspace
+
+Removed
+  Artifacts       C:/Perso/swag-lang/swc-speed-20260907/bin/unittests/workspace/.output (25 files, 2.5 MB)
+  Intermediate    C:/Perso/swag-lang/swc-speed-20260907/bin/unittests/workspace/.tmp (9 files, 10.2 KB)
+  Dependencies    C:/Perso/swag-lang/swc-speed-20260907/bin/unittests/workspace/.dep (41 files, 12.5 MB)
+  Total           75 files, 15.0 MB
+  ✓  clean       16 ms
+
+  ◆  swag        doc • workspace [consumer_exe]
+  ✓  module      win32 • 26 files • 82 ms
+  ✓  module      xinput • 23 files • 88 ms
+  ✓  module      core • 343 files • core.dll • 2 s 652 ms
+  ✓  workspace   std [2 roots] • 3 modules • 3 s 271 ms
+  ✓  module      api_export_provider • 26 files • 104 ms
+  ✓  module      api_static_provider • 23 files • api_static_provider.lib • 146 ms
+  ✓  module      runtime_context_base_static • 15 files • runtime_context_base_static.lib • 129 ms
+  ✓  module      runtime_context_bridge_dll • 18 files • runtime_context_bridge_dll.dll • 185 ms
+  ✓  module      runtime_context_direct_static • 15 files • runtime_context_direct_static.lib • 189 ms
+  ✓  module      consumer_exe • 57 files • consumer_exe.exe • 749 ms
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 2 s 166 ms
+  ✓  module      api_export_provider • 26 files • 127 ms
+  ✓  module      api_static_provider • 23 files • 108 ms
+  ✓  module      runtime_context_base_static • 15 files • 85 ms
+  ✓  module      runtime_context_bridge_dll • 18 files • 94 ms
+  ✓  module      runtime_context_direct_static • 15 files • 92 ms
+  ✓  module      consumer_exe • 57 files • workspace.consumer.html • 310 ms
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 6 s 714 ms
+  ✓  clean       6 s 714 ms
+
+  ◆  swag        test • workspace [sandbox_consumer] • devmode
+  ✓  module      win32 • 26 files • 88 ms
+  ✓  module      xinput • 23 files • 97 ms
+  ✓  module      core • 343 files • core.dll • 2 s 409 ms
+  ✓  workspace   std [core] • 3 modules • 3 s 147 ms
+  ✓  module      runtime_context_base_static • 15 files • runtime_context_base_static.lib • 152 ms
+  ✓  module      runtime_context_bridge_dll • 18 files • runtime_context_bridge_dll.dll • 185 ms
+  ✓  module      sandbox_consumer • 72 files • sandbox_consumer.exe • 521 ms
+  ✓  workspace   workspace [sandbox_consumer] • 3 modules • 1 s 237 ms
+  ✓  checked     72 files • 149_969 tokens • 290 ms
+  ✓  tuned       189 functions • 38 ms
+  ✓  executed    1 passed • 40 ms
+  ✓  verified    19 us
+  ✓  tested      1 passed • 336 ms
+  ✓  module      sandbox_consumer • 72 files • 1 passed • 338 ms
+  ✓  workspace   workspace [sandbox_consumer] • 1 module • 1 passed • 5 s 21 ms
+  ✓  clean       5 s 21 ms
+
+  ◆  swag        build • workspace [consumer_exe] • devmode
+  ✓  module      api_export_provider • 26 files • 65 ms
+  ✓  module      api_static_provider • 23 files • api_static_provider.lib • 100 ms
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 4 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 5 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 4 us
+  ✓  module      consumer_exe • 57 files • consumer_exe.exe • 324 ms
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 785 ms
+  ✓  clean       785 ms
+
+  ◆  swag        build • workspace [runtime_context_dynamic_dll] • devmode
+  ✓  checked     46 files • 147_029 tokens • 218 ms
+  ✓  tuned       434 functions • 31 ms
+  ✓  forged      430 functions • runtime_context_dynamic_dll.dll • 38 ms
+  ✓  module      runtime_context_dynamic_dll • 46 files • runtime_context_dynamic_dll.dll • 271 ms
+  ✓  workspace   workspace [runtime_context_dynamic_dll] • 1 module • 404 ms
+  ✓  clean       404 ms
+
+  ◆  swag        test • workspace [runtime_context_dynamic_consumer] • devmode
+  ✓  checked     46 files • 146_806 tokens • 227 ms
+  ✓  tuned       196 functions • 34 ms
+  ✓  forged      427 functions • runtime_context_dynamic_consumer.test.exe • 51 ms
+  ✓  ran         95 ms
+  ✓  verified    13 us
+  ✓  tested      1 passed • 375 ms
+  ✓  module      runtime_context_dynamic_consumer • 46 files • 1 passed • runtime_context_dynamic_consumer.test.exe • 378 ms
+  ✓  workspace   workspace [runtime_context_dynamic_consumer] • 1 module • 1 passed • 489 ms
+  ✓  clean       489 ms
+
+  ◆  swag        test • workspace [consumer_exe] • devmode
+  ↻  module      api_export_provider • up-to-date • 4 us
+  ↻  module      api_static_provider • up-to-date • api_static_provider.lib • 4 us
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 3 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 4 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 3 us
+  ↻  module      consumer_exe • up-to-date • consumer_exe.exe • 7 us
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 15 ms
+  ✓  checked     57 files • 158_106 tokens • 249 ms
+  ✓  tuned       319 functions • 83 ms
+  ✓  forged      489 functions • consumer_exe.test.exe • 116 ms
+SWAG_WORKSPACE_TEST_RAN
+  ✓  ran         112 ms
+  ✓  verified    10 us
+  ✓  tested      4 passed • 483 ms
+  ✓  module      consumer_exe • 57 files • 4 passed • consumer_exe.test.exe • 491 ms
+  ✓  workspace   workspace [consumer_exe] • 1 module • 4 passed • 846 ms
+  ✓  clean       846 ms
+  ◆  swag        test • workspace [consumer_exe] • devmode
+  ↻  module      api_export_provider • up-to-date • 4 us
+  ↻  module      api_static_provider • up-to-date • api_static_provider.lib • 4 us
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 3 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 4 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 4 us
+  ↻  module      consumer_exe • up-to-date • consumer_exe.exe • 4 us
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 14 ms
+SWAG_WORKSPACE_TEST_RAN
+  ✓  ran         30 ms
+  ↻  module      consumer_exe • up-to-date • consumer_exe.test.exe • 33 ms
+  ✓  workspace   workspace [consumer_exe] • 1 module • 4 passed • 87 ms
+  ✓  clean       88 ms
+
+  ◆  swag        test • workspace [standalone_exe] • devmode
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 5 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 4 us
+  ✓  module      standalone_exe • 49 files • standalone_exe.exe • 311 ms
+  ✓  workspace   workspace [standalone_exe] • 3 modules • 408 ms
+  ✓  checked     49 files • 148_398 tokens • 227 ms
+  ✓  tuned       201 functions • 34 ms
+  ✓  forged      430 functions • standalone_exe.test.exe • 89 ms
+  ✓  ran         106 ms
+  ✓  verified    11 us
+  ✓  tested      2 passed • 424 ms
+  ✓  module      standalone_exe • 49 files • 2 passed • standalone_exe.test.exe • 428 ms
+  ✓  workspace   workspace [standalone_exe] • 1 module • 2 passed • 955 ms
+  ✓  clean       955 ms
+
+  ◆  swag        test • workspace [verify_expectations] • devmode
+  ↻  module      api_export_provider • up-to-date • 4 us
+  ✓  module      verify_expectations • 50 files • 244 ms
+  ✓  workspace   workspace [verify_expectations] • 2 modules • 326 ms
+  ✓  checked     50 files • 148_808 tokens • 229 ms
+  ✓  verified    9 us
+  ✓  tested      0 tests • 230 ms
+  ✓  module      verify_expectations • 50 files • 0 tests • 234 ms
+  ✓  workspace   workspace [verify_expectations] • 1 module • 0 tests • 677 ms
+  ✓  clean       677 ms
+  ◆  swag        test • workspace [verify_expectations] • devmode
+  ↻  module      api_export_provider • up-to-date • 4 us
+  ↻  module      verify_expectations • up-to-date • 4 us
+  ✓  workspace   workspace [verify_expectations] • 2 modules • 5 ms
+  ✓  checked     50 files • 148_808 tokens • 245 ms
+  ✓  verified    5 us
+  ✓  tested      0 tests • 247 ms
+  ✓  module      verify_expectations • 50 files • 0 tests • 249 ms
+  ✓  workspace   workspace [verify_expectations] • 1 module • 0 tests • 296 ms
+  ✓  clean       296 ms
+  ◆  swag        run • workspace [consumer_exe] • devmode
+  ↻  module      api_export_provider • up-to-date • 7 us
+  ↻  module      api_static_provider • up-to-date • api_static_provider.lib • 5 us
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 4 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 5 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 4 us
+SWAG_WORKSPACE_MAIN_RAN
+  ↻  module      consumer_exe • up-to-date • consumer_exe.exe • 77 ms
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 637 ms
+  ✓  clean       637 ms
+  ◆  swag        test • workspace [consumer_exe] • devmode
+  ↻  module      api_export_provider • up-to-date • 6 us
+  ↻  module      api_static_provider • up-to-date • api_static_provider.lib • 5 us
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 4 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 5 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 5 us
+  ↻  module      consumer_exe • up-to-date • consumer_exe.exe • 5 us
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 512 ms
+SWAG_WORKSPACE_TEST_RAN
+  ✓  ran         38 ms
+  ↻  module      consumer_exe • up-to-date • consumer_exe.test.exe • 43 ms
+  ✓  workspace   workspace [consumer_exe] • 1 module • 4 passed • 603 ms
+  ✓  clean       603 ms
+
+  ◆  swag        test • workspace [consumer_exe] • devmode
+  ↻  module      api_export_provider • up-to-date • 7 us
+  ↻  module      api_static_provider • up-to-date • api_static_provider.lib • 7 us
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 9 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 6 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 5 us
+  ↻  module      consumer_exe • up-to-date • consumer_exe.exe • 7 us
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 22 ms
+  ✓  ran         36 ms
+  ↻  module      consumer_exe • up-to-date • consumer_exe.test.exe • 41 ms
+  ✓  workspace   workspace [consumer_exe] • 1 module • 1 passed • 117 ms
+  ✓  clean       117 ms
+
+  ◆  swag        test • std • release
+  ✓  module      win32 • 26 files • 117 ms
+  ✓  module      gdi32 • 24 files • 116 ms
+  ✓  module      gdiplus • 23 files • 104 ms
+  ✓  module      xaudio2 • 23 files • 110 ms
+  ✓  module      xinput • 23 files • 103 ms
+  ✓  module      core • 343 files • core.dll • 3 s 35 ms
+  ✓  module      audio • 106 files • audio.dll • 2 s 544 ms
+  ✓  module      ogl • 75 files • ogl.dll • 8 s 844 ms
+  ✓  module      truetype • 76 files • truetype.dll • 1 s 44 ms
+  ✓  module      pixel • 271 files • pixel.dll • 8 s 182 ms
+  ✓  module      gui • 294 files • gui.dll • 9 s 943 ms
+  ✓  module      video • 133 files • video.dll • 4 s 684 ms
+  ✓  workspace   std • 12 modules • 41 s 383 ms
+  ✓  module      win32 • 26 files • 4 passed • win32.test.exe • 657 ms
+  ✓  module      gdi32 • 24 files • 1 passed • gdi32.test.exe • 360 ms
+  ✓  module      gdiplus • 23 files • 0 tests • 187 ms
+  ✓  module      xaudio2 • 23 files • 0 tests • 200 ms
+  ✓  module      xinput • 23 files • 0 tests • 166 ms
+  ✓  module      core • 343 files • 674 passed • core.test.exe • 44 s 20 ms
+  ✓  module      audio • 106 files • 87 passed • audio.test.exe • 6 s 320 ms
+  ✓  module      ogl • 75 files • 0 tests • 2 s 192 ms
+  ✓  module      truetype • 76 files • 41 passed • truetype.test.exe • 2 s 833 ms
+  ✓  module      pixel • 271 files • 529 passed • pixel.test.exe • 34 s 148 ms
+headless UI stage 1: modal did not appear while waiting for button 'missing'
+headless UI stage 1: modal appeared without button 'missing'; observed button identifiers: 'close'
+headless UI stage 1: modal preparation did not complete for button 'Dialog.BtnOk'
+headless UI stage 1: modal did not appear while waiting for button 'missing'
+headless UI stage 1: modal appeared without button 'missing'; observed button identifiers: 'close'
+headless UI stage 1: modal preparation did not complete for button 'Dialog.BtnOk'
+  ✓  module      gui • 294 files • 709 passed • gui.test.exe • 2 min 45 s
+  ✓  module      video • 133 files • 110 passed • video.test.exe • 24 s 486 ms
+  ✓  workspace   std • 12 modules • 2_155 passed • 5 min 24 s
+  ✓  clean       5 min 24 s
+
+  ◆  swag        test • std • devmode
+  ↻  module      win32 • up-to-date • 24 us
+  ✓  module      gdi32 • 24 files • 887 ms
+  ✓  module      gdiplus • 23 files • 649 ms
+  ✓  module      xaudio2 • 23 files • 623 ms
+  ↻  module      xinput • up-to-date • 21 us
+  ↻  module      core • up-to-date • core.dll • 24 us
+  ✓  module      audio • 106 files • audio.dll • 8 s 923 ms
+  ✓  module      ogl • 75 files • ogl.dll • 16 s 293 ms
+  ✓  module      truetype • 76 files • truetype.dll • 6 s 112 ms
+  ✓  module      pixel • 271 files • pixel.dll • 38 s 384 ms
+  ✓  module      gui • 294 files • gui.dll • 40 s 72 ms
+  ✓  module      video • 133 files • video.dll • 22 s 314 ms
+  ✓  workspace   std • 12 modules • 2 min 23 s
+  ✓  module      win32 • 26 files • 4 passed • win32.test.exe • 1 s 153 ms
+  ✓  module      gdi32 • 24 files • 1 passed • gdi32.test.exe • 1 s 45 ms
+  ✓  module      gdiplus • 23 files • 0 tests • 486 ms
+  ✓  module      xaudio2 • 23 files • 0 tests • 811 ms
+  ✓  module      xinput • 23 files • 0 tests • 806 ms
+  ✓  module      core • 343 files • 674 passed • core.test.exe • 1 min 25 s
+  ✓  module      audio • 106 files • 87 passed • audio.test.exe • 8 s 532 ms
+  ✓  module      ogl • 75 files • 0 tests • 3 s 24 ms
+  ✓  module      truetype • 76 files • 41 passed • truetype.test.exe • 4 s 99 ms
+  ✓  module      pixel • 271 files • 529 passed • pixel.test.exe • 1 min 5 s
+headless UI stage 1: modal did not appear while waiting for button 'missing'
+headless UI stage 1: modal appeared without button 'missing'; observed button identifiers: 'close'
+headless UI stage 1: modal preparation did not complete for button 'Dialog.BtnOk'
+  ✓  module      gui • 294 files • 709 passed • gui.test.exe • 3 min 29 s
+  ✓  module      video • 133 files • 110 passed • video.test.exe • 24 s 792 ms
+  ✓  workspace   std • 12 modules • 2_155 passed • 9 min 14 s
+  ✓  clean       9 min 14 s
+
+  ◆  swag        test • apps • release
+[golden] pixels differ for main.menu.view
+         golden : C:\Perso\swag-lang\swc-speed-20260907\bin\apps\modules\swagcapture\src\tests/goldens/main.menu.view.png
+         actual : C:\Perso\swag-lang\swc-speed-20260907\bin\apps\modules\swagcapture\src\tests/goldens/main.menu.view.actual.png
+         pixels : 228 outside tolerance
+         delta  : 201 maximum channel difference
+         first  : (454, 269) expected 4285624694, produced 4280295462
+
+runtime panic
+-------------
+message: assertion does not hold
+source:  C:\Perso\swag-lang\swc-speed-20260907\bin\std\modules\pixel\src\testing\goldenstore.swg:146:10
+
+runtime trace
+testAssertMainMenuGolden --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/tests/surface.test.swg:71
+__test_167 --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/tests/surface.test.swg:230
+__hostTestCall --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/os_windows.swg:358
+Swag.__runTest --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/tests.swg:102
+
+[golden] pixels differ for library.menu.view
+         golden : C:\Perso\swag-lang\swc-speed-20260907\bin\apps\modules\swagcapture\src\tests/goldens/library.menu.view.png
+         actual : C:\Perso\swag-lang\swc-speed-20260907\bin\apps\modules\swagcapture\src\tests/goldens/library.menu.view.actual.png
+         pixels : 180 outside tolerance
+         delta  : 148 maximum channel difference
+         first  : (320, 127) expected 4283519319, produced 4280295462
+
+runtime panic
+-------------
+message: assertion does not hold
+source:  C:\Perso\swag-lang\swc-speed-20260907\bin\std\modules\pixel\src\testing\goldenstore.swg:146:10
+
+runtime trace
+testAssertLibraryMenuGolden.__closure_12643 --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/tests/surface.test.swg:48
+LibraryWnd.create.__closure_22252 --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/librarywnd.swg:1238
+Gui.SigArray.call --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/.dep/gui/shared-library/release/x86_64/gui.swg:8264
+testAssertLibraryMenuGolden --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/tests/surface.test.swg:45
+__test_170 --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/tests/surface.test.swg:243
+__hostTestCall --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/os_windows.swg:358
+Swag.__runTest --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/tests.swg:102
+
+[golden] pixels differ for library.menu.sort
+         golden : C:\Perso\swag-lang\swc-speed-20260907\bin\apps\modules\swagcapture\src\tests/goldens/library.menu.sort.png
+         actual : C:\Perso\swag-lang\swc-speed-20260907\bin\apps\modules\swagcapture\src\tests/goldens/library.menu.sort.actual.png
+         pixels : 480 outside tolerance
+         delta  : 148 maximum channel difference
+         first  : (423, 127) expected 4283519319, produced 4280295462
+
+runtime panic
+-------------
+message: assertion does not hold
+source:  C:\Perso\swag-lang\swc-speed-20260907\bin\std\modules\pixel\src\testing\goldenstore.swg:146:10
+
+runtime trace
+testAssertLibraryMenuGolden.__closure_12643 --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/tests/surface.test.swg:48
+LibraryWnd.create.__closure_22272 --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/librarywnd.swg:1264
+Gui.SigArray.call --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/.dep/gui/shared-library/release/x86_64/gui.swg:8264
+testAssertLibraryMenuGolden --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/tests/surface.test.swg:45
+__test_171 --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/tests/surface.test.swg:258
+__hostTestCall --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/os_windows.swg:358
+Swag.__runTest --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/tests.swg:102
+
+[golden] pixels differ for library.menu.filter
+         golden : C:\Perso\swag-lang\swc-speed-20260907\bin\apps\modules\swagcapture\src\tests/goldens/library.menu.filter.png
+         actual : C:\Perso\swag-lang\swc-speed-20260907\bin\apps\modules\swagcapture\src\tests/goldens/library.menu.filter.actual.png
+         pixels : 660 outside tolerance
+         delta  : 148 maximum channel difference
+         first  : (520, 71) expected 4283519319, produced 4280295462
+
+runtime panic
+-------------
+message: assertion does not hold
+source:  C:\Perso\swag-lang\swc-speed-20260907\bin\std\modules\pixel\src\testing\goldenstore.swg:146:10
+
+runtime trace
+testAssertLibraryMenuGolden.__closure_12643 --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/tests/surface.test.swg:48
+LibraryWnd.showFilterMenu --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/librarywnd.swg:800
+LibraryWnd.create.__closure_22292 --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/librarywnd.swg:1293
+Gui.SigArray.call --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/.dep/gui/shared-library/release/x86_64/gui.swg:8264
+testAssertLibraryMenuGolden --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/tests/surface.test.swg:45
+__test_172 --> C:/Perso/swag-lang/swc-speed-20260907/bin/apps/modules/swagcapture/src/tests/surface.test.swg:273
+__hostTestCall --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/os_windows.swg:358
+Swag.__runTest --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/tests.swg:102
+
+error: generated executable '#test' result: 4 did not pass
+
+  ✖  compiling   swagcapture • 139 files • 179 passed • 4 did not pass • swagcapture.test.exe • 1 min 11 s
+  ✖  building    apps • 0/3 modules • 179 passed • 4 did not pass • 1 min 13 s
+  ✖  stopped     1 error • 1 min 13 s

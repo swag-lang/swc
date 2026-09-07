@@ -28,7 +28,9 @@ namespace MicroPassHelpers
             if (!reachable(a) || !reachable(b))
                 return false;
             uint32_t x = b;
-            while (x != a && x != idom[x])
+            // Strict dominators precede their descendants in reverse postorder. Once the
+            // walk reaches or passes a's position, no earlier ancestor can be a.
+            while (rpoPos[x] > rpoPos[a] && x != idom[x])
                 x = idom[x];
             return x == a;
         }

@@ -6,6 +6,26 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.032 — Repeated module builds publish different borrow summaries
+
+- Recorded: 2026-09-07 10:43
+- Found while: checking public-export equivalence during the standard-module compilation campaign.
+- Evidence: four complete `core` rebuilds with the same frozen Release 0.1.390 binary, identical
+  tracked sources, `devmode`, and six workers alternated between publishing and omitting
+  `BorrowSummary(0, 0, 0, 0, 1, 0)` on both `Core.Math.Curve.addKey` overloads. The foreign symbol
+  names stayed identical. Both A and B in the recorded control refer to the same executable and
+  SHA-256; one of four warm rebuild snapshots omitted the attributes. This predates the campaign's
+  compiler changes. [Raw control data](../bench/results/compilation/20260907/api-baseline-repeats.json)
+  includes the full foreign-attribute lines and commands.
+- Observation: `ModuleApiExport.Generate.cpp::collectMissingFunctionAttributes` serializes the
+  summary masks. `Symbol.Function.h` says body sema and the final summary fixpoint grow those
+  masks. The ordering or publication defect has not yet been isolated; no consumer safety
+  failure has been demonstrated by this observation alone.
+- Next: trace summary completion and API emission for these two methods, including the final
+  `SemaEscape::reportDeferredChecks` fixpoint, then reduce to a provider/consumer regression.
+- Complete when: repeated parallel provider rebuilds publish identical summaries and a consumer
+  consistently observes the corresponding invalidation contract.
+
 ### compiler.core.031 — Addressed immutable GUID values can silently stop lowering
 
 - Recorded: 2026-09-06 21:14

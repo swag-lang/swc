@@ -1,0 +1,68 @@
+{
+  "core_rebuild": {
+    "pairs": 2,
+    "A_wall_median_ms": 3654.7524,
+    "B_wall_median_ms": 4256.2029,
+    "paired_B_over_A": {
+      "wall_ms": 1.2294278597472128,
+      "cpu_ms": 1.2854829210836278,
+      "peak_working_set_bytes": 1.0354326744311733,
+      "peak_job_bytes": 1.0256316392008267
+    }
+  },
+  "core_noop": {
+    "pairs": 2,
+    "A_wall_median_ms": 76.40334999999999,
+    "B_wall_median_ms": 56.74575,
+    "paired_B_over_A": {
+      "wall_ms": 0.7543866404107156,
+      "cpu_ms": 1.0,
+      "peak_working_set_bytes": 1.000599600223936,
+      "peak_job_bytes": 0.9972984553370425
+    }
+  },
+  "core_touch": {
+    "pairs": 2,
+    "A_wall_median_ms": 3495.85965,
+    "B_wall_median_ms": 3695.5884000000005,
+    "paired_B_over_A": {
+      "wall_ms": 1.1116021011418589,
+      "cpu_ms": 1.1643444964930862,
+      "peak_working_set_bytes": 0.9982053074025801,
+      "peak_job_bytes": 0.9947812005655485
+    }
+  },
+  "doc_std": {
+    "pairs": 2,
+    "A_wall_median_ms": 50791.32325,
+    "B_wall_median_ms": 127076.67465,
+    "paired_B_over_A": {
+      "wall_ms": 2.505260041721151,
+      "cpu_ms": 2.1971003747708515,
+      "peak_working_set_bytes": 0.9722424676572308,
+      "peak_job_bytes": 0.9744801688786593
+    }
+  },
+  "format_tree": {
+    "pairs": 2,
+    "A_wall_median_ms": 6621.374599999999,
+    "B_wall_median_ms": 5341.15645,
+    "paired_B_over_A": {
+      "wall_ms": 0.8061601466026476,
+      "cpu_ms": 0.9967689620758483,
+      "peak_working_set_bytes": 1.0244498446866215,
+      "peak_job_bytes": 1.0202947244241458
+    }
+  },
+  "hello_build": {
+    "pairs": 2,
+    "A_wall_median_ms": 167.1085,
+    "B_wall_median_ms": 182.32835,
+    "paired_B_over_A": {
+      "wall_ms": 1.1346779873695678,
+      "cpu_ms": 1.1560390097524382,
+      "peak_working_set_bytes": 1.0170550888799985,
+      "peak_job_bytes": 1.0136863870801638
+    }
+  }
+}

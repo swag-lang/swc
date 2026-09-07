@@ -1,0 +1,90 @@
+{
+  "gui": {
+    "paired_B_over_A": {
+      "wall_ms": 1.189260141941747,
+      "cpu_ms": 1.441542288557214,
+      "peak_working_set_bytes": 1.0302242893011813,
+      "peak_job_bytes": 1.0229121445328773
+    },
+    "medians": {
+      "A": {
+        "wall_ms": 12900.9663,
+        "cpu_ms": 47593.75,
+        "peak_working_set_bytes": 1239724032,
+        "peak_job_bytes": 1344638976
+      },
+      "B": {
+        "wall_ms": 16643.3011,
+        "cpu_ms": 71187.5,
+        "peak_working_set_bytes": 1252077568,
+        "peak_job_bytes": 1341841408
+      }
+    }
+  },
+  "pixel": {
+    "paired_B_over_A": {
+      "wall_ms": 0.7639407367583303,
+      "cpu_ms": 0.7555650684931506,
+      "peak_working_set_bytes": 0.9910706884096588,
+      "peak_job_bytes": 0.9980382406461238
+    },
+    "medians": {
+      "A": {
+        "wall_ms": 9739.123,
+        "cpu_ms": 42218.75,
+        "peak_working_set_bytes": 691740672,
+        "peak_job_bytes": 755294208
+      },
+      "B": {
+        "wall_ms": 7440.1128,
+        "cpu_ms": 29203.125,
+        "peak_working_set_bytes": 688402432,
+        "peak_job_bytes": 753889280
+      }
+    }
+  },
+  "ogl": {
+    "paired_B_over_A": {
+      "wall_ms": 0.30617287737875254,
+      "cpu_ms": 0.44730679156908665,
+      "peak_working_set_bytes": 0.999404834574533,
+      "peak_job_bytes": 0.9926677678879131
+    },
+    "medians": {
+      "A": {
+        "wall_ms": 3955.1382,
+        "cpu_ms": 8109.375,
+        "peak_working_set_bytes": 265867264,
+        "peak_job_bytes": 345362432
+      },
+      "B": {
+        "wall_ms": 1223.5828,
+        "cpu_ms": 3156.25,
+        "peak_working_set_bytes": 266297344,
+        "peak_job_bytes": 342147072
+      }
+    }
+  },
+  "core": {
+    "paired_B_over_A": {
+      "wall_ms": 0.8460921024649786,
+      "cpu_ms": 0.8432432432432433,
+      "peak_working_set_bytes": 1.025446654470437,
+      "peak_job_bytes": 1.0211367593874179
+    },
+    "medians": {
+      "A": {
+        "wall_ms": 4704.1868,
+        "cpu_ms": 19046.875,
+        "peak_working_set_bytes": 438038528,
+        "peak_job_bytes": 474734592
+      },
+      "B": {
+        "wall_ms": 3980.1753,
+        "cpu_ms": 14203.125,
+        "peak_working_set_bytes": 442408960,
+        "peak_job_bytes": 480776192
+      }
+    }
+  }
+}

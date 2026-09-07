@@ -1,0 +1,44 @@
+{
+  "chacha": {
+    "kernel_B_over_A": 0.8783721865696601,
+    "checksum": "633277775",
+    "A_kernel_median_ms": 53.03309998,
+    "B_kernel_median_ms": 46.58279999
+  },
+  "csvagg": {
+    "kernel_B_over_A": 0.9992351284632713,
+    "checksum": "24828641",
+    "A_kernel_median_ms": 20.38679994,
+    "B_kernel_median_ms": 20.58199991
+  },
+  "dijkstra": {
+    "kernel_B_over_A": 0.9326136154433141,
+    "checksum": "4431000",
+    "A_kernel_median_ms": 42.11829999,
+    "B_kernel_median_ms": 42.94750001
+  },
+  "leven": {
+    "kernel_B_over_A": 0.9435140710834774,
+    "checksum": "67441",
+    "A_kernel_median_ms": 21.34159999,
+    "B_kernel_median_ms": 20.13609989
+  },
+  "raytrace": {
+    "kernel_B_over_A": 0.9995889107366501,
+    "checksum": "56061776",
+    "A_kernel_median_ms": 18.86700001,
+    "B_kernel_median_ms": 16.98900003
+  },
+  "sha256": {
+    "kernel_B_over_A": 1.0149462781980194,
+    "checksum": "2503168387",
+    "A_kernel_median_ms": 84.31529999,
+    "B_kernel_median_ms": 85.57549992
+  },
+  "wordfreq": {
+    "kernel_B_over_A": 1.05172257614932,
+    "checksum": "130489",
+    "A_kernel_median_ms": 1315.70389995,
+    "B_kernel_median_ms": 1490.76690001
+  }
+}

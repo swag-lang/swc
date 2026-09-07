@@ -1,0 +1,43 @@
+
+  ◆  swag        test • std • devmode
+  ↻  module      win32 • up-to-date • 8 us
+  ✓  module      gdi32 • 24 files • 149 ms
+  ✓  module      gdiplus • 23 files • 151 ms
+  ✓  module      xaudio2 • 23 files • 132 ms
+  ↻  module      xinput • up-to-date • 7 us
+  ↻  module      core • up-to-date • core.dll • 8 us
+  ✓  module      audio • 106 files • audio.dll • 2 s 320 ms
+  ✓  module      ogl • 75 files • ogl.dll • 1 s 707 ms
+  ✓  module      truetype • 76 files • truetype.dll • 1 s 66 ms
+  ✓  module      pixel • 271 files • pixel.dll • 9 s 621 ms
+  ✓  module      gui • 294 files • gui.dll • 12 s 104 ms
+  ✓  module      video • 133 files • video.dll • 5 s 870 ms
+  ✓  workspace   std • 12 modules • 35 s 78 ms
+  ✓  module      win32 • 26 files • 4 passed • win32.test.exe • 484 ms
+  ✓  module      gdi32 • 24 files • 1 passed • gdi32.test.exe • 493 ms
+  ✓  module      gdiplus • 23 files • 0 tests • 170 ms
+  ✓  module      xaudio2 • 23 files • 0 tests • 150 ms
+  ✓  module      xinput • 23 files • 0 tests • 147 ms
+  ✓  module      core • 343 files • 674 passed • core.test.exe • 20 s 235 ms
+  ✓  module      audio • 106 files • 87 passed • audio.test.exe • 3 s 152 ms
+  ✓  module      ogl • 75 files • 0 tests • 965 ms
+  ✓  module      truetype • 76 files • 41 passed • truetype.test.exe • 1 s 425 ms
+
+runtime panic
+-------------
+message: uncaught runtime error [[Swag.SystemError]] $ Class already exists
+source:  C:\Perso\swag-lang\swc-speed-20260907\bin\std\modules\pixel\src\tests\render.parity.test.swg:139:18
+
+runtime trace
+Swag.panic --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/error.swg:286
+__failedExpect --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/error.swg:145
+Pixel.renderOglStable --> C:/Perso/swag-lang/swc-speed-20260907/bin/std/modules/pixel/src/tests/render.parity.test.swg:135
+Pixel.__test_532 --> C:/Perso/swag-lang/swc-speed-20260907/bin/std/modules/pixel/src/tests/render.parity.test.swg:910
+__hostTestCall --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/os_windows.swg:358
+Swag.__runTest --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/tests.swg:102
+
+error: generated executable '#test' result: 1 did not pass
+
+  ✖  compiling   pixel • 271 files • 529 passed • 1 did not pass • pixel.test.exe • 17 s 913 ms
+  ✖  building    std • 9/12 modules • 1_336 passed • 1 did not pass • 1 min 21 s
+  ✖  stopped     1 error • 1 min 21 s

@@ -210,6 +210,8 @@ Result NativeRDataCollector::emitReachableAllocations()
         }
     }
 
+    // Allocation objects locate their relocation range by binary search.
+    SWC_ASSERT(std::ranges::is_sorted(builder_->mergedRData.relocations, {}, &NativeSectionRelocation::offset));
     return Result::Continue;
 }
 

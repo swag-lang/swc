@@ -28,6 +28,28 @@ output, path measurement and effects, and the modern renderer choice tracked by
 
 ## Entries
 
+### std.pixel.025 — Windowed parity readback failures remain unstable across retries
+
+- Recorded: 2026-09-07 11:24
+- Evidence: the compiler-speed campaign's final Release standard-module run failed the stroke
+  parity test with an empty readback; the same generated executable then passed all 17 parity
+  tests. The saved failure exceeds the retry detector's channel-difference threshold on 3,923
+  pixels in RGB and 11,537 in RGBA, against a 6,144-pixel trigger. The detector ignores alpha.
+  A CPU-only opaque-dark-image test reproduces that omission with baseline compiler 390.
+- Investigation: including alpha passed all 18 selected Release tests and 2,156 standard-module
+  tests, but DevMode exercised a second retry defect: recreating a window with the same class
+  identifier fails `RegisterClassA` with `Class already exists`. Distinct attempt identifiers
+  avoid that error; the opaque-backdrop test then still reported five failed readbacks. The
+  experiment was reverted because it does not yet distinguish every legitimate alpha difference
+  from a lost readback. Logs and the unapplied patch are in
+  [the campaign evidence](../bench/results/compilation/20260907/README.md).
+- Next: reproduce with the frozen baseline and candidate binaries, capture RGBA buffers for every
+  attempt, and separate context/read-target failures from legitimate opaque-backdrop alpha
+  semantics before changing the detector. Give recreated test windows unique identifiers as
+  required by `WindowOptions.identifier`, with a deterministic retry test.
+- Complete when: lost readbacks and legitimate parity differences are distinguishable, retries
+  cannot fail class registration, and both program configurations pass repeatedly.
+
 ### std.pixel.022 — Measure whether the clipper should join contours during the sweep
 
 - Recorded: 2026-09-06 17:42

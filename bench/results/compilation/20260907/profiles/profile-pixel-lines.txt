@@ -1,0 +1,409 @@
+Samples: 518, sampled thread CPU seconds: 45.141
+
+INCLUSIVE
+  97.92%    44.203 RtlUserThreadStart
+  97.92%    44.203 BaseThreadInitThunk
+  95.85%    43.266 wcsrchr
+  95.85%    43.266 std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0>
+  89.69%    40.484 swc::JobManager::executeJob
+  65.84%    29.719 swc::CodeGenJob::exec
+  59.50%    26.859 swc::MicroPassManager::run
+  59.50%    26.859 swc::MachineCode::emit
+  59.26%    26.750 swc::SymbolFunction::emit
+  53.31%    24.062 swc::`anonymous namespace'::runLoopPasses
+  24.23%    10.938 swc::AstVisit::step
+  22.15%    10.000 swc::MicroSsaState::build
+  19.83%     8.953 swc::SemaJob::exec
+  19.83%     8.953 swc::Sema::execResult
+  19.63%     8.859 swc::Sema::runCurrentVisit
+  12.98%     5.859 std::_Func_impl_no_alloc<`swc::Sema::setVisitors'::`7'::<lambda_8>,enum swc::Result,swc::AstNode &>::_Do_call
+  12.18%     5.500 swc::MicroSsaState::ensureFor
+  11.63%     5.250 swc::MicroSsaState::renameBlock
+   9.48%     4.281 swc::MicroLoopInvariantCodeMotionPass::run
+   7.75%     3.500 ZwWaitForAlertByThreadId
+   7.20%     3.250 RtlSleepConditionVariableSRW
+   7.06%     3.188 swc::semaPostNode<80>
+   6.65%     3.000 swc::MicroInstructionCombinePass::run
+   6.02%     2.719 swc::MicroPassHelpers::findNaturalLoops
+   5.68%     2.562 SleepConditionVariableSRW
+   5.68%     2.562 Cnd_wait
+   5.50%     2.484 swc::MicroValueNumberingPass::run
+   5.16%     2.328 swc::MicroSinkToUsePass::run
+   4.98%     2.250 operator new
+   4.71%     2.125 swc::MicroDeadCodeEliminationPass::run
+   4.71%     2.125 swc::MicroConstantFoldingPass::run
+   4.60%     2.078 swc::MicroCopyEliminationPass::run
+   4.53%     2.047 swc::MicroBranchSimplifyPass::run
+   4.47%     2.016 swc::MicroRegisterAllocationPass::run
+   4.22%     1.906 swc::Sema::preNodeChild
+   3.98%     1.797 swc::MicroSsaState::placePhiNodes
+   3.95%     1.781 swc::`anonymous namespace'::runBoundedLoopPasses
+   3.74%     1.688 std::_Func_impl_no_alloc<`swc::CodeGen::setVisitors'::`2'::<lambda_5>,enum swc::Result,swc::AstNode &>::_Do_call
+   3.46%     1.562 swc::SemaNodeView::compute
+   3.15%     1.422 RtlAcquireSRWLockShared
+   3.05%     1.375 swc::MicroPostRaDeadCodeElimPass::run
+   2.84%     1.281 swc::MicroRegisterAllocationPass::runIntervalAllocation
+   2.73%     1.234 swc::NativeObjJob::exec
+   2.73%     1.234 swc::NativeObjFileWriterCoff::buildObjectFile
+   2.73%     1.234 mi_theap_malloc_zero_aligned_at_generic
+   2.63%     1.188 _mi_malloc_generic
+   2.53%     1.141 swc::Match::resolveFunctionCandidates
+   2.42%     1.094 swc::InstructionCombine::tryMemoryFoldTriple
+   2.35%     1.062 swc::MicroSsaState::createPhi
+   2.32%     1.047 swc::Sema::completeLazyGenericFunction
+   2.25%     1.016 swc::CompilerInstance::runWorkspace
+   2.25%     1.016 swc::CompilerInstance::run
+   2.25%     1.016 main
+   2.25%     1.016 __scrt_common_main_seh
+   2.15%     0.969 swc::InstructionCombine::keepAccessScalar
+   2.01%     0.906 swc::Match::match
+   2.01%     0.906 swc::CompilerInstance::runWorkspaceModule
+   1.94%     0.875 RtlVirtualUnwind2
+   1.90%     0.859 swc::MicroRegisterAllocationPass::walkIntervals
+   1.87%     0.844 swc::Sema::preNode
+   1.87%     0.844 swc::CompilerInstance::processCommand
+   1.87%     0.844 swc::Command::build
+   1.87%     0.844 mi_theap_malloc_zero_aligned_at_overalloc
+   1.73%     0.781 swc::SemaInline::tryInlineCall
+   1.73%     0.781 swc::NativeObjFileWriterCoff::buildRDataAllocationSection
+   1.73%     0.781 RtlAcquireSRWLockExclusive
+   1.70%     0.766 swc::`anonymous namespace'::collect
+   1.66%     0.750 swc::`anonymous namespace'::collectCandidateAttempts
+   1.66%     0.750 swc::SmallVector<swc::MicroReg,16>::reallocate
+   1.56%     0.703 swc::SemaGeneric::`anonymous namespace'::instantiateGenericExplicit
+   1.52%     0.688 Mtx_lock
+   1.49%     0.672 mi_free
+   1.45%     0.656 swc::semaPreNodeChild<5>
+   1.42%     0.641 swc::Command::`anonymous namespace'::finishBuildBackend
+   1.42%     0.641 mi_find_page
+   1.35%     0.609 swc::SemaJIT::tryRunConstCall
+   1.28%     0.578 swc::NodePayload::getTypeRef
+   1.21%     0.547 swc::semaPostNode<55>
+   1.21%     0.547 swc::`anonymous namespace'::prepareJitFunction
+   1.18%     0.531 mi_page_queue_find_free_ex
+   1.14%     0.516 swc::`anonymous namespace'::lookup
+   1.14%     0.516 swc::`anonymous namespace'::convertDiamondsToConditionalMoves
+   1.14%     0.516 swc::SymbolMap::lookupAppend
+   1.14%     0.516 swc::SemaClone::cloneAst
+   1.14%     0.516 swc::MicroLegalizePass::run
+   1.11%     0.500 swc::`anonymous namespace'::eliminateDeadInstructions
+   1.11%     0.500 swc::MicroSsaState::isRegUsedAfter
+   1.11%     0.500 swc::MicroMemToRegPass::run
+   1.11%     0.500 swc::MicroBuilder::controlFlowGraph
+   1.11%     0.500 std::_Hash_vec<std::allocator<std::_List_unchecked_iterator<std::_List_val<std::_List_simple_types<std::pair<swc::SymbolFunction const * const,unsigned __int64> > > > > >::_Assign_grow
+   1.07%     0.484 swc::MicroSanityPass::run
+   1.04%     0.469 swc::semaPostNode<11>
+   1.04%     0.469 swc::SmallVector<swc::SymbolFunction *,16>::reallocate
+   1.04%     0.469 swc::MicroSsaState::resetForBuild
+   1.04%     0.469 memmove
+   1.00%     0.453 swc::`anonymous namespace'::prepareJitSetupRuntimeFunction
+   1.00%     0.453 RtlQueryFeatureConfiguration
+   0.93%     0.422 swc::SemaGeneric::`anonymous namespace'::createGenericInstance
+   0.93%     0.422 swc::MicroPreRaPeepholePass::run
+   0.93%     0.422 swc::MicroDenseRegIndex::ensure
+
+EXCLUSIVE
+  10.25%     4.625 swc::MicroSsaState::renameBlock
+   7.75%     3.500 ZwWaitForAlertByThreadId
+   6.02%     2.719 swc::MicroPassHelpers::findNaturalLoops
+   3.29%     1.484 swc::MicroSsaState::build
+   3.25%     1.469 swc::MicroValueNumberingPass::run
+   2.63%     1.188 operator new
+   2.22%     1.000 swc::MicroLoopInvariantCodeMotionPass::run
+   1.87%     0.844 swc::MicroPostRaDeadCodeElimPass::run
+   1.73%     0.781 swc::NativeObjFileWriterCoff::buildRDataAllocationSection
+   1.63%     0.734 swc::MicroSsaState::placePhiNodes
+   1.49%     0.672 mi_free
+   1.35%     0.609 swc::SemaNodeView::compute
+   1.21%     0.547 RtlAcquireSRWLockShared
+   1.18%     0.531 swc::MicroSsaState::createPhi
+   1.11%     0.500 swc::MicroSsaState::isRegUsedAfter
+   1.11%     0.500 swc::MicroBuilder::controlFlowGraph
+   1.04%     0.469 swc::MicroConstantFoldingPass::run
+   1.04%     0.469 memmove
+   1.00%     0.453 RtlQueryFeatureConfiguration
+   0.97%     0.438 _mi_malloc_generic
+   0.93%     0.422 memchr
+   0.87%     0.391 swc::`anonymous namespace'::addOperand
+   0.87%     0.391 swc::MicroSsaState::reachingDef
+   0.83%     0.375 RtlReleaseSRWLockShared
+   0.80%     0.359 swc::SmallVector<swc::MicroReg,4>::operator=
+   0.80%     0.359 swc::MicroPassHelpers::computeInstructionDominators
+   0.66%     0.297 swc::computeSsaValueFixedPoint<swc::`anonymous namespace'::KnownValue,swc::A0xcdc3e421::KnownValueTraits,swc::A0xcdc3e421::KnownValueContext>
+   0.66%     0.297 `anonymous namespace'::_Sorting::_Minmax_disp<2,`anonymous namespace'::_Sorting::_Traits_4,0>
+   0.62%     0.281 swc::SemaFrame::SemaFrame
+   0.59%     0.266 swc::MicroCopyEliminationPass::run
+   0.55%     0.250 swc::`anonymous namespace'::addSymMap
+   0.55%     0.250 swc::MicroSsaState::BlockInfo::BlockInfo
+   0.55%     0.250 swc::MicroRegisterAllocationPass::walkIntervals
+   0.55%     0.250 `swc::`anonymous namespace'::licmHoistRound'::`41'::<lambda_2>::operator()
+   0.52%     0.234 swc::MicroPreRaPeepholePass::run
+   0.52%     0.234 _NLG_Return2
+   0.48%     0.219 swc::MicroSsaState::createValue
+   0.48%     0.219 swc::MicroSsaState::PhiInfo::~PhiInfo
+   0.48%     0.219 std::vector<unsigned int,std::allocator<unsigned int> >::resize
+   0.48%     0.219 std::_Hash_vec<std::allocator<std::_List_unchecked_iterator<std::_List_val<std::_List_simple_types<std::pair<swc::SymbolFunction const * const,unsigned __int64> > > > > >::_Assign_grow
+   0.45%     0.203 swc::`anonymous namespace'::scanRegLivenessAfterInstruction
+   0.45%     0.203 swc::`anonymous namespace'::prepareDiamondScan
+   0.45%     0.203 swc::SymbolMap::lookupAppend
+   0.45%     0.203 swc::MicroSinkToUsePass::run
+   0.45%     0.203 swc::MicroRegisterAllocationPass::computeVirtualLiveSpans
+   0.45%     0.203 swc::MicroInstr::collectUseDef
+   0.45%     0.203 swc::CastFailure::~CastFailure
+   0.45%     0.203 std::_Hash<std::_Uset_traits<swc::StrongRef<swc::AstNode>,std::_Uhash_compare<swc::StrongRef<swc::AstNode>,std::hash<swc::StrongRef<swc::AstNode> >,std::equal_to<swc::StrongRef<swc::AstNode> > >,std::allocator<swc::StrongRef<swc::AstNode> >,0> >::insert
+   0.45%     0.203 NtAlertThreadByThreadIdEx
+   0.45%     0.203 AlpcRegisterCompletionListWorkerThread
+   0.42%     0.188 swc::Sema::resolvedNodeRef
+   0.42%     0.188 swc::NodePayload::symbolsFromInfo
+   0.42%     0.188 swc::NodePayload::getTypeRef
+   0.42%     0.188 std::unordered_set<unsigned __int64,std::hash<unsigned __int64>,std::equal_to<unsigned __int64>,std::allocator<unsigned __int64> >::~unordered_set<unsigned __int64,std::hash<unsigned __int64>,std::equal_to<unsigned __int64>,std::allocator<unsigned __int64> >
+   0.42%     0.188 std::_Uninitialized_value_construct_n<std::allocator<swc::MicroSsaState::InstrInfo> >
+   0.38%     0.172 swc::`anonymous namespace'::calculateColumn
+   0.38%     0.172 swc::MicroSsaState::resetForBuild
+   0.38%     0.172 mi_page_queue_find_free_ex
+   0.38%     0.172 RtlSleepConditionVariableSRW
+   0.35%     0.156 swc::Sema::runCurrentVisit
+   0.31%     0.141 swc::Sema::hasInlinePayload
+   0.31%     0.141 NtAllocateVirtualMemory
+   0.28%     0.125 swc::`anonymous namespace'::walkBoundaryOnSameLine
+   0.28%     0.125 swc::`anonymous namespace'::buildCallArgMapping
+   0.28%     0.125 swc::Sema::isImplicitCodeBlockArg
+   0.28%     0.125 swc::MicroRegisterAllocationPass::buildLiveIntervals
+   0.28%     0.125 swc::MicroPeephole::RewriteQueue<swc::InstructionCombine::Action>::isClaimed
+   0.28%     0.125 swc::InstructionCombine::tryMemoryFoldTriple
+   0.28%     0.125 mi_arenas_try_alloc
+   0.24%     0.109 swc::semaPreNodeChild<5>
+   0.24%     0.109 swc::codeGenPreNodeChild<138>
+   0.24%     0.109 swc::`anonymous namespace'::validateInlineBindingOuterScopeVariables
+   0.24%     0.109 swc::`anonymous namespace'::tryMatchDiamondShape
+   0.24%     0.109 swc::`anonymous namespace'::narrowOperandIsSentinel
+   0.24%     0.109 swc::`anonymous namespace'::lowerTypeImplicitDefaultBytesRec
+   0.24%     0.109 swc::`anonymous namespace'::collect
+   0.24%     0.109 swc::`anonymous namespace'::buildProgramLayout
+   0.24%     0.109 swc::`anonymous namespace'::appendConstantFunctionJitRootsInAllocation
+   0.24%     0.109 swc::X64UnwindWindows::onInstructionEncoded
+   0.24%     0.109 swc::X64Encoder::updateRegUseDef
+   0.24%     0.109 swc::X64Encoder::encodeLoadRegReg
+   0.24%     0.109 swc::TypeInfo::sizeOf
+   0.24%     0.109 swc::TypeInfo::operator==
+   0.24%     0.109 swc::Sanitizer::propagate
+   0.24%     0.109 swc::NodePayload::getInlinePayload
+   0.24%     0.109 swc::NodePayload::getConstantRef
+   0.24%     0.109 swc::NativeObjFileWriterCoff::CoffSectionBuild::CoffSectionBuild
+   0.24%     0.109 swc::MicroStorage::ptr
+   0.24%     0.109 swc::MicroSsaState::BlockInfo::~BlockInfo
+   0.24%     0.109 swc::MicroRegisterAllocationPass::canEraseCoalescedCopy
+   0.24%     0.109 swc::MicroRegisterAllocationPass::LiveInterval::LiveInterval
+   0.24%     0.109 swc::MicroMemToRegPass::run
+   0.24%     0.109 swc::MicroLoopUnrollPass::run
+   0.24%     0.109 swc::MicroEmitPass::run
+   0.24%     0.109 swc::MicroBuilder::addInstructionWithRef
+   0.24%     0.109 swc::InstructionCombine::tryFoldPureResultCopy
+   0.24%     0.109 swc::InstructionCombine::tryFoldMultiplyAddIntoScaledAddress
+   0.24%     0.109 swc::ConstantManager::get
+   0.24%     0.109 swc::CodeGen::~CodeGen
+   0.24%     0.109 swc::Cast::castToPointer
+
+LINES
+   5.82%     2.625 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:686
+   5.78%     2.609 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroPassHelpers.cpp:625
+   2.70%     1.219 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:719
+   2.63%     1.188 C:\Perso\swag-lang\swc-speed-20260907\src\Support\Memory\Allocator.cpp:81
+   2.28%     1.031 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.ValueNumbering.cpp:518
+   2.22%     1.000 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.LoopInvariantCodeMotion.cpp:967
+   1.49%     0.672 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Native\NativeObjFileWriterCoff.cpp:168
+   1.11%     0.500 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroBuilder.cpp:272
+   1.07%     0.484 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:134
+   0.97%     0.438 C:\Perso\swag-lang\swc-speed-20260907\src\Support\Memory\mimalloc\src\page.c:1032
+   0.93%     0.422 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.PostRADeadCodeElim.cpp:187
+   0.93%     0.422 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:289
+   0.90%     0.406 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:858
+   0.87%     0.391 C:\Perso\swag-lang\swc-speed-20260907\src\Support\Memory\mimalloc\src\free.c:209
+   0.83%     0.375 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.ConstantFolding.cpp:821
+   0.66%     0.297 D:\a\_work\1\s\src\vctools\crt\github\stl\src\vector_algorithms.cpp:2402
+   0.66%     0.297 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Core\SemaNodeView.cpp:19
+   0.66%     0.297 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroInstr.cpp:88
+   0.55%     0.250 C:\Perso\swag-lang\swc-speed-20260907\src\Support\Core\SmallVector.h:121
+   0.55%     0.250 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.LoopInvariantCodeMotion.cpp:546
+   0.52%     0.234 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Core\SemaNodeView.cpp:18
+   0.48%     0.219 C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.50.35717\include\xhash:299
+   0.48%     0.219 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.SsaValuePropagation.Internal.h:73
+   0.48%     0.219 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:832
+   0.48%     0.219 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:137
+   0.48%     0.219 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:129
+   0.45%     0.203 C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.50.35717\include\xhash:938
+   0.45%     0.203 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.SinkToUse.cpp:306
+   0.45%     0.203 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.RegisterAllocation.cpp:677
+   0.45%     0.203 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.Legalize.cpp:72
+   0.45%     0.203 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:682
+   0.42%     0.188 C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.50.35717\include\xmemory:2114
+   0.42%     0.188 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Core\Sema.h:582
+   0.42%     0.188 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Core\NodePayload.cpp:433
+   0.42%     0.188 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.CopyElimination.cpp:277
+   0.42%     0.188 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:269
+   0.38%     0.172 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:189
+   0.35%     0.156 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Match\Match.cpp:106
+   0.35%     0.156 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Core\Sema.cpp:1586
+   0.35%     0.156 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.RegisterAllocation.Interval.cpp:748
+   0.31%     0.141 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Core\Sema.h:421
+   0.31%     0.141 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.ValueNumbering.cpp:423
+   0.31%     0.141 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:637
+   0.28%     0.125 C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.50.35717\include\vector:1635
+   0.28%     0.125 C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.50.35717\include\unordered_map:433
+   0.28%     0.125 C:\Perso\swag-lang\swc-speed-20260907\src\Support\Memory\mimalloc\src\arena.c:513
+   0.28%     0.125 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Match\Match.Func.cpp:599
+   0.28%     0.125 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Core\Sema.cpp:838
+   0.28%     0.125 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Core\NodePayload.cpp:934
+   0.28%     0.125 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Parser\Ast\AstNode.cpp:38
+   0.28%     0.125 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.RegisterAllocation.Interval.cpp:132
+   0.28%     0.125 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.PreRAPeephole.cpp:87
+   0.28%     0.125 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.Peephole.Core.h:28
+   0.28%     0.125 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.InstructionCombine.MemoryFold.cpp:126
+   0.28%     0.125 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:860
+   0.28%     0.125 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:627
+   0.28%     0.125 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroPassHelpers.cpp:707
+   0.28%     0.125 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroPassHelpers.cpp:666
+   0.24%     0.109 C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.50.35717\include\xstring:939
+   0.24%     0.109 C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.50.35717\include\vector:905
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Support\Memory\mimalloc\src\page.c:953
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Support\Memory\mimalloc\src\page.c:210
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Support\Memory\mimalloc\src\free.c:207
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Support\Memory\mimalloc\src\bitmap.c:1127
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Support\Core\SmallVector.h:106
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Type\TypeInfo.cpp:306
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Type\TypeInfo.cpp:1066
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Symbol\Symbol.Struct.cpp:499
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Match\Match.cpp:322
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Helpers\SemaJIT.cpp:342
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Helpers\SemaInline.cpp:220
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Helpers\SemaHelpers.cpp:405
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Core\NodePayload.cpp:752
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Core\NodePayload.cpp:271
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Constant\ConstantManager.cpp:764
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Sema\Cast\Cast.Runtime.cpp:612
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Parser\Ast\AstNodes.h:529
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Parser\Ast\AstNodes.h:485
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Compiler\Lexer\SourceCodeRange.cpp:32
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Sanitizer\Sanitizer.cpp:365
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Native\NativeObjFileWriterCoff.cpp:200
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.ValueNumbering.cpp:406
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.RegisterAllocation.cpp:2106
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.RegisterAllocation.Interval.cpp:997
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.PreRAPeephole.cpp:90
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.PostRADeadCodeElim.cpp:225
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.PostRADeadCodeElim.cpp:199
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.PostRADeadCodeElim.cpp:195
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.MemToReg.cpp:266
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.LoopUnroll.cpp:101
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.InstructionCombine.AddressMode.cpp:514
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.InstructionCombine.AddressMode.cpp:433
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.Emit.cpp:423
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.BranchSimplify.cpp:234
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.BranchSimplify.cpp:1534
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\Passes\Pass.BranchSimplify.cpp:1305
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroStorage.cpp:211
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:724
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:708
+   0.24%     0.109 C:\Perso\swag-lang\swc-speed-20260907\src\Backend\Micro\MicroSsaState.cpp:683
+
+STACKS
+   4.85%     2.188 ZwWaitForAlertByThreadId <- RtlSleepConditionVariableSRW <- SleepConditionVariableSRW <- Cnd_wait <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   3.50%     1.578 swc::MicroPassHelpers::findNaturalLoops <- swc::MicroLoopInvariantCodeMotionPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   3.25%     1.469 swc::MicroValueNumberingPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   2.22%     1.000 swc::MicroLoopInvariantCodeMotionPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   1.87%     0.844 swc::MicroPostRaDeadCodeElimPass::run <- swc::`anonymous namespace'::runBoundedLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   1.87%     0.844 swc::MicroPassHelpers::findNaturalLoops <- swc::InstructionCombine::keepAccessScalar <- swc::InstructionCombine::tryMemoryFoldTriple <- swc::MicroInstructionCombinePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   1.73%     0.781 swc::NativeObjFileWriterCoff::buildRDataAllocationSection <- swc::NativeObjFileWriterCoff::buildObjectFile <- swc::NativeObjJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   1.35%     0.609 swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::build <- swc::MicroValueNumberingPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   1.35%     0.609 swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::build <- swc::MicroConstantFoldingPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   1.25%     0.562 swc::MicroSsaState::placePhiNodes <- swc::MicroSsaState::build <- swc::MicroDeadCodeEliminationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   1.18%     0.531 swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroSinkToUsePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   1.11%     0.500 swc::MicroSsaState::isRegUsedAfter <- swc::`anonymous namespace'::eliminateDeadInstructions <- swc::MicroDeadCodeEliminationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   1.07%     0.484 swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroCopyEliminationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   1.07%     0.484 swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::build <- swc::MicroDeadCodeEliminationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   1.04%     0.469 swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroLoopInvariantCodeMotionPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   1.04%     0.469 swc::MicroConstantFoldingPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.87%     0.391 swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroBranchSimplifyPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.76%     0.344 operator new <- swc::SmallVector<swc::MicroReg,16>::reallocate <- swc::MicroPostRaDeadCodeElimPass::run <- swc::`anonymous namespace'::runBoundedLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.69%     0.312 swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroInstructionCombinePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.69%     0.312 swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock
+   0.66%     0.297 swc::computeSsaValueFixedPoint<swc::`anonymous namespace'::KnownValue,swc::A0xcdc3e421::KnownValueTraits,swc::A0xcdc3e421::KnownValueContext> <- swc::MicroBranchSimplifyPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.66%     0.297 swc::MicroPassHelpers::findNaturalLoops <- swc::MicroPostRaLoopHoistPass::run <- swc::`anonymous namespace'::runBoundedLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.66%     0.297 `anonymous namespace'::_Sorting::_Minmax_disp<2,`anonymous namespace'::_Sorting::_Traits_4,0> <- swc::MicroRegisterAllocationPass::walkIntervals <- swc::MicroRegisterAllocationPass::runIntervalAllocation <- swc::MicroRegisterAllocationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.62%     0.281 swc::`anonymous namespace'::addOperand <- swc::MicroInstr::collectRegOperands <- swc::MicroMemToRegPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.62%     0.281 swc::MicroSsaState::build <- swc::MicroDeadCodeEliminationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.59%     0.266 swc::MicroCopyEliminationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.55%     0.250 swc::SmallVector<swc::MicroReg,4>::operator= <- swc::MicroRegisterAllocationPass::prepareInstructionData <- swc::MicroRegisterAllocationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.55%     0.250 swc::MicroRegisterAllocationPass::walkIntervals <- swc::MicroRegisterAllocationPass::runIntervalAllocation <- swc::MicroRegisterAllocationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.55%     0.250 `swc::`anonymous namespace'::licmHoistRound'::`41'::<lambda_2>::operator() <- swc::MicroLoopInvariantCodeMotionPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.52%     0.234 swc::MicroPreRaPeepholePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.48%     0.219 swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroCopyEliminationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.48%     0.219 swc::MicroSsaState::build <- swc::MicroConstantFoldingPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.45%     0.203 swc::`anonymous namespace'::scanRegLivenessAfterInstruction <- swc::`anonymous namespace'::addLiveConcreteForbiddenRegsAfterInstruction <- swc::MicroLegalizePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.45%     0.203 swc::`anonymous namespace'::prepareDiamondScan <- swc::`anonymous namespace'::convertDiamondsToConditionalMoves <- swc::MicroBranchSimplifyPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.45%     0.203 swc::MicroSsaState::reachingDef <- swc::`anonymous namespace'::tryGetKnownReachingValue <- swc::`anonymous namespace'::tryInferInstructionConstant <- swc::MicroConstantFoldingPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.45%     0.203 swc::MicroSsaState::createPhi <- swc::MicroSsaState::placePhiNodes <- swc::MicroSsaState::build <- swc::MicroCopyEliminationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.45%     0.203 swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroInstructionCombinePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.45%     0.203 swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroBranchSimplifyPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.45%     0.203 swc::MicroSinkToUsePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.45%     0.203 swc::MicroRegisterAllocationPass::computeVirtualLiveSpans <- swc::MicroRegisterAllocationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.45%     0.203 std::_Hash<std::_Uset_traits<swc::StrongRef<swc::AstNode>,std::_Uhash_compare<swc::StrongRef<swc::AstNode>,std::hash<swc::StrongRef<swc::AstNode> >,std::equal_to<swc::StrongRef<swc::AstNode> > >,std::allocator<swc::StrongRef<swc::AstNode> >,0> >::insert <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.45%     0.203 AlpcRegisterCompletionListWorkerThread <- RtlGetLocaleFileMappingAddress <- RtlGetLocaleFileMappingAddress <- RtlCompressBuffer <- swc::`anonymous namespace'::tryCompressLznt1 <- swc::PEWriter::compressEmbeddedDebugTable <- swc::PEWriter::writeImage <- swc::Linker::executeLink <- swc::NativeLinkJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.42%     0.188 swc::SemaFrame::SemaFrame <- swc::Sema::preNode <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::SemaJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.42%     0.188 std::_Uninitialized_value_construct_n<std::allocator<swc::MicroSsaState::InstrInfo> > <- std::vector<swc::MicroSsaState::InstrInfo,std::allocator<swc::MicroSsaState::InstrInfo> >::_Resize_reallocate<std::_Value_init_tag> <- swc::MicroSsaState::resetForBuild <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroSinkToUsePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.38%     0.172 RtlSleepConditionVariableSRW <- RtlAcquireSRWLockExclusive <- Mtx_lock <- swc::JobManager::handleJobResult <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.35%     0.156 swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::SemaJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.35%     0.156 RtlQueryFeatureConfiguration <- RtlSleepConditionVariableSRW <- RtlAcquireSRWLockExclusive <- Mtx_lock <- swc::JobManager::handleJobResult <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.31%     0.141 swc::MicroSsaState::BlockInfo::BlockInfo <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroSinkToUsePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.31%     0.141 _mi_malloc_generic <- mi_theap_malloc_zero_aligned_at_overalloc <- mi_theap_malloc_zero_aligned_at_generic <- operator new <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroSinkToUsePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 swc::`anonymous namespace'::walkBoundaryOnSameLine <- swc::AstNode::codeRangeWithChildren <- swc::`anonymous namespace'::emitRuntimePanicCall <- swc::codeGenPostNode<87> <- std::_Func_impl_no_alloc<`swc::CodeGen::setVisitors'::`2'::<lambda_5>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 swc::`anonymous namespace'::buildCallArgMapping <- swc::Match::resolveFunctionCandidates <- swc::semaPostNode<80> <- std::_Func_impl_no_alloc<`swc::Sema::setVisitors'::`7'::<lambda_8>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::SemaJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 swc::Sema::isImplicitCodeBlockArg <- std::_Func_impl_no_alloc<`swc::CodeGen::setVisitors'::`2'::<lambda_3>,enum swc::Result,swc::AstNode &,swc::StrongRef<swc::AstNode> &>::_Do_call <- swc::AstVisit::step <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 swc::NodePayload::symbolsFromInfo <- swc::NodePayload::getTypeRef <- swc::SemaNodeView::compute <- swc::codeGenPostNode<11> <- std::_Func_impl_no_alloc<`swc::CodeGen::setVisitors'::`2'::<lambda_5>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::build <- swc::`anonymous namespace'::convertDiamondsToConditionalMoves <- swc::MicroBranchSimplifyPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 swc::MicroSsaState::createPhi <- swc::MicroSsaState::placePhiNodes <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroSinkToUsePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 swc::MicroSsaState::createPhi <- swc::MicroSsaState::placePhiNodes <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroInstructionCombinePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 swc::MicroSsaState::PhiInfo::~PhiInfo <- swc::MicroSsaState::~MicroSsaState <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 swc::MicroRegisterAllocationPass::buildLiveIntervals <- swc::MicroRegisterAllocationPass::runIntervalAllocation <- swc::MicroRegisterAllocationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 swc::MicroPeephole::RewriteQueue<swc::InstructionCombine::Action>::isClaimed <- swc::MicroInstructionCombinePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 swc::MicroPassHelpers::computeInstructionDominators <- swc::MicroValueNumberingPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 swc::MicroPassHelpers::computeInstructionDominators <- swc::InstructionCombine::keepAccessScalar <- swc::InstructionCombine::tryMemoryFoldTriple <- swc::MicroInstructionCombinePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 swc::InstructionCombine::tryMemoryFoldTriple <- swc::MicroInstructionCombinePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 std::vector<unsigned int,std::allocator<unsigned int> >::resize <- swc::MicroDenseRegIndex::ensure <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroInstructionCombinePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.28%     0.125 mi_arenas_try_alloc <- mi_arenas_page_alloc_fresh <- mi_arenas_page_regular_alloc <- mi_page_queue_find_free_ex <- mi_find_page <- _mi_malloc_generic <- mi_theap_malloc_zero_aligned_at_generic <- operator new <- std::_Hash_vec<std::allocator<std::_List_unchecked_iterator<std::_List_val<std::_List_simple_types<std::pair<swc::SymbolFunction const * const,unsigned __int64> > > > > >::_Assign_grow <- std::_Hash<std::_Uset_traits<swc::StrongRef<swc::AstNode>,std::_Uhash_compare<swc::StrongRef<swc::AstNode>,std::hash<swc::StrongRef<swc::AstNode> >,std::equal_to<swc::StrongRef<swc::AstNode> > >,std::allocator<swc::StrongRef<swc::AstNode> >,0> >::insert <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::semaPreNodeChild<5> <- swc::Sema::preNodeChild <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::Sema::completeLazyGenericFunction <- swc::semaPostNode<80> <- std::_Func_impl_no_alloc<`swc::Sema::setVisitors'::`7'::<lambda_8>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::SemaJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::codeGenPreNodeChild<138> <- swc::AstVisit::step <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::`anonymous namespace'::validateInlineBindingOuterScopeVariables <- swc::SemaInline::tryInlineCall <- swc::semaPostNode<80> <- std::_Func_impl_no_alloc<`swc::Sema::setVisitors'::`7'::<lambda_8>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::SemaJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::`anonymous namespace'::tryMatchDiamondShape <- swc::`anonymous namespace'::convertDiamondsToConditionalMoves <- swc::MicroBranchSimplifyPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::`anonymous namespace'::narrowOperandIsSentinel <- swc::`anonymous namespace'::collectSentinelComparisonGuard <- swc::SemaHelpers::collectNarrowGuards <- swc::semaPreNodeChild<129> <- swc::Sema::preNodeChild <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::SemaJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::`anonymous namespace'::lowerTypeImplicitDefaultBytesRec <- swc::`anonymous namespace'::lowerTypeImplicitDefaultBytesRec <- swc::`anonymous namespace'::lowerTypeImplicitDefaultBytesRec <- swc::CodeGenFunctionHelpers::emitStructDefaultValue <- swc::CodeGenFunctionHelpers::emitStructDefaultValue <- swc::codeGenPostNode<120> <- std::_Func_impl_no_alloc<`swc::CodeGen::setVisitors'::`2'::<lambda_5>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::`anonymous namespace'::collect <- swc::Match::match <- swc::SemaHelpers::structuralTypeRefFromTypeNode <- swc::`anonymous namespace'::appendFunctionParamDesc <- swc::`anonymous namespace'::collectFunctionParamDescsImpl <- swc::SemaGeneric::resolveFunctionCallParamType <- swc::semaPreNodeChild<80> <- swc::Sema::preNodeChild <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::SemaJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::`anonymous namespace'::calculateColumn <- swc::`anonymous namespace'::subtreeRange <- swc::`anonymous namespace'::collectBackEdgeLoops <- swc::SemaEscape::reportBorrowInvalidations <- swc::semaPostNode<55> <- std::_Func_impl_no_alloc<`swc::Sema::setVisitors'::`7'::<lambda_8>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::SemaJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::`anonymous namespace'::buildProgramLayout <- swc::`anonymous namespace'::threadShortCircuitExits <- swc::MicroBranchSimplifyPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::`anonymous namespace'::appendConstantFunctionJitRootsInAllocation <- swc::`anonymous namespace'::prepareJitFunction <- swc::`anonymous namespace'::prepareJitSetupRuntimeFunction <- swc::`anonymous namespace'::prepareJitFunction <- swc::SemaJIT::tryRunConstCall <- swc::semaPostNode<80> <- std::_Func_impl_no_alloc<`swc::Sema::setVisitors'::`7'::<lambda_8>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::SemaJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::`anonymous namespace'::addOperand <- swc::MicroCopyEliminationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::X64UnwindWindows::onInstructionEncoded <- swc::MicroEmitPass::run <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::X64Encoder::updateRegUseDef <- swc::MicroInstr::collectUseDef <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroSinkToUsePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::X64Encoder::encodeLoadRegReg <- swc::MicroEmitPass::run <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::TypeInfo::sizeOf <- swc::`anonymous namespace'::emitSliceCompareBool <- swc::codeGenPostNode<73> <- std::_Func_impl_no_alloc<`swc::CodeGen::setVisitors'::`2'::<lambda_5>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::TypeInfo::operator== <- swc::TypeManager::addType <- swc::semaPostNode<124> <- std::_Func_impl_no_alloc<`swc::Sema::setVisitors'::`7'::<lambda_8>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::Sema::completeLazyGenericFunction <- swc::semaPostNode<80> <- std::_Func_impl_no_alloc<`swc::Sema::setVisitors'::`7'::<lambda_8>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::SemaJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::SmallVector<swc::MicroReg,4>::operator= <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroSinkToUsePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::SemaNodeView::compute <- swc::`anonymous namespace'::autoEnumArgRef <- swc::`anonymous namespace'::resolveAutoEnumArgFinal <- swc::Match::resolveFunctionCandidates <- swc::semaPostNode<80> <- std::_Func_impl_no_alloc<`swc::Sema::setVisitors'::`7'::<lambda_8>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::SemaJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::SemaNodeView::compute <- swc::Sema::preNode <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::SemaJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::SemaNodeView::compute <- swc::CodeGen::safeNodePayload<swc::CodeGenNodePayload> <- swc::CodeGen::safePayload <- swc::`anonymous namespace'::codeGenFunctionLikePostNode <- std::_Func_impl_no_alloc<`swc::CodeGen::setVisitors'::`2'::<lambda_5>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::SemaNodeView::compute <- swc::CodeGen::mergeLoweringNodePayloadMetadata <- swc::CodeGen::ensureNodePayload<swc::CodeGenNodePayload> <- swc::CodeGen::setPayload <- std::_Func_impl_no_alloc<`swc::CodeGen::setVisitors'::`2'::<lambda_5>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::Sema::hasInlinePayload <- swc::`anonymous namespace'::Walker::walk <- swc::`anonymous namespace'::Walker::walkChildren <- swc::`anonymous namespace'::Walker::walk <- swc::`anonymous namespace'::Walker::walkChildren <- swc::`anonymous namespace'::Walker::walk <- swc::`anonymous namespace'::Walker::walkChildren <- swc::`anonymous namespace'::Walker::walk <- swc::`anonymous namespace'::Walker::walkChildren <- swc::`anonymous namespace'::Walker::walk <- swc::`anonymous namespace'::Walker::walk <- swc::`anonymous namespace'::Walker::walk <- swc::`anonymous namespace'::Walker::walkChildren <- swc::`anonymous namespace'::Walker::walk <- swc::`anonymous namespace'::Walker::walkChildren <- swc::`anonymous namespace'::Walker::walk <- swc::`anonymous namespace'::Walker::walk <- swc::`anonymous namespace'::Walker::walkChildren <- swc::`anonymous namespace'::Walker::walk <- swc::`anonymous namespace'::Walker::applyCallArguments <- swc::`anonymous namespace'::Walker::walk <- swc::`anonymous namespace'::Walker::walk <- swc::SemaInitFlow::checkFunction <- swc::semaPostNode<55> <- std::_Func_impl_no_alloc<`swc::Sema::setVisitors'::`7'::<lambda_8>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::Sema::runCurrentVisit <- swc::Sema::execResult <- swc::SemaJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::Sanitizer::propagate <- swc::Sanitizer::propagateConditionalBranch <- swc::Sanitizer::walkChain <- swc::MicroSanityPass::run <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::NodePayload::getInlinePayload <- std::_Func_impl_no_alloc<`swc::CodeGen::setVisitors'::`2'::<lambda_2>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::NodePayload::getConstantRef <- swc::SemaNodeView::compute <- std::_Func_impl_no_alloc<`swc::CodeGen::setVisitors'::`2'::<lambda_2>,enum swc::Result,swc::AstNode &>::_Do_call <- swc::AstVisit::step <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::NativeObjFileWriterCoff::CoffSectionBuild::CoffSectionBuild <- std::vector<swc::NativeObjFileWriterCoff::CoffSectionBuild,std::allocator<swc::NativeObjFileWriterCoff::CoffSectionBuild> >::push_back <- swc::NativeObjFileWriterCoff::buildObjectFile <- swc::NativeObjJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::MicroStorage::ptr <- swc::MicroLoopInvariantCodeMotionPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroCopyEliminationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec
+   0.24%     0.109 swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::build <- swc::MicroDeadCodeEliminationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit
+   0.24%     0.109 swc::MicroSsaState::createValue <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::build <- swc::MicroDeadCodeEliminationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::MicroSsaState::createValue <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::renameBlock <- swc::MicroSsaState::build <- swc::MicroConstantFoldingPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::MicroSsaState::BlockInfo::~BlockInfo <- swc::MicroSsaState::resetForBuild <- swc::MicroSsaState::build <- swc::MicroSsaState::ensureFor <- swc::MicroInstructionCombinePass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::MicroSsaState::BlockInfo::BlockInfo <- swc::MicroSsaState::build <- swc::MicroCopyEliminationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::MicroRegisterAllocationPass::canEraseCoalescedCopy <- swc::MicroRegisterAllocationPass::coalesceLocalCopies <- swc::MicroRegisterAllocationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::MicroRegisterAllocationPass::LiveInterval::LiveInterval <- std::vector<swc::MicroRegisterAllocationPass::LiveInterval,std::allocator<swc::MicroRegisterAllocationPass::LiveInterval> >::push_back <- swc::`anonymous namespace'::splitNodeAt <- swc::MicroRegisterAllocationPass::walkIntervals <- swc::MicroRegisterAllocationPass::runIntervalAllocation <- swc::MicroRegisterAllocationPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart
+   0.24%     0.109 swc::MicroPassHelpers::computeInstructionDominators <- swc::MicroLoopInvariantCodeMotionPass::run <- swc::`anonymous namespace'::runLoopPasses <- swc::MicroPassManager::run <- swc::MachineCode::emit <- swc::SymbolFunction::emit <- swc::CodeGenJob::exec <- swc::JobManager::executeJob <- std::thread::_Invoke<std::tuple<`swc::JobManager::growWorkersForLoadLocked'::`8'::<lambda_1> >,0> <- wcsrchr <- BaseThreadInitThunk <- RtlUserThreadStart

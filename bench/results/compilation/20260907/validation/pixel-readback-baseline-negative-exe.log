@@ -1,0 +1,63 @@
+  ◆  swag        test • std [pixel] • release
+
+  ↻  module      win32 • up-to-date • 18 us
+
+  ↻  module      gdi32 • up-to-date • 5 us
+
+  ↻  module      xinput • up-to-date • 5 us
+
+  ↻  module      core • up-to-date • core.dll • 11 us
+
+  ↻  module      ogl • up-to-date • ogl.dll • 10 us
+
+  ↻  module      truetype • up-to-date • truetype.dll • 7 us
+
+  ↻  module      pixel • up-to-date • pixel.dll • 11 us
+
+  ✓  workspace   std [pixel] • 7 modules • 69 ms
+
+  ✓  checked     271 files • 665_332 tokens • 3 s 96 ms
+
+  ✓  tuned       4_876 functions • 7 s 711 ms
+
+  ✓  forged      3_739 functions • pixel.test.exe • 8 s 311 ms
+
+
+
+runtime panic
+
+-------------
+
+message: assertion does not hold
+
+source:  C:\Perso\swag-lang\swc-speed-20260907\bin\std\modules\pixel\src\tests\render.parity.test.swg:120:10
+
+
+
+runtime trace
+
+Swag.panic --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/error.swg:286
+
+__raiseException666 --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/os_windows.swg:293
+
+Pixel.__test_470 --> C:/Perso/swag-lang/swc-speed-20260907/bin/std/modules/pixel/src/tests/render.parity.test.swg:114
+
+__hostTestCall --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/os_windows.swg:358
+
+Swag.__runTest --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/tests.swg:102
+
+
+
+error: generated executable '#test' result: 1 did not pass
+
+
+
+  ✖  running     266 ms
+
+  ✖  testing     0 passed • 1 did not pass • 11 s 690 ms
+
+  ✖  compiling   pixel • 271 files • 0 passed • 1 did not pass • pixel.test.exe • 11 s 717 ms
+
+  ✖  building    std [pixel] • 0/1 module • 0 passed • 1 did not pass • 12 s 433 ms
+
+  ✖  stopped     1 error • 12 s 434 ms

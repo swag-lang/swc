@@ -1,0 +1,19 @@
+{
+  "exit": 0,
+  "wall_ms": 1015.3413,
+  "cpu_ms": 3250.0,
+  "peak_job_bytes": 240066560,
+  "peak_proc_bytes": 238788608,
+  "peak_working_set_bytes": 228278272,
+  "stdout": "  \u25c6  swag        run \u2022 tests \u2022 devmode\r\n  \u2713  checked     60 files \u2022 170_085 tokens \u2022 301 ms\r\n  \u2713  tuned       312 functions \u2022 524 ms\r\n",
+  "stderr": "\r\n",
+  "command": [
+    "bin/swc.exe",
+    "--num-cores",
+    "6",
+    "tools/tests/repository.swgs",
+    "."
+  ],
+  "started": "2026-09-07 11:58:24",
+  "label": "backlog-check-final-state"
+}

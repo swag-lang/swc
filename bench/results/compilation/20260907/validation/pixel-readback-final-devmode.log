@@ -1,0 +1,67 @@
+  ◆  swag        test • std [pixel] • devmode
+
+  ↻  module      win32 • up-to-date • 6 us
+
+  ↻  module      gdi32 • up-to-date • 6 us
+
+  ↻  module      xinput • up-to-date • 4 us
+
+  ↻  module      core • up-to-date • core.dll • 11 us
+
+  ↻  module      ogl • up-to-date • ogl.dll • 7 us
+
+  ↻  module      truetype • up-to-date • truetype.dll • 6 us
+
+  ✓  module      pixel • 271 files • pixel.dll • 11 s 91 ms
+
+  ✓  workspace   std [pixel] • 7 modules • 11 s 686 ms
+
+  ✓  checked     271 files • 665_297 tokens • 3 s 938 ms
+
+  ✓  tuned       4_878 functions • 9 s 887 ms
+
+  ✓  forged      3_736 functions • pixel.test.exe • 10 s 938 ms
+
+[ogl] the readback never returned the scene for Pixel opaque backdrop parity; the context read a blank or foreign framebuffer five times
+
+
+
+runtime panic
+
+-------------
+
+message: assertion does not hold
+
+source:  C:\Perso\swag-lang\swc-speed-20260907\bin\std\modules\pixel\src\tests\render.parity.test.swg:155:18
+
+
+
+runtime trace
+
+Swag.panic --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/error.swg:286
+
+__raiseException666 --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/os_windows.swg:293
+
+Pixel.renderOglStable --> C:/Perso/swag-lang/swc-speed-20260907/bin/std/modules/pixel/src/tests/render.parity.test.swg:135
+
+Pixel.__test_532 --> C:/Perso/swag-lang/swc-speed-20260907/bin/std/modules/pixel/src/tests/render.parity.test.swg:912
+
+__hostTestCall --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/os_windows.swg:358
+
+Swag.__runTest --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/tests.swg:102
+
+
+
+error: generated executable '#test' result: 1 did not pass
+
+
+
+  ✖  running     9 s 145 ms
+
+  ✖  testing     17 passed • 1 did not pass • 24 s 65 ms
+
+  ✖  compiling   pixel • 271 files • 17 passed • 1 did not pass • pixel.test.exe • 24 s 119 ms
+
+  ✖  building    std [pixel] • 0/1 module • 17 passed • 1 did not pass • 35 s 958 ms
+
+  ✖  stopped     1 error • 35 s 959 ms

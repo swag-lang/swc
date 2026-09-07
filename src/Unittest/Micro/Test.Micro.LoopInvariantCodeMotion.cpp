@@ -4,7 +4,9 @@
 
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.LoopInvariantCodeMotion.h"
 #include "Unittest/Unittest.h"
@@ -263,6 +265,60 @@ SWC_TEST_BEGIN(LICM_HoistsScalarLiteralLoadsButKeepsZeroLocal)
                 return Result::Error;
         }
     }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroDomTree_MatchesPathsThroughDiamondAndLoop)
+{
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef loop  = builder.createLabel();
+    const MicroLabelRef right = builder.createLabel();
+    const MicroLabelRef join  = builder.createLabel();
+    builder.placeLabel(loop);
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, right);
+    builder.emitClearReg(MicroReg::virtualIntReg(1), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+    builder.placeLabel(right);
+    builder.emitClearReg(MicroReg::virtualIntReg(2), MicroOpBits::B64);
+    builder.placeLabel(join);
+    builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B64, loop);
+    builder.emitRet();
+    builder.emitClearReg(MicroReg::virtualIntReg(3), MicroOpBits::B64);
+    builder.emitRet();
+
+    const auto& cfg = builder.controlFlowGraph();
+    const auto  dom = MicroPassHelpers::computeInstructionDominators(cfg, 0);
+    const auto  n   = cfg.instructionCount();
+    for (uint32_t a = 0; a < n; ++a)
+    {
+        // A dominates B precisely when removing A leaves no entry-to-B path.
+        std::vector<uint8_t>  visited(n, 0);
+        std::vector<uint32_t> pending;
+        if (a != 0)
+            pending.push_back(0);
+        while (!pending.empty())
+        {
+            const uint32_t node = pending.back();
+            pending.pop_back();
+            if (visited[node])
+                continue;
+            visited[node] = 1;
+            for (const uint32_t successor : cfg.successors(node))
+            {
+                if (successor != a && successor < n && !visited[successor])
+                    pending.push_back(successor);
+            }
+        }
+        for (uint32_t b = 0; b < n; ++b)
+        {
+            const bool expected = dom.reachable(a) && dom.reachable(b) && !visited[b];
+            if (dom.dominates(a, b) != expected)
+                return Result::Error;
+        }
+    }
+    if (dom.dominates(n, 0) || dom.dominates(0, n))
+        return Result::Error;
     return Result::Continue;
 }
 SWC_TEST_END()

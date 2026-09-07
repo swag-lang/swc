@@ -669,8 +669,9 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
     Diagnostic diag;
     CoffObject functionObject;
     CoffObject rootObject;
+    CoffObject nestedObject;
     CoffObject zeroObject;
-    if (!readCoffObject(functionObject, diag, functionDescription->objBytes) || !readCoffObject(rootObject, diag, rootDescription->objBytes) || !readCoffObject(zeroObject, diag, zeroDescription->objBytes))
+    if (!readCoffObject(functionObject, diag, functionDescription->objBytes) || !readCoffObject(rootObject, diag, rootDescription->objBytes) || !readCoffObject(nestedObject, diag, nestedDescription->objBytes) || !readCoffObject(zeroObject, diag, zeroDescription->objBytes))
         return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "archive allocation object is invalid");
 
     const auto functionText = std::ranges::find(functionObject.sections, Utf8(".text"), &CoffInputSection::name);
@@ -680,6 +681,12 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
     const auto rootRData = std::ranges::find(rootObject.sections, Utf8(".rdata"), &CoffInputSection::name);
     if (rootRData == rootObject.sections.end() || rootRData->relocs.size() != 1 || rootRData->relocs.front().symbolName != nestedSymbol || rootRData->bytes.readLe64(0) != sizeof(uint64_t))
         return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "interior allocation dependency was not preserved");
+
+    // Adjacent allocation objects must each retain only their own relocation range.
+    const auto nestedRData = std::ranges::find(nestedObject.sections, Utf8(".rdata"), &CoffInputSection::name);
+    const Utf8 stringSymbol = nativeScopedRDataAllocationSymbol(*fixture.compiler, 0, stringOffset);
+    if (nestedRData == nestedObject.sections.end() || nestedRData->relocs.size() != 1 || nestedRData->relocs.front().symbolName != stringSymbol || nestedRData->bytes.readLe64(0) != 0)
+        return Result::Error;
 
     const auto zeroRData = std::ranges::find(zeroObject.sections, Utf8(".rbss"), &CoffInputSection::name);
     if (zeroRData == zeroObject.sections.end() || !zeroRData->isBss || zeroRData->bssSize != zeroAllocationSize)

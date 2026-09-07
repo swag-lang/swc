@@ -1750,7 +1750,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.loadingOverlay.isLocallyVisible() and window.loadingOverlay.position == old.position)
 
     host.fireTimer(window.startupTimer)
-    Jobs.wait(&window.choiceLoad.job)
+    window.choiceLoad.task.wait()
     host.fireTimer(window.startupTimer)
     Swag.assert(window.currentView == old and retireCalls == 1)
     Swag.assert(window.pendingFile == fileName and window.startupTimer != null)
@@ -1852,14 +1852,14 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(firstFile)
     host.fireTimer(window.startupTimer)
-    Jobs.wait(&window.choiceLoad.job)
+    window.choiceLoad.task.wait()
     host.fireTimer(window.startupTimer)
 
     let discardedView  = cast(*TextView) window.currentView!
     let discardedTimer = discardedView.loadTimer!
     window.openFile(secondFile)
     host.fireTimer(window.startupTimer)
-    Jobs.wait(&window.choiceLoad.job)
+    window.choiceLoad.task.wait()
     host.fireTimer(window.startupTimer)
 
     Swag.assert(window.currentView != discardedView)

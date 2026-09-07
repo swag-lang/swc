@@ -55,7 +55,7 @@ impl Yuv420View
         if target.width != .width or target.height != .height or target.pixelFormat != .RGB8 do
             target[] = Image.create(.width, .height, .RGB8)
 
-        let bandCount = Math.min(Math.min(Jobs.workerCount(), Yuv420Bands), cast(u32) .height)
+        let bandCount = Math.min(Math.min(Swag.workerCount(), Yuv420Bands), cast(u32) .height)
         if bandCount <= 1
         {
             .convertRowsToRgb(target, 0, .height)
@@ -63,12 +63,12 @@ impl Yuv420View
         }
 
         var context = {view: me, target: target, bandCount: bandCount}
-        Jobs.parallelFor(bandCount, &context)
+        parallel for |&context| parIndex in cast(u64) bandCount
         {
-            let state = cast(*#decltype(context)) data!
-            let first = state.view.height * cast(s32) index / cast(s32) state.bandCount
-            let end   = state.view.height * cast(s32) (index + 1) / cast(s32) state.bandCount
-            state.view.convertRowsToRgb(state.target, first, end)
+            let index = cast(u32) parIndex
+            let first = context.view.height * cast(s32) index / cast(s32) context.bandCount
+            let end   = context.view.height * cast(s32) (index + 1) / cast(s32) context.bandCount
+            context.view.convertRowsToRgb(context.target, first, end)
         }
     }
 

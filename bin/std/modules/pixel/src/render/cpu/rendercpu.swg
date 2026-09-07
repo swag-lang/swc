@@ -1774,7 +1774,7 @@ private impl RenderCpu
     // rasterized image is therefore identical to the serial one, band split or not.
     mtd rasterizeRange(batch: *RasterBatch, bounds: PixelBounds)
     {
-        let bandCount = Math.min(cast(s32) Jobs.workerCount(), bounds.rows() / CpuBandMinRows)
+        let bandCount = Math.min(cast(s32) Swag.workerCount(), bounds.rows() / CpuBandMinRows)
         if bounds.area() < CpuBandPixelThreshold or bandCount <= 1
         {
             .drawTriangleRange(batch, bounds.minY, bounds.maxY)
@@ -1783,11 +1783,10 @@ private impl RenderCpu
 
         let bandRows = (bounds.rows() + bandCount - 1) / bandCount
         var f        = {renderer: me, batch: batch, minY: bounds.minY, maxY: bounds.maxY, bandRows: bandRows}
-        Jobs.parallelFor(cast(u32) bandCount, &f)
+        parallel for |&f| parIndex in cast(u64) bandCount
         {
-            if !data do
-                return
-            let params = cast(*#decltype(f)) (data)
+            let index  = cast(u32) parIndex
+            let params = &f
             let bandY  = params.minY + cast(s32) index * params.bandRows
             params.renderer.drawTriangleRange(params.batch, bandY, Math.min(bandY + params.bandRows - 1, params.maxY))
         }

@@ -9,7 +9,7 @@ using Core
 // The worker opens its own reader on the file: a reader is single-threaded, and the one a view
 // turns pages with stays on the GUI thread. Pages are extracted in order through
 // [[Gui.Pdf.Reader.loadPageText]], and a page's text is readable as soon as `readyCount` passes
-// its index. The worker borrows the value until `stop` or `wait` returns, so its owner stops it
+// its index. The task borrows the value until `stop` or `wait` returns, so its owner stops it
 // before releasing it.
 //
 // The type identity is part of the exported widget layout, so it is public, but it carries no
@@ -17,7 +17,7 @@ using Core
 #[Swag.NoDoc, Swag.NoCopy]
 public struct DocumentText
 {
-    job:      Jobs.Job
+    task:     Swag.Task
     fileName: String
     pages:    Array'String     // One entry per page, written once by the worker before it is published.
     ready:    u32              // Pages published so far, from the first; read and written atomically.
@@ -33,20 +33,12 @@ impl DocumentText
         Debug.assert(!.started)
         .fileName = fileName
         .pages.resize(pageCount)
-        .ready      = 0
-        .cancel     = 0
-        .job.lambda = func(data: *void?)
-        {
-            let text = cast(*DocumentText) data!
-            text.extract()
-        }
-        .job.data = me
-        .started  = true
-        Jobs.schedule(&.job)
+        .ready   = 0
+        .cancel  = 0
+        .started = true
 
-        // Without workers a job only runs inside a wait, and a poll would never see it progress.
-        if Jobs.isSynchronous() do
-            Jobs.wait(&.job)
+        let text = me
+        .task.submit(func|text|() { text.extract() })
     }
 
     // Returns how many pages, from the first, have their text published.
@@ -66,7 +58,7 @@ impl DocumentText
     mtd wait()
     {
         if .started do
-            Jobs.wait(&.job)
+            .task.wait()
     }
 
     // Stops the worker after the page it is on and releases everything extracted.
@@ -75,7 +67,7 @@ impl DocumentText
         if !.started do
             return
         Atomic.exchange(&.cancel, 1)
-        Jobs.wait(&.job)
+        .task.wait()
         .started = false
         .pages.clear()
         .ready  = 0

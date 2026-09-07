@@ -62,7 +62,7 @@ func completeVideoHandover(host: *Testing.HeadlessHost, window: *ViewerWindow)
     while !window.pendingFile.isEmpty() and steps < 5_000
     {
         Threading.Thread.sleep(1'ms)
-        Jobs.waitAll()
+        Swag.drainWork()
         if window.startupTimer do
             host.fireTimer(window.startupTimer)
         steps += 1

@@ -14,9 +14,10 @@ impl Image
         if !srcLegacy or !dstLegacy or .alphaMode != dstImage.alphaMode
         {
             var genericContext = {src: me, dst: dstImage}
-            Jobs.parallelFor(cast(u32) .height, &genericContext) #code(row, data)
+            parallel for |&genericContext| parIndex in cast(u64) .height
             {
-                let params = cast(*#decltype(genericContext)) data!
+                let row    = cast(u32) parIndex
+                let params = &genericContext
                 let src    = cast(const *Image) params.src
                 let dst    = cast(*Image) params.dst
                 let srcRow = src.pixels.buffer! + cast(u64) row * src.rowStride
@@ -33,9 +34,10 @@ impl Image
         }
 
         var context = {src: me, dst: dstImage}
-        Jobs.parallelFor(cast(u32) .height, &context) #code(row, data)
+        parallel for |&context| parIndex in cast(u64) .height
         {
-            let params       = cast(*#decltype(context)) data!
+            let row          = cast(u32) parIndex
+            let params       = &context
             let src          = cast(const *Image) params.src
             let dst          = cast(*Image) params.dst
             let srcRow       = src.pixels.buffer! + cast(u64) row * src.rowStride

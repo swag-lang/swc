@@ -828,13 +828,13 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
         top: top}
 
     let samples = cast(u64) width * cast(u64) rows
-    if rows >= 2 and samples >= MsdfParallelMinSamples and !Jobs.isSynchronous()
+    if rows >= 2 and samples >= MsdfParallelMinSamples and Swag.workerCount() > 1
     {
-        Jobs.parallelFor(cast(u32) rows, &ctx) #code(py, data)
+        Swag.parallelRange(cast(u64) rows, func|&ctx|(parBegin, parEnd: u64)
         {
-            let safeData = data!
-            msdfProcessRow(cast(*MsdfRowCtx) safeData, py)
-        }
+            for py in parBegin until parEnd do
+                msdfProcessRow(&ctx, cast(u32) py)
+        })
     }
     else
     {

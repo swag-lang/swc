@@ -39,10 +39,10 @@ public impl Image
         if f == 1
         {
             var context = {image: me}
-            Jobs.parallelFor(cast(u32) .height, &context) #code(row, data)
+            parallel for |&context| parIndex in cast(u64) .height
             {
-                let params    = cast(*#decltype(context)) data!
-                let image     = cast(*Image) params.image
+                let row       = cast(u32) parIndex
+                let image     = cast(*Image) context.image
                 let rowPixels = image.pixels.buffer! + cast(u64) row * image.rowStride
                 let blueFirst = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
                 let weight0   = blueFirst ? 19'u16 : 54'u16

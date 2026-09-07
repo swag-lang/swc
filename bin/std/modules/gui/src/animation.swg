@@ -196,7 +196,7 @@ private impl AnimationGroup
 impl AnimationGroup
 {
     // Creates a group whose tracks advance together.
-    func parallel()->AnimationGroup
+    func concurrent()->AnimationGroup
     {
         var result: retval
         result.kind = .Parallel
@@ -817,7 +817,7 @@ impl Animator
     // Starts one scalar track.
     mtd animateF32(target: *Wnd, channel: AnimationChannel, from, destination: f32, update: AnimationF32Update, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
-        var group = AnimationGroup.parallel()
+        var group = AnimationGroup.concurrent()
         group.addF32(target, channel, from, destination, update, options, completion)
         return .start(#move group)
     }
@@ -825,7 +825,7 @@ impl Animator
     // Starts one color track.
     mtd animateColor(target: *Wnd, channel: AnimationChannel, from, destination: Color, update: AnimationColorUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
-        var group = AnimationGroup.parallel()
+        var group = AnimationGroup.concurrent()
         group.addColor(target, channel, from, destination, update, options, completion)
         return .start(#move group)
     }
@@ -833,7 +833,7 @@ impl Animator
     // Starts one point track.
     mtd animatePoint(target: *Wnd, channel: AnimationChannel, from, destination: Math.Point, update: AnimationPointUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
-        var group = AnimationGroup.parallel()
+        var group = AnimationGroup.concurrent()
         group.addPoint(target, channel, from, destination, update, options, completion)
         return .start(#move group)
     }
@@ -841,7 +841,7 @@ impl Animator
     // Starts one four-component vector track.
     mtd animateVector4(target: *Wnd, channel: AnimationChannel, from, destination: Math.Vector4, update: AnimationVector4Update, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
-        var group = AnimationGroup.parallel()
+        var group = AnimationGroup.concurrent()
         group.addVector4(target, channel, from, destination, update, options, completion)
         return .start(#move group)
     }
@@ -849,7 +849,7 @@ impl Animator
     // Starts one rectangle track.
     mtd animateRectangle(target: *Wnd, channel: AnimationChannel, from, destination: Math.Rectangle, update: AnimationRectangleUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
-        var group = AnimationGroup.parallel()
+        var group = AnimationGroup.concurrent()
         group.addRectangle(target, channel, from, destination, update, options, completion)
         return .start(#move group)
     }
@@ -1015,7 +1015,7 @@ impl Animator
         options.duration = Time.Duration.fromSeconds(metrics.motion_PageSeconds)
         options.easing   = .EaseOut
 
-        var group = AnimationGroup.parallel()
+        var group = AnimationGroup.concurrent()
         if outgoing do
             group.addF32(outgoing, AnimationChannel.from("Gui.Page.Opacity"), 1, 0, func(wnd, value) { wnd.setPresentationOpacity(value); }, options)
         group.addF32(incoming, AnimationChannel.from("Gui.Page.Opacity"), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value); }, options)

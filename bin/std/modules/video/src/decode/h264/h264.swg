@@ -90,7 +90,7 @@ struct Decoder
     directFlags: Array'u8     // Whether the block was coded in a direct mode.
 
     // Entropy parsing stays serial inside a slice. Parsed macroblocks and their immutable
-    // slice contexts remain here until inter reconstruction fans out through Core.Jobs.
+    // slice contexts remain here until inter reconstruction fans out through the runtime scheduler.
     parsedMbs:       Array'Mb
     parsedResiduals: Array'MbResidual
     parsedExtraJobs: Array'MbExtraJobs
@@ -105,7 +105,7 @@ struct Decoder
     pipelineBandCount:   u32
     pipelineScheduled:   u32
     pipelineFailed:      u32
-    pipelineJobs:        [ReconstructionBands] ReconstructionJob
+    pipelineTasks:       [ReconstructionBands] Swag.Task
 
     // Picture order state carried between pictures.
     prevPocMsb:         s32
@@ -733,7 +733,7 @@ impl Decoder
         .decodedMbs = 0
         .sliceCount = 0
         .pictureSlices.clear()
-        .pipelineBandCount = .pipelineSingleSlice ? Math.min(Math.min(Jobs.workerCount(), ReconstructionBands), cast(u32) sps.mbHeight) : 0
+        .pipelineBandCount = .pipelineSingleSlice ? Math.min(Math.min(Swag.workerCount(), ReconstructionBands), cast(u32) sps.mbHeight) : 0
         .pipelineScheduled = 0
         .pipelineFailed    = 0
     }

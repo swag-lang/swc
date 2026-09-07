@@ -2,7 +2,7 @@
 
 namespace InlineLocalForwardCall
 {
-    // The shape of 'Jobs.parallelFor': a local function calling a sibling declared after it.
+    // The shape of a partitioning macro: a local function calling a sibling declared after it.
     // Under automatic inlining the call is met before the sibling's body has been analyzed, and
     // the job meeting it is the very one that will analyze that body.
     #[Swag.Macro]

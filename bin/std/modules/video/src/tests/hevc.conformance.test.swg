@@ -31,8 +31,7 @@ impl ConformanceRun
     {
         // Whether a wavefront picture is decoded row by row or one row per worker is read from
         // the pool, so this file run on its own would never reach the concurrent path.
-        if Jobs.isSynchronous() do
-            try Jobs.initialize(16)
+        Swag.setWorkerCount(16)
 
         let bytes = try File.readAllBytes(path)
         let data  = bytes.toSlice()

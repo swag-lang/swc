@@ -1773,9 +1773,9 @@ impl Volume
         }
 
         var batch = CryptoBatch{keys: &.keys, physical: physical, records: records.toSlice(), plain: destination}
-        Jobs.parallelFor(cast(u32) count, &batch) #code(jobIndex, data)
+        parallel for |&batch| parIndex in cast(u64) count
         {
-            let batch        = cast(*CryptoBatch) data!
+            let jobIndex     = cast(u32) parIndex
             let index        = cast(u64) jobIndex
             let recordOffset = index * BlockRecordSize
             let plainOffset  = index * BlockSize
@@ -1806,9 +1806,9 @@ impl Volume
 
         var plain = Swag.makeSlice(cast #unconst ([*] u8) source.buffer, source.count)
         var batch = CryptoBatch{keys: &.keys, physical: physical, records: records.toSlice(), plain: plain}
-        Jobs.parallelFor(cast(u32) count, &batch) #code(jobIndex, data)
+        parallel for |&batch| parIndex in cast(u64) count
         {
-            let batch        = cast(*CryptoBatch) data!
+            let jobIndex     = cast(u32) parIndex
             let index        = cast(u64) jobIndex
             let recordOffset = index * BlockRecordSize
             let plainOffset  = index * BlockSize

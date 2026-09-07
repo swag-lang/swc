@@ -15,57 +15,44 @@ func day4B()
             return
 
         // Time.Stopwatch.scopeMeasure()
-        expect Jobs.initialize()
+        // One lane per worker, each striding by the lane count so the whole search space is
+        // covered exactly once. A lane stops as soon as another one has published a lower hit.
+        let lanes = Math.max(1'u64, cast(u64) Swag.workerCount())
 
-        struct ForJob
+        var results: Array'u64
+        results.resize(lanes)
+        for &r in results do
+            r[] = Swag.U64.Max
+
+        Swag.parallelRange(lanes, func|&results, lanes|(parBegin, parEnd: u64)
         {
-            using base: Jobs.Job
-            start:      u64
-            result:     u64 = Swag.U64.Max
-        }
-
-        var sliceJobs: Array'ForJob
-        sliceJobs.resize(Jobs.workerCount())
-
-        func jobEntry(jobData: *void?)
-        {
-            let oneJob = cast(*ForJob) jobData!
-            var index  = oneJob.start
-            let offset = Jobs.workerCount()
-            var buffer: [16] u8
-            day4InitBuffer(buffer)
-            for
+            for lane in parBegin until parEnd
             {
-                // Another job is better than us, just quit
-                if Atomic.get(&best) < index do
-                    return
+                var index = lane
+                var buffer: [16] u8
+                day4InitBuffer(buffer)
 
-                let v = Hash.Md5.compute(day4BuildInput(buffer, index))
-                if v[0] == 0 and v[1] == 0 and v[2] == 0
+                for
                 {
-                    discard Atomic.exchange(&best, index)
-                    oneJob.result = index
-                    return
+                    if Atomic.get(&best) < index do
+                        break
+
+                    let v = Hash.Md5.compute(day4BuildInput(buffer, index))
+                    if v[0] == 0 and v[1] == 0 and v[2] == 0
+                    {
+                        discard Atomic.exchange(&best, index)
+                        results[lane] = index
+                        break
+                    }
+
+                    index += lanes
                 }
-
-                index += offset
             }
-        }
-
-        for &j, idx in sliceJobs
-        {
-            j.base.lambda = &jobEntry
-            j.data        = j
-            j.start       = idx
-            Jobs.schedule(j)
-        }
+        })
 
         var total: u64 = Swag.U64.Max
-        for &j in sliceJobs
-        {
-            Jobs.wait(j)
-            total = Math.min(total, j.result)
-        }
+        for r in results do
+            total = Math.min(total, r)
 
         // Console.print("total: ", total)
         Swag.assert(total == 9962624)

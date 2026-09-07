@@ -1051,8 +1051,7 @@ impl Application
             // right below is the heaviest CPU work of a startup and its rasterizers band
             // themselves across the pool; starting the pool after it would leave that one
             // step, the only one that matters, running on a single thread.
-            if Jobs.isSynchronous() do
-                discard catch Jobs.initialize()
+            Swag.startWorkers()
 
             .theme.setupDefault(.renderer, &.resources, surface.dpiScale)
             .mainSurface = surface

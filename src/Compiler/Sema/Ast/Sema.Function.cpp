@@ -1075,7 +1075,7 @@ namespace
             if (param.hasFlag(AstLambdaParamFlagsE::Named))
             {
                 const Token& tok = sema.token(param.codeRef());
-                if (tok.id == TokenId::Identifier)
+                if (tok.id == TokenId::Identifier || param.hasFlag(AstLambdaParamFlagsE::Generated))
                     idRef = sema.idMgr().addIdentifier(ctx, param.codeRef());
             }
 
@@ -1890,8 +1890,33 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
     return Result::Continue;
 }
 
+namespace
+{
+    // Whether this 'return' is written in the body of a 'parallel for'. That body is a closure
+    // the parser generated, so a 'return' there ends one partition instead of the enclosing
+    // function, and the other partitions keep running.
+    //
+    // A callee inlined into the body keeps its own return contract: its 'return' belongs to the
+    // function that was written, not to the partition it happens to be expanded in.
+    bool inParallelForBody(Sema& sema)
+    {
+        if (nearestReturnContextPayload(sema) != nullptr)
+            return false;
+
+        const SymbolFunction* currentFn = sema.currentFunction();
+        if (!currentFn)
+            return false;
+
+        const AstNode* decl = currentFn->decl();
+        return decl != nullptr && decl->is(AstNodeId::ClosureExpr) && decl->cast<AstClosureExpr>().parallelBody;
+    }
+}
+
 Result AstReturnStmt::semaPostNode(Sema& sema) const
 {
+    if (inParallelForBody(sema))
+        return SemaError::raise(sema, DiagnosticId::sema_err_return_leaves_parallel_for, sema.curNodeRef());
+
     TypeRef returnTypeRef = TypeRef::invalid();
     SWC_RESULT(resolveReturnTypeRef(sema, nodeExprRef, returnTypeRef));
     return validateReturnStatementValue(sema, sema.curNodeRef(), nodeExprRef, returnTypeRef);

@@ -491,10 +491,11 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 // one, or an overlap scratch plane reset over the wrong rows all break it.
 #test
 {
-    // A test process starts no pool, and a single worker keeps parallelFor serial, so the
-    // band split needs an explicit multi-worker pool to be reached at all.
-    if Jobs.workerCount() < 2 do
-        discard expect Jobs.initialize(4)
+    // Compile-time execution keeps every partition on the calling thread, so the band split
+    // is only reachable in a process that actually runs workers.
+    Swag.setWorkerCount(4)
+    if Swag.workerCount() < 2 do
+        return
 
     const Height = 512
     const Narrow = 8     // Columns the two renders have in common, and the serial width.

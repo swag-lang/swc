@@ -46,8 +46,8 @@ internal struct WaveformPoint
 private var g_SoundEngineUsers:      u32
 private var g_SoundViewerOwnsEngine: bool
 
-// Creation of the audio engine started ahead of the first voice, on a scheduler worker.
-private var g_SoundEngineWarmUp:  Jobs.Job
+// Creation of the audio engine started ahead of the first voice, on a runtime worker.
+private var g_SoundEngineWarmUp:  Swag.Task
 private var g_SoundEngineWarming: bool
 
 // Starts creating the audio engine without waiting for it.
@@ -62,14 +62,11 @@ internal func warmSoundEngine()
     if g_SoundEngineWarming or g_SoundEngineUsers or isEngineCreated() do
         return
 
-    g_SoundEngineWarming       = true
-    g_SoundEngineWarmUp.lambda = func(data: *void?)
+    g_SoundEngineWarming = true
+    g_SoundEngineWarmUp.submit(func()
     {
-        discard data
         discard catch createEngine()
-    }
-    g_SoundEngineWarmUp.data = null
-    Jobs.schedule(&g_SoundEngineWarmUp)
+    })
 }
 
 internal func acquireSoundEngine(kind = DriverKind.Default)->bool
@@ -82,7 +79,7 @@ internal func acquireSoundEngine(kind = DriverKind.Default)->bool
 
     if g_SoundEngineWarming
     {
-        Jobs.wait(&g_SoundEngineWarmUp)
+        g_SoundEngineWarmUp.wait()
         g_SoundEngineWarming = false
         if isEngineCreated() do
             g_SoundViewerOwnsEngine = true

@@ -114,7 +114,7 @@ struct PdfView
     // window sees as the window stopping. The view keeps drawing at the scale the page already
     // holds and has a worker raise it one item at a time, so a frame waits at most for the item
     // the worker is on.
-    prepareJob:     Jobs.Job
+    prepareTask:    Swag.Task
     pageLock:       Sync.Mutex
     preparedScale:  f32
     preparingScale: f32
@@ -409,23 +409,16 @@ internal impl PdfView
         if .preparing or wanted <= .preparedScale do
             return
 
-        .preparingScale    = wanted
-        .prepareReady      = 0
-        .prepareCancel     = 0
-        .preparing         = true
-        .prepareJob.lambda = func(data: *void?)
-        {
-            let view = cast(*PdfView) data!
-            view.runPrepare()
-        }
+        .preparingScale = wanted
+        .prepareReady   = 0
+        .prepareCancel  = 0
+        .preparing      = true
 
-        .prepareJob.data = me
-        Jobs.schedule(&.prepareJob)
+        // Without a worker the task runs here and is already finished; the timer publishes it
+        // either way rather than leaving this frame to decide.
+        let view = me
+        .prepareTask.submit(func|view|() { view.runPrepare() })
 
-        // Without workers a job only runs inside a wait, so it is already done here; the timer
-        // publishes it either way rather than leaving this frame to decide.
-        if Jobs.isSynchronous() do
-            Jobs.wait(&.prepareJob)
         if !.prepareTimer do
             .prepareTimer = .addTimer(PreparePollInterval)
     }
@@ -465,7 +458,7 @@ internal impl PdfView
         if !.preparing or Atomic.get(&.prepareReady) == 0 do
             return false
 
-        Jobs.wait(&.prepareJob)
+        .prepareTask.wait()
         .preparedScale = .preparingScale
         .preparing     = false
         .stopPrepareTimer()
@@ -487,7 +480,7 @@ internal impl PdfView
         if .preparing
         {
             Atomic.exchange(&.prepareCancel, 1)
-            Jobs.wait(&.prepareJob)
+            .prepareTask.wait()
             .preparing = false
         }
 

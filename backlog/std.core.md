@@ -34,9 +34,81 @@ The remaining work includes networking, cryptography, compression, text, and con
 The network stack starts with the blocking transport contract; datagrams and higher-level protocols have separate
 acceptance conditions of their own.
 
-All new concurrency types and their generic implementations belong to `bin/runtime`, as specified
-by language.parallelism.001. The concurrency entries own Core integration, algorithms, and consumer migration
-against that native surface; they do not introduce Core-owned task or synchronization types.
+All concurrency types and their generic implementations belong to `bin/runtime`, as specified by
+language.parallelism.001. The concurrency entries own Core integration, algorithms, and consumer
+migration against that native surface; they do not introduce Core-owned task or synchronization
+types.
+
+### std.core.031 — Two atomic families, one of them Core's
+
+- Recorded: 2026-09-07 16:02
+- Found while: adding `Swag.AtomicValue` to `bin/runtime` for the scheduler and the task states.
+- Evidence: `Core.Atomic` is a namespace of `#[Swag.Inline]` wrappers over the `Swag.atom*`
+  intrinsics, used 227 times across `bin/`. `Swag.AtomicValue'T` is the runtime type that owns
+  atomic storage and exposes the same operations as methods. The concurrency contract says one
+  owner for each concurrency type family; there are two, and the runtime one had to be named
+  `AtomicValue` because `Atomic` is already taken by the Core namespace in every file that writes
+  `using Threading`.
+- Next: decide which one the language keeps. Storage that only its own operations reach is the
+  stronger contract -- it is what makes "no ordinary access beside an atomic one" checkable -- so
+  the likely answer is the runtime type, with `Core.Atomic` migrating to it and the runtime type
+  taking the name `Atomic` once the namespace is gone. Count the call sites that atomically access
+  a field of a larger structure, because those need the field itself to become an
+  `AtomicValue` rather than a wrapper call on its address.
+- Complete when: one atomic family remains, its name is not a workaround, and no consumer reaches
+  atomic storage through an ordinary pointer.
+- Related: language.parallelism.001, language.parallelism.005
+
+### std.core.025 — No task combinators over the runtime tasks
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-07 15:56 — cut down to what the runtime types do not answer, now that
+  `Core.Jobs` is gone and every consumer uses `Swag.Task` and `Swag.TaskGroup`
+- Evidence: the runtime provides one task, one group, and one partitioned loop. A caller that
+  wants bounded map, first completion, first success, all-results, or progress writes the fan-out
+  and the join by hand, as `H264.Decoder.scheduleParsedRows` and `Hevc` wavefront scheduling both
+  do with their own arrays and their own failure flag.
+- Next: review that family as one operation set rather than adding members one at a time, and
+  settle what each does with a losing branch: cancel it, join it, and only then release anything it
+  borrows. Combinators that select one result need
+  [language.parallelism.002](language.parallelism.md) to land first, because a task carries no
+  typed result yet. Keep scheduling below Core; these are algorithms over the runtime types, not a
+  second scheduler.
+- Complete when: the operations preserve result and error ownership, join losing work before
+  releasing its borrows, and the manual fan-outs in `std/video` are written with them instead.
+- Related: language.parallelism.002, std.core.026, std.core.028
+
+### std.core.026 — No channel abstraction
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-07 15:56 — the runtime now owns locks, conditions and tasks, so a channel has
+  somewhere to live; the type itself is still missing
+- Evidence: no typed channel defines transfer, capacity, close, cancellation, and selection
+  together. A producer and a consumer that need one build it from `Swag.Mutex` and
+  `Swag.Condition` by hand, which is what the Swag Scope video queue does.
+- Next: define the bounded, rendezvous, and one-shot forms in `bin/runtime`, with their endpoint,
+  selection, and rejected-message types. Settle endpoint clone and drop behavior, draining after
+  close, ownership of a moved message rejected before acceptance, and the single commit point of a
+  selection before adding any Core convenience function.
+- Complete when: focused channel and selection tests cover backpressure, closure, cancellation,
+  simultaneous readiness, and withdrawal without a lost message or a duplicate consumption.
+- Related: language.parallelism.002, std.core.025
+
+### std.core.028 — No asynchronous I/O contract
+
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-07 15:56 — waits on language.parallelism.002 rather than on the whole model
+- Evidence: there is no shared asynchronous I/O contract for completion, cancellation, borrowed
+  buffers, or scheduler integration.
+- Next: implement awaitable I/O against language.parallelism.002's completion and task-lifetime rules,
+  using runtime-owned operation, completion, and cancellation types. Keep the common operation
+  contract independent of its first socket or file backend. Model
+  immediate completion, failed registration, cancellation racing completion, partial transfer,
+  late callbacks, and shutdown. A stop request or expired deadline is not native completion.
+- Complete when: a fake backend and one real backend demonstrate exactly one terminal completion
+  and retain buffers, request records, and callbacks until the backend is finished with them;
+  owning I/O consumers use the common runtime without private task or cancellation machinery.
+- Related: language.parallelism.002, std.core.025, std.core.004
 
 ### std.core.019 — Unambiguous regular-expression captures replay the search
 
@@ -103,67 +175,6 @@ the readiness mechanism separate from the blocking socket foundation.
 - Complete when: the script names of UAX #24 resolve, a test matches text in two scripts, and the
   tables are generated rather than hand-written.
 - Related: std.core.019
-
-### std.core.025 — No future or task abstraction
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: `Jobs` provides borrowed callbacks and parallel loops without typed results, owned
-  captures, structured cancellation, or error propagation.
-- Next: implement standard task combinators and migrate the Jobs family against the native
-  task/runtime contract proposed in
-  [language.parallelism.001](language.parallelism.md#languageparallelism001--specify-and-prototype-native-structured-concurrency),
-  after its semantic gates and prototype settle the contract. Review bounded map, first completion,
-  first success, all-results, supervision, progress, and shutdown as one operation family. Keep
-  primitive task ownership and scheduling below Core; do not create a competing library scheduler.
-  Any new reusable concurrency type needed by these operations is defined in `bin/runtime`.
-- Complete when: those operations preserve result/error ownership and join losing work, and the
-  caller inventory has migrated from the legacy Jobs API. Temporary callback adapters remain
-  explicitly unchecked and are removed with their last consumers.
-- Related: language.parallelism.001, std.core.026, std.core.027, std.core.028
-
-### std.core.026 — No channel abstraction
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: no typed channel currently defines transfer, capacity, close, cancellation, and
-  selection together.
-- Next: integrate the runtime's bounded, rendezvous, and one-shot communication proposed in
-  language.parallelism.001. Endpoint, selection, and rejected-message types remain in runtime.
-  Settle endpoint clone/drop behavior, draining after close, ownership of rejected moved messages,
-  and exactly one committed selection operation before choosing Core convenience functions.
-- Complete when: focused channel and selection tests cover backpressure, closure, cancellation,
-  simultaneous readiness, and withdrawal without lost messages or duplicate consumption.
-- Related: language.parallelism.001, std.core.025
-
-### std.core.027 — No condition variable
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: the synchronization family has no condition-variable predicate/wait contract.
-- Next: integrate runtime condition and guard types with their explicit release/wait/reacquire
-  contract under language.parallelism.001, including cancellation and lost/spurious wakeups. Review
-  the existing mutex/event callers so a notification, permit count, and condition are not treated
-  as interchangeable mechanisms. Keep native backend work in platform.portability.035.
-- Complete when: guarded state remains valid across every wait outcome and focused tests prove
-  notification registration, predicate rechecking, cancellation, and reacquisition behavior.
-- Related: language.parallelism.001, std.core.025, platform.portability.035
-
-### std.core.028 — No asynchronous I/O contract
-
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: there is no shared asynchronous I/O contract for completion, cancellation, borrowed
-  buffers, or scheduler integration.
-- Next: implement awaitable I/O against language.parallelism.001's completion and task-lifetime rules,
-  using runtime-owned operation, completion, and cancellation types. Keep the common operation
-  contract independent of its first socket or file backend. Model
-  immediate completion, failed registration, cancellation racing completion, partial transfer,
-  late callbacks, and shutdown. A stop request or expired deadline is not native completion.
-- Complete when: a fake backend and one real backend demonstrate exactly one terminal completion
-  and retain buffers, request records, and callbacks until the backend is finished with them;
-  owning I/O consumers use the common runtime without private task or cancellation machinery.
-- Related: language.parallelism.001, std.core.025, std.core.004
 
 ### std.core.013 — No BLAKE2s implementation
 

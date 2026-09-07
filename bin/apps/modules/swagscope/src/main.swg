@@ -60,9 +60,9 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
         return
     }
 
-    // Large image, audio, and video viewers fan their independent work through the shared
-    // scheduler. Without workers those paths silently execute on the GUI thread in serial.
-    try Jobs.initialize()
+    // Large image, audio, and video viewers fan their independent work through the runtime's
+    // shared worker pool. Starting it here keeps that cost out of the first opened file.
+    Swag.startWorkers()
 
     let appIcon = expect Image.decode(".png", AppIcon)
     g_App.setAppIcon(appIcon)

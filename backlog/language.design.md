@@ -761,7 +761,7 @@ ships; history lives in git, not here.
 ## Generic contracts and execution semantics
 
 Native concurrency and parallel execution are covered in
-[language.parallelism.md](language.parallelism.md#languageparallelism001--specify-and-prototype-native-structured-concurrency).
+[language.parallelism.md](language.parallelism.md#languageparallelism001--the-shipped-model-and-the-promises-it-does-not-yet-make).
 
 Surprises in the language itself: rules that are consistent on their own page and stop being
 consistent once two pages meet, spellings that carry more than one meaning, and defaults that

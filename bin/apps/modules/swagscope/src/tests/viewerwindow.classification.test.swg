@@ -36,12 +36,12 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
     var recent: Array'String
 
     load.start(&index, names[0].toString(), recent.toSlice())
-    Jobs.wait(&load.job)
+    load.task.wait()
     var first = load.finish()
     assertClassificationFolder(&first, names.toSlice())
 
     load.start(&index, names[2].toString(), recent.toSlice())
-    Jobs.wait(&load.job)
+    load.task.wait()
     var second = load.finish()
     assertClassificationFolder(&second, names.toSlice())
 }

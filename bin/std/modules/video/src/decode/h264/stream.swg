@@ -123,7 +123,7 @@ impl AvcStream
         for &decoder in .decoders do
             decoder.configure(config)
 
-        .laneCount = Math.max(1'u32, Math.min(Jobs.workerCount(), AvcMaxFrameThreads))
+        .laneCount = Math.max(1'u32, Math.min(Swag.workerCount(), AvcMaxFrameThreads))
         let sps = .decoders[0].firstSps()
         if !sps do
             fail InvalidFormatError{"H.264 decoder configuration has no sequence parameter set"}

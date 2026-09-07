@@ -596,10 +596,12 @@ platform without copying common lifecycle policy into the native leaf.
 - Recorded: 2026-08-09 11:30
 - Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
-Implement mutexes, read-write locks, and events for the chosen second platform behind the existing
-portable contracts.
+Implement mutexes, read-write locks, conditions, and events for the chosen second platform behind
+the existing portable contracts. `bin/runtime` reaches them through its `__hostLock*`,
+`__hostCondition*` and `__hostThread*` functions, so a port supplies those and nothing above them
+changes.
 
-- Related: platform.portability.034, std.core.027
+- Related: platform.portability.034, language.parallelism.003
 
 ### platform.portability.036 — Clocks have no second-platform backend
 

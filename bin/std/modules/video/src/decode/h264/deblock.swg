@@ -26,7 +26,7 @@ private struct DeblockContext
 func deblockPicture(dec: *Decoder)
 {
     let sps       = dec.sps!
-    let laneCount = Math.min(Math.min(Jobs.workerCount(), DeblockLanes), cast(u32) sps.mbHeight)
+    let laneCount = Math.min(Math.min(Swag.workerCount(), DeblockLanes), cast(u32) sps.mbHeight)
     if laneCount <= 1
     {
         for mbY in sps.mbHeight
@@ -45,9 +45,10 @@ func deblockPicture(dec: *Decoder)
     var rowProgress: Array'u32
     rowProgress.resize(cast(u64) sps.mbHeight)
     var context = DeblockContext{dec, rowProgress.buffer!, laneCount}
-    Jobs.parallelFor(laneCount, &context)
+    parallel for |&context| parIndex in cast(u64) laneCount
     {
-        let state  = cast(*DeblockContext) data!
+        let index  = cast(u32) parIndex
+        let state  = &context
         let width  = state.decoder.sps!.mbWidth
         let height = state.decoder.sps!.mbHeight
         var mbY    = cast(s32) index

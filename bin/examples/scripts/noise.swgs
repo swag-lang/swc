@@ -104,7 +104,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    try Jobs.initialize()
+    Swag.startWorkers()
 
     Application.runSurface(100, 100, W + UX, H + CaptionRoom, title: "Noise", canSize: false, hook: &onEvent)
 }

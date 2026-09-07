@@ -95,27 +95,27 @@ impl Decoder
         let stepX     = vertical ? 8'u32 : 4'u32
         let stepY     = vertical ? 4'u32 : 8'u32
         let bandCount = (sps.height + stepY - 1) / stepY
-        let laneCount = Math.min(Math.min(Jobs.workerCount(), DeblockLanes), bandCount)
+        let laneCount = Math.min(Math.min(Swag.workerCount(), DeblockLanes), bandCount)
 
         if laneCount > 1
         {
             var context = DeblockContext{me, vertical, stepX, stepY, bandCount, laneCount}
-            Jobs.parallelFor(laneCount, &context)
+            parallel for |&context| parIndex in cast(u64) laneCount
             {
-                let state = cast(*DeblockContext) data!
-                let width = state.decoder.activeSps!.width
+                let index = cast(u32) parIndex
+                let width = context.decoder.activeSps!.width
                 var band  = index
-                while band < state.bandCount
+                while band < context.bandCount
                 {
-                    let y = band * state.stepY
+                    let y = band * context.stepY
                     var x = 0'u32
                     while x < width
                     {
-                        state.decoder.filterBlockEdge(cast(s32) x, cast(s32) y, state.vertical)
-                        x += state.stepX
+                        context.decoder.filterBlockEdge(cast(s32) x, cast(s32) y, context.vertical)
+                        x += context.stepX
                     }
 
-                    band += state.laneCount
+                    band += context.laneCount
                 }
             }
 

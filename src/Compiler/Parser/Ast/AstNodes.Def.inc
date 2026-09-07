@@ -207,6 +207,7 @@ SWC_NODE_DEF(WhileStmt, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(ForeachStmt, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(ForCStyleStmt, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(ForStmt, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(ParallelForStmt, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(InfiniteLoopStmt, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(SwitchStmt, AstNodeIdFlagsE::Zero)

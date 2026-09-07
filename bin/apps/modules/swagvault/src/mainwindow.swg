@@ -160,13 +160,13 @@ struct MountSettings
 }
 
 // Long operation running outside the UI thread. Only one runs at a time, and the window
-// polls `job` with `timer` until the result is ready to be reported.
+// polls `task` with `timer` until the result is ready to be reported.
 struct VaultOperation
 {
-    job:            Jobs.Job          // Worker scheduled for `kind`.
-    kind:           OperationKind     // Work the job performs, or `None` while the window is idle.
-    timer:          *Timer?           // Polls the job while it runs.
-    error:          any?              // Failure captured by the job, or null when it succeeded.
+    task:           Swag.Task         // Runtime task running `kind`.
+    kind:           OperationKind     // Work the task performs, or `None` while the window is idle.
+    timer:          *Timer?           // Polls the task while it runs.
+    error:          any?              // Failure captured by the task, or null when it succeeded.
     path:           String            // Container file the operation acts on.
     mount:          String            // Stable backend destination identifier requested by a mount operation.
     mountLabel:     String            // Host-facing destination name reported when the operation completes.
@@ -415,12 +415,6 @@ internal func isCanceledError(err: any?)->bool
     }
 
     return false
-}
-
-internal func runMainWindowOperation(data: *void?)
-{
-    let window = cast(*MainWindow) (data!)
-    window.runOperation()
 }
 
 // Sets a control in the fixed-width theme family.
@@ -1616,7 +1610,7 @@ impl MainWindow
         if interruptedMount
         {
             .operation.securityStopped = true
-            Jobs.wait(&.operation.job)
+            .operation.task.wait()
             .finishOperation()
         }
 
@@ -1655,17 +1649,17 @@ impl MainWindow
     mtd beginOperation(kind: OperationKind)
     {
         Debug.assert(.operation.kind == .None)
-        .operation.kind       = kind
-        .operation.error      = null
-        .operation.job.lambda = &runMainWindowOperation
-        .operation.job.data   = me
-        .operation.timer      = .app().addTimer(50'ms, me)
+        .operation.kind  = kind
+        .operation.error = null
+        .operation.timer = .app().addTimer(50'ms, me)
 
-        // Arming the tracker before the job starts is what clears the cancellation a previous
+        // Arming the tracker before the task starts is what clears the cancellation a previous
         // operation left behind.
         .operation.progress.begin(0)
         .showBusy(true)
-        Jobs.schedule(&.operation.job)
+
+        let window = me
+        .operation.task.submit(func|window|() { window.runOperation() })
     }
 
     mtd createContainer()
@@ -2138,7 +2132,7 @@ impl MainWindow
 
     mtd finishOperation()
     {
-        Jobs.wait(&.operation.job)
+        .operation.task.wait()
         if .operation.timer
         {
             .removeTimer(.operation.timer!)
@@ -2469,7 +2463,7 @@ impl MainWindow
             // waiting is what keeps closing the window immediate; the operation unwinds and
             // deletes the partial file on its way out.
             .operation.progress.cancel()
-            Jobs.wait(&.operation.job)
+            .operation.task.wait()
             .operation.kind = .None
         }
 
@@ -2532,7 +2526,7 @@ impl IWnd for MainWindow
     {
         if evt.timer == .operation.timer
         {
-            if Jobs.isDone(&.operation.job) do
+            if .operation.task.isDone() do
                 .finishOperation()
             else do
                 .reportProgress()

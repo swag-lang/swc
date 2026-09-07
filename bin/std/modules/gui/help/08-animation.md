@@ -39,7 +39,7 @@ An [[Gui.AnimationGroup]] starts tracks together or in insertion order. Transfer
 group to the scheduler with `#move`.
 
 ```swag
-var group = AnimationGroup.parallel()
+var group = AnimationGroup.concurrent()
 group.addF32(card, AnimationChannel.from("Example.CardOpacity"), 0, 1,
              func(wnd, value) { wnd.setPresentationOpacity(value); }, options)
 group.addPoint(card, AnimationChannel.from("Example.CardOffset"), {16, 0}, {},

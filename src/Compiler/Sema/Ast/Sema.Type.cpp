@@ -163,7 +163,8 @@ namespace
 
 Result AstBuiltinType::semaPostNode(Sema& sema) const
 {
-    const TypeRef typeRef = sema.typeMgr().builtinType(sema.token(codeRef()).id);
+    const TokenId tokenId = typeTokenId != TokenId::Invalid ? typeTokenId : sema.token(codeRef()).id;
+    const TypeRef typeRef = sema.typeMgr().builtinType(tokenId);
     SWC_INTERNAL_CHECK(typeRef.isValid());
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;

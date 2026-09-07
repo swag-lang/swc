@@ -786,10 +786,41 @@ Result AstWhileStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
     return Result::Continue;
 }
 
+// A parallel range is expressed in non-negative indices, whatever the bounds were written as.
+Result AstParallelForStmt::semaPostNode(Sema& sema) const
+{
+    const TypeRef indexTypeRef = sema.typeMgr().typeU64();
+
+    if (nodeBeginRef.isValid())
+    {
+        SWC_RESULT(SemaCheck::isValue(sema, nodeBeginRef));
+        SemaNodeView beginView = sema.viewNodeTypeConstant(nodeBeginRef);
+        SWC_RESULT(Cast::castIfNeeded(sema, beginView, indexTypeRef, CastKind::Implicit));
+    }
+
+    SWC_RESULT(SemaCheck::isValue(sema, nodeEndRef));
+    SemaNodeView endView = sema.viewNodeTypeConstant(nodeEndRef);
+    SWC_RESULT(Cast::castIfNeeded(sema, endView, indexTypeRef, CastKind::Implicit));
+
+    return Result::Continue;
+}
+
 Result AstBreakStmt::semaPreNode(Sema& sema)
 {
     if (sema.frame().currentBreakableKind() != SemaFrame::BreakContextKind::None)
+    {
+        const SemaFrame::BreakContext& breakContext = sema.frame().currentBreakContext();
+        if (breakContext.kind == SemaFrame::BreakContextKind::Loop && breakContext.nodeRef.isValid())
+        {
+            const AstNode& loopNode = sema.node(breakContext.nodeRef);
+            const bool     partition = (loopNode.is(AstNodeId::ForStmt) && loopNode.cast<AstForStmt>().hasFlag(AstForeachStmtFlagsE::ParallelPartition)) ||
+                                       (loopNode.is(AstNodeId::ForeachStmt) && loopNode.cast<AstForeachStmt>().hasFlag(AstForeachStmtFlagsE::ParallelPartition));
+            if (partition)
+                return SemaError::raise(sema, DiagnosticId::sema_err_break_leaves_parallel_for, sema.curNodeRef());
+        }
+
         return Result::Continue;
+    }
 
     // Inside a '#scope' the reader almost certainly meant to leave that scope, which only
     // 'break to <name>' does. Point at the scope instead of reporting a bare absence.

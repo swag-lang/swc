@@ -2,7 +2,7 @@
 
 // A local function of a macro is a function of its own: the macro's parameter is bound to an
 // expression of the caller's frame, which that function cannot reach. The value goes in as an
-// argument of the local function instead, as 'Jobs.parallelFor' does.
+// argument of the local function instead, as a partitioning macro does.
 #[Swag.Macro]
 func visitOnce(count: u32, stmt: #code(index: u32))
 {

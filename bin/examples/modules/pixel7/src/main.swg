@@ -352,7 +352,7 @@ func updateTestMode()
     g_Render.setCurrentContext(g_RC)
     g_Render.init()
 
-    try Jobs.initialize()
+    Swag.startWorkers()
     try loadFonts()
     try buildPages()
 

@@ -244,6 +244,9 @@ struct AstFunctionExpr : AstLambdaExprT<AstNodeId::FunctionExpr, AstFunctionFlag
 struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr, AstFunctionFlagsE>
 {
     SpanRef nodeCaptureArgsRef;
+    // The body of a 'parallel for'. One call of it is one partition, so a 'return' written in it
+    // ends that partition instead of the enclosing function and is rejected.
+    bool parallelBody = false;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
@@ -349,6 +352,9 @@ enum class AstLambdaParamFlagsE : AstNode::ParserFlags
 {
     Zero  = 0,
     Named = 1 << 0,
+    // A parameter the compiler synthesized. Its name comes from the token it borrows, which is
+    // not an identifier: a keyword names it precisely because no written name can collide.
+    Generated = 1 << 1,
 };
 
 struct AstLambdaParam : AstNodeT<AstNodeId::LambdaParam, AstLambdaParamFlagsE>
@@ -1062,6 +1068,11 @@ struct AstNamedType : AstNodeT<AstNodeId::NamedType>
 // -----------------------------------------------------------------------------
 struct AstBuiltinType : AstNodeT<AstNodeId::BuiltinType>
 {
+    // The type this node names, when the compiler synthesized it. A generated type node borrows
+    // the location of the statement that produced it, and that token names no type, so the
+    // answer cannot come from the token the way a written type's does.
+    TokenId typeTokenId = TokenId::Invalid;
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -1652,6 +1663,9 @@ enum class AstForeachStmtFlagsE : AstNode::ParserFlags
     // const address (a synthesized pointer type): codegen must store the element
     // address, exactly like the '&name' form, never copy the element.
     BindsValueAddress = 1 << 2,
+    // The loop the parser generated for one partition of a 'parallel for'. Leaving it early
+    // would skip iterations the statement promises to run, so 'break' names it and stops.
+    ParallelPartition = 1 << 3,
 };
 
 struct AstForeachStmt : AstNodeT<AstNodeId::ForeachStmt, AstForeachStmtFlagsE>
@@ -1716,6 +1730,31 @@ struct AstForStmt : AstNodeT<AstNodeId::ForStmt, AstForeachStmtFlagsE>
 };
 
 static_assert(sizeof(AstForStmt) == sizeof(AstForeachStmt), "ForStmt/ForeachStmt must share layout: Sema retypes ForStmt in place");
+
+// -----------------------------------------------------------------------------
+enum class AstParallelForStmtFlagsE : AstNode::ParserFlags
+{
+    Zero = 0,
+    // The written range was 'a to b', so its upper bound belongs to the range.
+    Inclusive = 1 << 0,
+};
+
+// 'parallel for |captures| name in range { body }'.
+//
+// The parser lowers the loop into a closure taking one partition's half-open bounds, whose body
+// is an ordinary 'for' over those bounds. What is left here is the range and that closure; the
+// statement itself lowers to one call into the runtime's partitioning entry point.
+struct AstParallelForStmt : AstNodeT<AstNodeId::ParallelForStmt, AstParallelForStmtFlagsE>
+{
+    AstNodeRef nodeBeginRef;       // Lower bound, invalid for a counted range starting at zero.
+    AstNodeRef nodeEndRef;         // Upper bound, or the iteration count.
+    AstNodeRef nodeClosureRef;     // The partition body.
+
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBeginRef, nodeEndRef, nodeClosureRef}); }
+    Result     semaPostNode(Sema& sema) const;
+    Result     codeGenPostNode(CodeGen& codeGen) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+};
 
 // -----------------------------------------------------------------------------
 struct AstInfiniteLoopStmt : AstNodeT<AstNodeId::InfiniteLoopStmt>

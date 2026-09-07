@@ -17,23 +17,33 @@ namespace __Win32RT
     alias WCHAR                  = u16
     alias BOOL                   = u8
     alias PFLS_CALLBACK_FUNCTION = func(*void?)
+    alias CONDITION_VARIABLE     = *void?
+    alias THREAD_START_ROUTINE   = func(*void?)->DWORD
     alias RtlDecompressBufferFn  = func(USHORT, [*] u8, ULONG, const [*] u8, ULONG, *ULONG)->s32
 
-    const STD_OUTPUT_HANDLE    = 0xFFFF_FFF5'u32
-    const MB_CANCELTRYCONTINUE = 0x00000006
-    const MB_ICONERROR         = 0x00000010
-    const IDCANCEL             = 2
-    const IDTRYAGAIN           = 10
-    const IDCONTINUE           = 11
-    const FALSE: BOOL          = 0
-    const TRUE:  BOOL          = 1
-    const SRWLOCK_INIT         = cast(SRWLOCK) null
-    const MEM_COMMIT           = 0x0000_1000'u32
-    const MEM_RESERVE          = 0x0000_2000'u32
-    const MEM_DECOMMIT         = 0x0000_4000'u32
-    const MEM_RELEASE          = 0x0000_8000'u32
-    const PAGE_READWRITE       = 0x0000_0004'u32
-    const PAGE_NOACCESS        = 0x0000_0001'u32
+    const STD_OUTPUT_HANDLE       = 0xFFFF_FFF5'u32
+    const MB_CANCELTRYCONTINUE    = 0x00000006
+    const MB_ICONERROR            = 0x00000010
+    const IDCANCEL                = 2
+    const IDTRYAGAIN              = 10
+    const IDCONTINUE              = 11
+    const FALSE: BOOL             = 0
+    const TRUE:  BOOL             = 1
+    const SRWLOCK_INIT            = cast(SRWLOCK) null
+    const CONDITION_VARIABLE_INIT = cast(CONDITION_VARIABLE) null
+    const INFINITE                = 0xFFFF_FFFF'u32
+    const WAIT_TIMEOUT            = 0x0000_0102'u32
+    const ALL_PROCESSOR_GROUPS    = 0x0000_FFFF'u16
+    const PAGE_READWRITE_MAP      = 0x0000_0004'u32
+    const FILE_MAP_ALL_ACCESS     = 0x000F_001F'u32
+    const INVALID_HANDLE          = cast(HANDLE) -1
+    const ERROR_ALREADY_EXISTS    = 183'u32
+    const MEM_COMMIT              = 0x0000_1000'u32
+    const MEM_RESERVE             = 0x0000_2000'u32
+    const MEM_DECOMMIT            = 0x0000_4000'u32
+    const MEM_RELEASE             = 0x0000_8000'u32
+    const PAGE_READWRITE          = 0x0000_0004'u32
+    const PAGE_NOACCESS           = 0x0000_0001'u32
 
     const PF_AVX2_INSTRUCTIONS_AVAILABLE = 40'u32
     const CP_UTF8 = 65001'u32
@@ -70,6 +80,24 @@ namespace __Win32RT
         func VirtualAlloc(lpAddress: *void?, dwSize: ULONG64, flAllocationType: DWORD, flProtect: DWORD)->*void?
         func VirtualFree(lpAddress: *void?, dwSize: ULONG64, dwFreeType: DWORD)->BOOL
         func IsProcessorFeaturePresent(processorFeature: DWORD)->BOOL
+        func CreateThread(lpThreadAttributes: *void?, dwStackSize: ULONG64, lpStartAddress: THREAD_START_ROUTINE, lpParameter: *void?, dwCreationFlags: DWORD, lpThreadId: *DWORD?)->HANDLE?
+        func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD
+        func CloseHandle(hObject: HANDLE)->BOOL
+        func SwitchToThread()->BOOL
+        func Sleep(dwMilliseconds: DWORD)
+        func GetActiveProcessorCount(groupNumber: USHORT)->DWORD
+        func GetCurrentProcessId()->DWORD
+        func GetLastError()->DWORD
+        func TryAcquireSRWLockExclusive(SRWLock: *SRWLOCK)->BOOL
+        func AcquireSRWLockShared(SRWLock: *SRWLOCK)
+        func ReleaseSRWLockShared(SRWLock: *SRWLOCK)
+        func TryAcquireSRWLockShared(SRWLock: *SRWLOCK)->BOOL
+        func InitializeConditionVariable(conditionVariable: *CONDITION_VARIABLE)
+        func SleepConditionVariableSRW(conditionVariable: *CONDITION_VARIABLE, SRWLock: *SRWLOCK, dwMilliseconds: DWORD, flags: ULONG)->BOOL
+        func WakeConditionVariable(conditionVariable: *CONDITION_VARIABLE)
+        func WakeAllConditionVariable(conditionVariable: *CONDITION_VARIABLE)
+        func CreateFileMappingW(hFile: HANDLE, lpAttributes: *void?, flProtect: DWORD, dwMaximumSizeHigh: DWORD, dwMaximumSizeLow: DWORD, lpName: const [*] WCHAR?)->HANDLE?
+        func MapViewOfFile(hFileMappingObject: HANDLE, dwDesiredAccess: DWORD, dwFileOffsetHigh: DWORD, dwFileOffsetLow: DWORD, dwNumberOfBytesToMap: ULONG64)->*void?
     }
 
     #[Swag.Foreign("user32", callconv: Swag.CallConv.C)]
@@ -108,6 +136,132 @@ func __hostThreadStorageSet(id: u64, value: *void?)->bool
 }
 
 func __hostCurrentThreadId()->u64 => __Win32RT.GetCurrentThreadId()
+
+////////////////////////////////////////////////////////////
+// EXECUTION RESOURCES
+////////////////////////////////////////////////////////////
+
+// Starts one host thread running `entry` with `param`, or returns null when the host refuses.
+func __hostThreadCreate(entry: func(*void?)->u32, param: *void?)->*void?
+{
+    return __Win32RT.CreateThread(null, 0, entry, param, 0, null)
+}
+
+// Waits for a host thread to finish and releases the handle this runtime owns for it.
+func __hostThreadJoin(handle: *void?)
+{
+    if !handle do
+        return
+    discard __Win32RT.WaitForSingleObject(handle, __Win32RT.INFINITE)
+    discard __Win32RT.CloseHandle(handle)
+}
+
+// Yields the remainder of the calling thread's time slice.
+func __hostThreadYield()
+{
+    discard __Win32RT.SwitchToThread()
+}
+
+// Suspends the calling thread for at least `milliseconds`.
+func __hostThreadSleep(milliseconds: u32)
+{
+    __Win32RT.Sleep(milliseconds)
+}
+
+// Returns how many logical processors the process can run on.
+func __hostProcessorCount()->u32
+{
+    let count = __Win32RT.GetActiveProcessorCount(__Win32RT.ALL_PROCESSOR_GROUPS)
+    return count == 0 ? 1 : count
+}
+
+////////////////////////////////////////////////////////////
+// LOCKS AND CONDITIONS
+////////////////////////////////////////////////////////////
+
+func __hostLockExclusive(lock: *__Win32RT.SRWLOCK)          => __Win32RT.AcquireSRWLockExclusive(lock)
+func __hostUnlockExclusive(lock: *__Win32RT.SRWLOCK)        => __Win32RT.ReleaseSRWLockExclusive(lock)
+func __hostTryLockExclusive(lock: *__Win32RT.SRWLOCK)->bool => __Win32RT.TryAcquireSRWLockExclusive(lock) != __Win32RT.FALSE
+func __hostLockShared(lock: *__Win32RT.SRWLOCK)             => __Win32RT.AcquireSRWLockShared(lock)
+func __hostUnlockShared(lock: *__Win32RT.SRWLOCK)           => __Win32RT.ReleaseSRWLockShared(lock)
+func __hostTryLockShared(lock: *__Win32RT.SRWLOCK)->bool    => __Win32RT.TryAcquireSRWLockShared(lock) != __Win32RT.FALSE
+
+func __hostConditionInit(condition: *__Win32RT.CONDITION_VARIABLE)    => __Win32RT.InitializeConditionVariable(condition)
+func __hostConditionWake(condition: *__Win32RT.CONDITION_VARIABLE)    => __Win32RT.WakeConditionVariable(condition)
+func __hostConditionWakeAll(condition: *__Win32RT.CONDITION_VARIABLE) => __Win32RT.WakeAllConditionVariable(condition)
+
+// Atomically releases `lock`, waits for a wake, and reacquires it. Returns false on timeout.
+func __hostConditionWait(condition: *__Win32RT.CONDITION_VARIABLE, lock: *__Win32RT.SRWLOCK, milliseconds: u32)->bool
+{
+    return __Win32RT.SleepConditionVariableSRW(condition, lock, milliseconds, 0) != __Win32RT.FALSE
+}
+
+////////////////////////////////////////////////////////////
+// PROCESS-WIDE ANCHOR
+////////////////////////////////////////////////////////////
+
+// Publishes `candidate` as the one process-wide value for `key`, and returns the value that
+// actually won. Every artifact of one process carries its own copy of the runtime, so a
+// scheduler stored in an ordinary global would exist once per executable and per shared
+// library. The anchor is a named, process-scoped section: the first artifact to ask installs
+// its candidate, and every later artifact -- including one loaded dynamically, and one running
+// on a thread the operating system created -- reads back the same pointer.
+//
+// A host that refuses the section leaves the caller with its own candidate, which stays correct
+// for a single-artifact program.
+func __hostProcessSingleton(key: u32, candidate: *void)->*void
+{
+    // "Local\Swag.Rt.<pid>.<key>", built without any allocation or string formatting.
+    const Prefix = "Local\\Swag.Rt."
+    var name: [64] __Win32RT.WCHAR
+    var length = 0'u64
+
+    for c in Prefix
+    {
+        name[length] = cast(__Win32RT.WCHAR) c
+        length       += 1
+    }
+
+    __hostAppendHex(&name, &length, __Win32RT.GetCurrentProcessId())
+    name[length] = cast(__Win32RT.WCHAR) 46     // '.'
+    length       += 1
+    __hostAppendHex(&name, &length, key)
+    name[length] = 0
+
+    let mapping = __Win32RT.CreateFileMappingW(__Win32RT.INVALID_HANDLE, null, __Win32RT.PAGE_READWRITE_MAP, 0, 8, &name[0])
+    if !mapping do
+        return candidate
+
+    // The section stays mapped and its handle stays open for the life of the process: it holds
+    // the identity every later artifact resolves against.
+    let view = __Win32RT.MapViewOfFile(mapping!, __Win32RT.FILE_MAP_ALL_ACCESS, 0, 0, 8)
+    if !view do
+        return candidate
+
+    let slot     = cast(*u64) view!
+    let previous = Swag.atomcmpxchg(slot, 0, cast(u64) candidate)
+    return previous == 0 ? candidate : cast(*void) previous
+}
+
+private func __hostAppendHex(name: *[64] __Win32RT.WCHAR, length: *u64, value: u32)
+{
+    const Digits = "0123456789abcdef"
+    var shift = 28's32
+    var seen  = false
+
+    while shift >= 0
+    {
+        let digit = (value >> cast(u32) shift) & 0xF
+        if digit != 0 or seen or shift == 0
+        {
+            seen             = true
+            name[][length[]] = cast(__Win32RT.WCHAR) Digits[digit]
+            length[]         += 1
+        }
+
+        shift -= 4
+    }
+}
 
 func __hostPageReserve(size: u64)->[*] u8?
 {

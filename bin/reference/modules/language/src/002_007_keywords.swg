@@ -20,8 +20,8 @@ let  mtd  namespace  private  public  readonly  struct  tls  union  using  var  
 
 ```swag
 and  as  break  case  continue  default  defer  do  elif  else
-fallthrough  for  if  in  is  me  or  orelse  return  switch
-to  unreachable  until  where  while
+fallthrough  for  if  in  is  me  or  orelse  parallel  return
+switch  to  unreachable  until  where  while
 ```
 
 # Values, Errors, and Conversion

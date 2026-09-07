@@ -15,7 +15,7 @@ using Core, Core.Errors
 // lets a row advance once the row above is two coding tree blocks ahead.
 private struct WppRowJob
 {
-    using base:    Jobs.Job
+    using base:    Swag.Task
     owner:         *Decoder?
     worker:        *Decoder?
     bounds:        const [*] u64?
@@ -358,7 +358,7 @@ impl Decoder
         // A complete untiled WPP picture has one independently coded substream per coding tree
         // block row. Decode those rows concurrently; less regular slice layouts keep the exact
         // sequential path below.
-        if pps.entropyCodingSync and !pps.tilesEnabled and !.header.dependent and !.header.segmentAddress and sps.widthInCtbs >= 2 and bounds.count == cast(u64) sps.heightInCtbs + 1 and Jobs.workerCount() > 1
+        if pps.entropyCodingSync and !pps.tilesEnabled and !.header.dependent and !.header.segmentAddress and sps.widthInCtbs >= 2 and bounds.count == cast(u64) sps.heightInCtbs + 1 and Swag.workerCount() > 1
         {
             try .decodeWavefrontRows(&bounds, sps)
             return
@@ -541,14 +541,12 @@ impl Decoder
             job.row      = row
             job.rowCount = rowCount
             job.width    = width
-            job.lambda   = &runWppRow
-            job.data     = job
         }
 
-        Jobs.schedule(&jobs[0])
+        submitWppRow(&jobs[0])
 
         for index in rowCount do
-            Jobs.wait(&jobs[index])
+            jobs[index].wait()
 
         for index in rowCount
         {
@@ -712,9 +710,8 @@ impl Decoder
     }
 }
 
-private func runWppRow(data: *void?)
+private func runWppRow(job: *WppRowJob)
 {
-    let job = cast(*WppRowJob) data!
     if Atomic.get(job.failed!) != 0
     {
         scheduleNextWppRow(job)
@@ -741,5 +738,11 @@ private func scheduleNextWppRow(job: *WppRowJob)
         return
     job.nextScheduled = true
     if job.row + 1 < job.rowCount do
-        Jobs.schedule(job.jobs! + job.row + 1)
+        submitWppRow(job.jobs! + job.row + 1)
+}
+
+// Hands one row to the runtime scheduler.
+private func submitWppRow(job: *WppRowJob)
+{
+    job.submit(func|job|() { runWppRow(job) })
 }

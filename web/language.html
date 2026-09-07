@@ -81,6 +81,7 @@
 <li><a href="#_005_004_while_swg">While</a></li>
 <li><a href="#_005_005_switch_swg">Switch</a></li>
 <li><a href="#_005_006_break_swg">Break</a></li>
+<li><a href="#_005_007_parallel_for_swg">Parallel For</a></li>
 </ul>
 </li>
 <li><a href="#_006_000_structs_swg">Structs</a>
@@ -766,8 +767,8 @@ indent-style = spaces</span></div>
 <p><span class="code-inline">me</span> names the receiver inside methods.</p>
 <h3 id="_002_007_keywords_swg_Control_Flow_and_Expressions">Control Flow and Expressions</h3>
 <div class="code-block"><span class="SCde"><span class="SLgc">and</span>  <span class="SLgc">as</span>  <span class="SLgc">break</span>  <span class="SLgc">case</span>  <span class="SLgc">continue</span>  <span class="SLgc">default</span>  <span class="SLgc">defer</span>  <span class="SLgc">do</span>  <span class="SLgc">elif</span>  <span class="SLgc">else</span>
-<span class="SLgc">fallthrough</span>  <span class="SLgc">for</span>  <span class="SLgc">if</span>  <span class="SLgc">in</span>  <span class="SLgc">is</span>  <span class="STpe">me</span>  <span class="SLgc">or</span>  <span class="SLgc">orelse</span>  <span class="SLgc">return</span>  <span class="SLgc">switch</span>
-<span class="SLgc">to</span>  <span class="SLgc">unreachable</span>  <span class="SLgc">until</span>  <span class="SLgc">where</span>  <span class="SLgc">while</span></span></div>
+<span class="SLgc">fallthrough</span>  <span class="SLgc">for</span>  <span class="SLgc">if</span>  <span class="SLgc">in</span>  <span class="SLgc">is</span>  <span class="STpe">me</span>  <span class="SLgc">or</span>  <span class="SLgc">orelse</span>  <span class="SLgc">parallel</span>  <span class="SLgc">return</span>
+<span class="SLgc">switch</span>  <span class="SLgc">to</span>  <span class="SLgc">unreachable</span>  <span class="SLgc">until</span>  <span class="SLgc">where</span>  <span class="SLgc">while</span></span></div>
 <h3 id="_002_007_keywords_swg_Values__Errors__and_Conversion">Values, Errors, and Conversion</h3>
 <div class="code-block"><span class="SCde"><span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">null</span>
 <span class="SKwd">retval</span>  <span class="SKwd">true</span>  <span class="SKwd">try</span></span></div>
@@ -3719,7 +3720,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p.row[<span class="SNum">15</span>] == <span class="SNum">7</span>)
 }</span></div>
 <h2 id="_005_000_control_flow_swg">Control Flow</h2>
-<p>Control flow is expression-oriented but explicit. The following sections cover conditional execution, every form of <span class="code-inline">for</span>, element destructuring, <span class="code-inline">while</span>, <span class="code-inline">switch</span>, fallthrough, and labeled <span class="code-inline">break</span>/<span class="code-inline">continue</span>.</p>
+<p>Control flow is expression-oriented but explicit. The following sections cover conditional execution, every form of <span class="code-inline">for</span>, element destructuring, <span class="code-inline">while</span>, <span class="code-inline">switch</span>, fallthrough, labeled <span class="code-inline">break</span>/<span class="code-inline">continue</span>, and the parallel form of a counted loop.</p>
 <h3 id="_005_001_if_swg">If</h3>
 <h3 id="_005_001_if_swg_Basic_Usage_of__if_">Basic Usage of <span class="code-inline">if</span></h3>
 <p>A basic test with an <span class="code-inline">if</span> statement.</p>
@@ -4869,6 +4870,81 @@ indent-style = spaces</span></div>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)     <span class="SCmt">// Unreachable</span>
     }
 }</span></div>
+<h3 id="_005_007_parallel_for_swg">Parallel For</h3>
+<h3 id="_005_007_parallel_for_swg_The__parallel_for__Statement">The 'parallel for' Statement</h3>
+<p>'parallel for' runs the iterations of an index range across the process worker pool and returns when every one of them has finished. It is the language form of independent work: the body must produce the same result whatever order the indices run in and whichever thread runs them.</p>
+<p>The statement names its index like an ordinary <span class="code-inline">for</span>, and states between <span class="code-inline">|...|</span> what the body reaches from the enclosing scope. That capture list is the same one a closure takes, and it is written rather than inferred: what the body shares with other partitions is the whole safety question, so it is visible at the loop instead of hidden inside it.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> squares: [<span class="SNum">16</span>] <span class="STpe">u64</span>
+
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;squares| index <span class="SLgc">in</span> <span class="SNum">16</span> <span class="SLgc">do</span>
+        squares[index] = index * index
+
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(squares[<span class="SNum">0</span>] == <span class="SNum">0</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(squares[<span class="SNum">15</span>] == <span class="SNum">225</span>)
+}</span></div>
+<h3 id="_005_007_parallel_for_swg_Capturing_the_Surrounding_Scope">Capturing the Surrounding Scope</h3>
+<p><span class="code-inline">&amp;name</span> captures the variable itself, so the body reads and writes the original storage; a bare name captures a copy of its value. Independent destinations -- one array element per index, one row per index -- need no synchronization, because no two iterations touch the same storage.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> factor = <span class="SNum">3</span>'<span class="STpe">u64</span>
+    <span class="SKwd">var</span> values: [<span class="SNum">8</span>] <span class="STpe">u64</span>
+
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;values, factor| index <span class="SLgc">in</span> <span class="SNum">8</span> <span class="SLgc">do</span>
+        values[index] = index * factor
+
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values[<span class="SNum">7</span>] == <span class="SNum">21</span>)
+}</span></div>
+<h3 id="_005_007_parallel_for_swg_Ranges">Ranges</h3>
+<p>The range is written like a <span class="code-inline">for</span> range: a count, 'a until b' for a half-open range, or 'a to b' when the upper bound belongs to it. A range that is empty runs no iteration at all.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> visited: [<span class="SNum">10</span>] <span class="STpe">bool</span>
+
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;visited| index <span class="SLgc">in</span> <span class="SNum">2</span> <span class="SLgc">until</span> <span class="SNum">5</span> <span class="SLgc">do</span>
+        visited[index] = <span class="SKwd">true</span>
+
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;visited| index <span class="SLgc">in</span> <span class="SNum">7</span> <span class="SLgc">to</span> <span class="SNum">8</span> <span class="SLgc">do</span>
+        visited[index] = <span class="SKwd">true</span>
+
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(!visited[<span class="SNum">1</span>] <span class="SLgc">and</span> visited[<span class="SNum">2</span>] <span class="SLgc">and</span> visited[<span class="SNum">4</span>] <span class="SLgc">and</span> !visited[<span class="SNum">5</span>])
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(visited[<span class="SNum">7</span>] <span class="SLgc">and</span> visited[<span class="SNum">8</span>] <span class="SLgc">and</span> !visited[<span class="SNum">9</span>])
+}</span></div>
+<h3 id="_005_007_parallel_for_swg_What_the_Body_May_Do">What the Body May Do</h3>
+<p>The body of one index is an ordinary block: it can declare, branch, loop, and <span class="code-inline">continue</span> to the next index. It cannot leave the statement early. A <span class="code-inline">break</span> that would leave the loop, and a <span class="code-inline">return</span> that would leave the enclosing function, are rejected, because either one would skip indices the statement promises to run while other partitions keep going.</p>
+<p>Compute the answer into captured storage and act on it after the loop.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> found: [<span class="SNum">32</span>] <span class="STpe">bool</span>
+
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;found| index <span class="SLgc">in</span> <span class="SNum">32</span>
+    {
+        <span class="SLgc">if</span> index &amp; <span class="SNum">1</span> <span class="SLgc">do</span>
+            <span class="SLgc">continue</span>
+        found[index] = <span class="SKwd">true</span>
+    }
+
+    <span class="SKwd">var</span> count = <span class="SNum">0</span>
+    <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">32</span> <span class="SLgc">where</span> found[index] <span class="SLgc">do</span>
+        count += <span class="SNum">1</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(count == <span class="SNum">16</span>)
+}</span></div>
+<h3 id="_005_007_parallel_for_swg_Shared_Results">Shared Results</h3>
+<p>An accumulator every index writes is shared storage, so it goes through <a href="swag.runtime.html#Swag_AtomicValue">Swag.AtomicValue</a> rather than an ordinary variable.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> total: <span class="SNsp">Swag</span>.<span class="SFct">AtomicValue</span>'<span class="STpe">u64</span>
+
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;total| index <span class="SLgc">in</span> <span class="SNum">100</span> <span class="SLgc">do</span>
+        total.<span class="SFct">add</span>(index)
+
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(total.<span class="SFct">load</span>() == <span class="SNum">4950</span>)
+}</span></div>
+<div class="blockquote blockquote-note">
+<div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
+<p>The number of partitions is not part of the contract, and neither is the thread a given index runs on. With no worker -- during compile-time execution, or in a process that has not started its pool -- the whole range runs on the calling thread, which is also what a one-worker host does.</p>
+</div>
 <h2 id="_006_000_structs_swg">Structs</h2>
 <p>Structs combine data with behavior through separate <span class="code-inline">impl</span> blocks. This chapter moves from declaration and layout to methods, generated operators, custom lifecycle hooks, iteration protocols, literals, and interfaces.</p>
 <h3 id="_006_001_declaration_swg">Declaration</h3>
@@ -9732,7 +9808,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.390</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.397</div>
 </footer>
 </section>
 </main>
@@ -10338,6 +10414,12 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|A Scope Is Never the Target of a Bare break|_005_006_break_swg_A_Scope_Is_Never_the_Target_of_a_Bare__break_|",
 "h|Unnamed Scopes|_005_006_break_swg_Unnamed_Scopes|",
 "h|Scopes with Simple Statements|_005_006_break_swg_Scopes_with_Simple_Statements|",
+"h|Parallel For|_005_007_parallel_for_swg|",
+"h|The 'parallel for' Statement|_005_007_parallel_for_swg_The__parallel_for__Statement|",
+"h|Capturing the Surrounding Scope|_005_007_parallel_for_swg_Capturing_the_Surrounding_Scope|",
+"h|Ranges|_005_007_parallel_for_swg_Ranges|",
+"h|What the Body May Do|_005_007_parallel_for_swg_What_the_Body_May_Do|",
+"h|Shared Results|_005_007_parallel_for_swg_Shared_Results|",
 "h|Structs|_006_000_structs_swg|",
 "h|Declaration|_006_001_declaration_swg|",
 "h|Basic Struct Declaration|_006_001_declaration_swg_Basic_Struct_Declaration|",

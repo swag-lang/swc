@@ -73,7 +73,7 @@ func linearSecond()->AnimationOptions
     let target  = Wnd.create'Wnd(&host.root)
     let options = linearSecond()
     AnimationTestCompleted = 0
-    var group = AnimationGroup.parallel()
+    var group = AnimationGroup.concurrent()
     group.addF32(target, AnimationChannel.from("test.scalar"), 0, 10, &animationSetF32, options)
     group.addColor(target, AnimationChannel.from("test.color"), Argb.Black, Argb.White, &animationSetColor, options)
     group.addPoint(target, AnimationChannel.from("test.point"), {}, {10, 20}, &animationSetPoint, options)

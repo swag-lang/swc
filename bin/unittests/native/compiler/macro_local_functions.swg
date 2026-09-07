@@ -55,7 +55,7 @@ func forcedLocalMacroRelay(seed: s32)->s32
 
 // Tests for #inject inside a for loop inside a local function.
 // Verifies the codegen fix for inline-label placement in locally-compiled functions.
-// This is the exact pattern used by Jobs.parallelVisit / Jobs.parallelFor.
+// This is the exact pattern a macro uses to partition work across local functions.
 #[Swag.Macro]
 func localForMacroInject(count: s32, contextData: *void, stmt: #code(data: *void, data2: *void))
 {

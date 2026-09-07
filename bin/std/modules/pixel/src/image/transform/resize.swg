@@ -407,19 +407,18 @@ namespace ResizeTools
         let dh      = cast(s64) imgDst.height
         var contrib = calcContributions(dh, sh, cast(f64) dh / sh, rmode)
 
-        var f = {imgDst: imgDst, imgSrc: imgSrc, contrib: &contrib}
-        Jobs.parallelFor(cast(u32) imgDst.width, &f)
+        Swag.parallelRange(cast(u64) imgDst.width, func|imgDst, imgSrc, &contrib|(begin, end: u64)
         {
-            if !data do
-                return
-            let params = cast(*#decltype(f)) (data)
-            let format = params.imgSrc.pixelFormat
+            let format = imgSrc.pixelFormat
             let legacy = format == .BGR8 or format == .BGRA8 or format == .RGB8 or format == .RGBA8
-            if legacy do
-                scaleCol(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
-            else do
-                scaleColGeneric(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
-        }
+            for index in begin until end
+            {
+                if legacy do
+                    scaleCol(imgDst, imgSrc, cast(s64) index, &contrib)
+                else do
+                    scaleColGeneric(imgDst, imgSrc, cast(s64) index, &contrib)
+            }
+        })
     }
 
     func scaleRow(imgDst: *Image, imgSrc: const *Image, rmode: Image.ResizeMode)
@@ -428,19 +427,18 @@ namespace ResizeTools
         let dw      = cast(s64) imgDst.width
         var contrib = calcContributions(dw, sw, cast(f64) dw / sw, rmode)
 
-        var f = {imgDst: imgDst, imgSrc: imgSrc, contrib: &contrib}
-        Jobs.parallelFor(cast(u32) imgDst.height, &f)
+        Swag.parallelRange(cast(u64) imgDst.height, func|imgDst, imgSrc, &contrib|(begin, end: u64)
         {
-            if !data do
-                return
-            let params = cast(*#decltype(f)) (data)
-            let format = params.imgSrc.pixelFormat
+            let format = imgSrc.pixelFormat
             let legacy = format == .BGR8 or format == .BGRA8 or format == .RGB8 or format == .RGBA8
-            if legacy do
-                scaleRow(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
-            else do
-                scaleRowGeneric(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
-        }
+            for index in begin until end
+            {
+                if legacy do
+                    scaleRow(imgDst, imgSrc, cast(s64) index, &contrib)
+                else do
+                    scaleRowGeneric(imgDst, imgSrc, cast(s64) index, &contrib)
+            }
+        })
     }
 
     func doResizeFilter(dstImage: *Image, srcImage: const *Image, mode: Image.ResizeMode)

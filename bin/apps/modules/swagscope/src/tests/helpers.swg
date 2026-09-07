@@ -54,7 +54,7 @@ func collectViewerMatches(collect: Viewer.CollectSearchMatches, view: *Wnd, text
 func completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *Viewer.BackgroundOperation, timer: *Timer?)
 {
     Swag.assert(load.started and timer != null)
-    Jobs.wait(&load.job)
+    load.task.wait()
     host.fireTimer(timer)
 }
 
@@ -86,7 +86,7 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
         // Classification can also be waiting for the previous viewer to retire.
         // Complete worker jobs before advancing that transition; the new viewer
         // starts its own work only after pendingFile has been cleared.
-        Jobs.waitAll()
+        Swag.drainWork()
         if window.startupTimer do
             host.fireTimer(window.startupTimer)
         steps += 1

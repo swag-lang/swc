@@ -10,21 +10,6 @@ using Core, Core.Errors
 
 const ReconstructionBands = 32'u32
 
-struct ReconstructionJob
-{
-    using base: Jobs.Job
-    decoder:    *Decoder?
-    first:      u32
-    end:        u32
-}
-
-private struct ReconstructionContext
-{
-    decoder:   *Decoder
-    bandCount: u32
-    failed:    u32
-}
-
 impl Decoder
 {
     // Advances the loop filter and the published row progress after one macroblock row of the
@@ -74,23 +59,20 @@ impl Decoder
                 break
 
             let firstRow = cast(u32) .sps!.mbHeight * band / .pipelineBandCount
-            let job      = &.pipelineJobs[band]
-            job.decoder = me
-            job.first   = firstRow * cast(u32) .sps!.mbWidth
-            job.end     = endRow * cast(u32) .sps!.mbWidth
-            job.lambda  = &runReconstructionJob
-            job.data    = job
-            Jobs.schedule(job)
+            let decoder  = me
+            let first    = firstRow * cast(u32) .sps!.mbWidth
+            let last     = endRow * cast(u32) .sps!.mbWidth
+            .pipelineTasks[band].submit(func|decoder, first, last|() { reconstructBand(decoder, first, last) })
             .pipelineScheduled += 1
         }
     }
 
-    // The parser can fail after earlier bands have already started. Always join borrowed jobs
+    // The parser can fail after earlier bands have already started. Always join borrowed tasks
     // before decodeAccessUnit unwinds and its decoder storage can be reused or released.
     mtd waitReconstructionJobs()
     {
         for index in .pipelineScheduled do
-            Jobs.wait(&.pipelineJobs[index])
+            .pipelineTasks[index].wait()
     }
 
     // Reconstructs inter macroblocks in a few long row bands. Entropy parsing has already
@@ -101,7 +83,7 @@ impl Decoder
     {
         let sps       = .sps!
         let mbCount   = cast(u32) (sps.mbWidth * sps.mbHeight)
-        let bandCount = Math.min(Math.min(Jobs.workerCount(), ReconstructionBands), cast(u32) sps.mbHeight)
+        let bandCount = Math.min(Math.min(Swag.workerCount(), ReconstructionBands), cast(u32) sps.mbHeight)
 
         if .pipelineBandCount > 0
         {
@@ -120,26 +102,21 @@ impl Decoder
         }
         else
         {
-            var context = ReconstructionContext{me, bandCount}
-            Jobs.parallelFor(bandCount, &context)
+            let decoder = me
+            .pipelineFailed = 0
+            Swag.parallelRange(cast(u64) bandCount, func|decoder, bandCount|(parBegin, parEnd: u64)
             {
-                let state    = cast(*ReconstructionContext) data!
-                let firstRow = cast(u32) state.decoder.sps!.mbHeight * index / state.bandCount
-                let endRow   = cast(u32) state.decoder.sps!.mbHeight * (index + 1) / state.bandCount
-                let first    = firstRow * cast(u32) state.decoder.sps!.mbWidth
-                let end      = endRow * cast(u32) state.decoder.sps!.mbWidth
-                for mbIndex in first until end
+                let mbHeight = cast(u32) decoder.sps!.mbHeight
+                let mbWidth  = cast(u32) decoder.sps!.mbWidth
+                for band in parBegin until parEnd
                 {
-                    let mb = &state.decoder.parsedMbs[mbIndex]
-                    if mb.class != MbClassInter do
-                        continue
-                    catch state.decoder.pictureSlices[mb.sliceIndex].reconstructMb(mb) as reconstructionError
-                    if reconstructionError != null do
-                        Atomic.exchange(&state.failed, 1)
+                    let firstRow = mbHeight * cast(u32) band / bandCount
+                    let endRow   = mbHeight * cast(u32) (band + 1) / bandCount
+                    reconstructBand(decoder, firstRow * mbWidth, endRow * mbWidth)
                 }
-            }
+            })
 
-            if Atomic.get(&context.failed) != 0 do
+            if Atomic.get(&.pipelineFailed) != 0 do
                 fail InvalidFormatError{"H.264 inter block has no reference picture"}
         }
 
@@ -638,16 +615,16 @@ impl Slice
     }
 }
 
-private func runReconstructionJob(data: *void?)
+// Reconstructs the inter macroblocks of one band, and records a failure for the decoder.
+private func reconstructBand(decoder: *Decoder, first, end: u32)
 {
-    let job = cast(*ReconstructionJob) data!
-    for index in job.first until job.end
+    for index in first until end
     {
-        let mb = &job.decoder!.parsedMbs[index]
+        let mb = &decoder.parsedMbs[index]
         if mb.class != MbClassInter do
             continue
-        catch job.decoder!.pictureSlices[mb.sliceIndex].reconstructMb(mb) as reconstructionError
+        catch decoder.pictureSlices[mb.sliceIndex].reconstructMb(mb) as reconstructionError
         if reconstructionError != null do
-            Atomic.exchange(&job.decoder!.pipelineFailed, 1)
+            Atomic.exchange(&decoder.pipelineFailed, 1)
     }
 }

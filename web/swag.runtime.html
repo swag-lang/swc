@@ -52,7 +52,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">57</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">66</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#BootstrapAllocationHeader">BootstrapAllocationHeader</a></li>
@@ -76,8 +76,11 @@
 <li><a href="#Swag_AllocatorThreadClass">Swag.AllocatorThreadClass</a></li>
 <li><a href="#Swag_AllocatorThreadHeap">Swag.AllocatorThreadHeap</a></li>
 <li><a href="#Swag_AllocatorTracking">Swag.AllocatorTracking</a></li>
+<li><a href="#Swag_AtomicFlag">Swag.AtomicFlag</a></li>
+<li><a href="#Swag_AtomicValue">Swag.AtomicValue</a></li>
 <li><a href="#Swag_Attribute">Swag.Attribute</a></li>
 <li><a href="#Swag_AttributeParam">Swag.AttributeParam</a></li>
+<li><a href="#Swag_Barrier">Swag.Barrier</a></li>
 <li><a href="#Swag_BaseError">Swag.BaseError</a></li>
 <li><a href="#Swag_BuildCfg">Swag.BuildCfg</a></li>
 <li><a href="#Swag_BuildCfgBackend">Swag.BuildCfgBackend</a></li>
@@ -85,6 +88,7 @@
 <li><a href="#Swag_BuildCfgWarnings">Swag.BuildCfgWarnings</a></li>
 <li><a href="#Swag_ClosureValue">Swag.ClosureValue</a></li>
 <li><a href="#Swag_CompilerMessage">Swag.CompilerMessage</a></li>
+<li><a href="#Swag_Condition">Swag.Condition</a></li>
 <li><a href="#Swag_Context">Swag.Context</a></li>
 <li><a href="#Swag_CVaList">Swag.CVaList</a></li>
 <li><a href="#Swag_ErrorValue">Swag.ErrorValue</a></li>
@@ -93,10 +97,15 @@
 <li><a href="#Swag_ICompiler">Swag.ICompiler</a></li>
 <li><a href="#Swag_Interface">Swag.Interface</a></li>
 <li><a href="#Swag_Module">Swag.Module</a></li>
+<li><a href="#Swag_Mutex">Swag.Mutex</a></li>
 <li><a href="#Swag_ProcessInfos">Swag.ProcessInfos</a></li>
+<li><a href="#Swag_RWLock">Swag.RWLock</a></li>
 <li><a href="#Swag_ScratchAllocator">Swag.ScratchAllocator</a></li>
+<li><a href="#Swag_Semaphore">Swag.Semaphore</a></li>
 <li><a href="#Swag_SourceCodeLocation">Swag.SourceCodeLocation</a></li>
 <li><a href="#Swag_SystemError">Swag.SystemError</a></li>
+<li><a href="#Swag_Task">Swag.Task</a></li>
+<li><a href="#Swag_TaskGroup">Swag.TaskGroup</a></li>
 <li><a href="#Swag_TypeInfo">Swag.TypeInfo</a></li>
 <li><a href="#Swag_TypeInfoAlias">Swag.TypeInfoAlias</a></li>
 <li><a href="#Swag_TypeInfoArray">Swag.TypeInfoArray</a></li>
@@ -146,7 +155,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Constants</span><span class="toc-count">57</span></summary>
+<summary><span class="toc-label">Constants</span><span class="toc-count">65</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-constants">All Constants</a></li>
 <li><a href="#AllocatorHostCommitGranularity">AllocatorHostCommitGranularity</a></li>
@@ -196,8 +205,16 @@
 <li><a href="#Swag_AllocatorSmallUnitShift">Swag.AllocatorSmallUnitShift</a></li>
 <li><a href="#Swag_AllocatorUnitsPerSegment">Swag.AllocatorUnitsPerSegment</a></li>
 <li><a href="#Swag_ClosureCaptureBufferSize">Swag.ClosureCaptureBufferSize</a></li>
+<li><a href="#Swag_GroupBlockCapacity">Swag.GroupBlockCapacity</a></li>
+<li><a href="#Swag_InfiniteWait">Swag.InfiniteWait</a></li>
 <li><a href="#Swag_MaxErrors">Swag.MaxErrors</a></li>
 <li><a href="#Swag_MaxTraces">Swag.MaxTraces</a></li>
+<li><a href="#Swag_MaxWorkers">Swag.MaxWorkers</a></li>
+<li><a href="#Swag_SchedulerAnchorKey">Swag.SchedulerAnchorKey</a></li>
+<li><a href="#Swag_WorkStateDone">Swag.WorkStateDone</a></li>
+<li><a href="#Swag_WorkStateIdle">Swag.WorkStateIdle</a></li>
+<li><a href="#Swag_WorkStateQueued">Swag.WorkStateQueued</a></li>
+<li><a href="#Swag_WorkStateRunning">Swag.WorkStateRunning</a></li>
 <li><a href="#Swag_U16_Max">U16.Max</a></li>
 <li><a href="#Swag_U16_Min">U16.Min</a></li>
 <li><a href="#Swag_U32_Max">U32.Max</a></li>
@@ -209,7 +226,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">165</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">186</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Swag_IAllocator_alloc">IAllocator.alloc</a></li>
@@ -226,6 +243,7 @@
 <li><a href="#reversed">reversed</a></li>
 <li><a href="#Swag_abs">Swag.abs</a></li>
 <li><a href="#Swag_acos">Swag.acos</a></li>
+<li><a href="#Swag_activeScheduler">Swag.activeScheduler</a></li>
 <li><a href="#Swag_Align">Swag.Align</a></li>
 <li><a href="#Swag_allocatorAcquireSegment">Swag.allocatorAcquireSegment</a></li>
 <li><a href="#Swag_allocatorAddArena">Swag.allocatorAddArena</a></li>
@@ -276,6 +294,7 @@
 <li><a href="#Swag_defaultAllocator">Swag.defaultAllocator</a></li>
 <li><a href="#Swag_Deprecated">Swag.Deprecated</a></li>
 <li><a href="#Swag_Discardable">Swag.Discardable</a></li>
+<li><a href="#Swag_drainWork">Swag.drainWork</a></li>
 <li><a href="#Swag_EnumFlags">Swag.EnumFlags</a></li>
 <li><a href="#Swag_exp">Swag.exp</a></li>
 <li><a href="#Swag_exp2">Swag.exp2</a></li>
@@ -284,6 +303,7 @@
 <li><a href="#Swag_Foreign">Swag.Foreign</a></li>
 <li><a href="#Swag_FullInit">Swag.FullInit</a></li>
 <li><a href="#Swag_getContext">Swag.getContext</a></li>
+<li><a href="#Swag_groupChildEntry">Swag.groupChildEntry</a></li>
 <li><a href="#Swag_gvtd">Swag.gvtd</a></li>
 <li><a href="#Swag_Implicit">Swag.Implicit</a></li>
 <li><a href="#Swag_Incomplete">Swag.Incomplete</a></li>
@@ -315,7 +335,12 @@
 <li><a href="#Swag_osReserve">Swag.osReserve</a></li>
 <li><a href="#Swag_Pack">Swag.Pack</a></li>
 <li><a href="#Swag_panic">Swag.panic</a></li>
+<li><a href="#Swag_parallelChunkEntry">Swag.parallelChunkEntry</a></li>
+<li><a href="#Swag_parallelRange">Swag.parallelRange</a></li>
+<li><a href="#Swag_parallelRangeAbove">Swag.parallelRangeAbove</a></li>
+<li><a href="#Swag_parallelRangeFrom">Swag.parallelRangeFrom</a></li>
 <li><a href="#Swag_PlaceHolder">Swag.PlaceHolder</a></li>
+<li><a href="#Swag_popWork">Swag.popWork</a></li>
 <li><a href="#Swag_pow">Swag.pow</a></li>
 <li><a href="#Swag_print">Swag.print</a></li>
 <li><a href="#Swag_PrintAst">Swag.PrintAst</a></li>
@@ -326,20 +351,31 @@
 <li><a href="#Swag_rol">Swag.rol</a></li>
 <li><a href="#Swag_ror">Swag.ror</a></li>
 <li><a href="#Swag_round">Swag.round</a></li>
+<li><a href="#Swag_runParallelChunk">Swag.runParallelChunk</a></li>
+<li><a href="#Swag_runPendingWork">Swag.runPendingWork</a></li>
 <li><a href="#Swag_runtimeFlags">Swag.runtimeFlags</a></li>
+<li><a href="#Swag_runWork">Swag.runWork</a></li>
 <li><a href="#Swag_Safety">Swag.Safety</a></li>
 <li><a href="#Swag_safetyPanic">Swag.safetyPanic</a></li>
 <li><a href="#Swag_Sanity">Swag.Sanity</a></li>
+<li><a href="#Swag_schedulerInstance">Swag.schedulerInstance</a></li>
+<li><a href="#Swag_schedulerWorkerEntry">Swag.schedulerWorkerEntry</a></li>
+<li><a href="#Swag_scopedLock">Swag.scopedLock</a></li>
+<li><a href="#Swag_scopedLockShared">Swag.scopedLockShared</a></li>
 <li><a href="#Swag_setContext">Swag.setContext</a></li>
 <li><a href="#Swag_setCurrentAllocatorThreadHeap">Swag.setCurrentAllocatorThreadHeap</a></li>
+<li><a href="#Swag_setWorkerCount">Swag.setWorkerCount</a></li>
 <li><a href="#Swag_sin">Swag.sin</a></li>
 <li><a href="#Swag_sinh">Swag.sinh</a></li>
 <li><a href="#Swag_sqrt">Swag.sqrt</a></li>
+<li><a href="#Swag_startWorkers">Swag.startWorkers</a></li>
 <li><a href="#Swag_Strict">Swag.Strict</a></li>
 <li><a href="#Swag_stringCmp">Swag.stringCmp</a></li>
+<li><a href="#Swag_submitWork">Swag.submitWork</a></li>
 <li><a href="#Swag_tableOf">Swag.tableOf</a></li>
 <li><a href="#Swag_tan">Swag.tan</a></li>
 <li><a href="#Swag_tanh">Swag.tanh</a></li>
+<li><a href="#Swag_taskEntry">Swag.taskEntry</a></li>
 <li><a href="#Swag_TestTag">Swag.TestTag</a></li>
 <li><a href="#Swag_trunc">Swag.trunc</a></li>
 <li><a href="#Swag_typeAs">Swag.typeAs</a></li>
@@ -376,7 +412,9 @@
 <li><a href="#Swag_vectruncs32">Swag.vectruncs32</a></li>
 <li><a href="#Swag_vecwidenhi">Swag.vecwidenhi</a></li>
 <li><a href="#Swag_vecwidenlo">Swag.vecwidenlo</a></li>
+<li><a href="#Swag_waitWork">Swag.waitWork</a></li>
 <li><a href="#Swag_Warning">Swag.Warning</a></li>
+<li><a href="#Swag_workerCount">Swag.workerCount</a></li>
 </ul>
 </details>
 </nav></aside>
@@ -432,8 +470,14 @@
 <tr><td class="code-type"><a href="#Swag_AllocatorThreadClass">Swag.AllocatorThreadClass</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_AllocatorThreadHeap">Swag.AllocatorThreadHeap</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_AllocatorTracking">Swag.AllocatorTracking</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_AtomicFlag">Swag.AtomicFlag</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A one-way flag that any thread can raise and every thread can observe.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_AtomicValue">Swag.AtomicValue</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Integer storage whose every access is one indivisible operation.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_Attribute">Swag.Attribute</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_AttributeParam">Swag.AttributeParam</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_Barrier">Swag.Barrier</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A rendezvous point that releases a fixed number of participants together.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_BaseError">Swag.BaseError</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>This is the base of all errors</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_BuildCfg">Swag.BuildCfg</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>The current module build configuration.</p>
@@ -446,6 +490,8 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_ClosureValue">Swag.ClosureValue</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_CompilerMessage">Swag.CompilerMessage</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A message received in a <span class="code-inline">#message</span> function.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_Condition">Swag.Condition</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A wait queue attached to a <a href="#Swag_Mutex">Swag.Mutex</a>, for state one thread publishes and another awaits.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Context">Swag.Context</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Thread context as returned by [Swag.getContext].</p>
 </td></tr>
@@ -462,12 +508,22 @@
 <tr><td class="code-type"><a href="#Swag_Interface">Swag.Interface</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_Module">Swag.Module</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Defined some information about a loaded module</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_Mutex">Swag.Mutex</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Mutual exclusion over the state a program keeps beside it.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_ProcessInfos">Swag.ProcessInfos</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Defined some information about the current process</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_RWLock">Swag.RWLock</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A lock that admits either one writer or any number of concurrent readers.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_ScratchAllocator">Swag.ScratchAllocator</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_Semaphore">Swag.Semaphore</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A counted set of permits, acquired and released by any thread.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_SourceCodeLocation">Swag.SourceCodeLocation</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represent a part of a source code file.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_SystemError">Swag.SystemError</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>An error raised by the system</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_Task">Swag.Task</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One piece of work the runtime runs on its own schedule.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_TaskGroup">Swag.TaskGroup</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a set of child tasks and joins every one of them before it is released.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_TypeInfo">Swag.TypeInfo</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Will be available for all types</p>
 </td></tr>
@@ -593,9 +649,25 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_AllocatorUnitsPerSegment">Swag.AllocatorUnitsPerSegment</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_ClosureCaptureBufferSize">Swag.ClosureCaptureBufferSize</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_GroupBlockCapacity">Swag.GroupBlockCapacity</a></td><td><p>Children of one <a href="#Swag_TaskGroup">Swag.TaskGroup</a>, allocated in blocks so a node never moves.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_InfiniteWait">Swag.InfiniteWait</a></td><td><p>Waits without a deadline.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_MaxErrors">Swag.MaxErrors</a></td><td><p>Maximum nested errors</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_MaxTraces">Swag.MaxTraces</a></td><td><p>Maximum error traces</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_MaxWorkers">Swag.MaxWorkers</a></td><td><p>The largest number of worker threads the runtime starts.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_SchedulerAnchorKey">Swag.SchedulerAnchorKey</a></td><td><p>The anchor key of the scheduler inside one process.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_WorkStateDone">Swag.WorkStateDone</a></td><td><p>The work finished. The owner may reuse or destroy the node.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_WorkStateIdle">Swag.WorkStateIdle</a></td><td><p>The work has never been submitted, or its last run was collected.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_WorkStateQueued">Swag.WorkStateQueued</a></td><td><p>The work is submitted and not started.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_WorkStateRunning">Swag.WorkStateRunning</a></td><td><p>A thread is running the work.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_U16_Max">U16.Max</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_U16_Min">U16.Min</a></td><td></td></tr>
@@ -637,6 +709,8 @@
 <tr><td class="code-type"><a href="#Swag_abs">Swag.abs</a></td><td><p>Absolute value.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_acos">Swag.acos</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_activeScheduler">Swag.activeScheduler</a></td><td><p>Starts the worker roster once, and returns the scheduler.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_Align">Swag.Align</a></td><td><p>Alignment of the following struct or struct field</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_allocatorAcquireSegment">Swag.allocatorAcquireSegment</a></td><td><p>Hands the caller a segment shaped for <span class="code-inline">unitShift</span>, reusing an emptied one when possible.</p>
@@ -721,6 +795,8 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Discardable">Swag.Discardable</a></td><td><p>The following function accepts that the called does not use its return value</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_drainWork">Swag.drainWork</a></td><td><p>Runs ready work until every unit submitted to the process has finished.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_EnumFlags">Swag.EnumFlags</a></td><td><p>The following enum is a set of flags</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_exp">Swag.exp</a></td><td><p>Exponentials and power.</p>
@@ -735,6 +811,7 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_getContext">Swag.getContext</a></td><td><p>Get the current thread context.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_groupChildEntry">Swag.groupChildEntry</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_gvtd">Swag.gvtd</a></td><td><p>Returns the list of all global variables.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Implicit">Swag.Implicit</a></td><td><p>Can force an <span class="code-inline">opCast</span> operator overload to work as implicit</p>
@@ -793,7 +870,16 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_panic">Swag.panic</a></td><td><p>Stop the execution and panic</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_parallelChunkEntry">Swag.parallelChunkEntry</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_parallelRange">Swag.parallelRange</a></td><td><p>Runs <span class="code-inline">body</span> over every index of <span class="code-inline">[0, count)</span>, splitting the range across the worker pool.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_parallelRangeAbove">Swag.parallelRangeAbove</a></td><td><p>Runs <span class="code-inline">body</span> over every index of <span class="code-inline">[0, count)</span> when the range is large enough to be worth</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_parallelRangeFrom">Swag.parallelRangeFrom</a></td><td><p>Runs <span class="code-inline">body</span> over the half-open index range <span class="code-inline">[begin, end)</span>, split across the worker pool.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_PlaceHolder">Swag.PlaceHolder</a></td><td><p>An empty function will be generated</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_popWork">Swag.popWork</a></td><td><p>Takes the most recently submitted ready node, or null when the stack is empty.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_pow">Swag.pow</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_print">Swag.print</a></td><td><p>Basic print to console function</p>
@@ -813,28 +899,47 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_round">Swag.round</a></td><td><p>Round to nearest, away from zero at .5.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_runParallelChunk">Swag.runParallelChunk</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_runPendingWork">Swag.runPendingWork</a></td><td><p>Runs one ready node if there is one, and returns whether it ran anything.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_runtimeFlags">Swag.runtimeFlags</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_runWork">Swag.runWork</a></td><td><p>Runs one node and publishes its completion.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_Safety">Swag.Safety</a></td><td><p>Enable/Disable one or more safety checks.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_safetyPanic">Swag.safetyPanic</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_Sanity">Swag.Sanity</a></td><td><p>Enable/Disable one or more STATIC (compile-time) sanity checks: the borrow</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_schedulerInstance">Swag.schedulerInstance</a></td><td><p>Returns the process scheduler, creating it on first use.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_schedulerWorkerEntry">Swag.schedulerWorkerEntry</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_scopedLock">Swag.scopedLock</a></td><td><p>Locks <span class="code-inline">syncObj</span> for the rest of the enclosing scope.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_scopedLockShared">Swag.scopedLockShared</a></td><td><p>Takes shared access to <span class="code-inline">syncObj</span> for the rest of the enclosing scope.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_setContext">Swag.setContext</a></td><td><p>Replace the current thread context.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_setCurrentAllocatorThreadHeap">Swag.setCurrentAllocatorThreadHeap</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_setWorkerCount">Swag.setWorkerCount</a></td><td><p>Sets how many worker threads the process runs.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_sin">Swag.sin</a></td><td><p>Trigonometric functions.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_sinh">Swag.sinh</a></td><td><p>Hyperbolic trigonometric functions.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_sqrt">Swag.sqrt</a></td><td><p>Square root.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_startWorkers">Swag.startWorkers</a></td><td><p>Starts the process worker pool now, if it is not running yet.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_Strict">Swag.Strict</a></td><td><p>Keep the following alias distinct from its target for implicit conversions</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_stringCmp">Swag.stringCmp</a></td><td><p>Compares two strings, and returns <span class="code-inline">true</span> if they are equal.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_submitWork">Swag.submitWork</a></td><td><p>Submits <span class="code-inline">node</span> for one execution.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_tableOf">Swag.tableOf</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_tan">Swag.tan</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_tanh">Swag.tanh</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_taskEntry">Swag.taskEntry</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_TestTag">Swag.TestTag</a></td><td><p>Assigns one category to a <span class="code-inline">#test</span> function for selection with <span class="code-inline">--test-tag</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_trunc">Swag.trunc</a></td><td><p>Round toward zero.</p>
@@ -891,7 +996,11 @@
 <tr><td class="code-type"><a href="#Swag_vecwidenhi">Swag.vecwidenhi</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_vecwidenlo">Swag.vecwidenlo</a></td><td><p>Widening: the low or high half of the lanes extends to double width,</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_waitWork">Swag.waitWork</a></td><td><p>Runs ready work until <span class="code-inline">node</span> has finished.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_Warning">Swag.Warning</a></td><td><p>Decide how one warning, a list of warnings, or every warning is reported inside the</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_workerCount">Swag.workerCount</a></td><td><p>Returns the number of worker threads that run submitted work.</p>
 </td></tr>
 </tbody>
 </table>
@@ -935,8 +1044,14 @@
 <tr><td class="code-type"><a href="#Swag_AllocatorThreadClass">Swag.AllocatorThreadClass</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_AllocatorThreadHeap">Swag.AllocatorThreadHeap</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_AllocatorTracking">Swag.AllocatorTracking</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_AtomicFlag">Swag.AtomicFlag</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A one-way flag that any thread can raise and every thread can observe.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_AtomicValue">Swag.AtomicValue</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Integer storage whose every access is one indivisible operation.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_Attribute">Swag.Attribute</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_AttributeParam">Swag.AttributeParam</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_Barrier">Swag.Barrier</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A rendezvous point that releases a fixed number of participants together.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_BaseError">Swag.BaseError</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>This is the base of all errors</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_BuildCfg">Swag.BuildCfg</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>The current module build configuration.</p>
@@ -949,6 +1064,8 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_ClosureValue">Swag.ClosureValue</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_CompilerMessage">Swag.CompilerMessage</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A message received in a <span class="code-inline">#message</span> function.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_Condition">Swag.Condition</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A wait queue attached to a <a href="#Swag_Mutex">Swag.Mutex</a>, for state one thread publishes and another awaits.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Context">Swag.Context</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Thread context as returned by [Swag.getContext].</p>
 </td></tr>
@@ -965,12 +1082,22 @@
 <tr><td class="code-type"><a href="#Swag_Interface">Swag.Interface</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_Module">Swag.Module</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Defined some information about a loaded module</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_Mutex">Swag.Mutex</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Mutual exclusion over the state a program keeps beside it.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_ProcessInfos">Swag.ProcessInfos</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Defined some information about the current process</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_RWLock">Swag.RWLock</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A lock that admits either one writer or any number of concurrent readers.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_ScratchAllocator">Swag.ScratchAllocator</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_Semaphore">Swag.Semaphore</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A counted set of permits, acquired and released by any thread.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_SourceCodeLocation">Swag.SourceCodeLocation</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represent a part of a source code file.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_SystemError">Swag.SystemError</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>An error raised by the system</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_Task">Swag.Task</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One piece of work the runtime runs on its own schedule.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_TaskGroup">Swag.TaskGroup</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a set of child tasks and joins every one of them before it is released.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_TypeInfo">Swag.TypeInfo</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Will be available for all types</p>
 </td></tr>
@@ -1067,9 +1194,25 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_AllocatorUnitsPerSegment">Swag.AllocatorUnitsPerSegment</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_ClosureCaptureBufferSize">Swag.ClosureCaptureBufferSize</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_GroupBlockCapacity">Swag.GroupBlockCapacity</a></td><td><p>Children of one <a href="#Swag_TaskGroup">Swag.TaskGroup</a>, allocated in blocks so a node never moves.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_InfiniteWait">Swag.InfiniteWait</a></td><td><p>Waits without a deadline.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_MaxErrors">Swag.MaxErrors</a></td><td><p>Maximum nested errors</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_MaxTraces">Swag.MaxTraces</a></td><td><p>Maximum error traces</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_MaxWorkers">Swag.MaxWorkers</a></td><td><p>The largest number of worker threads the runtime starts.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_SchedulerAnchorKey">Swag.SchedulerAnchorKey</a></td><td><p>The anchor key of the scheduler inside one process.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_WorkStateDone">Swag.WorkStateDone</a></td><td><p>The work finished. The owner may reuse or destroy the node.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_WorkStateIdle">Swag.WorkStateIdle</a></td><td><p>The work has never been submitted, or its last run was collected.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_WorkStateQueued">Swag.WorkStateQueued</a></td><td><p>The work is submitted and not started.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_WorkStateRunning">Swag.WorkStateRunning</a></td><td><p>A thread is running the work.</p>
 </td></tr>
 </tbody>
 </table>
@@ -1077,6 +1220,8 @@
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td class="code-type"><a href="#Swag_activeScheduler">Swag.activeScheduler</a></td><td><p>Starts the worker roster once, and returns the scheduler.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_Align">Swag.Align</a></td><td><p>Alignment of the following struct or struct field</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_allocatorAcquireSegment">Swag.allocatorAcquireSegment</a></td><td><p>Hands the caller a segment shaped for <span class="code-inline">unitShift</span>, reusing an emptied one when possible.</p>
@@ -1119,6 +1264,8 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Discardable">Swag.Discardable</a></td><td><p>The following function accepts that the called does not use its return value</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_drainWork">Swag.drainWork</a></td><td><p>Runs ready work until every unit submitted to the process has finished.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_EnumFlags">Swag.EnumFlags</a></td><td><p>The following enum is a set of flags</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_ExportType">Swag.ExportType</a></td><td></td></tr>
@@ -1126,6 +1273,7 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_FullInit">Swag.FullInit</a></td><td><p>Asserts that an opaque <span class="code-inline">opSet</span> body fully initializes its destination.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_groupChildEntry">Swag.groupChildEntry</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_Implicit">Swag.Implicit</a></td><td><p>Can force an <span class="code-inline">opCast</span> operator overload to work as implicit</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Incomplete">Swag.Incomplete</a></td><td><p>The declared values of the following enum are not the full set: a value outside them</p>
@@ -1159,7 +1307,16 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Pack">Swag.Pack</a></td><td><p><span class="code-inline">struct</span> packing information</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_parallelChunkEntry">Swag.parallelChunkEntry</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_parallelRange">Swag.parallelRange</a></td><td><p>Runs <span class="code-inline">body</span> over every index of <span class="code-inline">[0, count)</span>, splitting the range across the worker pool.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_parallelRangeAbove">Swag.parallelRangeAbove</a></td><td><p>Runs <span class="code-inline">body</span> over every index of <span class="code-inline">[0, count)</span> when the range is large enough to be worth</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_parallelRangeFrom">Swag.parallelRangeFrom</a></td><td><p>Runs <span class="code-inline">body</span> over the half-open index range <span class="code-inline">[begin, end)</span>, split across the worker pool.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_PlaceHolder">Swag.PlaceHolder</a></td><td><p>An empty function will be generated</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_popWork">Swag.popWork</a></td><td><p>Takes the most recently submitted ready node, or null when the stack is empty.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_PrintAst">Swag.PrintAst</a></td><td><p>On a function or a struct, this prints the associated AST shape.</p>
 </td></tr>
@@ -1168,17 +1325,40 @@
 <tr><td class="code-type"><a href="#Swag_releaseAllocatorThreadCache">Swag.releaseAllocatorThreadCache</a></td><td><p>Gives the calling thread's pages back without waiting for the thread to exit.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_retireAllocatorThreadHeap">Swag.retireAllocatorThreadHeap</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_runParallelChunk">Swag.runParallelChunk</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_runPendingWork">Swag.runPendingWork</a></td><td><p>Runs one ready node if there is one, and returns whether it ran anything.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_runWork">Swag.runWork</a></td><td><p>Runs one node and publishes its completion.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_Safety">Swag.Safety</a></td><td><p>Enable/Disable one or more safety checks.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Sanity">Swag.Sanity</a></td><td><p>Enable/Disable one or more STATIC (compile-time) sanity checks: the borrow</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_schedulerInstance">Swag.schedulerInstance</a></td><td><p>Returns the process scheduler, creating it on first use.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_schedulerWorkerEntry">Swag.schedulerWorkerEntry</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_scopedLock">Swag.scopedLock</a></td><td><p>Locks <span class="code-inline">syncObj</span> for the rest of the enclosing scope.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_scopedLockShared">Swag.scopedLockShared</a></td><td><p>Takes shared access to <span class="code-inline">syncObj</span> for the rest of the enclosing scope.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_setCurrentAllocatorThreadHeap">Swag.setCurrentAllocatorThreadHeap</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_setWorkerCount">Swag.setWorkerCount</a></td><td><p>Sets how many worker threads the process runs.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_startWorkers">Swag.startWorkers</a></td><td><p>Starts the process worker pool now, if it is not running yet.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_Strict">Swag.Strict</a></td><td><p>Keep the following alias distinct from its target for implicit conversions</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_submitWork">Swag.submitWork</a></td><td><p>Submits <span class="code-inline">node</span> for one execution.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_taskEntry">Swag.taskEntry</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_TestTag">Swag.TestTag</a></td><td><p>Assigns one category to a <span class="code-inline">#test</span> function for selection with <span class="code-inline">--test-tag</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Using">Swag.Using</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_waitWork">Swag.waitWork</a></td><td><p>Runs ready work until <span class="code-inline">node</span> has finished.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_Warning">Swag.Warning</a></td><td><p>Decide how one warning, a list of warnings, or every warning is reported inside the</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_workerCount">Swag.workerCount</a></td><td><p>Returns the number of worker threads that run submitted work.</p>
 </td></tr>
 </tbody>
 </table>
@@ -1450,6 +1630,21 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_AllocatorTracking">AllocatorTracking</a></span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Swag_AtomicFlag" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.AtomicFlag</span> <a class="api-item-permalink" href="#Swag_AtomicFlag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L68">src</a></div>
+<p>A one-way flag that any thread can raise and every thread can observe.</p>
+<p>A zero-initialized value is lowered. Raising is idempotent, so a request that several threads make at once is one request; nothing lowers a flag except an explicit <a href="swag.runtime.html#Swag_AtomicFlag_reset">Swag.AtomicFlag.reset</a> on a value no other thread can still reach.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_AtomicFlag">AtomicFlag</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Swag_AtomicValue" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.AtomicValue</span> <a class="api-item-permalink" href="#Swag_AtomicValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L15">src</a></div>
+<p>Integer storage whose every access is one indivisible operation.</p>
+<p><span class="code-inline">T</span> is one of the sized integer types. Reads and writes go through this type's operations only: an ordinary read or write of the same storage beside them is a data race, so the field is not part of the API. Every operation is sequentially consistent.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> counter: <span class="SNsp">Swag</span>.<span class="SFct">AtomicValue</span>'<span class="STpe">u32</span>
+counter.<span class="SFct">add</span>(<span class="SNum">1</span>)
+<span class="SNsp">Swag</span>.<span class="SFct">assert</span>(counter.<span class="SFct">load</span>() == <span class="SNum">1</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst"><a href="#Swag_AtomicValue">AtomicValue</a></span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Swag_Attribute" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Attribute</span> <a class="api-item-permalink" href="#Swag_Attribute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L709">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_Attribute">Attribute</a></span></span></div>
 </section>
@@ -1476,6 +1671,12 @@
 </td></tr>
 </tbody>
 </table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Swag_Barrier" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Barrier</span> <a class="api-item-permalink" href="#Swag_Barrier" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L182">src</a></div>
+<p>A rendezvous point that releases a fixed number of participants together.</p>
+<p>Every phase is independent: once <span class="code-inline">participants</span> threads have arrived, all of them resume and the barrier is ready for the next phase. A participant that leaves without arriving strands the others, so the participant count must match the threads that actually reach the barrier.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_Barrier">Barrier</a></span></span></div>
+</section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Swag_BaseError" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.BaseError</span> <a class="api-item-permalink" href="#Swag_BaseError" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L528">src</a></div>
 <p>This is the base of all errors</p>
@@ -1719,6 +1920,16 @@
 </tbody>
 </table>
 <section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Swag_Condition" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Condition</span> <a class="api-item-permalink" href="#Swag_Condition" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L77">src</a></div>
+<p>A wait queue attached to a <a href="#Swag_Mutex">Swag.Mutex</a>, for state one thread publishes and another awaits.</p>
+<p>A zero-initialized value is an empty queue. <a href="swag.runtime.html#Swag_Condition_wait">Swag.Condition.wait</a> releases the mutex, waits, and reacquires it, so a wake can be lost between the two: always wait in a loop that rechecks the predicate the state actually encodes.</p>
+<div class="code-block"><span class="SCde">mutex.<span class="SFct">lock</span>()
+<span class="SLgc">while</span> !ready <span class="SLgc">do</span>
+    condition.<span class="SFct">wait</span>(&amp;mutex)
+mutex.<span class="SFct">unlock</span>()</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_Condition">Condition</a></span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Swag_Context" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Context</span> <a class="api-item-permalink" href="#Swag_Context" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L558">src</a></div>
 <p>Thread context as returned by [Swag.getContext].</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_Context">Context</a></span></span></div>
@@ -1875,6 +2086,12 @@
 </tbody>
 </table>
 <section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Swag_Mutex" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Mutex</span> <a class="api-item-permalink" href="#Swag_Mutex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L13">src</a></div>
+<p>Mutual exclusion over the state a program keeps beside it.</p>
+<p>A zero-initialized value is a free lock, so a <span class="code-inline">Mutex</span> needs no construction and can be a global. The lock is neither recursive nor fair: a thread that locks twice deadlocks, and a waiter has no ordering guarantee. The value must stay at one address while another thread can reach it, so it must not be copied or moved once anything can lock it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_Mutex">Mutex</a></span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Swag_ProcessInfos" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.ProcessInfos</span> <a class="api-item-permalink" href="#Swag_ProcessInfos" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L418">src</a></div>
 <p>Defined some information about the current process</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_ProcessInfos">ProcessInfos</a></span></span></div>
@@ -1889,6 +2106,12 @@
 </td></tr>
 </tbody>
 </table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Swag_RWLock" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.RWLock</span> <a class="api-item-permalink" href="#Swag_RWLock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L37">src</a></div>
+<p>A lock that admits either one writer or any number of concurrent readers.</p>
+<p>A zero-initialized value is a free lock. Readers and writers use different release operations, and a reader cannot upgrade to a writer while holding the shared side: release first, then acquire exclusively and revalidate whatever the read observed.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_RWLock">RWLock</a></span></span></div>
+</section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Swag_ScratchAllocator" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.ScratchAllocator</span> <a class="api-item-permalink" href="#Swag_ScratchAllocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L496">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_ScratchAllocator">ScratchAllocator</a></span></span></div>
@@ -1907,6 +2130,12 @@
 <tr><td id="Swag_ScratchAllocator_used" class="code-type">used</td><td class="code-type">u64</td><td></td></tr>
 </tbody>
 </table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Swag_Semaphore" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Semaphore</span> <a class="api-item-permalink" href="#Swag_Semaphore" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L114">src</a></div>
+<p>A counted set of permits, acquired and released by any thread.</p>
+<p>A zero-initialized value holds no permit. Call <a href="swag.runtime.html#Swag_Semaphore_setPermits">Swag.Semaphore.setPermits</a> before the first acquisition, or release the initial permits explicitly. The count is the resource; the semaphore does not track which thread took a permit, so releasing one that was never acquired is a program error rather than a detected fault.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_Semaphore">Semaphore</a></span></span></div>
+</section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Swag_SourceCodeLocation" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.SourceCodeLocation</span> <a class="api-item-permalink" href="#Swag_SourceCodeLocation" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1161">src</a></div>
 <p>Represent a part of a source code file.</p>
@@ -1944,6 +2173,34 @@
 <tr><td id="Swag_SystemError_errorID" class="code-type">errorID</td><td class="code-type">u64</td><td></td></tr>
 </tbody>
 </table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Swag_Task" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Task</span> <a class="api-item-permalink" href="#Swag_Task" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L22">src</a></div>
+<p>One piece of work the runtime runs on its own schedule.</p>
+<p>A task owns the closure it runs. Everything that closure reaches by address -- an <span class="code-inline">&amp;</span> capture, a borrowed buffer, the task value itself -- must stay alive until the task is observed finished, which is what <a href="swag.runtime.html#Swag_Task_wait">Swag.Task.wait</a> establishes. A task cannot be copied: the runtime borrows its storage while the work is in flight.</p>
+<p>A process with no worker thread runs the work inside <a href="swag.runtime.html#Swag_Task_submit">Swag.Task.submit</a>, so a submitted task always reaches its end; only the thread that runs it changes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> total = <span class="SNum">0</span>'<span class="STpe">u64</span>
+<span class="SKwd">var</span> task:  <span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_Task">Task</a></span>
+
+task.<span class="SFct">submit</span>(<span class="SKwd">func</span>|&amp;total|() { total = <span class="SFct">expensive</span>() })
+task.<span class="SFct">wait</span>()</span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_Task">Task</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Swag_TaskGroup" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TaskGroup</span> <a class="api-item-permalink" href="#Swag_TaskGroup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L120">src</a></div>
+<p>Owns a set of child tasks and joins every one of them before it is released.</p>
+<p>The group is the lifetime that makes a spawn safe: a child can borrow anything that outlives the group, because the group cannot be released while a child is still running. Leaving the scope of a group joins its children, whether the scope ends normally, by an early return, or by a raised error.</p>
+<p>Cancellation is a request, not a stop. <a href="swag.runtime.html#Swag_TaskGroup_cancel">Swag.TaskGroup.cancel</a> raises a flag every child can read; a child that never looks at it runs to its end.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> results: [<span class="SNum">4</span>] <span class="STpe">u64</span>
+{
+    <span class="SKwd">var</span> group: <span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_TaskGroup">TaskGroup</a></span>
+    <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">4</span> <span class="SLgc">do</span>
+        group.<span class="SFct">spawn</span>(<span class="SKwd">func</span>|&amp;results, index|() { results[index] = <span class="SFct">compute</span>(index) })
+}
+<span class="SCmt">// Every child has finished here.</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_TaskGroup">TaskGroup</a></span></span></div>
+</section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Swag_TypeInfo" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfo</span> <a class="api-item-permalink" href="#Swag_TypeInfo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L747">src</a></div>
 <p>Will be available for all types</p>
@@ -2764,7 +3021,7 @@
 </table>
 <h3 id="constants">Constants</h3>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="AllocatorHostCommitGranularity" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">AllocatorHostCommitGranularity</span> <a class="api-item-permalink" href="#AllocatorHostCommitGranularity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/os_windows.swg#L83">src</a></div>
+<div class="api-item api-item-const"><span id="AllocatorHostCommitGranularity" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">AllocatorHostCommitGranularity</span> <a class="api-item-permalink" href="#AllocatorHostCommitGranularity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/os_windows.swg#L111">src</a></div>
 <p>Windows implementation of the host primitives used by common allocator and TLS policy.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#AllocatorHostCommitGranularity">AllocatorHostCommitGranularity</a></span> = <span class="SNum">4096</span>'<span class="STpe">u64</span></span></div>
 </section>
@@ -2959,6 +3216,16 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Swag_ClosureCaptureBufferSize">ClosureCaptureBufferSize</a></span> = <span class="SNum">64</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-const"><span id="Swag_GroupBlockCapacity" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.GroupBlockCapacity</span> <a class="api-item-permalink" href="#Swag_GroupBlockCapacity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L83">src</a></div>
+<p>Children of one <a href="#Swag_TaskGroup">Swag.TaskGroup</a>, allocated in blocks so a node never moves.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">const</span> <span class="SCst"><a href="#Swag_GroupBlockCapacity">GroupBlockCapacity</a></span> = <span class="SNum">16</span>'<span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Swag_InfiniteWait" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.InfiniteWait</span> <a class="api-item-permalink" href="#Swag_InfiniteWait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L5">src</a></div>
+<p>Waits without a deadline.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Swag_InfiniteWait">InfiniteWait</a></span> = <span class="SNum">0xFFFF_FFFF</span>'<span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-const"><span id="Swag_MaxErrors" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.MaxErrors</span> <a class="api-item-permalink" href="#Swag_MaxErrors" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L524">src</a></div>
 <p>Maximum nested errors</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Swag_MaxErrors">MaxErrors</a></span> = <span class="SNum">32</span></span></div>
@@ -2967,6 +3234,36 @@
 <div class="api-item api-item-const"><span id="Swag_MaxTraces" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.MaxTraces</span> <a class="api-item-permalink" href="#Swag_MaxTraces" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L525">src</a></div>
 <p>Maximum error traces</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Swag_MaxTraces">MaxTraces</a></span> = <span class="SNum">32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Swag_MaxWorkers" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.MaxWorkers</span> <a class="api-item-permalink" href="#Swag_MaxWorkers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L5">src</a></div>
+<p>The largest number of worker threads the runtime starts.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Swag_MaxWorkers">MaxWorkers</a></span> = <span class="SNum">64</span>'<span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Swag_SchedulerAnchorKey" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.SchedulerAnchorKey</span> <a class="api-item-permalink" href="#Swag_SchedulerAnchorKey" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L64">src</a></div>
+<p>The anchor key of the scheduler inside one process.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">const</span> <span class="SCst"><a href="#Swag_SchedulerAnchorKey">SchedulerAnchorKey</a></span> = <span class="SNum">1</span>'<span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Swag_WorkStateDone" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateDone</span> <a class="api-item-permalink" href="#Swag_WorkStateDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L30">src</a></div>
+<p>The work finished. The owner may reuse or destroy the node.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">const</span> <span class="SCst"><a href="#Swag_WorkStateDone">WorkStateDone</a></span> = <span class="SNum">3</span>'<span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Swag_WorkStateIdle" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateIdle</span> <a class="api-item-permalink" href="#Swag_WorkStateIdle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L21">src</a></div>
+<p>The work has never been submitted, or its last run was collected.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">const</span> <span class="SCst"><a href="#Swag_WorkStateIdle">WorkStateIdle</a></span> = <span class="SNum">0</span>'<span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Swag_WorkStateQueued" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateQueued</span> <a class="api-item-permalink" href="#Swag_WorkStateQueued" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L24">src</a></div>
+<p>The work is submitted and not started.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">const</span> <span class="SCst"><a href="#Swag_WorkStateQueued">WorkStateQueued</a></span> = <span class="SNum">1</span>'<span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Swag_WorkStateRunning" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.WorkStateRunning</span> <a class="api-item-permalink" href="#Swag_WorkStateRunning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L27">src</a></div>
+<p>A thread is running the work.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">const</span> <span class="SCst"><a href="#Swag_WorkStateRunning">WorkStateRunning</a></span> = <span class="SNum">2</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Swag_U16_Max" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">U16.Max</span> <a class="api-item-permalink" href="#Swag_U16_Max" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L364">src</a></div>
@@ -3101,6 +3398,11 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acos</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acos</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acos</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_activeScheduler" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.activeScheduler</span> <a class="api-item-permalink" href="#Swag_activeScheduler" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L142">src</a></div>
+<p>Starts the worker roster once, and returns the scheduler.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">activeScheduler</span>()-&gt;*<span class="SCst"><a href="swag.runtime.html#Swag_Scheduler">Scheduler</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_Align" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Align</span> <a class="api-item-permalink" href="#Swag_Align" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L325">src</a></div>
@@ -3445,6 +3747,12 @@
 <span class="SKwd">attr</span> <span class="SFct">Discardable</span>()</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_drainWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.drainWork</span> <a class="api-item-permalink" href="#Swag_drainWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L365">src</a></div>
+<p>Runs ready work until every unit submitted to the process has finished.</p>
+<p>This is a shutdown and test convenience over the whole process, not a structured join: it cannot tell one owner's work from another's. Prefer waiting on the <a href="#Swag_Task">Swag.Task</a> or <a href="#Swag_TaskGroup">Swag.TaskGroup</a> that owns the work.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">drainWork</span>()</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_EnumFlags" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.EnumFlags</span> <a class="api-item-permalink" href="#Swag_EnumFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L220">src</a></div>
 <p>The following enum is a set of flags</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Enum)]</span>
@@ -3496,6 +3804,10 @@
 <div class="api-item api-item-func"><span id="Swag_getContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.getContext</span> <a class="api-item-permalink" href="#Swag_getContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1188">src</a></div>
 <p>Get the current thread context.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getContext</span>()-&gt;*<span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_Context">Context</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_groupChildEntry" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.groupChildEntry</span> <a class="api-item-permalink" href="#Swag_groupChildEntry" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L216">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">groupChildEntry</span>(node: *<span class="SCst"><a href="swag.runtime.html#Swag_WorkNode">WorkNode</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_gvtd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.gvtd</span> <a class="api-item-permalink" href="#Swag_gvtd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1200">src</a></div>
@@ -3721,10 +4033,41 @@
 <span class="SKwd">func</span> <span class="SFct">panic</span>(message: <span class="STpe">string</span>?, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_parallelChunkEntry" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.parallelChunkEntry</span> <a class="api-item-permalink" href="#Swag_parallelChunkEntry" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L109">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">parallelChunkEntry</span>(node: *<span class="SCst"><a href="swag.runtime.html#Swag_WorkNode">WorkNode</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_parallelRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.parallelRange</span> <a class="api-item-permalink" href="#Swag_parallelRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L32">src</a></div>
+<p>Runs <span class="code-inline">body</span> over every index of <span class="code-inline">[0, count)</span>, splitting the range across the worker pool.</p>
+<p>This is what <span class="code-inline">parallel for</span> lowers to. <span class="code-inline">body</span> is called once per partition with the half-open bounds of that partition; every index of the range is covered exactly once, and the call returns only after every partition has finished.</p>
+<p>Partition boundaries and the order partitions run in are not part of the contract, so a body must not depend on either. The body executes on a worker thread, so everything it reaches must either be owned by that partition or be safe to share; the caller's frame stays alive for the whole call, which is what makes an <span class="code-inline">&amp;</span> capture of a local valid here.</p>
+<p>With fewer than two workers, and under compile-time execution, the whole range runs as one partition on the calling thread.</p>
+<div class="code-block"><span class="SCde"><span class="SLgc">parallel</span> <span class="SLgc">for</span> row <span class="SLgc">in</span> image.height <span class="SLgc">do</span>
+    <span class="SFct">convertRow</span>(row)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parallelRange</span>(count: <span class="STpe">u64</span>, body: <span class="SKwd">func</span>||(<span class="STpe">u64</span>, <span class="STpe">u64</span>))</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_parallelRangeAbove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.parallelRangeAbove</span> <a class="api-item-permalink" href="#Swag_parallelRangeAbove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L95">src</a></div>
+<p>Runs <span class="code-inline">body</span> over every index of <span class="code-inline">[0, count)</span> when the range is large enough to be worth splitting, and on the calling thread otherwise.</p>
+<p><span class="code-inline">threshold</span> is the smallest range the caller considers worth distributing. Below it the whole range runs as one partition, which avoids paying for submission and joining on work that is shorter than they cost.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parallelRangeAbove</span>(count: <span class="STpe">u64</span>, threshold: <span class="STpe">u64</span>, body: <span class="SKwd">func</span>||(<span class="STpe">u64</span>, <span class="STpe">u64</span>))</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_parallelRangeFrom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.parallelRangeFrom</span> <a class="api-item-permalink" href="#Swag_parallelRangeFrom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L42">src</a></div>
+<p>Runs <span class="code-inline">body</span> over the half-open index range <span class="code-inline">[begin, end)</span>, split across the worker pool.</p>
+<p>A <span class="code-inline">parallel for</span> statement lowers to this call. It behaves exactly like <a href="#Swag_parallelRange">Swag.parallelRange</a> over an offset range: the partitions it hands to <span class="code-inline">body</span> are absolute indices of that range, and an empty range runs nothing.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parallelRangeFrom</span>(begin, end: <span class="STpe">u64</span>, body: <span class="SKwd">func</span>||(<span class="STpe">u64</span>, <span class="STpe">u64</span>))</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_PlaceHolder" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.PlaceHolder</span> <a class="api-item-permalink" href="#Swag_PlaceHolder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L71">src</a></div>
 <p>An empty function will be generated</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
 <span class="SKwd">attr</span> <span class="SFct">PlaceHolder</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_popWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.popWork</span> <a class="api-item-permalink" href="#Swag_popWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L244">src</a></div>
+<p>Takes the most recently submitted ready node, or null when the stack is empty.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">popWork</span>(sched: *<span class="SCst"><a href="swag.runtime.html#Swag_Scheduler">Scheduler</a></span>)-&gt;*<span class="SCst"><a href="swag.runtime.html#Swag_WorkNode">WorkNode</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_pow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.pow</span> <a class="api-item-permalink" href="#Swag_pow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1740">src</a></div>
@@ -3796,8 +4139,22 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">round</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_runParallelChunk" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.runParallelChunk</span> <a class="api-item-permalink" href="#Swag_runParallelChunk" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L114">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">runParallelChunk</span>(chunk: *<span class="SCst"><a href="swag.runtime.html#Swag_ParallelChunk">ParallelChunk</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_runPendingWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.runPendingWork</span> <a class="api-item-permalink" href="#Swag_runPendingWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L259">src</a></div>
+<p>Runs one ready node if there is one, and returns whether it ran anything.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">runPendingWork</span>()-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_runtimeFlags" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.runtimeFlags</span> <a class="api-item-permalink" href="#Swag_runtimeFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/core.swg#L256">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">runtimeFlags</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_runWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.runWork</span> <a class="api-item-permalink" href="#Swag_runWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L225">src</a></div>
+<p>Runs one node and publishes its completion.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">runWork</span>(sched: *<span class="SCst"><a href="swag.runtime.html#Swag_Scheduler">Scheduler</a></span>, node: *<span class="SCst"><a href="swag.runtime.html#Swag_WorkNode">WorkNode</a></span>, accounted: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_Safety" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Safety</span> <a class="api-item-permalink" href="#Swag_Safety" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L292">src</a></div>
@@ -3817,6 +4174,29 @@
 <span class="SKwd">attr</span> <span class="SFct">Sanity</span>(what: <span class="SCst"><a href="#Swag_SafetyWhat">SafetyWhat</a></span>, value: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_schedulerInstance" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.schedulerInstance</span> <a class="api-item-permalink" href="#Swag_schedulerInstance" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L73">src</a></div>
+<p>Returns the process scheduler, creating it on first use.</p>
+<p>Creating it starts no thread and reserves no execution resource: a program that never submits work only pays for one small allocation.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">schedulerInstance</span>()-&gt;*<span class="SCst"><a href="swag.runtime.html#Swag_Scheduler">Scheduler</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_schedulerWorkerEntry" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.schedulerWorkerEntry</span> <a class="api-item-permalink" href="#Swag_schedulerWorkerEntry" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L270">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">schedulerWorkerEntry</span>(param: *<span class="STpe">void</span>?)-&gt;<span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_scopedLock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.scopedLock</span> <a class="api-item-permalink" href="#Swag_scopedLock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L251">src</a></div>
+<p>Locks <span class="code-inline">syncObj</span> for the rest of the enclosing scope.</p>
+<p>The lock is released by the scope's exit, including an early return or a raised error.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">scopedLock</span>(syncObj: *<span class="SCst">T</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_scopedLockShared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.scopedLockShared</span> <a class="api-item-permalink" href="#Swag_scopedLockShared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L259">src</a></div>
+<p>Takes shared access to <span class="code-inline">syncObj</span> for the rest of the enclosing scope.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">scopedLockShared</span>(syncObj: *<span class="SCst">T</span>)</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_setContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.setContext</span> <a class="api-item-permalink" href="#Swag_setContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1191">src</a></div>
 <p>Replace the current thread context.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">setContext</span>(context: <span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_Context">Context</a></span>)</span></div>
@@ -3824,6 +4204,13 @@
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_setCurrentAllocatorThreadHeap" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.setCurrentAllocatorThreadHeap</span> <a class="api-item-permalink" href="#Swag_setCurrentAllocatorThreadHeap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L186">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">setCurrentAllocatorThreadHeap</span>(heap: *<span class="SCst"><a href="#Swag_AllocatorThreadHeap">AllocatorThreadHeap</a></span>?)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_setWorkerCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.setWorkerCount</span> <a class="api-item-permalink" href="#Swag_setWorkerCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L130">src</a></div>
+<p>Sets how many worker threads the process runs.</p>
+<p>Zero, the default, lets the runtime choose from the host processor count. Asking for more than the pool currently runs starts the missing threads, up to one per host processor; asking for fewer never stops a running one. One process has one budget, whichever artifact sets it.</p>
+<p>Compile-time execution runs no worker at all, so the count stays zero there.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">setWorkerCount</span>(count: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_sin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.sin</span> <a class="api-item-permalink" href="#Swag_sin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1704">src</a></div>
@@ -3850,6 +4237,14 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sqrt</span>(value: <span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">f64</span>)-&gt;<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_startWorkers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.startWorkers</span> <a class="api-item-permalink" href="#Swag_startWorkers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L104">src</a></div>
+<p>Starts the process worker pool now, if it is not running yet.</p>
+<p>The pool starts on its own at the first submission, so this is only useful to move that cost out of the first parallel section -- a program whose first parallel work is also its most latency-sensitive can pay for the threads earlier.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">startWorkers</span>()</span></div>
+<p>Brings the roster up to <span class="code-inline">wanted</span> threads. The caller holds the scheduler mutex.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">startWorkers</span>(sched: *<span class="SCst"><a href="swag.runtime.html#Swag_Scheduler">Scheduler</a></span>, wanted: <span class="STpe">u32</span>)</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_Strict" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Strict</span> <a class="api-item-permalink" href="#Swag_Strict" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L321">src</a></div>
 <p>Keep the following alias distinct from its target for implicit conversions</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Alias)]</span>
@@ -3859,6 +4254,12 @@
 <div class="api-item api-item-func"><span id="Swag_stringCmp" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.stringCmp</span> <a class="api-item-permalink" href="#Swag_stringCmp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/print.swg#L233">src</a></div>
 <p>Compares two strings, and returns <span class="code-inline">true</span> if they are equal.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">stringCmp</span>(str1: <span class="STpe">string</span>?, str2: <span class="STpe">string</span>?)-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_submitWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.submitWork</span> <a class="api-item-permalink" href="#Swag_submitWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L310">src</a></div>
+<p>Submits <span class="code-inline">node</span> for one execution.</p>
+<p>The node and everything its entry reads must stay alive until the work is observed finished. With no worker thread the work runs here, so a submitted unit always completes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">submitWork</span>(node: *<span class="SCst"><a href="swag.runtime.html#Swag_WorkNode">WorkNode</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_tableOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.tableOf</span> <a class="api-item-permalink" href="#Swag_tableOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/core.swg#L177">src</a></div>
@@ -3877,6 +4278,10 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_taskEntry" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.taskEntry</span> <a class="api-item-permalink" href="#Swag_taskEntry" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L71">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">taskEntry</span>(node: *<span class="SCst"><a href="swag.runtime.html#Swag_WorkNode">WorkNode</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_TestTag" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.TestTag</span> <a class="api-item-permalink" href="#Swag_TestTag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L40">src</a></div>
@@ -4183,6 +4588,12 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">vecwidenlo</span>(value: <span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>)-&gt;<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">s64</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_waitWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.waitWork</span> <a class="api-item-permalink" href="#Swag_waitWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L336">src</a></div>
+<p>Runs ready work until <span class="code-inline">node</span> has finished.</p>
+<p>The waiting thread executes submitted work itself, so a wait makes progress even when every worker is busy and when the process has none.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">waitWork</span>(node: *<span class="SCst"><a href="swag.runtime.html#Swag_WorkNode">WorkNode</a></span>)</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_Warning" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Warning</span> <a class="api-item-permalink" href="#Swag_Warning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L317">src</a></div>
 <p>Decide how one warning, a list of warnings, or every warning is reported inside the annotated declaration, block, or file. A warning is named by its diagnostic identifier, the string <span class="code-inline">--diagnostic-id</span> prints; <span class="code-inline">"all"</span> names every warning at once.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Warning("sema_warn_unreachable_code", .Disable)]</span>
@@ -4191,6 +4602,13 @@
 <p>A decision that names a warning outranks a decision that says <span class="code-inline">"all"</span>, and this attribute outranks both <a href="#Swag_BuildCfgWarnings">BuildCfgWarnings</a> and the <span class="code-inline">--warn-*</span> command-line options.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]</span>
 <span class="SKwd">attr</span> <span class="SFct">Warning</span>(what: <span class="STpe">string</span>, level: <span class="SCst"><a href="#Swag_WarningLevel">WarningLevel</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_workerCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.workerCount</span> <a class="api-item-permalink" href="#Swag_workerCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L117">src</a></div>
+<p>Returns the number of worker threads that run submitted work.</p>
+<p>Asking starts the pool, because asking is how a program sizes the partitioning it is about to submit. The answer is zero under compile-time execution, where work runs on the submitting thread.</p>
+<p>Use it to size a partitioning, never to decide whether a submitted unit will complete: a submitted unit always completes, on a worker or on the submitting thread.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">workerCount</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <h3 id="other-symbols">Other symbols</h3>
 <section class="api-symbol">
@@ -4228,7 +4646,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.390</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.397</div>
 </footer>
 </section>
 </main>
@@ -4520,12 +4938,15 @@
 "s|Swag.AllocatorThreadClass|Swag_AllocatorThreadClass|",
 "s|Swag.AllocatorThreadHeap|Swag_AllocatorThreadHeap|",
 "s|Swag.AllocatorTracking|Swag_AllocatorTracking|",
+"s|Swag.AtomicFlag|Swag_AtomicFlag|A one-way flag that any thread can raise and every thread can observe.",
+"s|Swag.AtomicValue|Swag_AtomicValue|Integer storage whose every access is one indivisible operation.",
 "s|Swag.Attribute|Swag_Attribute|",
 "v|Swag.Attribute.params|Swag_Attribute_params|Attribute parameters",
 "v|Swag.Attribute.type|Swag_Attribute_type|",
 "s|Swag.AttributeParam|Swag_AttributeParam|",
 "v|Swag.AttributeParam.name|Swag_AttributeParam_name|Name of the attribute parameter",
 "v|Swag.AttributeParam.value|Swag_AttributeParam_value|Optional default value",
+"s|Swag.Barrier|Swag_Barrier|A rendezvous point that releases a fixed number of participants together.",
 "s|Swag.BaseError|Swag_BaseError|This is the base of all errors",
 "v|Swag.BaseError.message|Swag_BaseError_message|",
 "s|Swag.BuildCfg|Swag_BuildCfg|The current module build configuration.",
@@ -4615,6 +5036,7 @@
 "v|Swag.CompilerMessage.moduleName|Swag_CompilerMessage_moduleName|Name of the module for which the message is sent.",
 "v|Swag.CompilerMessage.name|Swag_CompilerMessage_name|Depends on 'kind'",
 "v|Swag.CompilerMessage.type|Swag_CompilerMessage_type|Depends on 'kind'",
+"s|Swag.Condition|Swag_Condition|A wait queue attached to a Swag.Mutex, for state one thread publishes and another awaits.",
 "s|Swag.Context|Swag_Context|Thread context as returned by Swag.getContext.",
 "v|Swag.Context.allocator|Swag_Context_allocator|The current allocator interface",
 "v|Swag.Context.curError|Swag_Context_curError|The current raised error",
@@ -4649,9 +5071,11 @@
 "s|Swag.Module|Swag_Module|Defined some information about a loaded module",
 "v|Swag.Module.name|Swag_Module_name|Name of the module",
 "v|Swag.Module.types|Swag_Module_types|All exported types",
+"s|Swag.Mutex|Swag_Mutex|Mutual exclusion over the state a program keeps beside it.",
 "s|Swag.ProcessInfos|Swag_ProcessInfos|Defined some information about the current process",
 "v|Swag.ProcessInfos.args|Swag_ProcessInfos_args|The application arguments, as returned by Swag.args.",
 "v|Swag.ProcessInfos.modules|Swag_ProcessInfos_modules|The list of all modules",
+"s|Swag.RWLock|Swag_RWLock|A lock that admits either one writer or any number of concurrent readers.",
 "s|Swag.ScratchAllocator|Swag_ScratchAllocator|",
 "v|Swag.ScratchAllocator.allocator|Swag_ScratchAllocator_allocator|",
 "v|Swag.ScratchAllocator.block|Swag_ScratchAllocator_block|",
@@ -4661,6 +5085,7 @@
 "v|Swag.ScratchAllocator.maxUsed|Swag_ScratchAllocator_maxUsed|",
 "v|Swag.ScratchAllocator.totalLeak|Swag_ScratchAllocator_totalLeak|",
 "v|Swag.ScratchAllocator.used|Swag_ScratchAllocator_used|",
+"s|Swag.Semaphore|Swag_Semaphore|A counted set of permits, acquired and released by any thread.",
 "s|Swag.SourceCodeLocation|Swag_SourceCodeLocation|Represent a part of a source code file.",
 "v|Swag.SourceCodeLocation.colEnd|Swag_SourceCodeLocation_colEnd|End column",
 "v|Swag.SourceCodeLocation.colStart|Swag_SourceCodeLocation_colStart|Start column",
@@ -4671,6 +5096,8 @@
 "s|Swag.SystemError|Swag_SystemError|An error raised by the system",
 "v|Swag.SystemError.base|Swag_SystemError_base|",
 "v|Swag.SystemError.errorID|Swag_SystemError_errorID|",
+"s|Swag.Task|Swag_Task|One piece of work the runtime runs on its own schedule.",
+"s|Swag.TaskGroup|Swag_TaskGroup|Owns a set of child tasks and joins every one of them before it is released.",
 "s|Swag.TypeInfo|Swag_TypeInfo|Will be available for all types",
 "v|Swag.TypeInfo.crc|Swag_TypeInfo_crc|A unique CRC to identify the type",
 "v|Swag.TypeInfo.flags|Swag_TypeInfo_flags|Some additional flags",
@@ -4994,8 +5421,11 @@
 "c|Swag.F64.Min|Swag_F64_Min|",
 "c|Swag.F64.NaN|Swag_F64_NaN|",
 "c|Swag.F64.NegInf|Swag_F64_NegInf|",
+"c|Swag.GroupBlockCapacity|Swag_GroupBlockCapacity|Children of one Swag.TaskGroup, allocated in blocks so a node never moves.",
+"c|Swag.InfiniteWait|Swag_InfiniteWait|Waits without a deadline.",
 "c|Swag.MaxErrors|Swag_MaxErrors|Maximum nested errors",
 "c|Swag.MaxTraces|Swag_MaxTraces|Maximum error traces",
+"c|Swag.MaxWorkers|Swag_MaxWorkers|The largest number of worker threads the runtime starts.",
 "c|Swag.S16.Max|Swag_S16_Max|",
 "c|Swag.S16.Min|Swag_S16_Min|",
 "c|Swag.S32.Max|Swag_S32_Max|",
@@ -5004,6 +5434,7 @@
 "c|Swag.S64.Min|Swag_S64_Min|",
 "c|Swag.S8.Max|Swag_S8_Max|",
 "c|Swag.S8.Min|Swag_S8_Min|",
+"c|Swag.SchedulerAnchorKey|Swag_SchedulerAnchorKey|The anchor key of the scheduler inside one process.",
 "c|Swag.U16.Max|Swag_U16_Max|",
 "c|Swag.U16.Min|Swag_U16_Min|",
 "c|Swag.U32.Max|Swag_U32_Max|",
@@ -5012,6 +5443,10 @@
 "c|Swag.U64.Min|Swag_U64_Min|",
 "c|Swag.U8.Max|Swag_U8_Max|Max 'u8' value",
 "c|Swag.U8.Min|Swag_U8_Min|Min 'u8' value",
+"c|Swag.WorkStateDone|Swag_WorkStateDone|The work finished. The owner may reuse or destroy the node.",
+"c|Swag.WorkStateIdle|Swag_WorkStateIdle|The work has never been submitted, or its last run was collected.",
+"c|Swag.WorkStateQueued|Swag_WorkStateQueued|The work is submitted and not started.",
+"c|Swag.WorkStateRunning|Swag_WorkStateRunning|A thread is running the work.",
 "a|MemoryFillVector|MemoryFillVector|",
 "a|MemoryVector|MemoryVector|",
 "t|Swag.Align|Swag_Align|Alignment of the following struct or struct field",
@@ -5058,6 +5493,7 @@
 "f|reversed|reversed|Returns a zero-allocation view that visits the indices of count in descending order.",
 "f|Swag.abs|Swag_abs|Absolute value.",
 "f|Swag.acos|Swag_acos|",
+"f|Swag.activeScheduler|Swag_activeScheduler|Starts the worker roster once, and returns the scheduler.",
 "f|Swag.allocatorAcquireSegment|Swag_allocatorAcquireSegment|Hands the caller a segment shaped for 'unitShift', reusing an emptied one when possible.",
 "f|Swag.allocatorAddArena|Swag_allocatorAddArena|Adds one address-space reservation. The caller holds the arena mutex.",
 "f|Swag.allocatorCreateSegment|Swag_allocatorCreateSegment|Carves a fresh segment out of the reservations and commits its header.",
@@ -5098,10 +5534,12 @@
 "f|Swag.currentAllocatorThreadHeap|Swag_currentAllocatorThreadHeap|",
 "f|Swag.currentThreadId|Swag_currentThreadId|",
 "f|Swag.defaultAllocator|Swag_defaultAllocator|",
+"f|Swag.drainWork|Swag_drainWork|Runs ready work until every unit submitted to the process has finished.",
 "f|Swag.exp|Swag_exp|Exponentials and power.",
 "f|Swag.exp2|Swag_exp2|",
 "f|Swag.floor|Swag_floor|Round toward minus infinity.",
 "f|Swag.getContext|Swag_getContext|Get the current thread context.",
+"f|Swag.groupChildEntry|Swag_groupChildEntry|",
 "f|Swag.gvtd|Swag_gvtd|Returns the list of all global variables.",
 "f|Swag.IAllocator.alloc|Swag_IAllocator_alloc|Allocate a block of memory.",
 "f|Swag.IAllocator.assertAllocated|Swag_IAllocator_assertAllocated|Assert that 'request.address' is currently allocated, if supported.",
@@ -5126,6 +5564,11 @@
 "f|Swag.muladd|Swag_muladd|Returns '(val1 val2) + val3'",
 "f|Swag.osReserve|Swag_osReserve|Reserves address space without committing it. The reservation is over-sized so a",
 "f|Swag.panic|Swag_panic|Stop the execution and panic",
+"f|Swag.parallelChunkEntry|Swag_parallelChunkEntry|",
+"f|Swag.parallelRange|Swag_parallelRange|Runs body over every index of [0, count), splitting the range across the worker pool.",
+"f|Swag.parallelRangeAbove|Swag_parallelRangeAbove|Runs body over every index of [0, count) when the range is large enough to be worth",
+"f|Swag.parallelRangeFrom|Swag_parallelRangeFrom|Runs body over the half-open index range [begin, end), split across the worker pool.",
+"f|Swag.popWork|Swag_popWork|Takes the most recently submitted ready node, or null when the stack is empty.",
 "f|Swag.pow|Swag_pow|",
 "f|Swag.print|Swag_print|Basic print to console function",
 "f|Swag.processInfos|Swag_processInfos|Get information about the current process.",
@@ -5134,17 +5577,28 @@
 "f|Swag.rol|Swag_rol|Rotate bits left",
 "f|Swag.ror|Swag_ror|Rotate bits right",
 "f|Swag.round|Swag_round|Round to nearest, away from zero at .5.",
+"f|Swag.runParallelChunk|Swag_runParallelChunk|",
+"f|Swag.runPendingWork|Swag_runPendingWork|Runs one ready node if there is one, and returns whether it ran anything.",
 "f|Swag.runtimeFlags|Swag_runtimeFlags|",
+"f|Swag.runWork|Swag_runWork|Runs one node and publishes its completion.",
 "f|Swag.safetyPanic|Swag_safetyPanic|",
+"f|Swag.schedulerInstance|Swag_schedulerInstance|Returns the process scheduler, creating it on first use.",
+"f|Swag.schedulerWorkerEntry|Swag_schedulerWorkerEntry|",
+"f|Swag.scopedLock|Swag_scopedLock|Locks syncObj for the rest of the enclosing scope.",
+"f|Swag.scopedLockShared|Swag_scopedLockShared|Takes shared access to syncObj for the rest of the enclosing scope.",
 "f|Swag.setContext|Swag_setContext|Replace the current thread context.",
 "f|Swag.setCurrentAllocatorThreadHeap|Swag_setCurrentAllocatorThreadHeap|",
+"f|Swag.setWorkerCount|Swag_setWorkerCount|Sets how many worker threads the process runs.",
 "f|Swag.sin|Swag_sin|Trigonometric functions.",
 "f|Swag.sinh|Swag_sinh|Hyperbolic trigonometric functions.",
 "f|Swag.sqrt|Swag_sqrt|Square root.",
+"f|Swag.startWorkers|Swag_startWorkers|Starts the process worker pool now, if it is not running yet.",
 "f|Swag.stringCmp|Swag_stringCmp|Compares two strings, and returns 'true' if they are equal.",
+"f|Swag.submitWork|Swag_submitWork|Submits node for one execution.",
 "f|Swag.tableOf|Swag_tableOf|",
 "f|Swag.tan|Swag_tan|",
 "f|Swag.tanh|Swag_tanh|",
+"f|Swag.taskEntry|Swag_taskEntry|",
 "f|Swag.trunc|Swag_trunc|Round toward zero.",
 "f|Swag.typeAs|Swag_typeAs|",
 "f|Swag.typeCmp|Swag_typeCmp|",
@@ -5179,6 +5633,8 @@
 "f|Swag.vectruncs32|Swag_vectruncs32|Converts float lanes to signed 32-bit integers by truncating toward",
 "f|Swag.vecwidenhi|Swag_vecwidenhi|",
 "f|Swag.vecwidenlo|Swag_vecwidenlo|Widening: the low or high half of the lanes extends to double width,",
+"f|Swag.waitWork|Swag_waitWork|Runs ready work until node has finished.",
+"f|Swag.workerCount|Swag_workerCount|Returns the number of worker threads that run submitted work.",
 ]);
 </script>
 </body>

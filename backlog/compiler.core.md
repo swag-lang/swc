@@ -6,6 +6,25 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.033 — A closure cannot capture the parameter of the macro it is written in
+
+- Recorded: 2026-09-07 16:02
+- Found while: moving `Pixel.Image.visitPixels` and `visitVectorBytes` off `Core.Jobs` and onto a
+  closure passed to `Swag.parallelRange`.
+- Evidence: inside a `#[Swag.Macro]` function, `func|pixelUserData|(...)` on a parameter of that
+  macro reports `closure does not capture outer variable 'pixelUserData'` at every expansion, while
+  the same capture of an ordinary local of the macro body is accepted. The macro's parameters are
+  bound at the call site rather than materialized as locals, and the capture path looks for a
+  local. Binding the parameter to a local first -- `let opaque = pixelUserData` -- and capturing
+  that local compiles and runs, which is what both macros now do.
+- Next: decide whether a macro parameter is capturable at all. It is a caller expression bound by
+  name, so capturing it by value means capturing the bound value, and capturing it by address means
+  taking the address of the caller's own storage. Both are answerable; neither is answered today,
+  and the diagnostic describes a missing capture rather than the real restriction.
+- Complete when: either the capture is accepted with a stated meaning, or the diagnostic says that
+  a macro parameter is bound at the call site and names the local-binding workaround.
+- Related: language.parallelism.001
+
 ### compiler.core.032 — Repeated module builds publish different borrow summaries
 
 - Recorded: 2026-09-07 10:43

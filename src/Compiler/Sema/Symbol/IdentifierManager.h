@@ -48,6 +48,7 @@ public:
         SliceCmp,
         RunTest,
         TestsDone,
+        ParallelRange,
         Count,
     };
 
@@ -169,6 +170,7 @@ public:
         RuntimeRaiseException,
         RuntimeRunTest,
         RuntimeTestsDone,
+        RuntimeParallelRange,
         Count,
     };
 

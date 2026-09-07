@@ -87,6 +87,6 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    try Jobs.initialize(4)
+    Swag.setWorkerCount(4)
     Application.runSurface(100, 100, 466, 481, title: "Mandelbrot", hook: &onEvent)
 }

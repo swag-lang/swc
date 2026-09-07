@@ -8,11 +8,11 @@ impl Image
         if !legacy
         {
             var context = {src: me, dst: dstImage}
-            Jobs.parallelFor(cast(u32) dstImage.height, &context) #code(row, data)
+            parallel for |&context| parIndex in cast(u64) dstImage.height
             {
-                let params     = cast(*#decltype(context)) data!
-                let src        = cast(const *Image) params.src
-                let dst        = cast(*Image) params.dst
+                let row        = cast(u32) parIndex
+                let src        = cast(const *Image) context.src
+                let dst        = cast(*Image) context.dst
                 let y0         = cast(s32) row * 2
                 let sourceRow0 = src.pixels.buffer! + cast(u64) y0 * src.rowStride
                 let sourceRow1 = sourceRow0 + src.rowStride

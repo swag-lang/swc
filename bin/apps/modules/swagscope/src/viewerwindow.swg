@@ -529,7 +529,7 @@ struct ViewerClassifiedFile
 // Classifies one requested file without making the GUI thread open or probe it.
 struct ViewerChoiceLoad
 {
-    job:      Jobs.Job
+    task:     Swag.Task
     index:    *ViewerPluginRegistry?
     fileName: String
     recent:   Array'String
@@ -545,14 +545,16 @@ impl ViewerChoiceLoad
 
         // The operation is reusable. A completed result was moved to the window, so rebuild every
         // owning field before the worker appends the next folder and history snapshot.
-        .result     = {}
-        .index      = index
-        .fileName   = fileName
-        .recent     = recent
-        .job.lambda = func(data: *void?)
+        .result   = {}
+        .index    = index
+        .fileName = fileName
+        .recent   = recent
+        .started  = true
+
+        let operation = me
+        .task.submit(func|operation|()
         {
-            let operation = cast(*ViewerChoiceLoad) data!
-            var absolute  = catch Path.absolute(operation.fileName.toString()) as pathError
+            var absolute = catch Path.absolute(operation.fileName.toString()) as pathError
             if pathError != null do
                 absolute = operation.fileName
             operation.result.absoluteFileName = #move absolute
@@ -582,18 +584,15 @@ impl ViewerChoiceLoad
             }
 
             operation.result.folderFiles.sort(func(a, b) { return Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase) })
-        }
-        .job.data = me
-        .started  = true
-        Jobs.schedule(&.job)
+        })
     }
 
-    mtd const isDone()->bool => .started and Jobs.isDone(&.job)
+    mtd const isDone()->bool => .started and .task.isDone()
 
     mtd finish()->ViewerClassifiedFile
     {
         Debug.assert(.isDone())
-        Jobs.wait(&.job)
+        .task.wait()
         .started = false
         return #move .result
     }
@@ -601,7 +600,7 @@ impl ViewerChoiceLoad
     mtd opDrop()
     {
         if .started do
-            Jobs.wait(&.job)
+            .task.wait()
     }
 }
 

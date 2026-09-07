@@ -19,7 +19,7 @@ const SurfaceId   = "swag.vault"
         Integration.runAndExit()
     }
 
-    try Jobs.initialize()
+    Swag.startWorkers()
     #static if #hastag("vault.hidden-copy")
     {
         discard catch runHiddenCopy() as copyError

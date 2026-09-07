@@ -14,7 +14,7 @@ an area by the problem you need to solve:
 | Work with files and paths | [[Core.File]], [[Core.Directory]], and [[Core.Path]] |
 | Encode structured data | [[Core.Serialization]] |
 | Measure time or dates | [[Core.Time]] |
-| Run concurrent work | [[Core.Jobs]], [[Core.Threading]], and [[Core.Sync]] |
+| Run concurrent work | [[Swag.Task]], [[Core.Threading]], and [[Core.Sync]] |
 | Inspect types at runtime | [[Core.Reflection]] |
 | Hash or checksum bytes | [[Core.Hash]] |
 

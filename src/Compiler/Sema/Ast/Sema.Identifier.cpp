@@ -113,6 +113,8 @@ namespace
         return decl->is(AstNodeId::FunctionExpr) && function.hasExtraFlag(SymbolFunctionFlagsE::BoundToClosure);
     }
 
+    bool isTypeOnlyCompilerIdentifierUse(Sema& sema);
+
     bool requiresExplicitClosureCapture(Sema& sema, const Symbol& symbol)
     {
         const SymbolFunction* currentFn = sema.currentFunction();
@@ -128,6 +130,12 @@ namespace
 
         const AstIdentifier& node = sema.curNode().cast<AstIdentifier>();
         if (node.hasFlag(AstIdentifierFlagsE::InClosureCapture))
+            return false;
+
+        // A name used only to ask the compiler about its type -- '#decltype(x)', '#typeof(x)' --
+        // reads no storage, so the closure has nothing to capture. Requiring a capture there
+        // would force a value into the closure only to name its type.
+        if (node.hasFlag(AstIdentifierFlagsE::InCompilerDefined) || isTypeOnlyCompilerIdentifierUse(sema))
             return false;
 
         if (!symbol.isVariable())

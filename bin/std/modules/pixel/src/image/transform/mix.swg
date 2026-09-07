@@ -32,27 +32,27 @@ impl Image
             width: right - left,
             mode: mode}
 
-        Jobs.parallelFor(cast(u32) (bottom - top), &context) #code(row, data)
+        parallel for |&context| parIndex in cast(u64) (bottom - top)
         {
-            let params = cast(*#decltype(context)) data!
-            let dst    = cast(*Image) params.dst
-            let src    = cast(const *Image) params.src
-            let dstRow = dst.pixels.buffer! + cast(u64) (params.dstY + row) * dst.rowStride + cast(u64) params.dstX * dst.bytesPerPixel
-            let srcRow = src.pixels.buffer! + cast(u64) (params.srcY + row) * src.rowStride + cast(u64) params.srcX * src.bytesPerPixel
+            let row    = cast(u32) parIndex
+            let dst    = cast(*Image) context.dst
+            let src    = cast(const *Image) context.src
+            let dstRow = dst.pixels.buffer! + cast(u64) (context.dstY + row) * dst.rowStride + cast(u64) context.dstX * dst.bytesPerPixel
+            let srcRow = src.pixels.buffer! + cast(u64) (context.srcY + row) * src.rowStride + cast(u64) context.srcX * src.bytesPerPixel
 
-            if params.mode == .Copy and dst.pixelFormat == src.pixelFormat and dst.alphaMode == src.alphaMode
+            if context.mode == .Copy and dst.pixelFormat == src.pixelFormat and dst.alphaMode == src.alphaMode
             {
-                Memory.copy(dstRow, srcRow, cast(u64) params.width * dst.bytesPerPixel)
+                Memory.copy(dstRow, srcRow, cast(u64) context.width * dst.bytesPerPixel)
             }
             else
             {
-                for column in params.width
+                for column in context.width
                 {
                     let pixDst = dstRow + cast(u64) column * dst.bytesPerPixel
                     let pixSrc = srcRow + cast(u64) column * src.bytesPerPixel
                     let source = readLogicalPixelValue(pixSrc, src.pixelFormat, src.alphaMode)
                     var output = source
-                    if params.mode == .SourceOver
+                    if context.mode == .SourceOver
                     {
                         let destination = readLogicalPixelValue(pixDst, dst.pixelFormat, dst.alphaMode)
                         output.a = source.a + destination.a * (1.0 - source.a)

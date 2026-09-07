@@ -72,15 +72,14 @@ impl ZipEntryExtract
         .entry           = entry[]
         .destination     = destination
         .error           = null
-        .job.lambda      = func(data: *void?)
+        .started         = true
+
+        let load = me
+        .task.submit(func|load|()
         {
-            let load = cast(*ZipEntryExtract) data!
             catch extractZipEntry(load.archiveFileName.toString(), &load.entry, load.destination.toString()) as extractError
             load.error = extractError
-        }
-        .job.data = me
-        .started  = true
-        Jobs.schedule(&.job)
+        })
     }
 
     mtd finish()->String

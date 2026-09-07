@@ -292,7 +292,7 @@ func playEntrance()
     let duration = Time.Duration.fromSeconds(cast(f64) g_StageDuration!.value() / 1000)
     let stagger  = cast(f64) g_StageStagger!.value() / 1000
 
-    var group = AnimationGroup.parallel()
+    var group = AnimationGroup.concurrent()
     for card, index in g_Cards
     {
         let wnd   = card!

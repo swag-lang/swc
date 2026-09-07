@@ -36,13 +36,13 @@ struct LifecycleApi
 // operation without naming the value behind it.
 struct BackgroundOperation
 {
-    job:     Jobs.Job     // The scheduled work; borrowed by the worker until it completes.
-    started: bool         // Whether a worker currently owns this operation.
+    task:    Swag.Task     // The scheduled work; borrowed by the runtime until it completes.
+    started: bool          // Whether the runtime currently owns this operation.
 }
 
 impl BackgroundOperation
 {
-    mtd const isDone()->bool => .started and Jobs.isDone(&.job)
+    mtd const isDone()->bool => .started and .task.isDone()
 
     // Blocks until the worker has released the operation.
     //
@@ -52,7 +52,7 @@ impl BackgroundOperation
     {
         if !.started do
             return
-        Jobs.wait(&.job)
+        .task.wait()
         .started = false
     }
 }
@@ -75,17 +75,16 @@ impl BackgroundLoad
     mtd start(fileName: string, load: func(string)->T fail)
     {
         Debug.assert(!.started)
-        .fileName   = fileName
-        .load       = load
-        .job.lambda = func(data: *void?)
+        .fileName = fileName
+        .load     = load
+        .started  = true
+
+        let operation = me
+        .task.submit(func|operation|()
         {
-            let operation = cast(*BackgroundLoad'T) data!
             operation.value = catch operation.load(operation.fileName.toString()) as loadError
             operation.error = loadError
-        }
-        .job.data = me
-        .started  = true
-        Jobs.schedule(&.job)
+        })
     }
 
     // Publishes the loaded value and returns the captured failure message.

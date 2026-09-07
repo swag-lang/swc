@@ -1861,6 +1861,16 @@ AstNodeRef AstForStmt::semaClone(Sema& sema, const CloneContext& cloneContext) c
     return newRef;
 }
 
+AstNodeRef AstParallelForStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::ParallelForStmt>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstParallelForStmt>();
+    cloned.nodeBeginRef     = cloneNodeRef(sema, nodeBeginRef, cloneContextAsInline(cloneContext));
+    cloned.nodeEndRef       = cloneNodeRef(sema, nodeEndRef, cloneContextAsInline(cloneContext));
+    cloned.nodeClosureRef   = cloneNodeRef(sema, nodeClosureRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
 AstNodeRef AstInfiniteLoopStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::InfiniteLoopStmt>(sema, *this);
@@ -2243,6 +2253,7 @@ AstNodeRef AstClosureExpr::semaClone(Sema& sema, const CloneContext& cloneContex
     const auto& inlineContext  = cloneContextAsInline(cloneContext);
     auto [newRef, newPtr]      = sema.ast().makeNode<AstNodeId::ClosureExpr>(tokRef());
     newPtr->flags()            = flags();
+    newPtr->parallelBody       = parallelBody;
     newPtr->nodeCaptureArgsRef = cloneSpan(sema, nodeCaptureArgsRef, inlineContext);
     newPtr->spanArgsRef        = cloneSpan(sema, spanArgsRef, inlineContext);
     newPtr->nodeReturnTypeRef  = cloneNodeRef(sema, nodeReturnTypeRef, inlineContext);

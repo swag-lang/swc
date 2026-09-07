@@ -36,8 +36,7 @@ using Core, Core.Errors, Pixel
 // every lane the stream configured, whatever bound selected that width.
 #test
 {
-    if Jobs.isSynchronous() do
-        discard expect Jobs.initialize(16)
+    Swag.setWorkerCount(16)
 
     var source             = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-pyramid.mp4").toString())
     var decoder:  Mp4.Decoder
@@ -50,7 +49,7 @@ using Core, Core.Errors, Pixel
     decoder.video.avc.stopFrameThreads()
 
     let configuredLanes = decoder.video.avc.laneCount
-    Swag.assert(configuredLanes >= 1 and configuredLanes <= Math.min(Jobs.workerCount(), 16'u32))
+    Swag.assert(configuredLanes >= 1 and configuredLanes <= Math.max(1'u32, Math.min(Swag.workerCount(), 16'u32)))
     Swag.assert(decoder.video.avc.threadedHighWater == configuredLanes)
 }
 

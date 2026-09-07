@@ -6,16 +6,18 @@
 [[Core.Time.Stopwatch]] for elapsed-time measurement and
 [[Core.Time.FrameTiming]] for frame loops.
 
-Concurrency is split into three layers:
+Concurrency is split into layers, and the shared worker pool is not one of
+Core's: tasks and parallel loops belong to the runtime.
 
 | Need | API |
 |---|---|
-| A managed worker pool and parallel loops | [[Core.Jobs]] |
+| Independent work on the shared pool | [[Swag.Task]], [[Swag.TaskGroup]], [[Swag.parallelRange]] |
 | A dedicated operating-system thread | [[Core.Threading.Thread]] |
 | Mutual exclusion, events, and read/write locking | [[Core.Sync]] |
 | Lock-free counters and values | [[Core.Atomic]] |
 
-Prefer jobs for independent CPU work. Use a dedicated thread for a long-lived
+Prefer a runtime task for independent CPU work: one process has one worker
+budget, whichever module submits to it. Use a dedicated thread for a long-lived
 blocking activity or a subsystem that requires thread affinity. Keep critical
 sections small and never retain a pointer into a container while another thread
 may resize that container.

@@ -138,6 +138,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeRaiseException, .str = "__raiseException666"},
         {.name = PredefinedName::RuntimeRunTest, .str = "__runTest"},
         {.name = PredefinedName::RuntimeTestsDone, .str = "__testsDone"},
+        {.name = PredefinedName::RuntimeParallelRange, .str = "__parallelRange"},
     };
 
     for (const auto& it : PREDEFINED_NAMES)
@@ -173,6 +174,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SliceCmp)]               = predefined(PredefinedName::RuntimeSliceCmp);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RunTest)]                = predefined(PredefinedName::RuntimeRunTest);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestsDone)]              = predefined(PredefinedName::RuntimeTestsDone);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ParallelRange)]          = predefined(PredefinedName::RuntimeParallelRange);
 }
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef)

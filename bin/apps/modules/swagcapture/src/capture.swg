@@ -223,12 +223,12 @@ struct Capture
     }
 }
 
-// Everything one save writes, snapshotted from the capture so a job worker can
+// Everything one save writes, snapshotted from the capture so a worker can
 // produce the container while the user keeps editing.
 struct CaptureSaveJob
 {
-    job:        Jobs.Job     // Scheduler slot; borrowed by the job workers until collected.
-    file:       String       // Destination path, atomically replaced when the write lands.
+    task:       Swag.Task     // Runtime task; it borrows this value until the save is collected.
+    file:       String        // Destination path, atomically replaced when the write lands.
     manifest:   Scc.Manifest
     modelBytes: Array'u8     // Document model, already TagBin-encoded: forms are only safe to read on the interface thread.
     backImg:    Image        // Owned pixel copies, because a later crop or flatten must not race the encoder.
@@ -255,16 +255,15 @@ impl CaptureSaveQueue
         if !.pending do
             return false
         let job = .pending!
-        return !Jobs.isDone(&job.job)
+        return !job.task.isDone()
     }
 
-    // Hands one snapshot to the job workers. The caller collected or flushed the
-    // previous save first; the job's lambda and data are already set.
-    mtd schedule(job: *CaptureSaveJob)
+    // Adopts one snapshot the caller has already submitted. The caller collected or flushed
+    // the previous save first, so the slot holds one writer per file at all times.
+    mtd adopt(job: *CaptureSaveJob)
     {
         Debug.assert(!.pending)
         .pending = job
-        Jobs.schedule(&job.job)
     }
 
     // Frees a finished save and returns the file it failed to write, empty on success
@@ -274,7 +273,7 @@ impl CaptureSaveQueue
         if !.pending do
             return ""
         let job = .pending!
-        if !Jobs.isDone(&job.job) do
+        if !job.task.isDone() do
             return ""
 
         var result: retval
@@ -295,7 +294,7 @@ impl CaptureSaveQueue
         let job = .pending!
         if file != null and job.file != file do
             return ""
-        Jobs.wait(&job.job)
+        job.task.wait()
         return .collect()
     }
 }
@@ -830,18 +829,14 @@ impl Capture
     {
         Debug.assert(!g_CaptureSaves.pending)
         let job = try .snapshotSave()
-        job.job.lambda = &saveJobEntry
-        job.job.data   = job
-        g_CaptureSaves.schedule(job)
-        .changed = false
-    }
+        g_CaptureSaves.adopt(job)
+        job.task.submit(func|job|()
+        {
+            catch writeScc(job) else do
+                job.failed = true
+        })
 
-    // Job-worker entry of the automatic save.
-    private func saveJobEntry(data: *void?)
-    {
-        let job = cast(*CaptureSaveJob) data!
-        catch writeScc(job) else do
-            job.failed = true
+        .changed = false
     }
 
     // Captures everything a save writes, so the file can be produced without reading

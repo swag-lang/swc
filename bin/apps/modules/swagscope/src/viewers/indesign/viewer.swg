@@ -475,17 +475,16 @@ private impl IndesignPreviewLoad
     mtd start(fileName: string, preview: const *IndesignPreview)
     {
         Debug.assert(!.started)
-        .fileName   = fileName
-        .preview    = preview[]
-        .job.lambda = func(data: *void?)
+        .fileName = fileName
+        .preview  = preview[]
+        .started  = true
+
+        let operation = me
+        .task.submit(func|operation|()
         {
-            let operation = cast(*IndesignPreviewLoad) data!
             operation.value = catch loadIndesignPreview(operation.fileName.toString(), &operation.preview) as loadError
             operation.error = loadError
-        }
-        .job.data = me
-        .started  = true
-        Jobs.schedule(&.job)
+        })
     }
 
     mtd finish(value: *Image)->String

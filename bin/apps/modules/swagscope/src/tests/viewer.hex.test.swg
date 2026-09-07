@@ -260,7 +260,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     var operation: HexAnalysisOperation
     operation.start(fileName, {0, payload.count})
-    Jobs.wait(&operation.job)
+    operation.task.wait()
     let result = operation.finish()
     Swag.assert(result.failureReason.isEmpty() and !result.cancelled and result.scanned == payload.count)
     Swag.assert(result.histogram[0xFF] == 1 and result.histogram[cast(u8) 'H'] == 1)

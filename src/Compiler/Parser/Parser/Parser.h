@@ -213,6 +213,8 @@ private:
     AstNodeRef parseFallThrough();
     AstNodeRef parseFile();
     AstNodeRef parseFor();
+    AstNodeRef parseParallelFor();
+    AstNodeRef makeParallelBoundParam(TokenRef tokName);
     AstNodeRef parseForLoop();
     AstNodeRef parseForCpp();
     AstNodeRef parseForInfinite();

@@ -111,7 +111,7 @@ impl HevcStream
         for lane in HevcMaxFrameThreads do
             try .configure(&.decoders[lane])
 
-        .laneCount = Math.max(1'u32, Math.min(Jobs.workerCount(), HevcMaxFrameThreads))
+        .laneCount = Math.max(1'u32, Math.min(Swag.workerCount(), HevcMaxFrameThreads))
         let pixels = cast(u64) .width * cast(u64) .height
         let wanted = cast(u32) Math.min((pixels + HevcPixelsPerLane - 1) / HevcPixelsPerLane, cast(u64) HevcMaxFrameThreads)
         .laneCount = Math.min(.laneCount, Math.max(wanted, HevcMinFrameThreads))

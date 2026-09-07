@@ -441,10 +441,12 @@ impl Image
     internal mtd visitVectorBytes(contextData: *void? = null, stmt: #code(var block, data))
     {
         const VectorSize = #sizeof(Math.Simd.U8x16)
-        let count = .byteCount - .byteCount % VectorSize
-        Jobs.parallelVisit(Swag.makeSlice(cast([*] u8) .pixels.buffer!, count), VectorSize, contextData) #code(buffer, rawData)
+        let bytes  = cast([*] u8) .pixels.buffer!
+        let blocks = (.byteCount - .byteCount % VectorSize) / VectorSize
+        let opaque = contextData
+        parallel for |bytes, opaque| parIndex in blocks
         {
-            #inject(stmt, block = cast([*] u8) buffer, data = rawData)
+            #inject(stmt, block = bytes + parIndex * VectorSize, data = opaque)
         }
     }
 
@@ -482,22 +484,22 @@ impl Image
         Debug.assert(stride > 0)
 
         let self: const *Image = me
-        var p = {image: self, userData: pixelUserData}
-        Jobs.parallelVisit(Swag.makeSlice(cast([*] u8) self.pixels.buffer!, self.pixels.count), cast(u32) (.bytesPerPixel * stride), &p)
+        let step               = cast(u64) (.bytesPerPixel * stride)
+        let base               = cast([*] u8) self.pixels.buffer!
+        let visit              = self.pixels.count / step
+        let opaque             = pixelUserData
+        parallel for |self, base, step, opaque| parIndex in visit
         {
-            if !data do
-                return
-            let p        = cast(*#decltype(p)) (data)
-            let pixPtr   = cast([*] u8) buffer
-            let pixIndex = cast(u64) (pixPtr - cast([*] u8) p.image.pixels.buffer!) / p.image.bytesPerPixel
+            let pixPtr   = base + parIndex * step
+            let pixIndex = cast(u64) (pixPtr - cast([*] u8) self.pixels.buffer!) / self.bytesPerPixel
 
             #inject(stmt,
                     pix = pixPtr,
-                    image = p.image,
+                    image = self,
                     index = pixIndex,
-                    x = cast(s32) pixIndex % p.image.width,
-                    y = cast(s32) pixIndex / p.image.width,
-                    userData = p.userData)
+                    x = cast(s32) pixIndex % self.width,
+                    y = cast(s32) pixIndex / self.width,
+                    userData = opaque)
         }
     }
 
@@ -509,9 +511,10 @@ impl Image
                                         stmt: #code(var value: PixelValue, image: *Image, x: s32, y: s32, userData))
     {
         var context = {image: me, userData: pixelUserData}
-        Jobs.parallelFor(cast(u32) .height, &context) #code(row, rawData)
+        parallel for |&context| parIndex in cast(u64) .height
         {
-            let params = cast(*#decltype(context)) rawData!
+            let row    = cast(u32) parIndex
+            let params = &context
             let image  = cast(*Image) params.image
             var pixel  = image.pixels.buffer! + cast(u64) row * image.rowStride
             for column in image.width
@@ -569,9 +572,10 @@ impl Image
     internal mtd applyColorLuts(channel0, channel1, channel2: const [*] u8)
     {
         var context = {image: me, channel0: channel0, channel1: channel1, channel2: channel2}
-        Jobs.parallelFor(cast(u32) .height, &context) #code(row, data)
+        parallel for |&context| parIndex in cast(u64) .height
         {
-            let params = cast(*#decltype(context)) data!
+            let row    = cast(u32) parIndex
+            let params = &context
             let image  = cast(*Image) params.image
             let pixels = image.pixels.buffer! + cast(u64) row * image.rowStride
             for x in image.width

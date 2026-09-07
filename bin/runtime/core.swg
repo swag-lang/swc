@@ -343,6 +343,10 @@ func __setupRuntime(flags: RuntimeFlags)
 
 func __releaseRuntime()
 {
+    // The worker threads run code from this artifact and allocate through its context, so they
+    // must be joined before anything they use is released.
+    __shutdownScheduler()
+
     let cxt = Swag.getContext()
 
     cxt.tempAllocator.release()

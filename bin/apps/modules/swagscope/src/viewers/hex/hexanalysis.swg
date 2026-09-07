@@ -235,7 +235,7 @@ func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32?
 // Owns one cancellable analysis whose worker borrows this value until completion.
 struct HexAnalysisOperation
 {
-    job:             Jobs.Job
+    task:            Swag.Task
     fileName:        String
     range:           HexAnalysisRange
     result:          HexAnalysisResult
@@ -254,14 +254,13 @@ impl HexAnalysisOperation
         .result   = {}
         Atomic.exchange(&.cancelRequested, 0)
         Atomic.exchange(&.processed, 0)
-        .job.lambda = func(data: *void?)
+        .started = true
+
+        let operation = me
+        .task.submit(func|operation|()
         {
-            let operation = cast(*HexAnalysisOperation) data!
             operation.result = analyzeHexRange(operation.fileName.toString(), operation.range, &operation.cancelRequested, &operation.processed)
-        }
-        .job.data = me
-        .started  = true
-        Jobs.schedule(&.job)
+        })
     }
 
     mtd cancel()
@@ -270,14 +269,14 @@ impl HexAnalysisOperation
             Atomic.exchange(&.cancelRequested, 1)
     }
 
-    mtd const isDone()->bool => .started and Jobs.isDone(&.job)
+    mtd const isDone()->bool => .started and .task.isDone()
 
     mtd progress()->u64 => Atomic.get(&.processed)
 
     mtd finish()->HexAnalysisResult
     {
         Debug.assert(.isDone())
-        Jobs.wait(&.job)
+        .task.wait()
         .started = false
         return #move .result
     }
@@ -290,7 +289,7 @@ impl HexAnalysisOperation
         .cancel()
         if !.isDone() do
             return false
-        Jobs.wait(&.job)
+        .task.wait()
         .started = false
         return true
     }
@@ -300,7 +299,7 @@ impl HexAnalysisOperation
         if .started
         {
             .cancel()
-            Jobs.wait(&.job)
+            .task.wait()
         }
     }
 }

@@ -15,15 +15,15 @@ impl Image
             return
 
         var context = {image: me, oldMode: .alphaMode, newMode: newMode}
-        Jobs.parallelFor(cast(u32) .height, &context) #code(row, data)
+        parallel for |&context| parIndex in cast(u64) .height
         {
-            let params = cast(*#decltype(context)) data!
-            let image  = cast(*Image) params.image
+            let row    = cast(u32) parIndex
+            let image  = cast(*Image) context.image
             let pixels = image.pixels.buffer! + cast(u64) row * image.rowStride
             for x in image.width
             {
                 let pixel = pixels + cast(u64) x * image.bytesPerPixel
-                writeLogicalPixelValue(pixel, image.pixelFormat, params.newMode, readLogicalPixelValue(pixel, image.pixelFormat, params.oldMode))
+                writeLogicalPixelValue(pixel, image.pixelFormat, context.newMode, readLogicalPixelValue(pixel, image.pixelFormat, context.oldMode))
             }
         }
 

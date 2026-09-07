@@ -33,7 +33,7 @@ const SurfaceId     = "swag.capture"
             return
     }
 
-    try Jobs.initialize()
+    Swag.startWorkers()
     try Library.init()
 
     // Settings use a role-based file name so a product rename does not change their identity.

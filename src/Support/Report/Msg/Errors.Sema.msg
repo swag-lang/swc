@@ -225,6 +225,8 @@ SWC_DIAG_DEF(sema_err_operator_attribute_invalid_operator, Error, "'Swag.Operato
 SWC_DIAG_DEF(sema_err_operator_generation_duplicate, Error, "cannot generate operator overload '{spec-op}' for type '{decl-sym}' because an overload is already declared")
 SWC_DIAG_DEF(sema_err_operator_generation_field_unsupported, Error, "cannot generate operator overload '{spec-op}' for type '{decl-sym}' because field '{sym}' does not support it")
 SWC_DIAG_DEF(sema_err_break_outside_breakable, Error, "'break' is used outside a loop or a switch; [help] use 'break' inside a 'for' or 'while' body or a switch case, or 'break to <name>' inside a named '#scope'")
+SWC_DIAG_DEF(sema_err_break_leaves_parallel_for, Error, "'break' cannot leave a 'parallel for' body; [help] a partition that stops early skips indices the loop runs exactly once, so record what was found and select it after the loop")
+SWC_DIAG_DEF(sema_err_return_leaves_parallel_for, Error, "'return' cannot leave a 'parallel for' body; [help] a 'return' here would end one partition and leave the others running, so record the result in a captured value and return it after the loop")
 SWC_DIAG_DEF(sema_err_break_targets_scope, Error, "cannot leave a '#scope' with a bare 'break'; [help] write 'break to {sym}'")
 SWC_DIAG_DEF(sema_err_break_targets_scope, Error, "cannot leave a '#scope' with a bare 'break'; [help] name it '#scope(<name>)', then write 'break to <name>'")
 SWC_DIAG_DEF(sema_err_continue_outside_breakable, Error, "'continue' is used outside a loop; [help] use 'continue' inside a 'for' or 'while' body")

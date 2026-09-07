@@ -150,9 +150,10 @@ public impl Image
         }
 
         var context = {image: me, rmode: rmode, value: value, color: color}
-        Jobs.parallelFor(cast(u32) .height, &context) #code(row, data)
+        parallel for |&context| parIndex in cast(u64) .height
         {
-            let params = cast(*#decltype(context)) data!
+            let row    = cast(u32) parIndex
+            let params = &context
             let image  = cast(*Image) params.image
             let pixels = image.pixels.buffer! + cast(u64) row * image.rowStride
             for x in image.width

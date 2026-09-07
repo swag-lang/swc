@@ -176,8 +176,7 @@ func videoAssertReferenceFrame(frame: Image, reference: const [..] u8, index: u6
 // so one reference dump serves every container the same access units were muxed into.
 func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u64, container = "mp4")
 {
-    if Jobs.isSynchronous() do
-        discard expect Jobs.initialize(16)
+    Swag.setWorkerCount(16)
 
     var reader = expect Reader.open(videoFixturePath(Format.toString("%.%", name, container).toString()))
     Swag.assert(reader.width() == width and reader.height() == height)

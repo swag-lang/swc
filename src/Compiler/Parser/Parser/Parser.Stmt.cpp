@@ -474,6 +474,103 @@ AstNodeRef Parser::parseFor()
     return parseForLoop();
 }
 
+// 'parallel for |captures| name in range { body }'.
+//
+// The loop is lowered here into the shape the runtime schedules: a closure taking one
+// partition's half-open bounds, whose body is an ordinary 'for' over them. The two bounds are
+// named by the 'for' and 'in' keywords of this statement, which is deliberate -- a keyword can
+// never collide with a name the body can write, and the generated identifiers need no token of
+// their own.
+AstNodeRef Parser::parseParallelFor()
+{
+    const TokenRef tokParallel = consumeAssert(TokenId::KwdParallel);
+    const TokenRef tokFor      = expectAndConsume(TokenId::KwdFor, DiagnosticId::parser_err_expected_token_before);
+
+    SpanRef captureArgs = SpanRef::invalid();
+    if (is(TokenId::SymPipe))
+        captureArgs = parseCompoundContent(AstNodeId::ClosureExpr, TokenId::SymPipe);
+    else if (is(TokenId::SymPipePipe))
+        consume();
+
+    const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    const TokenRef tokIn   = expectAndConsume(TokenId::KwdIn, DiagnosticId::parser_err_expected_token_before);
+
+    if (isAny(TokenId::KwdTo, TokenId::KwdUntil))
+    {
+        const Diagnostic diag = reportError(DiagnosticId::parser_err_for_range_missing_lower_bound, ref());
+        diag.report(*ctx_);
+    }
+
+    const AstNodeRef rangeRef = parseRangeExpression();
+    const AstNodeRef bodyRef  = parseDoCurlyBlock();
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParallelForStmt>(tokParallel);
+
+    if (rangeRef.isValid() && ast_->node(rangeRef).is(AstNodeId::RangeExpr))
+    {
+        const auto& range     = ast_->node(rangeRef).cast<AstRangeExpr>();
+        nodePtr->nodeBeginRef = range.nodeExprDownRef;
+        nodePtr->nodeEndRef   = range.nodeExprUpRef;
+        if (range.hasFlag(AstRangeExprFlagsE::Inclusive))
+            nodePtr->addFlag(AstParallelForStmtFlagsE::Inclusive);
+    }
+    else
+    {
+        nodePtr->nodeBeginRef.setInvalid();
+        nodePtr->nodeEndRef = rangeRef;
+    }
+
+    // The two partition bounds, typed by the compiler rather than by a written type.
+    SmallVector<AstNodeRef> params;
+    params.push_back(makeParallelBoundParam(tokFor));
+    params.push_back(makeParallelBoundParam(tokIn));
+
+    // 'for name in <lower> until <upper>' over this partition.
+    auto [loopRef, loopPtr] = ast_->makeNode<AstNodeId::ForStmt>(tokFor);
+    loopPtr->addFlag(AstForeachStmtFlagsE::ParallelPartition);
+    auto [loRef, loPtr]      = ast_->makeNode<AstNodeId::Identifier>(tokFor);
+    auto [hiRef, hiPtr]      = ast_->makeNode<AstNodeId::Identifier>(tokIn);
+    auto [boundsRef, bounds] = ast_->makeNode<AstNodeId::RangeExpr>(tokIn);
+    bounds->nodeExprDownRef  = loRef;
+    bounds->nodeExprUpRef    = hiRef;
+
+    SmallVector<TokenRef> names;
+    names.push_back(tokName);
+    loopPtr->spanNamesRef = ast_->pushSpan(names.span());
+    loopPtr->nodeExprRef  = boundsRef;
+    loopPtr->nodeWhereRef.setInvalid();
+    loopPtr->nodeBodyRef = bodyRef;
+
+    SmallVector<AstNodeRef> statements;
+    statements.push_back(loopRef);
+    auto [blockRef, blockPtr] = ast_->makeNode<AstNodeId::EmbeddedBlock>(tokFor);
+    blockPtr->spanChildrenRef = ast_->pushSpan(statements.span());
+
+    auto [closureRef, closurePtr]  = ast_->makeNode<AstNodeId::ClosureExpr>(tokParallel);
+    closurePtr->flags()            = AstFunctionFlagsE::Closure;
+    closurePtr->parallelBody       = true;
+    closurePtr->nodeCaptureArgsRef = captureArgs;
+    closurePtr->spanArgsRef        = ast_->pushSpan(params.span());
+    closurePtr->nodeReturnTypeRef.setInvalid();
+    closurePtr->nodeBodyRef = blockRef;
+
+    nodePtr->nodeClosureRef = closureRef;
+    return nodeRef;
+}
+
+// One partition bound of a lowered 'parallel for', named by `tokName` and typed 'u64'.
+AstNodeRef Parser::makeParallelBoundParam(TokenRef tokName)
+{
+    auto [typeRef, typePtr] = ast_->makeNode<AstNodeId::BuiltinType>(tokName);
+    typePtr->typeTokenId    = TokenId::TypeU64;
+
+    auto [paramRef, paramPtr] = ast_->makeNode<AstNodeId::LambdaParam>(tokName);
+    paramPtr->flags()         = AstLambdaParamFlagsE::Named | AstLambdaParamFlagsE::Generated;
+    paramPtr->nodeTypeRef     = typeRef;
+    paramPtr->nodeDefaultValueRef.setInvalid();
+    return paramRef;
+}
+
 AstNodeRef Parser::parseErrorManagementStmt()
 {
     const TokenId opTokenId = id();
@@ -1048,6 +1145,8 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseSwitch();
         case TokenId::KwdFor:
             return parseFor();
+        case TokenId::KwdParallel:
+            return parseParallelFor();
 
         case TokenId::KwdUsing:
             return parseUsing();

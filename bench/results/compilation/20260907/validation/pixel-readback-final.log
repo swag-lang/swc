@@ -1,0 +1,35 @@
+  ◆  swag        test • std [pixel] • release
+
+  ↻  module      win32 • up-to-date • 12 us
+
+  ↻  module      gdi32 • up-to-date • 8 us
+
+  ↻  module      xinput • up-to-date • 7 us
+
+  ↻  module      core • up-to-date • core.dll • 14 us
+
+  ↻  module      ogl • up-to-date • ogl.dll • 9 us
+
+  ↻  module      truetype • up-to-date • truetype.dll • 9 us
+
+  ✓  module      pixel • 271 files • pixel.dll • 9 s 598 ms
+
+  ✓  workspace   std [pixel] • 7 modules • 11 s 13 ms
+
+  ✓  checked     271 files • 665_362 tokens • 5 s 504 ms
+
+  ✓  tuned       4_876 functions • 6 s 826 ms
+
+  ✓  forged      3_739 functions • pixel.test.exe • 7 s 387 ms
+
+  ✓  ran         6 s 730 ms
+
+  ✓  verified    100 us
+
+  ✓  tested      18 passed • 19 s 650 ms
+
+  ✓  module      pixel • 271 files • 18 passed • pixel.test.exe • 19 s 692 ms
+
+  ✓  workspace   std [pixel] • 1 module • 18 passed • 31 s 529 ms
+
+  ✓  clean       31 s 529 ms

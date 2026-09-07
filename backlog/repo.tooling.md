@@ -5,6 +5,44 @@ being compiled by it.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### repo.tooling.008 — Record module timings with load observed during each sample
+
+- Recorded: 2026-09-07 10:37
+- Updated: 2026-09-07 11:57 — Record the GUI memory increase and the slower loaded documentation pairs
+- Evidence: the compilation campaign used a private tracked-source mirror for `gui`, `pixel`,
+  and `ogl`, because the full test tool cleans `bin/std` outputs. A CPU admission check before
+  a sample did not prevent another campaign from starting during it. Three alternated pairs
+  measured the same GUI compiler between 8.77 and 45.43 seconds. The existing benchmark's
+  performance-core affinity mask provides a separate scheduling control; it must not be mixed
+  with ordinary unpinned build results.
+- Rejected experiment: retaining SSA block scratch storage across rebuilds was expected to save
+  a small part of allocation cost. Compiler 393 versus 394, six workers, three unpinned pairs,
+  produced median paired candidate/baseline ratios of 0.897 wall / 0.951 CPU for GUI, but
+  1.085 wall / 1.046 CPU for Pixel. Pixel resident peak ratio was 1.029 and committed peak 1.017.
+  The variance is too large to attribute those differences to the change. The experiment was
+  removed; it did not establish a speed gain without a memory cost. Raw data and the external
+  profile are retained in [the campaign report](../bench/results/compilation/20260907/README.md).
+- Fixed-dependency control: five alternated GUI pairs kept all 69 dependency files byte-identical
+  and used the six-performance-core affinity mask. Compiler 393 versus baseline 390 gave median
+  paired ratios of 0.942 wall and 0.886 CPU, but 1.037 resident peak and 1.048 committed peak.
+  Background CPU still differed across pairs. The existing-data lookup changes do not retain a
+  new cache, but these measurements do not establish that faster phases preserve peak overlap.
+  Treat the GUI memory increase as unresolved, not as a cost hidden by a timing win.
+- Documentation control: two complete A/B then B/A pairs of the existing `doc_std` workload
+  measured baseline 51.9/49.7 seconds versus candidate 122.3/131.9 seconds. Its paired wall
+  ratio is 2.505 and CPU ratio 2.197. The slow region moved from dependency builds in one
+  candidate run to HTML generation in the other. The wrapper did not capture during-run CPU
+  deltas for this older workload, so a load explanation is unproven; investigate this observed
+  regression under steady load before claiming an overall compile-speed improvement.
+- Next: add opt-in module-only workloads to the recorded compilation instrument and retain
+  both preflight admission and system CPU deltas across the timed process. Distinguish warm
+  dependencies, whole dependency rebuilds, pinned controls, and ordinary builds in the results.
+  Repeat the GUI control under steady load and isolate each retained compiler change to explain
+  the peak-memory difference before setting a regression budget.
+- Complete when: GUI, Pixel, and OGL regressions can be assessed with repeatable paired module
+  timings and memory peaks, and a sample disturbed after admission is identified in the record.
+- Related: compiler.optimization.029.
+
 ### repo.tooling.007 — Separate formatter input preparation from formatter cost
 
 - Recorded: 2026-09-06 15:21

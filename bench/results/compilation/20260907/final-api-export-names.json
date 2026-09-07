@@ -1,0 +1,134 @@
+[
+  {
+    "tag": "A",
+    "round": 1,
+    "modules": {
+      "core": {
+        "foreign_count": 193,
+        "identical_to_first_baseline": true
+      },
+      "ogl": {
+        "foreign_count": 1298,
+        "identical_to_first_baseline": true
+      },
+      "pixel": {
+        "foreign_count": 127,
+        "identical_to_first_baseline": true
+      },
+      "gui": {
+        "foreign_count": 44,
+        "identical_to_first_baseline": true
+      }
+    }
+  },
+  {
+    "tag": "B",
+    "round": 1,
+    "modules": {
+      "core": {
+        "foreign_count": 193,
+        "identical_to_first_baseline": true
+      },
+      "ogl": {
+        "foreign_count": 1298,
+        "identical_to_first_baseline": true
+      },
+      "pixel": {
+        "foreign_count": 127,
+        "identical_to_first_baseline": true
+      },
+      "gui": {
+        "foreign_count": 44,
+        "identical_to_first_baseline": true
+      }
+    }
+  },
+  {
+    "tag": "B",
+    "round": 2,
+    "modules": {
+      "core": {
+        "foreign_count": 193,
+        "identical_to_first_baseline": true
+      },
+      "ogl": {
+        "foreign_count": 1298,
+        "identical_to_first_baseline": true
+      },
+      "pixel": {
+        "foreign_count": 127,
+        "identical_to_first_baseline": true
+      },
+      "gui": {
+        "foreign_count": 44,
+        "identical_to_first_baseline": true
+      }
+    }
+  },
+  {
+    "tag": "A",
+    "round": 2,
+    "modules": {
+      "core": {
+        "foreign_count": 193,
+        "identical_to_first_baseline": true
+      },
+      "ogl": {
+        "foreign_count": 1298,
+        "identical_to_first_baseline": true
+      },
+      "pixel": {
+        "foreign_count": 127,
+        "identical_to_first_baseline": true
+      },
+      "gui": {
+        "foreign_count": 44,
+        "identical_to_first_baseline": true
+      }
+    }
+  },
+  {
+    "tag": "A",
+    "round": 3,
+    "modules": {
+      "core": {
+        "foreign_count": 193,
+        "identical_to_first_baseline": true
+      },
+      "ogl": {
+        "foreign_count": 1298,
+        "identical_to_first_baseline": true
+      },
+      "pixel": {
+        "foreign_count": 127,
+        "identical_to_first_baseline": true
+      },
+      "gui": {
+        "foreign_count": 44,
+        "identical_to_first_baseline": true
+      }
+    }
+  },
+  {
+    "tag": "B",
+    "round": 3,
+    "modules": {
+      "core": {
+        "foreign_count": 193,
+        "identical_to_first_baseline": true
+      },
+      "ogl": {
+        "foreign_count": 1298,
+        "identical_to_first_baseline": true
+      },
+      "pixel": {
+        "foreign_count": 127,
+        "identical_to_first_baseline": true
+      },
+      "gui": {
+        "foreign_count": 44,
+        "identical_to_first_baseline": true
+      }
+    }
+  }
+]

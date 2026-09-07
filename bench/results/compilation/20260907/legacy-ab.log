@@ -1,0 +1,55 @@
+A: C:\Perso\swag-lang\swc-speed-20260907\bin\swc.baseline.exe
+
+B: C:\Perso\swag-lang\swc-speed-20260907\bin\swc.exe
+
+3 round(s), 6 cores
+
+  round 1 A core_rebuild  wall=   4076.6 ms  cpu=  17687.5 ms  commit= 486.1 MiB  ws= 437.9 MiB
+
+  round 1 A core_noop     wall=     84.4 ms  cpu=     46.9 ms  commit=   7.2 MiB  ws=   9.8 MiB
+
+  round 1 A core_touch    wall=   3941.3 ms  cpu=  16078.1 ms  commit= 462.2 MiB  ws= 427.4 MiB
+
+  round 1 A doc_std       wall=  51917.2 ms  cpu= 232312.5 ms  commit=2170.7 MiB  ws=1877.3 MiB
+
+  round 1 A format_tree   wall=   6777.2 ms  cpu=   3750.0 ms  commit= 369.6 MiB  ws= 327.2 MiB
+
+  round 1 A hello_build   wall=    143.2 ms  cpu=    484.4 ms  commit=  56.6 MiB  ws=  52.2 MiB
+
+  round 1 B core_rebuild  wall=   2721.3 ms  cpu=  11765.6 ms  commit= 511.4 MiB  ws= 464.2 MiB
+
+  round 1 B core_noop     wall=     54.2 ms  cpu=     62.5 ms  commit=   7.2 MiB  ws=   9.8 MiB
+
+  round 1 B core_touch    wall=   2696.2 ms  cpu=  12109.4 ms  commit= 456.0 MiB  ws= 421.9 MiB
+
+  round 1 B doc_std       wall= 122282.7 ms  cpu= 524687.5 ms  commit=2073.2 MiB  ws=1793.8 MiB
+
+  round 1 B format_tree   wall=   5605.6 ms  cpu=   4421.9 ms  commit= 373.7 MiB  ws= 329.9 MiB
+
+  round 1 B hello_build   wall=    206.0 ms  cpu=    703.1 ms  commit=  58.4 MiB  ws=  54.3 MiB
+
+  round 2 B core_rebuild  wall=   5791.1 ms  cpu=  25281.2 ms  commit= 504.1 MiB  ws= 454.3 MiB
+
+  round 2 B core_noop     wall=     59.3 ms  cpu=     31.2 ms  commit=   7.2 MiB  ws=   9.8 MiB
+
+  round 2 B core_touch    wall=   4695.0 ms  cpu=  19718.8 ms  commit= 477.1 MiB  ws= 441.8 MiB
+
+  round 2 B doc_std       wall= 131870.6 ms  cpu= 447687.5 ms  commit=2180.2 MiB  ws=1887.9 MiB
+
+  round 2 B format_tree   wall=   5076.7 ms  cpu=   4250.0 ms  commit= 373.6 MiB  ws= 332.3 MiB
+
+  round 2 B hello_build   wall=    158.6 ms  cpu=    578.1 ms  commit=  58.4 MiB  ws=  54.3 MiB
+
+  round 2 A core_rebuild  wall=   3232.9 ms  cpu=  13265.6 ms  commit= 504.5 MiB  ws= 449.3 MiB
+
+  round 2 A core_noop     wall=     68.5 ms  cpu=     46.9 ms  commit=   7.3 MiB  ws=   9.8 MiB
+
+  round 2 A core_touch    wall=   3050.4 ms  cpu=  12515.6 ms  commit= 475.7 MiB  ws= 437.7 MiB
+
+  round 2 A doc_std       wall=  49665.4 ms  cpu= 209625.0 ms  commit=2193.6 MiB  ws=1909.0 MiB
+
+  round 2 A format_tree   wall=   6465.5 ms  cpu=   5218.8 ms  commit= 362.9 MiB  ws= 319.3 MiB
+
+  round 2 A hello_build   wall=    191.0 ms  cpu=    671.9 ms  commit=  58.7 MiB  ws=  54.6 MiB
+
+  round 3 A core_rebuild  wall=   3472.3 ms  cpu=  15109.4 ms  commit= 480.4 MiB  ws= 432.0 MiB

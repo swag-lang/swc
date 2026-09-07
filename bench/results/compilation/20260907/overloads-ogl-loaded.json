@@ -1,0 +1,696 @@
+{
+  "metadata": {
+    "a": "bin/swc.baseline.exe",
+    "b": "bin/swc.overloads.exe",
+    "label": "overloads-ogl-loaded",
+    "modules": "ogl",
+    "cfg": "devmode",
+    "reps": 5,
+    "max_cpu": 65,
+    "warm_module": "ogl",
+    "binaries": {
+      "A": {
+        "path": "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.baseline.exe",
+        "sha256": "4023f9c1dd270d6f40596bc8462a198588bcc258f1a0029f0904b03ae3c76463"
+      },
+      "B": {
+        "path": "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.overloads.exe",
+        "sha256": "334ac63633fa15cd64a533f14476032470e21c03e2a7aa20f4e5d3d7bb3e35fb"
+      }
+    }
+  },
+  "samples": [
+    {
+      "exit": 0,
+      "wall_ms": 7219.8919,
+      "cpu_ms": 19390.625,
+      "peak_job_bytes": 89247744,
+      "peak_proc_bytes": 87961600,
+      "peak_working_set_bytes": 68366336,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 184 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 74 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 44 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 50 us\r\n  \u21bb  module      ogl \u2022 up-to-date \u2022 ogl.dll \u2022 48 us\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 5 s 403 ms\r\n  \u2713  clean       5 s 409 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "A",
+      "module": "ogl",
+      "round": 1,
+      "warm": true,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.baseline.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 2936.6633,
+      "cpu_ms": 6718.75,
+      "peak_job_bytes": 344293376,
+      "peak_proc_bytes": 343011328,
+      "peak_working_set_bytes": 266788864,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 9 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 4 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 3 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 6 us\r\n  \u2713  module      ogl \u2022 75 files \u2022 ogl.dll \u2022 2 s 688 ms\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 2 s 866 ms\r\n  \u2713  clean       2 s 866 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "A",
+      "module": "ogl",
+      "round": 1,
+      "warm": false,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.baseline.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 518.5133,
+      "cpu_ms": 2031.25,
+      "peak_job_bytes": 106323968,
+      "peak_proc_bytes": 105041920,
+      "peak_working_set_bytes": 81870848,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 21 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 4 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 3 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 11 us\r\n  \u21bb  module      ogl \u2022 up-to-date \u2022 ogl.dll \u2022 8 us\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 463 ms\r\n  \u2713  clean       464 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "B",
+      "module": "ogl",
+      "round": 1,
+      "warm": true,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.overloads.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 1719.2367,
+      "cpu_ms": 5187.5,
+      "peak_job_bytes": 352329728,
+      "peak_proc_bytes": 351051776,
+      "peak_working_set_bytes": 271376384,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 11 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 4 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 5 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 7 us\r\n  \u2713  module      ogl \u2022 75 files \u2022 ogl.dll \u2022 1 s 312 ms\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 1 s 627 ms\r\n  \u2713  clean       1 s 628 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "B",
+      "module": "ogl",
+      "round": 1,
+      "warm": false,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.overloads.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 196.4567,
+      "cpu_ms": 468.75,
+      "peak_job_bytes": 57876480,
+      "peak_proc_bytes": 56594432,
+      "peak_working_set_bytes": 48312320,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 9 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 4 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 4 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 9 us\r\n  \u21bb  module      ogl \u2022 up-to-date \u2022 ogl.dll \u2022 10 us\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 146 ms\r\n  \u2713  clean       146 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "B",
+      "module": "ogl",
+      "round": 2,
+      "warm": true,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.overloads.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 1656.5813,
+      "cpu_ms": 4890.625,
+      "peak_job_bytes": 354226176,
+      "peak_proc_bytes": 352944128,
+      "peak_working_set_bytes": 275783680,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 12 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 6 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 6 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 19 us\r\n  \u2713  module      ogl \u2022 75 files \u2022 ogl.dll \u2022 1 s 271 ms\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 1 s 554 ms\r\n  \u2713  clean       1 s 555 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "B",
+      "module": "ogl",
+      "round": 2,
+      "warm": false,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.overloads.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 648.1705,
+      "cpu_ms": 2265.625,
+      "peak_job_bytes": 103993344,
+      "peak_proc_bytes": 102727680,
+      "peak_working_set_bytes": 79835136,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 11 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 13 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 8 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 8 us\r\n  \u21bb  module      ogl \u2022 up-to-date \u2022 ogl.dll \u2022 5 us\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 579 ms\r\n  \u2713  clean       580 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "A",
+      "module": "ogl",
+      "round": 2,
+      "warm": true,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.baseline.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 5157.928,
+      "cpu_ms": 9375.0,
+      "peak_job_bytes": 350019584,
+      "peak_proc_bytes": 348737536,
+      "peak_working_set_bytes": 272928768,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 14 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 8 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 6 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 9 us\r\n  \u2713  module      ogl \u2022 75 files \u2022 ogl.dll \u2022 4 s 785 ms\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 5 s 61 ms\r\n  \u2713  clean       5 s 61 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "A",
+      "module": "ogl",
+      "round": 2,
+      "warm": false,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.baseline.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 1105.5551,
+      "cpu_ms": 3250.0,
+      "peak_job_bytes": 56619008,
+      "peak_proc_bytes": 55345152,
+      "peak_working_set_bytes": 47403008,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 56 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 28 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 28 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 41 us\r\n  \u21bb  module      ogl \u2022 up-to-date \u2022 ogl.dll \u2022 36 us\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 988 ms\r\n  \u2713  clean       989 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "A",
+      "module": "ogl",
+      "round": 3,
+      "warm": true,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.baseline.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 3645.3672,
+      "cpu_ms": 8421.875,
+      "peak_job_bytes": 342429696,
+      "peak_proc_bytes": 341127168,
+      "peak_working_set_bytes": 262045696,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 9 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 5 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 12 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 10 us\r\n  \u2713  module      ogl \u2022 75 files \u2022 ogl.dll \u2022 3 s 280 ms\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 3 s 555 ms\r\n  \u2713  clean       3 s 563 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "A",
+      "module": "ogl",
+      "round": 3,
+      "warm": false,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.baseline.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 853.3444,
+      "cpu_ms": 2515.625,
+      "peak_job_bytes": 107548672,
+      "peak_proc_bytes": 106266624,
+      "peak_working_set_bytes": 82997248,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 12 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 9 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 7 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 11 us\r\n  \u21bb  module      ogl \u2022 up-to-date \u2022 ogl.dll \u2022 8 us\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 543 ms\r\n  \u2713  clean       543 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "B",
+      "module": "ogl",
+      "round": 3,
+      "warm": true,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.overloads.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 4525.0761,
+      "cpu_ms": 16187.5,
+      "peak_job_bytes": 343171072,
+      "peak_proc_bytes": 341889024,
+      "peak_working_set_bytes": 262811648,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 60 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 30 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 33 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 39 us\r\n  \u2713  module      ogl \u2022 75 files \u2022 ogl.dll \u2022 3 s 103 ms\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 4 s 223 ms\r\n  \u2713  clean       4 s 226 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "B",
+      "module": "ogl",
+      "round": 3,
+      "warm": false,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.overloads.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 1211.1471,
+      "cpu_ms": 3343.75,
+      "peak_job_bytes": 56332288,
+      "peak_proc_bytes": 55050240,
+      "peak_working_set_bytes": 46796800,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 52 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 27 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 29 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 49 us\r\n  \u21bb  module      ogl \u2022 up-to-date \u2022 ogl.dll \u2022 37 us\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 943 ms\r\n  \u2713  clean       945 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "B",
+      "module": "ogl",
+      "round": 4,
+      "warm": true,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.overloads.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 17576.8488,
+      "cpu_ms": 45281.25,
+      "peak_job_bytes": 338354176,
+      "peak_proc_bytes": 337076224,
+      "peak_working_set_bytes": 255741952,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 124 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 53 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 76 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 276 us\r\n  \u2713  module      ogl \u2022 75 files \u2022 ogl.dll \u2022 13 s 476 ms\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 16 s 771 ms\r\n  \u2713  clean       16 s 775 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "B",
+      "module": "ogl",
+      "round": 4,
+      "warm": false,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.overloads.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 7475.2229,
+      "cpu_ms": 22015.625,
+      "peak_job_bytes": 89063424,
+      "peak_proc_bytes": 87781376,
+      "peak_working_set_bytes": 66940928,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 130 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 45 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 41 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 55 us\r\n  \u21bb  module      ogl \u2022 up-to-date \u2022 ogl.dll \u2022 49 us\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 6 s 920 ms\r\n  \u2713  clean       6 s 926 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "A",
+      "module": "ogl",
+      "round": 4,
+      "warm": true,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.baseline.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 2732.2256,
+      "cpu_ms": 6156.25,
+      "peak_job_bytes": 345268224,
+      "peak_proc_bytes": 343990272,
+      "peak_working_set_bytes": 267943936,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 7 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 3 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 3 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 6 us\r\n  \u2713  module      ogl \u2022 75 files \u2022 ogl.dll \u2022 2 s 450 ms\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 2 s 665 ms\r\n  \u2713  clean       2 s 666 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "A",
+      "module": "ogl",
+      "round": 4,
+      "warm": false,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.baseline.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 220.0605,
+      "cpu_ms": 343.75,
+      "peak_job_bytes": 58925056,
+      "peak_proc_bytes": 57634816,
+      "peak_working_set_bytes": 48349184,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 10 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 4 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 4 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 14 us\r\n  \u21bb  module      ogl \u2022 up-to-date \u2022 ogl.dll \u2022 7 us\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 149 ms\r\n  \u2713  clean       149 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "A",
+      "module": "ogl",
+      "round": 5,
+      "warm": true,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.baseline.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 3339.5444,
+      "cpu_ms": 7890.625,
+      "peak_job_bytes": 337907712,
+      "peak_proc_bytes": 336625664,
+      "peak_working_set_bytes": 259670016,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 11 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 4 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 3 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 9 us\r\n  \u2713  module      ogl \u2022 75 files \u2022 ogl.dll \u2022 3 s 19 ms\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 3 s 268 ms\r\n  \u2713  clean       3 s 269 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "A",
+      "module": "ogl",
+      "round": 5,
+      "warm": false,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.baseline.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 560.2569,
+      "cpu_ms": 2140.625,
+      "peak_job_bytes": 100274176,
+      "peak_proc_bytes": 98996224,
+      "peak_working_set_bytes": 76242944,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 8 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 3 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 3 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 10 us\r\n  \u21bb  module      ogl \u2022 up-to-date \u2022 ogl.dll \u2022 4 us\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 501 ms\r\n  \u2713  clean       502 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "B",
+      "module": "ogl",
+      "round": 5,
+      "warm": true,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.overloads.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 1316.4184,
+      "cpu_ms": 4609.375,
+      "peak_job_bytes": 342757376,
+      "peak_proc_bytes": 341483520,
+      "peak_working_set_bytes": 265502720,
+      "stdout": "  \u25c6  swag        build \u2022 std [ogl] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 7 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 3 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 5 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 11 us\r\n  \u2713  module      ogl \u2022 75 files \u2022 ogl.dll \u2022 1 s 25 ms\r\n  \u2713  workspace   std [ogl] \u2022 5 modules \u2022 1 s 253 ms\r\n  \u2713  clean       1 s 253 ms\r\n",
+      "stderr": "\r\n",
+      "tag": "B",
+      "module": "ogl",
+      "round": 5,
+      "warm": false,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\swc.overloads.exe",
+        "build",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-speed-20260907\\.tmp\\speed\\profile\\std",
+        "--workspace-module",
+        "ogl",
+        "-bc",
+        "devmode",
+        "--num-cores",
+        "6"
+      ]
+    }
+  ],
+  "admissions": [
+    {
+      "time": "2026-09-07 09:58:08",
+      "status": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 89\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 11,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,4\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 09:58:32",
+      "status": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 91\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,3\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 09:58:57",
+      "status": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 91\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,5\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 09:59:21",
+      "status": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 82\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,2\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 09:59:43",
+      "status": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 74\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 11,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,1\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:00:06",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 47\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 11,9\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:00:39",
+      "status": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 74\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 13,7\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 13,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:01:06",
+      "status": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 77\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 13,5\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 13,5\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:01:33",
+      "status": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 70\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 13,4\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 13,3\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:01:54",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 34\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,2\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,2\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:02:03",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 45\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,9\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,9\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:02:09",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 18\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,9\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:02:17",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 12\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,9\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:02:23",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 13\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:02:31",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 11\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:02:37",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 26\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,9\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,9\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:02:48",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 55\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,7\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,6\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:02:59",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 53\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,5\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,4\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:03:11",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 60\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,3\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,2\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:03:19",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 39\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,2\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,2\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:03:30",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 22\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,1\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:03:41",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 41\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,1\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:04:11",
+      "status": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 75\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,3\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:04:38",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 59\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 11,9\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,6\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:04:59",
+      "status": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 73\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 11,7\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,5\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:05:20",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 28\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 11,3\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,2\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:05:29",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 14\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 11\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,9\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:05:35",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 26\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 11,2\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,1\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:05:44",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 11\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 11,1\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-07 10:05:50",
+      "status": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 12\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 11\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,9\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "exit": 0,
+  "wall_ms": 51801.5171,
+  "cpu_ms": 173031.25,
+  "peak_job_bytes": 493801472,
+  "peak_proc_bytes": 492523520,
+  "peak_working_set_bytes": 447070208,
+  "stdout": "  \u25c6  swag        run \u2022 tests \u2022 devmode\r\n  \u2713  module      core \u2022 343 files \u2022 core.dll \u2022 30 s 22 ms\r\n  \u2713  workspace   std [core] \u2022 1 module \u2022 35 s 869 ms\r\n  \u2713  checked     60 files \u2022 170_085 tokens \u2022 5 s 230 ms\r\n  \u2713  tuned       312 functions \u2022 6 s 291 ms\r\n",
+  "stderr": "\r\n",
+  "command": [
+    "bin/swc.exe",
+    "--num-cores",
+    "6",
+    "tools/tests/repository.swgs",
+    "."
+  ],
+  "started": "2026-09-07 11:56:59",
+  "label": "backlog-check-noon"
+}

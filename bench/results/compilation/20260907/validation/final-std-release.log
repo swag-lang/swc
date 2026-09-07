@@ -1,0 +1,35 @@
+
+  ◆  swag        test • std • release
+  ✓  module      win32 • 26 files • 82 ms
+  ✓  module      gdi32 • 24 files • 103 ms
+  ✓  module      gdiplus • 23 files • 96 ms
+  ✓  module      xaudio2 • 23 files • 99 ms
+  ✓  module      xinput • 23 files • 91 ms
+  ✓  module      core • 343 files • core.dll • 1 s 787 ms
+  ✓  module      audio • 106 files • audio.dll • 1 s 119 ms
+  ✓  module      ogl • 75 files • ogl.dll • 922 ms
+  ✓  module      truetype • 76 files • truetype.dll • 668 ms
+  ✓  module      pixel • 271 files • pixel.dll • 4 s 176 ms
+  ✓  module      gui • 294 files • gui.dll • 4 s 775 ms
+  ✓  module      video • 133 files • video.dll • 1 s 891 ms
+  ✓  workspace   std • 12 modules • 20 s 352 ms
+  ✓  module      win32 • 26 files • 4 passed • win32.test.exe • 280 ms
+  ✓  module      gdi32 • 24 files • 1 passed • gdi32.test.exe • 217 ms
+  ✓  module      gdiplus • 23 files • 0 tests • 103 ms
+  ✓  module      xaudio2 • 23 files • 0 tests • 114 ms
+  ✓  module      xinput • 23 files • 0 tests • 120 ms
+  ✓  module      core • 343 files • 674 passed • core.test.exe • 20 s 948 ms
+  ✓  module      audio • 106 files • 87 passed • audio.test.exe • 1 s 799 ms
+  ✓  module      ogl • 75 files • 0 tests • 689 ms
+  ✓  module      truetype • 76 files • 41 passed • truetype.test.exe • 919 ms
+  ✓  module      pixel • 271 files • 530 passed • pixel.test.exe • 14 s 978 ms
+headless UI stage 1: modal did not appear while waiting for button 'missing'
+headless UI stage 1: modal appeared without button 'missing'; observed button identifiers: 'close'
+headless UI stage 1: modal preparation did not complete for button 'Dialog.BtnOk'
+headless UI stage 1: modal did not appear while waiting for button 'missing'
+headless UI stage 1: modal appeared without button 'missing'; observed button identifiers: 'close'
+headless UI stage 1: modal preparation did not complete for button 'Dialog.BtnOk'
+  ✓  module      gui • 294 files • 709 passed • gui.test.exe • 50 s 271 ms
+  ✓  module      video • 133 files • 110 passed • video.test.exe • 7 s 5 ms
+  ✓  workspace   std • 12 modules • 2_156 passed • 2 min 7 s
+  ✓  clean       2 min 7 s

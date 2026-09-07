@@ -1,0 +1,18 @@
+{
+  "core": {
+    "count": 193,
+    "foreign_attributes_identical": true
+  },
+  "ogl": {
+    "count": 1298,
+    "foreign_attributes_identical": true
+  },
+  "pixel": {
+    "count": 127,
+    "foreign_attributes_identical": true
+  },
+  "gui": {
+    "count": 44,
+    "foreign_attributes_identical": true
+  }
+}

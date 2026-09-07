@@ -15,7 +15,7 @@ the executable Micro instruction stream has no explicit phi instruction.
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13
-- Updated: 2026-09-06 15:21 — git: Refresh module compilation profiles and measurement caveats
+- Updated: 2026-09-07 10:37 — Attribute GUI and Pixel SSA cost and record the rejected storage experiment
 - Area: compiler/backend, compilation time
 - Found while: the compile-speed campaign, profiling `bench/compile.py core_rebuild` (std/core in
   `devmode`, six worker cores, Release 0.1.367 with a PDB, a user-mode sampling profiler).
@@ -36,7 +36,14 @@ the executable Micro instruction stream has no explicit phi instruction.
   they are attribution evidence, not independent percentages to add or unprofiled timings.
   Repeated builds by the same baseline compiler also produce different raw PE `.text` hashes,
   so a whole-section hash alone cannot establish whether an SSA change preserves code quality.
-- Next: count rebuilds and mutating passes per function on std/core to size the win, then keep the
+- Updated evidence (2026-09-07): Release compiler 0.1.390, six workers, an isolated Pixel rebuild
+  gave 518 CPU-weighted external stack samples. SSA construction accounted for 22.15% of the
+  sampled CPU, renaming for 11.63%, and the entry-snapshot call in `renameBlock` for 5.82%.
+  The corresponding GUI-only profile attributed 12.94% to SSA construction. These are inclusive
+  shares, not costs to add together. Each block snapshots every active tracked register, and
+  each mutating pass can repeat the work. Reusing block scratch storage alone did not establish
+  a consistent speed/memory improvement and was removed; `repo.tooling.008` records that trial.
+- Next: trace rebuilds and mutating passes externally on GUI and Pixel to size the win, then keep the
   SSA state valid across the mutations that preserve it — a deleted instruction, a renamed
   operand, a folded constant — and rebuild only the blocks a pass touched otherwise. Measure with
   `bench/compile.py --against` on `core_rebuild` and `hello_build`, and with `bench.swgs` so the

@@ -1,0 +1,29 @@
+{
+  "exit": 5,
+  "wall_ms": 36247.8306,
+  "cpu_ms": 133968.75,
+  "peak_job_bytes": 1066323968,
+  "peak_proc_bytes": 904724480,
+  "peak_working_set_bytes": 825511936,
+  "stdout": "  \u25c6  swag        test \u2022 std [pixel] \u2022 devmode\r\n  \u21bb  module      win32 \u2022 up-to-date \u2022 6 us\r\n  \u21bb  module      gdi32 \u2022 up-to-date \u2022 6 us\r\n  \u21bb  module      xinput \u2022 up-to-date \u2022 4 us\r\n  \u21bb  module      core \u2022 up-to-date \u2022 core.dll \u2022 11 us\r\n  \u21bb  module      ogl \u2022 up-to-date \u2022 ogl.dll \u2022 7 us\r\n  \u21bb  module      truetype \u2022 up-to-date \u2022 truetype.dll \u2022 6 us\r\n  \u2713  module      pixel \u2022 271 files \u2022 pixel.dll \u2022 11 s 91 ms\r\n  \u2713  workspace   std [pixel] \u2022 7 modules \u2022 11 s 686 ms\r\n  \u2713  checked     271 files \u2022 665_297 tokens \u2022 3 s 938 ms\r\n  \u2713  tuned       4_878 functions \u2022 9 s 887 ms\r\n  \u2713  forged      3_736 functions \u2022 pixel.test.exe \u2022 10 s 938 ms\r\n[ogl] the readback never returned the scene for Pixel opaque backdrop parity; the context read a blank or foreign framebuffer five times\r\n\r\nruntime panic\r\n-------------\r\nmessage: assertion does not hold\r\nsource:  C:\\Perso\\swag-lang\\swc-speed-20260907\\bin\\std\\modules\\pixel\\src\\tests\\render.parity.test.swg:155:18\r\n\r\nruntime trace\r\nSwag.panic --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/error.swg:286\r\n__raiseException666 --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/os_windows.swg:293\r\nPixel.renderOglStable --> C:/Perso/swag-lang/swc-speed-20260907/bin/std/modules/pixel/src/tests/render.parity.test.swg:135\r\nPixel.__test_532 --> C:/Perso/swag-lang/swc-speed-20260907/bin/std/modules/pixel/src/tests/render.parity.test.swg:912\r\n__hostTestCall --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/os_windows.swg:358\r\nSwag.__runTest --> C:/Perso/swag-lang/swc-speed-20260907/bin/runtime/tests.swg:102\r\n\r\nerror: generated executable '#test' result: 1 did not pass\r\n\r\n  \u2716  running     9 s 145 ms\r\n  \u2716  testing     17 passed \u2022 1 did not pass \u2022 24 s 65 ms\r\n  \u2716  compiling   pixel \u2022 271 files \u2022 17 passed \u2022 1 did not pass \u2022 pixel.test.exe \u2022 24 s 119 ms\r\n  \u2716  building    std [pixel] \u2022 0/1 module \u2022 17 passed \u2022 1 did not pass \u2022 35 s 958 ms\r\n  \u2716  stopped     1 error \u2022 35 s 959 ms\r\n",
+  "stderr": "\r\n",
+  "command": [
+    "bin/swc.exe",
+    "test",
+    "--workspace",
+    "bin/std",
+    "--workspace-module",
+    "pixel",
+    "--artifact-kind",
+    "executable",
+    "--build-cfg",
+    "devmode",
+    "--test-file",
+    "render.parity.test.swg",
+    "--no-test-jit",
+    "--num-cores",
+    "6"
+  ],
+  "started": "2026-09-07 11:19:30",
+  "label": "pixel-readback-final-devmode"
+}

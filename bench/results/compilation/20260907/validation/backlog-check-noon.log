@@ -1,0 +1,9 @@
+  ◆  swag        run • tests • devmode
+
+  ✓  module      core • 343 files • core.dll • 30 s 22 ms
+
+  ✓  workspace   std [core] • 1 module • 35 s 869 ms
+
+  ✓  checked     60 files • 170_085 tokens • 5 s 230 ms
+
+  ✓  tuned       312 functions • 6 s 291 ms

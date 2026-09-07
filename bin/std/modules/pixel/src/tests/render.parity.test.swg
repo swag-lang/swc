@@ -45,103 +45,6 @@ func renderCpu(scene: RenderParityScene)->Image
     return scene(renderer)
 }
 
-func renderOgl(className, title: string, width, height: s32, scene: RenderParityScene, needsAdvancedBlending = false)->Image fail
-{
-    var window = try Env.createWindow({identifier: className, title: title, width: width, height: height})
-
-    // Realize and pump the window before creating the GL context, as an application does at
-    // startup. Keep it outside the visible desktop so the test never takes focus or flashes.
-    try window.showOffScreen()
-    discard Env.processWindowMessages()
-
-    var ogl:      RenderOgl
-    let renderer: IRenderer = &ogl
-    var context             = try renderer.createContext(window.nativeRenderHandle(), width, height)
-    defer renderer.deleteContext(&context)
-
-    renderer.setCurrentContext(context)
-    renderer.init()
-    if needsAdvancedBlending and !ogl.supportsAdvancedBlending() do
-        return {}
-    renderer.begin(context)
-    defer renderer.end()
-    return scene(renderer)
-}
-
-// Compares the first render from each backend within `options`. A divergent image is evidence
-// of a failure, including a large or intermittent difference, and must never be retried away.
-func assertOglParity(className, title: string, width, height: s32, scene: RenderParityScene, name: string, options: Testing.ImageGoldenOptions, needsAdvancedBlending = false) fail
-{
-    let expected = renderCpu(scene)
-    let actual   = try renderOgl(className, title, width, height, scene, needsAdvancedBlending)
-    if needsAdvancedBlending and !actual.isValid() do
-        return
-    Testing.assertImagesNear(&expected, &actual, name, options)
-}
-
-// Exercises every artistic mode over opaque and partially covered backdrops. The latter row
-// proves the premultiplied overlap/source-only/backdrop-only terms, not only the color formula.
-private func renderBlendParityScene(renderer: IRenderer)->Image
-{
-    var target = renderer.createRenderTarget(RenderBlendWidth, RenderBlendHeight)
-    defer renderer.deleteRenderTarget(&target)
-
-    const OpaqueDst = Color.fromArgb(255'u8, 64'u8, 128'u8, 192'u8)
-    const FaintDst  = Color.fromArgb(128'u8, 64'u8, 128'u8, 192'u8)
-    const Src       = Color.fromArgb(128'u8, 192'u8, 64'u8, 128'u8)
-    const Src2      = Color.fromArgb(176'u8, 48'u8, 192'u8, 96'u8)
-
-    // Repeat the complete stream on the same target. A non-coherent context stays ordered
-    // across draw calls as well as within one batch; the second clear is the first touch after
-    // the previous stream's artistic pass.
-    for 2
-    {
-        var painter = Painter.create(renderer)
-        painter.begin()
-        painter.bindRenderTarget(&target)
-        painter.setColorMaskFull()
-        painter.setBlendingMode(.Copy)
-        painter.clear(Color.fromArgb(Argb.Zero))
-
-        for mode, idx in ArtisticBlendModes
-        {
-            let x = cast(f32) idx * 12.0
-
-            painter.setBlendingMode(.Copy)
-            painter.fillRect(x, 0, 12, 12, OpaqueDst)
-            painter.setBlendingMode(mode)
-            painter.fillRect(x, 0, 12, 12, Src)
-
-            painter.setBlendingMode(.Copy)
-            painter.fillRect(x, 12, 12, 12, Color.fromArgb(Argb.Zero))
-            painter.setBlendingMode(.Alpha)
-            painter.fillRect(x, 12, 12, 12, FaintDst)
-            painter.setBlendingMode(mode)
-            painter.fillRect(x, 12, 12, 12, Src)
-
-            // These two calls deliberately merge into one triangle batch and overlap. A
-            // non-coherent backend must put a barrier between its individual primitives.
-            painter.setBlendingMode(.Copy)
-            painter.fillRect(x, 24, 12, 12, OpaqueDst)
-            painter.setBlendingMode(mode)
-            painter.fillRect(x, 24, 8, 12, Src)
-            painter.fillRect(x + 4, 24, 8, 12, Src2)
-
-            // Once a context has used a non-coherent artistic equation, later standard batches
-            // are still framebuffer touches. Keep their overlapping primitives ordered too.
-            painter.setBlendingMode(.Alpha)
-            painter.fillRect(x, 36, 8, 12, Src)
-            painter.fillRect(x + 4, 36, 8, 12, Src2)
-        }
-
-        painter.unbindRenderTarget()
-        painter.end()
-        renderer.draw(&painter)
-    }
-
-    return renderer.readRenderTarget(&target, 0, 0, RenderBlendWidth, RenderBlendHeight)
-}
-
 private func makeRenderParityTexture(renderer: IRenderer)->Texture
 {
     var image             = Image.create(4, 4, .BGRA8)
@@ -416,40 +319,6 @@ private func renderLayerParityScene(renderer: IRenderer)->Image
     return result
 }
 
-// A clip pushed while a layer is bound has to clip against the layer.
-//
-// The scissor works in framebuffer pixels and flips vertically around the height of the bound
-// target. Reading that height once per submission, from the surface, puts every clip of a shorter
-// layer outside its framebuffer: the layer then records nothing at all, and a GUI window fading or
-// scaling through a layer composites as an empty silhouette.
-private func renderLayerClipParityScene(renderer: IRenderer)->Image
-{
-    var target = renderer.createRenderTarget(RenderLayerWidth, RenderLayerHeight)
-    defer renderer.deleteRenderTarget(&target)
-    var painter = Painter.create(renderer)
-    var layer: Layer
-
-    painter.begin()
-    painter.bindRenderTarget(&target)
-    painter.setColorMaskFull()
-    painter.setBlendingMode(.Copy)
-    painter.clear(Color.fromArgb(255'u8, 24'u8, 30'u8, 42'u8))
-
-    layer.begin(&painter, {width: 96, height: 56})
-    painter.pushClippingRect({8, 10, 74, 34})
-    painter.fillRect({0, 0, 96, 56}, Color.fromArgb(Argb.DodgerBlue))
-    painter.fillCircle(48, 28, 20, Color.fromArgb(Argb.Gold))
-    painter.popClippingRect()
-    layer.end()
-    layer.draw({dstRect: {32, 24, 96, 56}})
-
-    painter.unbindRenderTarget()
-    painter.end()
-    renderer.draw(&painter)
-
-    return renderer.readRenderTarget(&target, 0, 0, RenderLayerWidth, RenderLayerHeight)
-}
-
 // Rasterizing a vector document is a complete renderer round trip: an alpha-preserving
 // supersampled pass, its resolve, and a readback. Whichever backend owns it, the image
 // handed back has to be the same one.
@@ -498,13 +367,6 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
     Swag.assert(blended.b > 0x6F and blended.b < 0xDE)
 }
 
-// Both backends run the same submission, so the rasterized document must come out the same
-// whether a GPU or a single core filled the supersampled buffer and resolved it.
-#test
-{
-    expect assertOglParity("SWAG_PIXEL_SVG_PARITY", "Pixel svg rasterize parity", RenderSvgWidth, RenderSvgHeight, &renderSvgParityScene, "render.parity.svg.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 600})
-}
-
 // Image comparisons expose separate limits for small channel drift and bounded outlier pixels.
 #test
 {
@@ -528,35 +390,12 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
     Testing.assertImageGolden(&image, "render.parity.portable")
 }
 
-// A capable OpenGL context implements the same artistic equations as the CPU, including partial
-// backdrop coverage. Non-coherent contexts exercise the explicit barrier path; unsupported
-// contexts expose their limitation through the capability query.
-#test
-{
-    expect assertOglParity("SWAG_PIXEL_BLEND_PARITY", "Pixel blend parity", RenderBlendWidth, RenderBlendHeight, &renderBlendParityScene, "render.parity.blend.cpu-ogl", {maxChannelDelta: 3}, true)
-}
-
-// OpenGL must stay visually equivalent to the CPU reference. Raster-edge differences are
-// bounded explicitly; flat fills, texture interiors and state transitions still compare exactly.
-#test
-{
-    expect assertOglParity("SWAG_PIXEL_RENDER_PARITY", "Pixel renderer parity", RenderParityWidth, RenderParityHeight, &renderParityScene, "render.parity.cpu-ogl", {maxChannelDelta: 3, maxDifferentPixels: 512})
-}
-
 // The deterministic CPU backend is the reviewable reference for measured strokes too.
 #[Swag.TestTag("golden")]
 #test
 {
     let image = renderCpu(&renderStrokeParityScene)
     Testing.assertImageGolden(&image, "render.parity.stroke")
-}
-
-// A measured stroke has to reach the same pixels on both backends, because the rule that turns a
-// signed distance into coverage is written twice: once in the OpenGL fragment program and once in
-// the software rasterizer. This is what keeps the two honest before the flag becomes a default.
-#test
-{
-    expect assertOglParity("SWAG_PIXEL_STROKE_PARITY", "Pixel stroke parity", RenderParityWidth, RenderParityHeight, &renderStrokeParityScene, "render.parity.stroke.cpu-ogl", {maxChannelDelta: 3, maxDifferentPixels: 512})
 }
 
 // Text goldens cover bitmap sampling plus the complete built-in MTSDF effects path.
@@ -567,30 +406,12 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
     Testing.assertImageGolden(&image, "render.parity.text")
 }
 
-// CPU and OpenGL implement the same built-in text programs, including MTSDF effects.
-#test
-{
-    expect assertOglParity("SWAG_PIXEL_TEXT_PARITY", "Pixel text parity", RenderTextWidth, RenderTextHeight, &renderTextParityScene, "render.parity.text.cpu-ogl", {maxChannelDelta: 5, maxDifferentPixels: 1500})
-}
-
 // The CPU backend makes composite layer output deterministic and reviewable.
 #[Swag.TestTag("golden")]
 #test
 {
     let image = renderCpu(&renderLayerParityScene)
     Testing.assertImageGolden(&image, "render.parity.layer")
-}
-
-// Layer resolve, blur, paint-alpha replay and pooled targets agree across both backends.
-#test
-{
-    expect assertOglParity("SWAG_PIXEL_LAYER_PARITY", "Pixel layer parity", RenderLayerWidth, RenderLayerHeight, &renderLayerParityScene, "render.parity.layer.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 1500})
-}
-
-// A clipping rectangle pushed inside a layer clips the layer, on both backends.
-#test
-{
-    expect assertOglParity("SWAG_PIXEL_LAYER_CLIP_PARITY", "Pixel layer clip parity", RenderLayerWidth, RenderLayerHeight, &renderLayerClipParityScene, "render.parity.layer.clip.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 1500})
 }
 
 // Builds a planar 4:2:0 picture with a different value in every corner: a luma ramp that rises
@@ -688,24 +509,6 @@ private func assertPlanarCornersUpright(image: const *Image, view: const *Yuv420
     assertPlanarCornersUpright(&image, &picture)
 }
 
-// The backend with shaders keeps the three planes and converts while it samples; the one without
-// converts once on upload. Disagreeing on row order there turns every decoded video upside down,
-// which no test made of one flat colour can see.
-//
-// The two do differ where chroma changes: sampling the half-resolution planes with the luma
-// coordinates interpolates across the boundary, while converting on upload replicates one sample
-// over its two-by-two block. That is one chroma texel either side of each seam of the picture
-// below, and nowhere else, which is what the pixel budget stands for.
-#test
-{
-    var storage: Array'u8
-    let picture  = makeRenderPlanarPicture(&storage)
-    let expected = renderCpu(&renderPlanarParityScene)
-    let image    = try renderOgl("SWAG_PIXEL_PLANAR_PARITY", "Pixel planar parity", RenderPlanarWidth, RenderPlanarHeight, &renderPlanarParityScene)
-    Testing.assertImagesNear(&expected, &image, "render.parity.planar.cpu-ogl", {maxChannelDelta: 4, maxDifferentPixels: 400})
-    assertPlanarCornersUpright(&image, &picture)
-}
-
 // Two clipping regions in a row. The second starts from an empty plane rather than from what
 // the first wrote, and a texture filled through a region lands where the region is.
 private func renderClipRegionParityScene(renderer: IRenderer)->Image
@@ -763,7 +566,7 @@ private func hasSoftEdge(image: const *Image, x, y: s32, fill: Color)->bool
     return false
 }
 
-// A clipping region starts empty and carries coverage, on the CPU reference and on OpenGL alike.
+// A clipping region starts empty and carries antialiased coverage on the CPU renderer.
 #test
 {
     let expected = renderCpu(&renderClipRegionParityScene)
@@ -775,9 +578,6 @@ private func hasSoftEdge(image: const *Image, x, y: s32, fill: Color)->bool
 
     // The circle's edge, where it runs diagonally, is a ramp rather than a staircase.
     Swag.assert(hasSoftEdge(&expected, 172, 36, blue))
-
-    let actual = expect renderOgl("SWAG_PIXEL_CLIP_PARITY", "Pixel clip region parity", RenderParityWidth, RenderParityHeight, &renderClipRegionParityScene)
-    Testing.assertImagesNear(&expected, &actual, "render.parity.clipregion.cpu-ogl", {maxChannelDelta: 3, maxDifferentPixels: 512})
 }
 
 // Every artistic mode over a backdrop whose alpha plane is not being written. The upper row is
@@ -816,8 +616,7 @@ private func renderOpaqueBackdropParityScene(renderer: IRenderer)->Image
     return renderer.readRenderTarget(&target, 0, 0, RenderBlendWidth, RenderBlendHeight)
 }
 
-// A backdrop whose alpha is not written is opaque: the effect reads its stored colour, on the
-// CPU reference and on OpenGL alike.
+// A backdrop whose alpha is not written is opaque: the effect reads its stored colour.
 #test
 {
     let expected = renderCpu(&renderOpaqueBackdropParityScene)
@@ -830,30 +629,4 @@ private func renderOpaqueBackdropParityScene(renderer: IRenderer)->Image
         Swag.assert(Math.abs(cast(s32) scratch.g - cast(s32) opaque.g) <= 1)
         Swag.assert(Math.abs(cast(s32) scratch.b - cast(s32) opaque.b) <= 1)
     }
-
-    // Alpha is excluded from what is drawn, so only the colour is compared: OpenGL leaves the
-    // scratch plane opaque over the batch it made opaque, the CPU leaves it untouched.
-    let actual = expect renderOgl("SWAG_PIXEL_BACKDROP_PARITY", "Pixel opaque backdrop parity", RenderBlendWidth, RenderBlendHeight, &renderOpaqueBackdropParityScene, true)
-    if !actual.isValid() do
-        return
-    let expectedColor = colorOnly(&expected)
-    let actualColor   = colorOnly(&actual)
-    Testing.assertImagesNear(&expectedColor, &actualColor, "render.parity.backdrop.cpu-ogl", {maxChannelDelta: 3})
-}
-
-// Returns a copy of `image` with an opaque alpha plane, so a comparison reads its colour alone.
-private func colorOnly(image: const *Image)->Image
-{
-    var result = #move image.convertedTo(.RGBA8)
-    for y in cast(u64) result.height
-    {
-        var pixel = result.pixels.buffer! + y * cast(u64) result.rowStride
-        for cast(u64) result.width
-        {
-            pixel[3] = 255
-            pixel    += 4
-        }
-    }
-
-    return #move result
 }

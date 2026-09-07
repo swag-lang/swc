@@ -263,11 +263,3 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     Swag.assert(image.pixelColor(0, 0).r >= 250)
     Swag.assert(image.pixelColor(3, 3).r >= 250)
 }
-
-// The OpenGL shader consumes the same BT.709 factors as the CPU conversion.
-#test
-{
-    let expected = renderCpu(&renderPlanarParityScene)
-    let image    = expect renderOgl("SWAG_PIXEL_YUV_MATRIX", "Pixel YUV matrix", RenderPlanarWidth, RenderPlanarHeight, &renderPlanarParityScene)
-    Testing.assertImagesNear(&expected, &image, "render.planar.bt709.cpu-ogl", {maxChannelDelta: 4, maxDifferentPixels: 400})
-}

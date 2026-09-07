@@ -273,4 +273,8 @@
     <path d="M4 17 H7 C11 17 13 7 17 7 H20"/>
     <polyline points="17,4 20,7 17,10"/>
   </g>
+  <g id="OpenExternal" transform="translate(120 192)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 4 H5 L4 5 V19 L5 20 H19 L20 19 V14"/>
+    <path d="M14 4 H20 V10 M20 4 L10 14"/>
+  </g>
 </svg>

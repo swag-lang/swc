@@ -83,10 +83,11 @@ enum ThemeIcons
     MatchWholeWord     // Restrict a search to complete words.
 
     // The play modes of a folder of media: what happens once a file has been played through.
-    PlayOnce      // Play the file to its end, then stop there.
-    RepeatOne     // Play the same file again once it ends.
-    RepeatAll     // Play the files of the folder in turn, around again past the last one.
-    Shuffle       // Play the files of the folder in random order, each once before any comes again.
+    PlayOnce         // Play the file to its end, then stop there.
+    RepeatOne        // Play the same file again once it ends.
+    RepeatAll        // Play the files of the folder in turn, around again past the last one.
+    Shuffle          // Play the files of the folder in random order, each once before any comes again.
+    OpenExternal     // Open content in another application or window.
 }
 
 impl Theme

@@ -182,11 +182,12 @@ returns to the last file viewed in the selected folder. Audio and video claim ba
 ten-second seeks while active, and use Space for play/pause and M for mute. An
 installer may run `swagscope.exe --register-file-types`; normal launches never write the registry.
 
-The action bar's play-mode button decides what follows a file that has been played through: stop
+The image viewer's command bar offers a play-mode button, and the video viewer includes the same
+modes in its player settings menu. They decide what follows a file that has been played through: stop
 there, play it again, continue with the next file of the same kind in its folder, or continue
 with a random one that has not had its turn in that folder yet, every file once before any comes
 again. Video and sound hand over when their stream ends, an animated picture when its animation
-has run one cycle, and a still picture after the time per picture the same menu sets, which turns
+has run one cycle, and a still picture after the time per picture the image viewer's menu sets, which turns
 a folder of pictures into a slideshow. The mode holds across files and sessions, the folder is
 walked whatever the panel filter shows, and a file the mode brings up stays out of the history.
 
@@ -241,6 +242,12 @@ picture reports it through `reportShown`, which is how the reader's play mode ca
 file to the next without any viewer knowing the folder. Reject malformed content
 with the exact decoder reason before attaching a view; the application presents every plugin
 failure on the same error surface and owns cleanup of all contributed windows.
+
+Playback controls belong to the viewer's lower command group. The image viewer creates a
+`Viewer.PlaybackButton` there with `host.services().playback` and enables its still-picture
+duration submenu. The video viewer uses `Viewer.PlaybackApi.appendMenuItems` and
+`applyMenuChoice` to combine the same modes with its existing playback-rate menu. The host only
+stores the shared policy and handles file continuation; it creates no playback button or menu.
 
 The fixture lives in `src/tests/datas`, is unique to that descriptor, and is a valid file the
 plugin can open. The key is never translated or reused because remembered viewer choices persist

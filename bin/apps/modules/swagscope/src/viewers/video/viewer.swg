@@ -639,6 +639,7 @@ internal struct VideoViewer
     reportFailure:        Viewer.ReportFailure?
     reportLoadingChanged: Viewer.ReportLoadingChanged?
     reportFinished:       Viewer.ReportFinished?
+    playback:             Viewer.PlaybackApi
     retireRequested:      bool
     retired:              bool
 
@@ -1027,15 +1028,12 @@ internal impl VideoViewer
         }
     }
 
-    // Offers the playback rates, which qualify how the movie plays, not what it plays.
-    //
-    // What happens once it has played is the window's play mode, chosen from the action bar
-    // for every kind of media at once. The rates stand directly in the menu rather than in a
-    // submenu: seven short rows cost less to scan than one more level, and the check mark
-    // keeps the current rate visible the moment the menu opens.
+    // Offers the shared end-of-file modes and this player's playback rates in one settings menu.
     mtd showPlayerSettingsMenu()
     {
         let menu = MenuCtrl.createPopup(.settingsButton, owner: me)
+        .playback.appendMenuItems(menu, me)
+        menu.addSeparator()
 
         var commands: Array'String
         commands.reserve(VideoPlaybackRates.count)
@@ -1047,6 +1045,8 @@ internal impl VideoViewer
 
         let chosen = menu.doModal(.settingsButton, autoDestroy: true)
         if !chosen do
+            return
+        if .playback.applyMenuChoice(me, chosen!) do
             return
         for rate, index in VideoPlaybackRates where chosen! == commands[index].toString()
         {
@@ -2016,6 +2016,7 @@ private impl VideoViewer
         result.reportFailure        = services.reportFailure
         result.reportLoadingChanged = services.reportLoadingChanged
         result.reportFinished       = services.reportFinished
+        result.playback             = services.playback
 
         result.commands    = host.createCommandGroup(VideoCommandWidth)
         result.information = MediaInfoPanel.create(host)

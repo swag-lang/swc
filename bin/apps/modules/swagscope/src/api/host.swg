@@ -55,6 +55,7 @@ struct HostServices
         navigateFile:         NavigateFile?             // Requests a neighboring file by signed direction.
         reportFinished:       ReportFinished?           // Reports the end of a file that has one, and learns what follows.
         reportShown:          ReportShown?              // Reports content with no end of its own, for a slideshow to time.
+        playback:             PlaybackApi               // Reads and changes the shared playback policy from viewer-owned controls.
     }
 }
 

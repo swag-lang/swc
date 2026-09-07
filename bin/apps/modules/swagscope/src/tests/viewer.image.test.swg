@@ -135,7 +135,8 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(view.previousButton.isEnabled() and view.nextButton.isEnabled())
     Swag.assert(view.previousButton.icon.isValid() and view.nextButton.icon.isValid())
     Swag.assert(view.transformButton.arrowPosition == .RightUpward)
-    Swag.assert(view.actions.preferredSize.x == 2 * themeActionButtonSize(view.themeMetrics()) + themeDropDownButtonWidth(view.themeMetrics()) + 8)
+    Swag.assert(view.playModeButton.parent == view.actions and view.playModeButton.arrowPosition == .RightUpward)
+    Swag.assert(!view.playModeButton.isEnabled())
     Swag.assert(view.transformButton.position.right() <= view.actions.clientRect().right())
     let transformMenu = view.createTransformMenu()
     defer transformMenu.destroy()
@@ -170,6 +171,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(&host.root)
+    Swag.assert(view.playModeButton.position.right() <= view.actions.clientRect().right())
 
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "viewer.image.document")

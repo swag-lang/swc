@@ -553,6 +553,15 @@ func videoMatroskaFixturePath()->String
         let view = cast(*VideoViewer) window.instances[window.activeChoiceIndex].view!
         waitForVideoFrame(view)
         Swag.assert(window.currentView == view and view.playing)
+        Swag.assert(view.settingsButton.parent == window.currentCommands)
+        host.clickPopupMenuItemWhenShown("scope.play.shuffle")
+        view.showPlayerSettingsMenu()
+        Swag.assert(window.playMode == .Shuffle)
+        window.setPlayMode(.Folder)
+        let menu = MenuCtrl.createPopup(view.settingsButton, owner: view)
+        view.playback.appendMenuItems(menu, view)
+        Swag.assert(menu.items.count == 4)
+        menu.destroy()
 
         playVideoThrough(view)
         Swag.assert(!view.playing and Path.fileName(window.pendingFile.toString()) == expected)

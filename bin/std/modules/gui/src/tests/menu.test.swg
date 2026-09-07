@@ -52,9 +52,12 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     popup.addItem("Checked option", Menu_New, checked: true)
     let selectedRadio = popup.addRadioItem("Selected choice", Menu_Open, checked: true)
     let clearRadio    = popup.addRadioItem("Available choice", Menu_Quit)
+    selectedRadio.icon = host.theme.icon(.RepeatOne, 16)
+    clearRadio.icon    = host.theme.icon(.Shuffle, 16)
     Swag.assert(selectedRadio.rg == .ExclusiveGroup and clearRadio.rg == .ExclusiveGroup)
     popup.addPopup("More choices", sub)
     popup.addItem("Unavailable option", "Menu.Disabled", disabled: true, checked: true)
+    popup.addRadioItem("Unavailable choice", "Menu.DisabledRadio", disabled: true, checked: true).icon = host.theme.icon(.PlayOnce, 16)
 
     var captured: bool
     host.app.sigFrame += func|host = &host, golden, captured = &captured|(app)

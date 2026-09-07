@@ -29,7 +29,7 @@ private const SvgRasterLimit = 2048.0
 
 private func imageCommandWidth(metrics: const *ThemeMetrics)->f32
 {
-    return 2 * themeActionButtonSize(metrics) + themeDropDownButtonWidth(metrics) + 8
+    return 2 * themeActionButtonSize(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16
 }
 
 private func imageSetCommandWidth(metrics: const *ThemeMetrics)->f32
@@ -163,6 +163,7 @@ internal struct ImageViewer
         imageView:       *ImageView
         zoomLabel:       *IconButton
         transformButton: *IconButton
+        playModeButton:  *Viewer.PlaybackButton
         playButton:      *IconButton
         timeline:        *Slider
         frameLabel:      *Label
@@ -523,6 +524,10 @@ private impl ImageViewer
                 view.showTransformMenu()
             }
         }
+
+        result.playModeButton           = Viewer.PlaybackButton.create(result.actions, result, services.playback, showSlideDuration: true)
+        result.playModeButton.dockStyle = .Left
+        result.playModeButton.margin.x  = 8
 
         with result.playButton = IconButton.create(result.actions, result.theme().icon(.Pause, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {

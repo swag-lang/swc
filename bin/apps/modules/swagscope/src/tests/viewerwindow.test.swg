@@ -2253,9 +2253,12 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     Swag.assert(reportViewerFinished(window.currentView!) == .Replay and window.pendingFile.isEmpty())
 }
 
-// The play mode is chosen from the action bar, and the button carries the choice.
+// The image viewer builds its playback control in its own command group and shares the host policy.
 #test
 {
+    let folder = createPictureFolder("scope_play_menu", ["picture.svg"])
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
@@ -2263,29 +2266,55 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     let index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
-    Swag.assert(window.playMode == .Once and window.playModeButton.icon.index == cast(s32) ThemeIcons.PlayOnce)
+    Swag.assert(window.playMode == .Once)
+    Swag.assert(window.openDefaultButton.icon.index == cast(s32) ThemeIcons.OpenExternal)
+    window.openFile(Path.combine(folder.toString(), "picture.svg").toString())
+    completeQueuedViewerFile(&host, window)
+    let imageView = cast(*ImageViewer) window.currentView!
+    let button    = imageView.playModeButton
+    Swag.assert(button.parent == window.currentCommands and button.parent != window.commandBar)
+    Swag.assert(button.isVisible())
 
     host.clickPopupMenuItemWhenShown("scope.play.shuffle")
-    window.showPlayModeMenu()
-    Swag.assert(window.playMode == .Shuffle and window.playModeButton.icon.index == cast(s32) ThemeIcons.Shuffle)
+    button.showMenu()
+    Swag.assert(window.playMode == .Shuffle and button.icon.index == cast(s32) ThemeIcons.Shuffle)
 
     host.clickPopupMenuItemWhenShown("scope.play.folder")
-    window.showPlayModeMenu()
-    Swag.assert(window.playMode == .Folder and window.playModeButton.icon.index == cast(s32) ThemeIcons.RepeatAll)
+    button.showMenu()
+    Swag.assert(window.playMode == .Folder and button.icon.index == cast(s32) ThemeIcons.RepeatAll)
 
     host.openPopupSubMenuWhenShown(appStrings().ui_PlaySlide)
     host.thenClickPopupMenuItem("scope.play.slide.2")
-    window.showPlayModeMenu()
+    button.showMenu()
     Swag.assert(window.slideSeconds == 10)
 
     // The modes are one choice and the paces another: each entry carries a radio mark, and
     // exactly one of each group is taken. Built last, because a popup lives in the top view
     // until the next frame, where the driver of the menus above could find it first.
-    let menu = window.createPlayModeMenu()
+    let menu = button.createMenu()
     defer menu.destroy()
-    for entry in 4'u32 do
+    let icons = [ThemeIcons.PlayOnce, .RepeatOne, .RepeatAll, .Shuffle]
+    for entry in 4'u32
+    {
         Swag.assert(menu.itemAt(entry).rg == .ExclusiveGroup and menu.itemAt(entry).checked == (entry == 2))
+        Swag.assert(menu.itemAt(entry).icon.index == cast(s32) icons[entry])
+    }
+
     let slideMenu = menu.itemAt(5).popup
-    for entry in cast(u32) ViewerSlideChoices.count do
+    for entry in cast(u32) Viewer.SlideChoices.count do
         Swag.assert(slideMenu.itemAt(entry).rg == .ExclusiveGroup and slideMenu.itemAt(entry).checked == (entry == 2))
+
+    // The same picture can be inspected as bytes; presentation follows the selected viewer.
+    for choice, index in window.choices where choice.key == "hex"
+    {
+        window.selectViewer(cast(u32) index)
+        break
+    }
+
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(!button.isVisible())
+    window.selectViewer(0)
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(button.isVisible())
+    window.showEmpty(appStrings().ui_Unsupported)
 }

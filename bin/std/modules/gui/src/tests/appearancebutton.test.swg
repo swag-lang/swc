@@ -8,13 +8,13 @@ using Swag, Core, Pixel
 #test
 {
     var host: Testing.HeadlessHost
-    host.setup(152, 96)
+    host.setup(248, 96)
     defer host.shutdown()
 
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let icons = [ThemeIcons.Appearance, .OpenFile, .ParentFolder, .History]
+    let icons = [ThemeIcons.Appearance, .OpenFile, .ParentFolder, .History, .OpenExternal]
     for icon, idx in icons
     {
         let x = 8 + cast(f32) idx * 48

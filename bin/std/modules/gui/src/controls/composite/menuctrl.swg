@@ -91,6 +91,7 @@ public struct MenuCtrl
     popupButtonOpensUp:      bool                   // Whether an attached icon-button menu opens above its tab.
     ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
     popupHasGlyphs:          bool                   // Whether visible popup entries need the shared glyph column.
+    popupHasRadioIcons:      bool                   // Whether exclusive choices need icons beside their radio marks.
     popupHasMarkerColumn:    bool                   // Whether left-opening arrows own one shared leading column.
 }
 
@@ -278,6 +279,8 @@ public impl IWnd for MenuCtrl
 
             labelPos.moveLeft(.popupHasGlyphs ? metrics.menuPopup_IconTextMargin + metrics.menuPopup_IconSize : metrics.menuPopup_IconMargin)
             labelPos.width -= metrics.menuPopup_IconSize
+            if .popupHasRadioIcons do
+                labelPos.moveLeft(metrics.menuPopup_IconSize + metrics.menuPopup_IconTextMargin)
 
             // A left-opening submenu uses the shared glyph column when the row has no glyph of
             // its own. Reserving another column after the marker left a conspicuous hole before
@@ -335,8 +338,11 @@ public impl IWnd for MenuCtrl
                 else do
                     theme.drawSubRect(painter, checkPos, &rects.btnCheck_CheckedMark, markerColor)
             }
-            elif it.icon.isValid()
+
+            if it.icon.isValid() and (!it.checked or .popupHasRadioIcons)
             {
+                if .popupHasRadioIcons do
+                    iconPos.x += metrics.menuPopup_IconSize + metrics.menuPopup_IconTextMargin
                 var icon = it.icon
                 icon.sizeX, icon.sizeY = metrics.menuPopup_IconSize
                 icon.paint(painter, iconPos.x, opticalTop(.font(), textCenterY, icon.sizeY), colorText)
@@ -1038,7 +1044,8 @@ impl MenuCtrl
 
         var lastIsSeparator = true
         var hasSubmenuRows  = false
-        .popupHasGlyphs = false
+        .popupHasGlyphs     = false
+        .popupHasRadioIcons = false
         for i, idx in .items
         {
             let it = i!
@@ -1065,6 +1072,8 @@ impl MenuCtrl
 
             if it.checked or it.rg == .ExclusiveGroup or it.icon.isValid() do
                 .popupHasGlyphs = true
+            if it.rg == .ExclusiveGroup and it.icon.isValid() do
+                .popupHasRadioIcons = true
 
             // `menuPopup_ItemHeight` is the complete row pitch. The inter-entry air is
             // accounted for separately so the text box keeps only the remaining height.
@@ -1100,6 +1109,8 @@ impl MenuCtrl
 
         let leadingWidth = .popupHasGlyphs ? metrics.menuPopup_IconSize + metrics.menuPopup_IconTextMargin : metrics.menuPopup_IconMargin
         .position.width += metrics.menuPopup_IconSize + leadingWidth
+        if .popupHasRadioIcons do
+            .position.width += metrics.menuPopup_IconSize + metrics.menuPopup_IconTextMargin
 
         // With no glyph column to share, a popup whose submenus deliberately open on the left
         // aligns everything on one arrow column instead; the column has to be paid for once,

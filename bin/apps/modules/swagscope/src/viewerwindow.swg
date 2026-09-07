@@ -72,39 +72,6 @@ const ViewerPaneMinSize  = 88.0
 const ViewerRecentCount        = 12'u64
 const ViewerFolderHistoryCount = 8'u64
 
-// How long a still picture stays on screen before a folder play mode moves on, and the paces the
-// play-mode menu offers. A picture is looked at rather than played, so the reader sets the pace.
-const ViewerSlideDefaultSeconds   = 5'f32
-const ViewerSlideMinSeconds       = 1'f32
-const ViewerSlideMaxSeconds       = 3600'f32
-const ViewerSlideChoices: [5] f32 = [3, 5, 10, 30, 60]
-
-// Command identifiers of the play-mode menu.
-const ViewerPlayOnceId    = "scope.play.once"
-const ViewerPlayRepeatId  = "scope.play.repeat"
-const ViewerPlayFolderId  = "scope.play.folder"
-const ViewerPlayShuffleId = "scope.play.shuffle"
-
-// Command identifiers of the slideshow paces, one per entry of [[ViewerSlideChoices]].
-//
-// A menu entry borrows its identifier for as long as the menu lives, so the identifiers are
-// literals rather than strings formatted while the menu is built.
-const ViewerSlideIds: [5] string = ["scope.play.slide.0", "scope.play.slide.1", "scope.play.slide.2", "scope.play.slide.3", "scope.play.slide.4"]
-#assert(ViewerSlideIds.count == ViewerSlideChoices.count)
-
-// What the window does once the current viewer has finished presenting its file.
-//
-// The window owns the mode because it owns the folder: a viewer only reports that it has reached
-// the end of what it shows, and the window answers with what follows. The mode holds across files
-// and sessions, which is what lets one file hand over to the next.
-enum ViewerPlayMode
-{
-    Once        // Leaves the file where it ended.
-    Repeat      // Has the viewer present the same file again.
-    Folder      // Continues with the next file of the same kind, around again past the last one.
-    Shuffle     // Continues with a random file of the same kind, each once before any comes again.
-}
-
 // One remembered answer to "which viewer opens a file of this kind".
 //
 // A reader who turns to the bytes of one picture is telling the application what to do with the
@@ -650,7 +617,6 @@ struct ViewerWindow
         openDefaultButton:   *IconButton
         filesButton:         *IconButton
         fullScreenButton:    *IconButton
-        playModeButton:      *IconButton
         searchGroup:         *StackLayoutCtrl
         searchNavigation:    *StackLayoutCtrl
         searchBox:           *EditBox
@@ -752,8 +718,8 @@ struct ViewerWindow
     // The play mode and what it needs: the slideshow pace, the timer counting it down, the view
     // that reported a still picture for it to count, and the files the shuffle has already
     // continued from in its folder, so that every file gets its turn before any comes again.
-    playMode:      ViewerPlayMode
-    slideSeconds:  f32 = ViewerSlideDefaultSeconds
+    playMode:      Viewer.PlayMode
+    slideSeconds:  f32 = Viewer.SlideDefaultSeconds
     slideTimer:    *Timer?
     stillView:     *Wnd?
     shuffleFolder: String
@@ -829,6 +795,22 @@ func reportViewerFinished(view: *Wnd)->Viewer.Continuation
 func reportViewerShown(view: *Wnd)
 {
     viewerWindowFor(view).showStill(view)
+}
+
+// Reads the shared playback policy without creating viewer chrome.
+func readViewerPlayback(view: *Wnd)->Viewer.PlaybackSettings
+{
+    let window = viewerWindowFor(view)
+    return {window.playMode, window.slideSeconds}
+}
+
+// Applies playback preferences chosen by a viewer-owned control.
+func writeViewerPlayback(view: *Wnd, settings: Viewer.PlaybackSettings)
+{
+    let window = viewerWindowFor(view)
+    window.setPlayMode(settings.mode)
+    if window.slideSeconds != settings.slideSeconds do
+        window.setSlideSeconds(settings.slideSeconds)
 }
 
 // Lets a viewer wake the generic wait presentation when work starts again after being idle.
@@ -1044,9 +1026,9 @@ impl IWnd for ViewerWindow
                 .folderHistory.removeAtOrdered(.folderHistory.count - 1)
             .folderHistoryButton.enable(!.folderHistory.isEmpty())
             .searchBox.setValidator(.searchBox.validator)
-            if cast(u32) .playMode > cast(u32) ViewerPlayMode.Shuffle do
+            if cast(u32) .playMode > cast(u32) Viewer.PlayMode.Shuffle do
                 .playMode = .Once
-            .slideSeconds                       = Math.clamp(.slideSeconds, ViewerSlideMinSeconds, ViewerSlideMaxSeconds)
+            .slideSeconds                       = Math.clamp(.slideSeconds, Viewer.SlideMinSeconds, Viewer.SlideMaxSeconds)
             g_VideoSubtitleSettings.delay       = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
             g_MarkdownViewerSettings.themeIndex = Math.min(g_MarkdownViewerSettings.themeIndex, 5)
             g_MarkdownViewerSettings.widthIndex = Math.min(g_MarkdownViewerSettings.widthIndex, 3)
@@ -1121,7 +1103,6 @@ impl ViewerWindow
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
         .searchPrevious.setIcon(.theme().icon(.SearchPrevious, themeActionIconSize(.themeMetrics())))
         .searchNext.setIcon(.theme().icon(.SearchNext, themeActionIconSize(.themeMetrics())))
-        .refreshPlayModeIcon()
         .refreshSearchPresentation()
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
@@ -1317,7 +1298,7 @@ impl ViewerWindow
             }
         }
 
-        with result.openDefaultButton = IconButton.create(result.commandBar, result.theme().icon(.Export, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        with result.openDefaultButton = IconButton.create(result.commandBar, result.theme().icon(.OpenExternal, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle = .Left
             .margin.z  = 8
@@ -1338,19 +1319,6 @@ impl ViewerWindow
             .sigCheckedChanged += func|window = result|(button)
             {
                 window.setFullScreen(button.isChecked)
-            }
-        }
-
-        with result.playModeButton = IconButton.create(result.commandBar, result.theme().icon(.PlayOnce, themeActionIconSize(result.themeMetrics())), {0, 0, dropDownWidth, actionSize}, flags: .CenterContent)
-        {
-            .dockStyle = .Right
-            .margin.z  = 8
-            .toolTip   = appStrings().ui_PlayMode
-            .setArrowPosition(.RightDownward)
-            .sigPressed += func|window = result|(button)
-            {
-                discard button
-                window.showPlayModeMenu()
             }
         }
 
@@ -2466,7 +2434,8 @@ impl ViewerWindow
                 reportLoadingChanged: &reportViewerLoadingChanged,
                 navigateFile: &navigateViewerFile,
                 reportFinished: &reportViewerFinished,
-                reportShown: &reportViewerShown}}
+                reportShown: &reportViewerShown,
+                playback: {readSettings: &readViewerPlayback, writeSettings: &writeViewerPlayback}}}
         let host: Viewer.Host = &pluginHost
         catch next.create(plugin, host) as viewerError
         if viewerError != null
@@ -3390,7 +3359,6 @@ impl ViewerWindow
         .openDefaultButton.toolTip   = texts.ui_OpenDefault
         .filesButton.toolTip         = texts.ui_Files
         .kindButton.toolTip          = texts.ui_SameKind
-        .playModeButton.toolTip      = texts.ui_PlayMode
         .folderHistoryButton.toolTip = texts.ui_FolderHistory
         .recentClearButton.toolTip   = texts.ui_ClearHistory
         .viewerCombo.toolTip         = texts.ui_Viewer
@@ -3590,8 +3558,8 @@ impl ViewerWindow
         let texts = appStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
         menu.addItem(texts.ui_MenuLocate, "scope.file.locate", .theme().icon(.OpenFile, themeRowIconSize(.themeMetrics())))
-        menu.addItem(texts.ui_MenuOpenDefault, "scope.file.openDefault", .theme().icon(.Export, themeRowIconSize(.themeMetrics())))
-        menu.addItem(texts.ui_MenuOpenWith, "scope.file.openWith", .theme().icon(.Export, themeRowIconSize(.themeMetrics())))
+        menu.addItem(texts.ui_MenuOpenDefault, "scope.file.openDefault", .theme().icon(.OpenExternal, themeRowIconSize(.themeMetrics())))
+        menu.addItem(texts.ui_MenuOpenWith, "scope.file.openWith", .theme().icon(.OpenExternal, themeRowIconSize(.themeMetrics())))
         menu.addSeparator()
         menu.addItem(texts.ui_MenuCopyPath, "scope.file.copyPath", .theme().icon(.Copy, themeRowIconSize(.themeMetrics())))
         menu.addItem(texts.ui_MenuCopyName, "scope.file.copyName", .theme().icon(.Copy, themeRowIconSize(.themeMetrics())))
@@ -3734,7 +3702,7 @@ impl ViewerWindow
     //
     // A file that a play mode brings up is not one the reader chose, so it joins neither the
     // recent list nor the folder history.
-    mtd continueFile(mode: ViewerPlayMode)->bool
+    mtd continueFile(mode: Viewer.PlayMode)->bool
     {
         if .currentFile.isEmpty() do
             return false
@@ -3854,87 +3822,19 @@ impl ViewerWindow
         discard .continueFile(.playMode)
     }
 
-    mtd setPlayMode(mode: ViewerPlayMode)
+    mtd setPlayMode(mode: Viewer.PlayMode)
     {
         if .playMode == mode do
             return
         .playMode = mode
-        .refreshPlayModeIcon()
         .armSlide()
         catch .saveState()
     }
 
     mtd setSlideSeconds(seconds: f32)
     {
-        .slideSeconds = Math.clamp(seconds, ViewerSlideMinSeconds, ViewerSlideMaxSeconds)
+        .slideSeconds = Math.clamp(seconds, Viewer.SlideMinSeconds, Viewer.SlideMaxSeconds)
         .armSlide()
         catch .saveState()
-    }
-
-    // The button carries the mode, so the reader sees it without opening the menu.
-    mtd refreshPlayModeIcon()
-    {
-        .playModeButton.setIcon(.theme().icon(.playModeIcon(), themeActionIconSize(.themeMetrics())))
-    }
-
-    mtd const playModeIcon()->ThemeIcons
-    {
-        switch #complete .playMode
-        {
-        case .Once:    return .PlayOnce
-        case .Repeat:  return .RepeatOne
-        case .Folder:  return .RepeatAll
-        case .Shuffle: return .Shuffle
-        }
-    }
-
-    // Builds the play-mode menu.
-    //
-    // The four modes are one choice, drawn as one: a radio mark per entry says that taking one
-    // leaves the others, where a check mark per entry would read as four toggles. The pace is a
-    // submenu of the same kind, since it qualifies only the folder modes, and only for pictures.
-    mtd createPlayModeMenu()->*MenuCtrl
-    {
-        let texts = appStrings()
-        let menu  = MenuCtrl.createPopup(me, owner: me)
-        menu.addRadioItem(texts.ui_PlayOnce, ViewerPlayOnceId, checked: .playMode == .Once)
-        menu.addRadioItem(texts.ui_PlayRepeat, ViewerPlayRepeatId, checked: .playMode == .Repeat)
-        menu.addRadioItem(texts.ui_PlayFolder, ViewerPlayFolderId, checked: .playMode == .Folder)
-        menu.addRadioItem(texts.ui_PlayShuffle, ViewerPlayShuffleId, checked: .playMode == .Shuffle)
-        menu.addSeparator()
-
-        let slideMenu = MenuCtrl.createPopup(menu, owner: me)
-        for seconds, index in ViewerSlideChoices do
-            slideMenu.addRadioItem(Format.toString("% s", cast(u32) seconds).toString(), ViewerSlideIds[index], checked: seconds == .slideSeconds)
-        menu.addPopup(texts.ui_PlaySlide, slideMenu)
-        return menu
-    }
-
-    // Offers the play modes and the slideshow pace, and applies the choice.
-    mtd showPlayModeMenu()
-    {
-        let menu   = .createPlayModeMenu()
-        let chosen = menu.doModal(.playModeButton, autoDestroy: true) orelse ""
-        switch chosen
-        {
-        case ViewerPlayOnceId:
-            .setPlayMode(.Once)
-
-        case ViewerPlayRepeatId:
-            .setPlayMode(.Repeat)
-
-        case ViewerPlayFolderId:
-            .setPlayMode(.Folder)
-
-        case ViewerPlayShuffleId:
-            .setPlayMode(.Shuffle)
-
-        default:
-            for seconds, index in ViewerSlideChoices where chosen == ViewerSlideIds[index]
-            {
-                .setSlideSeconds(seconds)
-                return
-            }
-        }
     }
 }

@@ -1518,14 +1518,14 @@ private const SoundSeekPreRollNanoseconds = 1_000_000_000'u64
 private const SoundSeekPreRollSeconds     = 1.0
 
 #[Swag.NoCopy]
-private struct PublishedSound
+internal struct PublishedSound
 {
     tracks:    Array'SoundFile
     subtitles: Array'Subtitle.Track
 }
 
 #[Swag.NoCopy]
-private struct FileIndex
+internal struct FileIndex
 {
     progressive:      *Layout?
     region:           File.MappedRegion
@@ -1535,7 +1535,7 @@ private struct FileIndex
     soundThread:      Threading.Thread
     windowThread:     Threading.Thread
     windowWake:       Sync.Event
-    windowTarget:     u64     // Timestamp the window being built must cover.
+    windowTarget:     u64     // Latest timestamp a published sound window must cover.
     windowBuilding:   u32     // Whether a window build is in flight.
     seekSounds:       Array'*PublishedSound
     soundLock:        Sync.Mutex
@@ -1547,7 +1547,7 @@ private struct FileIndex
     seekSoundEnd:     s64     // Where the published window stops carrying sound.
 }
 
-private func publishFullSound(index: *FileIndex, tracks: *Array'SoundFile, subtitles: *Array'Subtitle.Track)
+internal func publishFullSound(index: *FileIndex, tracks: *Array'SoundFile, subtitles: *Array'Subtitle.Track)
 {
     Sync.scopedLock(&index.soundLock)
     index.soundTracks    = #move tracks[]
@@ -1557,7 +1557,14 @@ private func publishFullSound(index: *FileIndex, tracks: *Array'SoundFile, subti
         Atomic.exchange(&index.currentSeekSound, 0)
 }
 
-private func publishSeekSound(index: *FileIndex, tracks: *Array'SoundFile, subtitles: *Array'Subtitle.Track, coverEndHint: s64)
+// Selecting a new position invalidates a window still being built for an earlier one.
+internal func selectSoundWindow(index: *FileIndex, timestampNanoseconds: u64)
+{
+    Sync.scopedLock(&index.soundLock)
+    Atomic.exchange(&index.windowTarget, timestampNanoseconds)
+}
+
+internal func publishSeekSound(index: *FileIndex, tracks: *Array'SoundFile, subtitles: *Array'Subtitle.Track, timestampNanoseconds: u64, coverEndHint: s64)
 {
     // The window ends where its shortest sound track does, or at the text scan horizon when it
     // carries subtitles alone.
@@ -1568,11 +1575,18 @@ private func publishSeekSound(index: *FileIndex, tracks: *Array'SoundFile, subti
         coverEnd = Math.min(coverEnd, end)
     }
 
+    Sync.scopedLock(&index.soundLock)
+
+    // Opening and run-ahead work may finish after a synchronous seek. Only the latest position
+    // can replace its sound, and a completed full index already covers every position once the
+    // foreground decoder has resumed it.
+    if timestampNanoseconds != Atomic.get(&index.windowTarget) or (Atomic.get(&index.soundStage) and !Atomic.get(&index.soundPause)) do
+        return
+
     let published = Memory.new'PublishedSound()
     published.tracks    = #move tracks[]
     published.subtitles = #move subtitles[]
 
-    Sync.scopedLock(&index.soundLock)
     index.seekSounds.add(published)
     Atomic.exchange(&index.seekSoundEnd, coverEnd)
     Atomic.exchange(&index.currentSeekSound, cast(u64) published)
@@ -1670,7 +1684,7 @@ private func buildSoundWindow(index: *FileIndex, timestampNanoseconds: u64) fail
 
     var subtitles: Array'Subtitle.Track
     try buildSubtitleTracks(bytes, &layout, &subtitles)
-    publishSeekSound(index, &tracks, &subtitles, requestedEnd)
+    publishSeekSound(index, &tracks, &subtitles, timestampNanoseconds, requestedEnd)
 }
 
 // Builds complete packet tables while the opening and seek windows remain playable.
@@ -1860,8 +1874,12 @@ private impl Decoder
 
         // A container whose sound this module cannot read has no window to build; asking for one
         // walked the whole file looking for packets that were never going to appear.
-        if target >= 0 and (layout.audioTracks.count or layout.subtitleTracks.count) do
+        if target >= 0 and (layout.audioTracks.count or layout.subtitleTracks.count)
+        {
+            selectSoundWindow(fileIndex, cast(u64) target)
             discard catch buildSoundWindow(fileIndex, cast(u64) target) as soundWindowError
+        }
+
         let cue = target >= 0 ? layout.cueAtOrBefore(cast(u64) target) : null
         if cue do
             layout.resetMediaAt(cue!.clusterOffset)
@@ -2050,7 +2068,7 @@ private impl Decoder
         if Atomic.get(&index.windowBuilding) do
             return
 
-        Atomic.exchange(&index.windowTarget, target)
+        selectSoundWindow(index, target)
         Atomic.exchange(&index.windowBuilding, 1)
         if !index.windowThread.isValid()
         {
@@ -2075,6 +2093,7 @@ private impl Decoder
         if !.resumeSoundIndexAfterDecode do
             return
         .resumeSoundIndexAfterDecode = false
+        Sync.scopedLock(&.fileIndex!.soundLock)
         Atomic.exchange(&.fileIndex!.soundPause, 0)
         if Atomic.get(&.fileIndex!.soundStage) do
             Atomic.exchange(&.fileIndex!.currentSeekSound, 0)

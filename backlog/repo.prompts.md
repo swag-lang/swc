@@ -820,15 +820,19 @@ table so both a full restart and a narrow resume have explicit evidence:
   3. `bin\swc.exe tools\tests.swgs dm` - the full DevMode default campaign.
   4. `bin\swc.exe tools\tests.swgs dm --all-cfg` - the same five-rung campaign in both target
      configurations.
-  5. Run `bin\swc.exe tools\vault.swgs dm` with the bundled signed WinFsp runtime and the required
-     Windows elevation; no prior machine-wide WinFsp installation is required. This integration is
-     intentionally outside tests.swgs and is part of a genuinely full pass.
-  6. Build `swc.exe` with the Release solution configuration.
-  7. `bin\swc.exe tools\tests.swgs` - the full Release validation campaign. Do not add a Release
+  5. Build `swc.exe` with the Release solution configuration.
+  6. `bin\swc.exe tools\tests.swgs` - the full Release validation campaign. Do not add a Release
      `--all-cfg` pass; the repository workflow deliberately reserves all-config coverage for
      DevMode.
-  8. `bin\swc.exe tools\vsix.swgs` - refresh and package the VSCode extension with its documented
+  7. `bin\swc.exe tools\vsix.swgs` - refresh and package the VSCode extension with its documented
      Node.js/vsce prerequisites, then inspect the package result.
+  8. LAST: run `bin\swc.exe tools\vault.swgs dm` with the bundled signed WinFsp runtime and the
+     required Windows elevation (UAC); no prior machine-wide WinFsp installation is required.
+     This integration is intentionally outside tests.swgs and is part of a genuinely full pass.
+     Start it only after steps 1 through 7, all fixes and affected reruns, the final backlog and
+     documentation reviews, repository cleanup, and commits are complete. Do not trigger its
+     elevation prompt or any privileged WinFsp setup earlier or in parallel: the secure desktop
+     can block the user's computer, so Swag Vault must be the last remaining work.
 
 Do not silently skip a campaign because a prerequisite is absent. Install or arrange an in-scope
 prerequisite when authorized. If external privilege, hardware, software, or authority genuinely
@@ -853,11 +857,11 @@ disable a test, weaken an assertion, broaden a timeout, accept a crash, update a
 narrow a safety check until it stops firing, or add a local workaround. A golden changes only after
 the new output has been independently reviewed and proved correct.
 
-CLEAN THE TREE LAST
+CLEAN THE TREE BEFORE THE FINAL SWAG VAULT INTEGRATION
 
-After the final validation, classify and remove temporary material created before or during the
-campaign. Inspect `git status --short --ignored`, the preview from `git clean -ndX`, snapshot
-actuals, crash files, scratch worktrees/files, and every `.output` directory under test sources.
+After validation steps 1 through 7 and before step 8, classify and remove temporary material created
+before or during the campaign. Inspect `git status --short --ignored`, the preview from `git clean -ndX`,
+snapshot actuals, crash files, scratch worktrees/files, and every `.output` directory under test sources.
 Preserve `bin/unittests/.output` and `bin/unittests/workspace/.output`: they are canonical roots
 owned by the test tooling. Remove another nested `.output` only after proving it is misplaced
 generated output rather than an intentional fixture.
@@ -867,6 +871,10 @@ the workspace root, or a computed path that has not been resolved and checked. R
 whose only difference is line endings, restore that noise in one batch, and retain every real
 content change. Keep every final campaign commit directly on `master` so the repaired baseline is
 immediately reachable from the branch it resets.
+
+After the Swag Vault integration, only inspect its result, remove any temporary material it created,
+and finish the report. If it exposes a defect, fix it and complete every affected non-privileged
+rerun, review, cleanup, and commit before retrying Swag Vault, again as the final validation step.
 
 THE CAMPAIGN MAY END ONLY WHEN
 

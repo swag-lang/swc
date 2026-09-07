@@ -34,6 +34,7 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-07 12:38 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-07 11:57 |
 | [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-07 11:56 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-07 11:24 |
@@ -44,7 +45,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-06 21:01 |
 | [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-09-06 19:13 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-06 18:27 |
-| [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-06 18:16 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-06 17:53 |
 | [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-06 17:42 |
 | [app.scope.midi.md](app.scope.midi.md) | The Swag Scope MIDI viewer | 2026-09-06 17:42 |

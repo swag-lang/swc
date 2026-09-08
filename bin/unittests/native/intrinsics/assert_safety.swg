@@ -71,11 +71,12 @@ func narrowedAssertion(value: *s32?)->s32
     const Disabled = #run disabledAssertions()
     const Enabled  = #run enabledAssertions()
     const Scoped   = #run scopedAssertions()
-    #assert(Default == (#cfg == "devmode" ? 1 : 0))
+    #assert(Default == (#command == Swag.CompilerCommand.Test or #cfg == "devmode" ? 1 : 0))
     #assert(Disabled == 0)
     #assert(Enabled == 1)
     #assert(Scoped == 1)
-    #assert(#safety(Swag.SafetyWhat.Assert) == (#cfg == "devmode"))
+    #assert(#safety(Swag.SafetyWhat.Assert) == (#command == Swag.CompilerCommand.Test or #cfg == "devmode"))
+    #assert(#safety(Swag.SafetyWhat.BoundCheck) == (#cfg == "devmode"))
 
     // Verification stays active in release without changing the functions' safety settings.
     if defaultAssertions() != Default do Swag.panic("default assertion setting", #curlocation)

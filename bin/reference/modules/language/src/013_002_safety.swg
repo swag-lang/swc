@@ -32,7 +32,10 @@ with 'buildCfg.safetyGuards'.
 'Swag.assert(condition, message)' is the standard assertion for programmer invariants.
 'SafetyWhat.Assert' follows the same defaults as other runtime safety guards: enabled
 in 'devmode', disabled in 'release'. Set 'buildCfg.safetyGuards |= .Assert' to keep
-assertions in a release module, or use a local 'Swag.Safety' override.
+assertions in a release module, or use a local 'Swag.Safety' override. The 'test'
+command enables assertions by default in every configuration, including release.
+Explicit local overrides still apply, and other runtime guards keep their configured
+defaults. '#safety(Swag.SafetyWhat.Assert)' reports the effective setting in tests too.
 
 When disabled, the assertion emits no code and evaluates none of its arguments.
 Arguments still type-check. The invariant remains a precondition for subsequent

@@ -282,7 +282,7 @@ namespace Swag
         Memory      = 0x0200     // Check some memory things (mostly in sanity pass)
         Expect      = 0x0400     // Check if 'expect' must panic on an unexpected runtime error
         Lifecycle   = 0x0800     // Check use of moved-from values, and poison abandoned/dropped storage
-        Assert      = 0x1000     // Emit assertions; enabled in devmode and disabled in release by default.
+        Assert      = 0x1000     // Emit assertions; enabled by default in devmode and by the test command, including release.
         None        = 0x0000
         All         = 0xFFFF
     }
@@ -1185,7 +1185,9 @@ namespace Swag
 // Checks a programmer invariant and stops execution when it is false.
 //
 // Assertions are controlled by [[Swag.SafetyWhat.Assert]] in [[Swag.BuildCfg.safetyGuards]]
-// and by [[Swag.Safety]] overrides. They are enabled in devmode and disabled in release.
+// and by [[Swag.Safety]] overrides. They are enabled by default in devmode and by the
+// 'test' command in every configuration, including release. Other release commands
+// disable them by default. Explicit [[Swag.Safety]] overrides still apply in tests.
 // Disabled assertions emit no code and evaluate none of their arguments; their arguments
 // still need to type-check. Keep required side effects outside assertions.
 // The optional message and source location are evaluated only when the condition is false.

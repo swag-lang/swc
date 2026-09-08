@@ -321,8 +321,9 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
 - Follow successful fixture setup immediately with its cleanup `defer`; do not leave teardown at
   the bottom of a test where an assertion or early return can bypass it.
 - Use `expect` for failures that make a test invalid and `try` in examples that propagate failure.
-- Keep required side effects outside `Swag.assert`: release can omit the entire assertion,
-  including its condition. Execute actions, allocations, mutations, and asynchronous flushes
+- Keep required side effects outside `Swag.assert`: ordinary release builds and explicit safety
+  overrides can omit the entire assertion, including its condition. The `test` command enables
+  assertions by default even in release. Execute actions, allocations, mutations, and asynchronous flushes
   first, then assert their saved results (for example, `files.test.swg` in Swag Capture).
 - Prefix `expect` or `catch` with `discard` when a non-`void` result is intentionally ignored;
   failure handling does not make an unused return value implicit.

@@ -88,7 +88,9 @@ runs the backlog check alone.
 | `reference.swgs` | build, test | The executable language reference |
 | `scripts.swgs` | run, smoke | The standalone example scripts; naming one runs it, naming none smokes them all |
 
-`test` runs a module's `#test` functions and never its `#main`. `smoke` runs the real program
+`test` runs a module's `#test` functions and never its `#main`. It enables `Swag.assert`
+by default even in release; explicit local `Swag.Safety` overrides still apply. Other
+runtime guards retain their configured defaults. `smoke` runs the real program
 for a bounded number of frames, isolated from the machine, to prove it starts and keeps going.
 A program without `#test` is smoked: testing it would report zero tests and prove nothing.
 `--test-file` filters only the `#test` functions that execute; the whole owning module still

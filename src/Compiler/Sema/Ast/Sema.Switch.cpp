@@ -33,7 +33,7 @@ namespace
         if (!payload.isComplete)
             return Result::Continue;
 
-        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Switch))
+        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), Runtime::SafetyWhat::Switch))
             return Result::Continue;
 
         if (!sema.isCurrentFunction())

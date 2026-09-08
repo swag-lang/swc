@@ -39,7 +39,9 @@ const IntrinsicCompileTimeMinimum = Swag.min(12's32, 7's32)
 'Swag.assert(condition, message)' is the standard assertion for programmer invariants,
 available without importing Core. It stops execution when an enabled assertion is false.
 'Swag.SafetyWhat.Assert' controls its emission through 'BuildCfg.safetyGuards' and
-'#[Swag.Safety(.Assert, true/false)]': enabled in devmode, disabled in release.
+'#[Swag.Safety(.Assert, true/false)]': enabled by default in devmode and disabled in
+release. The 'test' command enables assertions by default in every configuration,
+including release; explicit local 'Swag.Safety' overrides still apply.
 Disabled assertions evaluate none of their arguments, so keep required side effects
 outside them. Arguments still type-check, and the asserted invariant still narrows
 subsequent code. A message is optional and is evaluated only on failure.

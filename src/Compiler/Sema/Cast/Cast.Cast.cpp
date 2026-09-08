@@ -369,7 +369,7 @@ namespace
     {
         if (castFlags.hasAny({CastFlagsE::BitCast, CastFlagsE::NoOverflow}))
             return false;
-        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Overflow))
+        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), Runtime::SafetyWhat::Overflow))
             return false;
 
         srcTypeRef = unwrapCastOverflowTypeRef(sema, srcTypeRef);
@@ -486,7 +486,7 @@ namespace
         if (!fromExplicitNode && !isImplicitNullableAnyStringCast(srcType, dstType))
             return Result::Continue;
 
-        const bool hasDynCastSafety     = sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::DynCast);
+        const bool hasDynCastSafety     = sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), Runtime::SafetyWhat::DynCast);
         const bool dstUsesTypeInfoMatch = dstType.isStruct() ||
                                           dstType.isAnyPointer() ||
                                           dstType.isReference() ||
@@ -498,7 +498,7 @@ namespace
         // The 'any' payload may hold a null value: extracting it into a bare (non-null)
         // destination is guarded like an implicit 'notnull'.
         const bool hasNullExtractSafety = dstType.isNonNullable() &&
-                                          sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Null);
+                                          sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), Runtime::SafetyWhat::Null);
 
         auto& payload = SemaHelpers::ensureCodeGenLoweringPayload(sema, nodeRef);
 

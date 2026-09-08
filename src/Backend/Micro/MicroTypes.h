@@ -266,12 +266,15 @@ enum class MicroOp : uint8_t
 
     // Packed forms taking two sources and an immediate
     // (OpTernaryRegRegRegImm): the float compare carries a predicate,
-    // VecShufF32 a four-lane control over both sources, and VecAlignR a byte
-    // offset into their concatenation, the first source above the second.
+    // VecShufF32 a four-lane control over both sources, VecAlignR a byte
+    // offset into their concatenation, the first source above the second, and
+    // VecClmul the selector naming which 64-bit half of each source the
+    // carry-less multiplication reads.
     VecCmpF32,
     VecCmpF64,
     VecShufF32,
     VecAlignR,
+    VecClmul,
 
     // Packed shifts by a variable count (OpBinaryRegRegReg): every lane
     // shifts by the value in the low 64 bits of the second source.

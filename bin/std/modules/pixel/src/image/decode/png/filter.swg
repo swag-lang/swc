@@ -19,9 +19,14 @@ const Expand4LowMask   = cast(Math.Simd.U8x16) [0'u8, 15, 0, 15, 0, 15, 0, 15, 0
 const Expand1Bytes     = cast(Math.Simd.U8x16) [0'u8, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15]
 const Expand1Bits      = cast(Math.Simd.U8x16) [128'u8, 64, 32, 16, 8, 4, 2, 1, 128, 64, 32, 16, 8, 4, 2, 1]
 const Expand2Bytes     = cast(Math.Simd.U8x16) [0'u8, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15]
+const ShiftBytes1      = cast(Math.Simd.U8x16) [0x80'u8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 const ShiftBytes2      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+const ShiftBytes3      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 const ShiftBytes4      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+const ShiftBytes6      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 const ShiftBytes8      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7]
+const ShiftBytes12     = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3]
+const CarryBytes3      = cast(Math.Simd.U8x16) [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0]
 
 #[Swag.Inline]
 func expand4Half(value, table: Math.Simd.U8x16, multiplier: u8)->Math.Simd.U8x16
@@ -185,6 +190,19 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
 
     switch bytesPerPixel
     {
+    case 1:
+        while count - offset >= 16
+        {
+            var values = Math.Simd.load(source + offset)
+            values += Math.Simd.shuffle(values, ShiftBytes1)
+            values += Math.Simd.shuffle(values, ShiftBytes2)
+            values += Math.Simd.shuffle(values, ShiftBytes4)
+            values += Math.Simd.shuffle(values, ShiftBytes8)
+            values += Math.Simd.splat(destination[offset - 1])
+            Math.Simd.store(destination + offset, values)
+            offset += 16
+        }
+
     case 2:
         while count - offset >= 16
         {
@@ -196,6 +214,22 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
             values += cast #bit(Math.Simd.U8x16) Math.Simd.splat(carry)
             Math.Simd.store(destination + offset, values)
             offset += 16
+        }
+
+    case 3:
+        // The prefix sum with strides three, six, and twelve reaches back twenty-one
+        // bytes, so fifteen bytes — five whole pixels — resolve per step; the sixteenth
+        // stored byte is a partial sum the next step or the scalar tail rewrites.
+        while count - offset >= 16
+        {
+            var values = Math.Simd.load(source + offset)
+            values += Math.Simd.shuffle(values, ShiftBytes3)
+            values += Math.Simd.shuffle(values, ShiftBytes6)
+            values += Math.Simd.shuffle(values, ShiftBytes12)
+            let carry = cast #bit(Math.Simd.U8x16) Math.Simd.splat((cast(const [*] u64) (destination + offset - 3))[0])
+            values += Math.Simd.shuffle(carry, CarryBytes3)
+            Math.Simd.store(destination + offset, values)
+            offset += 15
         }
 
     case 4:
@@ -267,7 +301,9 @@ func addPixelLanes(x, y: Math.Simd.S16x8)->Math.Simd.S16x8 => cast #bit(Math.Sim
 //
 // The three distances reduce to differences of the neighbours, which keeps every lane inside
 // 's16': 'p - left' is 'up - upLeft', 'p - up' is 'left - upLeft', and 'p - upLeft' is their
-// sum. Taking the smallest and preferring left, then up, reproduces the ordered comparisons.
+// sum. Two strict comparisons reproduce the ordered scalar rule — a tie keeps the earlier
+// candidate — and keep the dependency chain on 'left' two steps shorter than picking the
+// minimum of the three distances first.
 #[Swag.Inline]
 func paethPredict(left, up, upLeft: Math.Simd.S16x8)->Math.Simd.S16x8
 {
@@ -276,8 +312,9 @@ func paethPredict(left, up, upLeft: Math.Simd.S16x8)->Math.Simd.S16x8
     let distanceLeft   = Math.abs(deltaUp)
     let distanceUp     = Math.abs(deltaLeft)
     let distanceUpLeft = Math.abs(deltaUp + deltaLeft)
-    let smallest       = Math.min(distanceUpLeft, Math.min(distanceLeft, distanceUp))
-    return Math.Simd.select(smallest == distanceLeft, left, Math.Simd.select(smallest == distanceUp, up, upLeft))
+    let nearer         = Math.Simd.select(distanceUp < distanceLeft, up, left)
+    let nearest        = Math.min(distanceUp, distanceLeft)
+    return Math.Simd.select(distanceUpLeft < nearest, upLeft, nearer)
 }
 
 // Reverses the Average predictor, carrying the reconstructed left pixel in a register.
@@ -292,12 +329,11 @@ func paethPredict(left, up, upLeft: Math.Simd.S16x8)->Math.Simd.S16x8
 func defilterAverageRow(source, previous: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
 {
     var offset = 0'u64
-    if bytesPerPixel >= 2
     {
         var left = Math.Simd.splat(0's16)
         while offset + 8 <= count
         {
-            let up        = loadPixelLanes(previous + offset)
+            let up        = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(Math.Simd.load(previous + offset))
             let delta     = loadPixelLanes(source + offset)
             let recovered = addPixelLanes(delta, (left + up) >> 1)
             Math.Simd.storeLow8(destination + offset, Math.Simd.packUnsigned(recovered, recovered))
@@ -322,13 +358,12 @@ func defilterAverageRow(source, previous: const [*] u8, destination: [*] u8, cou
 func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
 {
     var offset = 0'u64
-    if bytesPerPixel >= 2
     {
         var left   = Math.Simd.splat(0's16)
         var upLeft = Math.Simd.splat(0's16)
         while offset + 8 <= count
         {
-            let up        = loadPixelLanes(previous + offset)
+            let up        = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(Math.Simd.load(previous + offset))
             let delta     = loadPixelLanes(source + offset)
             let recovered = addPixelLanes(delta, paethPredict(left, up, upLeft))
             Math.Simd.storeLow8(destination + offset, Math.Simd.packUnsigned(recovered, recovered))
@@ -414,10 +449,12 @@ impl Decoder
             dest += rowStrideOut * (height - 1)
 
         // A temporary line "before" the first one, if filter needs one
+        // Sixteen bytes of slack: the lane loops read the previous row through a
+        // sixteen-byte load whose tail is ignored.
         var tmpRow: Array'u8
-        tmpRow.resize(rowStrideOut)
+        tmpRow.resize(rowStrideOut + 16)
         let tmpRowBuffer = tmpRow.buffer!
-        Memory.clear(tmpRowBuffer, rowStrideOut)
+        Memory.clear(tmpRowBuffer, rowStrideOut + 16)
         var up = tmpRowBuffer
 
         // PNG filtering references the previous byte of the same pixel. Packed
@@ -478,7 +515,7 @@ impl Decoder
                 continue
 
             let pixelBytes = cast(u64) .inChannels * (.header.bitDepth == 16 ? 2 : 1)
-            tmpArr.resize(cast(u64) (x * y) * pixelBytes)
+            tmpArr.resize(cast(u64) (x * y) * pixelBytes + 16)
             let tmpBuffer = tmpArr.buffer!
             Memory.clear(tmpBuffer, tmpArr.count)
 

@@ -101,8 +101,20 @@ impl Decoder
         var dst       = cast([*] u8) result.pixels.buffer!
         var remaining = pixelCount
 
-        // The fourth byte lands on the next pixel and is overwritten there. Stop before
-        // the final pixel so every wide store remains inside the exact-size image buffer.
+        // The fourth byte lands on the next pixel and is overwritten there; four
+        // independent lookups per step keep the table loads in flight together. Stop
+        // before the final pixel so every wide store remains inside the image buffer.
+        while remaining > 4
+        {
+            (cast([*] u32) dst)[0]       = packedPalette[src[0]]
+            (cast([*] u32) (dst + 3))[0] = packedPalette[src[1]]
+            (cast([*] u32) (dst + 6))[0] = packedPalette[src[2]]
+            (cast([*] u32) (dst + 9))[0] = packedPalette[src[3]]
+            src       += 4
+            dst       += 12
+            remaining -= 4
+        }
+
         while remaining > 1
         {
             (cast([*] u32) dst)[0] = packedPalette[src[0]]
@@ -148,9 +160,21 @@ impl Decoder
             packedPalette[i] = ((color >> 16) & 0xFF) | (color & 0xFF00) | ((color & 0xFF) << 16) | (alphaValue << 24)
         }
 
-        var src = .safeDstPixels()
-        var dst = cast([*] u32) result.pixels.buffer!
-        for pixelCount
+        var src       = .safeDstPixels()
+        var dst       = cast([*] u32) result.pixels.buffer!
+        var remaining = pixelCount
+        while remaining >= 4
+        {
+            dst[0]    = packedPalette[src[0]]
+            dst[1]    = packedPalette[src[1]]
+            dst[2]    = packedPalette[src[2]]
+            dst[3]    = packedPalette[src[3]]
+            src       += 4
+            dst       += 4
+            remaining -= 4
+        }
+
+        for remaining
         {
             dst[0] = packedPalette[src[0]]
             src    += 1

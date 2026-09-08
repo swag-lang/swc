@@ -69,7 +69,7 @@ private const Rev8Arr: [256] u8 = [
 
 // Reverse all bits in an 8-bit value using lookup table.
 // Uses the precomputed 'Rev8Arr' table for optimal performance.
-#[ConstExpr]
+#[ConstExpr, Swag.Inline]
 func reverse(x: u8)->u8
 {
     return Rev8Arr[x]
@@ -77,7 +77,7 @@ func reverse(x: u8)->u8
 
 // Reverse all bits in a 16-bit value.
 // Splits the value into two bytes, reverses each using the lookup table, then recombines.
-#[ConstExpr]
+#[ConstExpr, Swag.Inline]
 func reverse(x: u16)->u16
 {
     return cast(u16) Rev8Arr[x >> 8] | cast(u16) Rev8Arr[x & 0xFF] << 8

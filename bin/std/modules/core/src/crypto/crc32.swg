@@ -492,6 +492,108 @@ impl Crc32
             0x24B98D25, 0x8AD11CB4, 0xA319A846, 0x0D7139D7]]
 }
 
+private
+{
+    // Bit-reflected CRC-32 folding constants and Barrett polynomials, from "Fast CRC
+    // Computation for Generic Polynomials Using PCLMULQDQ Instruction" (V. Gopal,
+    // E. Ozturk, et al., 2009), as used by zlib's SSE4.2+PCLMUL path.
+    // @LICENCE: Zlib
+    // @ORIGIN: Chromium zlib, https://github.com/chromium/chromium/blob/main/third_party/zlib/crc32_simd.c
+    // @MODIFIED: Ported to Swag vector intrinsics.
+    // @NOTICE: /bin/THIRDPARTY.md#zlib
+    const FoldK1K2 = cast(Math.Simd.U64x2) [0x0154442bd4'u64, 0x01c6e41596]
+    const FoldK3K4 = cast(Math.Simd.U64x2) [0x01751997d0'u64, 0x00ccaa009e]
+    const FoldK5   = cast(Math.Simd.U64x2) [0x0163cd6124'u64, 0x0000000000]
+    const FoldPoly = cast(Math.Simd.U64x2) [0x01db710641'u64, 0x01f7011641]
+    const FoldZero = cast(Math.Simd.U64x2) [0'u64, 0]
+    const FoldMask = cast(Math.Simd.U64x2) [0x0000_0000_FFFF_FFFF'u64, 0x0000_0000_FFFF_FFFF]
+
+    // Folds 'length' bytes — at least 64, a multiple of 16 — into the running
+    // inverted CRC-32 register with carry-less multiplications: four lanes of
+    // sixty-four bytes in flight, folded down to one lane, then Barrett-reduced
+    // back to thirty-two bits.
+    func foldClmul(crcReg: u32, buffer: const [*] u8, length: u64)->u32
+    {
+        var seed: [2] u64 = [cast(u64) crcReg, 0]
+
+        var buf = cast(const [*] u64) buffer
+        var len = length
+
+        var x1 = Math.Simd.load(buf)
+        var x2 = Math.Simd.load(buf + 2)
+        var x3 = Math.Simd.load(buf + 4)
+        var x4 = Math.Simd.load(buf + 6)
+
+        x1 ^= Math.Simd.load(cast(const [*] u64) &seed[0])
+
+        var k = FoldK1K2
+        buf += 8
+        len -= 64
+
+        while len >= 64
+        {
+            let x5 = Math.Simd.clmulLowLow(x1, k)
+            let x6 = Math.Simd.clmulLowLow(x2, k)
+            let x7 = Math.Simd.clmulLowLow(x3, k)
+            let x8 = Math.Simd.clmulLowLow(x4, k)
+
+            x1 = Math.Simd.clmulHighHigh(x1, k)
+            x2 = Math.Simd.clmulHighHigh(x2, k)
+            x3 = Math.Simd.clmulHighHigh(x3, k)
+            x4 = Math.Simd.clmulHighHigh(x4, k)
+
+            x1 ^= x5 ^ Math.Simd.load(buf)
+            x2 ^= x6 ^ Math.Simd.load(buf + 2)
+            x3 ^= x7 ^ Math.Simd.load(buf + 4)
+            x4 ^= x8 ^ Math.Simd.load(buf + 6)
+
+            buf += 8
+            len -= 64
+        }
+
+        // Fold the four lanes into one.
+        k = FoldK3K4
+        var x5 = Math.Simd.clmulLowLow(x1, k)
+        x1 = Math.Simd.clmulHighHigh(x1, k)
+        x1 ^= x2 ^ x5
+        x5 = Math.Simd.clmulLowLow(x1, k)
+        x1 = Math.Simd.clmulHighHigh(x1, k)
+        x1 ^= x3 ^ x5
+        x5 = Math.Simd.clmulLowLow(x1, k)
+        x1 = Math.Simd.clmulHighHigh(x1, k)
+        x1 ^= x4 ^ x5
+
+        while len >= 16
+        {
+            x5 = Math.Simd.clmulLowLow(x1, k)
+            x1 = Math.Simd.clmulHighHigh(x1, k)
+            x1 ^= Math.Simd.load(buf) ^ x5
+            buf += 2
+            len -= 16
+        }
+
+        // Fold 128 bits to 64, then Barrett-reduce to 32.
+        var t = Math.Simd.clmulLowHigh(x1, k)
+        x1 = Swag.vecalign(x1, FoldZero, 8)
+        x1 ^= t
+
+        t  = Swag.vecalign(x1, FoldZero, 4)
+        x1 &= FoldMask
+        x1 = Math.Simd.clmulLowLow(x1, FoldK5)
+        x1 ^= t
+
+        t  = x1 & FoldMask
+        t  = Math.Simd.clmulLowHigh(t, FoldPoly)
+        t  &= FoldMask
+        t  = Math.Simd.clmulLowLow(t, FoldPoly)
+        x1 ^= t
+
+        var out: [2] u64
+        Math.Simd.store(cast([*] u64) &out[0], x1)
+        return cast(u32) (out[0] >> 32)
+    }
+}
+
 public impl Crc32
 {
     // Initialize the hashing sequence
@@ -510,6 +612,20 @@ public impl Crc32
         var current = cast(const [*] u32) data.buffer!
 
         var cur = ~.currentValue
+
+        // The carry-less folding path wants at least sixty-four bytes and works in
+        // sixteen-byte steps; the table path finishes whatever remains.
+        #static if !BIG_ENDIAN
+        {
+            if length >= 64
+            {
+                let folded = length & ~15'u64
+                cur     = foldClmul(cur, cast(const [*] u8) current, folded)
+                current = cast(const [*] u32) (cast(const [*] u8) current + folded)
+                length  -= folded
+            }
+        }
+
         const unroll      = 4
         const bytesAtOnce = 16 * unroll
         while length >= bytesAtOnce

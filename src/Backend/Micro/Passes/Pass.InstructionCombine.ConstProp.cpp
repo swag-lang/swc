@@ -747,6 +747,252 @@ namespace InstructionCombine
         ctx.emitRewrite(ref, inst.op, newOps);
         return true;
     }
+
+    namespace
+    {
+        constexpr int K_MAX_BOUND_DEPTH = 6;
+
+        // Proves an inclusive unsigned upper bound for the full value of 'reg' at
+        // 'useRef', by walking its reaching definitions. Only definitions whose
+        // write zero-extends to the full register width participate (32- and
+        // 64-bit forms); a narrower write merges with stale upper bits and proves
+        // nothing.
+        bool unsignedUpperBound(uint64_t& outBound, const Context& ctx, MicroReg reg, MicroInstrRef useRef, int depth)
+        {
+            if (depth <= 0 || !reg.isVirtualInt())
+                return false;
+
+            const auto rd = ctx.ssa->reachingDef(reg, useRef);
+            if (!rd.valid() || rd.isPhi || !rd.inst)
+                return false;
+
+            const MicroInstrOperand* defOps = rd.inst->ops(*ctx.operands);
+            if (!defOps || defOps[0].reg != reg)
+                return false;
+
+            switch (rd.inst->op)
+            {
+                case MicroInstrOpcode::LoadRegImm:
+                    if (getNumBits(defOps[1].opBits) < 32)
+                        return false;
+                    outBound = defOps[2].valueU64 & getBitsMask(defOps[1].opBits);
+                    return true;
+
+                case MicroInstrOpcode::ClearReg:
+                    outBound = 0;
+                    return true;
+
+                case MicroInstrOpcode::LoadRegReg:
+                    if (getNumBits(defOps[2].opBits) < 32)
+                        return false;
+                    return unsignedUpperBound(outBound, ctx, defOps[1].reg, rd.instRef, depth - 1);
+
+                case MicroInstrOpcode::LoadZeroExtRegReg:
+                {
+                    if (getNumBits(defOps[2].opBits) < 32)
+                        return false;
+                    const uint64_t srcMask = getBitsMask(defOps[3].opBits);
+                    uint64_t       inner   = 0;
+                    if (unsignedUpperBound(inner, ctx, defOps[1].reg, rd.instRef, depth - 1))
+                        outBound = std::min(inner, srcMask);
+                    else
+                        outBound = srcMask;
+                    return true;
+                }
+
+                case MicroInstrOpcode::OpBinaryRegImm:
+                {
+                    if (getNumBits(defOps[1].opBits) < 32)
+                        return false;
+                    const uint64_t opMask = getBitsMask(defOps[1].opBits);
+                    const uint64_t imm    = defOps[3].valueU64 & opMask;
+                    if (defOps[2].microOp == MicroOp::And)
+                    {
+                        outBound = imm;
+                        return true;
+                    }
+                    if (defOps[2].microOp == MicroOp::ShiftRight)
+                    {
+                        uint64_t inner = 0;
+                        if (!unsignedUpperBound(inner, ctx, reg, rd.instRef, depth - 1))
+                            inner = opMask;
+                        outBound = imm >= 64 ? 0 : inner >> imm;
+                        return true;
+                    }
+                    if (defOps[2].microOp == MicroOp::Add || defOps[2].microOp == MicroOp::Or)
+                    {
+                        // x|imm never exceeds x+imm, so one saturating sum
+                        // bounds both, as long as the sum stays in the width.
+                        uint64_t inner = 0;
+                        if (!unsignedUpperBound(inner, ctx, reg, rd.instRef, depth - 1))
+                            return false;
+                        if (inner + imm < inner || inner + imm > opMask)
+                            return false;
+                        outBound = inner + imm;
+                        return true;
+                    }
+                    return false;
+                }
+
+                case MicroInstrOpcode::OpBinaryRegReg:
+                {
+                    if (getNumBits(defOps[2].opBits) < 32)
+                        return false;
+                    if (defOps[1].reg == reg)
+                        return false;
+                    if (defOps[3].microOp != MicroOp::Add && defOps[3].microOp != MicroOp::Or)
+                        return false;
+                    const uint64_t opMask = getBitsMask(defOps[2].opBits);
+                    uint64_t       lhs    = 0;
+                    uint64_t       rhs    = 0;
+                    if (!unsignedUpperBound(lhs, ctx, reg, rd.instRef, depth - 1))
+                        return false;
+                    if (!unsignedUpperBound(rhs, ctx, defOps[1].reg, rd.instRef, depth - 1))
+                        return false;
+                    if (lhs + rhs < lhs || lhs + rhs > opMask)
+                        return false;
+                    outBound = lhs + rhs;
+                    return true;
+                }
+
+                default:
+                    return false;
+            }
+        }
+    }
+
+    // cmp reg, imm whose outcome the operand's provable range decides.
+    //
+    // The shift legalizer guards every variable-count shift with
+    // 'cmp count, width' + 'cmov value, 0 if ae', but the count usually reaches
+    // the compare through 'and count, mask' with mask < width. The compare then
+    // never takes its AboveOrEqual arm, and a Huffman or bit-stream loop pays
+    // four dead instructions per shift for it. When an unsigned upper bound
+    // proves the register below the immediate, resolve every conditional-move
+    // consumer of the flags and drop the compare.
+    bool tryDropRangeProvedCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (ctx.isClaimed(cmpRef) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* cmpOps = cmpInst.ops(*ctx.operands);
+        if (!cmpOps)
+            return false;
+
+        const MicroReg reg      = cmpOps[0].reg;
+        const uint64_t cmpMask  = getBitsMask(cmpOps[1].opBits);
+        const uint64_t immValue = cmpOps[2].valueU64 & cmpMask;
+        if (immValue == 0)
+            return false;
+
+        uint64_t bound = 0;
+        if (!unsignedUpperBound(bound, ctx, reg, cmpRef, K_MAX_BOUND_DEPTH))
+            return false;
+        if (bound >= immValue)
+            return false;
+
+        // The register is provably Below the immediate. Collect every consumer
+        // of the compare's flags up to the next flag write; anything but a
+        // conditional move on a decided unsigned condition keeps the compare.
+        struct ResolvedUse
+        {
+            MicroInstrRef ref;
+            bool          taken;
+        };
+        SmallVector<ResolvedUse, 4> uses;
+
+        auto       walker = ctx.storage->view().begin();
+        const auto endIt  = ctx.storage->view().end();
+        while (walker != endIt && walker.current != cmpRef)
+            ++walker;
+        if (walker == endIt)
+            return false;
+        ++walker;
+
+        bool windowClosed = false;
+        for (uint32_t step = 0; step < 16 && walker != endIt; ++step, ++walker)
+        {
+            const MicroInstr&    inst = *walker;
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+
+            if (info.flags.has(MicroInstrFlagsE::UsesCpuFlags))
+            {
+                if (inst.op != MicroInstrOpcode::LoadCondRegReg || ctx.isClaimed(walker.current))
+                    return false;
+                const MicroInstrOperand* useOps = inst.ops(*ctx.operands);
+                if (!useOps)
+                    return false;
+
+                bool taken = false;
+                switch (useOps[2].cpuCond)
+                {
+                    case MicroCond::Above:
+                    case MicroCond::AboveOrEqual:
+                    case MicroCond::Equal:
+                        taken = false;
+                        break;
+                    case MicroCond::Below:
+                    case MicroCond::BelowOrEqual:
+                    case MicroCond::NotEqual:
+                        taken = true;
+                        break;
+                    default:
+                        return false;
+                }
+
+                uses.push_back({walker.current, taken});
+            }
+
+            if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, inst.ops(*ctx.operands)))
+            {
+                windowClosed = true;
+                break;
+            }
+
+            // A return or a call ends the flags' life; any jump or label can
+            // leak them to code this scan does not see.
+            if (inst.op == MicroInstrOpcode::Ret || info.flags.has(MicroInstrFlagsE::IsCallInstruction))
+            {
+                windowClosed = true;
+                break;
+            }
+            if (info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                inst.op == MicroInstrOpcode::Label)
+                return false;
+        }
+
+        if (!windowClosed)
+            return false;
+
+        if (!ctx.claimAll({cmpRef}))
+            return false;
+        for (const ResolvedUse& use : uses)
+        {
+            if (!ctx.claimAll({use.ref}))
+                return false;
+        }
+
+        ctx.emitErase(cmpRef);
+        for (const ResolvedUse& use : uses)
+        {
+            if (!use.taken)
+            {
+                ctx.emitErase(use.ref);
+                continue;
+            }
+
+            const MicroInstr*        useInst = ctx.storage->ptr(use.ref);
+            const MicroInstrOperand* useOps  = useInst->ops(*ctx.operands);
+            MicroInstrOperand        moveOps[3];
+            moveOps[0].reg    = useOps[0].reg;
+            moveOps[1].reg    = useOps[1].reg;
+            moveOps[2].opBits = useOps[3].opBits;
+            ctx.emitRewrite(use.ref, MicroInstrOpcode::LoadRegReg, moveOps);
+        }
+
+        return true;
+    }
 }
 
 SWC_END_NAMESPACE();

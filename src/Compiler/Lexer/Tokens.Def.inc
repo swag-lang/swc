@@ -370,6 +370,7 @@ SWC_TOKEN_DEF(IntrinsicVecInterleaveHi, "Swag.vecinterleavehi", TokenIdKindE::In
 SWC_TOKEN_DEF(IntrinsicVecWidenLo, "Swag.vecwidenlo", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecWidenHi, "Swag.vecwidenhi", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecAvgR, "Swag.vecavgr", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecClmul, "Swag.vecclmul", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecMadd, "Swag.vecmadd", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecMaddUBS, "Swag.vecmaddubs", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecSad, "Swag.vecsad", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)

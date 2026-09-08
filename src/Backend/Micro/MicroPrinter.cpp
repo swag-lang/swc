@@ -414,6 +414,8 @@ namespace
                 return "vec.shuff32";
             case MicroOp::VecAlignR:
                 return "vec.alignr";
+            case MicroOp::VecClmul:
+                return "vec.clmul";
             case MicroOp::VecShiftLeftV16:
                 return "vec.shlv16";
             case MicroOp::VecShiftLeftV32:

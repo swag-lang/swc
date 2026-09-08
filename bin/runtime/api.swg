@@ -1552,6 +1552,12 @@ func atomget(addr: *u64)->u64
     func vecmadd(value1, value2: #simd [8] s16)->#simd [4] s32
     func vecmaddubs(value1: #simd [16] u8, value2: #simd [16] s8)->#simd [8] s16
 
+    // Carry-less multiplication of one 64-bit half of each source into a full
+    // 128-bit product. Bit 0 of the constant 'selector' picks the half of
+    // 'value1' and bit 4 the half of 'value2'. This is what CRC folding is
+    // made of.
+    func vecclmul(value1, value2: #simd [2] u64, selector: u8)->#simd [2] u64
+
     // The half of a lane product that '*' drops: lane 'i' answers the bits
     // above the lane width of the full product of both lane 'i' values, read
     // as the lane type is signed or not. The two together are the whole

@@ -25,6 +25,11 @@ const AllocatorMaxClassSize     = 65536'u64
 // page path already satisfies any alignment up to that. Anything stricter takes the header path.
 const AllocatorPagePathAlignment = 16'u32
 
+// Bounds of the committed cache of freed header-path blocks.
+const AllocatorBlockCacheMinBytes = 512'u64 * 1024
+const AllocatorBlockCacheMaxBytes = 96'u64 * 1024 * 1024
+const AllocatorBlockCacheMaxCount = 12'u64
+
 private const AllocatorInvalidFlsId = 0xFFFF_FFFF'u64
 
 struct AllocatorTracking
@@ -128,6 +133,15 @@ struct Allocator
     headerBytes:     u64
     quarantineBytes: u64
     quarantineCount: u64
+
+    // Recently freed header-path blocks, kept committed for reuse inside a fixed
+    // budget. A decoder that frees and reallocates an image-sized buffer per call
+    // would otherwise pay a release, a reserve, and a fault per touched page on
+    // every cycle. The first sixteen bytes of a cached block hold its list node:
+    // next address, then size.
+    firstCachedBlock: u64
+    cachedBlockBytes: u64
+    cachedBlockCount: u64
 
     nextId:       u32
     installMagic: u32 = 0
@@ -748,6 +762,84 @@ impl Allocator
         }
     }
 
+    // Serves a cached operating-system block of exactly 'size' bytes, or null.
+    mtd popCachedBlock(size: u64)->#null [*] u8
+    {
+        if .cachedBlockCount == 0 do
+            return null
+
+        .mutex.lock()
+        defer .mutex.unlock()
+
+        var prev = 0'u64
+        var scan = .firstCachedBlock
+        while scan
+        {
+            let node = cast([*] u64) scan
+            if node[1] == size
+            {
+                if prev do
+                    (cast(*u64) prev)[] = node[0]
+                else do
+                    .firstCachedBlock = node[0]
+                .cachedBlockBytes -= size
+                .cachedBlockCount -= 1
+                return cast([*] u8) scan
+            }
+
+            prev = scan
+            scan = node[0]
+        }
+
+        return null
+    }
+
+    // Keeps a freed operating-system block committed for reuse. Beyond the budget the
+    // oldest cached blocks go back to the operating system first, so the resident cost
+    // of the cache stays bounded whatever the churn.
+    mtd cacheFreedBlock(address: #null [*] void, size: u64)
+    {
+        if !address do
+            return
+
+        if size < AllocatorBlockCacheMinBytes or size > AllocatorBlockCacheMaxBytes
+        {
+            .osFree(cast(*void) address, size)
+            return
+        }
+
+        .mutex.lock()
+        while .cachedBlockCount != 0 and
+              (.cachedBlockCount >= AllocatorBlockCacheMaxCount or .cachedBlockBytes + size > AllocatorBlockCacheMaxBytes)
+        {
+            var prev = 0'u64
+            var scan = .firstCachedBlock
+            while (cast(const *u64) scan)[]
+            {
+                prev = scan
+                scan = (cast(const *u64) scan)[]
+            }
+
+            let node      = cast([*] u64) scan
+            let evictSize = node[1]
+            if prev do
+                (cast(*u64) prev)[] = 0
+            else do
+                .firstCachedBlock = 0
+            .cachedBlockBytes -= evictSize
+            .cachedBlockCount -= 1
+            .osFree(cast(*void) scan, evictSize)
+        }
+
+        let node = cast([*] u64) address
+        node[0]           = .firstCachedBlock
+        node[1]           = size
+        .firstCachedBlock = cast(u64) address
+        .cachedBlockBytes += size
+        .cachedBlockCount += 1
+        .mutex.unlock()
+    }
+
     mtd allocateHeaderBlock(request: *AllocatorRequest, classIndex: u32)
     {
         let alignment    = Swag.max(request.alignment, AllocatorPagePathAlignment)
@@ -771,7 +863,10 @@ impl Allocator
         else
         {
             allocSize = memAlign(prefix + alignment + blockSize + #sizeof(AllocatorFooter), cast(u32) AllocatorCommitGranularity)
-            base      = .osAlloc(allocSize)
+            if !.diagnosticMode() do
+                base = .popCachedBlock(allocSize)
+            if !base do
+                base = .osAlloc(allocSize)
             if base do
                 userAddr = memAlign(cast(u64) base + prefix, alignment)
         }
@@ -841,7 +936,7 @@ impl Allocator
         if .diagnosticMode() do
             .quarantine(header)
         else do
-            .osFree(header.allocAddr, header.allocSize)
+            .cacheFreedBlock(header.allocAddr, header.allocSize)
     }
 
     // ###################################################################################
@@ -1218,6 +1313,20 @@ impl Allocator
             .unlinkAllocated(header)
             .osFree(header.allocAddr, header.allocSize)
         }
+
+        // The callers hold the mutex, so the cached-block list is drained inline.
+        var cached = .firstCachedBlock
+        while cached
+        {
+            let node = cast([*] u64) cached
+            let next = node[0]
+            .osFree(cast(*void) cached, node[1])
+            cached = next
+        }
+
+        .firstCachedBlock = 0
+        .cachedBlockBytes = 0
+        .cachedBlockCount = 0
 
         atomicSubU64(&.headerCount, atomicGet(&.headerCount))
         atomicSubU64(&.headerBytes, atomicGet(&.headerBytes))

@@ -224,6 +224,10 @@ contiguous run of bytes. A struct member that is an array follows the same rule.
 
 Logical operators evaluate expressions and return a boolean result. Swag uses
 'and' and 'or' instead of '&&' and '||' from C/C++.
+
+Both short-circuit: 'and' evaluates its right operand only when the left is
+true, and 'or' evaluates it only when the left is false. This lets the first
+operand guard an access in the second, including a nullable pointer access.
 */
 #test
 {
@@ -236,7 +240,7 @@ Logical operators evaluate expressions and return a boolean result. Swag uses
 # Ternary Operator
 
 The ternary operator tests an expression and returns one of two values depending
-on whether the condition is true or false.
+on whether the condition is true or false. Only the selected branch is evaluated.
 
 Syntax:
 `A = Condition ? B : C`
@@ -402,8 +406,9 @@ orelse  ? :
 The prefix operators bind tighter than every binary operator, so '!a == b' parses as
 '(!a) == b' and '-a * b' parses as '(-a) * b'.
 
-When two operators share the same precedence level, expressions are evaluated
-from left to right. The loosest level, 'orelse' and the ternary, groups to the right:
+When two operators share the same precedence level, they group from left to
+right. This describes parsing, not a general promise about operand evaluation
+order. The loosest level, 'orelse' and the ternary, groups to the right:
 'a orelse b ? c : d' parses as 'a orelse (b ? c : d)'.
 
 Unlike C, the bitwise operators '& ^ |' all bind **tighter** than the comparison

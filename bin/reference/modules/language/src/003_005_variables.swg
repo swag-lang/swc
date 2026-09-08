@@ -48,7 +48,9 @@ Multiple variables of different types can also be declared on one line.
 # Default Initialization
 
 If a variable is declared without an explicit value, it is initialized with its
-type's default value. This remains true even when the following statements
+type's safe default value, when one exists. Non-null pointers, strings, and other
+types without an implicit default require an initializer. This remains true even
+when the following statements
 overwrite every field: the compiler may remove a provably unobservable default
 initialization as an optimization, without changing the program's semantics.
 */

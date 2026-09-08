@@ -4,7 +4,7 @@
 # Static Arrays in Swag
 
 Static arrays are fixed-size arrays where the size is known at compile time.
-Unlike dynamic arrays from the 'Std.Core' module, they cannot grow or shrink
+Unlike dynamic arrays from the standard 'core' module, they cannot grow or shrink
 during execution. Static arrays are ideal when size and memory usage are
 deterministic.
 */
@@ -101,9 +101,9 @@ such as a non-null pointer or string, needs a complete explicit initializer.
 /**
 # Initialization and Performance
 
-Arrays always have their type's safe default value. Keep the ordinary declaration
-and fill elements normally; future compiler analyses may remove a redundant clear
-only when they can prove complete element coverage.
+Arrays whose element type has a safe default start with that value in every
+element. Keep the ordinary declaration and fill elements normally; an optimization
+may omit a redundant clear only when it proves complete element coverage.
 */
 #test
 {

@@ -3,8 +3,15 @@
 /**
 # UTF-8 Encoding
 
-Swag uses UTF-8 encoding for strings, allowing representation of characters from
-virtually all languages and symbol sets.
+Swag uses UTF-8 encoding for strings. A 'string' is a non-owning view with a
+data pointer and a byte count. Copying it copies the view, not the text; keep the
+backing storage alive for as long as the view is used. String literals have
+static storage, while a view into an allocated buffer borrows that buffer.
+
+'.count' measures bytes, not Unicode code points or displayed characters.
+Strings may contain embedded zero bytes. The zero-terminated 'cstring' type
+and explicit conversions at a C boundary are described in the interoperability
+chapter.
 */
 
 /**
@@ -36,9 +43,9 @@ ensuring it can accommodate any Unicode character.
 
 /**
 > WARNING:
-> Direct indexing of a string to retrieve a 'rune' is not supported, except for
-> ASCII strings. Swag avoids the runtime overhead of UTF-8 decoding.
-> The 'Std.Core' module provides utilities for working with UTF-8 strings.
+> String indexing always returns a byte. For ASCII, that byte also represents
+> the code point; a multibyte character requires UTF-8 decoding. The standard
+> 'core' module provides text-processing utilities in the 'Core' namespace.
 */
 
 /**
@@ -65,7 +72,8 @@ the underlying UTF-8 encoding.
 # Compile-Time String Building
 
 There is no string concatenation operator: '+' is not defined on 'string', and
-runtime text is built with 'Std.Core' ('String', 'ConcatBuffer', 'Format').
+runtime text is built with the standard 'core' module ('Core.String',
+'Core.ConcatBuffer', 'Core.Format').
 At compile time, '#stringof' takes any number of constant parts and writes them
 one after the other, each shown the way a constant prints.
 
@@ -90,8 +98,9 @@ one after the other, each shown the way a constant prints.
 /**
 # Null Strings
 
-A string can be 'null' if it has not been initialized. This allows checking
-whether a string has been assigned a value.
+A 'string?' can be 'null' and defaults to that absent state. A bare 'string'
+is non-null and requires an initializer. The empty literal '""' is a present
+string with zero bytes; it is different from an absent string.
 */
 #test
 {
@@ -101,6 +110,11 @@ whether a string has been assigned a value.
     Swag.assert(a != null)
     a = null
     Swag.assert(a == null)
+
+    let empty: string? = ""
+    Swag.assert(empty != null)
+    Swag.assert(empty.count == 0)
+    Swag.assert((empty orelse "fallback") == "")
 }
 
 /**
@@ -299,8 +313,9 @@ are still processed.
 }
 
 /**
-In multiline or raw strings, ending a line with '\' prevents the following
-end-of-line from being included.
+In an ordinary multiline string, ending a line with '\' prevents the following
+end-of-line from being included. A '#raw' string keeps the backslash and line
+break because escape sequences are disabled.
 */
 #test
 {

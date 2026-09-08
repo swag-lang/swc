@@ -8,8 +8,8 @@ variables, and types within a specific scope. Grouping related symbols under
 a namespace helps prevent naming conflicts and makes the code more modular
 and maintainable.
 
-Symbols in a namespace are accessible only through that namespace unless they
-are explicitly imported or exposed.
+Outside a namespace, use qualified names or bring its names into scope with
+'using'. Visibility still determines whether the caller may access a symbol.
 */
 
 // Define a simple namespace 'A'
@@ -56,25 +56,27 @@ namespace QualifiedExample
 const B = QualifiedExample.Symbol     // Access via fully qualified name
 
 /**
-# Internal Scopes
+# Visibility Blocks
 
-In addition to named namespaces, Swag provides 'internal' scopes. An internal
-scope creates a unique, unnamed namespace restricted to the current file.
-Symbols defined in such a scope are inaccessible outside it, making this
-useful for isolating private details.
+A top-level 'internal { ... }' block applies module visibility to its
+declarations. It does not create a namespace: the names remain in the enclosing
+scope and can be used from other files in the module. Use 'private' for file-local
+declarations and a named namespace when names need a qualifier.
 */
 
 internal
 {
-    const OtherSymbol = 0     // Constant defined in an internal scope
+    const OtherSymbol = 0     // Visible throughout this module.
 }
 
-const D = OtherSymbol     // Accessible within this file only
+const D = OtherSymbol     // No namespace qualifier is introduced by the block.
 
 /**
 # Exporting Symbols
 
-By default, all symbols in a Swag file are exported to other files within
-the same module. Using explicit namespaces or internal scopes provides
-protection against accidental symbol conflicts across files.
+The default declaration visibility is 'internal': other files in the same
+module can use the declaration. 'public' permits access from importing modules;
+'private' restricts access to the source file. '#global' can set a file-wide
+default. This example file uses '#global private', and the 'internal' block
+above deliberately overrides it for 'OtherSymbol'.
 */

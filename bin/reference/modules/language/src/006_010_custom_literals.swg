@@ -12,8 +12,9 @@ A literal suffix immediately follows a numeric literal to indicate a unit or typ
 e.g., `4'ms` means 4 milliseconds.
 
 To support user-defined literals, provide:
-1) a type (e.g., 'Duration'), and
-2) methods to convert the numeric value according to the suffix.
+
+1. A type, such as 'Duration'.
+2. Methods to convert the numeric value according to the suffix.
 */
 
 // Represents a delay, expressed in seconds.

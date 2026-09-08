@@ -187,6 +187,16 @@ func blockCatchElse(name: string?)->u64
 
 /**
 # Expect
+'expect' asserts that a fallible operation succeeds. An unexpected failure
+panics while the '.Expect' safety guard is enabled; when that guard is disabled,
+the result uses its type's default. Use it for an invariant, not for an ordinary
+failure that the caller should recover from.
+
+Forms that need a default result, including 'catch' and 'expect', require a
+result type with a safe default. A non-null pointer has none; propagate such a
+result with 'try', or design the failure-handling boundary to return a type
+that can represent absence.
+
 Inside '#test', 'try' is equivalent to 'expect', so both forms keep the
 success path concise when failure is not expected.
 */

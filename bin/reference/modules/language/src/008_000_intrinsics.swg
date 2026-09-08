@@ -4,14 +4,14 @@
 # Intrinsics
 
 Intrinsics are operations implemented directly by the compiler or its runtime.
-Their names start with '@', so they cannot collide with application APIs. They
-cover five broad areas:
+They use qualified names in the built-in 'Swag' namespace, while native views
+expose '.count' and '.buffer' as members. They cover five broad areas:
 
 - assertions, diagnostics, execution context, and compiler access;
 - type erasure, reflection, and construction of slices or strings;
 - explicit value lifecycle operations;
 - math, bit, memory, and atomic primitives;
-- interoperability with C variadic functions.
+- packed vector operations.
 
 Use an intrinsic when its semantics are genuinely language-level or low-level.
 Prefer a typed library abstraction for ownership, platform APIs, containers, and

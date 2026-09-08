@@ -119,7 +119,7 @@ instead, so a loop that indexes back into the collection counts `.count`.
 /**
 > WARNING:
 > When iterating over strings, `for` loops over **bytes**, not runes.
-> Use `Std.Core` for rune-based iteration.
+> Use `Core` for rune-based iteration.
 */
 #test
 {
@@ -256,8 +256,9 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
 
 An `until` range whose bounds are equal is **empty**: the loop runs zero times. This makes
 `for i in 0 until count` safe when `count` is zero, so a collection-sized loop needs no
-guard of its own. Only an inverted range, where the lower bound is above the upper bound,
-is an error.
+guard of its own. An inverted range, where the lower bound is above the upper
+bound, is rejected when both bounds are constant. With runtime bounds it runs
+zero times; this differs from slicing, which validates the requested length.
 */
 #test
 {

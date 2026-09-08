@@ -17,10 +17,9 @@ Pointers can address any type of data and are fundamental for efficient memory a
 /**
 # Null Pointers
 
-In Swag, a pointer can be `null`, meaning it does not refer to any valid memory location.
-Null pointers are often used to indicate uninitialized or intentionally absent values.
-
-It is good practice to check for null pointers before dereferencing them to avoid runtime errors.
+Use `*T?` when a pointer may be `null`, meaning that it refers to no object.
+A bare `*T` is non-null. The compiler requires a proof of presence before a
+nullable pointer can be dereferenced, as described below.
 */
 #test
 {
@@ -35,7 +34,7 @@ Nullable-capable types — single-value and block pointers, slices, `string`, `c
 `any`, and `typeinfo` — are non-null by default: a bare `*u8` or `string` cannot be
 initialized with `null` and has no implicit default. A struct field of such a type must
 therefore be supplied by an aggregate initializer unless it declares an explicit non-null
-default. Add the `?` suffix â€” `*u8?`, `string?`, `[ ..] u8?` â€” when null is part of
+default. Add the `?` suffix — `*u8?`, `string?`, `[..] u8?` — when null is part of
 the intended contract.
 
 Because these types answer a condition by testing their first pointer-sized word against

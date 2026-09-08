@@ -92,7 +92,7 @@ everything that costs no compilation time, and '2' also runs what does.
 'devmode' asks for '1' and 'release' for '2'.
 
 Neither configuration emits debug information by default. Add '--debug' to a
-'test', 'build', 'run', or 'smoke' command when a debugger needs symbols, types,
+'test', 'build', or 'run' command when a debugger needs symbols, types,
 and source line mappings. The option does not change optimization or guard policy.
 
 The target architecture currently exposed by '--arch' is 'x86_64'. Select the
@@ -219,6 +219,9 @@ local to their declarations and licence comments are not published implicitly.
 
 The command also generates the public runtime API page once per output
 directory.
+
+For comment placement, Markdown, symbol links, and module guides, see
+[Native documentation](#_002_011_native_documentation_swg).
 
 # Test Controls
 

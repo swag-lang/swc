@@ -129,7 +129,7 @@ it does not make a private method public in source code.
 | 'Safety(what: SafetyWhat, value: bool)' | Enable or disable runtime guards |
 | 'Sanity(what: SafetyWhat, value: bool)' | Enable or disable static proven-fault checks |
 | 'Warning(what: string, level: WarningLevel)' | Disable, restore, or promote named warnings |
-| 'BorrowSummary(returns, stores = 0, into = 0, frees = 0, reallocates = 0)' | Describe pointer escape and invalidation behavior |
+| 'BorrowSummary(returns, stores = 0, into = 0, frees = 0, reallocates = 0, returnsPayload = 0)' | Describe pointer escape, payload borrowing, and invalidation behavior |
 
 'SafetyWhat' is shared by runtime safety and static sanity, although not every
 flag has meaningful behavior in both systems. See the dedicated safety and
@@ -163,4 +163,7 @@ names 'Swag.CallConv.C' itself.
 Use 'Swag.NoDoc' only for declarations that are intentionally public but
 unsuitable for the generated API reference. It does not change visibility or
 module API export.
+
+See [Native documentation](#_002_011_native_documentation_swg) for ordinary '//'
+contracts, '//!' file overviews, Markdown guides, and generation modes.
 */

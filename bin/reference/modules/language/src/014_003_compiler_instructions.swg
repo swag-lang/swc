@@ -90,7 +90,7 @@ case .Release: const StaticExhaustiveSelection = 2
 
 - 'Swag.CompilerCommand.Test' for 'swc test';
 - 'Swag.CompilerCommand.Format' for 'swc format';
-- 'Swag.CompilerCommand.Build' for 'build', 'run', 'syntax', 'sema', and the
+- 'Swag.CompilerCommand.Build' for 'build', 'run', 'syntax', 'sema', 'doc', and the
   compiler-internal 'unittest' path.
 
 '#cfg' is the selected build-configuration name, such as '"devmode"' or
@@ -128,15 +128,22 @@ Place '#global' at the top of a source file to apply global settings or
 attributes across the entire file. Controls compilation and symbol visibility.
 
 Examples (write these as top-level directives):
-  #global if false            // Skip file content.
-  #global if #command == Swag.CompilerCommand.Format // Include this file only when formatting.
-  #global if #command == Swag.CompilerCommand.Test   // Include this file only when running tests.
-  #global public                      // All symbols become public.
-  #global private                    // All symbols are private to the module.
-  #global namespace Toto              // Place all symbols in namespace 'Toto'.
-  #global if DEBUG == true     // Conditional compilation for the file.
-  #global #[Swag.Safety(.All, true)]  // Apply an attribute to all declarations.
-  #global export                      // Export the full file as-is into the module API output.
+
+```swag
+#global if false                                 // Skip this file.
+#global if #command == Swag.CompilerCommand.Format // Include only when formatting.
+#global if #command == Swag.CompilerCommand.Test   // Include only when testing.
+#global public                                   // Set public declaration visibility.
+#global private                                  // Set file-local declaration visibility.
+#global namespace Example                        // Put declarations in 'Example'.
+#global if DEBUG == true                          // Select the file from a constant.
+#global #[Swag.Safety(.All, true)]                 // Apply the attribute file-wide.
+#global export                                   // Export the file into the module API.
+```
+
+These are alternatives, not one file's preamble. A named aggregate's members
+start at 'internal' independently of the enclosing visibility; group public
+fields explicitly inside it.
 */
 
 /**
@@ -146,7 +153,10 @@ library name without a platform extension; the linker selects the appropriate
 file for the active toolchain.
 
 Example:
-  #foreignlib("kernel32")
+
+```swag
+#foreignlib("kernel32")
+```
 
 This directive only supplies the native link dependency. Declare imported
 symbols separately with '#[Swag.Foreign]'.

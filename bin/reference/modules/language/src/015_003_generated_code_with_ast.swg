@@ -125,7 +125,7 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
 
 /**
 # Real-World Example
-Example from Std.Core — dynamically generates a struct with all fields of another
+Example from Core — dynamically generates a struct with all fields of another
 struct replaced by bools.
 
 ```swag

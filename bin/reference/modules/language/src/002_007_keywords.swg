@@ -121,7 +121,7 @@ Swag.floor  Swag.log  Swag.log10  Swag.log2  Swag.max  Swag.min  Swag.muladd  Sw
 Swag.rol  Swag.ror  Swag.round  Swag.sin  Swag.sinh  Swag.sqrt  Swag.tan  Swag.tanh  Swag.trunc
 ```
 
-Memory, atomic, and C variadic intrinsics:
+Memory and atomic intrinsics:
 
 ```swag
 Swag.atomadd  Swag.atomand  Swag.atomcmpxchg  Swag.atomget  Swag.atomor  Swag.atomxchg  Swag.atomxor
@@ -140,6 +140,7 @@ Swag.vecwidenlo
 ```
 
 > NOTE:
-> The '#'-prefixed and '@'-prefixed names are reserved separately from bare
-> identifiers. The next section explains why Swag uses both namespaces.
+> '#'-prefixed names belong to compiler syntax. Intrinsics use qualified names
+> in 'Swag', so 'min' and 'print' remain available as user identifiers. The next
+> section explains the distinction.
 */

@@ -4,11 +4,9 @@
 # Constants with 'const'
 
 Using 'const' means the value must be **known by the compiler** at compile time.
-The compiler embeds the constant’s value directly into the compiled code, removing
-any runtime memory usage for simple types like integers or strings.
-
-In other words, the compiler replaces every occurrence of a constant with its
-literal value, leading to optimized and efficient code execution.
+The compiler can substitute the value directly where it is used. This does not
+promise that a constant occupies no storage: string bytes and addressable
+aggregate values still need backing memory.
 */
 #test
 {
@@ -26,7 +24,8 @@ literal value, leading to optimized and efficient code execution.
 Swag also supports constants with complex data types, such as arrays and
 structures. When declared, the data is stored in the program's data segment,
 which occupies memory. The memory address of such constants can be accessed
-at runtime, allowing indirect manipulation through pointers.
+at runtime for read-only access through pointers; taking an address does not make
+the constant mutable.
 */
 
 /**

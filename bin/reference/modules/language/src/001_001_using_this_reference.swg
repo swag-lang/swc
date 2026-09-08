@@ -43,7 +43,7 @@ swc test -w <repository-root>/bin/reference -m language -bc release
 - 'Swag.assert' checks a condition while the generated program runs.
 - Deliberately invalid examples stay commented out and explain the diagnostic
   they are intended to produce.
-- Most declarations are private to this module so examples do not accidentally
+- Most declarations are private to their source file so examples do not accidentally
   become part of another module's API.
 
 > TIP:
@@ -55,6 +55,10 @@ swc test -w <repository-root>/bin/reference -m language -bc release
 Examples in this module deliberately avoid standard-library dependencies unless
 a chapter is specifically about integration. Passing tests prove that the shown
 syntax and runtime results agree with the compiler version that shipped them.
+Fenced snippets inside prose illustrate separate files or incomplete contexts;
+they are not compiled as part of this module. Executable examples appear outside
+the prose blocks in source and include their required declarations.
+
 Prose still explains constraints that cannot be expressed by a successful test,
 such as rejected syntax or platform-specific linking requirements.
 */

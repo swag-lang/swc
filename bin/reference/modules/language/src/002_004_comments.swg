@@ -1,40 +1,56 @@
 #global private
 
 /**
-# Comments
+# Line and Block Comments
 
-Swag supports both single-line and multi-line comments, providing flexibility for
-inline documentation and explanations within your code. This helps maintain clarity
-and readability, especially in larger or more complex codebases.
+'//' starts a comment that ends at the next line break. It can occupy its own
+line or follow code. '/*' starts a block comment, and the matching '*/' ends it;
+a block comment may span lines or separate tokens within an expression.
+
+Comments are ignored as program text. Delimiters inside a string literal are
+ordinary characters, so a URL does not start a comment.
 */
 
-// Example of a single-line comment
-// Single-line comments are typically used for brief explanations or notes.
+#test
+{
+    // A line comment may precede a statement.
+    let answer = 40 /* a block comment between tokens */ + 2
+    Swag.assert(answer == 42)     // A trailing comment belongs to this line.
 
-/*
-    Example of a multi-line comment
-    that spans several lines.
-
-    Multi-line comments are useful when more detailed explanations are required.
-    These comments can describe the overall purpose of a function, document complex
-    logic, or provide additional context to developers.
-*/
-
-const A = 0                   // A constant named 'A' assigned the value '0'.
-const B = /* false */true     // A constant named 'B' assigned the value 'true', with an inline
-// comment noting that 'false' was an alternative value considered.
+    let address = "https://example.com"
+    Swag.assert(address.count == 19)
+}
 
 /**
-# Nested Comments
+# Nested Block Comments
 
-Swag also supports nested comments within multi-line comments. This can be particularly
-useful when temporarily disabling a block of code or when adding notes inside an
-existing comment block.
+Block comments nest. Every inner '/*' must have a matching '*/' before the
+outer comment can end. This allows temporarily commenting out code that already
+contains block comments.
 */
 
-/*
-    /* Example of a nested multi-line comment */
-    The nested comment above is encapsulated within another multi-line comment.
-    This demonstrates Swag's ability to handle complex comment structures without
-    causing errors or ambiguity.
+#test
+{
+    /*
+        let disabled = 1
+        /* This inner comment ends without ending the outer one. */
+        disabled += 1
+    */
+    Swag.assert(true)
+}
+
+/**
+# Comments as Native Documentation
+
+Ordinary '//' comments also document declarations when 'swc doc' generates an
+API reference. No special '///' prefix or '@param' tags are needed. Put the
+comment immediately before the declaration, or after a field or enum value
+on the same line.
+
+'//!' opts source-file prose into the module's **File documentation** section.
+The numbered examples mode used by this reference renders '/** ... */' blocks
+as prose and the surrounding code as examples.
+
+See [Native documentation](#_002_011_native_documentation_swg) for placement,
+Markdown, symbol links, module guides, and generation commands.
 */

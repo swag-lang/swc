@@ -7,7 +7,9 @@ A slice provides a dynamic view over a contiguous block of memory. Unlike static
 slices can point to different memory regions or subsets of existing data at runtime.
 
 A slice consists of a data pointer and a 'u64' count representing the number of elements.
-This allows efficient access to large datasets without copying memory.
+Copying a slice copies this view, not the elements. It neither owns nor extends
+the lifetime of the storage: keep the backing array or owner alive and avoid
+operations that reallocate its buffer while the slice is in use.
 */
 #test
 {
@@ -75,7 +77,10 @@ The 'Swag.makeSlice' intrinsic creates a slice from a pointer and an element cou
 /**
 # Slicing Strings
 
-Strings can be sliced, but the result must be declared as 'const' since strings are immutable.
+A byte slice over string storage has type 'const [..] u8': the elements are
+read-only. This 'const' qualifies the viewed data, independently of whether the
+slice binding uses 'let' or 'var'. A range applied directly to a string returns
+a string view.
 */
 #test
 {

@@ -5,7 +5,8 @@
 
 User-defined identifiers, such as variables, constants, and function names,
 must begin with either an underscore ('_') or an ASCII letter. Identifiers may
-then include underscores, ASCII letters, and digits.
+then include underscores, ASCII letters, and digits. Names are case-sensitive:
+'count' and 'Count' name different symbols.
 
 Examples:
 */
@@ -25,8 +26,8 @@ by the compiler.
 # Compiler Instructions
 
 Names beginning with '#' belong to compiler syntax: built-in directives, static
-queries, qualifiers, modifiers, and user-defined selectors at specific
-extension points such as custom iteration.
+queries, qualifiers, and modifiers. This set is defined by the compiler;
+custom iteration uses ordinary methods and views.
 
 Examples of compiler instructions:
 ```swag
@@ -50,10 +51,10 @@ generate runtime code.
 Examples of intrinsic functions:
 
 ```swag
-Swag.min()
-Swag.max()
-Swag.sqrt()
-Swag.print()
+Swag.min(2, 5)
+Swag.max(2, 5)
+Swag.sqrt(4.0'f32)
+Swag.print("Hello\n")
 ```
 
 */

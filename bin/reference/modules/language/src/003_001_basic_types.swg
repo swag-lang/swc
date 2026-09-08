@@ -130,9 +130,10 @@ Further details about type reflection are explored in later sections.
 /**
 # Type Creation with '#decltype'
 
-You can use '#decltype' to create a type based on an existing expression.
-This is useful for inferring or mirroring the type of another variable dynamically,
-improving reusability and reducing redundancy.
+Use '#decltype' to name the type of an existing expression in a type position.
+The result is determined at compile time; it does not change a variable's type
+at runtime. It can also materialize a type from compile-time type information,
+as shown in the reflection chapter.
 */
 #test
 {

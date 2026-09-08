@@ -102,7 +102,9 @@ You can create heterogeneous arrays where each element holds a different type.
 /**
 # Nullability of 'any'
 
-An 'any' value can be null, similar to pointers and other nullable types.
+An 'any?' value can be null and defaults to that absent state. A bare 'any'
+requires a value. Prove presence before inspecting or converting a nullable
+value, just as for pointers and other nullable types.
 */
 
 #test

@@ -21,14 +21,14 @@ using Swag, Core, Win32
 internal func testDragSource(session: *DragSession, data: *DragData)->*IDataObject
 {
     session.setup(data)
-    return cast(*IDataObject) &session.dataObj
+    return cast(*IDataObject) cast(*void) &session.dataObj
 }
 
 // Hands `source` to the surface's own drop target and returns the payload it read back.
 internal func testRoundTrip(host: *Testing.HeadlessHost, source: *IDataObject)->*DragData
 {
     host.surface.registerDropTarget()
-    let target = cast(*IDropTarget) &host.surface.dropTarget
+    let target = cast(*IDropTarget) cast(*void) &host.surface.dropTarget
 
     var effect          = DROPEFFECT_COPY
     var dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
@@ -44,7 +44,7 @@ internal func testRoundTrip(host: *Testing.HeadlessHost, source: *IDataObject)->
 internal func testRoundTripDrop(host: *Testing.HeadlessHost, source: *IDataObject)
 {
     host.surface.registerDropTarget()
-    let target = cast(*IDropTarget) &host.surface.dropTarget
+    let target = cast(*IDropTarget) cast(*void) &host.surface.dropTarget
 
     var effect     = DROPEFFECT_COPY
     var dropResult = target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect)
@@ -85,7 +85,7 @@ internal impl StreamOnlySource
     }
 }
 
-func streamOnlyOf(itf: *IDataObject)->*StreamOnlySource => cast(*StreamOnlySource) itf
+func streamOnlyOf(itf: *IDataObject)->*StreamOnlySource => cast(*StreamOnlySource) cast(*void) itf
 
 func streamOnlyQueryInterface(itf: *IDataObject, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
@@ -111,7 +111,7 @@ func streamOnlyQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
     if !(fmt.tymed & TYMED_ISTREAM) do
         return DV_E_TYMED
 
-    let inner = cast(*IDataObject) streamOnlyOf(itf).inner!
+    let inner = cast(*IDataObject) cast(*void) streamOnlyOf(itf).inner!
     var ask   = fmt[]
     ask.tymed = TYMED_HGLOBAL
     return inner.lpVtbl.QueryGetData(inner, &ask)
@@ -122,7 +122,7 @@ func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM
     if !(fmt.tymed & TYMED_ISTREAM) do
         return DV_E_TYMED
 
-    let inner = cast(*IDataObject) streamOnlyOf(itf).inner!
+    let inner = cast(*IDataObject) cast(*void) streamOnlyOf(itf).inner!
     var ask   = fmt[]
     ask.tymed = TYMED_HGLOBAL
 
@@ -295,7 +295,7 @@ impl IWnd for PlatformCatcher
     let source = testDragSource(&session, &data)
 
     host.surface.registerDropTarget()
-    let target = cast(*IDropTarget) &host.surface.dropTarget
+    let target = cast(*IDropTarget) cast(*void) &host.surface.dropTarget
 
     var effect          = DROPEFFECT_COPY
     var dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
@@ -427,7 +427,7 @@ impl IWnd for PlatformCatcher
     var raw: LPVOID
     var enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
     Swag.assert(enumFormatEtcResult == S_OK)
-    let formats = cast(*IEnumFORMATETC) raw!
+    let formats = cast(*IEnumFORMATETC) cast(*void) raw!
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
@@ -450,7 +450,7 @@ impl IWnd for PlatformCatcher
     var rawClone: LPVOID
     var cloneResult = formats.lpVtbl.Clone(formats, &rawClone)
     Swag.assert(cloneResult == S_OK)
-    let clone = cast(*IEnumFORMATETC) rawClone!
+    let clone = cast(*IEnumFORMATETC) cast(*void) rawClone!
     defer discard clone.lpVtbl.Release(clone)
 
     nextResult = clone.lpVtbl.Next(clone, 1, &entries[0], &fetched)
@@ -506,7 +506,7 @@ impl IWnd for PlatformCatcher
     defer host.shutdown()
 
     host.surface.registerDropTarget()
-    let target = cast(*IDropTarget) &host.surface.dropTarget
+    let target = cast(*IDropTarget) cast(*void) &host.surface.dropTarget
 
     var out: LPVOID
     var iid = IID_IDropTarget
@@ -536,7 +536,7 @@ impl IWnd for PlatformCatcher
     queryInterfaceResult = source.lpVtbl.QueryInterface(source, &iid, &out)
     Swag.assert(queryInterfaceResult == E_NOINTERFACE)
 
-    let dropSrc   = cast(*IDropSource) &session.dropSrc
+    let dropSrc   = cast(*IDropSource) cast(*void) &session.dropSrc
     var srcSrcIid = IID_IDropSource
     queryInterfaceResult = dropSrc.lpVtbl.QueryInterface(dropSrc, &srcSrcIid, &out)
     Swag.assert(queryInterfaceResult == S_OK)
@@ -566,7 +566,7 @@ impl IWnd for PlatformCatcher
     let source = testDragSource(&session, &data)
 
     host.surface.registerDropTarget()
-    let target = cast(*IDropTarget) &host.surface.dropTarget
+    let target = cast(*IDropTarget) cast(*void) &host.surface.dropTarget
 
     var effect = DROPEFFECT_COPY
     discard target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
@@ -667,7 +667,7 @@ impl IWnd for PlatformCatcher
     var raw: LPVOID
     var enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
     Swag.assert(enumFormatEtcResult == S_OK)
-    let formats = cast(*IEnumFORMATETC) raw!
+    let formats = cast(*IEnumFORMATETC) cast(*void) raw!
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
@@ -712,7 +712,7 @@ impl IWnd for PlatformCatcher
     var streamOnly: StreamOnlySource
     streamOnly.setup(&session.dataObj)
 
-    let payload = testRoundTrip(&host, cast(*IDataObject) &streamOnly)
+    let payload = testRoundTrip(&host, cast(*IDataObject) cast(*void) &streamOnly)
     Swag.assert(payload.text == "carried by a stream")
 }
 
@@ -766,7 +766,7 @@ impl IWnd for PlatformCatcher
     var raw: LPVOID
     var enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
     Swag.assert(enumFormatEtcResult == S_OK)
-    let formats = cast(*IEnumFORMATETC) raw!
+    let formats = cast(*IEnumFORMATETC) cast(*void) raw!
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC

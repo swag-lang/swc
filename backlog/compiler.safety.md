@@ -42,17 +42,41 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.022 — A COM object's ABI header is held first by a comment, not by the language
+
+- Recorded: 2026-09-08 18:59
+- Area: `std/gui`, language
+- Evidence: the four OLE objects in `gui/dragdrop.win32.swg` each open with the interface header
+  OLE calls through, and each says so in a comment - `lpVtbl: *IDropTargetVtbl?  // Interface
+  header OLE calls through; must stay first.` Recovering the Swag object is then C's `container_of`:
+  `cast(*SurfaceDropTarget) itf`. Nothing checks the invariant the comment states, so inserting a
+  field above `lpVtbl` silently breaks every callback OLE makes.
+- The fix the language already offers, and why it did not land with compiler.safety.006: writing
+  `using base: IDropTarget` instead of the copied field makes the composition real, the recovery a
+  checked descent, and the offset computed rather than assumed. It was built and reverted the same
+  day: `IDropTarget.lpVtbl` is non-nullable, so composing it leaves `SurfaceDropTarget` with no
+  valid implicit default, and `Memory.new'DragFormatEnum()` and `Memory.new'Surface()` stop
+  compiling. The blocker is a zero-initialized struct owning a non-nullable pointer, not the
+  composition itself.
+- Next: decide how a composed ABI header reaches its vtable pointer under zero-initialization -
+  a nullable `lpVtbl` in the four `ole32.swg` interface structs, a `late` field, or an explicit
+  constructor at each creation site - then compose the four objects and delete their `cast(*void)`.
+- Complete when: the four OLE objects compose their interface, the recovery is a checked descent,
+  and no comment in the file asks a field to stay first.
+- Related: compiler.safety.006 counts these among its 32 residual reinterpretation sites.
+
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
 - Recorded: 2026-09-04 17:05
-- Updated: 2026-09-08 15:08 — the downcast mechanism already exists in the runtime, and `Wnd` already hand-rolls its tag
+- Updated: 2026-09-08 18:59 — the unrelated-struct-pointer cast is now rejected, and the residual reinterpretation surface is 32 sites in 3 files
 - Area: language
 - Evidence: a short list of operations can produce a pointer to anything, and none of them is
   subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
   casts and intrinsics are visible, but no single marker identifies the boundary:
   - `cast(*T) someInteger` — an arbitrary integer becomes a pointer;
-  - `cast(*Big) &small` — a reinterpreting cast between unrelated pointee types, reading past the
-    object;
+  - `cast(*Big) &small` — CLOSED on 2026-09-08: a pointer cast between two structs with no `using`
+    path either way is `sema_err_cast_unrelated_structs`, and the deliberate reinterpretation is
+    spelled `cast(*Big) cast(*void) &small`;
   - `Swag.makeSlice(ptr, count)` / `makeString` / `makeAny` / `makeInterface` — a length paired with
     storage that need not have it, after which every bounds check faithfully checks the lie;
   - pointer arithmetic on `[*] T`, which has neither provenance nor extent;
@@ -61,7 +85,16 @@ is the current scorecard.
   - `Swag.memcpy` / `memset` / `memmove`, whose byte count is unrelated to either operand;
   - `#relocate` and `#nodrop`, which suspend the lifecycle;
   - any call to a `#[Swag.Foreign]` function (compiler.safety.007).
-  Each was verified to compile and to read out of bounds with no diagnostic.
+  Each was verified to compile and to read out of bounds with no diagnostic, except the struct-pointer
+  one, now closed.
+- What closing it measured, which is the number this entry was waiting for: across shipped `bin/`
+  the rule rejects **32 sites in 3 files**, and every one of them is a Win32/COM binding -
+  `audio/driver/xaudio2.swg` (10, a COM voice handed to a base-voice entry point),
+  `gui/dragdrop.win32.swg` (7) and its test (15), which recover a Swag object from the OLE
+  interface pointer it starts with. Zero sites in the three applications, the examples, the
+  reference or `bin/runtime`. The reinterpretation surface is therefore not spread through the
+  codebase: it is a binding-layer boundary, small enough that the marker this entry wants can be
+  written for it, and `*void` already makes each one visible to `grep`.
 - Consequence: Swag cannot state what its safe subset guarantees, because it has no safe subset —
   only a set of checks with no boundary. That is the difference between "the compiler catches a lot"
   and "this class of fault cannot occur here", and it is the difference a reader arriving from Rust
@@ -126,10 +159,10 @@ is the current scorecard.
   `bin/std/modules/gui/src/tests/scroll.test.swg`; `isEditorWnd` in `properties.keyboard.swg` had
   the same shape and was made robust. Hand-rolling the tag makes the exact-versus-ancestor mistake
   the default one.
-- Next: specify the checked recovery on top of what already exists - an opt-in dynamic base whose
-  tag the compiler writes at initialization, `p as T` yielding `*T?` and `p is T` extended from
-  interfaces to such a pointer, both lowering to `Swag.typeAs` and `Swag.typeIs` - then re-run the
-  census. The residual count is what decides the marker's spelling.
+- Next: give the 32 remaining reinterpretations their marker. They are one population - a binding
+  recovering its own object from an ABI header - so a file-level opt-in on the two binding files
+  costs application code nothing and states the boundary in two places instead of thirty-two.
+  Decide between that and a per-expression `#unsafe`, then apply it and delete the `*void` hops.
 - Complete when: the unsafe operation list is fixed and documented, safe code cannot reach any of
   them without a visible marker, `bin/` compiles with the boundary enforced, and the reference
   states which faults the safe subset excludes.

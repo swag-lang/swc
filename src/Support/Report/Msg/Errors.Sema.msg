@@ -10,6 +10,7 @@ SWC_DIAG_DEF(sema_err_expected_type_fam, Error, "expression has type '{type}', b
 SWC_DIAG_DEF(sema_err_cannot_cast, Error, "cannot cast from '{type}' to '{requested-type}'")
 SWC_DIAG_DEF(sema_err_cannot_cast, Error, "argument {index} for call to '{sym}' has type '{type}', but parameter '{tok}' needs '{requested-type}'")
 SWC_DIAG_DEF(sema_err_cannot_cast, Error, "argument {index} for call to '{sym}' {what}")
+SWC_DIAG_DEF(sema_err_cast_unrelated_structs, Error, "cannot cast from '{type}' to '{requested-type}'; neither struct composes the other with 'using'; [help] cast through '*void' when the reinterpretation is intended")
 SWC_DIAG_DEF(sema_err_struct_cast_field_count, Error, "{what} for '{requested-type}' provides {count} fields, but the destination needs {value}")
 SWC_DIAG_DEF(sema_err_struct_cast_field_count, Error, "cannot cast from '{type}' to '{requested-type}'; source provides {count} fields, destination needs {value}")
 SWC_DIAG_DEF(sema_err_struct_cast_field_count, Error, "argument {index} for call to '{sym}' cannot cast from '{type}' to '{requested-type}'; source provides {count} fields, destination needs {value}")

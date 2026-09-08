@@ -167,6 +167,33 @@ namespace
         return false;
     }
 
+    // An explicit cast between two struct pointers is a move inside one composition: down to a
+    // type that composes the source, or up to one the source composes. The compiler sees the whole
+    // 'using' graph, so a pair with no path either way is not a descent at all - it reads one
+    // object as an unrelated one, and every field it then touches is at the wrong place.
+    Result explicitStructPointerCastIsUnrelated(Sema& sema, const CastRequest& castRequest, TypeRef srcPointeeTypeRef, TypeRef dstPointeeTypeRef, bool& outUnrelated)
+    {
+        outUnrelated = false;
+
+        const TypeManager& typeMgr    = sema.typeMgr();
+        const TypeRef      srcPointee = typeMgr.unwrapAliasEnumOrSelf(sema.ctx(), srcPointeeTypeRef);
+        const TypeRef      dstPointee = typeMgr.unwrapAliasEnumOrSelf(sema.ctx(), dstPointeeTypeRef);
+        if (!srcPointee.isValid() || !dstPointee.isValid() || srcPointee == dstPointee)
+            return Result::Continue;
+        if (!typeMgr.get(srcPointee).isStruct() || !typeMgr.get(dstPointee).isStruct())
+            return Result::Continue;
+
+        bool descends = false;
+        SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, dstPointee, srcPointee, descends));
+        if (descends)
+            return Result::Continue;
+
+        bool ascends = false;
+        SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, srcPointee, dstPointee, ascends));
+        outUnrelated = !ascends;
+        return Result::Continue;
+    }
+
     bool pointerPayloadShortcutMatches(const TypeManager& typeMgr, const TypeInfo& srcType, const TypeInfo& dstType)
     {
         return srcType.payloadTypeRef() == dstType.payloadTypeRef() ||
@@ -365,7 +392,12 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
     const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
     const bool payloadShortcut = pointerPayloadShortcutMatches(typeMgr, srcType, dstType);
-    if (payloadShortcut || castRequest.kind == CastKind::Explicit)
+
+    bool structsUnrelated = false;
+    if (castRequest.kind == CastKind::Explicit && !payloadShortcut)
+        SWC_RESULT(explicitStructPointerCastIsUnrelated(sema, castRequest, srcType.payloadTypeRef(), dstType.payloadTypeRef(), structsUnrelated));
+
+    if (!structsUnrelated && (payloadShortcut || castRequest.kind == CastKind::Explicit))
     {
         if (pointerKindsCompatibleWithLegacyPayloadShortcut(typeMgr, srcType, dstType, castRequest.kind))
         {
@@ -414,6 +446,9 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
             return Result::Continue;
         }
     }
+
+    if (structsUnrelated)
+        return castRequest.fail(DiagnosticId::sema_err_cast_unrelated_structs, srcTypeRef, dstTypeRef);
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }

@@ -317,7 +317,7 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
     }
 }
 
-private func dropTargetOf(itf: *IDropTarget)->*SurfaceDropTarget => cast(*SurfaceDropTarget) itf
+private func dropTargetOf(itf: *IDropTarget)->*SurfaceDropTarget => cast(*SurfaceDropTarget) cast(*void) itf
 
 private func comQueryInterface(itf: *IDropTarget, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
@@ -709,9 +709,9 @@ private var g_DropSourceVtbl: IDropSourceVtbl
 // Selects the outgoing direction of a format enumeration.
 private const DATADIR_GET = 1'u32
 
-private func dataObjectOf(itf: *IDataObject)->*DragDataObject    => cast(*DragDataObject) itf
-private func formatEnumOf(itf: *IEnumFORMATETC)->*DragFormatEnum => cast(*DragFormatEnum) itf
-private func dropSourceOf(itf: *IDropSource)->*DragDropSource    => cast(*DragDropSource) itf
+private func dataObjectOf(itf: *IDataObject)->*DragDataObject    => cast(*DragDataObject) cast(*void) itf
+private func formatEnumOf(itf: *IEnumFORMATETC)->*DragFormatEnum => cast(*DragFormatEnum) cast(*void) itf
+private func dropSourceOf(itf: *IDropSource)->*DragDropSource    => cast(*DragDropSource) cast(*void) itf
 
 private func srcQueryInterface(itf: *IDataObject, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
@@ -1229,13 +1229,13 @@ impl Wnd
         var session: DragSession
         session.setup(data, surface.app)
 
-        let dataObj = cast(*IDataObject) &session.dataObj
+        let dataObj = cast(*IDataObject) cast(*void) &session.dataObj
         let shown: const *Pixel.Image? = picture orelse data.image()
         if shown do
             attachDragImage(dataObj, shown!)
 
         var effect = DROPEFFECT_NONE
-        let result = DoDragDrop(dataObj, cast(*IDropSource) &session.dropSrc, fromDropEffect(allowed), &effect)
+        let result = DoDragDrop(dataObj, cast(*IDropSource) cast(*void) &session.dropSrc, fromDropEffect(allowed), &effect)
         if result != DRAGDROP_S_DROP do
             return .None
 
@@ -1275,7 +1275,7 @@ internal impl Surface
             return
 
         startOle()
-        if RegisterDragDrop(.hWnd, cast(*IDropTarget) target) != S_OK do
+        if RegisterDragDrop(.hWnd, cast(*IDropTarget) cast(*void) target) != S_OK do
             return
 
         .dropTargetActive = true

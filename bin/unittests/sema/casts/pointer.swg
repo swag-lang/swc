@@ -165,3 +165,37 @@ func semaTest018()
 
     #assert(#typeof(cstr) == cstring)
 }
+
+// A pointer cast between two structs is a move inside one composition. The compiler sees the
+// whole 'using' graph, so a pair with no path either way reads one object as an unrelated one.
+
+struct SemaCastBase    { a: s32 }
+struct SemaCastDerived { using base: SemaCastBase; b: s32 }
+struct SemaCastDeeper  { using derived: SemaCastDerived; c: s32 }
+struct SemaCastAlien   { x, y, z, w: s64 }
+
+func semaTestCastDescend(b: *SemaCastBase)->*SemaCastDeeper
+{
+    return cast(*SemaCastDeeper) b
+}
+
+func semaTestCastAscend(d: *SemaCastDeeper)->*SemaCastBase
+{
+    return cast(*SemaCastBase) d
+}
+
+// The deliberate reinterpretation stays available, and has to be spelled.
+func semaTestCastReinterpret(b: *SemaCastBase)->*SemaCastAlien
+{
+    return cast(*SemaCastAlien) cast(*void) b
+}
+
+func semaTestCastUnrelated(b: *SemaCastBase)->*SemaCastAlien
+{
+    return cast(*SemaCastAlien) b     // swc-expected-error {{sema_err_cast_unrelated_structs}}
+}
+
+func semaTestCastUnrelatedReverse(a: *SemaCastAlien)->*SemaCastDerived
+{
+    return cast(*SemaCastDerived) a     // swc-expected-error {{sema_err_cast_unrelated_structs}}
+}

@@ -109,7 +109,7 @@ impl XAudio2DriverNative
         {
             let safeMasteringVoice = .masteringVoice
             let destroyVoice       = safeMasteringVoice.vtbl.destroyVoice
-            destroyVoice(cast(*IXAudio2Voice) safeMasteringVoice)
+            destroyVoice(cast(*IXAudio2Voice) cast(*void) safeMasteringVoice)
             .masteringVoice = null
         }
 
@@ -137,7 +137,7 @@ impl XAudio2DriverNative
             return
         let safeMasteringVoice = .masteringVoice
         let setVolume          = safeMasteringVoice.vtbl.setVolume
-        let hr                 = setVolume(cast(*IXAudio2Voice) safeMasteringVoice, volume, 0)
+        let hr                 = setVolume(cast(*IXAudio2Voice) cast(*void) safeMasteringVoice, volume, 0)
         if hr != S_OK do
             fail SystemError{"setOutputVolume", errorID: hresultErrorId(hr)}
     }
@@ -149,7 +149,7 @@ impl XAudio2DriverNative
         var volume: f32
         let safeMasteringVoice = .masteringVoice
         let getVolume          = safeMasteringVoice.vtbl.getVolume
-        getVolume(cast(*IXAudio2Voice) safeMasteringVoice, &volume)
+        getVolume(cast(*IXAudio2Voice) cast(*void) safeMasteringVoice, &volume)
         return volume
     }
 }
@@ -266,7 +266,7 @@ impl Voice
         let safeHandle   = .handle
         let handle       = cast(*IXAudio2SourceVoice) safeHandle
         let destroyVoice = handle.vtbl.destroyVoice
-        destroyVoice(cast(*IXAudio2Voice) handle)
+        destroyVoice(cast(*IXAudio2Voice) cast(*void) handle)
         .handle = null
     }
 
@@ -354,7 +354,7 @@ internal impl Voice
         let handle     = cast(*IXAudio2SourceVoice) safeHandle
         let v          = Math.clamp(volume, 0, 1)
         let setVolume  = handle.vtbl.setVolume
-        let hr         = setVolume(cast(*IXAudio2Voice) handle, v, batchId)
+        let hr         = setVolume(cast(*IXAudio2Voice) cast(*void) handle, v, batchId)
         if hr != S_OK do
             fail SystemError{"setVolume", errorID: hresultErrorId(hr)}
     }
@@ -368,7 +368,7 @@ internal impl Voice
         let handle     = cast(*IXAudio2SourceVoice) safeHandle
         var volume: f32
         let getVolume  = handle.vtbl.getVolume
-        getVolume(cast(*IXAudio2Voice) handle, &volume)
+        getVolume(cast(*IXAudio2Voice) cast(*void) handle, &volume)
         return volume
     }
 
@@ -421,7 +421,7 @@ internal impl Voice
             {
                 let bus           = buses[i]
                 let safeBusHandle = bus.handle!
-                sfxSend[i].pOutputVoice = cast(*IXAudio2Voice) safeBusHandle
+                sfxSend[i].pOutputVoice = cast(*IXAudio2Voice) cast(*void) safeBusHandle
             }
 
             sfxSendList.sendCount = cast() count
@@ -432,7 +432,7 @@ internal impl Voice
         let safeHandle      = .handle!
         let handle          = cast(*IXAudio2SourceVoice) safeHandle
         let setOutputVoices = handle.vtbl.setOutputVoices
-        let hr              = setOutputVoices(cast(*IXAudio2Voice) handle, pSFXSEndList)
+        let hr              = setOutputVoices(cast(*IXAudio2Voice) cast(*void) handle, pSFXSEndList)
         if hr != S_OK do
             fail SystemError{"setOutputVoices", errorID: hresultErrorId(hr)}
     }
@@ -456,7 +456,7 @@ impl Bus
                 fail BadParameterError{"parent bus invalid"}
 
             let safeParentHandle = parent.handle
-            sfxSend.pOutputVoice  = cast(*IXAudio2Voice) safeParentHandle
+            sfxSend.pOutputVoice  = cast(*IXAudio2Voice) cast(*void) safeParentHandle
             sfxSendList.sendCount = 1
             sfxSendList.pSends    = &sfxSend
             pSFXSEndList          = &sfxSendList
@@ -478,7 +478,7 @@ impl Bus
         let safeHandle   = .handle
         let handle       = cast(*IXAudio2SubmixVoice) safeHandle
         let destroyVoice = handle.vtbl.destroyVoice
-        destroyVoice(cast(*IXAudio2Voice) handle)
+        destroyVoice(cast(*IXAudio2Voice) cast(*void) handle)
         .handle = null
     }
 }
@@ -494,7 +494,7 @@ internal impl Bus
         let handle     = cast(*IXAudio2SubmixVoice) safeHandle
         let v          = Math.clamp(volume, 0, 1)
         let setVolume  = handle.vtbl.setVolume
-        let hr         = setVolume(cast(*IXAudio2Voice) handle, v, batchId)
+        let hr         = setVolume(cast(*IXAudio2Voice) cast(*void) handle, v, batchId)
         if hr != S_OK do
             fail SystemError{"setVolume", errorID: hresultErrorId(hr)}
     }
@@ -508,7 +508,7 @@ internal impl Bus
         let handle     = cast(*IXAudio2SubmixVoice) safeHandle
         var volume: f32
         let getVolume  = handle.vtbl.getVolume
-        getVolume(cast(*IXAudio2Voice) handle, &volume)
+        getVolume(cast(*IXAudio2Voice) cast(*void) handle, &volume)
         return volume
     }
 }

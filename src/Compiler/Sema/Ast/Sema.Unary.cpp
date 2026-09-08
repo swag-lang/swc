@@ -170,7 +170,9 @@ namespace
             case TokenId::SymTilde:
                 return constantFoldTilde(sema, result, node, view);
             default:
-                return Result::Error; // This is ok
+                // Address and dereference operations still need their storage semantics,
+                // even when the operand has a constant value.
+                return Result::Continue;
         }
     }
 
@@ -402,6 +404,13 @@ namespace
 
         const TypeRef typeRef = takeAddressResultTypeRef(sema, view);
         sema.setType(sema.curNodeRef(), typeRef);
+        if (view.hasConstant())
+        {
+            // A scalar constant normally lowers to its value in a register. Taking its
+            // address needs persistent storage, just as an indexed constant array does.
+            const uint64_t address = ConstantHelpers::materializeConstantStorageAndGetAddress(sema, view);
+            sema.setConstant(sema.curNodeRef(), makePointerConstantRef(sema, typeRef, address));
+        }
 
         return Result::Continue;
     }
@@ -585,8 +594,11 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     {
         ConstantRef result;
         SWC_RESULT(constantFold(sema, result, opId, *this, view));
-        sema.setConstant(sema.curNodeRef(), result);
-        return Result::Continue;
+        if (result.isValid())
+        {
+            sema.setConstant(sema.curNodeRef(), result);
+            return Result::Continue;
+        }
     }
 
     switch (opId)

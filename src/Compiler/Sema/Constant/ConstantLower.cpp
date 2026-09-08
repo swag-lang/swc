@@ -412,7 +412,15 @@ namespace
             return Result::Continue;
         }
 
-        const auto srcPtr = pointerFromRawAddress<const void>(srcRawAddress);
+        const auto     srcPtr = pointerFromRawAddress<const void>(srcRawAddress);
+        DataSegmentRef targetRef;
+        if (srcPtr && !sema.cstMgr().resolveDataSegmentRef(targetRef, srcPtr))
+        {
+            // An explicitly cast integer address is already the runtime value.
+            // Only pointers into compiler-owned storage need a relocation.
+            dstPtr = srcRawAddress;
+            return Result::Continue;
+        }
         return relocateSegmentAddress(dstPtr, sema, segment, payload.baseOffset, srcPtr);
     }
 

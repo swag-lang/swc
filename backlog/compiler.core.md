@@ -6,6 +6,29 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.031 — Reject silent semantic failure before reporting success
+
+- Recorded: 2026-09-06 21:14
+- Updated: 2026-09-08 07:27 — fixed constant address lowering; the driver-level failure guard remains
+- Historical evidence: taking the address of immutable GUID locals made `Integration.run` fail
+  to produce machine code, while the corresponding script reported success with `0 mains`.
+  A standalone `let bytes: [2] u8 = [17, 29]; let ptr = &bytes` reproduced the same silent loss
+  inside a `#test`, without Win32 or imports.
+- Resolved source cause: unary constant folding returned `Result::Error` without a diagnostic
+  for address and dereference operators. Build 0.1.403 lets them reach their storage semantics
+  and materializes aligned constant storage with native pointer relocations and stable addresses.
+  [The native regression](../bin/unittests/native/operators/address_constant_storage.swg) covers
+  captured arrays and structures, scalar addresses, embedded pointers and repeated address use.
+  The reduced script now executes `1 main`, and the previously missing ChaCha20 test runs.
+- Remaining gap: these source regressions protect the unary path, but the command boundary has
+  no explicit protection against another semantic job returning an unreported error. The original
+  failure showed that checking only the successfully registered mains or tests can report success
+  after an enclosing function disappears.
+- Next: propagate failed semantic jobs to command status even when no source diagnostic was
+  emitted; test the driver boundary with an injected diagnostic-free failure and a declared main.
+- Complete when: that failure returns a nonzero exit status with an actionable report, and a
+  declared main or selected test cannot silently disappear from a successful run.
+
 ### compiler.core.034 — 'orelse' loses a strict interface alias when removing nullability
 
 - Recorded: 2026-09-07 21:16
@@ -65,26 +88,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   `SemaEscape::reportDeferredChecks` fixpoint, then reduce to a provider/consumer regression.
 - Complete when: repeated parallel provider rebuilds publish identical summaries and a consumer
   consistently observes the corresponding invalidation contract.
-
-### compiler.core.031 — Addressed immutable GUID values can silently stop lowering
-
-- Recorded: 2026-09-06 21:14
-- Found while: adding the Shell `IFileOperation` batch-rename integration test for Swag Vault.
-- Evidence: with compiler 0.1.390, local `let classId = Win32.GUID{...}` and
-  `let interfaceId = Win32.GUID{...}` passed by address to `Win32.CoCreateInstance` made the
-  Release application build report `Integration.run did not produce lowered machine code`.
-  Two identical six-worker runs failed. Giving those addressable GUID values `var` storage,
-  as existing COM consumers do, let the integration build complete.
-- Reduced probe: a `.swgs` file importing `core`, declaring those GUID values, and calling
-  `CoCreateInstance(&classId, null, Win32.CLSCTX_INPROC_SERVER, &interfaceId, &raw)` inside a
-  helper reached from `#main` reported success with `0 mains`. Removing that call and its
-  GUID declarations restored `1 main`. The probe still imports Win32 and has not yet been
-  reduced to a standalone language-suite case.
-- Next: reduce the address-of-immutable-aggregate path, locate the silent semantic or lowering
-  failure, and add a native-suite regression. The command boundary also needs to reject a main
-  body that disappears during compilation.
-- Complete when: this source either runs correctly or reports its actual source error, and a
-  declared main cannot silently disappear from a successful script run.
 
 ### compiler.core.024 — A JIT '#test' can silently compute a wrong value in a release run
 

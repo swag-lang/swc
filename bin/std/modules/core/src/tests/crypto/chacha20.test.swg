@@ -128,6 +128,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
 
 // Native partitions match the single-block definition, including unaligned buffers, tails,
 // exact in-place XOR and the final legal counter. Sentinels protect both ends of every view.
+#[Swag.TestTag("parallel")]
 #test
 {
     Swag.setWorkerCount(4)

@@ -265,8 +265,6 @@ impl Decoder
         var frameHasData        = false
         var currentFrame:   s32 = -1
 
-        var swc0: Time.Stopwatch
-        swc0.start()
         while !seenIEND
         {
             // Peek a chunk header only if it's not already done
@@ -453,7 +451,6 @@ impl Decoder
             firstChunk = false
         }
 
-        Console.println("  chunks us=", swc0.elapsedMicroseconds())
         if !seenIDAT do
             fail InvalidFormatError{"missing IDAT chunk"}
         if .header.colorType & .Paletted and !.seenPLTE do
@@ -495,8 +492,6 @@ impl Decoder
 
         // Allocate destination: defilter directly into result pixels when channels match
         // to avoid an extra full-image allocation and memcpy
-        var swp: Time.Stopwatch
-        swp.start()
         let bytesPerSample = .header.bitDepth == 16 ? 2'u64 : 1'u64
         .dstPixelsSize = cast(u64) .header.width * .header.height * .inChannels * bytesPerSample
         var ownsDestination = false
@@ -517,28 +512,20 @@ impl Decoder
             ownsDestination = true
         }
 
-        Console.println("  alloc1 us=", swp.elapsedMicroseconds())
-
         // deflate content; hint the expected decompressed size to avoid realloc churn
-        swp.restart()
         var dec: Compress.ZLib
         let hintSize = (.getStrideIn(.header.width) + 1) * .header.height
         .dcmpBuf = dec.decompress(iDataBuf.toSlice(), hintSize)
-        Console.println("  inflate us=", swp.elapsedMicroseconds())
 
         // defilter content
-        swp.restart()
         .defilter()
-        Console.println("  defilter us=", swp.elapsedMicroseconds())
 
         // Channels match: result.pixels was already populated directly by defilter
         if .header.bitDepth == 8 and .inChannels == .outChannels do
             return result
 
-        swp.restart()
         result.allocPixels()
         .convert(&result)
-        Console.println("  convert us=", swp.elapsedMicroseconds())
         return result
     }
 }

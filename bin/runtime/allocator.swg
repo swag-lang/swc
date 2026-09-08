@@ -763,7 +763,7 @@ impl Allocator
     }
 
     // Serves a cached operating-system block of exactly 'size' bytes, or null.
-    mtd popCachedBlock(size: u64)->#null [*] u8
+    mtd popCachedBlock(size: u64)->[*] u8?
     {
         if .cachedBlockCount == 0 do
             return null
@@ -797,7 +797,7 @@ impl Allocator
     // Keeps a freed operating-system block committed for reuse. Beyond the budget the
     // oldest cached blocks go back to the operating system first, so the resident cost
     // of the cache stays bounded whatever the churn.
-    mtd cacheFreedBlock(address: #null [*] void, size: u64)
+    mtd cacheFreedBlock(address: [*] void?, size: u64)
     {
         if !address do
             return

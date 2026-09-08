@@ -46,6 +46,28 @@ instead. It applies to the accepted kernels as much as to the discarded ones: ev
 inside that window has to be re-baselined before it is trusted, and the entries below name their
 own. Work dated before the window used the raw `Swag.vec*` intrinsics directly and is unaffected.
 
+### cpu.simd.018 — The Argon2 permutation remains scalar
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-08 06:30 — added the native lane-scaling baseline for future packed-kernel comparisons
+- Intent: vectorize block XOR, BlaMka compression, row/column permutation, and final reduction while
+  retaining Argon2id's exact memory-index and synchronization semantics.
+- Evidence (2026-08-20): on eight Argon2id derivations at 4 MiB, three passes, and four lanes, the
+  scalar Release kernel measured 104,661 us. Explicit `U64x2` block XOR measured 107,969 us (3.2%
+  slower) and was reverted. A trial `u32 x u32 -> u64` low-half product lowered directly to
+  `pmuludq` made paired BlaMka exact, but the best eight-vector row/column layout measured 180,000
+  us (72% slower); a sixteen-vector layout measured 190,313 us. The intrinsic, API, and kernel were
+  all reverted because the lane regrouping and state materialization erased the paired arithmetic
+  gain. Revisit only with a lowering that keeps the eight-word state in registers across both G
+  halves and performs the two-source 64-bit lane regroup without scalar extraction, or with a
+  wider layout that amortizes that regrouping; the low-half multiply alone is not a useful feature.
+- Complete when: published vectors pass for all supported parameters and profile benchmarks isolate
+  the packed kernel gain from independent-lane parallelism.
+- Baseline: independent lanes now use native `parallel for`. The focused
+  [lane-scaling benchmark](../bench/argon2/README.md) holds the scalar compression kernel fixed
+  and compares one with four workers at 64 and 256 MiB. Keep that worker count fixed when
+  measuring a future packed kernel.
+
 ### cpu.simd.006 — Vector tails require scalar cleanup
 
 - Recorded: 2026-08-20 08:56
@@ -376,25 +398,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 - Complete when: specialization is compile-time selected, unsupported shapes remain scalar, and
   generated-code tests prove no hidden conversion or temporary array.
 - Related: cpu.simd.002, cpu.simd.004.
-
-### cpu.simd.018 — The Argon2 permutation remains scalar
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Intent: vectorize block XOR, BlaMka compression, row/column permutation, and final reduction while
-  retaining Argon2id's exact memory-index and synchronization semantics.
-- Evidence (2026-08-20): on eight Argon2id derivations at 4 MiB, three passes, and four lanes, the
-  scalar Release kernel measured 104,661 us. Explicit `U64x2` block XOR measured 107,969 us (3.2%
-  slower) and was reverted. A trial `u32 x u32 -> u64` low-half product lowered directly to
-  `pmuludq` made paired BlaMka exact, but the best eight-vector row/column layout measured 180,000
-  us (72% slower); a sixteen-vector layout measured 190,313 us. The intrinsic, API, and kernel were
-  all reverted because the lane regrouping and state materialization erased the paired arithmetic
-  gain. Revisit only with a lowering that keeps the eight-word state in registers across both G
-  halves and performs the two-source 64-bit lane regroup without scalar extraction, or with a
-  wider layout that amortizes that regrouping; the low-half multiply alone is not a useful feature.
-- Complete when: published vectors pass for all supported parameters and profile benchmarks isolate
-  the packed kernel gain from independent-lane parallelism.
-- Related: std.core.009 in [std.core.md](std.core.md).
 
 ### cpu.simd.020 — Poly1305 remains scalar
 

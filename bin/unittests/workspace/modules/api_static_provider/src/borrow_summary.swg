@@ -90,6 +90,6 @@ func depBorrowReleaseCarrier(carrier: *DepBorrowCarrier)
 {
     var req: Swag.AllocatorRequest
     req.address = carrier
-    req.size = #sizeof(DepBorrowCarrier)
+    req.size    = #sizeof(DepBorrowCarrier)
     Swag.getContext().allocator!.free(&req)
 }

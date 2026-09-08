@@ -234,7 +234,7 @@ namespace
             DocApi::collectSymbolTree(symbols, seen, *importedModule->asSymMap());
             for (const Symbol* symbol : symbols)
             {
-                if (!symbol || !DocApi::itemKind(*symbol).has_value() || DocApi::isAnonymousAggregateSymbol(*symbol) || DocApi::isInCompilerGeneratedScope(ctx, *symbol))
+                if (!symbol || !DocApi::itemKind(*symbol).has_value() || DocApi::hasNoDocAttribute(*symbol) || DocApi::isAnonymousAggregateSymbol(*symbol) || DocApi::isInCompilerGeneratedScope(ctx, *symbol))
                     continue;
 
                 const Utf8 fullName = symbol->getFullScopedName(ctx);

@@ -15,7 +15,7 @@ func release(ptr: *void, size: u64)
 {
     var req: AllocatorRequest
     req.address = ptr
-    req.size = size
+    req.size    = size
     Swag.getContext().allocator!.free(&req)
 }
 
@@ -51,7 +51,7 @@ func identityWrapped(target: *s32)->*s32
 #test
 {
     var value: s32 = 42
-    let carrier = create(&value)
+    let carrier    = create(&value)
     Swag.assert(carrier.target[] == 42)
     release(carrier, #sizeof(Carrier))
     Swag.assert(value == 42)
@@ -60,7 +60,7 @@ func identityWrapped(target: *s32)->*s32
 #test
 {
     var value: s32 = 17
-    let carrier = createWrapped(&value)
+    let carrier    = createWrapped(&value)
     Swag.assert(carrier.target[] == 17)
     release(carrier, #sizeof(Carrier))
     Swag.assert(value == 17)
@@ -70,7 +70,7 @@ func identityWrapped(target: *s32)->*s32
 #test
 {
     var value: s32 = 9
-    let carrier = cast(*Carrier) allocate(#sizeof(Carrier))
+    let carrier    = cast(*Carrier) allocate(#sizeof(Carrier))
     carrier.target = &value
     release(carrier, #sizeof(Carrier))
     Swag.assert(value == 9)
@@ -80,12 +80,21 @@ func identityWrapped(target: *s32)->*s32
 func rejectReleaseAlias()
 {
     var value: s32
-    release(identityWrapped(&value), #sizeof(s32)) // swc-expected-error {{sanity_err_free_borrowed}}
+    let borrowed = identityWrapped(&value)
+    release(borrowed, #sizeof(s32))     // swc-expected-error {{sanity_err_free_borrowed}}
+}
+
+func rejectReleaseCarrierTarget()
+{
+    var value: s32
+    let carrier = cast(*Carrier) allocate(#sizeof(Carrier))
+    carrier.target = &value
+    release(carrier.target, #sizeof(s32))     // swc-expected-error {{sanity_err_free_borrowed}}
 }
 
 // Separate allocation changes the release rule, but keeps the lifetime dependency.
 func rejectEscapingCarrier()->*Carrier
 {
     var value: s32
-    return createWrapped(&value) // swc-expected-error {{sanity_err_borrow_escape}}
+    return createWrapped(&value)     // swc-expected-error {{sanity_err_borrow_escape}}
 }

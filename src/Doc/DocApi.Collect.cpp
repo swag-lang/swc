@@ -751,6 +751,16 @@ void DocApi::collectSymbolTree(std::vector<const Symbol*>& outSymbols, std::unor
         outSymbols.push_back(symbol);
         if (symbol->isSymMap())
             collectSymbolTree(outSymbols, seen, *symbol->asSymMap());
+        // Runtime and generic methods can remain declarations until a caller needs
+        // their bodies. They still belong to the documented type's public surface.
+        if (const auto* symbolStruct = symbol->safeCast<SymbolStruct>())
+        {
+            for (const SymbolFunction* method : symbolStruct->declaredMethods())
+            {
+                if (method && seen.insert(method).second)
+                    outSymbols.push_back(method);
+            }
+        }
     }
 }
 

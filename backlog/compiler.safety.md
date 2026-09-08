@@ -42,6 +42,29 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.023 — Opaque results lose borrow provenance in nested calls and pointer-field reads
+
+- Recorded: 2026-09-08 20:48
+- Area: compiler/sema, `SemaEscape`
+- Evidence: while reducing the GUI timer release false positive, two additional diagnostic
+  coverage limits were confirmed with `swc.dm` 0.1.417 in `release`. With an opaque identity
+  helper, `let p = identity(&local); release(p)` raises `sanity_err_free_borrowed`, but
+  `release(identity(&local))` does not. With an opaque factory returning a heap carrier whose
+  `target` field holds `&local`, `release(carrier.target)` also stays silent. These were
+  semantic-only helper bodies, not executed invalid frees. The supported neighboring forms
+  are protected by `bin/unittests/sanity/borrow_free_carrier.swg`.
+- Cause: `callResultEscapeInfo` returns no immediate provenance; deferred snapshots are bound
+  at selected uses, including local initialization, but not composed for a nested call argument.
+  The member-access walker deliberately drops a copied pointer field's enclosing borrow: that
+  field need not alias the container. A factory's return-borrow mask says which parameters the
+  result can reach, but cannot identify the field carrying each parameter.
+- Next: compose deferred snapshots for nested arguments with bounded expression traversal, and
+  design returned-field provenance before extending pointer-field diagnostics. Preserve the
+  distinction between freeing a separate carrier and freeing the borrowed target; test a carrier
+  with both a borrowed field and an independently allocated field, through generated module APIs.
+- Complete when: both forms above are rejected without diagnosing releases of independently
+  allocated fields, and the focused sanity and workspace regressions pass with measured cost.
+
 ### compiler.safety.022 — A COM object's ABI header is held first by a comment, not by the language
 
 - Recorded: 2026-09-08 18:59

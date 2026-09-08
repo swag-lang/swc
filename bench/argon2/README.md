@@ -26,3 +26,15 @@ Measured 2026-09-08 06:30 on an Intel Core Ultra 9 185H, using the DevMode compi
 
 To evaluate a future SIMD kernel, compare it at the same worker count. Changing lane count
 changes the derived key and is not a sequential baseline.
+
+After moving small-work decisions into the runtime on 2026-09-08, the same benchmark body
+ran from a standalone native entry with assertions enabled, admitted at 3% average CPU:
+
+| Memory | One-worker samples (us) | Four-worker samples (us) | Median speedup |
+| --- | --- | --- | --- |
+| 64 MiB | 190966, 195349, 200563 | 70079, 72993, 79346 | 2.68x |
+| 256 MiB | 829440, 822876, 840635 | 307849, 301276, 321023 | 2.69x |
+
+The runtime still distributes these expensive four-iteration ranges. Argon2 no longer needs
+its own segment-length threshold; one-lane work stays local through the runtime's single-index
+fast path. As with the earlier samples, the runs are local evidence rather than a pinned campaign.

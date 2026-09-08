@@ -32,6 +32,7 @@ not the discovery.
 ### compiler.command.doc.008 — The runtime page links to API entries it does not emit
 
 - Recorded: 2026-09-07 21:16
+- Updated: 2026-09-08 10:36 — adaptive runtime profiling confirms private declarations leak into the page
 - Found during prompt 7 after `tools/web.swgs dm --num-cores 6` regenerated the complete site.
 - Evidence: the API HTML audit reports nine missing targets in `web/swag.runtime.html`:
   `Swag_AtomicFlag_reset`, `Swag_Condition_wait`, `Swag_ParallelChunk`, `Swag_Scheduler`,
@@ -40,6 +41,10 @@ not the discovery.
   for example `AtomicFlag` links to its `reset` method and `Task` links to `submit` and `wait`.
   The generated page also publishes a `private func runParallelChunk` signature whose parameter
   links to an absent `ParallelChunk` entry. These declarations are present in the runtime sources.
+- A further full regeneration after adaptive parallel-loop profiling still reports the same nine
+  missing anchors and now also emits the private `ParallelProfile`, `parallelProfile`, and
+  `recordParallelCost` declarations. The source visibility is explicit; the generated HTML has
+  not been patched to hide the collection defect.
 - Next: reconcile runtime collection and effective visibility with the intended public runtime
   surface. Inspect the missing method entries and the exposed private helper together, then make
   reference generation respect the emitted target set. Do not hide the mismatch by hand-editing HTML.

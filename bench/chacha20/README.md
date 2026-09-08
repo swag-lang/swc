@@ -12,8 +12,8 @@ calls at the stated message size. Pool startup, buffer allocation, warm-up and b
 are outside the timer. Every output must match the one-worker result.
 
 The one-worker measurements precede the four-worker measurements because the pool can grow but
-cannot shrink. These are local samples, not an interleaved performance campaign. The two sizes
-below 64 KiB exercise the unchanged sequential path and help expose machine drift.
+cannot shrink. These are local samples, not an interleaved performance campaign. In the original
+implementation, the two sizes below 64 KiB exercised a forced sequential path.
 
 Measured 2026-09-08 on an Intel Core Ultra 9 185H, using `swc.dm.exe` and the `release`
 program configuration:
@@ -28,3 +28,18 @@ program configuration:
 
 ChaCha20-Poly1305 uses this path for encryption and authenticated decryption. Its sequential
 authentication cost is not included in these measurements; the ratios are for ChaCha20 XOR only.
+
+After replacing the 64 KiB gate with runtime cost hints on 2026-09-08, the same body ran from
+a standalone native entry with assertions enabled, admitted at 2% average CPU:
+
+| Message bytes | One-worker median (us) | Four-worker median (us) | Median speedup |
+| --- | --- | --- | --- |
+| 16384 | 27926 | 16029 | 1.74x |
+| 65535 | 28099 | 10569 | 2.66x |
+| 65536 | 28556 | 10202 | 2.80x |
+| 262144 | 28133 | 9226 | 3.05x |
+| 4194304 | 28021 | 8259 | 3.39x |
+
+The runtime can now use workers below the old byte threshold when the actual kernel cost
+justifies them. The sequential controls also improved substantially between the two measurement
+sessions, so their absolute before/after ratios do not isolate the runtime change.

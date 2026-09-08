@@ -8,6 +8,14 @@ pool and returns when every one of them has finished. It is the language form
 of independent work: the body must produce the same result whatever order the
 indices run in and whichever thread runs them.
 
+The runtime adapts the number of partitions to observed iteration cost. Short
+work can stay entirely on the calling thread, even when workers exist. An
+unknown loop can execute an initial iteration before distributing the rest;
+later calls reuse and periodically refresh the cost estimate. This is a
+scheduling hint, not a time bound: changing inputs and uneven iteration costs
+can change which execution plan is useful. Every iteration still runs once,
+and the statement still waits for all accepted work before returning.
+
 The calling thread can execute the partition it is joining, including work
 that partition explicitly joins in turn. It does not drain unrelated tasks
 from the pool during the join. A partition that needs a lock held by its

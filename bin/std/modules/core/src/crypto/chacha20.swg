@@ -171,35 +171,23 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
     if blockCount and blockCount - 1 > Swag.U32.Max - initialCounter do
         fail Errors.OverflowError{"ChaCha20 input exceeds the counter range"}
 
-    var offset  = 0'u64
+    let batches = source.count / (4 * ChaCha20BlockSize)
+
+    // Each group owns four complete destination blocks and its key-stream scratch.
+    // The key and nonce remain read-only; exact in-place XOR stays inside that group.
+    parallel for |&key, &nonce, &source, &destination, initialCounter| batch in batches
+    {
+        let start = batch * 4 * ChaCha20BlockSize
+        let first = initialCounter + cast(u32) (batch * 4)
+        chacha20XorFour(key, nonce, first, source.buffer + start, destination.buffer + start)
+    }
+
+    var offset  = batches * 4 * ChaCha20BlockSize
     var counter = initialCounter
-    if source.count >= 64 * 1024
-    {
-        let batches = source.count / (4 * ChaCha20BlockSize)
 
-        // Each group owns four complete destination blocks and its key-stream scratch.
-        // The key and nonce remain read-only; exact in-place XOR stays inside that group.
-        parallel for |&key, &nonce, &source, &destination, initialCounter| batch in batches
-        {
-            let start = batch * 4 * ChaCha20BlockSize
-            let first = initialCounter + cast(u32) (batch * 4)
-            chacha20XorFour(key, nonce, first, source.buffer + start, destination.buffer + start)
-        }
-
-        offset = batches * 4 * ChaCha20BlockSize
-
-        // The last legal counter need not have a successor when there is no tail.
-        if offset < source.count do
-            counter += cast(u32) (batches * 4)
-    }
-
-    while source.count - offset >= 4 * ChaCha20BlockSize
-    {
-        chacha20XorFour(key, nonce, counter, source.buffer + offset, destination.buffer + offset)
-        offset += 4 * ChaCha20BlockSize
-        if offset < source.count do
-            counter += 4
-    }
+    // The last legal counter need not have a successor when there is no tail.
+    if offset < source.count do
+        counter += cast(u32) (batches * 4)
 
     while offset < source.count
     {

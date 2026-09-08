@@ -364,20 +364,10 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     {
         for slice in Argon2SyncPoints
         {
-            // Small segments cost less than a pool submission. Keep one-lane derivations
-            // local too, without starting workers just to discover there is nothing to split.
-            if lanes == 1 or segmentLength < 32
-            {
-                for lane in lanes do
-                    fillSegment(blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice, lane)
-            }
-            else
-            {
-                // The structured join is Argon2's slice boundary. No worker waits on a
-                // sibling, and the owning memory stays alive until every lane is finished.
-                parallel for |blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice| lane in lanes do
-                    fillSegment(blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice, lane)
-            }
+            // The structured join is Argon2's slice boundary. No worker waits on a
+            // sibling, and the owning memory stays alive until every lane is finished.
+            parallel for |blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice| lane in lanes do
+                fillSegment(blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice, lane)
         }
     }
 

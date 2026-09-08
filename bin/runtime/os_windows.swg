@@ -86,6 +86,8 @@ namespace __Win32RT
         func SwitchToThread()->BOOL
         func Sleep(dwMilliseconds: DWORD)
         func GetActiveProcessorCount(groupNumber: USHORT)->DWORD
+        func QueryPerformanceCounter(counter: *s64)->s32
+        func QueryPerformanceFrequency(frequency: *s64)->s32
         func GetCurrentProcessId()->DWORD
         func GetLastError()->DWORD
         func TryAcquireSRWLockExclusive(SRWLock: *SRWLOCK)->BOOL
@@ -173,6 +175,22 @@ func __hostProcessorCount()->u32
 {
     let count = __Win32RT.GetActiveProcessorCount(__Win32RT.ALL_PROCESSOR_GROUPS)
     return count == 0 ? 1 : count
+}
+
+// Reads the monotonic host counter without wall-clock adjustments.
+func __hostMonotonicTicks()->u64
+{
+    var counter: s64
+    discard __Win32RT.QueryPerformanceCounter(&counter)
+    return cast(u64) counter
+}
+
+// Returns the number of monotonic host ticks per second.
+func __hostMonotonicFrequency()->u64
+{
+    var frequency: s64
+    discard __Win32RT.QueryPerformanceFrequency(&frequency)
+    return cast(u64) frequency
 }
 
 ////////////////////////////////////////////////////////////

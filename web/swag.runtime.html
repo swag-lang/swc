@@ -52,7 +52,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">66</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">67</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#BootstrapAllocationHeader">BootstrapAllocationHeader</a></li>
@@ -98,6 +98,7 @@
 <li><a href="#Swag_Interface">Swag.Interface</a></li>
 <li><a href="#Swag_Module">Swag.Module</a></li>
 <li><a href="#Swag_Mutex">Swag.Mutex</a></li>
+<li><a href="#Swag_ParallelProfile">Swag.ParallelProfile</a></li>
 <li><a href="#Swag_ProcessInfos">Swag.ProcessInfos</a></li>
 <li><a href="#Swag_RWLock">Swag.RWLock</a></li>
 <li><a href="#Swag_ScratchAllocator">Swag.ScratchAllocator</a></li>
@@ -226,7 +227,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">183</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">185</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Swag_IAllocator_alloc">IAllocator.alloc</a></li>
@@ -336,6 +337,7 @@
 <li><a href="#Swag_Pack">Swag.Pack</a></li>
 <li><a href="#Swag_panic">Swag.panic</a></li>
 <li><a href="#Swag_parallelChunkEntry">Swag.parallelChunkEntry</a></li>
+<li><a href="#Swag_parallelProfile">Swag.parallelProfile</a></li>
 <li><a href="#Swag_PlaceHolder">Swag.PlaceHolder</a></li>
 <li><a href="#Swag_popWork">Swag.popWork</a></li>
 <li><a href="#Swag_pow">Swag.pow</a></li>
@@ -343,6 +345,7 @@
 <li><a href="#Swag_PrintAst">Swag.PrintAst</a></li>
 <li><a href="#Swag_PrintMicro">Swag.PrintMicro</a></li>
 <li><a href="#Swag_processInfos">Swag.processInfos</a></li>
+<li><a href="#Swag_recordParallelCost">Swag.recordParallelCost</a></li>
 <li><a href="#Swag_releaseAllocatorThreadCache">Swag.releaseAllocatorThreadCache</a></li>
 <li><a href="#Swag_retireAllocatorThreadHeap">Swag.retireAllocatorThreadHeap</a></li>
 <li><a href="#Swag_rol">Swag.rol</a></li>
@@ -508,6 +511,7 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Mutex">Swag.Mutex</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Mutual exclusion over the state a program keeps beside it.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_ParallelProfile">Swag.ParallelProfile</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_ProcessInfos">Swag.ProcessInfos</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Defined some information about the current process</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_RWLock">Swag.RWLock</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A lock that admits either one writer or any number of concurrent readers.</p>
@@ -869,6 +873,7 @@
 <tr><td class="code-type"><a href="#Swag_panic">Swag.panic</a></td><td><p>Stop the execution and panic</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_parallelChunkEntry">Swag.parallelChunkEntry</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_parallelProfile">Swag.parallelProfile</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_PlaceHolder">Swag.PlaceHolder</a></td><td><p>An empty function will be generated</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_popWork">Swag.popWork</a></td><td><p>Claims the requested ready node, or the stack head when no target was supplied.</p>
@@ -882,6 +887,7 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_processInfos">Swag.processInfos</a></td><td><p>Get information about the current process.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_recordParallelCost">Swag.recordParallelCost</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_releaseAllocatorThreadCache">Swag.releaseAllocatorThreadCache</a></td><td><p>Gives the calling thread's pages back without waiting for the thread to exit.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_retireAllocatorThreadHeap">Swag.retireAllocatorThreadHeap</a></td><td></td></tr>
@@ -1077,6 +1083,7 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Mutex">Swag.Mutex</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Mutual exclusion over the state a program keeps beside it.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_ParallelProfile">Swag.ParallelProfile</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_ProcessInfos">Swag.ProcessInfos</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Defined some information about the current process</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_RWLock">Swag.RWLock</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A lock that admits either one writer or any number of concurrent readers.</p>
@@ -1301,6 +1308,7 @@
 <tr><td class="code-type"><a href="#Swag_Pack">Swag.Pack</a></td><td><p><span class="code-inline">struct</span> packing information</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_parallelChunkEntry">Swag.parallelChunkEntry</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Swag_parallelProfile">Swag.parallelProfile</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_PlaceHolder">Swag.PlaceHolder</a></td><td><p>An empty function will be generated</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_popWork">Swag.popWork</a></td><td><p>Claims the requested ready node, or the stack head when no target was supplied.</p>
@@ -1309,6 +1317,7 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_PrintMicro">Swag.PrintMicro</a></td><td><p>On a function or a struct, this prints generated micro instructions.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_recordParallelCost">Swag.recordParallelCost</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_releaseAllocatorThreadCache">Swag.releaseAllocatorThreadCache</a></td><td><p>Gives the calling thread's pages back without waiting for the thread to exit.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_retireAllocatorThreadHeap">Swag.retireAllocatorThreadHeap</a></td><td></td></tr>
@@ -2083,6 +2092,10 @@ mutex.<span class="SFct">unlock</span>()</span></div>
 <p>Mutual exclusion over the state a program keeps beside it.</p>
 <p>A zero-initialized value is a free lock, so a <span class="code-inline">Mutex</span> needs no construction and can be a global. The lock is neither recursive nor fair: a thread that locks twice deadlocks, and a waiter has no ordering guarantee. The value must stay at one address while another thread can reach it, so it must not be copied or moved once anything can lock it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_Mutex">Mutex</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Swag_ParallelProfile" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.ParallelProfile</span> <a class="api-item-permalink" href="#Swag_ParallelProfile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L4">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_ParallelProfile">ParallelProfile</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Swag_ProcessInfos" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.ProcessInfos</span> <a class="api-item-permalink" href="#Swag_ProcessInfos" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L419">src</a></div>
@@ -3016,7 +3029,7 @@ task.<span class="SFct">wait</span>()</span></div>
 </table>
 <h3 id="constants">Constants</h3>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="AllocatorHostCommitGranularity" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">AllocatorHostCommitGranularity</span> <a class="api-item-permalink" href="#AllocatorHostCommitGranularity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/os_windows.swg#L111">src</a></div>
+<div class="api-item api-item-const"><span id="AllocatorHostCommitGranularity" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">AllocatorHostCommitGranularity</span> <a class="api-item-permalink" href="#AllocatorHostCommitGranularity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/os_windows.swg#L113">src</a></div>
 <p>Windows implementation of the host primitives used by common allocator and TLS policy.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#AllocatorHostCommitGranularity">AllocatorHostCommitGranularity</a></span> = <span class="SNum">4096</span>'<span class="STpe">u64</span></span></div>
 </section>
@@ -4029,8 +4042,12 @@ task.<span class="SFct">wait</span>()</span></div>
 <span class="SKwd">func</span> <span class="SFct">panic</span>(message: <span class="STpe">string</span>?, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_parallelChunkEntry" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.parallelChunkEntry</span> <a class="api-item-permalink" href="#Swag_parallelChunkEntry" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L69">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_parallelChunkEntry" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.parallelChunkEntry</span> <a class="api-item-permalink" href="#Swag_parallelChunkEntry" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L154">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">parallelChunkEntry</span>(node: *<span class="SCst"><a href="swag.runtime.html#Swag_WorkNode">WorkNode</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_parallelProfile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.parallelProfile</span> <a class="api-item-permalink" href="#Swag_parallelProfile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L16">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">parallelProfile</span>(entry: <span class="STpe">u64</span>)-&gt;*<span class="SCst"><a href="#Swag_ParallelProfile">ParallelProfile</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_PlaceHolder" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.PlaceHolder</span> <a class="api-item-permalink" href="#Swag_PlaceHolder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L71">src</a></div>
@@ -4073,6 +4090,10 @@ task.<span class="SFct">wait</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">processInfos</span>()-&gt;*<span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_ProcessInfos">ProcessInfos</a></span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_recordParallelCost" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.recordParallelCost</span> <a class="api-item-permalink" href="#Swag_recordParallelCost" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L27">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">recordParallelCost</span>(profile: *<span class="SCst"><a href="#Swag_ParallelProfile">ParallelProfile</a></span>, count, elapsed: <span class="STpe">u64</span>)</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_releaseAllocatorThreadCache" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.releaseAllocatorThreadCache</span> <a class="api-item-permalink" href="#Swag_releaseAllocatorThreadCache" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L1392">src</a></div>
 <p>Gives the calling thread's pages back without waiting for the thread to exit.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">releaseAllocatorThreadCache</span>()</span></div>
@@ -4113,7 +4134,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">round</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_runParallelChunk" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.runParallelChunk</span> <a class="api-item-permalink" href="#Swag_runParallelChunk" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L74">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_runParallelChunk" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.runParallelChunk</span> <a class="api-item-permalink" href="#Swag_runParallelChunk" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L159">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">runParallelChunk</span>(chunk: *<span class="SCst"><a href="swag.runtime.html#Swag_ParallelChunk">ParallelChunk</a></span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -4620,7 +4641,7 @@ task.<span class="SFct">wait</span>()</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.403</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.404</div>
 </footer>
 </section>
 </main>
@@ -5046,6 +5067,7 @@ task.<span class="SFct">wait</span>()</span></div>
 "v|Swag.Module.name|Swag_Module_name|Name of the module",
 "v|Swag.Module.types|Swag_Module_types|All exported types",
 "s|Swag.Mutex|Swag_Mutex|Mutual exclusion over the state a program keeps beside it.",
+"s|Swag.ParallelProfile|Swag_ParallelProfile|",
 "s|Swag.ProcessInfos|Swag_ProcessInfos|Defined some information about the current process",
 "v|Swag.ProcessInfos.args|Swag_ProcessInfos_args|The application arguments, as returned by Swag.args.",
 "v|Swag.ProcessInfos.modules|Swag_ProcessInfos_modules|The list of all modules",
@@ -5540,10 +5562,12 @@ task.<span class="SFct">wait</span>()</span></div>
 "f|Swag.osReserve|Swag_osReserve|Reserves address space without committing it. The reservation is over-sized so a",
 "f|Swag.panic|Swag_panic|Stop the execution and panic",
 "f|Swag.parallelChunkEntry|Swag_parallelChunkEntry|",
+"f|Swag.parallelProfile|Swag_parallelProfile|",
 "f|Swag.popWork|Swag_popWork|Claims the requested ready node, or the stack head when no target was supplied.",
 "f|Swag.pow|Swag_pow|",
 "f|Swag.print|Swag_print|Basic print to console function",
 "f|Swag.processInfos|Swag_processInfos|Get information about the current process.",
+"f|Swag.recordParallelCost|Swag_recordParallelCost|",
 "f|Swag.releaseAllocatorThreadCache|Swag_releaseAllocatorThreadCache|Gives the calling thread's pages back without waiting for the thread to exit.",
 "f|Swag.retireAllocatorThreadHeap|Swag_retireAllocatorThreadHeap|",
 "f|Swag.rol|Swag_rol|Rotate bits left",

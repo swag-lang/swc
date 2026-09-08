@@ -1085,17 +1085,17 @@ namespace
         }
         const bool hasImplicitStructConstInit = implicitStructZeroInit || implicitStructCstRef.isValid();
 
-        // A struct local declared without an initializer owns a value either way: the type's
+        // A struct or array local declared without an initializer owns a value either way: the type's
         // implicit default fills it here, or definite assignment proves every path writes it
         // before a read. Either way its storage participates in scope drops exactly like an
         // explicitly initialized one, so it carries the same flag.
-        const bool implicitStructVarInit = context.nodeInitRef.isInvalid() &&
-                                           !isParameter &&
-                                           explicitTypeRef.isValid() &&
-                                           explicitType &&
-                                           explicitType->isStruct() &&
-                                           !directSelfStructField;
-        const bool hasImplicitStructVarInit = hasImplicitStructConstInit || implicitStructVarInit;
+        const bool implicitAggregateVarInit = context.nodeInitRef.isInvalid() &&
+                                              !isParameter &&
+                                              explicitTypeRef.isValid() &&
+                                              explicitType &&
+                                              (explicitType->isStruct() || explicitType->isArray()) &&
+                                              !directSelfStructField;
+        const bool hasImplicitAggregateVarInit = hasImplicitStructConstInit || implicitAggregateVarInit;
 
         // Constant
         if (isConst)
@@ -1148,7 +1148,7 @@ namespace
             }
         }
 
-        if (context.nodeInitRef.isValid() || hasImplicitStructVarInit)
+        if (context.nodeInitRef.isValid() || hasImplicitAggregateVarInit)
         {
             for (Symbol* s : symbols)
             {

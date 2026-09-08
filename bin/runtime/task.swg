@@ -4,8 +4,16 @@
 //
 // A task owns the closure it runs. Everything that closure reaches by address -- an `&` capture,
 // a borrowed buffer, the task value itself -- must stay alive until the task is observed
-// finished, which is what [[Swag.Task.wait]] establishes. A task cannot be copied: the runtime
-// borrows its storage while the work is in flight.
+// finished, which is what [[Swag.Task.wait]] establishes. Destruction also waits, including on
+// an early return or a raised error. A task cannot be copied: the runtime borrows its storage
+// while the work is in flight.
+//
+// Captured storage must outlive that wait. Declare borrowed locals before the task; an owner
+// with a task field must still wait before its own cleanup releases anything the task borrows.
+// Waiting, including during destruction, must not hold a lock the task needs or wait on itself.
+//
+// The body has its own error state: a joining caller's handled or pending error does not decide
+// the body's `defer #fail` or `defer #nofail`. A handled child error leaves the caller's error intact.
 //
 // A process with no worker thread runs the work inside [[Swag.Task.submit]], so a submitted task
 // always reaches its end; only the thread that runs it changes.
@@ -31,10 +39,10 @@ struct Task
 
 impl Task
 {
-    // Releases the task, which must no longer be in flight.
+    // Waits for the last submission before releasing the task's storage.
     mtd opDrop()
     {
-        Swag.assert(!.isPending())
+        .wait()
     }
 
     // Submits `body` for one execution.
@@ -76,7 +84,32 @@ private func taskEntry(node: *WorkNode)
         return
 
     let safeBody = body orelse func() {}
-    safeBody()
+    runTaskBody(safeBody)
+}
+
+// A helped child is a separate computation, even when its caller is handling or unwinding an
+// error. Park the caller's error frame and hide its pending-failure marker from child defers.
+// Completion restores the caller before the scheduler publishes the task as done.
+private func runTaskBody(body: func||())
+{
+    // Ordinary descendant joins consume no error frames and need no error-stack bookkeeping.
+    if !__isErrContext()
+    {
+        body()
+        return
+    }
+
+    let context = Swag.getContext()
+    __pushErr()
+    let frame   = context.errorIndex - 1
+    let pending = context.errors[frame].pushHasError
+    context.errors[frame].pushHasError = 0
+    context.traceIndex                 = 0
+
+    body()
+
+    context.errors[frame].pushHasError = pending
+    __popErr()
 }
 
 // Children of one [[Swag.TaskGroup]], allocated in blocks so a node never moves.
@@ -103,6 +136,8 @@ struct GroupBlock
 // the group, because the group cannot be released while a child is still running. Leaving the
 // scope of a group joins its children, whether the scope ends normally, by an early return, or
 // by a raised error.
+// Children use the same isolated error state as [[Swag.Task]], including when the joining
+// caller executes them during cleanup.
 //
 // Cancellation is a request, not a stop. [[Swag.TaskGroup.cancel]] raises a flag every child can
 // read; a child that never looks at it runs to its end.
@@ -222,5 +257,5 @@ private func groupChildEntry(node: *WorkNode)
         return
 
     let safeBody = body orelse func() {}
-    safeBody()
+    runTaskBody(safeBody)
 }

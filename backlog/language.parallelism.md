@@ -30,6 +30,32 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
+### language.parallelism.005 — Checked captures are not proved, only spelled
+
+- Recorded: 2026-09-07 15:52
+- Updated: 2026-09-08 14:37 — narrow lifetime evidence after automatic task joins
+- Evidence: `parallel for |&image, &dst| row in dst.height` and `Swag.Task.submit(func|owner|() ...)`
+  both take a written capture list, and the compiler checks only that the names exist and that a
+  by-value capture is a plain type. Two partitions writing the same element, an `&` capture whose
+  owner dies before the join, and a captured pointer whose pointee is mutated elsewhere all
+  compile. Both `Swag.Task.opDrop` and `Swag.TaskGroup.opDrop` join their work, including
+  on early return and failure, but neither proves that captured storage outlives that join.
+  In particular, an owner can release a borrowed field in its own destructor before the implicit
+  destruction of its task field. Such an owner must still join before releasing that storage.
+- Next: infer transferable (`Send`) and shared-readable (`Sync`) properties from a type's fields,
+  allocation, copy, move and destruction effects, then require them at every capture. Include
+  allocator and destructor effects, not just the representation: `NoCopy` does not imply `Send`,
+  `const` does not imply deep immutability, and an atomic reference count does not synchronize its
+  pointee. Raw pointers, opaque owners, native handles and foreign calls need a stated contract
+  rather than automatic acceptance.
+- Complete when: a rejected capture names the concrete alias, allocator, destructor or executor
+  constraint and points at a valid partition or ownership alternative; and the semantic tests reject
+  hidden aliases, escaped borrows and cross-module global writes without depending on an optional
+  analysis. Until then the language documents the capture list as a statement of intent, not as a
+  proof.
+- Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
+  language.parallelism.001.
+
 ### language.parallelism.004 — Partitions cannot prove disjointness
 
 - Recorded: 2026-09-07 15:52
@@ -186,29 +212,6 @@ of simplicity when every useful helper needs an unchecked contract.
   under a shutdown that races its last callback, and the UI executor keeps servicing completion
   and destruction while it drains.
 - Related: platform.portability.035, std.audio.md, std.video.md.
-
-### language.parallelism.005 — Checked captures are not proved, only spelled
-
-- Recorded: 2026-09-07 15:52
-- Evidence: `parallel for |&image, &dst| row in dst.height` and `Swag.Task.submit(func|owner|() ...)`
-  both take a written capture list, and the compiler checks only that the names exist and that a
-  by-value capture is a plain type. Two partitions writing the same element, an `&` capture whose
-  owner dies before the join, and a captured pointer whose pointee is mutated elsewhere all
-  compile. `Swag.TaskGroup.opDrop` joins, so a group's own children are safe; a `Swag.Task` stored
-  in a struct is not, and its `opDrop` only asserts that nothing is in flight.
-- Next: infer transferable (`Send`) and shared-readable (`Sync`) properties from a type's fields,
-  allocation, copy, move and destruction effects, then require them at every capture. Include
-  allocator and destructor effects, not just the representation: `NoCopy` does not imply `Send`,
-  `const` does not imply deep immutability, and an atomic reference count does not synchronize its
-  pointee. Raw pointers, opaque owners, native handles and foreign calls need a stated contract
-  rather than automatic acceptance.
-- Complete when: a rejected capture names the concrete alias, allocator, destructor or executor
-  constraint and points at a valid partition or ownership alternative; and the semantic tests reject
-  hidden aliases, escaped borrows and cross-module global writes without depending on an optional
-  analysis. Until then the language documents the capture list as a statement of intent, not as a
-  proof.
-- Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
-  language.parallelism.001.
 
 ### language.parallelism.002 — No suspension, and no typed task result
 

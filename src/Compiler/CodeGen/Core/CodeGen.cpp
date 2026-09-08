@@ -1623,7 +1623,9 @@ bool CodeGen::containsNodeId(AstNodeRef nodeRef, const AstNodeId nodeId)
         const AstNodeRef rawRef = stack.back();
         stack.pop_back();
 
-        const AstNodeRef currentRef = sema().viewZero(rawRef).nodeRef();
+        // The root is the function being emitted. Its value can be wrapped in a conversion at
+        // the enclosing call site; following that substitution would hide its body and defers.
+        const AstNodeRef currentRef = rawRef == nodeRef ? rawRef : sema().viewZero(rawRef).nodeRef();
         if (currentRef.isInvalid())
             continue;
         if (!visited.insert(currentRef).second)

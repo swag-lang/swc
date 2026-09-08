@@ -16,6 +16,31 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    std::vector<uint8_t> reachableWithoutInstruction(const MicroControlFlowGraph& cfg, const uint32_t excluded)
+    {
+        std::vector<uint8_t> reachable(cfg.instructionCount(), 0);
+        std::vector<uint32_t> pending;
+        if (excluded != 0 && !reachable.empty())
+        {
+            reachable[0] = 1;
+            pending.push_back(0);
+        }
+        while (!pending.empty())
+        {
+            const uint32_t current = pending.back();
+            pending.pop_back();
+            for (const uint32_t successor : cfg.successors(current))
+            {
+                if (successor != excluded && !reachable[successor])
+                {
+                    reachable[successor] = 1;
+                    pending.push_back(successor);
+                }
+            }
+        }
+        return reachable;
+    }
+
     Result runLicmPass(MicroBuilder& builder)
     {
         MicroLoopInvariantCodeMotionPass pass;
@@ -68,6 +93,47 @@ namespace
         builder.emitRet();
     }
 }
+
+SWC_TEST_BEGIN(MicroDominators_MatchReachabilityWithANodeRemoved)
+{
+    constexpr MicroReg value = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+    const MicroLabelRef left  = builder.createLabel();
+    const MicroLabelRef right = builder.createLabel();
+    const MicroLabelRef join  = builder.createLabel();
+    builder.emitLoadRegImm(value, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+    builder.emitCmpRegImm(value, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, right);
+    builder.placeLabel(left);
+    builder.emitOpBinaryRegImm(value, ApInt(uint64_t{1}, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+    builder.placeLabel(right);
+    builder.emitOpBinaryRegImm(value, ApInt(uint64_t{2}, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegImm(value, ApInt(uint64_t{4}, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, left);
+    builder.placeLabel(join);
+    builder.emitCmpRegImm(value, ApInt(uint64_t{8}, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, right);
+    builder.emitRet();
+    builder.emitLoadRegImm(value, ApInt(uint64_t{42}, 64), MicroOpBits::B64);
+    builder.emitRet();
+
+    const MicroControlFlowGraph& cfg       = builder.controlFlowGraph();
+    const auto                   dom       = MicroPassHelpers::computeInstructionDominators(cfg, 0);
+    const auto                   reachable = reachableWithoutInstruction(cfg, UINT32_MAX);
+    for (uint32_t candidate = 0; candidate <= cfg.instructionCount(); ++candidate)
+    {
+        const auto without = reachableWithoutInstruction(cfg, candidate);
+        for (uint32_t node = 0; node < cfg.instructionCount(); ++node)
+        {
+            const bool expected = reachable[node] && !without[node];
+            if (dom.dominates(candidate, node) != expected)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
 
 // Control: a load nothing in the loop can alias moves to the preheader.
 SWC_TEST_BEGIN(LICM_HoistsInvariantLoad)

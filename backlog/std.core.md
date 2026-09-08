@@ -42,13 +42,17 @@ types.
 ### std.core.031 — Two atomic families, one of them Core's
 
 - Recorded: 2026-09-07 16:02
+- Updated: 2026-09-08 12:52 — the directory watcher's private cancellation state now uses the runtime atomic type
 - Found while: adding `Swag.AtomicValue` to `bin/runtime` for the scheduler and the task states.
 - Evidence: `Core.Atomic` is a namespace of `#[Swag.Inline]` wrappers over the `Swag.atom*`
-  intrinsics, used 227 times across `bin/`. `Swag.AtomicValue'T` is the runtime type that owns
+  intrinsics, originally found at 227 call sites across `bin/`. `Swag.AtomicValue'T` owns
   atomic storage and exposes the same operations as methods. The concurrency contract says one
   owner for each concurrency type family; there are two, and the runtime one had to be named
   `AtomicValue` because `Atomic` is already taken by the Core namespace in every file that writes
   `using Threading`.
+- Evidence: `Directory.Watcher` now stores its private cancellation field as `Swag.AtomicValue'u32`;
+  all four operations use the field's methods. The immediate and cross-thread cancellation tests
+  cover this migration without changing the watcher's public lifetime contract.
 - Next: decide which one the language keeps. Storage that only its own operations reach is the
   stronger contract -- it is what makes "no ordinary access beside an atomic one" checkable -- so
   the likely answer is the runtime type, with `Core.Atomic` migrating to it and the runtime type

@@ -12,7 +12,7 @@ private struct WatcherNative
     buffer:        Array'u8
     pendingRename: String
     pending:       bool
-    cancelled:     u32
+    cancelled:     Swag.AtomicValue'u32
 }
 
 private func watcherNative(value: *void?)->*WatcherNative => cast(*WatcherNative) value!
@@ -103,7 +103,7 @@ impl Watcher
     internal mtd cancelNative()
     {
         let state = watcherNative(.native)
-        if Atomic.exchange(&state.cancelled, 1) do
+        if state.cancelled.exchange(1) do
             return
 
         discard catch CancelIoEx(state.directory, &state.overlapped)
@@ -124,7 +124,7 @@ impl Watcher
 
         // Cancellation can race the interval between the caller's state check and submission.
         // Rechecking after publication closes that gap without serializing the common path.
-        if Atomic.get(&state.cancelled) do
+        if state.cancelled.load() do
             discard catch CancelIoEx(state.directory, &state.overlapped)
     }
 
@@ -192,7 +192,7 @@ impl Watcher
     internal mtd nextNative(waitMilliseconds: u32)->WatchBatch fail
     {
         let state = watcherNative(.native)
-        if Atomic.get(&state.cancelled)
+        if state.cancelled.load()
         {
             var cancelled: retval
             cancelled.status = .Cancelled
@@ -213,7 +213,7 @@ impl Watcher
         if err != null
         {
             let systemError = cast(const *Swag.SystemError) err
-            if systemError.errorID == ERROR_OPERATION_ABORTED and Atomic.get(&state.cancelled)
+            if systemError.errorID == ERROR_OPERATION_ABORTED and state.cancelled.load()
             {
                 var cancelled: retval
                 cancelled.status = .Cancelled

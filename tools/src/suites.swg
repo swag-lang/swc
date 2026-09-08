@@ -150,7 +150,8 @@ private func testPhaseCompiled(output, module: string)->bool
     {
         if Utf8.contains(line, "workspace") do
             continue
-        if Utf8.contains(line, module) and Utf8.contains(line, "tests") and !Utf8.contains(line, "up-to-date") do
+        let reportsTests = Utf8.contains(line, " tests") or Utf8.contains(line, " passed") or Utf8.contains(line, " failed")
+        if Utf8.contains(line, module) and reportsTests and !Utf8.contains(line, "up-to-date") do
             return true
     }
 

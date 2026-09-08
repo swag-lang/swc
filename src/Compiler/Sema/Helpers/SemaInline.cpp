@@ -2063,8 +2063,10 @@ namespace
         sema.setSymbol(declRef, materializedSym);
         outStatements.push_back(declRef);
 
+        // The home is synthetic storage. Every cloned read names its use in the
+        // callee body, regardless of why the argument needed a home.
         ioBinding.exprRef            = makeMaterializedInlineBindingUse(sema, paramNameRef, *materializedSym);
-        ioBinding.preserveUseCodeRef = mat.forRuntimeSafety;
+        ioBinding.preserveUseCodeRef = true;
         ioBinding.mutableHomeUse     = context.isOrdinaryInline && !materializedAsLet && !mat.homesAddress;
         if (!mat.forVariadic)
             ioBinding.typeRef = TypeRef::invalid();

@@ -30,6 +30,146 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
+### language.parallelism.010 — Nothing detects a data race while the program runs
+
+- Recorded: 2026-09-08 20:14
+- Evidence: .005 states that a capture list is written rather than proved, and names the two cases
+  that still compile: two partitions writing the same element, and a captured pointer whose
+  pointee is mutated elsewhere. Neither is caught at run time either. The debug configuration
+  checks allocation lifetime and bounds, and the sanity pass reasons inside one function's flow,
+  but no configuration records happens-before edges between threads. A race in a partitioned loop
+  therefore surfaces as an occasional wrong pixel or an intermittent crash somewhere unrelated,
+  which is the shape of several intermittent defects already recorded in this repository.
+- Next: choose the instrument before writing it. Only a checker that knows the runtime's own
+  synchronization points -- lock, unlock, atomic operation, submission, completion, join, and
+  partition boundary -- can see the edges this runtime creates, so the shadow state belongs
+  beside the scheduler rather than in a foreign tool. Scope it to one build configuration with a
+  stated slowdown budget, start from the accesses the compiler already instruments for bounds and
+  lifetime, and decide what it does with a foreign call, which is opaque to it for the same reason
+  it is opaque to compiler.safety.007.
+- Complete when: a test writing one element from two partitions fails deterministically in that
+  configuration, naming both accesses and the edge that is missing between them, and a correct
+  partitioned loop reports nothing.
+- Elsewhere: Go ships `-race`, C++ and Rust use ThreadSanitizer, and Rust adds `loom` for
+  exhaustive interleavings of a small structure. A language that claims checked memory access
+  without a dynamic detector claims it only as far as its static analysis reaches.
+- Related: language.parallelism.005, language.parallelism.007, compiler.safety.007,
+  compiler.safety.014
+
+### language.parallelism.009 — Cancellation stops at one group and has no deadline
+
+- Recorded: 2026-09-08 20:14
+- Evidence: `Swag.TaskGroup.cancel` raises one flag that only the children of that group can read,
+  and only through a captured reference to the group. A child that opens a group of its own gets
+  a fresh flag, so the outer request never reaches the grandchildren. `Swag.Task` carries no
+  cancellation state at all, `parallel for` carries none, and no task, group or loop carries a
+  deadline: a program that wants to stop after a duration polls a clock it wrote itself. The
+  request is also invisible to every wait. `Swag.Condition.waitFor` expires on its own timeout
+  without consulting it, and `Swag.Semaphore.acquire` and `Swag.Barrier.arrive` cannot be woken
+  by it.
+- Next: decide where the state lives before adding to it -- ambient state the runtime propagates
+  into every child, or a value each spawn is handed explicitly. Then propagate it through nested
+  groups, give `parallel for` and `Swag.Task` a way to read it, and make a deadline one more
+  source of the same request rather than a second mechanism. State the boundary at the waiting
+  primitives instead of implying it: with no suspension (.002) a cancelled `acquire` cannot
+  return early, and saying so is part of the contract.
+- Complete when: cancelling an outer group is observed by a grandchild, a deadline produces the
+  same observable request, and a cancelled tree joins with every borrowed resource still valid.
+- Elsewhere: Swift propagates cancellation to every child task and exposes it as task-local
+  state; Kotlin cancels a `Job` together with its children; Java's `StructuredTaskScope` and
+  .NET's linked `CancellationTokenSource` both build the tree explicitly. All four are
+  cooperative, and none of them stops at one level.
+- Related: language.parallelism.001, language.parallelism.002, language.parallelism.003
+
+### language.parallelism.008 — A parallel loop cannot combine per-partition results
+
+- Recorded: 2026-09-08 20:14
+- Evidence: every partition of a `parallel for` receives the same captures. A loop that computes
+  one value -- a sum, a maximum, a count, a first match, an accumulated bounding box -- cannot
+  say that each partition needs its own accumulator and that the accumulators combine at the
+  join. Consumers write one of two workarounds: an atomic on the shared destination, which
+  serializes the loop's hot line and, with `AtomicValue.store` lowered to a locked exchange,
+  pays a full barrier per iteration; or an array indexed by a partition number the language does
+  not expose, which forces the body to know the partitioning it is explicitly told not to depend
+  on.
+- Evidence: the general escape, one accumulator per thread, is also expensive. `tls` lowers a
+  thread-local global to a runtime call per access, measured at 4 ns against 1 ns for a plain
+  global read (runtime.allocator.002), and the per-thread block is released at thread exit
+  without running `opDrop`, so it can only hold a plain value.
+- Next: design the combining form as part of the statement, stating the identity, the
+  per-partition storage and the combining operation together, and combining at the join rather
+  than in the body. Settle whether the operation must be associative and commutative or only
+  associative -- a floating-point sum is neither -- and say what result the program is entitled
+  to when it is not. Decide whether the form is a clause of `parallel for` or a value the
+  statement produces.
+- Complete when: a parallel sum, a parallel maximum and a parallel bounding box are written
+  without an atomic on the hot line and without indexing a partition, and a single-worker run of
+  the same source produces the same value the loop promises.
+- Elsewhere: OpenMP has `reduction(+:x)` and user-declared reducers; Rayon, .NET PLINQ and Java
+  streams reduce through the iterator; Chapel writes `+ reduce`. All of them treat reduction as
+  the second data-parallel primitive after the map, not as a library afterthought.
+- Related: language.parallelism.001, language.parallelism.004, std.core.025
+
+### language.parallelism.007 — The memory model is a design note, and only sequential consistency exists
+
+- Recorded: 2026-09-08 20:14
+- Evidence: what a program may assume about ordering is written in this file and in scattered
+  documentation comments, not in the language reference. `Swag.AtomicValue` exposes `load`,
+  `store`, `exchange`, `compareExchange` and the arithmetic and bitwise forms, all lowered to
+  the sequentially consistent `Swag.atom*` intrinsics; `store` is a locked exchange. No acquire,
+  release or relaxed order is reachable and no fence exists. Nothing states the happens-before
+  edges a program may rely on either: lock release to lock acquisition, submission to body
+  start, body end to observed completion, `parallel for` entry to its join, atomic store to
+  atomic load.
+- Evidence: the absence costs on both sides. A reference count, a publication flag or a work
+  cursor pays a full barrier where an acquire or a relaxed increment is what the algorithm
+  needs; and a consumer reasoning about a lock-free structure has nothing normative to reason
+  against, which is the same gap `compiler.safety.014` names for the safe subset.
+- Next: write the model first, as a reference page: which operations create edges, what a data
+  race is, and what an invalid program is entitled to. Then expose the orders on the atomic
+  operations, keeping the sequentially consistent form as the default and documenting the weaker
+  ones as expert operations that do not inherit the default's claim. Decide in the same change
+  whether Swag keeps the C++ family of orders or a smaller set, and whether atomic storage may
+  ever be reached by an ordinary access.
+- Complete when: the reference states one memory model, both the native backend and JIT execution
+  respect it, and one lock-free consumer uses a weaker order with a stated justification.
+- Elsewhere: Java and Go publish memory models as part of the language definition; C++11 and Rust
+  share one order family; Swift and C# state theirs against their runtime. None of them leaves
+  the model in a design note.
+- Related: language.parallelism.001, compiler.safety.014, std.core.031
+
+### language.parallelism.006 — One locked ready stack, so fine-grained work does not scale
+
+- Recorded: 2026-09-08 20:14
+- Evidence: the scheduler keeps one process-wide stack of ready nodes, `Scheduler.head`, guarded
+  by one mutex. Every `submitWork` locks it to push, every `popWork` locks it to claim, and an
+  idle worker sleeps on a single `ready` condition. There is no per-worker queue and no
+  stealing: a joining thread claims the one node it is waiting for and nothing else. Completion
+  is the sharper cost. `runWork` calls `wakeWorkObservers` as soon as any observer is parked
+  anywhere in the process, which takes the scheduler mutex and calls `finished.wakeAll()`, so
+  every finished unit wakes every parked joiner, each of which rechecks its own node and sleeps
+  again.
+- Evidence: `MaxWorkers` is 64 and `setWorkerCount` clamps to it, so a machine with more hardware
+  threads cannot use them. Nested parallelism has no policy: a `parallel for` inside a
+  `parallel for` reads the full `workerCount()` again and dispatches that many runners, and a
+  group spawned inside a partition pushes onto the same stack.
+- Evidence: nothing measures any of this. `bench/taskwait` measures the joining thread's CPU over
+  sequential submit/join pairs, and `bench/parallelrange` and `bench/rasterbalance` measure
+  partition balance within one loop. None of them varies the worker count against spawn and join
+  throughput, and none of them runs recursive fork/join.
+- Next: measure before changing anything. Add a scheduler benchmark covering recursive fork/join
+  with a serial cut-off, many small tasks spawned from every worker, and one long task joined by
+  many observers, reported against 1, 2, 4, 8 and every worker. Then choose from those numbers
+  between per-worker deques with stealing, per-node completion signalling instead of one
+  process-wide `wakeAll`, and keeping the shared stack while stating the granularity it serves.
+  Settle the worker cap and the nested-parallelism policy in the same change.
+- Complete when: the benchmark exists, the scheduler's shape is chosen against its numbers, and
+  the reference states the granularity below which submitting work costs more than running it.
+- Elsewhere: Rayon, Intel TBB, Java's `ForkJoinPool`, .NET's thread pool and the Go runtime all
+  give each worker its own deque and steal from the others, which is what makes recursive
+  fork/join cheap; they also wake individual waiters rather than broadcasting to all of them.
+- Related: language.parallelism.001, language.parallelism.003
+
 ### language.parallelism.005 — Captures do not prove task lifetime or race freedom
 
 - Recorded: 2026-09-07 15:52

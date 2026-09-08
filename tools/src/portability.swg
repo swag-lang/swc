@@ -62,6 +62,7 @@ private const NativeSourceFiles = [
     "bin/std/modules/gui/src/tests/dragdrop.win32.test.swg",
     "bin/std/modules/pixel/src/image/image.win32.swg",
     "bin/std/modules/pixel/src/tests/image.win32.test.swg",
+    "bin/std/modules/pixel/src/tests/yuv.win32.test.swg",
     "bin/std/modules/pixel/src/text/fontfamily.win32.swg",
     "bin/std/modules/pixel/src/text/typeface.win32.swg",
     "bin/std/modules/audio/src/driver/xaudio2.swg",

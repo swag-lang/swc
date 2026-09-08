@@ -1557,7 +1557,7 @@ namespace
     // info (identity of the borrowed source; site and wording are stamped at commit).
     void fillDeferredCheckDiag(Sema& sema, SemaEscapeDeferredCheck& check, const SemaEscapeInfo& info)
     {
-        check.typeRef = info.typeRef;
+        check.typeRef        = info.typeRef;
         check.viaStoredField = info.viaStoredField;
 
         if (info.isLocalBorrow())

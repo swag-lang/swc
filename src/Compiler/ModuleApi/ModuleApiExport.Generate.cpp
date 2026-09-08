@@ -379,8 +379,9 @@ namespace
         const uint64_t freesMask          = symbolFunction.freesParamsMask();
         const uint64_t reallocatesMask    = symbolFunction.reallocatesParamsMask();
         const uint64_t returnsPayloadMask = symbolFunction.returnsPayloadParamsMask();
+        const uint64_t returnsStorageMask = symbolFunction.returnsStorageParamsMask();
         if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0 || reallocatesMask != 0 || returnsPayloadMask != 0) && !snippet.contains("BorrowSummary"))
-            ioAttributes.push_back(Utf8{std::format("BorrowSummary({}, {}, {}, {}, {}, {})", returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask)});
+            ioAttributes.push_back(Utf8{std::format("BorrowSummary({}, {}, {}, {}, {}, {}, {})", returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask)});
     }
 
     void prependMissingFunctionAttributes(const SymbolFunction& symbolFunction, const std::string_view eol, const bool hasExportedBody, Utf8& ioSnippet)

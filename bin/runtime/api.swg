@@ -251,6 +251,7 @@ namespace Swag
     attr Sanity(what: SafetyWhat, value: bool)
 
     // Computed borrow summary of a function, consumed by the static borrow analysis.
+    //
     // Bit 'i' of 'returns' means the return value may borrow parameter #i; bit 'i' of
     // 'stores' means parameter #i may be stored in storage that outlives the call;
     // bit 'i*8+j' of 'into' means parameter #j may be stored into storage reachable
@@ -263,8 +264,12 @@ namespace Swag
     // tells a container accessor apart from a factory handing back an object that keeps a
     // back-reference. Emitted automatically in generated module APIs so summaries cross
     // module boundaries; can also be written manually on a [[Foreign]] function.
+    // Bit 'i' of 'returnsStorage' means the result aliases parameter #i's storage,
+    // rather than carrying a reference to it in a separate allocation. It only applies
+    // to bits also set in 'returns'. Its default preserves the direct-alias assumption
+    // of annotations that omit it; generated APIs emit the computed mask explicitly.
     #[AttrUsage(AttributeUsage.Function)]
-    attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0, returnsPayload: u64 = 0)
+    attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0, returnsPayload: u64 = 0, returnsStorage: u64 = 0xFFFFFFFFFFFFFFFF)
 
     // All safety checks
     #[Swag.EnumFlags]

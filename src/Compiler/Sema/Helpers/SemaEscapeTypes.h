@@ -57,6 +57,8 @@ struct SemaEscapeDeferredCheck
     // The borrowed source is an owner (its payload lives on the heap): freeing it is
     // legitimate, so a FREES-only match must stay silent.
     bool ownerSource = false;
+    // Releasing a separate carrier does not release the data referenced by its fields.
+    bool viaStoredField = false;
     // The local the borrowed argument roots at. 'symName' is what the diagnostic prints;
     // this is the identity, for the checks that must match a route back to a variable.
     const SymbolVariable* borrowedVar = nullptr;

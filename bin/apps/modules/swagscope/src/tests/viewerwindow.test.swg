@@ -526,7 +526,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         files.add(fileName)
     }
 
-    var host: Testing.HeadlessHost
+    var selectedFolder: String
+    var host:           Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
     let index  = createViewerPluginRegistry()
@@ -541,8 +542,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     Swag.assert(window.folderHistory.count == ViewerFolderHistoryCount)
     Swag.assert(window.folderHistory[0].file == files.back())
-    let selectedFolder = String.from(window.folderHistory.back().folder.toString())
-    let selectedFile   = String.from(window.folderHistory.back().file.toString())
+    selectedFolder = String.from(window.folderHistory.back().folder.toString())
+    let selectedFile = String.from(window.folderHistory.back().file.toString())
     host.clickPopupMenuItemWhenShown(selectedFolder.toString())
     window.showFolderHistory()
     host.pump()

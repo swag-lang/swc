@@ -18,6 +18,11 @@ func verifyImportedBorrowSummaries()
     var local: s32 = 5
     Swag.assert(depBorrowRead(&local) == 5)
 
+    let carrier = depBorrowCreateCarrierWrapped(&local)
+    Swag.assert(carrier.target[] == 5)
+    depBorrowReleaseCarrier(carrier)
+    Swag.assert(local == 5)
+
     let pair = depBorrowMakePair(&gConsumerBorrowInt, &gConsumerBorrowInt)
     Swag.assert(pair.first == &gConsumerBorrowInt)
     Swag.assert(pair.second == &gConsumerBorrowInt)

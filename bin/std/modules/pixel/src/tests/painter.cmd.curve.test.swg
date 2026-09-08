@@ -10,8 +10,8 @@ using Swag, Core
 #[Swag.TestTag("golden")]
 #test
 {
-    var painter: Painter
     var path:    LinePath
+    var painter: Painter
 
     path.start(10, 80)
     path.bezierTo(90, 80, 50, 10)
@@ -26,8 +26,8 @@ using Swag, Core
 #[Swag.TestTag("golden")]
 #test
 {
-    var painter: Painter
     var path:    LinePath
+    var painter: Painter
 
     path.start(10, 80)
     path.bezierTo(90, 80, 25, 10, 75, 10)

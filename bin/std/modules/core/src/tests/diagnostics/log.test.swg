@@ -55,11 +55,11 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 
 #test
 {
+    var writer: MemoryLogWriter
     var log = Log.create()
     log.setPrefix("CORE")
     log.setFlags(LogFlags.Prefix | LogFlags.ShortFileName | LogFlags.Line)
 
-    var writer: MemoryLogWriter
     log.addWriter(writer)
 
     let loc = currentLocation()
@@ -73,11 +73,11 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 
 #test
 {
+    var writerA: MemoryLogWriter
+    var writerB: MemoryLogWriter
     var log = Log.create()
     log.setFlags(LogFlags.LongFileName | LogFlags.FullLoc)
 
-    var writerA: MemoryLogWriter
-    var writerB: MemoryLogWriter
     log.addWriter(writerA)
     log.addWriter(writerB)
 
@@ -93,10 +93,10 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 
 #test
 {
+    var writer: MemoryLogWriter
     var log = Log.create()
     log.setFlags(LogFlags.ShortFileName)
 
-    var writer: MemoryLogWriter
     log.addWriter(writer)
     log.clearWriters()
 

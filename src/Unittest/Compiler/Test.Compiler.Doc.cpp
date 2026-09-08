@@ -505,6 +505,20 @@ func hidden(value: s32)->s32
     std::string             content;
     FileSystem::IoErrorInfo ioError;
     SWC_RESULT(FileSystem::readTextFile(outputPath, content, ioError));
+    // Unused runtime methods still need canonical targets for their documentation
+    // links. Hidden scheduler types must not acquire links from imported symbols.
+    std::string runtimeContent;
+    SWC_RESULT(FileSystem::readTextFile(directory.root() / "swag.runtime.html", runtimeContent, ioError));
+    for (const std::string_view name : {"AtomicFlag_reset", "Condition_wait", "Semaphore_setPermits", "Task_submit", "Task_wait", "TaskGroup_cancel"})
+    {
+        if (!runtimeContent.contains(std::format("id=\"Swag_{}\"", name)))
+            return Result::Error;
+    }
+    for (const std::string_view name : {"ParallelChunk", "Scheduler", "WorkNode"})
+    {
+        if (runtimeContent.contains(std::format("href=\"swag.runtime.html#Swag_{}\"", name)))
+            return Result::Error;
+    }
     if (!content.contains("<h2 id=\"file-documentation\">File documentation</h2>") ||
         !content.contains("<p>Format: Documentation generator fixture. Supported: Explicit file comments marked for the module-wide documentation. Not supported: Publishing neighboring ordinary comments implicitly.</p>"))
         return Result::Error;

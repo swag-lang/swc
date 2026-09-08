@@ -26,7 +26,8 @@ using Swag, Core
 // Relabelling an unsized child rearranges its container without changing the container's bounds.
 #test
 {
-    var host: Testing.HeadlessHost
+    var rootResizeCount: u32
+    var host:            Testing.HeadlessHost
     host.setup(520, 100)
     defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 500, 80})
@@ -36,7 +37,6 @@ using Swag, Core
     host.pump()
     let before = next.position.x
     let bounds = stack.position
-    var rootResizeCount: u32
     host.root.hookOnEvent = func|count = &rootResizeCount|(wnd, evt)
     {
         discard wnd

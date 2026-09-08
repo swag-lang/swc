@@ -86,6 +86,15 @@ public:
     // Imported functions carry their summaries through the generated
     // 'Swag.BorrowSummary' attribute, OR-ed in by the getters.
     uint64_t returnBorrowsParamsMask() const noexcept;
+    // The result aliases the parameter's storage, rather than carrying a reference
+    // to it in a separate allocation. Only this route can make freeing a returned
+    // pointer release the argument's storage.
+    uint64_t returnsStorageParamsMask() const noexcept;
+    void     addReturnsStorageParam(size_t paramIndex) noexcept
+    {
+        if (paramIndex < 64)
+            returnsStorageParamsMask_ |= 1ULL << paramIndex;
+    }
     uint64_t storesParamsMask() const noexcept;
     void     addReturnBorrowsParam(size_t paramIndex) noexcept
     {
@@ -336,6 +345,7 @@ private:
     uint32_t                                  numComputedLocals_                         = 0;
     uint32_t                                  localStackOffset_                          = 0;
     uint64_t                                  returnBorrowsParamsMask_                   = 0;
+    uint64_t                                  returnsStorageParamsMask_                 = 0;
     uint64_t                                  storesParamsMask_                          = 0;
     uint64_t                                  storesIntoParamPairs_                      = 0;
     std::atomic<uint64_t>                     freesParamsMask_                           = 0;

@@ -885,6 +885,11 @@ uint64_t SymbolFunction::storesParamsMask() const noexcept
     return storesParamsMask_ | (hasAttributes() ? attributes().storesParamsMask : 0);
 }
 
+uint64_t SymbolFunction::returnsStorageParamsMask() const noexcept
+{
+    return returnsStorageParamsMask_ | (hasAttributes() ? attributes().returnsStorageParamsMask : 0);
+}
+
 uint64_t SymbolFunction::storesIntoParamPairs() const noexcept
 {
     return storesIntoParamPairs_ | (hasAttributes() ? attributes().storesIntoParamPairs : 0);

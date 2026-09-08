@@ -1739,6 +1739,8 @@ enum class AstParallelForStmtFlagsE : AstNode::ParserFlags
     Zero = 0,
     // The written range was 'a to b', so its upper bound belongs to the range.
     Inclusive = 1 << 0,
+    // An explicit error-management statement owns the loop's eventual failure.
+    Fallible = 1 << 1,
 };
 
 // 'parallel for |captures| name in range { body }'.

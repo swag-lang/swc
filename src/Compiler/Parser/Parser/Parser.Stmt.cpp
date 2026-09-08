@@ -481,7 +481,7 @@ AstNodeRef Parser::parseFor()
 // named by the 'for' and 'in' keywords of this statement, which is deliberate -- a keyword can
 // never collide with a name the body can write, and the generated identifiers need no token of
 // their own.
-AstNodeRef Parser::parseParallelFor()
+AstNodeRef Parser::parseParallelFor(bool fallible)
 {
     const TokenRef tokParallel = consumeAssert(TokenId::KwdParallel);
     const TokenRef tokFor      = expectAndConsume(TokenId::KwdFor, DiagnosticId::parser_err_expected_token_before);
@@ -505,6 +505,8 @@ AstNodeRef Parser::parseParallelFor()
     const AstNodeRef bodyRef  = parseDoCurlyBlock();
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParallelForStmt>(tokParallel);
+    if (fallible)
+        nodePtr->addFlag(AstParallelForStmtFlagsE::Fallible);
 
     if (rangeRef.isValid() && ast_->node(rangeRef).is(AstNodeId::RangeExpr))
     {
@@ -548,6 +550,8 @@ AstNodeRef Parser::parseParallelFor()
 
     auto [closureRef, closurePtr]  = ast_->makeNode<AstNodeId::ClosureExpr>(tokParallel);
     closurePtr->flags()            = AstFunctionFlagsE::Closure;
+    if (fallible)
+        closurePtr->addFlag(AstFunctionFlagsE::Fallible);
     closurePtr->parallelBody       = true;
     closurePtr->nodeCaptureArgsRef = captureArgs;
     closurePtr->spanArgsRef        = ast_->pushSpan(params.span());
@@ -577,6 +581,8 @@ AstNodeRef Parser::parseErrorManagementStmt()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ErrorManagementStmt>(consume());
     if (is(TokenId::SymLeftCurly))
         nodePtr->nodeBodyRef = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
+    else if (is(TokenId::KwdParallel))
+        nodePtr->nodeBodyRef = parseParallelFor(true);
     else
         nodePtr->nodeBodyRef = parseExpression();
 

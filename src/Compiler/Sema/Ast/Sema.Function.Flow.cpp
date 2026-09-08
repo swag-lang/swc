@@ -1615,6 +1615,13 @@ Result AstErrorManagementStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
 
 Result AstErrorManagementStmt::semaPostNode(Sema& sema) const
 {
+    const AstNode& body = sema.node(nodeBodyRef);
+    if (body.is(AstNodeId::ParallelForStmt) && body.cast<AstParallelForStmt>().hasFlag(AstParallelForStmtFlagsE::Fallible))
+    {
+        ensureErrorManagementPayload(sema, sema.curNodeRef()).containsFallible = true;
+        SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::ParallelRangeFallible, codeRef()));
+        SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::HasErr, codeRef()));
+    }
     return semaErrorManagementPostNodeCommon(sema, nodeBodyRef);
 }
 

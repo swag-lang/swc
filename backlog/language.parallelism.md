@@ -30,19 +30,36 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
+### language.parallelism.004 — Partitions cannot prove disjointness
+
+- Recorded: 2026-09-07 15:52
+- Updated: 2026-09-08 13:54 — narrow the remaining work to checked partition views
+- Evidence: `try/catch/expect parallel for` now carries failures across the join, but there is
+  still no way to express an exclusive view of part of a container. Consumers index captured
+  buffers, including H.264 reconstruction, and the compiler proves nothing about those indices.
+- Next: add exclusive row, tile, chunk, stride, split and zip views with bounds and overlap
+  contracts, and a checked partition constructor for the cases static proof cannot reach. That
+  validation is semantic input checking, not a release-disabled guard. Read-only source halos
+  beside disjoint destination tiles must be expressible, because stencils and image transforms
+  need them. Preserve the fallible loop's join and partial-effect contract while adding views.
+- Complete when: a partitioned image operation needs no manual indexing into a captured buffer,
+  overlapping mutable views are rejected, and success still means every index ran exactly once.
+- Related: std.pixel.md, language.parallelism.001.
+
 ### language.parallelism.001 — The shipped model, and the promises it does not yet make
 
 - Recorded: 2026-09-06 07:51
-- Updated: 2026-09-08 12:56 — serial calls no longer reserve the full partition array on their stack
+- Updated: 2026-09-08 13:54 — distinguish fallible loops from the remaining partition proofs
 - Where it stands: `parallel for |captures| name in range` is a statement of the language, lowered
-  to one call into `Swag.__parallelRange`. `bin/runtime` owns the worker pool, `Swag.Task`,
+  to a runtime range call, with fallible variants under `try`, `catch` and `expect`.
+  `bin/runtime` owns the worker pool, `Swag.Task`,
   `Swag.TaskGroup`, `Swag.Mutex`, `Swag.RWLock`, `Swag.Condition`, `Swag.Semaphore`,
   `Swag.Barrier`, `Swag.AtomicValue` and `Swag.AtomicFlag`. One process has one pool, resolved
   through a process anchor so an executable and every shared library it loads share it. `Core.Jobs`
   is gone and every consumer -- pixel, truetype, video, gui, the three applications, the examples
   and the scripts -- goes through the runtime.
 - What the model does not yet promise: race freedom. The capture list is written, not proved
-  (.005); a partition cannot fail and cannot state disjointness (.004); there is one executor and
+  (.005); a partition can fail but cannot state disjointness (.004); there is one executor and
   no affinity (.003); nothing suspends and a task carries no typed result (.002). A program can
   still write a data race through a capture, and the compiler accepts it.
 - Next: the other four entries are the remaining work, in the order they unblock each other:
@@ -192,27 +209,6 @@ of simplicity when every useful helper needs an unchecked contract.
   proof.
 - Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
   language.parallelism.001.
-
-### language.parallelism.004 — Partitions cannot fail, and cannot prove disjointness
-
-- Recorded: 2026-09-07 15:52
-- Evidence: the body of a `parallel for` is an infallible closure. `try` inside it reports that the
-  enclosing function does not fail, which is true but says nothing about the loop; a body that
-  needs to report a failure has to capture an error slot by hand, exactly as
-  `H264.reconstructBand` does with `Atomic.exchange(&decoder.pipelineFailed, 1)`. There is also no
-  way to express an exclusive view of part of a container: every consumer indexes a captured
-  buffer and the compiler proves nothing about the indices.
-- Next: settle the fallible loop first, because it changes the statement's contract: whether a
-  failing partition cancels the others, what the loop reports when several fail, and whether a
-  partially executed loop can be observed. Then add exclusive row, tile, chunk, stride, split and
-  zip views with bounds and overlap contracts, and a checked partition constructor for the cases
-  static proof cannot reach. That validation is semantic input checking, not a release-disabled
-  guard. Read-only source halos beside disjoint destination tiles must be expressible, because
-  stencils and image transforms need them.
-- Complete when: a partitioned image operation is written without indexing a captured buffer by
-  hand, a failing partition has one stated outcome, and the loop still reports success only when
-  every index ran exactly once.
-- Related: std.pixel.md, language.parallelism.001.
 
 ### language.parallelism.002 — No suspension, and no typed task result
 

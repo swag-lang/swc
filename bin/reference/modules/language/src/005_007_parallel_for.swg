@@ -13,7 +13,7 @@ work can stay entirely on the calling thread, even when workers exist. An
 unknown loop can execute an initial iteration before distributing the rest;
 later calls reuse and periodically refresh the cost estimate. This is a
 scheduling hint, not a time bound: changing inputs and uneven iteration costs
-can change which execution plan is useful. Every iteration still runs once,
+can change which execution plan is useful. On success, every iteration runs once,
 and the statement still waits for all accepted work before returning.
 
 The calling thread can execute the partition it is joining, including work
@@ -82,7 +82,7 @@ runs no iteration at all.
 # What the Body May Do
 
 The body of one index is an ordinary block: it can declare, branch, loop, and
-'continue' to the next index. It cannot leave the statement early. A 'break'
+'continue' to the next index. Early exit requires a failure, described below. A 'break'
 that would leave the loop, and a 'return' that would leave the enclosing
 function, are rejected, because either one would skip indices the statement
 promises to run while other partitions keep going.
@@ -104,6 +104,49 @@ Compute the answer into captured storage and act on it after the loop.
     for index in 32 where found[index] do
         count += 1
     Swag.assert(count == 16)
+}
+
+/**
+# Failures
+
+Prefix the statement with 'try', 'catch', or 'expect' when its body can fail.
+The body can then call fallible functions or raise an error with 'fail'.
+'try parallel for' propagates an error from a fallible enclosing function;
+'catch parallel for' handles it, and 'expect parallel for' checks for success.
+The ordinary error-management block forms also apply around these statements.
+
+A failing partition stops its remaining iterations. Other partitions finish,
+and the loop joins all accepted work before reporting the first error published
+to the runtime. Several partitions can fail: which error wins is unspecified.
+An empty loop succeeds. A successful loop has executed every index exactly once.
+
+Failure does not roll back writes already made. Some iterations may finish after
+another fails, and some may never run. The runtime copies the selected error
+before a worker reuses its error storage, then raises it on the caller after the
+join. Errors must support copying and destruction on those threads, and their
+borrowed fields must remain valid. Capture race freedom is still not checked.
+*/
+
+struct ParallelInputError
+{
+    index: u64
+}
+
+#test
+{
+    var values: [8] u64
+    catch parallel for |&values| index in 8
+    {
+        if index == 3 do
+            fail ParallelInputError{index}
+        values[index] = index + 1
+    } as error
+    Swag.assert(error != null and error is ParallelInputError)
+    Swag.assert(values[3] == 0)
+
+    expect parallel for |&values| index in 8 do
+        values[index] = index + 1
+    Swag.assert(values[7] == 8)
 }
 
 /**

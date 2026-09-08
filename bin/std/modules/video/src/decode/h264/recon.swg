@@ -75,15 +75,14 @@ impl Decoder
             .pipelineTasks[index].wait()
     }
 
-    // Reconstructs inter macroblocks in a few long row bands. Entropy parsing has already
+    // Reconstructs inter macroblocks in parallel. Entropy parsing has already
     // published every motion and residual context, and inter prediction reads reference
-    // pictures only, so bands write disjoint parts of the current picture. Intra blocks stay
+    // pictures only, so partitions write disjoint parts of the current picture. Intra blocks stay
     // in raster order because their prediction reads neighboring samples of this picture.
     mtd reconstructPicture() fail
     {
-        let sps       = .sps!
-        let mbCount   = cast(u32) (sps.mbWidth * sps.mbHeight)
-        let bandCount = Math.min(Math.min(Swag.workerCount(), ReconstructionBands), cast(u32) sps.mbHeight)
+        let sps     = .sps!
+        let mbCount = cast(u32) (sps.mbWidth * sps.mbHeight)
 
         if .pipelineBandCount > 0
         {
@@ -91,30 +90,15 @@ impl Decoder
             if Atomic.get(&.pipelineFailed) != 0 do
                 fail InvalidFormatError{"H.264 inter block has no reference picture"}
         }
-        elif bandCount <= 1
-        {
-            for index in mbCount
-            {
-                let mb = &.parsedMbs[index]
-                if mb.class == MbClassInter do
-                    .pictureSlices[mb.sliceIndex].reconstructMb(mb)
-            }
-        }
         else
         {
             let decoder = me
-            .pipelineFailed = 0
-            let mbHeight = cast(u32) sps.mbHeight
-            let mbWidth  = cast(u32) sps.mbWidth
-            parallel for |decoder, bandCount, mbHeight, mbWidth| band in bandCount
+            try parallel for |decoder| index in mbCount
             {
-                let firstRow = mbHeight * cast(u32) band / bandCount
-                let endRow   = mbHeight * cast(u32) (band + 1) / bandCount
-                reconstructBand(decoder, firstRow * mbWidth, endRow * mbWidth)
+                let mb = &decoder.parsedMbs[index]
+                if mb.class == MbClassInter do
+                    try decoder.pictureSlices[mb.sliceIndex].reconstructMb(mb)
             }
-
-            if Atomic.get(&.pipelineFailed) != 0 do
-                fail InvalidFormatError{"H.264 inter block has no reference picture"}
         }
 
         for index in mbCount

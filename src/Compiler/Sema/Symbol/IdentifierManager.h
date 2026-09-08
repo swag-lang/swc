@@ -49,6 +49,7 @@ public:
         RunTest,
         TestsDone,
         ParallelRange,
+        ParallelRangeFallible,
         Count,
     };
 
@@ -171,6 +172,7 @@ public:
         RuntimeRunTest,
         RuntimeTestsDone,
         RuntimeParallelRange,
+        RuntimeParallelRangeFallible,
         Count,
     };
 

@@ -81,6 +81,70 @@ struct ParallelChunk
 #[Swag.NoDoc]
 internal func __parallelRange(begin, end: u64, body: func||(u64, u64))
 {
+    let entry = cast(u64) (cast(const *ClosureValue) &body).invoke
+    parallelRange(begin, end, body, entry)
+}
+
+// The first published error is copied out of the worker's scratch error storage before that
+// worker can reuse it. Only this owner drops the copy, after every partition has joined.
+#[Swag.NoCopy]
+private struct ParallelFailure
+{
+    mutex: Mutex
+    value: any?
+}
+
+impl ParallelFailure
+{
+    mtd record(error: any)
+    {
+        .mutex.lock()
+        defer .mutex.unlock()
+        if .value != null do
+            return
+
+        let type = cast(const *TypeInfoStruct) Swag.kindOf(error)
+        let data = __bootstrapAlloc(cast(u64) type.sizeof)
+        if !data do
+            Swag.panic("cannot allocate a parallel loop error", #curlocation)
+        Swag.memcpy(data, error.buffer, cast(u64) type.sizeof)
+        if type.opPostCopy do
+            type.opPostCopy(data)
+        .value = Swag.makeAny(data!, type)
+    }
+
+    mtd opDrop()
+    {
+        if .value == null do
+            return
+        let data = .value.buffer
+        __dropErr(.value)
+        __bootstrapFree(cast([*] void?) data)
+    }
+}
+
+// Explicit try/catch/expect owns this call. A failing partition stops its remaining iterations;
+// other partitions finish, then the first published error is raised on the caller. Effects are
+// not rolled back, and no cancellation or deterministic error order is implied.
+#[Swag.NoDoc]
+internal func __parallelRangeFallible(begin, end: u64, body: func||(u64, u64) fail) fail
+{
+    var failure: ParallelFailure
+    let entry     = cast(u64) (cast(const *ClosureValue) &body).invoke
+    let partition = func|&body, &failure|(first, last: u64)
+    {
+        catch body(first, last) as error
+        if error != null do
+            failure.record(error!)
+    }
+    parallelRange(begin, end, partition, entry)
+
+    if failure.value != null do
+        fail failure.value!
+}
+
+private func parallelRange(begin, end: u64, body: func||(u64, u64), entry: u64)
+{
     if end <= begin do
         return
 
@@ -91,7 +155,6 @@ internal func __parallelRange(begin, end: u64, body: func||(u64, u64))
         return
     }
 
-    let entry   = cast(u64) (cast(const *ClosureValue) &body).invoke
     let profile = parallelProfile(entry)
     var grain   = profile ? profile.grain.load() : 0'u64
     var first   = begin

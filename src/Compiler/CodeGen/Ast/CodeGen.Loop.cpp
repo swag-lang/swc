@@ -97,14 +97,16 @@ namespace
 // partition, on its worker pool, and returns when every partition has finished.
 Result AstParallelForStmt::codeGenPostNode(CodeGen& codeGen) const
 {
-    const IdentifierRef idRef       = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::ParallelRange);
+    const bool          fallible    = hasFlag(AstParallelForStmtFlagsE::Fallible);
+    const auto          runtimeKind = fallible ? IdentifierManager::RuntimeFunctionKind::ParallelRangeFallible : IdentifierManager::RuntimeFunctionKind::ParallelRange;
+    const IdentifierRef idRef       = codeGen.idMgr().runtimeFunction(runtimeKind);
     SymbolFunction*     parallelFn  = codeGen.compiler().runtimeFunctionSymbol(idRef);
     SWC_ASSERT(parallelFn != nullptr);
     if (!parallelFn)
     {
         auto diag = SemaError::report(codeGen.sema(), DiagnosticId::misc_err_internal_codegen_failure, codeGen.curNodeRef());
         diag.addArgument(Diagnostic::ARG_WHAT, codeGen.function().getFullScopedName(codeGen.ctx()));
-        diag.addArgument(Diagnostic::ARG_BECAUSE, "missing runtime helper '__parallelRange'");
+        diag.addArgument(Diagnostic::ARG_BECAUSE, fallible ? "missing runtime helper '__parallelRangeFallible'" : "missing runtime helper '__parallelRange'");
         diag.report(codeGen.ctx());
         return Result::Error;
     }
@@ -128,7 +130,10 @@ Result AstParallelForStmt::codeGenPostNode(CodeGen& codeGen) const
 
     const CodeGenNodePayload& closurePayload = codeGen.payload(codeGen.resolvedNodeRef(nodeClosureRef));
     const MicroReg            args[]         = {beginReg, endReg, closurePayload.reg};
-    return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *parallelFn, args);
+    SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *parallelFn, args));
+    if (fallible)
+        SWC_RESULT(CodeGenCallHelpers::emitFallibleFailureJumpIfHasError(codeGen));
+    return Result::Continue;
 }
 
 Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const

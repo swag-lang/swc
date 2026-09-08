@@ -5,6 +5,19 @@ being compiled by it.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### repo.tooling.009 — Reassess Release LTO after iteration costs are controlled
+
+- Recorded: 2026-09-08 08:02
+- Evidence: Release LTCG links took several minutes during the constant-address investigation,
+  including after a change to one semantic-analysis source. The owner requested disabling LTO
+  for current development and reconsidering it later. `swc.vcxproj` now disables whole-program
+  optimization and link-time code generation while retaining the other Release optimizations.
+- Next: measure compiler throughput, binary size, peak memory and incremental link time with
+  and without LTO under comparable load before restoring it; consider a separate distribution
+  build if shipping performance justifies the cost but routine iteration does not.
+- Complete when: the documented build policy preserves practical Release iteration and any
+  restored LTO has a measured benefit and an explicit place in the build workflow.
+
 ### repo.tooling.008 — Record module timings with load observed during each sample
 
 - Recorded: 2026-09-07 10:37

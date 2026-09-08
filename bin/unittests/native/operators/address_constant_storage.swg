@@ -64,4 +64,6 @@ func explicitAddressRemainsRuntime()->u8
     Swag.assert(sharedAddressA() == shared)
     Swag.assert(sharedAddressB() == shared)
     Swag.assert(sharedAddressC() == shared)
+    let element = &SharedBytes[1]
+    Swag.assert(&element[] == element)
 }

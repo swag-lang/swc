@@ -441,6 +441,20 @@ namespace
         sema.setType(sema.curNodeRef(), typeRef);
         if (view.hasConstant())
         {
+            // Folding a dereference does not change the location it designates.
+            // In particular, '&p[]' must preserve p even when p targets a subobject.
+            if (view.node() && view.node()->is(AstNodeId::UnaryExpr) && sema.token(view.node()->codeRef()).id == TokenId::SymLeftBracket)
+            {
+                const auto&        dereference = view.node()->cast<AstUnaryExpr>();
+                const SemaNodeView pointerView = sema.viewTypeConstant(dereference.nodeExprRef);
+                if (pointerView.hasConstant() && (pointerView.cst()->isBlockPointer() || pointerView.cst()->isValuePointer()))
+                {
+                    const uint64_t address = pointerView.cst()->isBlockPointer() ? pointerView.cst()->getBlockPointer() : pointerView.cst()->getValuePointer();
+                    sema.setConstant(sema.curNodeRef(), makePointerConstantRef(sema, typeRef, address));
+                    return Result::Continue;
+                }
+            }
+
             // A scalar constant normally lowers to its value in a register. Taking its
             // address needs persistent storage, just as an indexed constant array does.
             const uint64_t address = ConstantHelpers::materializeConstantStorageAndGetAddress(sema, view);
@@ -580,6 +594,14 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     SemaNodeView  view = sema.viewNodeTypeConstantSymbol(nodeExprRef);
     const Token&  tok  = sema.token(codeRef());
     const TokenId opId = tok.id;
+
+    // Parentheses preserve the designated storage, including a folded array index
+    // or dereference whose address can be computed directly.
+    if (opId == TokenId::SymAmpersand)
+    {
+        while (view.node() && view.node()->is(AstNodeId::ParenExpr))
+            view = sema.viewNodeTypeConstantSymbol(view.node()->cast<AstParenExpr>().nodeExprRef);
+    }
 
     // Function declarations are addressable even if they are not plain value expressions.
     const bool takesFunctionAddress = opId == TokenId::SymAmpersand && isFunctionAddressOperand(view);

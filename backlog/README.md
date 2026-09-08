@@ -34,6 +34,7 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-08 08:02 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-08 07:27 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-08 06:30 |
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command | 2026-09-07 21:16 |
@@ -47,7 +48,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [std.video.md](std.video.md) | `std/video` | 2026-09-07 13:30 |
 | [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers | 2026-09-07 13:22 |
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-07 13:14 |
-| [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-07 11:57 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-07 11:12 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-06 21:57 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-06 21:01 |

@@ -56,9 +56,10 @@ worker pool at six with `--num-cores 6`. This is separate from `/MP6`, which lim
 compiler only while building `swc` itself.
 
 Never invoke `tools/release.bat`. It is an owner-only interactive entry point that deliberately
-uses every logical processor. Release always performs a full LTCG link, so an agent may build it
-only when the validation rules require it, after admitting its higher memory demand, and through
-direct MSBuild with both its process count and `/MP` compilation capped at six.
+uses every logical processor. Release currently disables whole-program optimization and LTCG to
+keep iteration practical. An agent builds it only when the validation rules require it or the
+user explicitly requests it, after load admission, and through direct MSBuild with both its
+process count and `/MP` compilation capped at six.
 
 - Apply the cap to both checkout-local executables: `bin\swc.exe` and
   `bin\swc.dm.exe`.

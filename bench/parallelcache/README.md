@@ -15,8 +15,10 @@ checked outside the timed region, with assertions enabled in the Release program
 run with one worker, followed by three with four workers; the pool never needs to shrink.
 
 The useful comparison is the additional cost of four workers when some bodies cannot keep an
-estimate. Uncached calls still need clock reads and a pilot iteration; the cache bounds retained
-state, and saturation must not force cheap work through the pool on every call.
+estimate. With several workers, uncached calls still need clock reads and a pilot iteration; the
+cache bounds retained state, and saturation must not force cheap work through the pool on every
+call. An already started pool with fewer than two workers bypasses profiling. Moving from one
+worker to four also checks that these earlier serial calls do not suppress later adaptation.
 
 Build separately when preparing a timing run, then use the same `run` command above:
 
@@ -39,3 +41,9 @@ CPU load at admission was 23% before and 14% after; these are indicative measure
 machine. The large worker penalty disappears in this deliberately saturated case. The extra
 clock reads and estimation on uncached calls also raise the one-worker cost, so this is not a
 claim that every workload gets faster. Neither version allocates storage for more cached bodies.
+
+These measurements predate the direct path for an already started serial pool. That path now
+avoids the profile lookup, pilot iteration and clock reads with fewer than two workers. Checking
+the existing pool adds work to the multi-worker path; repeat both controls on a quiet machine
+before claiming an overall speedup. The scheduler startup test also reuses a parallel body while
+four host callers grow the pool, checking every result across the serial-to-parallel transition.

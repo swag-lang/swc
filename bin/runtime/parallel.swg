@@ -85,7 +85,7 @@ internal func __parallelRange(begin, end: u64, body: func||(u64, u64))
         return
 
     var count = end - begin
-    if count == 1 or Swag.jit()
+    if count == 1 or Swag.jit() or hasSerialWorkerPool()
     {
         body(begin, end)
         return

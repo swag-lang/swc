@@ -67,6 +67,20 @@ private var g_Scheduler:      AtomicValue'u64
 private var g_SchedulerMutex: Mutex
 private var g_SchedulerOwned: bool     // Written before publishing the pointer; read at quiescent shutdown.
 
+// Observe an existing roster without creating a scheduler or starting workers. A concurrent
+// growth can leave this call serial; the next call observes the larger pool. Before startup
+// completes, a zero count says nothing about the requested roster.
+#[Swag.Inline]
+internal func hasSerialWorkerPool()->bool
+{
+    let known = g_Scheduler.load()
+    if known == 0 do
+        return false
+
+    let sched = cast(*Scheduler) known
+    return sched.count.load() < 2 and sched.started.load() != 0
+}
+
 // Returns the process scheduler, creating it on first use.
 //
 // Creating it starts no thread and reserves no execution resource: a program that never submits

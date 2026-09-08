@@ -37,6 +37,12 @@ impl SchedulerProbe
     }
 }
 
+func accumulateParallelProbe(values: *[4] u32)
+{
+    parallel for |values| index in 4 do
+        values[][index] += cast(u32) index + 1
+}
+
 func probeScheduler(param: *void?)->u32
 {
     let probe = cast(*SchedulerProbe) param!
@@ -54,6 +60,8 @@ func probeScheduler(param: *void?)->u32
     probe.scheduler = cast(u64) Swag.schedulerInstance()
     Swag.setWorkerCount(1)
     probe.initialCount = Swag.workerCount()
+    var values: [4] u32
+    accumulateParallelProbe(&values)
     probe.ready.raise()
     while !probe.grow.isRaised() do
         discard SwitchToThread()
@@ -69,11 +77,16 @@ func probeScheduler(param: *void?)->u32
         probe.invalid = probe.invalid or count < previous or count > maximum
         previous      = count
 
+        // Reuse a body first called with one worker while other callers grow the pool.
+        accumulateParallelProbe(&values)
+
         for index in 4 do
             tasks[index].submit(func|probe|() { probe.completed.add(1) })
         for index in 4 do
             tasks[3 - index].wait()
     }
+    for index in 4 do
+        probe.invalid = probe.invalid or values[index] != 97 * (index + 1)
     return 0
 }
 

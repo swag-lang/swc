@@ -13,8 +13,8 @@ Use [tools/README.md](tools/README.md) for the authoritative tool syntax and foc
 Build/test guidance and shared-machine load admission rules are in the two skills named below;
 prefer a focused command for the changed behavior over the full campaign in `tools/tests.swgs`.
 Use the checkout-local `bin\\swc.exe` or `bin\\swc.dm.exe` when multiple worktrees may be
-present. Treat [web/](web/) as generated output: edit its source under `bin/reference` or the
-relevant module, then regenerate it through `tools/web.swgs`.
+present. Treat [bin/help/](bin/help/) as generated output: edit its source under `bin/reference` or the
+relevant module, then regenerate it through `tools/help.swgs`.
 
 Compiler-source changes under `src/` must increment `SWC_BUILD_NUM` in
 [src/Main/Version.h](src/Main/Version.h), since it participates in compiler cache identity.

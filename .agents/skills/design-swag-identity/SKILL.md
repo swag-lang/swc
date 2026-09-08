@@ -172,21 +172,21 @@ replace it was rejected: a gradient ribbon, a folded ribbon, a faceted gem, a fr
 `S`, and a drawn `SWAG` wordmark. Tune a measure when a size demands it; do not redraw the
 letter.
 
-`web/tools/brand.swgs` is the single definition of that geometry. It builds the mark once
+`bin/help/tools/brand.swgs` is the single definition of that geometry. It builds the mark once
 as a `Pixel.LinePath` and hands it to the two writers that consume it — `Pixel.Svg.Document`
 for the vector masters and `Pixel.ImageCanvas` for the rasters — so no asset can disagree
 with another about where an edge is. The script owns the shape and nothing else; anything
 generic it needs belongs in `bin/std`, not in the script.
 
-`tools/web.swgs` runs it before generating the pages, so the assets the pages link are
+`tools/help.swgs` runs it before generating the pages, so the assets the pages link are
 always cut from the current definition. To regenerate them alone:
 
 ```
-swc web/tools/brand.swgs
+swc bin/help/tools/brand.swgs
 ```
 
-It writes `web/imgs/swag_mark.svg`, `web/imgs/swag_mark.png`, `web/imgs/swag_icon.png`,
-`web/favicon.svg`, and `web/favicon.ico`. Never edit those files by hand. The favicon carries
+It writes `bin/help/imgs/swag_mark.svg`, `bin/help/imgs/swag_mark.png`, `bin/help/imgs/swag_icon.png`,
+`bin/help/favicon.svg`, and `bin/help/favicon.ico`. Never edit those files by hand. The favicon carries
 16, 32, and 48 pixel entries, each cut at its own size rather than downsampled, so the
 counters of the mark stay open in a browser tab.
 
@@ -204,15 +204,15 @@ two surfaces sit side by side:
 
 ## Regenerate The Syntax Image
 
-`web/imgs/syntax.png` shows the language in its own colors. It is not a screenshot of an
+`bin/help/imgs/syntax.png` shows the language in its own colors. It is not a screenshot of an
 editor: it is a capture of a page the compiler colored itself, which is why it can never
 show syntax the compiler no longer accepts.
 
-1. Edit the snippet in `web/tools/syntax/src/syntax.md` when the language moves.
-2. Generate the page: `swc doc --module web/tools/syntax --doc-output-dir <out>`.
+1. Edit the snippet in `bin/help/tools/syntax/src/syntax.md` when the language moves.
+2. Generate the page: `swc doc --module bin/help/tools/syntax --doc-output-dir <out>`.
    That module pins `theme = .Dark`, so the capture matches the editor theme.
 3. Capture the `.code-block` element at a device scale of 2, and write the result to
-   `web/imgs/syntax.png` and `vscode/images/syntax.png`.
+   `bin/help/imgs/syntax.png` and `vscode/images/syntax.png`.
 
 ## Place The Mark
 
@@ -332,8 +332,8 @@ Console output, diagnostics, and documentation prose follow
 
 ## Verify
 
-1. Regenerate the assets and the site: `swc web/tools/brand.swgs`, then
-   `swc tools/web.swgs dm`.
+1. Regenerate the assets and the site: `swc bin/help/tools/brand.swgs`, then
+   `swc tools/help.swgs dm`.
 2. Look at a page in both palettes and at a narrow width before calling it done.
 3. Look at the mark itself at 16, 32, and 128 pixels, not only at the size you drew it.
    If the counters close up, the crop is wrong before the mark is.

@@ -282,7 +282,7 @@ COMPILER_WORKLOADS = ["core_rebuild", "core_noop", "core_touch", "doc_std", "for
 # The trees the format tool walks, relative to the repository root, in its order.
 FORMAT_TREES = [os.path.join("bin", d) for d in
                 ("examples", "apps", "reference", "runtime", "std", "unittests")] + \
-               ["tools", os.path.join("bench", "src"), os.path.join("web", "tools")]
+               ["tools", os.path.join("bench", "src"), os.path.join("bin", "help", "tools")]
 
 # One leaf of core whose write time the touched-file workload bumps. Its content never
 # changes: the compiler decides staleness from write times, exactly as it would after an

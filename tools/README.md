@@ -108,7 +108,7 @@ tags form a union; combined file and tag filters form an intersection.
 | Tool | Purpose |
 | --- | --- |
 | `format.swgs` | Format every Swag workspace, maintenance script, benchmark, and website generator in place |
-| `web.swgs` | Regenerate the brand assets and the complete website |
+| `help.swgs` | Regenerate the brand assets and the complete documentation site in `bin/help/` |
 | `goldens.swgs test` | Run every `golden`-tagged test and report all `.actual` differences |
 | `goldens.swgs` | Promote reviewed `.actual` snapshots to goldens |
 | `bench.swgs` | Run or regenerate the cross-language performance campaign |

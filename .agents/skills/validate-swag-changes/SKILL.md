@@ -86,7 +86,7 @@ Apply these reductions:
 ### Non-executable changes
 
 - Documentation-only compiler work (`src/Doc`, the `doc` command, or its private helpers): build
-  DevMode, run `swc tools/web.swgs dm`, and inspect the generated HTML diff. Run no compiler or GUI
+  DevMode, run `swc tools/help.swgs dm`, and inspect the generated HTML diff. Run no compiler or GUI
   campaign unless another command path changed.
 - Formatter-only compiler work (`src/Format`, the `format` command, or its private helpers): build
   DevMode, run `swc format -d bin`, and inspect the source diff. That full `bin/` formatting result

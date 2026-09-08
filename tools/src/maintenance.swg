@@ -13,7 +13,7 @@ public func runFormat(context: *Context, options: *Options)->s32 fail
         arguments.add(["-d", Path.combine(context.binDir.toString(), workspace).toString()])
 
     // Maintenance scripts, benchmarks, and website generators are repository sources too.
-    for directory in ["tools", "bench/src", "web/tools"] do
+    for directory in ["tools", "bench/src", "bin/help/tools"] do
         arguments.add(["-d", Path.combine(context.root.toString(), directory).toString()])
 
     options.appendExtra(&arguments)
@@ -219,20 +219,20 @@ private func goldenSnapshots(context: *Context)->Array'String fail
     return result
 }
 
-// Regenerates the brand assets and the complete website under web/.
+// Regenerates the brand assets and the complete website under bin/help/.
 //
 // The brand assets come first: the pages link them, and cutting them again is what keeps the
 // mark, the icons and the favicons in step with their definition. The generator writes relative
 // to the repository root, so it runs from there whatever the caller's own directory.
-public func runWeb(context: *Context, options: *Options)->s32 fail
+public func runHelp(context: *Context, options: *Options)->s32 fail
 {
-    let webDir = Path.combine(context.root.toString(), "web")
-    if !Directory.exists(webDir) do
-        try Directory.create(webDir.toString())
+    let helpDir = Path.combine(context.binDir.toString(), "help")
+    if !Directory.exists(helpDir) do
+        try Directory.create(helpDir.toString())
 
     var brand: Arguments
     options.appendExtra(&brand)
-    brand.add([Path.combine(webDir.toString(), "tools", "brand.swgs").toString()])
+    brand.add([Path.combine(helpDir.toString(), "tools", "brand.swgs").toString()])
 
     let brandLine = joinArguments(brand.toSlice())
 
@@ -244,7 +244,7 @@ public func runWeb(context: *Context, options: *Options)->s32 fail
 
     // A removed module must not leave its generated page behind. Root HTML files are all
     // documentation outputs; assets and source tools live in their own directories.
-    let oldPages = try Directory.enumerateFiles(webDir.toString(), ".html")
+    let oldPages = try Directory.enumerateFiles(helpDir.toString(), ".html")
     for page in oldPages do
         try File.delete(page.fullname.toString())
 
@@ -252,7 +252,7 @@ public func runWeb(context: *Context, options: *Options)->s32 fail
     {
         var arguments: Arguments
         arguments.add(["doc", "--workspace", context.workspacePath(workspace).toString()])
-        arguments.add(["--doc-output-dir", webDir.toString(), "--rebuild"])
+        arguments.add(["--doc-output-dir", helpDir.toString(), "--rebuild"])
         options.appendExtra(&arguments)
 
         let code = try context.runCompiler(arguments)
@@ -284,7 +284,7 @@ public func runVsix(context: *Context, _options: *Options)->s32 fail
 
     for image in ["swag_icon.png", "syntax.png"]
     {
-        let source = Path.combine(context.root.toString(), "web", "imgs", image)
+        let source = Path.combine(context.binDir.toString(), "help", "imgs", image)
         let target = Path.combine(imagesDir.toString(), image)
         try File.duplicate(target.toString(), source.toString())
     }

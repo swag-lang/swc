@@ -6,9 +6,9 @@ one ink, and every corner it opens on is cut at 45 degrees. Nothing here is draw
 hand, so the mark, the favicon and the application icon can never drift apart. Run it
 from the repository root:
 
-    swc web/tools/brand.swgs
+    swc bin/help/tools/brand.swgs
 
-It writes the vector master and its raster derivatives into 'web/'. The shape is built
+It writes the vector master and its raster derivatives into 'bin/help/'. The shape is built
 once as a [[Pixel.LinePath]] and handed to the two writers that consume it:
 [[Pixel.Svg.Document]] for the vector masters and [[Pixel.ImageCanvas]] for the rasters,
 so a file can never disagree with the others about where an edge is.
@@ -252,7 +252,7 @@ func wrote(path: string)
 
 #main
 {
-    const ROOT = "web"
+    const ROOT = "bin/help"
 
     Swag.print("  ◆  swag        brand • cutting\n")
 

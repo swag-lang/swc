@@ -61,8 +61,8 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
   and failure. An owner can still release a borrowed field in its own destructor before the
   implicit destruction of its task field; it must join before releasing that storage.
 - Next: follow owned linked storage through accessors, with both an owned child and a non-owned
-  parent pointer as regression cases. Distinguish a borrow retained past a helper's return from transient borrowed state before
-  removing the caller-parameter exemption. Cover both a retained task closure and a helper that
+  parent pointer as regression cases. Distinguish a borrow retained past a helper's return from
+  transient borrowed state before removing the caller-parameter exemption. Cover both a retained task closure and a helper that
   clears temporary state before returning. Then infer transferable (`Send`) and shared-readable
   (`Sync`) properties from fields, allocation, copy, move and destruction effects, and require
   them at captures. `NoCopy` does not imply `Send`, `const` does not imply deep immutability, and

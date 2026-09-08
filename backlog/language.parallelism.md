@@ -30,6 +30,95 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
+### language.parallelism.001 — The shipped model, and the promises it does not yet make
+
+- Recorded: 2026-09-06 07:51
+- Updated: 2026-09-08 08:54 — restricted join helping to the awaited node; explicit drains retain process-wide helping
+- Where it stands: `parallel for |captures| name in range` is a statement of the language, lowered
+  to one call into `Swag.__parallelRange`. `bin/runtime` owns the worker pool, `Swag.Task`,
+  `Swag.TaskGroup`, `Swag.Mutex`, `Swag.RWLock`, `Swag.Condition`, `Swag.Semaphore`,
+  `Swag.Barrier`, `Swag.AtomicValue` and `Swag.AtomicFlag`. One process has one pool, resolved
+  through a process anchor so an executable and every shared library it loads share it. `Core.Jobs`
+  is gone and every consumer -- pixel, truetype, video, gui, the three applications, the examples
+  and the scripts -- goes through the runtime.
+- What the model does not yet promise: race freedom. The capture list is written, not proved
+  (.005); a partition cannot fail and cannot state disjointness (.004); there is one executor and
+  no affinity (.003); nothing suspends and a task carries no typed result (.002). A program can
+  still write a data race through a capture, and the compiler accepts it.
+- Next: the other four entries are the remaining work, in the order they unblock each other:
+  suspension and typed results, then executors, then partition proofs, then checked captures.
+  Keep this entry as the place that states the whole contract, and let each of them own its part.
+  Do not advertise race freedom in the reference or in the runtime documentation until .005 holds.
+- Complete when: the four entries are closed and the language reference states one contract for
+  ownership, suspension, cancellation, failure and memory access that the compiler enforces.
+- Related: std.core.025, std.core.026, std.core.028, compiler.safety.005, compiler.safety.006,
+  compiler.safety.007, compiler.safety.014, runtime.allocator.004, platform.portability.035.
+
+#### Progress and memory-model boundaries that already apply
+
+These hold for the shipped model and constrain every entry in this domain.
+
+| Construction | Progression boundary |
+| --- | --- |
+| Finite independent kernels and descendant-only fork/join | Completes with one worker if the sequential computations terminate and the executor services ready work. A `parallel for` and a joined `Swag.TaskGroup` are in this class. |
+| Ranked locks | Prevent acquisition cycles only while all acquisitions obey the declared order. Nothing declares one yet. |
+| Explicit task graph | Reject cycles when constructing or extending the dependency graph; other waits in node bodies need their own contract. |
+| General channels, promises, actors, leases | Safe memory access does not prove the communication protocol terminates. |
+| Foreign waits and external systems | Require explicit backend contracts; no universal deadline or deadlock guarantee. |
+
+Concurrent conflicting non-atomic access is invalid. Atomics do not create multi-location
+transactions, and an atomic pointer algorithm still needs a valid reclamation protocol and a
+lifetime proof. Default atomics are sequentially consistent; acquire/release/relaxed orders remain
+expert operations that do not inherit that claim, and none are exposed yet.
+
+A joining thread can claim the queued task it is waiting for, and that task can join its own
+children in turn. It does not execute unrelated ready tasks: a guard held across a join must
+not be reentered by an unrelated callback. With no worker, submission executes synchronously.
+An explicit `Swag.drainWork` still runs arbitrary accepted work and needs a context that permits
+that reentrancy. Joining a task that itself needs a held lock can still deadlock; targeted helping
+does not prove a task dependency graph or lock ordering correct.
+
+#### Workloads still to be answered
+
+The first three rows shipped. The rest are the acceptance cases the entries above must satisfy.
+
+| Workload | Desired expression | Adversarial case to settle | Evidence required |
+| --- | --- | --- | --- |
+| Bounded streaming pipeline | Transferred buffers and finite-capacity channels. | Consumer stops while producer is blocked; one stage fails after a partial transfer. | Every buffer and rejected message has an owner; failure closes and drains the pipeline under its stated policy. |
+| Recursive CPU work | Nested structured tasks or parallel partitions. | One worker and an exhausted task-lifetime quota. | No hidden quota wait cycle, bounded bookkeeping, and equivalent completed results. |
+| Dependency graph | Typed nodes with explicit result edges. | A dynamic edge introduces a cycle, or one node awaits an unrelated external event. | Cycle rejection for graph edges; no false claim that arbitrary node bodies are deadlock-free. |
+| Foreign blocking operation | A task scheduled on the blocking or dedicated executor. | The operation ignores cancellation or synchronously calls back into the host. | Borrowed resources survive; callback and runtime attachment stay valid; no unsupported timeout bound is promised. |
+| Lock-free shared structure | Typed atomics with a reclamation domain. | ABA, a stalled reader, and reclamation during shutdown. | Storage lifetime is justified separately from atomic ordering; the unchecked implementation boundary is explicit. |
+| Latency-sensitive audio | Dedicated execution, preallocated memory, no-allocation and no-wait contracts. | A device callback that must never allocate or block. | The contract is checked rather than documented; no hard real-time guarantee is claimed on a general-purpose operating system. |
+
+For each case, record the source size, annotations, explicit clones, unchecked escapes,
+allocations, and runtime costs the preferred path needs. A short keyword example is not evidence
+of simplicity when every useful helper needs an unchecked contract.
+
+#### Validation that every entry here inherits
+
+- Semantic tests accept safe transfers and partitions and reject hidden aliases, cross-module
+  global writes, escaped borrows, incompatible callable effects, and wrong-executor destruction.
+  A guarantee that only a warning or a devmode guard enforces is not the guarantee.
+- A runtime-only consumer declares and uses the concurrency types without importing Core, and a
+  sequential program starts no execution resource it never asked for.
+- Native and JIT lifecycle tests cover every exit after capture, including failed admission before
+  capture, a failing later capture after an earlier move, and serial fallback after partial
+  dispatch.
+- A controlled scheduler and a fake backend enumerate cancellation before publication, during
+  registration, at commit, after completion, and during cleanup, together with simultaneous
+  completions, withdrawn channel operations, producer abandonment, and late native callbacks.
+- Runtime tests distinguish one worker from several, nested fork/join, quota exhaustion, pool
+  shutdown, and a stalled foreign call. Soundness is not inferred from stress testing.
+- Consumer evidence comes from a real pixel operation, a real GUI background lifecycle, and a real
+  native-affinity operation. Measure creation and join cost, memory per live task, queue
+  contention, cancellation latency under stated cooperation assumptions, serial thresholds, and
+  throughput against what the code did before.
+- Every implemented syntax change updates the language reference, the editor grammar, the
+  formatter and the relevant diagnostics together. Compiler-source changes increment
+  `SWC_BUILD_NUM`; serialized effect summaries and runtime ABI changes invalidate incompatible
+  cached artifacts.
+
 ### language.parallelism.003 — One executor, one placement
 
 - Recorded: 2026-09-07 15:52
@@ -126,90 +215,3 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
   happens-before part of the language contract. These are references for separate decisions, not a
   proposal to import one language's complete model.
 - Related: std.core.025, std.core.028, language.parallelism.001.
-
-### language.parallelism.001 — The shipped model, and the promises it does not yet make
-
-- Recorded: 2026-09-06 07:51
-- Updated: 2026-09-07 15:52 — rewritten around what is left after `parallel for` and the runtime
-  scheduler shipped and `Core.Jobs` was removed
-- Where it stands: `parallel for |captures| name in range` is a statement of the language, lowered
-  to one call into `Swag.__parallelRange`. `bin/runtime` owns the worker pool, `Swag.Task`,
-  `Swag.TaskGroup`, `Swag.Mutex`, `Swag.RWLock`, `Swag.Condition`, `Swag.Semaphore`,
-  `Swag.Barrier`, `Swag.AtomicValue` and `Swag.AtomicFlag`. One process has one pool, resolved
-  through a process anchor so an executable and every shared library it loads share it. `Core.Jobs`
-  is gone and every consumer -- pixel, truetype, video, gui, the three applications, the examples
-  and the scripts -- goes through the runtime.
-- What the model does not yet promise: race freedom. The capture list is written, not proved
-  (.005); a partition cannot fail and cannot state disjointness (.004); there is one executor and
-  no affinity (.003); nothing suspends and a task carries no typed result (.002). A program can
-  still write a data race through a capture, and the compiler accepts it.
-- Next: the four entries above are the remaining work, in the order they unblock each other:
-  suspension and typed results, then executors, then partition proofs, then checked captures.
-  Keep this entry as the place that states the whole contract, and let each of them own its part.
-  Do not advertise race freedom in the reference or in the runtime documentation until .005 holds.
-- Complete when: the four entries are closed and the language reference states one contract for
-  ownership, suspension, cancellation, failure and memory access that the compiler enforces.
-- Related: std.core.025, std.core.026, std.core.028, compiler.safety.005, compiler.safety.006,
-  compiler.safety.007, compiler.safety.014, runtime.allocator.004, platform.portability.035.
-
-#### Progress and memory-model boundaries that already apply
-
-These hold for the shipped model and constrain every entry above.
-
-| Construction | Progression boundary |
-| --- | --- |
-| Finite independent kernels and descendant-only fork/join | Completes with one worker if the sequential computations terminate and the executor services ready work. A `parallel for` and a joined `Swag.TaskGroup` are in this class. |
-| Ranked locks | Prevent acquisition cycles only while all acquisitions obey the declared order. Nothing declares one yet. |
-| Explicit task graph | Reject cycles when constructing or extending the dependency graph; other waits in node bodies need their own contract. |
-| General channels, promises, actors, leases | Safe memory access does not prove the communication protocol terminates. |
-| Foreign waits and external systems | Require explicit backend contracts; no universal deadline or deadlock guarantee. |
-
-Concurrent conflicting non-atomic access is invalid. Atomics do not create multi-location
-transactions, and an atomic pointer algorithm still needs a valid reclamation protocol and a
-lifetime proof. Default atomics are sequentially consistent; acquire/release/relaxed orders remain
-expert operations that do not inherit that claim, and none are exposed yet.
-
-A waiting thread runs ready work while it waits, which is what makes a join progress with no
-worker at all. That helping is bounded to work the pool already accepted; it must not grow into
-running arbitrary unrelated user tasks, or a guard held across a join stops meaning anything.
-
-#### Workloads still to be answered
-
-The first three rows shipped. The rest are the acceptance cases the entries above must satisfy.
-
-| Workload | Desired expression | Adversarial case to settle | Evidence required |
-| --- | --- | --- | --- |
-| Bounded streaming pipeline | Transferred buffers and finite-capacity channels. | Consumer stops while producer is blocked; one stage fails after a partial transfer. | Every buffer and rejected message has an owner; failure closes and drains the pipeline under its stated policy. |
-| Recursive CPU work | Nested structured tasks or parallel partitions. | One worker and an exhausted task-lifetime quota. | No hidden quota wait cycle, bounded bookkeeping, and equivalent completed results. |
-| Dependency graph | Typed nodes with explicit result edges. | A dynamic edge introduces a cycle, or one node awaits an unrelated external event. | Cycle rejection for graph edges; no false claim that arbitrary node bodies are deadlock-free. |
-| Foreign blocking operation | A task scheduled on the blocking or dedicated executor. | The operation ignores cancellation or synchronously calls back into the host. | Borrowed resources survive; callback and runtime attachment stay valid; no unsupported timeout bound is promised. |
-| Lock-free shared structure | Typed atomics with a reclamation domain. | ABA, a stalled reader, and reclamation during shutdown. | Storage lifetime is justified separately from atomic ordering; the unchecked implementation boundary is explicit. |
-| Latency-sensitive audio | Dedicated execution, preallocated memory, no-allocation and no-wait contracts. | A device callback that must never allocate or block. | The contract is checked rather than documented; no hard real-time guarantee is claimed on a general-purpose operating system. |
-
-For each case, record the source size, annotations, explicit clones, unchecked escapes,
-allocations, and runtime costs the preferred path needs. A short keyword example is not evidence
-of simplicity when every useful helper needs an unchecked contract.
-
-#### Validation that every entry here inherits
-
-- Semantic tests accept safe transfers and partitions and reject hidden aliases, cross-module
-  global writes, escaped borrows, incompatible callable effects, and wrong-executor destruction.
-  A guarantee that only a warning or a devmode guard enforces is not the guarantee.
-- A runtime-only consumer declares and uses the concurrency types without importing Core, and a
-  sequential program starts no execution resource it never asked for.
-- Native and JIT lifecycle tests cover every exit after capture, including failed admission before
-  capture, a failing later capture after an earlier move, and serial fallback after partial
-  dispatch.
-- A controlled scheduler and a fake backend enumerate cancellation before publication, during
-  registration, at commit, after completion, and during cleanup, together with simultaneous
-  completions, withdrawn channel operations, producer abandonment, and late native callbacks.
-- Runtime tests distinguish one worker from several, nested fork/join, quota exhaustion, pool
-  shutdown, and a stalled foreign call. Soundness is not inferred from stress testing.
-- Consumer evidence comes from a real pixel operation, a real GUI background lifecycle, and a real
-  native-affinity operation. Measure creation and join cost, memory per live task, queue
-  contention, cancellation latency under stated cooperation assumptions, serial thresholds, and
-  throughput against what the code did before.
-- Every implemented syntax change updates the language reference, the editor grammar, the
-  formatter and the relevant diagnostics together. Compiler-source changes increment
-  `SWC_BUILD_NUM`; serialized effect summaries and runtime ABI changes invalidate incompatible
-  cached artifacts.

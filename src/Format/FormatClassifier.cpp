@@ -94,6 +94,32 @@ namespace
                    isDestructuringAssignList(ast_->node(nodeRef).cast<AstAssignStmt>().nodeLeftRef);
         }
 
+        AstNodeRef parallelForBody(const AstParallelForStmt& stmt) const
+        {
+            const auto&             closure = ast_->node(stmt.nodeClosureRef).cast<AstClosureExpr>();
+            const auto&             block   = ast_->node(closure.nodeBodyRef).cast<AstEmbeddedBlock>();
+            SmallVector<AstNodeRef> statements;
+            ast_->appendNodes(statements, block.spanChildrenRef);
+            SWC_ASSERT(statements.size() == 1);
+            return ast_->node(statements.front()).cast<AstForStmt>().nodeBodyRef;
+        }
+
+        void collectSourceChildren(SmallVector<AstNodeRef>& out, const AstNode& node) const
+        {
+            if (node.isNot(AstNodeId::ParallelForStmt))
+            {
+                Ast::nodeIdInfos(node.id()).collectChildren(out, *ast_, node);
+                return;
+            }
+
+            // The parser synthesizes a closure and partition loop for execution. They have
+            // no written `func` or parameter list and must not acquire source formatting roles.
+            const auto& stmt    = node.cast<AstParallelForStmt>();
+            const auto& closure = ast_->node(stmt.nodeClosureRef).cast<AstClosureExpr>();
+            ast_->appendNodes(out, closure.nodeCaptureArgsRef);
+            AstNode::collectChildren(out, {stmt.nodeBeginRef, stmt.nodeEndRef, parallelForBody(stmt)});
+        }
+
         const NodeSpan& computeSpan(const AstNodeRef nodeRef)
         {
             const auto it = spans_.find(nodeRef.get());
@@ -110,7 +136,7 @@ namespace
             }
 
             SmallVector<AstNodeRef> children;
-            Ast::nodeIdInfos(node.id()).collectChildren(children, *ast_, node);
+            collectSourceChildren(children, node);
             for (const AstNodeRef childRef : children)
             {
                 if (!shouldVisit(childRef))
@@ -1082,6 +1108,15 @@ namespace
                     break;
                 }
 
+                case AstNodeId::ParallelForStmt:
+                {
+                    const auto& stmt = node.cast<AstParallelForStmt>();
+                    addRole(span.minPiece, FormatRoleE::ControlKeyword);
+                    addRole(nextCodeIf(span.minPiece, TokenId::KwdFor), FormatRoleE::ControlKeyword);
+                    markControlBody(parallelForBody(stmt), span.minPiece, nodeRef);
+                    break;
+                }
+
                 case AstNodeId::ForStmt:
                 {
                     const auto& stmt = node.cast<AstForStmt>();
@@ -1366,7 +1401,7 @@ namespace
         void classifyChildren(const AstNode& node, const AstNodeId parentCompound)
         {
             SmallVector<AstNodeRef> children;
-            Ast::nodeIdInfos(node.id()).collectChildren(children, *ast_, node);
+            collectSourceChildren(children, node);
             for (const AstNodeRef childRef : children)
                 classifyNode(childRef, parentCompound, node.id());
         }

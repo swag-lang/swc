@@ -18,7 +18,7 @@ func earlyReturn()->u64
 {
     var total = 0'u64
 
-        parallel for |&total| index in 10
+    parallel for |&total| index in 10
     {
         if index == 5 do
             return 0     // swc-expected-error {{sema_err_return_leaves_parallel_for}}
@@ -28,12 +28,12 @@ func earlyReturn()->u64
     return total
 }
 
-    // A loop written inside the body owns its own 'break'.
-    #test
+// A loop written inside the body owns its own 'break'.
+#test
 {
     var total = 0'u64
 
-        parallel for |&total| index in 4
+    parallel for |&total| index in 4
     {
         for inner in 10
         {

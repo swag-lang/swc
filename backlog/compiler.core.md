@@ -6,6 +6,25 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.035 — Bound native test recovery with outstanding borrowed tasks
+
+- Recorded: 2026-09-08 09:08
+- Found while: testing targeted scheduler joins in
+  [task_wait.swg](../bin/unittests/native/runtime/task_wait.swg).
+- Evidence: with the original scheduler, an assertion inside the callback of a helper holding
+  every worker on a condition abandoned the helper before its deferred gate release. The next
+  test waited indefinitely for those workers, and the native test process had to be stopped.
+  Moving assertions after the helper had released and joined its workers reported the two
+  expected failures and terminated in 80 ms.
+- Source lead: `__hostTestResume` in [os_windows.swg](../bin/runtime/os_windows.swg) restores
+  the saved test context without unwinding the failed frames. Their cleanup does not run, and
+  pending tasks can retain borrowed captures into abandoned stack storage.
+- Next: define a bounded recovery contract for native test panics with outstanding tasks, such
+  as process isolation or terminating the affected test process. Draining callbacks that borrow
+  abandoned frames is not a safe recovery strategy.
+- Complete when: a failing native test with pending borrowed work produces a bounded failure
+  without hanging subsequent tests, shutdown, or running callbacks against abandoned storage.
+
 ### compiler.core.031 — Reject silent semantic failure before reporting success
 
 - Recorded: 2026-09-06 21:14

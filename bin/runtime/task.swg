@@ -62,8 +62,9 @@ impl Task
 
     // Waits until the last submission has finished.
     //
-    // The waiting thread runs ready work while it waits, so the wait makes progress even when
-    // every worker is busy. Waiting on a task that was never submitted returns immediately.
+    // The waiting thread can run this task if it is still queued; it does not run unrelated
+    // ready tasks. Descendant-only joins therefore progress even when every worker is busy.
+    // Waiting on a task that was never submitted returns immediately.
     mtd wait() => waitWork(&.node)
 }
 
@@ -165,8 +166,9 @@ impl TaskGroup
 
     // Waits until every child spawned so far has finished.
     //
-    // The waiting thread runs ready work while it waits. Children spawned after this call are
-    // not covered by it; leaving the group's scope joins those too.
+    // The waiting thread can run the child it is joining, but does not run unrelated ready
+    // tasks. Children spawned after this call are not covered by it; leaving the group's scope
+    // joins those too.
     mtd wait()
     {
         var block = .blocks

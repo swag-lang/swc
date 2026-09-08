@@ -42,6 +42,36 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.017 — Allocation ownership has no static leak proof
+
+- Recorded: 2026-09-04 19:35
+- Updated: 2026-09-08 09:18 — the allocator is a runtime value, so "allocated" does not imply "must be released"
+- Area: compiler/sema, language
+- Evidence: the four allocation-loss shapes in `cwe401_memory_leak.swg` compile without a static
+  diagnostic: no release, release on one path, overwritten pointer, and an owner without `opDrop`.
+  The runtime half already exists: `Allocator.stats` counts live allocations, `printLeaks` reports
+  them at release, and `allocatorTrackAllocations` adds allocation details. DevMode enables
+  `allocatorLeaks`; Release disables it by default. `allocator_debug_modes.swg` covers live counts,
+  tracking and quarantine.
+- What the "decide first" step now answers, and it is the obstacle rather than the cost: a static
+  leak proof needs to know that a block MUST be released, and the language does not say so. Every
+  allocation reaches the same `Swag.IAllocator.alloc`, whichever allocator is behind the interface,
+  and the interface is a runtime value. `Memory.tempAlloc` in
+  [alloc.swg](../bin/std/modules/core/src/memory/alloc.swg) allocates from the context's temporary
+  allocator through that same method, and a block from an arena is legitimately never released —
+  the arena is reset whole. A rule seeded on the interface would therefore report every temporary
+  allocation as a leak, which is the false positive that decides a sanity rule's fate.
+- Next: settle the ownership question before the analysis. Either the interface distinguishes an
+  owning allocator from an arena (a property on `IAllocator`, or a distinct interface for one that
+  never requires a release), or the leak rule is seeded on the standard entry points that promise
+  ownership rather than on the interface, or leak detection stays with the allocator report. Count
+  the arena and temporary allocation sites in `bin/` before choosing: that count is what says
+  whether an interface split is affordable.
+- Complete when: the compiler either diagnoses a documented set of proven leak shapes with sound
+  counterparts, or the reference explicitly limits leak detection to allocator diagnostics and
+  the corpus reflects that decision.
+- Related: runtime.allocator.010, compiler.safety.018.
+
 ### compiler.safety.020 — A release reached through a field of the receiver is not judged at the caller
 
 - Recorded: 2026-09-08 09:05
@@ -110,25 +140,6 @@ is the current scorecard.
 - Complete when: either a warning exists with its count on `bin/` recorded, or the reference states
   that a conditional release is outside what the proof covers and the corpus records the decision.
 - Related: compiler.safety.017.
-
-### compiler.safety.017 — Allocation ownership has no static leak proof
-
-- Recorded: 2026-09-04 19:35
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: compiler/sema, language
-- Evidence: the four allocation-loss shapes in `cwe401_memory_leak.swg` compile without a static
-  diagnostic: no release, release on one path, overwritten pointer, and an owner without `opDrop`.
-  The runtime half already exists: `Allocator.stats` counts live allocations, `printLeaks` reports
-  them at release, and `allocatorTrackAllocations` adds allocation details. DevMode enables
-  `allocatorLeaks`; Release disables it by default. `allocator_debug_modes.swg` covers live counts,
-  tracking and quarantine. The former claim that no tooling tracks leaks was stale.
-- Next: decide whether static allocation-loss checking adds useful coverage beyond the existing
-  runtime report. Start with one must-leak shape and its released-on-every-path counterpart before
-  choosing an owner annotation or inferring ownership from arbitrary allocation calls.
-- Complete when: the compiler either diagnoses a documented set of proven leak shapes with sound
-  counterparts, or the reference explicitly limits leak detection to allocator diagnostics and
-  the corpus reflects that decision.
-- Related: runtime.allocator.010.
 
 ### compiler.safety.004 — Diagnostic allocation does not intercept a stale heap read
 

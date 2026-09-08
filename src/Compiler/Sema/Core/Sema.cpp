@@ -319,7 +319,7 @@ SemaEscapeInfo Sema::variableEscapeInfoIncludingProjections(const SymbolVariable
     for (const auto& [projection, info] : projectionEscapeInfos_)
     {
         if (projection.root == &symVar)
-            result.mergeFrom(info);
+            mergeEscapeInfo(result, info);
     }
 
     // A parameter borrow the value only reached through one of its fields says the value
@@ -341,7 +341,7 @@ SemaEscapeInfo Sema::variableFieldEscapeInfo(const SymbolVariable& symVar, const
         const SemaEscapeProjectionComponent& first = projection.components[0];
         if (first.kind != SemaEscapeProjectionKind::Field || !first.field || first.field->name(ctx()) != fieldName)
             continue;
-        result.mergeFrom(info);
+        mergeEscapeInfo(result, info);
     }
 
     return result;
@@ -371,7 +371,7 @@ SemaEscapeInfo Sema::projectionEscapeInfoIncludingWildcards(const SemaEscapeProj
         }
 
         if (matches)
-            result.mergeFrom(info);
+            mergeEscapeInfo(result, info);
     }
     return result;
 }
@@ -420,16 +420,45 @@ uint32_t Sema::currentScopeDepth() const
     return depth;
 }
 
+bool Sema::localStorageOutlives(const SymbolVariable& destination, const SymbolVariable& source) const
+{
+    const uint32_t sourceDepth      = variableScopeDepth(source);
+    const uint32_t destinationDepth = variableScopeDepth(destination);
+    if (!sourceDepth || !destinationDepth)
+        return false;
+    if (sourceDepth != destinationDepth)
+        return sourceDepth > destinationDepth;
+
+    // Registration order also covers generated declarations whose source offsets
+    // cannot be compared. Both variables must belong to this function's local list.
+    const auto& locals        = currentFunction()->localVariables();
+    const auto  destinationIt = std::ranges::find(locals, &destination);
+    const auto  sourceIt      = std::ranges::find(locals, &source);
+    return sourceIt != locals.end() && destinationIt < sourceIt;
+}
+
+void Sema::mergeEscapeInfo(SemaEscapeInfo& destination, const SemaEscapeInfo& source) const
+{
+    // Severity alone cannot order two locals. Keeping the first origin made a longer
+    // borrow hide a shorter one when captures, aggregate fields or branches merged.
+    if (destination.isLocalBorrow() && source.isLocalBorrow() && destination.sourceVar != source.sourceVar && localStorageOutlives(*destination.sourceVar, *source.sourceVar))
+    {
+        destination = source;
+        return;
+    }
+    destination.mergeFrom(source);
+}
+
 namespace
 {
     template<typename K, typename H>
-    void mergeEscapeStates(std::unordered_map<K, SemaEscapeInfo, H>& dst, const std::unordered_map<K, SemaEscapeInfo, H>& src)
+    void mergeEscapeStates(const Sema& sema, std::unordered_map<K, SemaEscapeInfo, H>& dst, const std::unordered_map<K, SemaEscapeInfo, H>& src)
     {
         for (const auto& [key, info] : src)
         {
             auto [it, inserted] = dst.try_emplace(key, info);
             if (!inserted)
-                it->second.mergeFrom(info);
+                sema.mergeEscapeInfo(it->second, info);
         }
     }
 }
@@ -451,8 +480,8 @@ void Sema::nextEscapeBranchAlternative()
     // Branch-local borrow state starts from the same entry snapshot for each
     // alternative; every possible parameter, projection and deferred call survives.
     EscapeBranchState& state = escapeBranchStack_.back();
-    mergeEscapeStates(state.mergedState, variableEscapeInfos_);
-    mergeEscapeStates(state.mergedProjectionState, projectionEscapeInfos_);
+    mergeEscapeStates(*this, state.mergedState, variableEscapeInfos_);
+    mergeEscapeStates(*this, state.mergedProjectionState, projectionEscapeInfos_);
     variableEscapeInfos_   = state.entryState;
     projectionEscapeInfos_ = state.entryProjectionState;
 }
@@ -464,12 +493,12 @@ void Sema::popEscapeBranch(bool mergeEntryState)
         return;
 
     EscapeBranchState& state = escapeBranchStack_.back();
-    mergeEscapeStates(state.mergedState, variableEscapeInfos_);
-    mergeEscapeStates(state.mergedProjectionState, projectionEscapeInfos_);
+    mergeEscapeStates(*this, state.mergedState, variableEscapeInfos_);
+    mergeEscapeStates(*this, state.mergedProjectionState, projectionEscapeInfos_);
     if (mergeEntryState)
     {
-        mergeEscapeStates(state.mergedState, state.entryState);
-        mergeEscapeStates(state.mergedProjectionState, state.entryProjectionState);
+        mergeEscapeStates(*this, state.mergedState, state.entryState);
+        mergeEscapeStates(*this, state.mergedProjectionState, state.entryProjectionState);
     }
 
     variableEscapeInfos_   = std::move(state.mergedState);

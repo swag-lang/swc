@@ -496,6 +496,11 @@ public:
     void     setVariableScopeDepth(const SymbolVariable& symVar, uint32_t depth);
     uint32_t currentScopeDepth() const;
 
+    // Orders local lifetimes by lexical depth, then by reverse declaration order.
+    bool localStorageOutlives(const SymbolVariable& destination, const SymbolVariable& source) const;
+    // A merged local borrow keeps the shortest lifetime, including at flow joins.
+    void mergeEscapeInfo(SemaEscapeInfo& destination, const SemaEscapeInfo& source) const;
+
     // Flow joins for the borrow-escape state: a branch alternative starts from the entry
     // state, and alternatives UNION at the merge point (may-borrow), so a borrow cleared
     // in only one path survives the join.

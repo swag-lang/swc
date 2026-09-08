@@ -588,10 +588,46 @@ namespace Integration
         try box.closeSandbox()
     }
 
+    // Read the identity through the shipped DLL, which also catches WinFsp truncating it.
+    func stagedRuntimeIdentity(path: string)->String fail
+    {
+        let module = WinFsp.loadLibrary(path)
+        try verify(module != null, "Windows must load each staged WinFsp runtime")
+        defer discard WinFsp.FreeLibrary(module)
+        let address = WinFsp.GetProcAddress(module, ("FspSxsIdent").buffer)
+        try verify(address != null, "WinFsp must expose its active SxS identity")
+        let readIdentity = cast(func()->const [*] u16) address!
+        let identity = readIdentity()
+        var count = 0'u64
+        while count < 32 and identity[count] do
+            count += 1
+        return Utf8.fromUtf16(Swag.makeSlice(identity, count))
+    }
+
+    func verifyRuntimeIsolation() fail
+    {
+        defer WinFsp.g_WinFsp.runtimeRoot.clear()
+        let first = try WinFsp.stagePortableWinFsp()
+        let firstRoot = WinFsp.g_WinFsp.runtimeRoot
+        defer WinFsp.removeRuntimeTree(firstRoot)
+        let second = try WinFsp.stagePortableWinFsp()
+        let secondRoot = WinFsp.g_WinFsp.runtimeRoot
+        defer WinFsp.removeRuntimeTree(secondRoot)
+
+        let firstIdentity = try stagedRuntimeIdentity(first)
+        let secondIdentity = try stagedRuntimeIdentity(second)
+        let expectedFirst = try File.readAllText(Path.combine(Path.directoryName(first)!, "winfsp.sxs"))
+        let expectedSecond = try File.readAllText(Path.combine(Path.directoryName(second)!, "winfsp.sxs"))
+        try verify(firstIdentity == expectedFirst and secondIdentity == expectedSecond, "WinFsp must read the complete staged identities")
+        try verify(firstIdentity.startsWith("swagvault-") and secondIdentity.startsWith("swagvault-"), "each runtime identity must belong to Swag Vault")
+        try verify(firstIdentity != secondIdentity, "independent guardians must never share a driver registration")
+    }
+
     func runInSandbox(box: *Sandbox)->u32 fail
     {
         g_CheckCount = 0
         try verify(!WinFsp.isElevated(), "the filesystem host must use the normal Explorer security context")
+        try verifyRuntimeIsolation()
         Console.println("Swag Vault integration sandbox: ", box.root)
         Console.println("Using temporary drive: ", box.mountPoint)
         trace(Format.toString("SANDBOX: %", box.root))

@@ -176,10 +176,10 @@ namespace
         return typeCanCarryBorrowRec(sema, typeRef, visiting, budget);
     }
 
-    SemaEscapeInfo mergeEscapeInfo(const SemaEscapeInfo& left, const SemaEscapeInfo& right)
+    SemaEscapeInfo mergeEscapeInfo(const Sema& sema, const SemaEscapeInfo& left, const SemaEscapeInfo& right)
     {
         SemaEscapeInfo result = left;
-        result.mergeFrom(right);
+        sema.mergeEscapeInfo(result, right);
         return result;
     }
 
@@ -838,7 +838,7 @@ namespace
 
         SemaEscapeInfo result;
         for (const AstNodeRef childRef : children)
-            result = mergeEscapeInfo(result, expressionEscapeInfoRec(sema, childRef, budget));
+            result = mergeEscapeInfo(sema, result, expressionEscapeInfoRec(sema, childRef, budget));
         return result;
     }
 
@@ -860,7 +860,7 @@ namespace
         node.collectChildrenFromAst(children, sema.ast());
         SemaEscapeInfo result;
         for (const AstNodeRef childRef : children)
-            result = mergeEscapeInfo(result, inlineReturnEscapeInfo(sema, childRef, budget));
+            result = mergeEscapeInfo(sema, result, inlineReturnEscapeInfo(sema, childRef, budget));
         return result;
     }
 
@@ -1213,7 +1213,7 @@ namespace
             // its value or designated storage just as a normal initializer or address would.
             if (captureArg.hasFlag(AstClosureArgumentFlagsE::Address))
             {
-                result = mergeEscapeInfo(result, storageBorrowInfo(sema, captureArg.nodeIdentifierRef, closureTypeRef, true));
+                result = mergeEscapeInfo(sema, result, storageBorrowInfo(sema, captureArg.nodeIdentifierRef, closureTypeRef, true));
                 continue;
             }
 
@@ -1226,7 +1226,7 @@ namespace
             SemaEscapeInfo info = expressionEscapeInfoRec(sema, captureArg.nodeIdentifierRef, budget);
             if (!info.hasBorrow())
                 info = deferredCallBorrowInfo(sema, captureArg.nodeIdentifierRef);
-            result = mergeEscapeInfo(result, info);
+            result = mergeEscapeInfo(sema, result, info);
         }
 
         if (result.hasBorrow())
@@ -1577,23 +1577,33 @@ namespace
         }
     }
 
+    bool localStorageOutlivesBorrow(Sema& sema, const SymbolVariable& destination, const SymbolVariable& source)
+    {
+        const uint32_t sourceDepth      = sema.variableScopeDepth(source);
+        const uint32_t destinationDepth = sema.variableScopeDepth(destination);
+        // A destructor can observe its fields after a later declaration was destroyed.
+        // Trivial carriers have no such reader at block exit. Inline expansions have
+        // their own local ordering, which does not compare with the enclosing function.
+        if (sourceDepth == destinationDepth && (SemaHelpers::effectiveInlinePayload(sema) || !TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), destination.typeRef()).hasDrop))
+            return false;
+        return sema.localStorageOutlives(destination, source);
+    }
+
     // Does the container argument of a stores-into-parameter pair provably outlive the
     // borrowed one? A callee that keeps its argument is only a fault at sites where the
     // keeper is still readable after the borrowed storage is gone.
     //
     // A global container outlives every frame value, so any frame borrow handed to it
-    // dangles. Two locals of the same scope die together in reverse declaration order and
-    // nothing can observe the container afterwards: only a STRICTLY deeper source (a loop
-    // body, an inner block) leaves the container holding freed storage while it is still
-    // in use - which is exactly the 'set of views filled from a per-iteration owner'
-    // fault.
+    // dangles. A deeper source (a loop body, an inner block) dies while the container is
+    // still in use. Within one scope, a container with a destructor also outlives sources
+    // declared after it: cleanup runs in reverse declaration order.
     //
     // A container reached through one of THIS function's parameters is deliberately NOT
     // judged here. It does outlive the frame, but "an object holds a pointer to a caller
     // buffer for the duration of one operation" is an ordinary design (a codec keeping
     // its input and output spans in its state), and the pair still propagates to this
     // function's own summary, to be judged where the container's real lifetime is known.
-    bool intoArgumentOutlivesStored(const Sema& sema, const SemaEscapeInfo& intoInfo, const SemaEscapeInfo& storedInfo)
+    bool intoArgumentOutlivesStored(Sema& sema, const SemaEscapeInfo& intoInfo, const SemaEscapeInfo& storedInfo)
     {
         if (intoInfo.kind == SemaEscapeKind::Static)
             return true;
@@ -1618,6 +1628,9 @@ namespace
         // enclosing function's.
         if (SemaHelpers::effectiveInlinePayload(sema))
             return false;
+
+        if (storedInfo.isLocalBorrow())
+            return localStorageOutlivesBorrow(sema, *intoInfo.sourceVar, *storedInfo.sourceVar);
 
         const uint32_t storedDepth = storedInfo.isMaterializedBorrow() ? storedInfo.sourceScopeDepth : (storedInfo.sourceVar ? sema.variableScopeDepth(*storedInfo.sourceVar) : 0);
         return storedDepth && storedDepth > intoDepth;
@@ -2362,7 +2375,7 @@ namespace
             if (!childTargetTypeRef.isValid())
                 continue;
 
-            result = mergeEscapeInfo(result, expressionEscapeInfoWithTarget(sema, childRef, childTargetTypeRef, budget));
+            result = mergeEscapeInfo(sema, result, expressionEscapeInfoWithTarget(sema, childRef, childTargetTypeRef, budget));
         }
 
         return result;
@@ -2587,15 +2600,10 @@ namespace
 
         if (info.hasBorrow() && isLocalVariableStorage(sema, dstVar))
         {
-            // Storing a borrow of a variable declared in a DEEPER scope: the destination
-            // outlives the borrowed storage even though both live in the same frame.
-            if (info.isLocalBorrow())
-            {
-                const uint32_t srcDepth = sema.variableScopeDepth(*info.sourceVar);
-                const uint32_t dstDepth = sema.variableScopeDepth(dstVar);
-                if (srcDepth && dstDepth && srcDepth > dstDepth)
-                    return reportBorrowScopeEscape(sema, atNodeRef, info, dstVar);
-            }
+            // Lexical nesting and destructor order can both make a local destination
+            // outlive the borrowed storage within the same function frame.
+            if (info.isLocalBorrow() && localStorageOutlivesBorrow(sema, dstVar, *info.sourceVar))
+                return reportBorrowScopeEscape(sema, atNodeRef, info, dstVar);
 
             // Materialized cast storage behaves like an anonymous local of the scope it
             // was created in: a shallower destination outlives it. Inline expansions

@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Sanitizer/SanitizerCheck.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -59,6 +60,69 @@ bool Sanitizer::findLocalSlotExtents(int64_t offset, int64_t& outStart, uint64_t
     outStart = slot->start;
     outSize  = slot->size;
     return true;
+}
+
+bool Sanitizer::frameObjectReachable(const SanitizerState& state, const int64_t slot) const
+{
+    // A compiler temporary has no extent to bound, so nothing says which writes land in
+    // it: only the storage of a declared variable can be proven out of reach.
+    const LocalSlotExtent* extent = findLocalSlot(slot);
+    return !extent || state.escapedFrameObjects.contains(extent->start);
+}
+
+void Sanitizer::markFrameObjectEscaped(SanitizerState& state, const SanitizerValue& value) const
+{
+    if (!value.isStackAddr())
+        return;
+
+    // An address inside a compiler temporary marks nothing: a temporary never overlaps a
+    // declared variable, so a write staying inside the object it was formed from cannot
+    // reach one.
+    const int64_t          offset = value.hasStackOrigin() ? value.stackOrigin : value.stackOffset;
+    const LocalSlotExtent* extent = findLocalSlot(offset);
+    if (extent)
+        state.escapedFrameObjects.insert(extent->start);
+}
+
+void Sanitizer::markEscapesFromValueOperands(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
+{
+    if (!ops)
+        return;
+
+    uint8_t    baseIndex = 0;
+    const bool hasBase   = MicroPassHelpers::dereferenceBaseOperandIndex(baseIndex, inst.op, def);
+    const auto modes     = def.resolvedRegModes(ops);
+    const auto regCount  = std::min(static_cast<size_t>(inst.numOperands), modes.size());
+
+    for (size_t r = 0; r < regCount; r++)
+    {
+        // Reading an address to access what it points at leaves it where it was; every
+        // other read hands it to something the engine stops following.
+        if (modes[r] == MicroInstrRegMode::None || (hasBase && r == baseIndex))
+            continue;
+        markFrameObjectEscaped(state, getReg(state, ops[r].reg));
+    }
+}
+
+void Sanitizer::markEscapesFromCallArguments(SmallVector<int64_t>& outReceived, SanitizerState& state, const CallConvKind callConvKind) const
+{
+    // A call's arguments are set up in registers the instruction does not name, so an
+    // address reaches a callee through one of the convention's argument registers or
+    // through a stack argument - and a stack argument is a store, already accounted for.
+    // Scanning only those keeps the addresses the codegen materializes to reach a local,
+    // and drops the moment they are used, out of the escape set.
+    const CallConv& callConv = CallConv::get(callConvKind);
+    for (const MicroReg reg : callConv.intArgRegs)
+    {
+        const SanitizerValue value = getReg(state, reg);
+        if (!value.isStackAddr())
+            continue;
+        const int64_t          offset = value.hasStackOrigin() ? value.stackOrigin : value.stackOffset;
+        const LocalSlotExtent* extent = findLocalSlot(offset);
+        if (extent)
+            outReceived.push_back(extent->start);
+        markFrameObjectEscaped(state, value);
+    }
 }
 
 bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
@@ -422,6 +486,26 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
         }
     }
 
+    // The one MAY fact of the state: an address that escaped on either incoming path has
+    // escaped here, so this set grows where every other one shrinks.
+    for (const int64_t object : from.escapedFrameObjects)
+    {
+        if (into.escapedFrameObjects.insert(object).second)
+            changed = true;
+    }
+
+    for (auto it = into.aliasPtrSlots.begin(); it != into.aliasPtrSlots.end();)
+    {
+        const auto fromIt = from.aliasPtrSlots.find(it->first);
+        if (fromIt == from.aliasPtrSlots.end() || fromIt->second != it->second)
+        {
+            it      = into.aliasPtrSlots.erase(it);
+            changed = true;
+        }
+        else
+            ++it;
+    }
+
     for (auto it = into.freedPtrSlots.begin(); it != into.freedPtrSlots.end();)
     {
         const auto fromIt = from.freedPtrSlots.find(it->first);
@@ -471,6 +555,84 @@ namespace
         }
     }
 
+    // A pointer-wide fact at 'slot' is invalidated by a store at 'written'.
+    bool storeOverlapsPointer(const int64_t slot, const int64_t written)
+    {
+        return written + static_cast<int64_t>(K_ASSUMED_STORE_SIZE) > slot && written < slot + static_cast<int64_t>(sizeof(void*));
+    }
+
+}
+
+void Sanitizer::forgetWrittenLifecycleFacts(SanitizerState& state, const int64_t slot) const
+{
+    std::erase_if(state.freedPtrSlots, [slot](const auto& entry) { return storeOverlapsPointer(entry.first, slot); });
+
+    // Overwriting either end of a proven copy ends the equality: the copy holds a value
+    // the other slot no longer has, and releasing that other slot says nothing about it.
+    std::erase_if(state.aliasPtrSlots, [slot](const auto& entry) { return storeOverlapsPointer(entry.first, slot) || storeOverlapsPointer(entry.second, slot); });
+}
+
+void Sanitizer::forgetReachableLifecycleFacts(SanitizerState& state) const
+{
+    std::erase_if(state.freedPtrSlots, [&](const auto& entry) { return frameObjectReachable(state, entry.first); });
+    std::erase_if(state.aliasPtrSlots, [&](const auto& entry) { return frameObjectReachable(state, entry.first) || frameObjectReachable(state, entry.second); });
+}
+
+bool Sanitizer::writeMayReachFrame(const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
+{
+    uint8_t baseIndex = 0;
+    if (!ops || !MicroPassHelpers::dereferenceBaseOperandIndex(baseIndex, inst.op, def))
+        return true;
+    return getReg(state, ops[baseIndex].reg).isStackAddr();
+}
+
+void Sanitizer::recordSlotCopy(SanitizerState& state, const int64_t slot, const MicroReg valueReg, const MicroOpBits opBits) const
+{
+    // Only a whole pointer proves the two slots hold the same address; a narrower store
+    // keeps part of the value and answers nothing about what it points at.
+    if (opBits != MicroOpBits::B64 || frameObjectReachable(state, slot))
+        return;
+
+    const SanitizerRegInfo* source = findReg(state, valueReg);
+    if (!source || !source->hasOriginSlot || source->originSlot == slot || frameObjectReachable(state, source->originSlot))
+        return;
+
+    // Copies chain to one representative, so a release names the whole class whichever
+    // member it was written through.
+    int64_t    root      = source->originSlot;
+    const auto rootEntry = state.aliasPtrSlots.find(root);
+    if (rootEntry != state.aliasPtrSlots.end())
+        root = rootEntry->second;
+    if (root == slot)
+        return;
+
+    state.aliasPtrSlots[slot] = root;
+
+    // Copying a pointer that is already released carries the release with it.
+    const auto released = state.freedPtrSlots.find(root);
+    if (released == state.freedPtrSlots.end())
+        return;
+    const SourceCodeRef origin = released->second;
+    state.freedPtrSlots[slot]  = origin;
+}
+
+void Sanitizer::appendAliasClass(SmallVector<int64_t>& out, const SanitizerState& state, const int64_t slot)
+{
+    out.push_back(slot);
+
+    int64_t    root  = slot;
+    const auto entry = state.aliasPtrSlots.find(slot);
+    if (entry != state.aliasPtrSlots.end())
+    {
+        root = entry->second;
+        out.push_back(root);
+    }
+
+    for (const auto& [copy, of] : state.aliasPtrSlots)
+    {
+        if (of == root && copy != slot)
+            out.push_back(copy);
+    }
 }
 
 void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
@@ -493,25 +655,25 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         }
     }
 
-    // Freed-pointer slots follow the same aliasing discipline: any write that could
-    // reassign the pointer revalidates it. Calls clear the set below (after marking
-    // the freeing call's own arguments).
-    if (!state.freedPtrSlots.empty() && !def.flags.has(MicroInstrFlagsE::IsCallInstruction) && def.flags.has(MicroInstrFlagsE::WritesMemory))
+    // Lifecycle facts - a released pointer, and the slot copies that share it - follow
+    // one aliasing discipline: any write that could reassign a slot revalidates it. Calls
+    // are handled below, after the freeing call has marked its own arguments.
+    const bool hasLifecycleFacts = !state.freedPtrSlots.empty() || !state.aliasPtrSlots.empty();
+    if (hasLifecycleFacts && !def.flags.has(MicroInstrFlagsE::IsCallInstruction) && def.flags.has(MicroInstrFlagsE::WritesMemory))
     {
         int64_t slot = 0;
         if (def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
             resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, slot))
+            forgetWrittenLifecycleFacts(state, slot);
+        else if (writeMayReachFrame(state, inst, def, ops))
         {
-            for (auto it = state.freedPtrSlots.begin(); it != state.freedPtrSlots.end();)
-            {
-                if (slot + static_cast<int64_t>(K_ASSUMED_STORE_SIZE) > it->first && slot < it->first + static_cast<int64_t>(sizeof(void*)))
-                    it = state.freedPtrSlots.erase(it);
-                else
-                    ++it;
-            }
+            // A frame write the analysis cannot pin to one slot: it lands anywhere in the
+            // object it indexes, so every fact about the frame goes.
+            state.freedPtrSlots.clear();
+            state.aliasPtrSlots.clear();
         }
         else
-            state.freedPtrSlots.clear();
+            forgetReachableLifecycleFacts(state);
     }
 
     switch (inst.op)
@@ -598,10 +760,13 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 const int64_t origin = baseValue.hasStackOrigin() ? baseValue.stackOrigin : baseValue.stackOffset;
                 setRegValue(state, ops[0].reg, SanitizerValue::makeStackAddr(offset, origin));
             }
-            else if (baseValue.isKnownNonZero())
-                setRegValue(state, ops[0].reg, SanitizerValue::makeNonZero());
             else
-                setRegValue(state, ops[0].reg, {});
+            {
+                // A dynamic index leaves an address the engine can no longer name a slot
+                // for: what it addresses is out of reach from here on.
+                markFrameObjectEscaped(state, baseValue);
+                setRegValue(state, ops[0].reg, baseValue.isKnownNonZero() ? SanitizerValue::makeNonZero() : SanitizerValue{});
+            }
             applyPointerOrigin(state, ops[0].reg, carried);
             return;
         }
@@ -646,14 +811,19 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
 
         case MicroInstrOpcode::LoadMemReg:
         {
+            // Whatever the destination is, an address written to memory can be read back
+            // anywhere, so the object it names stops being out of reach.
+            const SanitizerValue value = getReg(state, ops[1].reg);
+            markFrameObjectEscaped(state, value);
+
             int64_t slot = 0;
             if (resolveStackSlot(state, ops[0].reg, ops[3].valueU64, slot))
             {
-                const SanitizerValue value = getReg(state, ops[1].reg);
                 if (value.kind == SanitizerValueKind::Unknown)
                     state.stack.erase(slot);
                 else
                     state.stack[slot] = value;
+                recordSlotCopy(state, slot, ops[1].reg, ops[2].opBits);
             }
             return;
         }
@@ -683,7 +853,10 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             else if (ops[2].microOp == MicroOp::Subtract && cur.kind == SanitizerValueKind::Constant)
                 setRegValue(state, reg, SanitizerValue::makeConstant(cur.constant - imm));
             else
+            {
+                markFrameObjectEscaped(state, cur);
                 setRegValue(state, reg, {});
+            }
             return;
         }
 
@@ -721,6 +894,8 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 return;
             }
 
+            markFrameObjectEscaped(state, getReg(state, ops[0].reg));
+            markFrameObjectEscaped(state, getReg(state, ops[1].reg));
             setRegValue(state, ops[0].reg, {});
             return;
         }
@@ -776,19 +951,48 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                     continue;
                 const SanitizerRegInfo* argInfo = findReg(state, argReg);
                 if (argInfo && argInfo->hasOriginSlot)
-                    newlyFreed.push_back(argInfo->originSlot);
+                    appendAliasClass(newlyFreed, state, argInfo->originSlot);
             }
         }
 
-        // Calls clobber caller-saved registers and may mutate escaped locals.
-        state.regs.clear();
+        // Calls clobber caller-saved registers and may mutate escaped locals. A callee
+        // reaches a frame slot only through a pointer to it, so what it cannot address it
+        // cannot reassign: a release proven before an ordinary call still holds after it,
+        // which is the shape almost every real use-after-free has.
+        SmallVector<int64_t> addressedByCallee;
+        markEscapesFromCallArguments(addressedByCallee, state, ops ? ops[def.callConvIndex].callConv : CallConvKind::Swag);
+
+        // A virtual register is a value the allocator keeps live across the call, and an
+        // address formed from the frame is a function of a frame pointer the call
+        // preserves. The codegen caches those address registers and reuses them after the
+        // call, so dropping them would leave every local but the one at frame offset zero
+        // unnameable from there on - which is exactly where a release and its use are
+        // separated by an ordinary call. Everything else goes: a physical register is
+        // clobbered, and what a register said about the CONTENT of a slot no longer holds
+        // once the callee may have written it.
+        std::erase_if(state.regs, [](const auto& entry) { return !MicroReg::fromPacked(entry.first).isVirtual() || !entry.second.value.isStackAddr(); });
+        for (auto& [reg, info] : state.regs)
+            info = SanitizerRegInfo{.value = info.value};
         state.stack.clear();
-        state.freedPtrSlots.clear();
+        forgetReachableLifecycleFacts(state);
         state.flagsSubject = MicroReg::invalid();
+
+        // A callee handed both a pointer to release and the storage that holds it can put
+        // a live address back where the released one was: what it can reassign, it did
+        // not leave released.
         for (const int64_t slot : newlyFreed)
+        {
+            const LocalSlotExtent* extent = findLocalSlot(slot);
+            if (extent && std::ranges::find(addressedByCallee, extent->start) != addressedByCallee.end())
+                continue;
             state.freedPtrSlots[slot] = inst.debugSourceInfo.sourceCodeRef;
+        }
         return;
     }
+
+    // Everything the switch above does not model: an address it reads is an address the
+    // engine stops following.
+    markEscapesFromValueOperands(state, inst, def, ops);
 
     if (def.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
         state.flagsSubject = MicroReg::invalid();

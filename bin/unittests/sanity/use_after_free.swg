@@ -5,8 +5,11 @@ using Swag
 // Proven use-after-free / double-free through the language allocator interface.
 // 'myFree' reaches 'IAllocator.free' with its parameter as the request address,
 // which seeds its FREES summary; call sites then mark the pointer's slot and any
-// later dereference (without an intervening reassignment or opaque call) is a
-// proven fault. Aliases and conditional frees give misses, never reports.
+// later dereference without an intervening reassignment is a proven fault. The
+// mark travels to every local proven to hold the same pointer, and survives an
+// ordinary call: nothing can reach a local whose address the function never forms.
+// Handing that address to a callee ends the proof, and so does a release on only
+// one path - both give misses, never reports.
 // ---------------------------------------------------------------------------
 
 // The lifecycle analysis is per-function: the helpers must force it too so their
@@ -111,6 +114,97 @@ func rejectFreeBorrowed()
     p   = cast(*s32) myAlloc(4)
     p[] = 3
     Swag.assert(p[] == 3)
+    myFree(p, 4)
+}
+
+// A copy into a second local is a proven equality: the release marks both names.
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let p = cast(*s32) myAlloc(4)
+    let q = p
+    p[] = 6
+    myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    let x = q[]      // swc-expected-error {{sanity_err_use_after_free}}
+    discard x
+}
+
+// Released through the copy, dereferenced through the original.
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let p = cast(*s32) myAlloc(4)
+    let q = p
+    myFree(q, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    let x = p[]      // swc-expected-error {{sanity_err_use_after_free}}
+    discard x
+}
+
+// Both names released: the second one is a double free whichever it is written through.
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let p = cast(*s32) myAlloc(4)
+    let q = p
+    myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    myFree(q, 4)     // swc-expected-error {{sanity_err_double_free}}
+}
+
+// An ordinary call between the release and the use cannot reach the pointer's storage,
+// so the release still holds on the other side of it. The freed local is deliberately
+// not the first one in the frame: every slot of the frame has to be nameable there.
+#[Swag.Sanity(.Lifecycle, true)]
+func opaqueStep(value: s32)->s32
+{
+    return value
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let first = cast(*s32) myAlloc(4)
+    let p     = cast(*s32) myAlloc(4)
+    myFree(p, 4)                   // swc-expected-note {{sanity_note_pointer_released_here}}
+    discard opaqueStep(1)
+    let x = p[]                    // swc-expected-error {{sanity_err_use_after_free}}
+    discard x
+    myFree(first, 4)
+}
+
+// Handing the pointer's own storage to a callee ends the proof: the callee reassigns it.
+#[Swag.Sanity(.Lifecycle, true)]
+func reallocateThrough(slot: **s32)
+{
+    slot[] = cast(*s32) myAlloc(4)
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var p = cast(*s32) myAlloc(4)
+    myFree(p, 4)
+    reallocateThrough(&p)
+    p[] = 8
+    Swag.assert(p[] == 8)
+    myFree(p, 4)
+}
+
+// One call both releases the pointer and reassigns the storage holding it. What the
+// callee can put back, it did not leave released.
+#[Swag.Sanity(.Lifecycle, true)]
+func releaseAndReplace(ptr: *void, slot: **s32)
+{
+    myFree(ptr, 4)
+    slot[] = cast(*s32) myAlloc(4)
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var p = cast(*s32) myAlloc(4)
+    releaseAndReplace(p, &p)
+    p[] = 5
+    Swag.assert(p[] == 5)
     myFree(p, 4)
 }
 

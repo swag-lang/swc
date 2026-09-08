@@ -34,6 +34,7 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-08 07:59 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-07 21:16 |
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command | 2026-09-07 21:16 |
 | [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-09-07 20:47 |
@@ -66,7 +67,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-06 07:51 |
 | [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-06 07:51 |
 | [compiler.distribution.md](compiler.distribution.md) | Release delivery, first use, local learning, and agent-grade command discovery | 2026-09-06 07:51 |
-| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-06 07:51 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-06 07:51 |
 | [std.audio.md](std.audio.md) | `std/audio` | 2026-09-06 07:51 |
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` | 2026-09-06 07:51 |

@@ -9,6 +9,7 @@ struct MicroInstr;
 struct MicroInstrDef;
 struct MicroInstrOperand;
 enum class MicroCond : uint8_t;
+enum class MicroOpBits : uint8_t;
 enum class DiagnosticId;
 class SanitizerCheck;
 class Symbol;
@@ -50,6 +51,12 @@ public:
     // temporaries: no declared variable covers them.
     bool findLocalSlotExtents(int64_t offset, int64_t& outStart, uint64_t& outSize) const;
 
+    // True when a callee, or a store through a pointer, can reach this frame slot: the
+    // address of the declared local holding it has escaped along some path reaching here.
+    // A compiler temporary always answers true - no extent bounds it, so nothing says
+    // which writes land in it.
+    bool frameObjectReachable(const SanitizerState& state, int64_t slot) const;
+
     // False when the codegen mutated the stack-base register in place (call-area
     // frame shapes): frame offsets then live in a shifted, self-consistent frame of
     // reference — fine for slot-relative facts, unusable against absolute extents.
@@ -84,6 +91,20 @@ private:
         std::string_view sym;
         std::string_view what;
     };
+
+    // A stack address consumed by anything other than an access it is the base of: the
+    // object it names becomes reachable through a pointer for the rest of the path.
+    void markFrameObjectEscaped(SanitizerState& state, const SanitizerValue& value) const;
+    void markEscapesFromValueOperands(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const;
+    void markEscapesFromCallArguments(SmallVector<int64_t>& outReceived, SanitizerState& state, CallConvKind callConvKind) const;
+
+    // Lifecycle facts (released pointers and proven slot copies) invalidated by one
+    // store, and by anything that can reach the objects whose address escaped.
+    void forgetWrittenLifecycleFacts(SanitizerState& state, int64_t slot) const;
+    void forgetReachableLifecycleFacts(SanitizerState& state) const;
+    bool writeMayReachFrame(const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const;
+    void recordSlotCopy(SanitizerState& state, int64_t slot, MicroReg valueReg, MicroOpBits opBits) const;
+    static void appendAliasClass(SmallVector<int64_t>& out, const SanitizerState& state, int64_t slot);
 
     // Register / slot access.
     static const SanitizerRegInfo* findReg(const SanitizerState& state, MicroReg reg);

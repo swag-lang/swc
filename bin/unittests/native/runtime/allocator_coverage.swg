@@ -239,7 +239,11 @@ func freeOne(itf: IAllocator, address: *void?)
 // ----------------------------------------------------------------------------
 // A freed block's first word holds an obfuscated link, never the raw address of
 // the next free block: a stray write cannot aim the free list at chosen memory.
+//
+// Reading a released block is the whole point here, so the lifecycle proof is
+// turned off for this one test rather than worked around.
 // ----------------------------------------------------------------------------
+#[Swag.Sanity(.Lifecycle, false)]
 #test
 {
     var alloc: Allocator

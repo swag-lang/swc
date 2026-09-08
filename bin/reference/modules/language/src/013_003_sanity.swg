@@ -67,9 +67,14 @@ Every allocation flows through the 'Swag.IAllocator' interface, whose methods ma
 the operation structural: the analysis infers which functions FREE what their
 parameters point to (a 'frees' summary, chained through wrappers and across modules
 like the other summaries). Dereferencing a pointer after it was provably freed — or
-freeing it twice — is a compile-time error ('.Lifecycle'). Aliases and conditional
-frees are misses, never false positives; reassigning the pointer makes it valid
-again.
+freeing it twice — is a compile-time error ('.Lifecycle').
+
+The proof follows the pointer where a program actually puts it: a copy into another
+local carries the release, and a release still holds on the other side of an
+ordinary call, because nothing can reassign a local whose address the function never
+hands over. Handing that address to a callee ends the proof, and so does releasing on
+one path only — both are misses, never false positives. Reassigning the pointer makes
+it valid again.
 */
 #test
 {
@@ -91,12 +96,15 @@ again.
         allocItf.free(&req)
     }
 
-    let p = cast(*s32) exampleAlloc(4)!
+    let p     = cast(*s32) exampleAlloc(4)!
+    let same  = p
     p[] = 1
     exampleFree(p, 4)
 
-    // let x = p[]       // Uncomment: error, use of a freed pointer (proven)
+    // let x = p[]          // Uncomment: error, use of a freed pointer (proven)
+    // let y = same[]       // Uncomment: error, the copy names the same block (proven)
     // exampleFree(p, 4)    // Uncomment: error, the pointer is freed twice (proven)
+    discard same
 }
 
 /**

@@ -71,6 +71,23 @@ struct SanitizerState
     // call so a proven fault can point back to its origin.
     std::unordered_map<int64_t, SourceCodeRef> freedPtrSlots;
 
+    // Proven slot copies: the key holds the very value the mapped slot holds. Only slots
+    // inside a declared local whose address is never formed take part, so nothing but an
+    // explicit store to one of the two can break the equality - neither a callee nor a
+    // store through a pointer can reach them. Releasing one member releases the whole
+    // class, which is what turns 'let b = a' followed by a release of 'a' from a miss
+    // into a proof. Same join as the sets above: intersection.
+    std::unordered_map<int64_t, int64_t> aliasPtrSlots;
+
+    // Declared locals whose address has left the engine's sight: handed to a callee,
+    // stored, or folded into a value it no longer recognizes as an address. A later call
+    // can write through it, so the two sets above keep nothing about such an object past
+    // one. Unlike every other fact here this one is a MAY fact - the join is a union -
+    // and an address the codegen only ever uses as the base of an access never enters it,
+    // which is what leaves an ordinary local protected. Keyed by the start of the
+    // variable's storage; a compiler temporary is never protected in the first place.
+    std::unordered_set<int64_t> escapedFrameObjects;
+
     MicroReg flagsSubject = MicroReg::invalid();
 };
 

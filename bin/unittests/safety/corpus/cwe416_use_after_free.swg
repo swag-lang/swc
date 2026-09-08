@@ -11,10 +11,15 @@ using Corpus
 // Swag: a compile-time proof, not a guard. The analysis infers which functions FREE what
 // their parameters point at - the summary is seeded by a call reaching 'Swag.IAllocator.free'
 // and chains through wrappers and across modules - then marks the slot at the call site. It
-// is a must-analysis: an alias or a conditional release is a miss, never a false positive.
+// is a must-analysis: what it cannot prove is a miss, never a false positive.
 //
-// The cases below distinguish proven direct releases from aliasing and conditional-release
-// shapes that the analysis does not prove.
+// A copy of a pointer between two locals is proven, and so is a release separated from its
+// use by an ordinary call: neither a callee nor a store through a pointer can reach a local
+// whose address the function never forms. Handing that address over is what ends the proof,
+// and a release on only one path is never one.
+//
+// The cases below distinguish those proofs from the conditional-release and escaped-storage
+// shapes the analysis deliberately says nothing about.
 // -----------------------------------------------------------------------------
 
 // --- Faults ---
@@ -151,18 +156,76 @@ func readAfterCastFree(index: u64)->s32
     discard readAfterCastFree(opaqueU64(0))
 }
 
-// --- Sound: documented misses that must stay silent ---
-
-// An alias is a miss BY DESIGN: the analysis is a must-analysis, and reporting here would
-// need to prove the two names address the same block.
+// Copying the pointer into a second local is a proven equality: neither name can change
+// without a store the analysis sees, so releasing one releases both.
 #[Swag.Sanity(.Lifecycle, true)]
 func readThroughAlias()->s32
 {
     let pointer = cast(*s32) heapAlloc(4)
     let other   = pointer
     pointer[] = 1
+    heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return other[]           // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#test
+{
+    discard readThroughAlias()
+}
+
+// The same equality read the other way: the release goes through the copy, and the original
+// is the one dereferenced.
+#[Swag.Sanity(.Lifecycle, true)]
+func readOriginalAfterAliasFree()->s32
+{
+    let pointer = cast(*s32) heapAlloc(4)
+    let other   = pointer
+    heapFree(other, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return pointer[]       // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#test
+{
+    discard readOriginalAfterAliasFree()
+}
+
+// The shape a real use-after-free has: something happens between the release and the use.
+// An ordinary call cannot reach a local whose address the function never forms, so the
+// release still holds on the other side of it.
+#[Swag.Sanity(.Lifecycle, true)]
+func readAfterFreeAcrossCall()->s32
+{
+    let pointer = cast(*s32) heapAlloc(4)
+    heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    discard opaqueS32(1)
+    return pointer[]         // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#test
+{
+    discard readAfterFreeAcrossCall()
+}
+
+// --- Sound: documented misses that must stay silent ---
+
+// Handing the pointer's own storage to a callee ends the proof: the callee can reassign it,
+// and it does. Nothing may be reported at the read.
+#[Swag.Sanity(.Lifecycle, true)]
+func reallocateThrough(slot: **s32)
+{
+    slot[] = cast(*s32) heapAlloc(4)
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+func readAfterFreeThroughEscapedSlot()->s32
+{
+    var pointer = cast(*s32) heapAlloc(4)
     heapFree(pointer, 4)
-    return other[]
+    reallocateThrough(&pointer)
+    pointer[] = 9
+    let value = pointer[]
+    heapFree(pointer, 4)
+    return value
 }
 
 // Reassigning the pointer makes it live again, and the analysis must see that.
@@ -191,7 +254,7 @@ func conditionalFree(release: bool)->s32
 
 #test
 {
-    discard readThroughAlias()
+    Swag.assert(readAfterFreeThroughEscapedSlot() == 9)
     Swag.assert(reassignedAfterFree() == 7)
     Swag.assert(conditionalFree(opaqueBool(false)) == 3)
 }

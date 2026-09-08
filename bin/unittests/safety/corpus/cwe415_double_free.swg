@@ -10,9 +10,10 @@ using Corpus
 // free list, and the failure surfaces inside an unrelated allocation far from the fault.
 //
 // Swag: proven at compile time on the direct shape, through the same FREES summary that
-// carries CWE-416, and closed on the ownership shape: a value that declares 'opDrop' owns
-// what it releases and states no copy, so two owners of one block cannot be written. What is
-// left is the shape nothing marks as an owner at all.
+// carries CWE-416, on a copy of the pointer into a second local, and closed on the ownership
+// shape: a value that declares 'opDrop' owns what it releases and states no copy, so two
+// owners of one block cannot be written. What is left is the shape nothing marks as an owner
+// at all.
 // -----------------------------------------------------------------------------
 
 // --- Faults ---
@@ -49,6 +50,22 @@ func freeTwiceThroughWrapper()
 #test
 {
     freeTwiceThroughWrapper()
+}
+
+// The two releases go through two names of the same pointer. A copy between locals is a
+// proven equality, so the second release is judged whichever name it is written through.
+#[Swag.Sanity(.Lifecycle, true)]
+func freeTwiceThroughAlias()
+{
+    let pointer = cast(*s32) heapAlloc(4)
+    let other   = pointer
+    heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    heapFree(other, 4)       // swc-expected-error {{sanity_err_double_free}}
+}
+
+#test
+{
+    freeTwiceThroughAlias()
 }
 
 // A value that owns a release is not copied like an integer: declaring 'opDrop' states the

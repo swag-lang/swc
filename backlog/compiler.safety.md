@@ -26,8 +26,10 @@ proof at compile time, where the cost is the compiler's rather than the program'
 Measured against that line, the frame is in good shape and the heap is catching up. Escapes, view
 invalidation, iterator invalidation, definite initialization, non-null types and mandatory error
 handling are all enforced without a single annotation, and a value that owns a release now states
-no copy without being annotated either. What is left on the heap side is the shape nothing marks
-as an owner at all, a use-after-free must-analysis with aliasing and conditional-release limits, and the
+no copy without being annotated either. The use-after-free proof reaches a copy of the pointer into
+another local, and survives an ordinary call: what a function never hands an address to, no callee
+can reassign. What is left on the heap side is the shape nothing marks as an owner at all, a
+release proven on only one path, storage whose address the function does hand over, and the
 operations that forge a pointer out of nothing being spelled like ordinary code. The entries below
 are ordered from the most recently updated down.
 
@@ -38,6 +40,42 @@ commented out and tagged with the entry that owns it. `rg "GAP " bin/unittests/s
 is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
+
+### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
+
+- Recorded: 2026-09-08 07:59
+- Area: compiler/backend, `Sanitizer`
+- Evidence: the lifecycle facts now survive calls, which keeps the engine's per-instruction maps
+  populated over far more of a function than before, and the transfer function gained a scan of
+  the convention's argument registers at every call. One cold `std` build with each compiler gave
+  1 min 23 s against 2 min 21 s, but the per-module split of that same pair is incoherent — `core`
+  20.6 s against 4.6 s, `pixel` 7.3 s against 56.6 s — so the run measured machine noise, not the
+  pass. No conclusion may be drawn from it in either direction.
+- Next: measure the pass alone rather than a whole build: `--stats` build-phase profiling on one
+  module, DevMode compiler, three runs each, with the machine otherwise idle.
+- Complete when: the sanity pass's share of compile time is recorded before and after, and either
+  found acceptable or reduced.
+
+### compiler.safety.018 — A release proven on one path only is never reported
+
+- Recorded: 2026-09-08 07:59
+- Area: compiler/backend, `Sanitizer`
+- Evidence: `conditionalFree` in `cwe416_use_after_free.swg` releases inside an `if` and reads
+  after it. The engine's join is an intersection, so the fact does not survive the merge and
+  nothing is reported — which is what keeps the analysis free of false positives, and also what
+  makes the shape a real program has, a release under a condition, invisible. The neighbouring
+  limits were closed: a copy of the pointer into another local is now proven, and a release
+  survives an ordinary call.
+- Elsewhere: a path-sensitive analyzer (clang's, Infer) reports this class and accepts the false
+  positives that come with it. That trade is not this repository's: a sanity proof is an error
+  that fails the build in `release`, so it cannot be a maybe.
+- Next: decide whether a MAY-release fact deserves a diagnostic of its own — a warning under the
+  warning policy layer rather than an error, so the report exists without a build failing on a
+  guess. Start by counting how many sites in `bin/` a may-analysis would name, which is what says
+  whether the report is readable or noise.
+- Complete when: either a warning exists with its count on `bin/` recorded, or the reference states
+  that a conditional release is outside what the proof covers and the corpus records the decision.
+- Related: compiler.safety.017.
 
 ### compiler.safety.017 — Allocation ownership has no static leak proof
 

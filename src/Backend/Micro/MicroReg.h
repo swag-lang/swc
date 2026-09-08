@@ -53,6 +53,7 @@ struct MicroReg
     constexpr bool isInstructionPointer() const { return isSpecial() && index() == static_cast<uint32_t>(MicroRegSpecial::InstructionPointer); }
     constexpr bool isNoBase() const { return isSpecial() && index() == static_cast<uint32_t>(MicroRegSpecial::NoBase); }
 
+    static constexpr MicroReg fromPacked(uint32_t packed) { return MicroReg(static_cast<MicroRegKind>((packed >> K_KIND_SHIFT) & 0xFF), packed & K_INDEX_MASK); }
     static constexpr MicroReg invalid() { return MicroReg(MicroRegKind::Invalid, 0); }
     static constexpr MicroReg intReg(uint32_t index) { return MicroReg(MicroRegKind::Int, index); }
     static constexpr MicroReg floatReg(uint32_t index) { return MicroReg(MicroRegKind::Float, index); }

@@ -24,7 +24,7 @@ using Swag, Core, Win32
 // XAudio2 rejects a source buffer when any unused playback or loop field contains garbage.
 #test
 {
-    let sample  = 0x7F'u8
+    var sample  = 0x7F'u8
     let context = cast(*void?) &sample
     let buffer  = makeXAudio2Buffer(&sample, 1, context)
 

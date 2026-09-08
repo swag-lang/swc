@@ -139,5 +139,5 @@ var A: [..] s32?
 
     let text = "string"
     let textRef: const *string = &text
-    Swag.assert(textRef[1 to 3] == "tri")
+    Swag.assert(textRef[][1 to 3] == "tri")
 }

@@ -110,6 +110,13 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
                 sanitizer.report(inst, DiagnosticId::sanity_err_double_free, freed->second, DiagnosticId::sanity_note_pointer_released_here);
                 return;
             }
+
+            const auto freedLocation = argInfo->hasOriginLocation ? state.freedPtrLocations.find(argInfo->originLocation) : state.freedPtrLocations.end();
+            if (freedLocation != state.freedPtrLocations.end())
+            {
+                sanitizer.report(inst, DiagnosticId::sanity_err_double_free, freedLocation->second, DiagnosticId::sanity_note_pointer_released_here);
+                return;
+            }
         }
 
         return;
@@ -135,7 +142,16 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
 
     const auto freed = baseInfo->hasPointerOriginSlot ? state.freedPtrSlots.find(baseInfo->pointerOriginSlot) : state.freedPtrSlots.end();
     if (freed != state.freedPtrSlots.end())
+    {
         sanitizer.report(inst, DiagnosticId::sanity_err_use_after_free, freed->second, DiagnosticId::sanity_note_pointer_released_here);
+        return;
+    }
+
+    // The pointer came out of an object rather than out of the frame: same proof, other
+    // kind of storage.
+    const auto freedLocation = baseInfo->hasOriginLocation ? state.freedPtrLocations.find(baseInfo->originLocation) : state.freedPtrLocations.end();
+    if (freedLocation != state.freedPtrLocations.end())
+        sanitizer.report(inst, DiagnosticId::sanity_err_use_after_free, freedLocation->second, DiagnosticId::sanity_note_pointer_released_here);
 }
 
 SWC_END_NAMESPACE();

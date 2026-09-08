@@ -47,6 +47,10 @@ public:
     // resolves only with a provably constant index, which is what an element written as
     // 'table[0]' has.
     bool resolveAccessStackSlot(int64_t& outSlot, const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const;
+    // The place an access names when the frame does not hold it: the object is named by
+    // where its POINTER lives, so two accesses through two registers reloaded from the
+    // same variable answer the same location.
+    bool resolveAccessLocation(SanitizerLocation& outLocation, const SanitizerState& state, MicroReg base, int64_t offset) const;
     TaskContext&                   ctx() const;
     const MicroPassContext&        passContext() const { return context_; }
 

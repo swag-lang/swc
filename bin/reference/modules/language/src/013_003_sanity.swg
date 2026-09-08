@@ -70,7 +70,8 @@ like the other summaries). Dereferencing a pointer after it was provably freed �
 freeing it twice — is a compile-time error ('.Lifecycle').
 
 The proof follows the pointer where a program actually puts it: a parameter, an
-element of a local table, a field, or a copy into another local all carry the release,
+element of a local table, a field of a local, a field of an object on the heap, or a
+copy into another local all carry the release,
 and a release still holds on the other side of an ordinary call, because nothing can
 reassign a local whose address the function never hands over. Handing that address to
 a callee ends the proof, and so does releasing on one path only — both are misses,

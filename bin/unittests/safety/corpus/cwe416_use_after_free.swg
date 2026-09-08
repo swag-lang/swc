@@ -206,6 +206,29 @@ func readAfterFreeAcrossCall()->s32
     discard readAfterFreeAcrossCall()
 }
 
+// The shape a real use-after-free almost always has: the released block belonged to an
+// OBJECT, and the same object is asked for it again. Nothing here is in the frame, so
+// the object is named by where its own pointer lives.
+struct Owner
+{
+    buffer: *s32?
+    count:  s32
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+func readObjectFieldAfterFree()->s32
+{
+    let owner = cast(*Owner) heapAlloc(16)
+    owner.buffer = cast(*s32) heapAlloc(4)
+    heapFree(owner.buffer!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return owner.buffer![]         // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#test
+{
+    discard readObjectFieldAfterFree()
+}
+
 // The release crosses the function boundary: what comes back is a dangling pointer, and
 // the caller has no way to know. CWE-562 is the same rule on frame storage, and Swag
 // reads both the same way.
@@ -298,6 +321,21 @@ func conditionalFree(release: bool)->s32
     return pointer[]
 }
 
+// Reassigning the field is what correct code does, and the release says nothing after it.
+#[Swag.Sanity(.Lifecycle, true)]
+func reassignObjectFieldAfterFree()->s32
+{
+    let owner = cast(*Owner) heapAlloc(16)
+    owner.buffer = cast(*s32) heapAlloc(4)
+    heapFree(owner.buffer!, 4)
+    owner.buffer = cast(*s32) heapAlloc(4)
+    owner.buffer![] = 8
+    let value = owner.buffer![]
+    heapFree(owner.buffer!, 4)
+    heapFree(owner, 16)
+    return value
+}
+
 // Releasing one element of a table says nothing about the next one.
 #[Swag.Sanity(.Lifecycle, true)]
 func readOtherTableElement()->s32
@@ -314,6 +352,7 @@ func readOtherTableElement()->s32
 
 #test
 {
+    Swag.assert(reassignObjectFieldAfterFree() == 8)
     Swag.assert(readOtherTableElement() == 5)
     Swag.assert(readAfterFreeThroughEscapedSlot() == 9)
     Swag.assert(reassignedAfterFree() == 7)

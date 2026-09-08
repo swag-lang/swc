@@ -220,6 +220,73 @@ func reallocateThrough(slot: **s32)
     myFree(p, 4)
 }
 
+// The commonest shape a real use-after-free has: a buffer an OBJECT owns, released and
+// touched again through the same object. Its storage is not in the frame, so the object
+// is named by where its own pointer lives and the field by the offset from it.
+struct UafNode
+{
+    data:  *s32?
+    count: s32
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+func releaseObjectField()->s32
+{
+    let node = cast(*UafNode) myAlloc(16)
+    node.data = cast(*s32) myAlloc(4)
+    myFree(node.data!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return node.data![]       // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+func releaseFieldOfParameterObject(n: *UafNode)->s32
+{
+    myFree(n.data!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return n.data![]       // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    discard releaseObjectField()
+
+    let node = cast(*UafNode) myAlloc(16)
+    node.data = cast(*s32) myAlloc(4)
+    discard releaseFieldOfParameterObject(node)
+}
+
+// What correct code does with that shape, and what the rule may not claim: the field is
+// reassigned, another object's field is read, a callee handed the object puts a live
+// pointer back, and a different field of the same object is untouched.
+#[Swag.Sanity(.Lifecycle, true)]
+func refillNode(n: *UafNode)
+{
+    n.data = cast(*s32) myAlloc(4)
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let node = cast(*UafNode) myAlloc(16)
+    node.data  = cast(*s32) myAlloc(4)
+    node.count = 4
+
+    myFree(node.data!, 4)
+    Swag.assert(node.count == 4)
+
+    node.data = cast(*s32) myAlloc(4)
+    node.data![] = 7
+    Swag.assert(node.data![] == 7)
+
+    myFree(node.data!, 4)
+    refillNode(node)
+    node.data![] = 9
+    Swag.assert(node.data![] == 9)
+
+    myFree(node.data!, 4)
+    myFree(node, 16)
+}
+
 // Handing a released address back to the caller is the same fault as handing back a
 // frame address, on the other kind of storage: the value is dead as it crosses the
 // return, and nothing the caller does with it can be right.

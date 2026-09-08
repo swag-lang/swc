@@ -432,6 +432,40 @@ bool Sanitizer::resolveStackSlot(const SanitizerState& state, MicroReg base, uin
     return true;
 }
 
+bool Sanitizer::resolveAccessLocation(SanitizerLocation& outLocation, const SanitizerState& state, const MicroReg base, const int64_t offset) const
+{
+    outLocation        = {};
+    outLocation.offset = offset;
+
+    // The object is whatever pointer the base holds, and what names it across the reloads
+    // the codegen makes is where that pointer LIVES: a frame slot, or a register nothing
+    // redefines. A base that is neither names nothing that survives the next access.
+    const SanitizerRegInfo* baseInfo = findReg(state, base);
+
+    // An address already formed from an object keeps naming it, offset and all.
+    if (baseInfo && baseInfo->hasAddressLocation)
+    {
+        outLocation = baseInfo->addressLocation;
+        outLocation.offset += offset;
+        return true;
+    }
+
+    if (baseInfo && baseInfo->hasOriginSlot)
+    {
+        outLocation.fromSlot = true;
+        outLocation.slot     = baseInfo->originSlot;
+        return true;
+    }
+
+    if (base.isVirtual() && hasSingleDefinition(base))
+    {
+        outLocation.basePacked = base.packed;
+        return true;
+    }
+
+    return false;
+}
+
 bool Sanitizer::resolveAccessStackSlot(int64_t& outSlot, const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
 {
     if (!ops)
@@ -570,6 +604,25 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
             ++it;
     }
 
+    for (auto it = into.freedPtrLocations.begin(); it != into.freedPtrLocations.end();)
+    {
+        const auto fromIt = from.freedPtrLocations.find(it->first);
+        if (fromIt == from.freedPtrLocations.end())
+        {
+            it      = into.freedPtrLocations.erase(it);
+            changed = true;
+        }
+        else
+        {
+            if (it->second.isValid() && (it->second.srcViewRef != fromIt->second.srcViewRef || it->second.tokRef != fromIt->second.tokRef))
+            {
+                it->second = {};
+                changed    = true;
+            }
+            ++it;
+        }
+    }
+
     for (auto it = into.freedPtrSlots.begin(); it != into.freedPtrSlots.end();)
     {
         const auto fromIt = from.freedPtrSlots.find(it->first);
@@ -630,6 +683,10 @@ namespace
 void Sanitizer::forgetWrittenLifecycleFacts(SanitizerState& state, const int64_t slot) const
 {
     std::erase_if(state.freedPtrSlots, [slot](const auto& entry) { return storeOverlapsPointer(entry.first, slot); });
+
+    // An object is named by where its pointer lives: rewriting that pointer makes the
+    // name mean another object, so nothing said about the old one may survive it.
+    std::erase_if(state.freedPtrLocations, [slot](const auto& entry) { return entry.first.fromSlot && storeOverlapsPointer(entry.first.slot, slot); });
 
     // Overwriting either end of a proven copy ends the equality: the copy holds a value
     // the other slot no longer has, and releasing that other slot says nothing about it.
@@ -722,9 +779,24 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
     // Lifecycle facts - a released pointer, and the slot copies that share it - follow
     // one aliasing discipline: any write that could reassign a slot revalidates it. Calls
     // are handled below, after the freeing call has marked its own arguments.
-    const bool hasLifecycleFacts = !state.freedPtrSlots.empty() || !state.aliasPtrSlots.empty();
+    const bool hasLifecycleFacts = !state.freedPtrSlots.empty() || !state.aliasPtrSlots.empty() || !state.freedPtrLocations.empty();
     if (hasLifecycleFacts && !def.flags.has(MicroInstrFlagsE::IsCallInstruction) && def.flags.has(MicroInstrFlagsE::WritesMemory))
     {
+        // A pointer a heap object owns is named by base and offset, so writing that
+        // exact place revalidates it and any other write the analysis cannot pin drops
+        // every such fact.
+        if (!state.freedPtrLocations.empty())
+        {
+            uint8_t baseIndex = 0;
+            SanitizerLocation written;
+            if (def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
+                MicroPassHelpers::dereferenceBaseOperandIndex(baseIndex, inst.op, def) &&
+                resolveAccessLocation(written, state, ops[baseIndex].reg, static_cast<int64_t>(ops[def.memOffsetOperandIndex].valueU64)))
+                state.freedPtrLocations.erase(written);
+            else
+                state.freedPtrLocations.clear();
+        }
+
         int64_t slot = 0;
         if (resolveAccessStackSlot(slot, state, inst, def, ops))
             forgetWrittenLifecycleFacts(state, slot);
@@ -816,6 +888,19 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             else
                 setRegValue(state, ops[0].reg, {});
             applyPointerOrigin(state, ops[0].reg, carried);
+
+            // Forming a field's address keeps which object it belongs to, so the read
+            // that follows names the same place the release did.
+            SanitizerLocation formed;
+            if (resolveAccessLocation(formed, state, ops[1].reg, static_cast<int64_t>(ops[3].valueU64)))
+            {
+                SanitizerRegInfo formedInfo;
+                if (const SanitizerRegInfo* existing = findReg(state, ops[0].reg))
+                    formedInfo = *existing;
+                formedInfo.hasAddressLocation = true;
+                formedInfo.addressLocation    = formed;
+                setReg(state, ops[0].reg, formedInfo);
+            }
             return;
         }
 
@@ -883,9 +968,21 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 }
 
                 setReg(state, ops[0].reg, info);
+                return;
             }
-            else
-                setRegValue(state, ops[0].reg, {});
+
+            // Not the frame: the access still names one place, once the OBJECT is named
+            // by where its pointer lives rather than by the register that happens to hold
+            // it - the codegen reloads that pointer for every access.
+            SanitizerRegInfo  locationInfo;
+            SanitizerLocation location;
+            if (resolveAccessLocation(location, state, ops[def.memBaseOperandIndex].reg, static_cast<int64_t>(ops[def.memOffsetOperandIndex].valueU64)))
+            {
+                locationInfo.hasOriginLocation = true;
+                locationInfo.originLocation    = location;
+            }
+
+            setReg(state, ops[0].reg, locationInfo);
             return;
         }
 
@@ -1060,8 +1157,9 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         // A callee with a FREES summary invalidates what its marked arguments point
         // to: remember the slots those pointers were loaded from, BEFORE the clobber
         // wipe erases the argument registers.
-        SmallVector<int64_t>  newlyFreed;
-        SmallVector<MicroReg> newlyFreedRegs;
+        SmallVector<int64_t>                       newlyFreed;
+        SmallVector<MicroReg>                      newlyFreedRegs;
+        SmallVector<SanitizerLocation>             newlyFreedLocations;
         const auto*           calleeFn  = transferCallTarget_ ? transferCallTarget_->safeCast<SymbolFunction>() : nullptr;
         const uint64_t       freesMask = calleeFn ? calleeFn->freesParamsMask() : 0;
         if (freesMask && ops)
@@ -1087,6 +1185,30 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                     newlyFreedRegs.push_back(argInfo->originReg);
                 else if (argReg.isVirtual())
                     newlyFreedRegs.push_back(argReg);
+
+                // A pointer this call releases that lived in an object rather than in the
+                // frame. A callee handed that object as well can put a live pointer back
+                // where this one was, so the release says nothing then.
+                if (!argInfo->hasOriginLocation)
+                    continue;
+
+                bool objectHandedOver = false;
+                const CallConv& handedConv = CallConv::get(ops[def.callConvIndex].callConv);
+                for (const MicroReg handedReg : handedConv.intArgRegs)
+                {
+                    const SanitizerRegInfo* handed = findReg(state, handedReg);
+                    if (!handed)
+                        continue;
+                    if (argInfo->originLocation.fromSlot && handed->hasOriginSlot && handed->originSlot == argInfo->originLocation.slot)
+                        objectHandedOver = true;
+                    else if (!argInfo->originLocation.fromSlot && handed->hasOriginReg && handed->originReg.packed == argInfo->originLocation.basePacked)
+                        objectHandedOver = true;
+                    if (objectHandedOver)
+                        break;
+                }
+
+                if (!objectHandedOver)
+                    newlyFreedLocations.push_back(argInfo->originLocation);
             }
         }
 
@@ -1121,6 +1243,12 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         state.stack.clear();
         forgetReachableLifecycleFacts(state);
         state.flagsSubject = MicroReg::invalid();
+
+        // A callee can write through any pointer it is handed, so nothing said about an
+        // object survives a call - the release below re-states what this one just did.
+        state.freedPtrLocations.clear();
+        for (const auto& location : newlyFreedLocations)
+            state.freedPtrLocations[location] = inst.debugSourceInfo.sourceCodeRef;
 
         // A callee handed both a pointer to release and the storage that holds it can put
         // a live address back where the released one was: what it can reassign, it did

@@ -5,6 +5,21 @@
 
 SWC_BEGIN_NAMESPACE();
 
+// One place inside an object the frame does not hold: the object is named by where its
+// POINTER lives - a frame slot, or a register the function defines once - and the place
+// by the offset from it. Two accesses through two different registers reloaded from the
+// same variable name the same location, which is what a release and the use that follows
+// it are written as.
+struct SanitizerLocation
+{
+    bool     fromSlot   = false;
+    int64_t  slot       = 0;
+    uint32_t basePacked = 0;
+    int64_t  offset     = 0;
+
+    auto operator<=>(const SanitizerLocation&) const = default;
+};
+
 // Per-register information carried along the flow.
 struct SanitizerRegInfo
 {
@@ -28,6 +43,19 @@ struct SanitizerRegInfo
     // release has to name the register the value actually lives in.
     bool     hasOriginReg = false;
     MicroReg originReg;
+
+    // The place this value was loaded FROM when it was not a frame slot. A pointer a heap
+    // object owns lives there and nowhere else, so 'object.buffer' released and read again
+    // - the commonest shape a real use-after-free has - is nameable exactly here.
+    bool              hasOriginLocation = false;
+    SanitizerLocation originLocation;
+
+    // The place this register's ADDRESS designates, which is a different question from
+    // the one above: the codegen forms a field's address first and reads through it
+    // second, so without this the two accesses to one field would name two registers and
+    // nothing would connect them.
+    bool              hasAddressLocation = false;
+    SanitizerLocation addressLocation;
 
     // The pointer this register holds was handed to a freeing callee. A register is a
     // value: only a redefinition changes it, so the fact travels with the copies the
@@ -53,7 +81,9 @@ struct SanitizerRegInfo
                hasPointerOriginSlot == o.hasPointerOriginSlot && pointerOriginSlot == o.pointerOriginSlot &&
                hasOriginReg == o.hasOriginReg && originReg == o.originReg &&
                releasedPointer == o.releasedPointer &&
-               releasedOrigin.srcViewRef == o.releasedOrigin.srcViewRef && releasedOrigin.tokRef == o.releasedOrigin.tokRef;
+               releasedOrigin.srcViewRef == o.releasedOrigin.srcViewRef && releasedOrigin.tokRef == o.releasedOrigin.tokRef &&
+               hasOriginLocation == o.hasOriginLocation && originLocation == o.originLocation &&
+               hasAddressLocation == o.hasAddressLocation && addressLocation == o.addressLocation;
     }
 };
 
@@ -103,6 +133,12 @@ struct SanitizerState
     // which is what leaves an ordinary local protected. Keyed by the start of the
     // variable's storage; a compiler temporary is never protected in the first place.
     std::unordered_set<int64_t> escapedFrameObjects;
+
+    // Released pointers that did not live in the frame: keyed by the base register the
+    // access went through and the offset from it. A callee can write through any pointer
+    // it is handed, so unlike the frame facts these keep nothing across a call - which is
+    // enough, because a release and the use that follows it sit in one body.
+    std::map<SanitizerLocation, SourceCodeRef> freedPtrLocations;
 
     MicroReg flagsSubject = MicroReg::invalid();
 };

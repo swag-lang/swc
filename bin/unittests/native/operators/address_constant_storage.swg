@@ -12,6 +12,13 @@ func sharedAddressA()->const *u8 => &SharedBytes[0]
 func sharedAddressB()->const *u8 => &SharedBytes[0]
 func sharedAddressC()->const *u8 => &SharedBytes[0]
 
+// Compile this body, but never execute it: constant folding must not read an arbitrary address.
+func explicitAddressRemainsRuntime()->u8
+{
+    const pointer = cast(const *u8) 1234'u64
+    return pointer[]
+}
+
 // A known aggregate value still has addressable storage. Capturing that address must
 // neither discard the enclosing test nor confuse its bytes with the address itself.
 #test
@@ -31,17 +38,18 @@ func sharedAddressC()->const *u8 => &SharedBytes[0]
 
     let number    = 73'u32
     let numberPtr = &number
+    #assert(numberPtr[] == 73)
     Swag.assert(numberPtr[] == 73)
     Swag.assert(numberPtr == &number)
     Swag.assert(bytesPtr == &bytes)
     Swag.assert(&bytes[1] == &(bytesPtr[][1]))
 
     // Persistent storage containing pointers must relocate its pointees in native output too.
-    let pointerPtr = &numberPtr
+    var pointerPtr = &numberPtr
     Swag.assert(pointerPtr[][] == 73)
     Swag.assert(pointerPtr == &numberPtr)
     let text    = "captured constant"
-    let textPtr = &text
+    var textPtr = &text
     Swag.assert(textPtr[] == "captured constant")
 
     let raw    = cast(*void) 1234'u64

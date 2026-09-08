@@ -373,10 +373,12 @@ internal func caughtMessage(err: any?)->String
         case .InvalidInput:
             return s.msg_ErrInvalidRequest
 
+        case .General:
+            return s.msg_SystemError
+
         // Kinds a reader cannot act on: they name a shape the filesystem layer refuses,
         // never a container a reader chose.
-        case .General,
-             .NotDirectory,
+        case .NotDirectory,
              .IsDirectory,
              .DirectoryNotEmpty:
             return s.msg_ErrDamaged

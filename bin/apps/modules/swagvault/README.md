@@ -33,8 +33,10 @@ unmodified WinFsp runtime from the repository's vendor inputs; mounting does not
 
 Launch Swag Vault normally. When the portable runtime is needed, the application requests elevation
 for its separate driver helper so the mounted drive remains visible to the ordinary Windows session.
-The helper stages the runtime in a temporary directory under a Swag Vault-specific identity and
-cleans it up after its last mount closes. An already installed WinFsp runtime can also be used.
+The helper stages the runtime in a temporary directory under an identity unique to that helper.
+It keeps the driver available until the application exits, then unregisters its own runtime.
+Other Swag Vault processes and drivers awaiting deletion therefore have separate identities.
+An already installed WinFsp runtime can also be used.
 
 ## Privileged integration
 

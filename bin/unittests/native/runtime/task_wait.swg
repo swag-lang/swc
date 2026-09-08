@@ -281,8 +281,8 @@ func withBlockedWorkers(body: func||())->bool
     var invalid = false
     let ready   = withBlockedWorkers(func|&invalid|()
     {
-        var tasks:    [5] Swag.Task
         var runs:     [5] Swag.AtomicValue'u32
+        var tasks:    [5] Swag.Task
         var expected: [5] u32
         let order:    [5] u32 = [2, 0, 4, 1, 3]
         for round in 3

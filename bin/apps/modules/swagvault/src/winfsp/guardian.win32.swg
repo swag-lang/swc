@@ -185,7 +185,11 @@ namespace WinFsp
         if temp.isEmpty() do
             failWith("Windows did not provide a usable temporary directory.")
 
-        var root = Path.combine(temp, Format.toString("vault-WinFsp-%-%", Env.Process.currentProcessId(), Time.Timestamp.utcNow().ticks))
+        // A guardian owns one driver registration. Sharing an identity across processes lets
+        // one guardian unregister another's driver, and a pending deletion blocks every restart.
+        // WinFsp reads at most 32 bytes from the SxS identity file.
+        let sxsName = Format.toString("%-%", WinFspSxsName, Guid64.random())
+        var root = Path.combine(temp, Format.toString("vault-WinFsp-%", sxsName))
         Directory.create(root)
 
         let bin = Path.combine(root, "bin")
@@ -201,7 +205,7 @@ namespace WinFsp
         }
 
         let identity = Path.combine(bin, "winfsp.sxs")
-        discard File.writeAllBytes(identity, Swag.makeSlice(cast(const [*] u8) ("swagvault\n").buffer, ("swagvault\n").count))
+        discard File.writeAllBytes(identity, sxsName.toSlice())
         g_WinFsp.runtimeRoot = #move root
         return dll
     }

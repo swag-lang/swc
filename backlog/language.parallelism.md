@@ -33,10 +33,14 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 ### language.parallelism.005 — Captures do not prove task lifetime or race freedom
 
 - Recorded: 2026-09-07 15:52
-- Updated: 2026-09-08 18:48 — isolate the caller-owned task escape exemption after checking initialized captures
+- Updated: 2026-09-08 19:12 — distinguish destructor ordering from caller-owned and linked-storage lifetime gaps
 - Evidence: borrow analysis follows named and initialized captures, including addresses, field
   references, slices, aggregates and deferred call-result summaries. It rejects the tested local
-  borrows returned in a closure or stored in a task from an outer lexical scope. This does not
+  borrows returned in a closure or stored in a task from an outer lexical scope. Local destructor
+  ordering also matters: a task declared before its captured source joins after that source is
+  destroyed. Borrow merges retain the shortest local lifetime across captures, fields and flow
+  alternatives. The unexecuted regression cases are in
+  `bin/unittests/sanity/borrow_escape_drop_order.swg`. This does not
   establish race freedom: two partitions writing the same element and a captured pointer whose
   pointee is mutated elsewhere still compile.
 - Remaining lifetime gap: `store(task: *Swag.Task)` can declare a local and submit a closure
@@ -46,10 +50,18 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
   parameter origin, so the deferred summary cannot move this check to the caller. The unexecuted
   `storeTaskParameterGap` case in `bin/unittests/sanity/borrow_escape_capture.swg` keeps the gap
   visible without running a dangling task.
+- Linked-storage gap: `TaskGroup.spawn` stores the closure into a child reached through
+  `reserveChild`, but `blocks: *GroupBlock?` is a single-object pointer. The ownership analysis
+  deliberately treats only block pointers as owned payload carriers; treating every `*T` as
+  owned would confuse parent and callback back-references with ownership. The child's storage
+  therefore does not feed a stores-into-group summary, so `groupBeforeCaptureGap` in the same
+  regression file remains accepted. It is never executed. Track the allocation's attachment to
+  the group and its release before extending the ownership rule to linked storage.
 - Both `Swag.Task.opDrop` and `Swag.TaskGroup.opDrop` join their work, including on early return
   and failure. An owner can still release a borrowed field in its own destructor before the
   implicit destruction of its task field; it must join before releasing that storage.
-- Next: distinguish a borrow retained past a helper's return from transient borrowed state before
+- Next: follow owned linked storage through accessors, with both an owned child and a non-owned
+  parent pointer as regression cases. Distinguish a borrow retained past a helper's return from transient borrowed state before
   removing the caller-parameter exemption. Cover both a retained task closure and a helper that
   clears temporary state before returning. Then infer transferable (`Send`) and shared-readable
   (`Sync`) properties from fields, allocation, copy, move and destruction effects, and require

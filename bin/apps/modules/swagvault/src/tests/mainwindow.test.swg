@@ -519,6 +519,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     Swag.assert(messageFor(.Corrupted) == "The container is damaged.")
     Swag.assert(messageFor(.PasswordRequired) == "A password is required.")
     Swag.assert(messageFor(.Canceled) == "The operation stopped.")
+    Swag.assert(messageFor(.General) == appStrings().msg_SystemError)
 
     // Every way a container can refuse to open answers the same sentence: telling wrong access
     // from a damaged container is exactly what the format refuses to do.
@@ -528,6 +529,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     Swag.assert(messageFor(.PasswordOrDamaged) == "Le mot de passe ou les fichiers clés sont incorrects, ou le conteneur est endommagé.")
     Swag.assert(messageFor(.PasswordRequired) == appStrings().msg_PasswordRequired)
     Swag.assert(messageFor(.DiskFull) == appStrings().msg_ErrDiskFull)
+    Swag.assert(messageFor(.General) == appStrings().msg_SystemError)
 
     // A kind that means nothing to a reader reads as the generic damaged-container wording.
     Swag.assert(messageFor(.DirectoryNotEmpty) == appStrings().msg_ErrDamaged)

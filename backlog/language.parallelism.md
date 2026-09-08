@@ -33,7 +33,7 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 ### language.parallelism.001 — The shipped model, and the promises it does not yet make
 
 - Recorded: 2026-09-06 07:51
-- Updated: 2026-09-08 10:58 — scheduler publication and live worker-count reads are synchronized
+- Updated: 2026-09-08 11:45 — bounded cache probing preserves cost adaptation under collisions and saturation
 - Where it stands: `parallel for |captures| name in range` is a statement of the language, lowered
   to one call into `Swag.__parallelRange`. `bin/runtime` owns the worker pool, `Swag.Task`,
   `Swag.TaskGroup`, `Swag.Mutex`, `Swag.RWLock`, `Swag.Condition`, `Swag.Semaphore`,
@@ -88,7 +88,8 @@ Native `parallel for` now keeps bounded atomic cost hints keyed by the generated
 address. An unknown body samples one actual iteration before starting workers; later calls use
 the estimated work per partition and periodically refresh it. Empty and single-iteration ranges
 need no pool. Hints retain no captured storage, and concurrent observations only affect placement.
-The fixed table can decline a colliding entry, which keeps ordinary partitioning. Variable costs,
+The fixed table probes at most four slots and never replaces an owner. If none accepts the body,
+the current call still samples its own cost, without caching it. Variable costs,
 preemption and stale observations can still choose an inefficient schedule; this is not a time
 bound or a proof that parallel execution will help. Resize, Argon2 and ChaCha20 no longer carry
 separate small-work thresholds. The pixel-filter and Argon2 benchmarks measure both cheap ranges

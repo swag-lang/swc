@@ -34,7 +34,7 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-08 14:37 |
+| [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-08 15:06 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-08 13:34 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-08 12:52 |
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command | 2026-09-08 10:36 |

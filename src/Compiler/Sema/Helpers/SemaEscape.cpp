@@ -4265,6 +4265,10 @@ namespace SemaEscape
                 if (sourceTypeRef.isValid())
                 {
                     const TypeInfo& sourceType = sema.typeMgr().get(sourceTypeRef);
+                    // A fixed array has no method-owned structure to invalidate. A method
+                    // reached through its element binding can only change that element.
+                    if (sourceType.isArray())
+                        continue;
                     if (sourceType.isStruct() && &sourceType.payloadSymStruct() != calleeOwner)
                         continue;
                 }

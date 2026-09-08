@@ -33,7 +33,7 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 ### language.parallelism.001 — The shipped model, and the promises it does not yet make
 
 - Recorded: 2026-09-06 07:51
-- Updated: 2026-09-08 10:07 — runtime cost hints replace per-consumer small-loop thresholds
+- Updated: 2026-09-08 10:58 — scheduler publication and live worker-count reads are synchronized
 - Where it stands: `parallel for |captures| name in range` is a statement of the language, lowered
   to one call into `Swag.__parallelRange`. `bin/runtime` owns the worker pool, `Swag.Task`,
   `Swag.TaskGroup`, `Swag.Mutex`, `Swag.RWLock`, `Swag.Condition`, `Swag.Semaphore`,
@@ -77,6 +77,12 @@ not be reentered by an unrelated callback. With no worker, submission executes s
 An explicit `Swag.drainWork` still runs arbitrary accepted work and needs a context that permits
 that reentrancy. Joining a task that itself needs a held lock can still deadlock; targeted helping
 does not prove a task dependency graph or lock ordering correct.
+
+The scheduler's artifact-local cache publishes its pointer atomically after serialized first use.
+The worker count is also atomic, while roster growth stays under the pool mutex; callers can
+submit and inspect the pool while other callers increase its size. Runtime shutdown still assumes
+its users have quiesced: atomic publication is not an admission or cancellation protocol for late
+submissions during teardown.
 
 Native `parallel for` now keeps bounded atomic cost hints keyed by the generated body's entry
 address. An unknown body samples one actual iteration before starting workers; later calls use

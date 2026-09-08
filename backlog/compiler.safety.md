@@ -42,12 +42,12 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
-### compiler.safety.020 — A release reached through a field of the receiver is not judged at the caller
+### compiler.safety.020 — A release through storage a callee could re-establish is not judged
 
 - Recorded: 2026-09-08 09:05
-- Updated: 2026-09-08 11:17 — the per-field summary was built and reverted: it needs a second fact to be sound
+- Updated: 2026-09-08 11:56 — the per-field summary was built and reverted; the missing half is a NEGATIVE fact, and a second shape needs the same one
 - Area: compiler/sema, `SemaEscape`
-- Evidence: the shape an owning type has, probed against the current proof:
+- Evidence: two shapes, one blocker. A release reached through a FIELD of the receiver:
 
   ```
   impl Node { mtd release() { if .data != null do heapFree(.data!, 4) } }
@@ -57,15 +57,20 @@ is the current scorecard.
   return node.data![]     // silent
   ```
 
-  The FREES summary is per PARAMETER: it can say that a call releases what parameter i
-  points at, not what parameter i's FIELD points at. Saying the receiver itself was
-  released would be false, so nothing is claimed and the caller is silent. Every other
-  storage class a program keeps a pointer in — a parameter, an element of a local table, a
-  field of a local, a copy into another local — is now proven, which leaves this the
-  common shape that is not.
-- The per-field summary was implemented end to end and reverted, because it is not enough
-  on its own. A method that releases a field normally does something with it afterwards,
-  and the two shapes are indistinguishable from the summary:
+  and a release of what a GLOBAL owns:
+
+  ```
+  var owned: *s32?
+  owned = cast(*s32) heapAlloc(4)
+  heapFree(owned!, 4)
+  return owned![]         // silent
+  ```
+
+  Every other storage class a program keeps a pointer in — a parameter, an element of a
+  local table, a field of a local, a copy into another local, and the return itself — is
+  proven. These two are what is left.
+- The per-field summary was implemented end to end and reverted, because a release is not
+  on its own a statement about what the storage holds on return:
 
   ```
   mtd reset() { heapFree(.data!, 4); .data = cast(*s32) heapAlloc(4) }
@@ -73,24 +78,29 @@ is the current scorecard.
   node.data![] = 1     // CORRECT, and a per-field FREES mark reports it
   ```
 
-  Marking `receiver slot + field offset` released at the call site therefore rejects a
-  `reset`-style method, which is exactly the false positive a sanity rule may not have.
-  Nulling the field is the same story with a friendlier ending: the report would be wrong
-  about which fault it is, but the code would still be one.
-- What the implementation established, and what a second attempt should reuse: the seeding
-  (a call argument whose storage projection is a field of one of the caller's parameters),
-  a `FieldToFrees` summary edge kind, and the fact that the chaining must ALSO run in
+  A release helper normally does something with the storage afterwards, and the summary
+  cannot tell that apart from leaving it dangling. The global shape has the same hole from
+  the other side: any callee may write any global, so the freeing call is itself what would
+  invalidate the fact it creates.
+- Why this is not a small addition: the missing half is a NEGATIVE fact — *the callee does
+  not write this storage before returning*. A positive fact needs one witness; a negative
+  one needs every write form excluded, including a store through a pointer that could reach
+  the storage, which is alias analysis. That is the honest size of this entry, and it is why
+  the implemented half was not shipped on its own.
+- What the attempt established, for whoever takes it: the seeding (a call argument whose
+  storage projection is a field of one of the caller's parameters), a `FieldToFrees` summary
+  edge kind, and the fact that the chaining must ALSO run in
   `propagateCompletedFreesSummaries` — the early fixpoint — because the backend reads these
   summaries while it lowers, and a fact only the final drain publishes arrives after the
-  call site it judges. It also needs `storageProjection` to see through `x!`, which it does
-  not today: the not-null assertion names the same storage as its operand, and the
-  projection walk stops at it (compiler.safety.021).
-- Next: add the missing half first — a per-field WRITES summary saying the callee stores
-  into that field before returning — and mark the field released only when the callee frees
-  it and does not write it. Every write form has to be covered (an assignment, the field's
-  address handed over, a call that stores into it); one missed form is a false positive.
-- Complete when: the case above is a compile-time error, the `reset` shape and the carrier
-  case stay silent, and all three are in `bin/unittests/sanity/use_after_free.swg`.
+  call site it judges. It also needs `storageProjection` to see through `x!`
+  (compiler.safety.021).
+- Next: decide whether the negative fact is affordable at all before building more. The
+  cheap alternative worth measuring first is the opposite direction: report inside the
+  release helper — a method that hands storage it reaches through the receiver to the
+  allocator and returns without reassigning it — where the body is in front of the analysis
+  and no summary has to cross a call.
+- Complete when: both shapes above are compile-time errors, the `reset` shape and the
+  carrier case stay silent, and all of them are in `bin/unittests/sanity/use_after_free.swg`.
 - Related: compiler.safety.017, compiler.safety.021.
 
 ### compiler.safety.021 — A projection does not see through the not-null assertion

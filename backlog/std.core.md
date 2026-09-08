@@ -39,6 +39,33 @@ language.parallelism.001. The concurrency entries own Core integration, algorith
 migration against that native surface; they do not introduce Core-owned task or synchronization
 types.
 
+### std.core.032 — The libdeflate-style inflate rewrite underflows its bit count at the end of a stream
+
+- Recorded: 2026-09-08 22:17
+- Found while: recovering the abandoned `png-perf` branch. The rewrite is preserved in this
+  repository at `bc810f058`, reachable from the merge history of `claude/recover-20260908`; the
+  tip carries master's inflate, because the rewrite panics.
+- Evidence: `Swag Scope`'s `viewer.indesign.test.swg:203` decodes an InDesign document and stops
+  with `integer overflow` at `inflate.swg:670`, on `nb -= tot` in the careful path's distance
+  decode. Restoring `inflate.swg` and `bitstream.swg` alone turns the whole golden campaign green
+  and leaves the branch's other work in place, so the defect is in the rewrite and nowhere else.
+- Evidence: the rewrite hoists the bit buffer and its fill level into locals so they stay in
+  registers, and refills once at the top of the outer loop. That refill guarantees fifty-six bits
+  only while `cur < fastLimit`, the eight-byte slack the unaligned load needs. Past that bound it
+  calls `BitStream.refill(56)`, whose byte-wise path stops at the end of the stream and returns
+  whatever it has with `eof` raised. The careful path then decodes a length symbol and a distance
+  symbol with no refill between them and subtracts both widths from an unsigned count that may
+  hold fewer bits than they need.
+- Next: reduce the failing stream to a standalone `#test` in `core`, then decide between refilling
+  before the distance decode in the careful path and giving the tail an explicit zero-padded
+  window with an overrun check after the block, which is what a decoder that reads past its input
+  normally does. Re-measure the PNG decode the rewrite was written for before keeping it: the
+  claim was a libdeflate-shaped fast loop, and it must be worth its own tail handling.
+- Complete when: the InDesign document and the PNG suite both decode, a `core` test covers a
+  stream whose last match ends within fewer than forty-eight bits of the input, and the decode
+  measurement justifies the rewrite against the inflate in master.
+- Related: std.pixel.image.md
+
 ### std.core.031 — Two atomic families, one of them Core's
 
 - Recorded: 2026-09-07 16:02

@@ -30,6 +30,228 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
+### language.parallelism.006 — One locked ready stack, so fine-grained work does not scale
+
+- Recorded: 2026-09-08 20:14
+- Updated: 2026-09-08 21:10 — the benchmark exists, the completion path is fixed, and what remains
+  is the ready stack itself
+- Evidence: `bench/scheduler` prices one submission at six grains, concurrent submission with and
+  without a task group's own storage, a nested region against its flat equivalent, and one
+  completion beside parked observers, at 1, 2, 4, 8 and every worker. Its README states the
+  alternating-worktree protocol these numbers need on this machine, where two runs of one binary
+  differed by a factor of three while another agent was building.
+- Evidence: completion was the largest cost and is gone. A finished unit used to wake every parked
+  observer in the process, so 20,000 short tasks beside 22 parked observers took 646 ms against
+  3.6 ms unobserved. Each parked observer now publishes the node address it waits for, and a
+  completion wakes only for a node someone waits for: the same stream costs 4.1 ms and is flat in
+  the number of observers, with a measured ratio of 0.01 at 22 observers and 0.35 at one.
+  Fine-grained fork/join follows from the same cause, because a joining thread that parks is an
+  observer: 1.4 to 3 times faster below eight workers. A group also holds its first four children
+  itself and fills the page each further block already reserved, which is 27% off a group's spawn
+  at one worker while the plain-task control stays where it was.
+- Evidence: what remains is the ready stack. Every `submitWork` takes one process-wide mutex to
+  push and every `popWork` takes it to claim. Fork/join over 64-element leaves costs 115 ms on 22
+  workers against 13.7 ms on one, and spawn throughput falls from 2.1 to 0.5 children per
+  microsecond over the same range. Every candidate ratio returns to one at 22 workers. The
+  machine's three classes of core are part of that number, and nothing in the pool knows they
+  exist.
+- Settled here: the worker cap stays at 64, because a parallel range reserves one runner per worker
+  in its dispatch frame, so the cap is also the stack every parallel section touches; raising it
+  means moving that storage off the stack first. Nesting stays supported and unrestricted, because
+  one process has one pool and an inner region therefore cannot multiply execution resources; it
+  measured within a fifth of the flat range that does the same work.
+- Next: shard the ready list so that a submission and a claim do not serialize on one lock -- one
+  list per shard with its own lock, the shard chosen from the node's own address so a targeted
+  claim still finds it in constant time, and an idle worker scanning the other shards. Keep it only
+  against the benchmark's alternating protocol on a quiet machine, and settle in the same change
+  whether a worker should spin before parking and whether the pool should know which class of core
+  it was placed on.
+- Complete when: fork/join over 64-element leaves stops getting slower as workers are added, and
+  spawn throughput stops falling between one worker and every worker.
+- Elsewhere: Rayon, Intel TBB, Java's `ForkJoinPool`, .NET's thread pool and the Go runtime all
+  give each worker its own deque and steal from the others, which is what makes recursive fork/join
+  cheap.
+- Related: language.parallelism.001, language.parallelism.003, language.parallelism.005
+
+### language.parallelism.005 — Captures do not prove task lifetime or race freedom
+
+- Recorded: 2026-09-07 15:52
+- Updated: 2026-09-08 21:10 — the group case that demonstrated the linked-storage gap is now rejected
+- Evidence: borrow analysis follows named and initialized captures, including addresses, field
+  references, slices, aggregates and deferred call-result summaries. It rejects the tested local
+  borrows returned in a closure or stored in a task from an outer lexical scope. Local destructor
+  ordering also matters: a task declared before its captured source joins after that source is
+  destroyed. Borrow merges retain the shortest local lifetime across captures, fields and flow
+  alternatives. The unexecuted regression cases are in
+  `bin/unittests/sanity/borrow_escape_drop_order.swg`. This does not
+  establish race freedom: two partitions writing the same element and a captured pointer whose
+  pointee is mutated elsewhere still compile.
+- Remaining lifetime gap: `store(task: *Swag.Task)` can declare a local and submit a closure
+  borrowing it into the caller's task. This is accepted even for `func|&local|()`, independently
+  of initialized captures. `intoArgumentOutlivesStored` deliberately exempts destinations reached
+  through a caller parameter to allow transient borrowed state. A local source has no caller
+  parameter origin, so the deferred summary cannot move this check to the caller. The unexecuted
+  `storeTaskParameterGap` case in `bin/unittests/sanity/borrow_escape_capture.swg` keeps the gap
+  visible without running a dangling task.
+- Linked-storage gap: the group no longer demonstrates it. `Swag.TaskGroup` holds its first
+  children itself, so `reserveChild` can return a pointer into the group, `spawn` feeds a
+  stores-into-group summary, and `groupBeforeCapture` in
+  `bin/unittests/sanity/borrow_escape_drop_order.swg` is rejected with its expected diagnostic.
+  The rule itself did not change: only block pointers carry owned payload, because treating every
+  `*T` as owned would confuse parent and callback back-references with ownership, so a child
+  reached solely through `blocks: *GroupBlock?` is still invisible to the ownership analysis.
+  Find or build another case before extending the rule to linked storage.
+- Both `Swag.Task.opDrop` and `Swag.TaskGroup.opDrop` join their work, including on early return
+  and failure. An owner can still release a borrowed field in its own destructor before the
+  implicit destruction of its task field; it must join before releasing that storage.
+- Next: follow owned linked storage through accessors, with both an owned child and a non-owned
+  parent pointer as regression cases. Distinguish a borrow retained past a helper's return from
+  transient borrowed state before removing the caller-parameter exemption. Cover both a retained task closure and a helper that
+  clears temporary state before returning. Then infer transferable (`Send`) and shared-readable
+  (`Sync`) properties from fields, allocation, copy, move and destruction effects, and require
+  them at captures. `NoCopy` does not imply `Send`, `const` does not imply deep immutability, and
+  an atomic reference count does not synchronize its pointee. Raw pointers, opaque owners, native
+  handles and foreign calls need a stated contract rather than automatic acceptance.
+- Complete when: a rejected capture names the concrete alias, allocator, destructor or executor
+  constraint and points at a valid partition or ownership alternative; semantic tests reject
+  hidden aliases, escaped borrows and cross-module global writes without optional analysis.
+  Until then the capture list states intent rather than proving race freedom.
+- Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
+  language.parallelism.001.
+
+### language.parallelism.001 — The shipped model, and the promises it does not yet make
+
+- Recorded: 2026-09-06 07:51
+- Updated: 2026-09-08 21:10 — a completion now wakes only the observers of the node that finished
+- Where it stands: `parallel for |captures| name in range` is a statement of the language, lowered
+  to a runtime range call, with fallible variants under `try`, `catch` and `expect`.
+  `bin/runtime` owns the worker pool, `Swag.Task`,
+  `Swag.TaskGroup`, `Swag.Mutex`, `Swag.RWLock`, `Swag.Condition`, `Swag.Semaphore`,
+  `Swag.Barrier`, `Swag.AtomicValue` and `Swag.AtomicFlag`. One process has one pool, resolved
+  through a process anchor so an executable and every shared library it loads share it. `Core.Jobs`
+  is gone and every consumer -- pixel, truetype, video, gui, the three applications, the examples
+  and the scripts -- goes through the runtime.
+- What the model does not yet promise: race freedom. The capture list is written, not proved
+  (.005); a partition can fail but cannot state disjointness (.004); there is one executor and
+  no affinity (.003); nothing suspends and a task carries no typed result (.002). A program can
+  still write a data race through a capture, and the compiler accepts it.
+- Next: the other four entries are the remaining work, in the order they unblock each other:
+  suspension and typed results, then executors, then partition proofs, then checked captures.
+  Keep this entry as the place that states the whole contract, and let each of them own its part.
+  Do not advertise race freedom in the reference or in the runtime documentation until .005 holds.
+- Complete when: the four entries are closed and the language reference states one contract for
+  ownership, suspension, cancellation, failure and memory access that the compiler enforces.
+- Related: std.core.025, std.core.026, std.core.028, compiler.safety.005, compiler.safety.006,
+  compiler.safety.007, compiler.safety.014, runtime.allocator.004, platform.portability.035.
+
+#### Progress and memory-model boundaries that already apply
+
+These hold for the shipped model and constrain every entry in this domain.
+
+| Construction | Progression boundary |
+| --- | --- |
+| Finite independent kernels and descendant-only fork/join | Completes with one worker if the sequential computations terminate and the executor services ready work. A `parallel for` and a joined `Swag.TaskGroup` are in this class. |
+| Ranked locks | Prevent acquisition cycles only while all acquisitions obey the declared order. Nothing declares one yet. |
+| Explicit task graph | Reject cycles when constructing or extending the dependency graph; other waits in node bodies need their own contract. |
+| General channels, promises, actors, leases | Safe memory access does not prove the communication protocol terminates. |
+| Foreign waits and external systems | Require explicit backend contracts; no universal deadline or deadlock guarantee. |
+
+Concurrent conflicting non-atomic access is invalid. Atomics do not create multi-location
+transactions, and an atomic pointer algorithm still needs a valid reclamation protocol and a
+lifetime proof. Default atomics are sequentially consistent; acquire/release/relaxed orders remain
+expert operations that do not inherit that claim, and none are exposed yet.
+
+A joining thread can claim the queued task it is waiting for, and that task can join its own
+children in turn. It does not execute unrelated ready tasks: a guard held across a join must
+not be reentered by an unrelated callback. With no worker, submission executes synchronously.
+An explicit `Swag.drainWork` still runs arbitrary accepted work and needs a context that permits
+that reentrancy. Joining a task that itself needs a held lock can still deadlock; targeted helping
+does not prove a task dependency graph or lock ordering correct.
+
+A join briefly polls a running child, then parks on the process scheduler's completion condition.
+A parked observer first publishes the address of the node it waits for, and a completion consults
+that registry instead of the node it has just released: an owner can already have reused or freed
+its node, so nothing reads it once Done is published. A completion therefore wakes observers only
+for a node somebody waits for, and every woken observer still rechecks its own state. A process
+with more parked observers than registry slots falls back to waking all of them, which is correct
+and unselective. Parking reduces waiting CPU use but still occupies the calling thread and any
+worker that called the join. It is not the stackless suspension or executor capacity release required by .002 and .003.
+
+The scheduler's artifact-local cache publishes its pointer atomically after serialized first use.
+The worker count is also atomic, while roster growth stays under the pool mutex; callers can
+submit and inspect the pool while other callers increase its size. Runtime shutdown still assumes
+its users have quiesced: atomic publication is not an admission or cancellation protocol for late
+submissions during teardown.
+
+Native `parallel for` now keeps bounded atomic cost hints keyed by the generated body's entry
+address. An unknown body samples one actual iteration before starting workers; later calls use
+the estimated work per partition and periodically refresh it. Empty and single-iteration ranges
+need no pool. An already started pool with fewer than two workers skips profiling entirely;
+the observation starts no execution resource, and later calls see concurrent pool growth.
+Partition storage lives in a separate, non-inlined dispatch function, so serial and empty calls
+do not reserve the full worker array or probe its stack pages. The dispatch function keeps one
+runner per chosen worker and joins every accepted runner before releasing that storage.
+Runners claim disjoint blocks through an atomic
+cursor; the whole range uses at most eight times as many blocks as runners, and the measured
+grain still sets their minimum size. The caller reserves its first block before publication and
+participates in the remaining claims. Each successful claim clamps its end before addition, even
+when the exclusive range end is `U64.Max`. An unusually expensive individual iteration or block
+can still dominate completion; blocks are not preempted or split after a claim.
+Hints retain no captured storage, and concurrent observations only affect placement.
+The fixed table probes at most four slots and never replaces an owner. If none accepts the body,
+the current call still samples its own cost, without caching it. Variable costs,
+preemption and stale observations can still choose an inefficient schedule; this is not a time
+bound or a proof that parallel execution will help. Resize, Argon2 and ChaCha20 no longer carry
+separate small-work thresholds. The pixel-filter and Argon2 benchmarks measure both cheap ranges
+and expensive four-iteration ranges against one-worker controls.
+CPU rasterization now exposes sixteen-row blocks instead of one band per worker, so the runtime
+can distribute localized overdraw. Triangle order stays fixed within each pixel, with exclusive
+ownership of its color, stencil and overlap scratch rows until the join. The renderer retains its
+pixel-area threshold and whole-range serial path to amortize repeated triangle setup; its small
+draw path returns before querying or starting the pool. `bench/rasterbalance` compares complete
+one-worker and four-worker images, including uniform and localized-overdraw controls.
+
+#### Workloads still to be answered
+
+The first three rows shipped. The rest are the acceptance cases the entries above must satisfy.
+
+| Workload | Desired expression | Adversarial case to settle | Evidence required |
+| --- | --- | --- | --- |
+| Bounded streaming pipeline | Transferred buffers and finite-capacity channels. | Consumer stops while producer is blocked; one stage fails after a partial transfer. | Every buffer and rejected message has an owner; failure closes and drains the pipeline under its stated policy. |
+| Recursive CPU work | Nested structured tasks or parallel partitions. | One worker and an exhausted task-lifetime quota. | No hidden quota wait cycle, bounded bookkeeping, and equivalent completed results. |
+| Dependency graph | Typed nodes with explicit result edges. | A dynamic edge introduces a cycle, or one node awaits an unrelated external event. | Cycle rejection for graph edges; no false claim that arbitrary node bodies are deadlock-free. |
+| Foreign blocking operation | A task scheduled on the blocking or dedicated executor. | The operation ignores cancellation or synchronously calls back into the host. | Borrowed resources survive; callback and runtime attachment stay valid; no unsupported timeout bound is promised. |
+| Lock-free shared structure | Typed atomics with a reclamation domain. | ABA, a stalled reader, and reclamation during shutdown. | Storage lifetime is justified separately from atomic ordering; the unchecked implementation boundary is explicit. |
+| Latency-sensitive audio | Dedicated execution, preallocated memory, no-allocation and no-wait contracts. | A device callback that must never allocate or block. | The contract is checked rather than documented; no hard real-time guarantee is claimed on a general-purpose operating system. |
+
+For each case, record the source size, annotations, explicit clones, unchecked escapes,
+allocations, and runtime costs the preferred path needs. A short keyword example is not evidence
+of simplicity when every useful helper needs an unchecked contract.
+
+#### Validation that every entry here inherits
+
+- Semantic tests accept safe transfers and partitions and reject hidden aliases, cross-module
+  global writes, escaped borrows, incompatible callable effects, and wrong-executor destruction.
+  A guarantee that only a warning or a devmode guard enforces is not the guarantee.
+- A runtime-only consumer declares and uses the concurrency types without importing Core, and a
+  sequential program starts no execution resource it never asked for.
+- Native and JIT lifecycle tests cover every exit after capture, including failed admission before
+  capture, a failing later capture after an earlier move, and serial fallback after partial
+  dispatch.
+- A controlled scheduler and a fake backend enumerate cancellation before publication, during
+  registration, at commit, after completion, and during cleanup, together with simultaneous
+  completions, withdrawn channel operations, producer abandonment, and late native callbacks.
+- Runtime tests distinguish one worker from several, nested fork/join, quota exhaustion, pool
+  shutdown, and a stalled foreign call. Soundness is not inferred from stress testing.
+- Consumer evidence comes from a real pixel operation, a real GUI background lifecycle, and a real
+  native-affinity operation. Measure creation and join cost, memory per live task, queue
+  contention, cancellation latency under stated cooperation assumptions, serial thresholds, and
+  throughput against what the code did before.
+- Every implemented syntax change updates the language reference, the editor grammar, the
+  formatter and the relevant diagnostics together. Compiler-source changes increment
+  `SWC_BUILD_NUM`; serialized effect summaries and runtime ABI changes invalidate incompatible
+  cached artifacts.
+
 ### language.parallelism.010 — Nothing detects a data race while the program runs
 
 - Recorded: 2026-09-08 20:14
@@ -137,214 +359,6 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
   share one order family; Swift and C# state theirs against their runtime. None of them leaves
   the model in a design note.
 - Related: language.parallelism.001, compiler.safety.014, std.core.031
-
-### language.parallelism.006 — One locked ready stack, so fine-grained work does not scale
-
-- Recorded: 2026-09-08 20:14
-- Evidence: the scheduler keeps one process-wide stack of ready nodes, `Scheduler.head`, guarded
-  by one mutex. Every `submitWork` locks it to push, every `popWork` locks it to claim, and an
-  idle worker sleeps on a single `ready` condition. There is no per-worker queue and no
-  stealing: a joining thread claims the one node it is waiting for and nothing else. Completion
-  is the sharper cost. `runWork` calls `wakeWorkObservers` as soon as any observer is parked
-  anywhere in the process, which takes the scheduler mutex and calls `finished.wakeAll()`, so
-  every finished unit wakes every parked joiner, each of which rechecks its own node and sleeps
-  again.
-- Evidence: `MaxWorkers` is 64 and `setWorkerCount` clamps to it, so a machine with more hardware
-  threads cannot use them. Nested parallelism has no policy: a `parallel for` inside a
-  `parallel for` reads the full `workerCount()` again and dispatches that many runners, and a
-  group spawned inside a partition pushes onto the same stack.
-- Evidence: nothing measures any of this. `bench/taskwait` measures the joining thread's CPU over
-  sequential submit/join pairs, and `bench/parallelrange` and `bench/rasterbalance` measure
-  partition balance within one loop. None of them varies the worker count against spawn and join
-  throughput, and none of them runs recursive fork/join.
-- Next: measure before changing anything. Add a scheduler benchmark covering recursive fork/join
-  with a serial cut-off, many small tasks spawned from every worker, and one long task joined by
-  many observers, reported against 1, 2, 4, 8 and every worker. Then choose from those numbers
-  between per-worker deques with stealing, per-node completion signalling instead of one
-  process-wide `wakeAll`, and keeping the shared stack while stating the granularity it serves.
-  Settle the worker cap and the nested-parallelism policy in the same change.
-- Complete when: the benchmark exists, the scheduler's shape is chosen against its numbers, and
-  the reference states the granularity below which submitting work costs more than running it.
-- Elsewhere: Rayon, Intel TBB, Java's `ForkJoinPool`, .NET's thread pool and the Go runtime all
-  give each worker its own deque and steal from the others, which is what makes recursive
-  fork/join cheap; they also wake individual waiters rather than broadcasting to all of them.
-- Related: language.parallelism.001, language.parallelism.003
-
-### language.parallelism.005 — Captures do not prove task lifetime or race freedom
-
-- Recorded: 2026-09-07 15:52
-- Updated: 2026-09-08 19:12 — distinguish destructor ordering from caller-owned and linked-storage lifetime gaps
-- Evidence: borrow analysis follows named and initialized captures, including addresses, field
-  references, slices, aggregates and deferred call-result summaries. It rejects the tested local
-  borrows returned in a closure or stored in a task from an outer lexical scope. Local destructor
-  ordering also matters: a task declared before its captured source joins after that source is
-  destroyed. Borrow merges retain the shortest local lifetime across captures, fields and flow
-  alternatives. The unexecuted regression cases are in
-  `bin/unittests/sanity/borrow_escape_drop_order.swg`. This does not
-  establish race freedom: two partitions writing the same element and a captured pointer whose
-  pointee is mutated elsewhere still compile.
-- Remaining lifetime gap: `store(task: *Swag.Task)` can declare a local and submit a closure
-  borrowing it into the caller's task. This is accepted even for `func|&local|()`, independently
-  of initialized captures. `intoArgumentOutlivesStored` deliberately exempts destinations reached
-  through a caller parameter to allow transient borrowed state. A local source has no caller
-  parameter origin, so the deferred summary cannot move this check to the caller. The unexecuted
-  `storeTaskParameterGap` case in `bin/unittests/sanity/borrow_escape_capture.swg` keeps the gap
-  visible without running a dangling task.
-- Linked-storage gap: `TaskGroup.spawn` stores the closure into a child reached through
-  `reserveChild`, but `blocks: *GroupBlock?` is a single-object pointer. The ownership analysis
-  deliberately treats only block pointers as owned payload carriers; treating every `*T` as
-  owned would confuse parent and callback back-references with ownership. The child's storage
-  therefore does not feed a stores-into-group summary, so `groupBeforeCaptureGap` in the same
-  regression file remains accepted. It is never executed. Track the allocation's attachment to
-  the group and its release before extending the ownership rule to linked storage.
-- Both `Swag.Task.opDrop` and `Swag.TaskGroup.opDrop` join their work, including on early return
-  and failure. An owner can still release a borrowed field in its own destructor before the
-  implicit destruction of its task field; it must join before releasing that storage.
-- Next: follow owned linked storage through accessors, with both an owned child and a non-owned
-  parent pointer as regression cases. Distinguish a borrow retained past a helper's return from
-  transient borrowed state before removing the caller-parameter exemption. Cover both a retained task closure and a helper that
-  clears temporary state before returning. Then infer transferable (`Send`) and shared-readable
-  (`Sync`) properties from fields, allocation, copy, move and destruction effects, and require
-  them at captures. `NoCopy` does not imply `Send`, `const` does not imply deep immutability, and
-  an atomic reference count does not synchronize its pointee. Raw pointers, opaque owners, native
-  handles and foreign calls need a stated contract rather than automatic acceptance.
-- Complete when: a rejected capture names the concrete alias, allocator, destructor or executor
-  constraint and points at a valid partition or ownership alternative; semantic tests reject
-  hidden aliases, escaped borrows and cross-module global writes without optional analysis.
-  Until then the capture list states intent rather than proving race freedom.
-- Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
-  language.parallelism.001.
-
-### language.parallelism.001 — The shipped model, and the promises it does not yet make
-
-- Recorded: 2026-09-06 07:51
-- Updated: 2026-09-08 17:52 — distinguish parked task joins from asynchronous suspension
-- Where it stands: `parallel for |captures| name in range` is a statement of the language, lowered
-  to a runtime range call, with fallible variants under `try`, `catch` and `expect`.
-  `bin/runtime` owns the worker pool, `Swag.Task`,
-  `Swag.TaskGroup`, `Swag.Mutex`, `Swag.RWLock`, `Swag.Condition`, `Swag.Semaphore`,
-  `Swag.Barrier`, `Swag.AtomicValue` and `Swag.AtomicFlag`. One process has one pool, resolved
-  through a process anchor so an executable and every shared library it loads share it. `Core.Jobs`
-  is gone and every consumer -- pixel, truetype, video, gui, the three applications, the examples
-  and the scripts -- goes through the runtime.
-- What the model does not yet promise: race freedom. The capture list is written, not proved
-  (.005); a partition can fail but cannot state disjointness (.004); there is one executor and
-  no affinity (.003); nothing suspends and a task carries no typed result (.002). A program can
-  still write a data race through a capture, and the compiler accepts it.
-- Next: the other four entries are the remaining work, in the order they unblock each other:
-  suspension and typed results, then executors, then partition proofs, then checked captures.
-  Keep this entry as the place that states the whole contract, and let each of them own its part.
-  Do not advertise race freedom in the reference or in the runtime documentation until .005 holds.
-- Complete when: the four entries are closed and the language reference states one contract for
-  ownership, suspension, cancellation, failure and memory access that the compiler enforces.
-- Related: std.core.025, std.core.026, std.core.028, compiler.safety.005, compiler.safety.006,
-  compiler.safety.007, compiler.safety.014, runtime.allocator.004, platform.portability.035.
-
-#### Progress and memory-model boundaries that already apply
-
-These hold for the shipped model and constrain every entry in this domain.
-
-| Construction | Progression boundary |
-| --- | --- |
-| Finite independent kernels and descendant-only fork/join | Completes with one worker if the sequential computations terminate and the executor services ready work. A `parallel for` and a joined `Swag.TaskGroup` are in this class. |
-| Ranked locks | Prevent acquisition cycles only while all acquisitions obey the declared order. Nothing declares one yet. |
-| Explicit task graph | Reject cycles when constructing or extending the dependency graph; other waits in node bodies need their own contract. |
-| General channels, promises, actors, leases | Safe memory access does not prove the communication protocol terminates. |
-| Foreign waits and external systems | Require explicit backend contracts; no universal deadline or deadlock guarantee. |
-
-Concurrent conflicting non-atomic access is invalid. Atomics do not create multi-location
-transactions, and an atomic pointer algorithm still needs a valid reclamation protocol and a
-lifetime proof. Default atomics are sequentially consistent; acquire/release/relaxed orders remain
-expert operations that do not inherit that claim, and none are exposed yet.
-
-A joining thread can claim the queued task it is waiting for, and that task can join its own
-children in turn. It does not execute unrelated ready tasks: a guard held across a join must
-not be reentered by an unrelated callback. With no worker, submission executes synchronously.
-An explicit `Swag.drainWork` still runs arbitrary accepted work and needs a context that permits
-that reentrancy. Joining a task that itself needs a held lock can still deadlock; targeted helping
-does not prove a task dependency graph or lock ordering correct.
-
-A join briefly polls a running child, then parks on the process scheduler's completion condition.
-Registration and completion coordinate through the scheduler mutex, and completion never reads
-the node after publishing Done: an observer can already have reused or released it. Every
-registered observer rechecks its own node after a wake, including when an unrelated task finishes.
-This reduces waiting CPU use but still occupies the calling thread and any worker that called the
-join. It is not the stackless suspension or executor capacity release required by .002 and .003.
-
-The scheduler's artifact-local cache publishes its pointer atomically after serialized first use.
-The worker count is also atomic, while roster growth stays under the pool mutex; callers can
-submit and inspect the pool while other callers increase its size. Runtime shutdown still assumes
-its users have quiesced: atomic publication is not an admission or cancellation protocol for late
-submissions during teardown.
-
-Native `parallel for` now keeps bounded atomic cost hints keyed by the generated body's entry
-address. An unknown body samples one actual iteration before starting workers; later calls use
-the estimated work per partition and periodically refresh it. Empty and single-iteration ranges
-need no pool. An already started pool with fewer than two workers skips profiling entirely;
-the observation starts no execution resource, and later calls see concurrent pool growth.
-Partition storage lives in a separate, non-inlined dispatch function, so serial and empty calls
-do not reserve the full worker array or probe its stack pages. The dispatch function keeps one
-runner per chosen worker and joins every accepted runner before releasing that storage.
-Runners claim disjoint blocks through an atomic
-cursor; the whole range uses at most eight times as many blocks as runners, and the measured
-grain still sets their minimum size. The caller reserves its first block before publication and
-participates in the remaining claims. Each successful claim clamps its end before addition, even
-when the exclusive range end is `U64.Max`. An unusually expensive individual iteration or block
-can still dominate completion; blocks are not preempted or split after a claim.
-Hints retain no captured storage, and concurrent observations only affect placement.
-The fixed table probes at most four slots and never replaces an owner. If none accepts the body,
-the current call still samples its own cost, without caching it. Variable costs,
-preemption and stale observations can still choose an inefficient schedule; this is not a time
-bound or a proof that parallel execution will help. Resize, Argon2 and ChaCha20 no longer carry
-separate small-work thresholds. The pixel-filter and Argon2 benchmarks measure both cheap ranges
-and expensive four-iteration ranges against one-worker controls.
-CPU rasterization now exposes sixteen-row blocks instead of one band per worker, so the runtime
-can distribute localized overdraw. Triangle order stays fixed within each pixel, with exclusive
-ownership of its color, stencil and overlap scratch rows until the join. The renderer retains its
-pixel-area threshold and whole-range serial path to amortize repeated triangle setup; its small
-draw path returns before querying or starting the pool. `bench/rasterbalance` compares complete
-one-worker and four-worker images, including uniform and localized-overdraw controls.
-
-#### Workloads still to be answered
-
-The first three rows shipped. The rest are the acceptance cases the entries above must satisfy.
-
-| Workload | Desired expression | Adversarial case to settle | Evidence required |
-| --- | --- | --- | --- |
-| Bounded streaming pipeline | Transferred buffers and finite-capacity channels. | Consumer stops while producer is blocked; one stage fails after a partial transfer. | Every buffer and rejected message has an owner; failure closes and drains the pipeline under its stated policy. |
-| Recursive CPU work | Nested structured tasks or parallel partitions. | One worker and an exhausted task-lifetime quota. | No hidden quota wait cycle, bounded bookkeeping, and equivalent completed results. |
-| Dependency graph | Typed nodes with explicit result edges. | A dynamic edge introduces a cycle, or one node awaits an unrelated external event. | Cycle rejection for graph edges; no false claim that arbitrary node bodies are deadlock-free. |
-| Foreign blocking operation | A task scheduled on the blocking or dedicated executor. | The operation ignores cancellation or synchronously calls back into the host. | Borrowed resources survive; callback and runtime attachment stay valid; no unsupported timeout bound is promised. |
-| Lock-free shared structure | Typed atomics with a reclamation domain. | ABA, a stalled reader, and reclamation during shutdown. | Storage lifetime is justified separately from atomic ordering; the unchecked implementation boundary is explicit. |
-| Latency-sensitive audio | Dedicated execution, preallocated memory, no-allocation and no-wait contracts. | A device callback that must never allocate or block. | The contract is checked rather than documented; no hard real-time guarantee is claimed on a general-purpose operating system. |
-
-For each case, record the source size, annotations, explicit clones, unchecked escapes,
-allocations, and runtime costs the preferred path needs. A short keyword example is not evidence
-of simplicity when every useful helper needs an unchecked contract.
-
-#### Validation that every entry here inherits
-
-- Semantic tests accept safe transfers and partitions and reject hidden aliases, cross-module
-  global writes, escaped borrows, incompatible callable effects, and wrong-executor destruction.
-  A guarantee that only a warning or a devmode guard enforces is not the guarantee.
-- A runtime-only consumer declares and uses the concurrency types without importing Core, and a
-  sequential program starts no execution resource it never asked for.
-- Native and JIT lifecycle tests cover every exit after capture, including failed admission before
-  capture, a failing later capture after an earlier move, and serial fallback after partial
-  dispatch.
-- A controlled scheduler and a fake backend enumerate cancellation before publication, during
-  registration, at commit, after completion, and during cleanup, together with simultaneous
-  completions, withdrawn channel operations, producer abandonment, and late native callbacks.
-- Runtime tests distinguish one worker from several, nested fork/join, quota exhaustion, pool
-  shutdown, and a stalled foreign call. Soundness is not inferred from stress testing.
-- Consumer evidence comes from a real pixel operation, a real GUI background lifecycle, and a real
-  native-affinity operation. Measure creation and join cost, memory per live task, queue
-  contention, cancellation latency under stated cooperation assumptions, serial thresholds, and
-  throughput against what the code did before.
-- Every implemented syntax change updates the language reference, the editor grammar, the
-  formatter and the relevant diagnostics together. Compiler-source changes increment
-  `SWC_BUILD_NUM`; serialized effect summaries and runtime ABI changes invalidate incompatible
-  cached artifacts.
 
 ### language.parallelism.004 — Partitions cannot prove disjointness
 

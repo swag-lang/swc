@@ -18,6 +18,11 @@
 // A process with no worker thread runs the work inside [[Swag.Task.submit]], so a submitted task
 // always reaches its end; only the thread that runs it changes.
 //
+// A task is worth submitting only when it carries real work. Publishing it, claiming it and
+// observing it finish cost a few microseconds together, so a body below that runs faster where it
+// was written. `parallel for` measures its own body and keeps short ranges on the caller; a task
+// submitted by hand has no such protection.
+//
 // ```swag
 // var total = 0'u64
 // var task:  Swag.Task
@@ -112,8 +117,19 @@ private func runTaskBody(body: func||())
     __popErr()
 }
 
-// Children of one [[Swag.TaskGroup]], allocated in blocks so a node never moves.
-private const GroupBlockCapacity = 16'u32
+// Children a group keeps inside itself, so a small group allocates nothing at all. A child holds
+// a closure with room for its captures, so it is large: this storage is a deliberate trade of
+// four hundred bytes of the owner's stack against one page reservation and its release.
+private const GroupInlineCapacity = 4'u32
+
+// Children of one [[Swag.TaskGroup]] beyond the inline storage, allocated in blocks so a node
+// never moves.
+//
+// The bootstrap allocator rounds every request up to one host page, so a block of sixteen
+// children already paid for a whole page and used a sixth of it. Filling that page instead costs
+// nothing and makes a large group take one page per thirty-nine children rather than one per
+// sixteen. The assertion below keeps that claim true if a child ever grows.
+private const GroupBlockCapacity = 39'u32
 
 #[Swag.NoDoc]
 struct GroupChild
@@ -130,6 +146,9 @@ struct GroupBlock
     children: [GroupBlockCapacity] GroupChild     // Storage the scheduler borrows.
 }
 
+// One block must still fit the single page its allocation reserves.
+#assert(#sizeof(GroupBlock) + BootstrapAllocationHeaderSize <= AllocatorHostCommitGranularity)
+
 // Owns a set of child tasks and joins every one of them before it is released.
 //
 // The group is the lifetime that makes a spawn safe: a child can borrow anything that outlives
@@ -141,6 +160,10 @@ struct GroupBlock
 //
 // Cancellation is a request, not a stop. [[Swag.TaskGroup.cancel]] raises a flag every child can
 // read; a child that never looks at it runs to its end.
+//
+// The group holds its first children itself and takes one page for each further batch, so a small
+// group allocates nothing. Because that storage belongs to the group, a captured borrow must
+// outlive the group: declare what a child borrows before the group that joins it.
 //
 // ```swag
 // var results: [4] u64
@@ -154,7 +177,15 @@ struct GroupBlock
 #[Swag.NoCopy]
 struct TaskGroup
 {
-    // Blocks holding the children, most recent first.
+    // The first children, held by the group itself.
+    #[Swag.NoDoc]
+    inlined: [GroupInlineCapacity] GroupChild
+
+    // Children taken from the inline storage.
+    #[Swag.NoDoc]
+    inlinedUsed: u32
+
+    // Blocks holding the children beyond the inline storage, most recent first.
     #[Swag.NoDoc]
     blocks: *GroupBlock?
 
@@ -182,8 +213,9 @@ impl TaskGroup
             block = next
         }
 
-        .blocks = null
-        .count  = 0
+        .blocks      = null
+        .count       = 0
+        .inlinedUsed = 0
     }
 
     // Creates a child task running `body` and submits it.
@@ -206,6 +238,9 @@ impl TaskGroup
     // joins those too.
     mtd wait()
     {
+        for index in .inlinedUsed do
+            waitWork(&.inlined[index].node)
+
         var block = .blocks
         while block
         {
@@ -227,9 +262,17 @@ impl TaskGroup
     // Returns whether cancellation was requested for this group.
     mtd const isCancelled()->bool => .stop.isRaised()
 
-    // Returns storage for one more child, allocating a block when the current one is full.
+    // Returns storage for one more child, allocating a block when the inline storage and the
+    // current block are both full.
     private mtd reserveChild()->*GroupChild
     {
+        if .inlinedUsed < GroupInlineCapacity
+        {
+            let child = &.inlined[.inlinedUsed]
+            .inlinedUsed += 1
+            return child
+        }
+
         let head = .blocks
         if head and head.used < GroupBlockCapacity
         {

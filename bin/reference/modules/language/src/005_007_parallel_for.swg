@@ -166,6 +166,37 @@ An accumulator every index writes is shared storage, so it goes through
 }
 
 /**
+# What Is Worth Distributing
+
+Submitting a partition is not free: the runtime publishes it, a worker claims
+it, and the caller observes it finish. Below a few microseconds of work per
+partition, that cost is larger than the work itself.
+
+'parallel for' protects itself from this. It samples what the body really costs
+and keeps a short range whole on the calling thread, so a loop over a handful of
+cheap iterations is not slower than the ordinary 'for' it replaces. Work
+submitted by hand has no such protection: a [[Swag.Task]] or a
+[[Swag.TaskGroup]] child carrying a fraction of a microsecond costs more to
+schedule than to run.
+
+Treat the shape as the rule rather than an exact figure, because the figure
+belongs to a machine, a body and a moment. 'bench/scheduler' measures it by
+halving one range down to leaves of different sizes: leaves of a few hundred
+elements never gain from more workers, and leaves of tens of thousands do.
+
+# Nesting
+
+A 'parallel for' inside another one is allowed, and it does not multiply the
+machine's execution resources: one process has one worker pool, so the inner
+statement partitions across the workers the outer one is already using. What it
+costs is publishing partitions that mostly end up running on the thread that
+submitted them.
+
+Prefer one flat range when both shapes express the same computation. Reach for
+the nested one when the inner extent is only known inside the outer body.
+*/
+
+/**
 > NOTE:
 > The number of partitions is not part of the contract, and neither is the
 > thread a given index runs on. During compile-time execution, the whole range

@@ -86,6 +86,11 @@ struct ParallelChunk
 //
 // Cost observations can keep short work on the caller or reduce the number of partitions.
 // With fewer than two workers, and under compile-time execution, all work stays on the caller.
+//
+// A range inside another range partitions across the same pool: one process has one worker
+// budget, so nesting does not multiply execution resources. The inner statement still publishes
+// partitions, and while the outer one occupies every worker most of them are claimed back by the
+// thread that submitted them, which is what nesting costs.
 #[Swag.NoDoc]
 internal func __parallelRange(begin, end: u64, body: func||(u64, u64))
 {

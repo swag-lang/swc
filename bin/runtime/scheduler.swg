@@ -1,7 +1,17 @@
 #global namespace Swag
 
 // The largest number of worker threads the runtime starts.
+//
+// The bound is a deliberate policy, not a machine limit. A parallel range reserves one runner per
+// worker in the frame that dispatches it, so this number is also the stack every parallel section
+// touches. A host with more processors than this uses the first sixty-four of them; raising the
+// bound means moving that runner storage off the stack first.
 const MaxWorkers = 64'u32
+
+// The number of parked observers a completion can single out. It must be a power of two, because
+// a node picks its first candidate slot by masking its own address. A process with more parked
+// observers than slots keeps the correct but unselective behaviour: completions wake every one.
+const MaxObservers = 64'u32
 
 // A unit of work the runtime scheduler can run once.
 //
@@ -47,18 +57,21 @@ struct Worker
 #[Swag.NoDoc]
 struct Scheduler
 {
-    mutex:     Mutex               // Guards the ready stack and the worker roster.
-    ready:     Condition           // Wakes a worker when work is pushed.
-    finished:  Condition           // Wakes completion observers and process drains.
-    head:      *WorkNode?          // Ready work, most recently submitted first.
-    accepted:  AtomicValue'u32     // Submitted and not yet finished.
-    joining:   AtomicValue'u32     // Registered completion waiters; each registration holds the mutex.
-    stopping:  AtomicValue'u32     // Set once, at shutdown.
-    started:   AtomicValue'u32     // Set once the worker roster exists.
-    count:     AtomicValue'u32     // Published worker count; the roster itself stays under the mutex.
-    capacity:  u32                 // Worker slots the roster holds.
-    requested: u32                 // Worker count the program asked for, zero for automatic.
-    workers:   [*] Worker?         // The worker roster, allocated once.
+    mutex:     Mutex                              // Guards the ready stack and the worker roster.
+    ready:     Condition                          // Wakes a worker when work is pushed.
+    finished:  Condition                          // Wakes completion observers and process drains.
+    head:      *WorkNode?                         // Ready work, most recently submitted first.
+    accepted:  AtomicValue'u32                    // Submitted and not yet finished.
+    joining:   AtomicValue'u32                    // Registered completion waiters; each registration holds the mutex.
+    stopping:  AtomicValue'u32                    // Set once, at shutdown.
+    started:   AtomicValue'u32                    // Set once the worker roster exists.
+    count:     AtomicValue'u32                    // Published worker count; the roster itself stays under the mutex.
+    observed:  [MaxObservers] AtomicValue'u64     // The node address each parked observer waits for; zero when the slot is free.
+    occupancy: AtomicValue'u64                    // One bit per taken slot, so a completion reads one cache line instead of every slot.
+    unslotted: AtomicValue'u32                    // Parked observers that found no free slot, and therefore still need a broadcast.
+    capacity:  u32                                // Worker slots the roster holds.
+    requested: u32                                // Worker count the program asked for, zero for automatic.
+    workers:   [*] Worker?                        // The worker roster, allocated once.
 }
 
 // The anchor key of the scheduler inside one process.
@@ -250,7 +263,10 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
 // Runs one node and publishes its completion.
 private func runWork(sched: *Scheduler, node: *WorkNode, accounted: bool)
 {
-    let entry = node.entry
+    // The address is kept before the work runs, because the registry below is consulted after
+    // this node may already belong to someone else.
+    let address = cast(u64) node
+    let entry   = node.entry
     if entry
     {
         let safeEntry = entry orelse func(unused: *WorkNode) {}
@@ -261,7 +277,7 @@ private func runWork(sched: *Scheduler, node: *WorkNode, accounted: bool)
     node.state.store(WorkStateDone)
 
     let drained = accounted and sched.accepted.sub(1) == 1
-    if sched.joining.load() != 0
+    if sched.joining.load() != 0 and hasWorkObserver(sched, address)
     {
         wakeWorkObservers(sched)
         return
@@ -269,6 +285,70 @@ private func runWork(sched: *Scheduler, node: *WorkNode, accounted: bool)
 
     if drained do
         sched.finished.wakeAll()
+}
+
+// Whether a parked observer is waiting for this node.
+//
+// The registry is the scheduler's own storage and holds addresses, never node contents, so it
+// stays readable after a completion has released its node. An address that a new node reused
+// only produces an extra wake, and every observer rechecks its own state after one.
+#[Swag.NoInline]
+private func hasWorkObserver(sched: *Scheduler, address: u64)->bool
+{
+    if sched.unslotted.load() != 0 do
+        return true
+
+    // Walking the taken slots keeps an idle registry to one load, which is what most completions
+    // see: a parked observer is rare, and a completion must not pay for the slots nobody uses.
+    var taken = sched.occupancy.load()
+    while taken != 0
+    {
+        let index = Swag.bitCountTz(taken)
+        if sched.observed[index].load() == address do
+            return true
+        taken &= taken - 1
+    }
+
+    return false
+}
+
+// Publishes `address` in a free registry slot, and returns the slot that must be released after
+// the wait. `MaxObservers` means every slot was taken: that observer is counted separately and
+// every completion broadcasts while it waits.
+//
+// The publication precedes the observer's own state check, and a completion publishes Done before
+// reading the registry. One of the two therefore always observes the other.
+private func claimObserverSlot(sched: *Scheduler, address: u64)->u32
+{
+    let first = cast(u32) ((address >> 5) & cast(u64) (MaxObservers - 1))
+    for offset in MaxObservers
+    {
+        let index = (first + offset) & (MaxObservers - 1)
+        if sched.observed[index].load() != 0 do
+            continue
+        if sched.observed[index].compareExchange(0, address) == 0
+        {
+            discard sched.occupancy.bitOr(1'u64 << index)
+            return index
+        }
+    }
+
+    discard sched.unslotted.add(1)
+    return MaxObservers
+}
+
+private func releaseObserverSlot(sched: *Scheduler, slot: u32)
+{
+    if slot >= MaxObservers
+    {
+        discard sched.unslotted.sub(1)
+        return
+    }
+
+    // The bit goes first: a completion that still sees it reads an address the observer no longer
+    // waits for, which costs one extra wake and nothing else.
+    discard sched.occupancy.bitAnd(~(1'u64 << slot))
+    sched.observed[slot].store(0)
 }
 
 // Only registered observers need the completion lock. Registration precedes the observer's
@@ -427,12 +507,15 @@ internal func waitWork(node: *WorkNode)
 private func parkWorkObserver(node: *WorkNode)
 {
     let sched = schedulerInstance()
+    let slot  = claimObserverSlot(sched, cast(u64) node)
+
     sched.mutex.lock()
     sched.joining.add(1)
     defer
     {
         sched.joining.sub(1)
         sched.mutex.unlock()
+        releaseObserverSlot(sched, slot)
     }
 
     for

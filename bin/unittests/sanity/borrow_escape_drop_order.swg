@@ -39,13 +39,14 @@ func taskBeforeCapture()
     task.submit(func|&value|() { observed = value.value })     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-// GAP language.parallelism.005: the single-object blocks pointer does not establish
-// ownership, so reserveChild's return summary does not relate child storage to me.
-func groupBeforeCaptureGap()
+// A group holds its first children itself, so reserveChild's summary relates a child's storage
+// to the group and a spawn is seen as storing into it. The rule is the same as for a task: the
+// group's join runs after the captured value's destructor.
+func groupBeforeCapture()
 {
     var group: Swag.TaskGroup
     var value: Value
-    group.spawn(func|&value|() { observed = value.value })
+    group.spawn(func|&value|() { observed = value.value })     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // The rule also applies to ordinary destructors and direct field assignments.

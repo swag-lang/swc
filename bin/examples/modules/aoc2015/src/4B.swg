@@ -24,31 +24,28 @@ func day4B()
         for &r in results do
             r[] = Swag.U64.Max
 
-        Swag.parallelRange(lanes, func|&results, lanes|(parBegin, parEnd: u64)
+        parallel for |&results, lanes| lane in lanes
         {
-            for lane in parBegin until parEnd
+            var index = lane
+            var buffer: [16] u8
+            day4InitBuffer(buffer)
+
+            for
             {
-                var index = lane
-                var buffer: [16] u8
-                day4InitBuffer(buffer)
+                if Atomic.get(&best) < index do
+                    break
 
-                for
+                let v = Hash.Md5.compute(day4BuildInput(buffer, index))
+                if v[0] == 0 and v[1] == 0 and v[2] == 0
                 {
-                    if Atomic.get(&best) < index do
-                        break
-
-                    let v = Hash.Md5.compute(day4BuildInput(buffer, index))
-                    if v[0] == 0 and v[1] == 0 and v[2] == 0
-                    {
-                        discard Atomic.exchange(&best, index)
-                        results[lane] = index
-                        break
-                    }
-
-                    index += lanes
+                    discard Atomic.exchange(&best, index)
+                    results[lane] = index
+                    break
                 }
+
+                index += lanes
             }
-        })
+        }
 
         var total: u64 = Swag.U64.Max
         for r in results do

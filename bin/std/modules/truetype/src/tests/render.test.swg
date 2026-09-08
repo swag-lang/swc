@@ -159,15 +159,18 @@ using Swag, Core
     Swag.assert(err15 != null)
 }
 
-// Multi-channel SDF: 3 bytes per pixel, padded like the single-channel SDF, and the
+// Multi-channel SDF: four bytes per pixel, padded like the single-channel SDF, and the
 // per-pixel median must agree with the actual inside/outside of the glyph.
+#[Swag.TestTag("parallel")]
 #test
 {
+    Swag.setWorkerCount(4)
     var scope: FaceScope
     scope.init()
     let face = scope.face!
 
-    discard expect face.setPixelSize(0, 32)
+    // Exceed the row-dispatch threshold so native execution exercises the parallel loop.
+    discard expect face.setPixelSize(0, 64)
     discard expect face.loadChar('A', .Default)
     discard expect face.renderGlyph()
     let normalWidth = face.glyph.bitmap.width

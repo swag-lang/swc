@@ -49,9 +49,10 @@ struct Scheduler
 {
     mutex:     Mutex               // Guards the ready stack and the worker roster.
     ready:     Condition           // Wakes a worker when work is pushed.
-    finished:  Condition           // Wakes a drain when the last accepted work ends.
+    finished:  Condition           // Wakes completion observers and process drains.
     head:      *WorkNode?          // Ready work, most recently submitted first.
     accepted:  AtomicValue'u32     // Submitted and not yet finished.
+    joining:   AtomicValue'u32     // Registered completion waiters; each registration holds the mutex.
     stopping:  AtomicValue'u32     // Set once, at shutdown.
     started:   AtomicValue'u32     // Set once the worker roster exists.
     count:     AtomicValue'u32     // Published worker count; the roster itself stays under the mutex.
@@ -259,8 +260,27 @@ private func runWork(sched: *Scheduler, node: *WorkNode, accounted: bool)
     // Past this store the owner may reuse or destroy the node, so nothing may read it again.
     node.state.store(WorkStateDone)
 
-    if accounted and sched.accepted.sub(1) == 1 do
+    let drained = accounted and sched.accepted.sub(1) == 1
+    if sched.joining.load() != 0
+    {
+        wakeWorkObservers(sched)
+        return
+    }
+
+    if drained do
         sched.finished.wakeAll()
+}
+
+// Only registered observers need the completion lock. Registration precedes the observer's
+// state check, and Done precedes this registration check: sequential consistency guarantees
+// either a wake under the mutex or observation of Done before sleeping. No access to the
+// completed node is permitted here; its owner may already have reused or released it.
+#[Swag.NoInline]
+private func wakeWorkObservers(sched: *Scheduler)
+{
+    sched.mutex.lock()
+    sched.finished.wakeAll()
+    sched.mutex.unlock()
 }
 
 // Claims the requested ready node, or the stack head when no target was supplied.
@@ -395,9 +415,32 @@ internal func waitWork(node: *WorkNode)
         spins += 1
         if spins >= 256
         {
-            __hostThreadYield()
-            spins = 0
+            parkWorkObserver(node)
+            return
         }
+    }
+}
+
+// Queued descendants are claimed above before parking is considered. A long-running child
+// therefore does not burn its observer's CPU, while short joins retain the lock-free poll.
+#[Swag.NoInline]
+private func parkWorkObserver(node: *WorkNode)
+{
+    let sched = schedulerInstance()
+    sched.mutex.lock()
+    sched.joining.add(1)
+    defer
+    {
+        sched.joining.sub(1)
+        sched.mutex.unlock()
+    }
+
+    for
+    {
+        let state = node.state.load()
+        if state != WorkStateQueued and state != WorkStateRunning do
+            return
+        sched.finished.wait(&sched.mutex)
     }
 }
 

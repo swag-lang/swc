@@ -33,7 +33,7 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 ### language.parallelism.001 — The shipped model, and the promises it does not yet make
 
 - Recorded: 2026-09-06 07:51
-- Updated: 2026-09-08 16:06 — document CPU raster block ownership and retained granularity limits
+- Updated: 2026-09-08 17:52 — distinguish parked task joins from asynchronous suspension
 - Where it stands: `parallel for |captures| name in range` is a statement of the language, lowered
   to a runtime range call, with fallible variants under `try`, `catch` and `expect`.
   `bin/runtime` owns the worker pool, `Swag.Task`,
@@ -78,6 +78,13 @@ not be reentered by an unrelated callback. With no worker, submission executes s
 An explicit `Swag.drainWork` still runs arbitrary accepted work and needs a context that permits
 that reentrancy. Joining a task that itself needs a held lock can still deadlock; targeted helping
 does not prove a task dependency graph or lock ordering correct.
+
+A join briefly polls a running child, then parks on the process scheduler's completion condition.
+Registration and completion coordinate through the scheduler mutex, and completion never reads
+the node after publishing Done: an observer can already have reused or released it. Every
+registered observer rechecks its own node after a wake, including when an unrelated task finishes.
+This reduces waiting CPU use but still occupies the calling thread and any worker that called the
+join. It is not the stackless suspension or executor capacity release required by .002 and .003.
 
 The scheduler's artifact-local cache publishes its pointer atomically after serialized first use.
 The worker count is also atomic, while roster growth stays under the pool mutex; callers can

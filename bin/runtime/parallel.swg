@@ -134,9 +134,17 @@ internal func __parallelRange(begin, end: u64, body: func||(u64, u64))
         return
     }
 
+    dispatchParallelRange(first, end, chunks, body, profile, measure)
+}
+
+// Keep the partition storage out of serial calls, including empty and nested short loops.
+// Inlining would put the full worker array and its stack probes back in their entry frame.
+#[Swag.NoInline]
+private func dispatchParallelRange(begin, end, chunks: u64, body: func||(u64, u64), profile: *ParallelProfile?, measure: bool)
+{
     var slices: [MaxWorkers] ParallelChunk
-    let step  = count / chunks
-    var start = first
+    let step  = (end - begin) / chunks
+    var start = begin
 
     for index in chunks
     {

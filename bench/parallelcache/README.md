@@ -47,3 +47,22 @@ avoids the profile lookup, pilot iteration and clock reads with fewer than two w
 the existing pool adds work to the multi-worker path; repeat both controls on a quiet machine
 before claiming an overall speedup. The scheduler startup test also reuses a parallel body while
 four host callers grow the pool, checking every result across the serial-to-parallel transition.
+
+A follow-up on the same date compared the serial bypass and moving partition storage into a
+private, non-inlined dispatch function. CPU load at admission was 3%, 4% and 4% for the three
+variants below, respectively:
+
+| Runtime | One worker, median us | Four workers, median us |
+| --- | --- | --- |
+| Serial bypass; partition storage in the entry frame | 300 | 806 |
+| Serial bypass disabled; partition storage in the entry frame | 682 | 679 |
+| Serial bypass; partition storage in a separate dispatch frame | 354 | 844 |
+
+These short runs establish no uniform time improvement. The serial bypass helps the one-worker
+control and adds a pool observation to the multi-worker control. Outlining the dispatch reduces
+stack use: the Release micro dump reserves `0xE0` (224) bytes in `__parallelRange`, down from
+`0x1F28` (7,976), excluding saved registers and outgoing call arguments. The large partition
+array now belongs to `dispatchParallelRange`, which is entered only when dispatch is needed.
+The native `parallel_for_stack.swg` regression checks that seventeen nested single-iteration
+loops stay within a 64 KiB stack budget; the previous runtime fails that assertion. JIT execution
+does not exercise this native stack measurement.

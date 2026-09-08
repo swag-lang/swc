@@ -96,6 +96,13 @@ private:
         std::string_view what;
     };
 
+    // Registers the function defines exactly once. A copy can only name its source
+    // register later if that source can never have been rewritten in between, and one
+    // definition is what proves it - including inside a loop, where the single definition
+    // dominates every use of the value it produces on that turn.
+    void computeSingleDefinitionRegs();
+    bool hasSingleDefinition(MicroReg reg) const;
+
     // A stack address consumed by anything other than an access it is the base of: the
     // object it names becomes reachable through a pointer for the rest of the path.
     void markFrameObjectEscaped(SanitizerState& state, const SanitizerValue& value) const;
@@ -118,8 +125,14 @@ private:
     // rewritten and put back afterwards.
     struct PointerOrigin
     {
-        bool    valid = false;
-        int64_t slot  = 0;
+        bool    valid   = false;
+        int64_t slot    = 0;
+        bool    hasSlot = false;
+
+        // An address formed from a released pointer addresses released memory too, so the
+        // release travels with the provenance rather than with the value.
+        bool          released = false;
+        SourceCodeRef releasedOrigin;
     };
 
     static PointerOrigin takePointerOrigin(const SanitizerState& state, MicroReg reg);
@@ -164,6 +177,7 @@ private:
 
     MicroPassContext&            context_;
     MicroReg                     stackBaseReg_;
+    std::unordered_set<uint32_t>  singleDefinitionRegs_;
     std::vector<LocalSlotExtent> localSlots_;
     bool                         stackBaseStable_ = true;
     // Call target of the instruction currently going through the transfer function

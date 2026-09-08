@@ -189,6 +189,48 @@ func reallocateThrough(slot: **s32)
     myFree(p, 4)
 }
 
+// A released PARAMETER has no frame slot of its own: the register holding it is what
+// names it, and only a redefinition of that register clears the release.
+#[Swag.Sanity(.Lifecycle, true)]
+func releaseThenUseParameter(p: *s32)->s32
+{
+    myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return p[]       // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+func releaseParameterTwice(p: *s32)
+{
+    myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    myFree(p, 4)     // swc-expected-error {{sanity_err_double_free}}
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    discard releaseThenUseParameter(cast(*s32) myAlloc(4))
+    releaseParameterTwice(cast(*s32) myAlloc(4))
+}
+
+// Releasing one parameter says nothing about the other.
+#[Swag.Sanity(.Lifecycle, true)]
+func releaseOneOfTwoParameters(first: *s32, second: *s32)->s32
+{
+    myFree(first, 4)
+    let value = second[]
+    myFree(second, 4)
+    return value
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let one = cast(*s32) myAlloc(4)
+    let two = cast(*s32) myAlloc(4)
+    two[] = 11
+    Swag.assert(releaseOneOfTwoParameters(one, two) == 11)
+}
+
 // A pointer kept in a local table. An element is a slot like any other once the index
 // is known, and element zero has to be nameable like the rest of them.
 #[Swag.Sanity(.Lifecycle, true)]

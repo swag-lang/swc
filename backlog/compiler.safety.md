@@ -26,12 +26,13 @@ proof at compile time, where the cost is the compiler's rather than the program'
 Measured against that line, the frame is in good shape and the heap is catching up. Escapes, view
 invalidation, iterator invalidation, definite initialization, non-null types and mandatory error
 handling are all enforced without a single annotation, and a value that owns a release now states
-no copy without being annotated either. The use-after-free proof reaches a copy of the pointer into
-another local, and survives an ordinary call: what a function never hands an address to, no callee
+no copy without being annotated either. The use-after-free proof reaches the storage a program
+actually keeps a pointer in — a parameter, an element of a local table, a field, a copy into
+another local — and survives an ordinary call: what a function never hands an address to, no callee
 can reassign. What is left on the heap side is the shape nothing marks as an owner at all, a
-release proven on only one path, storage whose address the function does hand over, and the
-operations that forge a pointer out of nothing being spelled like ordinary code. The entries below
-are ordered from the most recently updated down.
+release proven on only one path, storage whose address the function does hand over, a release
+reached through a field of a receiver, and the operations that forge a pointer out of nothing being
+spelled like ordinary code. The entries below are ordered from the most recently updated down.
 
 Every entry below is backed by a compilable case in
 [bin/unittests/safety/corpus](../bin/unittests/safety/corpus): one file per CWE, a fault half
@@ -40,6 +41,39 @@ commented out and tagged with the entry that owns it. `rg "GAP " bin/unittests/s
 is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
+
+### compiler.safety.020 — A release reached through a field of the receiver is not judged at the caller
+
+- Recorded: 2026-09-08 09:05
+- Area: compiler/sema, `SemaEscape`
+- Evidence: the shape an owning type has, probed against the current proof:
+
+  ```
+  impl Node { mtd release() { if .data != null do heapFree(.data!, 4) } }
+  var node: Node
+  node.data = cast(*s32) heapAlloc(4)
+  node.release()
+  return node.data![]     // silent
+  ```
+
+  The FREES summary is per PARAMETER: it can say that a call releases what parameter i
+  points at, not what parameter i's FIELD points at. Saying the receiver itself was
+  released would be false, so nothing is claimed and the caller is silent. Every other
+  storage class a program keeps a pointer in — a parameter, an element of a local table, a
+  field of a local, a copy into another local — is now proven, which leaves this the
+  common shape that is not.
+- The machinery is half there: `addReallocatesParamField` already carries a per-parameter,
+  per-field fact for view invalidation, and `SymbolFunction` stores it. What is missing is
+  the same shape for a plain release, and a call site that marks the field's slot rather
+  than the receiver's.
+- Next: add a per-field FREES summary next to the per-field REALLOCATES one, seeded where
+  `addFreedBorrowOrigins` is reached through a field projection, then mark
+  `receiver slot + field offset` at the call site. The receiver's own slot must stay
+  untouched: `use_after_free.swg` already pins that a carrier releasing an object it merely
+  points at does not release the receiver.
+- Complete when: the case above is a compile-time error, the carrier case stays silent, and
+  both are in `bin/unittests/sanity/use_after_free.swg`.
+- Related: compiler.safety.017.
 
 ### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
 

@@ -206,6 +206,20 @@ func readAfterFreeAcrossCall()->s32
     discard readAfterFreeAcrossCall()
 }
 
+// The release helper that then touches what it released. A parameter has no frame slot
+// of its own, so the register holding it is what carries the release.
+#[Swag.Sanity(.Lifecycle, true)]
+func destroyThenTouch(node: *Node)
+{
+    heapFree(node, 8)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    node.first = 0        // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#test
+{
+    destroyThenTouch(cast(*Node) heapAlloc(8))
+}
+
 // A local table of pointers is the shape a program keeps its owned blocks in. An element
 // is a slot like any other once the index is known.
 #[Swag.Sanity(.Lifecycle, true)]

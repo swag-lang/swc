@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops)
 {
-    if (state.freedPtrSlots.empty() || !ops)
+    if (!ops)
         return;
 
     // Handing an already-freed pointer to a freeing callee again: double free. The
@@ -35,7 +35,16 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
             if (!sanitizer.callParameterRegister(argReg, *fn, ops[0].callConv, i))
                 continue;
             const SanitizerRegInfo* argInfo = Sanitizer::regInfo(state, argReg);
-            const auto              freed   = argInfo && argInfo->hasOriginSlot ? state.freedPtrSlots.find(argInfo->originSlot) : state.freedPtrSlots.end();
+            if (!argInfo)
+                continue;
+
+            if (argInfo->releasedPointer)
+            {
+                sanitizer.report(inst, DiagnosticId::sanity_err_double_free, argInfo->releasedOrigin, DiagnosticId::sanity_note_pointer_released_here);
+                return;
+            }
+
+            const auto freed = argInfo->hasOriginSlot ? state.freedPtrSlots.find(argInfo->originSlot) : state.freedPtrSlots.end();
             if (freed != state.freedPtrSlots.end())
             {
                 sanitizer.report(inst, DiagnosticId::sanity_err_double_free, freed->second, DiagnosticId::sanity_note_pointer_released_here);
@@ -55,7 +64,16 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
         return;
 
     const SanitizerRegInfo* baseInfo = Sanitizer::regInfo(state, ops[baseOperandIndex].reg);
-    const auto              freed    = baseInfo && baseInfo->hasPointerOriginSlot ? state.freedPtrSlots.find(baseInfo->pointerOriginSlot) : state.freedPtrSlots.end();
+    if (!baseInfo)
+        return;
+
+    if (baseInfo->releasedPointer)
+    {
+        sanitizer.report(inst, DiagnosticId::sanity_err_use_after_free, baseInfo->releasedOrigin, DiagnosticId::sanity_note_pointer_released_here);
+        return;
+    }
+
+    const auto freed = baseInfo->hasPointerOriginSlot ? state.freedPtrSlots.find(baseInfo->pointerOriginSlot) : state.freedPtrSlots.end();
     if (freed != state.freedPtrSlots.end())
         sanitizer.report(inst, DiagnosticId::sanity_err_use_after_free, freed->second, DiagnosticId::sanity_note_pointer_released_here);
 }

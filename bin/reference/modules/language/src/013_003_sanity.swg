@@ -69,12 +69,12 @@ parameters point to (a 'frees' summary, chained through wrappers and across modu
 like the other summaries). Dereferencing a pointer after it was provably freed — or
 freeing it twice — is a compile-time error ('.Lifecycle').
 
-The proof follows the pointer where a program actually puts it: a copy into another
-local carries the release, and a release still holds on the other side of an
-ordinary call, because nothing can reassign a local whose address the function never
-hands over. Handing that address to a callee ends the proof, and so does releasing on
-one path only — both are misses, never false positives. Reassigning the pointer makes
-it valid again.
+The proof follows the pointer where a program actually puts it: a parameter, an
+element of a local table, a field, or a copy into another local all carry the release,
+and a release still holds on the other side of an ordinary call, because nothing can
+reassign a local whose address the function never hands over. Handing that address to
+a callee ends the proof, and so does releasing on one path only — both are misses,
+never false positives. Reassigning the pointer makes it valid again.
 */
 #test
 {

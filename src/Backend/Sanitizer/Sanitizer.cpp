@@ -62,6 +62,41 @@ bool Sanitizer::findLocalSlotExtents(int64_t offset, int64_t& outStart, uint64_t
     return true;
 }
 
+void Sanitizer::computeSingleDefinitionRegs()
+{
+    singleDefinitionRegs_.clear();
+
+    std::unordered_map<uint32_t, uint32_t> counts;
+    const uint32_t                         n = cfg_->instructionCount();
+    for (uint32_t i = 0; i < n; i++)
+    {
+        const MicroInstr&        inst = *context_.instructions->ptr(cfg_->instructionRefs()[i]);
+        const MicroInstrDef&     def  = MicroInstr::info(inst.op);
+        const MicroInstrOperand* ops  = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
+        if (!ops)
+            continue;
+
+        const auto modes    = def.resolvedRegModes(ops);
+        const auto regCount = std::min(static_cast<size_t>(inst.numOperands), modes.size());
+        for (size_t r = 0; r < regCount; r++)
+        {
+            if (modes[r] == MicroInstrRegMode::Def || modes[r] == MicroInstrRegMode::UseDef)
+                ++counts[ops[r].reg.packed];
+        }
+    }
+
+    for (const auto& [reg, count] : counts)
+    {
+        if (count == 1)
+            singleDefinitionRegs_.insert(reg);
+    }
+}
+
+bool Sanitizer::hasSingleDefinition(const MicroReg reg) const
+{
+    return singleDefinitionRegs_.contains(reg.packed);
+}
+
 bool Sanitizer::frameObjectReachable(const SanitizerState& state, const int64_t slot) const
 {
     // A compiler temporary has no extent to bound, so nothing says which writes land in
@@ -135,6 +170,8 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     cfg_ = &cfg;
     reached_.assign(n, 0);
     inWorklist_.assign(n, 0);
+
+    computeSingleDefinitionRegs();
 
     // Detect in-place mutations of the stack-base register (call-area frame shapes
     // fold a local's offset into it): every frame offset the engine computes is then
@@ -355,9 +392,9 @@ void Sanitizer::setReg(SanitizerState& state, MicroReg reg, const SanitizerRegIn
 Sanitizer::PointerOrigin Sanitizer::takePointerOrigin(const SanitizerState& state, MicroReg reg)
 {
     const SanitizerRegInfo* info = findReg(state, reg);
-    if (!info || !info->hasPointerOriginSlot)
+    if (!info || (!info->hasPointerOriginSlot && !info->releasedPointer))
         return {};
-    return {.valid = true, .slot = info->pointerOriginSlot};
+    return {.valid = true, .slot = info->hasPointerOriginSlot ? info->pointerOriginSlot : 0, .hasSlot = info->hasPointerOriginSlot, .released = info->releasedPointer, .releasedOrigin = info->releasedOrigin};
 }
 
 void Sanitizer::applyPointerOrigin(SanitizerState& state, MicroReg reg, const PointerOrigin& origin)
@@ -368,8 +405,16 @@ void Sanitizer::applyPointerOrigin(SanitizerState& state, MicroReg reg, const Po
     SanitizerRegInfo info;
     if (const SanitizerRegInfo* existing = findReg(state, reg))
         info = *existing;
-    info.hasPointerOriginSlot = true;
-    info.pointerOriginSlot    = origin.slot;
+    if (origin.hasSlot)
+    {
+        info.hasPointerOriginSlot = true;
+        info.pointerOriginSlot    = origin.slot;
+    }
+    if (origin.released)
+    {
+        info.releasedPointer = true;
+        info.releasedOrigin  = origin.releasedOrigin;
+    }
     setReg(state, reg, info);
 }
 
@@ -732,6 +777,17 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             if (const SanitizerRegInfo* src = findReg(state, ops[1].reg))
                 info = *src;
             info.value = getReg(state, ops[1].reg);
+
+            // Keep the FIRST virtual register of the copy chain: a value moved into an
+            // argument register has to be nameable again after the call clobbers that
+            // register, and what the code reads afterwards is another copy of that first
+            // one rather than of the argument.
+            if (ops[1].reg.isVirtual() && hasSingleDefinition(ops[1].reg) && !info.hasOriginReg)
+            {
+                info.hasOriginReg = true;
+                info.originReg    = ops[1].reg;
+            }
+
             setReg(state, ops[0].reg, info);
             return;
         }
@@ -996,8 +1052,9 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         // A callee with a FREES summary invalidates what its marked arguments point
         // to: remember the slots those pointers were loaded from, BEFORE the clobber
         // wipe erases the argument registers.
-        SmallVector<int64_t> newlyFreed;
-        const auto*          calleeFn  = transferCallTarget_ ? transferCallTarget_->safeCast<SymbolFunction>() : nullptr;
+        SmallVector<int64_t>  newlyFreed;
+        SmallVector<MicroReg> newlyFreedRegs;
+        const auto*           calleeFn  = transferCallTarget_ ? transferCallTarget_->safeCast<SymbolFunction>() : nullptr;
         const uint64_t       freesMask = calleeFn ? calleeFn->freesParamsMask() : 0;
         if (freesMask && ops)
         {
@@ -1009,8 +1066,19 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 if (!callParameterRegister(argReg, *calleeFn, ops[0].callConv, i))
                     continue;
                 const SanitizerRegInfo* argInfo = findReg(state, argReg);
-                if (argInfo && argInfo->hasOriginSlot)
+                if (!argInfo)
+                    continue;
+                if (argInfo->hasOriginSlot)
                     appendAliasClass(newlyFreed, state, argInfo->originSlot);
+
+                // A pointer with no frame slot of its own - a parameter, above all - is
+                // named by the register holding it, which the allocator keeps live across
+                // the call. The mark goes on the virtual source, not on the argument
+                // register the call is about to clobber.
+                if (argInfo->hasOriginReg)
+                    newlyFreedRegs.push_back(argInfo->originReg);
+                else if (argReg.isVirtual())
+                    newlyFreedRegs.push_back(argReg);
             }
         }
 
@@ -1029,9 +1097,19 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         // separated by an ordinary call. Everything else goes: a physical register is
         // clobbered, and what a register said about the CONTENT of a slot no longer holds
         // once the callee may have written it.
-        std::erase_if(state.regs, [](const auto& entry) { return !MicroReg::fromPacked(entry.first).isVirtual() || !entry.second.value.isStackAddr(); });
+        std::erase_if(state.regs, [](const auto& entry) { return !MicroReg::fromPacked(entry.first).isVirtual() || (!entry.second.value.isStackAddr() && !entry.second.releasedPointer); });
         for (auto& [reg, info] : state.regs)
-            info = SanitizerRegInfo{.value = info.value};
+            info = SanitizerRegInfo{.value = info.value, .releasedPointer = info.releasedPointer, .releasedOrigin = info.releasedOrigin};
+
+        for (const MicroReg reg : newlyFreedRegs)
+        {
+            SanitizerRegInfo info;
+            if (const SanitizerRegInfo* existing = findReg(state, reg))
+                info = *existing;
+            info.releasedPointer = true;
+            info.releasedOrigin  = inst.debugSourceInfo.sourceCodeRef;
+            setReg(state, reg, info);
+        }
         state.stack.clear();
         forgetReachableLifecycleFacts(state);
         state.flagsSubject = MicroReg::invalid();

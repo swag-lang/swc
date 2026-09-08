@@ -7,8 +7,11 @@ SWC_BEGIN_NAMESPACE();
 // loaded from when it is handed to a callee whose FREES summary covers that
 // parameter ('SanitizerState::freedPtrSlots', must-join, revalidated by stores and
 // cleared by calls). Dereferencing a value reloaded from such a slot is a
-// use-after-free; handing it to a freeing callee again is a double free. Aliases
-// give misses, never false positives.
+// use-after-free; handing it to a freeing callee again is a double free. A pointer
+// with no slot of its own - a parameter above all - is named by the register
+// holding it instead ('SanitizerRegInfo::releasedPointer'), which only a
+// redefinition of that register clears. Aliases give misses, never false
+// positives.
 class UseAfterFreeCheck final : public SanitizerCheck
 {
 public:

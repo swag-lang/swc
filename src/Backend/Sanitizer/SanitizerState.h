@@ -23,6 +23,19 @@ struct SanitizerRegInfo
     int64_t zeroTestSlot       = 0;
     bool    zeroTestTrueIfZero = false;
 
+    // The nearest VIRTUAL register this value was copied from. A call's arguments are
+    // moved into the convention's physical registers, which the call then clobbers, so a
+    // release has to name the register the value actually lives in.
+    bool     hasOriginReg = false;
+    MicroReg originReg;
+
+    // The pointer this register holds was handed to a freeing callee. A register is a
+    // value: only a redefinition changes it, so the fact travels with the copies the
+    // codegen makes and outlives the calls in between. This is what names a released
+    // PARAMETER, which has no frame slot of its own to be keyed on.
+    bool          releasedPointer = false;
+    SourceCodeRef releasedOrigin;
+
     // Which slot the POINTER in this register came from, which is a different question from
     // the one above: 'originSlot' says the register holds the value stored in that slot, and
     // a guard narrowing it relies on that. A field or an element address is derived by
@@ -37,7 +50,10 @@ struct SanitizerRegInfo
     {
         return value == o.value && hasOriginSlot == o.hasOriginSlot && originSlot == o.originSlot &&
                hasZeroTest == o.hasZeroTest && zeroTestSlot == o.zeroTestSlot && zeroTestTrueIfZero == o.zeroTestTrueIfZero &&
-               hasPointerOriginSlot == o.hasPointerOriginSlot && pointerOriginSlot == o.pointerOriginSlot;
+               hasPointerOriginSlot == o.hasPointerOriginSlot && pointerOriginSlot == o.pointerOriginSlot &&
+               hasOriginReg == o.hasOriginReg && originReg == o.originReg &&
+               releasedPointer == o.releasedPointer &&
+               releasedOrigin.srcViewRef == o.releasedOrigin.srcViewRef && releasedOrigin.tokRef == o.releasedOrigin.tokRef;
     }
 };
 

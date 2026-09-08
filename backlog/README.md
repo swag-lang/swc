@@ -34,9 +34,9 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-08 11:17 |
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command | 2026-09-08 10:36 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-08 10:07 |
-| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-08 09:18 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-08 09:08 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-08 08:02 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-08 06:30 |

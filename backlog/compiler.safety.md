@@ -42,6 +42,76 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.020 — A release reached through a field of the receiver is not judged at the caller
+
+- Recorded: 2026-09-08 09:05
+- Updated: 2026-09-08 11:17 — the per-field summary was built and reverted: it needs a second fact to be sound
+- Area: compiler/sema, `SemaEscape`
+- Evidence: the shape an owning type has, probed against the current proof:
+
+  ```
+  impl Node { mtd release() { if .data != null do heapFree(.data!, 4) } }
+  var node: Node
+  node.data = cast(*s32) heapAlloc(4)
+  node.release()
+  return node.data![]     // silent
+  ```
+
+  The FREES summary is per PARAMETER: it can say that a call releases what parameter i
+  points at, not what parameter i's FIELD points at. Saying the receiver itself was
+  released would be false, so nothing is claimed and the caller is silent. Every other
+  storage class a program keeps a pointer in — a parameter, an element of a local table, a
+  field of a local, a copy into another local — is now proven, which leaves this the
+  common shape that is not.
+- The per-field summary was implemented end to end and reverted, because it is not enough
+  on its own. A method that releases a field normally does something with it afterwards,
+  and the two shapes are indistinguishable from the summary:
+
+  ```
+  mtd reset() { heapFree(.data!, 4); .data = cast(*s32) heapAlloc(4) }
+  node.reset()
+  node.data![] = 1     // CORRECT, and a per-field FREES mark reports it
+  ```
+
+  Marking `receiver slot + field offset` released at the call site therefore rejects a
+  `reset`-style method, which is exactly the false positive a sanity rule may not have.
+  Nulling the field is the same story with a friendlier ending: the report would be wrong
+  about which fault it is, but the code would still be one.
+- What the implementation established, and what a second attempt should reuse: the seeding
+  (a call argument whose storage projection is a field of one of the caller's parameters),
+  a `FieldToFrees` summary edge kind, and the fact that the chaining must ALSO run in
+  `propagateCompletedFreesSummaries` — the early fixpoint — because the backend reads these
+  summaries while it lowers, and a fact only the final drain publishes arrives after the
+  call site it judges. It also needs `storageProjection` to see through `x!`, which it does
+  not today: the not-null assertion names the same storage as its operand, and the
+  projection walk stops at it (compiler.safety.021).
+- Next: add the missing half first — a per-field WRITES summary saying the callee stores
+  into that field before returning — and mark the field released only when the callee frees
+  it and does not write it. Every write form has to be covered (an assignment, the field's
+  address handed over, a call that stores into it); one missed form is a false positive.
+- Complete when: the case above is a compile-time error, the `reset` shape and the carrier
+  case stay silent, and all three are in `bin/unittests/sanity/use_after_free.swg`.
+- Related: compiler.safety.017, compiler.safety.021.
+
+### compiler.safety.021 — A projection does not see through the not-null assertion
+
+- Recorded: 2026-09-08 11:17
+- Area: compiler/sema, `SemaEscape`
+- Evidence: `storageProjection` walks casts, parentheses and member accesses to name the
+  storage an expression designates, and has no case for the `!` assertion, which is an
+  `ErrorManagementExpr`. `f(p.buffer!)` therefore projects to nothing where `f(p.buffer)`
+  projects to `p`'s field. `!` asserts a value is not null and names the same storage as
+  its operand, so the walk should be transparent to it — every other error keyword changes
+  what the expression yields and must not be.
+- Consequence: every field-sensitive rule reading a projection loses precision exactly where
+  a nullable owned pointer is used, which is where those pointers are written.
+- Next: add the case, guarded on the operand's token being `!` rather than on the node kind,
+  then measure what it changes: it makes the borrow and view-invalidation analyses see
+  projections they used to miss, so the sweep over `bin/` is the evidence that it reports
+  nothing new that is wrong.
+- Complete when: `storageProjection` sees through `!`, and `bin/` builds unchanged.
+- Related: compiler.safety.020.
+
 ### compiler.safety.017 — Allocation ownership has no static leak proof
 
 - Recorded: 2026-09-04 19:35
@@ -71,39 +141,6 @@ is the current scorecard.
   counterparts, or the reference explicitly limits leak detection to allocator diagnostics and
   the corpus reflects that decision.
 - Related: runtime.allocator.010, compiler.safety.018.
-
-### compiler.safety.020 — A release reached through a field of the receiver is not judged at the caller
-
-- Recorded: 2026-09-08 09:05
-- Area: compiler/sema, `SemaEscape`
-- Evidence: the shape an owning type has, probed against the current proof:
-
-  ```
-  impl Node { mtd release() { if .data != null do heapFree(.data!, 4) } }
-  var node: Node
-  node.data = cast(*s32) heapAlloc(4)
-  node.release()
-  return node.data![]     // silent
-  ```
-
-  The FREES summary is per PARAMETER: it can say that a call releases what parameter i
-  points at, not what parameter i's FIELD points at. Saying the receiver itself was
-  released would be false, so nothing is claimed and the caller is silent. Every other
-  storage class a program keeps a pointer in — a parameter, an element of a local table, a
-  field of a local, a copy into another local — is now proven, which leaves this the
-  common shape that is not.
-- The machinery is half there: `addReallocatesParamField` already carries a per-parameter,
-  per-field fact for view invalidation, and `SymbolFunction` stores it. What is missing is
-  the same shape for a plain release, and a call site that marks the field's slot rather
-  than the receiver's.
-- Next: add a per-field FREES summary next to the per-field REALLOCATES one, seeded where
-  `addFreedBorrowOrigins` is reached through a field projection, then mark
-  `receiver slot + field offset` at the call site. The receiver's own slot must stay
-  untouched: `use_after_free.swg` already pins that a carrier releasing an object it merely
-  points at does not release the receiver.
-- Complete when: the case above is a compile-time error, the carrier case stays silent, and
-  both are in `bin/unittests/sanity/use_after_free.swg`.
-- Related: compiler.safety.017.
 
 ### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
 

@@ -7,23 +7,32 @@ private struct ParallelProfile
     observations: AtomicValue'u32
 }
 
-// Bounded hints, local to each runtime artifact. Entries never change owner: a collision
-// falls back to ordinary partitioning, and concurrent observations only replace an estimate.
+// Bounded hints, local to each runtime artifact. Entries never change owner; when nearby slots
+// are occupied, the caller measures its own work without retaining a hint in the table.
 private var g_ParallelProfiles:   [256] ParallelProfile
 private var g_ParallelTickBudget: AtomicValue'u64
 
 private func parallelProfile(entry: u64)->*ParallelProfile?
 {
-    let profile = &g_ParallelProfiles[((entry >> 4) ^ (entry >> 12) ^ (entry >> 20)) & 255]
-    let known   = profile.entry.load()
-    if known == entry do
-        return profile
-    if known == 0 and profile.entry.compareExchange(0, entry) == 0 do
-        return profile
+    let first = ((entry >> 4) ^ (entry >> 12) ^ (entry >> 20)) & 255
+    for offset in 4
+    {
+        let profile = &g_ParallelProfiles[(first + offset) & 255]
+        var known   = profile.entry.load()
+        if known == entry do
+            return profile
+        if known == 0
+        {
+            known = profile.entry.compareExchange(0, entry)
+            if known == 0 or known == entry do
+                return profile
+        }
+    }
+
     return null
 }
 
-private func recordParallelCost(profile: *ParallelProfile, count, elapsed: u64)
+private func recordParallelCost(profile: *ParallelProfile?, count, elapsed: u64)->u64
 {
     var budget = g_ParallelTickBudget.load()
     if budget == 0
@@ -40,7 +49,10 @@ private func recordParallelCost(profile: *ParallelProfile, count, elapsed: u64)
     let duration = elapsed == 0 ? 1'u64 : elapsed
     let estimate = cast(f64) count * cast(f64) budget / cast(f64) duration
     let grain    = estimate >= cast(f64) 0xFFFF_FFFF_FFFF_FFFF'u64 ? 0xFFFF_FFFF_FFFF_FFFF'u64 : cast(u64) estimate
-    profile.grain.store(grain == 0 ? 1 : grain)
+    let result   = grain == 0 ? 1'u64 : grain
+    if profile do
+        profile.grain.store(result)
+    return result
 }
 
 // One partition of a parallel range, submitted to the scheduler as its own unit of work.
@@ -83,27 +95,26 @@ internal func __parallelRange(begin, end: u64, body: func||(u64, u64))
     let profile = parallelProfile(entry)
     var grain   = profile ? profile.grain.load() : 0'u64
     var first   = begin
-    if profile and grain == 0
+    if grain == 0
     {
-        // A cold loop tries one real iteration before acquiring any execution resource.
-        // Expensive iterations still fan out; cheap short ranges never start the pool.
+        // A cold or uncached loop tries one real iteration before acquiring execution resources.
+        // The local estimate remains useful even when the hint table has no available slot.
         let started = __hostMonotonicTicks()
         body(first, first + 1)
-        recordParallelCost(profile!, 1, __hostMonotonicTicks() - started)
+        grain = recordParallelCost(profile, 1, __hostMonotonicTicks() - started)
         first += 1
         count -= 1
-        grain = profile.grain.load()
     }
 
     // Amortize the clock reads on repeated short loops. A stale observation can only change
     // placement; every call still executes its complete range and joins all accepted work.
-    let measure = profile and (grain == 0 or (profile.observations.add(1) & 15) == 0)
-    if grain != 0 and count / grain < 2
+    let measure = profile and (profile.observations.add(1) & 15) == 0
+    if count / grain < 2
     {
         let started = measure ? __hostMonotonicTicks() : 0'u64
         body(first, end)
         if measure do
-            recordParallelCost(profile!, count, __hostMonotonicTicks() - started)
+            discard recordParallelCost(profile, count, __hostMonotonicTicks() - started)
         return
     }
 
@@ -111,7 +122,7 @@ internal func __parallelRange(begin, end: u64, body: func||(u64, u64))
     var chunks  = cast(u64) workers
     if chunks > count do
         chunks = count
-    if grain != 0 and chunks > count / grain do
+    if chunks > count / grain do
         chunks = count / grain
 
     if chunks <= 1
@@ -119,7 +130,7 @@ internal func __parallelRange(begin, end: u64, body: func||(u64, u64))
         let started = measure ? __hostMonotonicTicks() : 0'u64
         body(first, end)
         if measure do
-            recordParallelCost(profile!, count, __hostMonotonicTicks() - started)
+            discard recordParallelCost(profile, count, __hostMonotonicTicks() - started)
         return
     }
 
@@ -144,7 +155,7 @@ internal func __parallelRange(begin, end: u64, body: func||(u64, u64))
     let started = measure ? __hostMonotonicTicks() : 0'u64
     runParallelChunk(&slices[0])
     if measure do
-        recordParallelCost(profile!, slices[0].end - slices[0].begin, __hostMonotonicTicks() - started)
+        discard recordParallelCost(profile, slices[0].end - slices[0].begin, __hostMonotonicTicks() - started)
 
     for index in 1 until chunks do
         waitWork(&slices[index].node)

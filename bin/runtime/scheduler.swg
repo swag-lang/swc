@@ -54,7 +54,7 @@ struct Scheduler
     accepted:  AtomicValue'u32     // Submitted and not yet finished.
     stopping:  AtomicValue'u32     // Set once, at shutdown.
     started:   AtomicValue'u32     // Set once the worker roster exists.
-    count:     u32                 // Worker threads actually started.
+    count:     AtomicValue'u32     // Published worker count; the roster itself stays under the mutex.
     capacity:  u32                 // Worker slots the roster holds.
     requested: u32                 // Worker count the program asked for, zero for automatic.
     workers:   [*] Worker?         // The worker roster, allocated once.
@@ -63,8 +63,9 @@ struct Scheduler
 // The anchor key of the scheduler inside one process.
 private const SchedulerAnchorKey = 1'u32
 
-private var g_Scheduler:      *Scheduler?
-private var g_SchedulerOwned: bool
+private var g_Scheduler:      AtomicValue'u64
+private var g_SchedulerMutex: Mutex
+private var g_SchedulerOwned: bool     // Written before publishing the pointer; read at quiescent shutdown.
 
 // Returns the process scheduler, creating it on first use.
 //
@@ -72,9 +73,17 @@ private var g_SchedulerOwned: bool
 // work only pays for one small allocation.
 internal func schedulerInstance()->*Scheduler
 {
-    let known = g_Scheduler
-    if known do
-        return known!
+    var known = g_Scheduler.load()
+    if known != 0 do
+        return cast(*Scheduler) known
+
+    // Serialize first use within this artifact, including the host-anchor failure path.
+    // Readers acquire the published pointer without locking once initialization is complete.
+    g_SchedulerMutex.lock()
+    defer g_SchedulerMutex.unlock()
+    known = g_Scheduler.load()
+    if known != 0 do
+        return cast(*Scheduler) known
 
     let created = cast(*Scheduler?) __bootstrapAlloc(#sizeof(Scheduler))
     if !created do
@@ -92,7 +101,7 @@ internal func schedulerInstance()->*Scheduler
         __bootstrapFree(cast([*] void?) created)
     }
 
-    g_Scheduler = winner
+    g_Scheduler.store(cast(u64) winner)
     return winner
 }
 
@@ -117,7 +126,7 @@ public func startWorkers()
 public func workerCount()->u32
 {
     let sched = activeScheduler()
-    return sched.count
+    return sched.count.load()
 }
 
 // Sets how many worker threads the process runs.
@@ -175,7 +184,8 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
     var target = wanted
     if target > MaxWorkers do
         target = MaxWorkers
-    if target <= sched.count do
+    var count = sched.count.load()
+    if target <= count do
         return
 
     if !sched.workers
@@ -200,9 +210,9 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
         target = sched.capacity
 
     let template = Swag.getContext()
-    while sched.count < target
+    while count < target
     {
-        let worker = &sched.workers![sched.count]
+        let worker = &sched.workers![count]
         worker.scheduler = sched
         worker.context   = template[]
 
@@ -217,7 +227,8 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
         worker.handle = __hostThreadCreate(&schedulerWorkerEntry, worker)
         if !worker.handle do
             break
-        sched.count += 1
+        count += 1
+        sched.count.store(count)
     }
 }
 
@@ -323,7 +334,7 @@ internal func submitWork(node: *WorkNode)
     node.previous = null
     node.state.store(WorkStateQueued)
 
-    if sched.count == 0
+    if sched.count.load() == 0
     {
         node.state.store(WorkStateRunning)
         runWork(sched, node, false)
@@ -399,21 +410,21 @@ public func drainWork()
 // Stops the worker threads of the artifact that installed the pool.
 internal func __shutdownScheduler()
 {
-    let sched = g_Scheduler
-    if !sched or !g_SchedulerOwned do
+    let sched = g_Scheduler.load()
+    if sched == 0 or !g_SchedulerOwned do
         return
 
     drainWork()
 
-    let pool = sched!
+    let pool = cast(*Scheduler) sched
     pool.mutex.lock()
     pool.stopping.store(1)
     pool.mutex.unlock()
     pool.ready.wakeAll()
 
-    for index in pool.count do
+    for index in pool.count.load() do
         __hostThreadJoin(pool.workers![index].handle)
 
-    pool.count  = 0
-    g_Scheduler = null
+    pool.count.store(0)
+    g_Scheduler.store(0)
 }

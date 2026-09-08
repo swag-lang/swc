@@ -232,3 +232,24 @@ func collMutElementMethodDuringIter()
 
     Swag.assert(total == 2)
 }
+
+// A method on the element itself is no more structural than a method on one of its fields.
+func collMutDirectElementMethodDuringIter()
+{
+    var names: [2] CollMutName
+    var total = 0'u64
+    for &name in names do
+        total += name.measure()
+    Swag.assert(total == 2)
+}
+
+// A dynamic container stored inside a fixed array still cannot change during its own loop.
+func collMutContainerInsideArray()
+{
+    var vectors: [2] CollMutVec
+    vectors[0].add(1)
+    for value in vectors[0]
+    {
+        vectors[0].add(value)     // swc-expected-error {{sanity_err_collection_mutated}}
+    }
+}

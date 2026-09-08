@@ -45,8 +45,13 @@ is the current scorecard.
 ### compiler.safety.020 — A release through storage a callee could re-establish is not judged
 
 - Recorded: 2026-09-08 09:05
-- Updated: 2026-09-08 11:56 — the per-field summary was built and reverted; the missing half is a NEGATIVE fact, and a second shape needs the same one
+- Updated: 2026-09-08 12:27 — the half inside the release helper is now proven; what is left is the caller side
 - Area: compiler/sema, `SemaEscape`
+- The half that no longer needs anything: a release helper that reaches for what it just
+  released is proven inside its own BODY, because the receiver names the object there and
+  no summary has to cross a call. `mtd releaseThenTouch() { heapFree(.data!, 4); .data![] = 0 }`
+  is a compile-time error, while the same method putting the field back - with null or with
+  a fresh allocation - stays silent. What remains is the CALLER side alone.
 - Evidence: two shapes, one blocker. A release reached through a FIELD of the receiver:
 
   ```
@@ -94,11 +99,10 @@ is the current scorecard.
   summaries while it lowers, and a fact only the final drain publishes arrives after the
   call site it judges. It also needs `storageProjection` to see through `x!`
   (compiler.safety.021).
-- Next: decide whether the negative fact is affordable at all before building more. The
-  cheap alternative worth measuring first is the opposite direction: report inside the
-  release helper — a method that hands storage it reaches through the receiver to the
-  allocator and returns without reassigning it — where the body is in front of the analysis
-  and no summary has to cross a call.
+- Next: decide whether the negative fact is affordable at all. The cheaper direction this
+  entry named has since landed on its own — the body of a release helper is judged where it
+  is written — so what is left is only the caller, and only for a helper whose body the
+  caller cannot see. Weigh that against the cost before building it.
 - Complete when: both shapes above are compile-time errors, the `reset` shape and the
   carrier case stay silent, and all of them are in `bin/unittests/sanity/use_after_free.swg`.
 - Related: compiler.safety.017, compiler.safety.021.

@@ -255,6 +255,59 @@ func releaseFieldOfParameterObject(n: *UafNode)->s32
     discard releaseFieldOfParameterObject(node)
 }
 
+// The release helper judged inside its own body: the receiver names the object, so a
+// method that releases what it owns and then reaches for it again is proven where it is
+// written, with no summary crossing a call.
+impl UafNode
+{
+    #[Swag.Sanity(.Lifecycle, true)]
+    mtd releaseThenTouch()
+    {
+        myFree(.data!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+        .data![] = 0          // swc-expected-error {{sanity_err_use_after_free}}
+    }
+
+    // Putting the field back is what a correct one does, whether with null or with a
+    // fresh allocation, and neither may be reported.
+    #[Swag.Sanity(.Lifecycle, true)]
+    mtd release()
+    {
+        myFree(.data!, 4)
+        .data = null
+    }
+
+    #[Swag.Sanity(.Lifecycle, true)]
+    mtd reset()
+    {
+        myFree(.data!, 4)
+        .data     = cast(*s32) myAlloc(4)
+        .data![]  = 1
+    }
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var touched: UafNode
+    touched.data = cast(*s32) myAlloc(4)
+    touched.releaseThenTouch()
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var released: UafNode
+    released.data = cast(*s32) myAlloc(4)
+    released.release()
+    Swag.assert(released.data == null)
+
+    var recycled: UafNode
+    recycled.data = cast(*s32) myAlloc(4)
+    recycled.reset()
+    Swag.assert(recycled.data![] == 1)
+    myFree(recycled.data!, 4)
+}
+
 // What correct code does with that shape, and what the rule may not claim: the field is
 // reassigned, another object's field is read, a callee handed the object puts a live
 // pointer back, and a different field of the same object is untouched.

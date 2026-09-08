@@ -42,6 +42,74 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
+
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-09-08 13:34 — the census is done, and one idiom accounts for the whole cast surface
+- Area: language
+- Evidence: a short list of operations can produce a pointer to anything, and none of them is
+  subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
+  casts and intrinsics are visible, but no single marker identifies the boundary:
+  - `cast(*T) someInteger` — an arbitrary integer becomes a pointer;
+  - `cast(*Big) &small` — a reinterpreting cast between unrelated pointee types, reading past the
+    object;
+  - `Swag.makeSlice(ptr, count)` / `makeString` / `makeAny` / `makeInterface` — a length paired with
+    storage that need not have it, after which every bounds check faithfully checks the lie;
+  - pointer arithmetic on `[*] T`, which has neither provenance nor extent;
+  - reading a `union` member that was not the one written, which turns an integer into a pointer
+    with no cast at all;
+  - `Swag.memcpy` / `memset` / `memmove`, whose byte count is unrelated to either operand;
+  - `#relocate` and `#nodrop`, which suspend the lifecycle;
+  - any call to a `#[Swag.Foreign]` function (compiler.safety.007).
+  Each was verified to compile and to read out of bounds with no diagnostic.
+- Consequence: Swag cannot state what its safe subset guarantees, because it has no safe subset —
+  only a set of checks with no boundary. That is the difference between "the compiler catches a lot"
+  and "this class of fault cannot occur here", and it is the difference a reader arriving from Rust
+  is actually asking about.
+- The shape must be Swag's, not Rust's. A block that swallows a page of code is the wrong unit here:
+  the operations above are single expressions, and Swag already spells a compiler instruction on an
+  expression with `#`. A modifier on the operation (`#unsafe cast(*T) addr`) plus one file-level
+  opt-in (`#global #[Swag.Unsafe]`) for a binding or codec layer costs application code nothing,
+  marks `bin/std`'s low-level modules once, and makes `grep` the audit tool.
+- The census the previous next action asked for, run on 2026-09-08 13:34 over `bin/` with the vendored
+  `.dep` and `.output` copies and `bin/unittests` excluded, so every number is a shipped site:
+
+  | Operation | std | apps | examples | reference | runtime | shipped |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | pointer-producing `cast` | 889 | 551 | 13 | 24 | 116 | **1593** |
+  | `Swag.makeSlice` | 348 | 55 | 2 | 11 | 10 | 426 |
+  | `Swag.makeString` | 79 | 32 | 1 | 4 | 13 | 129 |
+  | `Swag.memcpy` / `memset` / `memmove` | 27 | 25 | 0 | 12 | 20 | 84 |
+  | `Swag.makeInterface` | 35 | 2 | 0 | 3 | 3 | 43 |
+  | `#relocate` | 26 | 0 | 0 | 6 | 0 | 32 |
+  | `#nodrop` | 26 | 0 | 0 | 6 | 0 | 32 |
+  | `Swag.makeAny` | 5 | 0 | 0 | 4 | 2 | 11 |
+  | `#[Swag.Foreign]` | 9, plus 21 in the win32 family | 13 | 0 | 7 | 3 | 53 |
+
+- What the count answers is not what the question expected: the cast row is the whole
+  problem, and it is not pointer forging. Of the 551 casts in the applications, 537 name a
+  user type and 9 name a primitive; 343 of them read as `cast(*MainWnd) cxt.wnd!`,
+  `cast(*HexViewer) wnd`, `cast(*TextView) session.view!` — recovering a concrete type from
+  a base pointer in a hand-rolled hierarchy. `bin/std` is the same story, 404 user types
+  against 56 primitives, plus the opaque-handle round trip the drivers and the generic
+  containers are written with. An integer becoming a pointer is nowhere in that population.
+- Consequence for the design: the marker is unaffordable while the dominant idiom has no
+  safe spelling. Marking 1593 sites, or opting most of `bin/std` and all three applications
+  out at file level, does not draw a boundary - it moves it. The affordable order is the
+  reverse of what this entry assumed: give the downcast a checked spelling first, then count
+  what is left, and only then choose the marker.
+- Next: specify a checked recovery of a concrete type from a base pointer - what
+  `cast(*MainWnd) cxt.wnd!` is written for today - and re-run the census afterwards. The
+  residual count is what decides the marker's spelling.
+- Complete when: the unsafe operation list is fixed and documented, safe code cannot reach any of
+  them without a visible marker, `bin/` compiles with the boundary enforced, and the reference
+  states which faults the safe subset excludes.
+- Related: language.design.002 narrows the union bullet rather than removing it. The census in that
+  entry found eight anonymous unions in `bin/`: two sum types that a tag would check, five C-ABI
+  bindings that must stay byte-compatible, and one deliberate bit view. The untagged form therefore
+  survives at the interop and bit-punning boundary, which is where the marker belongs and where it
+  joins compiler.safety.007. Also compiler.safety.014.
+
 ### compiler.safety.020 — A release through storage a callee could re-establish is not judged
 
 - Recorded: 2026-09-08 09:05
@@ -209,47 +277,6 @@ is the current scorecard.
 - Complete when: a stale read through an alias is detected at the read in the selected diagnostic
   mode, with its limits and measured cost documented; Release defaults remain unchanged.
 - Related: runtime.allocator.010.
-
-### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
-
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: language
-- Evidence: a short list of operations can produce a pointer to anything, and none of them is
-  subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
-  casts and intrinsics are visible, but no single marker identifies the boundary:
-  - `cast(*T) someInteger` — an arbitrary integer becomes a pointer;
-  - `cast(*Big) &small` — a reinterpreting cast between unrelated pointee types, reading past the
-    object;
-  - `Swag.makeSlice(ptr, count)` / `makeString` / `makeAny` / `makeInterface` — a length paired with
-    storage that need not have it, after which every bounds check faithfully checks the lie;
-  - pointer arithmetic on `[*] T`, which has neither provenance nor extent;
-  - reading a `union` member that was not the one written, which turns an integer into a pointer
-    with no cast at all;
-  - `Swag.memcpy` / `memset` / `memmove`, whose byte count is unrelated to either operand;
-  - `#relocate` and `#nodrop`, which suspend the lifecycle;
-  - any call to a `#[Swag.Foreign]` function (compiler.safety.007).
-  Each was verified to compile and to read out of bounds with no diagnostic.
-- Consequence: Swag cannot state what its safe subset guarantees, because it has no safe subset —
-  only a set of checks with no boundary. That is the difference between "the compiler catches a lot"
-  and "this class of fault cannot occur here", and it is the difference a reader arriving from Rust
-  is actually asking about.
-- The shape must be Swag's, not Rust's. A block that swallows a page of code is the wrong unit here:
-  the operations above are single expressions, and Swag already spells a compiler instruction on an
-  expression with `#`. A modifier on the operation (`#unsafe cast(*T) addr`) plus one file-level
-  opt-in (`#global #[Swag.Unsafe]`) for a binding or codec layer costs application code nothing,
-  marks `bin/std`'s low-level modules once, and makes `grep` the audit tool.
-- Next: fix the list before designing the spelling. Enumerate every operation that can produce an
-  invalid pointer or an out-of-extent view, then count how many sites in `bin/` use each — that
-  count decides whether the boundary is affordable and where the file-level opt-in has to sit.
-- Complete when: the unsafe operation list is fixed and documented, safe code cannot reach any of
-  them without a visible marker, `bin/` compiles with the boundary enforced, and the reference
-  states which faults the safe subset excludes.
-- Related: language.design.002 narrows the union bullet rather than removing it. The census in that
-  entry found eight anonymous unions in `bin/`: two sum types that a tag would check, five C-ABI
-  bindings that must stay byte-compatible, and one deliberate bit view. The untagged form therefore
-  survives at the interop and bit-punning boundary, which is where the marker belongs and where it
-  joins compiler.safety.007. Also compiler.safety.014.
 
 ### compiler.safety.008 — Dynamic bounds checking is switched off in release instead of being made cheap
 

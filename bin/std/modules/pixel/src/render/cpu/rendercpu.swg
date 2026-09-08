@@ -105,8 +105,8 @@ private
     // Pixel area below which splitting a batch into bands costs more than the rasterization saves.
     const CpuBandPixelThreshold: u64 = 64 * 1024
 
-    // Rows a band must carry for scheduling it to be worth a job.
-    const CpuBandMinRows: s32 = 16
+    // Rows per raster block, amortizing triangle setup without tying blocks to worker count.
+    const CpuBandRows: s32 = 16
 
     const CpuProgram_Default: u8 = 0
     const CpuProgram_Simple:  u8 = 1
@@ -1774,21 +1774,21 @@ private impl RenderCpu
     // rasterized image is therefore identical to the serial one, band split or not.
     mtd rasterizeRange(batch: *RasterBatch, bounds: PixelBounds)
     {
-        let bandCount = Math.min(cast(s32) Swag.workerCount(), bounds.rows() / CpuBandMinRows)
-        if bounds.area() < CpuBandPixelThreshold or bandCount <= 1
+        if bounds.area() < CpuBandPixelThreshold or bounds.rows() <= CpuBandRows or Swag.workerCount() <= 1
         {
             .drawTriangleRange(batch, bounds.minY, bounds.maxY)
             return
         }
 
-        let bandRows = (bounds.rows() + bandCount - 1) / bandCount
-        var f        = {renderer: me, batch: batch, minY: bounds.minY, maxY: bounds.maxY, bandRows: bandRows}
-        parallel for |&f| parIndex in cast(u64) bandCount
+        // More blocks than workers let the runtime balance localized overdraw. Whole blocks
+        // keep triangle order and exclusive row ownership; the final block may be shorter.
+        let bandCount = (bounds.rows() - 1) / CpuBandRows + 1
+        let renderer  = me
+        parallel for |renderer, batch, bounds| index in cast(u64) bandCount
         {
-            let index  = cast(u32) parIndex
-            let params = &f
-            let bandY  = params.minY + cast(s32) index * params.bandRows
-            params.renderer.drawTriangleRange(params.batch, bandY, Math.min(bandY + params.bandRows - 1, params.maxY))
+            let bandY = bounds.minY + cast(s32) index * CpuBandRows
+            let lastY = bandY + Math.min(CpuBandRows - 1, bounds.maxY - bandY)
+            renderer.drawTriangleRange(batch, bandY, lastY)
         }
     }
 

@@ -33,7 +33,7 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 ### language.parallelism.001 — The shipped model, and the promises it does not yet make
 
 - Recorded: 2026-09-06 07:51
-- Updated: 2026-09-08 15:06 — state bounded dynamic block distribution and its remaining imbalance limits
+- Updated: 2026-09-08 16:06 — document CPU raster block ownership and retained granularity limits
 - Where it stands: `parallel for |captures| name in range` is a statement of the language, lowered
   to a runtime range call, with fallible variants under `try`, `catch` and `expect`.
   `bin/runtime` owns the worker pool, `Swag.Task`,
@@ -106,6 +106,12 @@ preemption and stale observations can still choose an inefficient schedule; this
 bound or a proof that parallel execution will help. Resize, Argon2 and ChaCha20 no longer carry
 separate small-work thresholds. The pixel-filter and Argon2 benchmarks measure both cheap ranges
 and expensive four-iteration ranges against one-worker controls.
+CPU rasterization now exposes sixteen-row blocks instead of one band per worker, so the runtime
+can distribute localized overdraw. Triangle order stays fixed within each pixel, with exclusive
+ownership of its color, stencil and overlap scratch rows until the join. The renderer retains its
+pixel-area threshold and whole-range serial path to amortize repeated triangle setup; its small
+draw path returns before querying or starting the pool. `bench/rasterbalance` compares complete
+one-worker and four-worker images, including uniform and localized-overdraw controls.
 
 #### Workloads still to be answered
 

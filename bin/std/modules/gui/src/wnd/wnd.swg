@@ -2006,28 +2006,29 @@ impl Wnd
         {
             if child.wndFlags.has(.NoScroll) do
                 return
-            if parent.type == ScrollWnd
+            // An ancestor is a scrolling viewport whenever its runtime type CONTAINS a
+            // ScrollWnd, which every viewport built by composition does. Comparing the
+            // type for equality would skip all of them, and 'typeAs' adjusts the pointer
+            // to the embedded base instead of assuming it starts the derived window.
+            let scroll = cast(*ScrollWnd?) Swag.typeAs(ScrollWnd, parent.type, parent)
+            if scroll and scroll.view == child
             {
-                let scroll = cast(*ScrollWnd) parent
-                if scroll.view == child
-                {
-                    let visible  = child.surfaceRect()
-                    let target   = .surfaceRect()
-                    var position = scroll.scrollPosition()
+                let visible  = child.surfaceRect()
+                let target   = .surfaceRect()
+                var position = scroll.scrollPosition()
 
-                    // Prefer the leading edge for a control larger than its viewport.
-                    if target.x < visible.x or target.width > visible.width do
-                        position.x += target.x - visible.x
-                    elif target.right() > visible.right() do
-                        position.x += target.right() - visible.right()
-                    if target.y < visible.y or target.height > visible.height do
-                        position.y += target.y - visible.y
-                    elif target.bottom() > visible.bottom() do
-                        position.y += target.bottom() - visible.bottom()
-                    scroll.setScrollPos(position)
-                    if .isPendingDestroy or .app().keyboardFocusWnd != me do
-                        return
-                }
+                // Prefer the leading edge for a control larger than its viewport.
+                if target.x < visible.x or target.width > visible.width do
+                    position.x += target.x - visible.x
+                elif target.right() > visible.right() do
+                    position.x += target.right() - visible.right()
+                if target.y < visible.y or target.height > visible.height do
+                    position.y += target.y - visible.y
+                elif target.bottom() > visible.bottom() do
+                    position.y += target.bottom() - visible.bottom()
+                scroll.setScrollPos(position)
+                if .isPendingDestroy or .app().keyboardFocusWnd != me do
+                    return
             }
 
             child  = parent

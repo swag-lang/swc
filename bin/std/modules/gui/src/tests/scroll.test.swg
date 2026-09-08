@@ -100,3 +100,29 @@ func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point)
     Swag.assert(outer.scrollPosition() == Math.Point{0, 0})
     Swag.assert(outer.view.surfaceRect().contains(first.surfaceRect()))
 }
+
+// A viewport type built by composition is still a scrolling viewport: focus reveals through it
+// exactly as it does through a ScrollWnd created by its own type. The reveal walk names the
+// ancestor by its runtime type, so an exact comparison would silently skip every derived
+// viewport - which is what the standard applications and gui10 are made of.
+struct ScrollHeadlessViewport
+{
+    using scrollWnd: ScrollWnd
+}
+
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 260)
+    defer host.shutdown()
+    let outer = Wnd.create'ScrollHeadlessViewport(&host.root, "", {0, 0, 300, 200})
+    outer.createView'Wnd()
+    outer.setScrollSize(900, 900)
+    let last = PushButton.create(outer.view, "Last", {600, 600, 80, 26})
+    host.pump()
+
+    last.setFocus()
+    Swag.assert(host.app.keyboardFocusWnd == last)
+    Swag.assert(outer.scrollPosition().x > 0 and outer.scrollPosition().y > 0)
+    Swag.assert(outer.view.surfaceRect().contains(last.surfaceRect()))
+}

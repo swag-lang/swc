@@ -212,7 +212,12 @@ internal impl Properties
     {
         if !w do
             return false
-        return w.type == EditBox or w.type == ComboBox or w.type == Slider or w.type == CheckButton
+        // Asking whether the runtime type CONTAINS the editor covers a widget built by
+        // composition, which an equality would miss.
+        return Swag.typeIs(EditBox, w.type) or
+               Swag.typeIs(ComboBox, w.type) or
+               Swag.typeIs(Slider, w.type) or
+               Swag.typeIs(CheckButton, w.type)
     }
 }
 

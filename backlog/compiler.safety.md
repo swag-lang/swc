@@ -45,7 +45,7 @@ is the current scorecard.
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
 - Recorded: 2026-09-04 17:05
-- Updated: 2026-09-08 13:34 — the census is done, and one idiom accounts for the whole cast surface
+- Updated: 2026-09-08 15:08 — the downcast mechanism already exists in the runtime, and `Wnd` already hand-rolls its tag
 - Area: language
 - Evidence: a short list of operations can produce a pointer to anything, and none of them is
   subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
@@ -98,9 +98,38 @@ is the current scorecard.
   out at file level, does not draw a boundary - it moves it. The affordable order is the
   reverse of what this entry assumed: give the downcast a checked spelling first, then count
   what is left, and only then choose the marker.
-- Next: specify a checked recovery of a concrete type from a base pointer - what
-  `cast(*MainWnd) cxt.wnd!` is written for today - and re-run the census afterwards. The
-  residual count is what decides the marker's spelling.
+- The mechanism already exists, and half of it is already hand-rolled. `Swag.typeAs` and
+  `Swag.typeIs` (`bin/runtime/core.swg:21,57`) already walk the `using` graph: they iterate
+  `usingFields`, recurse into nested bases, adjust the pointer by each field's offset, and follow
+  a `using` on a pointer field. Every `case T as x` over an `any` or an interface calls them. What
+  they need is `fromType`, the CONCRETE type - exactly what a bare `*Wnd` does not carry. The
+  missing piece is one fact, not a mechanism.
+- And `Gui.Wnd` already carries that fact by hand: `late type: typeinfo` ("Runtime type of the
+  concrete window allocation"), written as `res.type = T` in the generic `Wnd.create'T`, the single
+  funnel every window is born through. The language would be sanctioning a field the library
+  already maintains, not inventing one.
+- Measured on `bin/` on 2026-09-08 15:08: 259 structs compose with `using`; the `using` member is
+  the FIRST member in 288 of 299 declarations, and in every window, view and event type, so a
+  `*Wnd` IS the address of the complete object - no offset-to-complete, no per-subobject tag, none
+  of the C++ multiple-inheritance vptr machinery. The deepest chain is 3
+  (`EditWnd` - `ScrollWnd` - `FrameWnd` - `Wnd`), and only two shipped structs carry several
+  `using` members (`Surface{native, state}`, `EditBox{wnd, minMax}`): in both, one base plus a data
+  mixin nothing ever recovers.
+- A fat pointer carrying the typeinfo beside the address was considered and rejected. Inside a
+  method of the base, `me` is already a plain `*Wnd`, so the concrete type is lost before the value
+  is ever stored; keeping it would force `children`, `parent` and every `*Wnd` parameter to widen -
+  viral, and it doubles the window tree. The tag belongs in the object.
+- What the absence costs, measured while writing this: `Wnd.revealFocus` tested
+  `parent.type == ScrollWnd`, an EQUALITY, so revealing the focus silently did nothing for all five
+  shipped viewports built by composition (`EditWnd`, `QuickWnd`, `RecentWnd`, `SheetWnd`,
+  `WidgetWall`). Fixed with `Swag.typeAs` and a regression test in
+  `bin/std/modules/gui/src/tests/scroll.test.swg`; `isEditorWnd` in `properties.keyboard.swg` had
+  the same shape and was made robust. Hand-rolling the tag makes the exact-versus-ancestor mistake
+  the default one.
+- Next: specify the checked recovery on top of what already exists - an opt-in dynamic base whose
+  tag the compiler writes at initialization, `p as T` yielding `*T?` and `p is T` extended from
+  interfaces to such a pointer, both lowering to `Swag.typeAs` and `Swag.typeIs` - then re-run the
+  census. The residual count is what decides the marker's spelling.
 - Complete when: the unsafe operation list is fixed and documented, safe code cannot reach any of
   them without a visible marker, `bin/` compiles with the boundary enforced, and the reference
   states which faults the safe subset excludes.

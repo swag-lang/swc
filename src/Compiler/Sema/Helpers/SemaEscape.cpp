@@ -1581,6 +1581,7 @@ namespace
     {
         const uint32_t sourceDepth      = sema.variableScopeDepth(source);
         const uint32_t destinationDepth = sema.variableScopeDepth(destination);
+
         // A destructor can observe its fields after a later declaration was destroyed.
         // Trivial carriers have no such reader at block exit. Inline expansions have
         // their own local ordering, which does not compare with the enclosing function.

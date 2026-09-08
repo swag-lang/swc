@@ -12,14 +12,6 @@ const SurfaceId   = "swag.vault"
     if isMountHostInvocation() do
         Env.exit(runMountHost())
 
-    #static if #hastag("vault.mount-probe")
-    {
-        discard catch probeReadOnlyMount() as probeError
-        if probeError != null do
-            Console.println("PROBE FAILED: ", Errors.message(probeError))
-        Env.exit(probeError == null ? 0 : 1)
-    }
-
     #static if #hastag("vault.integration")
     {
         if Integration.isVisibilityProbeInvocation() do

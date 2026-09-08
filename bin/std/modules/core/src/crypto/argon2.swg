@@ -190,6 +190,67 @@ private func referenceIndex(random: u64, pass, slice, index, segmentLength, lane
     return (start + relative) % laneLength
 }
 
+// A segment owns its destination blocks and scratch. References into other lanes only
+// reach completed slices, so joining each slice makes those reads safe.
+private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLength, blockCount, pass, slice, lane: u64)
+{
+    var zero:      [Argon2Words] u64
+    var input:     [Argon2Words] u64
+    var addresses: [Argon2Words] u64
+    defer secureClear(input)
+    defer secureClear(addresses)
+
+    // Argon2id takes its addresses from a counter for the first half
+    // of the first pass, and from the previous block afterwards.
+    let independent = !pass and slice < Argon2SyncPoints / 2
+    if independent
+    {
+        Swag.memset(&input[0], 0, Argon2BlockSize)
+        input[0] = pass
+        input[1] = lane
+        input[2] = slice
+        input[3] = blockCount
+        input[4] = passes
+        input[5] = Argon2TypeId
+    }
+
+    var start = 0'u64
+    if !pass and !slice
+    {
+        start = 2
+        if independent do
+            nextAddresses(&addresses[0], &input[0], &zero[0])
+    }
+
+    var previous = lane * laneLength + (slice * segmentLength + start + laneLength - 1) % laneLength
+    for step in start until segmentLength
+    {
+        let index   = slice * segmentLength + step
+        let current = lane * laneLength + index
+
+        var random: u64
+        if independent
+        {
+            if step % Argon2AddressCount == 0 do
+                nextAddresses(&addresses[0], &input[0], &zero[0])
+            random = addresses[step % Argon2AddressCount]
+        }
+        else do
+            random = blocks[previous * Argon2Words]
+
+        // The first slice of the first pass has nothing to reference
+        // in another lane yet.
+        var referenceLane = (random >> 32) % lanes
+        if !pass and !slice do
+            referenceLane = lane
+
+        let offset    = referenceIndex(random, pass, slice, step, segmentLength, laneLength, referenceLane == lane)
+        let reference = referenceLane * laneLength + offset
+        compress(blocks + current * Argon2Words, blocks + previous * Argon2Words, blocks + reference * Argon2Words, pass != 0)
+        previous = current
+    }
+}
+
 // Derives `destination` with Argon2id, RFC 9106.
 //
 // Argon2id spends the first half of its first pass on data-independent
@@ -202,7 +263,8 @@ private func referenceIndex(random: u64, pass, slice, index, segmentLength, lane
 // and the derivation allocates that many kibibytes.
 //
 // The same password, salt, parameters, and destination length always produce the
-// same bytes, on every platform.
+// same bytes, on every platform. Independent lanes share the runtime worker pool when
+// their segments are large enough; the call joins them before returning or clearing memory.
 //
 // ```swag
 // var salt: [16] u8
@@ -298,67 +360,23 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
         }
     }
 
-    var zero:      [Argon2Words] u64
-    var input:     [Argon2Words] u64
-    var addresses: [Argon2Words] u64
-    defer secureClear(input)
-    defer secureClear(addresses)
-
     for pass in passes
     {
         for slice in Argon2SyncPoints
         {
-            for lane in lanes
+            // Small segments cost less than a pool submission. Keep one-lane derivations
+            // local too, without starting workers just to discover there is nothing to split.
+            if lanes == 1 or segmentLength < 32
             {
-                // Argon2id takes its addresses from a counter for the first half
-                // of the first pass, and from the previous block afterwards.
-                let independent = !pass and slice < Argon2SyncPoints / 2
-                if independent
-                {
-                    Swag.memset(&input[0], 0, Argon2BlockSize)
-                    input[0] = pass
-                    input[1] = lane
-                    input[2] = slice
-                    input[3] = blockCount
-                    input[4] = passes
-                    input[5] = Argon2TypeId
-                }
-
-                var start = 0'u64
-                if !pass and !slice
-                {
-                    start = 2
-                    if independent do
-                        nextAddresses(&addresses[0], &input[0], &zero[0])
-                }
-
-                var previous = lane * laneLength + (slice * segmentLength + start + laneLength - 1) % laneLength
-                for step in start until segmentLength
-                {
-                    let index   = slice * segmentLength + step
-                    let current = lane * laneLength + index
-
-                    var random: u64
-                    if independent
-                    {
-                        if step % Argon2AddressCount == 0 do
-                            nextAddresses(&addresses[0], &input[0], &zero[0])
-                        random = addresses[step % Argon2AddressCount]
-                    }
-                    else do
-                        random = blocks[previous * Argon2Words]
-
-                    // The first slice of the first pass has nothing to reference
-                    // in another lane yet.
-                    var referenceLane = (random >> 32) % lanes
-                    if !pass and !slice do
-                        referenceLane = lane
-
-                    let offset    = referenceIndex(random, pass, slice, step, segmentLength, laneLength, referenceLane == lane)
-                    let reference = referenceLane * laneLength + offset
-                    compress(blocks + current * Argon2Words, blocks + previous * Argon2Words, blocks + reference * Argon2Words, pass != 0)
-                    previous = current
-                }
+                for lane in lanes do
+                    fillSegment(blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice, lane)
+            }
+            else
+            {
+                // The structured join is Argon2's slice boundary. No worker waits on a
+                // sibling, and the owning memory stays alive until every lane is finished.
+                parallel for |blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice| lane in lanes do
+                    fillSegment(blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice, lane)
             }
         }
     }

@@ -43,6 +43,8 @@ public:
     const DataSegment&   shardDataSegment(uint32_t index) const;
     bool                 resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept;
     bool                 resolveConstantDataSegmentRef(DataSegmentRef& outRef, ConstantRef cstRef, const void* ptr) const noexcept;
+    DataSegmentRef       findConstantStorage(ConstantRef cstRef, TypeRef storageTypeRef) const;
+    DataSegmentRef       publishConstantStorage(ConstantRef cstRef, TypeRef storageTypeRef, DataSegmentRef dataRef);
     static uint32_t      runtimeBufferConstantCacheShard(TypeRef typeRef, const void* targetPtr, uint64_t count);
     ConstantRef          findRuntimeBufferConstant(uint32_t shardIndex, TypeRef typeRef, const void* targetPtr, uint64_t count) const;
     ConstantRef          publishRuntimeBufferConstant(uint32_t shardIndex, TypeRef typeRef, const void* targetPtr, uint64_t count, ConstantRef cstRef);
@@ -125,10 +127,12 @@ public:
         std::array<InternStripe, INTERN_STRIPE_COUNT>                                                                                         internStripes;
         std::unordered_map<TypeRef, ConstantRef>                                                                                              typeInfoMap;
         std::unordered_map<TypeRef, ConstantRef>                                                                                              zeroPayloadMap;
+        std::unordered_map<uint64_t, DataSegmentRef>                                                                                          constantStorageMap;
         std::unordered_map<RuntimeBufferConstantCacheKey, ConstantRef, RuntimeBufferConstantCacheKeyHash>                                     runtimeBufferMap;
         std::unordered_map<RuntimeStringConstantCacheKey, ConstantRef, RuntimeStringConstantCacheKeyHash, RuntimeStringConstantCacheKeyEqual> runtimeStringMap;
         mutable std::shared_mutex                                                                                                             typeInfoMutex;
         mutable std::shared_mutex                                                                                                             zeroPayloadMutex;
+        mutable std::shared_mutex                                                                                                             constantStorageMutex;
         mutable std::shared_mutex                                                                                                             runtimeBufferMutex;
         mutable std::shared_mutex                                                                                                             runtimeStringMutex;
     };

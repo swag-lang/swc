@@ -329,7 +329,7 @@ Result SemaHelpers::attachRuntimeSliceCmpFunctionToNode(Sema& sema, AstNodeRef n
 
 Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef)
 {
-    if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, safetyKind))
+    if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), safetyKind))
         return Result::Continue;
 
     if (!sema.isCurrentFunction())

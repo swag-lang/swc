@@ -35,19 +35,20 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | File | Area | Updated |
 | --- | --- | --- |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-08 09:18 |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-07 21:16 |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-08 09:08 |
+| [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-08 08:54 |
+| [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-08 08:02 |
+| [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-08 06:30 |
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command | 2026-09-07 21:16 |
 | [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-09-07 20:47 |
 | [std.gui.pdf.md](std.gui.pdf.md) | The PDF engine and `PdfView` inside `std/gui` | 2026-09-07 20:45 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-07 19:11 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-07 18:27 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-07 18:27 |
-| [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-07 17:26 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-07 16:02 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-07 13:30 |
 | [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers | 2026-09-07 13:22 |
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-07 13:14 |
-| [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-07 11:57 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-07 11:12 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-06 21:57 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-06 21:01 |
@@ -67,7 +68,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-06 07:51 |
 | [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-06 07:51 |
 | [compiler.distribution.md](compiler.distribution.md) | Release delivery, first use, local learning, and agent-grade command discovery | 2026-09-06 07:51 |
-| [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-06 07:51 |
 | [std.audio.md](std.audio.md) | `std/audio` | 2026-09-06 07:51 |
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` | 2026-09-06 07:51 |
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-05 16:27 |

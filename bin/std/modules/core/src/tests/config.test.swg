@@ -4,7 +4,7 @@ using Swag
 
 #assert(BIG_ENDIAN == (#gettag("Swag.Endian", string, "little") == "big"))
 #assert(WINDOWS == (#os == Swag.TargetOs.Windows))
-#assert(#safety(Swag.SafetyWhat.Assert) == (#cfg == "devmode"))
+#assert(#safety(Swag.SafetyWhat.Assert))
 
 #test
 {

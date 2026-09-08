@@ -2370,7 +2370,7 @@ options.recurse = <span class="SKwd">true</span>
 <tr><th>Need</th><th>API</th></tr>
 </thead>
 <tbody>
-<tr><td>Independent work on the shared pool</td><td><a href="swag.runtime.html#Swag_Task">Swag.Task</a>, <a href="swag.runtime.html#Swag_TaskGroup">Swag.TaskGroup</a>, <a href="swag.runtime.html#Swag_parallelRange">Swag.parallelRange</a></td></tr>
+<tr><td>Independent work on the shared pool</td><td><span class="code-inline">parallel for</span>, <a href="swag.runtime.html#Swag_Task">Swag.Task</a>, <a href="swag.runtime.html#Swag_TaskGroup">Swag.TaskGroup</a></td></tr>
 <tr><td>A dedicated operating-system thread</td><td><a href="#Core_Threading_Thread">Core.Threading.Thread</a></td></tr>
 <tr><td>Mutual exclusion, events, and read/write locking</td><td><a href="#namespace_Core_Sync">Core.Sync</a></td></tr>
 <tr><td>Lock-free counters and values</td><td><a href="#namespace_Core_Atomic">Core.Atomic</a></td></tr>
@@ -18576,11 +18576,11 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">value</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Crypto_argon2id" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Crypto.argon2id</span> <a class="api-item-permalink" href="#Core_Crypto_argon2id" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/argon2.swg#L215">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Crypto_argon2id" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Crypto.argon2id</span> <a class="api-item-permalink" href="#Core_Crypto_argon2id" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/argon2.swg#L277">src</a></div>
 <p>Derives <span class="code-inline">destination</span> with Argon2id, RFC 9106.</p>
 <p>Argon2id spends the first half of its first pass on data-independent addressing and everything after it on data-dependent addressing, which is what gives it both side-channel resistance and resistance to time-memory tradeoffs. It is the variant to choose unless an existing format demands another one.</p>
 <p><span class="code-inline">salt</span> holds at least 8 bytes and should hold 16. <span class="code-inline">destination</span> holds at least 4 bytes. <span class="code-inline">parameters.memoryKib</span> is at least eight times <span class="code-inline">parameters.parallelism</span>, and the derivation allocates that many kibibytes.</p>
-<p>The same password, salt, parameters, and destination length always produce the same bytes, on every platform.</p>
+<p>The same password, salt, parameters, and destination length always produce the same bytes, on every platform. Independent lanes share the runtime worker pool when their segments are large enough; the call joins them before returning or clearing memory.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> salt: [<span class="SNum">16</span>] <span class="STpe">u8</span>
 <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Crypto">Crypto</a></span>.<span class="SFct">randomBytes</span>(salt)
 
@@ -18617,9 +18617,9 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">chacha20Poly1305Seal</span>(key, nonce, plaintext, associatedData: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, ciphertext: [..] <span class="STpe">u8</span>, tag: [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Crypto_chacha20Xor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Crypto.chacha20Xor</span> <a class="api-item-permalink" href="#Core_Crypto_chacha20Xor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/chacha20.swg#L161">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Crypto_chacha20Xor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Crypto.chacha20Xor</span> <a class="api-item-permalink" href="#Core_Crypto_chacha20Xor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/chacha20.swg#L162">src</a></div>
 <p>XORs <span class="code-inline">source</span> with the IETF ChaCha20 key stream into <span class="code-inline">destination</span>.</p>
-<p>Source and destination can be the same slice. Other overlapping ranges are not supported.</p>
+<p>Source and destination can be the same slice. Other overlapping ranges are not supported. Large inputs share the runtime worker pool. All output is complete before the call returns.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">chacha20Xor</span>(key, nonce, source: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, destination: [..] <span class="STpe">u8</span>, initialCounter = <span class="SNum">0</span>'<span class="STpe">u32</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -27045,7 +27045,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.400</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.403</div>
 </footer>
 </section>
 </main>

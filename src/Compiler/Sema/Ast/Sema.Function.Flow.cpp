@@ -517,7 +517,7 @@ namespace
 
             case TokenId::KwdExpect:
                 SWC_RESULT(SemaHelpers::requireRuntimePopScopeDependencies(sema, sema.curNode().codeRef()));
-                if (sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Expect))
+                if (sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), Runtime::SafetyWhat::Expect))
                 {
                     auto& codeGenPayload = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
                     codeGenPayload.addRuntimeSafety(Runtime::SafetyWhat::Expect);
@@ -1207,7 +1207,7 @@ namespace
 
     Result setupIntrinsicAssertRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
     {
-        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Assert))
+        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), Runtime::SafetyWhat::Assert))
             return Result::Continue;
 
         SWC_RESULT(SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::RaiseException, node.codeRef()));

@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -157,6 +158,38 @@ namespace
         return Result::Continue;
     }
 
+    Result constantFoldDeref(Sema& sema, ConstantRef& result, const SemaNodeView& view)
+    {
+        const TypeInfo& type = SemaHelpers::aliasType(sema, view);
+        if (!type.isAnyPointer() || !type.isConst())
+            return Result::Continue;
+
+        uint64_t address = 0;
+        if (view.cst()->isBlockPointer())
+            address = view.cst()->getBlockPointer();
+        else if (view.cst()->isValuePointer())
+            address = view.cst()->getValuePointer();
+        else
+            return Result::Continue;
+
+        // An arbitrary integer cast to a pointer is not memory the compiler may read.
+        DataSegmentRef dataRef;
+        if (!address || !sema.cstMgr().resolveDataSegmentRef(dataRef, reinterpret_cast<const void*>(address)))
+            return Result::Continue;
+
+        const TypeRef elementTypeRef = type.payloadTypeRef();
+        SWC_RESULT(sema.waitSemaCompleted(&sema.typeMgr().get(elementTypeRef), view.nodeRef()));
+        const uint64_t        elementSize = sema.typeMgr().get(elementTypeRef).sizeOf(sema.ctx());
+        DataSegmentAllocation allocation;
+        if (!elementSize || !sema.cstMgr().shardDataSegment(dataRef.shardIndex).findAllocation(allocation, dataRef.offset))
+            return Result::Continue;
+        if (elementSize > allocation.size - (dataRef.offset - allocation.offset))
+            return Result::Continue;
+
+        const ConstantValue pointer = ConstantValue::makeBlockPointer(sema.ctx(), elementTypeRef, address, type.flags());
+        return ConstantExtract::atIndexRef(sema, pointer, 0, view.nodeRef(), result);
+    }
+
     Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const AstUnaryExpr& node, const SemaNodeView& view)
     {
         switch (op)
@@ -169,8 +202,12 @@ namespace
                 return constantFoldBang(sema, result, view);
             case TokenId::SymTilde:
                 return constantFoldTilde(sema, result, node, view);
+            case TokenId::SymLeftBracket:
+                return constantFoldDeref(sema, result, view);
             default:
-                return Result::Error; // This is ok
+                // Address and dereference operations still need their storage semantics,
+                // even when the operand has a constant value.
+                return Result::Continue;
         }
     }
 
@@ -402,6 +439,27 @@ namespace
 
         const TypeRef typeRef = takeAddressResultTypeRef(sema, view);
         sema.setType(sema.curNodeRef(), typeRef);
+        if (view.hasConstant())
+        {
+            // Folding a dereference does not change the location it designates.
+            // In particular, '&p[]' must preserve p even when p targets a subobject.
+            if (view.node() && view.node()->is(AstNodeId::UnaryExpr) && sema.token(view.node()->codeRef()).id == TokenId::SymLeftBracket)
+            {
+                const auto&        dereference = view.node()->cast<AstUnaryExpr>();
+                const SemaNodeView pointerView = sema.viewTypeConstant(dereference.nodeExprRef);
+                if (pointerView.hasConstant() && (pointerView.cst()->isBlockPointer() || pointerView.cst()->isValuePointer()))
+                {
+                    const uint64_t address = pointerView.cst()->isBlockPointer() ? pointerView.cst()->getBlockPointer() : pointerView.cst()->getValuePointer();
+                    sema.setConstant(sema.curNodeRef(), makePointerConstantRef(sema, typeRef, address));
+                    return Result::Continue;
+                }
+            }
+
+            // A scalar constant normally lowers to its value in a register. Taking its
+            // address needs persistent storage, just as an indexed constant array does.
+            const uint64_t address = ConstantHelpers::materializeConstantStorageAndGetAddress(sema, view);
+            sema.setConstant(sema.curNodeRef(), makePointerConstantRef(sema, typeRef, address));
+        }
 
         return Result::Continue;
     }
@@ -537,6 +595,14 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     const Token&  tok  = sema.token(codeRef());
     const TokenId opId = tok.id;
 
+    // Parentheses preserve the designated storage, including a folded array index
+    // or dereference whose address can be computed directly.
+    if (opId == TokenId::SymAmpersand)
+    {
+        while (view.node() && view.node()->is(AstNodeId::ParenExpr))
+            view = sema.viewNodeTypeConstantSymbol(view.node()->cast<AstParenExpr>().nodeExprRef);
+    }
+
     // Function declarations are addressable even if they are not plain value expressions.
     const bool takesFunctionAddress = opId == TokenId::SymAmpersand && isFunctionAddressOperand(view);
     if (!takesFunctionAddress)
@@ -585,8 +651,13 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     {
         ConstantRef result;
         SWC_RESULT(constantFold(sema, result, opId, *this, view));
-        sema.setConstant(sema.curNodeRef(), result);
-        return Result::Continue;
+        if (result.isValid())
+        {
+            sema.setConstant(sema.curNodeRef(), result);
+            if (opId == TokenId::SymLeftBracket)
+                sema.setIsLValue(*this);
+            return Result::Continue;
+        }
     }
 
     switch (opId)

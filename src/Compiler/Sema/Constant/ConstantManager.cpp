@@ -872,6 +872,28 @@ bool ConstantManager::resolveConstantDataSegmentRef(DataSegmentRef& outRef, cons
     return resolveDataSegmentRef(outRef, ptr);
 }
 
+DataSegmentRef ConstantManager::findConstantStorage(const ConstantRef cstRef, const TypeRef storageTypeRef) const
+{
+    SWC_ASSERT(cstRef.isValid() && storageTypeRef.isValid());
+    const uint64_t         key   = (static_cast<uint64_t>(cstRef.get()) << 32) | storageTypeRef.get();
+    const Shard&           shard = shards_[cstRef.get() >> LOCAL_BITS];
+    const std::shared_lock lock(shard.constantStorageMutex);
+    const auto             it = shard.constantStorageMap.find(key);
+    return it == shard.constantStorageMap.end() ? DataSegmentRef{} : it->second;
+}
+
+DataSegmentRef ConstantManager::publishConstantStorage(const ConstantRef cstRef, const TypeRef storageTypeRef, const DataSegmentRef dataRef)
+{
+    SWC_ASSERT(cstRef.isValid() && storageTypeRef.isValid() && dataRef.isValid());
+    const uint64_t         key   = (static_cast<uint64_t>(cstRef.get()) << 32) | storageTypeRef.get();
+    Shard&                 shard = shards_[cstRef.get() >> LOCAL_BITS];
+    const std::unique_lock lock(shard.constantStorageMutex);
+    const auto [it, inserted] = shard.constantStorageMap.try_emplace(key, dataRef);
+    // Materialization happens outside the cache lock. Concurrent callers all use
+    // the first fully materialized allocation, preserving constant address identity.
+    return it->second;
+}
+
 uint32_t ConstantManager::runtimeBufferConstantCacheShard(const TypeRef typeRef, const void* targetPtr, const uint64_t count)
 {
     const RuntimeBufferConstantCacheKey key{

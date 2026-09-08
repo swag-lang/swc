@@ -11,9 +11,10 @@ const MaxWorkers = 64'u32
 #[Swag.NoDoc]
 struct WorkNode
 {
-    entry: (func(*WorkNode))?     // Runs the work. Set by the owner before submission.
-    next:  *WorkNode?             // Next node in the scheduler's ready stack.
-    state: AtomicValue'u32        // One of the work states below.
+    entry:    (func(*WorkNode))?     // Runs the work. Set by the owner before submission.
+    next:     *WorkNode?             // Next node in the scheduler's ready stack.
+    previous: *WorkNode?             // Previous ready node; permits a joined target to be removed in constant time.
+    state:    AtomicValue'u32        // One of the work states below.
 }
 
 // The work has never been submitted, or its last run was collected.
@@ -223,8 +224,6 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
 // Runs one node and publishes its completion.
 private func runWork(sched: *Scheduler, node: *WorkNode, accounted: bool)
 {
-    node.state.store(WorkStateRunning)
-
     let entry = node.entry
     if entry
     {
@@ -239,18 +238,29 @@ private func runWork(sched: *Scheduler, node: *WorkNode, accounted: bool)
         sched.finished.wakeAll()
 }
 
-// Takes the most recently submitted ready node, or null when the stack is empty.
-private func popWork(sched: *Scheduler)->*WorkNode?
+// Claims the requested ready node, or the stack head when no target was supplied.
+// Queue links and the transition to Running share the lock, so a waiter cannot claim a node
+// already removed by a worker. Removing a specific target never scans unrelated queued work.
+private func popWork(sched: *Scheduler, target: *WorkNode? = null)->*WorkNode?
 {
     sched.mutex.lock()
     defer sched.mutex.unlock()
 
-    let node = sched.head
+    let node = target orelse sched.head
     if !node do
         return null
+    if node.state.load() != WorkStateQueued do
+        return null
 
-    sched.head = node.next
-    node.next  = null
+    if node.previous do
+        node.previous.next = node.next
+    else do
+        sched.head = node.next
+    if node.next do
+        node.next.previous = node.previous
+    node.next     = null
+    node.previous = null
+    node.state.store(WorkStateRunning)
     return node
 }
 
@@ -309,11 +319,13 @@ private func schedulerWorkerEntry(param: *void?)->u32
 internal func submitWork(node: *WorkNode)
 {
     let sched = activeScheduler()
-    node.next = null
+    node.next     = null
+    node.previous = null
     node.state.store(WorkStateQueued)
 
     if sched.count == 0
     {
+        node.state.store(WorkStateRunning)
         runWork(sched, node, false)
         return
     }
@@ -321,17 +333,20 @@ internal func submitWork(node: *WorkNode)
     sched.accepted.add(1)
 
     sched.mutex.lock()
-    node.next  = sched.head
+    node.next = sched.head
+    if sched.head do
+        sched.head.previous = node
     sched.head = node
     sched.mutex.unlock()
 
     sched.ready.wake()
 }
 
-// Runs ready work until `node` has finished.
+// Runs `node` if it is still queued, or waits for the thread that already claimed it.
 //
-// The waiting thread executes submitted work itself, so a wait makes progress even when every
-// worker is busy and when the process has none.
+// Helping stays on this join's dependency path. Running an unrelated queue entry here could
+// reenter code that needs a lock held by the caller. Descendant-only joins still progress when
+// every worker is busy: each joining thread can claim the specific child it needs.
 internal func waitWork(node: *WorkNode)
 {
     var spins = 0'u32
@@ -341,10 +356,15 @@ internal func waitWork(node: *WorkNode)
         if state != WorkStateQueued and state != WorkStateRunning do
             break
 
-        if runPendingWork()
+        if state == WorkStateQueued
         {
-            spins = 0
-            continue
+            let sched   = schedulerInstance()
+            let claimed = popWork(sched, node)
+            if claimed
+            {
+                runWork(sched, claimed!, true)
+                return
+            }
         }
 
         spins += 1

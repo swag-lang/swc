@@ -8,6 +8,11 @@ pool and returns when every one of them has finished. It is the language form
 of independent work: the body must produce the same result whatever order the
 indices run in and whichever thread runs them.
 
+The calling thread can execute the partition it is joining, including work
+that partition explicitly joins in turn. It does not drain unrelated tasks
+from the pool during the join. A partition that needs a lock held by its
+caller can still deadlock; joining does not prove lock ordering correct.
+
 The statement names its index like an ordinary 'for', and states between
 '|...|' what the body reaches from the enclosing scope. That capture list is
 the same one a closure takes, and it is written rather than inferred: what the
@@ -112,7 +117,7 @@ An accumulator every index writes is shared storage, so it goes through
 /**
 > NOTE:
 > The number of partitions is not part of the contract, and neither is the
-> thread a given index runs on. With no worker -- during compile-time
-> execution, or in a process that has not started its pool -- the whole range
-> runs on the calling thread, which is also what a one-worker host does.
+> thread a given index runs on. During compile-time execution, the whole range
+> runs on the calling thread. Native execution starts the pool on demand;
+> with fewer than two workers, the range also runs on the calling thread.
 */

@@ -393,13 +393,24 @@ uint64_t ConstantHelpers::materializeConstantStorageAndGetAddress(Sema& sema, co
     if (!sizeOf)
         return 0;
 
+    ConstantManager&     manager   = sema.cstMgr();
+    const DataSegmentRef cachedRef = manager.findConstantStorage(view.cstRef(), storageTypeRef);
+    if (cachedRef.isValid())
+        return reinterpret_cast<uint64_t>(manager.shardDataSegment(cachedRef.shardIndex).ptr<std::byte>(cachedRef.offset));
+
     SmallVector<std::byte> storage(sizeOf);
     const std::span        storageSpan{storage.data(), storage.size()};
     std::memset(storageSpan.data(), 0, storageSpan.size());
     SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), storageTypeRef) == Result::Continue);
 
-    const std::string_view persistentStorage = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(storageSpan.data()), storageSpan.size()});
-    return reinterpret_cast<uint64_t>(persistentStorage.data());
+    // Preserve alignment and register embedded pointer relocations. Interning raw
+    // bytes would leave compiler-process addresses in the native executable.
+    const uint32_t shardIndex = view.cstRef().get() >> ConstantManager::LOCAL_BITS;
+    DataSegment&   segment    = manager.shardDataSegment(shardIndex);
+    uint32_t       offset     = INVALID_REF;
+    SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(offset, sema, segment, storageTypeRef, storageSpan) == Result::Continue);
+    const DataSegmentRef dataRef = manager.publishConstantStorage(view.cstRef(), storageTypeRef, {.shardIndex = shardIndex, .offset = offset});
+    return reinterpret_cast<uint64_t>(manager.shardDataSegment(dataRef.shardIndex).ptr<std::byte>(dataRef.offset));
 }
 
 uint32_t ConstantHelpers::staticPayloadPlacementShardIndex(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> payload, bool hasRequiredShard, uint32_t requiredShard)

@@ -1440,7 +1440,7 @@ namespace
         const auto&         attributes = sema.frame().currentAttributes();
         const bool          enabled    = wantSanity
                                              ? attributes.hasSanity(sema.buildCfg().sanityGuards, requested)
-                                             : attributes.hasRuntimeSafety(sema.buildCfg().safetyGuards, requested);
+                                             : attributes.hasRuntimeSafety(sema.runtimeSafetyGuards(), requested);
         const ConstantValue value      = ConstantValue::makeBool(ctx, enabled);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;

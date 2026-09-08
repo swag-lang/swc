@@ -126,6 +126,70 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     Swag.assert(Memory.compare(actual.buffer, expected.buffer, 256) == 0)
 }
 
+// Native partitions match the single-block definition, including unaligned buffers, tails,
+// exact in-place XOR and the final legal counter. Sentinels protect both ends of every view.
+#[Swag.TestTag("parallel")]
+#test
+{
+    Swag.setWorkerCount(4)
+    let key   = testKey()
+    let nonce = testNonce()
+    const Capacity = 2 * 65536 + 258
+    var source:   Array'u8
+    var actual:   Array'u8
+    var expected: Array'u8
+    source.resize(Capacity)
+    actual.resize(Capacity)
+    expected.resize(Capacity)
+    for index in source.count do
+        source[index] = cast(u8) ((index * 47 + 13) & 0xFF)
+
+    let lengths: [8] u64 = [65535, 65536, 65537, 65599, 65600, 65791, 65792, Capacity - 2]
+    for length in lengths
+    {
+        Memory.set(actual.buffer!, 0xA5, actual.count)
+        Memory.set(expected.buffer!, 0xA5, expected.count)
+        let input     = source.toSlice()[1 until length + 1]
+        let output    = actual.toSlice()[1 until length + 1]
+        let reference = expected.toSlice()[1 until length + 1]
+        let blocks    = (length + Crypto.ChaCha20BlockSize - 1) / Crypto.ChaCha20BlockSize
+        let first     = Swag.U32.Max - cast(u32) (blocks - 1)
+        scalarChaCha20Xor(key, nonce, input, reference, first)
+        expect Crypto.chacha20Xor(key, nonce, input, output, first)
+        Swag.assert(sameChaChaBytes(actual.toSlice(), expected.toSlice()))
+
+        Memory.copy(actual.buffer!, source.buffer!, source.count)
+        expect Crypto.chacha20Xor(key, nonce, output, output, first)
+        Swag.assert(sameChaChaBytes(output, reference))
+        Swag.assert(actual[0] == source[0])
+        for index in length + 1 until actual.count do
+            Swag.assert(actual[index] == source[index])
+    }
+
+    // Reject the whole request before submitting work when the last block would wrap.
+    Memory.set(actual.buffer!, 0xA5, actual.count)
+    let tooLong = actual.toSlice()[until 65537]
+    discard catch Crypto.chacha20Xor(key, nonce, source.toSlice()[until 65537], tooLong, Swag.U32.Max - 1023) as overflowError
+    Swag.assert(overflowError is Errors.OverflowError)
+    for index in actual.count do
+        Swag.assert(actual[index] == 0xA5)
+
+    // A caller may already be distributing records through the same pool. Nested joins
+    // must complete, and each invocation keeps its own destination and stream scratch.
+    let input     = source.toSlice()[1 until Capacity - 1]
+    let reference = expected.toSlice()[1 until Capacity - 1]
+    let first     = Swag.U32.Max - cast(u32) ((input.count - 1) / Crypto.ChaCha20BlockSize)
+    let keyPtr    = &key
+    let noncePtr  = &nonce
+    parallel for |keyPtr, noncePtr, input, reference, first| record in 3
+    {
+        var encrypted: Array'u8
+        encrypted.resize(input.count)
+        expect Crypto.chacha20Xor(keyPtr[], noncePtr[], input, encrypted.toSlice(), first)
+        Swag.assert(sameChaChaBytes(encrypted.toSlice(), reference))
+    }
+}
+
 // The block counter is 32 bits wide. Its last value is usable; asking for one block more than
 // the range holds is rejected rather than silently repeating the key stream.
 #test

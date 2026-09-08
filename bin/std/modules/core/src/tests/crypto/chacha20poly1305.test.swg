@@ -10,6 +10,36 @@ func rangeBytes(count: u64, first: u8)->Array'u8
     return result
 }
 
+// Authentication sees every completed parallel write; a rejected in-place open changes nothing.
+#test
+{
+    Swag.setWorkerCount(4)
+    let key       = rangeBytes(32, 0x11)
+    let nonce     = rangeBytes(12, 0x22)
+    let plaintext = rangeBytes(2 * 65536 + 193, 0x44)
+    var ciphertext: Array'u8
+    ciphertext.resize(plaintext.count)
+    var tag: Crypto.Poly1305Tag
+    expect Crypto.chacha20Poly1305Seal(key.toSlice(), nonce.toSlice(), plaintext.toSlice(), "parallel record", ciphertext.toSlice(), tag)
+
+    var sealed: Array'u8
+    sealed.add(ciphertext.toSlice())
+    tag[0] ^= 1
+    let rejected = expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, "parallel record", ciphertext.toSlice())
+    Swag.assert(!rejected)
+    Swag.assert(Crypto.constantTimeEqual(ciphertext.toSlice(), sealed.toSlice()))
+
+    tag[0] ^= 1
+    let opened = expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, "parallel record", ciphertext.toSlice())
+    Swag.assert(opened)
+    Swag.assert(Crypto.constantTimeEqual(ciphertext.toSlice(), plaintext.toSlice()))
+
+    var inPlaceTag: Crypto.Poly1305Tag
+    expect Crypto.chacha20Poly1305Seal(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), "parallel record", ciphertext.toSlice(), inPlaceTag)
+    Swag.assert(Crypto.constantTimeEqual(ciphertext.toSlice(), sealed.toSlice()))
+    Swag.assert(Crypto.constantTimeEqual(tag, inPlaceTag))
+}
+
 #test
 {
     // RFC 8439 section 2.5.2.

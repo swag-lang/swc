@@ -247,16 +247,6 @@ completion criteria.
 
 - Related: std.core.006, std.core.007
 
-### std.core.009 — Independent Argon2 lanes run serially
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Intent: run independent lanes within each legal slice through `Jobs`, respecting Argon2's
-  synchronization points and the configured `parallelism` contract.
-- Complete when: multi-lane published vectors still agree, the requested lane count executes in
-  parallel, and a benchmark separates the lane-parallel gain from the packed permutation work.
-- Related: cpu.simd.018 in [cpu.simd.md](cpu.simd.md)
-
 ### std.core.010 — No AES implementation
 
 - Recorded: 2026-08-05 07:43

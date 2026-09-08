@@ -25,9 +25,10 @@ forwarded to the compiler.
 
 ## Build the compiler manually
 
-`release.bat` is the owner-only full-machine entry point for producing `swc.exe`. Release always
-enables whole-program optimization, aggressive inlining, global-data optimization, full link-time
-code generation, reference elimination, identical COMDAT folding, and AVX2 code generation. An
+`release.bat` is the owner-only full-machine entry point for producing `swc.exe`. Release enables
+aggressive inlining, global-data optimization, reference elimination, identical COMDAT folding,
+and AVX2 code generation. Whole-program optimization and link-time code generation (LTO) are
+temporarily disabled to keep edit/build iterations practical. An
 early CPU guard remains at the x64 baseline and runs before CRT, mimalloc, and C++ initialization.
 Agents and routine validation use DevMode whenever its stronger checks cover the changed path. A
 rare required Release validation invokes MSBuild directly with the repository's CPU bound instead
@@ -88,7 +89,9 @@ runs the backlog check alone.
 | `reference.swgs` | build, test | The executable language reference |
 | `scripts.swgs` | run, smoke | The standalone example scripts; naming one runs it, naming none smokes them all |
 
-`test` runs a module's `#test` functions and never its `#main`. `smoke` runs the real program
+`test` runs a module's `#test` functions and never its `#main`. It enables `Swag.assert`
+by default even in release; explicit local `Swag.Safety` overrides still apply. Other
+runtime guards retain their configured defaults. `smoke` runs the real program
 for a bounded number of frames, isolated from the machine, to prove it starts and keeps going.
 A program without `#test` is smoked: testing it would report zero tests and prove nothing.
 `--test-file` filters only the `#test` functions that execute; the whole owning module still

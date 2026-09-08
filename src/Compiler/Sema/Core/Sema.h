@@ -230,6 +230,7 @@ public:
     CompilerInstance&               compiler() { return ctx().compiler(); }
     const CompilerInstance&         compiler() const { return ctx().compiler(); }
     const Runtime::BuildCfg&        buildCfg() const;
+    Runtime::SafetyWhat             runtimeSafetyGuards() const;
     const Runtime::BuildCfgBackend& buildCfgBackend() const { return buildCfg().backend; }
     Runtime::BuildCfgBackendKind    buildCfgBackendKind() const { return buildCfg().backendKind; }
     bool                            isNativeBuild() const { return Runtime::backendKindProducesNativeArtifact(buildCfgBackendKind()); }

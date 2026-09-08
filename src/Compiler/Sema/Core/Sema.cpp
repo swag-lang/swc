@@ -28,6 +28,16 @@ const Runtime::BuildCfg& Sema::buildCfg() const
     return compiler().buildCfg();
 }
 
+Runtime::SafetyWhat Sema::runtimeSafetyGuards() const
+{
+    auto guards = buildCfg().safetyGuards;
+    // Tests need assertions even with release optimizations. Explicit local safety
+    // overrides still apply after this default, as they do for every other guard.
+    if (ctx().cmdLine().command == CommandKind::Test)
+        guards = static_cast<Runtime::SafetyWhat>(static_cast<uint16_t>(guards) | static_cast<uint16_t>(Runtime::SafetyWhat::Assert));
+    return guards;
+}
+
 namespace
 {
     bool waitHasErrorOnLine(Sema& sema, const SourceCodeRef& waitCodeRef)

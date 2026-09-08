@@ -104,17 +104,14 @@ impl Decoder
         {
             let decoder = me
             .pipelineFailed = 0
-            Swag.parallelRange(cast(u64) bandCount, func|decoder, bandCount|(parBegin, parEnd: u64)
+            let mbHeight = cast(u32) sps.mbHeight
+            let mbWidth  = cast(u32) sps.mbWidth
+            parallel for |decoder, bandCount, mbHeight, mbWidth| band in bandCount
             {
-                let mbHeight = cast(u32) decoder.sps!.mbHeight
-                let mbWidth  = cast(u32) decoder.sps!.mbWidth
-                for band in parBegin until parEnd
-                {
-                    let firstRow = mbHeight * cast(u32) band / bandCount
-                    let endRow   = mbHeight * cast(u32) (band + 1) / bandCount
-                    reconstructBand(decoder, firstRow * mbWidth, endRow * mbWidth)
-                }
-            })
+                let firstRow = mbHeight * cast(u32) band / bandCount
+                let endRow   = mbHeight * cast(u32) (band + 1) / bandCount
+                reconstructBand(decoder, firstRow * mbWidth, endRow * mbWidth)
+            }
 
             if Atomic.get(&.pipelineFailed) != 0 do
                 fail InvalidFormatError{"H.264 inter block has no reference picture"}

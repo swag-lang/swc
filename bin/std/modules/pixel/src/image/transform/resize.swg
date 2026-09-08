@@ -55,6 +55,9 @@ public impl Image
 
 namespace ResizeTools
 {
+    // Keep small passes local to avoid paying for worker submission and joining.
+    const ParallelMinPixels: u64 = 1024
+
     struct Contribution
     {
         weights:     Array'f64
@@ -248,7 +251,7 @@ namespace ResizeTools
     }
 
     #[Swag.Safety(.All, false)]
-    func scaleRow(imgDst: *Image, imgSrc: const *Image, row: s64, contrib: *LineContrib)
+    func scaleRow(imgDst: *Image, imgSrc: const *Image, row: s64, contrib: const *LineContrib)
     {
         let bpp8   = imgDst.bytesPerPixel
         var dstRow = imgDst.pixels.buffer! + row * bpp8 * imgDst.width
@@ -299,7 +302,7 @@ namespace ResizeTools
     }
 
     #[Swag.Safety(.All, false)]
-    func scaleCol(imgDst: *Image, imgSrc: const *Image, col: s64, contrib: *LineContrib)
+    func scaleCol(imgDst: *Image, imgSrc: const *Image, col: s64, contrib: const *LineContrib)
     {
         let bpp8   = imgDst.bytesPerPixel
         var dstCol = imgDst.pixels.buffer! + col * bpp8
@@ -352,7 +355,7 @@ namespace ResizeTools
     }
 
     #[Swag.Safety(.All, false)]
-    func scaleRowGeneric(imgDst: *Image, imgSrc: const *Image, row: s64, contrib: *LineContrib)
+    func scaleRowGeneric(imgDst: *Image, imgSrc: const *Image, row: s64, contrib: const *LineContrib)
     {
         let srcRow = imgSrc.pixels.buffer! + cast(u64) row * imgSrc.rowStride
         let dstRow = imgDst.pixels.buffer! + cast(u64) row * imgDst.rowStride
@@ -377,7 +380,7 @@ namespace ResizeTools
     }
 
     #[Swag.Safety(.All, false)]
-    func scaleColGeneric(imgDst: *Image, imgSrc: const *Image, col: s64, contrib: *LineContrib)
+    func scaleColGeneric(imgDst: *Image, imgSrc: const *Image, col: s64, contrib: const *LineContrib)
     {
         let srcCol = imgSrc.pixels.buffer! + cast(u64) col * imgSrc.bytesPerPixel
         let dstCol = imgDst.pixels.buffer! + cast(u64) col * imgDst.bytesPerPixel
@@ -405,40 +408,62 @@ namespace ResizeTools
     {
         let sh      = cast(s64) imgSrc.height
         let dh      = cast(s64) imgDst.height
-        var contrib = calcContributions(dh, sh, cast(f64) dh / sh, rmode)
-
-        Swag.parallelRange(cast(u64) imgDst.width, func|imgDst, imgSrc, &contrib|(begin, end: u64)
+        let contrib = calcContributions(dh, sh, cast(f64) dh / sh, rmode)
+        let format  = imgSrc.pixelFormat
+        let legacy  = format == .BGR8 or format == .BGRA8 or format == .RGB8 or format == .RGBA8
+        if cast(u64) imgDst.width * imgDst.height < ParallelMinPixels or Swag.workerCount() <= 1
         {
-            let format = imgSrc.pixelFormat
-            let legacy = format == .BGR8 or format == .BGRA8 or format == .RGB8 or format == .RGBA8
-            for index in begin until end
+            for index in imgDst.width
             {
                 if legacy do
                     scaleCol(imgDst, imgSrc, cast(s64) index, &contrib)
                 else do
                     scaleColGeneric(imgDst, imgSrc, cast(s64) index, &contrib)
             }
-        })
+
+            return
+        }
+
+        // Each column owns disjoint destination pixels. The join keeps the shared weights alive.
+        let weights = &contrib
+        parallel for |imgDst, imgSrc, weights, legacy| index in imgDst.width
+        {
+            if legacy do
+                scaleCol(imgDst, imgSrc, cast(s64) index, weights)
+            else do
+                scaleColGeneric(imgDst, imgSrc, cast(s64) index, weights)
+        }
     }
 
     func scaleRow(imgDst: *Image, imgSrc: const *Image, rmode: Image.ResizeMode)
     {
         let sw      = cast(s64) imgSrc.width
         let dw      = cast(s64) imgDst.width
-        var contrib = calcContributions(dw, sw, cast(f64) dw / sw, rmode)
-
-        Swag.parallelRange(cast(u64) imgDst.height, func|imgDst, imgSrc, &contrib|(begin, end: u64)
+        let contrib = calcContributions(dw, sw, cast(f64) dw / sw, rmode)
+        let format  = imgSrc.pixelFormat
+        let legacy  = format == .BGR8 or format == .BGRA8 or format == .RGB8 or format == .RGBA8
+        if cast(u64) imgDst.width * imgDst.height < ParallelMinPixels or Swag.workerCount() <= 1
         {
-            let format = imgSrc.pixelFormat
-            let legacy = format == .BGR8 or format == .BGRA8 or format == .RGB8 or format == .RGBA8
-            for index in begin until end
+            for index in imgDst.height
             {
                 if legacy do
                     scaleRow(imgDst, imgSrc, cast(s64) index, &contrib)
                 else do
                     scaleRowGeneric(imgDst, imgSrc, cast(s64) index, &contrib)
             }
-        })
+
+            return
+        }
+
+        // Rows share only the source and weights; the next pass starts after this join.
+        let weights = &contrib
+        parallel for |imgDst, imgSrc, weights, legacy| index in imgDst.height
+        {
+            if legacy do
+                scaleRow(imgDst, imgSrc, cast(s64) index, weights)
+            else do
+                scaleRowGeneric(imgDst, imgSrc, cast(s64) index, weights)
+        }
     }
 
     func doResizeFilter(dstImage: *Image, srcImage: const *Image, mode: Image.ResizeMode)

@@ -55,14 +55,22 @@ private func recordParallelCost(profile: *ParallelProfile?, count, elapsed: u64)
     return result
 }
 
-// One partition of a parallel range, submitted to the scheduler as its own unit of work.
+// The caller owns the range until every runner joins. Claiming a block advances one cursor;
+// accepted nodes stay bounded by the worker count rather than by the number of blocks.
+private struct ParallelDispatch
+{
+    next: AtomicValue'u64
+    end:  u64
+    step: u64
+    body: (func||(u64, u64))?
+}
+
+// One runner of a parallel range, submitted to the scheduler as its own unit of work.
 #[Swag.NoDoc]
 struct ParallelChunk
 {
-    using node: WorkNode                // Scheduler state. Must stay first.
-    body:       (func||(u64, u64))?     // The loop body, one copy per chunk.
-    begin:      u64                     // First index of this chunk.
-    end:        u64                     // One past the last index of this chunk.
+    using node: WorkNode               // Scheduler state. Must stay first.
+    dispatch:   *ParallelDispatch?     // Borrowed until all runners have joined.
 }
 
 // Runs the compiler-generated body over [begin, end), splitting it across the worker pool.
@@ -197,36 +205,46 @@ private func parallelRange(begin, end: u64, body: func||(u64, u64), entry: u64)
         return
     }
 
-    dispatchParallelRange(first, end, chunks, body, profile, measure)
+    dispatchParallelRange(first, end, chunks, grain, body, profile, measure)
 }
 
 // Keep the partition storage out of serial calls, including empty and nested short loops.
 // Inlining would put the full worker array and its stack probes back in their entry frame.
 #[Swag.NoInline]
-private func dispatchParallelRange(begin, end, chunks: u64, body: func||(u64, u64), profile: *ParallelProfile?, measure: bool)
+private func dispatchParallelRange(begin, end, chunks, grain: u64, body: func||(u64, u64), profile: *ParallelProfile?, measure: bool)
 {
+    // Several blocks per runner let an idle runner take remaining work from a costly region.
+    // The cost hint still imposes a minimum useful block size. At most eight times as many
+    // blocks as runners bound cursor contention and closure calls on large uniform ranges.
+    let count    = end - begin
+    let balanced = (count - 1) / (chunks * 8) + 1
+    var dispatch: ParallelDispatch
+    dispatch.end  = end
+    dispatch.step = balanced > grain ? balanced : grain
+    dispatch.body = body
+
+    // Reserve useful work for the caller before publishing nodes, so worker startup cannot
+    // consume its whole sample or leave it idle while a few expensive iterations remain.
+    let firstEnd = begin + dispatch.step
+    dispatch.next.store(firstEnd)
     var slices: [MaxWorkers] ParallelChunk
-    let step  = (end - begin) / chunks
-    var start = begin
 
     for index in chunks
     {
         let slice = &slices[index]
-        slice.body       = body
-        slice.begin      = start
-        slice.end        = index == chunks - 1 ? end : start + step
+        slice.dispatch   = &dispatch
         slice.node.entry = &parallelChunkEntry
-        start            = slice.end
 
-        // The caller runs the first partition itself, so it is never queued.
+        // The caller participates directly, so its runner is never queued.
         if index != 0 do
             submitWork(&slice.node)
     }
 
     let started = measure ? __hostMonotonicTicks() : 0'u64
-    runParallelChunk(&slices[0])
+    body(begin, firstEnd)
+    let completed = dispatch.step + runParallelChunk(&slices[0])
     if measure do
-        discard recordParallelCost(profile, slices[0].end - slices[0].begin, __hostMonotonicTicks() - started)
+        discard recordParallelCost(profile, completed, __hostMonotonicTicks() - started)
 
     for index in 1 until chunks do
         waitWork(&slices[index].node)
@@ -234,15 +252,37 @@ private func dispatchParallelRange(begin, end, chunks: u64, body: func||(u64, u6
 
 private func parallelChunkEntry(node: *WorkNode)
 {
-    runParallelChunk(cast(*ParallelChunk) node)
+    discard runParallelChunk(cast(*ParallelChunk) node)
 }
 
-private func runParallelChunk(chunk: *ParallelChunk)
+private func runParallelChunk(chunk: *ParallelChunk)->u64
 {
-    let body = chunk.body
+    let dispatch = chunk.dispatch
+    if !dispatch do
+        return 0
+    let body = dispatch.body
     if !body do
-        return
+        return 0
 
-    let safeBody = body orelse func(begin, end: u64) {}
-    safeBody(chunk.begin, chunk.end)
+    let safeBody  = body orelse func(begin, end: u64) {}
+    var completed = 0'u64
+    var first     = dispatch.next.load()
+    while first < dispatch.end
+    {
+        let remaining = dispatch.end - first
+        let count     = remaining < dispatch.step ? remaining : dispatch.step
+        let last      = first + count
+        let observed  = dispatch.next.compareExchange(first, last)
+        if observed != first
+        {
+            first = observed
+            continue
+        }
+
+        safeBody(first, last)
+        completed += count
+        first     = dispatch.next.load()
+    }
+
+    return completed
 }

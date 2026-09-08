@@ -52,7 +52,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">68</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">69</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#BootstrapAllocationHeader">BootstrapAllocationHeader</a></li>
@@ -98,6 +98,7 @@
 <li><a href="#Swag_Interface">Swag.Interface</a></li>
 <li><a href="#Swag_Module">Swag.Module</a></li>
 <li><a href="#Swag_Mutex">Swag.Mutex</a></li>
+<li><a href="#Swag_ParallelDispatch">Swag.ParallelDispatch</a></li>
 <li><a href="#Swag_ParallelFailure">Swag.ParallelFailure</a></li>
 <li><a href="#Swag_ParallelProfile">Swag.ParallelProfile</a></li>
 <li><a href="#Swag_ProcessInfos">Swag.ProcessInfos</a></li>
@@ -515,6 +516,8 @@
 <tr><td class="code-type"><a href="#Swag_Module">Swag.Module</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Defined some information about a loaded module</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Mutex">Swag.Mutex</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Mutual exclusion over the state a program keeps beside it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_ParallelDispatch">Swag.ParallelDispatch</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>The caller owns the range until every runner joins. Claiming a block advances one cursor;</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_ParallelFailure">Swag.ParallelFailure</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>The first published error is copied out of the worker's scratch error storage before that</p>
 </td></tr>
@@ -1096,6 +1099,8 @@
 <tr><td class="code-type"><a href="#Swag_Module">Swag.Module</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Defined some information about a loaded module</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Mutex">Swag.Mutex</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Mutual exclusion over the state a program keeps beside it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_ParallelDispatch">Swag.ParallelDispatch</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>The caller owns the range until every runner joins. Claiming a block advances one cursor;</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_ParallelFailure">Swag.ParallelFailure</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>The first published error is copied out of the worker's scratch error storage before that</p>
 </td></tr>
@@ -2117,7 +2122,12 @@ mutex.<span class="SFct">unlock</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_Mutex">Mutex</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Swag_ParallelFailure" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.ParallelFailure</span> <a class="api-item-permalink" href="#Swag_ParallelFailure" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L92">src</a></div>
+<div class="api-item api-item-struct"><span id="Swag_ParallelDispatch" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.ParallelDispatch</span> <a class="api-item-permalink" href="#Swag_ParallelDispatch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L61">src</a></div>
+<p>The caller owns the range until every runner joins. Claiming a block advances one cursor; accepted nodes stay bounded by the worker count rather than by the number of blocks.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_ParallelDispatch">ParallelDispatch</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Swag_ParallelFailure" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.ParallelFailure</span> <a class="api-item-permalink" href="#Swag_ParallelFailure" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L100">src</a></div>
 <p>The first published error is copied out of the worker's scratch error storage before that worker can reuse it. Only this owner drops the copy, after every partition has joined.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">private</span> <span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_ParallelFailure">ParallelFailure</a></span></span></div>
@@ -3787,10 +3797,10 @@ task.<span class="SFct">wait</span>()</span></div>
 <span class="SKwd">attr</span> <span class="SFct">Discardable</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_dispatchParallelRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.dispatchParallelRange</span> <a class="api-item-permalink" href="#Swag_dispatchParallelRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L207">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_dispatchParallelRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.dispatchParallelRange</span> <a class="api-item-permalink" href="#Swag_dispatchParallelRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L215">src</a></div>
 <p>Keep the partition storage out of serial calls, including empty and nested short loops. Inlining would put the full worker array and its stack probes back in their entry frame.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">dispatchParallelRange</span>(begin, end, chunks: <span class="STpe">u64</span>, body: <span class="SKwd">func</span>||(<span class="STpe">u64</span>, <span class="STpe">u64</span>), profile: *<span class="SCst"><a href="#Swag_ParallelProfile">ParallelProfile</a></span>?, measure: <span class="STpe">bool</span>)</span></div>
+<span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">dispatchParallelRange</span>(begin, end, chunks, grain: <span class="STpe">u64</span>, body: <span class="SKwd">func</span>||(<span class="STpe">u64</span>, <span class="STpe">u64</span>), profile: *<span class="SCst"><a href="#Swag_ParallelProfile">ParallelProfile</a></span>?, measure: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_drainWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.drainWork</span> <a class="api-item-permalink" href="#Swag_drainWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L410">src</a></div>
@@ -4085,7 +4095,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <span class="SKwd">func</span> <span class="SFct">panic</span>(message: <span class="STpe">string</span>?, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_parallelChunkEntry" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.parallelChunkEntry</span> <a class="api-item-permalink" href="#Swag_parallelChunkEntry" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L236">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_parallelChunkEntry" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.parallelChunkEntry</span> <a class="api-item-permalink" href="#Swag_parallelChunkEntry" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L254">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">parallelChunkEntry</span>(node: *<span class="SCst"><a href="swag.runtime.html#Swag_WorkNode">WorkNode</a></span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -4093,7 +4103,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">parallelProfile</span>(entry: <span class="STpe">u64</span>)-&gt;*<span class="SCst"><a href="#Swag_ParallelProfile">ParallelProfile</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_parallelRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.parallelRange</span> <a class="api-item-permalink" href="#Swag_parallelRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L147">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_parallelRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.parallelRange</span> <a class="api-item-permalink" href="#Swag_parallelRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L155">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">parallelRange</span>(begin, end: <span class="STpe">u64</span>, body: <span class="SKwd">func</span>||(<span class="STpe">u64</span>, <span class="STpe">u64</span>), entry: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -4181,8 +4191,8 @@ task.<span class="SFct">wait</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">round</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_runParallelChunk" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.runParallelChunk</span> <a class="api-item-permalink" href="#Swag_runParallelChunk" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L241">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">runParallelChunk</span>(chunk: *<span class="SCst"><a href="swag.runtime.html#Swag_ParallelChunk">ParallelChunk</a></span>)</span></div>
+<div class="api-item api-item-func"><span id="Swag_runParallelChunk" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.runParallelChunk</span> <a class="api-item-permalink" href="#Swag_runParallelChunk" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/parallel.swg#L259">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">runParallelChunk</span>(chunk: *<span class="SCst"><a href="swag.runtime.html#Swag_ParallelChunk">ParallelChunk</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_runPendingWork" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.runPendingWork</span> <a class="api-item-permalink" href="#Swag_runPendingWork" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L294">src</a></div>
@@ -5119,6 +5129,7 @@ task.<span class="SFct">wait</span>()</span></div>
 "v|Swag.Module.name|Swag_Module_name|Name of the module",
 "v|Swag.Module.types|Swag_Module_types|All exported types",
 "s|Swag.Mutex|Swag_Mutex|Mutual exclusion over the state a program keeps beside it.",
+"s|Swag.ParallelDispatch|Swag_ParallelDispatch|The caller owns the range until every runner joins. Claiming a block advances one cursor;",
 "s|Swag.ParallelFailure|Swag_ParallelFailure|The first published error is copied out of the worker's scratch error storage before that",
 "s|Swag.ParallelProfile|Swag_ParallelProfile|",
 "s|Swag.ProcessInfos|Swag_ProcessInfos|Defined some information about the current process",

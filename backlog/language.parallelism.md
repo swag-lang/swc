@@ -30,52 +30,10 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
-### language.parallelism.005 — Checked captures are not proved, only spelled
-
-- Recorded: 2026-09-07 15:52
-- Updated: 2026-09-08 14:37 — narrow lifetime evidence after automatic task joins
-- Evidence: `parallel for |&image, &dst| row in dst.height` and `Swag.Task.submit(func|owner|() ...)`
-  both take a written capture list, and the compiler checks only that the names exist and that a
-  by-value capture is a plain type. Two partitions writing the same element, an `&` capture whose
-  owner dies before the join, and a captured pointer whose pointee is mutated elsewhere all
-  compile. Both `Swag.Task.opDrop` and `Swag.TaskGroup.opDrop` join their work, including
-  on early return and failure, but neither proves that captured storage outlives that join.
-  In particular, an owner can release a borrowed field in its own destructor before the implicit
-  destruction of its task field. Such an owner must still join before releasing that storage.
-- Next: infer transferable (`Send`) and shared-readable (`Sync`) properties from a type's fields,
-  allocation, copy, move and destruction effects, then require them at every capture. Include
-  allocator and destructor effects, not just the representation: `NoCopy` does not imply `Send`,
-  `const` does not imply deep immutability, and an atomic reference count does not synchronize its
-  pointee. Raw pointers, opaque owners, native handles and foreign calls need a stated contract
-  rather than automatic acceptance.
-- Complete when: a rejected capture names the concrete alias, allocator, destructor or executor
-  constraint and points at a valid partition or ownership alternative; and the semantic tests reject
-  hidden aliases, escaped borrows and cross-module global writes without depending on an optional
-  analysis. Until then the language documents the capture list as a statement of intent, not as a
-  proof.
-- Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
-  language.parallelism.001.
-
-### language.parallelism.004 — Partitions cannot prove disjointness
-
-- Recorded: 2026-09-07 15:52
-- Updated: 2026-09-08 13:54 — narrow the remaining work to checked partition views
-- Evidence: `try/catch/expect parallel for` now carries failures across the join, but there is
-  still no way to express an exclusive view of part of a container. Consumers index captured
-  buffers, including H.264 reconstruction, and the compiler proves nothing about those indices.
-- Next: add exclusive row, tile, chunk, stride, split and zip views with bounds and overlap
-  contracts, and a checked partition constructor for the cases static proof cannot reach. That
-  validation is semantic input checking, not a release-disabled guard. Read-only source halos
-  beside disjoint destination tiles must be expressible, because stencils and image transforms
-  need them. Preserve the fallible loop's join and partial-effect contract while adding views.
-- Complete when: a partitioned image operation needs no manual indexing into a captured buffer,
-  overlapping mutable views are rejected, and success still means every index ran exactly once.
-- Related: std.pixel.md, language.parallelism.001.
-
 ### language.parallelism.001 — The shipped model, and the promises it does not yet make
 
 - Recorded: 2026-09-06 07:51
-- Updated: 2026-09-08 13:54 — distinguish fallible loops from the remaining partition proofs
+- Updated: 2026-09-08 15:06 — state bounded dynamic block distribution and its remaining imbalance limits
 - Where it stands: `parallel for |captures| name in range` is a statement of the language, lowered
   to a runtime range call, with fallible variants under `try`, `catch` and `expect`.
   `bin/runtime` owns the worker pool, `Swag.Task`,
@@ -133,8 +91,14 @@ the estimated work per partition and periodically refresh it. Empty and single-i
 need no pool. An already started pool with fewer than two workers skips profiling entirely;
 the observation starts no execution resource, and later calls see concurrent pool growth.
 Partition storage lives in a separate, non-inlined dispatch function, so serial and empty calls
-do not reserve the full worker array or probe its stack pages. The dispatch function joins every
-accepted partition before releasing that storage.
+do not reserve the full worker array or probe its stack pages. The dispatch function keeps one
+runner per chosen worker and joins every accepted runner before releasing that storage.
+Runners claim disjoint blocks through an atomic
+cursor; the whole range uses at most eight times as many blocks as runners, and the measured
+grain still sets their minimum size. The caller reserves its first block before publication and
+participates in the remaining claims. Each successful claim clamps its end before addition, even
+when the exclusive range end is `U64.Max`. An unusually expensive individual iteration or block
+can still dominate completion; blocks are not preempted or split after a claim.
 Hints retain no captured storage, and concurrent observations only affect placement.
 The fixed table probes at most four slots and never replaces an owner. If none accepts the body,
 the current call still samples its own cost, without caching it. Variable costs,
@@ -183,6 +147,48 @@ of simplicity when every useful helper needs an unchecked contract.
   formatter and the relevant diagnostics together. Compiler-source changes increment
   `SWC_BUILD_NUM`; serialized effect summaries and runtime ABI changes invalidate incompatible
   cached artifacts.
+
+### language.parallelism.005 — Checked captures are not proved, only spelled
+
+- Recorded: 2026-09-07 15:52
+- Updated: 2026-09-08 14:37 — narrow lifetime evidence after automatic task joins
+- Evidence: `parallel for |&image, &dst| row in dst.height` and `Swag.Task.submit(func|owner|() ...)`
+  both take a written capture list, and the compiler checks only that the names exist and that a
+  by-value capture is a plain type. Two partitions writing the same element, an `&` capture whose
+  owner dies before the join, and a captured pointer whose pointee is mutated elsewhere all
+  compile. Both `Swag.Task.opDrop` and `Swag.TaskGroup.opDrop` join their work, including
+  on early return and failure, but neither proves that captured storage outlives that join.
+  In particular, an owner can release a borrowed field in its own destructor before the implicit
+  destruction of its task field. Such an owner must still join before releasing that storage.
+- Next: infer transferable (`Send`) and shared-readable (`Sync`) properties from a type's fields,
+  allocation, copy, move and destruction effects, then require them at every capture. Include
+  allocator and destructor effects, not just the representation: `NoCopy` does not imply `Send`,
+  `const` does not imply deep immutability, and an atomic reference count does not synchronize its
+  pointee. Raw pointers, opaque owners, native handles and foreign calls need a stated contract
+  rather than automatic acceptance.
+- Complete when: a rejected capture names the concrete alias, allocator, destructor or executor
+  constraint and points at a valid partition or ownership alternative; and the semantic tests reject
+  hidden aliases, escaped borrows and cross-module global writes without depending on an optional
+  analysis. Until then the language documents the capture list as a statement of intent, not as a
+  proof.
+- Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
+  language.parallelism.001.
+
+### language.parallelism.004 — Partitions cannot prove disjointness
+
+- Recorded: 2026-09-07 15:52
+- Updated: 2026-09-08 13:54 — narrow the remaining work to checked partition views
+- Evidence: `try/catch/expect parallel for` now carries failures across the join, but there is
+  still no way to express an exclusive view of part of a container. Consumers index captured
+  buffers, including H.264 reconstruction, and the compiler proves nothing about those indices.
+- Next: add exclusive row, tile, chunk, stride, split and zip views with bounds and overlap
+  contracts, and a checked partition constructor for the cases static proof cannot reach. That
+  validation is semantic input checking, not a release-disabled guard. Read-only source halos
+  beside disjoint destination tiles must be expressible, because stencils and image transforms
+  need them. Preserve the fallible loop's join and partial-effect contract while adding views.
+- Complete when: a partitioned image operation needs no manual indexing into a captured buffer,
+  overlapping mutable views are rejected, and success still means every index ran exactly once.
+- Related: std.pixel.md, language.parallelism.001.
 
 ### language.parallelism.003 — One executor, one placement
 

@@ -46,6 +46,7 @@
 <li><a href="#_002_008_sigils_swg">Sigils</a></li>
 <li><a href="#_002_009_visibility_and_exports_swg">Visibility and Exports</a></li>
 <li><a href="#_002_010_module_lifecycle_swg">Module Lifecycle</a></li>
+<li><a href="#_002_011_native_documentation_swg">Native Documentation</a></li>
 </ul>
 </li>
 <li><a href="#_003_000_fundamentals_swg">Fundamentals</a>
@@ -204,14 +205,15 @@
 <li><span class="code-inline">#assert</span> checks a condition while compiling.</li>
 <li><span class="code-inline">Swag.assert</span> checks a condition while the generated program runs.</li>
 <li>Deliberately invalid examples stay commented out and explain the diagnostic they are intended to produce.</li>
-<li>Most declarations are private to this module so examples do not accidentally become part of another module's API.</li>
+<li>Most declarations are private to their source file so examples do not accidentally become part of another module's API.</li>
 </ul>
 <div class="blockquote blockquote-tip">
 <div class="blockquote-title-block"><span class="blockquote-title">Tip</span></div>
 <p>Copy a <span class="code-inline">#test</span> body into a function or executable while experimenting. Keep <span class="code-inline">#assert</span> for compile-time facts and <span class="code-inline">Swag.assert</span> for runtime behavior.</p>
 </div>
 <h3 id="_001_001_using_this_reference_swg_Accuracy_and_Scope">Accuracy and Scope</h3>
-<p>Examples in this module deliberately avoid standard-library dependencies unless a chapter is specifically about integration. Passing tests prove that the shown syntax and runtime results agree with the compiler version that shipped them. Prose still explains constraints that cannot be expressed by a successful test, such as rejected syntax or platform-specific linking requirements.</p>
+<p>Examples in this module deliberately avoid standard-library dependencies unless a chapter is specifically about integration. Passing tests prove that the shown syntax and runtime results agree with the compiler version that shipped them. Fenced snippets inside prose illustrate separate files or incomplete contexts; they are not compiled as part of this module. Executable examples appear outside the prose blocks in source and include their required declarations.</p>
+<p>Prose still explains constraints that cannot be expressed by a successful test, such as rejected syntax or platform-specific linking requirements.</p>
 <h3 id="_001_002_language_tour_swg">Language Tour</h3>
 <h3 id="_001_002_language_tour_swg_Values_and_Mutability">Values and Mutability</h3>
 <p><span class="code-inline">const</span> declares a compile-time value, <span class="code-inline">let</span> binds a runtime value once, and <span class="code-inline">var</span> declares mutable storage. Types are inferred when the initializer is unambiguous and can be written explicitly when they are part of the contract.</p>
@@ -454,7 +456,7 @@ swc new module app --workspace my-project</span></div>
 </tbody>
 </table>
 <p>Each configuration also asks for a backend optimization level, which <span class="code-inline">--optim-level</span> (<span class="code-inline">-O</span>) overrides: <span class="code-inline">0</span> runs no backend optimization, <span class="code-inline">1</span> runs everything that costs no compilation time, and <span class="code-inline">2</span> also runs what does. <span class="code-inline">devmode</span> asks for <span class="code-inline">1</span> and <span class="code-inline">release</span> for <span class="code-inline">2</span>.</p>
-<p>Neither configuration emits debug information by default. Add <span class="code-inline">--debug</span> to a <span class="code-inline">test</span>, <span class="code-inline">build</span>, <span class="code-inline">run</span>, or <span class="code-inline">smoke</span> command when a debugger needs symbols, types, and source line mappings. The option does not change optimization or guard policy.</p>
+<p>Neither configuration emits debug information by default. Add <span class="code-inline">--debug</span> to a <span class="code-inline">test</span>, <span class="code-inline">build</span>, or <span class="code-inline">run</span> command when a debugger needs symbols, types, and source line mappings. The option does not change optimization or guard policy.</p>
 <p>The target architecture currently exposed by <span class="code-inline">--arch</span> is <span class="code-inline">x86_64</span>. Select the artifact with <span class="code-inline">--artifact-kind</span> (<span class="code-inline">-ak</span>): <span class="code-inline">executable</span>, <span class="code-inline">shared-library</span>, <span class="code-inline">static-library</span>, or <span class="code-inline">export</span>.</p>
 <h3 id="_001_004_swc_command_line_swg_Common_Workflows">Common Workflows</h3>
 <div class="code-block"><span class="SCde">swc new script hello
@@ -521,6 +523,7 @@ indent-style = spaces</span></div>
 </table>
 <p>In an API module, prefix a source comment line with <span class="code-inline">//!</span> to include it in the module-wide <b>File documentation</b> section. Mark every line that belongs to the block; the marker is removed before Markdown rendering. A later <span class="code-inline">//!</span> block in the same file starts a new paragraph. Marked lines are emitted only in that section, even when adjacent to a declaration. Ordinary <span class="code-inline">//</span> comments remain local to their declarations and licence comments are not published implicitly.</p>
 <p>The command also generates the public runtime API page once per output directory.</p>
+<p>For comment placement, Markdown, symbol links, and module guides, see <a href="#_002_011_native_documentation_swg">Native documentation</a>.</p>
 <h3 id="_001_004_swc_command_line_swg_Test_Controls">Test Controls</h3>
 <p>By default, 'swc test' runs <span class="code-inline">#test</span> functions through both the JIT and native backend and emits native output. Narrow that behavior when diagnosing a layer:</p>
 <table class="table-markdown">
@@ -542,7 +545,7 @@ indent-style = spaces</span></div>
 <p>Repeated file filters form one union and repeated tag filters form another. When both kinds are present, a test must match both dimensions. With no tag filter, tagged and untagged tests run normally.</p>
 <p>The three <span class="code-inline">*-only</span> modes are mutually exclusive. For this reference, keep the default JIT and native paths enabled so examples verify both execution engines.</p>
 <h2 id="_002_000_modules_and_source_code_swg">Modules and Source Code</h2>
-<p>A Swag program is organized as source files inside modules, and modules inside a workspace. This chapter covers setup files, dependencies, declaration order, comments, statement termination, identifiers, sigils, visibility, and module lifecycle hooks.</p>
+<p>A Swag program is organized as source files inside modules, and modules inside a workspace. This chapter covers setup files, dependencies, declaration order, comments, statement termination, identifiers, sigils, visibility, and module lifecycle hooks. The native documentation section explains how comments and guides become a generated reference alongside the executable examples.</p>
 <h3 id="_002_001_workspaces_modules_and_dependencies_swg">Workspaces Modules and Dependencies</h3>
 <h3 id="_002_001_workspaces_modules_and_dependencies_swg_Workspaces_and_Modules">Workspaces and Modules</h3>
 <p>A <b>workspace</b> is the unit selected by the command line. Its <span class="code-inline">modules</span> directory contains one folder per module. A <b>module</b> is the compilation and API boundary: it produces an executable, library, or exported API description.</p>
@@ -670,31 +673,33 @@ indent-style = spaces</span></div>
 <span class="SKwd">func</span> <span class="SFct">functionDeclaredLater</span>() {}</span></div>
 <p>This flexibility also applies across multiple files. For example, you can call a function in one file and define it in another. Swag's global declaration model is intentionally non-restrictive, allowing you to structure your code in the way that best supports clarity and maintainability.</p>
 <h3 id="_002_004_comments_swg">Comments</h3>
-<h3 id="_002_004_comments_swg_Comments">Comments</h3>
-<p>Swag supports both single-line and multi-line comments, providing flexibility for inline documentation and explanations within your code. This helps maintain clarity and readability, especially in larger or more complex codebases.</p>
-<div class="code-block"><span class="SCde"><span class="SCmt">// Example of a single-line comment</span>
-<span class="SCmt">// Single-line comments are typically used for brief explanations or notes.</span>
+<h3 id="_002_004_comments_swg_Line_and_Block_Comments">Line and Block Comments</h3>
+<p><span class="code-inline">//</span> starts a comment that ends at the next line break. It can occupy its own line or follow code. <span class="code-inline">/*</span> starts a block comment, and the matching <span class="code-inline">*/</span> ends it; a block comment may span lines or separate tokens within an expression.</p>
+<p>Comments are ignored as program text. Delimiters inside a string literal are ordinary characters, so a URL does not start a comment.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SCmt">// A line comment may precede a statement.</span>
+    <span class="SKwd">let</span> answer = <span class="SNum">40</span> <span class="SCmt">/* a block comment between tokens */</span> + <span class="SNum">2</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(answer == <span class="SNum">42</span>)     <span class="SCmt">// A trailing comment belongs to this line.</span>
 
-<span class="SCmt">/*
-    Example of a multi-line comment
-    that spans several lines.
-
-    Multi-line comments are useful when more detailed explanations are required.
-    These comments can describe the overall purpose of a function, document complex
-    logic, or provide additional context to developers.
-*/</span>
-
-<span class="SKwd">const</span> <span class="SCst">A</span> = <span class="SNum">0</span>                   <span class="SCmt">// A constant named 'A' assigned the value '0'.</span>
-<span class="SKwd">const</span> <span class="SCst">B</span> = <span class="SCmt">/* false */</span><span class="SKwd">true</span>     <span class="SCmt">// A constant named 'B' assigned the value 'true', with an inline</span>
-<span class="SCmt">// comment noting that 'false' was an alternative value considered.</span></span></div>
-<h3 id="_002_004_comments_swg_Nested_Comments">Nested Comments</h3>
-<p>Swag also supports nested comments within multi-line comments. This can be particularly useful when temporarily disabling a block of code or when adding notes inside an existing comment block.</p>
-<div class="code-block"><span class="SCmt">/*
-    /* Example of a nested multi-line comment */
-    The nested comment above is encapsulated within another multi-line comment.
-    This demonstrates Swag's ability to handle complex comment structures without
-    causing errors or ambiguity.
-*/</span></div>
+    <span class="SKwd">let</span> address = <span class="SStr">"https://example.com"</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(address.count == <span class="SNum">19</span>)
+}</span></div>
+<h3 id="_002_004_comments_swg_Nested_Block_Comments">Nested Block Comments</h3>
+<p>Block comments nest. Every inner <span class="code-inline">/*</span> must have a matching <span class="code-inline">*/</span> before the outer comment can end. This allows temporarily commenting out code that already contains block comments.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SCmt">/*
+        let disabled = 1
+        /* This inner comment ends without ending the outer one. */
+        disabled += 1
+    */</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">true</span>)
+}</span></div>
+<h3 id="_002_004_comments_swg_Comments_as_Native_Documentation">Comments as Native Documentation</h3>
+<p>Ordinary <span class="code-inline">//</span> comments also document declarations when 'swc doc' generates an API reference. No special <span class="code-inline">///</span> prefix or <span class="code-inline">@param</span> tags are needed. Put the comment immediately before the declaration, or after a field or enum value on the same line.</p>
+<p><span class="code-inline">//!</span> opts source-file prose into the module's <b>File documentation</b> section. The numbered examples mode used by this reference renders '/*<i> ... </i>/' blocks as prose and the surrounding code as examples.</p>
+<p>See <a href="#_002_011_native_documentation_swg">Native documentation</a> for placement, Markdown, symbol links, module guides, and generation commands.</p>
 <h3 id="_002_005_semicolons_swg">Semicolons</h3>
 <h3 id="_002_005_semicolons_swg_Statement_Termination_in_Swag">Statement Termination in Swag</h3>
 <p>Unlike languages such as C or C++, there is no strict requirement to end statements with a semicolon (<span class="code-inline">;</span>). In Swag, a statement naturally terminates at the end of a line ('end of line'). This allows for cleaner, more concise syntax and reduces visual clutter, making the code easier to read and maintain.</p>
@@ -737,7 +742,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h3 id="_002_006_identifiers_swg">Identifiers</h3>
 <h3 id="_002_006_identifiers_swg_Naming">Naming</h3>
-<p>User-defined identifiers, such as variables, constants, and function names, must begin with either an underscore (<span class="code-inline">_</span>) or an ASCII letter. Identifiers may then include underscores, ASCII letters, and digits.</p>
+<p>User-defined identifiers, such as variables, constants, and function names, must begin with either an underscore (<span class="code-inline">_</span>) or an ASCII letter. Identifiers may then include underscores, ASCII letters, and digits. Names are case-sensitive: <span class="code-inline">count</span> and <span class="code-inline">Count</span> name different symbols.</p>
 <p>Examples:</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> thisIsAValidIdentifier0   = <span class="SNum">0</span>
 <span class="SKwd">const</span> this_is_also_valid        = <span class="SNum">0</span>
@@ -745,7 +750,7 @@ indent-style = spaces</span></div>
 <p>However, identifiers cannot start with two underscores, as this prefix is reserved by the compiler.</p>
 <div class="code-block"><span class="SCmt">// const __this_is_invalid = 0</span></div>
 <h3 id="_002_006_identifiers_swg_Compiler_Instructions">Compiler Instructions</h3>
-<p>Names beginning with <span class="code-inline">#</span> belong to compiler syntax: built-in directives, static queries, qualifiers, modifiers, and user-defined selectors at specific extension points such as custom iteration.</p>
+<p>Names beginning with <span class="code-inline">#</span> belong to compiler syntax: built-in directives, static queries, qualifiers, and modifiers. This set is defined by the compiler; custom iteration uses ordinary methods and views.</p>
 <p>Examples of compiler instructions:</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#assert</span>
 <span class="SFct">#run</span>
@@ -753,10 +758,10 @@ indent-style = spaces</span></div>
 <h3 id="_002_006_identifiers_swg_Intrinsics">Intrinsics</h3>
 <p>Compiler-provided intrinsic values and operations live in the built-in <span class="code-inline">Swag</span> namespace. Collection views expose <span class="code-inline">.count</span> and <span class="code-inline">.buffer</span> through ordinary member access instead. Availability depends on the intrinsic and context: <span class="code-inline">Swag.compiler()</span> is compile-time only, while math and memory intrinsics can also generate runtime code.</p>
 <p>Examples of intrinsic functions:</p>
-<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.<span class="SFct">min</span>()
-<span class="SNsp">Swag</span>.<span class="SFct">max</span>()
-<span class="SNsp">Swag</span>.<span class="SFct">sqrt</span>()
-<span class="SNsp">Swag</span>.<span class="SFct">print</span>()</span></div>
+<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.<span class="SFct">min</span>(<span class="SNum">2</span>, <span class="SNum">5</span>)
+<span class="SNsp">Swag</span>.<span class="SFct">max</span>(<span class="SNum">2</span>, <span class="SNum">5</span>)
+<span class="SNsp">Swag</span>.<span class="SFct">sqrt</span>(<span class="SNum">4.0</span>'<span class="STpe">f32</span>)
+<span class="SNsp">Swag</span>.<span class="SFct">print</span>(<span class="SStr">"Hello\n"</span>)</span></div>
 <h3 id="_002_007_keywords_swg">Keywords</h3>
 <h3 id="_002_007_keywords_swg_Language_Keyword_Index">Language Keyword Index</h3>
 <p>Keywords are reserved bare words. They cannot be reused as identifiers. This page is an index; the surrounding chapters explain each active construct.</p>
@@ -815,7 +820,7 @@ indent-style = spaces</span></div>
 <span class="SNsp">Swag</span>.bitCountTz  <span class="SNsp">Swag</span>.byteSwap  <span class="SNsp">Swag</span>.ceil  <span class="SNsp">Swag</span>.cos  <span class="SNsp">Swag</span>.cosh  <span class="SNsp">Swag</span>.exp  <span class="SNsp">Swag</span>.exp2
 <span class="SNsp">Swag</span>.floor  <span class="SNsp">Swag</span>.log  <span class="SNsp">Swag</span>.log10  <span class="SNsp">Swag</span>.log2  <span class="SNsp">Swag</span>.max  <span class="SNsp">Swag</span>.min  <span class="SNsp">Swag</span>.muladd  <span class="SNsp">Swag</span>.pow
 <span class="SNsp">Swag</span>.rol  <span class="SNsp">Swag</span>.ror  <span class="SNsp">Swag</span>.round  <span class="SNsp">Swag</span>.sin  <span class="SNsp">Swag</span>.sinh  <span class="SNsp">Swag</span>.sqrt  <span class="SNsp">Swag</span>.tan  <span class="SNsp">Swag</span>.tanh  <span class="SNsp">Swag</span>.trunc</span></div>
-<p>Memory, atomic, and C variadic intrinsics:</p>
+<p>Memory and atomic intrinsics:</p>
 <div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.atomadd  <span class="SNsp">Swag</span>.atomand  <span class="SNsp">Swag</span>.atomcmpxchg  <span class="SNsp">Swag</span>.atomget  <span class="SNsp">Swag</span>.atomor  <span class="SNsp">Swag</span>.atomxchg  <span class="SNsp">Swag</span>.atomxor
 <span class="SNsp">Swag</span>.memcmp  <span class="SNsp">Swag</span>.memcpy  <span class="SNsp">Swag</span>.memmove  <span class="SNsp">Swag</span>.memset</span></div>
 <p>Packed vector intrinsics:</p>
@@ -827,7 +832,7 @@ indent-style = spaces</span></div>
 <span class="SNsp">Swag</span>.vecwidenlo</span></div>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
-<p>The <span class="code-inline">#</span>-prefixed and <span class="code-inline">@</span>-prefixed names are reserved separately from bare identifiers. The next section explains why Swag uses both namespaces.</p>
+<p><span class="code-inline">#</span>-prefixed names belong to compiler syntax. Intrinsics use qualified names in <span class="code-inline">Swag</span>, so <span class="code-inline">min</span> and <span class="code-inline">print</span> remain available as user identifiers. The next section explains the distinction.</p>
 </div>
 <h3 id="_002_008_sigils_swg">Sigils</h3>
 <h3 id="_002_008_sigils_swg_Compiler_Syntax______and__Swag_">Compiler Syntax: <span class="code-inline">#</span> and <span class="code-inline">Swag</span></h3>
@@ -1143,6 +1148,134 @@ indent-style = spaces</span></div>
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
 <p>Do not confuse <span class="code-inline">#init</span> and <span class="code-inline">#drop</span> module hooks with the <span class="code-inline">Swag.init</span> and <span class="code-inline">Swag.drop</span> intrinsics. The hooks manage a module's lifetime; the intrinsics operate on values and memory regions.</p>
 </div>
+<h3 id="_002_011_native_documentation_swg">Native Documentation</h3>
+<h3 id="_002_011_native_documentation_swg_Documentation_Is_Part_of_the_Source">Documentation Is Part of the Source</h3>
+<p>'swc doc' parses and type-checks a module, then renders its documentation as static HTML. It uses ordinary comments for API contracts and Markdown for longer guides. Documentation comments do not change visibility or runtime behavior.</p>
+<table class="table-markdown">
+<thead>
+<tr><th>Content</th><th>Where to write it</th></tr>
+</thead>
+<tbody>
+<tr><td>Module purpose, conventions, and first use</td><td>Leading comment in <span class="code-inline">module.swg</span></td></tr>
+<tr><td>One declaration's contract</td><td><span class="code-inline">//</span> immediately before the declaration</td></tr>
+<tr><td>Short field or enum-case description</td><td><span class="code-inline">//</span> after the member on the same line</td></tr>
+<tr><td>Source-file overview</td><td>Lines beginning with <span class="code-inline">//!</span> in that source file</td></tr>
+<tr><td>Longer workflow or tutorial</td><td>Markdown files in <span class="code-inline">help/</span> beside <span class="code-inline">src/</span></td></tr>
+<tr><td>Executable chapter</td><td>Numbered <span class="code-inline">.swg</span> file in <span class="code-inline">.Examples</span> mode</td></tr>
+</tbody>
+</table>
+<h3 id="_002_011_native_documentation_swg_Documenting_a_Declaration_with_____">Documenting a Declaration with <span class="code-inline">//</span></h3>
+<p>Start with one short, complete summary line. The generated index uses that line on its own. Separate further detail with an empty <span class="code-inline">//</span> line. Name the units, accepted ranges, failure behavior, ownership, and lifetime when they are part of the contract; avoid merely repeating the signature.</p>
+<p>Put documentation before the first attribute so it describes the declaration as a whole. Block comments are accepted too, but <span class="code-inline">//</span> is sufficient for both short summaries and multi-paragraph contracts.</p>
+<div class="code-block"><span class="SCde"><span class="SCmt">// Returns the larger of two non-negative byte counts.</span>
+<span class="SCmt">//</span>
+<span class="SCmt">// Equal counts return the same value. This operation allocates no storage.</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
+<span class="SKwd">func</span> <span class="SFct">largerByteCount</span>(left, right: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span> =&gt; <span class="SNsp">Swag</span>.<span class="SFct">max</span>(left, right)
+
+<span class="SFct">#test</span>
+{
+    <span class="SCmp">#assert</span>(<span class="SFct">largerByteCount</span>(<span class="SNum">12</span>, <span class="SNum">8</span>) == <span class="SNum">12</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">largerByteCount</span>(<span class="SNum">8</span>, <span class="SNum">8</span>) == <span class="SNum">8</span>)
+}</span></div>
+<p>These declarations are private examples. In a reusable API source file, write '#global export' for a uniformly exported surface, or use the visibility required by each declaration. Public visibility and documentation are separate decisions: a comment does not publish a private declaration.</p>
+<h3 id="_002_011_native_documentation_swg_Fields__Enum_Cases__and_Methods">Fields, Enum Cases, and Methods</h3>
+<p>Use trailing comments for short member contracts. Put a longer explanation above the member when it needs paragraphs, a table, or an example. Named aggregate members default to <span class="code-inline">internal</span>, so group intended public fields explicitly.</p>
+<div class="code-block"><span class="SCde"><span class="SCmt">// Describes a region of a larger byte sequence.</span>
+<span class="SKwd">struct</span> <span class="SCst">ByteRegion</span>
+{
+    <span class="SKwd">public</span>
+    {
+        offset: <span class="STpe">u64</span>     <span class="SCmt">// Byte offset from the start of the sequence.</span>
+        count: <span class="STpe">u64</span>      <span class="SCmt">// Number of bytes in the region; zero denotes an empty region.</span>
+    }
+}
+
+<span class="SKwd">impl</span> <span class="SCst">ByteRegion</span>
+{
+    <span class="SCmt">// Reports whether the region contains no bytes.</span>
+    <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isEmpty</span>()-&gt;<span class="STpe">bool</span> =&gt; <span class="STpe">me</span>.count == <span class="SNum">0</span>
+}
+
+<span class="SCmt">// Selects how an existing destination is handled.</span>
+<span class="SKwd">enum</span> <span class="SCst">DestinationPolicy</span>
+{
+    <span class="SCst">Keep</span>       <span class="SCmt">// Preserve existing contents.</span>
+    <span class="SCst">Replace</span>    <span class="SCmt">// Replace existing contents with the new value.</span>
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> region = <span class="SCst">ByteRegion</span>{offset: <span class="SNum">16</span>, count: <span class="SNum">0</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(region.<span class="SFct">isEmpty</span>())
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(region.offset == <span class="SNum">16</span>)
+}</span></div>
+<p>Document an interface method at its interface declaration. Implementations do not need to repeat that shared contract. Put the common description on the first overload; document later overloads when their behavior differs.</p>
+<h3 id="_002_011_native_documentation_swg_Module_Overviews_and_Guides">Module Overviews and Guides</h3>
+<p>The overview is the first comment in <span class="code-inline">module.swg</span>, before imports and <span class="code-inline">#run</span>. Keep it focused on what the module provides and how a caller starts using it. For example, a separate module could contain:</p>
+<div class="code-block"><span class="SCde"><span class="SCmt">// Reads and writes framed byte messages.</span>
+<span class="SCmt">//</span>
+<span class="SCmt">// Readers borrow their input buffer. Keep it alive until reading finishes.</span>
+<span class="SFct">#run</span>
+{
+    <span class="SKwd">let</span> cfg = <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>().<span class="SFct">getBuildCfg</span>()!
+    cfg.genDoc.kind         = .<span class="SCst">Api</span>
+    cfg.genDoc.titleContent = <span class="SStr">"Message API"</span>
+    cfg.genDoc.outputName   = <span class="SStr">"messages"</span>
+}</span></div>
+<p>Put longer guides under <span class="code-inline">help/</span>, beside <span class="code-inline">src/</span>. The generator includes <span class="code-inline">.md</span> files in lexical path order in the API page. Begin each guide with one '# Title'; it becomes the guide title and its table-of-contents entry. Number filenames when the reading order matters, such as <span class="code-inline">001_getting_started.md</span> and <span class="code-inline">002_streaming.md</span>.</p>
+<h3 id="_002_011_native_documentation_swg_File_Documentation_with______">File Documentation with <span class="code-inline">//!</span></h3>
+<p>Mark every line of a file overview with <span class="code-inline">//!</span>, including blank paragraph separators. The generator removes the marker and renders the remaining Markdown once in the module-wide <b>File documentation</b> section, under the source filename. Separate marked blocks in the same file become separate paragraphs.</p>
+<div class="code-block"><span class="SCde"><span class="SCmt">//! Message sizes count payload bytes, excluding the header.</span>
+<span class="SCmt">//!</span>
+<span class="SCmt">//! A reader borrows its input and never releases that storage.</span>
+
+<span class="SCmt">// Returns the payload length in bytes.</span>
+<span class="SKwd">func</span> <span class="SFct">payloadLength</span>()-&gt;<span class="STpe">u64</span> =&gt; <span class="SNum">0</span></span></div>
+<p>The <span class="code-inline">//!</span> lines do not become the function's description, even when placed next to it. Ordinary <span class="code-inline">//</span> comments stay with declarations. Licence and provenance headers do not implicitly become module prose.</p>
+<h3 id="_002_011_native_documentation_swg_Markdown_in_Comments">Markdown in Comments</h3>
+<p>Write ordinary Markdown after the comment prefix. Supported forms include headings, paragraphs, emphasis, inline code, fenced <span class="code-inline">swag</span> examples, links, images, tables, lists, description lists, and callouts.</p>
+<div class="code-block"><span class="SCde"><span class="SCmt">// Reads one message from the input.</span>
+<span class="SCmt">//</span>
+<span class="SCmt">// The input must contain a complete header.</span>
+<span class="SCmt">//</span>
+<span class="SCmt">// - Lengths count bytes.</span>
+<span class="SCmt">// - The returned view borrows the input.</span>
+<span class="SCmt">//   Keep the input alive while using the result.</span>
+<span class="SCmt">//</span>
+<span class="SCmt">// &gt; NOTE: An empty payload is a valid message.</span></span></div>
+<ul>
+<li>Use '- ' for unordered list items and '1. ', '2. ', and so on for ordered lists. Indent continuation lines to the item's text column and nested items two spaces further. Leave a blank comment line after a list before normal prose.</li>
+<li>Reserve '+ ' for a description-list term, with its description indented below.</li>
+<li>Use backticks around code tokens and <span class="code-inline">swag</span> as the language of a code fence.</li>
+<li>Introduce callouts with '&gt; NOTE:', '&gt; TIP:', '&gt; WARNING:', '&gt; ATTENTION:', or '&gt; EXAMPLE:'.</li>
+<li>Describe parameters and return values in prose; <span class="code-inline">@param</span>, <span class="code-inline">@return</span>, and <span class="code-inline">@throws</span> are not documentation tags.</li>
+</ul>
+<h3 id="_002_011_native_documentation_swg_Linking_to_Symbols">Linking to Symbols</h3>
+<p>In API comments and guides, write a qualified symbol as <span class="code-inline">[[Swag.TypeInfo]]</span> or <span class="code-inline">[[Core.Math.Vector2]]</span>. The generator resolves types, functions, methods, constants, fields, and enum cases, including symbols from other modules. Use the full name when an unqualified name could be ambiguous.</p>
+<p>Put literal link syntax inside inline or fenced code when explaining it, as this chapter does. Use ordinary Markdown links for documentation pages; generated pages use <span class="code-inline">.html</span> URLs. Declarations and field tables receive type links automatically when the target is known.</p>
+<h3 id="_002_011_native_documentation_swg_Choosing_What_Appears">Choosing What Appears</h3>
+<p>API mode documents the public surface. <span class="code-inline">#[Swag.NoDoc]</span> excludes a declaration that must remain public but is intentionally outside the reader-facing reference. It does not change visibility, linkage, or the exported API. Use it for a deliberate exclusion, not as a replacement for a missing contract.</p>
+<p><span class="code-inline">#[Swag.Opaque]</span> hides a struct's representation from consumers and from generated field documentation. Its public type and operations still need documentation.</p>
+<h3 id="_002_011_native_documentation_swg_Choosing_a_Documentation_Mode">Choosing a Documentation Mode</h3>
+<p>Set <span class="code-inline">Swag.BuildCfg.genDoc.kind</span> in <span class="code-inline">module.swg</span>:</p>
+<table class="table-markdown">
+<thead>
+<tr><th>Kind</th><th>Source organization</th><th>Result</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="code-inline">.Api</span></td><td>Public declarations, module overview, <span class="code-inline">//!</span>, and Markdown guides</td><td>One module API page</td></tr>
+<tr><td><span class="code-inline">.Examples</span></td><td>Numbered source files such as <span class="code-inline">001_000_introduction.swg</span> and <span class="code-inline">001_001_first_steps.swg</span></td><td>One guided document with a chapter index</td></tr>
+<tr><td><span class="code-inline">.Pages</span></td><td>Individual source files</td><td>One page per source file</td></tr>
+</tbody>
+</table>
+<p>In <span class="code-inline">.Examples</span> mode, '/*<i> ... </i>/' blocks contain prose and executable Swag stays outside those blocks. <span class="code-inline">NNN_000_title.swg</span> starts a chapter, and other <span class="code-inline">NNN_MMM</span> files are its sections. Filenames determine presentation order, never execution order. A fenced snippet inside a prose block is illustrative text; it is not compiled or executed. Put runnable checks in <span class="code-inline">#test</span> blocks outside the prose.</p>
+<h3 id="_002_011_native_documentation_swg_Generating_and_Checking_the_Result">Generating and Checking the Result</h3>
+<p>For a workspace containing a module named <span class="code-inline">messages</span>:</p>
+<div class="code-block"><span class="SCde">swc doc -w path/to/workspace -m messages --doc-output-dir path/to/docs
+swc test -w path/to/workspace -m messages</span></div>
+<p><span class="code-inline">doc</span> checks the source and renders pages; <span class="code-inline">test</span> executes the examples. One does not replace the other. The documentation command also generates the public runtime API page. <span class="code-inline">genDoc.outputName</span> sets the module page's base name, while <span class="code-inline">genDoc.titleContent</span> sets its displayed title.</p>
+<p>Open the generated HTML and check the module overview, chapter or symbol index, code blocks, lists, tables, callouts, and links. An API review should also confirm that all intended public declarations appear and that private or deliberately excluded declarations do not.</p>
 <h2 id="_003_000_fundamentals_swg">Fundamentals</h2>
 <p>This chapter establishes the value model: built-in scalar types, literals, strings, constants, variables, operators, conversions, and aliases. Later chapters build aggregates and generic abstractions from these rules.</p>
 <h3 id="_003_001_basic_types_swg">Basic Types</h3>
@@ -1232,7 +1365,7 @@ indent-style = spaces</span></div>
 <p>Swag supports <b>type reflection</b> at both <b>compile time</b> and <b>runtime</b>. This allows inspection and manipulation of types dynamically, enabling powerful and introspective programming techniques.</p>
 <p>Further details about type reflection are explored in later sections.</p>
 <h3 id="_003_001_basic_types_swg_Type_Creation_with___decltype_">Type Creation with <span class="code-inline">#decltype</span></h3>
-<p>You can use <span class="code-inline">#decltype</span> to create a type based on an existing expression. This is useful for inferring or mirroring the type of another variable dynamically, improving reusability and reducing redundancy.</p>
+<p>Use <span class="code-inline">#decltype</span> to name the type of an existing expression in a type position. The result is determined at compile time; it does not change a variable's type at runtime. It can also materialize a type from compile-time type information, as shown in the reflection chapter.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> a               = <span class="SNum">0</span>     <span class="SCmt">// Type of 'a' inferred as 's32'</span>
@@ -1369,7 +1502,8 @@ indent-style = spaces</span></div>
 }</span></div>
 <h3 id="_003_003_string_swg">String</h3>
 <h3 id="_003_003_string_swg_UTF-8_Encoding">UTF-8 Encoding</h3>
-<p>Swag uses UTF-8 encoding for strings, allowing representation of characters from virtually all languages and symbol sets.</p>
+<p>Swag uses UTF-8 encoding for strings. A <span class="code-inline">string</span> is a non-owning view with a data pointer and a byte count. Copying it copies the view, not the text; keep the backing storage alive for as long as the view is used. String literals have static storage, while a view into an allocated buffer borrows that buffer.</p>
+<p><span class="code-inline">.count</span> measures bytes, not Unicode code points or displayed characters. Strings may contain embedded zero bytes. The zero-terminated <span class="code-inline">cstring</span> type and explicit conversions at a C boundary are described in the interoperability chapter.</p>
 <h3 id="_003_003_string_swg_String_Comparison">String Comparison</h3>
 <p>Strings can be compared directly for equality using the <span class="code-inline">==</span> operator.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -1390,7 +1524,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <div class="blockquote blockquote-warning">
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
-<p>Direct indexing of a string to retrieve a <span class="code-inline">rune</span> is not supported, except for ASCII strings. Swag avoids the runtime overhead of UTF-8 decoding. The <span class="code-inline">Std.Core</span> module provides utilities for working with UTF-8 strings.</p>
+<p>String indexing always returns a byte. For ASCII, that byte also represents the code point; a multibyte character requires UTF-8 decoding. The standard <span class="code-inline">core</span> module provides text-processing utilities in the <span class="code-inline">Core</span> namespace.</p>
 </div>
 <h3 id="_003_003_string_swg_String_Indexing">String Indexing</h3>
 <p>When indexing a string, Swag returns a byte (<span class="code-inline">u8</span>), not a <span class="code-inline">rune</span>. This reflects the underlying UTF-8 encoding.</p>
@@ -1408,7 +1542,7 @@ indent-style = spaces</span></div>
     <span class="SCmp">#assert</span>(c[<span class="SNum">1</span>] != '<span class="SFct">X</span>')
 }</span></div>
 <h3 id="_003_003_string_swg_Compile-Time_String_Building">Compile-Time String Building</h3>
-<p>There is no string concatenation operator: <span class="code-inline">+</span> is not defined on <span class="code-inline">string</span>, and runtime text is built with <span class="code-inline">Std.Core</span> (<span class="code-inline">String</span>, <span class="code-inline">ConcatBuffer</span>, <span class="code-inline">Format</span>). At compile time, <span class="code-inline">#stringof</span> takes any number of constant parts and writes them one after the other, each shown the way a constant prints.</p>
+<p>There is no string concatenation operator: <span class="code-inline">+</span> is not defined on <span class="code-inline">string</span>, and runtime text is built with the standard <span class="code-inline">core</span> module (<span class="code-inline">Core.String</span>, <span class="code-inline">Core.ConcatBuffer</span>, <span class="code-inline">Core.Format</span>). At compile time, <span class="code-inline">#stringof</span> takes any number of constant parts and writes them one after the other, each shown the way a constant prints.</p>
 <div class="blockquote blockquote-warning">
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
 <p>Every part must be a constant expression. The <span class="code-inline">let</span> bindings below hold a value the compiler already folded, not a runtime concatenation; a part that needs a runtime value reports that the expression needs a compile-time value.</p>
@@ -1426,7 +1560,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(d == <span class="SStr">"there are 4 apples in 4 baskets"</span>)
 }</span></div>
 <h3 id="_003_003_string_swg_Null_Strings">Null Strings</h3>
-<p>A string can be <span class="code-inline">null</span> if it has not been initialized. This allows checking whether a string has been assigned a value.</p>
+<p>A <span class="code-inline">string?</span> can be <span class="code-inline">null</span> and defaults to that absent state. A bare <span class="code-inline">string</span> is non-null and requires an initializer. The empty literal <span class="code-inline">""</span> is a present string with zero bytes; it is different from an absent string.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> a: <span class="STpe">string</span>?
@@ -1435,6 +1569,11 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a != <span class="SKwd">null</span>)
     a = <span class="SKwd">null</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == <span class="SKwd">null</span>)
+
+    <span class="SKwd">let</span> empty: <span class="STpe">string</span>? = <span class="SStr">""</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(empty != <span class="SKwd">null</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(empty.count == <span class="SNum">0</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((empty <span class="SLgc">orelse</span> <span class="SStr">"fallback"</span>) == <span class="SStr">""</span>)
 }</span></div>
 <h3 id="_003_003_string_swg_Character_Literals">Character Literals</h3>
 <p>Character literals are enclosed in quotes and can represent any Unicode character, not just ASCII.</p>
@@ -1572,7 +1711,7 @@ indent-style = spaces</span></div>
                  string
                  "</span><span class="SStr">""</span>
 }</span></div>
-<p>In multiline or raw strings, ending a line with <span class="code-inline">\</span> prevents the following end-of-line from being included.</p>
+<p>In an ordinary multiline string, ending a line with <span class="code-inline">\</span> prevents the following end-of-line from being included. A <span class="code-inline">#raw</span> string keeps the backslash and line break because escape sequences are disabled.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">const</span> a = <span class="SStr">""</span><span class="SStr">"\
@@ -1598,8 +1737,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h3 id="_003_004_constants_swg">Constants</h3>
 <h3 id="_003_004_constants_swg_Constants_with__const_">Constants with <span class="code-inline">const</span></h3>
-<p>Using <span class="code-inline">const</span> means the value must be <b>known by the compiler</b> at compile time. The compiler embeds the constant’s value directly into the compiled code, removing any runtime memory usage for simple types like integers or strings.</p>
-<p>In other words, the compiler replaces every occurrence of a constant with its literal value, leading to optimized and efficient code execution.</p>
+<p>Using <span class="code-inline">const</span> means the value must be <b>known by the compiler</b> at compile time. The compiler can substitute the value directly where it is used. This does not promise that a constant occupies no storage: string bytes and addressable aggregate values still need backing memory.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SCmt">// Immutable compile-time constants</span>
@@ -1610,7 +1748,7 @@ indent-style = spaces</span></div>
     <span class="SCmp">#assert</span>(b == <span class="SStr">"string"</span>)
 }</span></div>
 <h3 id="_003_004_constants_swg_Constants_with_Complex_Types">Constants with Complex Types</h3>
-<p>Swag also supports constants with complex data types, such as arrays and structures. When declared, the data is stored in the program's data segment, which occupies memory. The memory address of such constants can be accessed at runtime, allowing indirect manipulation through pointers.</p>
+<p>Swag also supports constants with complex data types, such as arrays and structures. When declared, the data is stored in the program's data segment, which occupies memory. The memory address of such constants can be accessed at runtime for read-only access through pointers; taking an address does not make the constant mutable.</p>
 <h4 id="_003_004_constants_swg_Static_Arrays">Static Arrays</h4>
 <p>A static array has a fixed size. In this example, the constant array <span class="code-inline">a</span> contains three elements of type <span class="code-inline">s32</span> (signed 32-bit integers).</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -1677,7 +1815,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(b == <span class="SNum">1.5</span>)
 }</span></div>
 <h3 id="_003_005_variables_swg_Default_Initialization">Default Initialization</h3>
-<p>If a variable is declared without an explicit value, it is initialized with its type's default value. This remains true even when the following statements overwrite every field: the compiler may remove a provably unobservable default initialization as an optimization, without changing the program's semantics.</p>
+<p>If a variable is declared without an explicit value, it is initialized with its type's safe default value, when one exists. Non-null pointers, strings, and other types without an implicit default require an initializer. This remains true even when the following statements overwrite every field: the compiler may remove a provably unobservable default initialization as an optimization, without changing the program's semantics.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> a: <span class="STpe">bool</span>
@@ -1917,6 +2055,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h3 id="_003_006_operators_swg_Logical_Operators">Logical Operators</h3>
 <p>Logical operators evaluate expressions and return a boolean result. Swag uses <span class="code-inline">and</span> and <span class="code-inline">or</span> instead of <span class="code-inline">&amp;&amp;</span> and <span class="code-inline">||</span> from C/C++.</p>
+<p>Both short-circuit: <span class="code-inline">and</span> evaluates its right operand only when the left is true, and <span class="code-inline">or</span> evaluates it only when the left is false. This lets the first operand guard an access in the second, including a nullable pointer access.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> a = <span class="SKwd">false</span>
@@ -1924,7 +2063,7 @@ indent-style = spaces</span></div>
     a = (<span class="SNum">1</span> &gt; <span class="SNum">10</span>) <span class="SLgc">or</span> (<span class="SNum">10</span> &lt; <span class="SNum">1</span>)
 }</span></div>
 <h3 id="_003_006_operators_swg_Ternary_Operator">Ternary Operator</h3>
-<p>The ternary operator tests an expression and returns one of two values depending on whether the condition is true or false.</p>
+<p>The ternary operator tests an expression and returns one of two values depending on whether the condition is true or false. Only the selected branch is evaluated.</p>
 <p>Syntax: <span class="code-inline">A = Condition ? B : C</span></p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -2036,7 +2175,7 @@ indent-style = spaces</span></div>
 <span class="SLgc">or</span>
 <span class="SLgc">orelse</span>  ? :</span></div>
 <p>The prefix operators bind tighter than every binary operator, so '!a == b' parses as '(!a) == b' and '-a <i> b' parses as '(-a) </i> b'.</p>
-<p>When two operators share the same precedence level, expressions are evaluated from left to right. The loosest level, <span class="code-inline">orelse</span> and the ternary, groups to the right: 'a orelse b ? c : d' parses as 'a orelse (b ? c : d)'.</p>
+<p>When two operators share the same precedence level, they group from left to right. This describes parsing, not a general promise about operand evaluation order. The loosest level, <span class="code-inline">orelse</span> and the ternary, groups to the right: 'a orelse b ? c : d' parses as 'a orelse (b ? c : d)'.</p>
 <p>Unlike C, the bitwise operators '&amp; ^ |' all bind <b>tighter</b> than the comparison operators. This makes 'flags &amp; Mask == 0' parse as '(flags &amp; Mask) == 0', which is almost always the intent, so the classic C footgun is avoided by design. Among the comparisons, the ordering operators '&lt;=&gt; &lt; &lt;= &gt; &gt;=' bind tighter than the equality operators '== !=', so 'a &lt; b == c' parses as '(a &lt; b) == c'.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -2273,7 +2412,7 @@ indent-style = spaces</span></div>
 <p>Swag provides fixed arrays, slices, tuples, enums, unions, pointers, and the type-erased <span class="code-inline">any</span> value. Choose the representation that matches ownership and lifetime: arrays own inline storage, slices borrow a contiguous range, and pointers make indirection and nullability explicit.</p>
 <h3 id="_004_001_array_swg">Array</h3>
 <h3 id="_004_001_array_swg_Static_Arrays_in_Swag">Static Arrays in Swag</h3>
-<p>Static arrays are fixed-size arrays where the size is known at compile time. Unlike dynamic arrays from the <span class="code-inline">Std.Core</span> module, they cannot grow or shrink during execution. Static arrays are ideal when size and memory usage are deterministic.</p>
+<p>Static arrays are fixed-size arrays where the size is known at compile time. Unlike dynamic arrays from the standard <span class="code-inline">core</span> module, they cannot grow or shrink during execution. Static arrays are ideal when size and memory usage are deterministic.</p>
 <h3 id="_004_001_array_swg_Declaring_a_Static_Array">Declaring a Static Array</h3>
 <p>A static array is declared using the syntax '[N] type', where <span class="code-inline">N</span> is the number of elements.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -2336,7 +2475,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array[<span class="SNum">1</span>] == <span class="SNum">0</span>)
 }</span></div>
 <h3 id="_004_001_array_swg_Initialization_and_Performance">Initialization and Performance</h3>
-<p>Arrays always have their type's safe default value. Keep the ordinary declaration and fill elements normally; future compiler analyses may remove a redundant clear only when they can prove complete element coverage.</p>
+<p>Arrays whose element type has a safe default start with that value in every element. Keep the ordinary declaration and fill elements normally; an optimization may omit a redundant clear only when it proves complete element coverage.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> array: [<span class="SNum">100</span>] <span class="STpe">s32</span>
@@ -2415,7 +2554,7 @@ indent-style = spaces</span></div>
 <h3 id="_004_002_slice_swg">Slice</h3>
 <h3 id="_004_002_slice_swg_Slices_in_Swag">Slices in Swag</h3>
 <p>A slice provides a dynamic view over a contiguous block of memory. Unlike static arrays, slices can point to different memory regions or subsets of existing data at runtime.</p>
-<p>A slice consists of a data pointer and a <span class="code-inline">u64</span> count representing the number of elements. This allows efficient access to large datasets without copying memory.</p>
+<p>A slice consists of a data pointer and a <span class="code-inline">u64</span> count representing the number of elements. Copying a slice copies this view, not the elements. It neither owns nor extends the lifetime of the storage: keep the backing array or owner alive and avoid operations that reallocate its buffer while the slice is in use.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> a: [..] <span class="STpe">bool</span>?
@@ -2465,7 +2604,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array[<span class="SNum">2</span>] == <span class="SNum">314</span>)
 }</span></div>
 <h3 id="_004_002_slice_swg_Slicing_Strings">Slicing Strings</h3>
-<p>Strings can be sliced, but the result must be declared as <span class="code-inline">const</span> since strings are immutable.</p>
+<p>A byte slice over string storage has type 'const [..] u8': the elements are read-only. This <span class="code-inline">const</span> qualifies the viewed data, independently of whether the slice binding uses <span class="code-inline">let</span> or <span class="code-inline">var</span>. A range applied directly to a string returns a string view.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> str = <span class="SStr">"string"</span>
@@ -3021,15 +3160,14 @@ indent-style = spaces</span></div>
     <span class="SKwd">var</span> ptr2: *(*<span class="STpe">u8</span>?)?     <span class="SCmt">// Pointer to another pointer to 'u8'</span>
 }</span></div>
 <h3 id="_004_007_pointers_swg_Null_Pointers">Null Pointers</h3>
-<p>In Swag, a pointer can be <span class="code-inline">null</span>, meaning it does not refer to any valid memory location. Null pointers are often used to indicate uninitialized or intentionally absent values.</p>
-<p>It is good practice to check for null pointers before dereferencing them to avoid runtime errors.</p>
+<p>Use <span class="code-inline">*T?</span> when a pointer may be <span class="code-inline">null</span>, meaning that it refers to no object. A bare <span class="code-inline">*T</span> is non-null. The compiler requires a proof of presence before a nullable pointer can be dereferenced, as described below.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> ptr1: *<span class="STpe">u8</span>?
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr1 == <span class="SKwd">null</span>)     <span class="SCmt">// Uninitialized pointers are null by default</span>
 }</span></div>
 <h3 id="_004_007_pointers_swg_Non-Null_by_Default">Non-Null by Default</h3>
-<p>Nullable-capable types — single-value and block pointers, slices, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, <span class="code-inline">any</span>, and <span class="code-inline">typeinfo</span> — are non-null by default: a bare <span class="code-inline">*u8</span> or <span class="code-inline">string</span> cannot be initialized with <span class="code-inline">null</span> and has no implicit default. A struct field of such a type must therefore be supplied by an aggregate initializer unless it declares an explicit non-null default. Add the <span class="code-inline">?</span> suffix â€” <span class="code-inline">*u8?</span>, <span class="code-inline">string?</span>, <span class="code-inline">[ ..] u8?</span> â€” when null is part of the intended contract.</p>
+<p>Nullable-capable types — single-value and block pointers, slices, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, <span class="code-inline">any</span>, and <span class="code-inline">typeinfo</span> — are non-null by default: a bare <span class="code-inline">*u8</span> or <span class="code-inline">string</span> cannot be initialized with <span class="code-inline">null</span> and has no implicit default. A struct field of such a type must therefore be supplied by an aggregate initializer unless it declares an explicit non-null default. Add the <span class="code-inline">?</span> suffix — <span class="code-inline">*u8?</span>, <span class="code-inline">string?</span>, <span class="code-inline">[..] u8?</span> — when null is part of the intended contract.</p>
 <p>Because these types answer a condition by testing their first pointer-sized word against null, only a nullable value (for example <span class="code-inline">*u8?</span>) asks a real question there. A bare <span class="code-inline">*u8</span>, <span class="code-inline">[*] u8</span>, slice, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, <span class="code-inline">func</span> value, <span class="code-inline">interface</span> or <span class="code-inline">typeinfo</span> in a condition is a constant that can only be true, and every boolean context rejects it. A slice and a string test their data pointer, never their count, so an empty one is still present: emptiness is <span class="code-inline">x.count == 0</span>.</p>
 <p>A <span class="code-inline">T?</span> value cannot flow into a bare (non-null) slot directly, and it cannot be dereferenced, indexed, member-accessed or called while it is still nullable: every use site needs a proof. Flow narrowing provides it implicitly (a dominating null test such as <span class="code-inline">if p == null do return</span>, <span class="code-inline">if p do ...</span>, <span class="code-inline">Swag.assert(p != null)</span>, or the left side of <span class="code-inline">and</span>/<span class="code-inline">or</span>), the postfix <span class="code-inline">!</span> asserts it explicitly (a safety check panics at runtime if the value is still null), and <span class="code-inline">?.</span> skips the access entirely when the value is null. Comparisons between <span class="code-inline">T?</span> and bare values of the same type are always allowed. Every declared value begins with its type's safe default; the compiler may elide that initialization only after proving that it cannot be observed.</p>
 <p>A value with <span class="code-inline">opDrop</span> can be consumed with <span class="code-inline">#move</span> only when resetting its moved-from source does not require explicit initialization. Give required fields a default; otherwise the value cannot be moved from safely.</p>
@@ -3429,7 +3567,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>) array[<span class="SNum">3</span>] == <span class="SStr">"4"</span>)
 }</span></div>
 <h3 id="_004_008_any_swg_Nullability_of__any_">Nullability of <span class="code-inline">any</span></h3>
-<p>An <span class="code-inline">any</span> value can be null, similar to pointers and other nullable types.</p>
+<p>An <span class="code-inline">any?</span> value can be null and defaults to that absent state. A bare <span class="code-inline">any</span> requires a value. Prove presence before inspecting or converting a nullable value, just as for pointers and other nullable types.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> x: <span class="STpe">any</span>?
@@ -3893,7 +4031,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <div class="blockquote blockquote-warning">
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
-<p>When iterating over strings, <span class="code-inline">for</span> loops over <b>bytes</b>, not runes. Use <span class="code-inline">Std.Core</span> for rune-based iteration.</p>
+<p>When iterating over strings, <span class="code-inline">for</span> loops over <b>bytes</b>, not runes. Use <span class="code-inline">Core</span> for rune-based iteration.</p>
 </div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -3988,7 +4126,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt == <span class="SNum">1</span> + <span class="SNum">2</span>)
 }</span></div>
 <h3 id="_005_002_for_swg_Empty_Ranges">Empty Ranges</h3>
-<p>An <span class="code-inline">until</span> range whose bounds are equal is <b>empty</b>: the loop runs zero times. This makes <span class="code-inline">for i in 0 until count</span> safe when <span class="code-inline">count</span> is zero, so a collection-sized loop needs no guard of its own. Only an inverted range, where the lower bound is above the upper bound, is an error.</p>
+<p>An <span class="code-inline">until</span> range whose bounds are equal is <b>empty</b>: the loop runs zero times. This makes <span class="code-inline">for i in 0 until count</span> safe when <span class="code-inline">count</span> is zero, so a collection-sized loop needs no guard of its own. An inverted range, where the lower bound is above the upper bound, is rejected when both bounds are constant. With runtime bounds it runs zero times; this differs from slicing, which validates the requested length.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">func</span> <span class="SFct">sumUpTo</span>(count: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>
@@ -6018,7 +6156,11 @@ indent-style = spaces</span></div>
 <p>User-defined literals extend literal meaning so custom types can be initialized directly with unit-like suffixes (e.g., <span class="code-inline">4</span>ms'). This example defines a <span class="code-inline">Duration</span> type that stores seconds and accepts seconds, milliseconds, minutes, and hours.</p>
 <h3 id="_006_010_custom_literals_swg_Literal_Suffixes">Literal Suffixes</h3>
 <p>A literal suffix immediately follows a numeric literal to indicate a unit or type, e.g., <span class="code-inline">4'ms</span> means 4 milliseconds.</p>
-<p>To support user-defined literals, provide: 1) a type (e.g., <span class="code-inline">Duration</span>), and 2) methods to convert the numeric value according to the suffix.</p>
+<p>To support user-defined literals, provide:</p>
+<ol>
+<li>A type, such as <span class="code-inline">Duration</span>.</li>
+<li>Methods to convert the numeric value according to the suffix.</li>
+</ol>
 <div class="code-block"><span class="SCde"><span class="SCmt">// Represents a delay, expressed in seconds.</span>
 <span class="SKwd">struct</span> <span class="SCst">Duration</span>
 {
@@ -6830,13 +6972,13 @@ indent-style = spaces</span></div>
 }</span></div>
 <h2 id="_008_000_intrinsics_swg">Intrinsics</h2>
 <h3 id="_008_000_intrinsics_swg_Intrinsics">Intrinsics</h3>
-<p>Intrinsics are operations implemented directly by the compiler or its runtime. Their names start with <span class="code-inline">@</span>, so they cannot collide with application APIs. They cover five broad areas:</p>
+<p>Intrinsics are operations implemented directly by the compiler or its runtime. They use qualified names in the built-in <span class="code-inline">Swag</span> namespace, while native views expose <span class="code-inline">.count</span> and <span class="code-inline">.buffer</span> as members. They cover five broad areas:</p>
 <ul>
 <li>assertions, diagnostics, execution context, and compiler access;</li>
 <li>type erasure, reflection, and construction of slices or strings;</li>
 <li>explicit value lifecycle operations;</li>
 <li>math, bit, memory, and atomic primitives;</li>
-<li>interoperability with C variadic functions.</li>
+<li>packed vector operations.</li>
 </ul>
 <p>Use an intrinsic when its semantics are genuinely language-level or low-level. Prefer a typed library abstraction for ownership, platform APIs, containers, and application-level behavior.</p>
 <h3 id="_008_000_intrinsics_swg_Compile_Time_and_Runtime">Compile Time and Runtime</h3>
@@ -7581,7 +7723,7 @@ indent-style = spaces</span></div>
 <tr><td>'Safety(what: SafetyWhat, value: bool)'</td><td>Enable or disable runtime guards</td></tr>
 <tr><td>'Sanity(what: SafetyWhat, value: bool)'</td><td>Enable or disable static proven-fault checks</td></tr>
 <tr><td>'Warning(what: string, level: WarningLevel)'</td><td>Disable, restore, or promote named warnings</td></tr>
-<tr><td>'BorrowSummary(returns, stores = 0, into = 0, frees = 0, reallocates = 0)'</td><td>Describe pointer escape and invalidation behavior</td></tr>
+<tr><td>'BorrowSummary(returns, stores = 0, into = 0, frees = 0, reallocates = 0, returnsPayload = 0)'</td><td>Describe pointer escape, payload borrowing, and invalidation behavior</td></tr>
 </tbody>
 </table>
 <p><span class="code-inline">SafetyWhat</span> is shared by runtime safety and static sanity, although not every flag has meaningful behavior in both systems. See the dedicated safety and sanity chapters before overriding defaults.</p>
@@ -7604,12 +7746,13 @@ indent-style = spaces</span></div>
 </tbody>
 </table>
 <p>Use <span class="code-inline">Swag.NoDoc</span> only for declarations that are intentionally public but unsuitable for the generated API reference. It does not change visibility or module API export.</p>
+<p>See <a href="#_002_011_native_documentation_swg">Native documentation</a> for ordinary <span class="code-inline">//</span> contracts, <span class="code-inline">//!</span> file overviews, Markdown guides, and generation modes.</p>
 <h2 id="_011_000_scoping_swg">Scoping</h2>
 <p>Scopes determine where a name is visible and when cleanup runs. Namespaces organize module-level symbols; <span class="code-inline">using</span> publishes a scope's names and <span class="code-inline">with</span> selects a value; <span class="code-inline">defer</span> schedules work at lexical-scope exit. The leading dot names a member of whichever subject is nearest, under one law stated at the end of this chapter.</p>
 <h3 id="_011_001_namespace_swg">Namespace</h3>
 <h3 id="_011_001_namespace_swg_Namespaces">Namespaces</h3>
 <p>Namespaces in Swag provide a structured way to organize symbols such as functions, variables, and types within a specific scope. Grouping related symbols under a namespace helps prevent naming conflicts and makes the code more modular and maintainable.</p>
-<p>Symbols in a namespace are accessible only through that namespace unless they are explicitly imported or exposed.</p>
+<p>Outside a namespace, use qualified names or bring its names into scope with <span class="code-inline">using</span>. Visibility still determines whether the caller may access a symbol.</p>
 <div class="code-block"><span class="SCde"><span class="SCmt">// Define a simple namespace 'A'</span>
 <span class="SKwd">namespace</span> <span class="SCst">A</span>
 {
@@ -7639,16 +7782,16 @@ indent-style = spaces</span></div>
 }
 
 <span class="SKwd">const</span> <span class="SCst">B</span> = <span class="SCst">QualifiedExample</span>.<span class="SCst">Symbol</span>     <span class="SCmt">// Access via fully qualified name</span></span></div>
-<h3 id="_011_001_namespace_swg_Internal_Scopes">Internal Scopes</h3>
-<p>In addition to named namespaces, Swag provides <span class="code-inline">internal</span> scopes. An internal scope creates a unique, unnamed namespace restricted to the current file. Symbols defined in such a scope are inaccessible outside it, making this useful for isolating private details.</p>
+<h3 id="_011_001_namespace_swg_Visibility_Blocks">Visibility Blocks</h3>
+<p>A top-level 'internal { ... }' block applies module visibility to its declarations. It does not create a namespace: the names remain in the enclosing scope and can be used from other files in the module. Use <span class="code-inline">private</span> for file-local declarations and a named namespace when names need a qualifier.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span>
 {
-    <span class="SKwd">const</span> <span class="SCst">OtherSymbol</span> = <span class="SNum">0</span>     <span class="SCmt">// Constant defined in an internal scope</span>
+    <span class="SKwd">const</span> <span class="SCst">OtherSymbol</span> = <span class="SNum">0</span>     <span class="SCmt">// Visible throughout this module.</span>
 }
 
-<span class="SKwd">const</span> <span class="SCst">D</span> = <span class="SCst">OtherSymbol</span>     <span class="SCmt">// Accessible within this file only</span></span></div>
+<span class="SKwd">const</span> <span class="SCst">D</span> = <span class="SCst">OtherSymbol</span>     <span class="SCmt">// No namespace qualifier is introduced by the block.</span></span></div>
 <h3 id="_011_001_namespace_swg_Exporting_Symbols">Exporting Symbols</h3>
-<p>By default, all symbols in a Swag file are exported to other files within the same module. Using explicit namespaces or internal scopes provides protection against accidental symbol conflicts across files.</p>
+<p>The default declaration visibility is <span class="code-inline">internal</span>: other files in the same module can use the declaration. <span class="code-inline">public</span> permits access from importing modules; <span class="code-inline">private</span> restricts access to the source file. <span class="code-inline">#global</span> can set a file-wide default. This example file uses '#global private', and the <span class="code-inline">internal</span> block above deliberately overrides it for <span class="code-inline">OtherSymbol</span>.</p>
 <h3 id="_011_002_defer_swg">Defer</h3>
 <h3 id="_011_002_defer_swg_The__defer__Statement">The <span class="code-inline">defer</span> Statement</h3>
 <p>The <span class="code-inline">defer</span> statement registers an expression that executes automatically when the current scope is exited. The registration is resolved at compile time, so there is no runtime bookkeeping: the compiler emits the deferred code on every exit path. This keeps cleanup and finalization close to the acquisition that needs them.</p>
@@ -8392,6 +8535,8 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">blockCatchElse</span>(<span class="SKwd">null</span>) == <span class="SNum">99</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Expect">Expect</h3>
+<p><span class="code-inline">expect</span> asserts that a fallible operation succeeds. An unexpected failure panics while the <span class="code-inline">.Expect</span> safety guard is enabled; when that guard is disabled, the result uses its type's default. Use it for an invariant, not for an ordinary failure that the caller should recover from.</p>
+<p>Forms that need a default result, including <span class="code-inline">catch</span> and <span class="code-inline">expect</span>, require a result type with a safe default. A non-null pointer has none; propagate such a result with <span class="code-inline">try</span>, or design the failure-handling boundary to return a type that can represent absence.</p>
 <p>Inside <span class="code-inline">#test</span>, <span class="code-inline">try</span> is equivalent to <span class="code-inline">expect</span>, so both forms keep the success path concise when failure is not expected.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -8453,7 +8598,9 @@ indent-style = spaces</span></div>
     }
 }</span></div>
 <h3 id="_013_002_safety_swg_Overflow_Safety">Overflow Safety</h3>
-<p>Example: #[Swag.Safety(.Overflow, true)] When enabled, Swag panics on arithmetic overflow, on a runtime negative shift count, or when bits are lost during integer conversions.</p>
+<p>Example:</p>
+<div class="code-block"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, true)]</span></div>
+<p>When enabled, Swag panics on arithmetic overflow, on a runtime negative shift count, or when bits are lost during integer conversions.</p>
 <p>Operators that can overflow include '+ - <i>' and compound forms '+= -= </i>='. Shifts have defined truncating and large-count behavior; overflow safety only guards their negative signed counts.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -8515,7 +8662,9 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SNum">127</span>)
 }</span></div>
 <h3 id="_013_002_safety_swg_Dynamic_Cast_Type_Safety">Dynamic Cast Type Safety</h3>
-<p>Example: #[Swag.Safety(.DynCast, true)] Swag panics if a cast from <span class="code-inline">any</span> to another type is invalid.</p>
+<p>Example:</p>
+<div class="code-block"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.DynCast, true)]</span></div>
+<p>Swag panics if a cast from <span class="code-inline">any</span> to another type is invalid.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> x: <span class="STpe">any</span> = <span class="SStr">"1"</span>
@@ -8526,7 +8675,9 @@ indent-style = spaces</span></div>
 }</span></div>
 <p>Swag also panics if casting from an interface to a pointer-to-struct cannot be performed.</p>
 <h3 id="_013_002_safety_swg_Array_Bounds_Checking">Array Bounds Checking</h3>
-<p>Example: #[Swag.Safety(.BoundCheck, true)] Swag panics if an index is out of range when dereferencing sized values (arrays, slices, strings).</p>
+<p>Example:</p>
+<div class="code-block"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.BoundCheck, true)]</span></div>
+<p>Swag panics if an index is out of range when dereferencing sized values (arrays, slices, strings).</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> x   = [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>]
@@ -8583,7 +8734,9 @@ indent-style = spaces</span></div>
     <span class="SCmt">// Swag.assert(sumRange(4, 2) == 0)  // Would panic: lower bound above upper bound</span>
 }</span></div>
 <h3 id="_013_002_safety_swg_Math_Safety">Math Safety</h3>
-<p>Example: #[Swag.Safety(.Math, true)] Swag panics on an INTEGER division or remainder by zero, and on an intrinsic argument outside its domain.</p>
+<p>Example:</p>
+<div class="code-block"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Math, true)]</span></div>
+<p>Swag panics on an INTEGER division or remainder by zero, and on an intrinsic argument outside its domain.</p>
 <p>A float division by zero is not covered, and needs no cover: it is defined by IEEE 754 and yields an infinity rather than trapping. What can go wrong afterwards is a <span class="code-inline">NaN</span>, which <span class="code-inline">.NaN</span> watches.</p>
 <p>A divisor the compiler can fold to zero is rejected at compile time by the static half instead (<span class="code-inline">#[Swag.Sanity(.Math)]</span>), which is what covers a build with the dynamic guards off. The two never both report: the guard lowers to a test of the divisor, and past that test the divisor is no longer provably zero, so whichever layer is enabled is the one that speaks.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -8608,7 +8761,9 @@ indent-style = spaces</span></div>
     <span class="SCmt">// Swag.acos(2'f32)      // Invalid: acos out of range</span>
 }</span></div>
 <h3 id="_013_002_safety_swg_Switch_Safety">Switch Safety</h3>
-<p>Example: #[Swag.Safety(.Switch, true)] The guard covers 'switch #complete' only. Such a switch has an arm for every declared value of its enum, so the only value that can reach no case is one outside that set — and that is what Swag panics on.</p>
+<p>Example:</p>
+<div class="code-block"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Switch, true)]</span></div>
+<p>The guard covers 'switch #complete' only. Such a switch has an arm for every declared value of its enum, so the only value that can reach no case is one outside that set — and that is what Swag panics on.</p>
 <p>A plain <span class="code-inline">switch</span> is not guarded: an unmatched value simply reaches no case and execution continues after the switch, in every build configuration.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -8635,7 +8790,9 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">colorRank</span>(<span class="SCst">Color</span>.<span class="SCst">Blue</span>) == -<span class="SNum">1</span>)
 }</span></div>
 <h3 id="_013_002_safety_swg_Boolean_Safety">Boolean Safety</h3>
-<p>Example: #[Swag.Safety(.Bool, true)] Swag panics if a <span class="code-inline">bool</span> is not <span class="code-inline">true</span> (1) or <span class="code-inline">false</span> (0).</p>
+<p>Example:</p>
+<div class="code-block"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Bool, true)]</span></div>
+<p>Swag panics if a <span class="code-inline">bool</span> is not <span class="code-inline">true</span> (1) or <span class="code-inline">false</span> (0).</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> b: <span class="STpe">u8</span> = <span class="SNum">2</span>
@@ -8643,7 +8800,9 @@ indent-style = spaces</span></div>
     <span class="SCmt">// if b { }  // Would panic: invalid boolean value</span>
 }</span></div>
 <h3 id="_013_002_safety_swg_NaN_Safety">NaN Safety</h3>
-<p>Example: #[Swag.Safety(.NaN, true)] Swag panics if a floating-point <span class="code-inline">NaN</span> participates in an operation, preventing propagation of invalid values.</p>
+<p>Example:</p>
+<div class="code-block"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.NaN, true)]</span></div>
+<p>Swag panics if a floating-point <span class="code-inline">NaN</span> participates in an operation, preventing propagation of invalid values.</p>
 <h3 id="_013_002_safety_swg_Stack_Exhaustion">Stack Exhaustion</h3>
 <p>Swag uses the host thread's stack and does not promise a fixed recursion depth. Exhausting that stack is a fatal execution fault, not a <span class="code-inline">fail</span> value that <span class="code-inline">catch</span> can handle. The available depth depends on the host stack reservation and the size of the generated frames.</p>
 <p>The Windows backend probes guard pages when reserving a large frame. During execution inside the compiler, its fault reporter reserves stack space and reports <span class="code-inline">EXCEPTION_STACK_OVERFLOW</span>. For a native executable, fatal-fault reporting belongs to its host environment. Enabling or disabling the safety guards does not turn stack exhaustion into a recoverable language error.</p>
@@ -9192,7 +9351,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <ul>
 <li><span class="code-inline">Swag.CompilerCommand.Test</span> for 'swc test';</li>
 <li><span class="code-inline">Swag.CompilerCommand.Format</span> for 'swc format';</li>
-<li><span class="code-inline">Swag.CompilerCommand.Build</span> for <span class="code-inline">build</span>, <span class="code-inline">run</span>, <span class="code-inline">syntax</span>, <span class="code-inline">sema</span>, and the compiler-internal <span class="code-inline">unittest</span> path.</li>
+<li><span class="code-inline">Swag.CompilerCommand.Build</span> for <span class="code-inline">build</span>, <span class="code-inline">run</span>, <span class="code-inline">syntax</span>, <span class="code-inline">sema</span>, <span class="code-inline">doc</span>, and the compiler-internal <span class="code-inline">unittest</span> path.</li>
 </ul>
 <p><span class="code-inline">#cfg</span> is the selected build-configuration name, such as <span class="code-inline">"devmode"</span> or <span class="code-inline">"release"</span>. Use these values for genuine source differences, not as a replacement for safety and optimization attributes.</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCmp">#command</span> == <span class="SNsp">Swag</span>.<span class="SCst">CompilerCommand</span>.<span class="SCst">Test</span>
@@ -9213,10 +9372,21 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 }</span></div>
 <h3 id="_014_003_compiler_instructions_swg_The___global__Directive">The <span class="code-inline">#global</span> Directive</h3>
 <p>Place <span class="code-inline">#global</span> at the top of a source file to apply global settings or attributes across the entire file. Controls compilation and symbol visibility.</p>
-<p>Examples (write these as top-level directives): #global if false            // Skip file content. #global if #command == Swag.CompilerCommand.Format // Include this file only when formatting. #global if #command == Swag.CompilerCommand.Test   // Include this file only when running tests. #global public                      // All symbols become public. #global private                    // All symbols are private to the module. #global namespace Toto              // Place all symbols in namespace <span class="code-inline">Toto</span>. #global if DEBUG == true     // Conditional compilation for the file. #global #[Swag.Safety(.All, true)]  // Apply an attribute to all declarations. #global export                      // Export the full file as-is into the module API output.</p>
+<p>Examples (write these as top-level directives):</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SLgc">if</span> <span class="SKwd">false</span>                                 <span class="SCmt">// Skip this file.</span>
+<span class="SCmp">#global</span> <span class="SLgc">if</span> <span class="SCmp">#command</span> == <span class="SNsp">Swag</span>.<span class="SCst">CompilerCommand</span>.<span class="SCst">Format</span> <span class="SCmt">// Include only when formatting.</span>
+<span class="SCmp">#global</span> <span class="SLgc">if</span> <span class="SCmp">#command</span> == <span class="SNsp">Swag</span>.<span class="SCst">CompilerCommand</span>.<span class="SCst">Test</span>   <span class="SCmt">// Include only when testing.</span>
+<span class="SCmp">#global</span> <span class="SKwd">public</span>                                   <span class="SCmt">// Set public declaration visibility.</span>
+<span class="SCmp">#global</span> <span class="SKwd">private</span>                                  <span class="SCmt">// Set file-local declaration visibility.</span>
+<span class="SCmp">#global</span> <span class="SKwd">namespace</span> <span class="SCst">Example</span>                        <span class="SCmt">// Put declarations in 'Example'.</span>
+<span class="SCmp">#global</span> <span class="SLgc">if</span> <span class="SCst">DEBUG</span> == <span class="SKwd">true</span>                          <span class="SCmt">// Select the file from a constant.</span>
+<span class="SCmp">#global</span> <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.All, true)]</span>                 <span class="SCmt">// Apply the attribute file-wide.</span>
+<span class="SCmp">#global</span> export                                   <span class="SCmt">// Export the file into the module API.</span></span></div>
+<p>These are alternatives, not one file's preamble. A named aggregate's members start at <span class="code-inline">internal</span> independently of the enclosing visibility; group public fields explicitly inside it.</p>
 <h3 id="_014_003_compiler_instructions_swg_The___foreignlib__Directive">The <span class="code-inline">#foreignlib</span> Directive</h3>
 <p>Register an external import library with the native linker. Pass the logical library name without a platform extension; the linker selects the appropriate file for the active toolchain.</p>
-<p>Example: #foreignlib("kernel32")</p>
+<p>Example:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#foreignlib</span>(<span class="SStr">"kernel32"</span>)</span></div>
 <p>This directive only supplies the native link dependency. Declare imported symbols separately with <span class="code-inline">#[Swag.Foreign]</span>.</p>
 <h3 id="_014_004_code_inspection_swg">Code Inspection</h3>
 <h3 id="_014_004_code_inspection_swg_Code_Inspection">Code Inspection</h3>
@@ -9742,7 +9912,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v.z == <span class="SNum">3</span>)
 }</span></div>
 <h3 id="_015_003_generated_code_with_ast_swg_Real-World_Example">Real-World Example</h3>
-<p>Example from Std.Core — dynamically generates a struct with all fields of another struct replaced by bools.</p>
+<p>Example from Core — dynamically generates a struct with all fields of another struct replaced by bools.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst">IsSet</span>
 {
     <span class="SFct">#ast</span>
@@ -9871,7 +10041,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.410</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.418</div>
 </footer>
 </section>
 </main>
@@ -10170,8 +10340,9 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Global Declaration Order|_002_003_global_declaration_order_swg|",
 "h|Top-Level Declaration Order|_002_003_global_declaration_order_swg_Top-Level_Declaration_Order|",
 "h|Comments|_002_004_comments_swg|",
-"h|Comments|_002_004_comments_swg_Comments|",
-"h|Nested Comments|_002_004_comments_swg_Nested_Comments|",
+"h|Line and Block Comments|_002_004_comments_swg_Line_and_Block_Comments|",
+"h|Nested Block Comments|_002_004_comments_swg_Nested_Block_Comments|",
+"h|Comments as Native Documentation|_002_004_comments_swg_Comments_as_Native_Documentation|",
 "h|Semicolons|_002_005_semicolons_swg|",
 "h|Statement Termination in Swag|_002_005_semicolons_swg_Statement_Termination_in_Swag|",
 "h|Bodyless Declarations|_002_005_semicolons_swg_Bodyless_Declarations|",
@@ -10216,6 +10387,17 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Initialization|_002_010_module_lifecycle_swg_Initialization|",
 "h|Executable Entry|_002_010_module_lifecycle_swg_Executable_Entry|",
 "h|Shutdown|_002_010_module_lifecycle_swg_Shutdown|",
+"h|Native Documentation|_002_011_native_documentation_swg|",
+"h|Documentation Is Part of the Source|_002_011_native_documentation_swg_Documentation_Is_Part_of_the_Source|",
+"h|Documenting a Declaration with //|_002_011_native_documentation_swg_Documenting_a_Declaration_with_____|",
+"h|Fields, Enum Cases, and Methods|_002_011_native_documentation_swg_Fields__Enum_Cases__and_Methods|",
+"h|Module Overviews and Guides|_002_011_native_documentation_swg_Module_Overviews_and_Guides|",
+"h|File Documentation with //!|_002_011_native_documentation_swg_File_Documentation_with______|",
+"h|Markdown in Comments|_002_011_native_documentation_swg_Markdown_in_Comments|",
+"h|Linking to Symbols|_002_011_native_documentation_swg_Linking_to_Symbols|",
+"h|Choosing What Appears|_002_011_native_documentation_swg_Choosing_What_Appears|",
+"h|Choosing a Documentation Mode|_002_011_native_documentation_swg_Choosing_a_Documentation_Mode|",
+"h|Generating and Checking the Result|_002_011_native_documentation_swg_Generating_and_Checking_the_Result|",
 "h|Fundamentals|_003_000_fundamentals_swg|",
 "h|Basic Types|_003_001_basic_types_swg|",
 "h|Signed Integers|_003_001_basic_types_swg_Signed_Integers|",
@@ -10662,7 +10844,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Namespaces|_011_001_namespace_swg_Namespaces|",
 "h|Nested Namespaces|_011_001_namespace_swg_Nested_Namespaces|",
 "h|Qualified Namespace Access|_011_001_namespace_swg_Qualified_Namespace_Access|",
-"h|Internal Scopes|_011_001_namespace_swg_Internal_Scopes|",
+"h|Visibility Blocks|_011_001_namespace_swg_Visibility_Blocks|",
 "h|Exporting Symbols|_011_001_namespace_swg_Exporting_Symbols|",
 "h|Defer|_011_002_defer_swg|",
 "h|The defer Statement|_011_002_defer_swg_The__defer__Statement|",

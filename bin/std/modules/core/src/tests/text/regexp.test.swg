@@ -1435,12 +1435,12 @@ using Swag
 
 #test
 {
-    var many = expect Parser.RegExp.create(#raw "a{1000}")
-    var wide = expect Parser.RegExp.create(#raw "(?:ab){0,500}c")
-
     var subject: String
     for 1000 do
         subject.append('a'u8)
+
+    var many = expect Parser.RegExp.create(#raw "a{1000}")
+    var wide = expect Parser.RegExp.create(#raw "(?:ab){0,500}c")
 
     Swag.assert(many.match(subject.toString()))
     Swag.assert(!many.match("aaa"))
@@ -1490,16 +1490,16 @@ using Swag
 {
     // The search engines have to agree: what a scan finds must be what the simulation reports,
     // including when a subject holds many candidate starts.
-    var literal  = expect Parser.RegExp.create("needle")
-    var inner    = expect Parser.RegExp.create(#raw "\w+@\w+")
-    var byteSet  = expect Parser.RegExp.create(#raw "[xyz]\d")
-    var anchored = expect Parser.RegExp.create(#raw "^\w+")
-
     var subject: String
     for 200
     {
         subject.append("filler needle text x1 a@b ")
     }
+
+    var literal  = expect Parser.RegExp.create("needle")
+    var inner    = expect Parser.RegExp.create(#raw "\w+@\w+")
+    var byteSet  = expect Parser.RegExp.create(#raw "[xyz]\d")
+    var anchored = expect Parser.RegExp.create(#raw "^\w+")
 
     Swag.assert(literal.findAll(subject.toString()).count == 200)
     Swag.assert(inner.findAll(subject.toString()).count == 200)

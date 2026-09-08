@@ -55,20 +55,13 @@ impl Yuv420View
         if target.width != .width or target.height != .height or target.pixelFormat != .RGB8 do
             target[] = Image.create(.width, .height, .RGB8)
 
-        let bandCount = Math.min(Math.min(Swag.workerCount(), Yuv420Bands), cast(u32) .height)
-        if bandCount <= 1
+        // Two luma rows share one chroma row. The runtime groups these independent pairs
+        // by measured cost and keeps small conversions on the caller without starting workers.
+        let view = me
+        parallel for |view, target| pair in (cast(u64) .height + 1) / 2
         {
-            .convertRowsToRgb(target, 0, .height)
-            return
-        }
-
-        var context = {view: me, target: target, bandCount: bandCount}
-        parallel for |&context| parIndex in cast(u64) bandCount
-        {
-            let index = cast(u32) parIndex
-            let first = context.view.height * cast(s32) index / cast(s32) context.bandCount
-            let end   = context.view.height * cast(s32) (index + 1) / cast(s32) context.bandCount
-            context.view.convertRowsToRgb(context.target, first, end)
+            let first = cast(s32) (pair * 2)
+            view.convertRowsToRgb(target, first, first + Math.min(2, view.height - first))
         }
     }
 
@@ -141,8 +134,6 @@ impl Yuv420View
     }
 }
 
-private const Yuv420Bands = 16'u32
-
 // Public only because it is embedded in backend-owned storage; callers never construct it.
 #[Swag.NoDoc]
 struct YuvConversionFactors
@@ -199,8 +190,12 @@ private func convertYuvRgb16(destination: [*] u8, luma, cb, cr: const [*] u8, fa
     let y2  = (cast #bit(Simd.S32x4) Simd.widenLow(yHi)) * factors.lumaScale
     let y3  = (cast #bit(Simd.S32x4) Simd.widenHigh(yHi)) * factors.lumaScale
 
-    let dBytes = Simd.shuffle(Simd.load(cb), DupPairs)
-    let eBytes = Simd.shuffle(Simd.load(cr), DupPairs)
+    // A chroma plane may end after exactly eight bytes. Read only those bytes; the
+    // duplicated high half is ignored by DupPairs.
+    let cb8    = cast #bit(Simd.U8x16) Simd.splat((cast(const [*] u64) cb)[0])
+    let cr8    = cast #bit(Simd.U8x16) Simd.splat((cast(const [*] u64) cr)[0])
+    let dBytes = Simd.shuffle(cb8, DupPairs)
+    let eBytes = Simd.shuffle(cr8, DupPairs)
     let dSLo   = (cast #bit(Simd.S16x8) Simd.widenLow(dBytes)) - 128
     let dSHi   = (cast #bit(Simd.S16x8) Simd.widenHigh(dBytes)) - 128
     let eSLo   = (cast #bit(Simd.S16x8) Simd.widenLow(eBytes)) - 128

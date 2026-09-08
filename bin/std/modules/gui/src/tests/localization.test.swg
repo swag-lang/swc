@@ -27,12 +27,12 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
 // tree, not a routed child event that parents should receive again for every descendant.
 #test
 {
+    var rootNotifications, childNotifications: u32
     var host: Testing.HeadlessHost
     host.setup(320, 180)
     defer host.shutdown()
 
     let child = Wnd.create'Wnd(&host.root)
-    var rootNotifications, childNotifications: u32
     host.root.hookOnEvent = func|count = &rootNotifications|(wnd, evt)
     {
         discard wnd

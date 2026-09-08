@@ -7,8 +7,8 @@ using Swag, Core
 #[Swag.TestTag("golden")]
 #test
 {
-    var painter: Painter
     var path:    LinePath
+    var painter: Painter
 
     path.start(10, 10)
     path.lineTo(90, 10)
@@ -26,8 +26,8 @@ using Swag, Core
 #[Swag.TestTag("golden")]
 #test
 {
-    var painter: Painter
     var path:    LinePath
+    var painter: Painter
 
     path.start(10, 10)
     path.lineTo(90, 10)
@@ -232,8 +232,8 @@ using Swag, Core
 #[Swag.TestTag("golden")]
 #test
 {
-    var painter: Painter
     var target:  RenderTarget
+    var painter: Painter
 
     target.attach(cast(RenderTargetHandle) 1, cast(TextureHandle) 11, .BGRA8, 128, 64)
 

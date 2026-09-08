@@ -157,9 +157,9 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 #[Swag.TestTag("golden")]
 #test
 {
-    var painter: Painter
     var first:   ShaderBase
     var second:  ShaderBase
+    var painter: Painter
 
     painter.begin()
     painter.setShader(&first)
@@ -178,9 +178,9 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 #[Swag.TestTag("golden")]
 #test
 {
-    var painter: Painter
     var outer:   RenderTarget
     var inner:   RenderTarget
+    var painter: Painter
 
     outer.attach(cast(RenderTargetHandle) 1, cast(TextureHandle) 21, .BGRA8, 128, 128)
     inner.attach(cast(RenderTargetHandle) 2, cast(TextureHandle) 22, .BGRA8, 64, 64)

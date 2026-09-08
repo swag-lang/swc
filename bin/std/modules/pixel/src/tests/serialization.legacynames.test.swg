@@ -68,8 +68,8 @@ func makeLegacyImage()->LegacyImage
 {
     let legacy = makeLegacyImage()
 
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
     var buffer:  ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
     expect encoder.writeAll(&buffer, legacy)
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin

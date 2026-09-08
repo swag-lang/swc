@@ -63,3 +63,33 @@ impl DepBorrowContainer
         .slot = item
     }
 }
+
+// A separately allocated carrier borrows its target without aliasing its storage.
+struct DepBorrowCarrier
+{
+    public late target: *s32
+}
+
+func depBorrowCreateCarrier(target: *s32)->*DepBorrowCarrier
+{
+    var req: Swag.AllocatorRequest
+    req.size = #sizeof(DepBorrowCarrier)
+    Swag.getContext().allocator!.alloc(&req)
+    let carrier = cast(*DepBorrowCarrier) req.address!
+    carrier.target = target
+    return carrier
+}
+
+func depBorrowCreateCarrierWrapped(target: *s32)->*DepBorrowCarrier
+{
+    return depBorrowCreateCarrier(target)
+}
+
+// The release summary applies to the carrier allocation, never its borrowed target.
+func depBorrowReleaseCarrier(carrier: *DepBorrowCarrier)
+{
+    var req: Swag.AllocatorRequest
+    req.address = carrier
+    req.size = #sizeof(DepBorrowCarrier)
+    Swag.getContext().allocator!.free(&req)
+}

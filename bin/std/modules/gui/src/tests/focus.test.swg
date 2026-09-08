@@ -41,11 +41,11 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 // A canvas has no traversal stop, but its root hook still receives game-style keyboard input.
 #test
 {
-    var host: Testing.HeadlessHost
+    var pressedCount: u32
+    var host:         Testing.HeadlessHost
     host.setup(400, 200)
     defer host.shutdown()
 
-    var pressedCount: u32
     host.root.hookOnEvent = func|&pressedCount|(wnd, evt)
     {
         if let key = evt as KeyEvent where key.kind == .Pressed

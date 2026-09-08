@@ -1516,6 +1516,8 @@ namespace
             if (!(origins & (1ULL << i)))
                 continue;
             fn.addReturnBorrowsParam(i);
+            if (!info.viaStoredField)
+                fn.addReturnsStorageParam(i);
 
             // A result read OUT of what the parameter owns is a view the parameter's own
             // reallocation moves. A result that merely reaches the parameter - a fresh
@@ -1556,6 +1558,7 @@ namespace
     void fillDeferredCheckDiag(Sema& sema, SemaEscapeDeferredCheck& check, const SemaEscapeInfo& info)
     {
         check.typeRef = info.typeRef;
+        check.viaStoredField = info.viaStoredField;
 
         if (info.isLocalBorrow())
         {
@@ -1812,13 +1815,13 @@ namespace
                         }
                     }
                 }
-                else if (carried.kind == SemaEscapeKind::Parameter)
+                else if (carried.kind == SemaEscapeKind::Parameter && !carried.viaStoredField)
                 {
                     SymbolFunction* callerFn = sema.currentFunction();
                     if (callerFn)
                         addFreedBorrowOrigins(*callerFn, carried);
                 }
-                else if (carried.isLocalBorrow() && !hasOwningLifecycle(sema, carried.sourceVar->typeRef()))
+                else if (carried.isLocalBorrow() && !carried.viaStoredField && !hasOwningLifecycle(sema, carried.sourceVar->typeRef()))
                 {
                     SemaEscapeDeferredCheck check;
                     check.callee      = fn;
@@ -4519,6 +4522,12 @@ namespace SemaEscape
                             changed = true;
                         }
 
+                        if (!edge.viaStoredField && (edge.callee->returnsStorageParamsMask() & calleeBit) && !(edge.caller->returnsStorageParamsMask() & callerBit))
+                        {
+                            edge.caller->addReturnsStorageParam(edge.callerParamIndex);
+                            changed = true;
+                        }
+
                         // A wrapper that hands back what an accessor read out of the
                         // payload returns a view into that payload too - but only when the
                         // argument WAS the payload's owner, not when the caller passed
@@ -4741,7 +4750,14 @@ namespace SemaEscape
                     continue;
                 if (!storesHit)
                 {
-                    if (check.ownerSource)
+                    if (check.ownerSource || check.viaStoredField)
+                        continue;
+                    // Every factory in the chain must return the argument's storage.
+                    // A result that only carries it still borrows it for escape checks,
+                    // but freeing that result releases a different allocation.
+                    if (std::ranges::any_of(check.guards, [](const SemaEscapeDeferredGuard& guard) {
+                            return !guard.callee || !(guard.callee->returnsStorageParamsMask() & (1ULL << guard.paramIndex));
+                        }))
                         continue;
                     diagId = DiagnosticId::sanity_err_free_borrowed;
                 }

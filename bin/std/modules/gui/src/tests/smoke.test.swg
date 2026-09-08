@@ -81,10 +81,10 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
 #test
 {
-    var host: Testing.HeadlessHost
+    var timerCount: u32
+    var host:       Testing.HeadlessHost
     host.setup(240, 120)
     defer host.shutdown()
-    var timerCount: u32
     host.root.hookOnEvent = func|count = &timerCount|(wnd, evt)
     {
         switch evt

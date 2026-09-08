@@ -80,6 +80,7 @@ struct AttributeList
     uint64_t                            freesParamsMask          = 0;
     uint64_t                            reallocatesParamsMask    = 0;
     uint64_t                            returnsPayloadParamsMask = 0;
+    uint64_t                            returnsStorageParamsMask = 0;
     SmallVector4<Utf8>                  printMicroPassOptions;
     SmallVector4<Utf8>                  printAstStageOptions;
     WarningPolicy                       warnings;
@@ -104,6 +105,7 @@ struct AttributeList
                freesParamsMask == 0 &&
                reallocatesParamsMask == 0 &&
                returnsPayloadParamsMask == 0 &&
+               returnsStorageParamsMask == 0 &&
                printMicroPassOptions.empty() &&
                printAstStageOptions.empty() &&
                warnings.empty() &&
@@ -185,8 +187,9 @@ struct AttributeList
     // the call invalidates what parameter #i points to, bit i of 'reallocates' = the
     // call may move or release the payload parameter #i owns, bit i of 'returnsPayload'
     // = the return value is a view INTO that payload rather than merely a value that can
-    // reach parameter #i.
-    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask, uint64_t reallocatesMask, uint64_t returnsPayloadMask)
+    // reach parameter #i. Bit i of 'returnsStorage' means the result aliases the
+    // parameter's storage, rather than carrying it in a separate allocation.
+    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask, uint64_t reallocatesMask, uint64_t returnsPayloadMask, uint64_t returnsStorageMask)
     {
         returnBorrowsParamsMask |= returnsMask;
         storesParamsMask |= storesMask;
@@ -194,6 +197,7 @@ struct AttributeList
         freesParamsMask |= freesMask;
         reallocatesParamsMask |= reallocatesMask;
         returnsPayloadParamsMask |= returnsPayloadMask;
+        returnsStorageParamsMask |= returnsStorageMask & returnsMask;
     }
 
     void setBackendOptimize(bool value)

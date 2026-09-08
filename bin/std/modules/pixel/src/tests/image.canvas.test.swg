@@ -16,9 +16,9 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 // A filled path reaches the pixels, opaque, and leaves the rest untouched.
 #test
 {
+    var path   = makeSquarePath(8, 8, 24, 24)
     var canvas = expect ImageCanvas.create(32, 32)
 
-    var path = makeSquarePath(8, 8, 24, 24)
     canvas.painter.fillPath(&path, Color.fromRgb(247, 249, 0))
 
     let img = expect canvas.toImage()
@@ -34,10 +34,10 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 // The ground is laid under the drawing, not over it.
 #test
 {
+    var path   = makeSquarePath(8, 8, 24, 24)
     var canvas = expect ImageCanvas.create(32, 32)
 
     canvas.clear(Color.fromRgb(11, 11, 13))
-    var path = makeSquarePath(8, 8, 24, 24)
     canvas.painter.fillPath(&path, Color.fromRgb(247, 249, 0))
 
     let img = expect canvas.toImage()
@@ -55,10 +55,10 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
     ground.clear(Color.fromRgb(10, 20, 30))
     let base = expect ground.toImage()
 
+    var path = makeSquarePath(0, 0, 16, 32)
     var over = expect ImageCanvas.create(base)
     Swag.assert(over.width == 32 and over.height == 32)
 
-    var path = makeSquarePath(0, 0, 16, 32)
     over.painter.fillPath(&path, Color.fromRgb(200, 100, 50))
 
     let stamped = expect over.toImage()
@@ -75,14 +75,14 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 // A canvas can produce a series: reading it leaves the painter ready for the next frame.
 #test
 {
+    var first  = makeSquarePath(0, 0, 16, 16)
+    var second = makeSquarePath(0, 0, 16, 16)
     var canvas = expect ImageCanvas.create(16, 16)
 
-    var first = makeSquarePath(0, 0, 16, 16)
     canvas.painter.fillPath(&first, Color.fromRgb(255, 0, 0))
     let red = expect canvas.toImage()
     Swag.assert(red.pixelColor(8, 8).r == 255)
 
-    var second = makeSquarePath(0, 0, 16, 16)
     canvas.painter.fillPath(&second, Color.fromRgb(0, 255, 0))
     let green = expect canvas.toImage()
 

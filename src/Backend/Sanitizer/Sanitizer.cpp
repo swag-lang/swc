@@ -387,6 +387,25 @@ bool Sanitizer::resolveStackSlot(const SanitizerState& state, MicroReg base, uin
     return true;
 }
 
+bool Sanitizer::resolveAccessStackSlot(int64_t& outSlot, const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
+{
+    if (!ops)
+        return false;
+
+    MicroPassHelpers::AmcLayout layout;
+    if (MicroPassHelpers::amcLayoutFor(layout, inst.op))
+    {
+        const SanitizerValue index = getReg(state, ops[layout.indexIdx].reg);
+        if (!index.isConstant())
+            return false;
+        return resolveStackSlot(state, ops[layout.baseIdx].reg, index.constant * ops[layout.mulIdx].valueU64 + ops[layout.addIdx].valueU64, outSlot);
+    }
+
+    if (!def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
+        return false;
+    return resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, outSlot);
+}
+
 bool Sanitizer::callParameterRegister(MicroReg& outReg, const SymbolFunction& fn, CallConvKind callConvKind, size_t paramIndex) const
 {
     const auto& params = fn.parameters();
@@ -662,8 +681,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
     if (hasLifecycleFacts && !def.flags.has(MicroInstrFlagsE::IsCallInstruction) && def.flags.has(MicroInstrFlagsE::WritesMemory))
     {
         int64_t slot = 0;
-        if (def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
-            resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, slot))
+        if (resolveAccessStackSlot(slot, state, inst, def, ops))
             forgetWrittenLifecycleFacts(state, slot);
         else if (writeMayReachFrame(state, inst, def, ops))
         {
@@ -806,6 +824,47 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             }
             else
                 setRegValue(state, ops[0].reg, {});
+            return;
+        }
+
+        case MicroInstrOpcode::LoadAmcRegMem:
+        case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+        case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+        {
+            // An element of a local table is a slot like any other once the index is
+            // known, and it is where a program keeps the pointers it owns. Only the
+            // provenance is taken: the value would have to be re-extended per width, and
+            // no check needs it here.
+            int64_t slot = 0;
+            if (!resolveAccessStackSlot(slot, state, inst, def, ops))
+            {
+                setRegValue(state, ops[0].reg, {});
+                return;
+            }
+
+            SanitizerRegInfo info;
+            info.hasOriginSlot        = true;
+            info.originSlot           = slot;
+            info.hasPointerOriginSlot = true;
+            info.pointerOriginSlot    = slot;
+            setReg(state, ops[0].reg, info);
+            return;
+        }
+
+        case MicroInstrOpcode::LoadAmcMemReg:
+        {
+            const SanitizerValue value = getReg(state, ops[2].reg);
+            markFrameObjectEscaped(state, value);
+
+            int64_t slot = 0;
+            if (resolveAccessStackSlot(slot, state, inst, def, ops))
+            {
+                if (value.kind == SanitizerValueKind::Unknown)
+                    state.stack.erase(slot);
+                else
+                    state.stack[slot] = value;
+                recordSlotCopy(state, slot, ops[2].reg, ops[4].opBits);
+            }
             return;
         }
 
@@ -1070,7 +1129,12 @@ void Sanitizer::propagateConditionalBranch(const SanitizerState& state, const Mi
     // `assume`). A comparison against a non-zero constant — such as the INT_MIN/-1
     // overflow checks the front end wraps every integer division in — does not constrain
     // zero-ness, so provable zeros must survive it (else no division-by-zero is caught).
-    const bool dropAcrossEdge = state.flagsSubject.isValid();
+    //
+    // A subject the state already values exactly refines nothing either: the front end's
+    // bound check compares a constant index against a constant count, and dropping every
+    // zero across it took the index `table[0]` is written with along with it - which is
+    // what made the first element of a local table, and only the first, unnameable.
+    const bool dropAcrossEdge = state.flagsSubject.isValid() && !getReg(state, state.flagsSubject).isConstant();
     for (const uint32_t s : succs)
     {
         SanitizerState edge = state;

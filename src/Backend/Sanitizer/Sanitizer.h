@@ -43,6 +43,10 @@ public:
     SanitizerValue                 getReg(const SanitizerState& state, MicroReg reg) const;
     static const SanitizerRegInfo* regInfo(const SanitizerState& state, MicroReg reg) { return findReg(state, reg); }
     bool                           resolveStackSlot(const SanitizerState& state, MicroReg base, uint64_t offset, int64_t& outSlot) const;
+    // The frame slot a memory access names, in either addressing shape. An indexed form
+    // resolves only with a provably constant index, which is what an element written as
+    // 'table[0]' has.
+    bool resolveAccessStackSlot(int64_t& outSlot, const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const;
     TaskContext&                   ctx() const;
     const MicroPassContext&        passContext() const { return context_; }
 

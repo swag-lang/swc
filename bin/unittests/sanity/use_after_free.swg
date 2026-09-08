@@ -189,6 +189,57 @@ func reallocateThrough(slot: **s32)
     myFree(p, 4)
 }
 
+// A pointer kept in a local table. An element is a slot like any other once the index
+// is known, and element zero has to be nameable like the rest of them.
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var table: [4] (*s32?)
+    table[0] = cast(*s32) myAlloc(4)
+    myFree(table[0]!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    let x = table[0]![]      // swc-expected-error {{sanity_err_use_after_free}}
+    discard x
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var table: [4] (*s32?)
+    table[2] = cast(*s32) myAlloc(4)
+    myFree(table[2]!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    table[2]![] = 1          // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+// Releasing one element says nothing about the next one.
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var table: [2] (*s32?)
+    table[0] = cast(*s32) myAlloc(4)
+    table[1] = cast(*s32) myAlloc(4)
+    table[1]![] = 4
+    myFree(table[0]!, 4)
+    Swag.assert(table[1]![] == 4)
+    myFree(table[1]!, 4)
+}
+
+// A pointer kept in a field of a local, which is what an owning value looks like.
+struct UafOwner
+{
+    data:  *s32?
+    count: s32
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var owner: UafOwner
+    owner.data = cast(*s32) myAlloc(4)
+    myFree(owner.data!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    let x = owner.data![]      // swc-expected-error {{sanity_err_use_after_free}}
+    discard x
+}
+
 // One call both releases the pointer and reassigns the storage holding it. What the
 // callee can put back, it did not leave released.
 #[Swag.Sanity(.Lifecycle, true)]

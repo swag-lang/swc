@@ -206,6 +206,22 @@ func readAfterFreeAcrossCall()->s32
     discard readAfterFreeAcrossCall()
 }
 
+// A local table of pointers is the shape a program keeps its owned blocks in. An element
+// is a slot like any other once the index is known.
+#[Swag.Sanity(.Lifecycle, true)]
+func readTableElementAfterFree()->s32
+{
+    var table: [4] (*s32?)
+    table[0] = cast(*s32) heapAlloc(4)
+    heapFree(table[0]!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return table[0]![]         // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#test
+{
+    discard readTableElementAfterFree()
+}
+
 // --- Sound: documented misses that must stay silent ---
 
 // Handing the pointer's own storage to a callee ends the proof: the callee can reassign it,
@@ -252,8 +268,23 @@ func conditionalFree(release: bool)->s32
     return pointer[]
 }
 
+// Releasing one element of a table says nothing about the next one.
+#[Swag.Sanity(.Lifecycle, true)]
+func readOtherTableElement()->s32
+{
+    var table: [2] (*s32?)
+    table[0] = cast(*s32) heapAlloc(4)
+    table[1] = cast(*s32) heapAlloc(4)
+    table[1]![] = 5
+    heapFree(table[0]!, 4)
+    let value = table[1]![]
+    heapFree(table[1]!, 4)
+    return value
+}
+
 #test
 {
+    Swag.assert(readOtherTableElement() == 5)
     Swag.assert(readAfterFreeThroughEscapedSlot() == 9)
     Swag.assert(reassignedAfterFree() == 7)
     Swag.assert(conditionalFree(opaqueBool(false)) == 3)

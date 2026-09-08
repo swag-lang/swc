@@ -144,6 +144,20 @@ private func simdTailCheckFilters(pf: PixelFormat, width: s32)
     }
 }
 
+// Repeated filters exercise the runtime's cost hints on small and large buffers, including
+// unaligned row lengths and scalar tails on either side of the SIMD work.
+#test
+{
+    let widths: [5] s32 = [257, 8191, 21845, 21846, 65537]
+    for width in widths
+    {
+        simdTailCheckFilters(.BGR8, width)
+        simdTailCheckFilters(.RGB8, width)
+        simdTailCheckFilters(.BGRA8, width)
+        simdTailCheckFilters(.RGBA8, width)
+    }
+}
+
 private func simdTailCheckConversion(srcPf, dstPf: PixelFormat, width: s32)
 {
     const Height = 3

@@ -55,9 +55,6 @@ public impl Image
 
 namespace ResizeTools
 {
-    // Keep small passes local to avoid paying for worker submission and joining.
-    const ParallelMinPixels: u64 = 1024
-
     struct Contribution
     {
         weights:     Array'f64
@@ -411,18 +408,6 @@ namespace ResizeTools
         let contrib = calcContributions(dh, sh, cast(f64) dh / sh, rmode)
         let format  = imgSrc.pixelFormat
         let legacy  = format == .BGR8 or format == .BGRA8 or format == .RGB8 or format == .RGBA8
-        if cast(u64) imgDst.width * imgDst.height < ParallelMinPixels or Swag.workerCount() <= 1
-        {
-            for index in imgDst.width
-            {
-                if legacy do
-                    scaleCol(imgDst, imgSrc, cast(s64) index, &contrib)
-                else do
-                    scaleColGeneric(imgDst, imgSrc, cast(s64) index, &contrib)
-            }
-
-            return
-        }
 
         // Each column owns disjoint destination pixels. The join keeps the shared weights alive.
         let weights = &contrib
@@ -442,18 +427,6 @@ namespace ResizeTools
         let contrib = calcContributions(dw, sw, cast(f64) dw / sw, rmode)
         let format  = imgSrc.pixelFormat
         let legacy  = format == .BGR8 or format == .BGRA8 or format == .RGB8 or format == .RGBA8
-        if cast(u64) imgDst.width * imgDst.height < ParallelMinPixels or Swag.workerCount() <= 1
-        {
-            for index in imgDst.height
-            {
-                if legacy do
-                    scaleRow(imgDst, imgSrc, cast(s64) index, &contrib)
-                else do
-                    scaleRowGeneric(imgDst, imgSrc, cast(s64) index, &contrib)
-            }
-
-            return
-        }
 
         // Rows share only the source and weights; the next pass starts after this join.
         let weights = &contrib

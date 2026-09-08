@@ -33,7 +33,7 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 ### language.parallelism.001 — The shipped model, and the promises it does not yet make
 
 - Recorded: 2026-09-06 07:51
-- Updated: 2026-09-08 08:54 — restricted join helping to the awaited node; explicit drains retain process-wide helping
+- Updated: 2026-09-08 10:07 — runtime cost hints replace per-consumer small-loop thresholds
 - Where it stands: `parallel for |captures| name in range` is a statement of the language, lowered
   to one call into `Swag.__parallelRange`. `bin/runtime` owns the worker pool, `Swag.Task`,
   `Swag.TaskGroup`, `Swag.Mutex`, `Swag.RWLock`, `Swag.Condition`, `Swag.Semaphore`,
@@ -77,6 +77,16 @@ not be reentered by an unrelated callback. With no worker, submission executes s
 An explicit `Swag.drainWork` still runs arbitrary accepted work and needs a context that permits
 that reentrancy. Joining a task that itself needs a held lock can still deadlock; targeted helping
 does not prove a task dependency graph or lock ordering correct.
+
+Native `parallel for` now keeps bounded atomic cost hints keyed by the generated body's entry
+address. An unknown body samples one actual iteration before starting workers; later calls use
+the estimated work per partition and periodically refresh it. Empty and single-iteration ranges
+need no pool. Hints retain no captured storage, and concurrent observations only affect placement.
+The fixed table can decline a colliding entry, which keeps ordinary partitioning. Variable costs,
+preemption and stale observations can still choose an inefficient schedule; this is not a time
+bound or a proof that parallel execution will help. Resize, Argon2 and ChaCha20 no longer carry
+separate small-work thresholds. The pixel-filter and Argon2 benchmarks measure both cheap ranges
+and expensive four-iteration ranges against one-worker controls.
 
 #### Workloads still to be answered
 

@@ -4873,6 +4873,7 @@ indent-style = spaces</span></div>
 <h3 id="_005_007_parallel_for_swg">Parallel For</h3>
 <h3 id="_005_007_parallel_for_swg_The__parallel_for__Statement">The 'parallel for' Statement</h3>
 <p>'parallel for' runs the iterations of an index range across the process worker pool and returns when every one of them has finished. It is the language form of independent work: the body must produce the same result whatever order the indices run in and whichever thread runs them.</p>
+<p>The runtime adapts the number of partitions to observed iteration cost. Short work can stay entirely on the calling thread, even when workers exist. An unknown loop can execute an initial iteration before distributing the rest; later calls reuse and periodically refresh the cost estimate. This is a scheduling hint, not a time bound: changing inputs and uneven iteration costs can change which execution plan is useful. Every iteration still runs once, and the statement still waits for all accepted work before returning.</p>
 <p>The calling thread can execute the partition it is joining, including work that partition explicitly joins in turn. It does not drain unrelated tasks from the pool during the join. A partition that needs a lock held by its caller can still deadlock; joining does not prove lock ordering correct.</p>
 <p>The statement names its index like an ordinary <span class="code-inline">for</span>, and states between <span class="code-inline">|...|</span> what the body reaches from the enclosing scope. That capture list is the same one a closure takes, and it is written rather than inferred: what the body shares with other partitions is the whole safety question, so it is visible at the loop instead of hidden inside it.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -9840,7 +9841,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.403</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.404</div>
 </footer>
 </section>
 </main>

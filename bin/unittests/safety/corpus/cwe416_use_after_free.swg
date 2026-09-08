@@ -275,6 +275,22 @@ func readTableElementAfterFree()->s32
     discard readTableElementAfterFree()
 }
 
+// BY DESIGN - an object is named by where its own pointer lives, which is one level:
+// a frame slot, or a register the function defines once. A field reached through
+// another object's field ('outer.next.data') has no such name, so releasing it and
+// reading it again is a miss. Widening the name to a chain would have to invalidate
+// every prefix of it, and each level added is another way to name the wrong object.
+//
+// #[Swag.Sanity(.Lifecycle, true)]
+// func readNestedFieldAfterFree()->s32
+// {
+//     let outer = cast(*Owner) heapAlloc(16)
+//     outer.child = cast(*Owner) heapAlloc(16)
+//     outer.child!.buffer = cast(*s32) heapAlloc(4)
+//     heapFree(outer.child!.buffer!, 4)
+//     return outer.child!.buffer![]     // expected: use of released memory
+// }
+
 // --- Sound: documented misses that must stay silent ---
 
 // Handing the pointer's own storage to a callee ends the proof: the callee can reassign it,

@@ -81,10 +81,13 @@ defines the required validation sequence for each change type.
 After a DevMode build, regenerate the complete documentation site with:
 
 ```text
-swc tools\web.swgs dm
+swc tools\help.swgs dm
 ```
 
-The command rebuilds the brand assets, standard-library API pages, runtime API,
+The command writes the documentation to `bin/help/`, beside the compiler and standard modules.
+Open `bin/help/index.html` to browse it locally.
+
+It rebuilds the brand assets, standard-library API pages, runtime API,
 language reference, and editorial pages. It deletes existing root HTML files in
-`web` first, so edit their sources under `bin/reference`, `bin/runtime`,
+`bin/help` first, so edit their sources under `bin/reference`, `bin/runtime`,
 `bin/std`, or `bin/examples` rather than editing generated HTML.

@@ -72,7 +72,7 @@ class EditLoopTests(unittest.TestCase):
                 "bin/unittests/lexer/input.swg": b"let x=1\n",
                 "tools/format.swgs": b"#run {}\n",
                 "bench/src/hello/hello.swg": b"func main() {}\n",
-                "web/tools/build.swgs": b"#run {}\n",
+                "bin/help/tools/brand.swgs": b"#run {}\n",
             }
             excluded = {
                 "bin/unittests/.output/generated.swg": b"generated",

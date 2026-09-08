@@ -4,4 +4,4 @@
 
 using Core
 
-#main { Env.exit(Tool.launch("web")) }
+#main { Env.exit(Tool.launch("help")) }

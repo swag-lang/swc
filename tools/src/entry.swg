@@ -120,8 +120,8 @@ private func dispatch(name: string, root: string, script: string, tokens: const 
     case "goldens":
         return try runGoldens(&context, &options)
 
-    case "web":
-        return try runWeb(&context, &options)
+    case "help":
+        return try runHelp(&context, &options)
 
     case "vault":
         return try runVaultIntegration(&context, &options)

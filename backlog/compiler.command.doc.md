@@ -33,8 +33,8 @@ not the discovery.
 
 - Recorded: 2026-09-07 21:16
 - Updated: 2026-09-08 10:36 — adaptive runtime profiling confirms private declarations leak into the page
-- Found during prompt 7 after `tools/web.swgs dm --num-cores 6` regenerated the complete site.
-- Evidence: the API HTML audit reports nine missing targets in `web/swag.runtime.html`:
+- Found during prompt 7 after `tools/help.swgs dm --num-cores 6` regenerated the complete site.
+- Evidence: the API HTML audit reports nine missing targets in `bin/help/swag.runtime.html`:
   `Swag_AtomicFlag_reset`, `Swag_Condition_wait`, `Swag_ParallelChunk`, `Swag_Scheduler`,
   `Swag_Semaphore_setPermits`, `Swag_TaskGroup_cancel`, `Swag_Task_submit`, `Swag_Task_wait`,
   and `Swag_WorkNode`. The affected links come from existing runtime comments and signatures;
@@ -56,11 +56,11 @@ not the discovery.
 - Recorded: 2026-09-07 20:02
 - Found during prompt 7 in the `codex/bin-quality` worktree, starting at
   `62c52cd5700dc3c446fad2d1b5476ec1ed5f5e37`.
-- A fresh `bin/swc.dm.exe doc --workspace bin/std --workspace-module core --doc-output-dir web
+- A fresh `bin/swc.dm.exe doc --workspace bin/std --workspace-module core --doc-output-dir bin/help
   --num-cores 6` renders the generic parameter in `Core.CommandLine.IsSet` as
   `<a href="#Core_Input_Key_T">T</a>`. Other generic `T` and `K` occurrences also resolve to
   keyboard enum members, although those names denote local type parameters.
-- The target anchor exists, so `audit_api_html.py web/std.core.html --source-root . --json`
+- The target anchor exists, so `audit_api_html.py bin/help/std.core.html --source-root . --json`
   reports no unresolved link or broken anchor. Structural validity does not establish binding
   correctness.
 - Next: trace signature token linking in `src/Doc`, preserve lexical generic bindings before

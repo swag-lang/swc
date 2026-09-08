@@ -165,7 +165,7 @@ After the first DevMode compiler build:
      change. Review the complete formatting diff; formatting is not permission to hide a semantic
      change or rewrite unrelated generated/vendor files.
   4. Regenerate the complete documentation site and brand assets with
-     `bin\swc.exe tools\web.swgs dm`. Review every tracked change for correctness, including public
+     `bin\swc.exe tools\help.swgs dm`. Review every tracked change for correctness, including public
      API pages, the executable language reference, links, images, indexes, and examples.
   5. Run the documentation generation a second time and prove it is idempotent. Fix the generator
      if it is not; do not normalize nondeterministic output as expected churn.
@@ -595,7 +595,7 @@ Targets, all on this machine, all re-measured before you start:
   - Warm no-op build of the same: target under 100 ms.
   - Edit one file in core, rebuild: today this rebuilds all 291 files. Target under 300 ms.
   - Hello world, source to linked executable: 89 ms today. Target under 50 ms.
-  - swc tools/web.swgs (the whole documentation site) and swc tools/format.swgs (every Swag workspace):
+  - swc tools/help.swgs (the whole documentation site) and swc tools/format.swgs (every Swag workspace):
     unmeasured today. Measure them, then halve them.
 
 For context on where the bar already is, from campaign 20260806-174758: swc builds the bench tasks

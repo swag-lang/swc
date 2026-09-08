@@ -182,11 +182,11 @@ use the same tag. It also fails when a missing golden was created.
 its golden. Testing never promotes or removes a snapshot.
 """)
 
-    case "web":
+    case "help":
         Console.print("""
-Regenerates the brand assets and the complete website under web/.
+Regenerates the brand assets and the complete website under bin/help/.
 
-  swc tools/web.swgs [dm] [options...]
+  swc tools/help.swgs [dm] [options...]
 
 Cuts the mark, the icons and the favicons first, then documents the bin/std and
 bin/reference workspaces.

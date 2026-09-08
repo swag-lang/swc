@@ -11,7 +11,7 @@ Core's: tasks and parallel loops belong to the runtime.
 
 | Need | API |
 |---|---|
-| Independent work on the shared pool | [[Swag.Task]], [[Swag.TaskGroup]], [[Swag.parallelRange]] |
+| Independent work on the shared pool | `parallel for`, [[Swag.Task]], [[Swag.TaskGroup]] |
 | A dedicated operating-system thread | [[Core.Threading.Thread]] |
 | Mutual exclusion, events, and read/write locking | [[Core.Sync]] |
 | Lock-free counters and values | [[Core.Atomic]] |

@@ -758,6 +758,7 @@ namespace
     SemaEscapeInfo expressionEscapeInfoRec(Sema& sema, AstNodeRef nodeRef, uint32_t& budget);
     SemaEscapeInfo expressionEscapeInfoAt(Sema& sema, AstNodeRef resolvedRef, uint32_t& budget);
     SemaEscapeInfo expressionEscapeInfoWithTarget(Sema& sema, AstNodeRef nodeRef, TypeRef targetTypeRef, uint32_t& budget);
+    SemaEscapeInfo deferredCallBorrowInfo(Sema& sema, AstNodeRef exprRef);
 
     AstNodeRef argumentValueRef(Sema& sema, AstNodeRef argRef)
     {
@@ -1198,7 +1199,7 @@ namespace
     // the source storage itself, and capturing a borrowing value (a pointer to a local, ...)
     // by value propagates that borrow. The borrow is reported only when the closure value
     // escapes (return, assignment to escaping storage, ...), not at the capture itself.
-    SemaEscapeInfo closureEscapeInfo(Sema& sema, AstNodeRef closureRef, const AstClosureExpr& closure)
+    SemaEscapeInfo closureEscapeInfo(Sema& sema, AstNodeRef closureRef, const AstClosureExpr& closure, uint32_t& budget)
     {
         SmallVector<AstNodeRef> captures;
         sema.ast().appendNodes(captures, closure.nodeCaptureArgsRef);
@@ -1207,15 +1208,25 @@ namespace
         SemaEscapeInfo result;
         for (const AstNodeRef captureRef : captures)
         {
-            const auto*           captureArg = sema.node(captureRef).safeCast<AstClosureArgument>();
-            const SymbolVariable* sourceVar  = captureArg ? identifierVariable(sema, captureArg->nodeIdentifierRef) : nullptr;
-            if (!sourceVar)
+            const auto& captureArg = sema.node(captureRef).cast<AstClosureArgument>();
+            // An initialized capture names an expression, not necessarily a variable. Follow
+            // its value or designated storage just as a normal initializer or address would.
+            if (captureArg.hasFlag(AstClosureArgumentFlagsE::Address))
+            {
+                result = mergeEscapeInfo(result, storageBorrowInfo(sema, captureArg.nodeIdentifierRef, closureTypeRef, true));
+                continue;
+            }
+
+            // Loading a scalar through a reference copies the value into the closure; the
+            // address used for that load does not become part of its environment.
+            const TypeRef captureTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, captureArg.nodeIdentifierRef));
+            if (!typeCanCarryBorrowImpl(sema, captureTypeRef))
                 continue;
 
-            if (captureArg->hasFlag(AstClosureArgumentFlagsE::Address))
-                result = mergeEscapeInfo(result, variableStorageInfo(sema, *sourceVar, captureArg->nodeIdentifierRef, closureTypeRef));
-            else if (const SemaEscapeInfo* info = sema.variableEscapeInfo(*sourceVar))
-                result = mergeEscapeInfo(result, *info);
+            SemaEscapeInfo info = expressionEscapeInfoRec(sema, captureArg.nodeIdentifierRef, budget);
+            if (!info.hasBorrow())
+                info = deferredCallBorrowInfo(sema, captureArg.nodeIdentifierRef);
+            result = mergeEscapeInfo(result, info);
         }
 
         if (result.hasBorrow())
@@ -1231,7 +1242,7 @@ namespace
 
         const AstNode& rawNode = sema.node(nodeRef);
         if (rawNode.is(AstNodeId::ClosureExpr))
-            return closureEscapeInfo(sema, nodeRef, rawNode.cast<AstClosureExpr>());
+            return closureEscapeInfo(sema, nodeRef, rawNode.cast<AstClosureExpr>(), budget);
 
         const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
         if (resolvedRef.isInvalid())
@@ -2019,13 +2030,25 @@ namespace
         }
     }
 
-    // Binding an opaque call result to a local: capture the argument borrows now (the
-    // flow state dies with the statement) and judge them only if the local later
-    // escapes (return, durable store).
-    void bindDeferredCallBorrow(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef, const SemaEscapeProjection* projection = nullptr)
+    // Locals and initialized captures snapshot call-argument borrows while flow state is
+    // available. The call result is judged only when it escapes and summaries are final.
+    SemaEscapeInfo deferredCallBorrowInfo(Sema& sema, AstNodeRef exprRef)
     {
         SemaEscapeDeferredCallSnapshot capture;
         if (!captureOpaqueCallBorrows(sema, exprRef, false, capture))
+            return {};
+
+        SemaEscapeInfo info;
+        info.kind      = SemaEscapeKind::DeferredCall;
+        info.sourceRef = exprRef;
+        info.deferredCalls.push_back(std::make_shared<const SemaEscapeDeferredCallSnapshot>(std::move(capture)));
+        return info;
+    }
+
+    void bindDeferredCallBorrow(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef, const SemaEscapeProjection* projection = nullptr)
+    {
+        const SemaEscapeInfo info = deferredCallBorrowInfo(sema, exprRef);
+        if (!info.hasBorrow())
         {
             if (projection)
                 sema.clearProjectionEscapeInfo(*projection);
@@ -2034,10 +2057,6 @@ namespace
             return;
         }
 
-        SemaEscapeInfo info;
-        info.kind      = SemaEscapeKind::DeferredCall;
-        info.sourceRef = exprRef;
-        info.deferredCalls.push_back(std::make_shared<const SemaEscapeDeferredCallSnapshot>(std::move(capture)));
         if (projection)
             sema.setProjectionEscapeInfo(*projection, info);
         else
@@ -2325,7 +2344,7 @@ namespace
                 return unaryEscapeInfo(sema, resolvedRef, node.cast<AstUnaryExpr>(), budget);
 
             case AstNodeId::ClosureExpr:
-                return closureEscapeInfo(sema, resolvedRef, node.cast<AstClosureExpr>());
+                return closureEscapeInfo(sema, resolvedRef, node.cast<AstClosureExpr>(), budget);
 
             default:
                 if (typeCanCarryBorrowImpl(sema, expressionTypeRef(sema, resolvedRef)))
@@ -2361,7 +2380,7 @@ namespace
                 return expressionEscapeInfoWithTarget(sema, rawNode.cast<AstInitializerExpr>().nodeExprRef, targetTypeRef, budget);
 
             case AstNodeId::ClosureExpr:
-                return closureEscapeInfo(sema, nodeRef, rawNode.cast<AstClosureExpr>());
+                return closureEscapeInfo(sema, nodeRef, rawNode.cast<AstClosureExpr>(), budget);
 
             case AstNodeId::NamedArgument:
                 return expressionEscapeInfoWithTarget(sema, rawNode.cast<AstNamedArgument>().nodeArgRef, targetTypeRef, budget);

@@ -30,6 +30,39 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
+### language.parallelism.005 — Captures do not prove task lifetime or race freedom
+
+- Recorded: 2026-09-07 15:52
+- Updated: 2026-09-08 18:48 — isolate the caller-owned task escape exemption after checking initialized captures
+- Evidence: borrow analysis follows named and initialized captures, including addresses, field
+  references, slices, aggregates and deferred call-result summaries. It rejects the tested local
+  borrows returned in a closure or stored in a task from an outer lexical scope. This does not
+  establish race freedom: two partitions writing the same element and a captured pointer whose
+  pointee is mutated elsewhere still compile.
+- Remaining lifetime gap: `store(task: *Swag.Task)` can declare a local and submit a closure
+  borrowing it into the caller's task. This is accepted even for `func|&local|()`, independently
+  of initialized captures. `intoArgumentOutlivesStored` deliberately exempts destinations reached
+  through a caller parameter to allow transient borrowed state. A local source has no caller
+  parameter origin, so the deferred summary cannot move this check to the caller. The unexecuted
+  `storeTaskParameterGap` case in `bin/unittests/sanity/borrow_escape_capture.swg` keeps the gap
+  visible without running a dangling task.
+- Both `Swag.Task.opDrop` and `Swag.TaskGroup.opDrop` join their work, including on early return
+  and failure. An owner can still release a borrowed field in its own destructor before the
+  implicit destruction of its task field; it must join before releasing that storage.
+- Next: distinguish a borrow retained past a helper's return from transient borrowed state before
+  removing the caller-parameter exemption. Cover both a retained task closure and a helper that
+  clears temporary state before returning. Then infer transferable (`Send`) and shared-readable
+  (`Sync`) properties from fields, allocation, copy, move and destruction effects, and require
+  them at captures. `NoCopy` does not imply `Send`, `const` does not imply deep immutability, and
+  an atomic reference count does not synchronize its pointee. Raw pointers, opaque owners, native
+  handles and foreign calls need a stated contract rather than automatic acceptance.
+- Complete when: a rejected capture names the concrete alias, allocator, destructor or executor
+  constraint and points at a valid partition or ownership alternative; semantic tests reject
+  hidden aliases, escaped borrows and cross-module global writes without optional analysis.
+  Until then the capture list states intent rather than proving race freedom.
+- Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
+  language.parallelism.001.
+
 ### language.parallelism.001 — The shipped model, and the promises it does not yet make
 
 - Recorded: 2026-09-06 07:51
@@ -160,32 +193,6 @@ of simplicity when every useful helper needs an unchecked contract.
   formatter and the relevant diagnostics together. Compiler-source changes increment
   `SWC_BUILD_NUM`; serialized effect summaries and runtime ABI changes invalidate incompatible
   cached artifacts.
-
-### language.parallelism.005 — Checked captures are not proved, only spelled
-
-- Recorded: 2026-09-07 15:52
-- Updated: 2026-09-08 14:37 — narrow lifetime evidence after automatic task joins
-- Evidence: `parallel for |&image, &dst| row in dst.height` and `Swag.Task.submit(func|owner|() ...)`
-  both take a written capture list, and the compiler checks only that the names exist and that a
-  by-value capture is a plain type. Two partitions writing the same element, an `&` capture whose
-  owner dies before the join, and a captured pointer whose pointee is mutated elsewhere all
-  compile. Both `Swag.Task.opDrop` and `Swag.TaskGroup.opDrop` join their work, including
-  on early return and failure, but neither proves that captured storage outlives that join.
-  In particular, an owner can release a borrowed field in its own destructor before the implicit
-  destruction of its task field. Such an owner must still join before releasing that storage.
-- Next: infer transferable (`Send`) and shared-readable (`Sync`) properties from a type's fields,
-  allocation, copy, move and destruction effects, then require them at every capture. Include
-  allocator and destructor effects, not just the representation: `NoCopy` does not imply `Send`,
-  `const` does not imply deep immutability, and an atomic reference count does not synchronize its
-  pointee. Raw pointers, opaque owners, native handles and foreign calls need a stated contract
-  rather than automatic acceptance.
-- Complete when: a rejected capture names the concrete alias, allocator, destructor or executor
-  constraint and points at a valid partition or ownership alternative; and the semantic tests reject
-  hidden aliases, escaped borrows and cross-module global writes without depending on an optional
-  analysis. Until then the language documents the capture list as a statement of intent, not as a
-  proof.
-- Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
-  language.parallelism.001.
 
 ### language.parallelism.004 — Partitions cannot prove disjointness
 

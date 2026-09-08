@@ -19,7 +19,8 @@ using Core
     nodes.add(#move root)
 
     var index: NodeIndex
-    Swag.assert(index.add(&nodes[0], 0))
+    let nodeAdded = index.add(&nodes[0], 0)
+    Swag.assert(nodeAdded)
     for i in NodeCount
     {
         var node: Node
@@ -28,7 +29,8 @@ using Core
         node.name     = Format.toString("entry_%", i)
         let position = nodes.count
         nodes.add(#move node)
-        Swag.assert(index.add(&nodes[position], position))
+        let nodeAdded2 = index.add(&nodes[position], position)
+        Swag.assert(nodeAdded2)
     }
 
     Swag.assert(index.childId(RootNodeId, "ENTRY_99999") == NodeCount + RootNodeId)

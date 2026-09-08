@@ -354,7 +354,8 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(last.accepted and flatView.slideIndex == 1)
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(flatResult.collectMatches!, flatResult.view!, "Read-only drawing page", &matches)
-    Swag.assert(matches.count == 1 and matches[0].major == 0 and flatResult.revealMatch!(flatResult.view!, matches[0], "Read-only drawing page"))
+    let revealed = matches.count == 1 and matches[0].major == 0 and flatResult.revealMatch!(flatResult.view!, matches[0], "Read-only drawing page")
+    Swag.assert(revealed)
     Swag.assert(flatView.slideIndex == 0)
 
     let templateFileName = writeOpenDocumentFixture(".otg", .Drawing, drawingOpenDocumentXml().toString(), true)
@@ -385,7 +386,8 @@ private func drawingOpenDocumentXml()->String
     let view = cast(*OpenDocumentViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert((view.html != null) and !(view.table != null))
-    Swag.assert(view.html.elementById("odf-bookmark-1") != HtmlNoNode and view.html.navigateToFragment("#odf-bookmark-1"))
+    let navigated = view.html.elementById("odf-bookmark-1") != HtmlNoNode and view.html.navigateToFragment("#odf-bookmark-1")
+    Swag.assert(navigated)
     Swag.assert(result.info != null)
     assertViewerInfoButton(view.zoomLabel)
     Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
@@ -402,7 +404,8 @@ private func drawingOpenDocumentXml()->String
 
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches!, result.view!, "Berlin", &matches)
-    Swag.assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "Berlin"))
+    let revealed = matches.count == 1 and result.revealMatch!(result.view!, matches[0], "Berlin")
+    Swag.assert(revealed)
     var bounds: Math.Rectangle
     Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
     result.clearSearch!(result.view!)
@@ -440,7 +443,8 @@ private func drawingOpenDocumentXml()->String
 
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches!, result.view!, "Lyon", &matches)
-    Swag.assert(matches.count == 1 and matches[0].major == 1 and result.revealMatch!(result.view!, matches[0], "Lyon"))
+    let revealed = matches.count == 1 and matches[0].major == 1 and result.revealMatch!(result.view!, matches[0], "Lyon")
+    Swag.assert(revealed)
     Swag.assert(view.sheetIndex == 1 and view.table.document.rows[0].cells[0] == "Lyon")
     var bounds: Math.Rectangle
     Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
@@ -483,7 +487,8 @@ private func drawingOpenDocumentXml()->String
 
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches!, result.view!, "Offline review is ready", &matches)
-    Swag.assert(matches.count == 1 and matches[0].major == 1 and result.revealMatch!(result.view!, matches[0], "Offline review is ready"))
+    let revealed = matches.count == 1 and matches[0].major == 1 and result.revealMatch!(result.view!, matches[0], "Offline review is ready")
+    Swag.assert(revealed)
     Swag.assert(view.slideIndex == 1)
     var bounds: Math.Rectangle
     Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())

@@ -52,7 +52,8 @@ using Core, Pixel, Gui
     Swag.assert(line.itemAt(0).name.raw == "Reykjavik" and line.itemAt(2).name.raw == "rain")
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches!, result.view!, "humid", &matches)
-    Swag.assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "humid"))
+    let revealed = matches.count == 1 and result.revealMatch!(result.view!, matches[0], "humid")
+    Swag.assert(revealed)
     Swag.assert(view.searchRow == 2 and view.searchColumn == 2 and view.searchOffset == 0 and view.searchLength == 5)
     var bounds: Math.Rectangle
     Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())

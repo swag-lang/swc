@@ -51,8 +51,9 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     let source = expect File.readAllText(fileName.toString())
     let offset = source.indexOf("immutable")
     Swag.assert(offset != Swag.U64.Max)
-    let match = Viewer.SearchMatch{offset: offset, length: "immutable".count}
-    Swag.assert(result.revealMatch!(result.view!, match, "immutable"))
+    let match    = Viewer.SearchMatch{offset: offset, length: "immutable".count}
+    let revealed = result.revealMatch!(result.view!, match, "immutable")
+    Swag.assert(revealed)
     var bounds: Math.Rectangle
     Swag.assert(result.searchBounds!(result.view!, match, &bounds) and !bounds.isEmpty())
 

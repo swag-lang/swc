@@ -216,7 +216,8 @@ private func createPdfFixture()->String
 
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches!, result.view!, "second", &matches)
-    Swag.assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "second"))
+    let revealed = matches.count == 1 and result.revealMatch!(result.view!, matches[0], "second")
+    Swag.assert(revealed)
     Swag.assert(view.pdfView.pageIndex == 1)
     Swag.assert(view.pdfView.selectedText() == "Second")
 

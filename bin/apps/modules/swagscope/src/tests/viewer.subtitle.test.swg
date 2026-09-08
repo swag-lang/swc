@@ -53,18 +53,20 @@ func subtitleViewerFixturePath()->String
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches!, result.view!, "second", &matches)
     Swag.assert(matches.count == 1 and matches[0].major == 1)
-    Swag.assert(result.revealMatch!(result.view!, matches[0], "second"))
+    var revealed = result.revealMatch!(result.view!, matches[0], "second")
+    Swag.assert(revealed)
     var bounds: Math.Rectangle
     Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
     result.clearSearch!(result.view!)
-    Swag.assert(view.revealCue(1) and view.editor.selectedText() == "A second caption\non two lines.")
+    revealed = view.revealCue(1) and view.editor.selectedText() == "A second caption\non two lines."
+    Swag.assert(revealed)
 
     let oldCount = String.from(view.cueButton.text())
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     let expectedCount = Format.toString(subtitleStrings().ui_Cues, 2)
     Swag.assert(view.cueButton.text() == expectedCount.toString() and view.cueButton.text() != oldCount.toString(),
-                 Format.toString("subtitle count: actual '%', expected '%', previous '%'", view.cueButton.text(), expectedCount, oldCount).toString())
+                Format.toString("subtitle count: actual '%', expected '%', previous '%'", view.cueButton.text(), expectedCount, oldCount).toString())
     Swag.assert(view.cueButton.toolTip == subtitleStrings().ui_GoToCue)
     Swag.assert(view.durationButton.toolTip == subtitleStrings().ui_GoToTime)
     Swag.assert(view.editor.selectedText() == "A second caption\non two lines.")

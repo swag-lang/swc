@@ -114,7 +114,8 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     g_EndGrabX   = 16
     g_EndGrabY   = 12
 
-    Swag.assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea))
+    let actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea)
+    Swag.assert(actionExecuted)
 
     let img = Clipboard.getImage()
     Swag.assert(img.isValid())
@@ -150,7 +151,8 @@ func testAddMonitor(main: *MainWnd, idx: u32)
         testAddMonitorAt(f.main, {0, 0, 8, 8})
     testAddMonitorAt(f.main, {0, 0, 320, 240})
 
-    Swag.assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.screenId(4)))
+    let actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.screenId(4))
+    Swag.assert(actionExecuted)
 
     let img = Clipboard.getImage()
     Swag.assert(img.isValid())

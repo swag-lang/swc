@@ -505,7 +505,8 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     let matches = view.findTextMatches("second")
     Swag.assert(matches.count == 1 and matches[0].pageIndex == 1)
-    Swag.assert(view.revealTextMatch(matches[0]) and view.selectedText() == "Second")
+    let revealed = view.revealTextMatch(matches[0])
+    Swag.assert(revealed and view.selectedText() == "Second")
     settlePdfView(&host, view)
     var matchRect: Math.Rectangle
     Swag.assert(view.textMatchRect(matches[0], &matchRect) and !matchRect.isEmpty())

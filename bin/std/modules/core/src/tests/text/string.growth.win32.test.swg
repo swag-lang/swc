@@ -13,7 +13,8 @@ func releaseStringGuard(address: *void?, size: u64, freeType: u32)->s32
 {
     let pages = allocateStringGuard(null, 8192, 0x2000, 0x04)!
     defer discard releaseStringGuard(pages, 0, 0x8000)
-    Swag.assert(allocateStringGuard(pages, 4096, 0x1000, 0x04) != null)
+    let committed = allocateStringGuard(pages, 4096, 0x1000, 0x04)
+    Swag.assert(committed != null)
 
     let value = cast(*String) (pages + 4096 - #sizeof(String))
     defer value.opDrop()

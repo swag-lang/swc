@@ -751,7 +751,8 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let view = HtmlView.createFile(&host.root, fileName)
     view.resize(960, 680)
     view.applyLayout()
-    Swag.assert(view.revealFileOffset(offset, query))
+    let revealed = view.revealFileOffset(offset, query)
+    Swag.assert(revealed)
 
     var steps = 0'u32
     while view.isLoading() and steps < 4_000
@@ -873,7 +874,8 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.applyLayout()
     view.rebuild()
 
-    Swag.assert(view.revealFileOffset(second, "same"))
+    let revealed = view.revealFileOffset(second, "same")
+    Swag.assert(revealed)
     Swag.assert(view.searchNode != HtmlNoNode and view.searchStart == 5 and view.searchEnd == 9)
     var bounds: Math.Rectangle
     Swag.assert(view.searchMatchRect(&bounds) and !bounds.isEmpty())
@@ -909,8 +911,9 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     // Visiting the middle replaces the resident document instead of appending to it. Returning
     // to the same source offset materializes the same bounded window and the same pixels.
-    let middle = view.fileSize / 2
-    Swag.assert(view.revealFileOffset(middle, ""))
+    let middle   = view.fileSize / 2
+    var revealed = view.revealFileOffset(middle, "")
+    Swag.assert(revealed)
     let middleStart = view.virtualWindowStart
     let middleEnd   = view.virtualWindowEnd
     let first       = Hash.hashBytes32(host.render(view).pixels.toSlice())
@@ -920,8 +923,10 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(!view.virtualPendingSeek)
     Swag.assert(view.document.nodes.count < 20_000)
 
-    Swag.assert(view.revealFileOffset(view.virtualContentStart, ""))
-    Swag.assert(view.revealFileOffset(middle, ""))
+    revealed = view.revealFileOffset(view.virtualContentStart, "")
+    Swag.assert(revealed)
+    revealed = view.revealFileOffset(middle, "")
+    Swag.assert(revealed)
     Swag.assert(view.virtualWindowStart == middleStart and view.virtualWindowEnd == middleEnd)
     let second = Hash.hashBytes32(host.render(view).pixels.toSlice())
     Swag.assert(second == first)
@@ -956,14 +961,17 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(view.virtualSource and !view.virtualPreformatted)
     Swag.assert(view.document.nodes.count < 20_000)
 
-    let middle = view.fileSize / 2
-    Swag.assert(view.revealFileOffset(middle, ""))
+    let middle   = view.fileSize / 2
+    var revealed = view.revealFileOffset(middle, "")
+    Swag.assert(revealed)
     let residentStart = view.virtualWindowStart
     let residentEnd   = view.virtualWindowEnd
     Swag.assert(residentStart < middle and residentEnd > middle)
     Swag.assert(view.document.nodes.count < 20_000)
-    Swag.assert(view.revealFileOffset(view.virtualContentStart, ""))
-    Swag.assert(view.revealFileOffset(middle, ""))
+    revealed = view.revealFileOffset(view.virtualContentStart, "")
+    Swag.assert(revealed)
+    revealed = view.revealFileOffset(middle, "")
+    Swag.assert(revealed)
     Swag.assert(view.virtualWindowStart == residentStart and view.virtualWindowEnd == residentEnd)
 }
 
@@ -1318,7 +1326,8 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     var rail = view.boxOfNode(railNode)
     Swag.assert(rail != HtmlNoNode and view.layout.constBox(rail).scrollable)
     Swag.assert(view.elementById("api-reference") == HtmlNoNode)
-    Swag.assert(view.navigateToFragment("#api-reference"))
+    let navigated = view.navigateToFragment("#api-reference")
+    Swag.assert(navigated)
     Swag.assert(view.scrollRegion(rail, 180))
 
     view.streamStep()

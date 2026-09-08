@@ -124,24 +124,29 @@ using Swag, Core
     Swag.assert(Gui.Testing.actionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay9, &delayEvt))
     Swag.assert(delayEvt.checked)
 
-    let hideEditor = f.main.captureOptions.hideEditorBefore
-    Swag.assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.HideEditor))
+    let hideEditor     = f.main.captureOptions.hideEditorBefore
+    var actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.HideEditor)
+    Swag.assert(actionExecuted)
     Swag.assert(f.main.captureOptions.hideEditorBefore != hideEditor)
 
     let captureCursor = f.main.captureOptions.captureCursor
-    Swag.assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.CaptureCursor))
+    actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.CaptureCursor)
+    Swag.assert(actionExecuted)
     Swag.assert(f.main.captureOptions.captureCursor != captureCursor)
 
     let toInPlace = f.main.captureOptions.inPlaceEdit
-    Swag.assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToInPlace))
+    actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToInPlace)
+    Swag.assert(actionExecuted)
     Swag.assert(f.main.captureOptions.inPlaceEdit != toInPlace)
 
     let toEditor = f.main.captureOptions.sendToEditor
-    Swag.assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToEditor))
+    actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToEditor)
+    Swag.assert(actionExecuted)
     Swag.assert(f.main.captureOptions.sendToEditor != toEditor)
 
     let toClipboard = f.main.captureOptions.sendToClipboard
-    Swag.assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToClipboard))
+    actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToClipboard)
+    Swag.assert(actionExecuted)
     Swag.assert(f.main.captureOptions.sendToClipboard != toClipboard)
 
     var capEvt = Gui.Testing.commandState(ActionCapture.ToClipboard)

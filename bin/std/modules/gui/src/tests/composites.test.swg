@@ -56,11 +56,13 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
         discard app
         if !didClose[]
         {
-            Swag.assert(host.clickModalButton(Dialog.BtnCancel))
+            let modalButtonClicked = host.clickModalButton(Dialog.BtnCancel)
+            Swag.assert(modalButtonClicked)
             didClose[] = true
         }
     }
-    Swag.assert(dlg.doModal() == Dialog.BtnCancel)
+    let modalResult = dlg.doModal()
+    Swag.assert(modalResult == Dialog.BtnCancel)
     Swag.assert(didClose)
 }
 
@@ -100,7 +102,8 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
         {
             Swag.assert(host.setModalEditText("Name", "Alice"))
             Swag.assert(ctrl.edit.text() == "Alice")
-            Swag.assert(host.clickModalButton(Dialog.BtnOk))
+            let modalButtonClicked = host.clickModalButton(Dialog.BtnOk)
+            Swag.assert(modalButtonClicked)
             didSet[] = true
         }
     }

@@ -174,10 +174,12 @@ func testSetupGlobalMain(main: *MainWnd)
     surface.show()
     Swag.assert(!surface.isHidden)
 
-    Swag.assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.Minimize))
+    var actionExecuted = Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.Minimize)
+    Swag.assert(actionExecuted)
     Swag.assert(surface.isHidden)
 
-    Swag.assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowEditor))
+    actionExecuted = Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowEditor)
+    Swag.assert(actionExecuted)
     Swag.assert(!surface.isHidden)
 
     evt = Gui.Testing.commandState(ActionGlobal.Exit)

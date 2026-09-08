@@ -102,7 +102,8 @@ using Swag, Core
         host.keyPress(Input.Key.Escape)
     }
 
-    Swag.assert(dlg.doModal() == Dialog.BtnCancel)
+    let modalResult = dlg.doModal()
+    Swag.assert(modalResult == Dialog.BtnCancel)
     Swag.assert(checked)
 }
 

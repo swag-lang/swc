@@ -2,5 +2,5 @@
 
 func test()
 {
-    Swag.assert(true, false, 42)                     // swc-expected-error {{parser_err_too_many_arguments}}
+    Swag.assert(true, null, #curlocation, 42)     // swc-expected-error {{parser_err_too_many_arguments}}
 }

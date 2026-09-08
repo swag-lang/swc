@@ -301,7 +301,8 @@ private func linkedIdmlFixturePath()->String
     var matches: Array'Viewer.SearchMatch
     viewer.collectMatches("Schriftwerke", {}, &matches)
     Swag.assert(!matches.isEmpty())
-    Swag.assert(viewer.revealMatch(matches[0], "Schriftwerke"))
+    let revealed = viewer.revealMatch(matches[0], "Schriftwerke")
+    Swag.assert(revealed)
     var searchBounds: Math.Rectangle
     Swag.assert(viewer.searchBounds(&searchBounds))
     viewer.clearSearch()

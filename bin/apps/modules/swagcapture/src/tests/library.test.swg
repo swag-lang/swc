@@ -29,17 +29,21 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert(!sizeEvt.checked)
     f.main.sendCommandEvent(ActionRecentSize.LibBig)
     Swag.assert(f.main.libWnd.previewSize == .Big)
-    Swag.assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibMedium))
+    var actionExecuted = Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibMedium)
+    Swag.assert(actionExecuted)
     Swag.assert(f.main.libWnd.previewSize == .Medium)
-    Swag.assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibSmall))
+    actionExecuted = Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibSmall)
+    Swag.assert(actionExecuted)
     Swag.assert(f.main.libWnd.previewSize == .Small)
 
     var overlayEvt = Gui.Testing.commandState(ActionLibView.Ratings)
     Swag.assert(Gui.Testing.actionUpdate'ActionLibView(libWnd, ActionLibView.Ratings, &overlayEvt))
     Swag.assert(overlayEvt.checked)
-    Swag.assert(Gui.Testing.actionExecute'ActionLibView(libWnd, ActionLibView.Ratings))
+    actionExecuted = Gui.Testing.actionExecute'ActionLibView(libWnd, ActionLibView.Ratings)
+    Swag.assert(actionExecuted)
     Swag.assert(!f.main.libWnd.showRatingOverlay)
-    Swag.assert(Gui.Testing.actionExecute'ActionLibView(libWnd, ActionLibView.LinkMarkers))
+    actionExecuted = Gui.Testing.actionExecute'ActionLibView(libWnd, ActionLibView.LinkMarkers)
+    Swag.assert(actionExecuted)
     Swag.assert(!f.main.libWnd.showLinkOverlay)
 
     Swag.assert(ratingLabel(0) == appStrings().act_NoRating)
@@ -51,11 +55,14 @@ impl IAllocator for LibraryRejectAllocator
         .dockStyle = .Bottom
     }
 
-    Swag.assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentSmall))
+    actionExecuted = Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentSmall)
+    Swag.assert(actionExecuted)
     Swag.assert(f.main.bottomSize == .Small)
-    Swag.assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentMedium))
+    actionExecuted = Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentMedium)
+    Swag.assert(actionExecuted)
     Swag.assert(f.main.bottomSize == .Medium)
-    Swag.assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentBig))
+    actionExecuted = Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentBig)
+    Swag.assert(actionExecuted)
     Swag.assert(f.main.bottomSize == .Big)
 
     var evt = Gui.Testing.commandState(ActionLibSort.Recent)

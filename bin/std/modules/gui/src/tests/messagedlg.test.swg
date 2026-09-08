@@ -43,10 +43,12 @@ func unbreakableMessage()->String
         if width[] != 0 do
             return
         width[] = dlg.surface!.position.width
-        Swag.assert(host.clickModalButton(Dialog.BtnOk))
+        let modalButtonClicked = host.clickModalButton(Dialog.BtnOk)
+        Swag.assert(modalButtonClicked)
     }
 
-    Swag.assert(dlg.doModal() == Dialog.BtnOk)
+    let modalResult = dlg.doModal()
+    Swag.assert(modalResult == Dialog.BtnOk)
 
     // The message runs several times the width of the host; the box it opened does not.
     Swag.assert(width != 0)

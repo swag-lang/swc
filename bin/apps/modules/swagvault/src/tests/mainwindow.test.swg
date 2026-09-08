@@ -564,7 +564,8 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
-    Swag.assert(dialog.doModal() == Dialog.BtnCancel)
+    let modalResult = dialog.doModal()
+    Swag.assert(modalResult == Dialog.BtnCancel)
     Swag.assert(host.autoHandled)
 }
 

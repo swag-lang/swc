@@ -67,7 +67,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
             return
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, golden)
-        Swag.assert(host.dismissPopupMenu())
+        let menuDismissed = host.dismissPopupMenu()
+        Swag.assert(menuDismissed)
         captured[] = true
     }
 
@@ -245,7 +246,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         if !didClick[]
         {
             Swag.assert(host.capturedPopupMenu() == popup)
-            Swag.assert(host.clickPopupMenuItem(Menu_Open))
+            let menuItemClicked = host.clickPopupMenuItem(Menu_Open)
+            Swag.assert(menuItemClicked)
             didClick[] = true
         }
     }
@@ -309,13 +311,15 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     {
         if !opened[]
         {
-            Swag.assert(host.openPopupSubMenu("More"))
+            let submenuOpened = host.openPopupSubMenu("More")
+            Swag.assert(submenuOpened)
             Swag.assert(sub.position.x >= popup.position.right() - 2 * popup.themeMetrics().menuPopup_ShadowSize)
             opened[] = true
         }
         elif !clicked[]
         {
-            Swag.assert(host.clickPopupMenuItem(Menu_Open))
+            let menuItemClicked = host.clickPopupMenuItem(Menu_Open)
+            Swag.assert(menuItemClicked)
             clicked[] = true
         }
     }
@@ -353,11 +357,13 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         Swag.assert(popup.position.x >= margin)
         Swag.assert(popup.position.right() <= host.root.position.width - margin)
         Swag.assert(Math.abs(popup.position.x + popup.anchorPosition - anchor.x) < 0.5)
-        Swag.assert(host.clickPopupMenuItem(Menu_Open))
+        let menuItemClicked = host.clickPopupMenuItem(Menu_Open)
+        Swag.assert(menuItemClicked)
         checked[] = true
     }
 
-    Swag.assert(popup.doModal(anchor, .AnchorTopCenter, autoDestroy: true) == Menu_Open)
+    let modalResult = popup.doModal(anchor, .AnchorTopCenter, autoDestroy: true)
+    Swag.assert(modalResult == Menu_Open)
     Swag.assert(checked)
     host.pump()
 }
@@ -376,7 +382,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     {
         if !dismissed[]
         {
-            Swag.assert(host.dismissPopupMenu())
+            let menuDismissed = host.dismissPopupMenu()
+            Swag.assert(menuDismissed)
             dismissed[] = true
         }
     }
@@ -422,7 +429,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         Swag.assert(popup.position.y + popup.getPopupBodyRect().y == anchor.bottom())
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.icon-anchor")
-        Swag.assert(host.dismissPopupMenu())
+        let menuDismissed = host.dismissPopupMenu()
+        Swag.assert(menuDismissed)
         checked[] = true
     }
 
@@ -461,7 +469,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         Swag.assert(popup.position.y + popup.getPopupBodyRect().bottom() == anchor.y)
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.icon-anchor-up")
-        Swag.assert(host.dismissPopupMenu())
+        let menuDismissed = host.dismissPopupMenu()
+        Swag.assert(menuDismissed)
         checked[] = true
     }
 
@@ -491,7 +500,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         let margin = popup.themeMetrics().menuPopup_WindowMargin
         Swag.assert(popup.position.x >= margin and popup.position.y >= margin)
         Swag.assert(popup.position.right() <= host.root.position.width - margin)
-        Swag.assert(host.dismissPopupMenu())
+        let menuDismissed = host.dismissPopupMenu()
+        Swag.assert(menuDismissed)
         checked[] = true
     }
 
@@ -529,7 +539,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         Swag.assert(popup.position.right() >= host.root.clientRect().right() - shadow)
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.icon-anchor-right")
-        Swag.assert(host.dismissPopupMenu())
+        let menuDismissed = host.dismissPopupMenu()
+        Swag.assert(menuDismissed)
         checked[] = true
     }
 
@@ -556,14 +567,17 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         discard app
         if checked[] do
             return
-        Swag.assert(host.openPopupSubMenu("More choices"))
+        let submenuOpened = host.openPopupSubMenu("More choices")
+        Swag.assert(submenuOpened)
         Swag.assert(sub.position.x >= popup.themeMetrics().menuPopup_WindowMargin)
         Swag.assert(sub.position.right() <= popup.position.x + 2 * popup.themeMetrics().menuPopup_ShadowSize)
-        Swag.assert(host.clickPopupMenuItem(Menu_Open))
+        let menuItemClicked = host.clickPopupMenuItem(Menu_Open)
+        Swag.assert(menuItemClicked)
         checked[] = true
     }
 
-    Swag.assert(popup.doModal({315, 50}, .AnchorTopCenter, autoDestroy: true) == Menu_Open)
+    let modalResult = popup.doModal({315, 50}, .AnchorTopCenter, autoDestroy: true)
+    Swag.assert(modalResult == Menu_Open)
     Swag.assert(checked)
     host.pump()
 }
@@ -588,13 +602,16 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         discard app
         if checked[] do
             return
-        Swag.assert(host.openPopupSubMenu("More choices"))
+        let submenuOpened = host.openPopupSubMenu("More choices")
+        Swag.assert(submenuOpened)
         Swag.assert(sub.position.right() <= popup.position.x + 2 * popup.themeMetrics().menuPopup_ShadowSize)
-        Swag.assert(host.clickPopupMenuItem(Menu_Open))
+        let menuItemClicked = host.clickPopupMenuItem(Menu_Open)
+        Swag.assert(menuItemClicked)
         checked[] = true
     }
 
-    Swag.assert(popup.doModal({280, 50}, autoDestroy: true) == Menu_Open)
+    let modalResult = popup.doModal({280, 50}, autoDestroy: true)
+    Swag.assert(modalResult == Menu_Open)
     Swag.assert(checked)
     host.pump()
 }
@@ -627,7 +644,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
             return
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.left")
-        Swag.assert(host.dismissPopupMenu())
+        let menuDismissed = host.dismissPopupMenu()
+        Swag.assert(menuDismissed)
         checked[] = true
     }
 
@@ -680,7 +698,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
             return
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.left.no-icons")
-        Swag.assert(host.dismissPopupMenu())
+        let menuDismissed = host.dismissPopupMenu()
+        Swag.assert(menuDismissed)
         checked[] = true
     }
 

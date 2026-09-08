@@ -189,7 +189,8 @@ private func markdownWhiteyFixturePath()->String
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(960, 680)
     view.applyLayout()
-    Swag.assert(view.revealFileOffset(offset, query))
+    let revealed = view.revealFileOffset(offset, query)
+    Swag.assert(revealed)
 
     var found:  bool
     var bounds: Math.Rectangle

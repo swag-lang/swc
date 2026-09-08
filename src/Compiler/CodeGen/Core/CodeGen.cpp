@@ -1070,7 +1070,18 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
         if (parentRef.isInvalid())
             return;
 
-        const AstNode& parent = node(parentRef);
+        const AstNode& parent    = node(parentRef);
+        const auto*    intrinsic = parent.safeCast<AstIntrinsicCallExpr>();
+        if (intrinsic && intrinsic->intrinsicId == TokenId::IntrinsicAssert)
+        {
+            // The condition is always evaluated, but diagnostic arguments exist only on the
+            // non-returning failure path. Never drop their storage at the successful join.
+            const AstNodeRef conditionRef = ast().nthNode(intrinsic->spanChildrenRef, 0);
+            if (resolvedNodeRef(flushRootRef) == resolvedNodeRef(conditionRef))
+                break;
+            return;
+        }
+
         if (isLazyEvaluationNode(parent.id()))
             return;
 

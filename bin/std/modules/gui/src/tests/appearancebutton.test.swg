@@ -126,7 +126,8 @@ using Swag, Core, Pixel
         let anchor  = button.surfaceRect()
         let bodyTop = popup.surfaceRect().y + popup.popupBarItemSurfaceRect.height + popup.themeMetrics().menuPopup_ShadowSize
         Swag.assert(Math.abs(bodyTop - anchor.bottom()) < 0.5)
-        Swag.assert(host.openPopupSubMenu("Theme"))
+        let submenuOpened = host.openPopupSubMenu("Theme")
+        Swag.assert(submenuOpened)
         Swag.assert(sub.surfaceRect().y < host.root.surfaceRect().y)
         var image = host.render(&host.surfaceWnd)
         Pixel.Testing.assertImageGolden(&image, "appearancebutton.popup.caption")

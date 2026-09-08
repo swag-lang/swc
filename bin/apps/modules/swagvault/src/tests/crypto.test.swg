@@ -32,27 +32,35 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
     Swag.assert(!sameCryptoBytes(cipher, plain))
 
     var opened: [6] u8
-    Swag.assert(expect Crypto.open(&keys, 7, 11, nonce, cipher, tag, opened))
+    var authenticated = expect Crypto.open(&keys, 7, 11, nonce, cipher, tag, opened)
+    Swag.assert(authenticated)
     Swag.assert(sameCryptoBytes(opened, plain))
 
-    cipher[0] ^= 1
-    Swag.assert(!(expect Crypto.open(&keys, 7, 11, nonce, cipher, tag, opened)))
+    cipher[0]     ^= 1
+    authenticated = expect Crypto.open(&keys, 7, 11, nonce, cipher, tag, opened)
+    Swag.assert(!authenticated)
     cipher[0]               ^= 1
     tag[Crypto.TagSize - 1] ^= 1
-    Swag.assert(!(expect Crypto.open(&keys, 7, 11, nonce, cipher, tag, opened)))
+    authenticated           = expect Crypto.open(&keys, 7, 11, nonce, cipher, tag, opened)
+    Swag.assert(!authenticated)
     tag[Crypto.TagSize - 1] ^= 1
     nonce[0]                ^= 1
-    Swag.assert(!(expect Crypto.open(&keys, 7, 11, nonce, cipher, tag, opened)))
-    nonce[0] ^= 1
-    Swag.assert(!(expect Crypto.open(&keys, 8, 11, nonce, cipher, tag, opened)))
-    Swag.assert(!(expect Crypto.open(&keys, 7, 12, nonce, cipher, tag, opened)))
+    authenticated           = expect Crypto.open(&keys, 7, 11, nonce, cipher, tag, opened)
+    Swag.assert(!authenticated)
+    nonce[0]      ^= 1
+    authenticated = expect Crypto.open(&keys, 8, 11, nonce, cipher, tag, opened)
+    Swag.assert(!authenticated)
+    authenticated = expect Crypto.open(&keys, 7, 12, nonce, cipher, tag, opened)
+    Swag.assert(!authenticated)
 
     // Another master key never opens the same record.
     var otherKeys = expect Crypto.deriveKeys(testMasterKey(2))
-    Swag.assert(!(expect Crypto.open(&otherKeys, 7, 11, nonce, cipher, tag, opened)))
+    authenticated = expect Crypto.open(&otherKeys, 7, 11, nonce, cipher, tag, opened)
+    Swag.assert(!authenticated)
 
     var shortNonce: [Crypto.NonceSize - 1] u8
-    Swag.assert(!(expect Crypto.open(&keys, 7, 11, shortNonce, cipher, tag, opened)))
+    authenticated = expect Crypto.open(&keys, 7, 11, shortNonce, cipher, tag, opened)
+    Swag.assert(!authenticated)
 
     keys.clear()
     for byte in keys.record do

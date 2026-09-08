@@ -30,8 +30,9 @@ internal func testRoundTrip(host: *Testing.HeadlessHost, source: *IDataObject)->
     host.surface.registerDropTarget()
     let target = cast(*IDropTarget) &host.surface.dropTarget
 
-    var effect = DROPEFFECT_COPY
-    Swag.assert(target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect) == S_OK)
+    var effect          = DROPEFFECT_COPY
+    var dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
+    Swag.assert(dragEnterResult == S_OK)
     return &host.surface.dropTarget.data
 }
 
@@ -45,8 +46,9 @@ internal func testRoundTripDrop(host: *Testing.HeadlessHost, source: *IDataObjec
     host.surface.registerDropTarget()
     let target = cast(*IDropTarget) &host.surface.dropTarget
 
-    var effect = DROPEFFECT_COPY
-    Swag.assert(target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect) == S_OK)
+    var effect     = DROPEFFECT_COPY
+    var dropResult = target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect)
+    Swag.assert(dropResult == S_OK)
 }
 
 // Copies `text` into a movable block, which is what a `TYMED_HGLOBAL` medium transfers.
@@ -295,12 +297,14 @@ impl IWnd for PlatformCatcher
     host.surface.registerDropTarget()
     let target = cast(*IDropTarget) &host.surface.dropTarget
 
-    var effect = DROPEFFECT_COPY
-    Swag.assert(target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect) == S_OK)
+    var effect          = DROPEFFECT_COPY
+    var dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
+    Swag.assert(dragEnterResult == S_OK)
     Swag.assert(effect == DROPEFFECT_COPY)
 
     effect = DROPEFFECT_COPY
-    Swag.assert(target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect) == S_OK)
+    var dropResult = target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect)
+    Swag.assert(dropResult == S_OK)
     Swag.assert(effect == DROPEFFECT_COPY)
 
     Swag.assert(catcher.drops == 1)
@@ -341,7 +345,8 @@ impl IWnd for PlatformCatcher
     data.addFile("c:/tmp/only.txt")
 
     var session: DragSession
-    Swag.assert(testRoundTrip(&host, testDragSource(&session, &data)).singleFile() == "c:/tmp/only.txt")
+    let payload = testRoundTrip(&host, testDragSource(&session, &data))
+    Swag.assert(payload.singleFile() == "c:/tmp/only.txt")
 }
 
 // Text survives the UTF-16 medium, including what does not fit in one byte.
@@ -420,13 +425,15 @@ impl IWnd for PlatformCatcher
     let source = testDragSource(&session, &data)
 
     var raw: LPVOID
-    Swag.assert(source.lpVtbl.EnumFormatEtc(source, 1, &raw) == S_OK)
+    var enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
+    Swag.assert(enumFormatEtcResult == S_OK)
     let formats = cast(*IEnumFORMATETC) raw!
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
     var fetched: ULONG
-    Swag.assert(formats.lpVtbl.Next(formats, 8, &entries[0], &fetched) == S_FALSE)
+    var nextResult = formats.lpVtbl.Next(formats, 8, &entries[0], &fetched)
+    Swag.assert(nextResult == S_FALSE)
     Swag.assert(fetched == 3)
     Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT) CF_HDROP)
     Swag.assert(entries[1].cfFormat == cast(CLIPFORMAT) CF_UNICODETEXT)
@@ -435,21 +442,27 @@ impl IWnd for PlatformCatcher
     Swag.assert(entries[0].dwAspect == DVASPECT_CONTENT)
 
     // Rewinding starts the walk again, and a clone keeps its own place in it.
-    Swag.assert(formats.lpVtbl.Reset(formats) == S_OK)
-    Swag.assert(formats.lpVtbl.Skip(formats, 1) == S_OK)
+    var resetResult = formats.lpVtbl.Reset(formats)
+    Swag.assert(resetResult == S_OK)
+    var skipResult = formats.lpVtbl.Skip(formats, 1)
+    Swag.assert(skipResult == S_OK)
 
     var rawClone: LPVOID
-    Swag.assert(formats.lpVtbl.Clone(formats, &rawClone) == S_OK)
+    var cloneResult = formats.lpVtbl.Clone(formats, &rawClone)
+    Swag.assert(cloneResult == S_OK)
     let clone = cast(*IEnumFORMATETC) rawClone!
     defer discard clone.lpVtbl.Release(clone)
 
-    Swag.assert(clone.lpVtbl.Next(clone, 1, &entries[0], &fetched) == S_OK)
+    nextResult = clone.lpVtbl.Next(clone, 1, &entries[0], &fetched)
+    Swag.assert(nextResult == S_OK)
     Swag.assert(fetched == 1)
     Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT) CF_UNICODETEXT)
 
     // Asking past the end is a clean stop, not a failure.
-    Swag.assert(formats.lpVtbl.Skip(formats, 99) == S_FALSE)
-    Swag.assert(formats.lpVtbl.Next(formats, 1, &entries[0], &fetched) == S_FALSE)
+    skipResult = formats.lpVtbl.Skip(formats, 99)
+    Swag.assert(skipResult == S_FALSE)
+    nextResult = formats.lpVtbl.Next(formats, 1, &entries[0], &fetched)
+    Swag.assert(nextResult == S_FALSE)
     Swag.assert(fetched == 0)
 }
 
@@ -471,15 +484,18 @@ impl IWnd for PlatformCatcher
     fmt.dwAspect = DVASPECT_CONTENT
     fmt.lindex   = -1
     fmt.tymed    = TYMED_HGLOBAL
-    Swag.assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
+    var queryGetDataResult = source.lpVtbl.QueryGetData(source, &fmt)
+    Swag.assert(queryGetDataResult == DV_E_FORMATETC)
 
     var med: STGMEDIUM
-    Swag.assert(source.lpVtbl.GetData(source, &fmt, &med) == DV_E_FORMATETC)
+    var getDataResult = source.lpVtbl.GetData(source, &fmt, &med)
+    Swag.assert(getDataResult == DV_E_FORMATETC)
 
     // A format it does offer, but through a medium it cannot produce, is refused too.
-    fmt.cfFormat = cast(CLIPFORMAT) CF_UNICODETEXT
-    fmt.tymed    = TYMED_ISTREAM
-    Swag.assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
+    fmt.cfFormat       = cast(CLIPFORMAT) CF_UNICODETEXT
+    fmt.tymed          = TYMED_ISTREAM
+    queryGetDataResult = source.lpVtbl.QueryGetData(source, &fmt)
+    Swag.assert(queryGetDataResult == DV_E_FORMATETC)
 }
 
 // The interfaces answer the identity questions COM asks of every object.
@@ -494,17 +510,20 @@ impl IWnd for PlatformCatcher
 
     var out: LPVOID
     var iid = IID_IDropTarget
-    Swag.assert(target.lpVtbl.QueryInterface(target, &iid, &out) == S_OK)
+    var queryInterfaceResult = target.lpVtbl.QueryInterface(target, &iid, &out)
+    Swag.assert(queryInterfaceResult == S_OK)
     Swag.assert(cast(*void?) out == cast(*void?) target)
 
     // An interface the object does not implement is refused, and clears the output.
     var otherIid = IID_IDataObject
-    Swag.assert(target.lpVtbl.QueryInterface(target, &otherIid, &out) == E_NOINTERFACE)
+    queryInterfaceResult = target.lpVtbl.QueryInterface(target, &otherIid, &out)
+    Swag.assert(queryInterfaceResult == E_NOINTERFACE)
     Swag.assert(out == null)
 
     // The count the surface owns survives a balanced pair.
-    let before = target.lpVtbl.AddRef(target)
-    Swag.assert(target.lpVtbl.Release(target) == before - 1)
+    let before        = target.lpVtbl.AddRef(target)
+    var releaseResult = target.lpVtbl.Release(target)
+    Swag.assert(releaseResult == before - 1)
 
     var data: DragData
     data.setText("x")
@@ -512,18 +531,25 @@ impl IWnd for PlatformCatcher
     let source = testDragSource(&session, &data)
 
     var srcIid = IID_IDataObject
-    Swag.assert(source.lpVtbl.QueryInterface(source, &srcIid, &out) == S_OK)
-    Swag.assert(source.lpVtbl.QueryInterface(source, &iid, &out) == E_NOINTERFACE)
+    queryInterfaceResult = source.lpVtbl.QueryInterface(source, &srcIid, &out)
+    Swag.assert(queryInterfaceResult == S_OK)
+    queryInterfaceResult = source.lpVtbl.QueryInterface(source, &iid, &out)
+    Swag.assert(queryInterfaceResult == E_NOINTERFACE)
 
     let dropSrc   = cast(*IDropSource) &session.dropSrc
     var srcSrcIid = IID_IDropSource
-    Swag.assert(dropSrc.lpVtbl.QueryInterface(dropSrc, &srcSrcIid, &out) == S_OK)
+    queryInterfaceResult = dropSrc.lpVtbl.QueryInterface(dropSrc, &srcSrcIid, &out)
+    Swag.assert(queryInterfaceResult == S_OK)
 
     // Escape gives up, letting the button go drops, holding it keeps the gesture running.
-    Swag.assert(dropSrc.lpVtbl.QueryContinueDrag(dropSrc, TRUE, MK_LBUTTON) == DRAGDROP_S_CANCEL)
-    Swag.assert(dropSrc.lpVtbl.QueryContinueDrag(dropSrc, FALSE, 0) == DRAGDROP_S_DROP)
-    Swag.assert(dropSrc.lpVtbl.QueryContinueDrag(dropSrc, FALSE, MK_LBUTTON) == S_OK)
-    Swag.assert(dropSrc.lpVtbl.GiveFeedback(dropSrc, DROPEFFECT_COPY) == DRAGDROP_S_USEDEFAULTCURSORS)
+    var queryContinueDragResult = dropSrc.lpVtbl.QueryContinueDrag(dropSrc, TRUE, MK_LBUTTON)
+    Swag.assert(queryContinueDragResult == DRAGDROP_S_CANCEL)
+    queryContinueDragResult = dropSrc.lpVtbl.QueryContinueDrag(dropSrc, FALSE, 0)
+    Swag.assert(queryContinueDragResult == DRAGDROP_S_DROP)
+    queryContinueDragResult = dropSrc.lpVtbl.QueryContinueDrag(dropSrc, FALSE, MK_LBUTTON)
+    Swag.assert(queryContinueDragResult == S_OK)
+    var giveFeedbackResult = dropSrc.lpVtbl.GiveFeedback(dropSrc, DROPEFFECT_COPY)
+    Swag.assert(giveFeedbackResult == DRAGDROP_S_USEDEFAULTCURSORS)
 }
 
 // A drag that leaves without dropping is reported the same way a cancelled one is.
@@ -546,7 +572,8 @@ impl IWnd for PlatformCatcher
     discard target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
     Swag.assert(host.surface.dropTarget.data.singleFile() == "c:/tmp/only.txt")
 
-    Swag.assert(target.lpVtbl.DragLeave(target) == S_OK)
+    var dragLeaveResult = target.lpVtbl.DragLeave(target)
+    Swag.assert(dragLeaveResult == S_OK)
     Swag.assert(host.surface.dropTarget.data.files.count == 0)
 }
 
@@ -638,13 +665,15 @@ impl IWnd for PlatformCatcher
     let source = testDragSource(&session, &data)
 
     var raw: LPVOID
-    Swag.assert(source.lpVtbl.EnumFormatEtc(source, 1, &raw) == S_OK)
+    var enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
+    Swag.assert(enumFormatEtcResult == S_OK)
     let formats = cast(*IEnumFORMATETC) raw!
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
     var fetched: ULONG
-    Swag.assert(formats.lpVtbl.Next(formats, 8, &entries[0], &fetched) == S_FALSE)
+    var nextResult = formats.lpVtbl.Next(formats, 8, &entries[0], &fetched)
+    Swag.assert(nextResult == S_FALSE)
     Swag.assert(fetched == 3)
 
     Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT) catch RegisterClipboardFormatA(CFSTR_FILEDESCRIPTORW.buffer))
@@ -659,7 +688,8 @@ impl IWnd for PlatformCatcher
     // rather than answered with the first.
     var fmt = entries[2]
     fmt.lindex = 2
-    Swag.assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
+    var queryGetDataResult = source.lpVtbl.QueryGetData(source, &fmt)
+    Swag.assert(queryGetDataResult == DV_E_FORMATETC)
 }
 
 // A format published solely as a stream reads as what it carries, not as nothing on offer.
@@ -709,18 +739,22 @@ impl IWnd for PlatformCatcher
     fmt.dwAspect = DVASPECT_CONTENT
     fmt.lindex   = -1
     fmt.tymed    = TYMED_HGLOBAL
-    Swag.assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
+    var queryGetDataResult = source.lpVtbl.QueryGetData(source, &fmt)
+    Swag.assert(queryGetDataResult == DV_E_FORMATETC)
 
     var med: STGMEDIUM
     med.tymed   = TYMED_HGLOBAL
     med.hGlobal = testGlobalBlock("private bits")
-    Swag.assert(source.lpVtbl.SetData(source, &fmt, &med, TRUE) == S_OK)
+    var setDataResult = source.lpVtbl.SetData(source, &fmt, &med, TRUE)
+    Swag.assert(setDataResult == S_OK)
 
     // It now reads back through the same two questions every other format answers.
-    Swag.assert(source.lpVtbl.QueryGetData(source, &fmt) == S_OK)
+    queryGetDataResult = source.lpVtbl.QueryGetData(source, &fmt)
+    Swag.assert(queryGetDataResult == S_OK)
 
     var out: STGMEDIUM
-    Swag.assert(source.lpVtbl.GetData(source, &fmt, &out) == S_OK)
+    var getDataResult = source.lpVtbl.GetData(source, &fmt, &out)
+    Swag.assert(getDataResult == S_OK)
     Swag.assert(out.tymed == TYMED_HGLOBAL)
     defer ReleaseStgMedium(&out)
 
@@ -730,7 +764,8 @@ impl IWnd for PlatformCatcher
 
     // And it is part of what the object enumerates, beside what it produces itself.
     var raw: LPVOID
-    Swag.assert(source.lpVtbl.EnumFormatEtc(source, 1, &raw) == S_OK)
+    var enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
+    Swag.assert(enumFormatEtcResult == S_OK)
     let formats = cast(*IEnumFORMATETC) raw!
     defer discard formats.lpVtbl.Release(formats)
 
@@ -741,5 +776,6 @@ impl IWnd for PlatformCatcher
     Swag.assert(entries[2].cfFormat == format)
 
     // Lending a medium instead of handing it over is refused rather than half-supported.
-    Swag.assert(source.lpVtbl.SetData(source, &fmt, &med, FALSE) == E_NOTIMPL)
+    setDataResult = source.lpVtbl.SetData(source, &fmt, &med, FALSE)
+    Swag.assert(setDataResult == E_NOTIMPL)
 }

@@ -56,7 +56,8 @@ func testAssertLibraryMenuGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd
         Swag.assert(menu!.themeMetrics().menuPopup_IconSize == themeRowIconSize(main.themeMetrics()))
         var image = host.render(main)
         Pixel.Testing.assertImageGolden(&image, golden)
-        Swag.assert(host.dismissPopupMenu())
+        let menuDismissed = host.dismissPopupMenu()
+        Swag.assert(menuDismissed)
         captured[] = true
     }
 
@@ -111,7 +112,8 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, golden)
 
-    Swag.assert(host.dismissPopupMenu())
+    let menuDismissed = host.dismissPopupMenu()
+    Swag.assert(menuDismissed)
 }
 
 // The complete Swag Capture surface must survive its first layout and paint without a desktop.

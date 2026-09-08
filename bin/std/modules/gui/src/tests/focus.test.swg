@@ -168,7 +168,8 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     Swag.assert(host.surface.focusWnd == cast(*Wnd?) edit)
     Swag.assert(lostCount == 1)
 
-    Swag.assert(host.surface.restoreFocus())
+    let focusRestored = host.surface.restoreFocus()
+    Swag.assert(focusRestored)
     Swag.assert(edit.hasFocus())
     Swag.assert(edit.timerCaret != null)
 }
@@ -477,7 +478,8 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     dlg.addButton("Cancel", Dialog.BtnCancel)
 
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
-    Swag.assert(dlg.doModal() == Dialog.BtnCancel)
+    let modalResult = dlg.doModal()
+    Swag.assert(modalResult == Dialog.BtnCancel)
     Swag.assert(host.autoHandled)
 
     // The box is queued for destruction on the way out; the surface is gone once that is drained.
@@ -534,10 +536,12 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
         // the box would have answered yes to a question whose default is no.
         Swag.assert(no.hasFocus())
         Swag.assert(no.hasVisibleFocus())
-        Swag.assert(host.clickModalButton(Dialog.BtnNo))
+        let modalButtonClicked = host.clickModalButton(Dialog.BtnNo)
+        Swag.assert(modalButtonClicked)
     }
 
-    Swag.assert(dlg.doModal() == Dialog.BtnNo)
+    let modalResult = dlg.doModal()
+    Swag.assert(modalResult == Dialog.BtnNo)
     Swag.assert(checked)
 }
 
@@ -567,7 +571,8 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
         host.keyPress(Input.Key.Escape)
     }
 
-    Swag.assert(dlg.doModal() == Dialog.BtnCancel)
+    let modalResult = dlg.doModal()
+    Swag.assert(modalResult == Dialog.BtnCancel)
     Swag.assert(checked and caller.hasFocus())
 }
 
@@ -601,7 +606,8 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
         host.keyPress(Input.Key.Return)
     }
 
-    Swag.assert(dlg.doModal() == Dialog.BtnOk)
+    let modalResult = dlg.doModal()
+    Swag.assert(modalResult == Dialog.BtnOk)
     Swag.assert(checked)
 }
 
@@ -644,10 +650,12 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
         Swag.assert(again.hasFocus())
 
         no.setFocus()
-        Swag.assert(host.clickModalButton(Dialog.BtnNo))
+        let modalButtonClicked = host.clickModalButton(Dialog.BtnNo)
+        Swag.assert(modalButtonClicked)
     }
 
-    Swag.assert(dlg.doModal() == Dialog.BtnNo)
+    let modalResult = dlg.doModal()
+    Swag.assert(modalResult == Dialog.BtnNo)
     Swag.assert(checked)
 }
 

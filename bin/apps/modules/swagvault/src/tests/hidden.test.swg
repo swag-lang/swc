@@ -13,15 +13,17 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     const InnerPassword = "hidden access"
     const OuterSize     = DataOffset + 256 * BlockRecordSize
     const HiddenSize    = DataOffset + 64 * BlockRecordSize
-    var outer = expect Volume.create(path, OuterPassword, OuterSize)
-    let decoy = expect outer.createNode("\\decoy.txt", false, FileAttributeNormal, "")
-    Swag.assert(expect outer.writeNode(decoy, 0, "outer bytes", false, false) == 11)
+    var outer        = expect Volume.create(path, OuterPassword, OuterSize)
+    let decoy        = expect outer.createNode("\\decoy.txt", false, FileAttributeNormal, "")
+    let bytesWritten = expect outer.writeNode(decoy, 0, "outer bytes", false, false)
+    Swag.assert(bytesWritten == 11)
     outer.close()
-    var hidden = expect Volume.createHidden(path, OuterPassword, InnerPassword, HiddenSize)
-    let first  = hidden.file.base
-    let last   = first + hidden.file.limit
-    let secret = expect hidden.createNode("\\secret.txt", false, FileAttributeNormal, "")
-    Swag.assert(expect hidden.writeNode(secret, 0, "hidden bytes", false, false) == 12)
+    var hidden        = expect Volume.createHidden(path, OuterPassword, InnerPassword, HiddenSize)
+    let first         = hidden.file.base
+    let last          = first + hidden.file.limit
+    let secret        = expect hidden.createNode("\\secret.txt", false, FileAttributeNormal, "")
+    let bytesWritten2 = expect hidden.writeNode(secret, 0, "hidden bytes", false, false)
+    Swag.assert(bytesWritten2 == 12)
     hidden.close()
 
     var protected = expect Volume.open(path, OuterPassword, protectionPassword: InnerPassword)
@@ -40,9 +42,10 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
 
     var reopened = expect Volume.open(path, InnerPassword)
     Swag.assert(reopened.file.base == first)
-    let node = reopened.resolve("\\secret.txt")!
+    let node      = reopened.resolve("\\secret.txt")!
     var data: [12] u8
-    Swag.assert(expect reopened.readNode(node.id, 0, data) == data.count)
+    let bytesRead = expect reopened.readNode(node.id, 0, data)
+    Swag.assert(bytesRead == data.count)
     Swag.assert(Core.Crypto.constantTimeEqual(data, "hidden bytes"))
 
     // An existing alternate slot also needs a working locator before old access is revoked.
@@ -118,7 +121,8 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     let file = expect normal.createNode("\\ordinary.bin", false, FileAttributeNormal, "")
     var data: Array'u8
     data.resize(180 * BlockSize)
-    Swag.assert(expect normal.writeNode(file, 0, data.toSlice(), false, false) == data.count)
+    let bytesWritten = expect normal.writeNode(file, 0, data.toSlice(), false, false)
+    Swag.assert(bytesWritten == data.count)
     expect normal.commit()
     normal.close()
 
@@ -146,9 +150,10 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     outer.close()
     discard catch Volume.createHidden(path, "outer", credential.toSlice(), MinimumSize, outerReserve: 256 * BlockSize) as reserve
     Swag.assert(reserve != null)
-    var hidden = expect Volume.createHidden(path, "outer", credential.toSlice(), MinimumSize)
-    let file   = expect hidden.createNode("\\secret", false, FileAttributeNormal, "")
-    Swag.assert(expect hidden.writeNode(file, 0, "secret", false, false) == 6)
+    var hidden       = expect Volume.createHidden(path, "outer", credential.toSlice(), MinimumSize)
+    let file         = expect hidden.createNode("\\secret", false, FileAttributeNormal, "")
+    let bytesWritten = expect hidden.writeNode(file, 0, "secret", false, false)
+    Swag.assert(bytesWritten == 6)
     hidden.close()
     discard catch Volume.open(path, "hidden password") as missingKey
     Swag.assert(missingKey != null)
@@ -173,9 +178,10 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
 
     Swag.assert(offset > 0 and collision != null and protected.file.protectionTriggered)
     protected.close()
-    var reopened = expect Volume.open(path, credential.toSlice(), true)
+    var reopened  = expect Volume.open(path, credential.toSlice(), true)
     var bytes: [6] u8
-    Swag.assert(expect reopened.readNode(reopened.resolve("\\secret")!.id, 0, bytes) == bytes.count)
+    let bytesRead = expect reopened.readNode(reopened.resolve("\\secret")!.id, 0, bytes)
+    Swag.assert(bytesRead == bytes.count)
     Swag.assert(Core.Crypto.constantTimeEqual(bytes, "secret"))
     reopened.close()
     expect File.writeAllBytes(keyPath, "changed key-file bytes")

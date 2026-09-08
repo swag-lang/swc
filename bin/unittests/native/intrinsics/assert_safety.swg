@@ -89,10 +89,19 @@ func narrowedAssertion(value: *s32?)->s32
 var messageCreated = 0
 var messageDropped = 0
 
-struct OwnedMessage { value = 1 }
+struct OwnedMessage
+{
+    value = 1
+    // Force caller-owned return storage, as an owning string uses.
+    padding: [32] u8
+}
 impl OwnedMessage
 {
     mtd opDrop() { messageDropped += 1 }
+    #[Swag.NoInline]
+    mtd const text()->string => .value == 1 ? "owned message" : "other message"
+    #[Swag.NoInline]
+    mtd const condition()->bool => .value == 1
     #[Swag.Implicit]
     mtd const opCast()->string => "owned message"
 }
@@ -109,5 +118,31 @@ func makeOwnedMessage()->OwnedMessage
     messageCreated = 0
     messageDropped = 0
     Swag.assert(true, makeOwnedMessage())
+    Swag.assert(messageCreated == 0 and messageDropped == 0)
+}
+
+// The condition's owner is evaluated and dropped even when diagnostic owners are skipped.
+#[Swag.Safety(.Assert, true)]
+#test
+{
+    messageCreated = 0
+    messageDropped = 0
+    Swag.assert(makeOwnedMessage().condition(), makeOwnedMessage().text())
+    Swag.assert(messageCreated == 1 and messageDropped == 1)
+}
+
+#[Swag.NoInline, Swag.Safety(.Assert, true)]
+func assertWithOwnedMessage(value: bool)
+{
+    Swag.assert(value, makeOwnedMessage().text())
+}
+
+// A borrowed message view must not schedule a drop for its unevaluated owner.
+#[Swag.Safety(.Assert, true)]
+#test
+{
+    messageCreated = 0
+    messageDropped = 0
+    assertWithOwnedMessage(true)
     Swag.assert(messageCreated == 0 and messageDropped == 0)
 }

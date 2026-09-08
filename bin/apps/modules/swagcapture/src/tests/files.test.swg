@@ -70,7 +70,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     // The scheduled write only reads its snapshot, never the live capture.
     f.capture.title = "Mutated after scheduling"
 
-    Swag.assert(g_CaptureSaves.flush().isEmpty())
+    let failedSave = g_CaptureSaves.flush()
+    Swag.assert(failedSave.isEmpty())
     Swag.assert(g_CaptureSaves.pending == null)
 
     let saved = expect Capture.load(path)!
@@ -91,7 +92,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.gui.withModalEdit("Width", "48")
     f.gui.withModalEdit("Height", "32")
 
-    Swag.assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.NewImage))
+    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.NewImage)
+    Swag.assert(actionExecuted)
     f.gui.pump()
 
     Swag.assert(f.gui.autoHandled)
@@ -126,7 +128,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     Clipboard.addImage(Gui.Testing.indexedImage(19, 11))
 
-    Swag.assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.NewFromClipboard))
+    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.NewFromClipboard)
+    Swag.assert(actionExecuted)
     f.gui.pump()
 
     let capture       = f.main.getCapture()!
@@ -161,7 +164,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     expect source.save(sourcePath)
     f.gui.acceptModalFileDialog(sourcePath)
 
-    Swag.assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.OpenImage))
+    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.OpenImage)
+    Swag.assert(actionExecuted)
     f.gui.pump()
 
     Swag.assert(f.gui.autoHandled)
@@ -610,7 +614,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     discard testAddShape(f.capture, 4, 5, 12, 13)
     let originalPath = testPrepareSavedCapture(f.capture)
     defer discard catch File.delete(originalPath)
-    Swag.assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DupCapture))
+    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DupCapture)
+    Swag.assert(actionExecuted)
     f.gui.pump()
 
     Swag.assert(f.main.recentWnd.recentView.items.count == 1)
@@ -658,7 +663,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
 
-    Swag.assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture))
+    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture)
+    Swag.assert(actionExecuted)
     f.gui.pump()
 
     Swag.assert(f.gui.autoHandled)

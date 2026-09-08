@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.Safety(.Assert, true)]
 
 // 'SafetyWhat.Lifecycle' has two halves, each behind its own attribute:
 // - 'Swag.Sanity(.Lifecycle)', the static sanitizer check: a PROVEN read of a local

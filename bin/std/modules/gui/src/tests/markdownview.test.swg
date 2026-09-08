@@ -756,7 +756,8 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(640, 240)
     view.applyLayout()
-    Swag.assert(view.revealFileOffset(11, "alpha"))
+    let revealed = view.revealFileOffset(11, "alpha")
+    Swag.assert(revealed)
 
     var bounds: Math.Rectangle
     for 128 where !view.searchMatchRect(&bounds) do
@@ -796,7 +797,8 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     for target in offsets
     {
         let previousScroll = view.scroll.scrollPosition()
-        Swag.assert(view.revealFileOffset(target, Query))
+        let targetRevealed = view.revealFileOffset(target, Query)
+        Swag.assert(targetRevealed)
         if target != offsets[0]
         {
             // A search reveal waits for its rendered occurrence instead of exposing the byte-based
@@ -820,7 +822,8 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         Swag.assert(view.residentStart == resident and view.searchMatchRect(&bounds))
     }
 
-    Swag.assert(view.revealFileOffset(offsets[1], Query))
+    let previousRevealed = view.revealFileOffset(offsets[1], Query)
+    Swag.assert(previousRevealed)
     var previousBounds: Math.Rectangle
     for 2_048 where !view.searchMatchRect(&previousBounds) do
         host.fireTimers()
@@ -1126,7 +1129,8 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.assert(view.virtualHeight > view.scroll.paddedClientRect().height)
 
     let requested = source.length - 1
-    Swag.assert(view.revealFileOffset(requested, ""))
+    let revealed  = view.revealFileOffset(requested, "")
+    Swag.assert(revealed)
     var steps = 0'u32
     while view.hasPendingTarget and steps < 512
     {

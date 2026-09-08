@@ -109,7 +109,8 @@ using Swag, Core
         g_Height = 27
         if !didClick[]
         {
-            Swag.assert(host.clickModalButton(Dialog.BtnOk))
+            let modalButtonClicked = host.clickModalButton(Dialog.BtnOk)
+            Swag.assert(modalButtonClicked)
             didClick[] = true
         }
     }
@@ -150,7 +151,8 @@ using Swag, Core
         g_Height = 27
         if !didClick[]
         {
-            Swag.assert(host.clickModalButton(Dialog.BtnOk))
+            let modalButtonClicked = host.clickModalButton(Dialog.BtnOk)
+            Swag.assert(modalButtonClicked)
             didClick[] = true
         }
     }

@@ -458,7 +458,8 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     var doc: HexDocument
     defer doc.close()
-    Swag.assert(doc.open(fileName.toString()))
+    let documentOpened = doc.open(fileName.toString())
+    Swag.assert(documentOpened)
     Swag.assert(doc.fileSize == StreamedFileSize)
 
     Swag.assert(doc.ensure(0, 64))
@@ -737,8 +738,9 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
-    Swag.assert(view.revealOffset(11, 5))
+    let view     = createTestViewer(&host, fileName.toString(), 900, 560)
+    var revealed = view.revealOffset(11, 5)
+    Swag.assert(revealed)
     Swag.assert(view.grid.matchStart == 11 and view.grid.matchLength == 5)
     Swag.assert(view.grid.selectionStart() == 11 and view.grid.selectionLength() == 5)
     discard host.render(view)
@@ -746,7 +748,8 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     view.grid.moveCaret(0, false)
     Swag.assert(view.grid.matchStart == 11 and view.grid.matchLength == 5)
-    Swag.assert(!view.revealOffset(view.grid.doc.fileSize, 5))
+    revealed = view.revealOffset(view.grid.doc.fileSize, 5)
+    Swag.assert(!revealed)
 }
 
 // Multi-gigabyte geometry is synthetic: the test needs the address domain, not a multi-gigabyte
@@ -786,7 +789,8 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     var doc: HexDocument
     defer doc.close()
-    Swag.assert(doc.open(fileName.toString()))
+    let documentOpened = doc.open(fileName.toString())
+    Swag.assert(documentOpened)
     doc.fileSize += 4096
     Swag.assert(!doc.ensure(0, doc.fileSize))
     Swag.assert(doc.readFailed and doc.window.isEmpty())

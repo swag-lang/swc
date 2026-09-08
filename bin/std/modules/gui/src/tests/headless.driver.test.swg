@@ -47,7 +47,8 @@ using Swag, Core
     }
 
     host.clickModalButtonWhenShown(Dialog.BtnOk, maxFrames: 1)
-    Swag.assert(dlg.doModal() == Dialog.BtnCancel)
+    let modalResult = dlg.doModal()
+    Swag.assert(modalResult == Dialog.BtnCancel)
     Swag.assert(!host.autoArmed and !host.autoHandled)
     Swag.assert(host.autoFailure == "modal preparation did not complete for button 'Dialog.BtnOk'")
 }
@@ -71,6 +72,7 @@ using Swag, Core
 
     host.clickModalButtonWhenShown(Dialog.BtnOk)
     host.thenClickModalButton(Dialog.BtnYes)
-    Swag.assert(dlg.doModal() == Dialog.BtnOk)
+    let modalResult = dlg.doModal()
+    Swag.assert(modalResult == Dialog.BtnOk)
     Swag.assert(host.autoHandled and host.autoFailure.isEmpty())
 }

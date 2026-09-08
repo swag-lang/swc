@@ -137,7 +137,8 @@ func scenarioDeleteCaptureFiles(path: String)
 
     // The timer schedules the save on a job worker; wait for the atomic replace
     // before reading the file back.
-    Swag.assert(g_CaptureSaves.flush().isEmpty())
+    let failedSave = g_CaptureSaves.flush()
+    Swag.assert(failedSave.isEmpty())
 
     let saved = expect Capture.load(path)!
     Swag.assert(saved.title == "Persisted scenario")
@@ -172,7 +173,8 @@ func scenarioDeleteCaptureFiles(path: String)
     Swag.assert(f.main.recentWnd.recentView.selected == 0)
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
-    Swag.assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture))
+    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture)
+    Swag.assert(actionExecuted)
     f.gui.pump()
 
     Swag.assert(f.gui.autoHandled)
@@ -199,7 +201,8 @@ func scenarioDeleteCaptureFiles(path: String)
     f.main.libWnd.view.focusItem = 0
     f.main.libWnd.view.selModel.select(0)
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
-    Swag.assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture))
+    var actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture)
+    Swag.assert(actionExecuted)
     f.gui.pump()
 
     Swag.assert(!File.exists(path))
@@ -210,7 +213,8 @@ func scenarioDeleteCaptureFiles(path: String)
     Swag.assert(f.main.libWnd.view.items.count == 1)
     f.main.libWnd.view.focusItem = 0
     f.main.libWnd.view.selModel.select(0)
-    Swag.assert(Gui.Testing.actionExecute'ActionLibTrash(f.main.libWnd, ActionLibTrash.Restore))
+    actionExecuted = Gui.Testing.actionExecute'ActionLibTrash(f.main.libWnd, ActionLibTrash.Restore)
+    Swag.assert(actionExecuted)
 
     Swag.assert(File.exists(path))
     Swag.assert(!File.exists(trashPath))
@@ -246,7 +250,8 @@ func scenarioDeleteCaptureFiles(path: String)
     Swag.assert(f.main.editWnd.getCapture()!.file == firstPath)
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
-    Swag.assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture))
+    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture)
+    Swag.assert(actionExecuted)
     f.gui.pump()
 
     Swag.assert(f.main.recentWnd.recentView.items.count == 1)

@@ -168,7 +168,8 @@ using Swag, Core
         if dismissed[] do
             return
 
-        Swag.assert(host.dismissPopupMenu())
+        let menuDismissed = host.dismissPopupMenu()
+        Swag.assert(menuDismissed)
         dismissed[] = true
     }
 

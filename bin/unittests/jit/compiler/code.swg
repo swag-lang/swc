@@ -67,7 +67,8 @@ func checkDefault(expr: #code->bool = bumpDefault())
 {
     Swag.assert(DefaultEvalCount == 0)
     Swag.assert(#stringof(#typeof(expr)) == "#code->bool")
-    Swag.assert(#inject(expr))
+    let value = #inject(expr)
+    Swag.assert(value)
     Swag.assert(DefaultEvalCount == 1)
 }
 

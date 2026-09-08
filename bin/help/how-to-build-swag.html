@@ -77,11 +77,12 @@ swc run -w hello -m hello</span></div>
 <p>The repository's <a href="https://github.com/swag-lang/swc/blob/master/AGENTS.md">agent guide</a> defines the required validation sequence for each change type.</p>
 <h2 id="Regenerate_the_website">Regenerate the website</h2>
 <p>After a DevMode build, regenerate the complete documentation site with:</p>
-<div class="code-block"><span class="SCde">swc tools\web.swgs dm</span></div>
-<p>The command rebuilds the brand assets, standard-library API pages, runtime API, language reference, and editorial pages. It deletes existing root HTML files in <span class="code-inline">web</span> first, so edit their sources under <span class="code-inline">bin/reference</span>, <span class="code-inline">bin/runtime</span>, <span class="code-inline">bin/std</span>, or <span class="code-inline">bin/examples</span> rather than editing generated HTML.</p>
+<div class="code-block"><span class="SCde">swc tools\help.swgs dm</span></div>
+<p>The command writes the documentation to <span class="code-inline">bin/help/</span>, beside the compiler and standard modules. Open <span class="code-inline">bin/help/index.html</span> to browse it locally.</p>
+<p>It rebuilds the brand assets, standard-library API pages, runtime API, language reference, and editorial pages. It deletes existing root HTML files in <span class="code-inline">bin/help</span> first, so edit their sources under <span class="code-inline">bin/reference</span>, <span class="code-inline">bin/runtime</span>, <span class="code-inline">bin/std</span>, or <span class="code-inline">bin/examples</span> rather than editing generated HTML.</p>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.418</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.419</div>
 </footer>
 </section>
 </main>

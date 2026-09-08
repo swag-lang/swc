@@ -5106,6 +5106,13 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(total.<span class="SFct">load</span>() == <span class="SNum">4950</span>)
 }</span></div>
+<h3 id="_005_007_parallel_for_swg_What_Is_Worth_Distributing">What Is Worth Distributing</h3>
+<p>Submitting a partition is not free: the runtime publishes it, a worker claims it, and the caller observes it finish. Below a few microseconds of work per partition, that cost is larger than the work itself.</p>
+<p>'parallel for' protects itself from this. It samples what the body really costs and keeps a short range whole on the calling thread, so a loop over a handful of cheap iterations is not slower than the ordinary <span class="code-inline">for</span> it replaces. Work submitted by hand has no such protection: a <a href="swag.runtime.html#Swag_Task">Swag.Task</a> or a <a href="swag.runtime.html#Swag_TaskGroup">Swag.TaskGroup</a> child carrying a fraction of a microsecond costs more to schedule than to run.</p>
+<p>Treat the shape as the rule rather than an exact figure, because the figure belongs to a machine, a body and a moment. <span class="code-inline">bench/scheduler</span> measures it by halving one range down to leaves of different sizes: leaves of a few hundred elements never gain from more workers, and leaves of tens of thousands do.</p>
+<h3 id="_005_007_parallel_for_swg_Nesting">Nesting</h3>
+<p>A 'parallel for' inside another one is allowed, and it does not multiply the machine's execution resources: one process has one worker pool, so the inner statement partitions across the workers the outer one is already using. What it costs is publishing partitions that mostly end up running on the thread that submitted them.</p>
+<p>Prefer one flat range when both shapes express the same computation. Reach for the nested one when the inner extent is only known inside the outer body.</p>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p>The number of partitions is not part of the contract, and neither is the thread a given index runs on. During compile-time execution, the whole range runs on the calling thread. Native execution starts the pool on demand; with fewer than two workers, the range also runs on the calling thread.</p>
@@ -10041,7 +10048,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.418</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.419</div>
 </footer>
 </section>
 </main>
@@ -10666,6 +10673,8 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|What the Body May Do|_005_007_parallel_for_swg_What_the_Body_May_Do|",
 "h|Failures|_005_007_parallel_for_swg_Failures|",
 "h|Shared Results|_005_007_parallel_for_swg_Shared_Results|",
+"h|What Is Worth Distributing|_005_007_parallel_for_swg_What_Is_Worth_Distributing|",
+"h|Nesting|_005_007_parallel_for_swg_Nesting|",
 "h|Structs|_006_000_structs_swg|",
 "h|Declaration|_006_001_declaration_swg|",
 "h|Basic Struct Declaration|_006_001_declaration_swg_Basic_Struct_Declaration|",

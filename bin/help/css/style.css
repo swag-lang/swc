@@ -190,7 +190,7 @@ body {
 }
 
 /* The Swag mark, inlined so a page stays one self-contained file. Its geometry is cut
-   by 'web/tools/brand.swgs'; regenerate the assets and paste the path here when
+   by 'bin/help/tools/brand.swgs'; regenerate the assets and paste the path here when
    the mark changes. */
 .site-brand::before {
     content: "";

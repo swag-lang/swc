@@ -7,6 +7,7 @@ SWC_DIAG_DEF(sanity_err_null_call, Error, "cannot call a null function pointer; 
 SWC_DIAG_DEF(sanity_err_return_local_address, Error, "cannot return the address of a local variable; [help] return caller-owned or heap-allocated storage")
 SWC_DIAG_DEF(sanity_err_use_after_move, Error, "cannot read a moved-from value; [help] assign the value before reading it")
 SWC_DIAG_DEF(sanity_err_free_borrowed, Error, "cannot free data borrowed from local variable '{sym}'; [help] allocate owned heap storage before calling 'free'")
+SWC_DIAG_DEF(sanity_err_free_global, Error, "cannot free a pointer to global storage; [help] release only a pointer the allocator returned")
 SWC_DIAG_DEF(sanity_err_use_after_free, Error, "cannot dereference a pointer to released memory; [help] assign a live address before dereferencing the pointer")
 SWC_DIAG_DEF(sanity_err_double_free, Error, "cannot free a pointer to released memory; [help] remove the repeated release, or assign a live allocation before freeing the pointer")
 SWC_DIAG_DEF(sanity_err_borrow_escape, Error, "borrowed data from local variable '{sym}' escapes through {what}; [help] copy the data or keep '{sym}' alive longer")

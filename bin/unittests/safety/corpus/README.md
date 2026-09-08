@@ -49,7 +49,7 @@ behavior with an assertion, so the change shows up as a test failure when the ru
 | 476 | Null dereference | **Designed out** — non-null by default, proof at every use site |
 | 562 | Return of stack address | **Proven**, always on, no annotation |
 | 825 | Expired pointer (container realloc, iterator invalidation) | **Proven**, always on, no annotation |
-| 590 | Free of non-heap memory | **Proven** |
+| 590 | Free of non-heap memory | **Proven** — frame storage by the borrow route, a global by its provenance |
 | 758 | Falling off the end of a function | **Proven** |
 | 252, 391 | Unchecked error | **Proven** — a fallible call needs a visible handler |
 | 665 | Improper initialization | **Proven** (definite assignment) + guarded (`late`) |

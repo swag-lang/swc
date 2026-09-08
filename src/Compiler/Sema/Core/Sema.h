@@ -471,6 +471,11 @@ public:
     void                                                             detachVariableOwnedPayloadField(const SymbolVariable& symVar, const SymbolVariable& owner, const SymbolVariable& field);
     SemaEscapeInfo                                                   variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
     SemaEscapeInfo                                                   projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
+    // What ONE named field of a variable carries, ignoring its other fields. A structure
+    // that transports several borrows at once - an allocator request carries the block to
+    // release and the hint the report names - needs the borrow of the field the operation
+    // actually reads, not the merge of all of them.
+    SemaEscapeInfo                                                   variableFieldEscapeInfo(const SymbolVariable& symVar, std::string_view fieldName) const;
     void                                                             setProjectionEscapeInfo(const SemaEscapeProjection& projection, const SemaEscapeInfo& info);
     void                                                             clearProjectionEscapeInfo(const SemaEscapeProjection& projection);
 

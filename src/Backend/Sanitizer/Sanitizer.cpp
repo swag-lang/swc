@@ -834,6 +834,12 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 const int64_t origin = baseValue.hasStackOrigin() ? baseValue.stackOrigin : baseValue.stackOffset;
                 setRegValue(state, ops[0].reg, SanitizerValue::makeStackAddr(offset, origin));
             }
+            else if (baseValue.kind == SanitizerValueKind::GlobalAddr)
+            {
+                // Global storage does not move, so an element of it is still global
+                // storage - which is what says it never came from an allocator.
+                setRegValue(state, ops[0].reg, SanitizerValue::makeGlobalAddr());
+            }
             else
             {
                 // A dynamic index leaves an address the engine can no longer name a slot
@@ -967,6 +973,8 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 setRegValue(state, reg, SanitizerValue::makeStackAddr(cur.stackOffset - static_cast<int64_t>(imm), cur.stackOrigin));
             else if (ops[2].microOp == MicroOp::Subtract && cur.kind == SanitizerValueKind::Constant)
                 setRegValue(state, reg, SanitizerValue::makeConstant(cur.constant - imm));
+            else if (isAddSub && cur.kind == SanitizerValueKind::GlobalAddr)
+                setRegValue(state, reg, SanitizerValue::makeGlobalAddr());
             else
             {
                 markFrameObjectEscaped(state, cur);

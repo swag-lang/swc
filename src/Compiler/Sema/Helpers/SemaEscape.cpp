@@ -1753,10 +1753,14 @@ namespace
             // of a 'clear' or a destructor, and must not mark the object itself freed.
             if (calleeIsAllocFree && collectPairs)
             {
+                // The request transports every operand of the operation at once. What a
+                // release invalidates is the block in its ADDRESS field and nothing else:
+                // merging every projection made 'Memory.free' claim it also releases the
+                // hint string its report names.
                 const AstNodeRef      reqValueRef = argumentValueRef(sema, arg.argRef);
                 bool                  reqWhole    = false;
                 const SymbolVariable* reqVar      = reqValueRef.isValid() ? storageRootVariable(sema, reqValueRef, false, reqWhole) : nullptr;
-                const SemaEscapeInfo  carried     = reqVar ? sema.variableEscapeInfoIncludingProjections(*reqVar) : SemaEscapeInfo{};
+                const SemaEscapeInfo  carried     = reqVar ? sema.variableFieldEscapeInfo(*reqVar, "address") : SemaEscapeInfo{};
                 if (carried.viaOwnedPayload || carried.detachedOwnedPayload)
                 {
                     // The owner is releasing its own payload: not a free of the pointer

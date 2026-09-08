@@ -3,7 +3,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// Reports a PROVEN use of a freed pointer. The engine marks the slot a pointer was
+// Reports a PROVEN use of a freed pointer, and a release of storage the allocator
+// never handed out. The engine marks the slot a pointer was
 // loaded from when it is handed to a callee whose FREES summary covers that
 // parameter ('SanitizerState::freedPtrSlots', must-join, revalidated by stores and
 // cleared by calls). Dereferencing a value reloaded from such a slot is a

@@ -38,6 +38,15 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
             if (!argInfo)
                 continue;
 
+            // A global's address never came from the allocator: releasing it has it write
+            // its own bookkeeping over storage it never handed out. The value analysis
+            // proves the provenance, so no summary is needed to say it.
+            if (sanitizer.getReg(state, argReg).kind == SanitizerValueKind::GlobalAddr)
+            {
+                sanitizer.report(inst, DiagnosticId::sanity_err_free_global);
+                return;
+            }
+
             if (argInfo->releasedPointer)
             {
                 sanitizer.report(inst, DiagnosticId::sanity_err_double_free, argInfo->releasedOrigin, DiagnosticId::sanity_note_pointer_released_here);

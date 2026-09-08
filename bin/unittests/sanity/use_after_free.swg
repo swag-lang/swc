@@ -105,6 +105,37 @@ func rejectFreeBorrowed()
     allocItf.free(&req)     // swc-expected-error {{sanity_err_free_borrowed}}
 }
 
+// A global's address never came from the allocator either, and unlike frame storage it
+// outlives every scope - so the borrow rules say nothing and its provenance does.
+var gUafValue: s32
+
+#[Swag.Sanity(.Lifecycle, true)]
+func rejectFreeGlobal()
+{
+    myFree(&gUafValue, #sizeof(s32))     // swc-expected-error {{sanity_err_free_global}}
+}
+
+// A backend proof only runs on a function that is code-generated.
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    rejectFreeGlobal()
+}
+
+// What a global HOLDS is a different question from where the global lives: releasing an
+// allocation a global points at is exactly what a global owner is for.
+var gUafOwned: *s32?
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    gUafOwned = cast(*s32) myAlloc(4)
+    gUafOwned![] = 9
+    Swag.assert(gUafOwned![] == 9)
+    myFree(gUafOwned!, 4)
+    gUafOwned = null
+}
+
 // Reassigning the pointer revalidates it.
 #[Swag.Sanity(.Lifecycle, true)]
 #test

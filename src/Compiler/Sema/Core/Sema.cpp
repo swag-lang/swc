@@ -321,6 +321,22 @@ SemaEscapeInfo Sema::variableEscapeInfoIncludingProjections(const SymbolVariable
     return result;
 }
 
+SemaEscapeInfo Sema::variableFieldEscapeInfo(const SymbolVariable& symVar, const std::string_view fieldName) const
+{
+    SemaEscapeInfo result;
+    for (const auto& [projection, info] : projectionEscapeInfos_)
+    {
+        if (projection.root != &symVar || projection.components.empty())
+            continue;
+        const SemaEscapeProjectionComponent& first = projection.components[0];
+        if (first.kind != SemaEscapeProjectionKind::Field || !first.field || first.field->name(ctx()) != fieldName)
+            continue;
+        result.mergeFrom(info);
+    }
+
+    return result;
+}
+
 SemaEscapeInfo Sema::projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const
 {
     SemaEscapeInfo result;

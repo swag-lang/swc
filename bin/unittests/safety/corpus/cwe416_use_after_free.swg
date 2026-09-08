@@ -206,6 +206,22 @@ func readAfterFreeAcrossCall()->s32
     discard readAfterFreeAcrossCall()
 }
 
+// The release crosses the function boundary: what comes back is a dangling pointer, and
+// the caller has no way to know. CWE-562 is the same rule on frame storage, and Swag
+// reads both the same way.
+#[Swag.Sanity(.Lifecycle, true)]
+func returnReleasedBlock()->*s32
+{
+    let pointer = cast(*s32) heapAlloc(4)
+    heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return pointer           // swc-expected-error {{sanity_err_return_released}}
+}
+
+#test
+{
+    discard returnReleasedBlock()
+}
+
 // The release helper that then touches what it released. A parameter has no frame slot
 // of its own, so the register holding it is what carries the release.
 #[Swag.Sanity(.Lifecycle, true)]

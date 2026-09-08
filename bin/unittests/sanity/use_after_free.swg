@@ -220,6 +220,62 @@ func reallocateThrough(slot: **s32)
     myFree(p, 4)
 }
 
+// Handing a released address back to the caller is the same fault as handing back a
+// frame address, on the other kind of storage: the value is dead as it crosses the
+// return, and nothing the caller does with it can be right.
+#[Swag.Sanity(.Lifecycle, true)]
+func returnReleasedLocal()->*s32
+{
+    let p = cast(*s32) myAlloc(4)
+    myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return p         // swc-expected-error {{sanity_err_return_released}}
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+func returnReleasedParameter(p: *s32)->*s32
+{
+    myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return p         // swc-expected-error {{sanity_err_return_released}}
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    discard returnReleasedLocal()
+    discard returnReleasedParameter(cast(*s32) myAlloc(4))
+}
+
+// Reading the value out before the release, and reallocating before the return, are
+// what correct code does with the same shape.
+#[Swag.Sanity(.Lifecycle, true)]
+func returnValueBeforeRelease()->s32
+{
+    let p = cast(*s32) myAlloc(4)
+    p[] = 3
+    let value = p[]
+    myFree(p, 4)
+    return value
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+func returnFreshAllocation()->*s32
+{
+    var p = cast(*s32) myAlloc(4)
+    myFree(p, 4)
+    p = cast(*s32) myAlloc(4)
+    return p
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    Swag.assert(returnValueBeforeRelease() == 3)
+    let fresh = returnFreshAllocation()
+    fresh[] = 4
+    Swag.assert(fresh[] == 4)
+    myFree(fresh, 4)
+}
+
 // A released PARAMETER has no frame slot of its own: the register holding it is what
 // names it, and only a redefinition of that register clears the release.
 #[Swag.Sanity(.Lifecycle, true)]

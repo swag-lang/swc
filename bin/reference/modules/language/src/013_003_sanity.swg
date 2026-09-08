@@ -75,6 +75,10 @@ and a release still holds on the other side of an ordinary call, because nothing
 reassign a local whose address the function never hands over. Handing that address to
 a callee ends the proof, and so does releasing on one path only — both are misses,
 never false positives. Reassigning the pointer makes it valid again.
+
+Returning a released pointer is the same error as returning the address of a
+local, on the other kind of storage: the value is dead as it crosses the return,
+and the caller has no way to know.
 */
 #test
 {

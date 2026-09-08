@@ -2,14 +2,65 @@
 #include "Backend/Sanitizer/Checks/Check.UseAfterFree.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/ABI/CallConv.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Sanitizer/Sanitizer.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
+#include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    // A pointer return is the only one that can carry a released address out of the
+    // frame; an integer return holding one is the caller's explicit business, exactly as
+    // the frame-address rule reads it.
+    bool returnsPointer(Sanitizer& sanitizer, const SymbolFunction& fn)
+    {
+        TypeRef returnTypeRef = fn.returnTypeRef();
+        if (!returnTypeRef.isValid())
+            return false;
+
+        const TypeRef unwrapped = sanitizer.ctx().typeMgr().unwrapAliasEnum(sanitizer.ctx(), returnTypeRef);
+        if (unwrapped.isValid())
+            returnTypeRef = unwrapped;
+
+        const TypeInfo& returnType = sanitizer.ctx().typeMgr().get(returnTypeRef);
+        return returnType.isAnyPointer() || returnType.isReference();
+    }
+}
+
 void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops)
 {
+    // Handing a released address back to the caller is the same fault as handing back a
+    // frame address, on the other kind of storage: the value is dead the moment it
+    // crosses the return, and nothing the caller does with it can be right.
+    if (inst.op == MicroInstrOpcode::Ret)
+    {
+        const SymbolFunction* fn = sanitizer.passContext().sanitizerFunction;
+        if (!fn || !returnsPointer(sanitizer, *fn))
+            return;
+
+        const CallConv&         callConv   = CallConv::get(sanitizer.passContext().callConvKind);
+        const SanitizerRegInfo* returnInfo = Sanitizer::regInfo(state, callConv.intReturn);
+        if (!returnInfo)
+            return;
+
+        if (returnInfo->releasedPointer)
+        {
+            sanitizer.report(inst, DiagnosticId::sanity_err_return_released, returnInfo->releasedOrigin, DiagnosticId::sanity_note_pointer_released_here);
+            return;
+        }
+
+        const auto released = returnInfo->hasPointerOriginSlot ? state.freedPtrSlots.find(returnInfo->pointerOriginSlot) : state.freedPtrSlots.end();
+        if (released != state.freedPtrSlots.end())
+            sanitizer.report(inst, DiagnosticId::sanity_err_return_released, released->second, DiagnosticId::sanity_note_pointer_released_here);
+        return;
+    }
+
     if (!ops)
         return;
 

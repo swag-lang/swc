@@ -9,7 +9,6 @@ interface IViewer
     mtd compile(source: string)
     mtd shutdown()
     mtd isRunning()->bool
-    mtd title()->String
     mtd subscribeChanged(action: func||(*Wnd))
 }
 

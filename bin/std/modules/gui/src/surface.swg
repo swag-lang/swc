@@ -652,11 +652,16 @@ impl Surface
     // silhouette premultiplied stay untouched.
     private mtd paintShadowOutsideBody()
     {
-        if .app.theme.metrics.surfaceWnd_ShadowSize <= 0 do
+        if .isMaximized or .app.theme.metrics.surfaceWnd_ShadowSize <= 0 do
             return
 
         let radius = .cornerRadius()
         let body   = .bodyShape()
+
+        // An interior repaint never reaches the shadow. Avoid constructing a full-size
+        // coverage mask merely to reject every fragment of a scrolling viewport.
+        if radius == 0 and body.contains(.painter.clippingRect()) do
+            return
 
         .painter.startClippingRegion()
         .painter.fillRect({0, 0, .position.width, .position.height}, Argb.White)
@@ -747,13 +752,15 @@ impl Surface
 
         .painter.resetTransform()
 
-        // Premultiply the body ink by the silhouette coverage.
-        .painter.setColorMaskColor()
-        .painter.setBlendingMode(.DstIn)
-        if radius > 0 do
+        // A rectangular silhouette has unit coverage, so multiplying its ink would be
+        // an identity pass over every pixel of a maximized window.
+        if radius > 0
+        {
+            .painter.setColorMaskColor()
+            .painter.setBlendingMode(.DstIn)
             .painter.fillRoundRect(rect, radius, radius, Argb.White)
-        else do
-            .painter.fillRect(rect, Argb.White)
+        }
+
         .painter.setBlendingMode(.Alpha)
 
         // Stamp the same coverage into the alpha channel.

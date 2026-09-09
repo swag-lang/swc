@@ -38,6 +38,8 @@ public struct ScrollWnd
     oldMouseCapture: *Wnd?     // Old mouse capture associated with this value.
 
     scrollRequestPos: Math.Point     // Scroll request pos associated with this value.
+    scrollVelocity:   Math.Point     // Logical units per second, retained when a glide is retargeted.
+    scrollAnimation:  AnimationHandle
 
     showBarV:   bool     // Show bar v associated with this value.
     needV:      bool     // Need v associated with this value.
@@ -488,33 +490,52 @@ public impl ScrollWnd
     // Glides to `pt` over the surface's panel motion instead of jumping there.
     //
     // The target is clamped exactly as [[Gui.ScrollWnd.setScrollPos]] clamps one. A call made
-    // while a previous glide is still running retargets it from where the view is now, so
+    // while a previous glide is still running retains its position and forward velocity, so
     // repeated steps — wheel notches, held arrows — accumulate into one continuous movement
     // rather than restarting at each of them. Read [[Gui.ScrollWnd.scrollTarget]] to compose the
     // next step on top of the one in flight.
     mtd smoothScrollTo(pt: Math.Point)
     {
-        let target = .scrollPositionPrivate(pt.x, pt.y)
-        .scrollRequestPos = target
-        if target == .view.scrollPos
+        let target   = .scrollPositionPrivate(pt.x, pt.y)
+        let origin   = .view.scrollPos
+        let distance = target - origin
+        let duration = .themeMetrics().motion_PanelSeconds
+        var tangent  = distance * 3
+        if .app().animator.isActive(.scrollAnimation)
         {
-            .app().animator.cancel(me, AnimationChannel.from("Gui.Scroll.Position"))
+            // A Hermite segment arrives at rest. Bound its outgoing tangent to keep it
+            // monotone, and discard momentum pointing away from a reversed request.
+            tangent.x = distance.x * .scrollVelocity.x > 0 ? Math.sign(distance.x) * Math.min(Math.abs(.scrollVelocity.x * duration), Math.abs(distance.x * 3)) : 0
+            tangent.y = distance.y * .scrollVelocity.y > 0 ? Math.sign(distance.y) * Math.min(Math.abs(.scrollVelocity.y * duration), Math.abs(distance.y * 3)) : 0
+        }
+
+        // The scalar track is elapsed progress, not a scroll coordinate. Its new segment
+        // starts at zero; the retained tangent carries momentum across the replacement.
+        .app().animator.cancel(me, AnimationChannel.from("Gui.Scroll.Position"))
+        .scrollRequestPos = target
+        if target == origin or duration <= 0
+        {
+            .setScrollPos(target)
             return
         }
 
         var options: AnimationOptions
-        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PanelSeconds)
-        options.easing   = .EaseOut
-        discard .app().animator.animatePoint(me,
-                                             AnimationChannel.from("Gui.Scroll.Position"),
-                                             .view.scrollPos,
-                                             target,
-                                             func|scrollWnd=me|(animationWnd, value)
-                                             {
-                                                 discard animationWnd
-                                                 discard scrollWnd.setScrollPosPrivate(value.x, value.y)
-                                             },
-                                             options)
+        options.duration = Time.Duration.fromSeconds(duration)
+        options.easing   = .Linear
+        .scrollAnimation = .app().animator.animateF32(me,
+                                                      AnimationChannel.from("Gui.Scroll.Position"),
+                                                      0,
+                                                      1,
+                                                      func|scrollWnd=me, origin, distance, tangent, duration|(animationWnd, progress)
+                                                      {
+                                                          discard animationWnd
+                                                          let t2    = progress * progress
+                                                          let t3    = t2 * progress
+                                                          let value = origin + distance * (3 * t2 - 2 * t3) + tangent * (t3 - 2 * t2 + progress)
+                                                          scrollWnd.scrollVelocity = (distance * (6 * progress - 6 * t2) + tangent * (3 * t2 - 4 * progress + 1)) / duration
+                                                          discard scrollWnd.setScrollPosPrivate(value.x, value.y)
+                                                      },
+                                                      options)
     }
 
     private mtd scrollPositionPrivate(x, y: f32)->Math.Point
@@ -555,6 +576,7 @@ public impl ScrollWnd
     mtd setScrollPos(x, y: f32)
     {
         .app().animator.cancel(me, AnimationChannel.from("Gui.Scroll.Position"))
+        .scrollVelocity = {}
         let newSP = .setScrollPosPrivate(x, y)
         .scrollRequestPos = newSP
     }
@@ -568,7 +590,13 @@ public impl ScrollWnd
 
         let oldScrollSize = .scrollSize
         .scrollSize = newSize
-        .setScrollPos(.view.scrollPos.x, .view.scrollPos.y)
+
+        // Appending streamed content must not cancel the glide or discard its velocity.
+        // Only a size that clips the current position or destination interrupts it.
+        let position = .scrollPositionPrivate(.view.scrollPos.x, .view.scrollPos.y)
+        let target   = .scrollPositionPrivate(.scrollRequestPos.x, .scrollRequestPos.y)
+        if !.app().animator.isActive(.scrollAnimation) or position != .view.scrollPos or target != .scrollRequestPos do
+            .setScrollPos(position)
         .sigScrollSizeChanged.call(me, oldScrollSize, .scrollSize)
         .sendResizeEvent()
     }

@@ -3,15 +3,16 @@
 
 using Core, Gui
 
-func microcode(window: *MainWindow, group: u64, index = 0'u64)->*MicrocodeViewer => cast(*MicrocodeViewer) window.groups[group].viewers[index].window()
+func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*MicrocodeViewer) window.panels[panel].viewer!.window()
 
-// Each comparison group starts with its own microcode page and compilation options.
+// One viewer is visible by default; the optional comparison has independent defaults.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
-    Swag.assert(window.groups.count == 2)
+    Swag.assert(!window.comparisonEnabled)
+    Swag.assert(window.viewerSplit.isPaneVisible(0) and !window.viewerSplit.isPaneVisible(1))
     let left  = microcode(window, 0)
     let right = microcode(window, 1)
     Swag.assert(left != right)
@@ -21,8 +22,9 @@ func microcode(window: *MainWindow, group: u64, index = 0'u64)->*MicrocodeViewer
     Swag.assert(left.optimCombo.selectedIndex == 0)
     Swag.assert(right.optimCombo.selectedIndex == 2)
     Swag.assert(window.status.name == appStrings().ui_Ready)
-    Swag.assert(window.groups[0].tabs.items.count == 1)
-    Swag.assert(window.groups[1].tabs.items.count == 1)
+    Swag.assert(window.panels[0].kindCombo.items.count == 1)
+    Swag.assert(window.panels[0].kindCombo.selectedIndex == 0)
+    Swag.assert(window.layoutButton.name == appStrings().ui_TwoViewers)
 }
 
 // The editor opens on the starter snippet, and that snippet is one the probe can inspect.
@@ -38,7 +40,7 @@ func microcode(window: *MainWindow, group: u64, index = 0'u64)->*MicrocodeViewer
     Swag.assert(Utf8.indexOf(cast(const [..] u8) inspected.toString(), "#[Swag.PrintMicro") != Swag.U64.Max)
 }
 
-// An option change submits only that tab and queues its next request independently.
+// An option change submits only that viewer and queues its next request independently.
 #test
 {
     var host: Testing.HeadlessHost
@@ -56,37 +58,35 @@ func microcode(window: *MainWindow, group: u64, index = 0'u64)->*MicrocodeViewer
     Swag.assert(!left.job.running and left.job.timer == null)
 }
 
-// Switching tabs preserves options and output; closing a running page retires its job first.
+// The global mode button changes only the layout and retains both viewers' state.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
-    let group = window.groups[0]
-    let first = microcode(window, 0)
-    first.outputText.parse("first result")
-    first.outputText.show(first.output)
-    first.outputIsHint = false
-    group.addViewer(.Microcode)
-    let second = microcode(window, 0, 1)
-    Swag.assert(group.tabs.selectedIndex == 1)
-    second.optimCombo.setSelectedIndex(2, notify: false)
+    let first  = microcode(window, 0)
+    let second = microcode(window, 1)
+    window.layoutButton.sigPressed.call(&window.layoutButton.button)
+    Swag.assert(window.comparisonEnabled and window.viewerSplit.isPaneVisible(1))
+    Swag.assert(window.layoutButton.name == appStrings().ui_OneViewer)
+    second.optimCombo.setSelectedIndex(1, notify: false)
     second.stageCombo.setSelectedIndex(0, notify: false)
-    group.tabs.setSelectedIndex(0)
-    Swag.assert(first.optimCombo.selectedIndex == 0)
-    Swag.assert(first.output.text().toString() == "first result")
-    group.tabs.setSelectedIndex(1)
-    Swag.assert(second.optimCombo.selectedIndex == 2 and second.stageCombo.selectedIndex == 0)
-    second.compileSource(window.editor.text().toString())
-    group.closeSelected()
-    Swag.assert(group.viewers.count == 1 and group.tabs.selectedIndex == 0)
-    Swag.assert(!second.job.running and second.job.timer == null)
-    Swag.assert(second.isPendingDestroy)
-    group.closeSelected()
-    Swag.assert(group.viewers.count == 1 and !group.closeButton.isEnabled())
+    second.outputText.parse("comparison result")
+    second.outputText.show(second.output)
+    second.outputIsHint = false
+    let comparisonWidth = first.position.width
+    window.layoutButton.sigPressed.call(&window.layoutButton.button)
+    Swag.assert(!window.comparisonEnabled and !window.viewerSplit.isPaneVisible(1))
+    Swag.assert(first.position.width > comparisonWidth)
+    window.layoutButton.sigPressed.call(&window.layoutButton.button)
+    Swag.assert(second.optimCombo.selectedIndex == 1 and second.stageCombo.selectedIndex == 0)
+    Swag.assert(second.output.text().toString() == "comparison result")
+    window.panels[1].kindCombo.sigChanged.call(window.panels[1].kindCombo, 0'u32)
+    Swag.assert(microcode(window, 1) == second)
+    Swag.assert(second.output.text().toString() == "comparison result")
 }
 
-// A shared compile feeds both visible tabs the same snapshot and retains their distinct levels.
+// A shared compile feeds both visible viewers the same snapshot and retains their distinct levels.
 #test
 {
     var host: Testing.HeadlessHost
@@ -94,6 +94,7 @@ func microcode(window: *MainWindow, group: u64, index = 0'u64)->*MicrocodeViewer
     defer host.shutdown()
     let left  = microcode(window, 0)
     let right = microcode(window, 1)
+    window.setComparisonEnabled(true)
     window.compile()
     Swag.assert(left.job.source.toString() == right.job.source.toString())
     Swag.assert(left.job.optimLevel == .O0 and right.job.optimLevel == .O2)
@@ -122,24 +123,26 @@ func microcode(window: *MainWindow, group: u64, index = 0'u64)->*MicrocodeViewer
     Swag.assert(window.status.name == appStrings().ui_Ready)
 }
 
-// Hidden tabs keep their result until explicitly compiled again.
+// Single-viewer compilation leaves the hidden comparison idle; hiding a running viewer is safe.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
-    let hidden = microcode(window, 0)
-    window.groups[0].addViewer(.Microcode)
     window.compile()
-    Swag.assert(!hidden.job.running)
-    Swag.assert(microcode(window, 0, 1).job.running)
-    Swag.assert(microcode(window, 1).job.running)
+    Swag.assert(microcode(window, 0).job.running)
+    Swag.assert(!microcode(window, 1).job.running)
+    window.setComparisonEnabled(true)
+    window.compile()
+    let second = microcode(window, 1)
+    Swag.assert(second.job.running)
+    window.setComparisonEnabled(false)
     window.shutdown()
+    Swag.assert(!second.job.running and second.job.timer == null)
 }
 
-// The whole surface, in the palette the application ships on.
-#[Swag.TestTag("golden")]
-#test
+// Both supported layouts use the same themed structural panels.
+func assertSurface(comparison: bool)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
@@ -155,11 +158,17 @@ func microcode(window: *MainWindow, group: u64, index = 0'u64)->*MicrocodeViewer
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
     window.applyLayout()
+    window.setComparisonEnabled(comparison)
     host.settleAnimations(window, 6)
-
     var image = host.render(&host.surfaceWnd)
-    Pixel.Testing.assertImageGolden(&image, "surface")
+    Pixel.Testing.assertImageGolden(&image, comparison ? "surface.comparison" : "surface")
 }
+
+#[Swag.TestTag("golden")]
+#test { assertSurface(false) }
+
+#[Swag.TestTag("golden")]
+#test { assertSurface(true) }
 
 // Comparison panes and themed bars fit every language at the minimum window size.
 #test
@@ -193,7 +202,15 @@ func microcode(window: *MainWindow, group: u64, index = 0'u64)->*MicrocodeViewer
                 Testing.assertContentFits(window)
             }
 
-            Swag.assert(window.groups[0].position.right() <= window.groups[1].position.x)
+            for comparison in [false, true, false]
+            {
+                window.setComparisonEnabled(comparison)
+                Testing.assertContentFits(window)
+                Swag.assert(window.viewerSplit.isPaneVisible(1) == comparison)
+                if comparison do
+                    Swag.assert(window.panels[0].position.right() <= window.panels[1].position.x)
+            }
+
             Swag.assert(host.theme.colors.commandBar_Bk != host.theme.colors.richEdit_Bk)
             Swag.assert(host.theme.colors.informationBar_Bk != host.theme.colors.richEdit_Bk)
         }

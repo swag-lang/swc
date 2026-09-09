@@ -17,8 +17,8 @@ impl MicrocodeOptions
     func create(parent: *Wnd)->*MicrocodeOptions
     {
         let result = Wnd.create'MicrocodeOptions(parent)
-        result.backgroundStyle = .ToolBar
-        result.padding         = {8, 8, 8, 8}
+        result.backgroundStyle = .Transparent
+        result.padding         = {0, 0, 0, 8}
         result.stage           = ComboBox.create(result, {}, "prism.stage")
         result.optimization    = ComboBox.create(result, {}, "prism.optimize")
         return result

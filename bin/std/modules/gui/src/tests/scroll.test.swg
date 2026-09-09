@@ -3,6 +3,58 @@
 
 using Swag, Core
 
+// Repeated wheel destinations preserve speed instead of kicking a fresh ease-out each time.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 260)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
+    scroll.createView'Wnd()
+    scroll.setScrollSize(100000, 100000)
+    scroll.smoothScrollTo({10000, 10000})
+    host.advanceAnimations(0.079)
+    let before = scroll.scrollPosition()
+    host.advanceAnimations(0.001)
+    let current      = scroll.scrollPosition()
+    let previousStep = current - before
+    scroll.smoothScrollTo({20000, 20000})
+    Swag.assert(scroll.scrollPosition() == current)
+    host.advanceAnimations(0.001)
+    let nextStep = scroll.scrollPosition() - current
+    Swag.assert(Math.abs(nextStep.x - previousStep.x) <= 2)
+    Swag.assert(Math.abs(nextStep.y - previousStep.y) <= 2)
+    let beforeGrowth = scroll.scrollPosition()
+    scroll.setScrollSize(120000, 120000)
+    Swag.assert(scroll.scrollTarget() == Math.Point{20000, 20000})
+    host.advanceAnimations(0.001)
+    let growthStep = scroll.scrollPosition() - beforeGrowth
+    Swag.assert(Math.abs(growthStep.x - nextStep.x) <= 2)
+    Swag.assert(Math.abs(growthStep.y - nextStep.y) <= 2)
+    host.finishAnimations()
+    Swag.assert(scroll.scrollPosition() == Math.Point{20000, 20000})
+
+    // Reversal must not carry forward momentum past the point where the request changed.
+    scroll.smoothScrollTo({30000, 30000})
+    host.advanceAnimations(0.04)
+    let reversal = scroll.scrollPosition()
+    scroll.smoothScrollTo({0, 0})
+    host.advanceAnimations(0.01)
+    Swag.assert(scroll.scrollPosition().x < reversal.x and scroll.scrollPosition().y < reversal.y)
+    host.finishAnimations()
+    Swag.assert(scroll.scrollPosition() == Math.Point{0, 0})
+
+    scroll.smoothScrollTo({10000, 10000})
+    host.advanceAnimations(0.04)
+    scroll.setScrollPos({123, 456})
+    host.finishAnimations()
+    Swag.assert(scroll.scrollPosition() == Math.Point{123, 456})
+    host.setReducedMotion(true)
+    scroll.smoothScrollTo({789, 987})
+    Swag.assert(scroll.scrollPosition() == Math.Point{789, 987})
+}
+
 var ScrollHeadlessPosCount:  u32
 var ScrollHeadlessSizeCount: u32
 

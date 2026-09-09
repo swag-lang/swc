@@ -22,7 +22,7 @@ private const StarterSnippet = """\
                                   }
                                   """
 
-// Owns the shared source and two independent groups of viewer tabs.
+// Owns the shared source and one or two independently configured viewers.
 struct MainWindow
 {
     using wnd: Wnd
@@ -30,6 +30,8 @@ struct MainWindow
     {
         appearanceButton: *AppearanceButton
         runButton:        *PushButton
+        layoutButton:     *PushButton
+        sourcePanel:      *Wnd
         editor:           *RichEditCtrl
         status:           *Label
         commandBar:       *Wnd
@@ -38,10 +40,11 @@ struct MainWindow
         viewerSplit:      *SplitterCtrl
     }
 
-    groups:     Array'*ViewerGroup
-    lexer:      RichEditLexerSwag
-    language:   String
-    themeIndex: u32
+    panels:            Array'*ViewerPanel
+    comparisonEnabled: bool
+    lexer:             RichEditLexerSwag
+    language:          String
+    themeIndex:        u32
 }
 
 impl MainWindow
@@ -58,7 +61,7 @@ impl MainWindow
         let surface = result.surface!
         surface.setView(result)
         surface.minSize        = {MinWidth, MinHeight}
-        result.backgroundStyle = .View
+        result.backgroundStyle = .ToolBar
         result.language        = ReferenceLanguage
 
         result.appearanceButton                 = AppearanceButton.create(surface, "prism.appearance")
@@ -101,6 +104,14 @@ impl MainWindow
             discard button
             window.compile()
         }
+        .layoutButton            = PushButton.create(.commandBar, "", {0, 0, 160, 36}, "prism.layout")
+        .layoutButton.dockStyle  = .Left
+        .layoutButton.margin     = {8, 0, 0, 0}
+        .layoutButton.sigPressed += func|window = me|(button)
+        {
+            discard button
+            window.setComparisonEnabled(!window.comparisonEnabled)
+        }
     }
 
     mtd createStatusLine()
@@ -116,57 +127,81 @@ impl MainWindow
 
     mtd createPanes()
     {
-        .sourceSplit           = SplitterCtrl.create(&.wnd, {}, false, "prism.split")
-        .sourceSplit.dockStyle = .Center
-        .sourceSplit.margin    = {Gutter, 12, Gutter, 12}
-        .editor                = RichEditCtrl.create(.sourceSplit)
+        .sourceSplit                 = SplitterCtrl.create(&.wnd, {}, false, "prism.split")
+        .sourceSplit.dockStyle       = .Center
+        .sourceSplit.backgroundStyle = .Transparent
+        .sourcePanel                 = Wnd.create'Wnd(.sourceSplit)
+        .sourcePanel.backgroundStyle = .Panel
+        .sourcePanel.padding         = 8
+        .editor                      = RichEditCtrl.create(.sourcePanel)
+        .editor.dockStyle            = .Center
         .editor.setLexer(&.lexer)
         .editor.setText(StarterSnippet)
 
-        .viewerSplit = SplitterCtrl.create(.sourceSplit, {}, false, "prism.viewers")
+        .viewerSplit                 = SplitterCtrl.create(.sourceSplit, {}, false, "prism.viewers")
+        .viewerSplit.backgroundStyle = .Transparent
         for index in 2
         {
             let level: Swag.BuildCfgBackendOptimLevel = index == 0 ? .O0 : .O2
-            let group = ViewerGroup.create(.viewerSplit, .editor, level)
-            group.sigChanged += func|window = me|(sender)
+            let panel = ViewerPanel.create(.viewerSplit, .editor, level)
+            panel.sigChanged += func|window = me|(sender)
             {
                 discard sender
                 window.refreshStatus()
             }
-            .groups.add(group)
-            let pane = .viewerSplit.addPane(group, 540)
-            pane.minimumSize = ViewerGroup.MinWidth
+            .panels.add(panel)
+            let pane = .viewerSplit.addPane(panel, 540)
+            pane.minimumSize = ViewerPanel.MinWidth
         }
 
-        let sourcePane = .sourceSplit.addPane(.editor, 360)
+        let sourcePane = .sourceSplit.addPane(.sourcePanel, 480)
         sourcePane.minimumSize = 260
-        let viewersPane = .sourceSplit.addPane(.viewerSplit, 1080)
-        viewersPane.minimumSize = 2 * ViewerGroup.MinWidth + .themeMetrics().splitView_BarSize
+        let viewersPane = .sourceSplit.addPane(.viewerSplit, 960)
+        viewersPane.minimumSize = ViewerPanel.MinWidth
+        .viewerSplit.setPaneVisible(1, false)
+        .refreshPaneLayout()
     }
 
-    // Both visible viewers receive the exact same source snapshot.
+    mtd refreshPaneLayout()
+    {
+        let gutter = .themeMetrics().panel_GutterSize
+        .sourceSplit.margin                = {gutter, gutter, gutter, gutter}
+        .sourceSplit.items[1]!.minimumSize = .comparisonEnabled ? 2 * ViewerPanel.MinWidth + .themeMetrics().splitView_BarSize : ViewerPanel.MinWidth
+        .applyLayout()
+    }
+
+    mtd setComparisonEnabled(enabled: bool)
+    {
+        if .comparisonEnabled == enabled do
+            return
+        .comparisonEnabled = enabled
+        .viewerSplit.setPaneVisible(1, enabled)
+        .refreshPaneLayout()
+        if enabled do
+            .viewerSplit.setPaneSize(0, (.viewerSplit.paddedClientRect().width - .themeMetrics().splitView_BarSize) / 2)
+        .retranslate()
+    }
+
+    // Only visible viewers receive the source snapshot; the hidden comparison keeps its result.
     mtd compile()
     {
         let source = .editor.text()
-        for group in .groups do
-            group.compile(source.toString())
+        for panel, index in .panels where index == 0 or .comparisonEnabled do
+            panel.compile(source.toString())
         .refreshStatus()
     }
 
     mtd shutdown()
     {
-        for group in .groups do
-            group.shutdown()
+        for panel in .panels do
+            panel.shutdown()
     }
 
     mtd refreshStatus()
     {
         var running = 0'u64
-        for group in .groups
-        {
-            for viewer in group.viewers where viewer.isRunning() do
-                running += 1
-        }
+        for panel in .panels where panel.isRunning() do
+            running += 1
 
         if running > 1 do
             .status.setText(Format.toString(appStrings().ui_RunningViewers, running).toString())
@@ -178,6 +213,8 @@ impl MainWindow
     {
         .runButton.setText(appStrings().ui_CompileVisible)
         .runButton.toolTip = appStrings().ui_CompileVisibleHint
+        .layoutButton.setText(.comparisonEnabled ? appStrings().ui_OneViewer : appStrings().ui_TwoViewers)
+        .layoutButton.toolTip = appStrings().ui_ViewerLayoutHint
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .refreshStatus()
         .applyLayout()
@@ -216,6 +253,8 @@ impl IWnd for MainWindow
     {
         if evt.kind == .LanguageChanged do
             .retranslate()
+        elif evt.kind == .ThemeChanged do
+            .refreshPaneLayout()
         .wnd.IWnd.onNotifyEvent(evt)
     }
 

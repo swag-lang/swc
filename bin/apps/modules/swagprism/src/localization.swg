@@ -11,10 +11,12 @@ struct AppStrings
     ui_WindowTitle:        string = "Swag Prism — What the compiler makes of your code"     // Title of the application window.
     ui_Stage:              string = "Stage"                                                 // Label of the pipeline-stage selector.
     ui_Optimize:           string = "Optimization level"                                    // Tooltip of the backend optimization selector.
-    ui_CompileVisible:     string = "Compile views"                                         // Compiles the selected tab in each comparison group.
-    ui_CompileVisibleHint: string = "Compile the same source in both visible viewers."      // Describes the shared-source compile action.
-    ui_AddViewer:          string = "Add viewer"                                            // Adds a microcode tab to this group.
-    ui_CloseViewer:        string = "Close selected viewer"                                 // Closes the selected tab while keeping one viewer per group.
+    ui_CompileVisible:     string = "Compile views"                                         // Compiles the visible viewers.
+    ui_CompileVisibleHint: string = "Compile the source in the visible viewers."            // Describes the shared-source compile action.
+    ui_OneViewer:          string = "Show one viewer"                                       // Returns to the single-viewer layout.
+    ui_TwoViewers:         string = "Show two viewers"                                      // Opens the comparison beside the first viewer.
+    ui_ViewerLayoutHint:   string = "Switch between one viewer and two side by side."       // Global layout action.
+    ui_ViewerType:         string = "Viewer type"                                           // Selects the viewer hosted by this panel.
     ui_Microcode:          string = "Microcode"                                             // Name of the first supported viewer type.
     ui_RunningViewers:     string = "% viewers compiling"                                   // Global status with the number of running viewer jobs.
     ui_Working:            string = "Compiling…"                                            // Status while the compiler runs.

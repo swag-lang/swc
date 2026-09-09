@@ -47,7 +47,7 @@ struct CompileJob
     queued:  bool     // Whether a request arrived while one was, and runs as soon as it ends.
 }
 
-// One microcode tab owns its options, process, pending request, and colored result.
+// One microcode viewer owns its options, process, pending request, and colored result.
 struct MicrocodeViewer
 {
     using wnd: Wnd
@@ -75,6 +75,7 @@ impl MicrocodeViewer
     func create(parent: *Wnd, sourceEditor: *RichEditCtrl, level: Swag.BuildCfgBackendOptimLevel)->*MicrocodeViewer
     {
         let result = Wnd.create'MicrocodeViewer(parent, "prism.microcode")
+        result.backgroundStyle      = .Transparent
         result.sourceEditor         = sourceEditor
         result.optionsBar           = MicrocodeOptions.create(result)
         result.optionsBar.dockStyle = .Top
@@ -99,8 +100,8 @@ impl MicrocodeViewer
 
         let footer = Wnd.create'Wnd(result, {0, 0, 0, 28})
         footer.dockStyle        = .Bottom
-        footer.backgroundStyle  = .InformationBar
-        footer.padding          = {8, 4, 8, 4}
+        footer.backgroundStyle  = .Transparent
+        footer.padding          = {0, 4, 0, 0}
         result.status           = Label.create(footer, "", {}, null, .SecondaryText)
         result.status.dockStyle = .Center
         result.status.setTextAlignment(.Left, .Center)
@@ -161,7 +162,7 @@ impl MicrocodeViewer
         .job.queued     = false
         .job.running    = true
 
-        // Options remain editable while this tab compiles; another request replaces its pending input.
+        // Options remain editable while this viewer compiles; another request replaces its pending input.
         .setStatus(.Working)
         .job.timer = .app().addTimer(20'ms, me)
 
@@ -277,7 +278,6 @@ impl IViewer for MicrocodeViewer
     mtd impl compile(source: string) { .compileSource(source) }
     mtd impl shutdown() { .stopCompile() }
     mtd impl isRunning()->bool => .job.running
-    mtd impl title()->String   => Format.toString("% · O%", appStrings().ui_Microcode, .optimCombo.selectedIndex)
     mtd impl subscribeChanged(action: func||(*Wnd)) { .sigChanged += action }
 }
 

@@ -40,6 +40,34 @@ struct MbInfo
     uniform: bool
 }
 
+// The most pictures one picture can reference, which is what the frame pool holds.
+const MaxReferenceIdentities = 64
+
+// Motion of one 4x4 block on one reference list, in the shape its readers want it.
+//
+// Prediction asks a neighbor for its vector and its reference index, and the loop filter asks
+// both sides of an edge for their vector and which picture it points at. Held as four separate
+// picture-wide arrays those answers cost four cache streams for one question, and publishing a
+// block costs four stores; held together they cost one stream, and one sixteen-byte store
+// publishes two blocks. `refId` is a compact identity of the referenced picture, allocated per
+// picture, which is what the filter compares — a picture order count answers the same question
+// in four times the bytes.
+struct BlockMotion
+{
+    mvX:    s16
+    mvY:    s16
+    refIdx: s8
+    refId:  s8
+    unused: [2] u8
+}
+
+// Packed stores publish whole records, so the record has to be exactly what they assume.
+#assert(#sizeof(BlockMotion) == 8)
+#assert(#offsetof(BlockMotion.mvX) == 0)
+#assert(#offsetof(BlockMotion.mvY) == 2)
+#assert(#offsetof(BlockMotion.refIdx) == 4)
+#assert(#offsetof(BlockMotion.refId) == 5)
+
 // Reads ITU-T H.264 video: one access unit in, one decoded frame out.
 //
 // The decoder is fed complete access units in decode order, each holding the NAL units of one
@@ -79,15 +107,17 @@ struct Decoder
     codedLuma:   Array'u8     // Any coefficient coded in the block, for deblocking.
 
     // Per-4x4-block motion state of the current picture, one array per reference list.
-    mvL0:        Array's16     // Two components per block.
-    mvL1:        Array's16
-    refIdxL0:    Array's8
-    refIdxL1:    Array's8
-    refPocL0:    Array's32     // Picture order count of the referenced frame, for deblocking.
-    refPocL1:    Array's32
+    motionL0:    Array'BlockMotion
+    motionL1:    Array'BlockMotion
     mvdL0:       Array's16     // Motion vector differences, for the CABAC contexts.
     mvdL1:       Array's16
     directFlags: Array'u8     // Whether the block was coded in a direct mode.
+
+    // Compact identities of the pictures this one references, in first-seen order; identity 0
+    // means no reference. A picture cannot reference more pictures than the pool holds, so the
+    // table never fills and the scan that allocates one runs a few entries per slice reference.
+    refIdentityPoc:   [MaxReferenceIdentities] s32
+    refIdentityCount: u32
 
     // Entropy parsing stays serial inside a slice. Parsed macroblocks and their immutable
     // slice contexts remain here until inter reconstruction fans out through the runtime scheduler.
@@ -701,12 +731,8 @@ impl Decoder
             .nonZeroCb.resize(mbCount * 4)
             .nonZeroCr.resize(mbCount * 4)
             .codedLuma.resize(blocks)
-            .mvL0.resize(blocks * 2)
-            .mvL1.resize(blocks * 2)
-            .refIdxL0.resize(blocks)
-            .refIdxL1.resize(blocks)
-            .refPocL0.resize(blocks)
-            .refPocL1.resize(blocks)
+            .motionL0.resize(blocks)
+            .motionL1.resize(blocks)
             .mvdL0.resize(blocks * 2)
             .mvdL1.resize(blocks * 2)
             .directFlags.resize(blocks)
@@ -730,12 +756,33 @@ impl Decoder
         for &info in .mbInfo do
             info.sliceId = 0
 
-        .decodedMbs = 0
-        .sliceCount = 0
+        .decodedMbs       = 0
+        .sliceCount       = 0
+        .refIdentityCount = 0
         .pictureSlices.clear()
         .pipelineBandCount = .pipelineSingleSlice ? Math.min(Math.min(Swag.workerCount(), ReconstructionBands), cast(u32) sps.mbHeight) : 0
         .pipelineScheduled = 0
         .pipelineFailed    = 0
+    }
+
+    // Returns the compact identity of the referenced picture whose order count is `poc`.
+    //
+    // The loop filter asks whether two blocks predict from the same picture, which the order
+    // count answers in four bytes per block per list. One byte answers it just as well once the
+    // pictures this one references are numbered, and they are few: this allocates on first use
+    // and is called once per reference of a slice, not once per block.
+    mtd referenceIdentity(poc: s32)->s8
+    {
+        for index in .refIdentityCount
+        {
+            if .refIdentityPoc[index] == poc do
+                return cast(s8) (index + 1)
+        }
+
+        Swag.assert(.refIdentityCount < MaxReferenceIdentities)
+        .refIdentityPoc[.refIdentityCount] = poc
+        .refIdentityCount += 1
+        return cast(s8) .refIdentityCount
     }
 
     // Verifies that the parsed slices cover the complete current picture.

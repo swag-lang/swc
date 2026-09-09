@@ -43,6 +43,10 @@ struct RefPic
     poc:    s32
     isLong: bool
 
+    // Compact identity of `frame` among the pictures this one references. The loop filter
+    // compares this instead of the order count, one byte per block instead of four.
+    identity: s8
+
     // Rows of the reference this slice has already seen published. Reconstruction reads it
     // before every predicted block, and the shared counter behind it costs a locked
     // instruction, so the last answer is kept here and only refreshed when a block needs more.
@@ -388,9 +392,10 @@ impl Slice
             {
                 let frame = initial[list][Math.min(cast(u64) index, initial[list].count - 1)]
                 let entry = &.refs[list, index]
-                entry.frame  = frame
-                entry.poc    = frame.poc
-                entry.isLong = frame.isLongTerm
+                entry.frame    = frame
+                entry.poc      = frame.poc
+                entry.isLong   = frame.isLongTerm
+                entry.identity = .dec!.referenceIdentity(frame.poc)
             }
         }
 

@@ -195,17 +195,19 @@ impl Slice
         result.available = true
         if list == 0
         {
-            result.refIdx = dec.refIdxL0[index]
-            result.mvX    = dec.mvL0[index * 2]
-            result.mvY    = dec.mvL0[index * 2 + 1]
+            let motion = &dec.motionL0[index]
+            result.refIdx = motion.refIdx
+            result.mvX    = motion.mvX
+            result.mvY    = motion.mvY
             result.mvdX   = dec.mvdL0[index * 2]
             result.mvdY   = dec.mvdL0[index * 2 + 1]
         }
         else
         {
-            result.refIdx = dec.refIdxL1[index]
-            result.mvX    = dec.mvL1[index * 2]
-            result.mvY    = dec.mvL1[index * 2 + 1]
+            let motion = &dec.motionL1[index]
+            result.refIdx = motion.refIdx
+            result.mvX    = motion.mvX
+            result.mvY    = motion.mvY
             result.mvdX   = dec.mvdL1[index * 2]
             result.mvdY   = dec.mvdL1[index * 2 + 1]
         }
@@ -285,33 +287,20 @@ impl Slice
     // Stores the final motion of one partition into the picture grid and the parse state.
     mtd assignMotion(mb: *Mb, list: u32, x4, y4, w4, h4: s32, refIdx: s32, mv: [2] s16, mvd: [2] s16, isDirect: bool)
     {
-        let dec    = .dec!
-        let gw     = dec.sps!.mbWidth * 4
-        let refPoc = refIdx >= 0 ? .refs[list, refIdx].poc : NoRefPoc
+        let dec   = .dec!
+        let gw    = dec.sps!.mbWidth * 4
+        let refId = refIdx >= 0 ? .refs[list, refIdx].identity : NoReferenceIdentity
+        let entry = BlockMotion{mvX: mv[0], mvY: mv[1], refIdx: cast(s8) refIdx, refId: refId}
+        let grid  = list == 0 ? dec.motionL0.buffer! : dec.motionL1.buffer!
+        let diffs = list == 0 ? dec.mvdL0.buffer! : dec.mvdL1.buffer!
         for row in cast(u64) h4
         {
             for column in cast(u64) w4
             {
                 let index = cast(u64) ((mb.mbY * 4 + y4 + cast(s32) row) * gw + mb.mbX * 4 + x4 + cast(s32) column)
-                if list == 0
-                {
-                    dec.refIdxL0[index]      = cast(s8) refIdx
-                    dec.mvL0[index * 2]      = mv[0]
-                    dec.mvL0[index * 2 + 1]  = mv[1]
-                    dec.mvdL0[index * 2]     = mvd[0]
-                    dec.mvdL0[index * 2 + 1] = mvd[1]
-                    dec.refPocL0[index]      = refPoc
-                }
-                else
-                {
-                    dec.refIdxL1[index]      = cast(s8) refIdx
-                    dec.mvL1[index * 2]      = mv[0]
-                    dec.mvL1[index * 2 + 1]  = mv[1]
-                    dec.mvdL1[index * 2]     = mvd[0]
-                    dec.mvdL1[index * 2 + 1] = mvd[1]
-                    dec.refPocL1[index]      = refPoc
-                }
-
+                grid[index]            = entry
+                diffs[index * 2]       = mvd[0]
+                diffs[index * 2 + 1]   = mvd[1]
                 dec.directFlags[index] = isDirect ? 1 : 0
             }
         }
@@ -329,31 +318,33 @@ impl Slice
     // duplicate store made by two independent list assignments.
     mtd assignSkipMotion(mb: *Mb, x4, y4, w4, h4: s32, refIdx: [2] s8, mv0, mv1: [2] s16, isDirect: bool)
     {
-        let dec  = .dec!
-        let gw   = dec.sps!.mbWidth * 4
-        let poc0 = refIdx[0] >= 0 ? .refs[0, cast(u64) refIdx[0]].poc : NoRefPoc
-        let poc1 = refIdx[1] >= 0 ? .refs[1, cast(u64) refIdx[1]].poc : NoRefPoc
+        let dec = .dec!
+        let gw  = dec.sps!.mbWidth * 4
+        let id0 = refIdx[0] >= 0 ? .refs[0, cast(u64) refIdx[0]].identity : NoReferenceIdentity
+        let id1 = refIdx[1] >= 0 ? .refs[1, cast(u64) refIdx[1]].identity : NoReferenceIdentity
+        let entry0 = BlockMotion{mvX: mv0[0], mvY: mv0[1], refIdx: refIdx[0], refId: id0}
+        let entry1 = BlockMotion{mvX: mv1[0], mvY: mv1[1], refIdx: refIdx[1], refId: id1}
         if x4 == 0 and y4 == 0 and w4 == 4 and h4 == 4
         {
-            let refs0   = Simd.splat(cast #bit (u8) refIdx[0])
-            let refs1   = Simd.splat(cast #bit (u8) refIdx[1])
-            let motion0 = cast(Simd.S16x8) [mv0[0], mv0[1], mv0[0], mv0[1], mv0[0], mv0[1], mv0[0], mv0[1]]
-            let motion1 = cast(Simd.S16x8) [mv1[0], mv1[1], mv1[0], mv1[1], mv1[0], mv1[1], mv1[0], mv1[1]]
+            // One block record is eight bytes, so one store publishes two blocks and two cover
+            // a whole macroblock row of the grid.
+            let refs0   = packedReferences(refIdx[0], id0)
+            let refs1   = packedReferences(refIdx[1], id1)
+            let pair0   = cast(Simd.S16x8) [mv0[0], mv0[1], refs0, 0's16, mv0[0], mv0[1], refs0, 0's16]
+            let pair1   = cast(Simd.S16x8) [mv1[0], mv1[1], refs1, 0's16, mv1[0], mv1[1], refs1, 0's16]
             let zeros16 = Simd.splat(0's16)
-            let pocs0   = Simd.splat(poc0)
-            let pocs1   = Simd.splat(poc1)
             let direct  = Simd.splat(isDirect ? 1'u8 : 0)
             for row in 4'u64
             {
                 let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
-                Simd.storeLow4(cast([*] u8) dec.refIdxL0.buffer! + index, refs0)
-                Simd.storeLow4(cast([*] u8) dec.refIdxL1.buffer! + index, refs1)
-                Simd.store(dec.mvL0.buffer! + index * 2, motion0)
-                Simd.store(dec.mvL1.buffer! + index * 2, motion1)
+                let grid0 = cast([*] s16) (dec.motionL0.buffer! + index)
+                let grid1 = cast([*] s16) (dec.motionL1.buffer! + index)
+                Simd.store(grid0, pair0)
+                Simd.store(grid0 + 8, pair0)
+                Simd.store(grid1, pair1)
+                Simd.store(grid1 + 8, pair1)
                 Simd.store(dec.mvdL0.buffer! + index * 2, zeros16)
                 Simd.store(dec.mvdL1.buffer! + index * 2, zeros16)
-                Simd.store(dec.refPocL0.buffer! + index, pocs0)
-                Simd.store(dec.refPocL1.buffer! + index, pocs1)
                 Simd.storeLow4(dec.directFlags.buffer! + index, direct)
             }
 
@@ -367,18 +358,12 @@ impl Slice
             for column in cast(u64) w4
             {
                 let index = cast(u64) ((mb.mbY * 4 + y4 + cast(s32) row) * gw + mb.mbX * 4 + x4 + cast(s32) column)
-                dec.refIdxL0[index]      = refIdx[0]
-                dec.refIdxL1[index]      = refIdx[1]
-                dec.mvL0[index * 2]      = mv0[0]
-                dec.mvL0[index * 2 + 1]  = mv0[1]
-                dec.mvL1[index * 2]      = mv1[0]
-                dec.mvL1[index * 2 + 1]  = mv1[1]
+                dec.motionL0[index]      = entry0
+                dec.motionL1[index]      = entry1
                 dec.mvdL0[index * 2]     = 0
                 dec.mvdL0[index * 2 + 1] = 0
                 dec.mvdL1[index * 2]     = 0
                 dec.mvdL1[index * 2 + 1] = 0
-                dec.refPocL0[index]      = poc0
-                dec.refPocL1[index]      = poc1
                 dec.directFlags[index]   = isDirect ? 1 : 0
             }
         }
@@ -1663,25 +1648,27 @@ impl Slice
         dec.dcFlags[mbIdx * 3 + 1] = mb.dcFlags[1]
         dec.dcFlags[mbIdx * 3 + 2] = mb.dcFlags[2]
 
-        // Intra macroblocks leave a clean motion grid behind them.
+        // Intra macroblocks leave a clean motion grid behind them. Four blocks of a grid row are
+        // adjacent, so the whole row of records goes out in two stores.
         if mb.class != MbClassInter
         {
-            for block in 16's32
+            // Four records of a grid row are adjacent, so a whole row goes out in two stores.
+            let refs    = packedReferences(-1, NoReferenceIdentity)
+            let clean   = cast(Simd.S16x8) [0's16, 0's16, refs, 0's16, 0's16, 0's16, refs, 0's16]
+            let zeros16 = Simd.splat(0's16)
+            let zeros8  = Simd.splat(0'u8)
+            for row in 4's32
             {
-                let index = cast(u64) ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3))
-                dec.refIdxL0[index]      = -1
-                dec.refIdxL1[index]      = -1
-                dec.refPocL0[index]      = NoRefPoc
-                dec.refPocL1[index]      = NoRefPoc
-                dec.mvL0[index * 2]      = 0
-                dec.mvL0[index * 2 + 1]  = 0
-                dec.mvL1[index * 2]      = 0
-                dec.mvL1[index * 2 + 1]  = 0
-                dec.mvdL0[index * 2]     = 0
-                dec.mvdL0[index * 2 + 1] = 0
-                dec.mvdL1[index * 2]     = 0
-                dec.mvdL1[index * 2 + 1] = 0
-                dec.directFlags[index]   = 0
+                let index = cast(u64) ((mb.mbY * 4 + row) * gw + mb.mbX * 4)
+                let grid0 = cast([*] s16) (dec.motionL0.buffer! + index)
+                let grid1 = cast([*] s16) (dec.motionL1.buffer! + index)
+                Simd.store(grid0, clean)
+                Simd.store(grid0 + 8, clean)
+                Simd.store(grid1, clean)
+                Simd.store(grid1 + 8, clean)
+                Simd.store(dec.mvdL0.buffer! + index * 2, zeros16)
+                Simd.store(dec.mvdL1.buffer! + index * 2, zeros16)
+                Simd.storeLow4(dec.directFlags.buffer! + index, zeros8)
             }
         }
 
@@ -1741,21 +1728,23 @@ impl Slice
                 continue
             }
 
-            let ref0 = dec.refIdxL0[index]
+            let motion0 = &dec.motionL0[index]
+            let ref0    = motion0.refIdx
             if ref0 >= 0
             {
                 frame.colRef[index]        = ref0
-                frame.colMv[index * 2]     = dec.mvL0[index * 2]
-                frame.colMv[index * 2 + 1] = dec.mvL0[index * 2 + 1]
+                frame.colMv[index * 2]     = motion0.mvX
+                frame.colMv[index * 2 + 1] = motion0.mvY
                 frame.colPoc[index]        = .refs[0, ref0].poc
                 frame.colShort[index]      = .refs[0, ref0].isLong ? 0 : 1
             }
             else
             {
-                let ref1 = dec.refIdxL1[index]
+                let motion1 = &dec.motionL1[index]
+                let ref1    = motion1.refIdx
                 frame.colRef[index]        = ref1
-                frame.colMv[index * 2]     = dec.mvL1[index * 2]
-                frame.colMv[index * 2 + 1] = dec.mvL1[index * 2 + 1]
+                frame.colMv[index * 2]     = motion1.mvX
+                frame.colMv[index * 2 + 1] = motion1.mvY
                 frame.colPoc[index]        = ref1 >= 0 ? .refs[1, ref1].poc : 0
                 frame.colShort[index]      = ref1 >= 0 and !.refs[1, ref1].isLong ? 1 : 0
             }
@@ -1953,8 +1942,18 @@ impl Slice
     }
 }
 
-// Sentinel for "no reference" in the per-block reference picture-order array.
-const NoRefPoc = Swag.S32.Min
+// Sentinel for "no reference" in a block's compact reference identity.
+const NoReferenceIdentity = 0's8
+
+// Returns the reference index and identity of a block record as the one 16-bit lane they occupy.
+//
+// A record is two vectors then these two bytes, so a packed store publishing whole records has
+// to present them as a lane rather than as two fields.
+#[Swag.Inline]
+func packedReferences(refIdx, refId: s8)->s16
+{
+    return cast #bit (s16) (cast(u16) (cast #bit (u8) refIdx) | (cast(u16) (cast #bit (u8) refId) << 8))
+}
 
 // Partition shape of each B macroblock type 1..21, Table 7-14.
 const BShapes: [23] u8 = [

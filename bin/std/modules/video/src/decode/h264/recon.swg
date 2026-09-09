@@ -253,9 +253,11 @@ impl Slice
         let dec  = .dec!
         let pps  = .pps!
         let list = mb.class == MbClassInter ? 3'u64 : 0'u64
-        for index in 16'u64 do
-            block[index] = 0
+        Memory.clear(block, 16 * #sizeof(s16))
 
+        // The scaling factors of one quantizer are one row of the table; addressing them through
+        // all three dimensions costs two multiplies at every coefficient of every block.
+        let table = cast([*] u32) &pps.dequant4[list, cast(u64) mb.qp, 0]
         let base  = cast(u64) raster * 16
         let start = hasDc ? 1'u64 : 0'u64
         for scan in start until 16
@@ -264,7 +266,7 @@ impl Slice
             if coeff == 0 do
                 continue
             let position = cast(u64) Zigzag4[scan]
-            block[position] = cast(s16) clampS32((coeff * cast(s32) pps.dequant4[list, cast(u64) mb.qp, position] + 8) >> 4, -32768, 32767)
+            block[position] = cast(s16) clampS32((coeff * cast(s32) table[position] + 8) >> 4, -32768, 32767)
         }
 
         if hasDc do
@@ -276,17 +278,17 @@ impl Slice
     {
         let dec = .dec!
         let pps = .pps!
-        for index in 64'u64 do
-            block[index] = 0
+        Memory.clear(block, 64 * #sizeof(s16))
 
-        let base = cast(u64) quad * 64
+        let table = cast([*] u32) &pps.dequant8[list, cast(u64) mb.qp, 0]
+        let base  = cast(u64) quad * 64
         for scan in 64'u64
         {
             let coeff = cast(s32) mb.residual!.luma8[base + scan]
             if coeff == 0 do
                 continue
             let position = cast(u64) Zigzag8[scan]
-            block[position] = cast(s16) clampS32((coeff * cast(s32) pps.dequant8[list, cast(u64) mb.qp, position] + 32) >> 6, -32768, 32767)
+            block[position] = cast(s16) clampS32((coeff * cast(s32) table[position] + 32) >> 6, -32768, 32767)
         }
     }
 
@@ -381,11 +383,14 @@ impl Slice
             dc[index] = mb.residual!.chromaDc[cast(u64) plane * 4 + index]
         hadamard2x2(dc.buffer)
 
+        // One row of the scaling table serves every block of this plane.
+        let table = cast([*] u32) &pps.dequant4[listDc, cast(u64) qpc, 0]
+
         for block in 4's32
         {
             let bx      = block & 1
             let by      = block >> 1
-            let dcValue = (cast(s32) dc[cast(u64) (by * 2 + bx)] * cast(s32) pps.dequant4[listDc, cast(u64) qpc, 0]) >> 5
+            let dcValue = (cast(s32) dc[cast(u64) (by * 2 + bx)] * cast(s32) table[0]) >> 5
 
             var coeffs: [16] s16
             coeffs[0] = cast(s16) clampS32(dcValue, -32768, 32767)
@@ -399,7 +404,7 @@ impl Slice
                     if coeff == 0 do
                         continue
                     let position = cast(u64) Zigzag4[scan]
-                    coeffs[position] = cast(s16) clampS32((coeff * cast(s32) pps.dequant4[listDc, cast(u64) qpc, position] + 8) >> 4, -32768, 32767)
+                    coeffs[position] = cast(s16) clampS32((coeff * cast(s32) table[position] + 8) >> 4, -32768, 32767)
                     hasAny           = true
                 }
             }
@@ -588,8 +593,16 @@ impl Slice
         if .useImplicit
         {
             let w1 = cast(s32) .implicitW1[cast(u64) job.refIdx[0], cast(u64) job.refIdx[1]]
-            weightBi(dst, dstStride, src0, src1, 16, width, height, 5, 64 - w1, w1, 0, 0)
-            return
+
+            // Equal weights are the plain average, and that is what the two references of a
+            // symmetric B picture carry. `(a * 32 + b * 32 + 32) >> 6` is `(a + b + 1) >> 1`
+            // exactly, so this takes the rounded average instead of widening every sample to
+            // thirty-two bits to multiply it by one half.
+            if w1 != 32
+            {
+                weightBi(dst, dstStride, src0, src1, 16, width, height, 5, 64 - w1, w1, 0, 0)
+                return
+            }
         }
 
         averagePlanes(dst, dstStride, src0, 16, src1, 16, width, height)

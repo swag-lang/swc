@@ -93,18 +93,18 @@ struct EdgeStrength
 // Reference and motion state needed to compare one 4x4 block edge.
 private struct DeblockMotion
 {
-    refPoc: [2] s32
-    mv:     [2, 2] s16
+    refId: [2] s8
+    mv:    [2, 2] s16
 }
 
 // Reads motion from the compact macroblock job when a P-skip never published a 4x4 grid.
-private func deblockMotion(dec: *Decoder, blockIndex: u64)->DeblockMotion
+//
+// `mbIndex` addresses the macroblock the block belongs to. Every caller walks a macroblock and
+// its left or top neighbor, so it knows that address; deriving it back from the block index
+// costs an integer division and a modulo, and this runs for both sides of every edge segment.
+private func deblockMotion(dec: *Decoder, mbIndex, blockIndex: u64)->DeblockMotion
 {
-    let blocksWide = dec.sps!.mbWidth * 4
-    let x4         = cast(s32) (blockIndex % cast(u64) blocksWide)
-    let y4         = cast(s32) (blockIndex / cast(u64) blocksWide)
-    let mbIndex    = cast(u64) ((y4 >> 2) * dec.sps!.mbWidth + (x4 >> 2))
-    let info       = &dec.mbInfo[mbIndex]
+    let info = &dec.mbInfo[mbIndex]
 
     var result: retval
     if info.skipped and !info.direct
@@ -115,25 +115,27 @@ private func deblockMotion(dec: *Decoder, blockIndex: u64)->DeblockMotion
         for list in 2'u32
         {
             let ref = job.refIdx[list]
-            result.refPoc[list] = ref >= 0 ? slice.refs[list, cast(u64) ref].poc : NoRefPoc
-            result.mv[list, 0]  = job.mv[list, 0]
-            result.mv[list, 1]  = job.mv[list, 1]
+            result.refId[list] = ref >= 0 ? slice.refs[list, cast(u64) ref].identity : NoReferenceIdentity
+            result.mv[list, 0] = job.mv[list, 0]
+            result.mv[list, 1] = job.mv[list, 1]
         }
 
         return result
     }
 
-    result.refPoc[0] = dec.refPocL0[blockIndex]
-    result.refPoc[1] = dec.refPocL1[blockIndex]
-    result.mv[0, 0]  = dec.mvL0[blockIndex * 2]
-    result.mv[0, 1]  = dec.mvL0[blockIndex * 2 + 1]
-    result.mv[1, 0]  = dec.mvL1[blockIndex * 2]
-    result.mv[1, 1]  = dec.mvL1[blockIndex * 2 + 1]
+    let motion0 = &dec.motionL0[blockIndex]
+    let motion1 = &dec.motionL1[blockIndex]
+    result.refId[0] = motion0.refId
+    result.refId[1] = motion1.refId
+    result.mv[0, 0] = motion0.mvX
+    result.mv[0, 1] = motion0.mvY
+    result.mv[1, 0] = motion1.mvX
+    result.mv[1, 1] = motion1.mvY
     return result
 }
 
 // Computes the strength of one 4x4 block edge between blocks `p` and `q`, section 8.7.2.1.
-private func edgeStrength(dec: *Decoder, pIndex, qIndex: u64, mbEdge, pIntra, qIntra, pCoded, qCoded: bool)->u32
+private func edgeStrength(dec: *Decoder, pMbIndex, pIndex, qMbIndex, qIndex: u64, mbEdge, pIntra, qIntra, pCoded, qCoded: bool)->u32
 {
     if pIntra or qIntra do
         return mbEdge ? 4'u32 : 3'u32
@@ -141,11 +143,11 @@ private func edgeStrength(dec: *Decoder, pIndex, qIndex: u64, mbEdge, pIntra, qI
         return 2
 
     // Reference and motion comparison.
-    let p = deblockMotion(dec, pIndex)
-    let q = deblockMotion(dec, qIndex)
+    let p = deblockMotion(dec, pMbIndex, pIndex)
+    let q = deblockMotion(dec, qMbIndex, qIndex)
 
-    let straight = p.refPoc[0] == q.refPoc[0] and p.refPoc[1] == q.refPoc[1]
-    let crossed  = p.refPoc[0] == q.refPoc[1] and p.refPoc[1] == q.refPoc[0]
+    let straight = p.refId[0] == q.refId[0] and p.refId[1] == q.refId[1]
+    let crossed  = p.refId[0] == q.refId[1] and p.refId[1] == q.refId[0]
     if !straight and !crossed do
         return 1
 
@@ -194,9 +196,10 @@ func deblockRow(dec: *Decoder, mbY: s32)
 
 func deblockMb(dec: *Decoder, mbX, mbY: s32)
 {
-    let sps   = dec.sps!
-    let frame = dec.current!
-    let info  = &dec.mbInfo[cast(u64) (mbY * sps.mbWidth + mbX)]
+    let sps     = dec.sps!
+    let frame   = dec.current!
+    let mbIndex = cast(u64) (mbY * sps.mbWidth + mbX)
+    let info    = &dec.mbInfo[mbIndex]
     if info.deblockIdc == 1 do
         return
 
@@ -232,7 +235,7 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         {
             // One motion on each side: the whole edge carries one strength.
             let qIndex = cast(u64) (mbY * 4 * gw + mbX * 4)
-            let bs     = edgeStrength(dec, qIndex - 1, qIndex, true, false, false, false, false)
+            let bs     = edgeStrength(dec, mbIndex - 1, qIndex - 1, mbIndex, qIndex, true, false, false, false, false)
             if bs == 0 do
                 continue
             strengths.bs = [bs, bs, bs, bs]
@@ -246,11 +249,15 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
                 let qy     = mbY * 4 + segment
                 let qIndex = cast(u64) (qy * gw + qx)
                 let pIndex = cast(u64) (qy * gw + qx - 1)
-                var pIntra = qIntra
-                var pCoded = dec.codedLuma[pIndex] != 0
-                if edge == 0 do
-                    pIntra = dec.mbInfo[cast(u64) (mbY * sps.mbWidth + mbX - 1)].class != MbClassInter
-                let bs = edgeStrength(dec, pIndex, qIndex, edge == 0, pIntra, qIntra, pCoded, dec.codedLuma[qIndex] != 0)
+                var pIntra   = qIntra
+                var pCoded   = dec.codedLuma[pIndex] != 0
+                var pMbIndex = mbIndex
+                if edge == 0
+                {
+                    pMbIndex = mbIndex - 1
+                    pIntra   = dec.mbInfo[pMbIndex].class != MbClassInter
+                }
+                let bs = edgeStrength(dec, pMbIndex, pIndex, mbIndex, qIndex, edge == 0, pIntra, qIntra, pCoded, dec.codedLuma[qIndex] != 0)
                 strengths.bs[cast(u64) segment] = bs
                 if bs != 0 do
                     hasAny = true
@@ -343,7 +350,7 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         if edge == 0 and info.uniform and topUniform
         {
             let qIndex = cast(u64) (mbY * 4 * gw + mbX * 4)
-            let bs     = edgeStrength(dec, qIndex - cast(u64) gw, qIndex, true, false, false, false, false)
+            let bs     = edgeStrength(dec, mbIndex - cast(u64) sps.mbWidth, qIndex - cast(u64) gw, mbIndex, qIndex, true, false, false, false, false)
             if bs == 0 do
                 continue
             strengths.bs = [bs, bs, bs, bs]
@@ -357,10 +364,14 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
                 let qy     = mbY * 4 + edge
                 let qIndex = cast(u64) (qy * gw + qx)
                 let pIndex = cast(u64) ((qy - 1) * gw + qx)
-                var pIntra = qIntra
-                if edge == 0 do
-                    pIntra = dec.mbInfo[cast(u64) ((mbY - 1) * sps.mbWidth + mbX)].class != MbClassInter
-                let bs = edgeStrength(dec, pIndex, qIndex, edge == 0, pIntra, qIntra, dec.codedLuma[pIndex] != 0, dec.codedLuma[qIndex] != 0)
+                var pIntra   = qIntra
+                var pMbIndex = mbIndex
+                if edge == 0
+                {
+                    pMbIndex = mbIndex - cast(u64) sps.mbWidth
+                    pIntra   = dec.mbInfo[pMbIndex].class != MbClassInter
+                }
+                let bs = edgeStrength(dec, pMbIndex, pIndex, mbIndex, qIndex, edge == 0, pIntra, qIntra, dec.codedLuma[pIndex] != 0, dec.codedLuma[qIndex] != 0)
                 strengths.bs[cast(u64) segment] = bs
                 if bs != 0 do
                     hasAny = true

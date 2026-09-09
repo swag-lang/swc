@@ -614,7 +614,7 @@ impl Slice
         let index = cast(u64) (y4 * gw + x4)
         if dec.directFlags[index] != 0 and .header.type == SliceTypeB do
             return false
-        let ref = list == 0 ? dec.refIdxL0[index] : dec.refIdxL1[index]
+        let ref = list == 0 ? dec.motionL0[index].refIdx : dec.motionL1[index].refIdx
         return ref > 0
     }
 

@@ -19,9 +19,9 @@ impl SourceActions
         let automatic = cast(*CheckButton) .children[2]
         let examples  = .children[3]
         let rect      = .paddedClientRect()
-        compile.setText(rect.width >= 400 ? appStrings().ui_CompileVisible : "")
+        compile.setText(rect.width >= 440 ? appStrings().ui_CompileVisible : "")
         format.setText(rect.width >= 560 ? appStrings().ui_Format : "")
-        automatic.setText(rect.width >= 400 ? appStrings().ui_AutoCompile : "")
+        automatic.setText(rect.width >= 440 ? appStrings().ui_AutoCompile : "")
         let compileWidth = Math.max(36.0, compile.IWnd.measureContent({}).x)
         let formatWidth  = Math.max(36.0, format.IWnd.measureContent({}).x)
         let autoWidth    = Math.max(36.0, automatic.IWnd.measureContent({}).x)

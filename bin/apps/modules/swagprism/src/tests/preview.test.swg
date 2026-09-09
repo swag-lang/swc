@@ -101,6 +101,7 @@ using Core, Gui, Pixel
                 window.setComparisonEnabled(comparison)
                 window.applyLayout()
                 Testing.assertContentFits(window)
+                Swag.assert(window.exampleCombo.position.right() <= window.commandBar.paddedClientRect().right())
                 Swag.assert(window.commandBar.position.height == 36)
                 Swag.assert(window.runButton.position.y == window.formatButton.position.y)
                 Swag.assert(window.runButton.position.y == window.exampleCombo.position.y)

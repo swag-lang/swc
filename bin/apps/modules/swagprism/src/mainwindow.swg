@@ -56,7 +56,7 @@ impl MainWindow
 {
     const WindowWidth  = 1500's32
     const WindowHeight = 900's32
-    const MinWidth     = 1040.0
+    const MinWidth     = 1080.0
     const MinHeight    = 560.0
     const Gutter       = 16.0
 
@@ -134,7 +134,7 @@ impl MainWindow
             window.scheduleCompile()
         }
 
-        .exampleCombo = ComboBox.create(.commandBar, {0, 0, 200, 36}, "prism.examples")
+        .exampleCombo = ComboBox.create(.commandBar, {0, 0, 0, 36}, "prism.examples")
         .exampleCombo.sigChanged += func|window = me|(combo, index)
         {
             discard combo
@@ -215,7 +215,7 @@ impl MainWindow
         }
 
         let sourcePane = .sourceSplit.addPane(.sourcePanel, 480)
-        sourcePane.minimumSize = 300
+        sourcePane.minimumSize = 360
         let viewersPane = .sourceSplit.addPane(.viewerSplit, 960)
         viewersPane.minimumSize = ViewerPanel.MinWidth
         .viewerSplit.setPaneVisible(1, false)

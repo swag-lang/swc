@@ -45,7 +45,11 @@ const SurfaceId   = "swag.prism"
     window.compile()
 
     let exitCode = g_App.run()
-    window.shutdown()
+
+    // A normal close has already destroyed the window and retired its jobs. A bounded run
+    // leaves the surface alive, so only that path still needs an explicit shutdown.
+    for registered in g_App.surfaces where registered == surface do
+        window.shutdown()
     if exitCode do
         Env.exit(exitCode)
 }

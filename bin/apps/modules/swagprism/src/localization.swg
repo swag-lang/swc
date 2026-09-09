@@ -10,7 +10,7 @@ struct AppStrings
 {
     ui_WindowTitle:  string = "Swag Prism — What the compiler makes of your code"     // Title of the application window.
     ui_Stage:        string = "Stage"                                                 // Label of the pipeline-stage selector.
-    ui_Optimize:     string = "Optimize"                                              // Label of the toggle asking for optimized code generation.
+    ui_Optimize:     string = "Optimization level"                                    // Tooltip of the backend optimization selector.
     ui_Run:          string = "Compile"                                               // Label of the button that compiles the snippet.
     ui_Working:      string = "Compiling…"                                            // Status while the compiler runs.
     ui_Ready:        string = "Ready"                                                 // Status before anything has been compiled.

@@ -29,8 +29,15 @@ using Swag, Core
     cache.basePath = Path.directoryName(fileName.toString())!
     let entry = cache.fetch(Path.fileName(fileName.toString())!)
     Swag.assert(entry != null and entry!.loaded)
-    Swag.assert(entry!.image.width == 40 and entry!.image.height == 20)
-    Swag.assert(entry!.image.pixelColor(20, 10).argb == 0xFF285078)
+    Swag.assert(entry!.naturalSize == Math.Vector2{40, 20} and !entry!.image.isValid())
+    var host: Testing.HeadlessHost
+    host.setup(80, 40)
+    defer host.shutdown()
+    defer cache.release()
+    let texture = cache.texture(host.app.renderer, Path.fileName(fileName.toString())!, 40, 20)
+    Swag.assert(texture != null)
+    Swag.assert(cache.entries[0].image.width == 40 and cache.entries[0].image.height == 20)
+    Swag.assert(cache.entries[0].image.pixelColor(20, 10).argb == 0xFF285078)
 }
 
 // A standalone SVG uses its declared image dimensions, not the size of its internal view box.
@@ -368,7 +375,43 @@ func markdownFixturePath()->String
     Swag.assert(view.blocks[0].html != null)
     let point = view.blocks[0].html!.canvas.surfaceRect().center()
     host.mouseWheel(point, -1)
+    host.finishAnimations()
     Swag.assert(view.scroll.scrollPosition().y > 0)
+}
+
+// Wheel notches accumulate into a three-line glide, reverse immediately, and honor reduced motion.
+#test
+{
+    var source: String
+    for 80 do
+        source += "A paragraph for smooth document navigation.\n\n"
+    var host: Testing.HeadlessHost
+    host.setup(640, 240)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+    let view = Markdown.View.createText(&host.root, source.toString())
+    view.resize(640, 240)
+    view.applyLayout()
+    let step = view.scroll.verticalScrollStep * 3
+    host.mouseWheel({320, 120}, -1)
+    Swag.assert(view.scroll.scrollPosition().y == 0)
+    Swag.assert(Math.abs(view.scroll.scrollTarget().y - step) <= 1)
+    host.advanceAnimations(0.04)
+    let intermediate = view.scroll.scrollPosition().y
+    Swag.assert(intermediate > 0 and intermediate < step)
+    host.mouseWheel({320, 120}, -1)
+    Swag.assert(Math.abs(view.scroll.scrollTarget().y - step * 2) <= 1)
+    host.mouseWheel({320, 120}, 1)
+    Swag.assert(view.scroll.scrollTarget().y < intermediate)
+    host.finishAnimations()
+    Swag.assert(view.scroll.scrollPosition() == view.scroll.scrollTarget())
+
+    view.scroll.setScrollPos(0, 0)
+    host.setReducedMotion(true)
+    host.mouseWheel({320, 120}, -1)
+    Swag.assert(Math.abs(view.scroll.scrollPosition().y - step) <= 1)
+    host.mouseWheel({320, 120}, 100)
+    Swag.assert(view.scroll.scrollPosition().y == 0)
 }
 
 // HTML fragments loaded from a Markdown file resolve local images beside that Markdown file.
@@ -916,6 +959,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     for 16 do
         host.mouseWheel({360, 180}, -1)
+    host.finishAnimations()
     Swag.assert(view.isLoading())
 
     var steps = 0'u32

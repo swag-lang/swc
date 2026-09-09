@@ -1227,7 +1227,8 @@ impl IWnd for InlineView
             let color = .color(atom)
             if atom.imageLoaded
             {
-                let texture = .images.texture(evt.paintContext.renderer, atom.imageSource.toString())
+                let scale   = .surface != null ? .surface!.dpiScale : 1
+                let texture = .images.texture(evt.paintContext.renderer, atom.imageSource.toString(), atom.position.width * scale, atom.position.height * scale)
                 if texture do
                     painter.drawTexture(atom.position, texture[], Color.fromArgb(Argb.White))
             }

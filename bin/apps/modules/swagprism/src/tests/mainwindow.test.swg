@@ -30,6 +30,8 @@ func testSetupMainWindow(host: *Testing.HeadlessHost, width = cast(f32) MainWind
 
     Swag.assert(window.stageCombo.items.count == Pipeline.Stages.count)
     Swag.assert(window.stageCombo.selectedIndex == Pipeline.DefaultStage)
+    Swag.assert(window.optimCombo.items.count == 3)
+    Swag.assert(window.optimCombo.selectedIndex == cast(u64) Swag.BuildCfgBackendOptimLevel.O2)
 }
 
 // The window opens on its idle status rather than on the outcome of a compilation it never ran.
@@ -49,8 +51,9 @@ func testSetupMainWindow(host: *Testing.HeadlessHost, width = cast(f32) MainWind
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    let text      = window.editor.text()
-    let inspected = Pipeline.inspectedSource(text.toString(), "pre-emit", true)
+    let text = window.editor.text()
+    Swag.assert(Utf8.indexOf(cast(const [..] u8) text.toString(), "\n{\n    var total = 0'f32\n    for i in a.count do\n        total += a[i] * b[i]\n    return total\n}") != Swag.U64.Max)
+    let inspected = Pipeline.inspectedSource(text.toString(), "pre-emit")
     Swag.assert(Utf8.indexOf(cast(const [..] u8) inspected.toString(), "#[Swag.PrintMicro") != Swag.U64.Max)
 }
 
@@ -66,7 +69,8 @@ compiler was there to be found decides the outcome the job reports, and this ass
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    window.compile()
+    window.optimCombo.setSelectedIndex(1)
+    Swag.assert(window.job.optimLevel == .O1)
     Swag.assert(window.job.running)
     Swag.assert(window.job.timer != null)
     Swag.assert(!window.job.queued)
@@ -74,7 +78,8 @@ compiler was there to be found decides the outcome the job reports, and this ass
 
     // A second request while the first is in flight marks it rather than starting a second
     // compiler, so a held key on the stage list costs one more compilation and not one per step.
-    window.compile()
+    window.optimCombo.setSelectedIndex(0)
+    Swag.assert(window.job.optimLevel == .O1)
     Swag.assert(window.job.queued)
 
     window.shutdown()
@@ -87,8 +92,7 @@ A finished compilation comes back through the timer and puts the window back in 
 This is the whole round trip and the one thing no unit of it can prove on its own: the handler that
 picks the result up is an interface override, and an override that is not installed costs nothing
 at compile time and everything at run time — the window simply waits forever with its action still
-disabled. Whether the compiler was there to be found decides which outcome is reported, so this
-asserts on the return and not on the report.
+disabled. The real compiler output must reach the read-only pane with its colors intact.
 */
 #test
 {
@@ -109,7 +113,13 @@ asserts on the return and not on the report.
     Swag.assert(!window.job.running, "the compile job never came back through its timer")
     Swag.assert(window.job.timer == null)
     Swag.assert(window.runButton.isEnabled())
-    Swag.assert(!window.outputIsHint or window.job.stopped)
+    Swag.assert(!window.job.stopped)
+    Swag.assert(!window.job.result.failed)
+    Swag.assert(!window.outputIsHint)
+    Swag.assert(window.outputText.colors.count != 0)
+    let plain = window.output.text()
+    Swag.assert(Utf8.indexOf(cast(const [..] u8) plain.toString(), "[micro]") != Swag.U64.Max)
+    Swag.assert(Utf8.indexOf(cast(const [..] u8) plain.toString(), "\x1B") == Swag.U64.Max)
 }
 
 // The whole surface, in the palette the application ships on.

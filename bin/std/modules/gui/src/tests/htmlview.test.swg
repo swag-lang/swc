@@ -22,7 +22,14 @@ using Core, Pixel
     let sized   = view.layout.constBox(view.boxOfNode(view.elementById("sized"))).content
     Swag.assert(natural.width == 120 and natural.height == 60)
     Swag.assert(sized.width == 240 and sized.height == 120)
-    Swag.assert(view.images.entries.count == 1 and view.images.entries[0].image.width == 480)
+    Swag.assert(view.images.entries.count == 1 and !view.images.entries[0].image.isValid())
+    var image = host.render(view)
+    Swag.assert(image.isValid() and view.images.entries[0].image.width == 240)
+    let highDpi = view.images.texture(host.app.renderer, fileName.toString(), 480, 240)
+    Swag.assert(highDpi != null and view.images.entries[0].image.width == 480)
+    let pixels  = cast(u64) view.images.entries[0].image.pixels.buffer
+    let smaller = view.images.texture(host.app.renderer, fileName.toString(), 120, 60)
+    Swag.assert(smaller != null and cast(u64) view.images.entries[0].image.pixels.buffer == pixels)
 }
 
 // Every offline resource path uses the same lexical boundary before filesystem access.

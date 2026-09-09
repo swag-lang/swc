@@ -838,7 +838,7 @@ impl HtmlPainter
 
         if .images and .renderer and node != HtmlNoNode
         {
-            let texture = .images!.texture(.renderer!, .layout.document.attribute(node, "src"))
+            let texture = .images!.texture(.renderer!, .layout.document.attribute(node, "src"), frame.width * .layout.deviceScale, frame.height * .layout.deviceScale)
             if texture
             {
                 .painter.drawTexture(frame, texture[], HtmlPainter.withAlpha(Color.fromArgb(Argb.White), alpha))

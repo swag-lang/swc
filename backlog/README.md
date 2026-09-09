@@ -34,6 +34,7 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [std.gui.md](std.gui.md) | `std/gui` | 2026-09-09 06:35 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-08 22:35 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-08 22:35 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-08 21:10 |
@@ -51,7 +52,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers | 2026-09-07 13:22 |
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-07 13:14 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-07 11:12 |
-| [std.gui.md](std.gui.md) | `std/gui` | 2026-09-06 21:57 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-06 21:01 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-06 17:53 |
 | [app.capture.md](app.capture.md) | The Swag Capture application | 2026-09-06 17:42 |

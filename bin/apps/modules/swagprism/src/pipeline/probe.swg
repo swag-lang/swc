@@ -31,8 +31,8 @@ The configuration the snippet is built in.
 
 Swag Prism shows the code that would ship. A development build inserts the bounds checks and the
 overflow guards a released one leaves out, and a pane full of calls to `Swag.safetyPanic` answers a
-question nobody asked about a backend they came to judge. The `Swag.Optimize` attribute still lowers
-one function to O0 inside this configuration, which is how the pane offers unoptimized code.
+question nobody asked about a backend they came to judge. The selected backend optimization level
+is passed separately, so O0, O1, and O2 share the same runtime guard policy.
 */
 private const ProbeBuildConfig = "release"
 
@@ -41,7 +41,7 @@ struct Result
 {
     public
     {
-        text:   String     // What the compiler wrote, with terminal escapes removed.
+        text:   String     // What the compiler wrote, including its terminal colors.
         failed: bool       // Whether the compiler stopped before it could print a stage.
     }
 }
@@ -114,16 +114,16 @@ impl Probe
     }
 
     // Compiles `source` and returns what the compiler printed about `stage`.
-    mtd compile(source: string, stage: string, optimize: bool)->Result fail
+    mtd compile(source: string, stage: string, optimLevel: Swag.BuildCfgBackendOptimLevel)->Result fail
     {
         try .open()
 
         let sourceFile = Path.combine(.root, "src", "probe.swg")
-        let inspected  = inspectedSource(source, stage, optimize)
+        let inspected  = inspectedSource(source, stage)
         discard try File.writeAllBytes(sourceFile.toString(), cast(const [..] u8) inspected.toString())
 
         let compiler  = compilerPath()
-        let arguments = Format.toString("build --build-cfg % --module \"%\"", ProbeBuildConfig, .root)
+        let arguments = Format.toString("build --num-cores 6 --build-cfg % --optim-level % --module \"%\"", ProbeBuildConfig, cast(u8) optimLevel, .root)
 
         // Swag Prism draws its own window, and the compiler is a console program, so without this
         // the system builds a console and its host process for every single compilation — which
@@ -134,10 +134,10 @@ impl Probe
         var process = try Env.runProcess(info)
 
         var result: retval
-        result.text   = withoutTerminalEscapes(process.standardOutput())
+        result.text   = String.from(process.standardOutput())
         result.failed = process.exitCode() != 0
         if result.failed do
-            result.text.append(withoutTerminalEscapes(process.standardError()).toString())
+            result.text.append(process.standardError())
         return result
     }
 }
@@ -184,7 +184,7 @@ function to the top is how they change what is inspected.
 A snippet that declares no function is returned unchanged. It will compile and print nothing, which
 is the honest outcome — there is nothing to show.
 */
-func inspectedSource(source: string, stage: string, optimize: bool)->String
+func inspectedSource(source: string, stage: string)->String
 {
     let cut = firstFunctionOffset(source)
 
@@ -196,7 +196,7 @@ func inspectedSource(source: string, stage: string, optimize: bool)->String
     }
 
     result.append(source[0 until cut])
-    result.appendFormat("#[Swag.PrintMicro(\"%\"), Swag.Optimize(%)]\n", stage, optimize ? "true" : "false")
+    result.appendFormat("#[Swag.PrintMicro(\"%\")]\n", stage)
     result.append(source[cut until source.count])
     return result
 }
@@ -225,42 +225,4 @@ private func firstFunctionOffset(source: string)->u64
     }
 
     return Swag.U64.Max
-}
-
-/*
-Returns `text` without the escape sequences a terminal would have consumed.
-
-The compiler colors what it prints for a console, and a pipe receives those sequences as text. The
-interface colors the output itself from the structure it parses, so the sequences are removed
-rather than translated here.
-*/
-func withoutTerminalEscapes(text: string)->String
-{
-    const Escape = 27'u8
-
-    let bytes = cast(const [..] u8) text
-
-    var result: retval
-    var index = 0'u64
-    while index < bytes.count
-    {
-        if bytes[index] != Escape
-        {
-            result.append(bytes[index])
-            index += 1
-            continue
-        }
-
-        // A control sequence runs from the introducer to the first byte in the final range, which
-        // is where every sequence the compiler emits ends whether or not this build knows it.
-        index += 1
-        if index < bytes.count and bytes[index] == '[' do
-            index += 1
-        while index < bytes.count and (bytes[index] < '@' or bytes[index] > '~') do
-            index += 1
-        if index < bytes.count do
-            index += 1
-    }
-
-    return result
 }

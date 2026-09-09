@@ -33,6 +33,22 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
+### std.gui.056 — Large live-resize frames still block the native sizing loop
+
+- Recorded: 2026-09-09 06:35
+- Evidence: the user reports that Swag Prism's native border stalls during mouse resizing,
+  particularly beyond a surface-size threshold. `WM_TIMER` calls `flushInteractiveResize` and
+  `paint` synchronously on the window thread. After bounding surface-target growth to 256-pixel
+  steps, a Windows probe sending `WM_SIZE` and resize-timer messages still measured 61–85 ms
+  callbacks near 2050 physical pixels per axis. The probe exercised the native callback with
+  synthetic client sizes, not a complete mouse-drag benchmark; its timings do not establish
+  which layout, recording, driver-submission, or presentation operation owns the remaining cost.
+- Next: instrument those phases separately during a real Prism border drag below and above
+  1024 and 2048 physical pixels. Include target allocation and layout, which currently precede
+  the paint recorder's stopwatch, and attribute the slow callbacks before choosing worker work.
+- Complete when: a repeatable native drag identifies and removes the remaining blocking work,
+  with frame and input-latency measurements on the affected adapter.
+
 ### std.gui.055 — A menu entry borrows its identifier, so one formatted while the menu is built dangles
 
 - Recorded: 2026-09-06 21:57

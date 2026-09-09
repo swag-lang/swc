@@ -290,8 +290,10 @@ private impl View
 
         let height   = Math.max(estimatedHeight, viewport.height)
         let position = .scroll.scrollPosition()
+        let target   = .scroll.scrollTarget()
         .scroll.setScrollSize(viewport.width, height)
-        .scroll.setScrollPos(position)
+        if target != position and .scroll.scrollTarget() != target do
+            .scroll.smoothScrollTo(target)
     }
 
     mtd placeBlock(block: *VisualBlock, x, width: f32, y: *f32)
@@ -402,7 +404,7 @@ private impl View
         if .jumpToEnd or .hasPendingTarget do
             return true
         let viewport = .scroll.paddedClientRect()
-        return .scroll.scrollPosition().y + viewport.height * StreamLookAhead >= .contentHeight
+        return Math.max(.scroll.scrollPosition().y, .scroll.scrollTarget().y) + viewport.height * StreamLookAhead >= .contentHeight
     }
 
     mtd scheduleMore()
@@ -786,6 +788,21 @@ impl View
         result.scroll.hookOnEvent = func|view = result|(wnd, evt)
         {
             discard wnd
+            if let mouse = evt as MouseEvent where mouse.kind == .Wheel and !mouse.modifiers.has(.Shift)
+            {
+                let position = view.scroll.scrollPosition()
+                var target   = view.scroll.scrollTarget()
+                let distance = -mouse.delta.y * view.scroll.verticalScrollStep * 3
+
+                // Reversing the wheel responds immediately instead of first consuming a queued glide.
+                if (distance < 0 and target.y > position.y) or (distance > 0 and target.y < position.y) do
+                    target = position
+                target.y += distance
+                view.scroll.smoothScrollTo(target)
+                view.scheduleMore()
+                return true
+            }
+
             if evt is ResizeEvent
             {
                 view.layoutDocument()

@@ -11,16 +11,16 @@ into one addressing mode, and — at the vectorizing stage — several iteration
 instruction.
 */
 private const StarterSnippet = """\
-    // The first function is the one that gets inspected.
-    // Pick a stage, then compile.
-    func dot(a, b: const [..] f32)->f32
-    {
-        var total = 0'f32
-        for i in a.count do
-            total += a[i] * b[i]
-        return total
-    }
-    """
+                                  // The first function is the one that gets inspected.
+                                  // Pick a stage, then compile.
+                                  func dot(a, b: const [..] f32)->f32
+                                  {
+                                      var total = 0'f32
+                                      for i in a.count do
+                                          total += a[i] * b[i]
+                                      return total
+                                  }
+                                  """
 
 // What the status line is currently reporting.
 //
@@ -54,9 +54,9 @@ struct CompileJob
     timer: *Timer?       // Polls the task while it runs, and is removed when it finishes.
 
     // Inputs, copied before the task starts so the editor stays editable while it runs.
-    source:   String
-    stage:    String
-    optimize: bool
+    source:     String
+    stage:      String
+    optimLevel: Swag.BuildCfgBackendOptimLevel
 
     // What the task left behind. The interface thread reads these only once the task is done.
     result:  Pipeline.Result
@@ -78,13 +78,14 @@ struct MainWindow
         appearanceButton: *AppearanceButton
         stageLabel:       *Label
         stageCombo:       *ComboBox
-        optimizeCheck:    *CheckButton
+        optimCombo:       *ComboBox
         runButton:        *PushButton
         editor:           *RichEditCtrl
         output:           *RichEditCtrl
         status:           *Label
     }
 
+    outputText:    CompilerOutput
     lexer:         RichEditLexerSwag
     statusMessage: StatusMessage
 
@@ -175,13 +176,17 @@ impl MainWindow
             window.compile()
         }
 
-        .optimizeCheck           = CheckButton.create(bar, appStrings().ui_Optimize, {0, 0, 130, BarHeight - 8}, "prism.optimize")
-        .optimizeCheck.dockStyle = .Left
-        .optimizeCheck.margin.z  = Gutter
-        .optimizeCheck.setState(.Checked)
-        .optimizeCheck.sigChanged += func|window = me|(check)
+        .optimCombo           = ComboBox.create(bar, {0, 0, 150, BarHeight - 8}, "prism.optimize")
+        .optimCombo.dockStyle = .Left
+        .optimCombo.margin.z  = Gutter
+        const Levels = ["O0", "O1", "O2"]
+        for level in Levels do
+            .optimCombo.addItem(level)
+        .optimCombo.setSelectedIndex(cast(u64) Swag.BuildCfgBackendOptimLevel.O2, notify: false)
+        .optimCombo.sigChanged += func|window = me|(combo, index)
         {
-            discard check
+            discard combo
+            discard index
             window.compile()
         }
 
@@ -229,6 +234,7 @@ impl MainWindow
         // application has failed to load, and the reader has no way to know it is waiting on them.
         .output = RichEditCtrl.create(split)
         .output.setFlags(.ReadOnly)
+        .output.setLexer(&.outputText)
         .output.setText(appStrings().ui_OutputHint)
 
         split.addPane(.editor, 460)
@@ -247,11 +253,6 @@ impl MainWindow
         .stageCombo.setSelectedIndex(selected, notify: false)
     }
 
-    // Compiles what the editor holds and shows what the compiler printed about the chosen stage.
-    //
-    // The compiler runs to completion before this returns, so the window is unresponsive while it
-    // does. A snippet is one small module and its build folder is reused, which keeps that pause
-    // short; moving it off the frame is what this pane needs before it can host a running program.
     // Asks for the snippet to be compiled at the selected stage.
     //
     // One compilation is in flight at a time. Asking again while one runs marks the request rather
@@ -275,14 +276,14 @@ impl MainWindow
         if index >= Pipeline.Stages.count do
             return
 
-        .job.source   = .editor.text()
-        .job.stage    = String.from(Pipeline.Stages[index])
-        .job.optimize = .optimizeCheck.isChecked()
-        .job.queued   = false
-        .job.running  = true
+        .job.source     = .editor.text()
+        .job.stage      = String.from(Pipeline.Stages[index])
+        .job.optimLevel = cast(Swag.BuildCfgBackendOptimLevel) .optimCombo.selectedIndex
+        .job.queued     = false
+        .job.running    = true
 
         // The action that starts the work says so by being unavailable while it runs. The stage
-        // list and the optimization toggle stay live, because changing either is a new request and
+        // list and the optimization list stay live, because changing either is a new request and
         // the job above already knows how to hold one.
         .runButton.disable()
         .setStatus(.Working)
@@ -298,7 +299,7 @@ impl MainWindow
         var watch: Time.Stopwatch
         watch.start()
 
-        let run = catch .probe.compile(.job.source.toString(), .job.stage.toString(), .job.optimize) as probeError
+        let run = catch .probe.compile(.job.source.toString(), .job.stage.toString(), .job.optimLevel) as probeError
         .job.stopped = probeError != null
         if !.job.stopped do
             .job.result = run
@@ -319,7 +320,8 @@ impl MainWindow
         }
         else
         {
-            .output.setText(.job.result.text.toString())
+            .outputText.parse(.job.result.text.toString())
+            .outputText.show(.output)
             .outputIsHint = false
 
             if .job.result.failed do
@@ -386,7 +388,7 @@ impl MainWindow
     {
         let strings = appStrings()
         .stageLabel.setText(strings.ui_Stage)
-        .optimizeCheck.setText(strings.ui_Optimize)
+        .optimCombo.toolTip = strings.ui_Optimize
         .runButton.setText(strings.ui_Run)
         .fillStages()
         .refreshStatus()
@@ -423,7 +425,6 @@ impl MainWindow
             copyrightHolder: "Christophe Beaudet"})
         discard dlg.doModal()
     }
-
 }
 
 impl IWnd for MainWindow

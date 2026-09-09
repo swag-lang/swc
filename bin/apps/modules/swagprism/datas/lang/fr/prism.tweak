@@ -2,7 +2,7 @@
 
 ui_WindowTitle    Swag Prism — Ce que le compilateur fait de votre code
 ui_Stage          Étape
-ui_Optimize       Optimiser
+ui_Optimize       Niveau d'optimisation
 ui_Run            Compiler
 ui_Working        Compilation…
 ui_Ready          Prêt

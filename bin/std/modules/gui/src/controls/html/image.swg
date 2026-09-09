@@ -2,8 +2,9 @@
 
 using Core, Pixel
 
-// A document may declare poster-sized vector bounds; cap their cached bitmap allocation.
-private const HtmlSvgRasterLimit = 2048.0
+// Keep 4K figures sharp while bounding each cached RGBA bitmap to 32 MiB.
+private const HtmlSvgRasterLimit  = 4096.0
+private const HtmlSvgRasterPixels = 8 * 1024 * 1024'u64
 
 // Resolves an offline resource without accepting URL schemes, UNC paths, or device namespaces.
 internal func htmlLocalResourcePath(basePath, source: string)->String
@@ -164,9 +165,10 @@ impl HtmlImageCache
             // Keep the source aspect ratio: CSS may stretch the uploaded texture independently.
             let size           = entry!.naturalSize
             let requestedScale = Math.max(Math.max(pixelWidth, entry!.rasterSize.x) / size.x, Math.max(pixelHeight, entry!.rasterSize.y) / size.y)
-            let scale          = Math.min(requestedScale, HtmlSvgRasterLimit / Math.max(size.x, size.y))
-            let width          = cast(s32) Math.max(Math.ceil(size.x * scale), 1)
-            let height         = cast(s32) Math.max(Math.ceil(size.y * scale), 1)
+            let scale          = Math.min(requestedScale, HtmlSvgRasterLimit / Math.max(size.x, size.y), Math.sqrt(cast(f32) HtmlSvgRasterPixels / size.x / size.y))
+            let capped         = scale < requestedScale
+            let width          = cast(s32) Math.max(capped ? Math.floor(size.x * scale) : Math.ceil(size.x * scale), 1)
+            let height         = cast(s32) Math.max(capped ? Math.floor(size.y * scale) : Math.ceil(size.y * scale), 1)
             if entry!.image.width < width or entry!.image.height < height
             {
                 if entry!.uploaded

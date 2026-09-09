@@ -123,6 +123,34 @@ using Core, Pixel
     let pixels  = cast(u64) view.images.entries[0].image.pixels.buffer
     let smaller = view.images.texture(host.app.renderer, fileName.toString(), 120, 60)
     Swag.assert(smaller != null and cast(u64) view.images.entries[0].image.pixels.buffer == pixels)
+
+    // A full-screen figure can use the physical width of a 4K display without upscaling.
+    let fullScreen = view.images.texture(host.app.renderer, fileName.toString(), 3840, 1920)
+    Swag.assert(fullScreen != null and view.images.entries[0].image.width == 3840 and view.images.entries[0].image.height == 1920)
+    let fullScreenPixels = cast(u64) view.images.entries[0].image.pixels.buffer
+    let windowed         = view.images.texture(host.app.renderer, fileName.toString(), 480, 240)
+    Swag.assert(windowed != null and cast(u64) view.images.entries[0].image.pixels.buffer == fullScreenPixels)
+    let oversized = view.images.texture(host.app.renderer, fileName.toString(), 16384, 8192)
+    Swag.assert(oversized != null and view.images.entries[0].image.width <= 4096)
+    Swag.assert(cast(u64) view.images.entries[0].image.width * cast(u64) view.images.entries[0].image.height <= 8 * 1024 * 1024)
+}
+
+// Large square figures obey the area budget as well as the longest-side limit.
+#test
+{
+    let fileName = Testing.tempFilePath("html-svg-budget-", ".svg")
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) "<svg width='100' height='100'><rect width='100' height='100' fill='#285078'/></svg>")
+    defer discard catch File.delete(fileName)
+    var host: Testing.HeadlessHost
+    host.setup(64, 64)
+    defer host.shutdown()
+    var cache: HtmlImageCache
+    let texture = cache.texture(host.app.renderer, fileName.toString(), 16384, 16384)
+    Swag.assert(texture != null)
+    let image = &cache.entries[0].image
+    Swag.assert(image.width > 2048 and image.width == image.height)
+    Swag.assert(cast(u64) image.width * cast(u64) image.height <= 8 * 1024 * 1024)
+    Swag.assert(image.pixelColor(image.width / 2, image.height / 2).argb == 0xFF285078)
 }
 
 // Every offline resource path uses the same lexical boundary before filesystem access.

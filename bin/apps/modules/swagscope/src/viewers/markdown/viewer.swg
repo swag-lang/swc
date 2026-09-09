@@ -4,8 +4,9 @@ using Core, Gui
 
 internal struct MarkdownViewerSettings
 {
-    themeIndex: u32
-    widthIndex: u32 = 1
+    themeIndex:  u32
+    widthIndex:  u32 = 1
+    zoomPercent: u32 = 100
 }
 
 internal var g_MarkdownViewerSettings: MarkdownViewerSettings
@@ -125,7 +126,7 @@ internal func markdownViewerColors(themeIndex: u32)->string
     }
 }
 
-internal func applyMarkdownViewerStyle(view: *Markdown.View, themeIndex, widthIndex: u32, zoomPercent = 100'u32)
+internal func applyMarkdownViewerStyle(view: *Markdown.View, themeIndex, widthIndex: u32, zoomPercent = 100'u32, applyColors = true)
 {
     var style = markdownViewerStyle(themeIndex, widthIndex)
     let scale = cast(f32) zoomPercent / 100
@@ -138,7 +139,8 @@ internal func applyMarkdownViewerStyle(view: *Markdown.View, themeIndex, widthIn
     style.heading4FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading4FontSize * scale), 1)
     style.heading5FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading5FontSize * scale), 1)
     style.heading6FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading6FontSize * scale), 1)
-    view.setDocumentThemeColors(markdownViewerColors(themeIndex))
+    if applyColors do
+        view.setDocumentThemeColors(markdownViewerColors(themeIndex))
     view.setDocumentStyle(style)
 }
 
@@ -206,19 +208,24 @@ impl MarkdownZoomButton
 
     mtd applyZoom(percent: u32)
     {
-        .zoomPercent = percent
-        .setText(Format.toString("% %", percent, "%"))
-        applyMarkdownViewerStyle(.view, .themeCombo.selectedIndex, .widthCombo.selectedIndex, percent)
+        let bounded = Math.clamp(percent, 50'u32, 300'u32)
+        if .zoomPercent == bounded do
+            return
+        .zoomPercent = bounded
+        .setText(Format.toString("% %", bounded, "%"))
+        applyMarkdownViewerStyle(.view, .themeCombo.selectedIndex, .widthCombo.selectedIndex, bounded, applyColors: false)
+        // The window saves preferences on navigation and close, outside wheel handling.
+        g_MarkdownViewerSettings.zoomPercent = bounded
     }
 
     mtd showZoomMenu()
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("75%", "scope.markdown.zoom75")
-        menu.addItem("100%", "scope.markdown.zoom100")
-        menu.addItem("125%", "scope.markdown.zoom125")
-        menu.addItem("150%", "scope.markdown.zoom150")
-        menu.addItem("200%", "scope.markdown.zoom200")
+        menu.addItem("75%", "scope.markdown.zoom75", checked: .zoomPercent == 75)
+        menu.addItem("100%", "scope.markdown.zoom100", checked: .zoomPercent == 100)
+        menu.addItem("125%", "scope.markdown.zoom125", checked: .zoomPercent == 125)
+        menu.addItem("150%", "scope.markdown.zoom150", checked: .zoomPercent == 150)
+        menu.addItem("200%", "scope.markdown.zoom200", checked: .zoomPercent == 200)
         switch menu.doModal(me, autoDestroy: true) orelse ""
         {
         case "scope.markdown.zoom75":  .applyZoom(75)
@@ -238,7 +245,8 @@ impl MarkdownZoomButton
         result.dockStyle  = .Center
         result.margin     = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
         result.updateFlags(.CenterContent)
-        result.setText("100%")
+        result.zoomPercent = Math.clamp(g_MarkdownViewerSettings.zoomPercent, 50'u32, 300'u32)
+        result.setText(Format.toString("% %", result.zoomPercent, "%"))
         result.setArrowPosition(.RightDownward)
         result.setForm(.Rectangle)
         result.style.setFont(result.theme().createDefaultFontFS(11), .Regular)
@@ -291,6 +299,24 @@ func createMarkdownViewer(host: Viewer.Host)
         discard wnd
         switch evt
         {
+        case KeyEvent as key where key.kind == .Pressed and key.modifiers.has(.Control):
+            switch key.key
+            {
+            case .Add, .OemPlus:       zoomButton.applyZoom(zoomButton.zoomPercent + 25)
+            case .Subtract, .OemMinus: zoomButton.applyZoom(zoomButton.zoomPercent > 50 ? zoomButton.zoomPercent - 25 : 50)
+            case .D0:                  zoomButton.applyZoom(100)
+            default:                   return false
+            }
+
+            return true
+
+        case MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control):
+            if mouse.delta.y > 0 do
+                zoomButton.applyZoom(zoomButton.zoomPercent + 25)
+            elif mouse.delta.y < 0 do
+                zoomButton.applyZoom(zoomButton.zoomPercent > 50 ? zoomButton.zoomPercent - 25 : 50)
+            return true
+
         case NotifyEvent as notification where notification.kind == .LanguageChanged:
             let widthIndex = widthCombo.selectedIndex
             let themeIndex = themeCombo.selectedIndex
@@ -324,7 +350,7 @@ func createMarkdownViewer(host: Viewer.Host)
         view.sigLoadFailed += func|reportFailure|(markdown, reason) { reportFailure(cast(*Wnd) markdown, reason) }
     }
 
-    applyMarkdownViewerStyle(view, g_MarkdownViewerSettings.themeIndex, g_MarkdownViewerSettings.widthIndex)
+    applyMarkdownViewerStyle(view, g_MarkdownViewerSettings.themeIndex, g_MarkdownViewerSettings.widthIndex, zoomButton.zoomPercent)
     host.attachView(view)
     host.setDetails(markdownStrings().ui_Details)
     host.setSearch({
@@ -351,7 +377,7 @@ func createMarkdownViewer(host: Viewer.Host)
     {
         discard combo
         g_MarkdownViewerSettings.widthIndex = index
-        applyMarkdownViewerStyle(view, themeCombo.selectedIndex, index, zoomButton.zoomPercent)
+        applyMarkdownViewerStyle(view, themeCombo.selectedIndex, index, zoomButton.zoomPercent, applyColors: false)
         catch g_App.saveState()
     }
     view.sigLinkActivated += func(markdown, url)

@@ -3,6 +3,70 @@
 
 using Swag, Core
 
+// Entering a wider viewport keeps the visible paragraph, then recenters a capped reading column.
+#test
+{
+    var source: String
+    for index in 100 do
+        source += Format.toString("## Section %\n\nA long manuscript paragraph wraps on a small window and keeps its reading position when the window grows to cover a complete monitor. The same words should remain visible.\n\n", index)
+    var host: Testing.HeadlessHost
+    host.setup(1440, 900)
+    defer host.shutdown()
+    let view = Markdown.View.createText(&host.root, source.toString())
+    view.resize(640, 480)
+    view.applyLayout()
+    let anchor = view.blocks[31].wnd
+    view.scroll.setScrollPos(0, anchor.position.y + anchor.position.height / 4)
+    view.resize(1280, 720)
+    view.applyLayout()
+    Swag.assert(Math.abs(view.scroll.scrollPosition().y - anchor.position.y - anchor.position.height / 4) < 1)
+    let width    = anchor.position.width
+    let position = view.scroll.scrollPosition()
+    view.resize(1440, 900)
+    view.applyLayout()
+    Swag.assert(anchor.position.width == width and view.scroll.scrollPosition() == position)
+    Swag.assert(Math.abs(anchor.position.horzCenter() - view.scroll.paddedClientRect().width / 2) <= 1)
+    view.resize(640, 480)
+    view.applyLayout()
+    Swag.assert(Math.abs(view.scroll.scrollPosition().y - anchor.position.y - anchor.position.height / 4) < 1)
+}
+
+// Reflow keeps the same block and relative position visible when typography or width changes.
+#test
+{
+    var source: String
+    for index in 120 do
+        source += Format.toString("## Section %\n\nA paragraph wraps across the reading column while its surrounding sections keep their identity.\n\n", index)
+    var host: Testing.HeadlessHost
+    host.setup(720, 480)
+    defer host.shutdown()
+    let view = Markdown.View.createText(&host.root, source.toString())
+    view.resize(720, 480)
+    view.applyLayout()
+    let anchor = view.blocks[30].wnd
+    view.scroll.setScrollPos(0, anchor.position.y + anchor.position.height / 4)
+    var style = view.documentStyle
+    style.bodyFontSize     = 24
+    style.heading2FontSize = 42
+    style.maxContentWidth  = 400
+    view.setDocumentStyle(style)
+    Swag.assert(Math.abs(view.scroll.scrollPosition().y - anchor.position.y - anchor.position.height / 4) < 1)
+    style.maxContentWidth = 640
+    view.setDocumentStyle(style)
+    Swag.assert(Math.abs(view.scroll.scrollPosition().y - anchor.position.y - anchor.position.height / 4) < 1)
+    view.scroll.setScrollPos(0, 0)
+    view.setDocumentStyle(Markdown.Style.theme())
+    Swag.assert(view.scroll.scrollPosition().y == 0)
+
+    // Without a host zoom handler, a modified wheel retains ordinary document scrolling.
+    host.setReducedMotion(true)
+    host.mouseWheel({360, 240}, -1, .Control)
+    let modifiedPosition = view.scroll.scrollPosition()
+    view.scroll.setScrollPos(0, 0)
+    host.mouseWheel({360, 240}, -1)
+    Swag.assert(modifiedPosition.y > 0 and view.scroll.scrollPosition() == modifiedPosition)
+}
+
 // Delaying the loader cannot expose its unfinished tail, and a reverse overlap retains the
 // visible windows until the same source block has its replacement at exactly the same y.
 #test

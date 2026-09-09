@@ -25,6 +25,11 @@ using Core, Pixel
     Swag.assert(view.images.entries.count == 1 and !view.images.entries[0].image.isValid())
     var image = host.render(view)
     Swag.assert(image.isValid() and view.images.entries[0].image.width == 240)
+
+    // Both draws must survive: growing the texture during the second draw would retire the
+    // smaller texture while the first draw still refers to it in the unsubmitted paint batch.
+    Swag.assert(image.pixelColor(cast(s32) natural.center().x, cast(s32) natural.center().y).argb == 0xFF285078)
+    Swag.assert(image.pixelColor(cast(s32) sized.center().x, cast(s32) sized.center().y).argb == 0xFF285078)
     let highDpi = view.images.texture(host.app.renderer, fileName.toString(), 480, 240)
     Swag.assert(highDpi != null and view.images.entries[0].image.width == 480)
     let pixels  = cast(u64) view.images.entries[0].image.pixels.buffer

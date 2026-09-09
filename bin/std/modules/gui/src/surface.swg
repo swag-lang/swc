@@ -567,7 +567,7 @@ impl Surface
         let sdw = .shadowMargin()
         .wnd.setPosition({sdw, sdw, sz.x - 2 * sdw, sz.y - 2 * sdw})
 
-        // A resize can reuse the existing power-of-two render target, in which case
+        // A resize can reuse the existing render target, in which case
         // resource creation has no reason to dirty the surface. The newly exposed
         // client area still needs a complete frame independently of WM_PAINT: native
         // placement and the application frame loop are two separate repaint sources.
@@ -686,8 +686,35 @@ impl Surface
             return
 
         var bodyRect = .bodyShape()
+        let radius   = .cornerRadius()
+        var interior = bodyRect
+        interior.inflate(-Math.max(radius, 0) - Math.ceil(1 / .dpiScale) - 1)
+        interior.round()
         bodyRect.offset(metrics.surfaceWnd_ShadowOffsetX, metrics.surfaceWnd_ShadowOffsetY)
-        .painter.fillShadow(bodyRect, .cornerRadius(), spread, color)
+
+        // The coverage mask excludes the body, but a fragment shader still visits every pixel
+        // of every shadow ring before sampling that mask. Scissor away its fully opaque interior
+        // first, so the GPU shades the perimeter rather than the area of a large window. Keep the
+        // antialiased contour inside the bands, including after logical clipping rounds to pixels.
+        if interior.isEmpty()
+        {
+            .painter.fillShadow(bodyRect, radius, spread, color)
+            return
+        }
+
+        let clip = .painter.clippingRect()
+        let bands: [4] Math.Rectangle = [
+            {clip.x,           clip.y,            clip.width,                      interior.y - clip.y},
+            {clip.x,           interior.bottom(), clip.width,                      clip.bottom() - interior.bottom()},
+            {clip.x,           interior.y,        interior.x - clip.x,             interior.height},
+            {interior.right(), interior.y,        clip.right() - interior.right(), interior.height}]
+        for band in bands where !band.isEmpty()
+        {
+            .painter.pushClippingRect(band)
+            if !.painter.isEmptyClippingRect() do
+                .painter.fillShadow(bodyRect, radius, spread, color)
+            .painter.popClippingRect()
+        }
     }
 
     // Presses one of the two standard buttons of the surface, when there is one to press.

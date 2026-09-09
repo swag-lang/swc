@@ -6,6 +6,21 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.037 — Check source edits made while a module build is running
+
+- Recorded: 2026-09-09 07:12
+- Evidence: while profiling GUI resizing, two edits to `surface.swg` overlapped an already
+  running GUI build. A later invocation reused the resulting library although it lacked the
+  new profiling marker or shadow-scissor behavior. In one occurrence the source timestamp was
+  07:00:06 and the library timestamp 07:00:10. Touching the source after that build completed
+  caused recompilation and exposed the intended behavior. Other builds shared the checkout,
+  so this does not yet distinguish timestamp invalidation from concurrent artifact publication.
+- Next: reproduce with a controlled source edit after parsing but before artifact publication,
+  then repeat with two builders. Compare the library behavior and incremental decisions against
+  a clean build before selecting a fix.
+- Complete when: the next invocation after either overlap uses the latest source, with a
+  deterministic workspace regression test for any confirmed invalidation or publication bug.
+
 ### compiler.core.036 — A misplaced 'mtd impl' is accepted and silently overrides nothing
 
 - Recorded: 2026-09-08 22:35

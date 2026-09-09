@@ -6,6 +6,22 @@ using Swag, Core
 var SigArrayTestTotal: s32
 var SigArrayTestTrace: String
 
+// A callback without arguments has no reflected parameter slice.
+#test
+{
+    var signal: SigArray'func||()
+    SigArrayTestTotal = 0
+    signal            += func() { SigArrayTestTotal += 1 }
+    signal.call()
+    Swag.assert(SigArrayTestTotal == 1)
+    signal.disable()
+    signal.call()
+    Swag.assert(SigArrayTestTotal == 1)
+    signal.enable()
+    signal.call()
+    Swag.assert(SigArrayTestTotal == 2)
+}
+
 func sigArrayTestAdd(value: *s32)
 {
     discard value

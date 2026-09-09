@@ -1147,6 +1147,9 @@ impl HtmlLayout
         elif natural.x > 0 do
             result.y = natural.y * result.x / natural.x
 
+        if .images and node != HtmlNoNode do
+            .images!.requestSize(.document.attribute(node, "src"), result.x * .deviceScale, result.y * .deviceScale)
+
         return result
     }
 

@@ -31,6 +31,7 @@ public struct HtmlImageEntry
     drawing:     Svg.Drawing
     texture:     Texture
     naturalSize: Math.Vector2     // Layout dimensions; cached raster resolution may differ.
+    rasterSize:  Math.Vector2     // Largest physical size requested by layout before any texture is drawn.
     loaded:      bool
     uploaded:    bool
     isVector:    bool
@@ -81,7 +82,7 @@ impl HtmlImageCache
         .index.clear()
     }
 
-    // Returns the decoded image for a source reference, or null when there is none to draw.
+    // Returns a decoded raster or parsed vector, or null when there is none to draw.
     //
     // A `data:` reference carries its bytes in the document and decodes in place. Otherwise only
     // a local reference is followed: the engine never opens a network connection for a document
@@ -141,6 +142,16 @@ impl HtmlImageCache
         return &.entries[slot]
     }
 
+    // Collects layout sizes before paint, so repeated references share one sufficiently large texture.
+    mtd requestSize(source: string, pixelWidth, pixelHeight: f32)
+    {
+        let entry = .fetch(source)
+        if !entry or !entry!.isVector do
+            return
+        entry!.rasterSize.x = Math.max(entry!.rasterSize.x, pixelWidth)
+        entry!.rasterSize.y = Math.max(entry!.rasterSize.y, pixelHeight)
+    }
+
     // Rasterizes vectors at their displayed pixel size, retaining the largest requested raster.
     // Layout only parses the source; invisible vectors do not allocate or render a bitmap.
     mtd texture(renderer: IRenderer, source: string, pixelWidth, pixelHeight: f32)->*Texture?
@@ -152,7 +163,7 @@ impl HtmlImageCache
         {
             // Keep the source aspect ratio: CSS may stretch the uploaded texture independently.
             let size           = entry!.naturalSize
-            let requestedScale = Math.max(pixelWidth / size.x, pixelHeight / size.y)
+            let requestedScale = Math.max(Math.max(pixelWidth, entry!.rasterSize.x) / size.x, Math.max(pixelHeight, entry!.rasterSize.y) / size.y)
             let scale          = Math.min(requestedScale, HtmlSvgRasterLimit / Math.max(size.x, size.y))
             let width          = cast(s32) Math.max(Math.ceil(size.x * scale), 1)
             let height         = cast(s32) Math.max(Math.ceil(size.y * scale), 1)
@@ -164,7 +175,9 @@ impl HtmlImageCache
                     entry!.uploaded = false
                 }
 
-                entry!.image = entry!.drawing.rasterize(width, height)
+                // The surface renderer is ready during paint. Reuse its backend for the
+                // offscreen raster instead of blocking the frame with a software render.
+                entry!.image = entry!.drawing.rasterize(renderer, width, height)
             }
         }
 

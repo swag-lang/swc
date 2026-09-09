@@ -3,14 +3,19 @@
 ui_WindowTitle    Swag Prism — Ce que le compilateur fait de votre code
 ui_Stage          Étape
 ui_Optimize       Niveau d'optimisation
-ui_Run            Compiler
+ui_CompileVisible Compiler les vues
+ui_CompileVisibleHint Compiler la même source dans les deux vues affichées.
+ui_AddViewer Ajouter une vue
+ui_CloseViewer Fermer la vue sélectionnée
+ui_Microcode Microcode
+ui_RunningViewers % vues en compilation
 ui_Working        Compilation…
 ui_Ready          Prêt
-ui_NoOutput       Le compilateur n'a rien affiché pour cette étape.
-ui_Stopped        Le compilateur s'est arrêté. Son rapport est dans le panneau.
+ui_NoOutput       Aucune sortie pour cette étape.
+ui_Stopped        Compilation interrompue.
 ui_Done           Compilé en % ms
-ui_ProbeStopped   Le compilateur n'a pas pu être lancé.
-ui_OutputHint     Appuyez sur Compiler pour voir ici les instructions générées.
+ui_ProbeStopped   Impossible de lancer le compilateur.
+ui_OutputHint     Compilez pour voir les instructions.
 
 ui_StageGenerated       Généré
 ui_StageMemToReg        Emplacements de pile promus

@@ -44,6 +44,17 @@ private struct InlineAtom
     isBreak:     bool
     visible:     bool
     searchHit:   bool
+    textBatch:   u32 = Swag.U32.Max
+}
+
+// One line and font can be submitted together while retaining each atom's laid-out position.
+private struct InlineTextBatch
+{
+    shaped:    ShapedRun
+    late font: *Font
+    firstAtom: u64
+    origin:    Math.Point
+    color:     Color
 }
 
 // Returns how many bytes one atom contributes to the view's text.
@@ -136,11 +147,14 @@ public struct InlineView
 {
     using wnd: Wnd
 
-    late owner: *View
-    kind:       BlockKind
-    atoms:      Array'InlineAtom
-    lines:      Array'InlineLine
-    images:     HtmlImageCache
+    late owner:      *View
+    kind:            BlockKind
+    atoms:           Array'InlineAtom
+    lines:           Array'InlineLine
+    images:          HtmlImageCache
+    textBatches:     Array'InlineTextBatch
+    textBatchScale:  f32
+    textBatchOffset: f32
 
     // Where this view sits in the reading order of every text view the document owns, which is
     // the coordinate a document-wide selection is expressed in. Assigned once, at creation.
@@ -849,9 +863,70 @@ impl InlineView
 
         if first < .atoms.count or .atoms.isEmpty() do
             y += .finishLine(first, .atoms.count, y, lineLeft, right, wrapped: false)
-        .layoutWidth  = width
-        .layoutHeight = y + inset.w
+        .layoutWidth    = width
+        .layoutHeight   = y + inset.w
+        .textBatchScale = 0
         return .layoutHeight
+    }
+
+    // Shaping belongs to layout, not scrolling. Batch neighboring words without reshaping their
+    // boundaries or changing justified spacing; selection and hit testing still use the atoms.
+    mtd prepareTextBatches(painter: *Painter)
+    {
+        let scale       = painter.textTransformScale()
+        let translation = painter.transform().tx
+        let phase       = translation - Math.floor(translation * scale) / scale
+        if .textBatchScale == scale and Math.abs(.textBatchOffset - phase) < 0.0001 do
+            return
+        .textBatchScale  = scale
+        .textBatchOffset = phase
+        .textBatches.clear()
+        var scratch: ShapedRun
+        var right:   f32
+        var current = Swag.U32.Max
+        for &atom, index in .atoms
+        {
+            atom.textBatch = Swag.U32.Max
+            if !atom.visible do
+                continue
+            if atom.isMath or atom.isImage or atom.flags.has(.Link | .Strikeout | .ListBullet | .ListUnchecked | .ListChecked)
+            {
+                current = Swag.U32.Max
+                continue
+            }
+
+            let font  = .font(atom)
+            let color = .color(atom)
+            var info  = Painter.computeTextDrawInfo(font, 1, scale)
+            info.snapOffsetX = phase
+            if current == Swag.U32.Max or .textBatches[current].font != font or .textBatches[current].origin.y != atom.position.y or .textBatches[current].color != color
+            {
+                var batch: InlineTextBatch
+                batch.font        = font
+                batch.shaped.font = info.drawFont
+                batch.firstAtom   = index
+                batch.origin      = {atom.position.x, atom.position.y}
+                batch.color       = color
+                current           = cast(u32) .textBatches.count
+                .textBatches.add(#move batch)
+                right = Painter.advanceTextX(atom.position.x, 0, 0, info, true).rightX
+            }
+
+            Painter.shapeRunInto(&scratch, atom.isSpace ? " " : atom.text.toString(), info.drawFont)
+            let batch = &.textBatches[current]
+            var x     = atom.position.x
+            for glyph, glyphIndex in scratch.glyphs
+            {
+                let step   = Painter.advanceTextX(x, glyph.offsetX, glyph.advanceX, info, glyphIndex == 0)
+                var placed = glyph[]
+                placed.offsetX = (step.glyphX - right) / info.scale
+                batch.shaped.glyphs.add(placed)
+                right = step.rightX
+                x     = right
+            }
+
+            atom.textBatch = current
+        }
     }
 
     mtd color(atom: const *InlineAtom)->Color
@@ -1168,6 +1243,7 @@ impl IWnd for InlineView
         let rect    = .clientRect()
         let painter = evt.paintContext.painter
         discard .layout(rect.width)
+        .prepareTextBatches(painter)
 
         if .kind == .Code
         {
@@ -1222,9 +1298,17 @@ impl IWnd for InlineView
 
         .paintSelection(painter)
 
-        for &atom in .atoms where atom.visible
+        for &atom, index in .atoms where atom.visible
         {
             let color = .color(atom)
+            if atom.textBatch != Swag.U32.Max
+            {
+                let batch = &.textBatches[atom.textBatch]
+                if batch.firstAtom == index do
+                    painter.drawShapedRun(batch.origin.x, batch.origin.y, &batch.shaped, batch.font, Brush.createSolid(color))
+                continue
+            }
+
             if atom.imageLoaded
             {
                 let scale   = .surface != null ? .surface!.dpiScale : 1

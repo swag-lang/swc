@@ -8,22 +8,27 @@ using Core, Gui
 // what the reader types into the attribute, so neither is translated.
 struct AppStrings
 {
-    ui_WindowTitle:  string = "Swag Prism — What the compiler makes of your code"     // Title of the application window.
-    ui_Stage:        string = "Stage"                                                 // Label of the pipeline-stage selector.
-    ui_Optimize:     string = "Optimization level"                                    // Tooltip of the backend optimization selector.
-    ui_Run:          string = "Compile"                                               // Label of the button that compiles the snippet.
-    ui_Working:      string = "Compiling…"                                            // Status while the compiler runs.
-    ui_Ready:        string = "Ready"                                                 // Status before anything has been compiled.
-    ui_NoOutput:     string = "The compiler printed nothing for this stage."          // Status when a compilation left the pane empty.
-    ui_Stopped:      string = "The compiler stopped. Its report is in the pane."      // Status when the compilation failed.
-    ui_Done:         string = "Compiled in % ms"                                      // Status after a compilation that printed a stage, with how long the compiler took.
-    ui_ProbeStopped: string = "The compiler could not be started."                    // Status when the compiler process itself never ran.
+    ui_WindowTitle:        string = "Swag Prism — What the compiler makes of your code"     // Title of the application window.
+    ui_Stage:              string = "Stage"                                                 // Label of the pipeline-stage selector.
+    ui_Optimize:           string = "Optimization level"                                    // Tooltip of the backend optimization selector.
+    ui_CompileVisible:     string = "Compile views"                                         // Compiles the selected tab in each comparison group.
+    ui_CompileVisibleHint: string = "Compile the same source in both visible viewers."      // Describes the shared-source compile action.
+    ui_AddViewer:          string = "Add viewer"                                            // Adds a microcode tab to this group.
+    ui_CloseViewer:        string = "Close selected viewer"                                 // Closes the selected tab while keeping one viewer per group.
+    ui_Microcode:          string = "Microcode"                                             // Name of the first supported viewer type.
+    ui_RunningViewers:     string = "% viewers compiling"                                   // Global status with the number of running viewer jobs.
+    ui_Working:            string = "Compiling…"                                            // Status while the compiler runs.
+    ui_Ready:              string = "Ready"                                                 // Status before anything has been compiled.
+    ui_NoOutput:           string = "No output for this stage."                             // Status when a compilation left the pane empty.
+    ui_Stopped:            string = "Compilation stopped."                                  // Status when the compilation failed.
+    ui_Done:               string = "Compiled in % ms"                                      // Status after a compilation that printed a stage, with how long the compiler took.
+    ui_ProbeStopped:       string = "The compiler could not be started."                    // Status when the compiler process itself never ran.
 
     // What the empty output pane says before anything has been compiled into it.
     //
     // The pane never wraps — an instruction listing is a set of aligned columns — so this sentence
     // has to be short enough to sit in it at the narrowest width rather than trail off the edge.
-    ui_OutputHint: string = "Press Compile to see the generated instructions here."
+    ui_OutputHint: string = "Compile to see the instructions."
 
     // One name per offered pipeline stage, in the order of `Pipeline.Stages`. Each says what the
     // code has had done to it by the time it is read, not which pass is about to run.

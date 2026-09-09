@@ -9,9 +9,9 @@ struct PreviewViewer
 
     late
     {
+        panel:        *ViewerPanel
+        cache:        *Pipeline.CompilationCache
         sourceEditor: *RichEditCtrl
-        optimCombo:   *ComboBox
-        pauseButton:  *PushButton
         status:       *Label
         canvas:       *PreviewCanvas
         output:       *RichEditCtrl
@@ -25,7 +25,9 @@ struct PreviewViewer
     timer:      *Timer?
     probe:      Pipeline.PreviewProbe
     source:     String
-    pending:    String
+    pending:    Pipeline.BuildRequest
+    request:    Pipeline.BuildRequest
+    generation: u64
     level:      Swag.BuildCfgBackendOptimLevel
     outputText: CompilerOutput
     image:      Image
@@ -36,37 +38,15 @@ struct PreviewViewer
 
 impl PreviewViewer
 {
-    func create(parent: *Wnd, editor: *RichEditCtrl, gui: bool, level: Swag.BuildCfgBackendOptimLevel)->*PreviewViewer
+    func create(parent: *ViewerPanel, editor: *RichEditCtrl, gui: bool, level: Swag.BuildCfgBackendOptimLevel)->*PreviewViewer
     {
         let result = Wnd.create'PreviewViewer(parent, "prism.preview")
-        result.backgroundStyle = .Transparent
-        result.sourceEditor    = editor
-        result.gui = gui
-        let options = Wnd.create'Wnd(result, {0, 0, 0, 44})
-        options.dockStyle           = .Top
-        options.backgroundStyle     = .Transparent
-        options.padding             = {0, 0, 0, 8}
-        result.optimCombo           = ComboBox.create(options, {0, 0, 150, 36})
-        result.optimCombo.dockStyle = .Left
-        for name in ["O0", "O1", "O2"] do
-            result.optimCombo.addItem(name)
-        result.optimCombo.setSelectedIndex(cast(u32) level, notify: false)
-        result.optimCombo.sigChanged += func|viewer = result|(combo, index)
-        {
-            discard combo
-            discard index
-            viewer.compileSource(viewer.sourceEditor.text().toString())
-        }
-
-        result.pauseButton = PushButton.create(options, "", {0, 0, 120, 36})
-        result.pauseButton.dockStyle  = .Right
-        result.pauseButton.sigPressed += func|viewer = result|(button)
-        {
-            discard button
-            viewer.paused = !viewer.paused
-            viewer.retranslate()
-        }
-
+        result.backgroundStyle        = .Transparent
+        result.panel                  = parent
+        result.cache                  = parent.cache
+        result.sourceEditor           = editor
+        result.gui                    = gui
+        result.level                  = level
         result.status                 = Label.create(result, "", {0, 0, 0, 28}, null, .SecondaryText)
         result.status.dockStyle       = .Bottom
         result.canvas                 = Wnd.create'PreviewCanvas(result, "prism.preview.canvas")
@@ -95,9 +75,14 @@ impl PreviewViewer
         return result
     }
 
-    mtd compileSource(source: string)
+    mtd compileSource(source: string) { .compileRequest(.panel.request(source)) }
+
+    mtd compileRequest(request: Pipeline.BuildRequest)
     {
-        .pending = source
+        // Editing another panel need not restart an unchanged live preview.
+        if .running and !Atomic.get(&.probe.cancelled) and .generation == .cache.generation and .request.kind == request.kind and .request.sameProgram(request) do
+            return
+        .pending = request
         if .running
         {
             .queued = true
@@ -110,8 +95,9 @@ impl PreviewViewer
 
     mtd start()
     {
-        .source     = .pending
-        .level      = cast(Swag.BuildCfgBackendOptimLevel) .optimCombo.selectedIndex
+        .request    = .pending
+        .generation = .cache.generation
+        .source     = .request.source
         .queued     = false
         .running    = true
         .frameCount = 0
@@ -120,10 +106,10 @@ impl PreviewViewer
         .probe.cancelled = 0
         .probe.failed    = false
         .probe.diagnostics.clear()
-        .timer = .app().addTimer(33'ms, me)
+        .timer = .app().addTimer(16'ms, me)
         .task.submit(func|viewer = me|()
         {
-            catch viewer.probe.run(viewer.source.toString(), viewer.gui, viewer.level) as error
+            catch viewer.probe.run(viewer.request, viewer.cache) as error
             if error != null
             {
                 viewer.probe.failed      = true
@@ -171,14 +157,19 @@ impl PreviewViewer
         .renderUs = header.renderUs
         let firstFrame = .frameCount == 0
         .frameCount = frame
-        Atomic.exchange(&header.consumed, frame)
+        .probe.channel.acknowledge(frame)
         if firstFrame do
             .sigChanged.call(me)
         .canvas.update(&.image)
-        .output.hide()
-        .canvas.show()
-        .applyLayout()
-        .refreshStatus()
+        if firstFrame
+        {
+            .output.hide()
+            .canvas.show()
+            .applyLayout()
+        }
+
+        if firstFrame or .frameCount % 15 == 0 do
+            .refreshStatus()
     }
 
     mtd stop()
@@ -200,9 +191,9 @@ impl PreviewViewer
     mtd refreshStatus()
     {
         if .running and .frameCount do
-            .status.setText(Format.toString(appStrings().ui_LiveStats, .probe.compileMs, .renderUs).toString())
+            .status.setText((.probe.reused ? Format.toString(appStrings().ui_ReusedStats, .renderUs) : Format.toString(appStrings().ui_LiveStats, .probe.compileMs, .renderUs)).toString())
         elif .running do
-            .status.setText(appStrings().ui_Working)
+            .status.setText("")
         elif .probe.failed do
             .status.setText(appStrings().ui_Stopped)
         else do
@@ -211,8 +202,6 @@ impl PreviewViewer
 
     mtd retranslate()
     {
-        .optimCombo.toolTip = appStrings().ui_Optimize
-        .pauseButton.setText(.paused ? appStrings().ui_Resume : appStrings().ui_Pause)
         if !.running and !.probe.failed and !.frameCount do
             .output.setText(Format.toString("%\n\n%", .gui ? appStrings().ui_GuiHint : appStrings().ui_RenderHint, appStrings().ui_ChooseExample).toString())
         .refreshStatus()
@@ -223,7 +212,11 @@ impl PreviewViewer
 impl IViewer for PreviewViewer
 {
     mtd impl window()->*Wnd => &.wnd
-    mtd impl compile(source: string) { .compileSource(source) }
+    mtd impl compile(request: Pipeline.BuildRequest) { .compileRequest(request) }
+    mtd impl inspectionStage()->string => ""
+    mtd impl setOptimization(level: Swag.BuildCfgBackendOptimLevel) { .level = level }
+    mtd impl isPaused()->bool => .paused
+    mtd impl setPaused(paused: bool) { .paused = paused }
     mtd impl shutdown() { .stop() }
     mtd impl isRunning()->bool => .running and !.frameCount
     mtd impl subscribeChanged(action: func||(*Wnd)) { .sigChanged += action }

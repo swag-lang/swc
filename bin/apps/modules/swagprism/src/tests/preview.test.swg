@@ -31,17 +31,23 @@ func awaitFrame(viewer: *PreviewViewer, after: u32 = 0)
     Swag.assert(window.exampleCombo.items.count == 4)
     let viewer = cast(*PreviewViewer) window.panels[0].viewer!.window()
     window.compile()
+    Swag.assert(window.spinner.isVisible() and viewer.status.name != appStrings().ui_Working)
     awaitFrame(viewer)
+    Swag.assert(!window.spinner.isVisible())
     Swag.assert(viewer.canvas.texture.isValid())
     let before     = viewer.image
     let firstFrame = viewer.frameCount
     awaitFrame(viewer, firstFrame + 2)
     Swag.assert(Memory.compare(before.pixels.buffer, viewer.image.pixels.buffer, before.byteCount) != 0)
-    viewer.paused = true
+    host.click(window.panels[0].pauseButton.localToSurface(Math.Point{18, 18}))
+    Swag.assert(viewer.paused and window.panels[0].pauseButton.isChecked)
     let pausedFrame = viewer.frameCount
     Threading.Thread.sleep(100'ms)
     viewer.poll()
     Swag.assert(viewer.frameCount == pausedFrame)
+    host.click(window.panels[0].pauseButton.localToSurface(Math.Point{18, 18}))
+    Swag.assert(!viewer.paused and !window.panels[0].pauseButton.isChecked)
+    awaitFrame(viewer, pausedFrame)
     var watch: Time.Stopwatch
     watch.start()
     window.shutdown()
@@ -111,7 +117,12 @@ func awaitFrame(viewer: *PreviewViewer, after: u32 = 0)
                 window.applyLayout()
                 Testing.assertContentFits(window)
                 Swag.assert(window.liveEdit.position.right() <= window.commandBar.paddedClientRect().right())
-                Swag.assert(viewer.optimCombo.position.right() <= viewer.pauseButton.position.x)
+                for panel in window.panels
+                {
+                    Swag.assert(panel.kindCombo.position.right() <= panel.optimCombo.position.x)
+                    Swag.assert(panel.optimCombo.position.right() <= panel.pauseButton.position.x)
+                    Swag.assert(panel.pauseButton.position.right() <= panel.header.paddedClientRect().right())
+                }
             }
         }
     }
@@ -136,14 +147,14 @@ func awaitFrame(viewer: *PreviewViewer, after: u32 = 0)
     Swag.assert(!viewer.running and viewer.timer == null)
 }
 
-// Changing source replaces the running child; compiler errors remain local and recoverable.
+// Pixel compilation excludes GUI; an unavailable dependency stays local and can be corrected.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
     let viewer = cast(*PreviewViewer) window.panels[0].viewer!.window()
-    viewer.compileSource("func shade(x, y, time: f32)->u32 { return missingSymbol }")
+    viewer.compileSource("using Gui\nfunc shade(x, y, time: f32)->u32 { discard x; discard y; discard time; return 0 }")
     var watch: Time.Stopwatch
     watch.start()
     while viewer.running and watch.elapsedMilliseconds() < 90000
@@ -153,7 +164,7 @@ func awaitFrame(viewer: *PreviewViewer, after: u32 = 0)
     }
 
     Swag.assert(!viewer.running and viewer.probe.failed)
-    Swag.assert(Utf8.indexOf(cast(const [..] u8) viewer.output.text().toString(), "missingSymbol") != Swag.U64.Max)
+    Swag.assert(Utf8.indexOf(cast(const [..] u8) viewer.output.text().toString(), "Gui") != Swag.U64.Max)
     viewer.compileSource(exampleSource(.Julia))
     awaitFrame(viewer)
     viewer.compileSource(exampleSource(.Plasma))
@@ -182,7 +193,8 @@ func assertPreviewSurface(gui: bool)
     window.openExample(gui ? .Gui : .Plasma)
     let viewer = cast(*PreviewViewer) window.panels[0].viewer!.window()
     awaitFrame(viewer)
-    viewer.paused = true
+    host.click(window.panels[0].pauseButton.localToSurface(Math.Point{18, 18}))
+    Swag.assert(viewer.paused and window.panels[0].pauseButton.isChecked)
     viewer.retranslate()
 
     // Timings vary with the machine, while the compiled first frame is deterministic.
@@ -199,7 +211,7 @@ func assertPreviewSurface(gui: bool)
 #[Swag.TestTag("golden")]
 #test { assertPreviewSurface(true) }
 
-// Each viewer retains its own options when its panel is switched to another type.
+// Optimization belongs to the panel; stage and playback state belong to each cached viewer.
 #test
 {
     var host: Testing.HeadlessHost
@@ -207,19 +219,22 @@ func assertPreviewSurface(gui: bool)
     defer host.shutdown()
     let panel  = window.panels[0]
     let render = cast(*PreviewViewer) panel.viewer!.window()
-    render.optimCombo.setSelectedIndex(1, notify: false)
+    panel.optimCombo.setSelectedIndex(1, notify: false)
+    host.click(panel.pauseButton.localToSurface(Math.Point{18, 18}))
+    Swag.assert(render.paused and panel.pauseButton.isChecked)
     panel.selectViewer(.Microcode)
     let micro = cast(*MicrocodeViewer) panel.viewer!.window()
-    micro.optimCombo.setSelectedIndex(2, notify: false)
+    Swag.assert(micro.level == .O1 and !panel.pauseButton.isVisible())
+    panel.optimCombo.setSelectedIndex(2, notify: false)
     micro.stageCombo.setSelectedIndex(3, notify: false)
     panel.selectViewer(.Gui)
     let gui = cast(*PreviewViewer) panel.viewer!.window()
-    Swag.assert(gui != render and gui.optimCombo.selectedIndex == 0)
+    Swag.assert(gui != render and gui.level == .O2 and !gui.paused and !panel.pauseButton.isChecked)
     panel.selectViewer(.Render2D)
-    Swag.assert(panel.viewer!.window() == &render.wnd and render.optimCombo.selectedIndex == 1)
+    Swag.assert(panel.viewer!.window() == &render.wnd and render.level == .O2 and panel.pauseButton.isChecked and panel.pauseButton.isVisible())
     panel.selectViewer(.Microcode)
     Swag.assert(panel.viewer!.window() == &micro.wnd)
-    Swag.assert(micro.optimCombo.selectedIndex == 2 and micro.stageCombo.selectedIndex == 3)
+    Swag.assert(micro.level == .O2 and micro.stageCombo.selectedIndex == 3)
 }
 
 // The idle timer compiles the last edit once and can be disabled without a pending compilation.

@@ -48,10 +48,12 @@ func textViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const TextStreamChunkSize    = 16 * 1024'u64
-private const TextStreamLookAhead    = 2.0
+private const TextStreamChunkSize = 16 * 1024'u64
+
+// Keep five complete viewports ready beyond the visible one.
+private const TextStreamLookAhead    = 6.0
 private const TextResidentWindowSize = 256 * 1024'u64
-private const TextRevealContextSize  = 4 * 1024'u64
+private const TextRevealContextSize  = 64 * 1024'u64
 
 // Head of the file the encoding is decided from. A few kilobytes name every encoding a text file
 // uses; reading more answers no better and delays the first screen.
@@ -83,7 +85,7 @@ struct TextView
 {
     using wnd: Wnd
 
-        late
+    late
     {
         commands:      *Wnd
         info:          *Wnd
@@ -114,7 +116,7 @@ struct TextView
     repositioning:      bool
     encoding:           Text.Encoding
     contentStart:       u64
-    wrapping                = true
+    wrapping = true
     zoomPercent:        u32 = 100
     reportDetails:      Viewer.ReportDetails?
 }
@@ -359,7 +361,8 @@ impl TextView
         }
 
         let loadedHeight = .editor.loadedDocumentHeight()
-        .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
+        if .repositioning or !.residentStart do
+            .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
         if loadedHeight <= 0
         {
             if .virtualHeight > 0 do
@@ -367,8 +370,9 @@ impl TextView
             return
         }
 
-        .virtualHeight   = Math.max(.virtualHeight, loadedHeight * cast(f32) .fileSize / cast(f32) consumed, loadedHeight)
-        .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
+        .virtualHeight = Math.max(.virtualHeight, loadedHeight * cast(f32) .fileSize / cast(f32) consumed, loadedHeight)
+        if .repositioning or !.residentStart do
+            .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
         .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
     }
 
@@ -715,7 +719,7 @@ impl TextView
             }
         }
 
-        result.editor             = RichEditCtrl.create(result)
+        result.editor = RichEditCtrl.create(result)
         result.editor.dockStyle   = .Center
         result.editor.marginLeft  = 12
         result.editor.marginRight = 12
@@ -727,24 +731,52 @@ impl TextView
                 return
             if view.pauseStreaming and newPosition.y < oldPosition.y do
                 view.pauseStreaming = false
-            let laidOutHeight  = view.editor.loadedDocumentHeight()
-            let residentHeight = laidOutHeight > 0 ? laidOutHeight : (view.fileSize ? view.virtualHeight * cast(f32) (view.bytesRead - view.residentStart) / cast(f32) view.fileSize : 0)
-            if view.virtualHeight > 0 and (newPosition.y + view.editor.paddedClientRect().height < view.residentOffsetY or newPosition.y > view.residentOffsetY + residentHeight)
+            let viewport     = view.editor.paddedClientRect()
+            let loadedHeight = view.editor.loadedDocumentHeight()
+
+            let residentHeight = loadedHeight > 0 ? loadedHeight : (view.fileSize ? view.virtualHeight * cast(f32) (view.bytesRead - view.residentStart) / cast(f32) view.fileSize : 0)
+            let residentEnd    = view.residentOffsetY + residentHeight
+            let before         = view.residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < view.residentOffsetY + viewport.height * TextStreamLookAhead
+            let after          = view.hasMore() and view.bytesRead - view.residentStart >= TextResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * TextStreamLookAhead > residentEnd
+            let outside        = newPosition.y < view.residentOffsetY or newPosition.y + viewport.height > residentEnd
+            view.pendingSeek = view.virtualHeight > 0 and (before or after or outside)
+            if view.pendingSeek
             {
                 let ratio = Math.clamp(newPosition.y / view.virtualHeight, 0, 1)
                 view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
-                view.pendingSeek       = true
+
+                // A continuous gesture must have its bytes before the next paint, even when
+                // the timer was delayed. Ordinary prefetch still runs on the short timer.
+                if outside and Math.abs(newPosition.y - oldPosition.y) <= viewport.height
+                {
+                    if !before and !after and view.needsMore()
+                    {
+                        view.pendingSeek = false
+                        view.loadNextChunk()
+                    }
+                    else do
+                        discard view.revealOffset(view.pendingSeekOffset, "")
+                }
             }
-            else do
-                view.pendingSeek = false
 
             view.scheduleMore()
         }
+
         result.hookOnChildEvent = func|view = result|(wnd, evt)
         {
             discard wnd
             switch evt
             {
+            case PaintEvent as paintEvt:
+
+                // Caret placement and wrapping publish scroll corrections during paint. They
+                // must not reload the text whose lines the renderer is currently traversing.
+                let previous = view.repositioning
+                view.repositioning = true
+                defer view.repositioning = previous
+                paintEvt.target!.processEvent(evt)
+                return true
+
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
                 view.setZoom(view.zoomPercent + 25)
                 return true
@@ -763,14 +795,18 @@ impl TextView
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .End and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = true
-                discard view.revealOffset(view.fileSize > TextResidentWindowSize ? view.fileSize - TextResidentWindowSize : 0, "")
+                discard view.revealOffset(view.fileSize, "")
+                view.repositioning = true
                 view.editor.keyPressed(.End, .Control)
+                view.repositioning = false
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .Home and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = false
                 discard view.revealOffset(0, "")
+                view.repositioning = true
                 view.editor.keyPressed(.Home, .Control)
+                view.repositioning = false
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Down or keyEvt.key == .PageDown or keyEvt.key == .Space):
@@ -782,6 +818,7 @@ impl TextView
                 return false
             }
         }
+
         result.hookOnEvent = func|view = result|(wnd, evt)
         {
             discard wnd

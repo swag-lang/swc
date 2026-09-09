@@ -3,6 +3,86 @@
 
 using Swag, Core
 
+// Delaying the loader cannot expose its unfinished tail, and a reverse overlap retains the
+// visible windows until the same source block has its replacement at exactly the same y.
+#test
+{
+    let fileName = Testing.tempFilePath("markdown-continuous-scroll-", ".md")
+    defer discard catch File.delete(fileName)
+    var source: String
+    for index in 8_000 do
+        source += Format.toString("## Section %\n\nA paragraph gives each source block a stable identity during scrolling.\n\n", index)
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 480)
+    defer host.shutdown()
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(720, 480)
+    view.applyLayout()
+    for 64 where view.isLoading() do
+        host.fireTimers()
+    let viewport = view.scroll.paddedClientRect()
+    Swag.assert(view.contentHeight >= viewport.height * 6)
+
+    // Withhold every loading timer while enough wheel-sized steps exhaust the reserve.
+    for 80
+    {
+        view.scroll.setScrollPos(0, view.scroll.scrollPosition().y + viewport.height / 4)
+        Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
+    }
+
+    Swag.assert(view.waitingScroll and view.isLoading())
+    host.setReducedMotion(true)
+    host.mouseWheel({360, 240}, -100)
+    Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
+    host.setReducedMotion(false)
+    let held = view.scroll.scrollPosition().y
+    for 64 where view.isLoading() do
+        host.fireTimers()
+    host.settleAnimations(view, 12)
+    Swag.assert(!view.waitingScroll and view.scroll.scrollPosition().y > held)
+
+    Swag.assert(view.revealFileOffset(source.length / 2, ""))
+    for 1_024 where view.hasPendingTarget do
+        host.fireTimers()
+    Swag.assert(!view.hasPendingTarget and view.retainedBlocks.isEmpty())
+    view.scroll.setScrollPos(0, view.virtualOrigin + viewport.height * 7)
+    for 8 where !view.pendingSeek do
+        view.scroll.setScrollPos(0, view.scroll.scrollPosition().y - viewport.height / 4)
+    Swag.assert(view.pendingSeek and view.pendingSeekPreservesPosition)
+    host.fireTimer(view.loadTimer)
+    Swag.assert(!view.retainedBlocks.isEmpty())
+    view.beginSelection(view.retainedBlocks[0].inline!, 0)
+    view.selectAll()
+    Swag.assert(!view.isSelecting() and !view.hasSelection())
+    let anchorOffset = view.replacementAnchorOffset
+    let anchorY      = view.replacementAnchorY
+    for 1_024 where !view.retainedBlocks.isEmpty()
+    {
+        Swag.assert(view.retainedBlocks[0].wnd.isVisible())
+        Swag.assert(view.scroll.scrollPosition().y >= view.retainedOrigin)
+        Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.retainedHeight + 1)
+        host.fireTimer(view.loadTimer)
+    }
+
+    Swag.assert(view.retainedBlocks.isEmpty())
+    var matched: bool
+    for block in view.blocks where block.sourceOffset == anchorOffset
+    {
+        Swag.assert(Math.abs(block.wnd.position.y - anchorY) <= 1)
+        Swag.assert(block.wnd.isVisible())
+        matched = true
+    }
+
+    Swag.assert(matched)
+
+    // A context window that reaches byte zero must retain the beginning. Dropping its first
+    // chunk makes a reverse prefetch repeatedly reopen the same window without reaching Home.
+    Swag.assert(view.revealFileOffset(12 * 1024, ""))
+    Swag.assert(view.residentStart == 0)
+}
+
 // A prose page submits text by line, keeping wheel repaint work independent of its word count.
 #test
 {
@@ -24,6 +104,7 @@ using Swag, Core
             count[] = paint.paintContext.painter.commandBuffer.count
         return false
     }
+
     var image = host.render(view)
     Swag.assert(image.isValid() and commands > 0 and commands < 300)
     view.setPosition(0.5, 0.5, 720, 900)
@@ -1066,9 +1147,8 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.assert(view.scroll.scrollPosition().y > 0)
 }
 
-// Sequential wheel reading evicts the old blocks once one bounded source window has been
-// materialized. Reading in small chunks is not enough: without this cap a trip to EOF retains the
-// complete Markdown document as windows, inline atoms and nested HTML views.
+// Sequential wheel reading releases distant blocks while retaining a reverse-scroll reserve.
+// Resident geometry stays bounded independently of the amount of source already traversed.
 #test
 {
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("gui_markdown_resident_cap_%.md", Guid64.random()).toString())
@@ -1087,20 +1167,27 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.resize(720, 360)
     view.applyLayout()
 
-    var steps = 0'u32
-    while view.bytesRead - view.residentStart < 256 * 1024 and steps < 8_000
+    let viewport = view.scroll.paddedClientRect()
+    for 64 where view.isLoading() do
+        host.fireTimer(view.loadTimer)
+    for 512
     {
-        let viewport = view.scroll.paddedClientRect()
-        view.scroll.setScrollPos(0, Math.max(view.contentHeight - viewport.height * 0.5, 0))
-        view.streamStep()
-        steps += 1
+        let previous = view.scroll.scrollPosition().y
+        view.scroll.setScrollPos(0, previous + viewport.height / 4)
+        if view.loadTimer do
+            host.fireTimer(view.loadTimer)
+        Swag.assert(view.scroll.scrollPosition().y >= previous)
+        Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
+        Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024 + 8 * 1024)
+        Swag.assert(view.blocks.count < 256)
     }
 
-    Swag.assert(steps < 8_000)
-    Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024 + 8 * 1024)
-    Swag.assert(view.blocks.count < 10_000)
+    Swag.assert(view.residentStart > 0)
     Swag.assert(view.hasUnloadedSource())
-    Swag.assert(!view.needsMore())
+    let anchor  = view.blocks.back().wnd
+    let anchorY = anchor.position.y
+    view.retireDistantBlocks()
+    Swag.assert(anchor.position.y == anchorY)
 
     let firstStart = view.residentStart
     view.scroll.setScrollPos(0, view.virtualHeight * 0.75)
@@ -1214,6 +1301,9 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         host.fireTimers()
     Swag.assert(view.hasUnloadedSource())
     let initialBytes = view.bytesRead
+    var seenHtml: HashSet'u64
+    for block in view.blocks where block.html != null do
+        seenHtml.add(block.sourceOffset)
 
     for 200
     {
@@ -1221,6 +1311,8 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         host.keyPress(Input.Key.PageDown)
         for 64 where view.isLoading() do
             host.fireTimers()
+        for block in view.blocks where block.html != null do
+            seenHtml.add(block.sourceOffset)
         Swag.assert(view.hasFocus())
         let after = view.scroll.scrollPosition().y
         Swag.assert(after >= before)
@@ -1229,10 +1321,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     }
 
     Swag.assert(!view.hasUnloadedSource() and view.bytesRead > initialBytes)
-    var htmlCount = 0'u32
-    for block in view.blocks where block.html != null do
-        htmlCount += 1
-    Swag.assert(htmlCount == 16)
+    Swag.assert(seenHtml.count == 16)
 }
 
 // A resident window opened near EOF retains blocks before its target and requests the preceding
@@ -1247,8 +1336,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     var source: String
     for index in 16_000 do
         source += Format.toString("## Section %\n\nThe resident window keeps useful context on both sides.\n\n", index)
-    const RevealContextSize  = 64 * 1024'u64
-    const ReverseContextSize = 8 * 1024'u64
+    const RevealContextSize = 64 * 1024'u64
     Swag.assert(source.length > RevealContextSize * 8)
     discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
 
@@ -1275,9 +1363,9 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     }
 
     Swag.assert(!view.hasPendingTarget and !view.blocks.isEmpty())
-    Swag.assert(requested - view.residentStart > ReverseContextSize / 2)
+    Swag.assert(view.scroll.scrollPosition().y - view.virtualOrigin >= view.scroll.paddedClientRect().height * 6)
     let firstResidentStart = view.residentStart
-    let viewport           = view.scroll.paddedClientRect()
+    let viewport = view.scroll.paddedClientRect()
     let nearResidentStart  = view.virtualOrigin + viewport.height * 0.5
     view.scroll.setScrollPos(0, nearResidentStart)
 
@@ -1359,7 +1447,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     Swag.assert(!view.hasPendingTarget)
     Swag.assert(view.residentStart < staleOffset / 2)
-    Swag.assert(Math.abs(view.scroll.scrollPosition().y - view.virtualHeight * 0.2) <= view.scroll.paddedClientRect().height)
+    Swag.assert(Math.abs(view.scroll.scrollPosition().y - view.virtualHeight * 0.2) <= view.scroll.paddedClientRect().height, Format.toString("position=%, virtualHeight=%, target=%, origin=%, contentHeight=%", view.scroll.scrollPosition().y, view.virtualHeight, view.pendingTarget, view.virtualOrigin, view.contentHeight).toString())
 }
 
 // Each manually fired streaming timer consumes the same block budget in a headless host.

@@ -3,6 +3,50 @@
 
 using Core, Pixel
 
+// The virtual HTML window is refreshed in advance in both directions. A delayed timer still
+// cannot leave the viewport outside the materialized layout on the next paint.
+#test
+{
+    let fileName = Testing.tempFilePath("html-continuous-scroll-", ".html")
+    defer discard catch File.delete(fileName)
+    var source: String = "<html><body><pre><code>"
+    for 40_000 do
+        source += "A source line keeps a continuous scroll covered while the next window is prepared.\n"
+    source += "</code></pre></body></html>"
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+    let view = HtmlView.createFile(&host.root, fileName)
+    view.resize(640, 480)
+    view.applyLayout()
+    Swag.assert(view.virtualSource)
+    Swag.assert(view.revealFileOffset(source.length / 2, ""))
+    let viewport = view.scroll.paddedClientRect()
+    for forward in [true, false]
+    {
+        let start = view.virtualOrigin
+        let end   = start + view.layout.documentHeight
+        view.scroll.setScrollPos(0, forward ? end - viewport.height * 9 : start + viewport.height * 8)
+        view.virtualPendingSeek = false
+        let previousStart = view.virtualWindowStart
+        for 20 where !view.virtualPendingSeek do
+            view.scroll.setScrollPos(0, view.scroll.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25))
+        Swag.assert(view.virtualPendingSeek)
+        Swag.assert(view.scroll.scrollPosition().y > start + viewport.height * 3)
+        Swag.assert(view.scroll.scrollPosition().y + viewport.height < end - viewport.height * 3)
+        for 32
+        {
+            view.scroll.setScrollPos(0, view.scroll.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25))
+            Swag.assert(view.scroll.scrollPosition().y >= view.virtualOrigin - 1)
+            Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.virtualOrigin + view.layout.documentHeight + 1)
+        }
+
+        Swag.assert(view.virtualWindowStart != previousStart)
+        Swag.assert(view.virtualWindowEnd - view.virtualWindowStart < 256 * 1024)
+    }
+}
+
 // SVG image dimensions come from the root attributes; CSS dimensions can override them.
 #test
 {

@@ -23,6 +23,7 @@ private const HtmlVirtualSourceThreshold = 2 * 1024 * 1024'u64
 private const HtmlVirtualProbeSize       = 256 * 1024'u64
 private const HtmlVirtualWindowSize      = 192 * 1024'u64
 private const HtmlVirtualLookBehind      = HtmlVirtualWindowSize / 2
+private const HtmlStreamLookAhead        = 6.0
 
 // Source bytes inspected before the first parse to decide how the file spells its characters.
 private const HtmlCharsetProbeSize = 4 * 1024'u64
@@ -90,10 +91,10 @@ struct HtmlStyle
 {
     public
     {
-        bodyFontSize:    u32 = 16       // Default body-text size, in logical pixels.
-        codeFontSize:    u32 = 14       // Default size for monospaced text, in logical pixels.
-        maxContentWidth: f32 = 0        // Reading measure imposed on a document that sets none; `0` follows the document.
-        followTheme          = true     // Whether default colors and the color scheme come from the GUI theme.
+        bodyFontSize:    u32 = 16     // Default body-text size, in logical pixels.
+        codeFontSize:    u32 = 14     // Default size for monospaced text, in logical pixels.
+        maxContentWidth: f32 = 0      // Reading measure imposed on a document that sets none; `0` follows the document.
+        followTheme = true            // Whether default colors and the color scheme come from the GUI theme.
     }
 }
 
@@ -196,6 +197,7 @@ struct HtmlView
         virtualOrigin:        f32
         virtualHeight:        f32
         virtualPendingSeek:   bool
+        virtualRepositioning: bool
         virtualPendingOffset: u64
         virtualPendingY:      f32
 
@@ -495,6 +497,8 @@ internal impl HtmlView
     // next one, so memory depends on this constant window rather than on file size.
     private mtd loadVirtualWindow(requestedOffset: u64, requestedY = -1.0'f32)->bool
     {
+        .virtualRepositioning = true
+        defer .virtualRepositioning = false
         let requested = Math.clamp(requestedOffset, .virtualContentStart, .fileSize)
         let wanted    = requested > .virtualContentStart + HtmlVirtualLookBehind ? requested - HtmlVirtualLookBehind : .virtualContentStart
 
@@ -1303,7 +1307,7 @@ internal impl HtmlView
         result.document        = HtmlDocument.create()
         result.parser.start(&result.document)
 
-        result.scroll           = Wnd.create'ScrollWnd(result, "", {})
+        result.scroll = Wnd.create'ScrollWnd(result, "", {})
         result.scroll.dockStyle = .Center
         result.scroll.updateFlags(.DisableHorizontal)
 
@@ -1331,23 +1335,38 @@ internal impl HtmlView
 
             return false
         }
+
         result.scroll.sigScrollPositionChanged += func|target = result|(scroll, oldPosition, newPosition)
         {
             discard scroll
-            discard oldPosition
+            if target.virtualRepositioning do
+                return
             if target.virtualSource and target.virtualHeight > 0 and target.fileSize > target.virtualContentStart
             {
                 let contentBytes = target.fileSize - target.virtualContentStart
                 let ratio        = Math.clamp(newPosition.y / target.virtualHeight, 0, 1)
                 let offset       = target.virtualContentStart + cast(u64) (ratio * cast(f32) contentBytes)
-                let margin       = (target.virtualWindowEnd - target.virtualWindowStart) / 4
-                let before       = target.virtualWindowStart > target.virtualContentStart and offset < target.virtualWindowStart + margin
-                let after        = target.virtualWindowEnd < target.fileSize and offset + margin > target.virtualWindowEnd
-                if before or after
+                let viewport     = target.scroll.paddedClientRect()
+
+                // Prefetch in rendered screens. Byte margins cannot cover a tall viewport or
+                // account for CSS that gives neighboring source ranges very different heights.
+                let margin  = Math.min(viewport.height * HtmlStreamLookAhead, target.layout.documentHeight / 4)
+                let end     = target.virtualOrigin + target.layout.documentHeight
+                let before  = target.virtualWindowStart > target.virtualContentStart and newPosition.y < oldPosition.y and newPosition.y < target.virtualOrigin + margin
+                let after   = target.virtualWindowEnd < target.fileSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height + margin > end
+                let outside = newPosition.y < target.virtualOrigin or newPosition.y + viewport.height > end
+                if before or after or outside
                 {
                     target.virtualPendingOffset = offset
                     target.virtualPendingY      = newPosition.y
                     target.virtualPendingSeek   = true
+                    if outside and Math.abs(newPosition.y - oldPosition.y) <= viewport.height
+                    {
+                        // Complete a delayed window replacement before the next paint.
+                        target.virtualPendingSeek = false
+                        discard target.loadVirtualWindow(offset, newPosition.y)
+                    }
+
                     target.scheduleMore()
                 }
                 else do
@@ -1458,7 +1477,7 @@ internal impl HtmlView
     func createEmbedded(contentParent: *Wnd, source: string, basePath: string, documentStyle: HtmlStyle = {}, preparedImages: *HtmlImageCache? = null)->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
-        result.embedded        = true
+        result.embedded = true
         if preparedImages do
             result.images = #move preparedImages[]
         result.images.basePath = basePath

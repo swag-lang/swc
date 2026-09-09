@@ -17,7 +17,7 @@ which is what the pane reads, and nothing has to be linked or given a `#main` â€
 loose function rather than a program, which is how a reader wants to write one.
 */
 private const ProbeModuleSource = """\
-    #import("gui", location: "swag@std")
+    #import("core", location: "swag@std")
     #run
     {
         with let cfg = Swag.compiler().getBuildCfg()!

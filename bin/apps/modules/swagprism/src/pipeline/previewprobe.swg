@@ -12,6 +12,8 @@ struct PreviewProbe
     channel:     FrameChannel
     cancelled:   u32
     ready:       u32
+    reused:      bool
+    artifactId:  u64
     compileMs:   u64
     failed:      bool
     diagnostics: String
@@ -19,48 +21,29 @@ struct PreviewProbe
 
 impl PreviewProbe
 {
-    mtd run(source: string, gui: bool, level: Swag.BuildCfgBackendOptimLevel) fail
+    mtd run(request: BuildRequest, cache: *CompilationCache) fail
     {
-        try .folder.open()
-        let moduleSource = "#import(\"gui\", location: \"swag@std\")\n#run { with let cfg = Swag.compiler().getBuildCfg()! { .backendKind = .Executable; .publishDependencies = true } }\n"
-        discard try File.writeAllBytes(Path.combine(.folder.root, "module.swg"), cast(const [..] u8) moduleSource)
-        discard try File.writeAllBytes(Path.combine(.folder.root, "src", "probe.swg"), cast(const [..] u8) source)
-        discard try File.writeAllBytes(Path.combine(.folder.root, "src", "channel.swg"), #include("framechannel.swg"))
-        let runner: const [..] u8 = gui ? cast(const [..] u8) #include("../../datas/preview/gui.txt") : cast(const [..] u8) #include("../../datas/preview/renderer.txt")
-        discard try File.writeAllBytes(Path.combine(.folder.root, "src", "runner.swg"), runner)
-        let outDir    = Path.combine(.folder.session, "out")
-        let arguments = Format.toString("build --num-cores 6 --build-cfg release --optim-level % --module-file \"%/module.swg\" --directory src --out-dir \"%\" --artifact-name prismpreview", cast(u8) level, .folder.root, outDir)
-        var watch: Time.Stopwatch
-        watch.start()
-        let compiler = compilerPath()
-        var build    = try Env.startProcess(Env.StartInfo{fileName: compiler.toString(), arguments: arguments.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
-        defer retireProcess(&build)
-        while !try build.tryWaitForExit(20'ms)
-        {
-            if Atomic.get(&.cancelled) do
-                return
-            if watch.elapsedMilliseconds() > 60000
-            {
-                .failed      = true
-                .diagnostics = "Compilation exceeded 60 seconds."
-                return
-            }
-        }
-
-        .compileMs = watch.elapsedMilliseconds()
-        if build.exitCode() != 0
+        var lease = cache.acquire(request)
+        if !lease.wait(&.cancelled) do
+            return
+        .compileMs  = lease.artifact!.elapsedMs
+        .artifactId = lease.artifact!.id
+        .reused     = lease.reused
+        if lease.artifact!.result.failed
         {
             .failed      = true
-            .diagnostics = build.standardOutput()
-            .diagnostics.append(build.standardError())
+            .diagnostics = lease.artifact!.result.text
             return
         }
 
+        try .folder.open()
+        var watch: Time.Stopwatch
         if Atomic.get(&.cancelled) do
             return
         let channelPath = Path.combine(.folder.session, "frame.bin")
         try .channel.open(channelPath.toString(), true)
-        let executable = Path.combine(outDir, "prismpreview.exe")
+        let executable = lease.artifact!.executable
+        let outDir     = Path.combine(lease.artifact!.folder.session, "out")
         let childArgs  = Env.joinArguments([channelPath.toString()])
         var child      = try Env.startProcess(Env.StartInfo{fileName: executable.toString(), arguments: childArgs.toString(), workingDirectory: outDir.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
         defer retireProcess(&child)

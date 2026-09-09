@@ -1,0 +1,13 @@
+// Override the selected defaults.
+#run
+{
+    let cfg = Swag.compiler().getBuildCfg()!
+    discard cfg
+
+    // cfg.safetyGuards = .All
+    // cfg.sanityGuards = .All
+    // cfg.backend.optimLevel = .O2
+    // cfg.backend.inlineMode = .Never
+    // cfg.backend.vectorize = false
+    // cfg.backend.fpMathApproxFunc = true
+}

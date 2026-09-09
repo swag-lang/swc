@@ -20,7 +20,8 @@ struct FrameHeader
 #[Swag.NoCopy]
 struct FrameChannel
 {
-    region: File.MappedRegion
+    region:        File.MappedRegion
+    consumedEvent: Sync.Event
 }
 
 impl FrameChannel
@@ -31,7 +32,7 @@ impl FrameChannel
 
     mtd open(path: string, create = false) fail
     {
-        .region.close()
+        .close()
         if create do
             discard try File.writeAllBytes(path, {})
         var file = try File.MappedFile.open(path, .ReadWrite)
@@ -40,9 +41,30 @@ impl FrameChannel
         .region = try file.map(0, #sizeof(FrameHeader) + ByteCount)
         if create do
             Memory.set(.region.writableBytes().buffer, 0, .region.length)
+        let name = Format.toString("Local\\SwagPrism.%", Path.fileName(Path.directoryName(path)))
+        .consumedEvent.handle = try Win32.CreateEventA(null, Win32.FALSE, Win32.FALSE, name.buffer)
     }
 
     mtd header()->*FrameHeader => cast(*FrameHeader) .region.writableBytes().buffer
     mtd pixels()->[*] u8       => .region.writableBytes().buffer + #sizeof(FrameHeader)
-    mtd close() { .region.close() }
+
+    mtd acknowledge(frame: u32)
+    {
+        Atomic.exchange(&.header().consumed, frame)
+        .consumedEvent.signal()
+    }
+
+    // A named event wakes the child immediately, without Sleep's system-timer granularity.
+    // The atomic counters remain the ownership predicate, including signals sent before a wait.
+    mtd waitConsumed()
+    {
+        while Atomic.get(&.header().published) != Atomic.get(&.header().consumed) do
+            .consumedEvent.wait()
+    }
+
+    mtd close()
+    {
+        .consumedEvent.release()
+        .region.close()
+    }
 }

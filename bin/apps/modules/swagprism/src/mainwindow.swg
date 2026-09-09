@@ -2,6 +2,15 @@
 
 using Core, Gui
 
+enum FormatStatus
+{
+    None
+    Working
+    Done
+    Failed
+    Changed
+}
+
 // Owns the shared source and one or two independently configured viewers.
 struct MainWindow
 {
@@ -12,6 +21,8 @@ struct MainWindow
         appearanceButton: *AppearanceButton
         exampleCombo:     *ComboBox
         liveEdit:         *CheckButton
+        formatButton:     *PushButton
+        spinner:          *Spinner
         runButton:        *PushButton
         layoutButton:     *IconButton
         sourcePanel:      *Wnd
@@ -23,6 +34,14 @@ struct MainWindow
         viewerSplit:      *SplitterCtrl
     }
 
+    cache:             Pipeline.CompilationCache
+    formatter:         Pipeline.SourceFormatter
+    formatTask:        Swag.Task
+    formatTimer:       *Timer?
+    formatCancelled:   u32
+    formatSource:      String
+    formatResult:      Pipeline.Result
+    formatStatus:      FormatStatus
     editTimer:         *Timer?
     selectedExample:   ExampleKind
     panels:            Array'*ViewerPanel
@@ -92,7 +111,14 @@ impl MainWindow
         .runButton.sigPressed += func|window = me|(button)
         {
             discard button
-            window.compile()
+            window.compile(force: true)
+        }
+
+        .formatButton = PushButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.format")
+        .formatButton.sigPressed += func|window = me|(button)
+        {
+            discard button
+            window.format()
         }
 
         .liveEdit = CheckButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.liveEdit")
@@ -117,6 +143,7 @@ impl MainWindow
         .layoutButton.margin = {8, 0, 0, 0}
         .layoutButton.setIconSize(18, 18)
         .layoutButton.setCheckIndicator(.Frame)
+        .layoutButton.sendToBack()
         .layoutButton.dockStyle         = .Right
         .layoutButton.sigCheckedChanged += func|window = me|(button)
         {
@@ -130,8 +157,12 @@ impl MainWindow
         .statusBar.dockStyle       = .Bottom
         .statusBar.backgroundStyle = .InformationBar
         .statusBar.padding         = {Gutter, 4, Gutter, 4}
-        .status                    = Label.create(.statusBar, "", {}, null, .SecondaryText)
-        .status.dockStyle          = .Center
+        .spinner                   = Spinner.create(.statusBar, {0, 0, 16, 16}, "prism.busy")
+        .spinner.dockStyle         = .Left
+        .spinner.margin            = {0, 4, 8, 4}
+        .spinner.hide()
+        .status = Label.create(.statusBar, "", {}, null, .SecondaryText)
+        .status.dockStyle = .Center
         .status.setTextAlignment(.Left, .Center)
     }
 
@@ -154,11 +185,23 @@ impl MainWindow
         for index in 2
         {
             let level: Swag.BuildCfgBackendOptimLevel = index == 0 ? .O0 : .O2
-            let panel = ViewerPanel.create(.viewerSplit, .editor, level)
+            let panel = ViewerPanel.create(.viewerSplit, .editor, level, &.cache)
             panel.sigChanged += func|window = me|(sender)
             {
                 discard sender
                 window.refreshStatus()
+            }
+
+            panel.sigCompileRequested += func|window = me|(sender)
+            {
+                discard sender
+                window.compile()
+            }
+
+            panel.sigOptionsChanged += func|window = me|(sender)
+            {
+                discard sender
+                window.scheduleCompile()
             }
 
             .panels.add(panel)
@@ -195,6 +238,7 @@ impl MainWindow
             return
         .comparisonEnabled = enabled
         .layoutButton.setParent(.panels[enabled ? 1 : 0].header)
+        .layoutButton.sendToBack()
         .viewerSplit.setPaneVisible(1, enabled)
         .refreshPaneLayout()
         if enabled do
@@ -203,20 +247,105 @@ impl MainWindow
     }
 
     // Only visible viewers receive the source snapshot; the hidden comparison keeps its result.
-    mtd compile()
+    mtd compile(force = false)
     {
         .cancelEditTimer()
+        if .formatStatus != .Working do
+            .formatStatus = .None
+        if force do
+            .cache.invalidate()
         let source = .editor.text()
+        var requests: [2] Pipeline.BuildRequest
         for panel, index in .panels where index == 0 or .comparisonEnabled do
-            panel.compile(source.toString())
+            requests[index] = panel.request(source.toString())
+        if .comparisonEnabled
+        {
+            // One native build can print the inspected function and run the same program.
+            if requests[0].kind == .Microcode and requests[1].kind != .Microcode
+            {
+                requests[0].kind = requests[1].kind
+                if requests[0].sameProgram(requests[1]) do
+                    requests[1].stage = requests[0].stage
+            }
+            elif requests[1].kind == .Microcode and requests[0].kind != .Microcode
+            {
+                requests[1].kind = requests[0].kind
+                if requests[0].sameProgram(requests[1]) do
+                    requests[0].stage = requests[1].stage
+            }
+        }
+
+        for panel, index in .panels where index == 0 or .comparisonEnabled do
+            panel.compile(requests[index])
         .refreshStatus()
     }
 
     mtd shutdown()
     {
         .cancelEditTimer()
+        if .formatStatus == .Working
+        {
+            Atomic.exchange(&.formatCancelled, 1)
+            .formatTask.wait()
+            if .formatTimer and !.isPendingDestroy do
+                .removeTimer(.formatTimer!)
+            .formatTimer  = null
+            .formatStatus = .None
+        }
+
         for panel in .panels do
             panel.shutdown()
+        .cache.close()
+    }
+
+    mtd format()
+    {
+        if .formatStatus == .Working do
+            return
+        .cancelEditTimer()
+        .formatSource    = .editor.text()
+        .formatCancelled = 0
+        .formatStatus    = .Working
+        .formatButton.enable(false)
+        .formatTimer = .app().addTimer(20'ms, me)
+        .formatTask.submit(func|window = me|()
+        {
+            let result = catch window.formatter.format(window.formatSource.toString(), &window.formatCancelled) as error
+            if error != null do
+                window.formatResult = {failed: true}
+            else do
+                window.formatResult = result
+        })
+        .refreshStatus()
+    }
+
+    mtd finishFormat()
+    {
+        .removeTimer(.formatTimer!)
+        .formatTimer = null
+        .formatButton.enable()
+        if .formatResult.failed do
+            .formatStatus = .Failed
+        elif .editor.text() != .formatSource do
+            .formatStatus = .Changed
+        else
+        {
+            .formatStatus = .Done
+            if .editor.text() != .formatResult.text
+            {
+                let cursor = .editor.selectionEnd()
+                .editor.pushUndo()
+                .editor.selectAll()
+                .editor.deleteSelection()
+                .editor.insertText(.formatResult.text.toString())
+                .editor.popUndo()
+                .editor.setCursorPos(.editor.cursorFromLogicalPosition(cursor.lineIndex, cursor.charPosInLine))
+                .editor.clearSelection()
+                .scheduleCompile()
+            }
+        }
+
+        .refreshStatus()
     }
 
     mtd cancelEditTimer()
@@ -230,7 +359,7 @@ impl MainWindow
     {
         .cancelEditTimer()
         if .liveEdit.isChecked() do
-            .editTimer = .app().addTimer(700'ms, me)
+            .editTimer = .app().addTimer(150'ms, me)
     }
 
     mtd openExample(kind: ExampleKind)
@@ -248,10 +377,37 @@ impl MainWindow
         for panel in .panels where panel.isRunning() do
             running += 1
 
+        .spinner.show(running != 0 or .formatStatus == .Working)
+        .status.toolTip = ""
         if running > 1 do
             .status.setText(Format.toString(appStrings().ui_RunningViewers, running).toString())
-        else do
-            .status.setText(running ? appStrings().ui_Working : appStrings().ui_Ready)
+        elif running do
+            .status.setText(appStrings().ui_Working)
+        else
+        {
+            switch #complete .formatStatus
+            {
+            case .None:
+                .status.setText(appStrings().ui_Ready)
+
+            case .Working:
+                .status.setText(appStrings().ui_Formatting)
+
+            case .Done:
+                .status.setText(appStrings().ui_Formatted)
+
+            case .Changed:
+                .status.setText(appStrings().ui_FormatChanged)
+
+            case .Failed:
+                .status.setText(appStrings().ui_FormatFailed)
+                var output: CompilerOutput
+                output.parse(.formatResult.text.toString())
+                .status.toolTip = output.text
+            }
+        }
+
+        .statusBar.applyLayout()
     }
 
     mtd retranslate()
@@ -263,6 +419,9 @@ impl MainWindow
         .exampleCombo.toolTip = appStrings().ui_Examples
         .liveEdit.setText(appStrings().ui_AutoCompile)
         .liveEdit.toolTip = appStrings().ui_LiveEdit
+        .formatButton.setText(appStrings().ui_Format)
+        .formatButton.fitWidthToLabel(.themeMetrics().btnPush_Width)
+        .formatButton.toolTip = appStrings().ui_FormatHint
         .runButton.setText(appStrings().ui_CompileVisible)
         .runButton.fitWidthToLabel()
         .runButton.toolTip = appStrings().ui_CompileVisibleHint
@@ -306,6 +465,8 @@ impl IWnd for MainWindow
     {
         if evt.timer == .editTimer do
             .compile()
+        if evt.timer == .formatTimer and .formatTask.isDone() do
+            .finishFormat()
         .wnd.IWnd.onTimerEvent(evt)
     }
 
@@ -318,6 +479,7 @@ impl IWnd for MainWindow
             .layoutButton.setIcon(.icons.icon(0, 18, .theme().res.atlasScale))
             .runButton.setIcon(.theme().icon(.Play, 18))
             .runButton.fitWidthToLabel()
+            .formatButton.fitWidthToLabel(.themeMetrics().btnPush_Width)
             .refreshPaneLayout()
         }
 

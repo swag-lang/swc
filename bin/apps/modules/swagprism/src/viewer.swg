@@ -6,7 +6,11 @@ using Core, Gui
 interface IViewer
 {
     mtd window()->*Wnd
-    mtd compile(source: string)
+    mtd compile(request: Pipeline.BuildRequest)
+    mtd inspectionStage()->string
+    mtd setOptimization(level: Swag.BuildCfgBackendOptimLevel)
+    mtd isPaused()->bool
+    mtd setPaused(paused: bool)
     mtd shutdown()
     mtd isRunning()->bool
     mtd subscribeChanged(action: func||(*Wnd))
@@ -20,7 +24,7 @@ enum ViewerKind
 }
 
 // New viewer kinds enter through this factory without changing the comparison window.
-func createViewer(parent: *Wnd, source: *RichEditCtrl, kind: ViewerKind, level: Swag.BuildCfgBackendOptimLevel)->IViewer
+func createViewer(parent: *ViewerPanel, source: *RichEditCtrl, kind: ViewerKind, level: Swag.BuildCfgBackendOptimLevel)->IViewer
 {
     switch #complete kind
     {

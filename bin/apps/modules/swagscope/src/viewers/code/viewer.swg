@@ -27,10 +27,12 @@ func codeViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const CodeStreamChunkSize    = 16 * 1024'u64
-private const CodeStreamLookAhead    = 2.0
+private const CodeStreamChunkSize = 16 * 1024'u64
+
+// Keep five complete viewports ready beyond the visible one.
+private const CodeStreamLookAhead    = 6.0
 private const CodeResidentWindowSize = 256 * 1024'u64
-private const CodeRevealContextSize  = 4 * 1024'u64
+private const CodeRevealContextSize  = 64 * 1024'u64
 
 internal struct CodeViewer
 {
@@ -71,6 +73,8 @@ internal impl CodeViewer
             return false
         if .pauseStreaming do
             return false
+        if .bytesRead - .residentStart >= CodeResidentWindowSize do
+            return false
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
         return loadedHeight <= 0 or .editor.scrollPosition().y + viewport.height * CodeStreamLookAhead >= .residentOffsetY + loadedHeight
@@ -88,10 +92,18 @@ internal impl CodeViewer
         }
 
         let loadedHeight = .editor.loadedDocumentHeight()
-        if loadedHeight <= 0 do
+        if loadedHeight <= 0
+        {
+            if .repositioning or !.residentStart do
+                .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
+            if .virtualHeight > 0 do
+                .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
             return
-        .virtualHeight   = Math.max(.virtualHeight, loadedHeight * cast(f32) .fileSize / cast(f32) consumed, loadedHeight)
-        .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
+        }
+
+        .virtualHeight = Math.max(.virtualHeight, loadedHeight * cast(f32) .fileSize / cast(f32) consumed, loadedHeight)
+        if .repositioning or !.residentStart do
+            .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
         .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
     }
 
@@ -134,6 +146,8 @@ internal impl CodeViewer
 
     mtd loadNextChunk()
     {
+        if .bytesRead - .residentStart >= CodeResidentWindowSize do
+            return
         if !.hasMore() do
             return
 
@@ -246,7 +260,7 @@ internal impl CodeViewer
         result.reportFailure   = reportFailure
         result.info            = info
 
-        result.editor             = RichEditCtrl.create(result)
+        result.editor = RichEditCtrl.create(result)
         result.editor.dockStyle   = .Center
         result.editor.marginLeft  = 12
         result.editor.marginRight = 12
@@ -292,21 +306,52 @@ internal impl CodeViewer
                 return
             if view.pauseStreaming and newPosition.y < oldPosition.y do
                 view.pauseStreaming = false
+            let viewport     = view.editor.paddedClientRect()
             let loadedHeight = view.editor.loadedDocumentHeight()
-            if loadedHeight > 0 and view.virtualHeight > 0 and (newPosition.y + view.editor.paddedClientRect().height < view.residentOffsetY or newPosition.y > view.residentOffsetY + loadedHeight)
+
+            let residentHeight = loadedHeight > 0 ? loadedHeight : (view.fileSize ? view.virtualHeight * cast(f32) (view.bytesRead - view.residentStart) / cast(f32) view.fileSize : 0)
+            let residentEnd    = view.residentOffsetY + residentHeight
+            let before         = view.residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < view.residentOffsetY + viewport.height * CodeStreamLookAhead
+            let after          = view.hasMore() and view.bytesRead - view.residentStart >= CodeResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * CodeStreamLookAhead > residentEnd
+            let outside        = newPosition.y < view.residentOffsetY or newPosition.y + viewport.height > residentEnd
+            view.pendingSeek = view.virtualHeight > 0 and (before or after or outside)
+            if view.pendingSeek
             {
                 let ratio = Math.clamp(newPosition.y / view.virtualHeight, 0, 1)
                 view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
-                view.pendingSeek       = true
+
+                // A continuous gesture must have its bytes before the next paint, even when
+                // the timer was delayed. Ordinary prefetch still runs on the short timer.
+                if outside and Math.abs(newPosition.y - oldPosition.y) <= viewport.height
+                {
+                    if !before and !after and view.needsMore()
+                    {
+                        view.pendingSeek = false
+                        view.loadNextChunk()
+                    }
+                    else do
+                        discard view.revealOffset(view.pendingSeekOffset, "")
+                }
             }
 
             view.scheduleMore()
         }
+
         result.hookOnChildEvent = func|view = result|(wnd, evt)
         {
             discard wnd
             switch evt
             {
+            case PaintEvent as paintEvt:
+
+                // Caret placement and wrapping publish scroll corrections during paint. They
+                // must not reload the text whose lines the renderer is currently traversing.
+                let previous = view.repositioning
+                view.repositioning = true
+                defer view.repositioning = previous
+                paintEvt.target!.processEvent(evt)
+                return true
+
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
                 view.setZoom(view.zoomPercent + 25)
                 return true
@@ -321,14 +366,18 @@ internal impl CodeViewer
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .End and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = true
-                discard view.revealOffset(view.fileSize > CodeResidentWindowSize ? view.fileSize - CodeResidentWindowSize : 0, "")
+                discard view.revealOffset(view.fileSize, "")
+                view.repositioning = true
                 view.editor.keyPressed(.End, .Control)
+                view.repositioning = false
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .Home and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = false
                 discard view.revealOffset(0, "")
+                view.repositioning = true
                 view.editor.keyPressed(.Home, .Control)
+                view.repositioning = false
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Down or keyEvt.key == .PageDown or keyEvt.key == .Space):
@@ -340,6 +389,7 @@ internal impl CodeViewer
                 return false
             }
         }
+
         result.hookOnEvent = func|view = result|(wnd, evt)
         {
             discard wnd

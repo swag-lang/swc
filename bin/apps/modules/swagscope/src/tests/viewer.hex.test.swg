@@ -466,6 +466,17 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(doc.byteAt(5) == 5)
     Swag.assert(doc.window.count <= HexWindowSize)
 
+    // Refill before the visible screen reaches the edge, and retain enough overlap that a
+    // reversal stays in the same window instead of alternating disk reads.
+    let screen         = 1024'u64
+    let approachingEnd = HexWindowSize - HexWindowAlign + screen
+    Swag.assert(doc.ensure(approachingEnd, screen))
+    Swag.assert(doc.windowStart > 0)
+    let prefetchedStart = doc.windowStart
+    Swag.assert(doc.ensure(approachingEnd - screen, screen))
+    Swag.assert(doc.windowStart == prefetchedStart)
+    Swag.assert(doc.isResident(approachingEnd - screen) and doc.isResident(approachingEnd + screen - 1))
+
     let last = StreamedFileSize - 1
     Swag.assert(doc.ensure(last - 31, 32))
     Swag.assert(doc.byteAt(last) == cast(u8) (last & 0xFF))

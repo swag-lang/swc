@@ -35,7 +35,7 @@ ui_StageFinal           Final
 
 ui_Render2D Rendu 2D
 
-ui_Gui Interface GUI
+ui_Gui GUI
 
 ui_Examples Exemples
 
@@ -62,3 +62,16 @@ ui_LiveEdit Recompiler après modification
 ui_ChooseExample Choisissez un exemple à compiler.
 
 ui_AutoCompile Auto
+
+ui_Format Formater
+ui_FormatHint Mettre en forme la source avec le formateur Swag.
+ui_Formatting Mise en forme…
+ui_Formatted Source mise en forme.
+ui_FormatFailed Échec de la mise en forme. Source inchangée.
+ui_FormatChanged Source modifiée. Relancez la mise en forme.
+
+ui_BuildOptions Configuration de compilation
+ui_BuildPreset Configuration de base
+ui_ResetBuild Restaurer la configuration de compilation par défaut
+ui_ReusedBuild Compilation réutilisée (% ms)
+ui_ReusedStats Compilation réutilisée | Image % us

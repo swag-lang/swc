@@ -33,8 +33,9 @@ enum BlockKind
 #[Swag.NoDoc]
 struct Block
 {
-    kind: BlockKind
-    text: String
+    kind:         BlockKind
+    text:         String
+    sourceOffset: u64
 }
 
 private func visualHeadingKind(level: u32)->BlockKind
@@ -192,7 +193,17 @@ internal func parseBlocks(source: string)->Array'Block
 
     while index < lines.count
     {
-        let raw     = lines[index]
+        let raw        = lines[index]
+        let firstBlock = result.count
+
+        // Keep the source identity even when inline markup changes the displayed text. A
+        // streaming window can then preserve the exact visible block across an overlap.
+        defer
+        {
+            for blockIndex in firstBlock until result.count do
+                result[blockIndex].sourceOffset = cast(u64) (raw.buffer - source.buffer)
+        }
+
         let trimmed = Latin1.trim(raw)
         if !trimmed.count
         {
@@ -503,7 +514,7 @@ internal func parseBlocks(source: string)->Array'Block
         index += 1
         while index < lines.count
         {
-            let next           = Latin1.trim(lines[index])
+            let next = Latin1.trim(lines[index])
             let nextDefinition = parseReferenceDefinition(lines[index])
             if isHtmlBlockStart(lines[index]) do
                 break

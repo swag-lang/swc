@@ -366,7 +366,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 #test
 {
     let latin: [11] u8 = ['c', 'a', 'f', 0xE9, ' ', 'n', 'a', 0xEF, 'v', 'e', '\n']
-    let file           = writeTempFile("cp1252.txt", latin)
+    let file = writeTempFile("cp1252.txt", latin)
     defer discard catch File.delete(file.toString())
 
     Swag.assert(TextView.probe(file.toString()).encoding == .Windows1252)
@@ -512,7 +512,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let root          = Path.combine(tempDirectory.toString(), Format.toString("scope_folder_history_%", Guid64.random()).toString())
+    let root = Path.combine(tempDirectory.toString(), Format.toString("scope_folder_history_%", Guid64.random()).toString())
     expect Directory.create(root.toString())
     defer discard catch Directory.delete(root.toString(), recurse: true)
 
@@ -527,7 +527,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     }
 
     var selectedFolder: String
-    var host:           Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
     let index  = createViewerPluginRegistry()
@@ -907,9 +907,11 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(view.editor.scrollPosition().y > 0)
     host.keyPress(Input.Key.Home)
     discard host.render(view)
-    Swag.assert(view.residentStart == 0)
+    Swag.assert(view.residentStart == 0 and !view.pendingSeek)
     Swag.assert(view.editor.selectionEnd().lineIndex == 0)
     Swag.assert(view.editor.scrollPosition().y == 0)
+    host.fireTimers()
+    Swag.assert(view.residentStart == 0 and view.editor.scrollPosition().y == 0)
 }
 
 // Rapid scrollbar scrubbing coalesces to the latest byte window and remains stable when the
@@ -1666,6 +1668,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         view.retired = true
         return true
     }
+
     window.currentView       = loading
     window.activeChoiceIndex = 0
     loading.setPosition({17, 83, 611, 391})
@@ -1712,7 +1715,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // A wait that ends right after the mark appeared does not take it away in the same frame:
     // the mark lingers for its minimum time, watched by the poll timer, then goes.
     // Start this short-wait scenario after the snapshot: rendering has no wall-clock bound.
-    window.loadingShownSince                = Time.monotonicMicroseconds()
+    window.loadingShownSince = Time.monotonicMicroseconds()
     window.instances[0].needsLoadingOverlay = null
     reportViewerLoadingChanged(loading)
     Swag.assert(window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince == 0 and window.loadingTimer != null)

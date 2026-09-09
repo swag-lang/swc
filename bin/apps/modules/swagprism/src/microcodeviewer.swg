@@ -35,9 +35,9 @@ struct CompileJob
     timer:     *Timer?       // Polls the task while it runs, and is removed when it finishes.
 
     // Inputs, copied before the task starts so the editor stays editable while it runs.
-    source:     String
-    stage:      String
-    optimLevel: Swag.BuildCfgBackendOptimLevel
+    request:    Pipeline.BuildRequest
+    reused:     bool
+    artifactId: u64
 
     // What the task left behind. The interface thread reads these only once the task is done.
     result:  Pipeline.Result
@@ -55,46 +55,38 @@ struct MicrocodeViewer
 
     late
     {
+        panel:        *ViewerPanel
+        cache:        *Pipeline.CompilationCache
         sourceEditor: *RichEditCtrl
         stageCombo:   *ComboBox
-        optimCombo:   *ComboBox
         output:       *RichEditCtrl
         status:       *Label
-        optionsBar:   *MicrocodeOptions
     }
 
-    sigChanged:    SigArray'func||(*Wnd)
-    outputText:    CompilerOutput
-    probe:         Pipeline.Probe
-    job:           CompileJob
-    pendingSource: String
-    statusMessage: StatusMessage
+    level:          Swag.BuildCfgBackendOptimLevel
+    sigChanged:     SigArray'func||(*Wnd)
+    outputText:     CompilerOutput
+    job:            CompileJob
+    pendingRequest: Pipeline.BuildRequest
+    statusMessage:  StatusMessage
     outputIsHint = true
 }
 
 impl MicrocodeViewer
 {
-    func create(parent: *Wnd, sourceEditor: *RichEditCtrl, level: Swag.BuildCfgBackendOptimLevel)->*MicrocodeViewer
+    func create(parent: *ViewerPanel, sourceEditor: *RichEditCtrl, level: Swag.BuildCfgBackendOptimLevel)->*MicrocodeViewer
     {
         let result = Wnd.create'MicrocodeViewer(parent, "prism.microcode")
         result.backgroundStyle      = .Transparent
+        result.panel                = parent
+        result.cache                = parent.cache
         result.sourceEditor         = sourceEditor
-        result.optionsBar           = MicrocodeOptions.create(result)
-        result.optionsBar.dockStyle = .Top
-        result.optimCombo           = result.optionsBar.optimization!
-        result.stageCombo           = result.optionsBar.stage!
-        for name in ["O0", "O1", "O2"] do
-            result.optimCombo.addItem(name)
-        result.optimCombo.setSelectedIndex(cast(u32) level, notify: false)
+        result.level                = level
+        result.stageCombo           = ComboBox.create(result, {0, 0, 0, 36}, "prism.stage")
+        result.stageCombo.dockStyle = .Top
+        result.stageCombo.margin    = {0, 0, 0, 8}
         result.fillStages()
         result.stageCombo.sigChanged += func|viewer = result|(combo, index)
-        {
-            discard combo
-            discard index
-            viewer.optionsChanged()
-        }
-
-        result.optimCombo.sigChanged += func|viewer = result|(combo, index)
         {
             discard combo
             discard index
@@ -119,7 +111,7 @@ impl MicrocodeViewer
 
     mtd optionsChanged()
     {
-        .compileSource(.sourceEditor.text().toString())
+        .panel.requestCompile()
         .sigChanged.call(me)
     }
 
@@ -140,9 +132,11 @@ impl MicrocodeViewer
     // One compilation is in flight at a time. Asking again while one runs marks the request rather
     // than starting a second compiler, and the marked request runs as soon as the first ends — so
     // holding a key on the stage list costs one more compilation, not one per step.
-    mtd compileSource(source: string)
+    mtd compileSource(source: string) { .compileRequest(.panel.request(source)) }
+
+    mtd compileRequest(request: Pipeline.BuildRequest)
     {
-        .pendingSource = source
+        .pendingRequest = request
         if .job.running
         {
             .job.queued = true
@@ -160,12 +154,10 @@ impl MicrocodeViewer
         if index >= Pipeline.Stages.count do
             return
 
-        .job.cancelled  = 0
-        .job.source     = .pendingSource
-        .job.stage      = String.from(Pipeline.Stages[index])
-        .job.optimLevel = cast(Swag.BuildCfgBackendOptimLevel) .optimCombo.selectedIndex
-        .job.queued     = false
-        .job.running    = true
+        .job.cancelled = 0
+        .job.request   = .pendingRequest
+        .job.queued    = false
+        .job.running   = true
 
         // Options remain editable while this viewer compiles; another request replaces its pending input.
         .setStatus(.Working)
@@ -178,14 +170,14 @@ impl MicrocodeViewer
     // Runs on the job's thread. Nothing here may reach the window tree or anything it draws from.
     mtd runCompile()
     {
-        var watch: Time.Stopwatch
-        watch.start()
-
-        let run = catch .probe.compile(.job.source.toString(), .job.stage.toString(), .job.optimLevel, &.job.cancelled) as probeError
-        .job.stopped = probeError != null
-        if !.job.stopped do
-            .job.result = run
-        .job.elapsed = watch.elapsedMilliseconds()
+        var lease = .cache.acquire(.job.request)
+        .job.stopped = false
+        if !lease.wait(&.job.cancelled) do
+            return
+        .job.result     = lease.artifact!.result
+        .job.elapsed    = lease.artifact!.elapsedMs
+        .job.artifactId = lease.artifact!.id
+        .job.reused     = lease.reused
     }
 
     // Reports what the finished job produced, then starts whatever was asked for meanwhile.
@@ -194,6 +186,12 @@ impl MicrocodeViewer
         .removeTimer(.job.timer!)
         .job.timer   = null
         .job.running = false
+
+        if .job.queued
+        {
+            .startCompile()
+            return
+        }
 
         if .job.stopped
         {
@@ -212,9 +210,6 @@ impl MicrocodeViewer
             else do
                 .setStatus(.Done)
         }
-
-        if .job.queued do
-            .startCompile()
     }
 
     // Waits for a compilation still in flight, so the probe it reads is not destroyed under it.
@@ -251,12 +246,12 @@ impl MicrocodeViewer
             .status.setText(strings.ui_Ready)
 
         case .Working:
-            .status.setText(strings.ui_Working)
+            .status.setText("")
 
         // An application about what the compiler does says how long it took to do it: the number
         // is the reader's own measurement of the tool they came here to judge.
         case .Done:
-            .status.setText(Format.toString(strings.ui_Done, .job.elapsed).toString())
+            .status.setText(Format.toString(.job.reused ? strings.ui_ReusedBuild : strings.ui_Done, .job.elapsed).toString())
 
         case .NoOutput:
             .status.setText(strings.ui_NoOutput)
@@ -272,7 +267,6 @@ impl MicrocodeViewer
     mtd retranslate()
     {
         .stageCombo.toolTip = appStrings().ui_Stage
-        .optimCombo.toolTip = appStrings().ui_Optimize
         .fillStages()
         .refreshStatus()
         if .outputIsHint do
@@ -284,7 +278,11 @@ impl MicrocodeViewer
 impl IViewer for MicrocodeViewer
 {
     mtd impl window()->*Wnd => &.wnd
-    mtd impl compile(source: string) { .compileSource(source) }
+    mtd impl compile(request: Pipeline.BuildRequest) { .compileRequest(request) }
+    mtd impl inspectionStage()->string => Pipeline.Stages[.stageCombo.selectedIndex]
+    mtd impl setOptimization(level: Swag.BuildCfgBackendOptimLevel) { .level = level }
+    mtd impl isPaused()->bool => false
+    mtd impl setPaused(paused: bool) { discard paused }
     mtd impl shutdown() { .stopCompile() }
     mtd impl isRunning()->bool => .job.running
     mtd impl subscribeChanged(action: func||(*Wnd)) { .sigChanged += action }

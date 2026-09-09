@@ -101,6 +101,15 @@ using Core
     }
 }
 
+// Microcode does not import the rendering stack implicitly.
+#test
+{
+    var probe: Pipeline.Probe
+    let result = expect probe.compile("using Pixel\nfunc value()->u32 { return 0 }", "pre-emit", .O0)
+    Swag.assert(result.failed)
+    Swag.assert(Utf8.indexOf(cast(const [..] u8) result.text.toString(), "Pixel") != Swag.U64.Max)
+}
+
 // Every offered stage names a side and a pass, which is the only spelling the attribute takes.
 #test
 {

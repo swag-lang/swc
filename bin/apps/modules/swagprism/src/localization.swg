@@ -26,6 +26,17 @@ struct AppStrings
     ui_WindowTitle:        string = "Swag Prism — Code in motion"                    // Title of the application window.
     ui_Stage:              string = "Stage"                                          // Label of the pipeline-stage selector.
     ui_Optimize:           string = "Optimization level"                             // Tooltip of the backend optimization selector.
+    ui_BuildOptions:       string = "Build configuration"                            // Opens this panel's module configuration editor.
+    ui_BuildPreset:        string = "Build preset"                                   // Initial configuration before source overrides.
+    ui_ResetBuild:         string = "Restore the default build configuration"        // Resets this panel's preset, overrides, and optimization.
+    ui_ReusedBuild:        string = "Reused compilation (% ms)"                      // Reuses the measured result of an existing compilation.
+    ui_ReusedStats:        string = "Reused build | Frame % us"                      // A reused native artifact and current rendering time.
+    ui_Format:             string = "Format"                                         // Formats the source with the Swag formatter.
+    ui_FormatHint:         string = "Format the source with the Swag formatter."     // Tooltip of the format action.
+    ui_Formatting:         string = "Formatting…"                                    // Status while the formatter runs.
+    ui_Formatted:          string = "Source formatted."                              // Status after successful formatting.
+    ui_FormatFailed:       string = "Formatting failed. Source unchanged."           // Status when formatting cannot complete.
+    ui_FormatChanged:      string = "Source changed. Format again."                  // A newer edit takes precedence over a formatted snapshot.
     ui_CompileVisible:     string = "Compile"                                        // Compiles the visible viewers.
     ui_CompileVisibleHint: string = "Compile the source in the visible viewers."     // Describes the shared-source compile action.
     ui_OneViewer:          string = "Show one viewer"                                // Returns to the single-viewer layout.

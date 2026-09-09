@@ -15,6 +15,8 @@ interface IViewer
 enum ViewerKind
 {
     Microcode
+    Render2D
+    Gui
 }
 
 // New viewer kinds enter through this factory without changing the comparison window.
@@ -23,5 +25,7 @@ func createViewer(parent: *Wnd, source: *RichEditCtrl, kind: ViewerKind, level: 
     switch #complete kind
     {
     case .Microcode: return MicrocodeViewer.create(parent, source, level)
+    case .Render2D:  return PreviewViewer.create(parent, source, false, level)
+    case .Gui:       return PreviewViewer.create(parent, source, true, level)
     }
 }

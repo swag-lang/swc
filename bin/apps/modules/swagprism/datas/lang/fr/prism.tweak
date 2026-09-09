@@ -1,6 +1,6 @@
 # French strings of Swag Prism. A key omitted here keeps its English value.
 
-ui_WindowTitle    Swag Prism — Ce que le compilateur fait de votre code
+ui_WindowTitle Swag Prism — Le code en action
 ui_Stage          Étape
 ui_Optimize       Niveau d'optimisation
 ui_CompileVisible Compiler les vues
@@ -32,3 +32,31 @@ ui_StageBeforeRegisters Avant les registres
 ui_StageRegalloc        Registres alloués
 ui_StagePeephole        Judas appliqué
 ui_StageFinal           Final
+
+ui_Render2D Rendu 2D
+
+ui_Gui Interface GUI
+
+ui_Examples Exemples
+
+ui_Plasma Ondes plasma
+
+ui_Julia Fractale de Julia
+
+ui_GuiExample Interface interactive
+
+ui_Dot Produit scalaire
+
+ui_Pause Pause
+
+ui_Resume Reprendre
+
+ui_LiveStats Compil. % ms | Image % us
+
+ui_RenderHint shade(x, y, time: f32)->u32
+
+ui_GuiHint buildView(parent: *Gui.Wnd)
+
+ui_LiveEdit Recompiler après modification
+
+ui_ChooseExample Choisissez un exemple à compiler.

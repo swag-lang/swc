@@ -8,22 +8,36 @@ using Core, Gui
 // what the reader types into the attribute, so neither is translated.
 struct AppStrings
 {
-    ui_WindowTitle:        string = "Swag Prism — What the compiler makes of your code"     // Title of the application window.
-    ui_Stage:              string = "Stage"                                                 // Label of the pipeline-stage selector.
-    ui_Optimize:           string = "Optimization level"                                    // Tooltip of the backend optimization selector.
-    ui_CompileVisible:     string = "Compile views"                                         // Compiles the visible viewers.
-    ui_CompileVisibleHint: string = "Compile the source in the visible viewers."            // Describes the shared-source compile action.
-    ui_OneViewer:          string = "Show one viewer"                                       // Returns to the single-viewer layout.
-    ui_TwoViewers:         string = "Show two viewers"                                      // Opens the comparison beside the first viewer.
-    ui_ViewerType:         string = "Viewer type"                                           // Selects the viewer hosted by this panel.
-    ui_Microcode:          string = "Microcode"                                             // Name of the first supported viewer type.
-    ui_RunningViewers:     string = "% viewers compiling"                                   // Global status with the number of running viewer jobs.
-    ui_Working:            string = "Compiling…"                                            // Status while the compiler runs.
-    ui_Ready:              string = "Ready"                                                 // Status before anything has been compiled.
-    ui_NoOutput:           string = "No output for this stage."                             // Status when a compilation left the pane empty.
-    ui_Stopped:            string = "Compilation stopped."                                  // Status when the compilation failed.
-    ui_Done:               string = "Compiled in % ms"                                      // Status after a compilation that printed a stage, with how long the compiler took.
-    ui_ProbeStopped:       string = "The compiler could not be started."                    // Status when the compiler process itself never ran.
+    ui_Render2D:           string = "2D render"                                      // Name of the native pixel renderer.
+    ui_Gui:                string = "GUI"                                            // Name of the native GUI preview.
+    ui_Examples:           string = "Examples"                                       // Tooltip of the source-example selector.
+    ui_Plasma:             string = "Plasma waves"                                   // Name of the animated plasma example.
+    ui_Julia:              string = "Julia fractal"                                  // Name of the animated Julia-set example.
+    ui_GuiExample:         string = "Live interface"                                 // Name of the interactive control example.
+    ui_Dot:                string = "Dot product"                                    // Name of the optimization example.
+    ui_Pause:              string = "Pause"                                          // Pauses consumption of preview frames.
+    ui_Resume:             string = "Resume"                                         // Resumes the paused preview.
+    ui_LiveStats:          string = "Build % ms | Frame % us"                        // Measured compilation milliseconds and rendering microseconds.
+    ui_RenderHint:         string = "shade(x, y, time: f32)->u32"                    // Function contract shown in an empty 2D viewer.
+    ui_GuiHint:            string = "buildView(parent: *Gui.Wnd)"                    // Function contract shown in an empty GUI viewer.
+    ui_LiveEdit:           string = "Recompile after editing"                        // Enables compilation after the last source edit.
+    ui_ChooseExample:      string = "Choose an example, then compile."               // Help for an empty execution viewer.
+    ui_WindowTitle:        string = "Swag Prism — Code in motion"                    // Title of the application window.
+    ui_Stage:              string = "Stage"                                          // Label of the pipeline-stage selector.
+    ui_Optimize:           string = "Optimization level"                             // Tooltip of the backend optimization selector.
+    ui_CompileVisible:     string = "Compile views"                                  // Compiles the visible viewers.
+    ui_CompileVisibleHint: string = "Compile the source in the visible viewers."     // Describes the shared-source compile action.
+    ui_OneViewer:          string = "Show one viewer"                                // Returns to the single-viewer layout.
+    ui_TwoViewers:         string = "Show two viewers"                               // Opens the comparison beside the first viewer.
+    ui_ViewerType:         string = "Viewer type"                                    // Selects the viewer hosted by this panel.
+    ui_Microcode:          string = "Microcode"                                      // Name of the first supported viewer type.
+    ui_RunningViewers:     string = "% viewers compiling"                            // Global status with the number of running viewer jobs.
+    ui_Working:            string = "Compiling…"                                     // Status while the compiler runs.
+    ui_Ready:              string = "Ready"                                          // Status before anything has been compiled.
+    ui_NoOutput:           string = "No output for this stage."                      // Status when a compilation left the pane empty.
+    ui_Stopped:            string = "Compilation stopped."                           // Status when the compilation failed.
+    ui_Done:               string = "Compiled in % ms"                               // Status after a compilation that printed a stage, with how long the compiler took.
+    ui_ProbeStopped:       string = "The compiler could not be started."             // Status when the compiler process itself never ran.
 
     // What the empty output pane says before anything has been compiled into it.
     //

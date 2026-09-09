@@ -1,0 +1,28 @@
+using Core, Gui
+
+// These are real Swag GUI controls. Click inside the viewer.
+func buildView(parent: *Wnd)
+{
+    parent.padding = 32
+    let title = Label.create(parent, "Built with Swag", {0, 0, 0, 48})
+    title.dockStyle = .Top
+    title.style.setFont(parent.theme().createDefaultFont(26), .Regular)
+    let description = Label.create(parent,
+        "Native code. Native toolkit. Your source.", {0, 0, 0, 40})
+    description.dockStyle = .Top
+    let counter = Label.create(parent, "0", {0, 0, 0, 64})
+    counter.dockStyle = .Top
+    counter.style.setFont(parent.theme().createDefaultFont(36), .Regular)
+    let button = PushButton.create(parent,
+        "Make it count", {0, 0, 0, 40}, form: .Strong)
+    button.dockStyle = .Top
+    button.sigPressed += func|counter|(sender)
+    {
+        discard sender
+        let count = (expect StrConv.parseU32(counter.name.raw.toString())).value
+        counter.setText(Format.toString("%", count + 1).toString())
+    }
+    let option = CheckButton.create(parent, "This is a live interface", {0, 0, 0, 40})
+    option.dockStyle = .Top
+    option.margin = {0, 16, 0, 0}
+}

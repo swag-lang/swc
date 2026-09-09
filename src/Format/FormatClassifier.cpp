@@ -35,6 +35,32 @@ namespace
             computeSpan(root);
             classifyNode(root, AstNodeId::Invalid, AstNodeId::Invalid);
             registerRemainingBraces();
+            classifyBlockModifiers();
+        }
+
+        void classifyBlockModifiers() const
+        {
+            for (FormatBlock& block : model_->blocks())
+            {
+                uint32_t first = block.openPiece;
+                for (uint32_t p = prevCode(first); p != INVALID_PIECE; p = prevCode(p))
+                {
+                    const FormatPiece& piece = model_->piece(p);
+                    if (!piece.hasRole(FormatRoleE::AccessModifier) &&
+                        piece.isNot(TokenId::KwdLate) && piece.isNot(TokenId::KwdTls) && piece.isNot(TokenId::KwdGlobal))
+                        break;
+                    first = p;
+                }
+                if (first == block.openPiece)
+                    continue;
+
+                // Scoped storage modifiers live in parser state rather than an AST
+                // wrapper. Recover the group's header so it cannot hang from the
+                // preceding declaration as an expression continuation.
+                block.headPiece = first;
+                addRole(first, FormatRoleE::StmtStart);
+                addRole(first, FormatRoleE::BlockModifierStart);
+            }
         }
 
         // Brace constructs the classifier has no dedicated handling for

@@ -256,6 +256,8 @@ func square(x, y, size: f32)->LinePathList
     Swag.assert(shape.count() == 1)
     Swag.assert(shape.minBounds.isEqualEpsilon({50, 50}, 0.01))
     Swag.assert(shape.maxBounds.isEqualEpsilon({100, 100}, 0.01))
+    Swag.assert(shape.controlBounds() == Math.Rectangle{50, 50, 50, 50})
+    Swag.assert(shape.paths[0].controlBounds() == Math.Rectangle{50, 50, 50, 50})
 
     // A ring under the alternating rule clips as a ring: its hole lets nothing through.
     var ring = nestedSquares()

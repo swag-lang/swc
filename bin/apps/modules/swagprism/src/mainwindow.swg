@@ -2,33 +2,16 @@
 
 using Core, Gui
 
-/*
-The snippet Swag Prism opens on.
-
-A dot product is the shortest program whose compiled form is worth looking at: it is a loop over
-two arrays, so the reader can watch the stack slots become registers, the address arithmetic fold
-into one addressing mode, and — at the vectorizing stage — several iterations become one
-instruction.
-*/
-private const StarterSnippet = """\
-                                  // The first function is the one that gets inspected.
-                                  // Pick a stage, then compile.
-                                  func dot(a, b: const [..] f32)->f32
-                                  {
-                                      var total = 0'f32
-                                      for i in a.count do
-                                          total += a[i] * b[i]
-                                      return total
-                                  }
-                                  """
-
 // Owns the shared source and one or two independently configured viewers.
 struct MainWindow
 {
     using wnd: Wnd
-        late
+
+    late
     {
         appearanceButton: *AppearanceButton
+        exampleCombo:     *ComboBox
+        liveEdit:         *CheckButton
         runButton:        *PushButton
         layoutButton:     *IconButton
         sourcePanel:      *Wnd
@@ -40,6 +23,8 @@ struct MainWindow
         viewerSplit:      *SplitterCtrl
     }
 
+    editTimer:         *Timer?
+    selectedExample:   ExampleKind
     panels:            Array'*ViewerPanel
     icons:             IconSet
     comparisonEnabled: bool
@@ -66,17 +51,19 @@ impl MainWindow
         result.backgroundStyle = .ToolBar
         result.language        = ReferenceLanguage
 
-        result.appearanceButton                 = AppearanceButton.create(surface, "prism.appearance")
+        result.appearanceButton = AppearanceButton.create(surface, "prism.appearance")
         result.appearanceButton.sigThemeChanged += func|window = result|(button)
         {
             window.themeIndex = cast(u32) button.appearanceTheme
             catch g_App.saveState()
         }
+
         result.appearanceButton.sigLanguageChanged += func|window = result|(button)
         {
             window.language = button.language
             catch g_App.saveState()
         }
+
         result.appearanceButton.sigAboutRequested += func|window = result|(button)
         {
             discard button
@@ -106,6 +93,26 @@ impl MainWindow
             discard button
             window.compile()
         }
+
+        .exampleCombo            = ComboBox.create(.commandBar, {0, 0, 200, 36}, "prism.examples")
+        .exampleCombo.dockStyle  = .Left
+        .exampleCombo.margin     = {16, 0, 0, 0}
+        .exampleCombo.sigChanged += func|window = me|(combo, index)
+        {
+            discard combo
+            window.openExample(cast(ExampleKind) index)
+        }
+
+        .liveEdit           = CheckButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.liveEdit")
+        .liveEdit.dockStyle = .Left
+        .liveEdit.margin    = {16, 0, 0, 0}
+        .liveEdit.setState(.Checked)
+        .liveEdit.sigChanged += func|window = me|(button)
+        {
+            discard button
+            window.scheduleCompile()
+        }
+
         .layoutButton = IconButton.create(.commandBar, .icons.icon(0, 18, .theme().res.atlasScale), {0, 0, 36, 36}, "prism.layout", flags: .Toggle)
         .layoutButton.setIconSize(18, 18)
         .layoutButton.setCheckIndicator(.Frame)
@@ -138,9 +145,9 @@ impl MainWindow
         .editor                      = RichEditCtrl.create(.sourcePanel)
         .editor.dockStyle            = .Center
         .editor.setLexer(&.lexer)
-        .editor.setText(StarterSnippet)
+        .editor.setText(exampleSource(.Plasma))
 
-        .viewerSplit                 = SplitterCtrl.create(.sourceSplit, {}, false, "prism.viewers")
+        .viewerSplit = SplitterCtrl.create(.sourceSplit, {}, false, "prism.viewers")
         .viewerSplit.backgroundStyle = .Transparent
         for index in 2
         {
@@ -151,6 +158,7 @@ impl MainWindow
                 discard sender
                 window.refreshStatus()
             }
+
             .panels.add(panel)
             let pane = .viewerSplit.addPane(panel, 540)
             pane.minimumSize = ViewerPanel.MinWidth
@@ -161,13 +169,19 @@ impl MainWindow
         let viewersPane = .sourceSplit.addPane(.viewerSplit, 960)
         viewersPane.minimumSize = ViewerPanel.MinWidth
         .viewerSplit.setPaneVisible(1, false)
+        .panels[0].selectViewer(.Render2D)
         .refreshPaneLayout()
+        .editor.sigChanged += func|window = me|(editor)
+        {
+            discard editor
+            window.scheduleCompile()
+        }
     }
 
     mtd refreshPaneLayout()
     {
         let gutter = .themeMetrics().panel_GutterSize
-        .sourceSplit.margin                = {gutter, gutter, gutter, gutter}
+        .sourceSplit.margin = {gutter, gutter, gutter, gutter}
         .sourceSplit.items[1]!.minimumSize = .comparisonEnabled ? 2 * ViewerPanel.MinWidth + .themeMetrics().splitView_BarSize : ViewerPanel.MinWidth
         .applyLayout()
     }
@@ -187,6 +201,7 @@ impl MainWindow
     // Only visible viewers receive the source snapshot; the hidden comparison keeps its result.
     mtd compile()
     {
+        .cancelEditTimer()
         let source = .editor.text()
         for panel, index in .panels where index == 0 or .comparisonEnabled do
             panel.compile(source.toString())
@@ -195,8 +210,32 @@ impl MainWindow
 
     mtd shutdown()
     {
+        .cancelEditTimer()
         for panel in .panels do
             panel.shutdown()
+    }
+
+    mtd cancelEditTimer()
+    {
+        if .editTimer and !.isPendingDestroy do
+            .removeTimer(.editTimer!)
+        .editTimer = null
+    }
+
+    mtd scheduleCompile()
+    {
+        .cancelEditTimer()
+        if .liveEdit.isChecked() do
+            .editTimer = .app().addTimer(700'ms, me)
+    }
+
+    mtd openExample(kind: ExampleKind)
+    {
+        .selectedExample = kind
+        .editor.setText(exampleSource(kind))
+        .panels[0].selectViewer(exampleViewer(kind))
+        .exampleCombo.setSelectedIndex(cast(u32) kind, notify: false)
+        .compile()
     }
 
     mtd refreshStatus()
@@ -213,6 +252,12 @@ impl MainWindow
 
     mtd retranslate()
     {
+        .exampleCombo.clear()
+        for label in [appStrings().ui_Plasma, appStrings().ui_Julia, appStrings().ui_GuiExample, appStrings().ui_Dot] do
+            .exampleCombo.addItem(label)
+        .exampleCombo.setSelectedIndex(cast(u32) .selectedExample, notify: false)
+        .exampleCombo.toolTip = appStrings().ui_Examples
+        .liveEdit.setText(appStrings().ui_LiveEdit)
         .runButton.setText(appStrings().ui_CompileVisible)
         .runButton.toolTip = appStrings().ui_CompileVisibleHint
         .layoutButton.setChecked(.comparisonEnabled)
@@ -251,6 +296,13 @@ impl MainWindow
 
 impl IWnd for MainWindow
 {
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer == .editTimer do
+            .compile()
+        .wnd.IWnd.onTimerEvent(evt)
+    }
+
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged do

@@ -117,7 +117,7 @@ namespace
         o.alignTrailingComments        = true;
         o.trailingCommentMinSpaces     = 5;
         o.trailingCommentMaxColumn     = 0;
-        o.alignOutlierGap              = 16;
+        o.alignOutlierGap              = 8;
         o.alignOperands                = true;
         o.alignAfterOpenBracket        = true;
         o.alignArrayColumns            = true;

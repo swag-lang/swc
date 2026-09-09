@@ -347,7 +347,7 @@ namespace
 
         for (const FormatBlock& block : model.blocks())
         {
-            if (block.exprLevel || !blockSpansLines(model, block) || model.lineStartOf(block.closePiece) != block.closePiece ||
+            if ((block.exprLevel && block.kind != FormatBlockKind::Function) || !blockSpansLines(model, block) || model.lineStartOf(block.closePiece) != block.closePiece ||
                 FormatPassUtil::lineEndOf(model, block.closePiece) != block.closePiece)
                 continue;
 
@@ -367,21 +367,6 @@ namespace
         }
     }
 
-    uint32_t accessBlockStart(const FormatModel& model, const FormatBlock& block)
-    {
-        uint32_t first = model.prevPiece(block.openPiece);
-        if (first == INVALID_PIECE || !model.piece(first).hasRole(FormatRoleE::AccessModifier))
-            return INVALID_PIECE;
-
-        for (;;)
-        {
-            const uint32_t prev = model.prevPiece(first);
-            if (prev == INVALID_PIECE || !model.piece(prev).hasRole(FormatRoleE::AccessModifier))
-                return first;
-            first = prev;
-        }
-    }
-
     void applyBlankLinesAroundAccessBlocks(FormatModel& model)
     {
         const FormatOptions&       options = model.options();
@@ -392,8 +377,8 @@ namespace
 
         for (const FormatBlock& block : model.blocks())
         {
-            const uint32_t start = accessBlockStart(model, block);
-            if (start == INVALID_PIECE)
+            const uint32_t start = block.headPiece;
+            if (!model.piece(start).hasRole(FormatRoleE::BlockModifierStart))
                 continue;
 
             const uint32_t prev = model.prevPiece(start);

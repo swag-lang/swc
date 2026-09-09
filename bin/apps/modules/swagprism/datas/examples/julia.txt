@@ -1,0 +1,24 @@
+using Core
+
+// A moving Julia set: try changing the iteration limit.
+func shade(x, y, time: f32)->u32
+{
+    var zx = x * 1.1
+    var zy = y * 1.1
+    let cx = -0.72 + 0.08 * Math.sin(time * 0.3)
+    let cy = 0.2 + 0.08 * Math.cos(time * 0.4)
+    var steps = 0'u32
+    while zx * zx + zy * zy < 4 and steps < 64
+    {
+        let next = zx * zx - zy * zy + cx
+        zy = 2 * zx * zy + cy
+        zx = next
+        steps += 1
+    }
+    if steps == 64 do return 0xFF101522
+    let light = cast(f32) steps * 0.18
+    let r = cast(u32) (128 + 127 * Math.cos(light))
+    let g = cast(u32) (128 + 127 * Math.cos(light + 1.8))
+    let b = cast(u32) (128 + 127 * Math.cos(light + 3.8))
+    return 0xFF000000 | (r << 16) | (g << 8) | b
+}

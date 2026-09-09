@@ -2,16 +2,23 @@
 
 using Core, Gui
 
+struct ViewerSlot
+{
+    viewer: IViewer?
+}
+
 // A comparison panel selects a viewer type and owns its independent compilation state.
 struct ViewerPanel
 {
     using wnd: Wnd
-        late
+
+    late
     {
         kindCombo:    *ComboBox
         sourceEditor: *RichEditCtrl
     }
 
+    cached:       [3] ViewerSlot
     viewer:       IViewer?
     kind:         ViewerKind
     initialLevel: Swag.BuildCfgBackendOptimLevel
@@ -38,7 +45,9 @@ impl ViewerPanel
         {
             discard combo
             panel.selectViewer(cast(ViewerKind) index)
+            panel.compile(panel.sourceEditor.text().toString())
         }
+
         result.applyLayout()
         return result
     }
@@ -50,17 +59,24 @@ impl ViewerPanel
         if .viewer
         {
             .viewer!.shutdown()
-            .viewer!.window().destroy()
+            .viewer!.window().hide()
         }
 
-        .kind   = kind
-        .viewer = createViewer(me, .sourceEditor, kind, .initialLevel)
-        .viewer!.window().dockStyle = .Center
-        .viewer!.subscribeChanged(func|panel = me|(sender)
+        .kind = kind
+        let index = cast(u32) kind
+        if !.cached[index].viewer
         {
-            discard sender
-            panel.sigChanged.call(panel)
-        })
+            .cached[index].viewer = createViewer(me, .sourceEditor, kind, .initialLevel)
+            .cached[index].viewer!.window().dockStyle = .Center
+            .cached[index].viewer!.subscribeChanged(func|panel = me|(sender)
+            {
+                discard sender
+                panel.sigChanged.call(panel)
+            })
+        }
+
+        .viewer = .cached[index].viewer
+        .viewer!.window().show()
         .kindCombo.setSelectedIndex(cast(u32) kind, notify: false)
         .applyLayout()
         .sigChanged.call(me)
@@ -75,6 +91,8 @@ impl ViewerPanel
         .kindCombo.toolTip = appStrings().ui_ViewerType
         .kindCombo.clear()
         .kindCombo.addItem(appStrings().ui_Microcode)
+        .kindCombo.addItem(appStrings().ui_Render2D)
+        .kindCombo.addItem(appStrings().ui_Gui)
         .kindCombo.setSelectedIndex(cast(u32) .kind, notify: false)
         .applyLayout()
     }

@@ -291,6 +291,11 @@ public impl LinePath
     // ```
     mtd const controlBounds()->Math.Rectangle
     {
+        // Boolean operations adopt a polygon without rebuilding authored segments. Its
+        // cached bounds enclose the geometry; the start point alone does not.
+        if .isPolyOnly do
+            return {.minBounds.x, .minBounds.y, .maxBounds.x - .minBounds.x, .maxBounds.y - .minBounds.y}
+
         var min = .startPoint
         var max = .startPoint
 

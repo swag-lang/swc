@@ -17,6 +17,7 @@ which is what the pane reads, and nothing has to be linked or given a `#main` â€
 loose function rather than a program, which is how a reader wants to write one.
 */
 private const ProbeModuleSource = """\
+    #import("gui", location: "swag@std")
     #run
     {
         with let cfg = Swag.compiler().getBuildCfg()!
@@ -130,7 +131,7 @@ impl Probe
     }
 
     // Compiles `source` and returns what the compiler printed about `stage`.
-    mtd compile(source: string, stage: string, optimLevel: Swag.BuildCfgBackendOptimLevel)->Result fail
+    mtd compile(source: string, stage: string, optimLevel: Swag.BuildCfgBackendOptimLevel, cancelled: *u32? = null)->Result fail
     {
         try .open()
 
@@ -139,7 +140,7 @@ impl Probe
         discard try File.writeAllBytes(sourceFile.toString(), cast(const [..] u8) inspected.toString())
 
         let compiler  = compilerPath()
-        let arguments = Format.toString("build --num-cores 6 --build-cfg % --optim-level % --module \"%\"", ProbeBuildConfig, cast(u8) optimLevel, .root)
+        let arguments = Format.toString("build --num-cores 6 --build-cfg % --optim-level % --module-file \"%/module.swg\" --directory src", ProbeBuildConfig, cast(u8) optimLevel, .root)
 
         // Swag Prism draws its own window, and the compiler is a console program, so without this
         // the system builds a console and its host process for every single compilation â€” which
@@ -147,7 +148,17 @@ impl Probe
         // lost by refusing it: both of the child's streams are read here.
         let info = Env.StartInfo{fileName: compiler.toString(), arguments: arguments.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false}
 
-        var process = try Env.runProcess(info)
+        var process = try Env.startProcess(info)
+        defer retireProcess(&process)
+        var watch: Time.Stopwatch
+        watch.start()
+        while !try process.tryWaitForExit(20'ms)
+        {
+            if cancelled and Atomic.get(cancelled!) do
+                return {}
+            if watch.elapsedMilliseconds() > 60000 do
+                return {text: String.from("Compilation exceeded 60 seconds."), failed: true}
+        }
 
         var result: retval
         result.text   = String.from(process.standardOutput())
@@ -241,4 +252,14 @@ private func firstFunctionOffset(source: string)->u64
     }
 
     return Swag.U64.Max
+}
+
+// Always reap an owned process before dropping its pipes or temporary files.
+func retireProcess(process: *Env.Process)
+{
+    if !(catch process.tryWaitForExit(0'ms))
+    {
+        discard catch process.kill()
+        discard catch process.waitForExit()
+    }
 }

@@ -719,7 +719,7 @@ private func parseDashPattern(value: string)->Array'SvgLength
         {
             length.value     *= 0.01
             length.isPercent = true
-            pos              += 1
+            pos += 1
         }
 
         if length.value < 0 do
@@ -950,7 +950,7 @@ private func composeTransformList(value: string, parent: Math.Transform2)->Math.
             if look >= len or !isNumberStart(value[look]) do
                 break
             arguments[count] = scanNumber(value, &pos)
-            count            += 1
+            count += 1
         }
 
         while pos < len and value[pos] != ')' do
@@ -1975,7 +1975,7 @@ private impl Parser
             if .text[.pos] == '/'
             {
                 result.selfClosed = true
-                .pos              += 1
+                .pos += 1
                 continue
             }
 
@@ -2231,7 +2231,7 @@ private impl Parser
         let transform = geo.tryFind("gradientTransform")
         if transform
         {
-            gradient.transform           = composeTransformList(transform.value.toString(), Math.Transform2.Identity)
+            gradient.transform = composeTransformList(transform.value.toString(), Math.Transform2.Identity)
             gradient.specified.transform = true
         }
 
@@ -2399,7 +2399,7 @@ private impl Parser
                 .pos += 1
             let name = cast(string) Swag.makeSlice((.text).buffer + nameStart, .pos - nameStart)
 
-            var childState                = state
+            var childState = state
             var childGeo: HashTable'(String, String)
             let {selfClosed: childClosed} = .scanAttributes(&childState, &childGeo)
             .applyStyleRules(name, &childGeo, &childState)
@@ -2552,7 +2552,11 @@ private impl Parser
                 .pos += 1
             let name = cast(string) Swag.makeSlice((.text).buffer + nameStart, .pos - nameStart)
 
-            var state        = parent
+            var state = parent
+
+            // The property is not inherited. Ancestor clips are applied to the completed
+            // subtree below, after any clip that a descendant declares for itself.
+            state.clipPathId.clear()
             var geo: HashTable'(String, String)
             let {selfClosed} = .scanAttributes(&state, &geo)
             .applyStyleRules(name, &geo, &state)
@@ -2560,7 +2564,7 @@ private impl Parser
             // A clip is stated in the user space of the element that names it, and children may
             // add transforms of their own; remembering that space here is what keeps an
             // inherited clip where the group put it.
-            if state.clipPathId != parent.clipPathId do
+            if !state.clipPathId.isEmpty() do
                 state.clipTransform = state.transform
 
             let firstShape = .drawing.shapes.count
@@ -3001,12 +3005,54 @@ private impl Parser
         if clip.count == 0 do
             return
 
+        var intersections: HashTable'(u64, u64)
         for i in .drawing.items.count - firstItem
         {
             let item = &.drawing.items[firstItem + i]
+            if item.clipCount
+            {
+                let previous = item.clipFirst
+                let found    = intersections.tryFind(previous)
+                if found do
+                    item.clipFirst = found.value
+                else
+                {
+                    var inner = .clipGeometry(item.clipFirst, item.clipCount)
+                    var outer = .clipGeometry(clip.first, clip.count)
+                    inner.intersect(&outer)
+                    var shape: Shape
+                    shape.pathList = #move inner
+                    shape.hidden   = true
+                    item.clipFirst = .drawing.shapes.count
+                    .drawing.shapes.add(#move shape)
+                    intersections.add(previous, item.clipFirst)
+                }
+
+                // An empty intersection is still a clip; zero would mean unbounded ink.
+                item.clipCount = 1
+                continue
+            }
+
             item.clipFirst = clip.first
             item.clipCount = clip.count
         }
+    }
+
+    // Normalize each clip shape before unioning its contours, so independently authored
+    // winding directions do not turn overlapping clip shapes into holes.
+    mtd clipGeometry(first, count: u64)->LinePathList
+    {
+        var result: retval
+        for index in first until first + count
+        {
+            var shape = .drawing.shapes[index].pathList
+            shape.flatten(.High)
+            shape.clean(.drawing.shapes[index].evenOdd ? .EvenOdd : .NonZero)
+            for path in shape.paths do
+                result.newPath()[] = path[]
+        }
+
+        return result
     }
 
     mtd shapeBounds(shape: const *Shape)->{ min, max: Vector2 }
@@ -3055,7 +3101,7 @@ private impl Parser
         let size       = max - min
 
         var result: retval
-        result.color          = Color.fromArgb(Argb.White)
+        result.color = Color.fromArgb(Argb.White)
         result.gradientSpread = gradient.spread
         switch gradient.kind
         {
@@ -3132,61 +3178,61 @@ private impl Parser
                 let from = &base.value
                 if !resolved.specified.x1
                 {
-                    resolved.x1           = from.x1
+                    resolved.x1 = from.x1
                     resolved.specified.x1 = from.specified.x1
                 }
 
                 if !resolved.specified.y1
                 {
-                    resolved.y1           = from.y1
+                    resolved.y1 = from.y1
                     resolved.specified.y1 = from.specified.y1
                 }
 
                 if !resolved.specified.x2
                 {
-                    resolved.x2           = from.x2
+                    resolved.x2 = from.x2
                     resolved.specified.x2 = from.specified.x2
                 }
 
                 if !resolved.specified.y2
                 {
-                    resolved.y2           = from.y2
+                    resolved.y2 = from.y2
                     resolved.specified.y2 = from.specified.y2
                 }
 
                 if !resolved.specified.cx
                 {
-                    resolved.cx           = from.cx
+                    resolved.cx = from.cx
                     resolved.specified.cx = from.specified.cx
                 }
 
                 if !resolved.specified.cy
                 {
-                    resolved.cy           = from.cy
+                    resolved.cy = from.cy
                     resolved.specified.cy = from.specified.cy
                 }
 
                 if !resolved.specified.r
                 {
-                    resolved.r           = from.r
+                    resolved.r = from.r
                     resolved.specified.r = from.specified.r
                 }
 
                 if !resolved.specified.fx
                 {
-                    resolved.fx           = from.fx
+                    resolved.fx = from.fx
                     resolved.specified.fx = from.specified.fx
                 }
 
                 if !resolved.specified.fy
                 {
-                    resolved.fy           = from.fy
+                    resolved.fy = from.fy
                     resolved.specified.fy = from.specified.fy
                 }
 
                 if !resolved.specified.fr
                 {
-                    resolved.fr           = from.fr
+                    resolved.fr = from.fr
                     resolved.specified.fr = from.specified.fr
                 }
 
@@ -3198,19 +3244,19 @@ private impl Parser
 
                 if !resolved.specified.spread
                 {
-                    resolved.spread           = from.spread
+                    resolved.spread = from.spread
                     resolved.specified.spread = from.specified.spread
                 }
 
                 if !resolved.specified.transform
                 {
-                    resolved.transform           = from.transform
+                    resolved.transform = from.transform
                     resolved.specified.transform = from.specified.transform
                 }
 
                 if !resolved.specified.stops and from.stops.count
                 {
-                    resolved.stops           = from.stops
+                    resolved.stops = from.stops
                     resolved.specified.stops = true
                 }
 
@@ -3555,20 +3601,14 @@ impl Drawing
         defer painter.setFlattenScale(previousFlattenScale)
         painter.setFlattenScale(Math.max(scale * painter.contentScale(), 1.0'f32 / 64))
 
-        .paintImpl(painter, x, y, scale, false)
+        .paintImpl(painter, x, y, scale)
     }
 
-    private mtd const paintShapeCore(painter: *Painter, shape: *Shape, compensateAlpha: bool, paintFill = true)
+    private mtd const paintShapeCore(painter: *Painter, shape: *Shape, paintFill = true)
     {
         if paintFill and shape.hasFill
         {
             var brush = shape.fillBrush
-            if compensateAlpha
-            {
-                brush.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) brush.color.a / 255.0))
-                for &stop in brush.gradientStops do
-                    stop.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) stop.color.a / 255.0))
-            }
 
             painter.fillPath(&shape.pathList, brush)
         }
@@ -3576,12 +3616,6 @@ impl Drawing
         if shape.hasStroke
         {
             var brush = shape.strokeBrush
-            if compensateAlpha
-            {
-                brush.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) brush.color.a / 255.0))
-                for &stop in brush.gradientStops do
-                    stop.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) stop.color.a / 255.0))
-            }
 
             var pen: Pen
             pen.brush          = #move brush
@@ -3607,7 +3641,7 @@ impl Drawing
         }
     }
 
-    private mtd const paintPattern(painter: *Painter, shape: *Shape, pattern: const *Pattern, compensateAlpha: bool)
+    private mtd const paintPattern(painter: *Painter, shape: *Shape, pattern: const *Pattern)
     {
         shape.pathList.flatten(.Normal)
         var min = Vector2.Max
@@ -3650,7 +3684,7 @@ impl Drawing
                 tileTransform.multiply(Math.Transform2.createScale(rasterScale, rasterScale, 0, 0))
                 tilePainter.setTransform(tileTransform)
                 for i in pattern.count do
-                    .paintShapeCore(&tilePainter, &.shapes[pattern.first + i], false)
+                    .paintShapeCore(&tilePainter, &.shapes[pattern.first + i])
             }
         }
 
@@ -3664,14 +3698,13 @@ impl Drawing
 
         let texture = painter.renderer().addImage(tileImage)
         var brush   = Brush.createTiled(texture)
-        if compensateAlpha do
-            brush.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) brush.color.a / 255.0))
+
         painter.fillPath(&shape.pathList, brush)
         painter.releaseTexture(texture)
     }
 
     // Paints one text block and returns the drawing-space rectangle its runs covered.
-    private mtd const paintText(painter: *Painter, text: const *SvgText, compensateAlpha: bool)->Rectangle
+    private mtd const paintText(painter: *Painter, text: const *SvgText)->Rectangle
     {
         // The pen is a point plus a distance along the baseline, because a rotated element
         // runs its text along a direction rather than along the drawing's x axis. With no
@@ -3709,8 +3742,6 @@ impl Drawing
                 offset -= metrics.width
 
             var color = run.color.withAlphaF32(run.opacity)
-            if compensateAlpha do
-                color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) color.a / 255.0))
 
             // The run is drawn from `font.ascent` above the baseline; its glyphs can reach a
             // little past the recommended extents either way, so the box takes the larger of
@@ -3748,17 +3779,16 @@ impl Drawing
         return inked
     }
 
-    private mtd const paintImage(painter: *Painter, image: const *SvgImage, compensateAlpha: bool)
+    private mtd const paintImage(painter: *Painter, image: const *SvgImage)
     {
         var alpha = image.opacity
-        if compensateAlpha do
-            alpha = Math.sqrt(alpha)
+
         let texture = painter.renderer().addImage(image.image)
         painter.drawTexture(image.rect, texture, Color.fromArgb(Argb.White).withAlphaF32(alpha))
         painter.releaseTexture(texture)
     }
 
-    private mtd const paintFilteredShape(painter: *Painter, shape: *Shape, filter: const *SvgFilter, x, y, scale: f32, outerTransform, drawingTransform: Transform2, compensateAlpha: bool)
+    private mtd const paintFilteredShape(painter: *Painter, shape: *Shape, filter: const *SvgFilter, x, y, scale: f32, outerTransform, drawingTransform: Transform2)
     {
         var layer: Layer
         var begin: LayerBeginInfo
@@ -3772,15 +3802,15 @@ impl Drawing
         let pattern = .patterns.tryFind(shape.fillPaintId)
         if pattern
         {
-            .paintPattern(painter, shape, &pattern.value, compensateAlpha)
-            .paintShapeCore(painter, shape, compensateAlpha, false)
+            .paintPattern(painter, shape, &pattern.value)
+            .paintShapeCore(painter, shape, false)
         }
         else do
-            .paintShapeCore(painter, shape, compensateAlpha)
+            .paintShapeCore(painter, shape)
         layer.end()
 
         var offsetX, offsetY: f32
-        var shadow:           LayerShadowInfo
+        var shadow: LayerShadowInfo
         for primitive in filter.primitives
         {
             switch primitive.kind
@@ -3809,12 +3839,7 @@ impl Drawing
         painter.setTransform(drawingTransform)
     }
 
-    // The alpha-preserving resolve of a `paintAlpha` render target squares fragment
-    // alpha (GL_MAX with a source-alpha factor; the CPU renderer matches it). Painting
-    // with square-rooted shape alphas makes that resolve land back on the authored
-    // values; with supersampling, per-sample coverage is essentially binary, so the
-    // compensation is exact in practice.
-    internal mtd const paintImpl(painter: *Painter, x, y: f32, scale: f32, compensateAlpha: bool)
+    internal mtd const paintImpl(painter: *Painter, x, y: f32, scale: f32)
     {
         // A drawing is mostly stroke, and a stroke is mostly the bands extruded along it, so its
         // coverage is measured from the centre line instead: two triangles a segment rather than
@@ -3833,7 +3858,7 @@ impl Drawing
 
         // Local drawing space: scale then translate, applied before the current transform.
         let outerTransform = painter.transform()
-        var tr             = Math.Transform2.createScale(scale, scale, 0, 0)
+        var tr = Math.Transform2.createScale(scale, scale, 0, 0)
         tr.multiply(Math.Transform2.createTranslation(x, y))
         tr.multiply(outerTransform)
         painter.setTransform(tr)
@@ -3874,21 +3899,21 @@ impl Drawing
                 let filter = .filters.tryFind(shape.filterId)
                 if filter and filter.value.primitives.count
                 {
-                    .paintFilteredShape(painter, shape, &filter.value, x, y, scale, outerTransform, tr, compensateAlpha)
+                    .paintFilteredShape(painter, shape, &filter.value, x, y, scale, outerTransform, tr)
                     continue
                 }
 
                 let pattern = .patterns.tryFind(shape.fillPaintId)
                 if pattern
                 {
-                    .paintPattern(painter, shape, &pattern.value, compensateAlpha)
-                    .paintShapeCore(painter, shape, compensateAlpha, false)
+                    .paintPattern(painter, shape, &pattern.value)
+                    .paintShapeCore(painter, shape, false)
                 }
                 else do
-                    .paintShapeCore(painter, shape, compensateAlpha)
+                    .paintShapeCore(painter, shape)
 
             case .Text:
-                let inked = .paintText(painter, &.texts[item.index], compensateAlpha)
+                let inked = .paintText(painter, &.texts[item.index])
 
                 // Where the runs landed is what the block covers, and it is the same at every
                 // scale because a run is shaped in its own upright space.
@@ -3901,7 +3926,7 @@ impl Drawing
                 }
 
             case .Image:
-                .paintImage(painter, &.images[item.index], compensateAlpha)
+                .paintImage(painter, &.images[item.index])
             }
         }
 
@@ -3975,14 +4000,6 @@ impl Drawing
         return .rasterizeWithSampleTileSide(renderer, width, height, supersample, RasterSampleTileSide)
     }
 
-    // Reports whether any painted shape is stroked.
-    private mtd const hasStrokedShape()->bool
-    {
-        for item in .items where item.kind == .Shape and .shapes[item.index].hasStroke do
-            return true
-        return false
-    }
-
     // Rasterizes with an explicit sampled-tile bound for module tests.
     internal mtd const rasterizeWithSampleTileSide(renderer: IRenderer, width, height: s32, supersample: u8, sampleTileSide: s32)->Image
     {
@@ -3995,29 +4012,22 @@ impl Drawing
         let sampledWidth  = tileWidth * ss
         let sampledHeight = tileHeight * ss
 
-        // Whether the content writes its own alpha, or the target rebuilds it by replaying the
-        // recording.
-        //
-        // Text, pictures, patterns and filters carry an alpha the replay cannot reproduce
-        // exactly: glyph coverage and sampled texels are not the near-binary sample coverage the
-        // resolve assumes. A drawing made of those writes its alpha directly.
-        //
-        // A stroke takes that choice away. The overlap-safe pass an antialiased stroke goes
-        // through uses the destination alpha as its own scratch plane and clears it across the
-        // target, so one stroke anywhere leaves a directly written alpha empty and the whole
-        // drawing rasterizes to nothing. Such a drawing is rebuilt by the replay instead:
-        // slightly soft alpha beats no alpha at all.
-        let directAlpha = (.texts.count or .images.count or .patterns.count or .filters.count) and !.hasStrokedShape()
-        var result      = Image.create(width, height, .BGRA8)
+        // Strokes use destination alpha as scratch. Recover source-over coverage from two
+        // opaque mattes instead: white minus black is the uncovered fraction. Both passes
+        // paint the authored colors and clips normally, including translucent overlaps.
+        var result = Image.create(width, height, .BGRA8)
 
         // Targets are created at the exact size instead of acquired from the pool, which
         // rounds up to a power of two: the resolve reads the sampled target as a whole,
         // and padding would land inside the box filter. Every tile reuses these same two
         // target sizes, including a partial tile at the right or bottom edge.
         var sampled = renderer.createRenderTarget(sampledWidth, sampledHeight)
+        defer renderer.deleteRenderTarget(&sampled)
         var resolved: RenderTarget
         if ss > 1 do
             resolved = renderer.createRenderTarget(tileWidth, tileHeight)
+        defer if ss > 1 do
+            renderer.deleteRenderTarget(&resolved)
 
         var tileY = 0
         while tileY < height
@@ -4027,49 +4037,65 @@ impl Drawing
             while tileX < width
             {
                 let copyWidth = Math.min(tileWidth, width - tileX)
-
-                // Antialiased and translucent shapes go through the overlap-safe pass, which
-                // sacrifices the destination alpha channel; render into a target with the
-                // alpha-preserving replay so the result carries a correct alpha mask.
-                var painter = Painter.create(renderer)
-                painter.begin()
-                painter.bindRenderTarget(&sampled, paintAlpha: !directAlpha)
-                painter.setColorMaskFull()
-                painter.clear(Color.fromArgb(Argb.Zero))
-                if !directAlpha do
-                    painter.setColorMaskColor()
-                .paintImpl(&painter, cast(f32) (-tileX * ss), cast(f32) (-tileY * ss), cast(f32) (width * ss) / .width, !directAlpha)
-                painter.unbindRenderTarget()
-
-                // Box-filter the samples down with the renderer's own resolve program, the one
-                // the layer pipeline already uses. Unbinding above has resolved the alpha plane,
-                // so the sampled target is a plain texture by the time it is read here.
-                if ss > 1
+                var mattes: [2] Image
+                for matte in 2
                 {
-                    let dstRect = Math.Rectangle{0, 0, cast(f32) tileWidth, cast(f32) tileHeight}
-                    let srcRect = Math.Rectangle{0, 0, cast(f32) sampledWidth, cast(f32) sampledHeight}
-                    painter.bindRenderTarget(&resolved)
-                    painter.setResolveShader(ss)
+                    var painter = Painter.create(renderer)
+                    painter.begin()
+                    painter.bindRenderTarget(&sampled)
                     painter.setColorMaskFull()
+                    painter.clear(Color.fromArgb(matte == 0 ? Argb.Black : Argb.White))
+                    painter.setColorMaskColor()
+                    .paintImpl(&painter, cast(f32) (-tileX * ss), cast(f32) (-tileY * ss), cast(f32) (width * ss) / .width)
+
+                    // Restore opaque coverage after stroke scratch, so the resolve averages
+                    // matte colors without unpremultiplying them by a discarded alpha plane.
+                    painter.setColorMaskAlpha()
                     painter.setBlendingMode(.Copy)
-                    painter.clear(Color.fromArgb(Argb.Zero))
-                    painter.drawTexture(dstRect, srcRect, sampled.colorBuffer)
-                    painter.setDefaultShader()
+                    painter.fillRect({0, 0, cast(f32) sampledWidth, cast(f32) sampledHeight}, Argb.White)
                     painter.unbindRenderTarget()
+
+                    // Average each matte before recovering straight RGB; averaging straight
+                    // translucent colors would introduce a fringe along antialiased contours.
+                    if ss > 1
+                    {
+                        let dstRect = Math.Rectangle{0, 0, cast(f32) tileWidth, cast(f32) tileHeight}
+                        let srcRect = Math.Rectangle{0, 0, cast(f32) sampledWidth, cast(f32) sampledHeight}
+                        painter.bindRenderTarget(&resolved)
+                        painter.setResolveShader(ss)
+                        painter.setColorMaskFull()
+                        painter.setBlendingMode(.Copy)
+                        painter.clear(Color.fromArgb(Argb.Zero))
+                        painter.drawTexture(dstRect, srcRect, sampled.colorBuffer)
+                        painter.setDefaultShader()
+                        painter.unbindRenderTarget()
+                    }
+
+                    painter.end()
+                    renderer.draw(&painter)
+
+                    // Render-target readbacks and images share the bottom-up row convention. Copy
+                    // each tile into the matching bottom-up rows of the complete result.
+                    mattes[matte] = ss == 1 ? renderer.readRenderTarget(&sampled, 0, 0, copyWidth, copyHeight) : renderer.readRenderTarget(&resolved, 0, 0, copyWidth, copyHeight)
                 }
 
-                painter.end()
-                renderer.draw(&painter)
-
-                // Render-target readbacks and images share the bottom-up row convention. Copy
-                // each tile into the matching bottom-up rows of the complete result.
-                let tile = ss == 1 ? renderer.readRenderTarget(&sampled, 0, 0, copyWidth, copyHeight) : renderer.readRenderTarget(&resolved, 0, 0, copyWidth, copyHeight)
                 for row in copyHeight
                 {
-                    let source      = tile.pixels.buffer! + cast(u64) row * cast(u64) tile.rowStride
+                    let black       = mattes[0].pixels.buffer! + cast(u64) row * cast(u64) mattes[0].rowStride
+                    let white       = mattes[1].pixels.buffer! + cast(u64) row * cast(u64) mattes[1].rowStride
                     let resultRow   = result.height - tileY - copyHeight + row
                     let destination = result.pixels.buffer! + cast(u64) resultRow * cast(u64) result.rowStride + cast(u64) tileX * result.bytesPerPixel
-                    Memory.copy(destination, source, cast(u64) copyWidth * result.bytesPerPixel)
+                    for column in copyWidth
+                    {
+                        let offset = cast(u64) column * 4
+                        var uncovered: s32
+                        for channel in 3 do
+                            uncovered += cast(s32) white[offset + channel] - cast(s32) black[offset + channel]
+                        let alpha = Math.clamp(255 - (uncovered + 1) / 3, 0, 255)
+                        destination[offset + 3] = cast(u8) alpha
+                        for channel in 3 do
+                            destination[offset + channel] = alpha == 0 ? 255'u8 : cast(u8) Math.min((cast(s32) black[offset + channel] * 255 + alpha / 2) / alpha, 255)
+                    }
                 }
 
                 tileX += tileWidth
@@ -4078,15 +4104,6 @@ impl Drawing
             tileY += tileHeight
         }
 
-        if ss > 1 do
-            renderer.deleteRenderTarget(&resolved)
-        renderer.deleteRenderTarget(&sampled)
-
-        // The resolve leaves a fully transparent pixel black; make it white instead, so a
-        // consumer that tints the result, or a sampler that interpolates across the edge
-        // of a shape, never blends a dark fringe in.
-        if ss > 1 do
-            result.setTransparentColor(Color.fromArgb(Argb.White))
         return result
     }
 }

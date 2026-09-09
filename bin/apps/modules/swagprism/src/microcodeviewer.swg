@@ -30,8 +30,9 @@ every stage they passed through on the way to it.
 */
 struct CompileJob
 {
-    task:  Swag.Task     // Runs `MicrocodeViewer.runCompile` off the interface thread.
-    timer: *Timer?       // Polls the task while it runs, and is removed when it finishes.
+    cancelled: u32           // Set by the UI; observed by the process polling loop.
+    task:      Swag.Task     // Runs `MicrocodeViewer.runCompile` off the interface thread.
+    timer:     *Timer?       // Polls the task while it runs, and is removed when it finishes.
 
     // Inputs, copied before the task starts so the editor stays editable while it runs.
     source:     String
@@ -51,7 +52,8 @@ struct CompileJob
 struct MicrocodeViewer
 {
     using wnd: Wnd
-        late
+
+    late
     {
         sourceEditor: *RichEditCtrl
         stageCombo:   *ComboBox
@@ -91,6 +93,7 @@ impl MicrocodeViewer
             discard index
             viewer.optionsChanged()
         }
+
         result.optimCombo.sigChanged += func|viewer = result|(combo, index)
         {
             discard combo
@@ -105,7 +108,7 @@ impl MicrocodeViewer
         result.status           = Label.create(footer, "", {}, null, .SecondaryText)
         result.status.dockStyle = .Center
         result.status.setTextAlignment(.Left, .Center)
-        result.output           = RichEditCtrl.create(result)
+        result.output = RichEditCtrl.create(result)
         result.output.dockStyle = .Center
         result.output.setFlags(.ReadOnly)
         result.output.setLexer(&result.outputText)
@@ -143,6 +146,7 @@ impl MicrocodeViewer
         if .job.running
         {
             .job.queued = true
+            Atomic.exchange(&.job.cancelled, 1)
             return
         }
 
@@ -156,6 +160,7 @@ impl MicrocodeViewer
         if index >= Pipeline.Stages.count do
             return
 
+        .job.cancelled  = 0
         .job.source     = .pendingSource
         .job.stage      = String.from(Pipeline.Stages[index])
         .job.optimLevel = cast(Swag.BuildCfgBackendOptimLevel) .optimCombo.selectedIndex
@@ -176,7 +181,7 @@ impl MicrocodeViewer
         var watch: Time.Stopwatch
         watch.start()
 
-        let run = catch .probe.compile(.job.source.toString(), .job.stage.toString(), .job.optimLevel) as probeError
+        let run = catch .probe.compile(.job.source.toString(), .job.stage.toString(), .job.optimLevel, &.job.cancelled) as probeError
         .job.stopped = probeError != null
         if !.job.stopped do
             .job.result = run
@@ -215,8 +220,12 @@ impl MicrocodeViewer
     // Waits for a compilation still in flight, so the probe it reads is not destroyed under it.
     mtd stopCompile()
     {
-        if .job.running do
+        if .job.running
+        {
+            Atomic.exchange(&.job.cancelled, 1)
             .job.task.wait()
+        }
+
         if .job.timer and !.isPendingDestroy do
             .removeTimer(.job.timer!)
         .job.timer   = null

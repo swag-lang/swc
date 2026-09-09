@@ -42,6 +42,7 @@ const SurfaceId   = "swag.prism"
     window.applyLanguage()
 
     surface.show()
+    window.compile()
 
     let exitCode = g_App.run()
     window.shutdown()

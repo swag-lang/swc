@@ -3,13 +3,24 @@
 
 using Core, Gui
 
+func testSetupInspectionWindow(host: *Testing.HeadlessHost, width = cast(f32) MainWindow.WindowWidth, height = cast(f32) MainWindow.WindowHeight)->*MainWindow
+{
+    let window = testSetupMainWindow(host, width, height)
+    window.selectedExample = .Dot
+    window.exampleCombo.setSelectedIndex(cast(u32) ExampleKind.Dot, notify: false)
+    window.liveEdit.setState(.Unchecked)
+    window.editor.setText(exampleSource(.Dot))
+    window.panels[0].selectViewer(.Microcode)
+    return window
+}
+
 func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*MicrocodeViewer) window.panels[panel].viewer!.window()
 
 // One viewer is visible by default; the optional comparison has independent defaults.
 #test
 {
     var host: Testing.HeadlessHost
-    let window = testSetupMainWindow(&host)
+    let window = testSetupInspectionWindow(&host)
     defer host.shutdown()
     Swag.assert(!window.comparisonEnabled)
     Swag.assert(window.viewerSplit.isPaneVisible(0) and !window.viewerSplit.isPaneVisible(1))
@@ -22,7 +33,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
     Swag.assert(left.optimCombo.selectedIndex == 0)
     Swag.assert(right.optimCombo.selectedIndex == 2)
     Swag.assert(window.status.name == appStrings().ui_Ready)
-    Swag.assert(window.panels[0].kindCombo.items.count == 1)
+    Swag.assert(window.panels[0].kindCombo.items.count == 3)
     Swag.assert(window.panels[0].kindCombo.selectedIndex == 0)
     Swag.assert(!window.layoutButton.isChecked and window.layoutButton.toolTip == appStrings().ui_TwoViewers)
 }
@@ -31,7 +42,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
 #test
 {
     var host: Testing.HeadlessHost
-    let window = testSetupMainWindow(&host)
+    let window = testSetupInspectionWindow(&host)
     defer host.shutdown()
 
     let text = window.editor.text()
@@ -44,7 +55,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
 #test
 {
     var host: Testing.HeadlessHost
-    let window = testSetupMainWindow(&host)
+    let window = testSetupInspectionWindow(&host)
     defer host.shutdown()
     let left  = microcode(window, 0)
     let right = microcode(window, 1)
@@ -62,7 +73,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
 #test
 {
     var host: Testing.HeadlessHost
-    let window = testSetupMainWindow(&host)
+    let window = testSetupInspectionWindow(&host)
     defer host.shutdown()
     let first  = microcode(window, 0)
     let second = microcode(window, 1)
@@ -82,7 +93,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
     host.click(window.layoutButton.localToSurface(Math.Point{18, 18}))
     Swag.assert(second.optimCombo.selectedIndex == 1 and second.stageCombo.selectedIndex == 0)
     Swag.assert(second.output.text().toString() == "comparison result")
-    window.panels[1].kindCombo.sigChanged.call(window.panels[1].kindCombo, 0'u32)
+    window.panels[1].selectViewer(.Microcode)
     Swag.assert(microcode(window, 1) == second)
     Swag.assert(second.output.text().toString() == "comparison result")
 }
@@ -91,7 +102,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
 #test
 {
     var host: Testing.HeadlessHost
-    let window = testSetupMainWindow(&host)
+    let window = testSetupInspectionWindow(&host)
     defer host.shutdown()
     let left  = microcode(window, 0)
     let right = microcode(window, 1)
@@ -128,7 +139,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
 #test
 {
     var host: Testing.HeadlessHost
-    let window = testSetupMainWindow(&host)
+    let window = testSetupInspectionWindow(&host)
     defer host.shutdown()
     window.compile()
     Swag.assert(microcode(window, 0).job.running)
@@ -146,7 +157,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
 func assertSurface(comparison: bool)
 {
     var host: Testing.HeadlessHost
-    let window = testSetupMainWindow(&host)
+    let window = testSetupInspectionWindow(&host)
     defer host.shutdown()
 
     host.theme.setSwagDark()
@@ -180,7 +191,7 @@ func assertSurface(comparison: bool)
         for language in Gui.languages()
         {
             var host: Testing.HeadlessHost
-            let window = testSetupMainWindow(&host, MainWindow.MinWidth, MainWindow.MinHeight)
+            let window = testSetupInspectionWindow(&host, MainWindow.MinWidth, MainWindow.MinHeight)
             defer host.shutdown()
             if palette == 0 do
                 host.theme.setSwagDark()

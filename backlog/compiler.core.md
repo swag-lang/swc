@@ -6,19 +6,18 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
-### compiler.core.038 — A semantic scope push copies its whole frame twice
+### compiler.core.038 — A frame copy is not what a semantic scope push costs
 
 - Recorded: 2026-09-09 15:04
+- Updated: 2026-09-09 16:00 — the copy was removed and measured: it buys nothing
 
-**Evidence.** `SemaFrame` is 1 376 bytes and `Sema::pushFrame` stores it by copy. Instrumented on 2026-09-09 (Release 0.1.425): analyzing one 22 800-line file pushes 41 573 frames, and building one snippet module that imports `core` pushes 259 030 — so the walk moves 57 MB and 356 MB of frame respectively, through copy constructors rather than a memcpy, since a frame carries six `SmallVector`s, an `AttributeList`, and four `Utf8`s. It is copied **twice** per push: the callers spell `auto frame = sema.frame(); frame.setX(...); sema.pushFramePopOnPostNode(frame);`, which copies the top of the stack into a local and then copies the local into the vector. 35 sites use that shape, out of 64 that push a frame. The measured stack never gets deep — 13 frames for a file, 36 for a module build — so the vector growth is not the cost; the per-push copy is.
+**Evidence.** `SemaFrame` is 1 376 bytes and `Sema::pushFrame` stores it by copy. Instrumented on 2026-09-09 (Release 0.1.425): analyzing one 22 800-line file pushes 41 573 frames, and building one snippet module that imports `core` pushes 259 030. Each push copied the frame **twice**, because the callers spell `auto frame = sema.frame(); frame.setX(...); sema.pushFramePopOnPostNode(frame);` — the top of the stack into a local, then the local into the vector.
 
-**Intent.** Give the walk a push that copies the top frame once, in place, and hands back a mutable reference to configure — `SemaFrame& pushFrameCopyPopOnPostNode(AstNodeRef)` — and migrate the copy-tweak-push sites to it. Then shrink what a frame carries: `AttributeList` is 736 of its bytes, and a frame almost always inherits it unchanged.
+Removing one of the two was tried and reverted. A `SemaFrame& pushFrameCopyPopOnPostNode(AstNodeRef)` that copies the top frame once, in place, was written and 42 of the 64 push sites migrated to it; the compiler suites, including the DevMode frame-count assertions, stayed green. Paired A/B against the same build, `sema --num-cores 1` on the 22 800-line file, minimum of twelve, three separate runs on an admitted machine: **100.0 %, 102.6 %, and 103.8 % of the processor time** — no gain, and possibly a small loss.
 
-**Complete when.**
+The reason is that a frame is trivially copyable in the parts that dominate its size, so a copy is a 1.4 KB `memcpy`: 57 MB across a whole file, roughly 1 % of the pass. What the earlier `AttributeList` shrink actually bought (0.1.425, −3.8 %) was not the 256 bytes but the two `SmallVector<Utf8>` constructor/destructor pairs it removed from every push — 83 000 non-trivial calls. Frame *size* is not the lever; the number of **non-trivial** members a push has to construct and destroy is.
 
-- No semantic scope push copies a frame more than once.
-- The compiler suites and one application that reads printed microcode produce identical output.
-- The single-core processor time of a large-file `sema` shows the reduction.
+**Next.** Count what a push still constructs non-trivially — the remaining `SmallVector`s of `SemaFrame` and `AttributeList` — and remove the ones a scope almost never fills, as `printMicroPassOptions` was removed. Do not spend effort on the copy count or on `frames_.reserve`: the stack never exceeds 13 frames for a file and 36 for a module build, so growth is not a cost either.
 
 **Related:** compiler.core.001, compiler.core.005, compiler.core.006.
 

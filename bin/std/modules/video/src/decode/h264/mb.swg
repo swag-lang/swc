@@ -1,6 +1,6 @@
-//! Format: H.264/AVC decoder component.
-//! Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
-//! Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
+﻿//! Format: H.264/AVC decoder component.
+//! Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
+//! Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
 //! Role: This file owns macroblock syntax, residuals, motion data, and reconstruction scheduling.
 //
 #global namespace H264
@@ -63,6 +63,32 @@ struct MbResidual
     chromaAc: [128] s16     // Sixteen per chroma block, scan positions 1..15.
 }
 
+// The coefficients of the two colour planes of a 4:4:4 macroblock.
+//
+// A 4:4:4 colour plane is coded exactly as luma is, so it needs the whole of a luma plane's
+// storage rather than the four small chroma blocks of a 4:2:0 macroblock. It lives apart from
+// [[Video.H264.MbResidual]] because a 4:2:0 stream, which is nearly every stream, would
+// otherwise pay for it at every macroblock of every picture.
+struct MbResidual444
+{
+    dc: [32] s16      // Sixteen Intra_16x16 DC coefficients per plane.
+    ac: [512] s16     // Sixteen coefficients per raster 4x4 block, per plane.
+    t8: [512] s16     // Sixty-four coefficients per 8x8 quadrant, per plane.
+}
+
+// Where one colour plane of a macroblock keeps what it needs to be parsed and reconstructed.
+//
+// Luma answers with its own arrays and a 4:4:4 colour plane with the matching part of
+// [[Video.H264.MbResidual444]], which is the whole of the difference between them: everything
+// downstream of this takes the plane's storage and runs the same code.
+struct PlaneResidual
+{
+    dc: [*] s16     // Sixteen Intra_16x16 DC coefficients.
+    ac: [*] s16     // Sixteen coefficients per raster 4x4 block.
+    t8: [*] s16     // Sixty-four coefficients per 8x8 quadrant.
+    nz: [*] u8      // Nonzero counts per raster 4x4 block, with the CAVLC count semantics.
+}
+
 // One parsed macroblock, whatever the entropy coding. Its frequently scanned control and motion
 // state remains compact; the large residual payload is cold for skipped inter macroblocks.
 struct Mb
@@ -91,12 +117,16 @@ struct Mb
     cbpChroma:    u32
     qp:           s32
 
-    residual: *MbResidual?
+    residual:    *MbResidual?
+    residual444: *MbResidual444?     // The two colour planes of a 4:4:4 macroblock, if any.
 
     // Nonzero bookkeeping, CAVLC count semantics.
     nzLuma:      [16] u8     // Per raster 4x4 block.
-    nzCb:        [4] u8
-    nzCr:        [4] u8
+
+    // Per chroma block: four of them in 4:2:0, and the sixteen raster 4x4 blocks of the plane
+    // in 4:4:4, where a colour plane carries as many blocks as luma.
+    nzCb:        [16] u8
+    nzCr:        [16] u8
     dcFlags:     [3] u8
     codedBlocks: [16] u8     // Any coefficient in the block, for deblocking.
 }
@@ -820,6 +850,7 @@ impl Slice
         Memory.clear(&mb.nzLuma, #sizeof(mb.nzLuma))
         Memory.clear(&mb.nzCb, #sizeof(mb.nzCb))
         Memory.clear(&mb.nzCr, #sizeof(mb.nzCr))
+        mb.residual444 = null
         Memory.clear(&mb.dcFlags, #sizeof(mb.dcFlags))
         Memory.clear(&mb.codedBlocks, #sizeof(mb.codedBlocks))
         Memory.set(&mb.refIdx, 0xFF, #sizeof(mb.refIdx))
@@ -844,6 +875,20 @@ impl Slice
 
             Memory.set(&mb.intraModes, cast(u8) IntraDc, #sizeof(mb.intraModes))
             Memory.clear(mb.residual!, #sizeof(MbResidual))
+
+            if dec.sps!.is444()
+            {
+                if dec.inlineRecon do
+                    mb.residual444 = &.scratchResidual444
+                else
+                {
+                    let entry = dec.parsedResiduals444.count
+                    dec.parsedResiduals444.resize(entry + 1)
+                    mb.residual444 = &dec.parsedResiduals444[entry]
+                }
+
+                Memory.clear(mb.residual444!, #sizeof(MbResidual444))
+            }
         }
     }
 
@@ -947,12 +992,26 @@ impl Slice
         // Coded block pattern for everything but Intra_16x16.
         if mb.class != MbClassIntra16x16
         {
-            let code = .bits.ue()
-            if code >= 48 do
-                fail InvalidFormatError{"H.264 coded block pattern does not decode"}
-            let cbp = mb.class == MbClassIntra4x4 or mb.class == MbClassIntra8x8 ? cast(u32) GolombToIntraCbp[code] : cast(u32) GolombToInterCbp[code]
-            mb.cbpLuma   = cbp & 15
-            mb.cbpChroma = cbp >> 4
+            let code   = .bits.ue()
+            let isIntra = mb.class == MbClassIntra4x4 or mb.class == MbClassIntra8x8
+
+            // A pattern that names no chroma block is a shorter code with a mapping of its own,
+            // Table 9-4 stating one column per chroma format.
+            if dec.sps!.is444()
+            {
+                if code >= 16 do
+                    fail InvalidFormatError{"H.264 coded block pattern does not decode"}
+                mb.cbpLuma   = cast(u32) (isIntra ? GolombToIntraCbpNoChroma[code] : GolombToInterCbpNoChroma[code])
+                mb.cbpChroma = 0
+            }
+            else
+            {
+                if code >= 48 do
+                    fail InvalidFormatError{"H.264 coded block pattern does not decode"}
+                let cbp = isIntra ? cast(u32) GolombToIntraCbp[code] : cast(u32) GolombToInterCbp[code]
+                mb.cbpLuma   = cbp & 15
+                mb.cbpChroma = cbp >> 4
+            }
 
             // The inter 8x8 transform flag sits after the pattern.
             if mb.cbpLuma != 0 and pps.transform8x8 and mb.class == MbClassInter and !mb.skipped and .allowsTransform8x8(mb) do
@@ -1051,9 +1110,17 @@ impl Slice
             mb.class   = MbClassIntra16x16
             mb.i16Mode = (mbType - 1) % 4
             let helper = (mbType - 1) / 4
-            mb.cbpChroma = helper % 3
+
+            // The chroma part of the type says nothing in 4:4:4: the colour planes take the
+            // luma pattern, and the residual syntax never reads a chroma pattern again.
+            mb.cbpChroma = dec.sps!.is444() ? 0 : helper % 3
             mb.cbpLuma   = helper >= 3 ? 15 : 0
         }
+
+        // A 4:4:4 colour plane is predicted with the luma modes of the macroblock, so no chroma
+        // prediction mode is coded at all.
+        if dec.sps!.is444() do
+            return
 
         if fromCabac do
             mb.chromaMode = .chromaModeCabac(mb)
@@ -1146,12 +1213,13 @@ impl Slice
                 frame.pixLuma(mb.mbX * 16 + column, mb.mbY * 16 + row)[0] = cast(u8) .bits.read(8)
         }
 
+        let chromaMb = 16 >> dec.sps!.chromaShift()
         for plane in 2'u32
         {
-            for row in 8's32
+            for row in chromaMb
             {
-                for column in 8's32 do
-                    frame.pixChroma(plane, mb.mbX * 8 + column, mb.mbY * 8 + row)[0] = cast(u8) .bits.read(8)
+                for column in chromaMb do
+                    frame.pixChroma(plane, mb.mbX * chromaMb + column, mb.mbY * chromaMb + row)[0] = cast(u8) .bits.read(8)
             }
         }
 
@@ -1636,12 +1704,26 @@ impl Slice
             dec.codedLuma[index]   = mb.codedBlocks[cast(u64) block]
         }
 
-        let cw = dec.sps!.mbWidth * 2
-        for block in 4's32
+        // A 4:4:4 colour plane has one block per luma block, and its counts go out on the
+        // luma grid so the entropy contexts of the next macroblock read them there.
+        if dec.sps!.is444()
         {
-            let index = cast(u64) ((mb.mbY * 2 + (block >> 1)) * cw + mb.mbX * 2 + (block & 1))
-            dec.nonZeroCb[index] = mb.nzCb[cast(u64) block]
-            dec.nonZeroCr[index] = mb.nzCr[cast(u64) block]
+            for block in 16's32
+            {
+                let index = cast(u64) ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3))
+                dec.nonZeroCb[index] = mb.nzCb[cast(u64) block]
+                dec.nonZeroCr[index] = mb.nzCr[cast(u64) block]
+            }
+        }
+        else
+        {
+            let cw = dec.sps!.mbWidth * 2
+            for block in 4's32
+            {
+                let index = cast(u64) ((mb.mbY * 2 + (block >> 1)) * cw + mb.mbX * 2 + (block & 1))
+                dec.nonZeroCb[index] = mb.nzCb[cast(u64) block]
+                dec.nonZeroCr[index] = mb.nzCr[cast(u64) block]
+            }
         }
 
         dec.dcFlags[mbIdx * 3]     = mb.dcFlags[0]
@@ -1779,68 +1861,13 @@ impl Slice
     // Parses every residual block of the macroblock with CAVLC coding, section 7.3.5.3.
     mtd parseResidualCavlc(mb: *Mb) fail
     {
-        let isIntra16 = mb.class == MbClassIntra16x16
-        if isIntra16
-        {
-            let nC    = .lumaNc(mb, 0, 0)
-            let count = residualCavlc(&.bits, nC, 16, (mb.residual!.lumaDc).buffer)
-            mb.dcFlags[0] = count > 0 ? 1 : 0
-            if count > 0
-            {
-                for block in 16'u64 do
-                    mb.codedBlocks[block] = 1
-            }
-        }
-
-        // Luma 4x4 or interleaved 8x8 blocks, one quadrant at a time.
-        for quad in 4's32
-        {
-            if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
-                continue
-            var quadAny = false
-            for cell in 4's32
-            {
-                let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
-                let bx     = raster & 3
-                let by     = raster >> 2
-                let nC     = .lumaNc(mb, bx, by)
-                var count: u32
-                if isIntra16
-                {
-                    count = residualCavlc(&.bits, nC, 15, (mb.residual!.lumaAc).buffer + cast(u64) raster * 16 + 1)
-                }
-                elif mb.transform8x8
-                {
-                    // CAVLC codes an 8x8 block as four interleaved 4x4 blocks.
-                    var cell16: [16] s16
-                    count = residualCavlc(&.bits, nC, 16, cell16.buffer)
-                    for coefficient in 16'u64 do
-                        mb.residual!.luma8[cast(u64) quad * 64 + coefficient * 4 + cast(u64) cell] = cell16[coefficient]
-                }
-                else
-                {
-                    count = residualCavlc(&.bits, nC, 16, (mb.residual!.lumaAc).buffer + cast(u64) raster * 16)
-                }
-
-                mb.nzLuma[cast(u64) raster] = cast(u8) count
-                if count > 0
-                {
-                    mb.codedBlocks[cast(u64) raster] = 1
-                    quadAny = true
-                }
-            }
-
-            // An 8x8 transform quadrant is one coded unit: any coefficient marks all four
-            // cells for the deblocking strength.
-            if mb.transform8x8 and quadAny
-            {
-                for cell in 4's32
-                {
-                    let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
-                    mb.codedBlocks[cast(u64) raster] = 1
-                }
-            }
-        }
+        // A 4:4:4 macroblock codes its colour planes exactly as luma, one whole plane after
+        // another and all three under the same coded block pattern.
+        let planes = .dec!.sps!.is444() ? 3'u32 : 1'u32
+        for plane in planes do
+            .parsePlaneResidualCavlc(mb, plane)
+        if planes > 1 do
+            return
 
         // Chroma DC, both planes.
         if mb.cbpChroma != 0
@@ -1870,12 +1897,123 @@ impl Slice
         }
     }
 
-    // Predicted nonzero count for the luma block at macroblock-relative `bx`, `by`,
-    // section 9.2.1.
-    mtd const lumaNc(mb: *Mb, bx, by: s32)->s32
+    // Parses the residual of one colour plane coded with the luma syntax, section 7.3.5.3.2.
+    //
+    // Only luma feeds the deblocking strength: the boundary filter reads the luma transform
+    // coefficients whatever the chroma format, so a colour plane writes its nonzero counts for
+    // the entropy contexts and nothing else.
+    mtd parsePlaneResidualCavlc(mb: *Mb, plane: u32) fail
     {
-        let a = .blockNz(mb, mb.mbX * 4 + bx - 1, mb.mbY * 4 + by)
-        let b = .blockNz(mb, mb.mbX * 4 + bx, mb.mbY * 4 + by - 1)
+        let storage   = .planeResidual(mb, plane)
+        let isIntra16 = mb.class == MbClassIntra16x16
+        let isLuma    = plane == 0
+        if isIntra16
+        {
+            let nC    = .planeNc(mb, plane, 0, 0)
+            let count = residualCavlc(&.bits, nC, 16, storage.dc)
+            mb.dcFlags[cast(u64) plane] = count > 0 ? 1 : 0
+            if count > 0 and isLuma
+            {
+                for block in 16'u64 do
+                    mb.codedBlocks[block] = 1
+            }
+        }
+
+        // Plane 4x4 or interleaved 8x8 blocks, one quadrant at a time.
+        for quad in 4's32
+        {
+            if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
+                continue
+            var quadAny = false
+            for cell in 4's32
+            {
+                let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
+                let bx     = raster & 3
+                let by     = raster >> 2
+                let nC     = .planeNc(mb, plane, bx, by)
+                var count: u32
+                if isIntra16
+                {
+                    count = residualCavlc(&.bits, nC, 15, storage.ac + cast(u64) raster * 16 + 1)
+                }
+                elif mb.transform8x8
+                {
+                    // CAVLC codes an 8x8 block as four interleaved 4x4 blocks.
+                    var cell16: [16] s16
+                    count = residualCavlc(&.bits, nC, 16, cell16.buffer)
+                    for coefficient in 16'u64 do
+                        storage.t8[cast(u64) quad * 64 + coefficient * 4 + cast(u64) cell] = cell16[coefficient]
+                }
+                else
+                {
+                    count = residualCavlc(&.bits, nC, 16, storage.ac + cast(u64) raster * 16)
+                }
+
+                storage.nz[cast(u64) raster] = cast(u8) count
+                if count > 0
+                {
+                    if isLuma do
+                        mb.codedBlocks[cast(u64) raster] = 1
+                    quadAny = true
+                }
+            }
+
+            // An 8x8 transform quadrant is one coded unit: any coefficient marks all four
+            // cells for the deblocking strength.
+            if mb.transform8x8 and quadAny and isLuma
+            {
+                for cell in 4's32
+                {
+                    let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
+                    mb.codedBlocks[cast(u64) raster] = 1
+                }
+            }
+        }
+    }
+
+    // Returns where one colour plane of `mb` keeps its coefficients and nonzero counts.
+    mtd const planeResidual(mb: *Mb, plane: u32)->PlaneResidual
+    {
+        if plane == 0 do
+            return {(mb.residual!.lumaDc).buffer, (mb.residual!.lumaAc).buffer, (mb.residual!.luma8).buffer, (mb.nzLuma).buffer}
+
+        let side  = mb.residual444!
+        let index = cast(u64) plane - 1
+        return {
+            (side.dc).buffer + index * 16,
+            (side.ac).buffer + index * 256,
+            (side.t8).buffer + index * 256,
+            plane == 1 ? (mb.nzCb).buffer : (mb.nzCr).buffer}
+    }
+
+    // Returns what the coded block flag of an 8x8 transform block reads from the neighbour at
+    // an absolute 4x4 position, section 9.3.3.1.1.9.
+    //
+    // An 8x8 block has a neighbouring block only where the neighbouring macroblock also takes
+    // the 8x8 transform; one that takes the 4x4 transform holds no 8x8 block to answer with, and
+    // contributes nothing rather than the flag of a 4x4 block. This rule is reachable only in
+    // 4:4:4, where an 8x8 block codes a flag of its own at all.
+    mtd const blockNz8x8(mb: *Mb, plane: u32, x4, y4: s32)->s32
+    {
+        let value = .blockNz(mb, plane, x4, y4)
+        if value <= 0 do
+            return value
+
+        let nMbX = x4 >> 2
+        let nMbY = y4 >> 2
+        if nMbX == mb.mbX and nMbY == mb.mbY do
+            return value
+
+        let dec = .dec!
+        return dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].transform8x8 ? value : 0
+    }
+
+    // Predicted nonzero count for the block of one colour plane at macroblock-relative
+    // `bx`, `by`, section 9.2.1.
+    mtd const planeNc(mb: *Mb, plane: u32, bx, by: s32)->s32
+    {
+        let a = .blockNz(mb, plane, mb.mbX * 4 + bx - 1, mb.mbY * 4 + by)
+        let b = .blockNz(mb, plane, mb.mbX * 4 + bx, mb.mbY * 4 + by - 1)
         if a >= 0 and b >= 0 do
             return (a + b + 1) >> 1
         if a >= 0 do
@@ -1885,9 +2023,9 @@ impl Slice
         return 0
     }
 
-    // Returns the stored nonzero count of the luma block at an absolute position, or -1
-    // when it is unavailable.
-    mtd const blockNz(mb: *Mb, x4, y4: s32)->s32
+    // Returns the stored nonzero count of one colour plane's block at an absolute position,
+    // or -1 when it is unavailable.
+    mtd const blockNz(mb: *Mb, plane: u32, x4, y4: s32)->s32
     {
         let dec = .dec!
         let gw  = dec.sps!.mbWidth * 4
@@ -1895,13 +2033,23 @@ impl Slice
             return -1
         let nMbX = x4 >> 2
         let nMbY = y4 >> 2
-        if nMbX == mb.mbX and nMbY == mb.mbY do
-            return cast(s32) mb.nzLuma[cast(u64) ((y4 & 3) * 4 + (x4 & 3))]
+        if nMbX == mb.mbX and nMbY == mb.mbY
+        {
+            let local = cast(u64) ((y4 & 3) * 4 + (x4 & 3))
+            if plane == 0 do
+                return cast(s32) mb.nzLuma[local]
+            return cast(s32) (plane == 1 ? mb.nzCb[local] : mb.nzCr[local])
+        }
+
         if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].sliceId != .sliceId do
             return -1
         if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].skipped do
             return 0
-        return cast(s32) dec.nonZeroLuma[cast(u64) (y4 * gw + x4)]
+
+        let index = cast(u64) (y4 * gw + x4)
+        if plane == 0 do
+            return cast(s32) dec.nonZeroLuma[index]
+        return cast(s32) (plane == 1 ? dec.nonZeroCb[index] : dec.nonZeroCr[index])
     }
 
     // Predicted nonzero count for one chroma block.

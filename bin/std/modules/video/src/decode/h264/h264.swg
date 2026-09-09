@@ -2,8 +2,8 @@
 #global internal
 
 //! Format: H.264/AVC decoder component.
-//! Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
-//! Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
+//! Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
+//! Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
 //! Role: This file owns decoder state, access units, parameter-set dispatch, and picture ordering.
 //
 
@@ -102,8 +102,11 @@ struct Decoder
     // `(mbY * 4 + y) * mbWidth * 4 + mbX * 4 + x`, and half that pitch for chroma.
     intraModes:  Array'u8     // Intra 4x4 prediction mode, DC for non-intra blocks.
     nonZeroLuma: Array'u8     // Nonzero AC coefficient count, for entropy contexts.
-    nonZeroCb:   Array'u8     // Chroma AC nonzero counts, one per chroma 4x4 block.
-    nonZeroCr:   Array'u8
+
+    // Chroma nonzero counts, one per chroma 4x4 block: four per macroblock in 4:2:0, and the
+    // sixteen of the luma grid in 4:4:4, where a colour plane carries as many blocks as luma.
+    nonZeroCb: Array'u8
+    nonZeroCr: Array'u8
     codedLuma:   Array'u8     // Any coefficient coded in the block, for deblocking.
 
     // Per-4x4-block motion state of the current picture, one array per reference list.
@@ -121,9 +124,10 @@ struct Decoder
 
     // Entropy parsing stays serial inside a slice. Parsed macroblocks and their immutable
     // slice contexts remain here until inter reconstruction fans out through the runtime scheduler.
-    parsedMbs:       Array'Mb
-    parsedResiduals: Array'MbResidual
-    parsedExtraJobs: Array'MbExtraJobs
+    parsedMbs:          Array'Mb
+    parsedResiduals:    Array'MbResidual
+    parsedResiduals444: Array'MbResidual444     // The colour planes of a 4:4:4 picture, if any.
+    parsedExtraJobs:    Array'MbExtraJobs
     pictureSlices:   Array'Slice
 
     decodedMbs: u64
@@ -715,21 +719,22 @@ impl Decoder
 
         let sps   = .sps!
         let frame = found!
-        frame.prepare(sps.mbWidth, sps.mbHeight)
+        frame.prepare(sps.mbWidth, sps.mbHeight, sps.chromaShift())
         frame.frameNum = frameNum
         frame.poc      = poc
         .current       = frame
 
-        let mbCount = cast(u64) sps.mbWidth * cast(u64) sps.mbHeight
-        let blocks  = mbCount * 16
-        if .mbInfo.count != mbCount
+        let mbCount     = cast(u64) sps.mbWidth * cast(u64) sps.mbHeight
+        let blocks      = mbCount * 16
+        let chromaCells = sps.is444() ? blocks : mbCount * 4
+        if .mbInfo.count != mbCount or .nonZeroCb.count != chromaCells
         {
             .mbInfo.resize(mbCount)
             .dcFlags.resize(mbCount * 3)
             .intraModes.resize(blocks)
             .nonZeroLuma.resize(blocks)
-            .nonZeroCb.resize(mbCount * 4)
-            .nonZeroCr.resize(mbCount * 4)
+            .nonZeroCb.resize(chromaCells)
+            .nonZeroCr.resize(chromaCells)
             .codedLuma.resize(blocks)
             .motionL0.resize(blocks)
             .motionL1.resize(blocks)
@@ -747,9 +752,12 @@ impl Decoder
         {
             .parsedResiduals.reserve(mbCount)
             .parsedExtraJobs.reserve(mbCount)
+            if sps.is444() do
+                .parsedResiduals444.reserve(mbCount)
         }
 
         .parsedResiduals.clear()
+        .parsedResiduals444.clear()
         .parsedExtraJobs.clear()
 
         // A stale slice id would make a mb from the previous picture look like a neighbor.

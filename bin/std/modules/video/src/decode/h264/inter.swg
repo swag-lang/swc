@@ -1,9 +1,9 @@
-#global namespace H264
+﻿#global namespace H264
 #global internal
 
 //! Format: H.264/AVC decoder component.
-//! Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
-//! Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
+//! Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
+//! Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
 //! Role: This file owns motion compensation, interpolation, and weighted prediction.
 //
 
@@ -423,14 +423,18 @@ func averagePlanes(dst: [*] u8, dstStride: u64, a: [*] u8, aStride: u64, b: [*] 
     }
 }
 
-// Motion-compensates one luma block into `dst`.
+// Motion-compensates one full-resolution block into `dst`, with the six-tap luma filter.
 //
-// `x`, `y` is the full-sample position in the reference frame, `fracX`, `fracY` the
-// quarter-sample phase, already split from the motion vector by the caller.
-func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, x, y, fracX, fracY, width, height: s32)
+// `plane` is the colour plane, luma being zero: a 4:4:4 colour plane is interpolated exactly as
+// luma, over a plane of the same size. `x`, `y` is the full-sample position in the reference
+// frame, `fracX`, `fracY` the quarter-sample phase, already split from the motion vector by the
+// caller.
+func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, fracX, fracY, width, height: s32)
 {
     let planeWidth  = reference.mbWidth * 16
     let planeHeight = reference.mbHeight * 16
+    let planeBase   = plane == 0 ? reference.luma.buffer! : (plane == 1 ? reference.cb.buffer! : reference.cr.buffer!)
+    let planePitch  = reference.planeStride(plane)
 
     // A window outside the replicated padding goes through a clamped copy first. The
     // right bound uses the sixteen-byte span of the packed row loads whatever the
@@ -440,14 +444,14 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, x, y, fracX, fracY, 
     var srcStride: u64
     if x - 2 < -FramePadding or y - 2 < -FramePadding or x + 19 > planeWidth + FramePadding or y + height + 3 > planeHeight + FramePadding
     {
-        copyClamped(window.buffer, 21, reference.luma.buffer!, reference.strideLuma, x - 2, y - 2, width + 5, height + 5, planeWidth, planeHeight)
+        copyClamped(window.buffer, 21, planeBase, planePitch, x - 2, y - 2, width + 5, height + 5, planeWidth, planeHeight)
         src       = window.buffer + 2 * 21 + 2
         srcStride = 21
     }
     else
     {
-        src       = reference.luma.buffer! + cast(u64) (y + FramePadding) * reference.strideLuma + cast(u64) (x + FramePadding)
-        srcStride = reference.strideLuma
+        src       = planeBase + cast(u64) (y + FramePadding) * planePitch + cast(u64) (x + FramePadding)
+        srcStride = planePitch
     }
 
     if fracX == 0 and fracY == 0

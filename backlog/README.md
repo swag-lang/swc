@@ -1,4 +1,4 @@
-# Backlog
+﻿# Backlog
 
 Everything this repository intends to do, and everything it has observed and not yet explained,
 lives here. Each domain has one file: evidence, open decisions, and committed outcomes stay
@@ -34,7 +34,7 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [std.video.md](std.video.md) | `std/video` | 2026-09-09 18:10 |
+| [std.video.md](std.video.md) | `std/video` | 2026-09-09 19:33 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-09 17:44 |
 | [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers | 2026-09-09 13:55 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-09 08:31 |

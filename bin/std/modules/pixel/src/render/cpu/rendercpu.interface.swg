@@ -1,4 +1,4 @@
-#global public
+﻿#global public
 
 using Core, Core.Math
 
@@ -93,12 +93,12 @@ impl IRenderer for RenderCpu
         .deleteRenderTargetImpl(target)
     }
 
-    mtd impl addImage(view: const *Yuv420View)->Texture
+    mtd impl addImage(view: const *YuvPlanarView)->Texture
     {
         return .addImageImpl(view)
     }
 
-    mtd impl updateTexture(texture: Texture, view: const *Yuv420View)
+    mtd impl updateTexture(texture: Texture, view: const *YuvPlanarView)
     {
         .updatePlanarImpl(texture, view)
     }

@@ -1,4 +1,4 @@
-#global if #command == Swag.CompilerCommand.Test
+﻿#global if #command == Swag.CompilerCommand.Test
 
 using Core, Pixel
 
@@ -124,13 +124,17 @@ func videoAssertFixtureLumaFrame(frame: Image, index: u64, tolerance = 3)
     videoAssertGray(frame.pixelColor(samples[3].x, samples[3].y), videoFixtureGray(index), tolerance)
 }
 
-// Converts one frame of a raw 4:2:0 reference dump with the exact arithmetic the module's
+// Converts one frame of a raw planar reference dump with the exact arithmetic the module's
 // decoders use, so a correct H.264 decode matches it byte for byte.
-func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32)->Image
+//
+// `chromaShift` is how far a pixel coordinate shifts right to reach the chroma planes: one for a
+// 4:2:0 dump, none for a 4:4:4 one.
+func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32, chromaShift = 1's32)->Image
 {
+    let round        = cast(u64) ((1's32 << chromaShift) - 1)
     let lumaSize     = cast(u64) width * cast(u64) height
-    let chromaWidth  = cast(u64) (width + 1) / 2
-    let chromaHeight = cast(u64) (height + 1) / 2
+    let chromaWidth  = (cast(u64) width + round) >> chromaShift
+    let chromaHeight = (cast(u64) height + round) >> chromaShift
     let chromaSize   = chromaWidth * chromaHeight
     let frameSize    = lumaSize + chromaSize * 2
     let base         = index * frameSize
@@ -143,7 +147,7 @@ func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32)->
         for x in width
         {
             let luma         = cast(s32) bytes[base + cast(u64) y * cast(u64) width + cast(u64) x]
-            let chromaSource = cast(u64) (y >> 1) * chromaWidth + cast(u64) (x >> 1)
+            let chromaSource = cast(u64) (y >> chromaShift) * chromaWidth + cast(u64) (x >> chromaShift)
             let d            = cast(s32) bytes[base + lumaSize + chromaSource] - 128
             let e            = cast(s32) bytes[base + lumaSize + chromaSize + chromaSource] - 128
             let c            = Math.max(luma - 16, 0)
@@ -158,10 +162,10 @@ func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32)->
 }
 
 // Compares a decoded frame against the reference, reporting the first difference.
-func videoAssertReferenceFrame(frame: Image, reference: const [..] u8, index: u64, width, height: s32)
+func videoAssertReferenceFrame(frame: Image, reference: const [..] u8, index: u64, width, height: s32, chromaShift = 1's32)
 {
     Swag.assert(frame.width == width and frame.height == height and frame.pixelFormat == .RGB8)
-    let expected   = videoReferenceFrame(reference, index, width, height)
+    let expected   = videoReferenceFrame(reference, index, width, height, chromaShift)
     var mismatches = 0'u64
     for position in frame.pixels.count where frame.pixels.buffer![position] != expected.pixels.buffer![position] do
         mismatches += 1
@@ -174,7 +178,7 @@ func videoAssertReferenceFrame(frame: Image, reference: const [..] u8, index: u6
 //
 // `container` carries no leading dot: it names the file beside `name.yuv` the stream is read from,
 // so one reference dump serves every container the same access units were muxed into.
-func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u64, container = "mp4")
+func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u64, container = "mp4", chromaShift = 1's32)
 {
     Swag.setWorkerCount(16)
 
@@ -186,7 +190,7 @@ func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u6
     for index in frameCount
     {
         expect reader.decodeFrameInto(&frame, index)
-        videoAssertReferenceFrame(frame, reference.toSlice(), index, width, height)
+        videoAssertReferenceFrame(frame, reference.toSlice(), index, width, height, chromaShift)
     }
 
     // A progressive container only knows its length once the stream has been walked, so the count

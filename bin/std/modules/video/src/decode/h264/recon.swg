@@ -1,6 +1,6 @@
-//! Format: H.264/AVC decoder component.
-//! Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
-//! Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
+﻿//! Format: H.264/AVC decoder component.
+//! Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
+//! Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
 //! Role: This file owns prediction/residual combination and macroblock reconstruction.
 //
 #global namespace H264
@@ -122,9 +122,20 @@ impl Slice
         let pps     = .pps!
         let frame   = dec.current!
         let isIntra = mb.class != MbClassInter
+        let is444   = dec.sps!.is444()
 
-        if mb.class == MbClassIntra16x16 or mb.class == MbClassIntra4x4 or mb.class == MbClassIntra8x8 do
-            .predictIntraLuma(mb, frame)
+        let qpCb = cast(s32) ChromaQp[cast(u64) Math.clamp(mb.qp + pps.chromaQpOffset[0], 0, 51)]
+        let qpCr = cast(s32) ChromaQp[cast(u64) Math.clamp(mb.qp + pps.chromaQpOffset[1], 0, 51)]
+
+        // A 4:4:4 colour plane is predicted, transformed and reconstructed exactly as luma is,
+        // with the same modes and the same motion; only its quantizer differs.
+        let planes = is444 ? 3'u32 : 1'u32
+
+        if mb.class == MbClassIntra16x16 or mb.class == MbClassIntra4x4 or mb.class == MbClassIntra8x8
+        {
+            for plane in planes do
+                .predictIntraPlane(mb, frame, plane, plane == 0 ? mb.qp : (plane == 1 ? qpCb : qpCr))
+        }
         else
         {
             .compensate(mb, frame)
@@ -132,12 +143,16 @@ impl Slice
                 return
         }
 
-        if mb.class != MbClassIntra4x4 and mb.class != MbClassIntra8x8 do
-            .addLumaResidual(mb, frame)
+        if mb.class != MbClassIntra4x4 and mb.class != MbClassIntra8x8
+        {
+            for plane in planes do
+                .addPlaneResidual(mb, frame, plane, plane == 0 ? mb.qp : (plane == 1 ? qpCb : qpCr))
+        }
 
-        // Chroma prediction and residual.
-        let qpCb = cast(s32) ChromaQp[cast(u64) Math.clamp(mb.qp + pps.chromaQpOffset[0], 0, 51)]
-        let qpCr = cast(s32) ChromaQp[cast(u64) Math.clamp(mb.qp + pps.chromaQpOffset[1], 0, 51)]
+        if is444 do
+            return
+
+        // Chroma prediction and residual of a subsampled picture, which has a syntax of its own.
         if isIntra
         {
             let hasLeft = .intraMbAvailable(mb.mbX - 1, mb.mbY)
@@ -160,12 +175,12 @@ impl Slice
         return .mbInfoAt(mbX, mbY).class != MbClassInter
     }
 
-    // Runs the intra luma prediction, interleaved with the residual for the 4x4 and 8x8
-    // classes whose later blocks predict from earlier reconstructed ones.
-    mtd predictIntraLuma(mb: *Mb, frame: *Frame)
+    // Runs the intra prediction of one colour plane, interleaved with the residual for the
+    // 4x4 and 8x8 classes whose later blocks predict from earlier reconstructed ones.
+    mtd predictIntraPlane(mb: *Mb, frame: *Frame, plane: u32, qp: s32)
     {
         let dec           = .dec!
-        let stride        = frame.strideLuma
+        let stride        = frame.planeStride(plane)
         let hasLeftMb     = .intraMbAvailable(mb.mbX - 1, mb.mbY)
         let hasTopMb      = .intraMbAvailable(mb.mbX, mb.mbY - 1)
         let hasTopLeftMb  = .intraMbAvailable(mb.mbX - 1, mb.mbY - 1)
@@ -173,18 +188,19 @@ impl Slice
 
         if mb.class == MbClassIntra16x16
         {
-            intraPredict16x16(mb.i16Mode, frame.pixLuma(mb.mbX * 16, mb.mbY * 16), stride, hasLeftMb, hasTopMb)
+            intraPredict16x16(mb.i16Mode, frame.pixPlane(plane, mb.mbX * 16, mb.mbY * 16), stride, hasLeftMb, hasTopMb)
             return
         }
 
+        let storage = .planeResidual(mb, plane)
         if mb.class == MbClassIntra8x8
         {
-            let list = 0'u64
+            let list = cast(u64) plane * 2
             for quad in 4's32
             {
                 let qx         = quad & 1
                 let qy         = quad >> 1
-                let dst        = frame.pixLuma(mb.mbX * 16 + qx * 8, mb.mbY * 16 + qy * 8)
+                let dst        = frame.pixPlane(plane, mb.mbX * 16 + qx * 8, mb.mbY * 16 + qy * 8)
                 let hasLeft    = qx > 0 ? true : hasLeftMb
                 let hasTop     = qy > 0 ? true : hasTopMb
                 var hasTopLeft = true
@@ -203,10 +219,13 @@ impl Slice
                 let mode = cast(u32) mb.intraModes[cast(u64) (qy * 2 * 4 + qx * 2)]
                 intraPredict8x8(mode, dst, stride, hasLeft, hasTop, hasTopLeft, hasTopRight)
 
-                if mb.codedBlocks[cast(u64) (qy * 2 * 4 + qx * 2)] != 0
+                // CAVLC codes an 8x8 block as four interleaved 4x4 ones, so the quadrant
+                // holds coefficients when any of its four cells counted one.
+                let anchor = cast(u64) (qy * 2 * 4 + qx * 2)
+                if (storage.nz[anchor] | storage.nz[anchor + 1] | storage.nz[anchor + 4] | storage.nz[anchor + 5]) != 0
                 {
                     var block: [64] s16
-                    .dequant8x8(mb, quad, list, block.buffer)
+                    .dequant8x8(storage, quad, list, qp, block.buffer)
                     addIdct8x8(dst, stride, block.buffer)
                 }
             }
@@ -214,13 +233,15 @@ impl Slice
             return
         }
 
-        // Intra 4x4, in coded block order.
+        // Intra 4x4, in coded block order. Every plane walks that order for itself, so the
+        // record of what is already reconstructed restarts with it.
+        mb.decodedMask = 0
         for coded in 16's32
         {
             let raster     = cast(s32) CodedToRaster4[coded]
             let bx         = raster & 3
             let by         = raster >> 2
-            let dst        = frame.pixLuma(mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4)
+            let dst        = frame.pixPlane(plane, mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4)
             let hasLeft    = bx > 0 ? true : hasLeftMb
             let hasTop     = by > 0 ? true : hasTopMb
             var hasTopLeft = true
@@ -239,30 +260,29 @@ impl Slice
             let mode = cast(u32) mb.intraModes[cast(u64) raster]
             intraPredict4x4(mode, dst, stride, hasLeft, hasTop, hasTopLeft, hasTopRight)
 
-            if mb.nzLuma[cast(u64) raster] != 0 do
-                .addLuma4x4Residual(mb, raster, dst, stride)
+            if storage.nz[cast(u64) raster] != 0 do
+                .addPlane4x4Residual(mb, storage, plane, raster, qp, dst, stride)
 
             mb.decodedMask |= 1'u32 << cast(u32) raster
         }
     }
 
-    // Dequantizes one 4x4 luma block into raster order; `dcValue` replaces position zero for
-    // the Intra_16x16 class.
-    mtd dequant4x4(mb: *Mb, raster: s32, dcValue: s32, hasDc: bool, block: [*] s16)
+    // Dequantizes one 4x4 block of a colour plane into raster order; `dcValue` replaces
+    // position zero for the Intra_16x16 class.
+    mtd dequant4x4(mb: *Mb, storage: PlaneResidual, plane: u32, raster: s32, qp, dcValue: s32, hasDc: bool, block: [*] s16)
     {
-        let dec  = .dec!
         let pps  = .pps!
-        let list = mb.class == MbClassInter ? 3'u64 : 0'u64
+        let list = cast(u64) plane + (mb.class == MbClassInter ? 3'u64 : 0'u64)
         Memory.clear(block, 16 * #sizeof(s16))
 
         // The scaling factors of one quantizer are one row of the table; addressing them through
         // all three dimensions costs two multiplies at every coefficient of every block.
-        let table = cast([*] u32) &pps.dequant4[list, cast(u64) mb.qp, 0]
+        let table = cast([*] u32) &pps.dequant4[list, cast(u64) qp, 0]
         let base  = cast(u64) raster * 16
         let start = hasDc ? 1'u64 : 0'u64
         for scan in start until 16
         {
-            let coeff = cast(s32) mb.residual!.lumaAc[base + scan]
+            let coeff = cast(s32) storage.ac[base + scan]
             if coeff == 0 do
                 continue
             let position = cast(u64) Zigzag4[scan]
@@ -273,18 +293,20 @@ impl Slice
             block[0] = cast(s16) clampS32(dcValue, -32768, 32767)
     }
 
-    // Dequantizes one 8x8 luma block into raster order.
-    mtd dequant8x8(mb: *Mb, quad: s32, list: u64, block: [*] s16)
+    // Dequantizes one 8x8 block of a colour plane into raster order.
+    //
+    // `list` is the 8x8 weight list of Table 7-2: the plane's intra list, or the inter one
+    // beside it.
+    mtd dequant8x8(storage: PlaneResidual, quad: s32, list: u64, qp: s32, block: [*] s16)
     {
-        let dec = .dec!
         let pps = .pps!
         Memory.clear(block, 64 * #sizeof(s16))
 
-        let table = cast([*] u32) &pps.dequant8[list, cast(u64) mb.qp, 0]
+        let table = cast([*] u32) &pps.dequant8[list, cast(u64) qp, 0]
         let base  = cast(u64) quad * 64
         for scan in 64'u64
         {
-            let coeff = cast(s32) mb.residual!.luma8[base + scan]
+            let coeff = cast(s32) storage.t8[base + scan]
             if coeff == 0 do
                 continue
             let position = cast(u64) Zigzag8[scan]
@@ -292,31 +314,31 @@ impl Slice
         }
     }
 
-    // Adds one dequantized 4x4 luma block to its prediction.
+    // Adds one dequantized 4x4 block of a colour plane to its prediction.
     #[Swag.Inline]
-    mtd addLuma4x4Residual(mb: *Mb, raster: s32, destination: [*] u8, stride: u64)
+    mtd addPlane4x4Residual(mb: *Mb, storage: PlaneResidual, plane: u32, raster: s32, qp: s32, destination: [*] u8, stride: u64)
     {
         let base = cast(u64) raster * 16
-        if mb.nzLuma[cast(u64) raster] == 1 and mb.residual!.lumaAc[base] != 0
+        if storage.nz[cast(u64) raster] == 1 and storage.ac[base] != 0
         {
-            let list  = mb.class == MbClassInter ? 3'u64 : 0'u64
-            let coeff = cast(s32) mb.residual!.lumaAc[base]
-            let dc    = clampS32((coeff * cast(s32) .pps!.dequant4[list, cast(u64) mb.qp, 0] + 8) >> 4, -32768, 32767)
+            let list  = cast(u64) plane + (mb.class == MbClassInter ? 3'u64 : 0'u64)
+            let coeff = cast(s32) storage.ac[base]
+            let dc    = clampS32((coeff * cast(s32) .pps!.dequant4[list, cast(u64) qp, 0] + 8) >> 4, -32768, 32767)
             addDc4x4(destination, stride, dc)
             return
         }
 
         var block: [16] s16
-        .dequant4x4(mb, raster, 0, false, block.buffer)
+        .dequant4x4(mb, storage, plane, raster, qp, 0, false, block.buffer)
         addIdct4x4(destination, stride, block.buffer)
     }
 
-    // Adds the luma residual of a macroblock whose prediction is already in place.
-    mtd addLumaResidual(mb: *Mb, frame: *Frame)
+    // Adds the residual of one colour plane of a macroblock whose prediction is already in place.
+    mtd addPlaneResidual(mb: *Mb, frame: *Frame, plane: u32, qp: s32)
     {
-        let dec    = .dec!
-        let pps    = .pps!
-        let stride = frame.strideLuma
+        let pps     = .pps!
+        let stride  = frame.planeStride(plane)
+        let storage = .planeResidual(mb, plane)
 
         if mb.class == MbClassIntra16x16
         {
@@ -324,17 +346,18 @@ impl Slice
             // block's AC residual.
             var dcBlock: [16] s16
             for scan in 16'u64 do
-                dcBlock[cast(u64) Zigzag4[scan]] = mb.residual!.lumaDc[scan]
+                dcBlock[cast(u64) Zigzag4[scan]] = storage.dc[scan]
             hadamard4x4(dcBlock.buffer)
 
+            let dcList = cast(u64) plane
             for raster in 16's32
             {
                 let bx = raster & 3
                 let by = raster >> 2
-                let dc = (cast(s32) dcBlock[cast(u64) (by * 4 + bx)] * cast(s32) pps.dequant4[0, cast(u64) mb.qp, 0] + 32) >> 6
+                let dc = (cast(s32) dcBlock[cast(u64) (by * 4 + bx)] * cast(s32) pps.dequant4[dcList, cast(u64) qp, 0] + 32) >> 6
                 var block: [16] s16
-                .dequant4x4(mb, raster, dc, true, block.buffer)
-                addIdct4x4(frame.pixLuma(mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride, block.buffer)
+                .dequant4x4(mb, storage, plane, raster, qp, dc, true, block.buffer)
+                addIdct4x4(frame.pixPlane(plane, mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride, block.buffer)
             }
 
             return
@@ -342,13 +365,14 @@ impl Slice
 
         if mb.transform8x8
         {
+            let list = cast(u64) plane * 2 + (mb.class == MbClassInter ? 1'u64 : 0'u64)
             for quad in 4's32
             {
                 if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
                     continue
                 var block: [64] s16
-                .dequant8x8(mb, quad, mb.class == MbClassInter ? 1'u64 : 0'u64, block.buffer)
-                addIdct8x8(frame.pixLuma(mb.mbX * 16 + (quad & 1) * 8, mb.mbY * 16 + (quad >> 1) * 8), stride, block.buffer)
+                .dequant8x8(storage, quad, list, qp, block.buffer)
+                addIdct8x8(frame.pixPlane(plane, mb.mbX * 16 + (quad & 1) * 8, mb.mbY * 16 + (quad >> 1) * 8), stride, block.buffer)
             }
 
             return
@@ -356,11 +380,11 @@ impl Slice
 
         for raster in 16's32
         {
-            if mb.nzLuma[cast(u64) raster] == 0 do
+            if storage.nz[cast(u64) raster] == 0 do
                 continue
             let bx = raster & 3
             let by = raster >> 2
-            .addLuma4x4Residual(mb, raster, frame.pixLuma(mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride)
+            .addPlane4x4Residual(mb, storage, plane, raster, qp, frame.pixPlane(plane, mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride)
         }
     }
 
@@ -417,6 +441,7 @@ impl Slice
     // Runs every motion-compensation job of an inter macroblock.
     mtd compensate(mb: *Mb, frame: *Frame) fail
     {
+        let dec = .dec!
         var tempA: [16 * 16] u8
         var tempB: [16 * 16] u8
 
@@ -459,31 +484,55 @@ impl Slice
             if ref1 do
                 .awaitJobReference(mb, job, 1, ref1!)
 
-            // Luma.
-            let lumaX   = mb.mbX * 16 + job.x
-            let lumaY   = mb.mbY * 16 + job.y
-            let lumaDst = frame.pixLuma(lumaX, lumaY)
-            if ref0 and ref1
+            // Luma, and in 4:4:4 the two colour planes with it: a colour plane there is
+            // predicted with the same motion and the same interpolation as luma, over a block
+            // of the same size, and differs only in the weights it may be scaled by.
+            let planeCount = dec.sps!.is444() ? 3'u32 : 1'u32
+            for plane in planeCount
             {
-                .mcLumaList(mb, job, 0, ref0!, tempA.buffer, 16)
-                .mcLumaList(mb, job, 1, ref1!, tempB.buffer, 16)
-                .combineBi(mb, job, tempA.buffer, tempB.buffer, lumaDst, frame.strideLuma, job.width, job.height, luma: true, plane: 0)
-            }
-            else
-            {
-                let list      = ref0 ? 0'u32 : 1'u32
-                let reference = ref0 ? ref0! : ref1!
-                if .useWeights
+                let x   = mb.mbX * 16 + job.x
+                let y   = mb.mbY * 16 + job.y
+                let dst = frame.pixPlane(plane, x, y)
+                let dstStride = frame.planeStride(plane)
+                if ref0 and ref1
                 {
-                    .mcLumaList(mb, job, list, reference, tempA.buffer, 16)
-                    let entry = &.refs[list, cast(u64) job.refIdx[list]]
-                    weightUni(lumaDst, frame.strideLuma, tempA.buffer, 16, job.width, job.height, cast(s32) .lumaLog2Denom, entry.lumaWeight, entry.lumaOffset)
+                    .mcPlaneList(mb, job, 0, ref0!, plane, tempA.buffer, 16)
+                    .mcPlaneList(mb, job, 1, ref1!, plane, tempB.buffer, 16)
+                    .combineBi(mb, job, tempA.buffer, tempB.buffer, dst, dstStride, job.width, job.height, luma: plane == 0, plane: plane == 0 ? 0 : plane - 1)
                 }
                 else
                 {
-                    .mcLumaList(mb, job, list, reference, lumaDst, frame.strideLuma)
+                    let list      = ref0 ? 0'u32 : 1'u32
+                    let reference = ref0 ? ref0! : ref1!
+                    if .useWeights
+                    {
+                        .mcPlaneList(mb, job, list, reference, plane, tempA.buffer, 16)
+                        let entry  = &.refs[list, cast(u64) job.refIdx[list]]
+                        let denom  = plane == 0 ? cast(s32) .lumaLog2Denom : cast(s32) .chromaLog2Denom
+                        var weight = entry.lumaWeight
+                        var offset = entry.lumaOffset
+                        if plane == 1
+                        {
+                            weight = entry.cbWeight
+                            offset = entry.cbOffset
+                        }
+                        elif plane == 2
+                        {
+                            weight = entry.crWeight
+                            offset = entry.crOffset
+                        }
+
+                        weightUni(dst, dstStride, tempA.buffer, 16, job.width, job.height, denom, weight, offset)
+                    }
+                    else
+                    {
+                        .mcPlaneList(mb, job, list, reference, plane, dst, dstStride)
+                    }
                 }
             }
+
+            if planeCount > 1 do
+                continue
 
             // Chroma, both planes at half resolution.
             for plane in 2'u32
@@ -527,7 +576,10 @@ impl Slice
     {
         let mvY        = cast(s32) job.mv[list, 1]
         let lumaLast   = mb.mbY * 16 + job.y + (mvY >> 2) + job.height + 3
-        let chromaLast = 2 * (mb.mbY * 8 + job.y / 2 + (mvY >> 3) + job.height / 2) + 1
+
+        // A 4:4:4 colour plane is read through the luma interpolator over the same block, so it
+        // never reaches further than luma does.
+        let chromaLast = reference.chromaShift == 0 ? lumaLast : 2 * (mb.mbY * 8 + job.y / 2 + (mvY >> 3) + job.height / 2) + 1
         let last       = Math.max(lumaLast, chromaLast)
         let rows       = last >= reference.mbHeight * 16 ? reference.progressComplete() : (Math.max(last, 0) >> 4) + 1
 
@@ -541,14 +593,14 @@ impl Slice
         entry.readyRows = observed
     }
 
-    // Interpolates the luma of one job for one list.
-    mtd mcLumaList(mb: *Mb, job: *McJob, list: u32, reference: *Frame, dst: [*] u8, dstStride: u64)
+    // Interpolates one full-resolution plane of one job for one list.
+    mtd mcPlaneList(mb: *Mb, job: *McJob, list: u32, reference: *Frame, plane: u32, dst: [*] u8, dstStride: u64)
     {
         let mvX = cast(s32) job.mv[list, 0]
         let mvY = cast(s32) job.mv[list, 1]
         let x   = mb.mbX * 16 + job.x + (mvX >> 2)
         let y   = mb.mbY * 16 + job.y + (mvY >> 2)
-        mcLuma(dst, dstStride, reference, x, y, mvX & 3, mvY & 3, job.width, job.height)
+        mcLuma(dst, dstStride, reference, plane, x, y, mvX & 3, mvY & 3, job.width, job.height)
     }
 
     // Interpolates one chroma plane of one job for one list.

@@ -1,4 +1,4 @@
-# Video Backlog
+﻿# Video Backlog
 
 The module reads and writes video as a stream: a codec registered against `Video.IDecoder` and
 `Video.IEncoder`, selected by extension, reading a `Core.ByteSource` and writing a `Core.ByteSink`.
@@ -14,6 +14,27 @@ bounded sound windows.
 
 The picture codec of an AVI stream is the Pixel one. Its generic minimum-coded-unit walker accepts
 the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
+
+### std.video.012 — 4:2:2 is the chroma format H.264 still refuses
+
+- Recorded: 2026-09-09 19:33
+- Intent: the decoder reads 4:2:0 and, since this change, 4:4:4, which is what a screen recorder,
+  a colourist's intermediate, and x264 at `profile=high444` produce. `chroma_format_idc` equal to
+  2 is what remains, and a file carrying it is refused at the sequence set rather than decoded.
+- Evidence: `decode/h264/sets.swg` fails a sequence set whose `chroma_format_idc` is neither 1 nor
+  3, with "video decoder only supports 4:2:0 and 4:4:4 H.264 streams". `Sps.chromaShift` states one
+  halving or none, so it has no way to say "half the width and all of the height".
+- Why it is not the same work as 4:4:4: a 4:4:4 colour plane is coded exactly as luma, so the
+  4:4:4 path is the luma path with a plane index. 4:2:2 is a third geometry of its own — eight
+  chroma blocks per plane, a 2x4 chroma DC transform with its own scan, a chroma quantizer offset
+  of `+3`, and its own CABAC categories — and none of that is reached by the plane index.
+- Also unresolved for both formats: separate colour planes
+  (`separate_colour_plane_flag`), which codes each plane as its own monochrome picture with slice
+  headers of its own, is refused with a message of its own.
+- Next: decide whether a real file is asking for it. If one is, start from `Sps` carrying a
+  horizontal and a vertical chroma shift rather than one, then the chroma DC transform.
+- Complete when: a 4:2:2 fixture encoded by x264 decodes byte-exact against FFmpeg, beside the
+  4:2:0 and 4:4:4 ones in `video/src/tests/datas`.
 
 ### std.video.001 — H.264 decoding costs several times what FFmpeg does per picture
 

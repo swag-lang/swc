@@ -1,4 +1,4 @@
-#global public
+﻿#global public
 
 using Swag, Core, Ogl, Core.Math
 
@@ -982,42 +982,38 @@ impl RenderOgl
     }
 
     // Registers a planar picture as three single-channel planes the shader converts.
-    internal mtd addImageImpl(view: const *Yuv420View)->Texture
+    internal mtd addImageImpl(view: const *YuvPlanarView)->Texture
     {
         if view.width <= 0 or view.height <= 0
         {
             return {}
         }
 
-        let chromaWidth  = (view.width + 1) / 2
-        let chromaHeight = (view.height + 1) / 2
-        let luma         = .createPlaneTexture(view.width, view.height)
+        let luma = .createPlaneTexture(view.width, view.height)
 
         var planes: ChromaPlanes
-        planes.chromaB = .createPlaneTexture(chromaWidth, chromaHeight)
-        planes.chromaR = .createPlaneTexture(chromaWidth, chromaHeight)
+        planes.chromaB = .createPlaneTexture(view.chromaWidth(), view.chromaHeight())
+        planes.chromaR = .createPlaneTexture(view.chromaWidth(), view.chromaHeight())
 
         var result: retval
-        result.attach(cast(TextureHandle) luma, .Yuv420, view.width, view.height)
+        result.attach(cast(TextureHandle) luma, view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height)
         .chromaPlanes.add(result.handle, planes)
         .updatePlanarImpl(result, view)
         return result
     }
 
     // Replaces the planar picture held by a texture, converting nothing.
-    internal mtd updatePlanarImpl(texture: Texture, view: const *Yuv420View)
+    internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)
     {
-        if !texture.isValid() or texture.pixelFormat != .Yuv420 do
+        if !texture.isValid() or (texture.pixelFormat != .Yuv420 and texture.pixelFormat != .Yuv444) do
             return
         let planes = .chromaPlanes.tryFind(texture.handle)
         if !planes do
             return
 
-        let chromaWidth  = (texture.width + 1) / 2
-        let chromaHeight = (texture.height + 1) / 2
         .uploadPlane(cast(GLuint) texture.handle, view.luma, view.lumaStride, texture.width, texture.height)
-        .uploadPlane(planes!.value.chromaB, view.chromaB, view.chromaStride, chromaWidth, chromaHeight)
-        .uploadPlane(planes!.value.chromaR, view.chromaR, view.chromaStride, chromaWidth, chromaHeight)
+        .uploadPlane(planes!.value.chromaB, view.chromaB, view.chromaStride, view.chromaWidth(), view.chromaHeight())
+        .uploadPlane(planes!.value.chromaR, view.chromaR, view.chromaStride, view.chromaWidth(), view.chromaHeight())
         planes!.value.factors = view.conversionFactors()
     }
 
@@ -1037,7 +1033,7 @@ impl RenderOgl
         }
 
         // A planar picture has no single upload format; it goes through the plane path.
-        if image.pixelFormat == .Yuv420
+        if image.pixelFormat == .Yuv420 or image.pixelFormat == .Yuv444
         {
             Swag.assert(false, "a planar picture is added through its view")
             return {}
@@ -1071,7 +1067,7 @@ impl RenderOgl
     {
         switch #complete pixelFormat
         {
-        case .Yuv420:
+        case .Yuv420, .Yuv444:
             return GL_RED     // One plane at a time.
 
         case .Gray8, .Gray16, .GrayF16, .GrayF32:
@@ -1513,7 +1509,7 @@ impl RenderOgl
             // A planar picture is three textures and its own program. Selecting it here, from the
             // format the texture carries, is what lets it travel through the ordinary texture
             // path: nothing above this line knows the difference.
-            let planarPlanes = params.type == .Texture and params.texture.pixelFormat == .Yuv420 ? .chromaPlanes.tryFind(params.texture.handle) : null
+            let planarPlanes = params.type == .Texture and !params.texture.pixelFormat.isPacked() ? .chromaPlanes.tryFind(params.texture.handle) : null
             if planarPlanes
             {
                 if !.planarPrevShader do

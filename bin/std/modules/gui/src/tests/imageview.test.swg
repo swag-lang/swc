@@ -1,4 +1,4 @@
-#global if #command == Swag.CompilerCommand.Test
+﻿#global if #command == Swag.CompilerCommand.Test
 #global private
 
 using Swag, Core, Pixel
@@ -241,7 +241,7 @@ private func edgeSpread(image: *Image, row: s32)->s32
     Memory.set(planes.buffer!, 235, 100 * 50)
     Memory.set(planes.buffer! + 100 * 50, 128, 50 * 25 * 2)
 
-    let picture = Yuv420View{
+    let picture = YuvPlanarView{
         luma: planes.buffer!,
         chromaB: planes.buffer! + 100 * 50,
         chromaR: planes.buffer! + 100 * 50 + 50 * 25,
@@ -264,7 +264,7 @@ private func edgeSpread(image: *Image, row: s32)->s32
     Swag.assert(view.uploadedTexture.handle == textureHandle)
 
     // A stream that changes size, or a view that is cleared, starts over.
-    let smaller = Yuv420View{
+    let smaller = YuvPlanarView{
         luma: planes.buffer!,
         chromaB: planes.buffer! + 100 * 50,
         chromaR: planes.buffer! + 100 * 50 + 50 * 25,

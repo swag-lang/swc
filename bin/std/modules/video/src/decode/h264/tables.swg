@@ -1,6 +1,6 @@
-//! Format: H.264/AVC decoder component.
-//! Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
-//! Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
+﻿//! Format: H.264/AVC decoder component.
+//! Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
+//! Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
 //! Role: This file owns normative entropy, scan, quantization, and filter tables.
 //
 #global namespace H264
@@ -684,6 +684,17 @@ const GolombToInterCbp: [48] u8 = [
     0, 16, 1, 2, 4, 8, 32, 3, 5, 10, 12, 15, 47, 7, 11, 13,
     14, 6, 9, 31, 35, 37, 42, 44, 33, 34, 36, 40, 39, 43, 45, 46,
     17, 18, 20, 24, 19, 21, 26, 28, 23, 27, 29, 30, 22, 25, 38, 41]
+
+// Table 9-4, the two columns a format with no coded chroma pattern uses.
+//
+// A 4:4:4 macroblock states four luma bits and nothing else, so its code numbers run to fifteen
+// and map through their own permutation rather than through the forty-eight-entry tables above.
+
+const GolombToIntraCbpNoChroma: [16] u8 = [
+    15, 0, 7, 11, 13, 14, 3, 5, 10, 12, 1, 2, 4, 8, 6, 9]
+
+const GolombToInterCbpNoChroma: [16] u8 = [
+    0, 1, 2, 4, 8, 3, 5, 10, 12, 15, 7, 11, 13, 14, 6, 9]
 
 // Table 8-15 normAdjust4x4: dequantization scale, indexed by `(qp % 6) * 3` then position class 0..2.
 

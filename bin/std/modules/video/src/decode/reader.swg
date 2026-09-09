@@ -1,4 +1,4 @@
-//! Format: Format-neutral video decoder registry and reader.
+﻿//! Format: Format-neutral video decoder registry and reader.
 //! Supported: Extension-based decoder selection, streamed frame decoding, metadata, seeking, and optional audio and subtitle tracks.
 //! Not supported: This file does not parse a concrete video or container format.
 //! Role: This file owns decoder registration and the public reader that delegates to concrete format subfolders.
@@ -94,7 +94,7 @@ interface ISubtitleDecoder
 
 // Optional decoder capability handing pictures over without converting them to RGB.
 //
-// A codec that reconstructs planar 4:2:0 implements this so a consumer drawing through a
+// A codec that reconstructs planar YCbCr implements this so a consumer drawing through a
 // renderer never pays for a conversion on the processor: at 4K that conversion costs more than
 // the entropy decode, the reconstruction and the loop filter together.
 interface IPlanarDecoder
@@ -374,7 +374,7 @@ impl Reader
     // See [[Video.Reader.decodeFramePlanesInto]] for what that is worth.
     mtd const hasPlanarFrames()->bool => .planarDecoder != null and .planarDecoder!.hasPlanarFrames()
 
-    // Decodes frame `index` into `target` in the codec's own planar 4:2:0 layout.
+    // Decodes frame `index` into `target` in the codec's own planar layout.
     //
     // Converting a picture to packed RGB is, at high resolutions, the most expensive stage of
     // decoding it, and a consumer that draws through a renderer does not need it: hand the

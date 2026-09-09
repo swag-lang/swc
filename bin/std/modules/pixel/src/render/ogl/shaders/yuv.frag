@@ -1,4 +1,4 @@
-#version 330 core
+﻿#version 330 core
 #include base
 
 // A picture the decoder handed over unconverted: full-resolution luma on the brush texture and
@@ -22,7 +22,7 @@ void main()
     // uv for the bottom-up case, so the one program that knows the storage class undoes it.
     vec2 uv = vec2(vuv0.x, 1.0 - vuv0.y);
 
-    // Fixed-point terms match Pixel.Yuv420View for the range and matrix carried by this texture.
+    // Fixed-point terms match Pixel.YuvPlanarView for the range and matrix carried by this texture.
     float luma = texture(inTexture0, uv).r * 255.0;
     float d    = texture(inChromaB, uv).r * 255.0 - 128.0;
     float e    = texture(inChromaR, uv).r * 255.0 - 128.0;

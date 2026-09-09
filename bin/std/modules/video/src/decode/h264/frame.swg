@@ -1,6 +1,6 @@
-//! Format: H.264/AVC decoder component.
-//! Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
-//! Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
+﻿//! Format: H.264/AVC decoder component.
+//! Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
+//! Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
 //! Role: This file owns reference-picture storage, cropping, planar export, and display conversion.
 //
 #global namespace H264
@@ -32,8 +32,8 @@ struct ColMotion
     isShort: bool
 }
 
-// One decoded picture: padded 4:2:0 planes plus the reference and motion state the rest of
-// the stream needs from it.
+// One decoded picture: padded planes plus the reference and motion state the rest of the
+// stream needs from it.
 struct Frame
 {
     luma:         Array'u8     // Padded luma plane.
@@ -43,6 +43,10 @@ struct Frame
     strideChroma: u64
     mbWidth:      s32
     mbHeight:     s32
+
+    // How far a luma coordinate shifts right to address a chroma plane: one for 4:2:0, none
+    // for 4:4:4, whose chroma planes are the size of luma.
+    chromaShift: s32
 
     poc:                 s32     // Picture order count of the frame.
     frameNum:            u32
@@ -80,17 +84,19 @@ struct Frame
 
 impl Frame
 {
-    // Allocates or reuses storage for a picture of `mbWidth` by `mbHeight` macroblocks.
-    mtd prepare(mbWidth, mbHeight: s32)
+    // Allocates or reuses storage for a picture of `mbWidth` by `mbHeight` macroblocks whose
+    // chroma planes are `chromaShift` halvings smaller than its luma plane.
+    mtd prepare(mbWidth, mbHeight, chromaShift: s32)
     {
         .mbWidth      = mbWidth
         .mbHeight     = mbHeight
+        .chromaShift  = chromaShift
         .strideLuma   = cast(u64) (mbWidth * 16 + FramePadding * 2)
-        .strideChroma = cast(u64) (mbWidth * 8 + FramePadding * 2)
+        .strideChroma = cast(u64) (mbWidth * (16 >> chromaShift) + FramePadding * 2)
 
         let lumaSize   = .strideLuma * cast(u64) (mbHeight * 16 + FramePadding * 2)
-        let chromaSize = .strideChroma * cast(u64) (mbHeight * 8 + FramePadding * 2)
-        if .luma.count != lumaSize
+        let chromaSize = .strideChroma * cast(u64) (mbHeight * (16 >> chromaShift) + FramePadding * 2)
+        if .luma.count != lumaSize or .cb.count != chromaSize
         {
             .luma.resize(lumaSize)
             .cb.resize(chromaSize)
@@ -230,6 +236,22 @@ impl Frame
         return base + cast(u64) (y + FramePadding) * .strideChroma + cast(u64) (x + FramePadding)
     }
 
+    // Returns the address of the sample at `x`, `y` of one colour plane, luma being plane zero.
+    //
+    // A 4:4:4 picture codes its colour planes exactly as luma, so the prediction, transform and
+    // filter paths address a plane through this rather than through the luma or chroma accessor.
+    #[Swag.Inline]
+    mtd pixPlane(plane: u32, x, y: s32)->[*] u8
+    {
+        if plane == 0 do
+            return .pixLuma(x, y)
+        return .pixChroma(plane - 1, x, y)
+    }
+
+    // Returns the row pitch of one colour plane, luma being plane zero.
+    #[Swag.Inline]
+    mtd const planeStride(plane: u32)->u64 => plane == 0 ? .strideLuma : .strideChroma
+
     // Reports whether the frame is referenced by upcoming pictures.
     mtd const isReference()->bool => .isShortTerm or .isLongTerm
 
@@ -266,28 +288,29 @@ impl Frame
 
     // Describes the visible window of the picture without copying it.
     //
-    // A 4:2:0 crop is stated in chroma units, so both offsets are even and the chroma plane is
-    // addressed at exactly half the luma coordinates.
-    mtd view(width, height, cropLeft, cropTop: s32)->Pixel.Yuv420View
+    // A crop is stated in chroma units, so its offsets are a whole number of chroma samples and
+    // the chroma planes are addressed at the shifted luma coordinates.
+    mtd view(width, height, cropLeft, cropTop: s32)->Pixel.YuvPlanarView
     {
-        Swag.assert((cropLeft & 1) == 0 and (cropTop & 1) == 0)
+        Swag.assert(((cropLeft >> .chromaShift) << .chromaShift) == cropLeft and ((cropTop >> .chromaShift) << .chromaShift) == cropTop)
         return {
             luma: .pixLuma(cropLeft, cropTop),
-            chromaB: .pixChroma(0, cropLeft / 2, cropTop / 2),
-            chromaR: .pixChroma(1, cropLeft / 2, cropTop / 2),
+            chromaB: .pixChroma(0, cropLeft >> .chromaShift, cropTop >> .chromaShift),
+            chromaR: .pixChroma(1, cropLeft >> .chromaShift, cropTop >> .chromaShift),
             lumaStride: .strideLuma,
             chromaStride: .strideChroma,
             width: width,
-            height: height}
+            height: height,
+            chromaShift: .chromaShift}
     }
 
-    // Copies the visible window of the frame into tightly packed 4:2:0 planes.
+    // Copies the visible window of the frame into tightly packed planes.
     //
     // The samples leave exactly as the codec reconstructed them: this is the whole point of the
     // planar output, which exists so nothing converts a picture to RGB on the processor.
     mtd copyPlanes(target: *PlanarFrame, width, height, cropLeft, cropTop: s32)
     {
-        target.resize(width, height)
+        target.resize(width, height, .chromaShift)
 
         var destination = target.luma.buffer!
         for y in height
@@ -298,8 +321,8 @@ impl Frame
 
         let chromaWidth  = cast(u64) target.strideChroma
         let chromaRows   = target.chromaHeight()
-        let chromaLeft   = cropLeft / 2
-        let chromaTop    = cropTop / 2
+        let chromaLeft   = cropLeft >> .chromaShift
+        let chromaTop    = cropTop >> .chromaShift
         var destinationB = target.chromaB.buffer!
         var destinationR = target.chromaR.buffer!
         for y in chromaRows
@@ -314,9 +337,10 @@ impl Frame
     // Replicates the picture edges into the padding so motion compensation can read there.
     mtd extendEdges()
     {
+        let chromaMb = 16 >> .chromaShift
         extendPlane(.luma.buffer!, .strideLuma, .mbWidth * 16, .mbHeight * 16)
-        extendPlane(.cb.buffer!, .strideChroma, .mbWidth * 8, .mbHeight * 8)
-        extendPlane(.cr.buffer!, .strideChroma, .mbWidth * 8, .mbHeight * 8)
+        extendPlane(.cb.buffer!, .strideChroma, .mbWidth * chromaMb, .mbHeight * chromaMb)
+        extendPlane(.cr.buffer!, .strideChroma, .mbWidth * chromaMb, .mbHeight * chromaMb)
     }
 
     // Replicates the left and right edges of one macroblock row, and the top padding with it
@@ -324,9 +348,10 @@ impl Frame
     // later picture predicting from the row reads replicated samples and not stale ones.
     mtd extendRowEdges(mbRow: s32)
     {
+        let chromaMb = 16 >> .chromaShift
         extendPlaneRows(.luma.buffer!, .strideLuma, .mbWidth * 16, mbRow * 16, 16)
-        extendPlaneRows(.cb.buffer!, .strideChroma, .mbWidth * 8, mbRow * 8, 8)
-        extendPlaneRows(.cr.buffer!, .strideChroma, .mbWidth * 8, mbRow * 8, 8)
+        extendPlaneRows(.cb.buffer!, .strideChroma, .mbWidth * chromaMb, mbRow * chromaMb, chromaMb)
+        extendPlaneRows(.cr.buffer!, .strideChroma, .mbWidth * chromaMb, mbRow * chromaMb, chromaMb)
         if mbRow == 0
         {
             extendPlaneTop(.luma.buffer!, .strideLuma)
@@ -338,9 +363,10 @@ impl Frame
     // Replicates the bottom padding, which only the finished picture can produce.
     mtd extendBottomEdge()
     {
+        let chromaMb = 16 >> .chromaShift
         extendPlaneBottom(.luma.buffer!, .strideLuma, .mbHeight * 16)
-        extendPlaneBottom(.cb.buffer!, .strideChroma, .mbHeight * 8)
-        extendPlaneBottom(.cr.buffer!, .strideChroma, .mbHeight * 8)
+        extendPlaneBottom(.cb.buffer!, .strideChroma, .mbHeight * chromaMb)
+        extendPlaneBottom(.cr.buffer!, .strideChroma, .mbHeight * chromaMb)
     }
 }
 

@@ -1,14 +1,15 @@
-#global public
+﻿#global public
 
 using Swag
 
 // Describes the channel set, sample representation, byte order, and storage class of a picture.
 //
-// Every format but one packs its channels into consecutive bytes of one row. `Yuv420` does not:
-// it is what a video codec reconstructs, and it stores luma at full resolution beside two chroma
-// planes at half resolution on both axes, so one chroma sample serves a two-by-two block. Ask
+// Every format but two packs its channels into consecutive bytes of one row. `Yuv420` and
+// `Yuv444` do not: they are what a video codec reconstructs, and they store luma at full
+// resolution beside two chroma planes, at half resolution on both axes for the first, so one
+// chroma sample serves a two-by-two block, and at full resolution for the second. Ask
 // [[Pixel.PixelFormat.isPacked]] before treating a format as bytes per pixel; [[Pixel.Image]]
-// holds packed formats only, and a planar picture is described by [[Pixel.Yuv420View]].
+// holds packed formats only, and a planar picture is described by [[Pixel.YuvPlanarView]].
 enum PixelFormat: u8
 {
     // These five values retain their historical serialized identifiers.
@@ -31,6 +32,7 @@ enum PixelFormat: u8
     RGBAF16          // Red, green, blue, then alpha as native-endian IEEE 754 binary16 samples.
     RGBF32           // Red, green, then blue as native-endian IEEE 754 binary32 samples.
     RGBAF32          // Red, green, blue, then alpha as native-endian IEEE 754 binary32 samples.
+    Yuv444           // Planar 4:4:4 luma and chroma; twenty-four bits per pixel.
 }
 
 // States how RGB samples relate to alpha in formats that store alpha.
@@ -46,7 +48,7 @@ impl PixelFormat
     //
     // Everything that walks a picture by [[Pixel.Image.bytesPerPixel]] and
     // [[Pixel.Image.rowStride]] needs this to hold. A planar format is carried by a texture and
-    // by [[Pixel.Yuv420View]], never by an image.
+    // by [[Pixel.YuvPlanarView]], never by an image.
     #[ConstExpr]
     func isPacked(me)->bool
     {
@@ -70,7 +72,7 @@ impl PixelFormat
         case .RGBAF16:      return true
         case .RGBF32:       return true
         case .RGBAF32:      return true
-        case .Yuv420:       return false
+        case .Yuv420, .Yuv444: return false
         }
 
         return false
@@ -104,6 +106,7 @@ impl PixelFormat
         case .RGBF32:       return 96
         case .RGBAF32:      return 128
         case .Yuv420:       return 12
+        case .Yuv444:       return 24
         }
 
         return 0
@@ -133,7 +136,7 @@ impl PixelFormat
         case .RGBAF16:      return 4
         case .RGBF32:       return 3
         case .RGBAF32:      return 4
-        case .Yuv420:       return 3
+        case .Yuv420, .Yuv444: return 3
         }
 
         return 0
@@ -163,7 +166,7 @@ impl PixelFormat
         case .RGBAF16:      return 16
         case .RGBF32:       return 32
         case .RGBAF32:      return 32
-        case .Yuv420:       return 8
+        case .Yuv420, .Yuv444: return 8
         }
 
         return 0
@@ -193,7 +196,7 @@ impl PixelFormat
         case .RGBAF16:      return true
         case .RGBF32:       return false
         case .RGBAF32:      return true
-        case .Yuv420:       return false
+        case .Yuv420, .Yuv444: return false
         }
 
         return false

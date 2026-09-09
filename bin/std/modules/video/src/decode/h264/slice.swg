@@ -2,8 +2,8 @@
 #global internal
 
 //! Format: H.264/AVC decoder component.
-//! Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
-//! Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
+//! Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
+//! Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
 //! Role: This file owns slice headers, reference lists, and prediction weights.
 //
 
@@ -91,6 +91,9 @@ struct Slice
     // one per macroblock of the picture. That removes about fifty megabytes per decoder lane at
     // this resolution, and the record stays in cache between the two passes over it.
     scratchResidual:  MbResidual
+
+    // The colour planes of the macroblock a 4:4:4 picture reconstructs inline.
+    scratchResidual444: MbResidual444
     scratchExtraJobs: MbExtraJobs
 
     qp:          s32     // Current luma QP, carried from macroblock to macroblock.

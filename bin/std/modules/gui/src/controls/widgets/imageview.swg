@@ -1,4 +1,4 @@
-#global public
+﻿#global public
 
 using Core, Pixel
 
@@ -47,6 +47,10 @@ struct ImageView
     // produced and converts it where it samples, so the view knows its geometry and nothing else.
     planarWidth:  s32
     planarHeight: s32
+
+    // Chroma subsampling of the planar texture that is up: its plane textures are sized from it,
+    // so a picture that changes it needs a new texture rather than an upload into this one.
+    planarChromaShift: s32
 
     // Size the content is laid out and drawn at, when that is not its own pixel size.
     //
@@ -455,7 +459,7 @@ impl ImageView
         .invalidate()
     }
 
-    // Displays a planar 4:2:0 picture, which the renderer converts while it draws.
+    // Displays a planar picture, which the renderer converts while it draws.
     //
     // This is what a video stream should reach the screen through. Converting a picture to packed
     // RGB costs more processor time at high resolutions than decoding it did, and none of it is
@@ -467,7 +471,7 @@ impl ImageView
     // let planes = picture.view()
     // view.updateVideoFrame(&planes)
     // ```
-    mtd updateVideoFrame(view: const *Yuv420View)
+    mtd updateVideoFrame(view: const *YuvPlanarView)
     {
         if view.width <= 0 or view.height <= 0
         {
@@ -475,11 +479,12 @@ impl ImageView
             return
         }
 
-        if .movie.isValid() or .image.isValid() or !.uploadedTexture.isValid() or view.width != .planarWidth or view.height != .planarHeight
+        if .movie.isValid() or .image.isValid() or !.uploadedTexture.isValid() or view.width != .planarWidth or view.height != .planarHeight or view.chromaShift != .planarChromaShift
         {
             .clear()
-            .planarWidth     = view.width
-            .planarHeight    = view.height
+            .planarWidth       = view.width
+            .planarHeight      = view.height
+            .planarChromaShift = view.chromaShift
             .uploadedTexture = .app().renderer.addImage(view)
             .zoomToFit()
             return

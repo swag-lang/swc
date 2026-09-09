@@ -1,9 +1,9 @@
-#global namespace H264
+﻿#global namespace H264
 #global internal
 
 //! Format: H.264/AVC decoder component.
-//! Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
-//! Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
+//! Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
+//! Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
 //! Role: This file owns normative in-loop edge filtering.
 //
 
@@ -282,6 +282,26 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         let pix = frame.pixLuma(mbX * 16 + edge * 4, mbY * 16)
         filterLumaVertical(pix, frame.strideLuma, &strengths, indexA, alpha, beta)
 
+        // A 4:4:4 colour plane carries the same edges as luma and is filtered as luma is, with
+        // the strengths of the luma edge and the quantizer of the plane.
+        if sps.is444()
+        {
+            let qpcP    = chromaQpAt(dec, edge == 0 ? mbX - 1 : mbX, mbY)
+            let qpcQ    = chromaQpAt(dec, mbX, mbY)
+            let qpcAvg  = (qpcP + qpcQ + 1) >> 1
+            let cIndexA = Math.clamp(qpcAvg + cast(s32) info.alphaOffset, 0, 51)
+            let cIndexB = Math.clamp(qpcAvg + cast(s32) info.betaOffset, 0, 51)
+            let cAlpha  = cast(s32) DeblockAlpha[cast(u64) cIndexA]
+            let cBeta   = cast(s32) DeblockBeta[cast(u64) cIndexB]
+            if cAlpha != 0 and cBeta != 0
+            {
+                for plane in 2'u32 do
+                    filterLumaVertical(frame.pixChroma(plane, mbX * 16 + edge * 4, mbY * 16), frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
+            }
+
+            continue
+        }
+
         // The matching chroma edges sit at chroma columns 0 and 4.
         if edge == 0 or edge == 2
         {
@@ -400,6 +420,31 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         else
         {
             filterLumaStrongHorizontal(pix, frame.strideLuma, &strengths, indexA, alpha, beta)
+        }
+
+        if sps.is444()
+        {
+            let qpcP    = chromaQpAt(dec, mbX, edge == 0 ? mbY - 1 : mbY)
+            let qpcQ    = chromaQpAt(dec, mbX, mbY)
+            let qpcAvg  = (qpcP + qpcQ + 1) >> 1
+            let cIndexA = Math.clamp(qpcAvg + cast(s32) info.alphaOffset, 0, 51)
+            let cIndexB = Math.clamp(qpcAvg + cast(s32) info.betaOffset, 0, 51)
+            let cAlpha  = cast(s32) DeblockAlpha[cast(u64) cIndexA]
+            let cBeta   = cast(s32) DeblockBeta[cast(u64) cIndexB]
+            if cAlpha != 0 and cBeta != 0
+            {
+                let weak = strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
+                for plane in 2'u32
+                {
+                    let planePix = frame.pixChroma(plane, mbX * 16, mbY * 16 + edge * 4)
+                    if weak do
+                        filterLumaWeakHorizontal(planePix, frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
+                    else do
+                        filterLumaStrongHorizontal(planePix, frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
+                }
+            }
+
+            continue
         }
 
         if edge == 0 or edge == 2

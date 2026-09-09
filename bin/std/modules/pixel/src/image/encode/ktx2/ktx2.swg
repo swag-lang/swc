@@ -1,4 +1,4 @@
-//! Format: Khronos Texture 2 encoder.
+﻿//! Format: Khronos Texture 2 encoder.
 //! Supported: One uncompressed 2D level in every packed PixelFormat integer or float layout.
 //! Not supported: Supercompression, block compression, mipmap generation, arrays, or cubemaps.
 //! Role: This file writes a Vulkan-format KTX2 texture and its matching basic DFD.
@@ -113,7 +113,7 @@ func formatInfo(format: PixelFormat, vk: *u32, typeSize: *u32, channelIds: *[4] 
         floating[]      = true
         channelIds[][3] = 15
 
-    case .Yuv420:
+    case .Yuv420, .Yuv444:
         Swag.assert(false)
     }
 }

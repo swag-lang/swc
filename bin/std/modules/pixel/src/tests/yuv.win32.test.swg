@@ -1,4 +1,4 @@
-#global if #command == Swag.CompilerCommand.Test and #os == Swag.TargetOs.Windows
+﻿#global if #command == Swag.CompilerCommand.Test and #os == Swag.TargetOs.Windows
 #global private
 
 #[Swag.Foreign("kernel32", "VirtualAlloc")]
@@ -24,7 +24,7 @@ func releaseYuvGuard(address: *void?, size: u64, freeType: u32)->s32
         var luma: [64] u8
         for x in cast(u64) width * 2 do
             luma[x] = cast(u8) ((x * 11) & 255)
-        let view  = Yuv420View{luma: &luma, chromaB: chroma, chromaR: chroma, lumaStride: cast(u64) width, chromaStride: chromaWidth, width: width, height: 2}
+        let view  = YuvPlanarView{luma: &luma, chromaB: chroma, chromaR: chroma, lumaStride: cast(u64) width, chromaStride: chromaWidth, width: width, height: 2}
         var image = Image.create(width, 2, .RGB8)
         view.convertRowsToRgb(&image, 0, 2)
         for y in 2's32

@@ -1,4 +1,4 @@
-#global if #command == Swag.CompilerCommand.Test
+﻿#global if #command == Swag.CompilerCommand.Test
 
 using Swag, Core
 
@@ -418,7 +418,7 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 // along both axes, and chroma held constant over each half so bilinear chroma upsampling only
 // differs at one seam. A backend that uploads the planes in the wrong row order, or samples them
 // mirrored, cannot reproduce it.
-private func makeRenderPlanarPicture(storage: *Array'u8)->Yuv420View
+private func makeRenderPlanarPicture(storage: *Array'u8)->YuvPlanarView
 {
     const Width        = cast(u64) RenderPlanarWidth
     const Height       = cast(u64) RenderPlanarHeight
@@ -484,7 +484,7 @@ func renderPlanarParityScene(renderer: IRenderer)->Image
 // Checks the four corners of a drawn picture against the conversion of the corner samples of the
 // planes it came from. Orientation is the whole point: a flipped picture still matches everywhere
 // a test uses one flat colour, and only a corner states which way round the rows went.
-private func assertPlanarCornersUpright(image: const *Image, view: const *Yuv420View)
+private func assertPlanarCornersUpright(image: const *Image, view: const *YuvPlanarView)
 {
     for corner in 4's32
     {

@@ -1,4 +1,4 @@
-#global public
+﻿#global public
 
 using Swag, Core, Core.Math
 
@@ -426,7 +426,7 @@ private impl RenderCpu
 
         switch #complete image.pixelFormat
         {
-        case .Yuv420:
+        case .Yuv420, .Yuv444:
 
             // A surface is always packed: this backend converts a planar picture on upload.
             Swag.assert(false, "cannot write one pixel of a planar picture")
@@ -2532,7 +2532,7 @@ impl RenderCpu
     // This backend has no shaders, so it converts once here rather than once per sample and holds
     // an ordinary packed surface. The descriptor still says the picture is planar, which is what
     // the caller handed over.
-    internal mtd addImageImpl(view: const *Yuv420View)->Texture
+    internal mtd addImageImpl(view: const *YuvPlanarView)->Texture
     {
         if view.width <= 0 or view.height <= 0 do
             return {}
@@ -2541,7 +2541,7 @@ impl RenderCpu
         view.convertToRgb(&image)
 
         var result: retval
-        result.attach(cast(TextureHandle) .nextHandle, .Yuv420, view.width, view.height)
+        result.attach(cast(TextureHandle) .nextHandle, view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height)
         .nextHandle += 1
 
         var storage: CpuTexture
@@ -2552,7 +2552,7 @@ impl RenderCpu
     }
 
     // Converts a planar picture into the surface that holds it.
-    internal mtd updatePlanarImpl(texture: Texture, view: const *Yuv420View)
+    internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)
     {
         if !texture.isValid() do
             return

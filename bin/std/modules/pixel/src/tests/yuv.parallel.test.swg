@@ -1,4 +1,4 @@
-#global if #command == Swag.CompilerCommand.Test
+﻿#global if #command == Swag.CompilerCommand.Test
 
 using Core
 
@@ -31,7 +31,7 @@ using Core
     storage.resize(LumaSize + ChromaSize * 2)
     for index in storage.count do
         storage[index] = cast(u8) ((index * 37 + index / 97) & 255)
-    var view = Yuv420View{luma: storage.buffer!, chromaB: storage.buffer! + LumaSize, chromaR: storage.buffer! + LumaSize + ChromaSize, lumaStride: LumaStride, chromaStride: ChromaStride, width: Width, height: Height}
+    var view = YuvPlanarView{luma: storage.buffer!, chromaB: storage.buffer! + LumaSize, chromaR: storage.buffer! + LumaSize + ChromaSize, lumaStride: LumaStride, chromaStride: ChromaStride, width: Width, height: Height}
     let matrices: [3] YuvMatrix = [.Bt601, .Bt709, .Bt2020]
     var image:    Image
     for matrix in matrices

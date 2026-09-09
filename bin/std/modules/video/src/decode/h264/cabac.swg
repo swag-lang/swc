@@ -1,6 +1,6 @@
-//! Format: H.264/AVC decoder component.
-//! Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
-//! Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
+﻿//! Format: H.264/AVC decoder component.
+//! Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
+//! Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
 //! Role: This file owns CABAC arithmetic contexts and syntax decoding.
 //
 #global namespace H264
@@ -245,12 +245,21 @@ impl CabacReader
     }
 }
 
-// Context index bases per residual block category (0 luma DC, 1 luma AC of Intra_16x16,
-// 2 luma 4x4, 3 chroma DC, 4 chroma AC, 5 luma 8x8), frame coding.
-const CabacCbfBase:  [6] u32 = [85, 89, 93, 97, 101, 1012]
-const CabacSigBase:  [6] u32 = [105, 120, 134, 149, 152, 402]
-const CabacLastBase: [6] u32 = [166, 181, 195, 210, 213, 417]
-const CabacAbsBase:  [6] u32 = [227, 237, 247, 257, 266, 426]
+// Context index bases per residual block category, frame coding: 0 luma DC, 1 luma AC of
+// Intra_16x16, 2 luma 4x4, 3 chroma DC, 4 chroma AC, 5 luma 8x8, then the same four luma
+// categories again for Cb (6, 7, 8, 9) and for Cr (10, 11, 12, 13), which is how a 4:4:4 colour
+// plane is coded. Each base already carries the `ctxBlockCatOffset` of Table 9-42.
+const CabacCbfBase:  [14] u32 = [85, 89, 93, 97, 101, 1012, 460, 464, 468, 1016, 472, 476, 480, 1020]
+const CabacSigBase:  [14] u32 = [105, 120, 134, 149, 152, 402, 484, 499, 513, 660, 528, 543, 557, 718]
+const CabacLastBase: [14] u32 = [166, 181, 195, 210, 213, 417, 572, 587, 601, 690, 616, 631, 645, 748]
+const CabacAbsBase:  [14] u32 = [227, 237, 247, 257, 266, 426, 952, 962, 972, 708, 982, 992, 1002, 766]
+
+// Residual categories of one colour plane, luma first: the Intra_16x16 DC, the Intra_16x16 AC,
+// the 4x4 block, then the 8x8 block.
+const CatPlaneDc:    [3] u32 = [0, 6, 10]
+const CatPlaneI16Ac: [3] u32 = [1, 7, 11]
+const CatPlane4x4:   [3] u32 = [2, 8, 12]
+const CatPlane8x8:   [3] u32 = [5, 9, 13]
 
 // Context of the first `coeff_abs_level_minus1` bin for each level node state.
 const CoeffAbsLevel1Ctx:   [8] u8 = [1, 2, 3, 4, 0, 0, 0, 0]
@@ -372,7 +381,7 @@ impl Slice
         if mb.class != MbClassIntra16x16
         {
             mb.cbpLuma   = .cbpLumaCabac(mb)
-            mb.cbpChroma = .cbpChromaCabac(mb)
+            mb.cbpChroma = dec.sps!.is444() ? 0 : .cbpChromaCabac(mb)
 
             if mb.cbpLuma != 0 and pps.transform8x8 and mb.class == MbClassInter and .allowsTransform8x8(mb) do
                 mb.transform8x8 = .transformFlagCabac(mb) != 0
@@ -682,11 +691,14 @@ impl Slice
     // Decodes one residual block, sections 9.3.3.1.1.9 and 9.3.3.1.3.
     //
     // `cat` is the block category, `coeffs` the scan-ordered destination, `maxCoeffs` its
-    // length. Categories other than 5 first decode a coded-block flag against the neighbor
-    // flags `nzA` and `nzB` (-1 for an unavailable neighbor). Returns the coefficient count.
+    // length. A block first decodes a coded-block flag against the neighbor flags `nzA` and
+    // `nzB` (-1 for an unavailable neighbor). Returns the coefficient count.
     mtd residualCabac(mb: *Mb, cat: u32, coeffs: [*] s16, maxCoeffs: u32, nzA, nzB: s32)->u32 fail
     {
-        if cat != 5
+        // A block of sixty-four coefficients states nothing of its own, the coded block pattern
+        // having said whether it is coded — except in 4:4:4, where every block codes a flag,
+        // which is what the three context bases at 1012 exist for.
+        if maxCoeffs != 64 or .dec!.sps!.is444()
         {
             var ctx   = CabacCbfBase[cat]
             let intra = mb.class != MbClassInter
@@ -707,10 +719,10 @@ impl Slice
         var foundLast  = false
         var arithmetic = CabacArithmetic{.cabac.low, .cabac.range}
 
-        // The 8x8 category maps every scan position through a table while every other category
+        // The 8x8 categories map every scan position through a table while every other category
         // uses the position itself. Choosing once instead of per coefficient keeps the two
         // decisions of the inner loop back to back.
-        if cat == 5
+        if cat == 5 or cat == 9 or cat == 13
         {
             while scan < maxCoeffs - 1
             {
@@ -809,55 +821,15 @@ impl Slice
     // Parses every residual block of the macroblock with CABAC coding.
     mtd parseResidualCabac(mb: *Mb) fail
     {
-        let dec   = .dec!
-        let mbIdx = cast(u64) (mb.mbY * dec.sps!.mbWidth + mb.mbX)
+        let dec = .dec!
 
-        if mb.class == MbClassIntra16x16
-        {
-            let nzA   = .dcFlagNeighbor(mb, -1, 0, 0)
-            let nzB   = .dcFlagNeighbor(mb, 0, -1, 0)
-            let count = .residualCabac(mb, 0, (mb.residual!.lumaDc).buffer, 16, nzA, nzB)
-            mb.dcFlags[0] = count > 0 ? 1 : 0
-            if count > 0
-            {
-                for block in 16'u64 do
-                    mb.codedBlocks[block] = 1
-            }
-        }
-
-        for quad in 4's32
-        {
-            if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
-                continue
-            if mb.transform8x8 and mb.class != MbClassIntra16x16
-            {
-                let count = .residualCabac(mb, 5, (mb.residual!.luma8).buffer + cast(u64) quad * 64, 64, 0, 0)
-                for cell in 4's32
-                {
-                    let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
-                    mb.nzLuma[cast(u64) raster]      = cast(u8) minS32(count, 16)
-                    mb.codedBlocks[cast(u64) raster] = 1
-                }
-
-                continue
-            }
-
-            for cell in 4's32
-            {
-                let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
-                let bx     = raster & 3
-                let by     = raster >> 2
-                let nzA    = .blockNz(mb, mb.mbX * 4 + bx - 1, mb.mbY * 4 + by)
-                let nzB    = .blockNz(mb, mb.mbX * 4 + bx, mb.mbY * 4 + by - 1)
-                var count: u32
-                if mb.class == MbClassIntra16x16 do
-                    count = .residualCabac(mb, 1, (mb.residual!.lumaAc).buffer + cast(u64) raster * 16 + 1, 15, nzA, nzB)
-                else do
-                    count = .residualCabac(mb, 2, (mb.residual!.lumaAc).buffer + cast(u64) raster * 16, 16, nzA, nzB)
-                mb.nzLuma[cast(u64) raster]      = cast(u8) count
-                mb.codedBlocks[cast(u64) raster] = count > 0 ? 1 : 0
-            }
-        }
+        // A 4:4:4 macroblock codes its colour planes exactly as luma, one whole plane after
+        // another and all three under the same coded block pattern.
+        let planes = dec.sps!.is444() ? 3'u32 : 1'u32
+        for plane in planes do
+            .parsePlaneResidualCabac(mb, plane)
+        if planes > 1 do
+            return
 
         if mb.cbpChroma != 0
         {
@@ -884,6 +856,73 @@ impl Slice
                     else do
                         mb.nzCr[cast(u64) block] = cast(u8) count
                 }
+            }
+        }
+    }
+
+    // Parses the residual of one colour plane coded with the luma syntax and that plane's own
+    // block categories.
+    //
+    // Only luma feeds the deblocking strength: the boundary filter reads the luma transform
+    // coefficients whatever the chroma format, so a colour plane writes its nonzero counts for
+    // the entropy contexts and nothing else.
+    mtd parsePlaneResidualCabac(mb: *Mb, plane: u32) fail
+    {
+        let storage = .planeResidual(mb, plane)
+        let isLuma  = plane == 0
+        if mb.class == MbClassIntra16x16
+        {
+            let nzA   = .dcFlagNeighbor(mb, -1, 0, cast(s32) plane)
+            let nzB   = .dcFlagNeighbor(mb, 0, -1, cast(s32) plane)
+            let count = .residualCabac(mb, CatPlaneDc[cast(u64) plane], storage.dc, 16, nzA, nzB)
+            mb.dcFlags[cast(u64) plane] = count > 0 ? 1 : 0
+            if count > 0 and isLuma
+            {
+                for block in 16'u64 do
+                    mb.codedBlocks[block] = 1
+            }
+        }
+
+        for quad in 4's32
+        {
+            if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
+                continue
+            if mb.transform8x8 and mb.class != MbClassIntra16x16
+            {
+                // A 4:4:4 8x8 block codes a flag of its own, whose context reads the block left
+                // of and above the quadrant's first cell.
+                let first = (quad >> 1) * 8 + (quad & 1) * 2
+                let nzA   = .blockNz8x8(mb, plane, mb.mbX * 4 + (first & 3) - 1, mb.mbY * 4 + (first >> 2))
+                let nzB   = .blockNz8x8(mb, plane, mb.mbX * 4 + (first & 3), mb.mbY * 4 + (first >> 2) - 1)
+                let count = .residualCabac(mb, CatPlane8x8[cast(u64) plane], storage.t8 + cast(u64) quad * 64, 64, nzA, nzB)
+                // In 4:4:4 the block states a coded flag of its own, so a quadrant the pattern
+                // named can still hold nothing.
+                for cell in 4's32
+                {
+                    let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
+                    storage.nz[cast(u64) raster] = cast(u8) minS32(count, 16)
+                    if isLuma do
+                        mb.codedBlocks[cast(u64) raster] = count > 0 ? 1 : 0
+                }
+
+                continue
+            }
+
+            for cell in 4's32
+            {
+                let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
+                let bx     = raster & 3
+                let by     = raster >> 2
+                let nzA    = .blockNz(mb, plane, mb.mbX * 4 + bx - 1, mb.mbY * 4 + by)
+                let nzB    = .blockNz(mb, plane, mb.mbX * 4 + bx, mb.mbY * 4 + by - 1)
+                var count: u32
+                if mb.class == MbClassIntra16x16 do
+                    count = .residualCabac(mb, CatPlaneI16Ac[cast(u64) plane], storage.ac + cast(u64) raster * 16 + 1, 15, nzA, nzB)
+                else do
+                    count = .residualCabac(mb, CatPlane4x4[cast(u64) plane], storage.ac + cast(u64) raster * 16, 16, nzA, nzB)
+                storage.nz[cast(u64) raster] = cast(u8) count
+                if isLuma do
+                    mb.codedBlocks[cast(u64) raster] = count > 0 ? 1 : 0
             }
         }
     }

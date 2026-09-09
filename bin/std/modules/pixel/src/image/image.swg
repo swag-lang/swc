@@ -1,4 +1,4 @@
-#global public
+﻿#global public
 
 using Swag, Core, Core.Serialization
 
@@ -181,7 +181,7 @@ internal func readPixelValue(source: const [*] u8, format: PixelFormat)->PixelVa
     case .RGBAF32:
         result = {source[as f32], (source + 4)[as f32], (source + 8)[as f32], (source + 12)[as f32]}
 
-    case .Yuv420:
+    case .Yuv420, .Yuv444:
         Swag.assert(false, "a planar pixel cannot be read from packed storage")
     }
 
@@ -252,7 +252,7 @@ internal func writePixelValue(destination: [*] u8, format: PixelFormat, value: P
         if format == .RGBAF32 do
             (destination + 12)[as f32] = value.a
 
-    case .Yuv420:
+    case .Yuv420, .Yuv444:
         Swag.assert(false, "a planar pixel cannot be written to packed storage")
     }
 }
@@ -710,7 +710,7 @@ impl Image
         case .BGR8:
             return .pixelColorDirect'BGR8(pixX, pixY)
 
-        case .Yuv420:
+        case .Yuv420, .Yuv444:
 
             // An image never holds a planar format; 'create' refuses one.
             break

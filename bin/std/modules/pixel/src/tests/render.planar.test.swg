@@ -1,9 +1,9 @@
-#global if #command == Swag.CompilerCommand.Test
+﻿#global if #command == Swag.CompilerCommand.Test
 
 using Swag, Core
 
 // Builds a planar 4:2:0 picture of one flat colour, in the studio range a codec produces.
-func flatPlanarPicture(storage: *Array'u8, width, height: s32, luma, chromaB, chromaR: u8)->Yuv420View
+func flatPlanarPicture(storage: *Array'u8, width, height: s32, luma, chromaB, chromaR: u8)->YuvPlanarView
 {
     let chromaWidth  = cast(u64) ((width + 1) / 2)
     let chromaHeight = cast(u64) ((height + 1) / 2)
@@ -194,7 +194,7 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     for index in 8'u64 do
         chroma[index] = 128
 
-    let view = Yuv420View{
+    let view = YuvPlanarView{
         luma: luma.buffer!,
         chromaB: chroma.buffer!,
         chromaR: chroma.buffer!,

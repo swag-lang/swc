@@ -183,6 +183,34 @@ needs real encoder output to be caught:
 The matching `.yuv` files are the same streams decoded by FFmpeg, which is what the tests demand
 byte for byte.
 
+`ffmpeg-h264-c444.mp4` and `ffmpeg-h264-c444-cavlc.mp4` are 96x64, 20-frame clips carrying a
+chroma sample per pixel, generated for this repository and encoded with libx264 through PyAV 17.1
+in the High 4:4:4 Predictive profile. A picture whose colour detail survives subsampling would not
+tell a correct 4:4:4 decode from a 4:2:0 one, so this one is built to keep detail no 4:2:0 picture
+can hold:
+
+- Four colours of strongly different chroma in seven-pixel vertical bars, scrolling one column per
+  frame, so a bar edge falls on an odd column in half the frames.
+- A noise band eight rows deep whose luma and both chroma planes are independently pseudo-random,
+  which no prediction mode guesses and which therefore forces a residual in all three planes.
+- An eleven by eleven block on an odd path, whose edges fall between the chroma samples of a
+  4:2:0 picture.
+- An 8 by 8 block in the top-left corner whose luma is `16 + 8 * index`, identifying the frame.
+
+- `ffmpeg-h264-c444.mp4`: `preset=medium g=10` with
+  `bframes=3:b-pyramid=normal:8x8dct=1:cabac=1:crf=20` — CABAC, B pyramid, and the 8x8 transform
+  over three full-resolution planes. SHA-256:
+  `7d6101e8453e3f87532a650d2cadb2a8b66ddb200ceb2c6a2975ea4ade2a1c6e`.
+- `ffmpeg-h264-c444-cavlc.mp4`: `preset=slow g=10` with `cabac=0:8x8dct=0:bframes=2:crf=18` —
+  CAVLC, whose nonzero-count prediction runs once per colour plane, with the 8x8 transform off so
+  every plane goes through 4x4 blocks. SHA-256:
+  `a2b697ca6bc77b5105f6281e613ffb22c8652f8c1e2634c8089da294f9affd9e`.
+
+Their `.yuv` files are the same streams decoded by FFmpeg into `yuv444p`, one plane after another
+at the full picture size.
+
+- License: same as this repository, as for every generated file above.
+
 `ffmpeg-h264-aac-5.1.mkv`, `ffmpeg-h264-ac3-5.1.mkv`, and
 `ffmpeg-h264-eac3-5.1.mkv` combine the repository's synthetic H.264 fixture with the corresponding
 six-tone audio fixtures documented by std/audio. FFmpeg `N-126262-g1019f8f036-20260824`

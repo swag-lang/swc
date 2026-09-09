@@ -1,4 +1,4 @@
-#global if #command == Swag.CompilerCommand.Test
+﻿#global if #command == Swag.CompilerCommand.Test
 #global private
 
 using Core, Core.Errors, Pixel
@@ -58,6 +58,21 @@ using Core, Core.Errors, Pixel
 #test
 {
     videoAssertReferenceStream("ffmpeg-h264-high", 64, 48, 20)
+}
+
+// High 4:4:4 Predictive with CABAC: the two colour planes carry a sample per pixel and are
+// coded exactly as luma, with the luma prediction modes, the luma transforms, the residual
+// categories of their own, the luma interpolation filter, and luma-style deblocking.
+#test
+{
+    videoAssertReferenceStream("ffmpeg-h264-c444", 96, 64, 20, chromaShift: 0)
+}
+
+// The same at full chroma resolution with CAVLC, whose nonzero-count prediction runs once per
+// colour plane, and with the 8x8 transform off so every plane goes through 4x4 blocks.
+#test
+{
+    videoAssertReferenceStream("ffmpeg-h264-c444-cavlc", 96, 64, 20, chromaShift: 0)
 }
 
 // Frame cropping: a 60x34 picture inside 64x48 coded macroblocks.

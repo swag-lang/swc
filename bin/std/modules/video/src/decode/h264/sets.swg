@@ -2,8 +2,8 @@
 #global internal
 
 //! Format: H.264/AVC decoder component.
-//! Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
-//! Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
+//! Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
+//! Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
 //! Role: This file owns sequence and picture parameter-set parsing and capability checks.
 //
 
@@ -20,11 +20,17 @@ const Zigzag8: [64] u8 = [
     44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47,
     55, 62, 63]
 
-// One sequence parameter set, reduced to what a progressive 8-bit 4:2:0 decoder uses.
+// One sequence parameter set, reduced to what a progressive 8-bit decoder uses.
 struct Sps
 {
     valid:                bool
     profile:              u8
+
+    // `chroma_format_idc`: 1 for 4:2:0, 3 for 4:4:4. It is the one number the rest of the
+    // decoder reads to know whether a chroma plane is half the picture or all of it, and in
+    // 4:4:4 whether a colour plane is coded like luma rather than with the chroma syntax.
+    chromaFormat: u8
+
     pocType:              u8
     log2MaxFrameNum:      u32
     log2MaxPocLsb:        u32
@@ -44,7 +50,10 @@ struct Sps
     cropBottom:           s32
     hasScaling:           bool
     scaling4:             [96] u8      // Six weight lists of Table 7-2, in zig-zag scan order.
-    scaling8:             [128] u8     // Intra then inter 8x8 weight lists, in zig-zag scan order.
+
+    // 8x8 weight lists of Table 7-2, in zig-zag scan order: intra then inter for luma, and in
+    // 4:4:4 the same pair for Cb and then for Cr. A 4:2:0 stream leaves the last four flat.
+    scaling8: [384] u8
 }
 
 // One picture parameter set, with its dequantization tables resolved against its sequence set.
@@ -67,9 +76,9 @@ struct Pps
     // Dequantization multiplier per list, QP, and raster position, with the `QP / 6` shift
     // folded in: a 4x4 level dequantizes as `(level * dequant4 + 8) >> 4`, an 8x8 one as
     // `(level * dequant8 + 32) >> 6`. Lists follow Table 7-2: intra Y, Cb, Cr then inter Y,
-    // Cb, Cr for 4x4, and intra then inter for 8x8.
+    // Cb, Cr for 4x4, and intra then inter per plane for 8x8.
     dequant4: [6, 52, 16] u32
-    dequant8: [2, 52, 64] u32
+    dequant8: [6, 52, 64] u32
 }
 
 // Parses one `scaling_list` syntax structure into `list`, reporting the use-default escape.
@@ -102,17 +111,22 @@ private func setList(list: [..] u8, values: const [..] u8)
         list[index] = values[index]
 }
 
-// Parses the eight scaling lists shared by the sequence and picture sets.
+// Parses the scaling lists shared by the sequence and picture sets.
+//
+// A 4:2:0 stream carries eight lists, six 4x4 and two 8x8; a 4:4:4 stream carries twelve,
+// because its Cb and Cr planes take the 8x8 transform as luma does and so need an intra and an
+// inter 8x8 list of their own.
 //
 // `fromSps` selects the fall-back rule: an absent sequence list falls back to the default
 // matrices, while an absent picture list falls back to the active sequence lists.
-private func parseScalingMatrices(bits: *BitReader, sps: *Sps, scaling4: [..] u8, scaling8: [..] u8, fromSps: bool)
+private func parseScalingMatrices(bits: *BitReader, sps: *Sps, scaling4: [..] u8, scaling8: [..] u8, fromSps: bool, listCount: u64)
 {
-    for listIndex in 8'u64
+    for listIndex in listCount
     {
         let is8x8      = listIndex >= 6
+        let index8     = is8x8 ? listIndex - 6 : 0
         let list4      = is8x8 ? scaling4[0 until 16] : scaling4[listIndex * 16 until listIndex * 16 + 16]
-        let list8      = is8x8 ? scaling8[(listIndex - 6) * 64 until (listIndex - 5) * 64] : scaling8[0 until 64]
+        let list8      = scaling8[index8 * 64 until index8 * 64 + 64]
         let present    = bits.bit() != 0
         var useDefault = false
         if present do
@@ -122,20 +136,29 @@ private func parseScalingMatrices(bits: *BitReader, sps: *Sps, scaling4: [..] u8
             continue
 
         // Fall-back rules A and B of Table 7-2, with the in-stream default escape folded in.
+        // An 8x8 list of a colour plane falls back to the list of the same intra or inter kind
+        // two places before it, which is the plane before it.
         let defaults4 = listIndex < 3 ? DefaultScaling4[0 until 16] : DefaultScaling4[16 until 32]
-        switch listIndex
+        let defaults8 = (index8 & 1) == 0 ? DefaultScaling8[0 until 64] : DefaultScaling8[64 until 128]
+        switch
         {
-        case 0, 3:
+        case listIndex == 0 or listIndex == 3:
             if useDefault or fromSps do
                 setList(list4, defaults4)
             else do
                 setList(list4, sps.scaling4[listIndex * 16 until listIndex * 16 + 16])
 
-        case 6, 7:
+        case listIndex == 6 or listIndex == 7:
             if useDefault or fromSps do
-                setList(list8, DefaultScaling8[(listIndex - 6) * 64 until (listIndex - 5) * 64])
+                setList(list8, defaults8)
             else do
-                setList(list8, sps.scaling8[(listIndex - 6) * 64 until (listIndex - 5) * 64])
+                setList(list8, sps.scaling8[index8 * 64 until index8 * 64 + 64])
+
+        case is8x8:
+            if useDefault do
+                setList(list8, defaults8)
+            else do
+                setList(list8, scaling8[(index8 - 2) * 64 until (index8 - 1) * 64])
 
         default:
             if useDefault do
@@ -169,13 +192,19 @@ impl Sps
         if .profile == 100 or .profile == 110 or .profile == 122 or .profile == 244 or .profile == 44 or .profile == 83 or .profile == 86 or .profile == 118 or .profile == 128 or .profile == 138 or .profile == 139 or .profile == 134 or .profile == 135
         {
             chromaFormat = bits.ue()
+            var separateColourPlanes = false
             if chromaFormat == 3 do
-                bits.skip(1)     // separate_colour_plane_flag.
+                separateColourPlanes = bits.bit() != 0
             let bitDepthLuma    = bits.ue() + 8
             let bitDepthChroma  = bits.ue() + 8
             let transformBypass = bits.bit()
-            if chromaFormat != 1 do
-                fail UnsupportedFormatError{"video decoder only supports 4:2:0 H.264 streams"}
+            if chromaFormat != 1 and chromaFormat != 3 do
+                fail UnsupportedFormatError{"video decoder only supports 4:2:0 and 4:4:4 H.264 streams"}
+
+            // Separate colour planes code each plane as its own monochrome picture with its own
+            // slice headers, which is a different picture structure and not merely a sampling.
+            if separateColourPlanes do
+                fail UnsupportedFormatError{"video decoder does not support H.264 streams coding their colour planes separately"}
             if bitDepthLuma != 8 or bitDepthChroma != 8 do
                 fail UnsupportedFormatError{"video decoder only supports 8-bit H.264 streams"}
             if transformBypass do
@@ -183,8 +212,10 @@ impl Sps
 
             .hasScaling = bits.bit() != 0
             if .hasScaling do
-                parseScalingMatrices(&bits, me, .scaling4, .scaling8, fromSps: true)
+                parseScalingMatrices(&bits, me, .scaling4, .scaling8, fromSps: true, listCount: chromaFormat == 3 ? 12 : 8)
         }
+
+        .chromaFormat = cast(u8) chromaFormat
 
         .log2MaxFrameNum = bits.ue() + 4
         .pocType         = cast(u8) bits.ue()
@@ -249,6 +280,19 @@ impl Sps
         .valid = true
     }
 
+    // Reports whether the sequence codes its two colour planes at the resolution of luma.
+    //
+    // In 4:4:4 a colour plane is not merely larger: it is predicted, transformed, entropy coded
+    // and filtered exactly as luma is, so almost every place that asks this question then takes
+    // the luma path with a plane index rather than the chroma one.
+    #[Swag.Inline]
+    mtd const is444()->bool => .chromaFormat == 3
+
+    // Returns how far a luma coordinate shifts right to address the chroma planes: one in
+    // 4:2:0, none in 4:4:4.
+    #[Swag.Inline]
+    mtd const chromaShift()->s32 => .chromaFormat == 3 ? 0 : 1
+
     // Returns the visible frame width, in pixels.
     mtd const width()->s32 => .mbWidth * 16 - .cropLeft - .cropRight
 
@@ -294,8 +338,16 @@ impl Pps
         if bits.moreData()
         {
             .transform8x8 = bits.bit() != 0
-            if bits.bit() do
-                parseScalingMatrices(&bits, sps, scaling4, scaling8, fromSps: false)
+
+            // A picture set carries the six 4x4 lists, and the 8x8 ones only when it turns the
+            // 8x8 transform on: two of them, or one per colour plane in 4:4:4.
+            if bits.bit()
+            {
+                var listCount = 6'u64
+                if .transform8x8 do
+                    listCount += sps.is444() ? 6 : 2
+                parseScalingMatrices(&bits, sps, scaling4, scaling8, fromSps: false, listCount: listCount)
+            }
             .chromaQpOffset[1] = bits.se()
         }
 
@@ -328,7 +380,7 @@ impl Pps
             }
         }
 
-        for list in 2'u64
+        for list in 6'u64
         {
             for qp in 52'u64
             {

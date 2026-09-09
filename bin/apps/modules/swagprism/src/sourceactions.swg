@@ -8,15 +8,9 @@ struct SourceActions
     using wnd: Wnd
 }
 
-impl IWnd for SourceActions
+impl SourceActions
 {
-    mtd impl measureContent(available: Math.Point)->Math.Point
-    {
-        discard available
-        return {0, 36}
-    }
-
-    mtd impl onLayout()
+    mtd layoutFields()
     {
         if .children.count != 4 do
             return
@@ -39,5 +33,22 @@ impl IWnd for SourceActions
         automatic.arrange({x, rect.y, autoWidth, 36})
         x += autoWidth + 8
         examples.arrange({x, rect.y, Math.max(0.0, rect.right() - x), 36})
+    }
+}
+
+impl IWnd for SourceActions
+{
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        discard available
+        return {0, 36}
+    }
+
+    mtd impl onLayout() { .layoutFields() }
+
+    mtd impl onResizeEvent(evt: *ResizeEvent)
+    {
+        .layoutFields()
+        .wnd.IWnd.onResizeEvent(evt)
     }
 }

@@ -28,6 +28,7 @@ using Core, Gui
             if viewer.probe.failed do
                 Console.print(viewer.probe.diagnostics.toString())
             Swag.assert(viewer.frameCount != 0 and !viewer.queued)
+            for entry in window.cache.entries where entry.id == viewer.probe.artifactId do Console.print(entry.result.text.toString())
             Console.println("PRISM_EDIT kind=", cast(u32) example, " sample=", sample, " total_ms=", watch.elapsedMilliseconds(), " build_ms=", viewer.probe.compileMs, " frame_us=", viewer.renderUs)
         }
 

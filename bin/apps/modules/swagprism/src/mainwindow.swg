@@ -425,11 +425,10 @@ impl MainWindow
         .liveEdit.setText(appStrings().ui_AutoCompile)
         .liveEdit.toolTip = appStrings().ui_LiveEdit
         .formatButton.setText(appStrings().ui_Format)
-        .formatButton.fitWidthToLabel(.themeMetrics().btnPush_Width)
         .formatButton.toolTip = appStrings().ui_FormatHint
         .runButton.setText(appStrings().ui_CompileVisible)
-        .runButton.fitWidthToLabel()
         .runButton.toolTip = appStrings().ui_CompileVisibleHint
+        .commandBar.layoutFields()
         .layoutButton.setChecked(.comparisonEnabled)
         .layoutButton.toolTip = .comparisonEnabled ? appStrings().ui_OneViewer : appStrings().ui_TwoViewers
         .surface!.setTitle(appStrings().ui_WindowTitle)
@@ -483,9 +482,7 @@ impl IWnd for MainWindow
         {
             .layoutButton.setIcon(.icons.icon(0, 18, .theme().res.atlasScale))
             .runButton.setIcon(.theme().icon(.Play, 18))
-            .runButton.fitWidthToLabel()
             .formatButton.setIcon(.icons.icon(1, 18, .theme().res.atlasScale))
-            .formatButton.fitWidthToLabel(.themeMetrics().btnPush_Width)
             .refreshPaneLayout()
         }
 

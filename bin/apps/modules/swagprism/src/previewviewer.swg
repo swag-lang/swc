@@ -9,6 +9,7 @@ struct PreviewViewer
 
     late
     {
+        probe:        *Pipeline.PreviewProbe
         panel:        *ViewerPanel
         cache:        *Pipeline.CompilationCache
         sourceEditor: *RichEditCtrl
@@ -21,9 +22,9 @@ struct PreviewViewer
     paused:     bool
     running:    bool
     queued:     bool
-    task:       Swag.Task
     timer:      *Timer?
-    probe:      Pipeline.PreviewProbe
+    preparing:  *Pipeline.PreviewProbe?
+    retired:    Array'*Pipeline.PreviewProbe
     source:     String
     pending:    Pipeline.BuildRequest
     request:    Pipeline.BuildRequest
@@ -42,6 +43,7 @@ impl PreviewViewer
     {
         let result = Wnd.create'PreviewViewer(parent, "prism.preview")
         result.backgroundStyle        = .Transparent
+        result.probe                  = Memory.new'Pipeline.PreviewProbe()
         result.panel                  = parent
         result.cache                  = parent.cache
         result.sourceEditor           = editor
@@ -80,9 +82,22 @@ impl PreviewViewer
     mtd compileRequest(request: Pipeline.BuildRequest)
     {
         // Editing another panel need not restart an unchanged live preview.
-        if .running and !Atomic.get(&.probe.cancelled) and .generation == .cache.generation and .request.kind == request.kind and .request.sameProgram(request) do
+        if .running and !Atomic.get(&.probe.cancelled) and (!.preparing or !Atomic.get(&.preparing!.cancelled)) and .generation == .cache.generation and .request.kind == request.kind and .request.sameProgram(request) do
             return
         .pending = request
+        if .preparing
+        {
+            .queued = true
+            Atomic.exchange(&.preparing!.cancelled, 1)
+            return
+        }
+
+        if .running and .frameCount
+        {
+            .startReplacement()
+            return
+        }
+
         if .running
         {
             .queued = true
@@ -93,38 +108,96 @@ impl PreviewViewer
         .start()
     }
 
+    mtd startReplacement()
+    {
+        .request    = .pending
+        .source     = .request.source
+        .generation = .cache.generation
+        .queued     = true
+        .preparing  = Memory.new'Pipeline.PreviewProbe()
+        .preparing!.start(.request, .cache)
+        .sigChanged.call(me)
+    }
+
     mtd start()
     {
+        Memory.delete(.probe)
+        .probe      = Memory.new'Pipeline.PreviewProbe()
         .request    = .pending
         .generation = .cache.generation
         .source     = .request.source
         .queued     = false
         .running    = true
         .frameCount = 0
-        .probe.channel.close()
-        .probe.ready     = 0
-        .probe.cancelled = 0
-        .probe.failed    = false
-        .probe.diagnostics.clear()
-        .timer = .app().addTimer(16'ms, me)
-        .task.submit(func|viewer = me|()
-        {
-            catch viewer.probe.run(viewer.request, viewer.cache) as error
-            if error != null
-            {
-                viewer.probe.failed      = true
-                viewer.probe.diagnostics = "The preview could not be started."
-            }
-        })
+        if !.timer do
+            .timer = .app().addTimer(16'ms, me)
+        .probe.start(.request, .cache)
         .refreshStatus()
         .sigChanged.call(me)
     }
 
+    // Workers reap old children off the UI thread. Their mappings remain owned until the join.
+    mtd collectRetired()
+    {
+        var index = 0'u64
+        while index < .retired.count
+        {
+            let probe = .retired[index]
+            if probe.task.isDone()
+            {
+                .retired.removeAtOrdered(index)
+                Memory.delete(probe)
+            }
+            else do
+                index += 1
+        }
+    }
+
     mtd poll()
     {
-        if .task.isDone()
+        .collectRetired()
+        if .preparing
         {
-            .removeTimer(.timer!)
+            let candidate = .preparing!
+            if candidate.task.isDone()
+            {
+                .preparing = null
+                if Atomic.get(&candidate.cancelled)
+                {
+                    Memory.delete(candidate)
+                    .startReplacement()
+                }
+                else
+                {
+                    .queued = false
+                    .outputText.parse(candidate.diagnostics.toString())
+                    .outputText.show(.output)
+                    .output.show()
+                    .canvas.hide()
+                    .applyLayout()
+                    Memory.delete(candidate)
+                    .sigChanged.call(me)
+                }
+            }
+            elif !Atomic.get(&candidate.cancelled) and Atomic.get(&candidate.ready) and Atomic.get(&candidate.channel.header().published)
+            {
+                // Keep the previous animation alive until the replacement has a complete frame.
+                Atomic.exchange(&.probe.cancelled, 1)
+                .retired.add(.probe)
+                .probe      = candidate
+                .preparing  = null
+                .running    = true
+                .queued     = false
+                .frameCount = 0
+            }
+        }
+
+        if .probe.task.isDone()
+        {
+            if .preparing do
+                return
+            if .timer do
+                .removeTimer(.timer!)
             .timer   = null
             .running = false
             if .queued
@@ -174,11 +247,24 @@ impl PreviewViewer
 
     mtd stop()
     {
-        if .running
+        Atomic.exchange(&.probe.cancelled, 1)
+        if .preparing
         {
-            Atomic.exchange(&.probe.cancelled, 1)
-            .task.wait()
+            Atomic.exchange(&.preparing!.cancelled, 1)
+            .retired.add(.preparing!)
+            .preparing = null
         }
+
+        for probe in .retired do
+            Atomic.exchange(&probe.cancelled, 1)
+        .probe.task.wait()
+        for probe in .retired
+        {
+            probe.task.wait()
+            Memory.delete(probe)
+        }
+
+        .retired.clear()
 
         if .timer and !.isPendingDestroy do
             .removeTimer(.timer!)
@@ -218,7 +304,7 @@ impl IViewer for PreviewViewer
     mtd impl isPaused()->bool => .paused
     mtd impl setPaused(paused: bool) { .paused = paused }
     mtd impl shutdown() { .stop() }
-    mtd impl isRunning()->bool => .running and !.frameCount
+    mtd impl isRunning()->bool => .preparing != null or (.running and (!.frameCount or .queued))
     mtd impl subscribeChanged(action: func||(*Wnd)) { .sigChanged += action }
 }
 
@@ -241,6 +327,7 @@ impl IWnd for PreviewViewer
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         .stop()
+        Memory.delete(.probe)
         .wnd.IWnd.onDestroyEvent(evt)
     }
 }

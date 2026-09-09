@@ -2,47 +2,42 @@
 
 using Core, Gui
 
-// Keeps source actions together, wrapping them when the editor column becomes narrow.
+// One source toolbar: labels yield to icons before the example selector loses its space.
 struct SourceActions
 {
     using wnd: Wnd
 }
 
-impl SourceActions
-{
-    mtd layoutFields(width: f32, place: bool)->Math.Point
-    {
-        let available = Math.max(width - .padding.x - .padding.z, 0.0)
-        var x, y, rowHeight, usedWidth = 0.0'f32
-        for child in .children
-        {
-            let size = child.measure({}).preferred
-            if x > 0 and x + size.x > available
-            {
-                x         = 0
-                y         += rowHeight + 8
-                rowHeight = 0
-            }
-
-            if place do
-                child.arrange({.padding.x + x, .padding.y + y, size.x, size.y})
-            usedWidth = Math.max(usedWidth, x + size.x)
-            x         += size.x + 8
-            rowHeight = Math.max(rowHeight, size.y)
-        }
-
-        return {usedWidth + .padding.x + .padding.z, y + rowHeight + .padding.y + .padding.w}
-    }
-}
-
 impl IWnd for SourceActions
 {
-    mtd impl measureContent(available: Math.Point)->Math.Point => .layoutFields(available.x, false)
-    mtd impl onLayout() { discard .layoutFields(.clientRect().width, true) }
-
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl measureContent(available: Math.Point)->Math.Point
     {
-        discard .layoutFields(.clientRect().width, true)
-        .wnd.IWnd.onResizeEvent(evt)
+        discard available
+        return {0, 36}
+    }
+
+    mtd impl onLayout()
+    {
+        if .children.count != 4 do
+            return
+        let compile   = cast(*PushButton) .children[0]
+        let format    = cast(*PushButton) .children[1]
+        let automatic = cast(*CheckButton) .children[2]
+        let examples  = .children[3]
+        let rect      = .paddedClientRect()
+        compile.setText(rect.width >= 400 ? appStrings().ui_CompileVisible : "")
+        format.setText(rect.width >= 560 ? appStrings().ui_Format : "")
+        automatic.setText(rect.width >= 400 ? appStrings().ui_AutoCompile : "")
+        let compileWidth = Math.max(36.0, compile.IWnd.measureContent({}).x)
+        let formatWidth  = Math.max(36.0, format.IWnd.measureContent({}).x)
+        let autoWidth    = Math.max(36.0, automatic.IWnd.measureContent({}).x)
+        var x            = rect.x
+        compile.arrange({x, rect.y, compileWidth, 36})
+        x += compileWidth + 8
+        format.arrange({x, rect.y, formatWidth, 36})
+        x += formatWidth + 8
+        automatic.arrange({x, rect.y, autoWidth, 36})
+        x += autoWidth + 8
+        examples.arrange({x, rect.y, Math.max(0.0, rect.right() - x), 36})
     }
 }

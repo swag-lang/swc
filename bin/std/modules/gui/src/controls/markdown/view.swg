@@ -1410,6 +1410,11 @@ impl View
     private mtd beginReveal(offset: u64, text: string, preservePosition = false)->bool
     {
         .stopLoading()
+
+        // Only an overlapping prefetch belongs to the held gesture. A search or explicit
+        // jump owns a new destination and must not resume the wheel's older request.
+        if !preservePosition do
+            .waitingScroll = false
         .pendingSeek       = false
         .pendingSeekOffset = 0
 

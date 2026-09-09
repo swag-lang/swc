@@ -103,9 +103,10 @@ impl MainWindow
         .commandBar                 = Wnd.create'SourceActions(.sourcePanel)
         .commandBar.dockStyle       = .Top
         .commandBar.backgroundStyle = .CommandBar
-        .commandBar.padding         = 8
+        .commandBar.padding         = 0
         .commandBar.margin          = {0, 0, 0, 8}
         .runButton                  = PushButton.create(.commandBar, appStrings().ui_CompileVisible, {0, 0, 0, 36}, "prism.run", .Strong)
+        .runButton.style.setStyleSheetMetrics("btnPush_Width 0")
         .runButton.setIcon(.theme().icon(.Play, 18))
         .runButton.setIconSize(18, 18)
         .runButton.sigPressed += func|window = me|(button)
@@ -115,6 +116,9 @@ impl MainWindow
         }
 
         .formatButton = PushButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.format")
+        .formatButton.style.setStyleSheetMetrics("btnPush_Width 0")
+        .formatButton.setIcon(.icons.icon(1, 18, .theme().res.atlasScale))
+        .formatButton.setIconSize(18, 18)
         .formatButton.sigPressed += func|window = me|(button)
         {
             discard button
@@ -122,6 +126,7 @@ impl MainWindow
         }
 
         .liveEdit = CheckButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.liveEdit")
+        .liveEdit.style.setStyleSheetMetrics("btnPush_Width 0")
         .liveEdit.setState(.Checked)
         .liveEdit.sigChanged += func|window = me|(button)
         {
@@ -210,7 +215,7 @@ impl MainWindow
         }
 
         let sourcePane = .sourceSplit.addPane(.sourcePanel, 480)
-        sourcePane.minimumSize = 260
+        sourcePane.minimumSize = 300
         let viewersPane = .sourceSplit.addPane(.viewerSplit, 960)
         viewersPane.minimumSize = ViewerPanel.MinWidth
         .viewerSplit.setPaneVisible(1, false)
@@ -479,6 +484,7 @@ impl IWnd for MainWindow
             .layoutButton.setIcon(.icons.icon(0, 18, .theme().res.atlasScale))
             .runButton.setIcon(.theme().icon(.Play, 18))
             .runButton.fitWidthToLabel()
+            .formatButton.setIcon(.icons.icon(1, 18, .theme().res.atlasScale))
             .formatButton.fitWidthToLabel(.themeMetrics().btnPush_Width)
             .refreshPaneLayout()
         }

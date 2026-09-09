@@ -433,10 +433,11 @@ internal impl HtmlView
         // quarter of a million pixels, which is not a shape the surface geometry is built for.
         let laidOutHeight = Math.max(.layout.documentHeight, viewport.y)
         let height        = .embedded ? viewport.y : (.virtualSource and .virtualHeight > 0 ? .virtualHeight : laidOutHeight)
-        let position      = .scroll.scrollPosition()
         .canvas.setPosition({0, 0, viewport.x, viewport.y})
+
+        // Updating the extent already clamps the viewport. Reapplying its position would
+        // cancel an active glide every time streaming publishes another layout.
         .scroll.setScrollSize(viewport.x, height)
-        .scroll.setScrollPos(position)
         .scroll.verticalScrollStep = Math.max(cast(f32) .documentStyle.bodyFontSize * 3, 24)
         .canvas.invalidate()
     }
@@ -581,8 +582,12 @@ internal impl HtmlView
         let localY      = Math.clamp(localRatio, 0, 1) * .layout.documentHeight
         let targetY     = requestedY >= 0 ? Math.clamp(requestedY, 0, .virtualHeight) : Math.clamp(globalRatio, 0, 1) * .virtualHeight
         .virtualOrigin = targetY - localY
-        .placeDocument()
-        .scroll.setScrollPos(.scroll.scrollPosition().x, targetY)
+
+        // Rebuild already laid out this window. Only its virtual extent and origin changed;
+        // neither needs a second text layout or a restart of the current scroll animation.
+        .scroll.setScrollSize(.viewportSize().x, .virtualHeight)
+        if requestedY < 0 or .scroll.scrollPosition().y != Math.round(targetY) do
+            .scroll.setScrollPos(.scroll.scrollPosition().x, targetY)
         .resolvePending()
         .canvas.invalidate()
         return true

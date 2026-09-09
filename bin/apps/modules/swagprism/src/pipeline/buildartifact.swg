@@ -10,7 +10,7 @@ struct BuildArtifact
     request:    BuildRequest
     folder:     Probe
     result:     Result
-    executable: String
+    binary:     String
     task:       Swag.Task
     cancelled:  u32
     users:      u32
@@ -31,9 +31,8 @@ impl BuildArtifact
         let native = .request.kind != .Microcode
         if native
         {
-            discard try File.writeAllBytes(Path.combine(.folder.root, "src", "channel.swg"), #include("framechannel.swg"))
-            let runner: const [..] u8 = .request.kind == .Gui ? cast(const [..] u8) #include("../../datas/preview/gui.txt") : cast(const [..] u8) #include("../../datas/preview/renderer.txt")
-            discard try File.writeAllBytes(Path.combine(.folder.root, "src", "runner.swg"), runner)
+            let wrapper = .request.kind == .Gui ? "public func prismBuild(parent: *Gui.Wnd) { buildView(parent) }" : "public func prismShade(x, y, time: f32)->u32 => shade(x, y, time)"
+            discard try File.writeAllBytes(Path.combine(.folder.root, "src", "entry.swg"), cast(const [..] u8) wrapper)
         }
 
         let outDir    = Path.combine(.folder.session, "out")
@@ -60,6 +59,6 @@ impl BuildArtifact
         if .result.failed do
             .result.text.append(process.standardError())
         if native do
-            .executable = Path.combine(outDir, "prismpreview.exe")
+            .binary = Path.combine(outDir, "prismpreview.dll")
     }
 }

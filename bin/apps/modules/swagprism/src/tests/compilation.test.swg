@@ -117,7 +117,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     window.shutdown()
 }
 
-// Two execution viewers share an executable but keep independent frame channels and playback.
+// Two execution viewers share a compiled module but keep independent frame channels and playback.
 #test
 {
     var host: Testing.HeadlessHost
@@ -193,4 +193,25 @@ func waitBuild(lease: *Pipeline.BuildLease)
     panel.showOptions(false)
     Swag.assert(panel.viewer!.window().isVisible() and !panel.optionsButton.isChecked)
     window.shutdown()
+}
+
+// The precompiled host and edited libraries share the same runtime, including during unload.
+#test
+{
+    var artifact: Pipeline.BuildArtifact
+    artifact.request = {kind: .Render2D, source: String.from(exampleSource(.Plasma)), settings: {optimization: .O2}}
+    expect artifact.run()
+    if artifact.result.failed do
+        Console.print(artifact.result.text.toString())
+    Swag.assert(!artifact.result.failed)
+    for iteration in 3
+    {
+        discard iteration
+        var library = expect NativeLibrary.load(artifact.binary.toString())
+        let symbol  = library.symbol("prism_shade")
+        Swag.assert(symbol != null)
+        let shade = cast(func(f32, f32, f32)->u32) symbol!
+        let color = shade(0, 0, 0)
+        Swag.assert((color & 0xFF000000) == 0xFF000000)
+    }
 }

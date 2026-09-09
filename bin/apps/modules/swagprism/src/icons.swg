@@ -6,7 +6,7 @@ private const IconsSvg = #include("../datas/icons.svg")
 private var g_PrismIcons:       IconAtlas
 private var g_PrismIconsParsed: bool
 
-// Shares the comparison glyph's vector document and rasters across application windows.
+// Shares the toolbar glyphs' vector document and rasters across application windows.
 func prismIcons()->*IconAtlas
 {
     if !g_PrismIconsParsed

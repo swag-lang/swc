@@ -1,4 +1,5 @@
-#import("gui", location: "swag@std")
+// The preview host loads Swag libraries; its imports must share their runtime and allocator.
+#import("gui", location: "swag@std", link: "shared-library")
 
 #run
 {

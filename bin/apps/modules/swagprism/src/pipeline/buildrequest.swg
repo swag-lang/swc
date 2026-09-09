@@ -67,7 +67,7 @@ impl BuildRequest
     mtd moduleSource()->String
     {
         let dependency = .kind == .Microcode ? "core" : (.kind == .Render2D ? "pixel" : "gui")
-        let backend    = .kind == .Microcode ? "StaticLibrary" : "Executable"
+        let backend    = .kind == .Microcode ? "StaticLibrary" : "SharedLibrary"
         return Format.toString("#import(\"%\", location: \"swag@std\")\n%\n#run { Swag.compiler().getBuildCfg()!.backend.optimLevel = .O% }\n%\n#run\n{\n    with let cfg = Swag.compiler().getBuildCfg()!\n    {\n        .backendKind = .%\n        .publishDependencies = true\n    }\n}\n", dependency, .settings.presetSource(), cast(u8) .settings.optimization, .settings.configuration, backend)
     }
 }

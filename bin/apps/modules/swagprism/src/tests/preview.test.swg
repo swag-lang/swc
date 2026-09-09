@@ -3,21 +3,6 @@
 
 using Core, Gui, Pixel
 
-func awaitFrame(viewer: *PreviewViewer, after: u32 = 0)
-{
-    var watch: Time.Stopwatch
-    watch.start()
-    while viewer.running and viewer.frameCount <= after and watch.elapsedMilliseconds() < 90000
-    {
-        Threading.Thread.sleep(10'ms)
-        viewer.poll()
-    }
-
-    if viewer.probe.failed do
-        Console.print(viewer.probe.diagnostics.toString())
-    Swag.assert(viewer.running and viewer.frameCount > after)
-}
-
 // The opening viewer is an executable canvas; the second panel can inspect the same source.
 #test
 {
@@ -116,6 +101,10 @@ func awaitFrame(viewer: *PreviewViewer, after: u32 = 0)
                 window.setComparisonEnabled(comparison)
                 window.applyLayout()
                 Testing.assertContentFits(window)
+                Swag.assert(window.commandBar.position.height == 36)
+                Swag.assert(window.runButton.position.y == window.formatButton.position.y)
+                Swag.assert(window.runButton.position.y == window.exampleCombo.position.y)
+                Swag.assert(window.formatButton.icon.isValid())
                 Swag.assert(window.liveEdit.position.right() <= window.commandBar.paddedClientRect().right())
                 for panel in window.panels
                 {
@@ -138,7 +127,7 @@ func awaitFrame(viewer: *PreviewViewer, after: u32 = 0)
     viewer.compileSource("func shade(x, y, time: f32)->u32 { discard x; discard y; discard time; for {} }")
     var watch: Time.Stopwatch
     watch.start()
-    while !Atomic.get(&viewer.probe.ready) and !viewer.task.isDone() and watch.elapsedMilliseconds() < 90000 do
+    while !Atomic.get(&viewer.probe.ready) and !viewer.probe.task.isDone() and watch.elapsedMilliseconds() < 90000 do
         Threading.Thread.sleep(10'ms)
     Swag.assert(Atomic.get(&viewer.probe.ready) != 0)
     watch.restart()

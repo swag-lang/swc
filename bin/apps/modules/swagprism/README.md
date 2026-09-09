@@ -17,7 +17,8 @@ keeps the panel's optimization level and restores that viewer's stage or playbac
 
 The example combo replaces the source with a plasma, Julia fractal, live GUI, or dot product and
 selects the corresponding viewer in the first panel. Compile feeds the same source to both
-visible panels. The source panel toolbar groups Compile, Format, Auto, and the examples. Automatic
+visible panels. The source panel toolbar keeps Compile, Format, Auto, and the examples on one line;
+labels yield to icons when the source panel narrows. Automatic
 compilation waits 150 ms after the last edit and can be disabled.
 
 Format runs the Swag formatter on the source and applies the result as one undoable edit. A syntax
@@ -46,13 +47,20 @@ time in microseconds; this is not a frames-per-second benchmark. Hidden previews
 Prism finds the compiler beside the installed application, or by walking up from its development
 output. The default options match release. Microcode alone imports Core; 2D execution imports Pixel;
 GUI execution imports Gui. Microcode beside an execution viewer uses that viewer's module contract.
-Preview builds publish their runtime dependencies. The window shares a bounded compilation cache
+Native snippets compile into a shared library containing the edited code and its entry wrapper.
+The renderer is already compiled into Prism and runs in a separate host process, so edits do not
+recompile frame transport, the pixel loop, or GUI hosting. Prism explicitly links its imports as
+shared libraries to share the runtime and allocator with those loaded modules. Preview builds
+publish their runtime dependencies. The window shares a bounded compilation cache
 across its panels. Matching source, configuration, viewer contract, and stage reuse the same artifact,
 including a build already in progress. A native viewer and microcode can share one native build when
 their source and settings match. Different optimization levels or configuration overrides require
 separate builds. Compile explicitly rebuilds; automatic edits and option changes can reuse results.
-Each execution viewer has its own process, frame channel, pause state, and GUI input. An unchanged
-preview continues playing when another panel changes. Snippets execute in a separate process;
+Each execution viewer has its own process, frame channel, pause state, and GUI input. The current animation continues while a replacement compiles and starts. Only the replacement's
+first complete frame switches the displayed process; old processes are reaped off the UI thread.
+Further edits cancel obsolete replacements. A paused viewer displays one new frame after a
+successful edit and stays paused. A failed replacement shows diagnostics while retaining the last
+working process. An unchanged preview continues playing when another panel changes. Snippets execute in a separate process;
 switching examples, closing a viewer, or quitting cancels and reaps its process. A build
 has a 60-second deadline, and an unresponsive preview has a 10-second frame deadline.
 

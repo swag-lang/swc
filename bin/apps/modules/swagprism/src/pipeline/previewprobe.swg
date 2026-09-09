@@ -8,6 +8,8 @@ using Core
 #[Swag.NoCopy]
 struct PreviewProbe
 {
+    task:        Swag.Task
+    request:     BuildRequest
     folder:      Probe
     channel:     FrameChannel
     cancelled:   u32
@@ -21,6 +23,26 @@ struct PreviewProbe
 
 impl PreviewProbe
 {
+    mtd opDrop()
+    {
+        Atomic.exchange(&.cancelled, 1)
+        .task.wait()
+    }
+
+    mtd start(request: BuildRequest, cache: *CompilationCache)
+    {
+        .request = request
+        .task.submit(func|probe = me, cache|()
+        {
+            catch probe.run(probe.request, cache) as error
+            if error != null
+            {
+                probe.failed      = true
+                probe.diagnostics = "The preview could not be started."
+            }
+        })
+    }
+
     mtd run(request: BuildRequest, cache: *CompilationCache) fail
     {
         var lease = cache.acquire(request)
@@ -42,10 +64,10 @@ impl PreviewProbe
             return
         let channelPath = Path.combine(.folder.session, "frame.bin")
         try .channel.open(channelPath.toString(), true)
-        let executable = lease.artifact!.executable
+        let executable = Env.executablePath()
         let outDir     = Path.combine(lease.artifact!.folder.session, "out")
-        let childArgs  = Env.joinArguments([channelPath.toString()])
-        var child      = try Env.startProcess(Env.StartInfo{fileName: executable.toString(), arguments: childArgs.toString(), workingDirectory: outDir.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
+        let childArgs  = Env.joinArguments(["--prism-preview-host", channelPath.toString(), lease.artifact!.binary.toString(), request.kind == .Gui ? "gui" : "pixel"])
+        var child      = try Env.startProcess(Env.StartInfo{fileName: executable, arguments: childArgs.toString(), workingDirectory: outDir.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
         defer retireProcess(&child)
         Atomic.exchange(&.ready, 1)
         watch.restart()

@@ -20,3 +20,18 @@ func testSetupMainWindow(host: *Testing.HeadlessHost, width = cast(f32) MainWind
     result.applyLayout()
     return result
 }
+
+func awaitFrame(viewer: *PreviewViewer, after: u32 = 0)
+{
+    var watch: Time.Stopwatch
+    watch.start()
+    while viewer.running and viewer.frameCount <= after and watch.elapsedMilliseconds() < 90000
+    {
+        Threading.Thread.sleep(10'ms)
+        viewer.poll()
+    }
+
+    if viewer.probe.failed do
+        Console.print(viewer.probe.diagnostics.toString())
+    Swag.assert(viewer.running and viewer.frameCount > after)
+}

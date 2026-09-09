@@ -45,6 +45,50 @@ using Core, Pixel
         Swag.assert(view.virtualWindowStart != previousStart)
         Swag.assert(view.virtualWindowEnd - view.virtualWindowStart < 256 * 1024)
     }
+
+    // A prefetch replaces content, not the running gesture. Its position, destination and
+    // velocity must survive the timer, including when the reader immediately reverses.
+    host.setReducedMotion(false)
+    for forward in [true, false]
+    {
+        let revealed = view.revealFileOffset(source.length / 2, "")
+        Swag.assert(revealed)
+        let direction = forward ? 1.0 : -1.0
+        let start     = view.virtualOrigin
+        let end       = start + view.layout.documentHeight
+        view.scroll.setScrollPos(0, forward ? end - viewport.height * 8 : start + viewport.height * 7)
+        view.virtualPendingSeek = false
+        view.scroll.smoothScrollTo({0, view.scroll.scrollPosition().y + direction * viewport.height * 3})
+        host.advanceAnimations(view.themeMetrics().motion_PanelSeconds * 0.25)
+        Swag.assert(view.virtualPendingSeek and view.loadTimer != null)
+        Swag.assert(host.app.animator.isActive(view.scroll.scrollAnimation))
+        let position = view.scroll.scrollPosition()
+        let target   = view.scroll.scrollTarget()
+        let velocity = view.scroll.scrollVelocity
+        host.fireTimer(view.loadTimer)
+        Swag.assert(view.scroll.scrollPosition() == position)
+        Swag.assert(view.scroll.scrollTarget() == target)
+        Swag.assert(view.scroll.scrollVelocity == velocity)
+        Swag.assert(host.app.animator.isActive(view.scroll.scrollAnimation))
+        host.advanceAnimations(view.themeMetrics().motion_PanelSeconds * 0.25)
+        Swag.assert((view.scroll.scrollPosition().y - position.y) * direction > 0)
+        let reversal = view.scroll.scrollPosition()
+        view.scroll.smoothScrollTo({0, reversal.y - direction * viewport.height})
+        host.advanceAnimations(view.themeMetrics().motion_PanelSeconds * 0.25)
+        Swag.assert((view.scroll.scrollPosition().y - reversal.y) * direction < 0)
+        host.finishAnimations()
+    }
+
+    // An explicit navigation still replaces a gesture even when its first frame has not
+    // moved yet and the requested destination equals the current position.
+    let atStart = view.revealFileOffset(view.virtualContentStart, "")
+    Swag.assert(atStart and view.scroll.scrollPosition().y == 0)
+    view.scroll.smoothScrollTo({0, viewport.height * 2})
+    Swag.assert(host.app.animator.isActive(view.scroll.scrollAnimation))
+    let returned = view.revealFileOffset(view.virtualContentStart, "")
+    Swag.assert(returned and !host.app.animator.isActive(view.scroll.scrollAnimation))
+    host.finishAnimations()
+    Swag.assert(view.scroll.scrollPosition().y == 0 and view.scroll.scrollTarget().y == 0)
 }
 
 // SVG image dimensions come from the root attributes; CSS dimensions can override them.

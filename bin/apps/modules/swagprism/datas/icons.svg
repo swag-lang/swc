@@ -1,8 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24">
   <!-- Two independent viewer panels, on the shared 24-unit icon grid. -->
   <g fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round">
     <rect x="2" y="4" width="8" height="16" rx="1"/>
     <rect x="14" y="4" width="8" height="16" rx="1"/>
     <path d="M2 8h8M14 8h8"/>
+  </g>
+  <!-- Indented lines and a leading arrow identify source formatting. -->
+  <g transform="translate(24 0)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 4h18M10 9h11M10 14h8M3 20h18M3 9l3 3-3 3"/>
   </g>
 </svg>

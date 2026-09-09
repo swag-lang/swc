@@ -81,6 +81,23 @@ using Swag, Core
     // chunk makes a reverse prefetch repeatedly reopen the same window without reaching Home.
     Swag.assert(view.revealFileOffset(12 * 1024, ""))
     Swag.assert(view.residentStart == 0)
+    for 1_024 where view.isLoading() do
+        host.fireTimers()
+    for 80 do
+        view.scroll.setScrollPos(0, view.scroll.scrollPosition().y + viewport.height / 4)
+    Swag.assert(view.waitingScroll)
+
+    // A search supersedes a wheel gesture held at the loading boundary. Once its match is
+    // visible, an old waiting destination must not pull the reader away from that match.
+    let found = view.revealFileOffset(source.indexOf("Section 2"), "Section 2")
+    Swag.assert(found)
+    for 1_024 where view.isLoading() do
+        host.fireTimers()
+    host.finishAnimations()
+    var searchRect: Math.Rectangle
+    let hasSearchRect = view.searchMatchRect(&searchRect)
+    Swag.assert(hasSearchRect and !view.waitingScroll)
+    Swag.assert(searchRect.y >= 0 and searchRect.bottom() <= viewport.height)
 }
 
 // A prose page submits text by line, keeping wheel repaint work independent of its word count.

@@ -95,6 +95,18 @@ struct StartInfo
         standardError:    StreamRedirection = .Inherit     // How the child writes standard error.
         affinityMask:     u64                              // Logical processors the child may run on, one bit each. Zero inherits the current set.
         measureResources: bool                             // Whether to account the child and everything it starts, which [[Core.Env.Process.resources]] answers.
+
+        /*
+        Whether a console child may be given a console of its own.
+
+        A console program started from another console program shares the one already there and
+        opens nothing either way, so this decides only what happens when there is none to share:
+        a windowed program starting a console one. The system then builds a console and the host
+        process that draws it, which flashes a window and can cost several times what the child
+        itself costs — a price worth paying for a child the caller wants a reader to watch, and
+        pure waste for one whose streams are already redirected here.
+        */
+        consoleWindow = true
     }
 }
 

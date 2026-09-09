@@ -97,8 +97,8 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
 
     defer releaseTagBinArrayHolder(&holder)
 
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
     var buffer:  ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
     expect encoder.writeAll(&buffer, holder)
     buffer.makeLinear()
     Swag.assert(buffer.toString().contains("core.test.tagbin-array-thing"))
@@ -120,8 +120,8 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     Reflection.registerType(#typeof(TagBinUnkeyedThing))
     var holder = TagBinUnkeyedHolder{thing: cast(ITagBinArrayThing) thing[]}
 
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
     var buffer:  ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
     catch encoder.writeAll(&buffer, holder) as err
     Swag.assert(err != null)
     Swag.assert(Utf8.contains(Errors.message(err), "Serialization.TypeKey"))
@@ -137,8 +137,8 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     Reflection.registerType(#typeof(TagBinDuplicateThingB))
     var holder = TagBinDuplicateHolder{thing: cast(ITagBinArrayThing) thing[]}
 
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
     var buffer:  ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
     catch encoder.writeAll(&buffer, holder) as err
     Swag.assert(err != null)
     Swag.assert(Utf8.contains(Errors.message(err), "does not resolve to one registered type"))

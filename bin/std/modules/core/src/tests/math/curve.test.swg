@@ -379,8 +379,8 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     curve.setWeights(1, 0.2, 0.8)
     curve.setRange(-1, 3, 5, -5)
 
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
     var buffer:  ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
     expect encoder.writeAll(&buffer, curve)
     let bytes = buffer.toString()
 

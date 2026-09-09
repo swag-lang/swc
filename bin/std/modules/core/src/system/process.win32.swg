@@ -350,6 +350,12 @@ func startProcess(info: StartInfo)->Process fail
         startup.hStdError  = cast(HANDLE) childError
     }
 
+    // Nothing here decides whether a window appears for a program that draws its own; the flag
+    // only stops the system from building a console, and the host process that draws it, for a
+    // console child that has none to inherit.
+    if !info.consoleWindow do
+        creationFlags |= CREATE_NO_WINDOW
+
     // Accounting and affinity both have to be in place before the first instruction runs: a job
     // only counts what a process does after it joins, and a pinned run that starts anywhere else
     // has already been measured on the wrong core. So the process is created suspended and

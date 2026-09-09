@@ -1,0 +1,28 @@
+# French strings of Swag Prism. A key omitted here keeps its English value.
+
+ui_WindowTitle    Swag Prism — Ce que le compilateur fait de votre code
+ui_Stage          Étape
+ui_Optimize       Optimiser
+ui_Run            Compiler
+ui_Working        Compilation…
+ui_Ready          Prêt
+ui_NoOutput       Le compilateur n'a rien affiché pour cette étape.
+ui_Stopped        Le compilateur s'est arrêté. Son rapport est dans le panneau.
+ui_Done           Compilé en % ms
+ui_ProbeStopped   Le compilateur n'a pas pu être lancé.
+ui_OutputHint     Appuyez sur Compiler pour voir ici les instructions générées.
+
+ui_StageGenerated       Généré
+ui_StageMemToReg        Emplacements de pile promus
+ui_StageConstFold       Constantes repliées
+ui_StageInstCombine     Instructions fusionnées
+ui_StageValueNumbering  Valeurs numérotées
+ui_StageStrengthReduce  Opérations affaiblies
+ui_StageLoopUnroll      Boucles déroulées
+ui_StageLicm            Invariants de boucle sortis
+ui_StageVectorize       Vectorisé
+ui_StageDce             Code mort supprimé
+ui_StageBeforeRegisters Avant les registres
+ui_StageRegalloc        Registres alloués
+ui_StagePeephole        Judas appliqué
+ui_StageFinal           Final

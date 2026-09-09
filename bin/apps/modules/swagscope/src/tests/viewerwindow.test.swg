@@ -86,25 +86,6 @@ func delayTestViewerRetirement(wnd: *Wnd)->bool
     return calls[] >= 2
 }
 
-func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow)
-{
-    completeViewerWindowClassification(host, window)
-
-    var steps = 0'u32
-    while window.activeChoiceIndex < window.instances.count and steps < 4_096
-    {
-        let instance = &window.instances[window.activeChoiceIndex]
-        if !instance.view or !instance.isLoading or !instance.isLoading!(instance.view!) do
-            break
-        Threading.Thread.sleep(1'ms)
-        host.fireTimers()
-        steps += 1
-    }
-
-    Swag.assert(steps < 4_096)
-    expireViewerLoadingLinger(window)
-}
-
 // Waits for the summary the text viewer publishes once its background analysis lands.
 //
 // `isLoading` above answers for the document, not for the line and word totals: those arrive on

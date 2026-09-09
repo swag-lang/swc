@@ -153,11 +153,57 @@ internal struct MarkdownZoomButton
         widthCombo: *ComboBox
     }
 
-    zoomPercent: u32 = 100
+    zoomPercent:     u32 = 100
+    statisticsLoad:  Viewer.BackgroundLoad'TextStatistics
+    statistics:      TextStatistics
+    statisticsTimer: *Timer?
+    hasStatistics:   bool
+    reportDetails:   Viewer.ReportDetails?
 }
 
-private impl MarkdownZoomButton
+impl IWnd for MarkdownZoomButton
 {
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .statisticsTimer or !.statisticsLoad.isDone() do
+            return
+        .removeTimer(evt.timer)
+        .statisticsTimer = null
+        let error = .statisticsLoad.finish(&.statistics)
+        .hasStatistics = error.isEmpty()
+        .reportStatistics()
+    }
+}
+
+impl MarkdownZoomButton
+{
+    mtd reportStatistics()
+    {
+        if !.reportDetails do
+            return
+        if !.hasStatistics
+        {
+            .reportDetails!(.view, markdownStrings().ui_Details)
+            return
+        }
+
+        let texts = markdownStrings()
+        let lines = .statistics.lines == 1 ? String.from(texts.ui_OneLine) : Format.toString(texts.ui_Lines, .statistics.lines)
+        let words = .statistics.words == 1 ? String.from(texts.ui_OneWord) : Format.toString(texts.ui_Words, .statistics.words)
+        .reportDetails!(.view, Format.toString("% · % · %", texts.ui_Details, lines, words).toString())
+    }
+
+    mtd retire()->bool
+    {
+        if .statisticsTimer
+        {
+            .removeTimer(.statisticsTimer!)
+            .statisticsTimer = null
+        }
+
+        return .statisticsLoad.retire()
+    }
+
     mtd applyZoom(percent: u32)
     {
         .zoomPercent = percent
@@ -265,6 +311,7 @@ func createMarkdownViewer(host: Viewer.Host)
             themeCombo.setSelectedIndex(themeIndex, notify: false)
             themeCombo.toolTip = markdownStrings().ui_TipTheme
             zoomButton.toolTip = markdownStrings().ui_ZoomMenu
+            zoomButton.reportStatistics()
         }
 
         return false
@@ -288,7 +335,11 @@ func createMarkdownViewer(host: Viewer.Host)
         return (cast(*Markdown.View) wnd).searchMatchRect(bounds)
     },
         clear: func(wnd) { (cast(*Markdown.View) wnd).clearSearchHighlight() }})
-    host.setLifecycle({isLoading: func(wnd)->bool { return (cast(*Markdown.View) wnd).isLoading() }})
+    view.userData = zoomButton
+    zoomButton.reportDetails = services.reportDetails
+    zoomButton.statisticsLoad.start(host.fileName(), &TextStatisticsCounter.loadUtf8)
+    zoomButton.statisticsTimer = zoomButton.addTimer(Viewer.BackgroundPollInterval)
+    host.setLifecycle({isLoading: func(wnd)->bool { return (cast(*Markdown.View) wnd).isLoading() }, retire: func(wnd)->bool { return (cast(*MarkdownZoomButton) wnd.userData!).retire() }})
     themeCombo.sigChanged += func|view, widthCombo, zoomButton|(combo, index)
     {
         discard combo

@@ -1135,7 +1135,7 @@ impl View
     {
         let result = View.create(contentParent, documentStyle)
         result.fileName = fileName
-        result.stream   = catch File.openRead(fileName) as openError
+        result.stream   = catch File.open(fileName, .Open, .Read, .ReadWrite | .Delete) as openError
         if openError != null
         {
             result.reportLoadFailure(Errors.message(openError))
@@ -1463,7 +1463,7 @@ impl View
         let start     = requested > RevealContextSize ? requested - RevealContextSize : 0
         for adjustment in 4
         {
-            .stream = catch File.openRead(.fileName.toString()) as openError
+            .stream = catch File.open(.fileName.toString(), .Open, .Read, .ReadWrite | .Delete) as openError
             if openError != null do
                 return false
             let actual = Math.min(start + adjustment, .fileSize)

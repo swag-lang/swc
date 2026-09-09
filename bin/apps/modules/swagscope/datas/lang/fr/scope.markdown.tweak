@@ -10,3 +10,8 @@ ui_TipTheme  Apparence du Markdown
 ui_ZoomMenu  Options de zoom du Markdown
 ui_ThemeApp  Application
 ui_Details   Markdown · UTF-8
+
+ui_OneLine  1 ligne
+ui_Lines    % lignes
+ui_OneWord  1 mot
+ui_Words    % mots

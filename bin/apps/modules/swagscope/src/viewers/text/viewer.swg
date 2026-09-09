@@ -74,12 +74,6 @@ struct TextProbe
     accepted:     bool              // Whether what it decodes to is text a reader should be shown.
 }
 
-struct TextStatistics
-{
-    lines: u64
-    words: u64
-}
-
 // Text view available for readable content independently of the format-specific viewers.
 struct TextView
 {
@@ -127,7 +121,7 @@ private func runTextStatistics(thread: Threading.Thread)
     let context = Swag.getContext()
     context.allocator = context.defaultAllocator!
 
-    var stream = catch File.openRead(view.fileName.toString()) as openError
+    var stream = catch File.open(view.fileName.toString(), .Open, .Read, .ReadWrite | .Delete) as openError
     if openError != null
     {
         Atomic.exchange(&view.statisticsState, 2)
@@ -137,11 +131,7 @@ private func runTextStatistics(thread: Threading.Thread)
     defer stream.close()
     discard catch stream.seek(.Begin, view.statisticsStart)
 
-    var result:             TextStatistics
-    var inWord:             bool
-    var sawRune:            bool
-    var previousCr:         bool
-    var endedWithLineBreak: bool
+    var counter: TextStatisticsCounter
     while !thread.requestEnd
     {
         let chunk = catch stream.readTextChunk(TextStreamChunkSize, view.statisticsEncoding) as readError
@@ -154,51 +144,12 @@ private func runTextStatistics(thread: Threading.Thread)
         if chunk.isEmpty() do
             break
 
-        var scan = 0'u64
-        let text = chunk.toString()
-        while scan < text.count
-        {
-            let {c, eat} = Utf8.decodeRune(text[scan to])
-            scan    += eat
-            sawRune = true
-            if c == '\r'
-            {
-                result.lines       += 1
-                previousCr         = true
-                endedWithLineBreak = true
-                inWord             = false
-                continue
-            }
-
-            if c == '\n'
-            {
-                if !previousCr do
-                    result.lines += 1
-                previousCr         = false
-                endedWithLineBreak = true
-                inWord             = false
-                continue
-            }
-
-            previousCr         = false
-            endedWithLineBreak = false
-            if Unicode.isSpace(c)
-            {
-                inWord = false
-                continue
-            }
-
-            if !inWord do
-                result.words += 1
-            inWord = true
-        }
+        counter.append(chunk.toString())
     }
 
     if thread.requestEnd do
         return
-    if sawRune and !endedWithLineBreak do
-        result.lines += 1
-    view.statistics = result
+    view.statistics = counter.finish()
     Atomic.exchange(&view.statisticsState, 1)
 }
 
@@ -295,7 +246,7 @@ impl TextView
     func probe(fileName: string)->TextProbe
     {
         var result: retval
-        var stream = catch File.openRead(fileName) as openError
+        var stream = catch File.open(fileName, .Open, .Read, .ReadWrite | .Delete) as openError
         if openError != null do
             return result
         defer stream.close()
@@ -476,7 +427,7 @@ impl TextView
         start -= (start - .contentStart) % unit
         for adjustment in 4
         {
-            .stream = catch File.openRead(.fileName.toString()) as openError
+            .stream = catch File.open(.fileName.toString(), .Open, .Read, .ReadWrite | .Delete) as openError
             if openError != null do
                 return false
             let actual = Math.min(start + adjustment * unit, .fileSize)
@@ -531,7 +482,7 @@ impl TextView
 
         var head: Array'u8
         head.resize(Text.bomLength(encoding))
-        var stream = catch File.openRead(.fileName.toString()) as openError
+        var stream = catch File.open(.fileName.toString(), .Open, .Read, .ReadWrite | .Delete) as openError
         if openError == null
         {
             let count = catch stream.read(head.toSlice()) as readError
@@ -831,7 +782,7 @@ impl TextView
             return false
         }
 
-        result.stream = catch File.openRead(host.fileName()) as openError
+        result.stream = catch File.open(host.fileName(), .Open, .Read, .ReadWrite | .Delete) as openError
         if openError != null do
             result.showReadError()
         else

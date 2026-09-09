@@ -524,6 +524,7 @@ struct ViewerClassifiedFile
     folderFiles:      Array'String
     recent:           Array'String
     exists:           bool
+    metadata:         File.FileInfo
 }
 
 // Classifies one requested file without making the GUI thread open or probe it.
@@ -563,8 +564,11 @@ impl ViewerChoiceLoad
             {
                 operation.result.choices = operation.index!.choices(operation.result.absoluteFileName.toString())
                 let info = catch File.info(operation.result.absoluteFileName.toString()) as infoError
-                if infoError == null do
+                if infoError == null
+                {
                     operation.result.fileSize = StrConv.toDisplaySize(info.size)
+                    operation.result.metadata = #move info
+                }
             }
 
             for one in operation.recent where File.exists(one[].toString()) do
@@ -702,6 +706,10 @@ struct ViewerWindow
     pendingFile:             String
     pendingEmpty:            String
     pendingRemember:         bool = true
+    fileWatch:               ViewerFileWatch
+    fileWatchTimer:          *Timer?
+    readingState:            ViewerReadingState
+    reloading:               bool
     currentFile:             String
     currentFileSize:         String
     folderFiles:             Array'String
@@ -895,13 +903,31 @@ impl IWnd for ViewerWindow
                 evt.accepted = false
         }
         elif evt.key == .F5 and !.currentFile.isEmpty() do
-            .queueFile(.currentFile.toString())
+            .reloadCurrentFile()
         else do
             evt.accepted = false
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .fileWatchTimer
+        {
+            if !.pendingFile.isEmpty() or .currentFile.isEmpty() do
+                return
+            if .readingState.restoring and .activeChoiceIndex < .instances.count
+            {
+                if .searchTimer do
+                    return
+                if .readingState.restore(&.instances[.activeChoiceIndex]) do
+                    .readingState.restoring = false
+                return
+            }
+
+            if .fileWatch.poll(.currentFile.toString()) do
+                .reloadCurrentFile()
+            return
+        }
+
         if evt.timer == .smokeTimer
         {
             .reviewSmokeStep()
@@ -965,6 +991,12 @@ impl IWnd for ViewerWindow
         .stopSearch()
         .stopLoadingIndicator()
         .stopSlide()
+        if .fileWatchTimer
+        {
+            .removeTimer(.fileWatchTimer!)
+            .fileWatchTimer = null
+        }
+
         for &set in .pluginIcons do
             set.icons.free()
         if .startupTimer
@@ -1761,9 +1793,22 @@ impl ViewerWindow
         return result
     }
 
-    // Opens `fileName` after the surface has had a chance to paint its first frame.
-    mtd queueFile(fileName: string, remember = true)
+    // Reloads the current path while retaining the active reading session.
+    mtd reloadCurrentFile()
     {
+        if .currentFile.isEmpty() or !.pendingFile.isEmpty() or .activeChoiceIndex >= .instances.count do
+            return
+        .readingState.capture(&.instances[.activeChoiceIndex], .choices[.activeChoiceIndex].key.toString(), .searchBox.text())
+        .queueFile(.currentFile.toString(), remember: false, preserveReading: true)
+    }
+
+    // Opens `fileName` after the surface has had a chance to paint its first frame.
+    mtd queueFile(fileName: string, remember = true, preserveReading = false)
+    {
+        .reloading = preserveReading
+        if !preserveReading do
+            .readingState = {}
+
         // A query belongs to the document it was started against. Stop its file stream as soon as
         // another document is requested instead of letting it scan the old file while the new one
         // is being classified.
@@ -1808,6 +1853,16 @@ impl ViewerWindow
                 discard .choiceLoad.finish()
                 .choiceLoad.start(&.index, .pendingFile.toString(), .recent.toSlice())
                 .startupTimer = .addTimer(ViewerRetirePollInterval)
+                return
+            }
+
+            // A save can temporarily remove the path. Keep the current document and retry.
+            if .reloading and !.choiceLoad.result.exists
+            {
+                discard .choiceLoad.finish()
+                .pendingFile.clear()
+                .reloading = false
+                .updateLoadingIndicator()
                 return
             }
 
@@ -3125,7 +3180,7 @@ impl ViewerWindow
 
     mtd beginSearch()
     {
-        .searchStream = catch File.openRead(.currentFile.toString()) as openError
+        .searchStream = catch File.open(.currentFile.toString(), .Open, .Read, .ReadWrite | .Delete) as openError
         if openError != null
         {
             .finishSearch()
@@ -3229,6 +3284,7 @@ impl ViewerWindow
 
     mtd selectViewer(index: u32)
     {
+        .readingState.restoring = false
         if index == .activeChoiceIndex do
             return
         if !.activateChoice(index)
@@ -3299,6 +3355,11 @@ impl ViewerWindow
 
     private mtd openClassifiedFile(classified: ViewerClassifiedFile, remember: bool)
     {
+        .fileWatch.current       = #move classified.metadata
+        .fileWatch.hasCandidate  = false
+        .fileWatch.ignorePending = .fileWatch.load.started
+        if !.fileWatchTimer do
+            .fileWatchTimer = .addTimer(250'ms)
         .currentFile     = #move classified.absoluteFileName
         .currentFileSize = #move classified.fileSize
         .choices         = #move classified.choices
@@ -3318,6 +3379,12 @@ impl ViewerWindow
         .openDefaultButton.enable(true)
 
         var selected = .preferredChoiceIndex()
+        if .reloading
+        {
+            for choice, index in .choices where choice.key == .readingState.viewer do
+                selected = cast(u32) index
+        }
+
         if !.activateChoice(selected)
         {
             selected = Swag.U32.Max
@@ -3333,6 +3400,19 @@ impl ViewerWindow
                 .showEmpty(appStrings().ui_Unsupported)
                 return
             }
+        }
+
+        if .reloading
+        {
+            if .choices[selected].key == .readingState.viewer
+            {
+                .readingState.applySettings(&.instances[selected])
+                discard .readingState.restore(&.instances[selected])
+                .searchBox.setText(.readingState.query.toString(), notify: false)
+                .restartSearch()
+            }
+
+            .reloading = false
         }
 
         .emptyView.hide()

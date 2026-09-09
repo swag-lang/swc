@@ -53,7 +53,7 @@ private impl IWnd for HtmlViewer
 
 private impl HtmlViewer
 {
-    mtd setZoom(percent: u32)
+    internal mtd setZoom(percent: u32)
     {
         .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
         var style = HtmlStyle.theme()

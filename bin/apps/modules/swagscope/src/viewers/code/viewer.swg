@@ -192,7 +192,7 @@ internal impl CodeViewer
         let start     = requested > CodeRevealContextSize ? requested - CodeRevealContextSize : 0
         for adjustment in 4
         {
-            .stream = catch File.openRead(.fileName.toString()) as openError
+            .stream = catch File.open(.fileName.toString(), .Open, .Read, .ReadWrite | .Delete) as openError
             if openError != null do
                 return false
             let actual = Math.min(start + adjustment, .fileSize)
@@ -402,7 +402,7 @@ internal impl CodeViewer
             return false
         }
 
-        result.stream = catch File.openRead(fileName) as openError
+        result.stream = catch File.open(fileName, .Open, .Read, .ReadWrite | .Delete) as openError
         if openError != null do
             result.showReadError(Errors.message(openError))
         else

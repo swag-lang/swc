@@ -841,6 +841,9 @@ impl HtmlPainter
             let texture = .images!.texture(.renderer!, .layout.document.attribute(node, "src"), frame.width * .layout.deviceScale, frame.height * .layout.deviceScale)
             if texture
             {
+                let interpolation = .painter.interpolationMode()
+                .painter.setInterpolationMode(.Linear)
+                defer .painter.setInterpolationMode(interpolation)
                 .painter.drawTexture(frame, texture[], HtmlPainter.withAlpha(Color.fromArgb(Argb.White), alpha))
                 return
             }

@@ -1309,8 +1309,13 @@ impl IWnd for InlineView
             {
                 let scale   = .surface != null ? .surface!.dpiScale : 1
                 let texture = .images.texture(evt.paintContext.renderer, atom.imageSource.toString(), atom.position.width * scale, atom.position.height * scale)
-                if texture do
+                if texture
+                {
+                    let interpolation = painter.interpolationMode()
+                    painter.setInterpolationMode(.Linear)
+                    defer painter.setInterpolationMode(interpolation)
                     painter.drawTexture(atom.position, texture[], Color.fromArgb(Argb.White))
+                }
             }
             elif atom.isMath
             {

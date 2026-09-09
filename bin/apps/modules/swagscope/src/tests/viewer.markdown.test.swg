@@ -4,35 +4,40 @@
 using Core, Pixel, Gui, Gui.Testing
 
 // A manuscript can interleave HTML spreads and Markdown figures, with local SVG resources.
-#[Swag.TestTag("golden")]
-#test
+func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
 {
-    for themeIndex in [1'u32, 5]
-    {
-        var host: Testing.HeadlessHost
-        host.setup(960, 680)
-        defer host.shutdown()
-        host.theme.setSwagDark()
-        host.notify(.ThemeChanged)
+    var host: Testing.HeadlessHost
+    host.setup(960, 680, dpiScale)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
 
-        let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
-        var result   = openTestViewer(markdownViewerPlugin(), &host.root, fileName.toString())
-        Swag.assert(result.view != null and result.failureReason.isEmpty())
-        let view = cast(*Markdown.View) result.view!
-        applyMarkdownViewerStyle(view, themeIndex, 1)
-        view.resize(960, 680)
-        view.applyLayout()
-        for 64 where view.hasUnloadedSource() do
-            host.fireTimers()
-        Swag.assert(!view.hasUnloadedSource())
-        Swag.assert(view.findText("Before after."))
-        Swag.assert(!view.findText("Opening spread") and !view.findText("</div>"))
-        view.clearSearchHighlight()
-        Testing.assertContentFits(view)
-        var image = host.render(view)
-        Pixel.Testing.assertImageGolden(&image, themeIndex == 5 ? "viewer.markdown.images.whitey" : "viewer.markdown.images")
-    }
+    let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
+    var result   = openTestViewer(markdownViewerPlugin(), &host.root, fileName.toString())
+    Swag.assert(result.view != null and result.failureReason.isEmpty())
+    let view = cast(*Markdown.View) result.view!
+    applyMarkdownViewerStyle(view, themeIndex, 1)
+    view.resize(960, 680)
+    view.applyLayout()
+    for 64 where view.hasUnloadedSource() do
+        host.fireTimers()
+    Swag.assert(!view.hasUnloadedSource())
+    Swag.assert(view.findText("Before after."))
+    Swag.assert(!view.findText("Opening spread") and !view.findText("</div>"))
+    view.clearSearchHighlight()
+    Testing.assertContentFits(view)
+    var image = host.render(view)
+    Pixel.Testing.assertImageGolden(&image, golden)
 }
+
+#[Swag.TestTag("golden")]
+#test { assertMarkdownImages(1, 1, "viewer.markdown.images") }
+
+#[Swag.TestTag("golden")]
+#test { assertMarkdownImages(5, 1, "viewer.markdown.images.whitey") }
+
+#[Swag.TestTag("golden")]
+#test { assertMarkdownImages(1, 1.5, "viewer.markdown.images.hidpi") }
 
 private func markdownFixturePath()->String
 {

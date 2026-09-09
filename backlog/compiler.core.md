@@ -9,8 +9,8 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.032 — Repeated module builds publish different borrow summaries
 
 - Recorded: 2026-09-07 10:43
-- Updated: 2026-09-09 06:37 — the instability now has a consumer failure: a clean rebuild of the
-  same sources fails borrow checking about one run in four
+- Updated: 2026-09-09 07:06 — the instability decides whether a real borrow escape is reported:
+  three rebuilds out of four missed one
 - Found while: checking public-export equivalence during the standard-module compilation campaign.
 - Evidence: four complete `core` rebuilds with the same frozen Release 0.1.390 binary, identical
   tracked sources, `devmode`, and six workers alternated between publishing and omitting
@@ -22,11 +22,13 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Evidence (2026-09-09, six workers, devmode, `swc tools/std.swgs dm test core --rebuild`): the
   same tracked sources and the same compiler binary produced seven
   `borrowed data from local variable 'buffer' escapes through a stored call argument` errors in
-  one rebuild and none in the three that followed it, with no edit in between. The reported sites
-  were `core`'s own tests, `tests/serialization/tagbin_itfarray.test.swg:142` among them, on a
-  `ConcatBuffer` passed to `encoder.writeAll`. This is the consumer failure the observation below
-  lacked: a summary that is sometimes published and sometimes not does not merely change an
-  exported attribute, it decides whether a clean build compiles.
+  one rebuild and none in the three that followed it, with no edit in between. The sites were
+  `core`'s own tests, `tests/serialization/tagbin_itfarray.test.swg:142` among them, on a
+  `ConcatBuffer` passed to `encoder.writeAll`. `fdf901acc` then outlived those encoders by the
+  buffers they borrow, in exactly those three files, which settles what the runs disagreed about:
+  the diagnostics were right and three rebuilds out of four failed to produce them. So the
+  instability is not a cosmetic difference in an exported attribute. It decides whether a real
+  escape is reported at all, and a suite that passes says nothing about the run that follows.
 - Observation: `ModuleApiExport.Generate.cpp::collectMissingFunctionAttributes` serializes the
   summary masks. `Symbol.Function.h` says body sema and the final summary fixpoint grow those
   masks. The ordering or publication defect has not yet been isolated.
@@ -38,6 +40,31 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: repeated parallel provider rebuilds publish identical summaries, a consumer
   consistently observes the corresponding invalidation contract, and a hundred consecutive `core`
   rebuilds compile.
+### compiler.core.036 — A misplaced 'mtd impl' is accepted and silently overrides nothing
+
+- Recorded: 2026-09-08 22:35
+- Found while: writing the timer handler of Swag Prism, which never ran. The three
+  `mtd impl` overrides of `MainWindow` sat in its plain `impl MainWindow` block instead of an
+  `impl IWnd for MainWindow` one. Nothing was reported, and the window waited forever on a
+  compilation whose result it could no longer collect.
+- Evidence: an isolated module with `interface ISpeak { mtd speak()->s32 }`, a `Base` that
+  implements it returning 1, and a `Derived` embedding it through `using base: Base` and
+  declaring `mtd impl speak()->s32 => 2` inside a plain `impl Derived`. It compiles with no
+  diagnostic. `let itf: ISpeak = &d; itf.speak()` returns 1, so the marked method overrode
+  nothing; `d.speak()` returns 2, so it is a plain method that only a direct call reaches. In
+  the same block, `mtd impl notAnInterfaceMethodAnywhere()->s32 => 3` — a name belonging to no
+  interface in the program — also compiles silently.
+- Why this costs so much: the two blocks look the same in a diff and read the same at a glance,
+  the mistake compiles clean, every direct call still works, and only virtual dispatch differs.
+  What it produces is not a wrong answer but an interface method that is never called, which
+  surfaces far from its cause — a window that stops responding, a state that is never persisted,
+  a language switch that changes nothing.
+- Next: decide which of the two readings `mtd impl` in a plain `impl` block should take. Either
+  it names an interface the type already implements and installs the override, which is what the
+  author meant in every case seen so far, or it is rejected. Either way, `mtd impl` naming a
+  method that belongs to no interface the type implements must be an error, and that check is
+  the smaller half: the name is already resolved when the marker is seen.
+
 ### compiler.core.035 — Bound native test recovery with outstanding borrowed tasks
 
 - Recorded: 2026-09-08 09:08

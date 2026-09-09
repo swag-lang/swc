@@ -2,6 +2,9 @@
 
 using Core, Pixel, Serialization
 
+// Physical-pixel growth step: reserve room for a border drag without doubling large GPU buffers.
+private const SurfaceRenderTargetStep = 256's32
+
 // Serializable placement and display state of a surface.
 //
 // This is what an application persists through [[Gui.Application.saveState]], so a field
@@ -384,9 +387,13 @@ impl Surface
     {
         if !.rt.colorBuffer.isValid() or .rt.colorBuffer.width < .rc.width or .rt.colorBuffer.height < .rc.height
         {
+            // Grow each axis independently. Recomputing both from the current client size would
+            // shrink one axis while growing the other, then allocate again when the drag reverses.
+            let width  = Math.max(.rt.colorBuffer.width, .rc.width)
+            let height = Math.max(.rt.colorBuffer.height, .rc.height)
+            let w      = (width + SurfaceRenderTargetStep - 1) / SurfaceRenderTargetStep * SurfaceRenderTargetStep
+            let h      = (height + SurfaceRenderTargetStep - 1) / SurfaceRenderTargetStep * SurfaceRenderTargetStep
             .app.renderer.deleteRenderTarget(&.rt)
-            let w = Math.roundUpToPowerOf2(cast(u32) .rc.width)
-            let h = Math.roundUpToPowerOf2(cast(u32) .rc.height)
             .rt = .app.renderer.createRenderTarget(w, h)
             .invalidate()
         }

@@ -222,3 +222,22 @@ func systemExecutablePath(name: string)->String
     let process = expect Env.runProcess(info)
     Swag.assert(process.exitCode() == 3)
 }
+
+// A child refused a console of its own still runs, and both of its streams still arrive.
+//
+// Nothing here can observe the console that was not built: what the flag is for is the cost of
+// building one, which only a windowed parent ever pays. What a test can hold is that refusing it
+// changes nothing else about the run.
+#test
+{
+    let shell = systemExecutablePath("cmd.exe")
+
+    let info    = Env.StartInfo{fileName: shell.toString(), arguments: "/c echo quiet-output& echo quiet-error 1>&2", standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false}
+    let process = expect Env.runProcess(info)
+    Swag.assert(process.exitCode() == 0)
+
+    let output = String.from(process.standardOutput())
+    let errors = String.from(process.standardError())
+    Swag.assert(output.contains("quiet-output"))
+    Swag.assert(errors.contains("quiet-error"))
+}

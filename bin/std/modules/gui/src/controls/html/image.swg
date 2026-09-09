@@ -28,10 +28,12 @@ public struct HtmlImageEntry
 {
     source:      String
     image:       Image
+    drawing:     Svg.Drawing
     texture:     Texture
     naturalSize: Math.Vector2     // Layout dimensions; cached raster resolution may differ.
     loaded:      bool
     uploaded:    bool
+    isVector:    bool
 }
 
 // The images of one document, resolved against the folder the document was read from.
@@ -122,14 +124,11 @@ impl HtmlImageCache
             let drawing = catch Svg.Drawing.parse(text.toString()) as parseError
             if parseError != null or drawing.width <= 0 or drawing.height <= 0 do
                 return null
-            let largest = Math.max(drawing.width, drawing.height)
-            let scale   = largest > HtmlSvgRasterLimit ? HtmlSvgRasterLimit / largest : 1
-            let width   = cast(s32) Math.max(Math.round(drawing.width * scale), 1)
-            let height  = cast(s32) Math.max(Math.round(drawing.height * scale), 1)
-            .entries[slot].image       = drawing.rasterize(width, height, 1)
             .entries[slot].naturalSize = drawing.naturalSize()
-            .entries[slot].loaded      = .entries[slot].image.isValid()
-            return .entries[slot].loaded ? &.entries[slot] : null
+            .entries[slot].drawing     = #move drawing
+            .entries[slot].isVector    = true
+            .entries[slot].loaded      = true
+            return &.entries[slot]
         }
 
         let image = catch Image.load(fileName.toString()) as loadError
@@ -142,12 +141,33 @@ impl HtmlImageCache
         return &.entries[slot]
     }
 
-    // Returns the texture a reference draws with, uploading it the first time it is needed.
-    mtd texture(renderer: IRenderer, source: string)->*Texture?
+    // Rasterizes vectors at their displayed pixel size, retaining the largest requested raster.
+    // Layout only parses the source; invisible vectors do not allocate or render a bitmap.
+    mtd texture(renderer: IRenderer, source: string, pixelWidth, pixelHeight: f32)->*Texture?
     {
         let entry = .fetch(source)
         if !entry do
             return null
+        if entry!.isVector
+        {
+            // Keep the source aspect ratio: CSS may stretch the uploaded texture independently.
+            let size           = entry!.naturalSize
+            let requestedScale = Math.max(pixelWidth / size.x, pixelHeight / size.y)
+            let scale          = Math.min(requestedScale, HtmlSvgRasterLimit / Math.max(size.x, size.y))
+            let width          = cast(s32) Math.max(Math.ceil(size.x * scale), 1)
+            let height         = cast(s32) Math.max(Math.ceil(size.y * scale), 1)
+            if entry!.image.width < width or entry!.image.height < height
+            {
+                if entry!.uploaded
+                {
+                    .renderer!.removeTexture(&entry!.texture)
+                    entry!.uploaded = false
+                }
+
+                entry!.image = entry!.drawing.rasterize(width, height)
+            }
+        }
+
         if entry!.uploaded do
             return &entry!.texture
 

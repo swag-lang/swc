@@ -6,6 +6,22 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.038 — A semantic scope push copies its whole frame twice
+
+- Recorded: 2026-09-09 15:04
+
+**Evidence.** `SemaFrame` is 1 376 bytes and `Sema::pushFrame` stores it by copy. Instrumented on 2026-09-09 (Release 0.1.425): analyzing one 22 800-line file pushes 41 573 frames, and building one snippet module that imports `core` pushes 259 030 — so the walk moves 57 MB and 356 MB of frame respectively, through copy constructors rather than a memcpy, since a frame carries six `SmallVector`s, an `AttributeList`, and four `Utf8`s. It is copied **twice** per push: the callers spell `auto frame = sema.frame(); frame.setX(...); sema.pushFramePopOnPostNode(frame);`, which copies the top of the stack into a local and then copies the local into the vector. 35 sites use that shape, out of 64 that push a frame. The measured stack never gets deep — 13 frames for a file, 36 for a module build — so the vector growth is not the cost; the per-push copy is.
+
+**Intent.** Give the walk a push that copies the top frame once, in place, and hands back a mutable reference to configure — `SemaFrame& pushFrameCopyPopOnPostNode(AstNodeRef)` — and migrate the copy-tweak-push sites to it. Then shrink what a frame carries: `AttributeList` is 736 of its bytes, and a frame almost always inherits it unchanged.
+
+**Complete when.**
+
+- No semantic scope push copies a frame more than once.
+- The compiler suites and one application that reads printed microcode produce identical output.
+- The single-core processor time of a large-file `sema` shows the reduction.
+
+**Related:** compiler.core.001, compiler.core.005, compiler.core.006.
+
 ### compiler.core.030 — Every executable lowers the runtime's functions again
 
 - Recorded: 2026-09-05 22:13

@@ -262,11 +262,14 @@ impl Sps
         .direct8x8Inference = bits.bit() != 0
         if bits.bit()
         {
-            // Cropping is expressed in 4:2:0 chroma units; keep luma pixels.
-            .cropLeft   = cast(s32) bits.ue() * 2
-            .cropRight  = cast(s32) bits.ue() * 2
-            .cropTop    = cast(s32) bits.ue() * 2
-            .cropBottom = cast(s32) bits.ue() * 2
+            // Cropping is expressed in chroma samples, section 7.4.2.1.1, so a unit is two luma
+            // samples on both axes in 4:2:0 and one in 4:4:4, whose chroma planes are the size
+            // of luma. Keep luma pixels.
+            let unit    = 1's32 << .chromaShift()
+            .cropLeft   = cast(s32) bits.ue() * unit
+            .cropRight  = cast(s32) bits.ue() * unit
+            .cropTop    = cast(s32) bits.ue() * unit
+            .cropBottom = cast(s32) bits.ue() * unit
         }
 
         // The VUI that may follow carries nothing this decoder uses.

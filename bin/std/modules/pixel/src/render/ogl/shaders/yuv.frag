@@ -1,4 +1,4 @@
-﻿#version 330 core
+#version 330 core
 #include base
 
 // A picture the decoder handed over unconverted: full-resolution luma on the brush texture and

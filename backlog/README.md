@@ -34,8 +34,8 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [std.core.md](std.core.md) | `std/core` | 2026-09-09 06:50 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-09 07:06 |
+| [std.core.md](std.core.md) | `std/core` | 2026-09-09 06:50 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-09 06:35 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-08 22:35 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-08 21:10 |

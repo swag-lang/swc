@@ -215,3 +215,38 @@ func waitBuild(lease: *Pipeline.BuildLease)
         Swag.assert((color & 0xFF000000) == 0xFF000000)
     }
 }
+
+// A microcode snippet is compiled against `core` only when it names the module, and a preview
+// always is, because its host program calls into what the snippet declares.
+#test
+{
+    var request: Pipeline.BuildRequest = {source: String.from("func dot(a, b: f32)->f32 => a * b"), stage: String.from("pre-emit")}
+    Swag.assert(request.kind == .Microcode and !request.needsDependency())
+    Swag.assert(!Utf8.contains(request.moduleSource().toString(), "#import"))
+
+    request.source = String.from("using Core\nfunc value()->f32 => Math.sqrt(2'f32)")
+    Swag.assert(request.needsDependency())
+    Swag.assert(Utf8.contains(request.moduleSource().toString(), "#import(\"core\""))
+
+    request.kind   = .Render2D
+    request.source = String.from("func shade(x, y, time: f32)->u32 => 0")
+    Swag.assert(request.needsDependency())
+    Swag.assert(Utf8.contains(request.moduleSource().toString(), "#import(\"pixel\""))
+
+    request.kind = .Gui
+    Swag.assert(request.needsDependency())
+    Swag.assert(Utf8.contains(request.moduleSource().toString(), "#import(\"gui\""))
+}
+
+// A snippet that reaches into `core` still reaches the compiler with the import the scan asked for.
+#test
+{
+    var cache:   Pipeline.CompilationCache
+    let request: Pipeline.BuildRequest = {source: String.from("using Core\nfunc value()->f32 => Math.sqrt(2'f32)"), stage: String.from("pre-emit")}
+    var lease = cache.acquire(request)
+    waitBuild(&lease)
+
+    var output: CompilerOutput
+    output.parse(lease.artifact!.result.text.toString())
+    Swag.assert(Utf8.indexOf(cast(const [..] u8) output.text.toString(), "  stage    : pre-emit") != Swag.U64.Max)
+}

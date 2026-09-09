@@ -64,10 +64,35 @@ impl BuildRequest
 
     mtd satisfies(other: BuildRequest)->bool => .kind == other.kind and .sameProgram(other) and (.stage == other.stage or other.stage.isEmpty())
 
+    /*
+    Whether the snippet has to be compiled against the standard module its viewer builds on.
+
+    A rendering or interface preview always does: the host program calls into what the snippet
+    declares, through `pixel` or `gui`. A microcode snippet usually does not — it is one function
+    over primitives — and that import is by far the most expensive part of compiling one, because
+    the module's public API is analyzed again from source on every keystroke: 294 ms against
+    122 ms, measured on `core`.
+
+    Naming the module is the only way a snippet can reach into it, as a qualified access or as a
+    `using`, so scanning the source for the namespace answers the question. A snippet that names it
+    in a comment or a string buys a slower compilation, never a wrong one.
+    */
+    mtd needsDependency()->bool
+    {
+        if .kind != .Microcode do
+            return true
+        return Utf8.indexOf(cast(const [..] u8) .source.toString(), "Core") != Swag.U64.Max
+    }
+
     mtd moduleSource()->String
     {
         let dependency = .kind == .Microcode ? "core" : (.kind == .Render2D ? "pixel" : "gui")
         let backend    = .kind == .Microcode ? "StaticLibrary" : "SharedLibrary"
-        return Format.toString("#import(\"%\", location: \"swag@std\")\n%\n#run { Swag.compiler().getBuildCfg()!.backend.optimLevel = .O% }\n%\n#run\n{\n    with let cfg = Swag.compiler().getBuildCfg()!\n    {\n        .backendKind = .%\n        .publishDependencies = true\n    }\n}\n", dependency, .settings.presetSource(), cast(u8) .settings.optimization, .settings.configuration, backend)
+
+        var result: retval
+        if .needsDependency() do
+            result.appendFormat("#import(\"%\", location: \"swag@std\")\n", dependency)
+        result.appendFormat("%\n#run { Swag.compiler().getBuildCfg()!.backend.optimLevel = .O% }\n%\n#run\n{\n    with let cfg = Swag.compiler().getBuildCfg()!\n    {\n        .backendKind = .%\n        .publishDependencies = true\n    }\n}\n", .settings.presetSource(), cast(u8) .settings.optimization, .settings.configuration, backend)
+        return result
     }
 }

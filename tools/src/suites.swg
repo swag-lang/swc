@@ -440,6 +440,71 @@ private func verifyModuleSetupCacheInvalidation(context: *Context, options: *Opt
     return 0
 }
 
+/*
+A module built on its own caches its setup exactly like a module of a workspace does.
+
+That module has no workspace to keep the cache in, so it keeps one under its own root, and `clean`
+empties it there. The scenario walks the whole contract: a first build writes the cache, an edited
+`module.swg` reaches the next build, and `clean` leaves nothing behind.
+*/
+private func verifyStandaloneModuleSetupCache(context: *Context, options: *Options, workspace: string, buildCfg: string)->s32 fail
+{
+    let moduleDir = Path.combine(workspace, ".tmp", "standalone-setup-probe")
+    if Directory.exists(moduleDir) do
+        try Directory.delete(moduleDir.toString(), recurse: true)
+    defer discard catch Directory.delete(moduleDir.toString(), recurse: true)
+
+    let sourceDir = Path.combine(moduleDir.toString(), "src")
+    for directory in [moduleDir, sourceDir] do
+        try Directory.create(directory.toString())
+
+    let moduleFile = Path.combine(moduleDir.toString(), "module.swg")
+    try File.writeAllBytes(moduleFile.toString(), cast(const [..] u8) "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n}\n")
+    try File.writeAllBytes(Path.combine(sourceDir.toString(), "main.swg").toString(), cast(const [..] u8) "#main\n{\n}\n")
+
+    var built: Arguments
+    built.add(["build", "--module-file", moduleFile.toString(), "--directory", "src"])
+    built.add(["--build-cfg", buildCfg])
+    options.appendExtra(&built)
+    let firstCode = try context.runCompiler(built)
+    if firstCode != 0 do
+        return firstCode
+
+    let cacheFile = Path.combine(moduleDir.toString(), ".tmp", Format.toString(".swc-setup-%", buildCfg).toString())
+    if !File.exists(cacheFile)
+    {
+        Console.println("A module built on its own did not cache its setup: ", cacheFile.toString())
+        return 1
+    }
+
+    try File.writeAllBytes(moduleFile.toString(), cast(const [..] u8) "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n    cfg.name = \"standalone\"\n}\n")
+
+    // A module built on its own names its output directory after the command that produced it, so
+    // what the build reports is what says the new name reached the setup.
+    let output = try context.captureCompiler(built)
+    Console.print(output.toString())
+    if !Utf8.contains(output.toString(), "standalone.exe")
+    {
+        Console.println("An edited module.swg did not reach the next standalone build's setup")
+        return 1
+    }
+
+    var cleaned: Arguments
+    cleaned.add(["clean", "--module-file", moduleFile.toString()])
+    options.appendExtra(&cleaned)
+    let cleanCode = try context.runCompiler(cleaned)
+    if cleanCode != 0 do
+        return cleanCode
+
+    if File.exists(cacheFile)
+    {
+        Console.println("Cleaning a module built on its own left its setup cache behind: ", cacheFile.toString())
+        return 1
+    }
+
+    return 0
+}
+
 // A source gate and a typed tag both change the executable. Reusing it with another tag set
 // must rebuild, and returning to the original set must restore the original behavior.
 private func verifyWorkspaceTagCache(context: *Context, options: *Options, workspace, buildCfg: string)->s32 fail
@@ -533,6 +598,10 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     let setupCacheCode = try verifyModuleSetupCacheInvalidation(context, options, workspace.toString(), buildCfg)
     if setupCacheCode != 0 do
         return setupCacheCode
+
+    let standaloneSetupCode = try verifyStandaloneModuleSetupCache(context, options, workspace.toString(), buildCfg)
+    if standaloneSetupCode != 0 do
+        return standaloneSetupCode
 
     let tagCacheCode = try verifyWorkspaceTagCache(context, options, workspace.toString(), buildCfg)
     if tagCacheCode != 0 do

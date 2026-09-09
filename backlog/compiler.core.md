@@ -6,6 +6,25 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.001 — Dependencies cross the module boundary as regenerated source
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-09-09 12:21 — measured what the regenerated API costs an interactive consumer
+
+**Evidence.** Swag Prism compiles one snippet per keystroke through a `swc build`, and on 2026-09-09 (Release 0.1.421, quiet machine, minimum of nine interleaved runs) that compilation cost 294 ms of which the user's code was 1 ms: a five-line snippet took 400 ms and a 1 400-line one 421 ms. The fixed cost decomposes into 17 ms of process start, 32 ms for the runtime prelude, 14 ms for the module setup, 60 ms to lower and link the runtime, and **172 ms to lex, parse, and analyze `core`'s generated API again** — 32 files and 115 000 tokens, on every keystroke. The heavier viewers pay the same cost scaled by their dependency: `pixel` 248 000 tokens and 672 ms, `gui` 365 000 tokens and 986 ms. A binary module interface is what removes that term; nothing else in the budget is large enough to reach a realtime edit loop.
+
+**Intent.** Replace generated dependency API source with a versioned binary module interface. The interface must preserve exported symbols, types, constants, attributes, ABI information, and any bodies or metadata required by downstream optimization, while allowing lazy lookup by symbol.
+
+**Complete when.**
+
+- Workspace imports no longer add generated API `.swg` files to the lexer and parser.
+- `--export-api-dir` still emits a human-readable `.swg` representation for inspection and tooling.
+- Cache invalidation covers compiler version, build configuration, public declarations, exported constants, ABI-relevant attributes, and serialized inlinable bodies.
+- Workspace tests prove that fresh and reused interfaces produce identical diagnostics and artifacts.
+- One snippet compilation that imports `core` no longer spends its time in the front end of that import.
+
+**Related:** compiler.core.002, compiler.core.006, compiler.core.008, compiler.core.011, compiler.core.030.
+
 ### compiler.core.037 — Check source edits made while a module build is running
 
 - Recorded: 2026-09-09 07:12
@@ -344,22 +363,6 @@ definition provider and does not consume resolved compiler symbols.
 - Clean and incremental workspace builds are covered by equivalent-result tests.
 
 **Related:** compiler.core.001, compiler.core.004, compiler.core.003, compiler.core.016.
-
-### compiler.core.001 — Dependencies cross the module boundary as regenerated source
-
-- Recorded: 2026-08-06 20:18
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-**Intent.** Replace generated dependency API source with a versioned binary module interface. The interface must preserve exported symbols, types, constants, attributes, ABI information, and any bodies or metadata required by downstream optimization, while allowing lazy lookup by symbol.
-
-**Complete when.**
-
-- Workspace imports no longer add generated API `.swg` files to the lexer and parser.
-- `--export-api-dir` still emits a human-readable `.swg` representation for inspection and tooling.
-- Cache invalidation covers compiler version, build configuration, public declarations, exported constants, ABI-relevant attributes, and serialized inlinable bodies.
-- Workspace tests prove that fresh and reused interfaces produce identical diagnostics and artifacts.
-
-**Related:** compiler.core.002, compiler.core.006, compiler.core.008, compiler.core.011.
 
 ### compiler.core.003 — Code-generation invalidation is module-wide
 

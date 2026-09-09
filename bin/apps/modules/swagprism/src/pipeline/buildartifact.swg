@@ -25,18 +25,18 @@ impl BuildArtifact
     {
         try .folder.open()
         let module = .request.moduleSource()
-        discard try File.writeAllBytes(Path.combine(.folder.root, "module.swg"), cast(const [..] u8) module.toString())
+        try writeIfChanged(Path.combine(.folder.root, "module.swg"), module.toString())
         let inspected = .request.stage.isEmpty() ? .request.source : inspectedSource(.request.source.toString(), .request.stage.toString())
-        discard try File.writeAllBytes(Path.combine(.folder.root, "src", "probe.swg"), cast(const [..] u8) inspected.toString())
+        try writeIfChanged(Path.combine(.folder.root, "src", "probe.swg"), inspected.toString())
         let native = .request.kind != .Microcode
         if native
         {
             let wrapper = .request.kind == .Gui ? "public func prismBuild(parent: *Gui.Wnd) { buildView(parent) }" : "public func prismShade(x, y, time: f32)->u32 => shade(x, y, time)"
-            discard try File.writeAllBytes(Path.combine(.folder.root, "src", "entry.swg"), cast(const [..] u8) wrapper)
+            try writeIfChanged(Path.combine(.folder.root, "src", "entry.swg"), wrapper)
         }
 
         let outDir    = Path.combine(.folder.session, "out")
-        let arguments = Format.toString("build --num-cores 6 --module-file \"%/module.swg\" --directory src --out-dir \"%\" --artifact-name prismpreview", .folder.root, outDir)
+        let arguments = Format.toString("build --num-cores % --module-file \"%/module.swg\" --directory src --out-dir \"%\" --artifact-name prismpreview", compilerWorkerCount(), .folder.root, outDir)
         let compiler  = compilerPath()
         var process   = try Env.startProcess(Env.StartInfo{fileName: compiler.toString(), arguments: arguments.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
         defer retireProcess(&process)

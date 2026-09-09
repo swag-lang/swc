@@ -140,7 +140,7 @@ impl Probe
         discard try File.writeAllBytes(sourceFile.toString(), cast(const [..] u8) inspected.toString())
 
         let compiler  = compilerPath()
-        let arguments = Format.toString("build --num-cores 6 --build-cfg % --optim-level % --module-file \"%/module.swg\" --directory src", ProbeBuildConfig, cast(u8) optimLevel, .root)
+        let arguments = Format.toString("build --num-cores % --build-cfg % --optim-level % --module-file \"%/module.swg\" --directory src", compilerWorkerCount(), ProbeBuildConfig, cast(u8) optimLevel, .root)
 
         // Swag Prism draws its own window, and the compiler is a console program, so without this
         // the system builds a console and its host process for every single compilation — which
@@ -201,6 +201,27 @@ func compilerPath()->String
 }
 
 /*
+Number of compiler workers one snippet compilation asks for.
+
+The compiler creates exactly the workers it is given and never clamps the count to the machine, so
+the number has to be computed here. Two facts bound it. The application is drawing while the
+compiler runs, so it keeps a processor for itself. And the compiler stops paying for workers long
+before a large machine runs out: measured on a twenty-two processor machine, one snippet takes
+324 ms with six workers, 264 ms with twelve, and 266 ms with twenty-two — the last for a quarter
+more processor time, which the interface then has to compete with.
+*/
+func compilerWorkerCount()->u32
+{
+    // Where another worker stops buying wall time and only takes processor time from the interface.
+    const MaxWorkers = 12'u32
+
+    let available = Hardware.processorCount()
+    if available <= 2 do
+        return 1
+    return Math.min(available - 1, MaxWorkers)
+}
+
+/*
 Returns `source` with the attributes that make one function inspectable.
 
 `Swag.PrintMicro` is an attribute rather than a compiler flag, so asking for a stage means writing
@@ -252,6 +273,21 @@ private func firstFunctionOffset(source: string)->u64
     }
 
     return Swag.U64.Max
+}
+
+/*
+Writes `content` to `path`, unless the file already holds exactly that text.
+
+The compiler answers a module's setup from its cache only while the setup file has the modification
+time and the size it recorded, so rewriting an unchanged `module.swg` on every keystroke throws that
+cache away for nothing. A file that cannot be read back is written.
+*/
+func writeIfChanged(path: string, content: string) fail
+{
+    let existing = catch File.readAllText(path) as readError
+    if readError == null and existing.toString() == content do
+        return
+    discard try File.writeAllBytes(path, cast(const [..] u8) content)
 }
 
 // Always reap an owned process before dropping its pipes or temporary files.

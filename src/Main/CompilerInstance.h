@@ -453,7 +453,7 @@ private:
     Result            adoptModuleBuildCfg(TaskContext& ctx, const Runtime::BuildCfg& buildCfg);
     Result            collectModuleSetupLoadedFiles(TaskContext& ctx, const std::set<fs::path>& alreadyRead, std::vector<SourceFile*>& outFiles);
     Result            captureModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot) const;
-    Result            resolveModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, const WorkspaceModuleBuild& moduleBuild, ModuleSetupSnapshot& outSnapshot) const;
+    Result            resolveModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, const Utf8& moduleName, const fs::path& moduleFile, ModuleSetupSnapshot& outSnapshot) const;
     Result            prepareDependencyPlan(TaskContext& ctx, DependencyPlan& outPlan, std::span<const ModuleSetupImport> imports);
     Result            collectWorkspaceModuleDependencyDirs(TaskContext& ctx, std::vector<fs::path>& outDirs, const DependencyPlan& dependencyPlan, std::span<const ModuleSetupImport> imports);
     Result            applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);

@@ -1161,10 +1161,20 @@ namespace
         return !ec && static_cast<uint64_t>(size) == storedSize;
     }
 
+    // Where a module keeps what the compiler cached about it between runs. A workspace gives every
+    // module a directory of its own under the workspace's work directory; a module built on its own
+    // keeps one under its own root, since it has no workspace to share. Both are what `swc clean`
+    // empties, so a cache never outlives the artifacts it was written beside.
+    fs::path moduleWorkDirectory(const CommandLine& cmdLine, const Utf8& moduleName)
+    {
+        if (cmdLine.workspacePath.empty())
+            return WorkspaceLayout::workspaceWorkDirectory(cmdLine.modulePath);
+        return (WorkspaceLayout::workspaceWorkDirectory(cmdLine.workspacePath) / fs::path(moduleName.c_str())).lexically_normal();
+    }
+
     fs::path moduleSetupCachePath(const CommandLine& cmdLine, const Utf8& moduleName)
     {
-        fs::path result = WorkspaceLayout::workspaceWorkDirectory(cmdLine.workspacePath);
-        result /= fs::path(moduleName.c_str());
+        fs::path result = moduleWorkDirectory(cmdLine, moduleName);
         result /= fs::path(std::format("{}-{}{}", K_MODULE_SETUP_CACHE_FILE, cmdLine.buildCfg, artifactModeSuffix(cmdLine)));
         return result.lexically_normal();
     }
@@ -3018,7 +3028,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         setupCmdLine.files.clear();
         CommandLineParser::refreshBuildCfg(setupCmdLine);
 
-        if (resolveModuleSetupSnapshot(ctx, setupCmdLine, moduleBuild, moduleBuild.setup) != Result::Continue)
+        if (resolveModuleSetupSnapshot(ctx, setupCmdLine, moduleBuild.name, moduleBuild.moduleFile, moduleBuild.setup) != Result::Continue)
             return ExitCode::CompileError;
 
         moduleBuild.ignoreInWorkspace = moduleBuild.setup.buildCfg.ignoreInWorkspace;
@@ -3853,9 +3863,9 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 // are the ones that produced it, and runs the setup otherwise. A '--rebuild' never reads the
 // cache, so the one command that promises to redo everything redoes this too; it still writes
 // it, since the next command is not a rebuild.
-Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, const WorkspaceModuleBuild& moduleBuild, ModuleSetupSnapshot& outSnapshot) const
+Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, const Utf8& moduleName, const fs::path& moduleFile, ModuleSetupSnapshot& outSnapshot) const
 {
-    const fs::path cachePath   = moduleSetupCachePath(cmdLine(), moduleBuild.name);
+    const fs::path cachePath   = moduleSetupCachePath(cmdLine(), moduleName);
     const Utf8     fingerprint = moduleSetupFingerprint(setupCmdLine, exeFullName_);
     if (fingerprint.empty())
         return captureModuleSetupSnapshot(ctx, setupCmdLine, outSnapshot);
@@ -3863,7 +3873,7 @@ Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, cons
     if (!cmdLine().rebuild)
     {
         ModuleSetupSnapshot cached;
-        if (readModuleSetupCache(cachePath, fingerprint, moduleBuild.moduleFile, cached.buildCfg, cached.ownedStrings, cached.imports, cached.loadedFiles, cached.compilerInputFiles))
+        if (readModuleSetupCache(cachePath, fingerprint, moduleFile, cached.buildCfg, cached.ownedStrings, cached.imports, cached.loadedFiles, cached.compilerInputFiles))
         {
             outSnapshot = std::move(cached);
             return Result::Continue;
@@ -3871,7 +3881,7 @@ Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, cons
     }
 
     SWC_RESULT(captureModuleSetupSnapshot(ctx, setupCmdLine, outSnapshot));
-    writeModuleSetupCache(cachePath, fingerprint, moduleBuild.moduleFile, outSnapshot.buildCfg, outSnapshot.imports, outSnapshot.loadedFiles, outSnapshot.compilerInputFiles);
+    writeModuleSetupCache(cachePath, fingerprint, moduleFile, outSnapshot.buildCfg, outSnapshot.imports, outSnapshot.loadedFiles, outSnapshot.compilerInputFiles);
     return Result::Continue;
 }
 
@@ -3939,8 +3949,11 @@ Result CompilerInstance::runModuleSetup(TaskContext& ctx)
     setupCmdLine.modulePath     = modulePathFile_.parent_path();
     CommandLineParser::refreshBuildCfg(setupCmdLine);
 
+    // A module built on its own answers its setup from the same cache a workspace module does.
+    // It carries no workspace name, and needs none: its cache sits under its own root, so the
+    // directory already tells the module apart.
     ModuleSetupSnapshot setupSnapshot;
-    SWC_RESULT(captureModuleSetupSnapshot(ctx, setupCmdLine, setupSnapshot));
+    SWC_RESULT(resolveModuleSetupSnapshot(ctx, setupCmdLine, Utf8{}, modulePathFile_, setupSnapshot));
     SWC_RESULT(adoptModuleBuildCfg(ctx, setupSnapshot.buildCfg));
     ownedDependencyPlan_ = std::make_unique<DependencyPlan>();
     SWC_RESULT(prepareDependencyPlan(ctx, *ownedDependencyPlan_, setupSnapshot.imports));

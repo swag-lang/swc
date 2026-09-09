@@ -62,6 +62,7 @@ namespace
     void collectModuleCleanTargets(std::vector<CleanTarget>& outTargets, const CommandLine& cmdLine)
     {
         addCleanTarget(outTargets, "Artifacts", WorkspaceLayout::workspaceOutputDirectory(cmdLine.modulePath));
+        addCleanTarget(outTargets, "Intermediate", WorkspaceLayout::workspaceWorkDirectory(cmdLine.modulePath));
         if (!cmdLine.outDir.empty())
             addCleanTarget(outTargets, "Artifacts", cmdLine.outDir);
         if (!cmdLine.workDir.empty())

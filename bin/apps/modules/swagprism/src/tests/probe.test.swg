@@ -138,3 +138,37 @@ using Core
             Swag.assert(labels[i].count != 0)
     }
 }
+
+// The worker count fits the machine and always leaves it something to draw the interface with.
+#test
+{
+    let workers = Pipeline.compilerWorkerCount()
+    let machine = Hardware.processorCount()
+    Swag.assert(workers >= 1 and workers <= 12)
+    Swag.assert(workers < machine or machine <= 2)
+}
+
+// Writing what a file already holds leaves its modification time alone, which is what the
+// compiler reads to decide whether it can answer a module's setup from its cache. The delay is
+// what lets a millisecond clock tell a write apart from a skip.
+#test
+{
+    var probe: Pipeline.Probe
+    expect probe.open()
+
+    let path     = Path.combine(probe.root, "module.swg")
+    let original = expect File.readAllText(path.toString())
+    let before   = expect File.info(path.toString())
+
+    Threading.Thread.sleep(5'ms)
+    expect Pipeline.writeIfChanged(path.toString(), original.toString())
+    let kept = expect File.info(path.toString())
+    Swag.assert(kept.lastWriteTime == before.lastWriteTime)
+
+    Threading.Thread.sleep(5'ms)
+    expect Pipeline.writeIfChanged(path.toString(), "// replaced\n")
+    let rewritten = expect File.info(path.toString())
+    let content   = expect File.readAllText(path.toString())
+    Swag.assert(content.toString() == "// replaced\n")
+    Swag.assert(rewritten.lastWriteTime != before.lastWriteTime)
+}

@@ -1194,6 +1194,8 @@ impl ViewerWindow
 
             .fullScreen = true
             srfn.updateFlags(add: ViewerFullScreenAddedFlags, remove: ViewerFullScreenRemovedFlags)
+            .documentHost.padding = {}
+            .documentPanel.backgroundStyle = .View
             .accentRail.hide()
             .commandBar.dockStyle  = .None
             .infoBarHost.dockStyle = .None
@@ -1215,6 +1217,9 @@ impl ViewerWindow
         {
             .fullScreen = false
             srfn.updateFlags(add: .fullScreenRestoreFlags & (ViewerFullScreenRemovedFlags | ViewerFullScreenAddedFlags), remove: (ViewerFullScreenRemovedFlags | ViewerFullScreenAddedFlags) & ~.fullScreenRestoreFlags)
+            let gutter = .themeMetrics().panel_GutterSize
+            .documentHost.padding = {gutter, 0, gutter, 0}
+            .documentPanel.backgroundStyle = .Panel
             .accentRail.show()
             .commandBar.dockStyle  = .Top
             .infoBarHost.dockStyle = .Top

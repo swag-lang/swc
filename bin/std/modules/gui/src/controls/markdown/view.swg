@@ -350,11 +350,32 @@ private impl View
         y[] += block.wnd.position.height + blockGap(block.kind)
     }
 
-    mtd layoutDocument()
+    mtd layoutDocument(preservePosition = false)
     {
         let viewport = .scroll.paddedClientRect()
         if viewport.width <= 0 do
             return
+
+        let wasRepositioning = .repositioning
+        .repositioning = .repositioning or preservePosition
+        defer .repositioning = wasRepositioning
+
+        // Keep the first visible block at the same relative reading position when metrics change.
+        let position = .scroll.scrollPosition()
+        var anchor: *Wnd?
+        var anchorY, anchorHeight: f32
+        var fraction = 0'f32
+        if preservePosition and position.y > 0
+        {
+            for block in .blocks where block.wnd.position.bottom() > position.y
+            {
+                anchor       = block.wnd
+                anchorY      = block.wnd.position.y
+                anchorHeight = block.wnd.position.height
+                fraction     = (position.y - block.wnd.position.y) / Math.max(block.wnd.position.height, 1)
+                break
+            }
+        }
 
         let geometry = .documentGeometry()
         var y        = .virtualOrigin + .documentStyle.topInset
@@ -362,6 +383,27 @@ private impl View
             .placeBlock(block, geometry.x, geometry.width, &y)
         .contentHeight = y
         .updateDocumentSize()
+
+        // An unchanged layout must not cancel an animated or deferred scroll destination.
+        if anchor and (anchor!.position.y != anchorY or anchor!.position.height != anchorHeight)
+        {
+            .scroll.setScrollPos(position.x, anchor!.position.y + fraction * anchor!.position.height)
+        }
+    }
+
+    // Once the reading column is capped, a wider monitor only changes its horizontal placement.
+    mtd resizeDocument()
+    {
+        let geometry = .documentGeometry()
+        if !.blocks.isEmpty() and .retainedBlocks.isEmpty() and .blocks[0].wnd.position.width == Math.round(geometry.width)
+        {
+            for block in .blocks do
+                block.wnd.move(geometry.x, block.wnd.position.y)
+            .updateDocumentSize()
+            return
+        }
+
+        .layoutDocument(preservePosition: true)
     }
 
     mtd appendBlock(block: Block)
@@ -966,23 +1008,6 @@ private impl View
         .repositioning = true
         defer .repositioning = wasRepositioning
 
-        // Keep the first visible block at the same relative reading position when metrics change.
-        let position = .scroll.scrollPosition()
-        var anchor: *Wnd?
-        var anchorY, anchorHeight: f32
-        var fraction = 0'f32
-        if position.y > 0
-        {
-            for block in .blocks where block.wnd.position.bottom() > position.y
-            {
-                anchor       = block.wnd
-                anchorY      = block.wnd.position.y
-                anchorHeight = block.wnd.position.height
-                fraction     = (position.y - block.wnd.position.y) / Math.max(block.wnd.position.height, 1)
-                break
-            }
-        }
-
         // Arrow navigation advances by the same minimum line height used by body text. Page
         // navigation remains viewport-relative in handleDocumentKey.
         .scroll.verticalScrollStep = .theme().createDefaultFont(.documentStyle.bodyFontSize).height * .documentStyle.lineHeight
@@ -1003,13 +1028,7 @@ private impl View
                 block.html!.setDocumentStyle(htmlStyle(.documentStyle))
         }
 
-        .layoutDocument()
-
-        // An unchanged layout must not cancel an animated or deferred scroll destination.
-        if anchor and (anchor!.position.y != anchorY or anchor!.position.height != anchorHeight)
-        {
-            .scroll.setScrollPos(position.x, anchor!.position.y + fraction * anchor!.position.height)
-        }
+        .layoutDocument(preservePosition: true)
 
         .scheduleMore()
         .invalidate()
@@ -1130,7 +1149,7 @@ impl View
                 // ScrollWnd also sends this event when its virtual content size changes.
                 // Appending source must not remeasure every resident block, including HTML.
                 if resize.oldSize.x != view.scroll.position.width do
-                    view.layoutDocument()
+                    view.resizeDocument()
                 else do
                     view.updateDocumentSize()
                 view.scheduleMore()

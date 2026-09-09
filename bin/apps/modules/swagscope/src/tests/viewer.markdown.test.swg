@@ -3,6 +3,45 @@
 
 using Core, Pixel, Gui, Gui.Testing
 
+// Full-screen reading reaches every edge; transient controls never resize the document.
+#[Swag.TestTag("golden")]
+#test
+{
+    let previous = g_MarkdownViewerSettings
+    defer g_MarkdownViewerSettings = previous
+    g_MarkdownViewerSettings = {themeIndex: 1}
+    var host: Testing.HeadlessHost
+    host.setup(1280, 720, 1.5)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
+    window.openFile(fileName.toString(), remember: false)
+    completeQueuedViewerFile(&host, window)
+    let padding = window.documentHost.padding
+    window.setFullScreen(true)
+    window.resize(1280, 720)
+    window.applyLayout()
+    for 64 where (cast(*Markdown.View) window.currentView!).isLoading() do
+        host.fireTimers()
+    Swag.assert(window.documentHost.padding == Math.Vector4{})
+    Swag.assert(window.documentPanel.backgroundStyle == .View)
+    Swag.assert(window.currentView!.surfaceRect().width == window.clientRect().width)
+    let bounds = window.currentView!.surfaceRect()
+    window.updateFullScreenChrome({10, 1})
+    Swag.assert(window.currentView!.surfaceRect() == bounds)
+    window.updateFullScreenChrome({10, 719})
+    Swag.assert(window.currentView!.surfaceRect() == bounds)
+    window.updateFullScreenChrome({640, 360})
+    host.settleAnimations(window)
+    var image = host.render(window)
+    Swag.assert(image.pixelColor(0, 0).argb == 0xFFFFFFFF)
+    Pixel.Testing.assertImageGolden(&image, "viewer.markdown.fullscreen")
+    window.setFullScreen(false)
+    Swag.assert(window.documentHost.padding == padding and window.documentPanel.backgroundStyle == .Panel)
+}
+
 // Zoom gestures share the menu's bounded scale and the next document keeps the preference.
 #[Swag.TestTag("golden")]
 #test

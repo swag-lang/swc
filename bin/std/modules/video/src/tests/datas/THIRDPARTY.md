@@ -209,6 +209,17 @@ can hold:
 Their `.yuv` files are the same streams decoded by FFmpeg into `yuv444p`, one plane after another
 at the full picture size.
 
+`ffmpeg-h264-c444-lowqp.mp4` re-encodes the pictures of `ffmpeg-h264-c444.yuv` with libx264
+through PyAV 17.1 at a fixed quantizer of 12 with a chroma quantizer offset of 10, in the same
+profile. The pair straddles the level at which the loop filter starts: luma stays below it while
+the colour planes sit above it, so an edge the luma filter declines still has to be filtered in
+Cb and Cr. Nothing else in the corpus reaches that band.
+
+- FFmpeg arguments: `-c:v libx264 -profile:v high444 -preset medium -qp 12 -g 10 -x264-params
+  chroma_qp_offset=6:bframes=2:cabac=1:8x8dct=1:aq-mode=0`
+- SHA-256: `eb1eb127a3e0c918385fe8bcd4e5e24a5b7b0cd7d3a64f5395e280b062cde36b`
+- Its `.yuv` file is the same stream decoded by FFmpeg into `yuv444p`.
+
 - License: same as this repository, as for every generated file above.
 
 `ffmpeg-h264-aac-5.1.mkv`, `ffmpeg-h264-ac3-5.1.mkv`, and

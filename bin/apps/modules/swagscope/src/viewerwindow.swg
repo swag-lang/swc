@@ -1059,10 +1059,11 @@ impl IWnd for ViewerWindow
             .searchBox.setValidator(.searchBox.validator)
             if cast(u32) .playMode > cast(u32) Viewer.PlayMode.Shuffle do
                 .playMode = .Once
-            .slideSeconds                       = Math.clamp(.slideSeconds, Viewer.SlideMinSeconds, Viewer.SlideMaxSeconds)
-            g_VideoSubtitleSettings.delay       = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
-            g_MarkdownViewerSettings.themeIndex = Math.min(g_MarkdownViewerSettings.themeIndex, 5)
-            g_MarkdownViewerSettings.widthIndex = Math.min(g_MarkdownViewerSettings.widthIndex, 3)
+            .slideSeconds = Math.clamp(.slideSeconds, Viewer.SlideMinSeconds, Viewer.SlideMaxSeconds)
+            g_VideoSubtitleSettings.delay        = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
+            g_MarkdownViewerSettings.themeIndex  = Math.min(g_MarkdownViewerSettings.themeIndex, 5)
+            g_MarkdownViewerSettings.widthIndex  = Math.min(g_MarkdownViewerSettings.widthIndex, 3)
+            g_MarkdownViewerSettings.zoomPercent = Math.clamp(g_MarkdownViewerSettings.zoomPercent, 50'u32, 300'u32)
         }
     }
 

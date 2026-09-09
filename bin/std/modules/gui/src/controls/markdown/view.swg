@@ -962,6 +962,27 @@ private impl View
 
     mtd applyDocumentStyle()
     {
+        let wasRepositioning = .repositioning
+        .repositioning = true
+        defer .repositioning = wasRepositioning
+
+        // Keep the first visible block at the same relative reading position when metrics change.
+        let position = .scroll.scrollPosition()
+        var anchor: *Wnd?
+        var anchorY, anchorHeight: f32
+        var fraction = 0'f32
+        if position.y > 0
+        {
+            for block in .blocks where block.wnd.position.bottom() > position.y
+            {
+                anchor       = block.wnd
+                anchorY      = block.wnd.position.y
+                anchorHeight = block.wnd.position.height
+                fraction     = (position.y - block.wnd.position.y) / Math.max(block.wnd.position.height, 1)
+                break
+            }
+        }
+
         // Arrow navigation advances by the same minimum line height used by body text. Page
         // navigation remains viewport-relative in handleDocumentKey.
         .scroll.verticalScrollStep = .theme().createDefaultFont(.documentStyle.bodyFontSize).height * .documentStyle.lineHeight
@@ -983,6 +1004,14 @@ private impl View
         }
 
         .layoutDocument()
+
+        // An unchanged layout must not cancel an animated or deferred scroll destination.
+        if anchor and (anchor!.position.y != anchorY or anchor!.position.height != anchorHeight)
+        {
+            .scroll.setScrollPos(position.x, anchor!.position.y + fraction * anchor!.position.height)
+        }
+
+        .scheduleMore()
         .invalidate()
     }
 }
@@ -1069,6 +1098,16 @@ impl View
         result.scroll.hookOnEvent = func|view = result|(wnd, evt)
         {
             discard wnd
+
+            // Modified wheel gestures belong to the document host, before the viewport scrolls.
+            if let mouse = evt as MouseEvent where mouse.kind == .Wheel and mouse.modifiers.has(.Control)
+            {
+                view.processEvent(evt)
+                if mouse.accepted do
+                    return true
+                mouse.accepted = true
+            }
+
             if let mouse = evt as MouseEvent where mouse.kind == .Wheel and !mouse.modifiers.has(.Shift)
             {
                 let position = view.scroll.scrollPosition()

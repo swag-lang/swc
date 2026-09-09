@@ -9,13 +9,13 @@ also belongs here; rendered Markdown and HTML integration lives in
 The intended surface is read-only: navigation, comparison, structured inspection and bounded
 large-file work without editing, implicit network access, macros or source mutation.
 
-### app.scope.text.001 — Text zoom is not persisted and has no Ctrl+wheel gesture
+### app.scope.text.001 — Text and HTML zoom still lack persistence and Ctrl+wheel
 
 - Recorded: 2026-08-29 08:36
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: basic text, code, Markdown, and HTML now expose the same percentage menu and
-  Ctrl+plus/minus/reset gestures. The value is per-view only, is not persisted, and Ctrl+wheel is
-  not connected to it.
+- Updated: 2026-09-09 13:55 — Markdown now persists its zoom and accepts keyboard and Ctrl+wheel gestures
+- Evidence: basic text, code, and HTML expose percentage menus and Ctrl+plus/minus/reset
+  gestures, but their values remain per-view and Ctrl+wheel is not connected to them. Markdown
+  now persists its bounded scale and keeps the visible block anchored during metric changes.
 - Complete when: a shared zoom command and Ctrl+wheel gesture change text size in every basic and
   format-specific text view, persist the choice, and leave streaming-window arithmetic correct.
 

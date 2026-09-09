@@ -20,6 +20,9 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
 // External edits keep the Markdown reading position and zoom through progressive replacement.
 #test
 {
+    let previous = g_MarkdownViewerSettings
+    defer g_MarkdownViewerSettings = previous
+    g_MarkdownViewerSettings = {}
     var source: String
     for 120 do
         source += "A paragraph of the manuscript remains at the same reading position.\n\n"

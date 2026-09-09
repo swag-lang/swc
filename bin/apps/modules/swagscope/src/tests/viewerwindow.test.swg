@@ -33,6 +33,25 @@ func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
     expect serializer.end()
 }
 
+// The Markdown scale round-trips with the window preferences and rejects out-of-range state.
+#test
+{
+    let previous = g_MarkdownViewerSettings
+    defer g_MarkdownViewerSettings = previous
+    var host: Testing.HeadlessHost
+    host.setup(880, 560)
+    defer host.shutdown()
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    for percent in [150'u32, 0, 400]
+    {
+        g_MarkdownViewerSettings.zoomPercent = percent
+        let saved = saveViewerState(window)
+        g_MarkdownViewerSettings = {}
+        loadViewerState(window, saved.toSlice())
+        Swag.assert(g_MarkdownViewerSettings.zoomPercent == Math.clamp(percent, 50'u32, 300'u32))
+    }
+}
+
 // The window canonicalizes what it opens, so the fixture is spelled the way it will be read
 // back: `#curlocation` gives its directory with the host separator, which no comparison
 // against `currentFile` would survive.

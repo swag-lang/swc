@@ -6,6 +6,18 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.039 — One module analysis resolves four and a half million substitutions
+
+- Recorded: 2026-09-09 17:44
+
+**Evidence.** Instrumented on 2026-09-09 (Release 0.1.426): analyzing one snippet module that imports `core` — 52 files, 155 000 tokens — enters `NodePayload::followSubstituteChain` **4 554 160 times**, walking 9 121 151 links. The same walk over a 22 800-line file with no import enters it 269 675 times. A chain is short: two links on average, three at most, so the traffic is not depth but the sheer number of times the pass asks what a node now stands for. A profile of that analysis puts the walk at 2.8 % of the compiler's own code and `SemaNodeView::computeInner`, which begins with that question, at 3.2 %.
+
+Handing the walk the payload state its caller had just read — so a two-link chain reads one node instead of two — was written and measured. Paired A/B on the 22 800-line file moved nothing either way, and the imported-module workload, which cannot be measured by alternating runs because two build numbers invalidate the standard library's artifacts between them, gave 92 %, 101 % and 110 % of the processor time across three block measurements. It was reverted: the walk is not where the time goes.
+
+**Next.** Find out why a view is rebuilt so often, rather than making each rebuild cheaper. Count how many of those 4.5 million resolutions ask about a node another resolution already answered for in the same pass, and whether a resolved reference can be remembered on the node instead of re-derived. The answer decides whether this is a memoization or a call-site problem.
+
+**Related:** compiler.core.001, compiler.core.038.
+
 ### compiler.core.038 — A frame copy is not what a semantic scope push costs
 
 - Recorded: 2026-09-09 15:04

@@ -276,11 +276,15 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         let indexB = Math.clamp(qpAvg + cast(s32) info.betaOffset, 0, 51)
         let alpha  = cast(s32) DeblockAlpha[cast(u64) indexA]
         let beta   = cast(s32) DeblockBeta[cast(u64) indexB]
-        if alpha == 0 or beta == 0 do
-            continue
 
-        let pix = frame.pixLuma(mbX * 16 + edge * 4, mbY * 16)
-        filterLumaVertical(pix, frame.strideLuma, &strengths, indexA, alpha, beta)
+        // Each plane opens on its own thresholds. The chroma quantizer offsets can put the
+        // colour planes above the level where the filter starts while luma is still below it,
+        // so luma declining an edge does not answer for them.
+        if alpha != 0 and beta != 0
+        {
+            let pix = frame.pixLuma(mbX * 16 + edge * 4, mbY * 16)
+            filterLumaVertical(pix, frame.strideLuma, &strengths, indexA, alpha, beta)
+        }
 
         // A 4:4:4 colour plane carries the same edges as luma and is filtered as luma is, with
         // the strengths of the luma edge and the quantizer of the plane.
@@ -409,17 +413,21 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         let indexB = Math.clamp(qpAvg + cast(s32) info.betaOffset, 0, 51)
         let alpha  = cast(s32) DeblockAlpha[cast(u64) indexA]
         let beta   = cast(s32) DeblockBeta[cast(u64) indexB]
-        if alpha == 0 or beta == 0 do
-            continue
 
-        let pix = frame.pixLuma(mbX * 16, mbY * 16 + edge * 4)
-        if strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
+        // Each plane opens on its own thresholds. The chroma quantizer offsets can put the
+        // colour planes above the level where the filter starts while luma is still below it,
+        // so luma declining an edge does not answer for them.
+        if alpha != 0 and beta != 0
         {
-            filterLumaWeakHorizontal(pix, frame.strideLuma, &strengths, indexA, alpha, beta)
-        }
-        else
-        {
-            filterLumaStrongHorizontal(pix, frame.strideLuma, &strengths, indexA, alpha, beta)
+            let pix = frame.pixLuma(mbX * 16, mbY * 16 + edge * 4)
+            if strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
+            {
+                filterLumaWeakHorizontal(pix, frame.strideLuma, &strengths, indexA, alpha, beta)
+            }
+            else
+            {
+                filterLumaStrongHorizontal(pix, frame.strideLuma, &strengths, indexA, alpha, beta)
+            }
         }
 
         if sps.is444()

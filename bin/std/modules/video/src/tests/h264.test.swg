@@ -75,6 +75,14 @@ using Core, Core.Errors, Pixel
     videoAssertReferenceStream("ffmpeg-h264-c444-cavlc", 96, 64, 20, chromaShift: 0)
 }
 
+// A low quantizer with a positive chroma offset leaves luma below the level where the loop
+// filter starts and the colour planes above it. Every plane reads its own thresholds: luma
+// declining an edge says nothing about the planes beside it.
+#test
+{
+    videoAssertReferenceStream("ffmpeg-h264-c444-lowqp", 96, 64, 20, chromaShift: 0)
+}
+
 // Frame cropping: a 60x34 picture inside 64x48 coded macroblocks.
 #test
 {

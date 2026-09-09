@@ -209,15 +209,26 @@ can hold:
 Their `.yuv` files are the same streams decoded by FFmpeg into `yuv444p`, one plane after another
 at the full picture size.
 
-`ffmpeg-h264-c444-lowqp.mp4` re-encodes the pictures of `ffmpeg-h264-c444.yuv` with libx264
-through PyAV 17.1 at a fixed quantizer of 12 with a chroma quantizer offset of 10, in the same
-profile. The pair straddles the level at which the loop filter starts: luma stays below it while
-the colour planes sit above it, so an edge the luma filter declines still has to be filtered in
-Cb and Cr. Nothing else in the corpus reaches that band.
+`ffmpeg-h264-c444-lowqp.mp4` is a 160x128, 12-frame clip generated for this repository and
+encoded with libx264 through PyAV 17.1 in the same profile, at a quality that keeps the
+quantizer low, with the largest chroma quantizer offset the syntax allows. That pair straddles
+the level at which the loop filter starts: most macroblocks leave luma below it while the colour
+planes sit above it, so an edge the luma filter declines still has to be filtered in Cb and Cr.
+Over the clip the filter changes 878 luma samples and 180 223 chroma ones, which is the whole
+point of it. Nothing else in the corpus reaches that band, and the picture is built so the
+difference shows in the samples:
 
-- FFmpeg arguments: `-c:v libx264 -profile:v high444 -preset medium -qp 12 -g 10 -x264-params
-  chroma_qp_offset=6:bframes=2:cabac=1:8x8dct=1:aq-mode=0`
-- SHA-256: `eb1eb127a3e0c918385fe8bcd4e5e24a5b7b0cd7d3a64f5395e280b062cde36b`
+- Two chroma planes that vary slowly and independently across the picture and drift a few columns
+  per frame, so the coarse chroma quantizer leaves steps at block boundaries that are small enough
+  for the filter's own thresholds to accept.
+- A luma gradient with fixed per-pixel noise scrolling over it and one block on a diagonal path,
+  so motion and coded blocks give the edges a nonzero filtering strength while luma itself stays
+  finely quantized.
+- An 8 by 8 square in the top-left corner whose luma is `16 + 8 * index`, identifying the frame.
+
+- FFmpeg arguments: `-c:v libx264 -profile:v high444 -preset medium -crf 10 -g 6 -chromaoffset 12
+  -x264-params bframes=2:cabac=1:8x8dct=1`
+- SHA-256: `3e47fe3140d0ce4dd3253b63e64d2dfa5817c228a76f8483ebdfbc987b4d008c`
 - Its `.yuv` file is the same stream decoded by FFmpeg into `yuv444p`.
 
 - License: same as this repository, as for every generated file above.

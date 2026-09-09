@@ -80,7 +80,7 @@ using Core, Core.Errors, Pixel
 // declining an edge says nothing about the planes beside it.
 #test
 {
-    videoAssertReferenceStream("ffmpeg-h264-c444-lowqp", 96, 64, 20, chromaShift: 0)
+    videoAssertReferenceStream("ffmpeg-h264-c444-lowqp", 160, 128, 12, chromaShift: 0)
 }
 
 // Frame cropping: a 60x34 picture inside 64x48 coded macroblocks.

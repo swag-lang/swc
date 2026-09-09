@@ -25,5 +25,5 @@ using Swag, Core
 
     Swag.assert(RenderOgl.shaderSource(Marked) == "#ver")
     Swag.assert(RenderOgl.shaderSource(Plain) == "#ver")
-    Swag.assert(RenderOgl.shaderSource(Mark).length == 2)
+    Swag.assert(RenderOgl.shaderSource(Mark).count == 2)
 }

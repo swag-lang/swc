@@ -41,6 +41,7 @@ struct MainWindow
     }
 
     panels:            Array'*ViewerPanel
+    icons:             IconSet
     comparisonEnabled: bool
     lexer:             RichEditLexerSwag
     language:          String
@@ -60,6 +61,7 @@ impl MainWindow
         let result  = Wnd.create'MainWindow(parent, "prism.mainWindow")
         let surface = result.surface!
         surface.setView(result)
+        result.icons.setup(result.app().renderer, prismIcons())
         surface.minSize        = {MinWidth, MinHeight}
         result.backgroundStyle = .ToolBar
         result.language        = ReferenceLanguage
@@ -104,11 +106,10 @@ impl MainWindow
             discard button
             window.compile()
         }
-        .layoutButton = IconButton.create(.commandBar, .theme().icon(.Duplicate, 18), {0, 0, 36, 36}, "prism.layout", flags: .Toggle)
+        .layoutButton = IconButton.create(.commandBar, .icons.icon(0, 18, .theme().res.atlasScale), {0, 0, 36, 36}, "prism.layout", flags: .Toggle)
         .layoutButton.setIconSize(18, 18)
         .layoutButton.setCheckIndicator(.Frame)
-        .layoutButton.dockStyle         = .Left
-        .layoutButton.margin            = {8, 0, 0, 0}
+        .layoutButton.dockStyle         = .Right
         .layoutButton.sigCheckedChanged += func|window = me|(button)
         {
             window.setComparisonEnabled(button.isChecked)
@@ -254,14 +255,19 @@ impl IWnd for MainWindow
     {
         if evt.kind == .LanguageChanged do
             .retranslate()
-        elif evt.kind == .ThemeChanged do
+        elif evt.kind == .ThemeChanged
+        {
+            .layoutButton.setIcon(.icons.icon(0, 18, .theme().res.atlasScale))
             .refreshPaneLayout()
+        }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         .shutdown()
+        .icons.free()
         .wnd.IWnd.onDestroyEvent(evt)
     }
 

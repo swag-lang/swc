@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- Two independent viewer panels, on the shared 24-unit icon grid. -->
+  <g fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round">
+    <rect x="2" y="4" width="8" height="16" rx="1"/>
+    <rect x="14" y="4" width="8" height="16" rx="1"/>
+    <path d="M2 8h8M14 8h8"/>
+  </g>
+</svg>

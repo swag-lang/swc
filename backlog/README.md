@@ -34,6 +34,7 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [std.video.md](std.video.md) | `std/video` | 2026-09-09 18:10 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-09 12:34 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-09 08:31 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-09 07:13 |
@@ -48,7 +49,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-07 19:11 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-07 18:27 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-07 18:27 |
-| [std.video.md](std.video.md) | `std/video` | 2026-09-07 13:30 |
 | [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers | 2026-09-07 13:22 |
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-07 13:14 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-07 11:12 |

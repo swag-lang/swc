@@ -81,8 +81,12 @@ struct AttributeList
     uint64_t                            reallocatesParamsMask    = 0;
     uint64_t                            returnsPayloadParamsMask = 0;
     uint64_t                            returnsStorageParamsMask = 0;
-    SmallVector4<Utf8>                  printMicroPassOptions;
-    SmallVector4<Utf8>                  printAstStageOptions;
+    // These two exist for `#[Swag.PrintMicro]` and `#[Swag.PrintAst]`, which a compilation carries
+    // on at most one function. Inline storage for four strings each would put 320 bytes of an
+    // attribute list — a third of it — at the service of two debugging attributes, and every scope
+    // push of the semantic pass copies that list.
+    std::vector<Utf8>                   printMicroPassOptions;
+    std::vector<Utf8>                   printAstStageOptions;
     WarningPolicy                       warnings;
     std::optional<bool>                 backendOptimize;
     bool                                hasForeign = false;

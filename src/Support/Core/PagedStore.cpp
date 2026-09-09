@@ -16,7 +16,9 @@ namespace
 }
 
 PagedStore::PagedStore(uint32_t pageSize) :
-    pageSizeValue_(pageSize)
+    pageSizeValue_(pageSize),
+    pageShift_(static_cast<uint32_t>(std::countr_zero(pageSize))),
+    pageMask_(pageSize - 1)
 {
     SWC_ASSERT(pageSizeValue_ > 0 && (pageSizeValue_ & (pageSizeValue_ - 1)) == 0);
     publishPages();
@@ -28,6 +30,8 @@ PagedStore::PagedStore(PagedStore&& other) noexcept :
     publishedPageRangesStorage_(std::move(other.publishedPageRangesStorage_)),
     totalBytes_(other.totalBytes_),
     pageSizeValue_(other.pageSizeValue_),
+    pageShift_(other.pageShift_),
+    pageMask_(other.pageMask_),
     curPage_(other.curPage_),
     curPageIndex_(other.curPageIndex_),
     lastPtr_(other.lastPtr_)
@@ -63,6 +67,8 @@ PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
         other.publishedPageRanges_.store(rightRangeSnapshot, std::memory_order_release);
         std::swap(totalBytes_, other.totalBytes_);
         std::swap(pageSizeValue_, other.pageSizeValue_);
+        std::swap(pageShift_, other.pageShift_);
+        std::swap(pageMask_, other.pageMask_);
         std::swap(curPage_, other.curPage_);
         std::swap(curPageIndex_, other.curPageIndex_);
         std::swap(lastPtr_, other.lastPtr_);
@@ -359,7 +365,7 @@ void PagedStore::SpanView::decodeRef(const PagedStore* st, Ref ref, uint32_t& pa
 {
     SWC_ASSERT(st != nullptr);
     SWC_ASSERT(ref != INVALID_REF);
-    PagedStore::decodeRef(st->pageSize(), ref, pageIndex, off);
+    st->decodeRef(ref, pageIndex, off);
     SWC_ASSERT(pageIndex < st->publishedPageCount());
     SWC_ASSERT(off < st->pageSize());
 }
@@ -553,12 +559,6 @@ Ref PagedStore::makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) 
     return static_cast<Ref>(r);
 }
 
-void PagedStore::decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept
-{
-    pageIndex = ref / pageSize;
-    offset    = ref % pageSize;
-}
-
 bool PagedStore::containsRef(Ref ref, uint32_t minSize) const noexcept
 {
     if (ref == INVALID_REF || minSize == 0)
@@ -566,7 +566,7 @@ bool PagedStore::containsRef(Ref ref, uint32_t minSize) const noexcept
 
     uint32_t pageIndex = 0;
     uint32_t offset    = 0;
-    decodeRef(pageSizeValue_, ref, pageIndex, offset);
+    decodeRef(ref, pageIndex, offset);
 
     const auto* pages = snapshotPages();
     if (!pages || pageIndex >= pages->size())
@@ -599,13 +599,6 @@ std::pair<Ref, void*> PagedStore::allocate(uint32_t size, uint32_t align)
 
     const Ref r = makeRef(pageSizeValue_, curPageIndex_, offset);
     return {r, static_cast<void*>(page->bytes() + offset)};
-}
-
-const std::vector<PagedStore::Page*>* PagedStore::snapshotPages() const noexcept
-{
-    const auto* pages = publishedPages_.load(std::memory_order_acquire);
-    SWC_ASSERT(pages != nullptr);
-    return pages;
 }
 
 const std::vector<PagedStore::PageRange>* PagedStore::snapshotPageRanges() const noexcept

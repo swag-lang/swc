@@ -354,11 +354,10 @@ void NodePayload::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
     }
 }
 
-AstNodeRef NodePayload::getSubstituteRef(AstNodeRef nodeRef) const
+// The rare half of getSubstituteRef: the node was replaced, so follow what replaced it until a
+// node that was not.
+AstNodeRef NodePayload::followSubstituteChain(AstNodeRef nodeRef) const
 {
-    if (nodeRef.isInvalid())
-        return nodeRef;
-
     while (true)
     {
         const AstNode&    node  = ast().node(nodeRef);
@@ -622,12 +621,14 @@ void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const R
 
         const std::unique_lock lock(shard->resolvedCallArgsMutex);
         shard->resolvedCallArgsByNode.erase(nodeRef);
+        shard->resolvedCallArgsCount.store(static_cast<uint32_t>(shard->resolvedCallArgsByNode.size()), std::memory_order_release);
         return;
     }
 
     Shard*                 shard = ensureShard(shardIdx);
     const std::unique_lock lock(shard->resolvedCallArgsMutex);
     shard->resolvedCallArgsByNode[nodeRef].assign(args.begin(), args.end());
+    shard->resolvedCallArgsCount.store(static_cast<uint32_t>(shard->resolvedCallArgsByNode.size()), std::memory_order_release);
 }
 
 bool NodePayload::hasResolvedCallArguments(AstNodeRef nodeRef) const
@@ -637,6 +638,9 @@ bool NodePayload::hasResolvedCallArguments(AstNodeRef nodeRef) const
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
+        return false;
+
+    if (!shard->resolvedCallArgsCount.load(std::memory_order_acquire))
         return false;
 
     const std::shared_lock lock(shard->resolvedCallArgsMutex);
@@ -650,6 +654,9 @@ void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Re
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
+        return;
+
+    if (!shard->resolvedCallArgsCount.load(std::memory_order_acquire))
         return;
 
     const std::shared_lock lock(shard->resolvedCallArgsMutex);
@@ -669,6 +676,9 @@ bool NodePayload::hasLoweringPayload(AstNodeRef nodeRef) const
     if (!shard)
         return false;
 
+    if (!shard->loweringPayloadsCount.load(std::memory_order_acquire))
+        return false;
+
     const std::shared_lock lock(shard->loweringPayloadsMutex);
     const auto             it = shard->loweringPayloads.find(nodeRef);
     return it != shard->loweringPayloads.end() && it->second != nullptr;
@@ -682,6 +692,7 @@ void NodePayload::setLoweringPayload(AstNodeRef nodeRef, void* payload)
     Shard*                 shard    = ensureShard(shardIdx);
     const std::unique_lock lock(shard->loweringPayloadsMutex);
     shard->loweringPayloads[nodeRef] = payload;
+    shard->loweringPayloadsCount.store(static_cast<uint32_t>(shard->loweringPayloads.size()), std::memory_order_release);
 }
 
 void* NodePayload::getLoweringPayload(AstNodeRef nodeRef) const
@@ -691,6 +702,9 @@ void* NodePayload::getLoweringPayload(AstNodeRef nodeRef) const
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
+        return nullptr;
+
+    if (!shard->loweringPayloadsCount.load(std::memory_order_acquire))
         return nullptr;
 
     const std::shared_lock lock(shard->loweringPayloadsMutex);
@@ -709,6 +723,9 @@ bool NodePayload::hasSemaPayload(AstNodeRef nodeRef) const
     if (!shard)
         return false;
 
+    if (!shard->semaPayloadsCount.load(std::memory_order_acquire))
+        return false;
+
     const std::shared_lock lock(shard->semaPayloadsMutex);
     const auto             it = shard->semaPayloads.find(nodeRef);
     return it != shard->semaPayloads.end() && it->second != nullptr;
@@ -721,6 +738,9 @@ bool NodePayload::hasInlinePayload(AstNodeRef nodeRef) const
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
+        return false;
+
+    if (!shard->inlinePayloadsCount.load(std::memory_order_acquire))
         return false;
 
     const std::shared_lock lock(shard->inlinePayloadsMutex);
@@ -737,6 +757,7 @@ void NodePayload::setInlinePayload(AstNodeRef nodeRef, void* payload)
     const std::unique_lock lock(shard->inlinePayloadsMutex);
     SWC_ASSERT(!shard->inlinePayloads.contains(nodeRef));
     shard->inlinePayloads[nodeRef] = payload;
+    shard->inlinePayloadsCount.store(static_cast<uint32_t>(shard->inlinePayloads.size()), std::memory_order_release);
 }
 
 void* NodePayload::getInlinePayload(AstNodeRef nodeRef) const
@@ -746,6 +767,9 @@ void* NodePayload::getInlinePayload(AstNodeRef nodeRef) const
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
+        return nullptr;
+
+    if (!shard->inlinePayloadsCount.load(std::memory_order_acquire))
         return nullptr;
 
     const std::shared_lock lock(shard->inlinePayloadsMutex);
@@ -764,6 +788,9 @@ bool NodePayload::hasInlineContextOverride(AstNodeRef nodeRef) const
     if (!shard)
         return false;
 
+    if (!shard->inlineContextOverridesCount.load(std::memory_order_acquire))
+        return false;
+
     const std::shared_lock lock(shard->inlineContextOverridesMutex);
     const auto             it = shard->inlineContextOverrides.find(nodeRef);
     return it != shard->inlineContextOverrides.end() && it->second != nullptr;
@@ -778,6 +805,7 @@ void NodePayload::setInlineContextOverride(AstNodeRef nodeRef, void* payload)
     const std::unique_lock lock(shard->inlineContextOverridesMutex);
     SWC_ASSERT(!shard->inlineContextOverrides.contains(nodeRef));
     shard->inlineContextOverrides[nodeRef] = payload;
+    shard->inlineContextOverridesCount.store(static_cast<uint32_t>(shard->inlineContextOverrides.size()), std::memory_order_release);
 }
 
 void* NodePayload::getInlineContextOverride(AstNodeRef nodeRef) const
@@ -787,6 +815,9 @@ void* NodePayload::getInlineContextOverride(AstNodeRef nodeRef) const
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
+        return nullptr;
+
+    if (!shard->inlineContextOverridesCount.load(std::memory_order_acquire))
         return nullptr;
 
     const std::shared_lock lock(shard->inlineContextOverridesMutex);
@@ -805,6 +836,7 @@ void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
     const std::unique_lock lock(shard->semaPayloadsMutex);
     SWC_ASSERT(!shard->semaPayloads.contains(nodeRef));
     shard->semaPayloads[nodeRef] = payload;
+    shard->semaPayloadsCount.store(static_cast<uint32_t>(shard->semaPayloads.size()), std::memory_order_release);
 }
 
 void* NodePayload::getSemaPayload(AstNodeRef nodeRef) const
@@ -814,6 +846,9 @@ void* NodePayload::getSemaPayload(AstNodeRef nodeRef) const
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
+        return nullptr;
+
+    if (!shard->semaPayloadsCount.load(std::memory_order_acquire))
         return nullptr;
 
     const std::shared_lock lock(shard->semaPayloadsMutex);
@@ -834,6 +869,7 @@ void NodePayload::clearSemaPayload(AstNodeRef nodeRef)
 
     const std::unique_lock lock(shard->semaPayloadsMutex);
     shard->semaPayloads.erase(nodeRef);
+    shard->semaPayloadsCount.store(static_cast<uint32_t>(shard->semaPayloads.size()), std::memory_order_release);
 }
 
 void NodePayload::setConstAssignSourceParameter(AstNodeRef nodeRef, const SymbolVariable* sourceParam)
@@ -844,6 +880,7 @@ void NodePayload::setConstAssignSourceParameter(AstNodeRef nodeRef, const Symbol
     Shard*                 shard    = ensureShard(shardIdx);
     const std::unique_lock lock(shard->constAssignSourceParametersMutex);
     shard->constAssignSourceParameters[nodeRef] = sourceParam;
+    shard->constAssignSourceParametersCount.store(static_cast<uint32_t>(shard->constAssignSourceParameters.size()), std::memory_order_release);
 }
 
 const SymbolVariable* NodePayload::getConstAssignSourceParameter(AstNodeRef nodeRef) const
@@ -853,6 +890,9 @@ const SymbolVariable* NodePayload::getConstAssignSourceParameter(AstNodeRef node
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
+        return nullptr;
+
+    if (!shard->constAssignSourceParametersCount.load(std::memory_order_acquire))
         return nullptr;
 
     const std::shared_lock lock(shard->constAssignSourceParametersMutex);

@@ -124,9 +124,37 @@ protected:
     void                 setConstant(AstNodeRef nodeRef, ConstantRef ref);
     void                 clearConstant(AstNodeRef nodeRef);
 
-    bool       hasSubstitute(AstNodeRef nodeRef) const;
-    void       setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef);
-    AstNodeRef getSubstituteRef(AstNodeRef nodeRef) const;
+    bool hasSubstitute(AstNodeRef nodeRef) const;
+    void setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef);
+
+    /*
+    The node a reference now stands for, following whatever replaced it.
+
+    Every semantic view of a node starts here, so this is one of the most executed reads of the
+    whole pass, and a node that was never substituted — which is nearly all of them outside
+    generic evaluation — has to answer without a call. Only the replaced node walks its chain.
+
+    The kind comes out of one payload state read rather than a `payloadBits()` accessor because a
+    node shared by concurrent generic evaluation can change kind between two loads, and a second
+    read could then take a constant or a type reference for a store offset.
+    */
+    AstNodeRef getSubstituteRef(AstNodeRef nodeRef) const
+    {
+        if (nodeRef.isInvalid())
+            return nodeRef;
+
+        const AstNode& node  = ast().node(nodeRef);
+        const uint64_t state = node.payloadState();
+        if (static_cast<NodePayloadKind>(AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_KIND_MASK) != NodePayloadKind::Substitute)
+        {
+#if SWC_HAS_REF_DEBUG_INFO
+            nodeRef.dbgPtr = &node;
+#endif
+            return nodeRef;
+        }
+
+        return followSubstituteChain(nodeRef);
+    }
 
     bool    hasType(const TaskContext& ctx, AstNodeRef nodeRef) const;
     TypeRef getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
@@ -185,6 +213,7 @@ private:
         uint32_t        shardIdx = 0;
     };
 
+    AstNodeRef                     followSubstituteChain(AstNodeRef nodeRef) const;
     std::span<const Symbol* const> getSymbolListImpl(AstNodeRef nodeRef) const;
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
@@ -219,6 +248,19 @@ private:
         std::unordered_map<AstNodeRef, void*>                 inlineContextOverrides;
         std::unordered_map<AstNodeRef, void*>                 semaPayloads;
         std::unordered_map<AstNodeRef, const SymbolVariable*> constAssignSourceParameters;
+
+        // Each side table above is read on the hot path and written almost never: inlining,
+        // lowering, and const-assign tracking touch a handful of nodes out of the hundreds of
+        // thousands a module walks. Publishing the entry count lets a reader answer "nothing
+        // here" without taking the lock at all. A count is written inside the same critical
+        // section as the entry it describes, so a reader that could legitimately observe the
+        // entry observes the count too, and never answers "nothing" for one it had to find.
+        std::atomic<uint32_t> loweringPayloadsCount{0};
+        std::atomic<uint32_t> inlinePayloadsCount{0};
+        std::atomic<uint32_t> inlineContextOverridesCount{0};
+        std::atomic<uint32_t> semaPayloadsCount{0};
+        std::atomic<uint32_t> constAssignSourceParametersCount{0};
+        std::atomic<uint32_t> resolvedCallArgsCount{0};
 
         // Resolved call arguments are stored inline (not in `store`) so writing them only
         // contends on `resolvedCallArgsMutex`, never on the hot `storeMutex` shared with the

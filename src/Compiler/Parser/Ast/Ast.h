@@ -45,8 +45,23 @@ public:
     void              captureParsedNodeBoundary();
     bool              isAdditionalNode(AstNodeRef nodeRef) const;
 
-    AstNode&       node(AstNodeRef nodeRef);
-    const AstNode& node(AstNodeRef nodeRef) const;
+    // Resolving a node handle is the single most executed operation of the semantic passes, so it
+    // stays inline: the shard is a shift, the page and offset are a shift and a mask inside the
+    // store, and what is left is two pointer reads.
+    AstNode& node(AstNodeRef nodeRef)
+    {
+        SWC_ASSERT(nodeRef.isValid());
+        const uint32_t g = nodeRef.get();
+        return *shards_[refShard(g)].store.ptr<AstNode>(refLocal(g));
+    }
+
+    const AstNode& node(AstNodeRef nodeRef) const
+    {
+        SWC_ASSERT(nodeRef.isValid());
+        const uint32_t g = nodeRef.get();
+        return *shards_[refShard(g)].store.ptr<AstNode>(refLocal(g));
+    }
+
     bool           hasNode(AstNodeRef nodeRef) const;
     bool           hasSpan(SpanRef spanRef) const;
     void           appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const;
@@ -147,8 +162,6 @@ public:
 private:
     static uint32_t chooseShard() { return JobManager::threadIndex() % SHARD_COUNT; }
 
-    AstNode*       nodePtr(uint32_t globalRef);
-    const AstNode* nodePtr(uint32_t globalRef) const;
     void           recordParsedNodeBoundary(AstNodeRef nodeRef);
 
     struct Shard

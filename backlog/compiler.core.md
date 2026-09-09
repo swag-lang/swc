@@ -6,6 +6,33 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.039 — One module analysis resolves four and a half million substitutions
+
+- Recorded: 2026-09-09 17:44
+
+**Evidence.** Instrumented on 2026-09-09 (Release 0.1.426): analyzing one snippet module that imports `core` — 52 files, 155 000 tokens — enters `NodePayload::followSubstituteChain` **4 554 160 times**, walking 9 121 151 links. The same walk over a 22 800-line file with no import enters it 269 675 times. A chain is short: two links on average, three at most, so the traffic is not depth but the sheer number of times the pass asks what a node now stands for. A profile of that analysis puts the walk at 2.8 % of the compiler's own code and `SemaNodeView::computeInner`, which begins with that question, at 3.2 %.
+
+Handing the walk the payload state its caller had just read — so a two-link chain reads one node instead of two — was written and measured. Paired A/B on the 22 800-line file moved nothing either way, and the imported-module workload, which cannot be measured by alternating runs because two build numbers invalidate the standard library's artifacts between them, gave 92 %, 101 % and 110 % of the processor time across three block measurements. It was reverted: the walk is not where the time goes.
+
+**Next.** Find out why a view is rebuilt so often, rather than making each rebuild cheaper. Count how many of those 4.5 million resolutions ask about a node another resolution already answered for in the same pass, and whether a resolved reference can be remembered on the node instead of re-derived. The answer decides whether this is a memoization or a call-site problem.
+
+**Related:** compiler.core.001, compiler.core.038.
+
+### compiler.core.038 — A frame copy is not what a semantic scope push costs
+
+- Recorded: 2026-09-09 15:04
+- Updated: 2026-09-09 16:00 — the copy was removed and measured: it buys nothing
+
+**Evidence.** `SemaFrame` is 1 376 bytes and `Sema::pushFrame` stores it by copy. Instrumented on 2026-09-09 (Release 0.1.425): analyzing one 22 800-line file pushes 41 573 frames, and building one snippet module that imports `core` pushes 259 030. Each push copied the frame **twice**, because the callers spell `auto frame = sema.frame(); frame.setX(...); sema.pushFramePopOnPostNode(frame);` — the top of the stack into a local, then the local into the vector.
+
+Removing one of the two was tried and reverted. A `SemaFrame& pushFrameCopyPopOnPostNode(AstNodeRef)` that copies the top frame once, in place, was written and 42 of the 64 push sites migrated to it; the compiler suites, including the DevMode frame-count assertions, stayed green. Paired A/B against the same build, `sema --num-cores 1` on the 22 800-line file, minimum of twelve, three separate runs on an admitted machine: **100.0 %, 102.6 %, and 103.8 % of the processor time** — no gain, and possibly a small loss.
+
+The reason is that a frame is trivially copyable in the parts that dominate its size, so a copy is a 1.4 KB `memcpy`: 57 MB across a whole file, roughly 1 % of the pass. What the earlier `AttributeList` shrink actually bought (0.1.425, −3.8 %) was not the 256 bytes but the two `SmallVector<Utf8>` constructor/destructor pairs it removed from every push — 83 000 non-trivial calls. Frame *size* is not the lever; the number of **non-trivial** members a push has to construct and destroy is.
+
+**Next.** Count what a push still constructs non-trivially — the remaining `SmallVector`s of `SemaFrame` and `AttributeList` — and remove the ones a scope almost never fills, as `printMicroPassOptions` was removed. Do not spend effort on the copy count or on `frames_.reserve`: the stack never exceeds 13 frames for a file and 36 for a module build, so growth is not a cost either.
+
+**Related:** compiler.core.001, compiler.core.005, compiler.core.006.
+
 ### compiler.core.030 — Every executable lowers the runtime's functions again
 
 - Recorded: 2026-09-05 22:13

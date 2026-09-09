@@ -10,7 +10,8 @@ const SurfaceId   = "swag.prism"
 #main
 {
     // The theme atlas and the editor's own measurement work fan through the runtime's shared
-    // worker pool. Starting it here keeps that cost out of the first compilation.
+    // worker pool, and so does the compilation the window runs off its own thread. Starting it
+    // here keeps that cost out of the first compilation.
     Swag.startWorkers()
 
     let appIcon = expect Image.decode(".png", AppIcon)
@@ -43,6 +44,7 @@ const SurfaceId   = "swag.prism"
     surface.show()
 
     let exitCode = g_App.run()
+    window.shutdown()
     if exitCode do
         Env.exit(exitCode)
 }

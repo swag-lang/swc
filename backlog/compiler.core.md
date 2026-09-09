@@ -6,6 +6,31 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.036 — A misplaced 'mtd impl' is accepted and silently overrides nothing
+
+- Recorded: 2026-09-08 22:35
+- Found while: writing the timer handler of Swag Prism, which never ran. The three
+  `mtd impl` overrides of `MainWindow` sat in its plain `impl MainWindow` block instead of an
+  `impl IWnd for MainWindow` one. Nothing was reported, and the window waited forever on a
+  compilation whose result it could no longer collect.
+- Evidence: an isolated module with `interface ISpeak { mtd speak()->s32 }`, a `Base` that
+  implements it returning 1, and a `Derived` embedding it through `using base: Base` and
+  declaring `mtd impl speak()->s32 => 2` inside a plain `impl Derived`. It compiles with no
+  diagnostic. `let itf: ISpeak = &d; itf.speak()` returns 1, so the marked method overrode
+  nothing; `d.speak()` returns 2, so it is a plain method that only a direct call reaches. In
+  the same block, `mtd impl notAnInterfaceMethodAnywhere()->s32 => 3` — a name belonging to no
+  interface in the program — also compiles silently.
+- Why this costs so much: the two blocks look the same in a diff and read the same at a glance,
+  the mistake compiles clean, every direct call still works, and only virtual dispatch differs.
+  What it produces is not a wrong answer but an interface method that is never called, which
+  surfaces far from its cause — a window that stops responding, a state that is never persisted,
+  a language switch that changes nothing.
+- Next: decide which of the two readings `mtd impl` in a plain `impl` block should take. Either
+  it names an interface the type already implements and installs the override, which is what the
+  author meant in every case seen so far, or it is rejected. Either way, `mtd impl` naming a
+  method that belongs to no interface the type implements must be an error, and that check is
+  the smaller half: the name is already resolved when the marker is seen.
+
 ### compiler.core.035 — Bound native test recovery with outstanding borrowed tasks
 
 - Recorded: 2026-09-08 09:08

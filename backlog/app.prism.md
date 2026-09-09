@@ -9,9 +9,23 @@ language the compiler compiles.
 
 What already stands: the window, the editor with the Swag lexer, the pipeline-stage selector, and
 the probe that compiles a snippet in a temporary module through a separate compiler process and
-shows what `Swag.PrintMicro` printed for the chosen stage.
+shows what `Swag.PrintMicro` printed for the chosen stage. The compilation runs off the interface
+thread and comes back through a timer, and the status line reports how long the compiler took.
 
 ## Entries
+
+### app.prism.005 — Recompile on an idle after the last edit
+
+- Recorded: 2026-09-08 22:35
+
+Compilation now runs off the interface thread and comes back through a timer, so the window stays
+in hand while it works and a request arriving during one replaces whatever was waiting. What is
+still missing is the reason that machinery was built: the reader has to press an action to see
+their edit compiled.
+
+Next: recompile on a short idle after the last keystroke, and settle on the idle by watching what
+a reader actually does — too short spends compilations on half-typed lines, too long and the pane
+is answering a question that has moved on.
 
 ### app.prism.004 — Inspect a function of `bin/std` without editing its source
 
@@ -67,13 +81,3 @@ emits the same categories as tags rather than as escapes, which is the stream to
 Next: parse the `[micro]` header and instruction block, map the categories onto the theme palette,
 and show the count and the gain beside the stage selector.
 
-### app.prism.001 — Compile off the frame
-
-- Recorded: 2026-09-08 21:53
-
-`MainWindow.compile` runs the compiler to completion before it returns, so the window is frozen
-while it does. A snippet is one small module and its build folder is reused, so the pause is short,
-but it is a pause on every keystroke-driven recompilation the application wants to offer.
-
-Next: move the compilation to a worker and deliver its result through a timer, then recompile on a
-short idle after the last edit instead of on an explicit press.

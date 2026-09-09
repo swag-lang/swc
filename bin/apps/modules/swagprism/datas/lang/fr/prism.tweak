@@ -8,7 +8,7 @@ ui_Working        Compilation…
 ui_Ready          Prêt
 ui_NoOutput       Le compilateur n'a rien affiché pour cette étape.
 ui_Stopped        Le compilateur s'est arrêté. Son rapport est dans le panneau.
-ui_Done           Compilé
+ui_Done           Compilé en % ms
 ui_ProbeStopped   Le compilateur n'a pas pu être lancé.
 ui_OutputHint     Appuyez sur Compiler pour voir ici les instructions générées.
 

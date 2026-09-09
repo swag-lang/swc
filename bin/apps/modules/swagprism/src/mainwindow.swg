@@ -36,6 +36,37 @@ internal enum StatusMessage
     ProbeStopped     // The compiler process could not be started at all.
 }
 
+/*
+One compilation running outside the interface thread.
+
+The compiler is a separate process and a compilation is tens to hundreds of milliseconds, which is
+long enough to stop a window that waits for it. The window submits the work instead and polls it on
+a timer, so it keeps drawing, keeps taking text, and keeps answering the reader while the compiler
+runs.
+
+Only one compilation runs at a time. A request that arrives while one is running replaces whatever
+was waiting rather than joining a queue: the reader wants the answer to what they last asked, not
+every stage they passed through on the way to it.
+*/
+struct CompileJob
+{
+    task:  Swag.Task     // Runs `MainWindow.runCompile` off the interface thread.
+    timer: *Timer?       // Polls the task while it runs, and is removed when it finishes.
+
+    // Inputs, copied before the task starts so the editor stays editable while it runs.
+    source:   String
+    stage:    String
+    optimize: bool
+
+    // What the task left behind. The interface thread reads these only once the task is done.
+    result:  Pipeline.Result
+    stopped: bool     // Whether the compiler could not be started at all.
+    elapsed: u64      // Milliseconds the compilation took, reported on the status line.
+
+    running: bool     // Whether a task is in flight, which is what makes a new request wait.
+    queued:  bool     // Whether a request arrived while one was, and runs as soon as it ends.
+}
+
 // The one window of Swag Prism: a snippet on the left, what the compiler made of it on the right.
 struct MainWindow
 {
@@ -55,8 +86,12 @@ struct MainWindow
     }
 
     lexer:         RichEditLexerSwag
-    probe:         Pipeline.Probe
     statusMessage: StatusMessage
+
+    // Owned by the compile job between submission and completion: nothing on the interface thread
+    // may reach into either while `job.running` holds.
+    probe: Pipeline.Probe
+    job:   CompileJob
 
     // Whether the output pane still holds its opening sentence rather than a compilation, so a
     // language switch can say that sentence again without overwriting a result.
@@ -217,31 +252,95 @@ impl MainWindow
     // The compiler runs to completion before this returns, so the window is unresponsive while it
     // does. A snippet is one small module and its build folder is reused, which keeps that pause
     // short; moving it off the frame is what this pane needs before it can host a running program.
+    // Asks for the snippet to be compiled at the selected stage.
+    //
+    // One compilation is in flight at a time. Asking again while one runs marks the request rather
+    // than starting a second compiler, and the marked request runs as soon as the first ends — so
+    // holding a key on the stage list costs one more compilation, not one per step.
     mtd compile()
+    {
+        if .job.running
+        {
+            .job.queued = true
+            return
+        }
+
+        .startCompile()
+    }
+
+    // Copies what is to be compiled and submits it, leaving the window free to draw and take text.
+    mtd startCompile()
     {
         let index = .stageCombo.selectedIndex
         if index >= Pipeline.Stages.count do
             return
 
-        .setStatus(.Working)
+        .job.source   = .editor.text()
+        .job.stage    = String.from(Pipeline.Stages[index])
+        .job.optimize = .optimizeCheck.isChecked()
+        .job.queued   = false
+        .job.running  = true
 
-        let source = .editor.text()
-        let run    = catch .probe.compile(source.toString(), Pipeline.Stages[index], .optimizeCheck.isChecked()) as probeError
-        if probeError != null
+        // The action that starts the work says so by being unavailable while it runs. The stage
+        // list and the optimization toggle stay live, because changing either is a new request and
+        // the job above already knows how to hold one.
+        .runButton.disable()
+        .setStatus(.Working)
+        .job.timer = .app().addTimer(20'ms, me)
+
+        let window = me
+        .job.task.submit(func|window|() { window.runCompile() })
+    }
+
+    // Runs on the job's thread. Nothing here may reach the window tree or anything it draws from.
+    mtd runCompile()
+    {
+        var watch: Time.Stopwatch
+        watch.start()
+
+        let run = catch .probe.compile(.job.source.toString(), .job.stage.toString(), .job.optimize) as probeError
+        .job.stopped = probeError != null
+        if !.job.stopped do
+            .job.result = run
+        .job.elapsed = watch.elapsedMilliseconds()
+    }
+
+    // Reports what the finished job produced, then starts whatever was asked for meanwhile.
+    mtd finishCompile()
+    {
+        .removeTimer(.job.timer!)
+        .job.timer   = null
+        .job.running = false
+        .runButton.enable()
+
+        if .job.stopped
         {
             .setStatus(.ProbeStopped)
-            return
+        }
+        else
+        {
+            .output.setText(.job.result.text.toString())
+            .outputIsHint = false
+
+            if .job.result.failed do
+                .setStatus(.Stopped)
+            elif .job.result.text.isEmpty() do
+                .setStatus(.NoOutput)
+            else do
+                .setStatus(.Done)
         }
 
-        .output.setText(run.text.toString())
-        .outputIsHint = false
+        if .job.queued do
+            .startCompile()
+    }
 
-        if run.failed do
-            .setStatus(.Stopped)
-        elif run.text.isEmpty() do
-            .setStatus(.NoOutput)
-        else do
-            .setStatus(.Done)
+    // Waits for a compilation still in flight, so the probe it reads is not destroyed under it.
+    mtd shutdown()
+    {
+        if !.job.running do
+            return
+        .job.task.wait()
+        .job.running = false
     }
 
     // Reports the outcome of the latest compilation on the single status line.
@@ -257,12 +356,25 @@ impl MainWindow
         let strings = appStrings()
         switch .statusMessage
         {
-        case .Ready:        .status.setText(strings.ui_Ready)
-        case .Working:      .status.setText(strings.ui_Working)
-        case .Done:         .status.setText(strings.ui_Done)
-        case .NoOutput:     .status.setText(strings.ui_NoOutput)
-        case .Stopped:      .status.setText(strings.ui_Stopped)
-        case .ProbeStopped: .status.setText(strings.ui_ProbeStopped)
+        case .Ready:
+            .status.setText(strings.ui_Ready)
+
+        case .Working:
+            .status.setText(strings.ui_Working)
+
+        // An application about what the compiler does says how long it took to do it: the number
+        // is the reader's own measurement of the tool they came here to judge.
+        case .Done:
+            .status.setText(Format.toString(strings.ui_Done, .job.elapsed).toString())
+
+        case .NoOutput:
+            .status.setText(strings.ui_NoOutput)
+
+        case .Stopped:
+            .status.setText(strings.ui_Stopped)
+
+        case .ProbeStopped:
+            .status.setText(strings.ui_ProbeStopped)
         }
     }
 
@@ -284,12 +396,6 @@ impl MainWindow
 
         .surface!.setTitle(strings.ui_WindowTitle)
         .applyLayout()
-    }
-
-    mtd impl onNotifyEvent(evt: *NotifyEvent)
-    {
-        if evt.kind == .LanguageChanged do
-            .retranslate()
     }
 
     // Applies the persisted language, or the language of the account when none was picked.
@@ -316,6 +422,28 @@ impl MainWindow
             sourceUrl: "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagprism",
             copyrightHolder: "Christophe Beaudet"})
         discard dlg.doModal()
+    }
+
+}
+
+impl IWnd for MainWindow
+{
+    // Picks up a finished compilation and reports it.
+    //
+    // The job is polled rather than pushed: the task runs on another thread, and everything the
+    // result touches — the pane, the status line, the button — belongs to this one.
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer == .job.timer and .job.task.isDone() do
+            .finishCompile()
+        .wnd.IWnd.onTimerEvent(evt)
+    }
+
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged do
+            .retranslate()
+        .wnd.IWnd.onNotifyEvent(evt)
     }
 
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)

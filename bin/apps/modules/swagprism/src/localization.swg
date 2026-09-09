@@ -16,7 +16,7 @@ struct AppStrings
     ui_Ready:        string = "Ready"                                                 // Status before anything has been compiled.
     ui_NoOutput:     string = "The compiler printed nothing for this stage."          // Status when a compilation left the pane empty.
     ui_Stopped:      string = "The compiler stopped. Its report is in the pane."      // Status when the compilation failed.
-    ui_Done:         string = "Compiled"                                              // Status after a compilation that printed a stage.
+    ui_Done:         string = "Compiled in % ms"                                      // Status after a compilation that printed a stage, with how long the compiler took.
     ui_ProbeStopped: string = "The compiler could not be started."                    // Status when the compiler process itself never ran.
 
     // What the empty output pane says before anything has been compiled into it.

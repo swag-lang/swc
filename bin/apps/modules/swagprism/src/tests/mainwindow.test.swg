@@ -54,6 +54,64 @@ func testSetupMainWindow(host: *Testing.HeadlessHost, width = cast(f32) MainWind
     Swag.assert(Utf8.indexOf(cast(const [..] u8) inspected.toString(), "#[Swag.PrintMicro") != Swag.U64.Max)
 }
 
+/*
+Asking to compile hands the work off instead of doing it, and asking again while it runs waits.
+
+What is pinned here is the contract that keeps the window alive, not the compilation: whether the
+compiler was there to be found decides the outcome the job reports, and this asserts on neither.
+*/
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    window.compile()
+    Swag.assert(window.job.running)
+    Swag.assert(window.job.timer != null)
+    Swag.assert(!window.job.queued)
+    Swag.assert(!window.runButton.isEnabled())
+
+    // A second request while the first is in flight marks it rather than starting a second
+    // compiler, so a held key on the stage list costs one more compilation and not one per step.
+    window.compile()
+    Swag.assert(window.job.queued)
+
+    window.shutdown()
+    Swag.assert(!window.job.running)
+}
+
+/*
+A finished compilation comes back through the timer and puts the window back in hand.
+
+This is the whole round trip and the one thing no unit of it can prove on its own: the handler that
+picks the result up is an interface override, and an override that is not installed costs nothing
+at compile time and everything at run time — the window simply waits forever with its action still
+disabled. Whether the compiler was there to be found decides which outcome is reported, so this
+asserts on the return and not on the report.
+*/
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    window.compile()
+
+    var watch: Time.Stopwatch
+    watch.start()
+    while window.job.running and watch.elapsedMilliseconds() < 30_000
+    {
+        Threading.Thread.sleep(10'ms)
+        host.fireTimer(window.job.timer)
+    }
+
+    Swag.assert(!window.job.running, "the compile job never came back through its timer")
+    Swag.assert(window.job.timer == null)
+    Swag.assert(window.runButton.isEnabled())
+    Swag.assert(!window.outputIsHint or window.job.stopped)
+}
+
 // The whole surface, in the palette the application ships on.
 #[Swag.TestTag("golden")]
 #test

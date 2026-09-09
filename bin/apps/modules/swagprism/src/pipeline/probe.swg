@@ -125,7 +125,11 @@ impl Probe
         let compiler  = compilerPath()
         let arguments = Format.toString("build --build-cfg % --module \"%\"", ProbeBuildConfig, .root)
 
-        let info = Env.StartInfo{fileName: compiler.toString(), arguments: arguments.toString(), standardOutput: .Pipe, standardError: .Pipe}
+        // Swag Prism draws its own window, and the compiler is a console program, so without this
+        // the system builds a console and its host process for every single compilation — which
+        // flashes a window and costs several times what the compilation itself costs. Nothing is
+        // lost by refusing it: both of the child's streams are read here.
+        let info = Env.StartInfo{fileName: compiler.toString(), arguments: arguments.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false}
 
         var process = try Env.runProcess(info)
 

@@ -537,15 +537,11 @@ impl InlineView
                 }
 
             case Utf8.startsWith(remaining, "<img>"):
-                let altEnd = Utf8.indexOf(text, "</img><src>", index + 5)
-                if altEnd != Swag.U64.Max
+                let image = parseImageTag(remaining)
+                if image.eat
                 {
-                    let sourceEnd = Utf8.indexOf(text, "</src>", altEnd + 11)
-                    if sourceEnd != Swag.U64.Max
-                    {
-                        .appendImage(text[index + 5 until altEnd], text[altEnd + 11 until sourceEnd], state)
-                        eaten = sourceEnd - index + 6
-                    }
+                    .appendImage(image.alt, image.source, state)
+                    eaten = image.eat
                 }
             }
 

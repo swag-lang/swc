@@ -43,7 +43,7 @@ impl VaultCard
         body.spacing            = panel.themeMetrics().dialog_BtnPadding * 2
 
         let form    = FormLayoutCtrl.create(body, VaultForm.options(body))
-        let actions = StackLayoutCtrl.create(body, .Right, {0, 0, 0, 36})
+        let actions = StackLayoutCtrl.create(body, .Right, {0, 0, 0, panel.themeMetrics().btnPush_Height})
         form.layoutSpec.policyX    = .Expand
         actions.layoutSpec.policyX = .Expand
         actions.spacing            = panel.themeMetrics().dialog_BtnPadding

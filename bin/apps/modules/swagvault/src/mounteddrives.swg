@@ -72,7 +72,7 @@ impl MountedDrives
     {
         let card = VaultCard.create(parent, appStrings().ui_MountedCardTitle, appStrings().ui_MountedCardHelp)
 
-        let unmount = PushButton.create(card.actions, appStrings().ui_Unmount, {0, 0, 0, 36})
+        let unmount = PushButton.create(card.actions, appStrings().ui_Unmount)
         unmount.setIcon(card.panel.theme().icon(ThemeIcons.Stop, themeActionIconSize(card.panel.themeMetrics())))
         card.actions.computeLayout()
 

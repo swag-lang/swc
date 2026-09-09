@@ -14,6 +14,7 @@ struct ViewerPanel
 
     late
     {
+        header:       *Wnd
         kindCombo:    *ComboBox
         sourceEditor: *RichEditCtrl
     }
@@ -32,13 +33,16 @@ impl ViewerPanel
     func create(parent: *Wnd, sourceEditor: *RichEditCtrl, level: Swag.BuildCfgBackendOptimLevel)->*ViewerPanel
     {
         let result = Wnd.create'ViewerPanel(parent, "prism.viewerPanel")
-        result.backgroundStyle     = .Panel
-        result.padding             = 8
-        result.sourceEditor        = sourceEditor
-        result.initialLevel        = level
-        result.kindCombo           = ComboBox.create(result, {}, "prism.viewer.kind")
-        result.kindCombo.dockStyle = .Top
-        result.kindCombo.margin    = {0, 0, 0, 8}
+        result.backgroundStyle        = .Panel
+        result.padding                = 8
+        result.sourceEditor           = sourceEditor
+        result.initialLevel           = level
+        result.header                 = Wnd.create'Wnd(result, {0, 0, 0, 36})
+        result.header.dockStyle       = .Top
+        result.header.backgroundStyle = .Transparent
+        result.header.margin          = {0, 0, 0, 8}
+        result.kindCombo              = ComboBox.create(result.header, {}, "prism.viewer.kind")
+        result.kindCombo.dockStyle    = .Center
         result.retranslate()
         result.selectViewer(.Microcode)
         result.kindCombo.sigChanged += func|panel = result|(combo, index)

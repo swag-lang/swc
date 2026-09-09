@@ -20,12 +20,13 @@ struct AppStrings
     ui_LiveStats:          string = "Build % ms | Frame % us"                        // Measured compilation milliseconds and rendering microseconds.
     ui_RenderHint:         string = "shade(x, y, time: f32)->u32"                    // Function contract shown in an empty 2D viewer.
     ui_GuiHint:            string = "buildView(parent: *Gui.Wnd)"                    // Function contract shown in an empty GUI viewer.
+    ui_AutoCompile:        string = "Auto"                                           // Compact source-toolbar switch for automatic compilation.
     ui_LiveEdit:           string = "Recompile after editing"                        // Enables compilation after the last source edit.
     ui_ChooseExample:      string = "Choose an example, then compile."               // Help for an empty execution viewer.
     ui_WindowTitle:        string = "Swag Prism — Code in motion"                    // Title of the application window.
     ui_Stage:              string = "Stage"                                          // Label of the pipeline-stage selector.
     ui_Optimize:           string = "Optimization level"                             // Tooltip of the backend optimization selector.
-    ui_CompileVisible:     string = "Compile views"                                  // Compiles the visible viewers.
+    ui_CompileVisible:     string = "Compile"                                        // Compiles the visible viewers.
     ui_CompileVisibleHint: string = "Compile the source in the visible viewers."     // Describes the shared-source compile action.
     ui_OneViewer:          string = "Show one viewer"                                // Returns to the single-viewer layout.
     ui_TwoViewers:         string = "Show two viewers"                               // Opens the comparison beside the first viewer.

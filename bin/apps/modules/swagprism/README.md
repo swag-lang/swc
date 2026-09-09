@@ -1,7 +1,7 @@
 # Swag Prism
 
 Edit Swag source and explore it through independently configured viewers. Prism opens with one
-animated 2D viewer. The framed icon at the right of the toolbar toggles a second panel; each
+animated 2D viewer. The framed icon at the right of the viewer header toggles a second panel; each
 panel's combo selects its viewer and keeps that viewer's options when switching away and back.
 
 - **2D render:** define `func shade(x, y, time: f32)->u32`. The viewer runs native code for each
@@ -15,7 +15,8 @@ panel's combo selects its viewer and keeps that viewer's options when switching 
 
 The example combo replaces the source with a plasma, Julia fractal, live GUI, or dot product and
 selects the corresponding viewer in the first panel. Compile feeds the same source to both
-visible panels. Automatic compilation waits 700 ms after the last edit and can be disabled.
+visible panels. The source panel toolbar groups Compile, Auto, and the examples. Automatic compilation waits
+700 ms after the last edit and can be disabled.
 
 Execution previews have their own optimization selector and Pause/Resume action. Their status
 shows measured build time in milliseconds and frame computation time in microseconds; this is

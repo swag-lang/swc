@@ -1235,7 +1235,7 @@ impl MainWindow
         // It carries no width for that very reason: the caption changes with the state and
         // with the language, so the layout pass reads it from the button rather than from a
         // number tuned on one wording.
-        .createButton = PushButton.create(card.actions, appStrings().ui_CreateVault, {0, 0, 0, 36}, form: .Strong)
+        .createButton = PushButton.create(card.actions, appStrings().ui_CreateVault, form: .Strong)
         .createButton.setIcon(.theme().icon(ThemeIcons.SaveAs, themeActionIconSize(.themeMetrics())))
         .createButton.sigPressed += func|window = me|(btn)
         {
@@ -1302,7 +1302,7 @@ impl MainWindow
         // The remaining actions are secondary on purpose: mounting is what a reader comes to this
         // card for. Each box asks only for the value it changes; the current password and key files
         // are stated once in this form and consumed from here.
-        .mountButton = PushButton.create(card.actions, appStrings().ui_MountDrive, {0, 0, 0, 36}, form: .Strong)
+        .mountButton = PushButton.create(card.actions, appStrings().ui_MountDrive, form: .Strong)
         .mountButton.setIcon(.theme().icon(ThemeIcons.Play, themeActionIconSize(.themeMetrics())))
         .mountButton.sigPressed += func|window = me|(btn)
         {
@@ -1310,7 +1310,7 @@ impl MainWindow
             window.mountContainer()
         }
 
-        .resizeButton            = PushButton.create(card.actions, appStrings().ui_Resize, {0, 0, 0, 36})
+        .resizeButton            = PushButton.create(card.actions, appStrings().ui_Resize)
         .resizeButton.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -1320,14 +1320,14 @@ impl MainWindow
                 window.resizeVault()
         }
 
-        .passwordButton            = PushButton.create(card.actions, appStrings().ui_ChangePassword, {0, 0, 0, 36})
+        .passwordButton            = PushButton.create(card.actions, appStrings().ui_ChangePassword)
         .passwordButton.sigPressed += func|window = me|(btn)
         {
             discard btn
             window.changeVaultPassword()
         }
 
-        .keyFilesButton            = PushButton.create(card.actions, appStrings().ui_ChangeKeyFiles, {0, 0, 0, 36})
+        .keyFilesButton            = PushButton.create(card.actions, appStrings().ui_ChangeKeyFiles)
         .keyFilesButton.sigPressed += func|window = me|(btn)
         {
             discard btn

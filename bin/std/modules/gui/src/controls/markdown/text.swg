@@ -3,6 +3,21 @@
 
 using Core
 
+// Reads one image from the inline display protocol. Literal '<' characters are escaped by the
+// producer; both the view and resource preparation skip those escapes before calling this.
+func parseImageTag(text: string)->{ alt: string, source: string, eat: u64 }
+{
+    if !Utf8.startsWith(text, "<img>") do
+        return {"", "", 0}
+    let altEnd = Utf8.indexOf(text, "</img><src>", 5)
+    if altEnd == Swag.U64.Max do
+        return {"", "", 0}
+    let sourceEnd = Utf8.indexOf(text, "</src>", altEnd + 11)
+    if sourceEnd == Swag.U64.Max do
+        return {"", "", 0}
+    return {text[5 until altEnd], text[altEnd + 11 until sourceEnd], sourceEnd + 6}
+}
+
 func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
 {
     var result: retval

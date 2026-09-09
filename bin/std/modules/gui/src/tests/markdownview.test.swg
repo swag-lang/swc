@@ -163,6 +163,70 @@ using Swag, Core
         Swag.assert(entry.loaded)
 }
 
+// A streamed figure is decoded before publication. Removing its source after preparation must
+// not change its dimensions or make layout reopen it, for either Markdown or embedded HTML.
+#test
+{
+    for embedded in 2
+    {
+        let imagePath = Testing.tempFilePath("markdown-prepared-", ".svg")
+        defer discard catch File.delete(imagePath)
+        let fileName = Testing.tempFilePath("markdown-prepared-", ".md")
+        defer discard catch File.delete(fileName)
+        discard expect File.writeAllBytes(imagePath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"60\"><rect width=\"120\" height=\"60\"/></svg>")
+        let source = embedded ? Format.toString("<div><img src=\"%\"></div>\n\n", imagePath) : Format.toString("![Figure](<%>)\n\n", imagePath)
+        discard expect File.writeAllBytes(fileName, source.toString())
+        var host: Testing.HeadlessHost
+        host.setup(640, 480)
+        defer host.shutdown()
+        host.app.deterministicStreaming = false
+        let view = Markdown.View.createFile(&host.root, fileName)
+        view.resize(640, 480)
+        view.applyLayout()
+        let pending = view.preparePending()
+        Swag.assert(pending)
+        discard view.prepareImages()
+        view.imageTask.wait()
+        Swag.assert(view.blocks.isEmpty())
+        expect File.delete(imagePath)
+        view.streamStep()
+        Swag.assert(view.blocks.count == 1 and view.blocks[0].wnd.position.height > 0)
+        let cache = embedded ? &view.blocks[0].html!.images : &view.blocks[0].inline!.images
+        Swag.assert(cache.entries.count == 1 and cache.entries[0].loaded)
+        Swag.assert(cache.entries[0].naturalSize == Math.Vector2{120, 60})
+        Swag.assert(!cache.entries[0].uploaded)
+    }
+}
+
+// Replacing a streamed window joins image preparation before clearing its storage. The next
+// window must decode its own resources, even when it references the same source name.
+#test
+{
+    let imagePath = Testing.tempFilePath("markdown-replaced-", ".svg")
+    defer discard catch File.delete(imagePath)
+    let fileName = Testing.tempFilePath("markdown-replaced-", ".md")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(imagePath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"60\"/>")
+    discard expect File.writeAllBytes(fileName, Format.toString("![Figure](<%>)\n\n", imagePath).toString())
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+    host.app.deterministicStreaming = false
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(640, 480)
+    view.applyLayout()
+    let pending = view.preparePending()
+    Swag.assert(pending)
+    discard view.prepareImages()
+    let revealed = view.revealFileOffset(0, "")
+    Swag.assert(revealed and !view.imageTask.isPending())
+    discard expect File.writeAllBytes(imagePath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"240\" height=\"80\"/>")
+    host.app.deterministicStreaming = true
+    host.fireTimer(view.loadTimer)
+    Swag.assert(view.blocks.count == 1)
+    Swag.assert(view.blocks[0].inline!.images.entries[0].naturalSize == Math.Vector2{240, 80})
+}
+
 // Streaming must retain a container whose opening comment and blank lines straddle a read.
 #test
 {
@@ -1319,6 +1383,73 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.assert(view.blocks.count == 8)
     host.fireTimer(view.loadTimer)
     Swag.assert(view.blocks.count == 16)
+}
+
+// Streaming publishes one extent per batch and keeps existing prose and HTML at their laid-out
+// sizes. Only a real width change reflows the document; height changes preserve the reading order.
+#test
+{
+    let fileName = Testing.tempFilePath("markdown-append-layout-", ".md")
+    defer discard catch File.delete(fileName)
+    var source = String.from("A paragraph before the embedded content.\n\n<div><p>Embedded prose stays at its measured height.</p></div>\n\n")
+    for 64 do
+        source += "Another paragraph stays in reading order.\n\n"
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 1000)
+    defer host.shutdown()
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(720, 1000)
+    view.applyLayout()
+    host.fireTimer(view.loadTimer)
+    let first         = view.blocks[0].wnd
+    let html          = view.blocks[1].wnd
+    let firstPosition = first.position
+    let htmlPosition  = html.position
+    var resizes, extents: u64
+    first.hookOnEvent = func|count = &resizes|(wnd, evt)
+    {
+        discard wnd
+        if evt is ResizeEvent do
+            count[] += 1
+        return false
+    }
+
+    html.hookOnEvent = func|count = &resizes|(wnd, evt)
+    {
+        discard wnd
+        if evt is ResizeEvent do
+            count[] += 1
+        return false
+    }
+
+    view.scroll.sigScrollSizeChanged += func|count = &extents|(scroll, before, after)
+    {
+        discard scroll
+        discard before
+        discard after
+        count[] += 1
+    }
+
+    host.app.setMotionPreference(.Full)
+    view.scroll.smoothScrollTo({0, 120})
+    host.advanceAnimations(1.0 / 60.0)
+    let target = view.scroll.scrollTarget()
+    let count  = view.blocks.count
+    host.fireTimer(view.loadTimer)
+    Swag.assert(view.blocks.count > count)
+    Swag.assert(resizes == 0 and extents <= 1)
+    Swag.assert(first.position == firstPosition and html.position == htmlPosition)
+    Swag.assert(view.scroll.scrollTarget() == target)
+
+    view.resize(720, 900)
+    view.applyLayout()
+    Swag.assert(resizes == 0)
+    view.resize(560, 900)
+    view.applyLayout()
+    Swag.assert(resizes > 0 and first.position.width < firstPosition.width)
+    Swag.assert(html.position.width == first.position.width)
 }
 
 // Parsed and queued alerts resolve their title in the live language without reopening the file.

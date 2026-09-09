@@ -1454,10 +1454,13 @@ internal impl HtmlView
 
     // Creates a complete HTML fragment that contributes its natural height to a parent document.
     // Embedded fragments leave keyboard focus with their host during progressive loading.
-    func createEmbedded(contentParent: *Wnd, source: string, basePath: string, documentStyle: HtmlStyle = {})->*HtmlView
+    // A supplied image cache is consumed before layout; it must not own uploaded textures.
+    func createEmbedded(contentParent: *Wnd, source: string, basePath: string, documentStyle: HtmlStyle = {}, preparedImages: *HtmlImageCache? = null)->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
         result.embedded        = true
+        if preparedImages do
+            result.images = #move preparedImages[]
         result.images.basePath = basePath
 
         // Embedded content is a fragment: it is placed inside a document that already has a body,

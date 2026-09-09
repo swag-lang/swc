@@ -125,6 +125,10 @@ struct View
     sourceDone:              bool
     pendingBlocks:           Array'Block
     pendingIndex:            u64
+    imageTask:               Swag.Task
+    pendingImages:           HtmlImageCache
+    pendingImageSources:     Array'String
+    pendingImageIndex:       u64 = Swag.U64.Max
     loadTimer:               *Timer?
     contentHeight:           f32
     jumpToEnd:               bool
@@ -298,7 +302,9 @@ private impl View
 
     mtd placeBlock(block: *VisualBlock, x, width: f32, y: *f32)
     {
-        block.wnd.setPosition({x, y[], width, 0})
+        // Retain the current height while measuring. Collapsing an embedded HTML view first
+        // makes it lay out once at zero height and again at its final size.
+        block.wnd.setPosition({x, y[], width, block.wnd.position.height})
         if block.kind == .Math do
             block.wnd.resize(width, (cast(*MathView) block.wnd).preferredHeight())
         elif block.kind == .Table do
@@ -342,7 +348,6 @@ private impl View
                 .blocks.add(visual)
                 let geometry = .documentGeometry()
                 .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
-                .updateDocumentSize()
                 return
             }
         }
@@ -356,13 +361,13 @@ private impl View
             .blocks.add(visual)
             let geometry = .documentGeometry()
             .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
-            .updateDocumentSize()
             return
         }
         elif block.kind == .Html
         {
             let basePath = .fileName.isEmpty() ? "" : (Path.directoryName(.fileName.toString()) orelse "")
-            let html     = HtmlView.createEmbedded(.body, block.text.toString(), basePath, htmlStyle(.documentStyle))
+            let prepared = .pendingImageIndex == .pendingIndex ? &.pendingImages : null
+            let html     = HtmlView.createEmbedded(.body, block.text.toString(), basePath, htmlStyle(.documentStyle), prepared)
             html.sigLinkActivated += func|markdown = me|(document, target)
             {
                 discard document
@@ -376,12 +381,13 @@ private impl View
             .blocks.add(visual)
             let geometry = .documentGeometry()
             .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
-            .updateDocumentSize()
             return
         }
 
         let displayText = blockDisplayText(block.kind, block.text.toString())
         let inline      = InlineView.create(me, .body, displayText.toString(), block.kind)
+        if .pendingImageIndex == .pendingIndex do
+            inline.images = #move .pendingImages
         visual.wnd    = inline
         visual.inline = inline
         if !.documentThemeColors.isEmpty() do
@@ -390,7 +396,6 @@ private impl View
 
         let geometry = .documentGeometry()
         .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
-        .updateDocumentSize()
     }
 
     mtd needsMore()->bool
@@ -465,6 +470,7 @@ private impl View
 
         .pendingBlocks.clear()
         .pendingIndex = 0
+        .pendingImageIndex = Swag.U64.Max
         var source = takeStreamSource(&.sourceCarry, .sourceDone)
         if source.isEmpty()
         {
@@ -479,6 +485,70 @@ private impl View
         return !.pendingBlocks.isEmpty()
     }
 
+    // Decode only the next block's images on a worker, before that block acquires any geometry.
+    // Publishing the final dimensions together avoids placeholders shifting the reading position.
+    mtd prepareImages()->bool
+    {
+        if .pendingImageIndex == .pendingIndex do
+            return !.imageTask.isPending()
+
+        .pendingImages.clear()
+        .pendingImages.basePath = .fileName.isEmpty() ? "" : (Path.directoryName(.fileName.toString()) orelse "")
+        .pendingImageSources.clear()
+        .pendingImageIndex = .pendingIndex
+        let block = &.pendingBlocks[.pendingIndex]
+        if block.kind == .Html
+        {
+            var document = HtmlDocument.create()
+            var parser: HtmlParser
+            parser.start(&document, .Fragment)
+            parser.feed(block.text.toString())
+            parser.finish()
+            for node, index in document.nodes where node.tag == .Img do
+                .pendingImageSources.add(String.from(document.attribute(cast(u32) index, "src")))
+        }
+        elif block.kind != .Table and block.kind != .Math
+        {
+            let display = blockDisplayText(block.kind, block.text.toString())
+            let text    = display.toString()
+            var index: u64
+            while index < text.count
+            {
+                let remaining = text[index to]
+                if Utf8.startsWith(remaining, "<<")
+                {
+                    index += 2
+                    continue
+                }
+
+                let image = parseImageTag(remaining)
+                if image.eat
+                {
+                    var source = String.from(image.source)
+                    source.replace("<<", "<")
+                    .pendingImageSources.add(#move source)
+                    index += image.eat
+                }
+                else do
+                    index += 1
+            }
+        }
+
+        if .pendingImageSources.isEmpty() do
+            return true
+
+        // The worker owns only the unpublished cache. Window creation, layout, texture upload,
+        // and all renderer calls stay on the UI thread; stopLoading joins before retiring it.
+        .imageTask.submit(func|view = me|()
+        {
+            for source in view.pendingImageSources do
+                discard view.pendingImages.fetch(source.toString())
+        })
+        if .app().deterministicStreaming do
+            .imageTask.wait()
+        return !.imageTask.isPending()
+    }
+
     mtd streamStep()
     {
         var stopwatch: Time.Stopwatch
@@ -487,6 +557,8 @@ private impl View
         while .needsMore() and blockCount < StreamBlockBudget
         {
             if !.preparePending() do
+                break
+            if !.prepareImages() do
                 break
             .appendBlock(#move .pendingBlocks[.pendingIndex])
             .pendingIndex += 1
@@ -502,6 +574,10 @@ private impl View
             empty.text = strings().markdown_EmptyDocument
             .appendBlock(#move empty)
         }
+
+        // Publish one complete batch. Updating the scroll extent for every block repeats resize
+        // notifications and exposes intermediate height estimates to an active wheel glide.
+        .updateDocumentSize()
 
         // A byte-estimated target may finish once enough layout surrounds it. A search target may
         // not: its exact rendered occurrence is the completion signal. Stopping on the estimate
@@ -540,6 +616,10 @@ private impl View
 
     mtd stopLoading()
     {
+        .imageTask.wait()
+        .pendingImages.clear()
+        .pendingImageSources.clear()
+        .pendingImageIndex = Swag.U64.Max
         if .loadTimer
         {
             .removeTimer(.loadTimer!)
@@ -803,9 +883,14 @@ impl View
                 return true
             }
 
-            if evt is ResizeEvent
+            if let resize = evt as ResizeEvent
             {
+                // ScrollWnd also sends this event when its virtual content size changes.
+                // Appending source must not remeasure every resident block, including HTML.
+                if resize.oldSize.x != view.scroll.position.width do
                 view.layoutDocument()
+                else do
+                    view.updateDocumentSize()
                 view.scheduleMore()
             }
 
@@ -834,6 +919,7 @@ impl View
             result.appendBlock(#move empty)
         }
 
+        result.updateDocumentSize()
         return result
     }
 

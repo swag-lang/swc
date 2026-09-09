@@ -3,7 +3,7 @@
 ui_WindowTitle Swag Prism — Le code en action
 ui_Stage          Étape
 ui_Optimize       Niveau d'optimisation
-ui_CompileVisible Compiler les vues
+ui_CompileVisible Compiler
 ui_CompileVisibleHint Compiler la source dans les vues affichées.
 ui_OneViewer Afficher une vue
 ui_TwoViewers Afficher deux vues
@@ -60,3 +60,5 @@ ui_GuiHint buildView(parent: *Gui.Wnd)
 ui_LiveEdit Recompiler après modification
 
 ui_ChooseExample Choisissez un exemple à compiler.
+
+ui_AutoCompile Auto

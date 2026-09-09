@@ -22,6 +22,9 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
     defer host.shutdown()
+    Swag.assert(window.commandBar.parent == window.sourcePanel)
+    Swag.assert(window.runButton.icon.isValid())
+    Swag.assert(window.layoutButton.parent == window.panels[0].header)
     Swag.assert(!window.comparisonEnabled)
     Swag.assert(window.viewerSplit.isPaneVisible(0) and !window.viewerSplit.isPaneVisible(1))
     let left  = microcode(window, 0)
@@ -220,6 +223,7 @@ func assertSurface(comparison: bool)
                 Testing.assertContentFits(window)
                 Swag.assert(window.viewerSplit.isPaneVisible(1) == comparison)
                 Swag.assert(window.layoutButton.isChecked == comparison)
+                Swag.assert(window.layoutButton.parent == window.panels[comparison ? 1 : 0].header)
                 if comparison do
                     Swag.assert(window.panels[0].position.right() <= window.panels[1].position.x)
             }

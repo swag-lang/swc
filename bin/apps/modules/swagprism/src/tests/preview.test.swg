@@ -110,7 +110,7 @@ func awaitFrame(viewer: *PreviewViewer, after: u32 = 0)
                 window.setComparisonEnabled(comparison)
                 window.applyLayout()
                 Testing.assertContentFits(window)
-                Swag.assert(window.liveEdit.position.right() <= window.layoutButton.position.x)
+                Swag.assert(window.liveEdit.position.right() <= window.commandBar.paddedClientRect().right())
                 Swag.assert(viewer.optimCombo.position.right() <= viewer.pauseButton.position.x)
             }
         }

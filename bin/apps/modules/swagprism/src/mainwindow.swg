@@ -17,7 +17,7 @@ struct MainWindow
         sourcePanel:      *Wnd
         editor:           *RichEditCtrl
         status:           *Label
-        commandBar:       *Wnd
+        commandBar:       *SourceActions
         statusBar:        *Wnd
         sourceSplit:      *SplitterCtrl
         viewerSplit:      *SplitterCtrl
@@ -71,7 +71,6 @@ impl MainWindow
         }
 
         Separator.create(result, .Top, .Accent)
-        result.createCommandBar()
         result.createStatusLine()
         result.createPanes()
         result.applyLanguage()
@@ -82,30 +81,21 @@ impl MainWindow
 
     mtd createCommandBar()
     {
-        .commandBar                 = Wnd.create'Wnd(&.wnd, {0, 0, 0, 56})
+        .commandBar                 = Wnd.create'SourceActions(.sourcePanel)
         .commandBar.dockStyle       = .Top
         .commandBar.backgroundStyle = .CommandBar
-        .commandBar.padding         = {Gutter, 10, Gutter, 10}
-        .runButton                  = PushButton.create(.commandBar, appStrings().ui_CompileVisible, {0, 0, 180, 36}, "prism.run", .Strong)
-        .runButton.dockStyle        = .Left
-        .runButton.sigPressed       += func|window = me|(button)
+        .commandBar.padding         = 8
+        .commandBar.margin          = {0, 0, 0, 8}
+        .runButton                  = PushButton.create(.commandBar, appStrings().ui_CompileVisible, {0, 0, 0, 36}, "prism.run", .Strong)
+        .runButton.setIcon(.theme().icon(.Play, 18))
+        .runButton.setIconSize(18, 18)
+        .runButton.sigPressed += func|window = me|(button)
         {
             discard button
             window.compile()
         }
 
-        .exampleCombo            = ComboBox.create(.commandBar, {0, 0, 200, 36}, "prism.examples")
-        .exampleCombo.dockStyle  = .Left
-        .exampleCombo.margin     = {16, 0, 0, 0}
-        .exampleCombo.sigChanged += func|window = me|(combo, index)
-        {
-            discard combo
-            window.openExample(cast(ExampleKind) index)
-        }
-
-        .liveEdit           = CheckButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.liveEdit")
-        .liveEdit.dockStyle = .Left
-        .liveEdit.margin    = {16, 0, 0, 0}
+        .liveEdit = CheckButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.liveEdit")
         .liveEdit.setState(.Checked)
         .liveEdit.sigChanged += func|window = me|(button)
         {
@@ -113,7 +103,18 @@ impl MainWindow
             window.scheduleCompile()
         }
 
-        .layoutButton = IconButton.create(.commandBar, .icons.icon(0, 18, .theme().res.atlasScale), {0, 0, 36, 36}, "prism.layout", flags: .Toggle)
+        .exampleCombo = ComboBox.create(.commandBar, {0, 0, 200, 36}, "prism.examples")
+        .exampleCombo.sigChanged += func|window = me|(combo, index)
+        {
+            discard combo
+            window.openExample(cast(ExampleKind) index)
+        }
+    }
+
+    mtd createLayoutButton()
+    {
+        .layoutButton        = IconButton.create(.panels[0].header, .icons.icon(0, 18, .theme().res.atlasScale), {0, 0, 36, 36}, "prism.layout", flags: .Toggle)
+        .layoutButton.margin = {8, 0, 0, 0}
         .layoutButton.setIconSize(18, 18)
         .layoutButton.setCheckIndicator(.Frame)
         .layoutButton.dockStyle         = .Right
@@ -142,8 +143,9 @@ impl MainWindow
         .sourcePanel                 = Wnd.create'Wnd(.sourceSplit)
         .sourcePanel.backgroundStyle = .Panel
         .sourcePanel.padding         = 8
-        .editor                      = RichEditCtrl.create(.sourcePanel)
-        .editor.dockStyle            = .Center
+        .createCommandBar()
+        .editor = RichEditCtrl.create(.sourcePanel)
+        .editor.dockStyle = .Center
         .editor.setLexer(&.lexer)
         .editor.setText(exampleSource(.Plasma))
 
@@ -170,6 +172,7 @@ impl MainWindow
         viewersPane.minimumSize = ViewerPanel.MinWidth
         .viewerSplit.setPaneVisible(1, false)
         .panels[0].selectViewer(.Render2D)
+        .createLayoutButton()
         .refreshPaneLayout()
         .editor.sigChanged += func|window = me|(editor)
         {
@@ -191,6 +194,7 @@ impl MainWindow
         if .comparisonEnabled == enabled do
             return
         .comparisonEnabled = enabled
+        .layoutButton.setParent(.panels[enabled ? 1 : 0].header)
         .viewerSplit.setPaneVisible(1, enabled)
         .refreshPaneLayout()
         if enabled do
@@ -257,8 +261,10 @@ impl MainWindow
             .exampleCombo.addItem(label)
         .exampleCombo.setSelectedIndex(cast(u32) .selectedExample, notify: false)
         .exampleCombo.toolTip = appStrings().ui_Examples
-        .liveEdit.setText(appStrings().ui_LiveEdit)
+        .liveEdit.setText(appStrings().ui_AutoCompile)
+        .liveEdit.toolTip = appStrings().ui_LiveEdit
         .runButton.setText(appStrings().ui_CompileVisible)
+        .runButton.fitWidthToLabel()
         .runButton.toolTip = appStrings().ui_CompileVisibleHint
         .layoutButton.setChecked(.comparisonEnabled)
         .layoutButton.toolTip = .comparisonEnabled ? appStrings().ui_OneViewer : appStrings().ui_TwoViewers
@@ -310,6 +316,8 @@ impl IWnd for MainWindow
         elif evt.kind == .ThemeChanged
         {
             .layoutButton.setIcon(.icons.icon(0, 18, .theme().res.atlasScale))
+            .runButton.setIcon(.theme().icon(.Play, 18))
+            .runButton.fitWidthToLabel()
             .refreshPaneLayout()
         }
 

@@ -39,31 +39,39 @@ language.parallelism.001. The concurrency entries own Core integration, algorith
 migration against that native surface; they do not introduce Core-owned task or synchronization
 types.
 
-### std.core.032 — The libdeflate-style inflate rewrite underflows its bit count at the end of a stream
+### std.core.032 — The recovered inflate rewrite decodes a real document wrongly
 
 - Recorded: 2026-09-08 22:17
-- Found while: recovering the abandoned `png-perf` branch. The rewrite is preserved in this
-  repository at `bc810f058`, reachable from the merge history of `claude/recover-20260908`; the
-  tip carries master's inflate, because the rewrite panics.
-- Evidence: `Swag Scope`'s `viewer.indesign.test.swg:203` decodes an InDesign document and stops
-  with `integer overflow` at `inflate.swg:670`, on `nb -= tot` in the careful path's distance
-  decode. Restoring `inflate.swg` and `bitstream.swg` alone turns the whole golden campaign green
-  and leaves the branch's other work in place, so the defect is in the rewrite and nowhere else.
-- Evidence: the rewrite hoists the bit buffer and its fill level into locals so they stay in
-  registers, and refills once at the top of the outer loop. That refill guarantees fifty-six bits
-  only while `cur < fastLimit`, the eight-byte slack the unaligned load needs. Past that bound it
-  calls `BitStream.refill(56)`, whose byte-wise path stops at the end of the stream and returns
-  whatever it has with `eof` raised. The careful path then decodes a length symbol and a distance
-  symbol with no refill between them and subtracts both widths from an unsigned count that may
-  hold fewer bits than they need.
-- Next: reduce the failing stream to a standalone `#test` in `core`, then decide between refilling
-  before the distance decode in the careful path and giving the tail an explicit zero-padded
-  window with an overrun check after the block, which is what a decoder that reads past its input
-  normally does. Re-measure the PNG decode the rewrite was written for before keeping it: the
-  claim was a libdeflate-shaped fast loop, and it must be worth its own tail handling.
-- Complete when: the InDesign document and the PNG suite both decode, a `core` test covers a
-  stream whose last match ends within fewer than forty-eight bits of the input, and the decode
-  measurement justifies the rewrite against the inflate in master.
+- Updated: 2026-09-09 06:50 — the crash is understood and fixed, and the rewrite still decodes the
+  same document to a different image
+- Evidence: the block decoder refills once per outer iteration, and the fast loop then drains the
+  bit buffer to wherever its last symbol ended. The careful path that takes over decodes a length
+  code and then a distance code with nothing between them to reload, so it subtracts a width the
+  buffer no longer holds. Swag Scope's InDesign document stopped there with `integer overflow`:
+  thirty bits when the group started, fourteen left when the distance needed fifteen, with the
+  input cursor at 31 083 of 46 021 and the destination a megabyte from its bound, so neither end
+  was near and the fast loop had bailed mid-stream on a code longer than its table covers.
+- Evidence: `643900899` gives that group a refill of its own and fails a truncated tail instead of
+  wrapping around. The crash goes away and the same document then decodes to an image the golden
+  rejects, so the rewrite is wrong beyond the missing refill. That is why `bin/std` keeps master's
+  inflate: a decoder that crashes is a defect, and a decoder that quietly returns different bytes
+  is worse.
+- Evidence: the crash has no synthetic reduction. The fast loop hands a match to the careful path
+  only when a literal or length code exceeds the twelve bits of its table, and the repository's
+  own deflate did not emit one for any of four shapes: a drifting four-kilobyte block, text from a
+  heavily skewed vocabulary, forty byte values occurring twice each, and a thirty-kilobyte block
+  repeated at the far end of the window with one rare short match per copy. All four entered the
+  careful path with a nearly full buffer, and the widest distance group seen there was fourteen
+  bits against forty-six available. The measurements came from a temporary probe on the careful
+  path's distance decode; `bin/apps/modules/swagscope/src/tests/viewer.indesign.test.swg` is what
+  exercises the real shape.
+- Next: find the wrong bytes before anything else. Decode the document's streams with both
+  decoders and compare the output, rather than comparing rendered images, so the divergence is a
+  byte offset instead of a pixel. Only then decide whether the rewrite is repairable, and settle
+  its grain against master's inflate, because the whole point of it was speed and none of that was
+  ever measured here.
+- Complete when: the rewrite decodes every stream byte-for-byte as master's inflate does, a `core`
+  test fails without the careful path's refill, and a measurement says what the rewrite buys.
 - Related: std.pixel.image.md
 
 ### std.core.031 — Two atomic families, one of them Core's

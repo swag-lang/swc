@@ -1,8 +1,6 @@
 // @LICENCE: Zlib
 // @ORIGIN: Odin, https://github.com/odin-lang/Odin/tree/master/core/compress/zlib
-// @MODIFIED: Ported and modified for Swag. The block decoder was rebuilt around a
-// libdeflate-style fast loop: packed fast-table entries, literal bursts, and
-// pattern-replicated match copies.
+// @MODIFIED: Ported and modified for Swag.
 // @NOTICE: /bin/THIRDPARTY.md#odin
 
 #global namespace Compress
@@ -11,32 +9,10 @@ using Core.Errors
 
 internal
 {
-    const FastBits        = 12
+    const FastBits        = 9
     const FastMask        = (1 << FastBits) - 1
     const HuffmanMaxBits  = 16
-    const HuffmanFastBits = FastBits
-
-    // Packed fast-table entry, one per 'FastBits'-bit window of the bit stream:
-    //
-    //   bit  31       literal, or plain symbol for a code-length table
-    //   bit  30       end-of-block
-    //   bits 16..31   literal byte, plain symbol, or length/distance base
-    //   bits 8..12    number of extra bits following the code
-    //   bits 0..4     number of bits of the code itself
-    //
-    // A zero entry means the code is longer than 'FastBits' (or invalid) and goes
-    // through the canonical first/max-code walk. Distance entries carry a base up
-    // to 24577 in the high half and never test the flag bits.
-    const EntryLiteral = 0x8000_0000'u32
-    const EntryEob     = 0x4000_0000'u32
-
-    // What a table's symbols mean, which decides how its fast entries are packed.
-    enum TableKind
-    {
-        Plain         // Symbols are returned as-is (code-length header table).
-        Lengths       // Literal bytes, end-of-block, and match-length symbols.
-        Distances     // Match-distance symbols.
-    }
+    const HuffmanFastBits = 9
 
     const LengthBase: [31] u16 = [
         3, 4, 5, 6, 7, 8, 9, 10,
@@ -80,20 +56,6 @@ internal
     const FixedDist: [32] u8 = [
         5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
 
-    // Byte-index patterns replicating a short match period across one vector, and how
-    // far one 16-byte store may advance while staying on the period.
-    const PatternIndex: [8] Math.Simd.U8x16 = [
-        cast(Math.Simd.U8x16) [0'u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        cast(Math.Simd.U8x16) [0'u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        cast(Math.Simd.U8x16) [0'u8, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-        cast(Math.Simd.U8x16) [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0],
-        cast(Math.Simd.U8x16) [0'u8, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3],
-        cast(Math.Simd.U8x16) [0'u8, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0],
-        cast(Math.Simd.U8x16) [0'u8, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3],
-        cast(Math.Simd.U8x16) [0'u8, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5, 6, 0, 1]]
-
-    const PatternAdvance: [8] u64 = [16, 16, 16, 15, 16, 15, 12, 14]
-
     #[Swag.Inline]
     func reverse16(n: u16, bits: u8)->u16
     {
@@ -104,7 +66,7 @@ internal
 
     struct HuffmanTable
     {
-        fastEx:      [1 << FastBits] u32     // Packed fast entries (see above).
+        fast:        [1 << FastBits] u16     // Fast associated with this value.
         firstCode:   [16] u16                // First code associated with this value.
         maxCode:     [17] s64                // Max code associated with this value.
         firstSymbol: [16] u16                // First symbol associated with this value.
@@ -114,7 +76,7 @@ internal
 
     impl HuffmanTable
     {
-        mtd init(codeLengths: const [..] u8, kind: TableKind) fail
+        mtd init(codeLengths: const [..] u8) fail
         {
             var sizes:    [HuffmanMaxBits + 1] u16
             var nextCode: [HuffmanMaxBits] u16
@@ -151,65 +113,23 @@ internal
                 if !v do
                     continue
 
-                let c = nextCode[v] - .firstCode[v] + .firstSymbol[v]
+                let c     = nextCode[v] - .firstCode[v] + .firstSymbol[v]
+                let fastv = (cast(u16) v << 9) | cast(u16) ci
                 .size[c]  = v
                 .value[c] = cast(u16) ci
                 if v <= FastBits
                 {
-                    // Pack everything a fast decode needs in one entry, so the hot
-                    // loop never touches the scalar base/extra tables.
-                    var entry = 0'u32
-                    switch kind
+                    var j = reverse16(nextCode[v], v)
+                    while j < (1 << FastBits)
                     {
-                    case .Plain:
-                        entry = EntryLiteral | (cast(u32) ci << 16) | v
-
-                    case .Lengths:
-                        if ci < 256 do
-                            entry = EntryLiteral | (cast(u32) ci << 16) | v
-                        elif ci == 256 do
-                            entry = EntryEob | v
-                        elif ci - 257 < 29 do
-                            entry = (cast(u32) LengthBase[ci - 257] << 16) | (cast(u32) LengthExtra[ci - 257] << 8) | v
-
-                    case .Distances:
-                        if ci < 30 do
-                            entry = (cast(u32) DistBase[ci] << 16) | (cast(u32) DistExtra[ci] << 8) | v
-                    }
-
-                    if entry
-                    {
-                        var j = reverse16(nextCode[v], v)
-                        while j < (1 << FastBits)
-                        {
-                            .fastEx[j] = entry
-                            j          += (1'u16 << v)
-                        }
+                        .fast[j] = fastv
+                        j        += (1'u16 << v)
                     }
                 }
 
                 nextCode[v] += 1
             }
         }
-    }
-
-    // Decodes one symbol longer than 'FastBits' with the canonical first/max-code walk.
-    func decodeSlow(ht: *HuffmanTable, cb: *u64, nb: *u32)->u16 fail
-    {
-        let k = reverse16(cast(u16) (cb[] & 0xFFFF), 16)
-        var s = HuffmanFastBits + 1
-        while k >= ht.maxCode[s] do
-            s += 1
-        if s >= 16 do
-            fail InvalidFormatError{"bad huffman code"}
-        let b1 = (k >> (16 - s)) - ht.firstCode[s] + ht.firstSymbol[s]
-        if b1 >= ht.size.count do
-            fail InvalidFormatError{"bad huffman code"}
-        if ht.size[b1] != s do
-            fail InvalidFormatError{"bad huffman code"}
-        cb[] >>= s
-        nb[] -= #wrap cast(u32) s
-        return ht.value[b1]
     }
 }
 
@@ -248,31 +168,41 @@ impl Inflate
                 fail InvalidFormatError{"malformed"}
         }
 
-        let b = ht.fastEx[.stream.codeBuffer & FastMask]
-        if b & EntryLiteral
+        let b = ht.fast[.stream.codeBuffer & FastMask]
+        if b
         {
-            .stream.consumeBits(cast(u8) (b & 31))
-            return cast(u16) ((b >> 16) & 0x1FF)
+            let s = cast(u8) (b >> FastBits)
+            .stream.consumeBits(s)
+            return b & 511
         }
 
-        var cb = .stream.codeBuffer
-        var nb = cast(u32) .stream.numBits
-        let v  = decodeSlow(ht, &cb, &nb)
-        .stream.codeBuffer = cb
-        .stream.numBits    = cast(u8) nb
-        return v
+        let cde = cast(u16) .stream.peekBits(16)
+        let k   = reverse16(cde, 16)
+
+        var s = HuffmanFastBits + 1
+        while k >= ht.maxCode[s] do
+            s += 1
+
+        if s >= 16 do
+            fail InvalidFormatError{"bad huffman code"}
+        let b1 = (k >> (16 - s)) - ht.firstCode[s] + ht.firstSymbol[s]
+        if b1 >= ht.size.count do
+            fail InvalidFormatError{"bad huffman code"}
+        if ht.size[b1] != s do
+            fail InvalidFormatError{"bad huffman code"}
+
+        .stream.consumeBits(cast(u8) s)
+        return ht.value[b1]
     }
 
     // Decodes one deflate block into 'dest'.
     //
     // A stream that does not compress spends this loop once per output byte — a
     // screen grab of a photograph runs it fifteen million times for seventeen
-    // megabytes — so both cursors live in locals for the whole block, and the bulk
-    // of the stream runs in a fast loop that checks its bounds once per symbol
-    // group: the destination keeps enough slack for a literal burst, a whole match,
-    // and a vector overshoot, and every store goes through a raw pointer. The
-    // careful loop below it handles the stream tail, growth, rare long codes, and
-    // end-of-block, and 'me'/'dest' are resynced whenever anything else must see them.
+    // megabytes — so both cursors live in locals for the whole block. Reaching
+    // through 'me' for the bit cursor and through 'dest' for the output cursor on
+    // every symbol is what the loop cannot afford; 'me' and 'dest' are resynced
+    // whenever anything else has to see them.
     mtd parseBlock(repeatHt, repeatZ: *HuffmanTable, dest: *Array'u8) fail
     {
         let startBufCount = dest.count
@@ -292,9 +222,6 @@ impl Inflate
         var buf   = dest.buffer
         var cap   = dest.capacity
 
-        // Two literals, one whole match, and one vector store of overshoot.
-        const FastSlack = 384'u64
-
         // The refill below assumes at most 63 buffered bits: with 64 its byte advance
         // would underflow. Hand the top byte back to the source to get there.
         if nb >= 64
@@ -312,7 +239,7 @@ impl Inflate
             // masks what it peeks, and 'nb' never drops below 48 inside one iteration.
             if cur < fastLimit
             {
-                cb  |= (src! + cur)[as u64] << #wrap (nb & 63)
+                cb  |= (src! + cur)[as u64] << #wrap nb
                 cur += cast(u64) ((63 - nb) >> 3)
                 nb  |= 56
             }
@@ -333,281 +260,31 @@ impl Inflate
                 cur = .stream.curByte
             }
 
-            // Fast loop: runs while one whole symbol group fits both cursors' slack.
-            //
-            // The body is deliberately free of calls and of 'fail': the block's hottest
-            // values — the bit buffer, its fill level, and both cursors — must live in
-            // registers, and any call on a path inside the loop makes the allocator
-            // spill them around the whole loop. Rare cases set 'stop' and break; the
-            // code after the loop turns that into a return, a failure, or one careful
-            // iteration below.
-            if cur < fastLimit and cap - count > FastSlack
-            {
-                let obuf    = buf!
-                var fastEnd = cap - FastSlack
-                let left    = .outputLimit - (count - .outputStart)
-                if left < fastEnd - count do
-                    fastEnd = count + left
-
-                // 0 = bounds exhausted, 1 = end of block, 2 = bad huffman code,
-                // 3 = bad distance, 4 = redo this symbol in the careful loop.
-                var stop = 0
-
-                while count < fastEnd and cur < fastLimit
-                {
-                    cb  |= (src! + cur)[as u64] << #wrap (nb & 63)
-                    cur += cast(u64) ((63 - nb) >> 3)
-                    nb  |= 56
-
-                    var entry = repeatHt.fastEx[cb & FastMask]
-
-                    // Literal burst: a compressed photograph is mostly literals, so
-                    // take up to four straight ones before paying the loop bounds
-                    // again. Four twelve-bit codes fit the fifty-six refilled bits.
-                    if entry & EntryLiteral
-                    {
-                        var n = entry & 31
-                        cb          >>= n
-                        nb          -= n
-                        obuf[count] = cast(u8) ((entry >> 16) & 0xFF)
-                        count       += 1
-
-                        entry = repeatHt.fastEx[cb & FastMask]
-                        if entry & EntryLiteral
-                        {
-                            n           = entry & 31
-                            cb          >>= n
-                            nb          -= n
-                            obuf[count] = cast(u8) ((entry >> 16) & 0xFF)
-                            count       += 1
-
-                            entry = repeatHt.fastEx[cb & FastMask]
-                            if entry & EntryLiteral
-                            {
-                                n           = entry & 31
-                                cb          >>= n
-                                nb          -= n
-                                obuf[count] = cast(u8) ((entry >> 16) & 0xFF)
-                                count       += 1
-
-                                entry = repeatHt.fastEx[cb & FastMask]
-                                if entry & EntryLiteral
-                                {
-                                    n           = entry & 31
-                                    cb          >>= n
-                                    nb          -= n
-                                    obuf[count] = cast(u8) ((entry >> 16) & 0xFF)
-                                    count       += 1
-                                    continue
-                                }
-                            }
-                        }
-                    }
-
-                    var length: u64
-                    if entry & EntryEob
-                    {
-                        let n = entry & 31
-                        cb   >>= n
-                        nb   -= n
-                        stop = 1
-                        break
-                    }
-                    elif entry == 0
-                    {
-                        // Rare: a code longer than 'FastBits'. Nothing of this symbol
-                        // is consumed yet, so the careful loop can decode it whole.
-                        stop = 4
-                        break
-                    }
-                    else
-                    {
-                        let lbits  = entry & 31
-                        let lextra = (entry >> 8) & 31
-                        length = cast(u64) (entry >> 16) + ((cb >> lbits) & ((1'u64 << lextra) - 1))
-                        let tot = lbits + lextra
-                        cb >>= tot
-                        nb -= tot
-                    }
-
-                    // The group may have consumed up to fifty-three bits; a far
-                    // distance needs up to twenty-eight more, so top the buffer back
-                    // up before reading it. Near the source's end this falls back to
-                    // whole bytes: the OR is sound because every bit at or above 'nb'
-                    // is either zero or already the correct next source bit.
-                    if cur < fastLimit
-                    {
-                        cb  |= (src! + cur)[as u64] << #wrap (nb & 63)
-                        cur += cast(u64) ((63 - nb) >> 3)
-                        nb  |= 56
-                    }
-                    else
-                    {
-                        let srcp = src!
-                        while nb <= 56 and cur < srcN
-                        {
-                            cb  |= cast(u64) srcp[cur] << #wrap (nb & 63)
-                            cur += 1
-                            nb  += 8
-                        }
-                    }
-
-                    var distance: u64
-                    let dentry = repeatZ.fastEx[cb & FastMask]
-                    if dentry
-                    {
-                        let dbits  = dentry & 31
-                        let dextra = (dentry >> 8) & 31
-                        distance = cast(u64) (dentry >> 16) + ((cb >> dbits) & ((1'u64 << dextra) - 1))
-                        let tot = dbits + dextra
-                        cb >>= tot
-                        nb -= tot
-                    }
-                    else
-                    {
-                        // Rare: a distance code longer than 'FastBits', walked inline
-                        // so the loop stays call-free.
-                        let k = reverse16(cast(u16) (cb & 0xFFFF), 16)
-                        var s = HuffmanFastBits + 1
-                        while k >= repeatZ.maxCode[s] do
-                            s += 1
-                        if s >= 16
-                        {
-                            stop = 2
-                            break
-                        }
-
-                        let b1 = (k >> (16 - s)) - repeatZ.firstCode[s] + repeatZ.firstSymbol[s]
-                        if b1 >= repeatZ.size.count or repeatZ.size[b1] != s
-                        {
-                            stop = 2
-                            break
-                        }
-
-                        cb >>= cast(u32) s
-                        nb -= #wrap cast(u32) s
-
-                        let dvalue = repeatZ.value[b1]
-                        distance = cast(u64) DistBase[dvalue]
-                        let dextra = cast(u32) DistExtra[dvalue]
-                        if dextra
-                        {
-                            distance += cb & ((1'u64 << dextra) - 1)
-                            cb       >>= dextra
-                            nb       -= dextra
-                        }
-                    }
-
-                    if count < distance
-                    {
-                        stop = 3
-                        break
-                    }
-
-                    if !length do
-                        continue
-
-                    let end  = count + length
-                    var from = count - distance
-                    if distance >= #sizeof(Math.Simd.U8x16)
-                    {
-                        // A distance of at least one vector makes each unaligned load
-                        // independent of the store paired with it.
-                        var dst = count
-                        while dst < end
-                        {
-                            Math.Simd.store(obuf + dst, Math.Simd.load(obuf + from))
-                            dst  += #sizeof(Math.Simd.U8x16)
-                            from += #sizeof(Math.Simd.U8x16)
-                        }
-                    }
-                    elif distance >= 8
-                    {
-                        // Non-overlapping in eight-byte steps.
-                        var dst = count
-                        while dst < end
-                        {
-                            (obuf + dst)[as u64] = (obuf + from)[as u64]
-                            dst                  += 8
-                            from                 += 8
-                        }
-                    }
-                    else
-                    {
-                        // Replicate the short period across one vector once, then let
-                        // every store advance by the largest whole number of periods.
-                        let bytes = cast #bit(Math.Simd.U8x16) Math.Simd.splat((obuf + from)[as u64])
-                        let pat   = Math.Simd.shuffle(bytes, PatternIndex[distance])
-                        let adv   = PatternAdvance[distance]
-                        var dst   = count
-                        while dst < end
-                        {
-                            Math.Simd.store(obuf + dst, pat)
-                            dst += adv
-                        }
-                    }
-
-                    count = end
-                }
-
-                if stop == 1
-                {
-                    if nb != 64 do
-                        cb &= (1'u64 << nb) - 1
-                    .stream.codeBuffer = cb
-                    .stream.numBits    = cast(u8) nb
-                    .stream.curByte    = cur
-                    dest.count         = count
-
-                    let newSlice = Swag.makeSlice(dest.buffer + startBufCount, count - startBufCount)
-                    .adler.update(newSlice)
-                    return
-                }
-
-                if stop == 2 do
-                    fail InvalidFormatError{"bad huffman code"}
-                if stop == 3 do
-                    fail InvalidFormatError{"bad distance"}
-
-                // Bounds exhausted or a rare code: decode one symbol carefully below.
-            }
-
-            // Careful loop: near either cursor's end, or growing the destination.
-            //
-            // The refill at the top of this iteration ran before the fast loop, which then drained
-            // the buffer to wherever its last symbol ended. One careful symbol group needs up to
-            // forty-eight bits -- fifteen for a length code and five of extra, then fifteen for a
-            // distance code and thirteen of extra -- and it decodes the distance straight after the
-            // length, with nothing in between to reload. So the group refills for itself.
             var value: u32
-            var entry = repeatHt.fastEx[cb & FastMask]
-            if entry & EntryLiteral
+            let b = repeatHt.fast[cb & FastMask]
+            if b
             {
-                let n = entry & 31
-                cb    >>= n
-                nb    -= n
-                value = (entry >> 16) & 0x1FF
-            }
-            elif entry & EntryEob
-            {
-                let n = entry & 31
-                cb    >>= n
-                nb    -= n
-                value = 256
-            }
-            elif entry == 0
-            {
-                // Copies keep the loop-carried locals free of taken addresses, which
-                // is what lets them live in registers through the fast loop.
-                var tcb = cb
-                var tnb = nb
-                value = decodeSlow(repeatHt, &tcb, &tnb)
-                cb    = tcb
-                nb    = tnb
+                let s = cast(u32) (b >> FastBits)
+                cb    >>= s
+                nb    -= s
+                value = b & 511
             }
             else
             {
-                value = 286     // Fast length entry: recovered below from the entry itself.
+                let k = reverse16(cast(u16) (cb & 0xFFFF), 16)
+                var s = HuffmanFastBits + 1
+                while k >= repeatHt.maxCode[s] do
+                    s += 1
+                if s >= 16 do
+                    fail InvalidFormatError{"bad huffman code"}
+                let b1 = (k >> (16 - s)) - repeatHt.firstCode[s] + repeatHt.firstSymbol[s]
+                if b1 >= repeatHt.size.count do
+                    fail InvalidFormatError{"bad huffman code"}
+                if repeatHt.size[b1] != s do
+                    fail InvalidFormatError{"bad huffman code"}
+                cb    >>= s
+                nb    -= cast(u32) s
+                value = repeatHt.value[b1]
             }
 
             if value < 256
@@ -642,60 +319,50 @@ impl Inflate
                 return
             }
 
-            var length: u64
-            if entry & EntryLiteral or entry == 0
+            value -= 257
+            var length = cast(u64) LengthBase[value]
+            let lextra = cast(u32) LengthExtra[value]
+            if lextra
             {
-                // The symbol came from the slow walk.
-                let li = value - 257
-                length = cast(u64) LengthBase[li]
-                let lextra = cast(u32) LengthExtra[li]
-                if lextra
-                {
-                    length += cb & ((1'u64 << lextra) - 1)
-                    cb     >>= lextra
-                    nb     -= lextra
-                }
-            }
-            else
-            {
-                let lbits  = entry & 31
-                let lextra = (entry >> 8) & 31
-                length = cast(u64) (entry >> 16) + ((cb >> lbits) & ((1'u64 << lextra) - 1))
-                let tot = lbits + lextra
-                cb >>= tot
-                nb -= tot
+                length += cb & ((1'u64 << lextra) - 1)
+                cb     >>= lextra
+                nb     -= lextra
             }
 
-            var distance: u64
-            let dentry = repeatZ.fastEx[cb & FastMask]
-            if dentry
+            var dvalue: u32
+            let d = repeatZ.fast[cb & FastMask]
+            if d
             {
-                let dbits  = dentry & 31
-                let dextra = (dentry >> 8) & 31
-                distance = cast(u64) (dentry >> 16) + ((cb >> dbits) & ((1'u64 << dextra) - 1))
-                let tot = dbits + dextra
-                if nb < tot do
-                    fail InvalidFormatError{"truncated stream"}
-                cb >>= tot
-                nb -= tot
+                let s = cast(u32) (d >> FastBits)
+                cb     >>= s
+                nb     -= s
+                dvalue = d & 511
             }
             else
             {
-                var tcb    = cb
-                var tnb    = nb
-                let dvalue = decodeSlow(repeatZ, &tcb, &tnb)
-                cb       = tcb
-                nb       = tnb
-                distance = cast(u64) DistBase[dvalue]
-                let dextra = cast(u32) DistExtra[dvalue]
-                if dextra
-                {
-                    if nb < dextra do
-                        fail InvalidFormatError{"truncated stream"}
-                    distance += cb & ((1'u64 << dextra) - 1)
-                    cb       >>= dextra
-                    nb       -= dextra
-                }
+                let k = reverse16(cast(u16) (cb & 0xFFFF), 16)
+                var s = HuffmanFastBits + 1
+                while k >= repeatZ.maxCode[s] do
+                    s += 1
+                if s >= 16 do
+                    fail InvalidFormatError{"bad huffman code"}
+                let b1 = (k >> (16 - s)) - repeatZ.firstCode[s] + repeatZ.firstSymbol[s]
+                if b1 >= repeatZ.size.count do
+                    fail InvalidFormatError{"bad huffman code"}
+                if repeatZ.size[b1] != s do
+                    fail InvalidFormatError{"bad huffman code"}
+                cb     >>= s
+                nb     -= cast(u32) s
+                dvalue = repeatZ.value[b1]
+            }
+
+            var distance = cast(u64) DistBase[dvalue]
+            let dextra   = cast(u32) DistExtra[dvalue]
+            if dextra
+            {
+                distance += cb & ((1'u64 << dextra) - 1)
+                cb       >>= dextra
+                nb       -= dextra
             }
 
             if count < distance do
@@ -806,8 +473,8 @@ impl Inflate
                 .stream.advanceBytes(uncompressedLen)
 
             case 1:
-                repeatHt.init(FixedLength, .Lengths)
-                repeatZ.init(FixedDist, .Distances)
+                repeatHt.init(FixedLength)
+                repeatZ.init(FixedDist)
                 .parseBlock(&repeatHt, &repeatZ, result)
 
             case 3:
@@ -826,7 +493,7 @@ impl Inflate
                     codeLengthSizes[LengthDezigzag[i]] = s
                 }
 
-                codeLengthHt.init(codeLengthSizes, .Plain)
+                codeLengthHt.init(codeLengthSizes)
                 let ntot = hlit + hdist
                 var n    = 0
                 while n < ntot
@@ -875,8 +542,8 @@ impl Inflate
 
                 if n != ntot do
                     fail InvalidFormatError{"bad code lengths"}
-                repeatHt.init(lenCodes[0 to hlit - 1], .Lengths)
-                repeatZ.init(lenCodes[hlit to ntot - 1], .Distances)
+                repeatHt.init(lenCodes[0 to hlit - 1])
+                repeatZ.init(lenCodes[hlit to ntot - 1])
                 .parseBlock(&repeatHt, &repeatZ, result)
             }
 

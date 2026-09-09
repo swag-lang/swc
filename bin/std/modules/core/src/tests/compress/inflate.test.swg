@@ -65,6 +65,66 @@ using Swag
     }
 }
 
+func nextSeed(seed: *u32)->u32
+{
+    var value = seed[]
+    value  ^= value << #wrap 13
+    value  ^= value >> 17
+    value  ^= value << #wrap 5
+    seed[] = value
+    return value
+}
+
+// Six hundred thousand bytes decoded without a size hint, so the destination grows repeatedly,
+// and dominated by matches at the far end of the window with a length short enough to keep the
+// extra bits of both codes. The existing round trips stop at forty thousand bytes and near
+// distances, so nothing else here exercises a wide symbol group against a growing destination.
+#test
+{
+    const Block  = 30_000'u64
+    const Copies = 20'u64
+
+    var seed = 0x12345678'u32
+    var payload: Array'u8
+    payload.reserve(Block * Copies)
+    for index in Block do
+        payload.add(cast #bit (u8) nextSeed(&seed))
+
+    for copy in 1 until Copies
+    {
+        for index in Block
+        {
+            // A literal every two hundred bytes keeps each match well short of the longest one,
+            // so its length code still carries extra bits.
+            if index % 200 == 199 do
+                payload.add(cast #bit (u8) nextSeed(&seed))
+            else do
+                payload.add(payload[index])
+        }
+
+        // One short back-reference per copy, of a length nothing else in the stream uses. Against
+        // a hundred thousand matches of the same length, its code reaches the longest the format
+        // allows, past the twelve bits the decoder's fast table covers, so the fast loop has to
+        // hand this match to the careful path.
+        let rare = 3 + copy % 6
+        let from = payload.count - 4000
+        for byte in rare do
+            payload.add(payload[from + byte])
+    }
+
+    var writer: Compress.ZLib
+    let compressed = expect writer.compress(payload.toSlice())
+
+    var reader: Compress.ZLib
+    let decoded = expect reader.decompress(compressed.toSlice())
+    Swag.assert(decoded.count == payload.count)
+
+    var ok = true
+    for index in payload.count where decoded[index] != payload[index] do
+        ok = false
+    Swag.assert(ok)
+}
+
 func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 {
     var zl: Compress.ZLib

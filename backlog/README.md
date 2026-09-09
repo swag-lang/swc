@@ -34,11 +34,11 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [std.core.md](std.core.md) | `std/core` | 2026-09-08 22:17 |
+| [std.core.md](std.core.md) | `std/core` | 2026-09-09 06:50 |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-09 06:37 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-08 21:10 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-08 20:48 |
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command | 2026-09-08 10:36 |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-08 09:08 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-08 08:02 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-08 06:30 |
 | [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-09-07 20:47 |

@@ -341,8 +341,8 @@ func makeTagBinPayload()->TagBinPayload
 
 func(T) encodeTagBin(value: T)->String
 {
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
     var buffer:  ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
 
     expect encoder.writeAll(&buffer, value)
     return buffer.toString()
@@ -558,8 +558,8 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Swag.assert(payload.finalPoint.x == -2)
     Swag.assert(payload.finalPoint.y == 5)
 
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
     var buffer:  ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
     expect encoder.writeAll(&buffer, payload)
     let bytes     = buffer.toString()
     let byteSlice = bytes.toSlice()
@@ -893,9 +893,9 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 {
     let payload = makeTagBinPayload()
 
+    var buffer:  ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.TagBin
     encoder.serializer.compressStream = true
-    var buffer: ConcatBuffer
     expect encoder.writeAll(&buffer, payload)
     let bytes = buffer.toString()
 

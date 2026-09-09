@@ -104,14 +104,14 @@ public:
     T* ptr(Ref ref) noexcept
     {
         SWC_ASSERT(ref != INVALID_REF);
-        return ptrImpl<T>(snapshotPages(), pageSizeValue_, ref);
+        return ptrImpl<T>(snapshotPages(), pageShift_, pageMask_, ref);
     }
 
     template<class T>
     const T* ptr(Ref ref) const noexcept
     {
         SWC_ASSERT(ref != INVALID_REF);
-        return ptrImpl<T>(snapshotPages(), pageSizeValue_, ref);
+        return ptrImpl<T>(snapshotPages(), pageShift_, pageMask_, ref);
     }
 
     template<class T>
@@ -183,18 +183,24 @@ private:
         uint32_t total = 0;
     };
 
-    static Ref                   makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
-    static void                  decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept;
+    static Ref makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
+
+    void decodeRef(Ref ref, uint32_t& pageIndex, uint32_t& offset) const noexcept
+    {
+        pageIndex = ref >> pageShift_;
+        offset    = ref & pageMask_;
+    }
+
     Page*                        newPage();
     std::pair<Ref, void*>        allocate(uint32_t size, uint32_t align);
     std::pair<SpanRef, uint32_t> writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems);
 
     template<class T>
-    static T* ptrImpl(const std::vector<Page*>* pages, uint32_t pageSize, Ref ref)
+    static T* ptrImpl(const std::vector<Page*>* pages, uint32_t pageShift, uint32_t pageMask, Ref ref)
     {
         SWC_ASSERT(ref != INVALID_REF);
-        uint32_t pageIndex = 0, offset = 0;
-        decodeRef(pageSize, ref, pageIndex, offset);
+        const uint32_t pageIndex = ref >> pageShift;
+        const uint32_t offset    = ref & pageMask;
 
         SWC_ASSERT(pages);
         SWC_ASSERT(pageIndex < pages->size());
@@ -202,12 +208,21 @@ private:
         const uint32_t pageUsed = (*pages)[pageIndex]->used.load(std::memory_order_relaxed);
         SWC_ASSERT(offset <= pageUsed);
         SWC_ASSERT(offset + sizeof(T) <= pageUsed);
-        SWC_ASSERT(offset + sizeof(T) <= pageSize);
+        SWC_ASSERT(offset + sizeof(T) <= pageMask + 1);
 
         return reinterpret_cast<T*>((*pages)[pageIndex]->bytes() + offset);
     }
 
-    const std::vector<Page*>*     snapshotPages() const noexcept;
+    // Reading a reference is the hottest operation of the whole compiler — every semantic pass
+    // resolves node, type, and symbol handles through here — so the page snapshot is read inline
+    // rather than through a call.
+    const std::vector<Page*>* snapshotPages() const noexcept
+    {
+        const auto* pages = publishedPages_.load(std::memory_order_acquire);
+        SWC_ASSERT(pages != nullptr);
+        return pages;
+    }
+
     const std::vector<PageRange>* snapshotPageRanges() const noexcept;
     void                          publishPages();
 
@@ -223,6 +238,11 @@ private:
     std::atomic<const std::vector<PageRange>*>                 publishedPageRanges_{nullptr};
     uint64_t                                                   totalBytes_     = 0;
     uint32_t                                                   pageSizeValue_  = K_DEFAULT_PAGE_SIZE;
+    // A page size is a power of two, which the constructor enforces, so splitting a reference into
+    // a page and an offset is a shift and a mask. Keeping the size alone would leave the divisor a
+    // runtime value and cost a hardware division on every dereference.
+    uint32_t                                                   pageShift_      = std::countr_zero(K_DEFAULT_PAGE_SIZE);
+    uint32_t                                                   pageMask_       = K_DEFAULT_PAGE_SIZE - 1;
     bool                                                       proximityPages_ = false;
     Page*                                                      curPage_        = nullptr;
     uint32_t                                                   curPageIndex_   = 0;

@@ -4,20 +4,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-AstNode& Ast::node(AstNodeRef nodeRef)
-{
-    SWC_ASSERT(nodeRef.isValid());
-    const uint32_t g = nodeRef.get();
-    return *(nodePtr(g));
-}
-
-const AstNode& Ast::node(AstNodeRef nodeRef) const
-{
-    SWC_ASSERT(nodeRef.isValid());
-    const uint32_t g = nodeRef.get();
-    return *(nodePtr(g));
-}
-
 bool Ast::hasNode(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
@@ -326,20 +312,6 @@ void Ast::visit(const Ast& ast, AstNodeRef root, const Visitor& f)
         for (const AstNodeRef it : std::ranges::reverse_view(children))
             stack.push_back(it);
     }
-}
-
-AstNode* Ast::nodePtr(uint32_t globalRef)
-{
-    const uint32_t s = refShard(globalRef);
-    const uint32_t l = refLocal(globalRef);
-    return shards_[s].store.ptr<AstNode>(l);
-}
-
-const AstNode* Ast::nodePtr(uint32_t globalRef) const
-{
-    const uint32_t s = refShard(globalRef);
-    const uint32_t l = refLocal(globalRef);
-    return shards_[s].store.ptr<AstNode>(l);
 }
 
 SWC_END_NAMESPACE();

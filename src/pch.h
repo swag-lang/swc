@@ -5,6 +5,7 @@
 #include <array>
 #include <atomic>
 #include <barrier>
+#include <bit>
 #include <bitset>
 #include <cassert>
 #include <condition_variable>

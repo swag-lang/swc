@@ -73,12 +73,14 @@ impl SigArray
                 let ts = #typeof(T)
 
                 sb.appendString("fn(")
-                let tsParams = ts.parameters!
-                for i in tsParams.count
+                if let tsParams = ts.parameters
                 {
-                    if i do
-                        sb.appendString(",")
-                    sb.appendFormat("cast(%) params[%]", tsParams[i].pointedType!.fullname, i)
+                    for i in tsParams.count
+                    {
+                        if i do
+                            sb.appendString(",")
+                        sb.appendFormat("cast(%) params[%]", tsParams[i].pointedType!.fullname, i)
+                    }
                 }
 
                 sb.appendString(")\n")

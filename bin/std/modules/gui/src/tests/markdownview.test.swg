@@ -3,6 +3,34 @@
 
 using Swag, Core
 
+// A prose page submits text by line, keeping wheel repaint work independent of its word count.
+#test
+{
+    var source: String
+    for 240 do
+        source += "word "
+    var host: Testing.HeadlessHost
+    host.setup(720, 900, 1.5)
+    defer host.shutdown()
+    let view = Markdown.View.createText(&host.root, source.toString())
+    view.resize(720, 900)
+    view.applyLayout()
+    var commands: u64
+    view.wndFlags.add(.AfterChildrenPaint)
+    view.hookOnEvent = func|count = &commands|(wnd, evt)
+    {
+        discard wnd
+        if let paint = evt as PaintEvent where paint.kind == .After do
+            count[] = paint.paintContext.painter.commandBuffer.count
+        return false
+    }
+    var image = host.render(view)
+    Swag.assert(image.isValid() and commands > 0 and commands < 300)
+    view.setPosition(0.5, 0.5, 720, 900)
+    image = host.render(view)
+    Swag.assert(image.isValid() and commands > 0 and commands < 300)
+}
+
 // Blank lines inside a paired HTML container must not expose its comments or closing tags.
 #test
 {

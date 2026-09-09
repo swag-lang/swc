@@ -33,21 +33,26 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
-### std.gui.056 — Large live-resize frames still block the native sizing loop
+### std.gui.056 — Confirm large-surface input latency during a physical border drag
 
 - Recorded: 2026-09-09 06:35
+- Updated: 2026-09-09 07:13 — isolated GPU shadow overdraw and bounded it to the window perimeter
 - Evidence: the user reports that Swag Prism's native border stalls during mouse resizing,
   particularly beyond a surface-size threshold. `WM_TIMER` calls `flushInteractiveResize` and
-  `paint` synchronously on the window thread. After bounding surface-target growth to 256-pixel
-  steps, a Windows probe sending `WM_SIZE` and resize-timer messages still measured 61–85 ms
-  callbacks near 2050 physical pixels per axis. The probe exercised the native callback with
-  synthetic client sizes, not a complete mouse-drag benchmark; its timings do not establish
-  which layout, recording, driver-submission, or presentation operation owns the remaining cost.
-- Next: instrument those phases separately during a real Prism border drag below and above
-  1024 and 2048 physical pixels. Include target allocation and layout, which currently precede
-  the paint recorder's stopwatch, and attribute the slow callbacks before choosing worker work.
-- Complete when: a repeatable native drag identifies and removes the remaining blocking work,
-  with frame and input-latency measurements on the affected adapter.
+  `paint` synchronously on the window thread. After bounding target growth to 256-pixel steps,
+  profiling separated layout (10–30 microseconds) and recording (2–4 ms) from GPU completion.
+  A native two-editor GUI fixture resized with `SetWindowPos` and interactive resize-timer
+  messages took 83–105 ms near 2050 squared pixels, including 64–84 ms for offscreen GPU drawing.
+  Scissoring the masked interior out of the shadow rings reduced those callback times to
+  17–33 ms and offscreen drawing to 9–23 ms under the same instrumented protocol. Exact image
+  comparisons preserve the previous shadow at four DPI scales and after partial repaints.
+  The subsequent pointer-injection probe did not move the border, so it provides no evidence
+  of physical drag input latency. Concurrent Prism changes also prevented its initial rebuild;
+  the final timing comparison used the isolated native GUI fixture.
+- Next: measure a successful physical border drag in the current Prism build on the affected
+  adapter without profiling fences. Record input latency and attribute any remaining stalls.
+- Complete when: the native border follows the pointer smoothly across the previous size
+  thresholds, or a repeatable remaining stall has been isolated and fixed.
 
 ### std.gui.055 — A menu entry borrows its identifier, so one formatted while the menu is built dangles
 

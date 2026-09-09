@@ -3,6 +3,27 @@
 
 using Core
 
+// Simultaneous viewers claim distinct temporary modules and retain them until each probe closes.
+#test
+{
+    var probes: [16] Pipeline.Probe
+    var tasks:  [16] Swag.Task
+    for index in probes.count
+    {
+        let probe = &probes[index]
+        tasks[index].submit(func|probe|() { expect probe.open() })
+    }
+
+    for &task in tasks do
+        task.wait()
+    for &probe, index in probes
+    {
+        Swag.assert(Directory.exists(probe.root))
+        for previous in index do
+            Swag.assert(probe.session != probes[previous].session)
+    }
+}
+
 // The attribute is written immediately above the first function, not at the top of the snippet.
 #test
 {

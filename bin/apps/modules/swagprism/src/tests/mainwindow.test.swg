@@ -1,47 +1,28 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core, Gui
+using Core, Gui
 
-// Builds the real main window inside the same measured frame as the shipped surface.
-func testSetupMainWindow(host: *Testing.HeadlessHost, width = cast(f32) MainWindow.WindowWidth, height = cast(f32) MainWindow.WindowHeight, scale = 1.0'f32)->*MainWindow
-{
-    host.setup(width, height, scale)
-    host.bindApplication(&g_App)
+func microcode(window: *MainWindow, group: u64, index = 0'u64)->*MicrocodeViewer => cast(*MicrocodeViewer) window.groups[group].viewers[index].window()
 
-    // The window resolves its application through its surface, so that is the one a language
-    // switch travels through and the one that has to be able to find the translations. The module
-    // global gets them too, because the code under test reads `g_App` directly.
-    registerAppStrings(&g_App.resources)
-    registerAppStrings(&host.app.resources)
-
-    let result = MainWindow.create(&host.surfaceWnd)
-    host.surface.setTitle(ProductName)
-    result.applyLayout()
-    return result
-}
-
-// The stage list offers the whole table and opens on the stage the reader wants first.
+// Each comparison group starts with its own microcode page and compilation options.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
-
-    Swag.assert(window.stageCombo.items.count == Pipeline.Stages.count)
-    Swag.assert(window.stageCombo.selectedIndex == Pipeline.DefaultStage)
-    Swag.assert(window.optimCombo.items.count == 3)
-    Swag.assert(window.optimCombo.selectedIndex == cast(u64) Swag.BuildCfgBackendOptimLevel.O2)
-}
-
-// The window opens on its idle status rather than on the outcome of a compilation it never ran.
-#test
-{
-    var host: Testing.HeadlessHost
-    let window = testSetupMainWindow(&host)
-    defer host.shutdown()
-
+    Swag.assert(window.groups.count == 2)
+    let left  = microcode(window, 0)
+    let right = microcode(window, 1)
+    Swag.assert(left != right)
+    Swag.assert(left.stageCombo.items.count == Pipeline.Stages.count)
+    Swag.assert(left.stageCombo.selectedIndex == Pipeline.DefaultStage)
+    Swag.assert(right.stageCombo.selectedIndex == Pipeline.DefaultStage)
+    Swag.assert(left.optimCombo.selectedIndex == 0)
+    Swag.assert(right.optimCombo.selectedIndex == 2)
     Swag.assert(window.status.name == appStrings().ui_Ready)
+    Swag.assert(window.groups[0].tabs.items.count == 1)
+    Swag.assert(window.groups[1].tabs.items.count == 1)
 }
 
 // The editor opens on the starter snippet, and that snippet is one the probe can inspect.
@@ -57,69 +38,103 @@ func testSetupMainWindow(host: *Testing.HeadlessHost, width = cast(f32) MainWind
     Swag.assert(Utf8.indexOf(cast(const [..] u8) inspected.toString(), "#[Swag.PrintMicro") != Swag.U64.Max)
 }
 
-/*
-Asking to compile hands the work off instead of doing it, and asking again while it runs waits.
-
-What is pinned here is the contract that keeps the window alive, not the compilation: whether the
-compiler was there to be found decides the outcome the job reports, and this asserts on neither.
-*/
+// An option change submits only that tab and queues its next request independently.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
-
-    window.optimCombo.setSelectedIndex(1)
-    Swag.assert(window.job.optimLevel == .O1)
-    Swag.assert(window.job.running)
-    Swag.assert(window.job.timer != null)
-    Swag.assert(!window.job.queued)
-    Swag.assert(!window.runButton.isEnabled())
-
-    // A second request while the first is in flight marks it rather than starting a second
-    // compiler, so a held key on the stage list costs one more compilation and not one per step.
-    window.optimCombo.setSelectedIndex(0)
-    Swag.assert(window.job.optimLevel == .O1)
-    Swag.assert(window.job.queued)
-
+    let left  = microcode(window, 0)
+    let right = microcode(window, 1)
+    left.optimCombo.setSelectedIndex(1)
+    Swag.assert(left.job.running and left.job.timer != null)
+    Swag.assert(left.job.optimLevel == .O1)
+    Swag.assert(!right.job.running)
+    left.optimCombo.setSelectedIndex(0)
+    Swag.assert(left.job.queued and left.job.optimLevel == .O1)
     window.shutdown()
-    Swag.assert(!window.job.running)
+    Swag.assert(!left.job.running and left.job.timer == null)
 }
 
-/*
-A finished compilation comes back through the timer and puts the window back in hand.
-
-This is the whole round trip and the one thing no unit of it can prove on its own: the handler that
-picks the result up is an interface override, and an override that is not installed costs nothing
-at compile time and everything at run time — the window simply waits forever with its action still
-disabled. The real compiler output must reach the read-only pane with its colors intact.
-*/
+// Switching tabs preserves options and output; closing a running page retires its job first.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
+    let group = window.groups[0]
+    let first = microcode(window, 0)
+    first.outputText.parse("first result")
+    first.outputText.show(first.output)
+    first.outputIsHint = false
+    group.addViewer(.Microcode)
+    let second = microcode(window, 0, 1)
+    Swag.assert(group.tabs.selectedIndex == 1)
+    second.optimCombo.setSelectedIndex(2, notify: false)
+    second.stageCombo.setSelectedIndex(0, notify: false)
+    group.tabs.setSelectedIndex(0)
+    Swag.assert(first.optimCombo.selectedIndex == 0)
+    Swag.assert(first.output.text().toString() == "first result")
+    group.tabs.setSelectedIndex(1)
+    Swag.assert(second.optimCombo.selectedIndex == 2 and second.stageCombo.selectedIndex == 0)
+    second.compileSource(window.editor.text().toString())
+    group.closeSelected()
+    Swag.assert(group.viewers.count == 1 and group.tabs.selectedIndex == 0)
+    Swag.assert(!second.job.running and second.job.timer == null)
+    Swag.assert(second.isPendingDestroy)
+    group.closeSelected()
+    Swag.assert(group.viewers.count == 1 and !group.closeButton.isEnabled())
+}
 
+// A shared compile feeds both visible tabs the same snapshot and retains their distinct levels.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+    let left  = microcode(window, 0)
+    let right = microcode(window, 1)
     window.compile()
-
+    Swag.assert(left.job.source.toString() == right.job.source.toString())
+    Swag.assert(left.job.optimLevel == .O0 and right.job.optimLevel == .O2)
     var watch: Time.Stopwatch
     watch.start()
-    while window.job.running and watch.elapsedMilliseconds() < 30_000
+    while (left.job.running or right.job.running) and watch.elapsedMilliseconds() < 30_000
     {
         Threading.Thread.sleep(10'ms)
-        host.fireTimer(window.job.timer)
+        if left.job.running do
+            host.fireTimer(left.job.timer)
+        if right.job.running do
+            host.fireTimer(right.job.timer)
     }
 
-    Swag.assert(!window.job.running, "the compile job never came back through its timer")
-    Swag.assert(window.job.timer == null)
-    Swag.assert(window.runButton.isEnabled())
-    Swag.assert(!window.job.stopped)
-    Swag.assert(!window.job.result.failed)
-    Swag.assert(!window.outputIsHint)
-    Swag.assert(window.outputText.colors.count != 0)
-    let plain = window.output.text()
-    Swag.assert(Utf8.indexOf(cast(const [..] u8) plain.toString(), "[micro]") != Swag.U64.Max)
-    Swag.assert(Utf8.indexOf(cast(const [..] u8) plain.toString(), "\x1B") == Swag.U64.Max)
+    for viewer in [left, right]
+    {
+        Swag.assert(!viewer.job.running and viewer.job.timer == null)
+        Swag.assert(!viewer.job.stopped and !viewer.job.result.failed)
+        Swag.assert(!viewer.outputIsHint and viewer.outputText.colors.count != 0)
+        let plain    = viewer.output.text()
+        let expected = Format.toString("  optimize : O%", cast(u8) viewer.job.optimLevel)
+        Swag.assert(Utf8.indexOf(cast(const [..] u8) plain.toString(), expected.toString()) != Swag.U64.Max)
+        Swag.assert(Utf8.indexOf(cast(const [..] u8) plain.toString(), "\x1B") == Swag.U64.Max)
+    }
+
+    Swag.assert(window.status.name == appStrings().ui_Ready)
+}
+
+// Hidden tabs keep their result until explicitly compiled again.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+    let hidden = microcode(window, 0)
+    window.groups[0].addViewer(.Microcode)
+    window.compile()
+    Swag.assert(!hidden.job.running)
+    Swag.assert(microcode(window, 0, 1).job.running)
+    Swag.assert(microcode(window, 1).job.running)
+    window.shutdown()
 }
 
 // The whole surface, in the palette the application ships on.
@@ -146,24 +161,41 @@ disabled. The real compiler output must reach the read-only pane with its colors
     Pixel.Testing.assertImageGolden(&image, "surface")
 }
 
-/*
-The layout survives every language the application ships, at its narrowest declared width.
-
-The window is what is measured, not the surface: the appearance action lives in the caption, which
-a headless host builds but never arranges, so a check that walked the surface would report the
-caption rather than the layout this test is about.
-*/
+// Comparison panes and themed bars fit every language at the minimum window size.
 #test
 {
-    for language in Gui.languages()
+    Gui.registerLanguage("fr", "Français")
+    for palette in 3
     {
-        var host: Testing.HeadlessHost
-        let window = testSetupMainWindow(&host, MainWindow.MinWidth, MainWindow.MinHeight)
-        defer host.shutdown()
+        for language in Gui.languages()
+        {
+            var host: Testing.HeadlessHost
+            let window = testSetupMainWindow(&host, MainWindow.MinWidth, MainWindow.MinHeight)
+            defer host.shutdown()
+            if palette == 0 do
+                host.theme.setSwagDark()
+            elif palette == 1 do
+                host.theme.setDark()
+            else do
+                host.theme.setLight()
+            host.notify(.ThemeChanged)
+            let left = microcode(window, 0)
+            left.stageCombo.setSelectedIndex(3, notify: false)
+            discard expect applyLanguage(&host.app.resources, language.tag)
+            host.notify(.LanguageChanged)
+            window.applyLayout()
+            Swag.assert(left.stageCombo.selectedIndex == 3 and left.optimCombo.selectedIndex == 0)
+            Testing.assertContentFits(window)
+            for message in [StatusMessage.NoOutput, StatusMessage.Stopped, StatusMessage.ProbeStopped]
+            {
+                left.setStatus(message)
+                window.applyLayout()
+                Testing.assertContentFits(window)
+            }
 
-        discard catch applyLanguage(&host.app.resources, language.tag)
-        host.notify(.LanguageChanged)
-        window.applyLayout()
-        Testing.assertContentFits(window)
+            Swag.assert(window.groups[0].position.right() <= window.groups[1].position.x)
+            Swag.assert(host.theme.colors.commandBar_Bk != host.theme.colors.richEdit_Bk)
+            Swag.assert(host.theme.colors.informationBar_Bk != host.theme.colors.richEdit_Bk)
+        }
     }
 }

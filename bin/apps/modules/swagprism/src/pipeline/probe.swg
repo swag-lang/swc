@@ -89,15 +89,31 @@ impl Probe
         // Each level is created in turn because `Directory.create` makes one directory and not the
         // path leading to it, and none of these is there on a first run.
         let owned = Path.combine(Env.getSpecialDirectory(.Temp), "swagprism")
-        if !Directory.exists(owned) do
-            try Directory.create(owned.toString())
+        if !Directory.exists(owned)
+        {
+            catch Directory.create(owned.toString()) as createError
+
+            // Another viewer may have created the shared parent since the existence check.
+            if createError != null and !Directory.exists(owned) do
+                fail createError
+        }
 
         // One session folder per probe rather than one per compilation: the compiler cache lives
         // with the module, and a folder that moves between runs throws that cache away on every
         // keystroke — while a second instance of the application must not build into the first
         // one's.
-        var session = Path.combine(owned, Format.toString("%", Guid64.random()))
-        try Directory.create(session.toString())
+        var session: String
+        for
+        {
+            session = Path.combine(owned, Format.toString("%", Guid64.highEntropy()))
+            catch Directory.create(session.toString()) as createError
+            if createError == null do
+                break
+
+            // Creating the directory claims it. A colliding name belongs to another probe.
+            if !Directory.exists(session) do
+                fail createError
+        }
 
         // The compiler names the module after its folder, and that name prefixes every function it
         // reports. The session identifier goes in the folder above so the pane says `Prismprobe.dot`

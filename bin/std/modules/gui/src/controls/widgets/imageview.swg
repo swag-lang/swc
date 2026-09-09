@@ -646,6 +646,15 @@ impl ImageView
         .invalidate()
     }
 
+    // Sets the image-centre offset from the viewport centre in logical units, without changing zoom.
+    //
+    // Like pointer panning, the offset is not clamped to the image bounds.
+    mtd setPanOffset(offset: Math.Point)
+    {
+        .panOffset = offset
+        .invalidate()
+    }
+
     // Displays one image pixel per logical unit and recentres it.
     mtd actualSize()
     {

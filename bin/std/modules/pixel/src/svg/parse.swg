@@ -3781,6 +3781,11 @@ impl Drawing
 
     private mtd const paintImage(painter: *Painter, image: const *SvgImage)
     {
+        // Embedded pictures follow the SVG transform, so nearest-neighbor sampling loses
+        // their antialiased detail when the document scales them to its viewport.
+        let interpolation = painter.interpolationMode()
+        painter.setInterpolationMode(.Linear)
+        defer painter.setInterpolationMode(interpolation)
         var alpha = image.opacity
 
         let texture = painter.renderer().addImage(image.image)

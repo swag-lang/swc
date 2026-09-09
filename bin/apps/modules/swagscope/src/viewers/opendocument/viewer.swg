@@ -1646,7 +1646,7 @@ private impl OpenDocumentViewer
         .html.setDocumentStyle(style)
     }
 
-    mtd setZoom(percent: u32)
+    internal mtd setZoom(percent: u32)
     {
         .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
         .applyZoom()

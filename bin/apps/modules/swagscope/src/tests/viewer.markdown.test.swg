@@ -3,6 +3,52 @@
 
 using Core, Pixel, Gui, Gui.Testing
 
+// The information band reports the complete source, independently of progressive layout,
+// and re-translates the totals without counting again.
+#[Swag.TestTag("golden")]
+#test
+{
+    let previous = g_MarkdownViewerSettings
+    defer g_MarkdownViewerSettings = previous
+    g_MarkdownViewerSettings = {}
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "markdown-statistics.md")
+    discard expect File.writeAllBytes(fileName.toString(), cast(const [..] u8) "Alpha beta\r\nthree\u00a0four\n")
+    defer discard catch File.delete(fileName.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(880, 560)
+    defer
+    {
+        discard catch host.app.setLanguage(ReferenceLanguage)
+        host.shutdown()
+    }
+
+    host.theme.setSwagDark()
+    host.theme.metrics.surfaceWnd_ShadowSize = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openFile(fileName.toString(), remember: false)
+    completeQueuedViewerFile(&host, window)
+    let button = cast(*MarkdownZoomButton) window.currentInfo!.children[0]
+    if button.statisticsLoad.started do
+        button.statisticsLoad.task.wait()
+    if button.statisticsTimer do
+        host.fireTimer(button.statisticsTimer)
+    Swag.assert(window.infoStatsLabel.text() == "Markdown · UTF-8 · 2 lines · 4 words")
+    window.applyLayout()
+    Swag.assert(window.infoStatsLabel.position.width >= Math.ceil(window.infoStatsLabel.itf.measureContent({}).x))
+    host.settleAnimations(window, 6)
+    var image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "viewer.markdown.information")
+
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    window.applyLayout()
+    Swag.assert(window.infoStatsLabel.text() == "Markdown · UTF-8 · 2 lignes · 4 mots")
+    Swag.assert(window.infoStatsLabel.position.width >= Math.ceil(window.infoStatsLabel.itf.measureContent({}).x))
+}
+
 // A manuscript can interleave HTML spreads and Markdown figures, with local SVG resources.
 func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
 {

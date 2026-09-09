@@ -52,6 +52,9 @@ using Swag, Core, Pixel
     view.zoomIn()
     Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 1.25, 0.001))
 
+    view.setPanOffset({37, -24})
+    Swag.assert(view.panOffset == Math.Point{37, -24} and !view.isFitted)
+
     view.zoomToFit()
     Swag.assert(view.isFitted)
     Swag.assert(view.panOffset == Math.Point{})

@@ -2,6 +2,23 @@
 
 using Swag, Core
 
+// A scaled embedded bitmap blends neighboring samples even when the surrounding painter uses
+// pixel interpolation. Otherwise a manuscript's raster illustrations acquire jagged edges.
+#test
+{
+    var source = Image.create(2, 1, .RGBA8)
+    let samples: [8] u8 = [255, 0, 0, 255, 0, 0, 255, 255]
+    Memory.copy(source.pixels.buffer, &samples, 8)
+    let bytes   = expect source.encodeToBytes("embedded.png")
+    let svg     = Format.toString("<svg width='32' height='16'><image width='32' height='16' href='data:image/png;base64,%'/></svg>", Base64.encode(bytes.toSlice()))
+    let drawing = expect Svg.Drawing.parse(svg.toString())
+    let image   = drawing.rasterize(32, 16, 1)
+    let middle  = image.pixelColor(16, 8)
+    Swag.assert(middle.r > 64 and middle.r < 192)
+    Swag.assert(middle.b > 64 and middle.b < 192)
+    Swag.assert(middle.a == 255)
+}
+
 // Relative raster references are decoded through Pixel only inside the configured resource root.
 #test
 {

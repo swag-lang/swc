@@ -30,7 +30,7 @@ struct MainWindow
     {
         appearanceButton: *AppearanceButton
         runButton:        *PushButton
-        layoutButton:     *PushButton
+        layoutButton:     *IconButton
         sourcePanel:      *Wnd
         editor:           *RichEditCtrl
         status:           *Label
@@ -104,13 +104,14 @@ impl MainWindow
             discard button
             window.compile()
         }
-        .layoutButton            = PushButton.create(.commandBar, "", {0, 0, 160, 36}, "prism.layout")
-        .layoutButton.dockStyle  = .Left
-        .layoutButton.margin     = {8, 0, 0, 0}
-        .layoutButton.sigPressed += func|window = me|(button)
+        .layoutButton = IconButton.create(.commandBar, .theme().icon(.Duplicate, 18), {0, 0, 36, 36}, "prism.layout", flags: .Toggle)
+        .layoutButton.setIconSize(18, 18)
+        .layoutButton.setCheckIndicator(.Frame)
+        .layoutButton.dockStyle         = .Left
+        .layoutButton.margin            = {8, 0, 0, 0}
+        .layoutButton.sigCheckedChanged += func|window = me|(button)
         {
-            discard button
-            window.setComparisonEnabled(!window.comparisonEnabled)
+            window.setComparisonEnabled(button.isChecked)
         }
     }
 
@@ -213,8 +214,8 @@ impl MainWindow
     {
         .runButton.setText(appStrings().ui_CompileVisible)
         .runButton.toolTip = appStrings().ui_CompileVisibleHint
-        .layoutButton.setText(.comparisonEnabled ? appStrings().ui_OneViewer : appStrings().ui_TwoViewers)
-        .layoutButton.toolTip = appStrings().ui_ViewerLayoutHint
+        .layoutButton.setChecked(.comparisonEnabled)
+        .layoutButton.toolTip = .comparisonEnabled ? appStrings().ui_OneViewer : appStrings().ui_TwoViewers
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .refreshStatus()
         .applyLayout()

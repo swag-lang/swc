@@ -1711,6 +1711,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     // A wait that ends right after the mark appeared does not take it away in the same frame:
     // the mark lingers for its minimum time, watched by the poll timer, then goes.
+    // Start this short-wait scenario after the snapshot: rendering has no wall-clock bound.
+    window.loadingShownSince                = Time.monotonicMicroseconds()
     window.instances[0].needsLoadingOverlay = null
     reportViewerLoadingChanged(loading)
     Swag.assert(window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince == 0 and window.loadingTimer != null)

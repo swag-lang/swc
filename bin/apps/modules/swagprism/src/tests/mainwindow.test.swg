@@ -24,7 +24,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
     Swag.assert(window.status.name == appStrings().ui_Ready)
     Swag.assert(window.panels[0].kindCombo.items.count == 1)
     Swag.assert(window.panels[0].kindCombo.selectedIndex == 0)
-    Swag.assert(window.layoutButton.name == appStrings().ui_TwoViewers)
+    Swag.assert(!window.layoutButton.isChecked and window.layoutButton.toolTip == appStrings().ui_TwoViewers)
 }
 
 // The editor opens on the starter snippet, and that snippet is one the probe can inspect.
@@ -66,19 +66,20 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
     defer host.shutdown()
     let first  = microcode(window, 0)
     let second = microcode(window, 1)
-    window.layoutButton.sigPressed.call(&window.layoutButton.button)
+    host.click(window.layoutButton.localToSurface(Math.Point{18, 18}))
     Swag.assert(window.comparisonEnabled and window.viewerSplit.isPaneVisible(1))
-    Swag.assert(window.layoutButton.name == appStrings().ui_OneViewer)
+    Swag.assert(window.layoutButton.isChecked and window.layoutButton.toolTip == appStrings().ui_OneViewer)
     second.optimCombo.setSelectedIndex(1, notify: false)
     second.stageCombo.setSelectedIndex(0, notify: false)
     second.outputText.parse("comparison result")
     second.outputText.show(second.output)
     second.outputIsHint = false
     let comparisonWidth = first.position.width
-    window.layoutButton.sigPressed.call(&window.layoutButton.button)
+    host.click(window.layoutButton.localToSurface(Math.Point{18, 18}))
     Swag.assert(!window.comparisonEnabled and !window.viewerSplit.isPaneVisible(1))
+    Swag.assert(!window.layoutButton.isChecked)
     Swag.assert(first.position.width > comparisonWidth)
-    window.layoutButton.sigPressed.call(&window.layoutButton.button)
+    host.click(window.layoutButton.localToSurface(Math.Point{18, 18}))
     Swag.assert(second.optimCombo.selectedIndex == 1 and second.stageCombo.selectedIndex == 0)
     Swag.assert(second.output.text().toString() == "comparison result")
     window.panels[1].kindCombo.sigChanged.call(window.panels[1].kindCombo, 0'u32)
@@ -207,6 +208,7 @@ func assertSurface(comparison: bool)
                 window.setComparisonEnabled(comparison)
                 Testing.assertContentFits(window)
                 Swag.assert(window.viewerSplit.isPaneVisible(1) == comparison)
+                Swag.assert(window.layoutButton.isChecked == comparison)
                 if comparison do
                     Swag.assert(window.panels[0].position.right() <= window.panels[1].position.x)
             }

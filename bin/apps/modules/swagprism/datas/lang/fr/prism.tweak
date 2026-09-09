@@ -7,7 +7,6 @@ ui_CompileVisible Compiler les vues
 ui_CompileVisibleHint Compiler la source dans les vues affichées.
 ui_OneViewer Afficher une vue
 ui_TwoViewers Afficher deux vues
-ui_ViewerLayoutHint Basculer entre une vue et deux vues côte à côte.
 ui_ViewerType Type de vue
 ui_Microcode Microcode
 ui_RunningViewers % vues en compilation

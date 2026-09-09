@@ -16,7 +16,7 @@ in their viewer, and the readouts report measured compilation and frame renderin
 ### app.prism.003 — Extend the running-program preview
 
 - Recorded: 2026-09-08 21:53
-- Updated: 2026-09-09 08:31
+- Updated: 2026-09-09 08:31 — Native 2D and GUI previews are implemented; retain the remaining input and export work.
 
 The 2D and GUI viewers now build executable snippets, receive live frames, pause, cancel, and
 restart after edits. The GUI child hosts real controls through `Gui.Testing.HeadlessHost`; clicks
@@ -30,7 +30,7 @@ single acknowledged frame and click mailbox, so continuous input needs its own o
 ### app.prism.002 — Read the pipeline instead of printing it
 
 - Recorded: 2026-09-08 21:53
-- Updated: 2026-09-09 08:31
+- Updated: 2026-09-09 08:31 — Correct the baseline: terminal colors are already preserved.
 
 The output pane retains the compiler's terminal colors while displaying plain selectable text. The compiler knows
 much more than that text: `MicroPassManager` prints a header naming the stage, the optimization

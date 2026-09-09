@@ -154,3 +154,25 @@ private
     Swag.assert(a[1].x == 3)
     Swag.assert(a[1].y == 4)
 }
+
+// An element written as a bare number has no width of its own, and it takes one from the elements
+// that do. A zero-sized element is not a harmless one: the aggregate layout skips it, so every
+// element after it moves up and the literal reaches memory with fewer values than it lists.
+#test
+{
+    var a = 111's16
+    var b = 222's16
+
+    #assert(#sizeof([a, b, 0's16, a]) == 8)
+    #assert(#sizeof([a, b, 0, a]) == 8)
+
+    let v = cast(#simd [8] s16) [a, b, 0, a, b, 0, a, b]
+    Swag.assert(v[0] == 111)
+    Swag.assert(v[1] == 222)
+    Swag.assert(v[2] == 0)
+    Swag.assert(v[3] == 111)
+    Swag.assert(v[4] == 222)
+    Swag.assert(v[5] == 0)
+    Swag.assert(v[6] == 111)
+    Swag.assert(v[7] == 222)
+}

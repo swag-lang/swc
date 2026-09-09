@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -262,6 +263,66 @@ namespace
             frame.pushBindingType(siblingTypeRef);
             sema.pushFramePopOnPostChild(frame, childRef);
             break;
+        }
+
+        return Result::Continue;
+    }
+
+    // Gives every element of a runtime array literal a width.
+    //
+    // An element written as a bare number carries none of its own, and a zero-sized element does
+    // not merely occupy nothing in an aggregate: the layout skips it, so every element after it
+    // moves up and the literal materializes with fewer values than it lists. `[a, b, 0, a, b, 0]`
+    // read back as `a b a b 0 0` before this, silently, wherever the aggregate reached memory.
+    //
+    // The width comes from the elements that already have one, exactly as it does for a literal
+    // whose elements are all constant: concretizing a bare number on its own lands it on `s32`
+    // and would drag a narrower sibling up with it. Elements of several different types name no
+    // single width, and there the bare number falls back to its own default.
+    Result sizeUnsizedArrayElements(Sema& sema, std::span<const AstNodeRef> elements, SmallVector<TypeRef>& elemTypes)
+    {
+        TypeRef sizedTypeRef = TypeRef::invalid();
+        bool    oneWidth     = true;
+        bool    anyUnsized   = false;
+
+        for (const TypeRef elemTypeRef : elemTypes)
+        {
+            if (sema.typeMgr().get(elemTypeRef).isScalarUnsized())
+            {
+                anyUnsized = true;
+                continue;
+            }
+
+            if (!sizedTypeRef.isValid())
+                sizedTypeRef = elemTypeRef;
+            else if (sizedTypeRef != elemTypeRef)
+                oneWidth = false;
+        }
+
+        if (!anyUnsized)
+            return Result::Continue;
+
+        TypeRef targetTypeRef = TypeRef::invalid();
+        if (sizedTypeRef.isValid() && oneWidth && sema.typeMgr().get(sizedTypeRef).isConcreteScalar())
+            targetTypeRef = sizedTypeRef;
+
+        for (size_t index = 0; index < elements.size(); ++index)
+        {
+            if (!sema.typeMgr().get(elemTypes[index]).isScalarUnsized())
+                continue;
+
+            SemaNodeView view = sema.viewNodeTypeConstant(elements[index]);
+            if (targetTypeRef.isValid())
+                SWC_RESULT(Cast::castIfNeeded(sema, view, targetTypeRef, CastKind::Implicit));
+            else
+            {
+                ConstantRef concretizedRef;
+                SWC_RESULT(Cast::concretizeConstant(sema, concretizedRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
+                sema.setConstant(view.nodeRef(), concretizedRef);
+                view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            }
+
+            elemTypes[index] = view.typeRef();
         }
 
         return Result::Continue;
@@ -717,8 +778,6 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
         allConstant = allConstant && view.cstRef().isValid();
     }
 
-    const TypeRef aggregateTypeRef = sema.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes));
-
     if (allConstant)
     {
         const auto val = ConstantValue::makeAggregateArray(sema.ctx(), values);
@@ -726,7 +785,8 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     }
     else
     {
-        sema.setType(sema.curNodeRef(), aggregateTypeRef);
+        SWC_RESULT(sizeUnsizedArrayElements(sema, elements.span(), elemTypes));
+        sema.setType(sema.curNodeRef(), sema.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes)));
     }
 
     sema.setIsValue(*this);

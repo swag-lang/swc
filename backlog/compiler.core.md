@@ -6,6 +6,45 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.030 — Every executable lowers the runtime's functions again
+
+- Recorded: 2026-09-05 22:13
+- Updated: 2026-09-09 12:34 — remeasured on 0.1.422: the JIT half costs a native build nothing
+
+**Evidence.** Profiled on 2026-09-05 (Release 0.1.367 with a PDB, six worker cores, a user-mode sampling profiler): a hello world build spends 38 % of its thread samples in `CodeGenJob::exec`, 31 % of them in `MicroPassManager::run`, against 8 to 11 % in semantic analysis. The stage log says why — `tuned 172 functions`, `forged 320 functions`, for a four-line program: the runtime's own functions are lowered and optimized again for every executable, at the `release` preset's `O2`. `swc sema` on an empty file shows the same shape at 19 %: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` (bin/runtime/core.swg) JIT-lowers about a hundred runtime functions so that the build configuration, which the compiler already holds in C++, can be read back through compile-time execution. On a quiet machine the same run measured `swc help` at 34 ms, the prelude's syntax at 35 ms, its sema at 165 ms and the hello world build at 197 ms (0.1.369, six cores); the campaign's `hello_build` target is 50 ms.
+
+**Evidence (2026-09-09, Release 0.1.422, twelve workers, minimum of ten interleaved runs).** The JIT half of this entry no longer costs a native build anything: replacing `const __buildCfg = #run …` with a plain variable in the prelude leaves a snippet build at 91 ms either way, with the same 448 tuned and 441 forged functions, because a native artifact lowers the runtime regardless. The lowering half is what remains, and it is now the largest term of a Swag Prism snippet compilation: the same probe takes 116 ms as a static library and 68 ms with `--artifact-kind export`, so lowering and linking the runtime is 48 ms of it, against 52 ms for the prelude's own semantic pass (compiler.core.006) and 16 ms of process start.
+
+**Intent.** Keep the runtime's lowered code between builds — per compiler build, configuration and architecture, like the module setup cache keeps a setup — and give the prelude its build configuration as a compiler-materialized constant instead of a JIT run.
+
+**Complete when.**
+
+- A build whose sources contain no compile-time execution lowers nothing of the runtime and runs no JIT code.
+- The cached runtime code is invalidated by the compiler build, the runtime sources, the configuration and the target, and a workspace test proves a fresh and a reused runtime produce identical executables.
+- `hello_build` in the compiler.core.004 campaign reads under 50 ms on the campaign host.
+
+**Related:** compiler.core.001, compiler.core.004, compiler.core.006, compiler.optimization.029.
+
+### compiler.core.006 — Every process rebuilds the prelude state
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-09-09 12:34 — remeasured on 0.1.422 against the Swag Prism edit loop
+
+**Evidence.** On 2026-09-05 (Release 0.1.369, six worker cores, quiet machine): `swc help` 34 ms, `swc syntax` on an empty file 35 ms, `swc sema` on the same 165 ms. The prelude is 14 files and 32 948 tokens; its semantic pass, including the JIT run compiler.core.030 describes, is what separates the last two numbers, and every module setup used to pay it once more until the setup cache of 0.1.367 kept the result.
+
+**Evidence (2026-09-09, Release 0.1.422, twelve workers).** Measured against the Swag Prism edit loop, which compiles one snippet per keystroke: a snippet module that imports nothing takes 116 ms, of which 16 ms is process start and 48 ms is lowering the runtime (compiler.core.030). The remaining 52 ms is this entry — the prelude analyzed again for a snippet that never changes it.
+
+**Intent.** Serialize and reuse the prelude through the same module-interface mechanism as ordinary dependencies, rather than maintaining a special prelude cache.
+
+**Complete when.**
+
+- A warm hello-world build and a warm script launch load the prelude interface without lexing, parsing, or semantically rebuilding the prelude.
+- Prelude source, compiler version, target, and relevant configuration changes invalidate the interface.
+- Fresh and reused prelude paths produce identical diagnostics and artifacts.
+- The compiler.core.004 campaign demonstrates the reduced fixed startup floor.
+
+**Related:** compiler.core.001, compiler.core.004, compiler.core.016.
+
 ### compiler.core.001 — Dependencies cross the module boundary as regenerated source
 
 - Recorded: 2026-08-06 20:18
@@ -311,41 +350,6 @@ definition provider and does not consume resolved compiler symbols.
   slot: identify which constant allocation contains `0x80019060` at patch time and which symbol its
   relocation names. Decide between re-running the constant patcher when a deferred target publishes
   its JIT address, and refusing to defer relocations that are reachable from an interface table.
-
-### compiler.core.030 — Every executable lowers the runtime's functions again
-
-- Recorded: 2026-09-05 22:13
-- Updated: 2026-09-05 22:30 — git: Merge master into compile-speed
-
-**Evidence.** Profiled on 2026-09-05 (Release 0.1.367 with a PDB, six worker cores, a user-mode sampling profiler): a hello world build spends 38 % of its thread samples in `CodeGenJob::exec`, 31 % of them in `MicroPassManager::run`, against 8 to 11 % in semantic analysis. The stage log says why — `tuned 172 functions`, `forged 320 functions`, for a four-line program: the runtime's own functions are lowered and optimized again for every executable, at the `release` preset's `O2`. `swc sema` on an empty file shows the same shape at 19 %: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` (bin/runtime/core.swg) JIT-lowers about a hundred runtime functions so that the build configuration, which the compiler already holds in C++, can be read back through compile-time execution. On a quiet machine the same run measured `swc help` at 34 ms, the prelude's syntax at 35 ms, its sema at 165 ms and the hello world build at 197 ms (0.1.369, six cores); the campaign's `hello_build` target is 50 ms.
-
-**Intent.** Keep the runtime's lowered code between builds — per compiler build, configuration and architecture, like the module setup cache keeps a setup — and give the prelude its build configuration as a compiler-materialized constant instead of a JIT run.
-
-**Complete when.**
-
-- A build whose sources contain no compile-time execution lowers nothing of the runtime and runs no JIT code.
-- The cached runtime code is invalidated by the compiler build, the runtime sources, the configuration and the target, and a workspace test proves a fresh and a reused runtime produce identical executables.
-- `hello_build` in the compiler.core.004 campaign reads under 50 ms on the campaign host.
-
-**Related:** compiler.core.001, compiler.core.004, compiler.core.006, compiler.optimization.029.
-
-### compiler.core.006 — Every process rebuilds the prelude state
-
-- Recorded: 2026-08-06 20:18
-- Updated: 2026-09-05 22:13 — git: Take the fixed costs a profile named out of every short command
-
-**Evidence.** On 2026-09-05 (Release 0.1.369, six worker cores, quiet machine): `swc help` 34 ms, `swc syntax` on an empty file 35 ms, `swc sema` on the same 165 ms. The prelude is 14 files and 32 948 tokens; its semantic pass, including the JIT run compiler.core.030 describes, is what separates the last two numbers, and every module setup used to pay it once more until the setup cache of 0.1.367 kept the result.
-
-**Intent.** Serialize and reuse the prelude through the same module-interface mechanism as ordinary dependencies, rather than maintaining a special prelude cache.
-
-**Complete when.**
-
-- A warm hello-world build and a warm script launch load the prelude interface without lexing, parsing, or semantically rebuilding the prelude.
-- Prelude source, compiler version, target, and relevant configuration changes invalidate the interface.
-- Fresh and reused prelude paths produce identical diagnostics and artifacts.
-- The compiler.core.004 campaign demonstrates the reduced fixed startup floor.
-
-**Related:** compiler.core.001, compiler.core.004, compiler.core.016.
 
 ### compiler.core.002 — Front-end invalidation is module-wide
 

@@ -156,7 +156,7 @@ func addImage(image: Image)
         if not image.isValid() do
             return
         g_Fake.hasImg = true
-        g_Fake.img    = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice())
+        g_Fake.img    = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice(), image.alphaMode)
         return
     }
 

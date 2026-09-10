@@ -3,6 +3,24 @@
 
 using Swag, Core, Pixel
 
+// Copying premultiplied samples preserves their logical color and owns the copied storage.
+#test
+{
+    Swag.assert(Clipboard.isFake())
+    expect Clipboard.resetFake()
+    defer Clipboard.clear()
+
+    const Bytes: [4] u8 = [64, 32, 16, 128]
+    var source        = Image.create(1, 1, .RGBA8, Bytes, .Premultiplied)
+    let expectedColor = source.pixelColor(0, 0)
+    Clipboard.addImage(source)
+    source.clear()
+
+    let copied = Clipboard.getImage()
+    Swag.assert(copied.isValid())
+    Swag.assert(copied.pixelColor(0, 0) == expectedColor)
+}
+
 // The fake clipboard (armed by the sandbox) mirrors the OS semantics: a string or a typed
 // payload replaces only its own format, adding an image empties everything.
 #test

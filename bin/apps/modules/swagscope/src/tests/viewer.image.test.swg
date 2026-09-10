@@ -14,6 +14,7 @@ struct ImageReports
 {
     shown:    s32     // Still pictures reported on screen.
     finished: s32     // Animation cycles reported complete.
+    answer:   Viewer.Continuation = .Next
 }
 
 func countImageShown(wnd: *Wnd)
@@ -26,7 +27,7 @@ func answerImageCycle(wnd: *Wnd)->Viewer.Continuation
 {
     let reports = cast(*ImageReports) wnd.userData!
     reports.finished += 1
-    return .Next
+    return reports.answer
 }
 
 func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindow)
@@ -240,37 +241,57 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(reports.shown == 1 and reports.finished == 0)
 }
 
-// An animated picture has a cycle instead of an end: it reports one when it comes back to its
-// first frame from its last one while running, and reports nothing more once the host answers
-// that it moves on.
+// Seeking never finishes a cycle. Playing through its final delay obeys the host's stop,
+// replay, or next-file answer, including an animation with an encoded finite loop count.
 #test
 {
-    var host: Testing.HeadlessHost
-    host.setup(720, 440)
-    defer host.shutdown()
+    for answer in [Viewer.Continuation.Stop, .Replay, .Next]
+    {
+        for name in ["imageset-animation.gif", "imageset-animation.apng", "imageset-animation.webp"]
+        {
+            var host: Testing.HeadlessHost
+            host.setup(720, 440)
+            defer host.shutdown()
 
-    let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/imageset-animation.gif")
-    var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
-    Swag.assert(session.view != null)
-    let view = cast(*ImageViewer) session.view
-    var reports: ImageReports
-    view.userData = &reports
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    let lastFrame = view.imageView.movie.frameCount - 1
-    Swag.assert(lastFrame > 0 and not view.imageView.movie.isPaused)
-    Swag.assert(reports.shown == 0 and reports.finished == 0)
+            let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
+            var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
+            Swag.assert(session.view != null)
+            let view    = cast(*ImageViewer) session.view
+            var reports = ImageReports{answer: answer}
+            view.userData = &reports
+            completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+            let lastFrame = view.imageView.movie.frameCount - 1
+            Swag.assert(lastFrame > 0 and not view.imageView.movie.isPaused)
+            Swag.assert(reports.shown == 0 and reports.finished == 0)
 
-    // A seek within the animation is not a cycle.
-    view.imageView.setFrameIndex(lastFrame)
-    view.imageView.setFrameIndex(1)
-    Swag.assert(reports.finished == 0)
+            // A seek within the animation is not a cycle.
+            view.imageView.setFrameIndex(lastFrame)
+            view.imageView.setFrameIndex(1)
+            Swag.assert(reports.finished == 0)
 
-    view.imageView.setFrameIndex(lastFrame)
-    view.imageView.setFrameIndex(0)
-    Swag.assert(reports.finished == 1 and view.handedOff)
+            view.imageView.setFrameIndex(lastFrame)
+            view.imageView.setFrameIndex(0)
+            Swag.assert(reports.finished == 0)
 
-    // Answered that the host moves on, the picture keeps its next cycles to itself.
-    view.imageView.setFrameIndex(lastFrame)
-    view.imageView.setFrameIndex(0)
-    Swag.assert(reports.finished == 1)
+            view.imageView.setFrameIndex(lastFrame)
+            view.resize(720, 440)
+            view.applyLayout()
+            for 120
+            {
+                if reports.finished do
+                    break
+                discard host.render()
+            }
+
+            view.refreshFrame()
+            Swag.assert(reports.finished == 1)
+            Swag.assert(view.handedOff == (answer == .Next))
+            Swag.assert(view.imageView.movie.isPaused == (answer != .Replay))
+            Swag.assert(view.imageView.movie.frameIndex == (answer == .Replay ? 0 : lastFrame))
+
+            // Repainting or refreshing the same terminal frame does not report another cycle.
+            view.refreshFrame()
+            Swag.assert(reports.finished == 1)
+        }
+    }
 }

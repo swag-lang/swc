@@ -13,19 +13,26 @@ func movieFixture(name: string)->String => String.from(Path.combine(Path.directo
         expect movie.load(movieFixture(name).toString())
         Swag.assert(movie.isAnimated() and movie.frameCount == 3 and movie.frameIndex == 0)
         Swag.assert(not movie.isPaused and movie.currentFrameDuration() == 0.04)
+        Swag.assert(movie.completedLoopCount() == 0)
         Swag.assert(movie.update(0.04) and movie.frameIndex == 1)
         Swag.assert(not movie.update(0.05) and movie.frameIndex == 1)
         Swag.assert(movie.update(0.071) and movie.frameIndex == 2)
         discard movie.update(0.08)
         Swag.assert(movie.isPaused and movie.frameIndex == 2)
+        Swag.assert(movie.completedLoopCount() == 1)
         movie.setFrameIndex(0)
+        Swag.assert(movie.completedLoopCount() == 0)
         movie.usesEncodedLoops = false
         movie.setPaused(false)
         discard movie.update(0.241)
         Swag.assert(not movie.isPaused and movie.frameIndex == 0)
+        Swag.assert(movie.completedLoopCount() == 1)
         movie.setPaused(true)
         discard movie.update(0)
         Swag.assert(not movie.update(10) and movie.frameIndex == 0)
+        Swag.assert(movie.completedLoopCount() == 1)
+        movie.setPaused(false)
+        Swag.assert(movie.completedLoopCount() == 0)
     }
 }
 

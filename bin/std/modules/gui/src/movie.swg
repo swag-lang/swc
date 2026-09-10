@@ -179,6 +179,13 @@ impl Movie
     // Reports whether the encoded source contains timed animation frames.
     mtd const isAnimated()->bool => .reader.isOpen() and .reader.info.frames[0].kind == .Animation
 
+    // Returns the number of complete playback cycles since loading, seeking to another frame, or resuming.
+    //
+    // A cycle completes after the final frame's display duration, including when playback stops
+    // there. Seeking alone never completes a cycle. Use this with `loops = false` to handle the
+    // end once and decide whether to replay, retain the final frame, or replace the content.
+    mtd const completedLoopCount()->u32 => .completedLoops
+
     // Returns the indexed description of the current encoded frame, or null for a sprite sheet.
     mtd const frameInfo()->const *ImageFrameInfo?
     {

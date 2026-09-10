@@ -96,7 +96,7 @@ alternative instead of guessing an encoding.
   presets, fit, and actual size while also reporting temporary orientation.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,
-  mute, volume, and matching keyboard controls, plus a settings menu offering a 0.25x-2x playback
+  mute, volume, and matching keyboard controls, plus a playback-speed menu offering a 0.25x-2x playback
   rate whose pitch follows the rate and whose time labels stay in source time.
   It indexes packets without decoding the file up
   front and materializes only the selected picture and the few audio buffers queued at the device.
@@ -182,9 +182,9 @@ returns to the last file viewed in the selected folder. Audio and video claim ba
 ten-second seeks while active, and use Space for play/pause and M for mute. An
 installer may run `swagscope.exe --register-file-types`; normal launches never write the registry.
 
-The image viewer's command bar offers a play-mode button, and the video viewer includes the same
-modes in its player settings menu. They decide what follows a file that has been played through: stop
-there, play it again, continue with the next file of the same kind in its folder, or continue
+The image and video command bars offer the same play-mode button. They decide what follows a file
+that has been played through: stop there, play it again, continue with the next file of the same
+kind in its folder, or continue
 with a random one that has not had its turn in that folder yet, every file once before any comes
 again. Video and sound hand over when their stream ends, an animated picture when its animation
 has run one cycle, and a still picture after the time per picture the image viewer's menu sets, which turns
@@ -245,9 +245,9 @@ failure on the same error surface and owns cleanup of all contributed windows.
 
 Playback controls belong to the viewer's lower command group. The image viewer creates a
 `Viewer.PlaybackButton` there with `host.services().playback` and enables its still-picture
-duration submenu. The video viewer uses `Viewer.PlaybackApi.appendMenuItems` and
-`applyMenuChoice` to combine the same modes with its existing playback-rate menu. The host only
-stores the shared policy and handles file continuation; it creates no playback button or menu.
+duration submenu. The video viewer creates the same button for end-of-file modes and keeps its
+playback-speed menu separate. The host stores the shared policy and handles file continuation;
+it creates no playback button or menu.
 
 The fixture lives in `src/tests/datas`, is unique to that descriptor, and is a valid file the
 plugin can open. The key is never translated or reused because remembered viewer choices persist

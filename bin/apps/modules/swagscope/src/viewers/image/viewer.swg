@@ -177,7 +177,7 @@ internal struct ImageViewer
     reportLoadingChanged: Viewer.ReportLoadingChanged?
     reportFinished:       Viewer.ReportFinished?
     reportShown:          Viewer.ReportShown?
-    lastFrameIndex:       s32      // Frame the animation was on before the current one.
+    lastCompletedLoops:   u32      // Playback cycles observed by the latest frame refresh.
     handedOff:            bool     // The host was told the animation has run its cycle, and answered that it moves on.
     load:                 Viewer.BackgroundLoad'ImageViewerContent
     loadTimer:            *Timer?
@@ -212,23 +212,32 @@ internal impl ImageViewer
         .frameLabel.setText(Format.toString("% / %", movie.frameIndex + 1, movie.frameCount))
         .playButton.setIcon(.theme().icon(movie.isPaused ? .Play : .Pause, themeActionIconSize(.themeMetrics())))
 
-        // Back on the first frame from the last one while running: one complete cycle is what
-        // an animated picture has instead of an end.
-        let wrapped = movie.frameIndex == 0 and .lastFrameIndex == movie.frameCount - 1 and not movie.isPaused
-        .lastFrameIndex = movie.frameIndex
-        if wrapped do
+        // The movie records elapsed cycles independently of frame seeks and encoded loop limits.
+        let completed = movie.completedLoopCount()
+        let finished  = completed != 0 and .lastCompletedLoops == 0
+        .lastCompletedLoops = completed
+        if finished do
             .finishCycle()
     }
 
-    // Reports one complete cycle of the animation, unless the host already answered that it
-    // moves on: the animation keeps running until the host has the next file to show, and every
-    // further cycle would ask it for one more.
+    // Keeps the completed cycle's last frame until the host explicitly requests another cycle.
     mtd finishCycle()
     {
         if .handedOff or not .reportFinished do
             return
-        if .reportFinished(me) == .Next do
+        switch #complete .reportFinished(me)
+        {
+        case .Stop:
+            break
+
+        case .Replay:
+            .imageView.setFrameIndex(0)
+            .imageView.setPaused(false)
+            .refreshFrame()
+
+        case .Next:
             .handedOff = true
+        }
     }
 
     mtd showPlayback()
@@ -370,6 +379,8 @@ private impl IWnd for ImageViewer
 
         if content.movie.isValid()
         {
+            if .reportFinished do
+                content.movie.loops = false
             .imageView.exchangeMovie(&content.movie)
             if .imageView.movie.frameCount > 1 do
                 .showPlayback()

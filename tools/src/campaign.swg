@@ -24,7 +24,7 @@ public func runTests(context: *Context, options: *Options)->s32 fail
     if notices != 0 do
         return notices
 
-    if !options.module.isEmpty()
+    if not options.module.isEmpty()
     {
         Console.println("tests.swgs runs a whole set and takes no name. Use unittests, std, examples, apps,")
         Console.println("reference, or scripts to reach one suite, module, or script.")
@@ -44,7 +44,7 @@ public func runTests(context: *Context, options: *Options)->s32 fail
 // Builds every repository workspace.
 public func runBuild(context: *Context, options: *Options)->s32 fail
 {
-    if !options.module.isEmpty()
+    if not options.module.isEmpty()
     {
         Console.println("build.swgs builds every workspace and takes no name. Use std, examples, apps, or")
         Console.println("reference to build one workspace or one module.")

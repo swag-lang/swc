@@ -33,80 +33,80 @@ impl IActionUI for ActionFile
         {
         case .NewImage:
             evt.updatedFields |= .Name
-            evt.name          = appStrings().act_NewImage
+            evt.name = appStrings().act_NewImage
 
         case .NewFromClipboard:
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_NewFromClipboard
-            evt.disabled      = !Clipboard.hasImage()
+            evt.disabled      = not Clipboard.hasImage()
 
         case .SaveAsImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_SaveAsImage
-            evt.disabled      = !capture
+            evt.disabled      = not capture
             evt.icon          = main.theme().icon(.SaveAs)
 
         case .SaveAsLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_SaveAsLinkedImage
-            evt.disabled      = !capture
+            evt.disabled      = not capture
             evt.icon          = main.theme().icon(.Export)
 
         case .OpenImage:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = appStrings().act_OpenImage
-            evt.icon          = main.theme().icon(.OpenFile)
+            evt.name = appStrings().act_OpenImage
+            evt.icon = main.theme().icon(.OpenFile)
 
         case .UpdateLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_UpdateLinkedImage
-            evt.disabled      = !capture
+            evt.disabled      = not capture
             evt.icon          = main.theme().icon(.Update)
 
         case .UnlinkImage:
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_UnlinkImage
-            evt.disabled      = !capture or capture.linkedImage.length == 0
+            evt.disabled      = not capture or capture.linkedImage.length == 0
 
         case .DeleteCapture:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_Delete
-            evt.disabled      = !capture
+            evt.disabled      = not capture
             evt.icon          = main.theme().icon(.Remove)
 
         case .DupCapture:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_Duplicate
-            evt.disabled      = !capture
+            evt.disabled      = not capture
             evt.icon          = main.theme().icon(.Duplicate)
 
         case .RenameCapture:
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_Rename
-            evt.disabled      = !capture
+            evt.disabled      = not capture
 
         case .CopyImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_CopyImageToClipboard
-            evt.disabled      = !capture
+            evt.disabled      = not capture
             evt.icon          = main.theme().icon(.Copy)
 
         case .CaptureFileLocation:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_LocateCaptureFile
-            evt.disabled      = !capture
+            evt.disabled      = not capture
             evt.icon          = main.theme().icon(.OpenFile)
 
         case .LinkedFileLocation:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_LocateLinkedImage
-            evt.disabled      = !capture or capture.linkedImage.isEmpty()
+            evt.disabled      = not capture or capture.linkedImage.isEmpty()
             evt.icon          = main.theme().icon(.Link)
 
         case .FileDetails:
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_FileDetails
-            evt.disabled      = !capture
+            evt.disabled      = not capture
         }
 
         return true
@@ -172,7 +172,7 @@ impl IActionUI for ActionFile
                 opt.onCreated = func|main|(dlg)
                 {
                     let chk = CheckButton.create(dlg.surface!.view(), "Do not ask again", {0, 0, 100, 40})
-                    chk.sigChanged += func|main|(btn) { main.editorOptions.confirmLinkedOverwrite = !btn.isChecked() }
+                    chk.sigChanged += func|main|(btn) { main.editorOptions.confirmLinkedOverwrite = not btn.isChecked() }
                     dlg.setExtension(chk)
                 }
 
@@ -205,7 +205,7 @@ impl IActionUI for ActionFile
 
             // `Capture.load` is fallible; `catch` swallows a failure and yields null,
             // so guard before dereferencing to avoid a null crash and abort the duplication.
-            if !newCapture
+            if not newCapture
             {
                 MessageDlg.error(main.surface!, appStrings().msg_FailedDuplicate)
                 break
@@ -243,11 +243,11 @@ impl IActionUI for ActionFile
                 capture.copyAll()
 
         case .CaptureFileLocation:
-            if !Env.showInFileExplorer(capture.file) do
+            if not Env.showInFileExplorer(capture.file) do
                 MessageDlg.error(main.surface!, appStrings().msg_FailedLocateCapture)
 
         case .LinkedFileLocation:
-            if !Env.showInFileExplorer(capture.linkedImage) do
+            if not Env.showInFileExplorer(capture.linkedImage) do
                 MessageDlg.error(main.surface!, appStrings().msg_FailedLocateLinked)
 
         case .FileDetails:
@@ -255,7 +255,7 @@ impl IActionUI for ActionFile
             func addLine(lt: *Wnd, title, val: String)
             {
                 let wnd = Wnd.create'StackLayoutCtrl(lt)
-                wnd.mode            = .Left
+                wnd.mode = .Left
                 wnd.position.height = 20
                 let lbl1 = Label.create(wnd, title, {0, 0, 100, 0})
                 lbl1.setTextHorizontalAlignment(.Left)
@@ -274,20 +274,20 @@ impl IActionUI for ActionFile
             addLine(lt, appStrings().ui_DetailImageSize, Format.toString("%x%", capture.width, capture.height))
             if capture.capturedAt.isValid() do
                 addLine(lt, appStrings().ui_DetailCapturedAt, Format.toString("%", capture.capturedAt))
-            if !capture.sourceApplication.isEmpty() do
+            if not capture.sourceApplication.isEmpty() do
                 addLine(lt, appStrings().ui_DetailApplication, capture.sourceApplication)
-            if !capture.sourceWindowTitle.isEmpty() do
+            if not capture.sourceWindowTitle.isEmpty() do
                 addLine(lt, appStrings().ui_DetailWindowTitle, capture.sourceWindowTitle)
-            if !capture.sourceExecutable.isEmpty() do
+            if not capture.sourceExecutable.isEmpty() do
                 addLine(lt, appStrings().ui_DetailExecutable, capture.sourceExecutable)
-            if !capture.sourceWindowClass.isEmpty() do
+            if not capture.sourceWindowClass.isEmpty() do
                 addLine(lt, appStrings().ui_DetailWindowClass, capture.sourceWindowClass)
-            if !capture.tags.isEmpty()
+            if not capture.tags.isEmpty()
             {
                 var tags: String
                 for tag in capture.tags
                 {
-                    if !tags.isEmpty() do
+                    if not tags.isEmpty() do
                         tags += ", "
                     tags += tag[]
                 }
@@ -314,7 +314,7 @@ private func addImageFilters(opt: *FileDlgOptions, formats: const [..] ImageForm
 {
     for &format in formats where format.matches(preferred) do
         opt.filters.add({format.name, format.extensions})
-    for &format in formats where !format.matches(preferred) do
+    for &format in formats where not format.matches(preferred) do
         opt.filters.add({format.name, format.extensions})
 }
 
@@ -325,9 +325,9 @@ impl MainWnd
         var opt: FileDlgOptions
         with opt
         {
-            .state             = &me.fileDlgState
-            .mode              = .SelectFile
-            .title             = appStrings().dlg_TitleLoadImage
+            .state = &me.fileDlgState
+            .mode  = .SelectFile
+            .title = appStrings().dlg_TitleLoadImage
             .confirmButtonText = appStrings().dlg_BtnLoad
             .shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
             .shortcuts.add({Env.SpecialDirectory.UserPictures, appStrings().ui_MyImages})
@@ -430,7 +430,7 @@ impl MainWnd
     mtd dragOutCapture(from: *Wnd)
     {
         let capture = .getCapture()
-        if !capture do
+        if not capture do
             return
 
         Cursor.activateWait()
@@ -446,7 +446,7 @@ impl MainWnd
         // Which encoder runs is the registry's decision, taken from the extension.
         // Only the two formats that expose encoding options are tuned here; every other
         // encoder writes with its own defaults.
-        let ext          = Path.lowercaseExtension(nameFile)
+        let ext = Path.lowercaseExtension(nameFile)
         var optImg: any? = null
         var optPng: Png.EncodeOptions
         var optJpg: Jpg.EncodeOptions
@@ -455,7 +455,7 @@ impl MainWnd
         {
             optPng.compressionLevel = Core.Compress.Deflate.CompressionLevel.BestSpeed
             optPng.filtering        = false
-            optImg                  = optPng
+            optImg = optPng
         }
         elif ext == ".jpg" or ext == ".jpeg"
         {
@@ -501,9 +501,9 @@ impl MainWnd
         var opt: FileDlgOptions
         with opt
         {
-            .state             = &me.fileDlgState
-            .mode              = .CreateFile
-            .title             = appStrings().dlg_TitleSaveAsImage
+            .state = &me.fileDlgState
+            .mode  = .CreateFile
+            .title = appStrings().dlg_TitleSaveAsImage
             .confirmButtonText = appStrings().dlg_BtnSave
             .shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
             .shortcuts.add({Env.SpecialDirectory.UserPictures, appStrings().ui_MyImages})
@@ -515,7 +515,7 @@ impl MainWnd
         // it again does not silently change the format. PNG otherwise: it is lossless,
         // and a capture is text and flat color far more often than it is a photograph.
         var preferred = capture.linkedImage.toString()
-        if !Image.canSave(preferred) do
+        if not Image.canSave(preferred) do
             preferred = ".png"
 
         let formats = Image.encodableFormats()

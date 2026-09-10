@@ -188,7 +188,7 @@ var g_Int42:   s32 = 42
 {
     let v = cast(s32) (g_CondTrue ? g_Float15 : g_Float25)
     Swag.assert(v == 1)
-    let w = cast(s32) (!g_CondTrue ? g_Float15 : g_Float25)
+    let w = cast(s32) (not g_CondTrue ? g_Float15 : g_Float25)
     Swag.assert(w == 2)
 
     let f = g_CondTrue ? g_Float15 : g_Float25
@@ -203,7 +203,7 @@ var g_Int42:   s32 = 42
 {
     let x: f32 = g_CondTrue ? g_Int42 : 200
     Swag.assert(x == 42.0)
-    let y: f32 = !g_CondTrue ? g_Int42 : 200
+    let y: f32 = not g_CondTrue ? g_Int42 : 200
     Swag.assert(y == 200.0)
     let z: f64 = g_CondTrue ? g_Int42 : 200
     Swag.assert(z == 42.0)

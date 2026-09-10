@@ -74,7 +74,7 @@ internal struct CodeShebang
 // read from the bytes rather than from the file: the classifier has already read them.
 internal func codeShebang(source: string)->CodeShebang
 {
-    if !Utf8.startsWith(source, "#!") do
+    if not Utf8.startsWith(source, "#!") do
         return {}
     let lines = Tokenize.split(source, '\n'u8, maxSplit: 1)
     let line  = String.from(lines[0])
@@ -461,7 +461,7 @@ internal impl IRichEditLexer for GenericCodeLexer
                 if state == .MarkupComment
                 {
                     let first = seek
-                    while seek < length and !codeMatches(line, seek, "-->") do
+                    while seek < length and not codeMatches(line, seek, "-->") do
                         seek += 1
                     if seek < length
                     {
@@ -521,7 +521,7 @@ internal impl IRichEditLexer for GenericCodeLexer
                 if state == .BlockComment
                 {
                     let first = seek
-                    while seek < length and !codeMatches(line, seek, "*/") do
+                    while seek < length and not codeMatches(line, seek, "*/") do
                         seek += 1
                     if seek < length
                     {

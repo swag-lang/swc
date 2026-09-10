@@ -90,7 +90,7 @@ impl RecentView
 
     mtd select(idx: u64, force = false)
     {
-        if .selected == idx and !force do
+        if .selected == idx and not force do
             return
 
         if idx >= .items.count
@@ -340,7 +340,7 @@ impl IWnd for RecentWnd
         if g_CaptureSaves.busy() do
             return
         let failedSave = g_CaptureSaves.collect()
-        if !failedSave.isEmpty() do
+        if not failedSave.isEmpty() do
             MessageDlg.error(.main.surface!, Format.toString(appStrings().msg_FailedSaveCapture, failedSave))
 
         let maybeCapture = .main.editWnd.getCapture()
@@ -389,7 +389,7 @@ impl RecentWnd
         {
             .updateFlags(.CompactBars | .AlwaysShowHorizontal)
             .backgroundStyle = .Panel
-            .main            = main
+            .main = main
             .style.addStyleSheetColors("scrollBar_Bk $wnd_Bk")
 
             .recentView           = recent.createView'RecentView()
@@ -424,7 +424,7 @@ impl RecentWnd
                 if .recentView.selected == i
                 {
                     .recentView.selected = Swag.U64.Max
-                    if !.recentView.items.isEmpty() do
+                    if not .recentView.items.isEmpty() do
                         .recentView.select(Math.min(i, .recentView.items.count - 1))
                 }
 
@@ -478,8 +478,8 @@ impl RecentWnd
             return
 
         let file               = .pendingRecentFiles[.pendingRecentIndex]
-        let initialLoad        = !.main.editWnd.editView.capture
-        let capture: *Capture? = catch Capture.load(file, preview: !initialLoad)
+        let initialLoad        = not .main.editWnd.editView.capture
+        let capture: *Capture? = catch Capture.load(file, preview: not initialLoad)
         if capture
         {
             let loaded = capture
@@ -508,7 +508,7 @@ impl RecentWnd
         .timer = .app().addTimer(1's, me)
 
         let capture = .main.editWnd.getCapture()
-        if !capture do
+        if not capture do
             return
 
         let item = .recentView.items[.recentView.selected]!

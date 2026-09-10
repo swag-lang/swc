@@ -48,7 +48,7 @@ struct(T)
 
 #test
 {
-    let wrap: Wrapper's32                = {inner: {value: 12}}
+    let wrap: Wrapper's32 = {inner: {value: 12}}
     let pair: Pair'(Box's32, Box'string) = {first: {value: 7}, second: {value: "ok"}}
     let deep: Box'(Box'(Box'bool))       = {value: {value: {value: true}}}
 

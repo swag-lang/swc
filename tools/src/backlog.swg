@@ -50,7 +50,7 @@ private func parseStamp(text: string)->u64
     {
         if StampShape[i] == '0'
         {
-            if !Latin1.isDigit(text[i]) do
+            if not Latin1.isDigit(text[i]) do
                 return 0
             value = value * 10 + cast(u64) (text[i] - '0')
         }
@@ -132,7 +132,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
             allowUpdated  = false
             recorded      = 0
 
-            if !Utf8.startsWith(cast(const [..] u8) line, headingPrefix.toString())
+            if not Utf8.startsWith(cast(const [..] u8) line, headingPrefix.toString())
             {
                 Console.println("error: ", fileName, ":", lineNumber, ": backlog entry identifier does not match its file name")
                 result.errors += 1
@@ -141,7 +141,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
 
             let digitStart = headingPrefix.count
             let parsed     = parseDecimal(line, digitStart)
-            if parsed.value == 0 or parsed.end != digitStart + 3 or !Utf8.startsWith(cast(const [..] u8) line[parsed.end until line.count], " — ")
+            if parsed.value == 0 or parsed.end != digitStart + 3 or not Utf8.startsWith(cast(const [..] u8) line[parsed.end until line.count], " — ")
             {
                 Console.println("error: ", fileName, ":", lineNumber, ": malformed backlog identifier heading")
                 result.errors += 1
@@ -166,7 +166,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
                 continue
 
             awaitRecorded = false
-            if !Utf8.startsWith(cast(const [..] u8) trimmed, RecordedField)
+            if not Utf8.startsWith(cast(const [..] u8) trimmed, RecordedField)
             {
                 Console.println("error: ", fileName, ":", lineNumber, ": backlog entry does not open with '", RecordedField, "YYYY-MM-DD HH:MM'")
                 result.errors += 1
@@ -197,7 +197,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
         allowUpdated = false
         if Utf8.startsWith(cast(const [..] u8) trimmed, UpdatedField)
         {
-            if !updatedAllowed
+            if not updatedAllowed
             {
                 Console.println("error: ", fileName, ":", lineNumber, ": an Updated stamp must directly follow the entry's Recorded stamp")
                 result.errors += 1
@@ -215,7 +215,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
             }
 
             let note = rest[stamp.count until rest.count]
-            if !Utf8.startsWith(cast(const [..] u8) note, NoteSeparator) or Latin1.trim(note[NoteSeparator.count until note.count]).count == 0
+            if not Utf8.startsWith(cast(const [..] u8) note, NoteSeparator) or Latin1.trim(note[NoteSeparator.count until note.count]).count == 0
             {
                 Console.println("error: ", fileName, ":", lineNumber, ": an Updated stamp must say what changed after ' — '")
                 result.errors += 1
@@ -264,7 +264,7 @@ private func auditBacklogLink(fileName: string, lineNumber: u64, destination: st
 
     var target = path.count == 0 ? String.from(fileName) : Path.combine(Path.directoryName(fileName) orelse "", path)
     Path.normalize(&target)
-    if !File.exists(target.toString()) and !Directory.exists(target.toString())
+    if not File.exists(target.toString()) and not Directory.exists(target.toString())
     {
         Console.println("error: ", fileName, ":", lineNumber, ": backlog link target '", destination, "' is missing")
         return 1
@@ -349,7 +349,7 @@ private func isBacklogScope(text: string)->bool
             segments     += 1
             segmentStart = i + 1
         }
-        elif !Latin1.isLower(text[i]) and !Latin1.isDigit(text[i]) do
+        elif not Latin1.isLower(text[i]) and not Latin1.isDigit(text[i]) do
             return false
     }
 
@@ -359,12 +359,12 @@ private func isBacklogScope(text: string)->bool
 private func isBacklogIdentifier(text: string)->bool
 {
     let suffixDot = Utf8.lastIndexOf(cast(const [..] u8) text, ".")
-    if suffixDot == Swag.U64.Max or suffixDot + 4 != text.count or !isBacklogScope(text[0 until suffixDot]) do
+    if suffixDot == Swag.U64.Max or suffixDot + 4 != text.count or not isBacklogScope(text[0 until suffixDot]) do
         return false
 
     for i in suffixDot + 1 until text.count
     {
-        if !Latin1.isDigit(text[i]) do
+        if not Latin1.isDigit(text[i]) do
             return false
     }
 
@@ -395,13 +395,13 @@ private func auditBacklogRelated(fileName: string, seen: *HashSet'String)->u32 f
         else do
             related = false
 
-        if !related do
+        if not related do
             continue
 
         var start: u64
         while start < line.count
         {
-            while start < line.count and !Latin1.isLower(line[start]) do
+            while start < line.count and not Latin1.isLower(line[start]) do
                 start += 1
             if start == line.count do
                 break
@@ -414,7 +414,7 @@ private func auditBacklogRelated(fileName: string, seen: *HashSet'String)->u32 f
             while candidateEnd > start and line[candidateEnd - 1] == '.' do
                 candidateEnd -= 1
             let candidate = line[start until candidateEnd]
-            if isBacklogIdentifier(candidate) and !seen.contains(candidate)
+            if isBacklogIdentifier(candidate) and not seen.contains(candidate)
             {
                 Console.println("error: ", fileName, ":", lineNumber, ": Related identifier '", candidate, "' is not live")
                 errors += 1
@@ -440,7 +440,7 @@ private func auditBacklogIndex(fileName: string, readme: string, domains: const 
     {
         lineNumber += 1
         let trimmed = Latin1.trim(line)
-        if !Utf8.startsWith(cast(const [..] u8) trimmed, "| [") do
+        if not Utf8.startsWith(cast(const [..] u8) trimmed, "| [") do
             continue
 
         let open  = Utf8.indexOf(cast(const [..] u8) trimmed, "](")
@@ -480,7 +480,7 @@ private func auditBacklogIndex(fileName: string, readme: string, domains: const 
         }
     }
 
-    for domain in domains where !listed.contains(domain.name.toString())
+    for domain in domains where not listed.contains(domain.name.toString())
     {
         Console.println("error: ", fileName, ": inventory has no row for ", domain.name.toString())
         errors += 1
@@ -510,7 +510,7 @@ public func auditBacklog(context: *Context)->s32 fail
             continue
 
         let stem = Path.fileNameWithoutExtension(name) orelse ""
-        if !isBacklogScope(stem)
+        if not isBacklogScope(stem)
         {
             Console.println("error: backlog file name '", name, "' does not follow <scope>[.<subscope>...].md")
             errors += 1

@@ -68,7 +68,7 @@ func day3B()
         for j in t0.count - 1
         {
             let {intersects, point} = Geometry.intersectSegments(t1[i], t1[i + 1], t0[j], t0[j + 1])
-            if intersects and !point.isZero()
+            if intersects and not point.isZero()
             {
                 let d0 = point - t0[j]
                 let d1 = point - t1[i]

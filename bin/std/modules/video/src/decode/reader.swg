@@ -233,7 +233,7 @@ impl Reader
     private mtd start(fileName: string) fail
     {
         let found = findDecoder(fileName)
-        if !found do
+        if not found do
             fail UnsupportedFormatError{"no video decoder accepts this file extension"}
 
         let selected = found!
@@ -386,9 +386,9 @@ impl Reader
     // [[Video.Reader.hasPlanarFrames]] first.
     mtd decodeFramePlanesInto(target: *PlanarFrame, index: u64) fail
     {
-        if !.decoder do
+        if not .decoder do
             fail BadParameterError{"video reader has no open stream"}
-        if !.planarDecoder do
+        if not .planarDecoder do
             fail UnsupportedFormatError{"video stream does not decode to planar pictures"}
         let count = .frameCount()
         if count and index >= count do
@@ -404,7 +404,7 @@ impl Reader
     // See [[Video.IDecoder.syncFrameAt]]; the result is the frame count when none remains.
     mtd const syncFrameAt(index: u64)->u64
     {
-        if !.decoder do
+        if not .decoder do
             return 0
         return .decoder.syncFrameAt(index)
     }
@@ -415,7 +415,7 @@ impl Reader
         if .deferred do
             return .deferred!.durationInSeconds()
         let rate = .frameRate()
-        if !rate.isValid() do
+        if not rate.isValid() do
             return 0
         return cast(f64) .frameCount() * cast(f64) rate.denominator() / cast(f64) rate.numerator()
     }
@@ -440,7 +440,7 @@ impl Reader
     // unknown frame count is reached.
     mtd decodeFrameInto(target: *Image, index: u64) fail
     {
-        if !.decoder do
+        if not .decoder do
             fail BadParameterError{"video reader has no open stream"}
         let count = .frameCount()
         if count and index >= count do
@@ -453,7 +453,7 @@ impl Reader
 
     private mtd refreshDeferredInfo()
     {
-        if !.deferred do
+        if not .deferred do
             return
         .info.frameCount = .deferred!.frameCount()
         .info.frameRate  = .deferred!.frameRate()

@@ -27,6 +27,7 @@ func createListsPage(parent: *Wnd)
             return
         line.setItem(0, Format.toString("virtual result %     cache line %", idx, idx % 64), sampleIcon(cast(s32) idx))
     }
+
     virtualList.setVirtualCount(1_000_000)
 
     let bottom = createPanel(parent, "Checkable rows", "Rows can carry independent check state while preserving list navigation.", layout.bottom)

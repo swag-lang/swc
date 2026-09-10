@@ -65,7 +65,7 @@ struct FlatDiscount { amountCent: s32 }
 impl IDiscountRule for FlatDiscount
 {
     mtd impl apply(line: *OrderLine)->s32 => me.amountCent
-    mtd impl tag()->string                => "flat"
+    mtd impl tag()->string => "flat"
 }
 
 // Apply all rules to a single line, return best discount.
@@ -88,7 +88,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
     var rules: [1] IDiscountRule = [cast(IDiscountRule) bulk]
 
     var line: OrderLine = {kind: ProductKind.Electronics, quantity: 10, unitCent: 200}
-    let disc            = rules[0].apply(&line)
+    let disc = rules[0].apply(&line)
     Swag.assert(disc == 200)
 }
 
@@ -144,7 +144,7 @@ func classifyRule(rule: IDiscountRule)->s32
     case BulkDiscount: return 1
     case BookDiscount: return 2
     case FlatDiscount: return 3
-    default:           return 0
+    default: return 0
     }
 }
 

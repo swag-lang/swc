@@ -41,7 +41,7 @@ func awaitParked(count: u32)->bool
     Swag.setWorkerCount(4)
     var release, blocked, started: Swag.AtomicFlag
     var parked = false
-    var blocker, target:           Swag.Task
+    var blocker, target: Swag.Task
     defer
     {
         release.raise()
@@ -50,7 +50,7 @@ func awaitParked(count: u32)->bool
     blocker.submit(func|&blocked, &release|()
     {
         blocked.raise()
-        while !release.isRaised() do
+        while not release.isRaised() do
             Sleep(1)
     })
     target.submit(func|&started, &parked|()
@@ -125,7 +125,7 @@ func observe(param: *void?)->u32
         var joined = true
         for &observer in observers
         {
-            if !observer.handle
+            if not observer.handle
             {
                 joined = false
                 continue

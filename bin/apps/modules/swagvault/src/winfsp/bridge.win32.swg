@@ -28,7 +28,7 @@ namespace WinFsp
 
     func stringFromWide(value: [*] u16?)->String
     {
-        if !value do
+        if not value do
             return ""
         let validValue = value!
         return Utf8.fromUtf16(Swag.makeSlice(validValue, Utf16.lengthZeroTerminated(validValue)))
@@ -40,7 +40,7 @@ namespace WinFsp
         context.volume.accessLock.lockShared()
         defer context.volume.accessLock.unlockShared()
         let node = context.volume.nodeById(nodeId)
-        if !node do
+        if not node do
             return StatusObjectNameNotFound
 
         let available = securitySize[]
@@ -192,7 +192,7 @@ namespace WinFsp
             context.volume.accessLock.lockShared()
             defer context.volume.accessLock.unlockShared()
             let node = context.volume.nodeById(nodeId)
-            if !node do
+            if not node do
                 return StatusObjectNameNotFound
             stored.add(node!.security.toSlice())
         }

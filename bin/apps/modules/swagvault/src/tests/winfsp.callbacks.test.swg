@@ -78,7 +78,7 @@ func statusForError(kind: ErrorKind)->s32
     Swag.assert(info.fileAttributes & FileAttributeDirectory)
     Swag.assert(volume.sequence == sequenceBeforeCreate and volume.hasPendingChanges())
     WinFsp.callbackCleanup(context, directoryId, 0)
-    Swag.assert(volume.sequence == sequenceBeforeCreate + 1 and !volume.hasPendingChanges())
+    Swag.assert(volume.sequence == sequenceBeforeCreate + 1 and not volume.hasPendingChanges())
 
     let security: [4] u8 = [10, 20, 30, 40]
     callbackStatus = WinFsp.callbackCreate(context, ("\\docs\\data.bin").buffer, 0, FileAttributeNormal, 0, &security[0], #sizeof(security), &fileId, &info)
@@ -164,7 +164,7 @@ func statusForError(kind: ErrorKind)->s32
     complete        = 0
     callbackStatus  = WinFsp.callbackReadDirectory(context, directoryId, null, &captureDirectoryEntry, &firstPage, &complete)
     Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(!complete and firstPage.names.count == 3 and firstPage.names[2] == "data.bin")
+    Swag.assert(not complete and firstPage.names.count == 3 and firstPage.names[2] == "data.bin")
 
     var secondPage: DirectoryCapture
     complete       = 0
@@ -205,7 +205,7 @@ func statusForError(kind: ErrorKind)->s32
     // nobody to accept a Windows consent dialog, so a test that regressed into
     // mounting would hang rather than fail. The guardian refuses outright in
     // this build, and the mounting harness is not even compiled into it.
-    Swag.assert(!WinFsp.canRequestElevation())
+    Swag.assert(not WinFsp.canRequestElevation())
     discard catch WinFsp.ensurePortableGuardian() as elevationRefused
     Swag.assert(elevationRefused != null)
 }

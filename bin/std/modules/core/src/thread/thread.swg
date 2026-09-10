@@ -41,7 +41,7 @@ impl Thread
     // Releases resources owned by this value.
     mtd opDrop()
     {
-        Swag.assert(!.isValid(), "thread is not terminated")
+        Swag.assert(not .isValid(), "thread is not terminated")
     }
 
     // Returns true if the thread is valid
@@ -79,7 +79,7 @@ impl Thread
     // Creates a suspended thread with a cloned runtime context.
     mtd init(lambda: func||(Thread), userParam: *void? = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) fail
     {
-        Swag.assert(!.isValid(), "thread already created")
+        Swag.assert(not .isValid(), "thread already created")
 
         .context = Swag.getContext()[]
         Swag.init(&.context.tempAllocator, 1)

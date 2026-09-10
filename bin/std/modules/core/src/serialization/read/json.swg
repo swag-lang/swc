@@ -75,7 +75,7 @@ public impl Json
         for 4
         {
             let c = .stream.readU8()
-            if !Latin1.isHexDigit(c) do
+            if not Latin1.isHexDigit(c) do
                 fail .getError("JSON Unicode escape needs four hexadecimal digits")
 
             value <<= 4
@@ -113,7 +113,7 @@ public impl Json
         while true
         {
             let c = .stream.readU8()
-            if !c do
+            if not c do
                 fail .getError("JSON string is missing its closing quote")
             if c == '"' do
                 return
@@ -173,7 +173,7 @@ public impl Json
         if .stream.peekU8() == '.'
         {
             .stream.advance()
-            if !Latin1.isDigit(.stream.peekU8()) do
+            if not Latin1.isDigit(.stream.peekU8()) do
                 fail .getError("JSON number is missing digits after its decimal point")
             while Latin1.isDigit(.stream.peekU8()) do
                 .stream.advance()
@@ -186,7 +186,7 @@ public impl Json
             let sign = .stream.peekU8()
             if sign == '+' or sign == '-' do
                 .stream.advance()
-            if !Latin1.isDigit(.stream.peekU8()) do
+            if not Latin1.isDigit(.stream.peekU8()) do
                 fail .getError("JSON number is missing exponent digits")
             while Latin1.isDigit(.stream.peekU8()) do
                 .stream.advance()
@@ -302,7 +302,7 @@ public impl Json
     mtd startRead(input: const [..] u8) fail
     {
         .stream = ByteStream.openRead(input)
-        if !Utf8.isValid(input) do
+        if not Utf8.isValid(input) do
             fail .getError("JSON document is not valid UTF-8")
         .propName.clear()
         .containerDepth = 0
@@ -371,7 +371,7 @@ public impl Json
     // Finds a property by name in the current object.
     mtd beginElement(val: TypeValue)->bool fail
     {
-        if !.containerDepth do
+        if not .containerDepth do
             fail .getError("JSON property is outside an object")
         let index = .containerDepth - 1
         if .containerKinds[index] != 1 do
@@ -423,7 +423,7 @@ public impl Json
     // Begins a value, consuming the separator required by an enclosing array.
     mtd beginValue() fail
     {
-        if !.containerDepth do
+        if not .containerDepth do
             return
         let index = .containerDepth - 1
         if .containerKinds[index] != 0 do

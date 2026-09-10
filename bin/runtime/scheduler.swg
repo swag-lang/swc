@@ -114,7 +114,7 @@ internal func schedulerInstance()->*Scheduler
         return cast(*Scheduler) known
 
     let created = cast(*Scheduler?) __bootstrapAlloc(#sizeof(Scheduler))
-    if !created do
+    if not created do
         Swag.panic("cannot allocate the runtime scheduler", #curlocation)
 
     let winner = cast(*Scheduler) __hostProcessSingleton(SchedulerAnchorKey, created!)
@@ -216,7 +216,7 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
     if target <= count do
         return
 
-    if !sched.workers
+    if not sched.workers
     {
         // The roster is allocated once and never moves: a worker's context and its host thread
         // hold its address for the life of the process.
@@ -227,7 +227,7 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
             capacity = MaxWorkers
 
         let workers = cast([*] Worker?) __bootstrapAlloc(cast(u64) capacity * #sizeof(Worker))
-        if !workers do
+        if not workers do
             return
 
         sched.workers  = workers
@@ -253,7 +253,7 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
         worker.context.traceIndex = 0
 
         worker.handle = __hostThreadCreate(&schedulerWorkerEntry, worker)
-        if !worker.handle do
+        if not worker.handle do
             break
         count += 1
         sched.count.store(count)
@@ -372,7 +372,7 @@ private func popWork(sched: *Scheduler, target: *WorkNode? = null)->*WorkNode?
     defer sched.mutex.unlock()
 
     let node = target orelse sched.head
-    if !node do
+    if not node do
         return null
     if node.state.load() != WorkStateQueued do
         return null
@@ -394,7 +394,7 @@ internal func runPendingWork()->bool
 {
     let sched = schedulerInstance()
     let node  = popWork(sched)
-    if !node do
+    if not node do
         return false
 
     runWork(sched, node!, true)
@@ -426,7 +426,7 @@ private func schedulerWorkerEntry(param: *void?)->u32
             break
         }
 
-        if !sched.head do
+        if not sched.head do
             sched.ready.wait(&sched.mutex)
         sched.mutex.unlock()
     }
@@ -551,7 +551,7 @@ public func drainWork()
 internal func __shutdownScheduler()
 {
     let sched = g_Scheduler.load()
-    if sched == 0 or !g_SchedulerOwned do
+    if sched == 0 or not g_SchedulerOwned do
         return
 
     drainWork()

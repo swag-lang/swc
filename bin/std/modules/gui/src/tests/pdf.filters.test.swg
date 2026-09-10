@@ -20,7 +20,7 @@ using Core, Pdf
 {
     // Nine bits of clear code, then seven bits that cannot complete a code.
     let truncated: [2] u8 = [0x80, 0x0B]
-    let padded            = expect decodeLzw(truncated)
+    let padded = expect decodeLzw(truncated)
     Swag.assert(padded.isEmpty())
 
     // A clear code followed by code 259, which no entry defines yet.

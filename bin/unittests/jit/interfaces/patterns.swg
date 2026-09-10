@@ -28,10 +28,10 @@ func runActionRegistry()->bool
     let actions: [2] IAction = [cast(IAction) undo, cast(IAction) redo]
 
     return actions[0].accept(1) and
-           !actions[0].accept(2) and
+           not actions[0].accept(2) and
            actions[0].execute(2) == 42 and
            actions[1].accept(2) and
-           !actions[1].accept(1) and
+           not actions[1].accept(1) and
            actions[1].execute(3) == 83
 }
 

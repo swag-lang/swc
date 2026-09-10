@@ -162,7 +162,7 @@ private func parseGlyphHex(digits: string)->rune
     var result = 0'u32
     for c in cast(const [..] u8) digits
     {
-        if !isHex(c) do
+        if not isHex(c) do
             return 0
         result = result * 16 + hexValue(c)
     }

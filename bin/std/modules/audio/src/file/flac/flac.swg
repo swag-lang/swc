@@ -44,7 +44,7 @@ private func frameHeaderSize(bytes: const [..] u8, offset: u64)->u64
 
     let blockSizeCode  = bytes[offset + 2] >> 4
     let sampleRateCode = bytes[offset + 2] & 0x0F
-    if !blockSizeCode or sampleRateCode == 0x0F do
+    if not blockSizeCode or sampleRateCode == 0x0F do
         return 0
 
     // The frame or sample number is stored the way UTF-8 stores a code point.
@@ -121,7 +121,7 @@ private func readPrologue(source: *ByteSource)->Prologue fail
             fail InvalidFormatError{"FLAC metadata block runs past the end of the file"}
 
         // The stream information block is the first one, and the only one this reads.
-        if !kind and !sawFirst
+        if not kind and not sawFirst
         {
             if length != StreamInfoSize do
                 fail InvalidFormatError{"FLAC stream information block has the wrong size"}
@@ -133,7 +133,7 @@ private func readPrologue(source: *ByteSource)->Prologue fail
             break
     }
 
-    if !sawFirst do
+    if not sawFirst do
         fail InvalidFormatError{"FLAC file has no stream information block"}
 
     result.config.resize(offset)
@@ -163,11 +163,11 @@ private func findFrameEnd(source: *ByteSource, start: u64)->u64 fail
     {
         try source.seek(start)
         let bytes = try source.peek(want)
-        if !frameHeaderSize(bytes, 0) do
+        if not frameHeaderSize(bytes, 0) do
             fail InvalidFormatError{"FLAC file does not start a frame where one is expected"}
 
         var scan = 1'u64
-        while scan < bytes.count and !frameHeaderSize(bytes, scan) do
+        while scan < bytes.count and not frameHeaderSize(bytes, scan) do
             scan += 1
         if scan < bytes.count do
             return start + scan
@@ -215,7 +215,7 @@ internal func openFile(path: string)->SoundFile fail
 
     var packets: Array'SoundPacket
     let frames = try readFrameIndex(&source, prologue.firstFrame, &packets)
-    if !packets.count do
+    if not packets.count do
         fail InvalidFormatError{"FLAC file carries no audio frame"}
 
     // The stream information may state the length; when it does, it is what the file promises.

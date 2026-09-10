@@ -66,7 +66,7 @@ impl DragContent
     // slice from then on, which is what a target reads as a file it was offered and cannot have.
     mtd data()->const [..] u8
     {
-        if !.produced
+        if not .produced
         {
             .produced = true
             if .producer do
@@ -77,7 +77,7 @@ impl DragContent
     }
 
     // Reports whether the content is already in hand, without producing it.
-    mtd const isReady()->bool => .produced or !.producer
+    mtd const isReady()->bool => .produced or not .producer
 }
 
 // Payload of one drag gesture, in both directions.
@@ -129,7 +129,7 @@ impl DragData
     mtd const hasContents()->bool => .contents.count != 0
 
     // Reports whether the source offers text.
-    mtd const hasText()->bool => !.text.isEmpty()
+    mtd const hasText()->bool => not .text.isEmpty()
 
     // Reports whether the source offers an image, without decoding or encoding anything.
     mtd const hasImage()->bool => .imageBytes.count != 0 or .imageValue.isValid()
@@ -151,14 +151,14 @@ impl DragData
     // decode answers `null` from then on. The image belongs to this payload and dies with it.
     mtd image()->*Pixel.Image?
     {
-        if !.imageDecoded
+        if not .imageDecoded
         {
             .imageDecoded = true
             if .imageBytes.count do
                 .imageValue = catch Pixel.Image.decode(.imageName.toString(), .imageBytes.toSlice(), {})
         }
 
-        if !.imageValue.isValid() do
+        if not .imageValue.isValid() do
             return null
         return &.imageValue
     }
@@ -240,13 +240,13 @@ impl DragData
     // bitmap. A picture that fails to encode answers an empty slice from then on.
     internal mtd encodedImage()->const [..] u8
     {
-        if !.imageEncoded
+        if not .imageEncoded
         {
             .imageEncoded = true
 
             var opt: Pixel.Png.EncodeOptions
             opt.compressionLevel = .BestSpeed
-            .imageBytes          = catch .imageValue.encodeToBytes(.imageName.toString(), opt)
+            .imageBytes = catch .imageValue.encodeToBytes(.imageName.toString(), opt)
         }
 
         return .imageBytes.toSlice()
@@ -306,9 +306,9 @@ func pickDropEffect(allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEff
     let wantsLink = modifiers.has(.Control) and modifiers.has(.Shift)
     if wantsLink and allowed.has(.Link) do
         return .Link
-    if !wantsLink and modifiers.has(.Shift) and allowed.has(.Move) do
+    if not wantsLink and modifiers.has(.Shift) and allowed.has(.Move) do
         return .Move
-    if !wantsLink and modifiers.has(.Control) and allowed.has(.Copy) do
+    if not wantsLink and modifiers.has(.Control) and allowed.has(.Copy) do
         return .Copy
 
     if allowed.has(.Copy) do
@@ -365,7 +365,7 @@ impl Application
                 discard .sendDragEvent(target, .Enter, screenPos, data, allowed, modifiers)
         }
 
-        if !target do
+        if not target do
             return .None
 
         return .sendDragEvent(target, .Over, screenPos, data, allowed, modifiers)
@@ -376,7 +376,7 @@ impl Application
     {
         let target = .dragEnterWnd
         .dragEnterWnd = null
-        if !target do
+        if not target do
             return
 
         discard .sendDragEvent(target, .Leave, .dragScreenPos, data, .None, Input.KeyModifiers.None)
@@ -400,7 +400,7 @@ impl Application
             discard .sendDragEvent(.dragEnterWnd, .Leave, screenPos, data, .None, modifiers)
         .dragEnterWnd = null
 
-        if !target do
+        if not target do
             return .None
 
         let effect = .sendDragEvent(target, .Drop, screenPos, data, allowed, modifiers)

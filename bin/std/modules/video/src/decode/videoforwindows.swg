@@ -78,7 +78,7 @@ func inlineSetupHeaders(sample: const [..] u8)->const [..] u8
 {
     if sample.count < 4 do
         return sample
-    for at in sample.count - 3 where !sample[at] and !sample[at + 1] and sample[at + 2] == 1 and cast(u32) sample[at + 3] == Mpeg4.CodeVop do
+    for at in sample.count - 3 where not sample[at] and not sample[at + 1] and sample[at + 2] == 1 and cast(u32) sample[at + 3] == Mpeg4.CodeVop do
         return sample[0 until at]
     return sample
 }

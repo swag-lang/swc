@@ -72,7 +72,7 @@ func scenarioNewCapture(main: *MainWnd, application: string)->String
     capture.sourceApplication = application
     capture.sourceExecutable  = "scenario.exe"
     capture.sourceWindowTitle = "Scenario window"
-    capture.changed           = true
+    capture.changed = true
     capture.computePreview()
     main.saveCapture(capture)
     return String.from(capture.file)
@@ -112,7 +112,7 @@ func scenarioDeleteCaptureFiles(path: String)
 
     f.toggleLibrary()
 
-    Swag.assert(!f.main.libraryMode)
+    Swag.assert(not f.main.libraryMode)
     Swag.assert(f.main.editWnd.getCapture()!.file == path)
 }
 
@@ -150,7 +150,7 @@ func scenarioDeleteCaptureFiles(path: String)
     f.main.libWnd.view.openItem(item)
     f.gui.pump()
 
-    Swag.assert(!f.main.libraryMode)
+    Swag.assert(not f.main.libraryMode)
     Swag.assert(f.main.editWnd.getCapture()!.file == path)
     Swag.assert(f.main.editWnd.getCapture()!.title == "Persisted scenario")
     Swag.assert(f.main.editWnd.getCapture()!.forms.count == 1)
@@ -178,7 +178,7 @@ func scenarioDeleteCaptureFiles(path: String)
     f.gui.pump()
 
     Swag.assert(f.gui.autoHandled)
-    Swag.assert(!File.exists(path))
+    Swag.assert(not File.exists(path))
     Swag.assert(File.exists(trashPath))
     Swag.assert(g_Library.files.count == 0)
     Swag.assert(f.main.recentWnd.recentView.items.count == 0)
@@ -205,7 +205,7 @@ func scenarioDeleteCaptureFiles(path: String)
     Swag.assert(actionExecuted)
     f.gui.pump()
 
-    Swag.assert(!File.exists(path))
+    Swag.assert(not File.exists(path))
     Swag.assert(File.exists(trashPath))
 
     f.main.libWnd.setTrashMode(true)
@@ -217,7 +217,7 @@ func scenarioDeleteCaptureFiles(path: String)
     Swag.assert(actionExecuted)
 
     Swag.assert(File.exists(path))
-    Swag.assert(!File.exists(trashPath))
+    Swag.assert(not File.exists(trashPath))
     Swag.assert(g_Library.files.count == 1)
 
     f.main.libWnd.setTrashMode(false)
@@ -226,7 +226,7 @@ func scenarioDeleteCaptureFiles(path: String)
     f.main.libWnd.view.openItem(f.main.libWnd.view.items[0]!)
     f.gui.pump()
 
-    Swag.assert(!f.main.libraryMode)
+    Swag.assert(not f.main.libraryMode)
     Swag.assert(f.main.editWnd.getCapture()!.file == path)
 }
 
@@ -257,6 +257,6 @@ func scenarioDeleteCaptureFiles(path: String)
     Swag.assert(f.main.recentWnd.recentView.items.count == 1)
     Swag.assert(f.main.recentWnd.recentView.selected == 0)
     Swag.assert(f.main.editWnd.getCapture()!.file == secondPath)
-    Swag.assert(!File.exists(firstPath))
+    Swag.assert(not File.exists(firstPath))
     Swag.assert(File.exists(secondPath))
 }

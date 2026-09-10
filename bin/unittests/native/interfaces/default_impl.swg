@@ -30,5 +30,5 @@ impl ITest for Point3 {}
     Swag.assert(i2.isImplemented())
 
     let i3 = cast(ITest) v3
-    Swag.assert(!i3.isImplemented())
+    Swag.assert(not i3.isImplemented())
 }

@@ -69,7 +69,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
             one = Tokenize.eatSpaces(one)
             let id = parseIdentifier(one) orelse ""
             let v  = Reflection.enumValue(type, id)
-            if !v do
+            if not v do
                 fail InvalidFormatError{Errors.mkString(Format.toString("unknown enum value [[%]]", id))}
             let enumValue = v.value!
 
@@ -77,7 +77,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
             {
                 patch[as string] = enumValue[as string]
             }
-            elif !enumFlags
+            elif not enumFlags
             {
                 switch enumType.sizeof
                 {
@@ -99,11 +99,11 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
             }
 
             one = Tokenize.eatCount(one, id.count)
-            if !enumFlags do
+            if not enumFlags do
                 break
 
             one = Tokenize.eatSpaces(one)
-            if !one.count do
+            if not one.count do
                 break
             if one[0] == '#' do
                 break
@@ -128,14 +128,14 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
     if Reflection.isStruct(type) and type != String
     {
         let structType = cast(const *TypeInfoStruct) type
-        if !one.count or one[0] != '{' do
+        if not one.count or one[0] != '{' do
             fail InvalidFormatError{Errors.mkString(Format.toString("missing [[{]] for struct [[%]]", type.name))}
         one = Tokenize.eatCount(one, 1)
         one = Tokenize.eatSpaces(one)
 
         for field in structType.fields
         {
-            if !one.count or one[0] == '}' do
+            if not one.count or one[0] == '}' do
                 break
             one = (parseValue(cast([*] u8) addr + field.offset, field.pointedType!, one) orelse "")
             one = Tokenize.eatSpaces(one)
@@ -146,7 +146,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
             }
         }
 
-        if !one.count or one[0] != '}' do
+        if not one.count or one[0] != '}' do
             fail InvalidFormatError{Errors.mkString(Format.toString("missing [[}]] for struct [[%]]", type.name))}
         one = Tokenize.eatCount(one, 1)
         return one
@@ -163,7 +163,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
         return Tokenize.eatCount(one, cast(u64) eat)
     }
 
-    if !Reflection.isNative(type) do
+    if not Reflection.isNative(type) do
         fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]]", type.name))}
 
     let nativeType = cast(const *TypeInfoNative) type

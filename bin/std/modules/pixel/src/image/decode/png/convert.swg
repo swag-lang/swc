@@ -12,7 +12,7 @@
 
 using Core, Core.Errors
 
-const Swap16Bytes           = cast(Math.Simd.U8x16) [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14]
+const Swap16Bytes = cast(Math.Simd.U8x16) [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14]
 const ExpandRgbTransparency = cast(Math.Simd.U8x16) [0'u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80]
 
 // Building the packed table breaks even at 512 pixels on the supported x64 baseline.
@@ -110,17 +110,17 @@ impl Decoder
             (cast([*] u32) (dst + 3))[0] = packedPalette[src[1]]
             (cast([*] u32) (dst + 6))[0] = packedPalette[src[2]]
             (cast([*] u32) (dst + 9))[0] = packedPalette[src[3]]
-            src       += 4
-            dst       += 12
-            remaining -= 4
+            src                          += 4
+            dst                          += 12
+            remaining                    -= 4
         }
 
         while remaining > 1
         {
             (cast([*] u32) dst)[0] = packedPalette[src[0]]
-            src                    += 1
-            dst                    += 3
-            remaining              -= 1
+            src       += 1
+            dst       += 3
+            remaining -= 1
         }
 
         let color = packedPalette[src[0]]
@@ -366,7 +366,7 @@ impl Decoder
         }
 
         // Paletted, no transparency
-        if .inChannels == 1 and .seenPLTE and !.seenTRSN
+        if .inChannels == 1 and .seenPLTE and not .seenTRSN
         {
             .convertPaletteRgb(result)
         }
@@ -378,7 +378,7 @@ impl Decoder
         }
 
         // Grayscale without alpha channel, no transparency
-        elif .inChannels == 1 and !.seenTRSN
+        elif .inChannels == 1 and not .seenTRSN
         {
             .convertGrayscaleRgb(result)
         }

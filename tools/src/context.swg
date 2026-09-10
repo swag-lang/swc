@@ -41,7 +41,7 @@ public impl Context
 
         let name = options.devMode ? "swc.dm.exe" : "swc.exe"
         result.compiler = Path.combine(result.binDir.toString(), name)
-        if !File.exists(result.compiler) do
+        if not File.exists(result.compiler) do
             fail Errors.FileNotFoundError{"the compiler under test has not been built", fileName: result.compiler.toString()}
 
         // A started compiler takes the library beside itself, and the one started here always sits

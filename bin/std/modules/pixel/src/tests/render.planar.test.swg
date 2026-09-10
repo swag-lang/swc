@@ -94,10 +94,10 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
 {
     Swag.assert(PixelFormat.RGB8.isPacked())
     Swag.assert(PixelFormat.BGRA8.isPacked())
-    Swag.assert(!PixelFormat.Yuv420.isPacked())
+    Swag.assert(not PixelFormat.Yuv420.isPacked())
     Swag.assert(PixelFormat.Yuv420.channels() == 3)
     Swag.assert(PixelFormat.Yuv420.bitDepth() == 8)
-    Swag.assert(!PixelFormat.Yuv420.hasAlpha())
+    Swag.assert(not PixelFormat.Yuv420.hasAlpha())
     Swag.assert(PixelFormat.Yuv420.bitsPerPixel() == 12)
 }
 

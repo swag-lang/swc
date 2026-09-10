@@ -138,7 +138,7 @@ impl MediaInfoData
     mtd addImageMetadata(records: const [..] ImageMetadata, pngText = false)
     {
         .add(.Metadata, group: true)
-        if !records.count
+        if not records.count
         {
             .add(.Empty)
             return
@@ -190,7 +190,8 @@ impl MediaInfoData
 struct MediaInfoPanel
 {
     using wnd: Wnd
-        late
+
+    late
     {
         title:       *Label
         closeButton: *IconButton
@@ -228,23 +229,25 @@ impl MediaInfoPanel
             panel.toggle.setChecked(false)
             panel.toggle.sigCheckedChanged.call(panel.toggle)
         }
-        result.copyButton            = IconButton.create(header, theme.icon(.Copy, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
+
+        result.copyButton = IconButton.create(header, theme.icon(.Copy, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
         result.copyButton.dockStyle  = .Right
         result.copyButton.sigPressed += func|panel = result|(button)
         {
             discard button
             Clipboard.addString(panel.text().toString())
         }
-        result.title           = Label.create(header, "")
+
+        result.title = Label.create(header, "")
         result.title.dockStyle = .Center
         result.title.setTextAlignment(.Left, .Center)
         result.title.style.setFont(theme.createDefaultFont(13, .Bold), .Regular)
 
         with result.list = ListCtrl.createMultiColumns(result)
         {
-            .dockStyle                = .Center
-            .margin.y                 = 8
-            .backgroundStyle          = .Transparent
+            .dockStyle       = .Center
+            .margin.y        = 8
+            .backgroundStyle = .Transparent
             .listView.backgroundStyle = .Transparent
             .setSelectionMode(.Single)
             .setFirstColumnIconMargin(false)
@@ -265,7 +268,7 @@ impl MediaInfoPanel
         for row in .data.rows
         {
             result += row.label()
-            if !row.value.isEmpty() do
+            if not row.value.isEmpty() do
                 result += Format.toString(": %", row.value)
             result += "\n"
         }
@@ -304,7 +307,7 @@ impl MediaInfoPanel
         .toggle.toolTip      = g_MediaInfoStrings.title
         .closeButton.toolTip = g_MediaInfoStrings.close
         .copyButton.toolTip  = g_MediaInfoStrings.copy
-        .copyButton.enable(!.data.rows.isEmpty())
+        .copyButton.enable(not .data.rows.isEmpty())
         .list.header.itemAt(0).name = g_MediaInfoStrings.property
         .list.header.itemAt(1).name = g_MediaInfoStrings.value
         .list.header.invalidate()

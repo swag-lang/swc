@@ -39,7 +39,7 @@ impl IRenderer for RenderOgl
 
         let sharedRC = .nativeContext
         var ogl      = try .native.createWindowContext(renderHandle, width, height, sharedRC)
-        if !.nativeContext
+        if not .nativeContext
         {
             .nativeContext = ogl.hRC
             ogl.ownsRC     = false
@@ -53,7 +53,7 @@ impl IRenderer for RenderOgl
 
     mtd impl deleteContext(context: *RenderContext)
     {
-        if !context.data
+        if not context.data
         {
             context[] = {}
             return
@@ -62,7 +62,7 @@ impl IRenderer for RenderOgl
         let ogl = oglContext(context[])
         Swag.assert(.contextCount > 0)
         .contextCount -= 1
-        if !.contextCount
+        if not .contextCount
         {
             .native.setCurrentContext(ogl[])
             .releaseFontTextures()
@@ -71,7 +71,7 @@ impl IRenderer for RenderOgl
         .native.dropContext(ogl[])
         Memory.delete(ogl)
 
-        if !.contextCount
+        if not .contextCount
         {
             .native.deleteContextHandle(.nativeContext)
             .nativeContext = null

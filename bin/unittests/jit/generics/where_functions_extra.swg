@@ -196,8 +196,8 @@ impl InterpolationWindow
 
 #test
 {
-    let floatWindow:  Window'(f32, 3)              = {values: [10.0'f32, 20.0, 30.0]}
-    let intWindow:    Window'(s32, 3)              = {values: [1, 2, 3]}
+    let floatWindow:  Window'(f32, 3) = {values: [10.0'f32, 20.0, 30.0]}
+    let intWindow:    Window'(s32, 3) = {values: [1, 2, 3]}
     let interpolated: InterpolationWindow'(f64, 3) = {values: [10.0'f64, 20.0, 30.0]}
 
     Swag.assert(floatWindow.at'1() == 20.0'f32)

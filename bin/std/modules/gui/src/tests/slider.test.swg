@@ -135,7 +135,7 @@ func sliderHeadlessReset()
     Swag.assert(valLeft < valRight)
 
     host.mouseUp({40, 35})
-    Swag.assert(!slider.isMoving)
+    Swag.assert(not slider.isMoving)
     Swag.assert(host.app.mouseCaptureWnd == null)
     Swag.assert(SliderHeadlessEndCount == 1)
 }

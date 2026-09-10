@@ -144,7 +144,7 @@ func getOutlineBounds(outline: const *Outline)->BBox
 
 func countBitmapCoverage(bitmap: const *Bitmap)->u32
 {
-    if !bitmap.buffer do
+    if not bitmap.buffer do
         return 0
 
     var count = 0'u32

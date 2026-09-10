@@ -116,8 +116,8 @@ struct Properties
 
         readonly
         {
-            kind             = PropertiesKind.List     // Presentation selected at creation.
-            editorWidth: s32 = 200                     // Preferred maximum width of value editors.
+            kind = PropertiesKind.List     // Presentation selected at creation.
+            editorWidth: s32 = 200         // Preferred maximum width of value editors.
 
             // Affects rows added after the option changes.
             usingFieldsLast: bool
@@ -276,7 +276,7 @@ impl IWnd for Properties
         evt.accepted = false
 
         let item = .menuItem
-        if !item do
+        if not item do
             return
 
         var scan = cast(*PropertiesItem?) item
@@ -301,7 +301,7 @@ internal impl Properties
 {
     mtd hasActiveFilter()->bool
     {
-        return .modifiedOnly or !.stringFilter.isEmpty()
+        return .modifiedOnly or not .stringFilter.isEmpty()
     }
 
     mtd itemState(item: *PropertiesItem)->{ visible, enable: bool }
@@ -310,9 +310,9 @@ internal impl Properties
 
         if .hostNtfy
         {
-            if !.hostNtfy.isItemVisible(me, item) do
+            if not .hostNtfy.isItemVisible(me, item) do
                 result.visible = false
-            if !.hostNtfy.isItemEnabled(me, item) do
+            if not .hostNtfy.isItemEnabled(me, item) do
                 result.enable = false
         }
 
@@ -321,13 +321,13 @@ internal impl Properties
         {
             if scan.ntfyItf
             {
-                if !scan.ntfyItf.isItemVisible(me, item) do
+                if not scan.ntfyItf.isItemVisible(me, item) do
                     result.visible = false
-                if !scan.ntfyItf.isItemEnabled(me, item) do
+                if not scan.ntfyItf.isItemEnabled(me, item) do
                     result.enable = false
             }
 
-            if !result.visible and !result.enable do
+            if not result.visible and not result.enable do
                 return result
 
             scan = scan.parent
@@ -335,7 +335,7 @@ internal impl Properties
             // A filter is a request to find a field, so a collapsed ancestor must not hide a
             // match. Keep its expansion bit untouched and reveal the matching branch only for
             // as long as the filter is active.
-            if scan and .isGridLike() and !.hasActiveFilter() and scan.numChilds and !scan.flags.has(.Expanded) do
+            if scan and .isGridLike() and not .hasActiveFilter() and scan.numChilds and not scan.flags.has(.Expanded) do
                 result.visible = false
         }
 
@@ -344,7 +344,7 @@ internal impl Properties
 
     mtd refreshItem(item: *PropertiesItem)
     {
-        if !item.sigRefresh.isEmpty()
+        if not item.sigRefresh.isEmpty()
         {
             item.sigRefresh.call(item)
             return
@@ -508,7 +508,7 @@ impl Properties
     // detached from the rows); the internal one is cleared with the content it refers to.
     mtd clear()
     {
-        if !.externUndoMgr do
+        if not .externUndoMgr do
             .undoMgr.clear()
 
         .generation += 1
@@ -579,9 +579,9 @@ impl Properties
             let v: Swag.TypeValue
             item = .addItem(v, null, null, 0, .None)
             item.flags.add(.Section | .NoSeparator | .Expanded | .NoFocus)
-            item.valueCellHeight                   = 0
-            item.line.position.height              = 0
-            item.line.preferredSize.y              = 0
+            item.valueCellHeight      = 0
+            item.line.position.height = 0
+            item.line.preferredSize.y = 0
             item.line.margin.y, item.line.margin.w = 0
         }
 
@@ -618,7 +618,7 @@ impl Properties
         {
             let it = .items[i]!
             it.dataInstances.clear()
-            if !it.data do
+            if not it.data do
                 continue
 
             if .isUnderDynamicArray(it!)
@@ -649,12 +649,12 @@ impl Properties
         // the other edited instances so they all change together. Composite editors that
         // touch only part of the field (vector component, enum-flags bit) write every
         // instance themselves and opt out, so we don't overwrite the untouched parts.
-        if !item.selfPropagate do
+        if not item.selfPropagate do
             .propagateField(item)
 
         // Record the edit for undo/redo (diff against the row's snapshot). Skipped while a
         // command is itself restoring a value (applyingUndo), so undo/redo don't re-record.
-        if !.applyingUndo do
+        if not .applyingUndo do
             .recordUndo(item)
 
         .finishItemChange(item)
@@ -726,7 +726,7 @@ impl Properties
     // Expands every collapsible section and category in grid presentations.
     mtd expandAll()
     {
-        if !.isGridLike() do
+        if not .isGridLike() do
             return
 
         for item in .items where item!.numChilds do
@@ -741,7 +741,7 @@ impl Properties
     // cannot reopen.
     mtd collapseAll()
     {
-        if !.isGridLike() do
+        if not .isGridLike() do
             return
 
         for item in .items where item!.numChilds and item!.line.position.height > 0 do
@@ -754,7 +754,7 @@ impl Properties
     // unchanged.
     mtd expandModified()
     {
-        if !.isGridLike() do
+        if not .isGridLike() do
             return
 
         for item in .items where item!.numChilds and item!.line.position.height > 0 do
@@ -787,7 +787,7 @@ impl Properties
     // chain. Read-only items are shown but cannot be edited or pasted into.
     mtd isItemReadOnly(item: *PropertiesItem)->bool
     {
-        if !item.type do
+        if not item.type do
             return false
 
         // Static strings are inherently read-only (shown with a read-only editor).
@@ -814,7 +814,7 @@ impl Properties
     // Returns true if the given item can be changed (edited / pasted into)
     internal mtd canChangeItem(item: *PropertiesItem)->bool
     {
-        if !item.data or !item.type do
+        if not item.data or not item.type do
             return false
 
         if .isItemReadOnly(item) do
@@ -839,8 +839,8 @@ impl Properties
 
         if item.section == .currentSectionIndex or .currentSectionIndex >= .sections.count
         {
-            mustShow = !.modifiedOnly or (item.data != null and item.isModified)
-            if mustShow and !.stringFilter.isEmpty() do
+            mustShow = not .modifiedOnly or (item.data != null and item.isModified)
+            if mustShow and not .stringFilter.isEmpty() do
                 mustShow = Utf8.indexOf(item.filter.toSlice(), .stringFilter, comparisonType: Utf8.ComparisonType.Latin1NoCase) != Swag.U64.Max
 
             if mustShow do
@@ -880,7 +880,7 @@ impl Properties
             // must not be swept along with the row's read-only state here.
             if (item.revertButton != null) and c == cast(*Wnd?) item.revertButton do
                 continue
-            c.enable(!readOnly)
+            c.enable(not readOnly)
         }
 
         // If an item is visible, then we show also all of its parents, in order
@@ -888,7 +888,7 @@ impl Properties
         if mustShow
         {
             var scan = item.parent
-            while scan and !scan.line.isVisible()
+            while scan and not scan.line.isVisible()
             {
                 scan.line.show()
 

@@ -786,7 +786,7 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
     var retExp2 = cast(u64) (((217706's64 * exp10) >> 16) + 64 + ExponentBias) - clz
 
     // Multiplication.
-    var v          = PowersOfTen[exp10 - PowersOfTenMinExp10, 1]
+    var v = PowersOfTen[exp10 - PowersOfTenMinExp10, 1]
     var {xHi, xLo} = Math.mulU64(man, v)
 
     // Wider Approximation.
@@ -848,19 +848,19 @@ func special(s: const [..] u8)->{ value: f64, eat: u32 }
 
     switch
     {
-    case !Latin1.compare(s, "NaN", ignoreCase: true):
+    case not Latin1.compare(s, "NaN", ignoreCase: true):
         result.value = Swag.F64.NaN
         result.eat   = 3
 
-    case !Latin1.compare(s, "Inf", ignoreCase: true):
+    case not Latin1.compare(s, "Inf", ignoreCase: true):
         result.value = Swag.F64.Inf
         result.eat   = 3
 
-    case !Latin1.compare(s, "+Inf", ignoreCase: true):
+    case not Latin1.compare(s, "+Inf", ignoreCase: true):
         result.value = Swag.F64.Inf
         result.eat   = 4
 
-    case !Latin1.compare(s, "-Inf", ignoreCase: true):
+    case not Latin1.compare(s, "-Inf", ignoreCase: true):
         result.value = Swag.F64.NegInf
         result.eat   = 4
     }
@@ -873,7 +873,7 @@ public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
 {
     var result: retval
     let countof = s.count
-    if !countof do
+    if not countof do
         return result
 
     // Special values, infinity, nan
@@ -885,7 +885,7 @@ public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
     var read: Decimal
     result.eat = try read.readF64(s)
 
-    if !read.trunc
+    if not read.trunc
     {
         let {f, ok} = exact(read.neg, read.mantissa, read.exp)
         if ok
@@ -898,7 +898,7 @@ public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
     let {f, ok} = eiselLemire64(read.neg, read.mantissa, read.exp)
     if ok
     {
-        if !read.trunc
+        if not read.trunc
         {
             result.value = f
             return result

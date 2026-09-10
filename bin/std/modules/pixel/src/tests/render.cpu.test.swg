@@ -183,7 +183,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     var renderer: RenderCpu
     renderer.begin(8, 8)
     let render: IRenderer = &renderer
-    var texture           = render.addImage(source)
+    var texture = render.addImage(source)
     defer render.removeTexture(&texture)
     defer render.end()
 
@@ -222,7 +222,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     var renderer: RenderCpu
     renderer.begin(8, 6)
     let render: IRenderer = &renderer
-    var texture           = render.addImage(source)
+    var texture = render.addImage(source)
     defer render.removeTexture(&texture)
     defer render.end()
 
@@ -275,7 +275,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 {
     var renderer: RenderCpu
     let render:   IRenderer = &renderer
-    var outer               = render.createRenderTarget(12, 12)
+    var outer = render.createRenderTarget(12, 12)
     defer render.deleteRenderTarget(&outer)
     var inner = render.createRenderTarget(4, 4)
     defer render.deleteRenderTarget(&inner)
@@ -305,7 +305,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 {
     var renderer: RenderCpu
     let render:   IRenderer = &renderer
-    var target              = render.createRenderTarget(32, 32)
+    var target = render.createRenderTarget(32, 32)
     defer render.deleteRenderTarget(&target)
 
     var path: LinePath
@@ -347,7 +347,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
     var renderer: RenderCpu
     let render:   IRenderer = &renderer
-    var texture             = render.addImage(source)
+    var texture = render.addImage(source)
     defer render.removeTexture(&texture)
     var target = render.createRenderTarget(9, 9)
     defer render.deleteRenderTarget(&target)
@@ -459,7 +459,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
     var renderer: RenderCpu
     let render:   IRenderer = &renderer
-    var texture             = render.addImage(source)
+    var texture = render.addImage(source)
     defer render.removeTexture(&texture)
     var target = render.createRenderTarget(2, 2)
     defer render.deleteRenderTarget(&target)

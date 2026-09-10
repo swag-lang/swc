@@ -57,10 +57,10 @@ impl VolumeCopy
         {
             let path  = Format.toString("%\\%", prefix, node.name)
             let found = .target.resolve(path)
-            if !found do
+            if not found do
                 failWith("A copied entry is missing.", .Io)
             let copied = found!
-            if copied.size != node.size or copied.attributes != node.attributes or copied.creationTime != node.creationTime or copied.lastAccessTime != node.lastAccessTime or copied.lastWriteTime != node.lastWriteTime or copied.changeTime != node.changeTime or !Core.Crypto.constantTimeEqual(copied.security.toSlice(), node.security.toSlice()) do
+            if copied.size != node.size or copied.attributes != node.attributes or copied.creationTime != node.creationTime or copied.lastAccessTime != node.lastAccessTime or copied.lastWriteTime != node.lastWriteTime or copied.changeTime != node.changeTime or not Core.Crypto.constantTimeEqual(copied.security.toSlice(), node.security.toSlice()) do
                 failWith("Copied metadata differs from the source.", .Io)
             if node.isDirectory() do
                 try .verifyDirectory(node.id, path.toString())
@@ -77,7 +77,7 @@ impl VolumeCopy
                     let count = Math.min(original.count, node.size - offset)
                     if (try .source.readNode(node.id, offset, original[until count])) != count or
                        (try .target.readNode(copied.id, offset, restored[until count])) != count or
-                       !Core.Crypto.constantTimeEqual(original[until count], restored[until count]) do
+                       not Core.Crypto.constantTimeEqual(original[until count], restored[until count]) do
                         failWith("Copied bytes differ from the source.", .Io)
                     offset += count
                 }

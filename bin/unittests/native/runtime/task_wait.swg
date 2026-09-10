@@ -220,7 +220,7 @@ func withBlockedWorkers(body: func||())->bool
         {
             mutex.lock()
             started.add(1)
-            while !open do
+            while not open do
                 gate.wait(&mutex)
             mutex.unlock()
         })
@@ -230,7 +230,7 @@ func withBlockedWorkers(body: func||())->bool
     {
         mutex.lock()
         let ready = started.load() == workers
-        if !ready do
+        if not ready do
             discard gate.waitFor(&mutex, 1)
         mutex.unlock()
         if ready
@@ -271,7 +271,7 @@ func withBlockedWorkers(body: func||())->bool
         invalid = completed.load() != 1 or premature.isRaised()
     })
     Swag.assert(ready)
-    Swag.assert(!invalid)
+    Swag.assert(not invalid)
 }
 
 // Remove queued targets from the middle, tail, and head, then reuse their storage. No other
@@ -299,7 +299,7 @@ func withBlockedWorkers(body: func||())->bool
         }
     })
     Swag.assert(ready)
-    Swag.assert(!invalid)
+    Swag.assert(not invalid)
 }
 
 // Descendant-only joins and structured loops must progress even while every worker is busy.
@@ -325,5 +325,5 @@ func withBlockedWorkers(body: func||())->bool
         invalid = total.load() != 75
     })
     Swag.assert(ready)
-    Swag.assert(!invalid)
+    Swag.assert(not invalid)
 }

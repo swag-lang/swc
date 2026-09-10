@@ -208,7 +208,7 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
     if Reflection.isEnum(type)
     {
         let enumName = Reflection.enumName(type, valueData)
-        if !enumName.isEmpty() do
+        if not enumName.isEmpty() do
             buf.addBytes(Swag.makeSlice(enumName.buffer, cast(u64) enumName.length))
         else do
             buf.addBytes("?")
@@ -445,7 +445,7 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
         tmp[cpt] = c
         cpt      -= 1
         value64  /= cast(u64) fmt.base
-        if !value64 do
+        if not value64 do
             break
     }
 
@@ -510,7 +510,7 @@ func convertBool(buf: *ConcatBuffer, value: bool)
 func convertRune(buf: *ConcatBuffer, value: rune)
 {
     var arr: [4] u8
-    if !value do
+    if not value do
         buf.addBytes("?")
     else
     {

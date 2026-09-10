@@ -131,14 +131,14 @@ impl IWnd for CheckButton
         format.flags         = .Clip
         format.font          = .font()
         var labelPos = clientRect
-        if !.flags.has(.RightAligned) do
+        if not .flags.has(.RightAligned) do
             labelPos.x += posBox.width + metrics.btnCheck_Padding
         labelPos.width -= posBox.width + metrics.btnCheck_Padding
         Theme.drawIconText(painter, labelPos, .icon, &.name, format, metrics.iconText_Margin)
 
         // The box and the wording are one target, and the ring is drawn around that rather than
         // around the cell the layout gave the control. See [[Gui.Button.markerFocusRect]].
-        if !bc.isDisabled and .showsFocusRing() do
+        if not bc.isDisabled and .showsFocusRing() do
             theme.drawFocusRing(painter, .markerFocusRect(posBox))
     }
 

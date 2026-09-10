@@ -235,7 +235,7 @@ impl Encoder
     {
         for md in image.metadata
         {
-            if !md.tag.count or !md.value.count do
+            if not md.tag.count or not md.value.count do
                 continue
             if md.signature == 1 and md.isTag("Exif")
             {
@@ -281,7 +281,7 @@ internal impl IImageEncoder for Encoder
         }
 
         let supported = image.pixelFormat == .Gray8 or image.pixelFormat == .GrayAlpha8 or image.pixelFormat == .Gray16 or image.pixelFormat == .GrayAlpha16 or image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8 or image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8 or image.pixelFormat == .RGB16 or image.pixelFormat == .RGBA16
-        if !supported do
+        if not supported do
             fail UnsupportedFormatError{"unsupported pixel format"}
         if image.width == 0 or image.height == 0 do
             fail UnsupportedFormatError{"unsupported size"}
@@ -318,7 +318,7 @@ internal impl IImageEncoder for Encoder
         .prevScanline     = .prevScanlineBuf + 16
         .filteredScanline = .filteredScanlineBuf + 16
 
-        .pixelSize                = image.bytesPerPixel
+        .pixelSize = image.bytesPerPixel
         .encodeFlags.toBigEndian  = image.pixelFormat.bitDepth() == 16
         .encodeFlags.filterChoice = .Disabled
         if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression do

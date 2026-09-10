@@ -47,7 +47,7 @@ struct Evt
     Swag.assert(wheel.surfacePos.x == 320 and wheel.surfacePos.y == 210)
     Swag.assert(wheel.delta.x == 0 and wheel.delta.y == 120)
     Swag.assert(wheel.modifiers == .Control)
-    Swag.assert(wheel.type == null and wheel.target == null and !wheel.accepted)
+    Swag.assert(wheel.type == null and wheel.target == null and not wheel.accepted)
 }
 
 // The same conversion holds for a nested tuple element and for an array of float pairs built

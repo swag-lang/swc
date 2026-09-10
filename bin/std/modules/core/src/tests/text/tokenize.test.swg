@@ -42,14 +42,14 @@ func assertStringArray(values: Array'(string), expected: const [..] string)->boo
 
 #test
 {
-    let lines                = Tokenize.splitLines("alpha\r\nbeta\ngamma\rdelta")
+    let lines = Tokenize.splitLines("alpha\r\nbeta\ngamma\rdelta")
     let expected: [4] string = ["alpha", "beta", "gamma", "delta"]
     Swag.assert(assertStringArray(lines, expected))
 }
 
 #test
 {
-    let bytes                = Tokenize.split("alpha,beta,gamma", ','u8, maxSplit: 2)
+    let bytes = Tokenize.split("alpha,beta,gamma", ','u8, maxSplit: 2)
     let expected: [3] string = ["alpha", "beta", "gamma"]
     Swag.assert(assertStringArray(bytes, expected))
 

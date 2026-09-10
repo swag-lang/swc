@@ -121,6 +121,7 @@ impl Vec
     #assert(Swag.Operator.AddAssign.symbol() == "+=")
     #assert(Swag.Operator.ShlAssign.symbol() == "<<=")
     #assert(Swag.Operator.BitNot.symbol() == "~")
+    #assert(Swag.Operator.Not.symbol() == "not")
 }
 
 // A commutative overload restricted to selected operators, using the enum shorthand for

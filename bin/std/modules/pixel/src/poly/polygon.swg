@@ -85,7 +85,7 @@ impl Polygon
             {
                 let x = a.x + (pt.y - a.y) / (b.y - a.y) * (b.x - a.x)
                 if pt.x < x do
-                    inside = !inside
+                    inside = not inside
             }
 
             j = i
@@ -152,7 +152,7 @@ impl Polygon
     internal mtd const fillOffsetDirections(target: *Array'Vector2)
     {
         target.clear()
-        if !.points.count do
+        if not .points.count do
             return
 
         let points = .points.buffer!
@@ -192,7 +192,7 @@ impl Polygon
             // stepping away from it again, so that a contour offset in one pass and a contour
             // offset point by point stay the same geometry to the last bit.
             let {intersects, intersectionPoint} = Geometry.intersectLines(v0 + n0, v1 + n0, v1 + n1, v2 + n1)
-            var offsetPoint: Vector2            = v1
+            var offsetPoint: Vector2 = v1
             if intersects do
                 offsetPoint += (intersectionPoint - v1) * 1
             else do
@@ -434,7 +434,7 @@ impl Polygon
     {
         if Math.isZeroEpsilon(value) do
             return
-        if !.points.count do
+        if not .points.count do
             return
 
         var copy: Array'Vector2
@@ -450,7 +450,7 @@ impl Polygon
     internal mtd storeClipperResult(res: Clipper.ClipperPath)
     {
         .clear()
-        if !res.count do
+        if not res.count do
             return
 
         for pt in res
@@ -493,7 +493,7 @@ impl Polygon
     {
         if Math.isZeroEpsilon(value) do
             return
-        if !.points.count do
+        if not .points.count do
             return
 
         var joinType = Clipper.JoinType.Square
@@ -547,12 +547,12 @@ impl Polygon
 
     private mtd cleanInto(res: *Clipper.ClipperPaths)
     {
-        if !.points.count do
+        if not .points.count do
             return
 
         var trf: Clipper.Transform
         trf.strictSimple  = true
-        trf.reverseOutput = !.isClockwise
+        trf.reverseOutput = not .isClockwise
 
         // Register path
         var path: Clipper.ClipperPath
@@ -590,7 +590,7 @@ impl Polygon
                 result.setBounds(np.minBounds, np.maxBounds)
             else do
                 result.setBounds(Vector2.min(result.minBounds, np.minBounds), Vector2.max(result.maxBounds, np.maxBounds))
-            if !.isClockwise do
+            if not .isClockwise do
                 break
         }
 
@@ -613,7 +613,7 @@ impl Polygon
         .minBounds   = {}
         .maxBounds   = {}
 
-        if !.points.count do
+        if not .points.count do
             return
 
         var count = .points.count
@@ -669,7 +669,7 @@ impl Polygon
             if count >= 3
             {
                 let turn = (nextPoint - current).cross(points[afterNext] - nextPoint)
-                if !Math.isZeroEpsilon(turn)
+                if not Math.isZeroEpsilon(turn)
                 {
                     if Math.isZeroEpsilon(firstTurnSign) do
                         firstTurnSign = Math.sign(turn)

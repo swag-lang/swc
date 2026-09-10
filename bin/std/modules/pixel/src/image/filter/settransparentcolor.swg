@@ -14,7 +14,7 @@ public impl Image
     // A format without an alpha channel has no fully transparent pixel and is left as is.
     mtd setTransparentColor(color: Color)
     {
-        if !.pixelFormat.hasAlpha() or !.pixelFormat.isPacked() do
+        if not .pixelFormat.hasAlpha() or not .pixelFormat.isPacked() do
             return
 
         if .alphaMode == .Premultiplied do

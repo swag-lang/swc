@@ -51,7 +51,7 @@ impl Array
         // what it owns: the array then states none either, and is handed over with '#move'.
         mtd opPostCopy()
         {
-            if !.buffer do
+            if not .buffer do
                 return
 
             let oldBuffer = .buffer
@@ -152,7 +152,7 @@ impl Array
         }
 
         .clear()
-        if !countof do
+        if not countof do
             return
         var dataof = arr.buffer
 
@@ -180,7 +180,7 @@ impl Array
     #[Macro]
     func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
-        if !.count do
+        if not .count do
             return
         let buffer = .buffer!
 
@@ -243,7 +243,7 @@ impl Array
     #[Swag.NoDoc]
     mtd realloc(newCapacity: u64)
     {
-        if !.allocator do
+        if not .allocator do
             .allocator = Swag.getContext().allocator
 
         if newCapacity == 0
@@ -274,7 +274,7 @@ impl Array
     // If elements have destructors, they are called.
     mtd free()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         // Need to drop every structs
@@ -284,7 +284,7 @@ impl Array
         }
 
         Memory.free(.buffer, .capacity * #sizeof(T), .allocator)
-        .buffer           = null
+        .buffer = null
         .count, .capacity = 0
     }
 
@@ -311,7 +311,7 @@ impl Array
     #[Swag.NoDoc]
     mtd initNewSlots(index, num: u64)
     {
-        if !num do
+        if not num do
             return
 
         #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
@@ -337,10 +337,10 @@ impl Array
     // array, which is what 'free' does.
     mtd reserve(newCapacity: u64)
     {
-        if !newCapacity
+        if not newCapacity
         {
             .free()
-            .buffer           = null
+            .buffer = null
             .count, .capacity = 0
             return
         }
@@ -398,7 +398,7 @@ impl Array
     // All existing elements are overwritten.
     mtd fill(value: T)
     {
-        if !.count do
+        if not .count do
             return
         let buffer = .buffer!
         for i in .count do
@@ -483,7 +483,7 @@ impl Array
         where Reflection.canCopy(T)
     {
         var sliceCount = values.count
-        if !sliceCount do
+        if not sliceCount do
             return
         if .buffer
         {
@@ -531,7 +531,7 @@ impl Array
         where Reflection.canCopy(T)
     {
         var sliceCount = values.count
-        if !sliceCount do
+        if not sliceCount do
             return
         if .buffer
         {
@@ -578,7 +578,7 @@ impl Array
         where Reflection.canCopy(T)
     {
         var sliceCount = values.count
-        if !sliceCount do
+        if not sliceCount do
             return
         if .buffer
         {
@@ -627,12 +627,12 @@ impl Array
     // This is an unstable remove; the order of remaining elements is not preserved.
     mtd remove(index, num: u64)
     {
-        if !num do
+        if not num do
             return
         Debug.safetyBoundCheck(index + num <= .count, "index out of range")
         let shiftCount = .count - (index + num)
 
-        #static if !Reflection.hasPostMove(T) and !Reflection.hasDrop(T)
+        #static if not Reflection.hasPostMove(T) and not Reflection.hasDrop(T)
         {
             Memory.copyOverlapping(.buffer + index, .buffer + index + num, shiftCount * #sizeof(T))
         }
@@ -686,7 +686,7 @@ impl Array
     // This is slower than 'removeAt', but preserves the order of the remaining elements.
     mtd removeAtOrdered(index: u64, numValues: u64 = 1)
     {
-        if !numValues do
+        if not numValues do
             return
         Debug.safetyBoundCheck(index + numValues <= .count, "index out of range")
         .count -= numValues

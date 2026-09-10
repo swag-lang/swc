@@ -89,17 +89,17 @@ func parseReports(bytes: const [..] u8)->ReportBatch
             {
                 Swag.assert(current.count < MaxReportLevels)
                 current.levels[current.count] = value
-                current.count                 += 1
-                value                         = 0
-                readingNumber                 = false
+                current.count += 1
+                value         = 0
+                readingNumber = false
             }
 
             if ch == '\n'u8 and current.count != 0
             {
                 Swag.assert(result.count < MaxReports)
                 result.reports[result.count] = current
-                result.count                 += 1
-                current.count                = 0
+                result.count  += 1
+                current.count = 0
             }
 
             continue
@@ -112,14 +112,14 @@ func parseReports(bytes: const [..] u8)->ReportBatch
     {
         Swag.assert(current.count < MaxReportLevels)
         current.levels[current.count] = value
-        current.count                 += 1
+        current.count += 1
     }
 
     if current.count != 0
     {
         Swag.assert(result.count < MaxReports)
         result.reports[result.count] = current
-        result.count                 += 1
+        result.count += 1
     }
 
     return result
@@ -138,7 +138,7 @@ func isSafeReport(report: Report, skippedIndex: s32)->bool
             continue
 
         let level = report.levels[rawIndex]
-        if !havePrevious
+        if not havePrevious
         {
             previous     = level
             havePrevious = true
@@ -146,7 +146,7 @@ func isSafeReport(report: Report, skippedIndex: s32)->bool
         }
 
         let delta = level - previous
-        if !isValidDelta(delta) do
+        if not isValidDelta(delta) do
             return false
 
         let currentTrend = deltaTrend(delta)
@@ -214,7 +214,7 @@ func noteFeatureLevel(level: s32)
     {
         if let delta = level - featurePrevious where featureHasPrevious
         {
-            if !isValidDelta(delta)
+            if not isValidDelta(delta)
             {
                 featureSafe = false
             }
@@ -314,13 +314,13 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
 
     Swag.assert(sampleBatch.count == 6'u32)
     Swag.assert(isSafeReport(sampleBatch.reports[0], -1))
-    Swag.assert(!isSafeReport(sampleBatch.reports[1], -1))
-    Swag.assert(!isSafeWithProblemDampener(sampleBatch.reports[2]))
+    Swag.assert(not isSafeReport(sampleBatch.reports[1], -1))
+    Swag.assert(not isSafeWithProblemDampener(sampleBatch.reports[2]))
     Swag.assert(isSafeWithProblemDampener(sampleBatch.reports[3]))
     Swag.assert(isSafeWithProblemDampener(sampleBatch.reports[4]))
     Swag.assert(isSafeReportWithLanguageFeatures(sampleBatch.reports[0], -1))
-    Swag.assert(!isSafeReportWithLanguageFeatures(sampleBatch.reports[1], -1))
-    Swag.assert(!isSafeWithProblemDampenerLanguageFeatures(sampleBatch.reports[2]))
+    Swag.assert(not isSafeReportWithLanguageFeatures(sampleBatch.reports[1], -1))
+    Swag.assert(not isSafeWithProblemDampenerLanguageFeatures(sampleBatch.reports[2]))
     Swag.assert(sampleClean.reportCount == 6'u32)
     Swag.assert(sampleClean.safeWithoutDampener == 2'u32)
     Swag.assert(sampleClean.safeWithDampener == 4'u32)

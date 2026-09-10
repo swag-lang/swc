@@ -225,7 +225,7 @@ func squareValue(value: s32)->s32 => value * value
     Swag.assert(invokeUnary(value: 5, cb: func(value) { return value + value }) == 10)
     Swag.assert(invokeUnary(func(value: s32)->s32 { return value - 1 }, 8) == 7)
     Swag.assert(invokeBinary(func(left, right) => left <= right, 4, 4))
-    Swag.assert(!invokeBinary(func(left: s32, right: s32)->bool { return left > right }, 4, 9))
+    Swag.assert(not invokeBinary(func(left: s32, right: s32)->bool { return left > right }, 4, 9))
 }
 
 #test
@@ -234,7 +234,7 @@ func squareValue(value: s32)->s32 => value * value
 
     predicate = func(left, right) => left == right
     Swag.assert(predicate(10, 10))
-    Swag.assert(!predicate(10, 11))
+    Swag.assert(not predicate(10, 11))
 
     predicate = func(left, right)
     {
@@ -242,7 +242,7 @@ func squareValue(value: s32)->s32 => value * value
     }
 
     Swag.assert(predicate(20, 120))
-    Swag.assert(!predicate(20, 20))
+    Swag.assert(not predicate(20, 20))
 }
 
 #test
@@ -257,7 +257,7 @@ func squareValue(value: s32)->s32 => value * value
     let local = func(flag = true) => flag
 
     Swag.assert(local())
-    Swag.assert(!local(false))
+    Swag.assert(not local(false))
 }
 
 #test
@@ -269,9 +269,9 @@ func squareValue(value: s32)->s32 => value * value
     }
 
     Swag.assert(bound())
-    Swag.assert(!bound(false))
+    Swag.assert(not bound(false))
     Swag.assert(bound(true))
-    Swag.assert(!bound(flag: false))
+    Swag.assert(not bound(flag: false))
 }
 
 #test
@@ -286,16 +286,16 @@ func squareValue(value: s32)->s32 => value * value
 #test
 {
     let increment: LambdaDefaultUnary = func(value) => value + 1
-    let invert:    LambdaDefaultBool  = func(flag) => !flag
+    let invert:    LambdaDefaultBool  = func(flag) => not flag
 
     Swag.assert(increment() == 12)
     Swag.assert(increment(8) == 9)
     Swag.assert(increment(value: 3) == 4)
     Swag.assert(invokeDefaulted(increment) == 1253)
 
-    Swag.assert(!invert())
+    Swag.assert(not invert())
     Swag.assert(invert(false))
-    Swag.assert(!invert(flag: true))
+    Swag.assert(not invert(flag: true))
 }
 
 #test
@@ -328,13 +328,13 @@ func squareValue(value: s32)->s32 => value * value
 
     Swag.assert(holder.unary(4) == 20)
     Swag.assert(holder.predicate(9, 9))
-    Swag.assert(!holder.predicate(2, 7))
+    Swag.assert(not holder.predicate(2, 7))
     Swag.assert(holder.defaulted() == 10)
     Swag.assert(holder.defaulted(8) == 7)
     Swag.assert(holder.defaulted(value: 6) == 5)
     Swag.assert(explicit.unary(7) == 5)
     Swag.assert(explicit.predicate(3, 8))
-    Swag.assert(!explicit.predicate(8, 3))
+    Swag.assert(not explicit.predicate(8, 3))
     Swag.assert(explicit.defaulted() == 12)
 }
 
@@ -379,7 +379,7 @@ func squareValue(value: s32)->s32 => value * value
 
     Swag.assert(holder.unary(3) == 7)
     Swag.assert(holder.predicate(2, 5))
-    Swag.assert(!holder.predicate(8, 1))
+    Swag.assert(not holder.predicate(8, 1))
     Swag.assert(holder.defaulted() == 13)
     Swag.assert(holder.defaulted(6) == 8)
 

@@ -61,7 +61,7 @@
     // condition, so a test that waits forever would depend on a worker being free.
     mutex.lock()
     var rounds = 0
-    while !ready and rounds < 5000
+    while not ready and rounds < 5000
     {
         discard published.waitFor(&mutex, 1)
         rounds += 1
@@ -157,13 +157,13 @@
     var runs: Swag.AtomicValue'u32
     var task: Swag.Task
 
-    Swag.assert(!task.isPending() and !task.isDone())
+    Swag.assert(not task.isPending() and not task.isDone())
 
     for round in 50
     {
         task.submit(func|&runs|() { runs.add(1) })
         task.wait()
-        Swag.assert(task.isDone() and !task.isPending())
+        Swag.assert(task.isDone() and not task.isPending())
     }
 
     Swag.assert(runs.load() == 50)

@@ -15,7 +15,7 @@ internal impl Properties
     // families. The first entry is the theme's default font and stores an empty name.
     mtd refreshFontName(item: *PropertiesItem)
     {
-        if !(item.comboBox != null) do
+        if not (item.comboBox != null) do
             return
 
         if .fieldIsMixed(item)
@@ -73,7 +73,7 @@ internal impl Properties
         else
         {
             var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
-            if !.isGridLike() do
+            if not .isGridLike() do
                 editWidth = .listContentWidthFromUseful(editWidth)
             with combo = ComboBox.create(item.line)
             {
@@ -110,7 +110,7 @@ internal impl Properties
 
         let item      = .addItem(value, data, parentItem)
         var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
-        if !me.isGridLike() do
+        if not me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
         var ed: *EditBox?
         if .kind == .Panel
@@ -176,7 +176,7 @@ internal impl Properties
     {
         let item      = .addItem(value, data, parentItem)
         var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
-        if !me.isGridLike() do
+        if not me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
 
         var ed: *EditBox?

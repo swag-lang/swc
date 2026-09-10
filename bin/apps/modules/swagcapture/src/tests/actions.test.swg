@@ -9,8 +9,8 @@ using Swag, Core
 {
     Swag.assert(Gui.Testing.actionAccept'ActionSelection(null, ActionSelection.SelectAll))
     Swag.assert(Gui.Testing.actionAccept'ActionSelection(null, ActionSelection.Freeze))
-    Swag.assert(!Gui.Testing.actionAccept'ActionSelection(null, ActionCapture.Area))
-    Swag.assert(!Gui.Testing.actionAccept'ActionSelection(null, ActionZoom.ZoomFit))
+    Swag.assert(not Gui.Testing.actionAccept'ActionSelection(null, ActionCapture.Area))
+    Swag.assert(not Gui.Testing.actionAccept'ActionSelection(null, ActionZoom.ZoomFit))
 }
 
 // The headless fixture can register safe commands and drive them through the
@@ -31,7 +31,7 @@ using Swag, Core
 
     f.main.sendCommandEvent(ActionSelection.DeleteSelection)
     Swag.assert(f.capture.forms.count == 2)
-    Swag.assert(!f.capture.canUndo())
+    Swag.assert(not f.capture.canUndo())
 
     f.capture.selection.add(0)
     f.main.sendCommandEvent(ActionSelection.DeleteSelection)
@@ -49,7 +49,7 @@ using Swag, Core
     Swag.assert(f.main.freezeSel)
     Swag.assert(f.main.embInfoFreeze != null)
     f.main.sendCommandEvent(ActionSelection.Freeze)
-    Swag.assert(!f.main.freezeSel)
+    Swag.assert(not f.main.freezeSel)
     Swag.assert(f.main.embInfoFreeze == null)
 }
 
@@ -93,7 +93,7 @@ using Swag, Core
 
     evt = Gui.Testing.commandState(ActionToolMode.Text)
     Swag.assert(Gui.Testing.actionUpdate'ActionToolMode(f.main, ActionToolMode.Text, &evt))
-    Swag.assert(!evt.checked)
+    Swag.assert(not evt.checked)
 }
 
 // Capture delay, capture-option toggles and view clipping are pure state actions.
@@ -185,14 +185,14 @@ using Swag, Core
 
     f.editView.setZoom(EditView.MaxZoom + 5)
     Swag.assert(Math.abs(f.editView.zoom - EditView.MaxZoom) < 0.001)
-    Swag.assert(!f.editView.canZoomIn())
+    Swag.assert(not f.editView.canZoomIn())
     var evt = Gui.Testing.commandState(ActionZoom.ZoomIn)
     Swag.assert(Gui.Testing.actionUpdate'ActionZoom(f.main, ActionZoom.ZoomIn, &evt))
     Swag.assert(evt.disabled)
 
     f.editView.setZoom(EditView.MinZoom - 5)
     Swag.assert(Math.abs(f.editView.zoom - EditView.MinZoom) < 0.001)
-    Swag.assert(!f.editView.canZoomOut())
+    Swag.assert(not f.editView.canZoomOut())
     evt = Gui.Testing.commandState(ActionZoom.ZoomOut)
     Swag.assert(Gui.Testing.actionUpdate'ActionZoom(f.main, ActionZoom.ZoomOut, &evt))
     Swag.assert(evt.disabled)
@@ -228,14 +228,14 @@ using Swag, Core
     f.capture.selection.add(0)
     evt = Gui.Testing.commandState(ActionEdit.EditText)
     Swag.assert(Gui.Testing.actionUpdate'ActionEdit(f.main, ActionEdit.EditText, &evt))
-    Swag.assert(!evt.disabled)
-    Swag.assert(!evt.hidden)
+    Swag.assert(not evt.disabled)
+    Swag.assert(not evt.hidden)
 
     text.rotate = 25
     evt         = Gui.Testing.commandState(ActionEdit.ResetRotation)
     Swag.assert(Gui.Testing.actionUpdate'ActionEdit(f.main, ActionEdit.ResetRotation, &evt))
-    Swag.assert(!evt.disabled)
-    Swag.assert(!evt.hidden)
+    Swag.assert(not evt.disabled)
+    Swag.assert(not evt.hidden)
     f.main.sendCommandEvent(ActionEdit.ResetRotation)
     Swag.assert(text.rotate == 0)
 
@@ -243,15 +243,15 @@ using Swag, Core
     f.capture.selection.add(1)
     evt = Gui.Testing.commandState(ActionEdit.ClearImageInside)
     Swag.assert(Gui.Testing.actionUpdate'ActionEdit(f.main, ActionEdit.ClearImageInside, &evt))
-    Swag.assert(!evt.hidden)
+    Swag.assert(not evt.hidden)
     Swag.assert(evt.disabled)
 
     image.image = Image.create(2, 2, .BGRA8)
     evt         = Gui.Testing.commandState(ActionEdit.ClearImageInside)
     Swag.assert(Gui.Testing.actionUpdate'ActionEdit(f.main, ActionEdit.ClearImageInside, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
     f.main.sendCommandEvent(ActionEdit.ClearImageInside)
-    Swag.assert(!image.image.isValid())
+    Swag.assert(not image.image.isValid())
 
     f.capture.selection.clear()
     evt = Gui.Testing.commandState(ActionPixSel.Fill)
@@ -262,19 +262,19 @@ using Swag, Core
     f.capture.selection.add(2)
     evt = Gui.Testing.commandState(ActionPixSel.Fill)
     Swag.assert(Gui.Testing.actionUpdate'ActionPixSel(f.main, ActionPixSel.Fill, &evt))
-    Swag.assert(!evt.disabled)
-    Swag.assert(!evt.hidden)
+    Swag.assert(not evt.disabled)
+    Swag.assert(not evt.hidden)
 
     let undo = f.capture.newUndo(.OffsetSelection)
     undo.newPosX = 1
     f.capture.pushUndo(undo)
     evt = Gui.Testing.commandState(ActionUndo.DoUndo)
     Swag.assert(Gui.Testing.actionUpdate'ActionUndo(f.main, ActionUndo.DoUndo, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
     f.main.sendCommandEvent(ActionUndo.DoUndo)
     evt = Gui.Testing.commandState(ActionUndo.DoRedo)
     Swag.assert(Gui.Testing.actionUpdate'ActionUndo(f.main, ActionUndo.DoRedo, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
 
     evt = Gui.Testing.commandState(ActionImage.RestoreOrg)
     Swag.assert(Gui.Testing.actionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
@@ -282,7 +282,7 @@ using Swag, Core
     f.capture.backImgOriginal = Image.create(5, 5, .BGRA8)
     evt = Gui.Testing.commandState(ActionImage.RestoreOrg)
     Swag.assert(Gui.Testing.actionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
 
     // Image commands stay present when disabled. Only descriptors that explicitly opt into
     // contextual hiding may set Hidden.
@@ -292,8 +292,8 @@ using Swag, Core
     {
         evt = Gui.Testing.commandState(id)
         Swag.assert(Gui.Testing.actionUpdate'ActionImage(f.main, id, &evt))
-        Swag.assert(!evt.updatedFields.has(.Hidden))
-        Swag.assert(!evt.hidden)
+        Swag.assert(not evt.updatedFields.has(.Hidden))
+        Swag.assert(not evt.hidden)
     }
 }
 
@@ -314,7 +314,7 @@ using Swag, Core
     f.capture.selection.add(1)
     evt = Gui.Testing.commandState(ActionMoveSel.Right1)
     Swag.assert(Gui.Testing.actionUpdate'ActionMoveSel(f.main, ActionMoveSel.Right1, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
 
     f.main.sendCommandEvent(ActionMoveSel.Left1)
     Swag.assert(a.x == 9)
@@ -351,7 +351,7 @@ using Swag, Core
 
     evt = Gui.Testing.commandState(ActionAlign.AlignLeft)
     Swag.assert(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignLeft, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignLeft)
     Swag.assert(a.x == 10)
     Swag.assert(b.x == 10)
@@ -361,7 +361,7 @@ using Swag, Core
 
     evt = Gui.Testing.commandState(ActionAlign.AlignRight)
     Swag.assert(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignRight, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignRight)
     Swag.assert(a.x == 60)
     Swag.assert(b.x == 50)
@@ -371,7 +371,7 @@ using Swag, Core
 
     evt = Gui.Testing.commandState(ActionAlign.AlignCenter)
     Swag.assert(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignCenter, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignCenter)
     Swag.assert(a.x == 35)
     Swag.assert(b.x == 30)
@@ -381,7 +381,7 @@ using Swag, Core
 
     evt = Gui.Testing.commandState(ActionAlign.AlignTop)
     Swag.assert(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignTop, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignTop)
     Swag.assert(a.y == 10)
     Swag.assert(b.y == 10)
@@ -392,7 +392,7 @@ using Swag, Core
 
     evt = Gui.Testing.commandState(ActionAlign.AlignBottom)
     Swag.assert(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignBottom, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignBottom)
     Swag.assert(a.y == 50)
     Swag.assert(b.y == 40)
@@ -402,7 +402,7 @@ using Swag, Core
 
     evt = Gui.Testing.commandState(ActionAlign.AlignMiddle)
     Swag.assert(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignMiddle, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignMiddle)
     Swag.assert(a.y == 30)
     Swag.assert(b.y == 25)
@@ -473,11 +473,11 @@ using Swag, Core
     defer f.shutdown()
     var evt = Gui.Testing.commandState(ActionFile.SaveAsImage)
     Swag.assert(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.SaveAsImage, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
 
     evt = Gui.Testing.commandState(ActionFile.CaptureFileLocation)
     Swag.assert(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.CaptureFileLocation, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
 
     evt = Gui.Testing.commandState(ActionFile.UnlinkImage)
     Swag.assert(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.UnlinkImage, &evt))
@@ -486,11 +486,11 @@ using Swag, Core
     f.capture.linkedImage = "linked.png"
     evt = Gui.Testing.commandState(ActionFile.UnlinkImage)
     Swag.assert(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.UnlinkImage, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
 
     evt = Gui.Testing.commandState(ActionFile.LinkedFileLocation)
     Swag.assert(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.LinkedFileLocation, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
 
     evt = Gui.Testing.commandState(ActionCopyPaste.Copy)
     Swag.assert(Gui.Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.Copy, &evt))
@@ -501,11 +501,11 @@ using Swag, Core
     f.capture.selection.add(0)
     evt = Gui.Testing.commandState(ActionCopyPaste.Copy)
     Swag.assert(Gui.Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.Copy, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
 
     evt = Gui.Testing.commandState(ActionFlatten.Flatten)
     Swag.assert(Gui.Testing.actionUpdate'ActionFlatten(f.main, ActionFlatten.Flatten, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
     f.main.sendCommandEvent(ActionFlatten.Flatten)
     Swag.assert(f.capture.forms.count == 0)
     Swag.assert(f.capture.selection.count == 0)
@@ -520,7 +520,7 @@ using Swag, Core
 
     evt = Gui.Testing.commandState(ActionFlatten.FlattenAll)
     Swag.assert(Gui.Testing.actionUpdate'ActionFlatten(f.main, ActionFlatten.FlattenAll, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
 
     f.capture.selection.add(0)
     let image = testAddImage(f.capture, 40, 10, 20, 20)
@@ -529,7 +529,7 @@ using Swag, Core
     f.capture.selection.add(1)
     evt = Gui.Testing.commandState(ActionCopyPaste.PasteImageInside)
     Swag.assert(Gui.Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.PasteImageInside, &evt))
-    Swag.assert(!evt.hidden)
+    Swag.assert(not evt.hidden)
 
     f.capture.selection.clear()
     let pixSel = testAddShape(f.capture, 70, 10, 20, 20, .PixSel)
@@ -537,20 +537,20 @@ using Swag, Core
     f.capture.selection.add(2)
     evt = Gui.Testing.commandState(ActionPixSel.SmartMove)
     Swag.assert(Gui.Testing.actionUpdate'ActionPixSel(f.main, ActionPixSel.SmartMove, &evt))
-    Swag.assert(!evt.disabled)
-    Swag.assert(!evt.hidden)
+    Swag.assert(not evt.disabled)
+    Swag.assert(not evt.hidden)
 
     evt = Gui.Testing.commandState(ActionOptions.Options)
     Swag.assert(Gui.Testing.actionUpdate'ActionOptions(f.main, ActionOptions.Options, &evt))
-    Swag.assert(!evt.name.isEmpty())
+    Swag.assert(not evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionAbout.About)
     Swag.assert(Gui.Testing.actionUpdate'ActionAbout(f.main, ActionAbout.About, &evt))
-    Swag.assert(!evt.name.isEmpty())
+    Swag.assert(not evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionQuickStyle.Reset)
     Swag.assert(Gui.Testing.actionUpdate'ActionQuickStyle(f.main, ActionQuickStyle.Reset, &evt))
-    Swag.assert(!evt.name.isEmpty())
+    Swag.assert(not evt.name.isEmpty())
 
     discard shape
 }

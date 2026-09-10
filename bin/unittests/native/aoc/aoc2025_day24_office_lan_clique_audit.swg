@@ -94,7 +94,7 @@ func isClique(mask: u32, adjacency: const [..] bool, computerCount: u32)->bool
             if (mask & (1'u32 << right)) == 0'u32 do
                 continue
 
-            if !adjacency[edgeIndex(left, right)] do
+            if not adjacency[edgeIndex(left, right)] do
                 return false
         }
     }
@@ -113,7 +113,7 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
         if (mask & (1'u32 << index)) != 0'u32
         {
             selected[selectedCount] = labels[index]
-            selectedCount           += 1
+            selectedCount += 1
         }
     }
 
@@ -144,7 +144,7 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
         if index != 0
         {
             outPassword[length] = ','u8
-            length              += 1
+            length += 1
         }
 
         outPassword[length] = labelFirstByte(label)
@@ -237,7 +237,7 @@ func auditLan(connections: const [..] string)->LanAudit
             if second <= first do
                 continue
 
-            if !adjacency[edgeIndex(first, second)] do
+            if not adjacency[edgeIndex(first, second)] do
                 continue
 
             for position in computerCount
@@ -265,7 +265,7 @@ func auditLan(connections: const [..] string)->LanAudit
         if cliqueSize < result.largestCliqueSize do
             continue
 
-        if !isClique(mask, adjacencySlice, computerCount) do
+        if not isClique(mask, adjacencySlice, computerCount) do
             continue
 
         var candidatePassword:      [MaxPasswordBytes] u8

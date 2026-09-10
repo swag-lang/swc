@@ -38,7 +38,7 @@ internal func day10WriteCount(write: [*] u8, count: u64)->[*] u8
         digits[digitCount] = cast(u8) (remaining % 10) + '0'
         digitCount         += 1
         remaining          /= 10
-        if !remaining do
+        if not remaining do
             break
     }
 

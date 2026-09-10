@@ -9,7 +9,7 @@
 #assert(true == true)
 #assert(false == false)
 #assert(true != false)
-#assert(!(true == false))
+#assert(not (true == false))
 
 #assert("true" == "true")
 #assert("" == "")

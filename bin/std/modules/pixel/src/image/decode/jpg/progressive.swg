@@ -33,9 +33,9 @@ impl Decoder
             s = extendSign(.getBits2(s), s)
         }
 
-        s                 += .lastDcVal[cmpId]
+        s    += .lastDcVal[cmpId]
         .lastDcVal[cmpId] = s
-        p[0]              = cast(s16) (s << .successiveLow)
+        p[0] = cast(s16) (s << .successiveLow)
     }
 
     mtd decodeBlockDcRefine(cmpId: u32, blkX, blkY: s32) fail
@@ -244,7 +244,7 @@ impl Decoder
                             blockMcuOfsY += 1
                             if blockMcuOfsY == .compSampV[componentId]
                             {
-                                blockMcuOfsY            = 0
+                                blockMcuOfsY = 0
                                 blockMcutX[componentId] += .compSampH[componentId]
                             }
                         }
@@ -278,7 +278,7 @@ impl Decoder
         for
         {
             let res = .initScan()
-            if !res do
+            if not res do
                 break
 
             let dcOnlyScan     = (.spectralStart == 0)

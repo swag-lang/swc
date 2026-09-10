@@ -2,19 +2,19 @@
 
 #assert(true and true == true)
 #assert(true and false == false)
-#assert(!(false and true == false))
-#assert(!(false and false == false))
+#assert(not (false and true == false))
+#assert(not (false and false == false))
 
-#assert(!(false and true == false))
-#assert(!(false and false == false))
+#assert(not (false and true == false))
+#assert(not (false and false == false))
 
 #assert(true or true == true)
 #assert(true or false == true)
 #assert(false or true == true)
 #assert(false or false == false)
 
-#assert(!true == false)
-#assert(!false == true)
+#assert(not true == false)
+#assert(not false == true)
 
 #assert(true and true or false == (true and true) or false)
 #assert(true and true or false == true)

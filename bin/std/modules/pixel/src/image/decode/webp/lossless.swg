@@ -176,7 +176,7 @@ impl LosslessHuffmanTree
                 if .nodeCount + 2 > .nodes.count do
                     losslessTreeError()
                 .nodes[node].children = cast(s32) .nodeCount
-                .nodeCount            += 2
+                .nodeCount += 2
             }
 
             node = cast(u32) .nodes[node].children + ((code >> remaining) & 1)
@@ -247,7 +247,7 @@ impl LosslessHuffmanTree
         for symbol in codeLengths.count
         {
             let length = codeLengths[symbol]
-            if !length do
+            if not length do
                 continue
             let code = nextCodes[length]
             nextCodes[length] += 1
@@ -358,7 +358,7 @@ func losslessDecodeCodeLengths(reader: *LosslessBitReader, destination: [..] u32
         if codeLength < 16
         {
             destination[symbol] = codeLength
-            symbol              += 1
+            symbol += 1
             if codeLength do
                 previousLength = codeLength
             continue
@@ -375,7 +375,7 @@ func losslessDecodeCodeLengths(reader: *LosslessBitReader, destination: [..] u32
         for repeat
         {
             destination[symbol] = repeatedLength
-            symbol              += 1
+            symbol += 1
         }
     }
 }
@@ -457,7 +457,7 @@ func losslessDecodeTransform(reader: *LosslessBitReader, transform: *LosslessTra
         case colorCount <= 2:  transform.bits = 3
         case colorCount <= 4:  transform.bits = 2
         case colorCount <= 16: transform.bits = 1
-        default:               transform.bits = 0
+        default: transform.bits = 0
         }
 
         losslessDecodePixels(reader, &transform.pixels, cast(s32) colorCount, 1, 4 * 256, false)
@@ -524,7 +524,7 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
 
                 huffmanData[offset]     = cast(u8) (mapping[index] >> 8)
                 huffmanData[offset + 1] = cast(u8) mapping[index]
-                offset                  += 4
+                offset += 4
             }
         }
         else
@@ -622,7 +622,7 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
             output[offset + 1] = cast(u8) green
             output[offset + 2] = cast(u8) group.trees[LOSSLESS_HUFF_BLUE].next(reader)
             output[offset + 3] = cast(u8) group.trees[LOSSLESS_HUFF_ALPHA].next(reader)
-            offset             += 4
+            offset += 4
 
             x += 1
             if x == width
@@ -680,7 +680,7 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
             output[offset + 1] = cast #wrap (u8) (argb >> 8)
             output[offset + 2] = cast #wrap (u8) argb
             output[offset + 3] = cast(u8) (argb >> 24)
-            offset             += 4
+            offset += 4
 
             x += 1
             if x == width
@@ -895,7 +895,7 @@ func losslessInverseCrossColor(transform: *LosslessTransform, pixels: *Array'u8,
             let blue  = cast(s32) data[offset + 2] + ((greenToBlue * green) >> 5) + ((redToBlue * cast(s32) cast #bit (s8) losslessWrap8(red)) >> 5)
             data[offset + 0] = losslessWrap8(red)
             data[offset + 2] = losslessWrap8(blue)
-            offset           += 4
+            offset += 4
         }
     }
 }
@@ -909,7 +909,7 @@ func losslessInverseSubtractGreen(pixels: *Array'u8)
         let green = data[offset + 1]
         data[offset + 0] = losslessWrap8(cast(s32) data[offset + 0] + green)
         data[offset + 2] = losslessWrap8(cast(s32) data[offset + 2] + green)
-        offset           += 4
+        offset += 4
     }
 }
 
@@ -926,7 +926,7 @@ func losslessInverseColorIndexing(transform: *LosslessTransform, pixels: *Array'
             data[offset + 1] = transform.pixels[paletteOffset + 1]
             data[offset + 2] = transform.pixels[paletteOffset + 2]
             data[offset + 3] = transform.pixels[paletteOffset + 3]
-            offset           += 4
+            offset += 4
         }
 
         return

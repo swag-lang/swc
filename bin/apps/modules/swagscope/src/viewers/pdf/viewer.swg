@@ -60,7 +60,7 @@ private func loadPdfViewerContent(fileName: string)->PdfViewerContent fail
     var result: retval
     result.reader = #move try Pdf.Reader.open(fileName)
     let count = result.reader.pageCount()
-    if !count do
+    if not count do
         fail Errors.InvalidFormatError{"PDF document contains no page"}
     result.page    = #move try result.reader.loadPage(0)
     result.details = "PDF"
@@ -78,7 +78,7 @@ internal struct PdfViewer
     loadTimer:            *Timer?
     failureReason:        String
 
-        late
+    late
     {
         info:           *Wnd
         pdfView:        *PdfView
@@ -112,14 +112,14 @@ private impl IWnd for PdfViewer
             return
         }
 
-        if !.load.isDone() do
+        if not .load.isDone() do
             return
 
         .removeTimer(evt.timer)
         .loadTimer = null
         var content: PdfViewerContent
         .failureReason = .load.finish(&content)
-        if !.failureReason.isEmpty()
+        if not .failureReason.isEmpty()
         {
             if .reportFailure do
                 .reportFailure!(me, .failureReason.toString())
@@ -152,7 +152,7 @@ private impl IWnd for PdfViewer
         case .D0 where evt.modifiers.has(.Control): .pdfView.actualSize()
         case .F where evt.modifiers == .None:       .pdfView.zoomToFit()
         case .W where evt.modifiers == .None:       .pdfView.zoomToFitWidth()
-        default:                                    evt.accepted = false
+        default: evt.accepted = false
         }
     }
 }
@@ -161,7 +161,7 @@ private impl PdfViewer
 {
     mtd retire()->bool
     {
-        if !.load.retire() do
+        if not .load.retire() do
             return false
         if .loadTimer
         {
@@ -213,7 +213,7 @@ private impl PdfViewer
     mtd goToTypedPage(text: string)->bool
     {
         let parsed = catch StrConv.parseU64(text) as parseError
-        if parseError != null or parsed.eat != text.count or parsed.ovf or !parsed.value or parsed.value > .pdfView.pageCount() do
+        if parseError != null or parsed.eat != text.count or parsed.ovf or not parsed.value or parsed.value > .pdfView.pageCount() do
             return false
         .pdfView.showPage(parsed.value - 1)
         return true
@@ -221,7 +221,7 @@ private impl PdfViewer
 
     mtd promptGoToPage()
     {
-        if !.surface or !.pdfView.pageCount() do
+        if not .surface or not .pdfView.pageCount() do
             return
         var options: EditDlgOptions
         options.title   = pdfStrings().ui_GoToPage

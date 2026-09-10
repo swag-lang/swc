@@ -29,7 +29,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
     while index < bytes.count
     {
         boxes[slot].min = parseNumber(bytes, &index)
-        index           += 1
+        index += 1
         boxes[slot].max = parseNumber(bytes, &index)
 
         if index < bytes.count and bytes[index] == '\n'u8 do

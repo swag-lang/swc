@@ -75,10 +75,10 @@ func floodFill(x, y: s32)
     while arr.count
     {
         let pt = arr.popBack()
-        if !g_Grid[pt.x, pt.y].show
+        if not g_Grid[pt.x, pt.y].show
         {
             g_Grid[pt.x, pt.y].show = true
-            g_Discovered            += 1
+            g_Discovered += 1
         }
 
         if g_Grid[pt.x, pt.y].score do
@@ -150,7 +150,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         }
         elif mouseEvt.button == .Right
         {
-            g_Grid[x, y].mark = !g_Grid[x, y].mark
+            g_Grid[x, y].mark = not g_Grid[x, y].mark
             g_NumMarks        += g_Grid[x, y].mark ? 1 : -1
         }
 
@@ -184,7 +184,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                 let y    = CellSize + (j * CellSize)
                 var rect = Math.Rectangle{x, y, CellSize, CellSize}
 
-                if !g_Grid[i, j].show and !g_Lost and !g_Win
+                if not g_Grid[i, j].show and not g_Lost and not g_Win
                 {
                     rect.inflate(-2)
                     painter.fillRect(rect, g_Grid[i, j].mark ? Argb.DarkBlue : Argb.DarkGray)

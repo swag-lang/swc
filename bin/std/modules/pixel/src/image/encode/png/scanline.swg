@@ -16,7 +16,7 @@ impl Encoder
 {
     mtd calculateScanlineWidth(width: u32)->u32 fail
     {
-        if !width do
+        if not width do
             fail UnsupportedFormatError{"SPNG_EINTERNAL"}
 
         var res = cast(u64) .numChannels() * .ihdr.bitDepth
@@ -103,7 +103,7 @@ impl Encoder
     {
         let pass = .rowInfo.pass
 
-        if !.ihdr.interlaceMethod or pass == 6 do
+        if not .ihdr.interlaceMethod or pass == 6 do
             return .encodeScanLine(row)
 
         let bitDepth = .ihdr.bitDepth
@@ -218,7 +218,7 @@ impl Encoder
         }
 
         let requiresPrevious = .encodeFlags.filterChoice & (.Up | .Average | .Paeth)
-        if !.rowInfo.scanlineIdx and requiresPrevious do
+        if not .rowInfo.scanlineIdx and requiresPrevious do
             Memory.clear(cast([*] u8) .prevScanline!, cast(u64) scanlineWidth)
 
         var filtered_sl = cast([*] u8) .filteredScanline!
@@ -258,7 +258,7 @@ impl Encoder
             ri.scanlineIdx = 0
             ri.pass        += 1
 
-            while (!sub[ri.pass].width or !sub[ri.pass].height) and (ri.pass < .lastPass) do
+            while (not sub[ri.pass].width or not sub[ri.pass].height) and (ri.pass < .lastPass) do
                 ri.pass += 1
         }
         else

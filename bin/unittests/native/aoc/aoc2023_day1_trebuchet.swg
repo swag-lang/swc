@@ -158,7 +158,7 @@ func solveClean(bytes: const [..] u8)->CalibrationResult
         if isNewline(bytes[index]) or index == bytes.count - 1
         {
             var lineEnd = index
-            if !isNewline(bytes[index]) do
+            if not isNewline(bytes[index]) do
                 lineEnd = index + 1
 
             if lineEnd > lineStart
@@ -257,7 +257,7 @@ func forEachLine(bytes: const [..] u8, stmt: #code(line))
         if isNewline(bytes[index]) or index == bytes.count - 1
         {
             var lineEnd = index
-            if !isNewline(bytes[index]) do
+            if not isNewline(bytes[index]) do
                 lineEnd = index + 1
             if lineEnd > lineStart
             {

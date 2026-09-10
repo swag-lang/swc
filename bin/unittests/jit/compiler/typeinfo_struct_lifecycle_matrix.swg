@@ -165,21 +165,21 @@ func podShapesStayEmpty()->bool
 
 func initPointersRestoreDefaults()->bool
 {
-    if !hasInitPointer(#typeof(InitOnly)) do
+    if not hasInitPointer(#typeof(InitOnly)) do
         return false
-    if !hasInitPointer(#typeof(WrappedInitOnly)) do
+    if not hasInitPointer(#typeof(WrappedInitOnly)) do
         return false
-    if !hasInitPointer(#typeof(GenericBox'InitOnly)) do
+    if not hasInitPointer(#typeof(GenericBox'InitOnly)) do
         return false
 
     var direct = InitOnly{value: 0, ready: false}
     runInit(#typeof(InitOnly), &direct)
-    if direct.value != 17 or !direct.ready do
+    if direct.value != 17 or not direct.ready do
         return false
 
     var wrapped = WrappedInitOnly{value: InitOnly{value: 0, ready: false}}
     runInit(#typeof(WrappedInitOnly), &wrapped)
-    if wrapped.value.value != 17 or !wrapped.value.ready do
+    if wrapped.value.value != 17 or not wrapped.value.ready do
         return false
 
     var genericValue = GenericBox'InitOnly{value: InitOnly{value: 0, ready: false}}
@@ -189,11 +189,11 @@ func initPointersRestoreDefaults()->bool
 
 func directPartialLifecyclePointersWork()->bool
 {
-    if !hasLifecycleShape(#typeof(DropOnly), true, false, false) do
+    if not hasLifecycleShape(#typeof(DropOnly), true, false, false) do
         return false
-    if !hasLifecycleShape(#typeof(CopyOnly), false, true, false) do
+    if not hasLifecycleShape(#typeof(CopyOnly), false, true, false) do
         return false
-    if !hasLifecycleShape(#typeof(MoveOnly), false, false, true) do
+    if not hasLifecycleShape(#typeof(MoveOnly), false, false, true) do
         return false
 
     resetCounts()
@@ -216,11 +216,11 @@ func directPartialLifecyclePointersWork()->bool
 
 func synthesizedPartialLifecyclePointersWork()->bool
 {
-    if !hasLifecycleShape(#typeof(WrappedDropOnly), true, false, false) do
+    if not hasLifecycleShape(#typeof(WrappedDropOnly), true, false, false) do
         return false
-    if !hasLifecycleShape(#typeof(WrappedCopyOnly), false, true, false) do
+    if not hasLifecycleShape(#typeof(WrappedCopyOnly), false, true, false) do
         return false
-    if !hasLifecycleShape(#typeof(WrappedMoveOnly), false, false, true) do
+    if not hasLifecycleShape(#typeof(WrappedMoveOnly), false, false, true) do
         return false
 
     resetCounts()
@@ -244,7 +244,7 @@ func synthesizedPartialLifecyclePointersWork()->bool
 func mixedLifecycleFlagsMatchPointers()->bool
 {
     let type = #typeof(MixedLifecycle)
-    if !hasLifecycleShape(type, true, true, true) do
+    if not hasLifecycleShape(type, true, true, true) do
         return false
 
     resetCounts()
@@ -265,13 +265,13 @@ func mixedLifecycleFlagsMatchPointers()->bool
 
 func genericMatrixStaysAligned()->bool
 {
-    if !hasLifecycleShape(#typeof(GenericBox'DropOnly), true, false, false) do
+    if not hasLifecycleShape(#typeof(GenericBox'DropOnly), true, false, false) do
         return false
-    if !hasLifecycleShape(#typeof(GenericBox'CopyOnly), false, true, false) do
+    if not hasLifecycleShape(#typeof(GenericBox'CopyOnly), false, true, false) do
         return false
-    if !hasLifecycleShape(#typeof(GenericBox'MoveOnly), false, false, true) do
+    if not hasLifecycleShape(#typeof(GenericBox'MoveOnly), false, false, true) do
         return false
-    if !hasLifecycleShape(#typeof(GenericBox'MixedLifecycle), true, true, true) do
+    if not hasLifecycleShape(#typeof(GenericBox'MixedLifecycle), true, true, true) do
         return false
 
     resetCounts()

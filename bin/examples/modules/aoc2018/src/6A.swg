@@ -89,9 +89,9 @@ func day6A()
             let d = Math.abs(c.x - x) + Math.abs(c.y - y)
 
             let r = arr.ptr2(x, y, W)
-            if d < r.d or !r.who
+            if d < r.d or not r.who
             {
-                let border = cast(s32) (!x or !y or x == W - 1 or y == W - 1)
+                let border = cast(s32) (not x or not y or x == W - 1 or y == W - 1)
 
                 if r.who
                 {
@@ -109,7 +109,7 @@ func day6A()
 
     var total = 0
     for v, index in count do
-        if !borders[index] do
+        if not borders[index] do
             total = Math.max(v, total)
 
     // Console.print("total: ", total)

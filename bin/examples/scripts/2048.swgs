@@ -128,7 +128,7 @@ func paintGrid(wnd: *Wnd, painter: *Painter)
 
         let off = (1 - c.z) * layout.cell * PopRatio
         painter.fillRoundRect(xi + off, yi + off, cellW - 2 * off, cellW - 2 * off, layout.corner, layout.corner, color)
-        if !c.val do
+        if not c.val do
             continue
 
         // Paint cell value
@@ -200,7 +200,7 @@ func animate(wnd: *Wnd)
         }
     }
 
-    if wasMoving and !g_IsMoving do
+    if wasMoving and not g_IsMoving do
         randValue()
 
     for i in g_Cells.count.reversed() where g_Cells[i].remove do
@@ -226,7 +226,7 @@ func canMoveTo(val, x, y: s32)->bool
     for c in g_Cells
     {
         if (c.val and c.moving and c.xd == x and c.yd == y) or
-           (c.val and !c.moving and c.x == x and c.y == y)
+           (c.val and not c.moving and c.x == x and c.y == y)
         {
             if c.val != val do
                 return false
@@ -297,7 +297,7 @@ func keyboard(wnd: *Wnd)
 
         for &c in g_Cells
         {
-            if !c.val do
+            if not c.val do
                 continue
             if Math.isEqualEpsilon(c.xd, c.nxd) and Math.isEqualEpsilon(c.yd, c.nyd) do
                 continue

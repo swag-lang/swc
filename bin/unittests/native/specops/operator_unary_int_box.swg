@@ -147,7 +147,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox's32 = {value: 42}
-    let double_neg             = -(-value)
+    let double_neg = -(-value)
 
     Swag.assert(double_neg.value == 42)
 }
@@ -156,7 +156,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox'u32 = {value: 0xDEAD_BEEF}
-    let double_inv             = ~(~value)
+    let double_inv = ~(~value)
 
     Swag.assert(double_inv.value == 0xDEAD_BEEF)
 }

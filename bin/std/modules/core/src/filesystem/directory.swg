@@ -61,7 +61,7 @@ func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileI
 
     var stack: Array'String
     stack.add(String.from(dirName))
-    while !stack.isEmpty()
+    while not stack.isEmpty()
     {
         var toScan = stack.popBack()
         if Path.VolumeSeparator != 0 and toScan.back() == Path.VolumeSeparator do
@@ -74,11 +74,11 @@ func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileI
             let special  = fileName == "." or fileName == ".."
             let isDir    = entry.isDirectory()
 
-            if isDir and !special and options.recurse do
+            if isDir and not special and options.recurse do
                 stack.add(String.from(entry.fullname.toString()))
 
             var add = special ? options.wantSpecialDirectories : isDir ? options.wantDirectories : options.wantFiles
-            if !add or entry.attributes & options.skipAttributes do
+            if not add or entry.attributes & options.skipAttributes do
                 continue
             if options.matchExtension or options.matchFileName
             {
@@ -87,11 +87,11 @@ func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileI
                     matches = true
                 elif options.matchFileName and fileName == options.matchFileName do
                     matches = true
-                if !matches do
+                if not matches do
                     continue
             }
 
-            if options.filterLambda and !options.filterLambda(entry) do
+            if options.filterLambda and not options.filterLambda(entry) do
                 continue
 
             result.add(#move entry[])

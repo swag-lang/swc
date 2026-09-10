@@ -9,7 +9,7 @@ using Core, Gui, Pixel
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
-    Swag.assert(!window.comparisonEnabled)
+    Swag.assert(not window.comparisonEnabled)
     Swag.assert(window.panels[0].kind == .Render2D)
     Swag.assert(window.panels[1].kind == .Microcode)
     Swag.assert(window.panels[0].kindCombo.items.count == 3)
@@ -18,7 +18,7 @@ using Core, Gui, Pixel
     window.compile()
     Swag.assert(window.spinner.isVisible() and viewer.status.name != appStrings().ui_Working)
     awaitFrame(viewer)
-    Swag.assert(!window.spinner.isVisible())
+    Swag.assert(not window.spinner.isVisible())
     Swag.assert(viewer.canvas.texture.isValid())
     let before     = viewer.image
     let firstFrame = viewer.frameCount
@@ -31,7 +31,7 @@ using Core, Gui, Pixel
     viewer.poll()
     Swag.assert(viewer.frameCount == pausedFrame)
     host.click(window.panels[0].pauseButton.localToSurface(Math.Point{18, 18}))
-    Swag.assert(!viewer.paused and !window.panels[0].pauseButton.isChecked)
+    Swag.assert(not viewer.paused and not window.panels[0].pauseButton.isChecked)
     awaitFrame(viewer, pausedFrame)
     var watch: Time.Stopwatch
     watch.start()
@@ -128,13 +128,13 @@ using Core, Gui, Pixel
     viewer.compileSource("func shade(x, y, time: f32)->u32 { discard x; discard y; discard time; for {} }")
     var watch: Time.Stopwatch
     watch.start()
-    while !Atomic.get(&viewer.probe.ready) and !viewer.probe.task.isDone() and watch.elapsedMilliseconds() < 90000 do
+    while not Atomic.get(&viewer.probe.ready) and not viewer.probe.task.isDone() and watch.elapsedMilliseconds() < 90000 do
         Threading.Thread.sleep(10'ms)
     Swag.assert(Atomic.get(&viewer.probe.ready) != 0)
     watch.restart()
     viewer.stop()
     Swag.assert(watch.elapsedMilliseconds() < 3000)
-    Swag.assert(!viewer.running and viewer.timer == null)
+    Swag.assert(not viewer.running and viewer.timer == null)
 }
 
 // Pixel compilation excludes GUI; an unavailable dependency stays local and can be corrected.
@@ -153,7 +153,7 @@ using Core, Gui, Pixel
         viewer.poll()
     }
 
-    Swag.assert(!viewer.running and viewer.probe.failed)
+    Swag.assert(not viewer.running and viewer.probe.failed)
     Swag.assert(Utf8.indexOf(cast(const [..] u8) viewer.output.text().toString(), "Gui") != Swag.U64.Max)
     viewer.compileSource(exampleSource(.Julia))
     awaitFrame(viewer)
@@ -214,12 +214,12 @@ func assertPreviewSurface(gui: bool)
     Swag.assert(render.paused and panel.pauseButton.isChecked)
     panel.selectViewer(.Microcode)
     let micro = cast(*MicrocodeViewer) panel.viewer!.window()
-    Swag.assert(micro.level == .O1 and !panel.pauseButton.isVisible())
+    Swag.assert(micro.level == .O1 and not panel.pauseButton.isVisible())
     panel.optimCombo.setSelectedIndex(2, notify: false)
     micro.stageCombo.setSelectedIndex(3, notify: false)
     panel.selectViewer(.Gui)
     let gui = cast(*PreviewViewer) panel.viewer!.window()
-    Swag.assert(gui != render and gui.level == .O2 and !gui.paused and !panel.pauseButton.isChecked)
+    Swag.assert(gui != render and gui.level == .O2 and not gui.paused and not panel.pauseButton.isChecked)
     panel.selectViewer(.Render2D)
     Swag.assert(panel.viewer!.window() == &render.wnd and render.level == .O2 and panel.pauseButton.isChecked and panel.pauseButton.isVisible())
     panel.selectViewer(.Microcode)

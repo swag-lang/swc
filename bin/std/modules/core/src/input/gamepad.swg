@@ -30,7 +30,7 @@ impl Gamepad
     mtd update() fail
     {
         let newConnected = isConnected(.index)
-        if !newConnected
+        if not newConnected
         {
             if .connected do
                 clear(me)
@@ -60,19 +60,19 @@ impl Gamepad
     // Determines whether specified input device button has just been pressed
     mtd isButtonJustPressed(button: GamepadButton)->bool
     {
-        return .currentState.pressed[button] and !.previousState.pressed[button]
+        return .currentState.pressed[button] and not .previousState.pressed[button]
     }
 
     // Determines whether specified input device button is released (not pressed)
     mtd isButtonReleased(button: GamepadButton)->bool
     {
-        return !.currentState.pressed[button]
+        return not .currentState.pressed[button]
     }
 
     // Determines whether specified input device button has just been released
     mtd isButtonJustReleased(button: GamepadButton)->bool
     {
-        return !.currentState.pressed[button] and .previousState.pressed[button]
+        return not .currentState.pressed[button] and .previousState.pressed[button]
     }
 
     // Returns the normalized analog position of `control`.

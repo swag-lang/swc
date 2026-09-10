@@ -103,7 +103,7 @@ impl HevcStream
     // Configures the decoder from a container's decoder configuration and installs the samples.
     mtd open(config: const [..] u8, frames: Array'SampleEntry) fail
     {
-        if !config.count do
+        if not config.count do
             fail InvalidFormatError{"H.265 track has no decoder configuration"}
 
         .config.clear()
@@ -194,7 +194,7 @@ impl HevcStream
             break
         }
 
-        if !sequence do
+        if not sequence do
             fail InvalidFormatError{"H.265 decoder configuration has no sequence parameter set"}
         .width  = cast(s32) sequence!.visibleWidth()
         .height = cast(s32) sequence!.visibleHeight()
@@ -239,7 +239,7 @@ impl HevcStream
     // Extends a running stream with samples the container has since indexed.
     mtd appendFrames(frames: const [..] SampleEntry) fail
     {
-        if !frames.count do
+        if not frames.count do
             return
 
         var merged: Array'SampleEntry
@@ -311,7 +311,7 @@ impl HevcStream
         // Advancing within the current decode window keeps every reference picture already
         // reconstructed. Restart only for a backward seek, or when the requested picture needs
         // a clean decode point beyond the samples currently queued.
-        if rank < .nextRank or (!alreadyPending and sync > .nextDecode)
+        if rank < .nextRank or (not alreadyPending and sync > .nextDecode)
         {
             .releasePending()
             .clearFrameThreads()
@@ -411,7 +411,7 @@ impl HevcStream
                 fail InvalidFormatError{"H.265 stream has no picture for the requested position"}
 
             let decoded = try .decodeStoredSample(source)
-            if !decoded.frame.outputNeeded
+            if not decoded.frame.outputNeeded
             {
                 // A picture the standard says not to show still takes a place in the numbering the
                 // container states, and that place is answered by the next picture that is shown.
@@ -495,7 +495,7 @@ impl HevcStream
                 .release(frameThread.frame!)
             frameThread.frame = null
             .laneStates[lane] = .Free
-            index             = (index + 1) % HevcMaxFrameThreads
+            index = (index + 1) % HevcMaxFrameThreads
         }
 
         .threadedHead  = 0
@@ -555,7 +555,7 @@ impl HevcStream
 
         let codedUnits = try .codedUnitCount(payload.toSlice())
         let rank       = cast(u64) .rankOfSample[sample]
-        if rank < .skipBefore and !try .isReferenceAccessUnit(payload.toSlice())
+        if rank < .skipBefore and not try .isReferenceAccessUnit(payload.toSlice())
         {
             try .readAuxiliaryUnits(decoder, payload.toSlice())
             .laneStates[lane]    = .Free
@@ -565,13 +565,13 @@ impl HevcStream
 
         if codedUnits == 1
         {
-            if !try .prepareAccessUnit(decoder, payload.toSlice()) do
+            if not try .prepareAccessUnit(decoder, payload.toSlice()) do
                 fail InvalidFormatError{"H.265 access unit carries no picture"}
         }
         else
         {
             let frame = try .decodeAccessUnit(decoder, payload.toSlice())
-            if !frame do
+            if not frame do
                 fail InvalidFormatError{"H.265 access unit carries no picture"}
             Atomic.exchange(&frame!.heldByCaller, 1)
             frameThread.frame = frame
@@ -579,9 +579,9 @@ impl HevcStream
         }
 
         .threaded[.threadedTail] = {lane, rank}
-        .threadedTail            = (.threadedTail + 1) % HevcMaxFrameThreads
-        .threadedCount           += 1
-        .lastSetupLane           = lane
+        .threadedTail  = (.threadedTail + 1) % HevcMaxFrameThreads
+        .threadedCount += 1
+        .lastSetupLane = lane
         if codedUnits == 1 do
             frameThread.wake.signal()
         return true
@@ -590,9 +590,9 @@ impl HevcStream
     private mtd fillFrameThreads(source: *ByteSource) fail
     {
         .ensureFrameThreads()
-        while .threadedCount < .laneCount and !.reachedEnd
+        while .threadedCount < .laneCount and not .reachedEnd
         {
-            if !try .startFrame(source) do
+            if not try .startFrame(source) do
                 break
         }
     }
@@ -611,11 +611,11 @@ impl HevcStream
         frameThread.done.wait()
         if frameThread.errorText.length do
             fail InvalidFormatError{Errors.mkString(frameThread.errorText.toString())}
-        if !frameThread.frame do
+        if not frameThread.frame do
             fail InvalidFormatError{"H.265 access unit carries no picture"}
 
         let frame = frameThread.frame!
-        frameThread.frame          = null
+        frameThread.frame = null
         .laneStates[threaded.lane] = .Free
         try .fillFrameThreads(source)
         return {frame, threaded.rank}
@@ -660,7 +660,7 @@ impl HevcStream
             offset += length
         }
 
-        if !hasPicture do
+        if not hasPicture do
             fail InvalidFormatError{"H.265 access unit carries no picture"}
         return false
     }
@@ -673,7 +673,7 @@ impl HevcStream
         {
             let length  = try .unitLength(data, &offset)
             let nalType = cast(u32) (data[offset] >> 1) & 0x3F
-            if !isVideoCodingNal(nalType) do
+            if not isVideoCodingNal(nalType) do
                 discard try decoder.readNalUnit(data[offset until offset + length])
             offset += length
         }
@@ -726,7 +726,7 @@ impl HevcStream
         for index in .lengthSize do
             length = (length << 8) | cast(u64) data[offset[] + cast(u64) index]
         offset[] += cast(u64) .lengthSize
-        if !length or offset[] + length > data.count do
+        if not length or offset[] + length > data.count do
             fail InvalidFormatError{"H.265 access unit holds a truncated network abstraction layer unit"}
         return length
     }
@@ -735,7 +735,7 @@ impl HevcStream
 private func runHevcFrameThread(thread: Threading.Thread)
 {
     let frameThread = cast(*HevcFrameThread) thread.userParam!
-    while !thread.requestEnd
+    while not thread.requestEnd
     {
         frameThread.wake.wait()
         if thread.requestEnd do

@@ -23,13 +23,13 @@ internal func __bootstrapRoundedSize(size: u64)->u64
 internal func __bootstrapAlloc(size: u64)->[*] void?
 {
     let reservedSize = __bootstrapRoundedSize(size)
-    if !reservedSize do
+    if not reservedSize do
         return null
 
     let base = __hostPageReserve(reservedSize)
-    if !base do
+    if not base do
         return null
-    if !__hostPageCommit(base, reservedSize)
+    if not __hostPageCommit(base, reservedSize)
     {
         __hostPageRelease(base, reservedSize)
         return null
@@ -43,7 +43,7 @@ internal func __bootstrapAlloc(size: u64)->[*] void?
 
 internal func __bootstrapFree(ptr: [*] void?)
 {
-    if !ptr do
+    if not ptr do
         return
 
     let base   = cast([*] u8) ptr! - BootstrapAllocationHeaderSize

@@ -62,7 +62,7 @@ public func runSuite(context: *Context, options: *Options, suite: string, buildC
     case "cpp":
 
         // The compiler's own C++ tests are linked into the DevMode build only.
-        if !options.devMode do
+        if not options.devMode do
             return 0
         var arguments: Arguments
         arguments.add(["unittest", "--dev-full"])
@@ -151,7 +151,7 @@ private func testPhaseCompiled(output, module: string)->bool
         if Utf8.contains(line, "workspace") do
             continue
         let reportsTests = Utf8.contains(line, " tests") or Utf8.contains(line, " passed") or Utf8.contains(line, " failed")
-        if Utf8.contains(line, module) and reportsTests and !Utf8.contains(line, "up-to-date") do
+        if Utf8.contains(line, module) and reportsTests and not Utf8.contains(line, "up-to-date") do
             return true
     }
 
@@ -192,7 +192,7 @@ private func moduleReportCount(output, module: string)->u32
 private func verifyWorkspaceDependencyLayout(context: *Context, workspace: string)->s32
 {
     let dependencyDirectory = Path.combine(workspace, ".dep")
-    for dependency in ["core", "win32", "xinput"] where !Directory.exists(Path.combine(dependencyDirectory.toString(), dependency))
+    for dependency in ["core", "win32", "xinput"] where not Directory.exists(Path.combine(dependencyDirectory.toString(), dependency))
     {
         Console.println("Workspace did not materialize external dependency in '.dep': ", dependency)
         return 1
@@ -224,7 +224,7 @@ private func verifyCompactExportedApi(workspace: string, buildCfg: string, targe
 
     for redundant in ["#[Swag.", "namespace DepTools {}", "namespace DepTools.Deep {}", "namespace DepSharedRng {}", "namespace Shared {}"]
     {
-        if !generated.contains(redundant) and !wholeFile.contains(redundant) do
+        if not generated.contains(redundant) and not wholeFile.contains(redundant) do
             continue
 
         Console.println("Generated module API still contains redundant text: ", redundant)
@@ -240,7 +240,7 @@ private func verifyCompactExportedApi(workspace: string, buildCfg: string, targe
         return 1
     }
 
-    if !wholeFile.contains("#[Discardable, Inline]")
+    if not wholeFile.contains("#[Discardable, Inline]")
     {
         Console.println("Whole-file module API is missing compact attribute list: #[Discardable, Inline]")
         return 1
@@ -248,21 +248,21 @@ private func verifyCompactExportedApi(workspace: string, buildCfg: string, targe
 
     for redundant in ["#[Opaque]", "Opaque]", "Pack(8)", "NoDoc", "NoDuplicate"]
     {
-        if !generated.contains(redundant) and !staticApi.contains(redundant) do
+        if not generated.contains(redundant) and not staticApi.contains(redundant) do
             continue
 
         Console.println("Generated module API still contains a producer-only attribute: ", redundant)
         return 1
     }
 
-    if !staticApi.contains("#[Foreign, Discardable]") or !staticApi.contains("func depTriple(value: s32)->s32")
+    if not staticApi.contains("#[Foreign, Discardable]") or not staticApi.contains("func depTriple(value: s32)->s32")
     {
         Console.println("Bodyless module API declaration lost a consumer attribute")
         return 1
     }
 
     let retainedBodyAttributes = "#[NoInline, Safety(.All, false), Sanity(.All, false), Optimize(false), Warning(\"all\", .Disable)]"
-    if !staticApi.contains(retainedBodyAttributes) or !staticApi.contains("func(T) depMirror(value: T)->T => value")
+    if not staticApi.contains(retainedBodyAttributes) or not staticApi.contains("func(T) depMirror(value: T)->T => value")
     {
         Console.println("Exported function body lost its compilation attributes")
         return 1
@@ -313,14 +313,14 @@ private func verifyWorkspaceArtifactLayout(workspace: string, buildCfg: string, 
         }
     }
 
-    if !foundGeneratedSource
+    if not foundGeneratedSource
     {
         Console.println("Non-debug workspace executable did not write '<module>.gen.<number>.swgsrc' in '.tmp'.")
         return 1
     }
 
     let staticDirectory = Path.combine(workspace, ".output", "api_static_provider", "static-library", buildCfg, targetArch)
-    if !File.exists(Path.combine(staticDirectory.toString(), ".swc-deps"))
+    if not File.exists(Path.combine(staticDirectory.toString(), ".swc-deps"))
     {
         Console.println("Workspace library did not publish '.swc-deps'.")
         return 1
@@ -352,7 +352,7 @@ private func verifyWorkspaceTestArtifactLayout(workspace: string, buildCfg: stri
         if name == ".swc-artifacts.test"
         {
             let fullname = outputFile.fullname.toString()
-            if !Utf8.contains(fullname, "/test/") and !Utf8.contains(fullname, "\\test\\")
+            if not Utf8.contains(fullname, "/test/") and not Utf8.contains(fullname, "\\test\\")
             {
                 Console.println("Non-executable workspace test published an artifact manifest: ", outputFile.fullname.toString())
                 return 1
@@ -367,8 +367,8 @@ private func verifyWorkspaceTestArtifactLayout(workspace: string, buildCfg: stri
     }
 
     let testDirectory = Path.combine(workspace, ".output", "consumer_exe", "test", buildCfg, targetArch)
-    if !File.exists(Path.combine(testDirectory.toString(), "consumer_exe.test.exe")) or
-       !File.exists(Path.combine(testDirectory.toString(), ".swc-artifacts.test"))
+    if not File.exists(Path.combine(testDirectory.toString(), "consumer_exe.test.exe")) or
+       not File.exists(Path.combine(testDirectory.toString(), ".swc-artifacts.test"))
     {
         Console.println("Reusable workspace test executable or its manifest is missing.")
         return 1
@@ -418,7 +418,7 @@ private func verifyModuleSetupCacheInvalidation(context: *Context, options: *Opt
         return firstCode
 
     let cacheFile = Path.combine(scratch.toString(), ".tmp", "probe", Format.toString(".swc-setup-%", buildCfg).toString())
-    if !File.exists(cacheFile)
+    if not File.exists(cacheFile)
     {
         Console.println("Workspace build did not cache the module setup: ", cacheFile.toString())
         return 1
@@ -431,7 +431,7 @@ private func verifyModuleSetupCacheInvalidation(context: *Context, options: *Opt
         return secondCode
 
     let renamed = Path.combine(scratch.toString(), ".output", "probe", "executable", buildCfg, options.targetArch.toString(), "renamed.exe")
-    if !File.exists(renamed)
+    if not File.exists(renamed)
     {
         Console.println("An edited module.swg did not reach the next build's setup: ", renamed.toString())
         return 1
@@ -471,7 +471,7 @@ private func verifyStandaloneModuleSetupCache(context: *Context, options: *Optio
         return firstCode
 
     let cacheFile = Path.combine(moduleDir.toString(), ".tmp", Format.toString(".swc-setup-%", buildCfg).toString())
-    if !File.exists(cacheFile)
+    if not File.exists(cacheFile)
     {
         Console.println("A module built on its own did not cache its setup: ", cacheFile.toString())
         return 1
@@ -483,7 +483,7 @@ private func verifyStandaloneModuleSetupCache(context: *Context, options: *Optio
     // what the build reports is what says the new name reached the setup.
     let output = try context.captureCompiler(built)
     Console.print(output.toString())
-    if !Utf8.contains(output.toString(), "standalone.exe")
+    if not Utf8.contains(output.toString(), "standalone.exe")
     {
         Console.println("An edited module.swg did not reach the next standalone build's setup")
         return 1
@@ -520,7 +520,7 @@ private func verifyWorkspaceTagCache(context: *Context, options: *Options, works
         let output = try context.captureCompiler(command)
         Console.print(output.toString())
         let expected = Format.toString("cache-tag=%", state)
-        if !Utf8.contains(output.toString(), expected.toString())
+        if not Utf8.contains(output.toString(), expected.toString())
         {
             Console.println("Workspace artifact reused a different tag set; expected ", expected.toString())
             return 1
@@ -575,7 +575,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         return artifactLayoutCode
 
     let stdOutput = context.workspaceOutput("std")
-    if !Directory.exists(Path.combine(stdOutput.toString(), "core"))
+    if not Directory.exists(Path.combine(stdOutput.toString(), "core"))
     {
         Console.println("Workspace import did not build its standard dependency.")
         return 1
@@ -622,7 +622,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     if docCode != 0 do
         return docCode
 
-    if !File.exists(Path.combine(workspace.toString(), ".output", "docs", "workspace.consumer.html"))
+    if not File.exists(Path.combine(workspace.toString(), ".output", "docs", "workspace.consumer.html"))
     {
         Console.println("Workspace documentation did not produce 'workspace.consumer.html'.")
         return 1
@@ -680,13 +680,13 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     // An unchanged native-only test must reuse its compiled artifact but still execute it.
     let reusedOutput = try context.captureCompiler(tested)
     Console.print(reusedOutput.toString())
-    if !artifactReportedUpToDate(reusedOutput.toString(), "consumer_exe.test.exe")
+    if not artifactReportedUpToDate(reusedOutput.toString(), "consumer_exe.test.exe")
     {
         Console.println("Workspace test recompiled its unchanged test artifact.")
         return 1
     }
 
-    if !reusedOutput.contains("SWAG_WORKSPACE_TEST_RAN")
+    if not reusedOutput.contains("SWAG_WORKSPACE_TEST_RAN")
     {
         Console.println("Workspace test did not execute its reused #test function.")
         return 1
@@ -721,7 +721,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         return 1
     }
 
-    if !testPhaseCompiled(verifiedAgain.toString(), "verify_expectations")
+    if not testPhaseCompiled(verifiedAgain.toString(), "verify_expectations")
     {
         Console.println("Workspace test reused a module with source-driven Verify directives.")
         return 1
@@ -733,13 +733,13 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     let output = try context.captureCompiler(ran)
     Console.print(output.toString())
 
-    if !output.contains("SWAG_WORKSPACE_MAIN_RAN")
+    if not output.contains("SWAG_WORKSPACE_MAIN_RAN")
     {
         Console.println("Workspace run did not reach the normal entry point after a test build.")
         return 1
     }
 
-    if !artifactReportedUpToDate(output.toString(), "consumer_exe.exe")
+    if not artifactReportedUpToDate(output.toString(), "consumer_exe.exe")
     {
         Console.println("Workspace run recompiled its unchanged executable after a test build.")
         return 1
@@ -747,7 +747,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
 
     let reusedAfterRun = try context.captureCompiler(tested)
     Console.print(reusedAfterRun.toString())
-    if !artifactReportedUpToDate(reusedAfterRun.toString(), "consumer_exe.test.exe")
+    if not artifactReportedUpToDate(reusedAfterRun.toString(), "consumer_exe.test.exe")
     {
         Console.println("Workspace test recompiled its unchanged test artifact after a normal run.")
         return 1
@@ -773,7 +773,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     script.add([Path.combine(workspace.toString(), "import_core_without_using.swgs").toString()])
 
     let scripted = try context.captureCompiler(script)
-    if !scripted.contains("SWAG_IMPORTED_CORE_WITHOUT_USING_RAN")
+    if not scripted.contains("SWAG_IMPORTED_CORE_WITHOUT_USING_RAN")
     {
         Console.println("Script importing 'core' without a 'using' did not reach its entry point.")
         return 1

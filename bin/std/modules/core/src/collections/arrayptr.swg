@@ -28,13 +28,13 @@ impl ArrayPtr
         // what it owns: the array then states none either, and is handed over with '#move'.
         mtd opPostCopy()
         {
-            if !.count do
+            if not .count do
                 return
             let buffer = .buffer!
             for i in .count
             {
                 let oldPtr = buffer[i]
-                if !oldPtr
+                if not oldPtr
                 {
                     buffer[i] = null
                     continue

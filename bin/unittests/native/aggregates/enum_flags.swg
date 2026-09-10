@@ -130,7 +130,7 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     Swag.assert(toggled == cast(StrictTestFlags) TestFlags.A)
     Swag.assert((cast(u32) inverted & cast(u32) TestFlags.A) != 0)
     Swag.assert(cast(bool) value)
-    Swag.assert(!cast(bool) missing)
+    Swag.assert(not cast(bool) missing)
 
     var assigned = cast(StrictTestFlags) TestFlags.A
     assigned |= cast(StrictTestFlags) TestFlags.B
@@ -212,7 +212,7 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
         tookSouth = true
 
     var missingWest = false
-    if !(values.refAt(1)[] & .West) do
+    if not (values.refAt(1)[] & .West) do
         missingWest = true
 
     values.refAt(0)[] &= ~.West

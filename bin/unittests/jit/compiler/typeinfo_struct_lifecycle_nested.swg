@@ -163,7 +163,7 @@ func runMove(type: typeinfo, value: *void)
 func nestedDropOrderWorks()->bool
 {
     let type = #typeof(OuterLifecycle)
-    if !hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type) do
         return false
 
     resetEvents()
@@ -175,7 +175,7 @@ func nestedDropOrderWorks()->bool
 func nestedInitRestoresDefaults()->bool
 {
     let type = #typeof(OuterLifecycle)
-    if !hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type) do
         return false
 
     var value = OuterLifecycle{head: EventProbe{value: 91}, middle: MiddleLifecycle{left: EventProbe{value: 92}, right: EventProbe{value: 93}, marker: -7}, stamp: -9}
@@ -192,7 +192,7 @@ func nestedInitRestoresDefaults()->bool
 func nestedCopyOrderWorks()->bool
 {
     let type = #typeof(OuterLifecycle)
-    if !hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type) do
         return false
 
     resetEvents()
@@ -214,7 +214,7 @@ func nestedCopyOrderWorks()->bool
 func nestedMoveOrderWorks()->bool
 {
     let type = #typeof(OuterLifecycle)
-    if !hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type) do
         return false
 
     resetEvents()
@@ -236,7 +236,7 @@ func nestedMoveOrderWorks()->bool
 func arrayInitTouchesEveryElement()->bool
 {
     let type = #typeof(ArrayLifecycle)
-    if !hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type) do
         return false
 
     var value: ArrayLifecycle
@@ -255,7 +255,7 @@ func arrayInitTouchesEveryElement()->bool
 func arrayLifecycleTouchesEveryElement()->bool
 {
     let type = #typeof(ArrayLifecycle)
-    if !hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type) do
         return false
 
     var value: ArrayLifecycle
@@ -281,7 +281,7 @@ func arrayLifecycleTouchesEveryElement()->bool
 func deepInitRestoresNestedArrays()->bool
 {
     let type = #typeof(DeepInitLifecycle)
-    if !hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type) do
         return false
 
     var value: DeepInitLifecycle

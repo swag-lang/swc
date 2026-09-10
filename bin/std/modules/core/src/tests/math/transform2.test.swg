@@ -32,7 +32,7 @@ func expectTransform(actual, expected: Math.Transform2)
     Swag.assert(identity.m[1, 1] == identity.m22)
 
     var transform = Math.Transform2{2, 3, 4, 5, 6, 7}
-    Swag.assert(!transform.isIdentity())
+    Swag.assert(not transform.isIdentity())
     transform.setIdentity()
     Swag.assert(transform.isIdentity())
     expectTransform(transform, Math.Transform2.Identity)

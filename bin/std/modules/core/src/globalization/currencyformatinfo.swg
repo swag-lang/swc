@@ -64,7 +64,7 @@ public impl CurrencyFormatInfo
         let number   = numberFormat.format(Math.abs(value), decimals: .decimalDigits, grouped: true)
 
         var result: retval
-        if !negative
+        if not negative
         {
             .appendPositive(&result, number)
             return result

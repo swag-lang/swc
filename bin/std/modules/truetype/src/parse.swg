@@ -88,10 +88,10 @@ func decodeBestName(nameTable: const [..] u8?, nameID: u16)->String fail
 func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
 {
     let defaultStyle = String.from(DEFAULT_STYLE_NAME)
-    let rec          = findTable(faceData, TAG_NAME)
-    if !rec
+    let rec = findTable(faceData, TAG_NAME)
+    if not rec
     {
-        if !fallbackFamilyName.count do
+        if not fallbackFamilyName.count do
             fault(0x91)
         faceData.face.setNames(String.from(fallbackFamilyName), defaultStyle)
         return
@@ -111,7 +111,7 @@ func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
 func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
 {
     let rec = findTable(faceData, TAG_POST)
-    if !rec
+    if not rec
     {
         if allowMissing do
             return
@@ -132,7 +132,7 @@ func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
 func parseOS2(faceData: *FaceImpl) fail
 {
     let rec = findTable(faceData, TAG_OS2)
-    if !rec do
+    if not rec do
         return
 
     let table = getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
@@ -156,7 +156,7 @@ func parseOS2(faceData: *FaceImpl) fail
 func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
 {
     let record = findTable(faceData, TAG_CMAP)
-    if !record
+    if not record
     {
         if allowMissing do
             return
@@ -263,7 +263,7 @@ func buildGlyphLocations(faceData: *FaceImpl) fail
 func parseKern(faceData: *FaceImpl) fail
 {
     let rec = findTable(faceData, TAG_KERN)
-    if !rec do
+    if not rec do
         return
 
     let table = getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
@@ -389,7 +389,7 @@ func familyNameIn(data: const [..] u8?, faceIndex: u32)->String fail
 {
     let faceOffset = findFaceOffset(data, faceIndex)
     let nameTable  = findTableAt(data, faceOffset, TAG_NAME)
-    if !nameTable do
+    if not nameTable do
         fault(0x91)
 
     let familyName = decodeBestName(nameTable, NAME_ID_FAMILY)
@@ -432,10 +432,10 @@ func buildSyntheticCMap(faceData: *FaceImpl)
     for code in 256'u32
     {
         let gid = faceData.glyphIndexByCode(code)
-        if !gid do
+        if not gid do
             continue
         let value = standardEncodingRune(cast(u8) code)
-        if value and !faceData.syntheticCMap.contains(cast(u32) value) do
+        if value and not faceData.syntheticCMap.contains(cast(u32) value) do
             faceData.syntheticCMap.add(cast(u32) value, gid)
     }
 
@@ -445,7 +445,7 @@ func buildSyntheticCMap(faceData: *FaceImpl)
     for name, gid in names
     {
         let value = glyphNameRune(name.toString())
-        if value and !faceData.syntheticCMap.contains(cast(u32) value) do
+        if value and not faceData.syntheticCMap.contains(cast(u32) value) do
             faceData.syntheticCMap.add(cast(u32) value, cast(u32) gid)
     }
 }
@@ -482,7 +482,7 @@ func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
         bold   = faceData.type1.bold
     }
 
-    if !faceData.face.glyphCount do
+    if not faceData.face.glyphCount do
         fault(0xBA)
 
     // The design bounding box is the only vertical information such a program states, and
@@ -491,7 +491,7 @@ func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
     let descender = cast(s16) faceData.face.bbox.yMin
     faceData.face.setHorizontalMetrics(ascender, descender, 0, cast(s16) faceData.face.bbox.xMax)
 
-    if !name.length do
+    if not name.length do
         name = String.from(fallbackFamilyName.count ? fallbackFamilyName : DEFAULT_FAMILY_NAME)
     faceData.face.setNames(name, String.from(DEFAULT_STYLE_NAME))
     faceData.face.setUnderline(cast(s16) -(cast(s32) faceData.unitsPerEm / 10), cast(s16) (faceData.unitsPerEm / 20))
@@ -569,7 +569,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
 
     let isSubset = fallbackFamilyName.count != 0
     parseCMap(faceData, isSubset)
-    if !faceData.hasCMap and faceData.outlineSource == .Cff do
+    if not faceData.hasCMap and faceData.outlineSource == .Cff do
         buildSyntheticCMap(faceData)
     parseNames(faceData, fallbackFamilyName)
     parsePost(faceData, isSubset or faceData.outlineSource == .Cff)

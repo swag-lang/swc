@@ -23,7 +23,7 @@ func createContextMenuModel(parent: *Wnd)
 func showContextMenuAt(pt: Math.Point)
 {
     let menu = g_ContextMenu
-    if !menu do
+    if not menu do
         return
 
     discard menu.doModal(pt)
@@ -56,7 +56,7 @@ func onContextCanvasEvent(view: *Wnd, evt: IEvent)->bool
         painter.drawString(card.x + 28, card.y + 28, "Right-click target", titleFont, Argb.DarkSlateGray)
         drawWrappedText(painter, {card.x + 28, card.y + 72, card.width - 56, 56}, "Right-click this panel or use the buttons to open the same context menu at different anchors.", font, Argb.DimGray, 2)
         drawStatePill(painter, {card.x + 28, card.y + 130, 132, 34}, g_ContextPinned ? "pinned" : "unpinned", g_ContextPinned, font, colors)
-        drawStatePill(painter, {card.x + 176, card.y + 130, 132, 34}, Format.toString("delete %", boolWord(!g_ContextPinned)), !g_ContextPinned, font, colors)
+        drawStatePill(painter, {card.x + 176, card.y + 130, 132, 34}, Format.toString("delete %", boolWord(not g_ContextPinned)), not g_ContextPinned, font, colors)
     }
 
     return false

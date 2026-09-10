@@ -46,7 +46,7 @@ impl HexSearchPattern
     // Appends every occurrence, including overlaps, inside one streamed source window.
     mtd collectMatches(source: string, baseOffset: u64, result: *Array'Viewer.SearchMatch)
     {
-        if !.values.count or source.count < .values.count do
+        if not .values.count or source.count < .values.count do
             return
 
         let last = source.count - .values.count
@@ -113,7 +113,7 @@ private func parseHexBytePattern(source: string)->HexSearchParse
             return result
         }
 
-        if !hasHigh
+        if not hasHigh
         {
             high    = value
             hasHigh = true
@@ -124,7 +124,7 @@ private func parseHexBytePattern(source: string)->HexSearchParse
         hasHigh = false
     }
 
-    if hasHigh or !result.pattern.length()
+    if hasHigh or not result.pattern.length()
     {
         result.state = .Incomplete
         return result
@@ -137,7 +137,7 @@ private func parseHexBytePattern(source: string)->HexSearchParse
 private func parseHexTextPattern(source: string)->HexSearchParse
 {
     var result: retval
-    if !source.count
+    if not source.count
     {
         result.state = .Incomplete
         return result
@@ -168,7 +168,7 @@ private func appendHexScalarPattern(pattern: *HexSearchPattern, raw, size: u64, 
 private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndian: bool)->HexSearchParse
 {
     var result: retval
-    if !source.count or source == "+" or source == "-" or source == "0x" or source == "0X"
+    if not source.count or source == "+" or source == "-" or source == "0x" or source == "0X"
     {
         result.state = .Incomplete
         return result
@@ -181,7 +181,7 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
     {
     case .Signed8, .Signed16, .Signed32, .Signed64:
         let parsed = catch StrConv.parseS64(source) as parseError
-        if parseError == null and parsed.eat == source.count and !parsed.ovf
+        if parseError == null and parsed.eat == source.count and not parsed.ovf
         {
             let bits = size * 8
             let min  = bits == 64 ? Swag.S64.Min : -(1's64 << (bits - 1))
@@ -192,7 +192,7 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
 
     case .Unsigned8, .Unsigned16, .Unsigned32, .Unsigned64:
         let parsed = catch StrConv.parseU64(source) as parseError
-        if parseError == null and parsed.eat == source.count and !parsed.ovf
+        if parseError == null and parsed.eat == source.count and not parsed.ovf
         {
             let max = size == 8 ? Swag.U64.Max : (1'u64 << (size * 8)) - 1
             valid = parsed.value <= max
@@ -201,7 +201,7 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
 
     case .Float32:
         let parsed = catch StrConv.parseF64(source) as parseError
-        if parseError == null and parsed.eat == source.count and !parsed.ovf
+        if parseError == null and parsed.eat == source.count and not parsed.ovf
         {
             valid = true
             raw   = cast #bit (u32) cast(f32) parsed.value
@@ -209,7 +209,7 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
 
     case .Float64:
         let parsed = catch StrConv.parseF64(source) as parseError
-        if parseError == null and parsed.eat == source.count and !parsed.ovf
+        if parseError == null and parsed.eat == source.count and not parsed.ovf
         {
             valid = true
             raw   = cast #bit (u64) parsed.value
@@ -218,7 +218,7 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
     case .Bytes, .Hex16, .Hex32, .Hex64:
         let digits = Utf8.startsWith(source, "0x", .Latin1NoCase) ? cast(string) source[2 to] : source
         let parsed = catch StrConv.parseX64(digits) as parseError
-        if parseError == null and parsed.eat == digits.count and !parsed.ovf
+        if parseError == null and parsed.eat == digits.count and not parsed.ovf
         {
             let max = size == 8 ? Swag.U64.Max : (1'u64 << (size * 8)) - 1
             valid = parsed.value <= max
@@ -226,7 +226,7 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
         }
     }
 
-    if !valid
+    if not valid
     {
         result.state = .Invalid
         result.error = .Value
@@ -246,7 +246,7 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
 func parseHexSearch(query: string, grouping: HexGrouping, bigEndian: bool)->HexSearchParse
 {
     let trimmed = Latin1.trim(query)
-    if !trimmed.count
+    if not trimmed.count
     {
         var result: retval
         result.state = .Incomplete

@@ -15,7 +15,7 @@ func __itoa(result: [*] u8, value: s64)->[*] u8
         orgValue /= 10
         ptr[]    = conv[35 + (tmpValue - (orgValue * 10))]
         ptr      += 1
-        if !orgValue do
+        if not orgValue do
             break
     }
 
@@ -55,7 +55,7 @@ func __utoa(result: [*] u8, value: u64)->[*] u8
         orgValue /= 10
         ptr[]    = conv[35 + (tmpValue - (orgValue * 10))]
         ptr      += 1
-        if !orgValue do
+        if not orgValue do
             break
     }
 
@@ -243,7 +243,7 @@ func stringCmp(str1: string?, str2: string?)->bool
         return data1 == data2
     if data1 == data2 do
         return true
-    return !Swag.memcmp(data1, data2, num1)
+    return not Swag.memcmp(data1, data2, num1)
 }
 
 // Compares the content of two slices, and returns 'true' if they hold the same elements.
@@ -259,5 +259,5 @@ func __sliceCmp(data1, data2: const [*] void?, count1, count2, sizeOf: u64)->boo
         return data1 == data2
     if data1 == data2 do
         return true
-    return !Swag.memcmp(data1, data2, count1 * sizeOf)
+    return not Swag.memcmp(data1, data2, count1 * sizeOf)
 }

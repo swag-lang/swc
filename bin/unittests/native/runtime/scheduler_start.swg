@@ -28,7 +28,7 @@ impl SchedulerProbe
 {
     mtd join()
     {
-        if !.handle do
+        if not .handle do
             return
         let waited = WaitForSingleObject(.handle, 0xFFFF_FFFF)
         let closed = CloseHandle(.handle)
@@ -54,7 +54,7 @@ func probeScheduler(param: *void?)->u32
         Swag.releaseAllocatorThreadCache()
     }
 
-    while !probe.start.isRaised() do
+    while not probe.start.isRaised() do
         discard SwitchToThread()
 
     probe.scheduler = cast(u64) Swag.schedulerInstance()
@@ -63,7 +63,7 @@ func probeScheduler(param: *void?)->u32
     var values: [4] u32
     accumulateParallelProbe(&values)
     probe.ready.raise()
-    while !probe.grow.isRaised() do
+    while not probe.grow.isRaised() do
         discard SwitchToThread()
 
     let maximum  = probe.initialCount > 6 ? probe.initialCount : 6'u32
@@ -116,8 +116,8 @@ func checkSchedulerPublication()
     {
         probe.context.allocator        = allocator
         probe.context.defaultAllocator = allocator
-        probe.handle                   = CreateThread(null, 0, &probeScheduler, probe, 0, null)
-        if !probe.handle
+        probe.handle = CreateThread(null, 0, &probeScheduler, probe, 0, null)
+        if not probe.handle
         {
             created = false
             break
@@ -129,7 +129,7 @@ func checkSchedulerPublication()
     var ready = false
     for attempt in 5000
     {
-        if !created do
+        if not created do
             break
         ready = true
         for probe in probes do
@@ -151,7 +151,7 @@ func checkSchedulerPublication()
     {
         Swag.assert(probe.scheduler == probes[0].scheduler)
         Swag.assert(probe.initialCount >= 1 and probe.initialCount == initialCount)
-        Swag.assert(!probe.invalid)
+        Swag.assert(not probe.invalid)
         Swag.assert(probe.completed.load() == 384)
     }
 }

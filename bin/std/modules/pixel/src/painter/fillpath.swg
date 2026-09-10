@@ -77,7 +77,7 @@ internal func fillRegions(pathList: *LinePathList, contours: *Array'(*LinePath),
 // contour, as hard as the solid.
 private func regionOutward(contours: const [..] *LinePath, ruled: bool)->f32
 {
-    return ruled and contours.count == 1 and !contours[0].polygon.isClockwise ? -1.0'f32 : 1.0'f32
+    return ruled and contours.count == 1 and not contours[0].polygon.isClockwise ? -1.0'f32 : 1.0'f32
 }
 
 // Records, for every vertex of a freshly tessellated region, the outward direction of the contour
@@ -188,7 +188,7 @@ public impl Painter
         for i in p.triangles.triangleCount()
         {
             let vertexIndex = i * 3
-            if !inset or !offset
+            if not inset or not offset
             {
                 discard .pushTriangle(p.triangles.vertices[vertexIndex], p.triangles.vertices[vertexIndex + 1], p.triangles.vertices[vertexIndex + 2], brush.color)
                 continue
@@ -213,7 +213,7 @@ public impl Painter
     // Fill a list of paths.
     mtd fillPath(pathList: *LinePathList, color: Color)
     {
-        if !pathList.paths.count do
+        if not pathList.paths.count do
             return
 
         let brush = Brush.createSolid(color)

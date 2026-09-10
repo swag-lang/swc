@@ -140,9 +140,9 @@ impl Decoder
     private mtd filterBlockEdge(x, y: s32, vertical: bool)
     {
         let sps = .activeSps!
-        if vertical and !x do
+        if vertical and not x do
             return
-        if !vertical and !y do
+        if not vertical and not y do
             return
 
         let index = .blockIndex(x, y)
@@ -153,11 +153,11 @@ impl Decoder
 
         let xP = vertical ? x - 1 : x
         let yP = vertical ? y : y - 1
-        if !.filterAcrossAllowed(x, y, xP, yP) do
+        if not .filterAcrossAllowed(x, y, xP, yP) do
             return
 
         let strength = .boundaryStrength(x, y, xP, yP, vertical, flags)
-        if !strength do
+        if not strength do
             return
 
         let qpP   = cast(s32) .qpY[.blockIndex(xP, yP)]
@@ -192,11 +192,11 @@ impl Decoder
         if currentCtb == neighbourCtb do
             return true
 
-        if !pps.loopFilterAcrossTiles and .tileId[currentCtb] != .tileId[neighbourCtb] do
+        if not pps.loopFilterAcrossTiles and .tileId[currentCtb] != .tileId[neighbourCtb] do
             return false
 
         let slice = &.sliceParams[cast(u64) .ctbSliceIndex[.ctbAddressRs(x, y)]]
-        if !slice.loopFilterAcrossSlices and .ctbSliceAddr[.ctbAddressRs(x, y)] != .ctbSliceAddr[.ctbAddressRs(xP, yP)] do
+        if not slice.loopFilterAcrossSlices and .ctbSliceAddr[.ctbAddressRs(x, y)] != .ctbSliceAddr[.ctbAddressRs(xP, yP)] do
             return false
         discard sps
         return true
@@ -229,13 +229,13 @@ impl Decoder
             if (cast(u32) left.predFlags & (1'u32 << list)) != 0
             {
                 leftPoc[leftCount] = .refList.poc[list, cast(u32) left.refIdx[list]]
-                leftCount          += 1
+                leftCount += 1
             }
 
             if (cast(u32) right.predFlags & (1'u32 << list)) != 0
             {
                 rightPoc[rightCount] = .refList.poc[list, cast(u32) right.refIdx[list]]
-                rightCount           += 1
+                rightCount += 1
             }
         }
 
@@ -252,12 +252,12 @@ impl Decoder
             return .motionFar(left, leftList, right, rightList)
         }
 
-        if !leftCount do
+        if not leftCount do
             return false
 
         let sameOrder    = leftPoc[0] == rightPoc[0] and leftPoc[1] == rightPoc[1]
         let crossedOrder = leftPoc[0] == rightPoc[1] and leftPoc[1] == rightPoc[0]
-        if !sameOrder and !crossedOrder do
+        if not sameOrder and not crossedOrder do
             return true
 
         if leftPoc[0] == leftPoc[1]
@@ -301,7 +301,7 @@ impl Decoder
         let beta    = cast(s32) DeblockBeta[betaQ] * (1 << (bitDepth - 8))
         let tcQ     = Math.clamp(average + 2 * (cast(s32) strength - 1) + (cast(s32) slice.tcOffsetDiv2 << 1), 0, 53)
         let tc      = cast(s32) DeblockTc[tcQ] * (1 << (bitDepth - 8))
-        if !beta do
+        if not beta do
             return
 
         let stride    = cast(s64) frame.strideLuma
@@ -349,7 +349,7 @@ impl Decoder
         let filterP = dp < ((beta + (beta >> 1)) >> 3)
         let filterQ = dq < ((beta + (beta >> 1)) >> 3)
 
-        if !vertical
+        if not vertical
         {
             .filterLumaQuad(origin, crossStep, strong, filterP, filterQ, tc, maximum)
             return
@@ -387,9 +387,9 @@ impl Decoder
                 continue
             }
 
-            delta            = Math.clamp(delta, -tc, tc)
+            delta   = Math.clamp(delta, -tc, tc)
             line[-crossStep] = cast(u16) Math.clamp(p0 + delta, 0, maximum)
-            line[0]          = cast(u16) Math.clamp(q0 - delta, 0, maximum)
+            line[0] = cast(u16) Math.clamp(q0 - delta, 0, maximum)
 
             if filterP
             {
@@ -507,7 +507,7 @@ impl Decoder
 
         let tcQ = Math.clamp(chromaQp + 2 + (cast(s32) slice.tcOffsetDiv2 << 1), 0, 53)
         let tc  = cast(s32) DeblockTc[tcQ] * (1 << (bitDepth - 8))
-        if !tc do
+        if not tc do
             return
 
         let plane  = component == 1 ? frame.chromaB.buffer! : frame.chromaR.buffer!
@@ -530,8 +530,8 @@ impl Decoder
 
             let delta = Math.clamp((((q0 - p0) << 2) + p1 - q1 + 4) >> 3, -tc, tc)
             line[-crossStep] = cast(u16) Math.clamp(p0 + delta, 0, maximum)
-            line[0]          = cast(u16) Math.clamp(q0 - delta, 0, maximum)
-            line             += lineStep
+            line[0] = cast(u16) Math.clamp(q0 - delta, 0, maximum)
+            line    += lineStep
         }
     }
 }

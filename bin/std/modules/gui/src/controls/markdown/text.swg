@@ -7,7 +7,7 @@ using Core
 // producer; both the view and resource preparation skip those escapes before calling this.
 func parseImageTag(text: string)->{ alt: string, source: string, eat: u64 }
 {
-    if !Utf8.startsWith(text, "<img>") do
+    if not Utf8.startsWith(text, "<img>") do
         return {"", "", 0}
     let altEnd = Utf8.indexOf(text, "</img><src>", 5)
     if altEnd == Swag.U64.Max do
@@ -95,7 +95,7 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
         }
 
         let character = cast(rune) number
-        if !Utf8.isValidRune(character) do
+        if not Utf8.isValidRune(character) do
             return result
         if character == '<' do
             result.value = "<<"

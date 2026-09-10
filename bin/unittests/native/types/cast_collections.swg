@@ -69,7 +69,7 @@ func cstringToConstByteView()->bool
 func constCStringToByteView()->bool
 {
     var text: const cstring = cast(const cstring) ("view").buffer
-    let bytes               = cast(const [..] u8) text
+    let bytes = cast(const [..] u8) text
     #assert(#typeof(bytes) == const [..] u8)
     return bytes.count == 4 and bytes[0] == 'v'u8 and bytes[3] == 'w'u8
 }
@@ -77,7 +77,7 @@ func constCStringToByteView()->bool
 func cstringToStringView()->bool
 {
     var text: const cstring = cast(const cstring) ("text").buffer
-    let view                = cast(string) text
+    let view = cast(string) text
     return view.count == 4 and view == "text"
 }
 

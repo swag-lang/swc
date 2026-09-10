@@ -32,7 +32,7 @@ impl FrameTiming
         .frameCount += 1
 
         // First frame
-        if !.previousTick
+        if not .previousTick
         {
             .previousTick = newTick
             return
@@ -56,7 +56,7 @@ impl FrameTiming
     // Resumes frame timing and resets the tick reference.
     mtd resume()
     {
-        if !.isPaused do
+        if not .isPaused do
             return
         .isPaused     = false
         .previousTick = monotonicTicks()

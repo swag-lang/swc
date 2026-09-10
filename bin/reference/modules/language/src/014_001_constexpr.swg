@@ -100,7 +100,7 @@ func constexprIsPowerOfTwo(value: u32)->bool
     return value != 0 and (value & (value - 1)) == 0
 }
 
-#static if !constexprIsPowerOfTwo(64)
+#static if not constexprIsPowerOfTwo(64)
 {
     #error("64 must be a power of two")
 }

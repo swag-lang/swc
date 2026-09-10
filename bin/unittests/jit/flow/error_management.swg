@@ -606,7 +606,7 @@ func notNullPointerSuccess()->s32
 {
     var storage: s32   = 91
     let maybe:   *s32? = notNullMaybePtr(&storage)
-    let ptr            = maybe!
+    let ptr = maybe!
     #assert(#typeof(ptr) == *s32)
     return ptr[]
 }
@@ -615,7 +615,7 @@ func notNullSliceSuccess()->s32
 {
     var values: [3] s32   = [4, 5, 6]
     let maybe:  [..] s32? = values
-    let slice             = maybe!
+    let slice = maybe!
     #assert(#typeof(slice) == [..] s32)
     return slice[1] + cast(s32) slice.count
 }
@@ -678,7 +678,7 @@ func dismissSuccessValue()->s32
     const V = #run errIsAsFailureInfo()
     #assert(V.exactType)
     #assert(V.baseType)
-    #assert(!V.wrongType)
+    #assert(not V.wrongType)
     #assert(V.exactCastOk)
     #assert(V.baseCastOk)
     #assert(V.wrongCastNull)
@@ -689,8 +689,8 @@ func dismissSuccessValue()->s32
 #test
 {
     const V = #run errIsAsNullInfo()
-    #assert(!V.exactType)
-    #assert(!V.baseType)
+    #assert(not V.exactType)
+    #assert(not V.baseType)
     #assert(V.exactCastNull)
     #assert(V.baseCastNull)
 }
@@ -750,7 +750,7 @@ func dismissSuccessValue()->s32
 {
     const V = #run dismissFailureInfo()
     #assert(V.value == 0)
-    #assert(!V.hasErr)
+    #assert(not V.hasErr)
     #assert(V.code == 0)
 }
 
@@ -762,16 +762,16 @@ func dismissSuccessValue()->s32
     #assert(V.value.payload[0] == 0)
     #assert(V.value.payload[1] == 0)
     #assert(V.value.payload[2] == 0)
-    #assert(!V.hasErr)
+    #assert(not V.hasErr)
     #assert(V.code == 0)
-    #assert(!V.messageOk)
+    #assert(not V.messageOk)
 }
 
 #test
 {
     const V = #run inlineDismissFailureInfo()
     #assert(V.value == 0)
-    #assert(!V.hasErr)
+    #assert(not V.hasErr)
     #assert(V.code == 0)
 }
 
@@ -815,7 +815,7 @@ func dismissSuccessValue()->s32
 {
     const V = #run dismissNullablePointerFailureInfo()
     #assert(V.isNull)
-    #assert(!V.hasErr)
+    #assert(not V.hasErr)
     #assert(V.code == 0)
 }
 
@@ -823,7 +823,7 @@ func dismissSuccessValue()->s32
 {
     const V = #run dismissNullableStringFailureInfo()
     #assert(V.isNull)
-    #assert(!V.hasErr)
+    #assert(not V.hasErr)
     #assert(V.code == 0)
 }
 
@@ -831,7 +831,7 @@ func dismissSuccessValue()->s32
 {
     const V = #run dismissNullableSliceFailureInfo()
     #assert(V.isNull)
-    #assert(!V.hasErr)
+    #assert(not V.hasErr)
     #assert(V.code == 0)
 }
 
@@ -866,7 +866,7 @@ func dismissSuccessValue()->s32
 {
     const V = #run dismissErrDeferOverrideFailureInfo()
     #assert(V.value == 0)
-    #assert(!V.hasErr)
+    #assert(not V.hasErr)
     #assert(V.code == 0)
     #assert(V.trace == 123)
 }

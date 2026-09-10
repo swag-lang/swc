@@ -307,7 +307,7 @@ func getSpanInfo(text: string)->{spanCount: u32, firstFree: u32}
             spanCount += 1
             prevId    = cast(u32) blk
         }
-        if !foundFree and blk == FreeId
+        if not foundFree and blk == FreeId
         {
             firstFree = pos
             foundFree = true

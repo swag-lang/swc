@@ -37,7 +37,7 @@ impl ConstDataOfSpecBuffer
 {
     var arr0: [3] s32
     var a:    [..] s32 = arr0
-    var b              = a.buffer
+    var b = a.buffer
     #assert(#typeof(b) == [*] s32)
 
     var c: string = "x"
@@ -46,7 +46,7 @@ impl ConstDataOfSpecBuffer
 
     var ebuf: [2] u8  = ['x'u8, 0]
     var e:    cstring = cast(cstring) &ebuf[0]
-    var f             = e.buffer
+    var f = e.buffer
     #assert(#typeof(f) == const [*] u8)
 
     var g: [5] s32
@@ -77,7 +77,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var arr: [3] u8 = [1, 2, 3]
-    var p           = arr.buffer
+    var p = arr.buffer
     Swag.assert(p[0] == 1'u8)
     Swag.assert(p[1] == 2'u8)
     Swag.assert(p[2] == 3'u8)
@@ -87,7 +87,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var s: string? = null
-    var p          = s.buffer
+    var p = s.buffer
     #assert(#typeof(p) == const [*] u8)
     Swag.assert(p == null)
 }
@@ -96,7 +96,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var arr: [2] s32 = [1, 2]
-    var p            = arr.buffer
+    var p = arr.buffer
     p[0] = 7
     Swag.assert(arr[0] == 7)
 }
@@ -116,7 +116,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     const s: const [..] u8 = cast(const [..] u8) "abc"
-    const p                = s.buffer
+    const p = s.buffer
     #assert(p != null)
     #assert(p[] == 'a'u8)
     Swag.assert(p != null)
@@ -127,7 +127,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     const arr: [2] s32 = [7, 9]
-    const p            = arr.buffer
+    const p = arr.buffer
     #assert(p != null)
     #assert(p[] == 7)
     Swag.assert(p != null)
@@ -176,9 +176,9 @@ impl ConstDataOfSpecBuffer
 
 #test
 {
-    var storage: [4] s32           = [3, 6, 9, 12]
+    var storage: [4] s32 = [3, 6, 9, 12]
     var value:   StrictDataOfSlice = cast(StrictDataOfSlice) storage
-    let p                          = value.buffer
+    let p = value.buffer
     #assert(#typeof(p) == [*] s32)
     p[2] = 55
     Swag.assert(storage[0] == 3)

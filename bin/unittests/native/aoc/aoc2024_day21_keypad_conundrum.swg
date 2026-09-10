@@ -119,7 +119,7 @@ func memoProbe(m: *Memo, key: u64)->u32
     let keys  = m.keys!
     for MapCap
     {
-        if !alive[idx] or keys[idx] == key do
+        if not alive[idx] or keys[idx] == key do
             return idx
         idx = (idx + 1) % MapCap
     }
@@ -212,7 +212,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
     var bestCost: u64 = 0xFFFFFFFFFFFFFFFF'u64
 
     // Try horizontal then vertical
-    let hfValid = !(fromCoord.r == gapR and toCoord.c == gapC)
+    let hfValid = not (fromCoord.r == gapR and toCoord.c == gapC)
     if hfValid
     {
         var cost: u64
@@ -248,7 +248,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
     }
 
     // Try vertical then horizontal
-    let vfValid = !(toCoord.r == gapR and fromCoord.c == gapC)
+    let vfValid = not (toCoord.r == gapR and fromCoord.c == gapC)
     if vfValid
     {
         var cost: u64
@@ -441,7 +441,7 @@ func solve(text: string)->SolveResult
 
     var found: bool
     discard memoGet(&m, 42, &found)
-    Swag.assert(!found)
+    Swag.assert(not found)
 
     memoPut(&m, 42, 100)
     let v = memoGet(&m, 42, &found)

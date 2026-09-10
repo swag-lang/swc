@@ -13,15 +13,15 @@ const PackedFormats: [18] PixelFormat = [
     let png = ImageFormat{"PNG", ".png"}
     Swag.assert(png.matches("capture.png"))
     Swag.assert(png.matches("C:/a folder/CAPTURE.PNG"))
-    Swag.assert(!png.matches("capture.jpg"))
-    Swag.assert(!png.matches("png"))
-    Swag.assert(!png.matches("capture"))
-    Swag.assert(!png.matches(""))
+    Swag.assert(not png.matches("capture.jpg"))
+    Swag.assert(not png.matches("png"))
+    Swag.assert(not png.matches("capture"))
+    Swag.assert(not png.matches(""))
 
     let jpeg = ImageFormat{"JPEG", ".jpg;.jpeg"}
     Swag.assert(jpeg.matches("photo.jpg"))
     Swag.assert(jpeg.matches("photo.jpeg"))
-    Swag.assert(!jpeg.matches("photo.jpe"))
+    Swag.assert(not jpeg.matches("photo.jpe"))
 }
 
 // Every packed format publishes exact storage geometry and alpha/sample traits.
@@ -42,7 +42,7 @@ const PackedFormats: [18] PixelFormat = [
         Swag.assert(format.hasAlpha() == Alpha[index])
     }
 
-    Swag.assert(!PixelFormat.Yuv420.isPacked())
+    Swag.assert(not PixelFormat.Yuv420.isPacked())
 }
 
 // Conversion preserves logical 8-bit colors through integer, half, full-float, and grayscale storage.
@@ -88,7 +88,7 @@ const PackedFormats: [18] PixelFormat = [
     }
 
     let positiveInfinity = cast #bit (f32) 0x7F800000'u32
-    let nan              = cast #bit (f32) 0x7FC01234'u32
+    let nan = cast #bit (f32) 0x7FC01234'u32
     Swag.assert(cast #bit (u32) halfToFloat(floatToHalf(positiveInfinity)) == 0x7F800000)
     Swag.assert(halfToFloat(floatToHalf(nan)) != halfToFloat(floatToHalf(nan)))
 }
@@ -152,9 +152,9 @@ const PackedFormats: [18] PixelFormat = [
 // and the matching encode/decode entry points fail rather than picking an arbitrary codec.
 #test
 {
-    Swag.assert(!Image.canSave("capture.unknown"))
-    Swag.assert(!Image.canLoad("capture.unknown"))
-    Swag.assert(!Image.canSave("capture"))
+    Swag.assert(not Image.canSave("capture.unknown"))
+    Swag.assert(not Image.canLoad("capture.unknown"))
+    Swag.assert(not Image.canSave("capture"))
 
     var img = Image.create(2, 2, .RGBA8)
     img.clear()

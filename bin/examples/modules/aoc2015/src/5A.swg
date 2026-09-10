@@ -78,7 +78,7 @@ func day5A1()
             continue
         if r1.grepAll(l[]).count < 3 do
             continue
-        if !r2.grep(l[]) do
+        if not r2.grep(l[]) do
             continue
         total += 1
     }

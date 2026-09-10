@@ -238,7 +238,7 @@ func reportElfImage(image: *BinaryImage, report: *BinaryReport)
 
 private func reportElfSegments(image: *BinaryImage, report: *BinaryReport, at, entrySize, count: u64, is64: bool)
 {
-    if !at or !count do
+    if not at or not count do
         return
 
     let s     = binStrings()
@@ -299,7 +299,7 @@ private func elfSectionFlagsText(value: u64)->String
 private func readElfSections(image: *BinaryImage, at, entrySize, count, stringIndex: u64, is64: bool)->Array'ElfSection
 {
     var result: retval
-    if !at or !count do
+    if not at or not count do
         return result
 
     let wide      = is64 ? 8'u64 : 4
@@ -329,7 +329,7 @@ private func readElfSections(image: *BinaryImage, at, entrySize, count, stringIn
 private func reportElfSections(image: *BinaryImage, report: *BinaryReport, sections: const [..] ElfSection, at, entrySize: u64, is64: bool)
 {
     let s = binStrings()
-    if !at
+    if not at
     {
         report.note(s.elf_NoSections)
         return
@@ -376,7 +376,7 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
         break
     }
 
-    if !dynamic do
+    if not dynamic do
         return
 
     // The strings a dynamic entry names live in the section it links to, which is `.dynstr`.
@@ -392,10 +392,10 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
     while entries.count < BinaryListLimit
     {
         let entryAt = at + entries.count * wide * 2
-        if !image.has(entryAt, wide * 2) do
+        if not image.has(entryAt, wide * 2) do
             break
         entries.add(entryAt)
-        if !image.scalarAt(entryAt, wide) do
+        if not image.scalarAt(entryAt, wide) do
             break
     }
 
@@ -423,7 +423,7 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
 
     report.endGroup()
 
-    if !needed.isEmpty()
+    if not needed.isEmpty()
     {
         let count = countText(needed.count, s.word_Library, s.word_Libraries)
         report.beginGroup(s.shr_Libraries, count.toString(), "", open: true)

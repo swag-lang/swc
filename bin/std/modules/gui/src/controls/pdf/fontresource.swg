@@ -110,7 +110,7 @@ impl FontResource
     {
         if .codeBytes > 1
         {
-            if !.cidKeyed do
+            if not .cidKeyed do
                 return .glyphIndex(code)
             let mapped = font.glyphIndexByCid(code)
             return mapped ? {mapped, true} : .glyphIndex(code)
@@ -298,7 +298,7 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
             let cid = parser.resolve(parser.nodes[descendants].values[0])
             if cid != InvalidNode
             {
-                metrics             = cid
+                metrics = cid
                 result.defaultWidth = cast(f32) parser.number(parser.dict(cid, "DW"), 1000.0) / 1000.0
                 readCidWidths(parser, &result, parser.dict(cid, "W"))
 
@@ -601,7 +601,7 @@ private func readToUnicode(font: *FontResource, bytes: const [..] u8)
         }
 
         let start = scanner.pos
-        while scanner.pos < bytes.count and !isDelimiter(bytes[scanner.pos]) do
+        while scanner.pos < bytes.count and not isDelimiter(bytes[scanner.pos]) do
             scanner.pos += 1
         let word = cast(string) Swag.makeSlice(bytes.buffer + start, scanner.pos - start)
         switch word

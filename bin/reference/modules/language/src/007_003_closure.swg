@@ -130,6 +130,7 @@ and are plain data (POD).
         res += toAdd
         return res
     }
+
     let result = fct(4)
     Swag.assert(result == 1 + 2 + 3 + 4)
 }

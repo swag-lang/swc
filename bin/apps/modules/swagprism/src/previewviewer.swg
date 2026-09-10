@@ -56,7 +56,7 @@ impl PreviewViewer
         result.canvas.backgroundStyle = .Transparent
         result.canvas.sigClick        += func|viewer = result|(point)
         {
-            if !viewer.gui or viewer.paused or !viewer.running or !Atomic.get(&viewer.probe.ready) do
+            if not viewer.gui or viewer.paused or not viewer.running or not Atomic.get(&viewer.probe.ready) do
                 return
             let header = viewer.probe.channel.header()
             let click  = Atomic.get(&header.click)
@@ -82,7 +82,7 @@ impl PreviewViewer
     mtd compileRequest(request: Pipeline.BuildRequest)
     {
         // Editing another panel need not restart an unchanged live preview.
-        if .running and !Atomic.get(&.probe.cancelled) and (!.preparing or !Atomic.get(&.preparing!.cancelled)) and .generation == .cache.generation and .request.kind == request.kind and .request.sameProgram(request) do
+        if .running and not Atomic.get(&.probe.cancelled) and (not .preparing or not Atomic.get(&.preparing!.cancelled)) and .generation == .cache.generation and .request.kind == request.kind and .request.sameProgram(request) do
             return
         .pending = request
         if .preparing
@@ -129,7 +129,7 @@ impl PreviewViewer
         .queued     = false
         .running    = true
         .frameCount = 0
-        if !.timer do
+        if not .timer do
             .timer = .app().addTimer(16'ms, me)
         .probe.start(.request, .cache)
         .refreshStatus()
@@ -179,7 +179,7 @@ impl PreviewViewer
                     .sigChanged.call(me)
                 }
             }
-            elif !Atomic.get(&candidate.cancelled) and Atomic.get(&candidate.ready) and Atomic.get(&candidate.channel.header().published)
+            elif not Atomic.get(&candidate.cancelled) and Atomic.get(&candidate.ready) and Atomic.get(&candidate.channel.header().published)
             {
                 // Keep the previous animation alive until the replacement has a complete frame.
                 Atomic.exchange(&.probe.cancelled, 1)
@@ -220,7 +220,7 @@ impl PreviewViewer
             return
         }
 
-        if !Atomic.get(&.probe.ready) or (.paused and .frameCount != 0) or !.isVisible() do
+        if not Atomic.get(&.probe.ready) or (.paused and .frameCount != 0) or not .isVisible() do
             return
         let header = .probe.channel.header()
         let frame  = Atomic.get(&header.published)
@@ -266,7 +266,7 @@ impl PreviewViewer
 
         .retired.clear()
 
-        if .timer and !.isPendingDestroy do
+        if .timer and not .isPendingDestroy do
             .removeTimer(.timer!)
         .timer   = null
         .running = false
@@ -288,7 +288,7 @@ impl PreviewViewer
 
     mtd retranslate()
     {
-        if !.running and !.probe.failed and !.frameCount do
+        if not .running and not .probe.failed and not .frameCount do
             .output.setText(Format.toString("%\n\n%", .gui ? appStrings().ui_GuiHint : appStrings().ui_RenderHint, appStrings().ui_ChooseExample).toString())
         .refreshStatus()
         .applyLayout()
@@ -304,7 +304,7 @@ impl IViewer for PreviewViewer
     mtd impl isPaused()->bool => .paused
     mtd impl setPaused(paused: bool) { .paused = paused }
     mtd impl shutdown() { .stop() }
-    mtd impl isRunning()->bool => .preparing != null or (.running and (!.frameCount or .queued))
+    mtd impl isRunning()->bool => .preparing != null or (.running and (not .frameCount or .queued))
     mtd impl subscribeChanged(action: func||(*Wnd)) { .sigChanged += action }
 }
 

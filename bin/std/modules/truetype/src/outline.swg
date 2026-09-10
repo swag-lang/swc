@@ -117,7 +117,7 @@ public impl Outline
     // counters; load the glyph again to recover its original shape.
     mtd embolden(strength: s32) fail
     {
-        if .pointCount <= 0 or .contourCount <= 0 or !strength do
+        if .pointCount <= 0 or .contourCount <= 0 or not strength do
             return
 
         // Orientation must be computed once for the whole glyph, not per contour.
@@ -253,7 +253,7 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
             }
         }
 
-        if !pointsEqual(current, startPoint) do
+        if not pointsEqual(current, startPoint) do
             commands.add(OutlineCommand{kind: .LineTo, p0: startPoint})
 
         contourStart = contourEnd + 1

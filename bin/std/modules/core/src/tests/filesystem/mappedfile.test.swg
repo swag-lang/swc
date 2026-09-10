@@ -21,7 +21,7 @@
     discard expect File.writeAllBytes(fileName, cast(const [..] u8) "")
     var empty       = expect File.MappedFile.openSnapshot(fileName)
     var emptyRegion = expect empty.mapAll()
-    Swag.assert(emptyRegion.isOpen() and !emptyRegion.bytes().count)
+    Swag.assert(emptyRegion.isOpen() and not emptyRegion.bytes().count)
 
     discard expect File.writeAllBytes(fileName, source)
     var prefix       = expect File.MappedFile.openSnapshot(fileName, 17)
@@ -105,7 +105,7 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
     Swag.assert(empty.isOpen())
     Swag.assert((empty.bytes()).count == 0)
     empty.close()
-    Swag.assert(!empty.isOpen())
+    Swag.assert(not empty.isOpen())
 
     expect mapped.resize(8192)
     Swag.assert(expect mapped.size() == 8192)

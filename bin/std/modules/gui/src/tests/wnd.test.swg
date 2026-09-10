@@ -12,10 +12,10 @@ using Swag, Core
     defer host.shutdown()
 
     let state = host.root.sendComputeCommandStateEvent("Wnd.Unhandled")
-    Swag.assert(!state.accepted)
+    Swag.assert(not state.accepted)
     Swag.assert(state.updatedFields == .None)
     Swag.assert(state.renderingHint == .None)
-    Swag.assert(!state.disabled and !state.checked and !state.hidden)
+    Swag.assert(not state.disabled and not state.checked and not state.hidden)
     Swag.assert(state.name.isEmpty() and state.longName.isEmpty() and state.shortcut.isEmpty() and state.toolTip.isEmpty())
 }
 
@@ -33,7 +33,7 @@ using Swag, Core
     Swag.assert(a.parent == container)
     Swag.assert(container.isAncestorOf(a))
     Swag.assert(host.root.isAncestorOf(a))
-    Swag.assert(!a.isAncestorOf(container))
+    Swag.assert(not a.isAncestorOf(container))
 
     Swag.assert(container.childById("Wnd.A") == a)
     Swag.assert(container.childById("Wnd.B") == b)
@@ -75,16 +75,16 @@ using Swag, Core
     Swag.assert(child.isLocallyVisible())
 
     child.hide()
-    Swag.assert(!child.isVisible())
+    Swag.assert(not child.isVisible())
     Swag.assert(child.isHidden())
-    Swag.assert(!child.isLocallyVisible())
+    Swag.assert(not child.isLocallyVisible())
 
     child.show()
     Swag.assert(child.isVisible())
 
     // A hidden parent hides the child, but the child keeps its own visible state.
     container.hide()
-    Swag.assert(!child.isVisible())
+    Swag.assert(not child.isVisible())
     Swag.assert(child.isLocallyVisible())
     Swag.assert(child.isLocallyVisible())
 }
@@ -102,9 +102,9 @@ using Swag, Core
     Swag.assert(child.isLocallyEnabled())
 
     child.disable()
-    Swag.assert(!child.isEnabled())
+    Swag.assert(not child.isEnabled())
     Swag.assert(child.isDisabled())
-    Swag.assert(!child.isLocallyEnabled())
+    Swag.assert(not child.isLocallyEnabled())
 
     child.enable()
     Swag.assert(child.isEnabled())
@@ -112,7 +112,7 @@ using Swag, Core
 
     // A disabled parent disables the child, but the child keeps its own state.
     container.disable()
-    Swag.assert(!child.isEnabled())
+    Swag.assert(not child.isEnabled())
     Swag.assert(child.isLocallyEnabled())
     Swag.assert(child.isLocallyEnabled())
 }
@@ -261,7 +261,7 @@ using Swag, Core
 
     let wnd   = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
     let timer = wnd.addTimer(1'ms)
-    Swag.assert(!timer.isPendingRemoval)
+    Swag.assert(not timer.isPendingRemoval)
     wnd.destroy()
     Swag.assert(timer.isPendingRemoval)
 }

@@ -118,7 +118,7 @@ public impl RegExp
         // that, reading forwards once and backwards once over the whole subject is cheaper.
         const SelectiveScanRate = 50'u32
         .anchorOnCandidates = .prefilter.isEnabled() and
-                              !.program.anchoredStart and
+                              not .program.anchoredStart and
                               .prefilter.candidatesPerThousand() <= SelectiveScanRate
     }
 
@@ -174,7 +174,7 @@ public impl RegExp
             return null
 
         let subject = str orelse ""
-        if !.search(subject, 0, true, false) do
+        if not .search(subject, 0, true, false) do
             return null
         return .matchedText()
     }
@@ -188,7 +188,7 @@ public impl RegExp
             return null
 
         let subject = str orelse ""
-        if !.search(subject, 0, false, false) do
+        if not .search(subject, 0, false, false) do
             return null
         return .matchedText()
     }
@@ -238,7 +238,7 @@ public impl RegExp
         let subject = str orelse ""
         if start > subject.count do
             return result
-        if !.search(subject, start, false, false) do
+        if not .search(subject, start, false, false) do
             return result
 
         result.found = true
@@ -259,7 +259,7 @@ public impl RegExp
         while at <= subject.count
         {
             let step = .nextMatch(subject, at)
-            if !step.found do
+            if not step.found do
                 break
             result.add(step.span)
             at = step.next
@@ -279,7 +279,7 @@ public impl RegExp
     mtd getCapture(rank: u32)->string
     {
         let span = .captureSpan(rank)
-        if !span.found do
+        if not span.found do
             return ""
         return Swag.makeString((.subject).buffer + span.span.start, span.span.end - span.span.start)
     }
@@ -301,7 +301,7 @@ public impl RegExp
     mtd captureSpan(rank: u32)->{ found: bool, span: Span }
     {
         var result: retval
-        if !.matched do
+        if not .matched do
             return result
 
         // The whole match is always known, whether or not the pattern has capture groups.
@@ -371,7 +371,7 @@ public impl RegExp
         while at <= subject.count
         {
             let step = .nextMatch(subject, at)
-            if !step.found do
+            if not step.found do
                 break
 
             result.append(Swag.makeString(subject.buffer + copied, step.span.start - copied))
@@ -424,7 +424,7 @@ private impl RegExp
             return
 
         let inner = ast.extractInnerLiteral()
-        if !inner.found do
+        if not inner.found do
             return
 
         let scan = Regex.Prefilter.fromLiteral(inner.bytes.toSlice())
@@ -452,7 +452,7 @@ private impl RegExp
         .matched = false
         .subject = subject
 
-        if !.compiled do
+        if not .compiled do
             return false
 
         let hay   = Swag.makeSlice(subject.buffer, subject.count)
@@ -462,7 +462,7 @@ private impl RegExp
         // that no subject can make explode.
         if .program.hasBackref
         {
-            if !.backtracker.run(&.program, hay, start, limit, anchored, wholeSubject) do
+            if not .backtracker.run(&.program, hay, start, limit, anchored, wholeSubject) do
                 return false
             .keepSlots(.backtracker.slots.buffer)
             return true
@@ -488,11 +488,11 @@ private impl RegExp
                 return true
             }
 
-            if !.backtracker.exhausted do
+            if not .backtracker.exhausted do
                 return false
         }
 
-        if !wholeSubject
+        if not wholeSubject
         {
             if .searchWithAutomata(hay, start, limit, anchored) do
                 return true
@@ -500,7 +500,7 @@ private impl RegExp
                 return false
         }
 
-        if !.vm.run(&.program, hay, start, limit, anchored, wholeSubject) do
+        if not .vm.run(&.program, hay, start, limit, anchored, wholeSubject) do
             return false
 
         .keepSlots(.vm.matchSlots.buffer)
@@ -534,7 +534,7 @@ private impl RegExp
         .automataAnswered = false
 
         // A pattern that is nothing but a literal string is answered by the scan itself.
-        if .prefilter.complete and .program.captureCount == 0 and !anchored
+        if .prefilter.complete and .program.captureCount == 0 and not anchored
         {
             .automataAnswered = true
 
@@ -548,14 +548,14 @@ private impl RegExp
             return true
         }
 
-        if .useInner and !anchored do
+        if .useInner and not anchored do
             return .searchWithInnerLiteral(hay, start, limit)
 
         // A scan that names the offsets a match can begin at answers the question the reverse
         // automaton is there for, so the search is anchored at each of them and read forwards
         // only. It is worth it while the scan stops rarely enough that one anchored attempt per
         // hit costs less than the walk backwards it replaces.
-        if !anchored and .anchorOnCandidates do
+        if not anchored and .anchorOnCandidates do
             return .searchFromCandidates(hay, start, limit)
 
         // A pattern that can only match at the start of the subject is searched there and
@@ -567,11 +567,11 @@ private impl RegExp
             return false
 
         .automataAnswered = true
-        if !forward.found do
+        if not forward.found do
             return false
 
         var matchStart = start
-        if !anchoredSearch
+        if not anchoredSearch
         {
             let backward = .reverseDfa.searchReverse(&.reverse, hay, start, forward.end)
             if backward.quit
@@ -580,7 +580,7 @@ private impl RegExp
                 return false
             }
 
-            if !backward.found
+            if not backward.found
             {
                 .automataAnswered = false
                 return false
@@ -710,7 +710,7 @@ private impl RegExp
                 }
             }
 
-            if !.vm.run(&.program, hay, matchStart, limit, true, false)
+            if not .vm.run(&.program, hay, matchStart, limit, true, false)
             {
                 .automataAnswered = false
                 return false
@@ -737,7 +737,7 @@ private impl RegExp
     // the general path, which starts where this one stopped.
     mtd findAllFast(subject: string, out: *Array'Span)->u64
     {
-        if !.compiled or .program.hasBackref or .program.captureCount != 0 do
+        if not .compiled or .program.hasBackref or .program.captureCount != 0 do
             return 0
         if .prefilter.complete or .anchorOnCandidates or .program.anchoredStart do
             return 0
@@ -762,7 +762,7 @@ private impl RegExp
         var at   = 0'u64
         var quit = false
 
-        var tryAnchored = !.useInner and !.prefilter.isEnabled()
+        var tryAnchored = not .useInner and not .prefilter.isEnabled()
         var misses      = 0'u32
 
         while at <= limit
@@ -781,7 +781,7 @@ private impl RegExp
                     break
                 }
 
-                if !step.found do
+                if not step.found do
                     break
                 start = step.span.start
                 end   = step.span.end
@@ -831,11 +831,11 @@ private impl RegExp
                     break
                 }
 
-                if !forward.found do
+                if not forward.found do
                     break
 
                 let backward = .reverseDfa.searchReverse(&.reverse, hay, at, forward.end)
-                if backward.quit or !backward.found
+                if backward.quit or not backward.found
                 {
                     quit = true
                     break
@@ -847,7 +847,7 @@ private impl RegExp
 
             batch[held].start = start
             batch[held].end   = end
-            held              += 1
+            held += 1
             if held == BatchSize
             {
                 out.add(Swag.makeSlice(cast(const [*] Span) &batch[0], held))
@@ -930,7 +930,7 @@ private impl RegExp
     {
         var result: retval
 
-        if !.search(subject, at, false, false) do
+        if not .search(subject, at, false, false) do
             return result
 
         result.found = true

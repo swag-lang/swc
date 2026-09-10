@@ -344,11 +344,11 @@ alias StrictSwitchF32       = f32
         count += 10
     case c == '>' and garbage:
         garbage -= 1
-    case c == '<' and !garbage:
+    case c == '<' and not garbage:
         garbage += 1
-    case c == '{' and !garbage:
+    case c == '{' and not garbage:
         group += 1; score += group
-    case c == '}' and !garbage:
+    case c == '}' and not garbage:
         group -= 1
     case garbage:
         count += 1
@@ -465,7 +465,7 @@ func switchStringAtRuntime(buffer: [*] u8, text: string)->string
     for text in others
     {
         let value = switchStringAtRuntime(&buffer[0], text)
-        Swag.assert(!switchStringName(value))
+        Swag.assert(not switchStringName(value))
     }
 }
 
@@ -475,8 +475,8 @@ func switchStringWhere(value: string, allow: bool)->s32
     switch value
     {
     case "keep" where allow: return 1
-    case "keep":             return 2
-    case "drop":             return 3
+    case "keep": return 2
+    case "drop": return 3
     }
 
     return 0

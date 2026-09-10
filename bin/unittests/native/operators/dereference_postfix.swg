@@ -59,7 +59,7 @@
 #test
 {
     var arr: [3] s32 = [1, 2, 3]
-    let p            = &arr
+    let p = &arr
     Swag.assert(p[][1] == 2)
     p[][2] = 9
     Swag.assert(arr[2] == 9)
@@ -136,7 +136,7 @@ func derefPlaceWidenF32(data: const *void)->f64
 #test
 {
     var pair:    [2] s32 = [-7, 0x7FFF_FFFF]
-    let p                = &pair[0]
+    let p = &pair[0]
     let widened: s64     = p[as s32]
     Swag.assert(widened == -7)
 }

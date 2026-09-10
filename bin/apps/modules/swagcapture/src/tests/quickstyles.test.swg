@@ -219,7 +219,7 @@ using Swag, Core
     {
         let base = cast(*BaseForm) it.buffer
         Swag.assert(base.subKind == .PixSel)
-        Swag.assert(!base.paintShadow)
+        Swag.assert(not base.paintShadow)
     }
 
     // Every image-form kind must be present in the default image styles.
@@ -254,7 +254,7 @@ using Swag, Core
         for c in quick.layout.children
         {
             let btn = cast(*QuickButton) c
-            if btn.userData or !btn.formItf do
+            if btn.userData or not btn.formItf do
                 continue
             if Swag.kindOf(btn.formItf!) != FormImage do
                 continue

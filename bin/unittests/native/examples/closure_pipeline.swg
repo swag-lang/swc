@@ -60,9 +60,9 @@ const N = 8
 // Reduce: product.
 #test
 {
-    var src:     [4] s32               = [2, 3, 4, 5]
+    var src:     [4] s32 = [2, 3, 4, 5]
     let mul:     func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a * b }
-    var product: s32                   = 1
+    var product: s32     = 1
     for i in src.count do
         product = mul(product, src[i])
 
@@ -93,7 +93,7 @@ const N = 8
     var dst:      [N] s32
     var dstCount: u32     = 0
 
-    var callCount: s32               = 0
+    var callCount: s32 = 0
     let aboveFive: func||(s32)->bool = func|&callCount|(x: s32)->bool
     {
         callCount += 1
@@ -137,7 +137,7 @@ const N = 8
         if gtTen(mapped[i])
         {
             filtered[filteredCount] = mapped[i]
-            filteredCount           += 1
+            filteredCount += 1
         }
     }
 
@@ -153,8 +153,8 @@ const N = 8
 // Multiple capture values.
 #test
 {
-    var base                      = 100
-    var multiplier                = 3
+    var base       = 100
+    var multiplier = 3
     let compute: func||(s32)->s32 = func|base, multiplier|(x: s32)->s32
     {
         return base + x * multiplier
@@ -170,7 +170,7 @@ struct Pair { a, b: s32 }
 
 #test
 {
-    let pair:  Pair             = {a: 7, b: 4}
+    let pair:  Pair = {a: 7, b: 4}
     let apply: func||(s32)->s32 = func|pair|(value: s32)->s32 { return pair.a + pair.b * value }
     Swag.assert(apply(3) == 19)
     Swag.assert(apply(0) == 7)

@@ -26,7 +26,7 @@ const StrictHandleResolved = cast(OrelseStrictHandle) null orelse StrictHandleFa
 
 const NullableTypeInfo: typeinfo? = null
 const TypeInfoFallback: typeinfo  = s32
-const TypeInfoResolved            = NullableTypeInfo orelse TypeInfoFallback
+const TypeInfoResolved = NullableTypeInfo orelse TypeInfoFallback
 #assert(#typeof(TypeInfoResolved) == typeinfo)
 #assert(TypeInfoResolved == s32)
 
@@ -39,7 +39,7 @@ const AnyTrueValue: any = true
 
 const AnyFalseValue: any = false
 #assert(AnyFalseValue != null)
-#assert(!cast(bool) AnyFalseValue)
+#assert(not cast(bool) AnyFalseValue)
 
 func semaTest001()
 {
@@ -60,10 +60,10 @@ func semaTest002()
 
 func semaTest003()
 {
-    var probe                  = OrelseProbe{value: 7}
+    var probe    = OrelseProbe{value: 7}
     var primary: IOrelseProbe? = null
-    let fallback               = Swag.makeInterface(&probe, #typeof(probe), IOrelseProbe)
-    let resolved               = primary orelse fallback
+    let fallback = Swag.makeInterface(&probe, #typeof(probe), IOrelseProbe)
+    let resolved = primary orelse fallback
     #assert(#typeof(resolved) == IOrelseProbe)
     Swag.assert(resolved.id() == 7)
 }

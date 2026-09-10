@@ -6,7 +6,7 @@ namespace WinFsp
 {
     alias HKEY = *void?
 
-    const KEY_READ             = 0x0002_0019'u32
+    const KEY_READ = 0x0002_0019'u32
     const ERROR_FILE_NOT_FOUND = 2'u32
 
     #[Swag.Foreign("advapi32", callconv: Swag.CallConv.C)]
@@ -52,7 +52,7 @@ namespace WinFsp
     {
         var result: retval
         let logical = GetLogicalDrives()
-        if !logical do
+        if not logical do
             return result
         let unavailable = logical | rememberedNetworkDriveMask()
         result.reserve(26)

@@ -28,7 +28,7 @@ using Swag, Core
 
     Swag.assert(regular.familyName == "Arial")
     Swag.assert(bold.familyName == "Arial")
-    Swag.assert(!regular.isBold())
+    Swag.assert(not regular.isBold())
     Swag.assert(bold.isBold())
 
     // A collection member is a whole face: its outlines resolve as usual.

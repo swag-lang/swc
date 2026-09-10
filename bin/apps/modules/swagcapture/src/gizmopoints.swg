@@ -27,7 +27,7 @@ impl GizmoPoints
             if evt.button != .Left or .hotAnchor == Swag.U32.Max do
                 break
             .moving, .firstMoving = true
-            .movingStart          = pos
+            .movingStart = pos
             view.captureMouse()
             return true
 
@@ -37,7 +37,7 @@ impl GizmoPoints
                 if evt.button == .Left
                 {
                     .moving, .firstMoving = false
-                    .hotAnchor            = Swag.U32.Max
+                    .hotAnchor = Swag.U32.Max
                     view.releaseMouse()
                 }
 
@@ -97,7 +97,7 @@ impl GizmoPoints
     {
         let form    = cast(*BaseForm) iform.buffer
         let capture = form.capture!
-        if !first do
+        if not first do
             capture.undo()
         let undo     = capture.newUndo(.MovePoint)
         let editView = capture.editView!

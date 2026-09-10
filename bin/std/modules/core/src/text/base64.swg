@@ -45,7 +45,7 @@ private func decodeBlock(input: const [*] u8)->{ decoded: Math.Simd.U8x16, valid
     let digitMask  = (bytes >= Math.Simd.splat('0'u8)) & (bytes <= Math.Simd.splat('9'u8))
     let symbolMask = (bytes == Math.Simd.splat('+'u8)) | (bytes == Math.Simd.splat('-'u8)) |
                      (bytes == Math.Simd.splat('/'u8)) | (bytes == Math.Simd.splat('_'u8))
-    if !Math.Simd.allTrue(upperMask | lowerMask | digitMask | symbolMask) do
+    if not Math.Simd.allTrue(upperMask | lowerMask | digitMask | symbolMask) do
         return {decoded: Math.Simd.splat(0'u8), valid: false}
 
     var values = Math.Simd.splat(0'u8)
@@ -132,7 +132,7 @@ func decode(text: string)->Array'u8 fail
     var index = 0'u64
     while index < text.count
     {
-        if !count and !ended and text.count - index >= 16
+        if not count and not ended and text.count - index >= 16
         {
             let block = decodeBlock(text.buffer + index)
             if block.valid

@@ -286,7 +286,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     if score(&probe, 7) != seed + 12 do
         return false
 
-    return !hasMethodNamed(type, "injectStmt") and !hasMethodNamed(type, "compilerOnly")
+    return not hasMethodNamed(type, "injectStmt") and not hasMethodNamed(type, "compilerOnly")
 }
 
 func compileTimeMethodReflectionWorks()->bool
@@ -354,8 +354,8 @@ const COMPILE_TIME_METHOD_REFLECTION_OK = #run compileTimeMethodReflectionWorks(
 #assert(EXPORTED_SCORE_TYPE.parameters[1].pointedType == s32)
 #assert(EXPORTED_SCORE_TYPE.returnType == s32)
 
-const NO_INJECT_STMT_METHOD   = #run !hasMethodNamed(#typeof(ExportedMethodProbe), "injectStmt")
-const NO_COMPILER_ONLY_METHOD = #run !hasMethodNamed(#typeof(ExportedMethodProbe), "compilerOnly")
+const NO_INJECT_STMT_METHOD   = #run not hasMethodNamed(#typeof(ExportedMethodProbe), "injectStmt")
+const NO_COMPILER_ONLY_METHOD = #run not hasMethodNamed(#typeof(ExportedMethodProbe), "compilerOnly")
 #assert(NO_INJECT_STMT_METHOD)
 #assert(NO_COMPILER_ONLY_METHOD)
 #assert(COMPILE_TIME_METHOD_REFLECTION_OK)

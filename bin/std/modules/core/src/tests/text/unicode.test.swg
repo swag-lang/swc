@@ -20,23 +20,23 @@ func assertRuneArray(values: Array'rune, expected: const [..] rune)->bool
 #test
 {
     Swag.assert(Unicode.isAscii('A'rune))
-    Swag.assert(!Unicode.isAscii('\u00E9'rune))
+    Swag.assert(not Unicode.isAscii('\u00E9'rune))
     Swag.assert(Unicode.isLatin1('\u00E9'rune))
-    Swag.assert(!Unicode.isLatin1('\u20AC'rune))
+    Swag.assert(not Unicode.isLatin1('\u20AC'rune))
 
     Swag.assert(Unicode.isDigit('5'rune))
     Swag.assert(Unicode.isNumber('5'rune))
     Swag.assert(Unicode.isNumber('\u2167'rune))
-    Swag.assert(!Unicode.isDigit('A'rune))
+    Swag.assert(not Unicode.isDigit('A'rune))
 
     Swag.assert(Unicode.isLetter('A'rune))
     Swag.assert(Unicode.isLetter('\u03A9'rune))
     Swag.assert(Unicode.isLetter('\u4E2D'rune))
-    Swag.assert(!Unicode.isLetter('7'rune))
+    Swag.assert(not Unicode.isLetter('7'rune))
 
     Swag.assert(Unicode.isLetterOrDigit('\u03A9'rune))
     Swag.assert(Unicode.isLetterOrDigit('7'rune))
-    Swag.assert(!Unicode.isLetterOrDigit('_'rune))
+    Swag.assert(not Unicode.isLetterOrDigit('_'rune))
     Swag.assert(Unicode.isWord('_'rune))
     Swag.assert(Unicode.isWord('\u03A9'rune))
 }
@@ -45,16 +45,16 @@ func assertRuneArray(values: Array'rune, expected: const [..] rune)->bool
 {
     Swag.assert(Unicode.isSpace(' 'rune))
     Swag.assert(Unicode.isSpace('\u2003'rune))
-    Swag.assert(!Unicode.isSpace('A'rune))
+    Swag.assert(not Unicode.isSpace('A'rune))
 
     Swag.assert(Unicode.isControl(0x1F'rune))
-    Swag.assert(!Unicode.isControl('A'rune))
+    Swag.assert(not Unicode.isControl('A'rune))
 
     Swag.assert(Unicode.isSymbol('$'rune))
     Swag.assert(Unicode.isSymbol('\u2603'rune))
     Swag.assert(Unicode.isSymbolMath('+'rune))
     Swag.assert(Unicode.isSymbolMath('\u2211'rune))
-    Swag.assert(!Unicode.isSymbolMath('A'rune))
+    Swag.assert(not Unicode.isSymbolMath('A'rune))
 }
 
 #test
@@ -62,15 +62,15 @@ func assertRuneArray(values: Array'rune, expected: const [..] rune)->bool
     Swag.assert(Unicode.isUpper('A'rune))
     Swag.assert(Unicode.isUpper('\u00C9'rune))
     Swag.assert(Unicode.isUpper('\u03A9'rune))
-    Swag.assert(!Unicode.isUpper('\u03C9'rune))
+    Swag.assert(not Unicode.isUpper('\u03C9'rune))
 
     Swag.assert(Unicode.isLower('a'rune))
     Swag.assert(Unicode.isLower('\u00E9'rune))
     Swag.assert(Unicode.isLower('\u03C9'rune))
-    Swag.assert(!Unicode.isLower('\u03A9'rune))
+    Swag.assert(not Unicode.isLower('\u03A9'rune))
 
     Swag.assert(Unicode.isTitle('\u01C5'rune))
-    Swag.assert(!Unicode.isTitle('\u01C6'rune))
+    Swag.assert(not Unicode.isTitle('\u01C6'rune))
 }
 
 #test
@@ -92,7 +92,7 @@ func assertRuneArray(values: Array'rune, expected: const [..] rune)->bool
 
 #test
 {
-    let text               = "A\u00E9\u03A9\U0001F642"
+    let text = "A\u00E9\u03A9\U0001F642"
     let expected: [4] rune = ['A'rune, '\u00E9'rune, '\u03A9'rune, '\U0001F642'rune]
 
     var dest: [8] rune
@@ -105,7 +105,7 @@ func assertRuneArray(values: Array'rune, expected: const [..] rune)->bool
     Swag.assert(assertRuneArray(result, expected))
 
     let invalid:         [1] u8   = [0x80]
-    let invalidResult             = Unicode.fromUtf8(invalid)
+    let invalidResult = Unicode.fromUtf8(invalid)
     let expectedInvalid: [1] rune = [Utf8.RuneError]
     Swag.assert(assertRuneArray(invalidResult, expectedInvalid))
 }

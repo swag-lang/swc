@@ -13,8 +13,8 @@ const LevelScale: [6] u16 = [40, 45, 51, 57, 64, 72]
 
 // Clause 7.4.3.2.1: the range a transform coefficient is kept in without the range extensions.
 const Log2TransformRange = 15'u32
-const CoeffMin           = -32768's32
-const CoeffMax           = 32767's32
+const CoeffMin = -32768's32
+const CoeffMax = 32767's32
 
 // The state one transform block needs from the coding unit that contains it.
 struct TransformBlock
@@ -101,7 +101,7 @@ impl Decoder
 
         var destination: [*] u16
         var stride:      u64
-        if !block.component
+        if not block.component
         {
             destination = frame.lumaAtMutable(block.x, block.y)
             stride      = frame.strideLuma
@@ -142,7 +142,7 @@ impl Decoder
     mtd const reconstructedSample(component: u32, x, y: s32)->u16
     {
         let frame = .current!
-        if !component do
+        if not component do
             return frame.lumaAt(x, y)![0]
         return frame.chromaAtMutable(component - 1, x, y)[0]
     }
@@ -192,7 +192,7 @@ impl Decoder
         let shift    = cast(u32) (block.qp / 6)
 
         // A flat matrix is the common case, and it collapses the whole derivation to one multiply.
-        let flat = !sps.scalingListEnabled or (block.transformSkip and size > 4)
+        let flat = not sps.scalingListEnabled or (block.transformSkip and size > 4)
         if flat
         {
             let factor     = scale * 16
@@ -249,13 +249,13 @@ impl Decoder
     // Expands one entry of a quantization matrix to the sample grid, equations 7-44 to 7-49.
     private mtd const scalingFactor(lists: const *ScalingLists, sizeId, matrixId, x, y, size: u32)->u32
     {
-        if !sizeId do
+        if not sizeId do
             return cast(u32) lists.lists[0, matrixId, DiagScan4x4Index[y * 4 + x]]
 
         // Above 8x8 the stored matrix is 8x8 and every entry covers a square of samples.
         let shift = sizeId - 1
         let inner = (y >> shift) * 8 + (x >> shift)
-        if sizeId > 1 and !x and !y do
+        if sizeId > 1 and not x and not y do
             return cast(u32) lists.dc[sizeId - 2, matrixId]
         return cast(u32) lists.lists[sizeId, matrixId, DiagScan8x8Index[inner]]
     }
@@ -265,7 +265,7 @@ impl Decoder
     {
         // Quantized video leaves a large share of transform blocks with a DC coefficient only.
         // The first DCT basis is constant, so both matrix passes collapse to one value.
-        if !useDst and !lastX and !lastY
+        if not useDst and not lastX and not lastY
         {
             let first    = Math.clamp((64 * cast(s32) .coefficients[0] + 64) >> 7, CoeffMin, CoeffMax)
             let rounding = 1's32 << (bdShift - 1)
@@ -285,13 +285,13 @@ impl Decoder
         // The four-point DCT is frequent at residual boundaries. Its even/odd factorization
         // produces exactly the same integer sums as the matrix form with twelve multiplies per
         // pass instead of sixty-four.
-        if size == 4 and !useDst
+        if size == 4 and not useDst
         {
             .inverseDct4(lastX, lastY, bdShift)
             return
         }
 
-        if size == 8 and !useDst
+        if size == 8 and not useDst
         {
             .inverseDct8(lastX, lastY, bdShift)
             return
@@ -562,7 +562,7 @@ impl Decoder
 
         var destination: [*] u16
         var stride:      u64
-        if !block.component
+        if not block.component
         {
             destination = frame.lumaAtMutable(block.x, block.y)
             stride      = frame.strideLuma
@@ -573,7 +573,7 @@ impl Decoder
             stride      = frame.strideChroma
         }
 
-        if !hasResidual
+        if not hasResidual
         {
             for row in size
             {

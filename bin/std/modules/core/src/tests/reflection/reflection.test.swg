@@ -132,8 +132,8 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
         return false
 
     var probe: ReflectionProbe = {x: seed}
-    let ping                   = cast(ReflectionProbePingFn) method.value!
-    let result                 = ping(&probe)
+    let ping   = cast(ReflectionProbePingFn) method.value!
+    let result = ping(&probe)
     ReflectionRuntimePointerCalls += 1
     return result == seed + 1
 }
@@ -142,7 +142,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 {
     let type = #typeof(ReflectionProbe)
     Swag.assert(Reflection.isNamedStruct(type, "ReflectionProbe"))
-    Swag.assert(!Reflection.isNamedStruct(type, "Other"))
+    Swag.assert(not Reflection.isNamedStruct(type, "Other"))
 
     let fieldX = Reflection.findField(type, "x")!
     Swag.assert(fieldX.name == "x")
@@ -207,7 +207,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     Reflection.writeFieldValue(&probe, fieldLabel, &newLabel)
 
     Swag.assert(probe.x == 42)
-    Swag.assert(!probe.enabled)
+    Swag.assert(not probe.enabled)
     Swag.assert(probe.label == "patched")
     Swag.assert(probe.ping() == 43)
 }
@@ -216,11 +216,11 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 {
     Swag.assert(Reflection.isPod(#typeof(PodProbe)))
     Swag.assert(Reflection.canCopy(#typeof(PodProbe)))
-    Swag.assert(!Reflection.hasDrop(#typeof(PodProbe)))
-    Swag.assert(!Reflection.hasPostCopy(#typeof(PodProbe)))
-    Swag.assert(!Reflection.hasPostMove(#typeof(PodProbe)))
+    Swag.assert(not Reflection.hasDrop(#typeof(PodProbe)))
+    Swag.assert(not Reflection.hasPostCopy(#typeof(PodProbe)))
+    Swag.assert(not Reflection.hasPostMove(#typeof(PodProbe)))
 
-    Swag.assert(!Reflection.isPod(#typeof(LifecycleProbe)))
+    Swag.assert(not Reflection.isPod(#typeof(LifecycleProbe)))
     Swag.assert(Reflection.canCopy(#typeof(LifecycleProbe)))
     Swag.assert(Reflection.hasDrop(#typeof(LifecycleProbe)))
     Swag.assert(Reflection.hasPostCopy(#typeof(LifecycleProbe)))
@@ -238,7 +238,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     Swag.assert(Reflection.dynamicArrayElementType(arrayType) == s32)
 
     let hashType = #typeof(HashSet's32)
-    Swag.assert(!Reflection.isDynamicArray(hashType))
+    Swag.assert(not Reflection.isDynamicArray(hashType))
 }
 
 #test
@@ -267,8 +267,8 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     Swag.assert(ReflectionRuntimeMethodCalls == 1)
     Swag.assert(ReflectionRuntimePointerCalls == 1)
     Swag.assert(Reflection.hasMethod(type, "ping"))
-    Swag.assert(!Reflection.hasMethod(type, "visitMacro"))
-    Swag.assert(!Reflection.hasMethod(type, "missing"))
+    Swag.assert(not Reflection.hasMethod(type, "visitMacro"))
+    Swag.assert(not Reflection.hasMethod(type, "missing"))
 }
 
 #test
@@ -276,7 +276,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     let type = #typeof(InterfaceProbe)
 
     Swag.assert(Reflection.hasInterface(type, IReflectionScore))
-    Swag.assert(!Reflection.hasInterface(#typeof(ReflectionProbe), IReflectionScore))
+    Swag.assert(not Reflection.hasInterface(#typeof(ReflectionProbe), IReflectionScore))
 }
 
 #test
@@ -298,7 +298,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     Reflection.assign(&dst, &src, #typeof(CopyProbe))
     Swag.assert(dst.value == 77)
     Swag.assert(dst.copied)
-    Swag.assert(!src.copied)
+    Swag.assert(not src.copied)
 }
 
 #test
@@ -314,7 +314,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     Swag.assert(enumValue.value![as u32] == 1)
     Swag.assert(Reflection.enumName(enumType, &state) == "ProbeState.Busy")
     Swag.assert(Reflection.enumName(enumType, &state, fullyQualified: false) == "Busy")
-    Swag.assert(!Reflection.isFlagsEnum(enumType))
+    Swag.assert(not Reflection.isFlagsEnum(enumType))
     Swag.assert(Reflection.isFlagsEnum(#typeof(ProbeFlags)))
     Swag.assert(enumInfo.attributes![0].type == EnumMeta)
     Swag.assert(cast(string?) Reflection.attributeValue(enumType, EnumMeta, "label") == "state")

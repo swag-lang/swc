@@ -95,7 +95,7 @@ internal func dtsSpeakerMask(packet: const [..] u8)->u32 fail
     let littleEndian16 = packet[0] == 0xFE and packet[1] == 0x7F and packet[2] == 0x01 and packet[3] == 0x80
     let bigEndian14    = packet[0] == 0x1F and packet[1] == 0xFF and packet[2] == 0xE8 and packet[3] == 0x00
     let littleEndian14 = packet[0] == 0xFF and packet[1] == 0x1F and packet[2] == 0x00 and packet[3] == 0xE8
-    if !bigEndian16 and !littleEndian16 and !bigEndian14 and !littleEndian14 do
+    if not bigEndian16 and not littleEndian16 and not bigEndian14 and not littleEndian14 do
         fail InvalidFormatError{"Matroska DTS packet has no core sync word"}
 
     let packed14 = bigEndian14 or littleEndian14
@@ -179,7 +179,7 @@ private impl Track
     {
         if .displayUnit != 0 and .displayUnit != 3 do
             return {0, 0}
-        if !.displayWidth or !.displayHeight or width <= 0 or height <= 0 do
+        if not .displayWidth or not .displayHeight or width <= 0 or height <= 0 do
             return {0, 0}
         if .displayWidth * cast(u64) height == .displayHeight * cast(u64) width do
             return {0, 0}
@@ -193,7 +193,7 @@ private impl Track
 
     mtd const isPlayableVideo()->bool
     {
-        if !.isEnabled or .hasEncodings or .kind != VideoTrackType do
+        if not .isEnabled or .hasEncodings or .kind != VideoTrackType do
             return false
         if .codecId == AvcCodecId or .codecId == HevcCodecId or .codecId == Mpeg4CodecId do
             return .codecPrivate.count != 0
@@ -204,7 +204,7 @@ private impl Track
 
     mtd const isPlayableSubtitle()->bool
     {
-        return .isEnabled and !.hasEncodings and .kind == SubtitleTrackType and (.codecId == Utf8SubtitleCodecId or .codecId == AssSubtitleCodecId or .codecId == SsaSubtitleCodecId)
+        return .isEnabled and not .hasEncodings and .kind == SubtitleTrackType and (.codecId == Utf8SubtitleCodecId or .codecId == AssSubtitleCodecId or .codecId == SsaSubtitleCodecId)
     }
 
     mtd const subtitleFormat()->Subtitle.Format
@@ -272,16 +272,16 @@ private impl Track
     mtd const isPlayableAudio()->bool
     {
         let encoding = .soundEncoding()
-        if !.isEnabled or .hasEncodings or .kind != AudioTrackType or encoding == .Unknown do
+        if not .isEnabled or .hasEncodings or .kind != AudioTrackType or encoding == .Unknown do
             return false
-        if .sampleRate <= 0 or .sampleRate > cast(f64) Swag.U32.Max or !.channels or .channels > 8 do
+        if .sampleRate <= 0 or .sampleRate > cast(f64) Swag.U32.Max or not .channels or .channels > 8 do
             return false
-        return !Audio.packetEncodingNeedsConfig(encoding) or .codecPrivate.count != 0
+        return not Audio.packetEncodingNeedsConfig(encoding) or .codecPrivate.count != 0
     }
 
     mtd const leadingTrimFrames()->u64 fail
     {
-        if !.codecDelay do
+        if not .codecDelay do
             return 0
         let frames = cast(f64) .codecDelay * .decodedSampleRate() / 1_000_000_000.0
         if frames > cast(f64) Swag.U32.Max do
@@ -378,18 +378,18 @@ private impl Layout
     {
         .indexPictures = indexPictures
         var container = .openContainer(bytes)
-        if !.parseSegment(&container.cursor, container.segment, cancelled) do
+        if not .parseSegment(&container.cursor, container.segment, cancelled) do
             return false
         for cluster in .clusters
         {
             if cancelled and Atomic.get(cancelled!) do
                 return false
-            if !.parseCluster(&container.cursor, cluster, cancelled) do
+            if not .parseCluster(&container.cursor, cluster, cancelled) do
                 return false
         }
 
         let video = &.tracks[.selectedVideo]
-        if indexPictures and !video.videoSamples.count do
+        if indexPictures and not video.videoSamples.count do
             fail InvalidFormatError{"Matroska video track has no blocks"}
         return true
     }
@@ -406,7 +406,7 @@ private impl Layout
         var hasTracks: bool
 
         cursor.seek(segment.data)
-        while !cursor.atEnd(segment.end) and !hasTracks
+        while not cursor.atEnd(segment.end) and not hasTracks
         {
             let element = cursor.readElement(segment.end)
             switch element.id
@@ -456,7 +456,7 @@ private impl Layout
             cursor.seek(element.end)
         }
 
-        if !hasTracks do
+        if not hasTracks do
             fail InvalidFormatError{"Matroska segment has no track metadata"}
         if .selectedVideo == NoTrack do
             .selectTracks()
@@ -482,7 +482,7 @@ private impl Layout
 
         var cursor = Cursor.open(bytes)
         cursor.seek(.scanPosition)
-        while !cursor.atEnd(.segment.end) and .tracks[.selectedVideo].videoSamples.count < sampleCount
+        while not cursor.atEnd(.segment.end) and .tracks[.selectedVideo].videoSamples.count < sampleCount
         {
             while paused and Atomic.get(paused!)
             {
@@ -494,7 +494,7 @@ private impl Layout
             if cancelled and Atomic.get(cancelled!) do
                 return false
             let element = cursor.readElement(.segment.end)
-            if element.id == ClusterId and !.parseCluster(&cursor, element, cancelled, paused) do
+            if element.id == ClusterId and not .parseCluster(&cursor, element, cancelled, paused) do
                 return false
             .scanPosition = element.end
             .releaseScanned(bytes)
@@ -508,7 +508,7 @@ private impl Layout
         {
             .scanPosition  = .segment.end
             .indexComplete = true
-            if .indexPictures and !.tracks[.selectedVideo].videoSamples.count do
+            if .indexPictures and not .tracks[.selectedVideo].videoSamples.count do
                 fail InvalidFormatError{"Matroska video track has no blocks"}
         }
 
@@ -523,12 +523,12 @@ private impl Layout
     // tracks are unsupported never returned.
     mtd const hasAudioThrough(timestampNanoseconds: s64)->bool
     {
-        if !.audioTracks.count do
+        if not .audioTracks.count do
             return true
         for trackIndex in .audioTracks
         {
             let track = &.tracks[trackIndex]
-            if !track.hasAudioStart or !track.audioFrameCount do
+            if not track.hasAudioStart or not track.audioFrameCount do
                 return false
             let duration = cast(f64) track.audioFrameCount * 1_000_000_000.0 / track.sampleRate
             if cast(f64) track.audioStart + duration <= cast(f64) timestampNanoseconds do
@@ -540,9 +540,9 @@ private impl Layout
 
     mtd const hasMediaThrough(timestampNanoseconds: s64)->bool
     {
-        if !.hasAudioThrough(timestampNanoseconds) do
+        if not .hasAudioThrough(timestampNanoseconds) do
             return false
-        if !.subtitleTracks.count do
+        if not .subtitleTracks.count do
             return true
         return .hasClusterTimestamp and .lastClusterTimestamp >= timestampNanoseconds
     }
@@ -555,7 +555,7 @@ private impl Layout
 
         var cursor = Cursor.open(bytes)
         cursor.seek(.scanPosition)
-        while !cursor.atEnd(.segment.end) and !.hasMediaThrough(timestampNanoseconds)
+        while not cursor.atEnd(.segment.end) and not .hasMediaThrough(timestampNanoseconds)
         {
             while paused and Atomic.get(paused!)
             {
@@ -567,7 +567,7 @@ private impl Layout
             if cancelled and Atomic.get(cancelled!) do
                 return false
             let element = cursor.readElement(.segment.end)
-            if element.id == ClusterId and !.parseCluster(&cursor, element, cancelled, paused) do
+            if element.id == ClusterId and not .parseCluster(&cursor, element, cancelled, paused) do
                 return false
             .scanPosition = element.end
             .releaseScanned(bytes)
@@ -594,11 +594,11 @@ private impl Layout
         {
             if sampleIndex == Swag.U64.Max do
                 fail OverflowError{"Matroska frame index exceeds the supported range"}
-            if !.indexUntil(bytes, sampleIndex + 1, cancelled) do
+            if not .indexUntil(bytes, sampleIndex + 1, cancelled) do
                 return false
         }
 
-        while !.indexComplete
+        while not .indexComplete
         {
             var followingClusters = 0'u32
             for chunkEnd in .videoChunkEnds where chunkEnd > sampleIndex do
@@ -609,7 +609,7 @@ private impl Layout
             let count = .tracks[.selectedVideo].videoSamples.count
             if count == Swag.U64.Max do
                 fail OverflowError{"Matroska video sample table is too large"}
-            if !.indexUntil(bytes, count + 1, cancelled) do
+            if not .indexUntil(bytes, count + 1, cancelled) do
                 return false
         }
 
@@ -641,7 +641,7 @@ private impl Layout
     // Finds the last cue not later than `timestampNanoseconds`.
     mtd const cueAtOrBefore(timestampNanoseconds: u64)->const *CueEntry?
     {
-        if !.cues.count do
+        if not .cues.count do
             return null
         let timestamp = timestampNanoseconds / .timestampScale
         var low       = 0'u64
@@ -661,7 +661,7 @@ private impl Layout
     // Finds the first random-access point not earlier than `timestampNanoseconds`.
     mtd const cueAtOrAfter(timestampNanoseconds: u64)->const *CueEntry?
     {
-        if !.cues.count do
+        if not .cues.count do
             return null
         var timestamp = timestampNanoseconds / .timestampScale
         if timestampNanoseconds % .timestampScale do
@@ -692,7 +692,7 @@ private impl Layout
     mtd openContainer(bytes: const [..] u8)->Container fail
     {
         var result: retval = {Cursor.open(bytes), {}}
-        if !bytes.count do
+        if not bytes.count do
             fail InvalidFormatError{"Matroska stream is empty"}
 
         let header = result.cursor.readElement(bytes.count)
@@ -715,7 +715,7 @@ private impl Layout
             result.cursor.seek(element.end)
         }
 
-        if !hasSegment do
+        if not hasSegment do
             fail InvalidFormatError{"Matroska stream has no segment"}
         return result
     }
@@ -803,7 +803,7 @@ private impl Layout
     mtd parseSegment(cursor: *Cursor, segment: Element, cancelled: *u32? = null)->bool fail
     {
         cursor.seek(segment.data)
-        while !cursor.atEnd(segment.end)
+        while not cursor.atEnd(segment.end)
         {
             if cancelled and Atomic.get(cancelled!) do
                 return false
@@ -844,9 +844,9 @@ private impl Layout
             cursor.seek(element.end)
         }
 
-        if !.timestampScale or .timestampScale > cast(u64) Swag.S64.Max do
+        if not .timestampScale or .timestampScale > cast(u64) Swag.S64.Max do
             fail InvalidFormatError{"Matroska timestamp scale exceeds the supported range"}
-        if !Math.isFinite(.durationTicks) or .durationTicks < 0 do
+        if not Math.isFinite(.durationTicks) or .durationTicks < 0 do
             fail InvalidFormatError{"Matroska duration is not finite and non-negative"}
     }
 
@@ -906,7 +906,7 @@ private impl Layout
             cursor.seek(element.end)
         }
 
-        if !hasTimestamp or clusterOffset == NoOffset do
+        if not hasTimestamp or clusterOffset == NoOffset do
             return
         if .cues.count and timestamp < .cues[.cues.count - 1].timestamp do
             fail InvalidFormatError{"Matroska cue timestamps are not ordered"}
@@ -935,7 +935,7 @@ private impl Layout
             cursor.seek(element.end)
         }
 
-        if !hasTrack or !hasPosition or track != .tracks[.selectedVideo].number do
+        if not hasTrack or not hasPosition or track != .tracks[.selectedVideo].number do
             return NoOffset
         if relative > .segment.end - .segment.data do
             fail InvalidFormatError{"Matroska cue position exceeds the segment"}
@@ -969,7 +969,7 @@ private impl Layout
             cursor.seek(element.end)
         }
 
-        if !track.number do
+        if not track.number do
             fail InvalidFormatError{"Matroska track has no positive track number"}
         if track.codecId.isEmpty() do
             fail InvalidFormatError{"Matroska track has no codec identifier"}
@@ -985,20 +985,20 @@ private impl Layout
     mtd parseContentEncodings(cursor: *Cursor, encodings: Element, track: *Track) fail
     {
         var count = 0'u32
-        while !cursor.atEnd(encodings.end)
+        while not cursor.atEnd(encodings.end)
         {
             let element = cursor.readElement(encodings.end)
             if element.id == ContentEncodingId
             {
                 count += 1
-                if count > 1 or !try .parseContentEncoding(cursor, element, track) do
+                if count > 1 or not try .parseContentEncoding(cursor, element, track) do
                     track.hasEncodings = true
             }
 
             cursor.seek(element.end)
         }
 
-        if !count do
+        if not count do
             track.hasEncodings = true
     }
 
@@ -1009,7 +1009,7 @@ private impl Layout
         var kind      = 0'u64
         var algorithm = Swag.U64.Max
         var stripped: Array'u8
-        while !cursor.atEnd(encoding.end)
+        while not cursor.atEnd(encoding.end)
         {
             let element = cursor.readElement(encoding.end)
             switch element.id
@@ -1021,7 +1021,7 @@ private impl Layout
                 kind = cursor.readUnsigned(element)
 
             case ContentCompressionId:
-                while !cursor.atEnd(element.end)
+                while not cursor.atEnd(element.end)
                 {
                     let field = cursor.readElement(element.end)
                     switch field.id
@@ -1116,15 +1116,15 @@ private impl Layout
         {
             if firstVideoCodec.isEmpty() do
                 firstVideoCodec = String.from(track.codecId.toString())
-            if !track.isPlayableVideo() do
+            if not track.isPlayableVideo() do
                 continue
-            if .selectedVideo == NoTrack or (track.isDefault and !.tracks[.selectedVideo].isDefault) do
+            if .selectedVideo == NoTrack or (track.isDefault and not .tracks[.selectedVideo].isDefault) do
                 .selectedVideo = index
         }
 
         if .selectedVideo == NoTrack
         {
-            if !firstVideoCodec.isEmpty() do
+            if not firstVideoCodec.isEmpty() do
                 fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support Matroska codec '%'", firstVideoCodec.toString()))}
             fail InvalidFormatError{"Matroska segment has no enabled video track"}
         }
@@ -1182,7 +1182,7 @@ private impl Layout
             }
             elif element.id == SimpleBlockId or element.id == BlockGroupId
             {
-                if !hasTimestamp do
+                if not hasTimestamp do
                     pending.add(element)
                 elif element.id == SimpleBlockId do
                     .indexBlock(cursor, element, clusterTimestamp, true, 0)
@@ -1243,7 +1243,7 @@ private impl Layout
         }
 
         if hasBlock do
-            .indexBlock(cursor, block, clusterTimestamp, !hasReference, blockDuration, discardPadding)
+            .indexBlock(cursor, block, clusterTimestamp, not hasReference, blockDuration, discardPadding)
     }
 
     // Converts a cluster-relative timestamp to signed nanoseconds with overflow checks.
@@ -1307,14 +1307,14 @@ private impl Layout
             if remaining % count do
                 fail InvalidFormatError{"Matroska fixed lacing does not divide its block payload"}
             let size = remaining / count
-            if !size do
+            if not size do
                 fail InvalidFormatError{"Matroska fixed lace has no payload"}
             for count do
                 .laceSizes.add(size)
 
         case 3:
             let first = cursor.readVintValue(end)
-            if !first.value do
+            if not first.value do
                 fail InvalidFormatError{"Matroska EBML lace has no payload"}
             .laceSizes.add(first.value)
             var known    = first.value
@@ -1385,7 +1385,7 @@ private impl Layout
 
         if trackIndex == NoTrack do
             return
-        if isVideo and !.indexPictures do
+        if isVideo and not .indexPictures do
             return
 
         let lacing = (flags >> 1) & 3
@@ -1428,13 +1428,13 @@ private impl Layout
         }
 
         let timestamp = .timestampNanoseconds(clusterTimestamp, relative)
-        if !track.hasAudioStart
+        if not track.hasAudioStart
         {
             track.audioStart    = timestamp
             track.hasAudioStart = true
         }
 
-        if !track.hasProbe
+        if not track.hasProbe
         {
             try track.durationProbe.initialize(track.soundEncoding(), track.codecPrivate.toSlice())
             track.hasProbe = true
@@ -1457,7 +1457,7 @@ private impl Layout
             if track.audioFrameCount > Swag.U64.Max - frameCount do
                 fail OverflowError{"Matroska audio packet table is too large"}
             track.audioFrameCount += frameCount
-            offset                += size
+            offset += size
         }
     }
 
@@ -1472,7 +1472,7 @@ private impl Layout
 // Reduces a nanosecond frame duration into the public 32-bit rate representation.
 private func frameRateFromDuration(durationNanoseconds: u64)->FrameRate fail
 {
-    if !durationNanoseconds do
+    if not durationNanoseconds do
         fail InvalidFormatError{"Matroska video track has no frame duration"}
     var numerator   = 1_000_000_000'u64
     var denominator = durationNanoseconds
@@ -1553,7 +1553,7 @@ internal func publishFullSound(index: *FileIndex, tracks: *Array'SoundFile, subt
     index.soundTracks    = #move tracks[]
     index.subtitleTracks = #move subtitles[]
     Atomic.exchange(&index.soundStage, 1)
-    if !Atomic.get(&index.soundPause) do
+    if not Atomic.get(&index.soundPause) do
         Atomic.exchange(&index.currentSeekSound, 0)
 }
 
@@ -1580,7 +1580,7 @@ internal func publishSeekSound(index: *FileIndex, tracks: *Array'SoundFile, subt
     // Opening and run-ahead work may finish after a synchronous seek. Only the latest position
     // can replace its sound, and a completed full index already covers every position once the
     // foreground decoder has resumed it.
-    if timestampNanoseconds != Atomic.get(&index.windowTarget) or (Atomic.get(&index.soundStage) and !Atomic.get(&index.soundPause)) do
+    if timestampNanoseconds != Atomic.get(&index.windowTarget) or (Atomic.get(&index.soundStage) and not Atomic.get(&index.soundPause)) do
         return
 
     let published = Memory.new'PublishedSound()
@@ -1619,7 +1619,7 @@ private func buildSoundTracks(path: string, bytes: const [..] u8, layout: *Layou
     for trackIndex in layout.audioTracks
     {
         let track = &layout.tracks[trackIndex]
-        if !track.audioPackets.count do
+        if not track.audioPackets.count do
             continue
         let timelineStart = Math.max(cast(f64) track.audioStart / 1_000_000_000.0, 0)
         let leadingTrim   = timelineStart == 0 ? try track.leadingTrimFrames() : 0
@@ -1661,13 +1661,13 @@ private func buildSoundWindow(index: *FileIndex, timestampNanoseconds: u64) fail
     layout.indexPictures = false
 
     let cueTimestamp = timestampNanoseconds > SoundSeekPreRollNanoseconds ? timestampNanoseconds - SoundSeekPreRollNanoseconds : 0
-    let cue          = layout.cueAtOrBefore(cueTimestamp)
+    let cue = layout.cueAtOrBefore(cueTimestamp)
     try layout.resetMediaAt(cue ? cue!.clusterOffset : layout.segment.data)
 
     // The run-ahead applies at the start of the file too: a window built without it holds only
     // whatever one cluster happened to carry, which is about two seconds of sound.
     let requestedEnd = timestampNanoseconds > cast(u64) Swag.S64.Max - cast(u64) SoundSeekRunAheadNanoseconds ? Swag.S64.Max : cast(s64) timestampNanoseconds + SoundSeekRunAheadNanoseconds
-    if !layout.indexAudioThrough(bytes, requestedEnd, &index.cancel) do
+    if not layout.indexAudioThrough(bytes, requestedEnd, &index.cancel) do
         fail BadParameterError{"video reader operation was cancelled"}
 
     var tracks: Array'SoundFile
@@ -1694,7 +1694,7 @@ private func buildSoundIndex(index: *FileIndex) fail
     let bytes = index.region.bytes()
     layout.parseMetadata(bytes)
     layout.indexPictures = false
-    if !layout.indexUntil(bytes, 1, &index.cancel, &index.soundPause) do
+    if not layout.indexUntil(bytes, 1, &index.cancel, &index.soundPause) do
         fail BadParameterError{"video reader operation was cancelled"}
     var tracks: Array'SoundFile
     try buildSoundTracks(index.path.toString(), bytes, &layout, &tracks)
@@ -1737,7 +1737,7 @@ private impl Decoder
     mtd configureMetadata(layout: *Layout) fail
     {
         var video = &layout.tracks[layout.selectedVideo]
-        if video.needsInlineSetup() and !video.setup.count
+        if video.needsInlineSetup() and not video.setup.count
         {
             // A track that carries its layer in the stream needs one sample read before it can
             // answer anything about itself.
@@ -1769,7 +1769,7 @@ private impl Decoder
             var probe: H264.Decoder
             probe.configure(video.codecPrivate.toSlice())
             let sps = probe.firstSps()
-            if !sps do
+            if not sps do
                 fail InvalidFormatError{"H.264 decoder configuration has no sequence parameter set"}
             .info.width  = sps!.width()
             .info.height = sps!.height()
@@ -1797,7 +1797,7 @@ private impl Decoder
         let lastTimestamp = .video.presentationTimeAtRank(.info.frameCount - 1)
         let timestampSpan = cast(u64) (lastTimestamp - .presentationOrigin)
         var frameDuration = video.defaultDuration
-        if !frameDuration and .info.frameCount > 1 do
+        if not frameDuration and .info.frameCount > 1 do
             frameDuration = Math.max(timestampSpan / (.info.frameCount - 1), 1)
         .info.frameRate  = frameRateFromDuration(frameDuration)
         .durationSeconds = cast(f64) .info.frameCount * cast(f64) .info.frameRate.denominator() / cast(f64) .info.frameRate.numerator()
@@ -1810,7 +1810,7 @@ private impl Decoder
         if samples.count <= .streamSampleCount do
             return
         let added = samples[.streamSampleCount until samples.count]
-        if !.streamOpen
+        if not .streamOpen
         {
             try .video.open(track.pictureKind(), track.videoConfiguration(), added, track.headerStrip.toSlice())
             .streamOpen         = true
@@ -1824,7 +1824,7 @@ private impl Decoder
     mtd replaceAvailableFrames(track: const *Track) fail
     {
         let samples = track.videoSamples.toSlice()
-        if !.streamOpen
+        if not .streamOpen
         {
             try .video.open(track.pictureKind(), track.videoConfiguration(), samples, track.headerStrip.toSlice())
             .streamOpen = true
@@ -1837,7 +1837,7 @@ private impl Decoder
     mtd targetTimestamp(index: u64)->s64
     {
         let rate = .currentFrameRate()
-        if !rate.isValid() do
+        if not rate.isValid() do
             return .presentationOrigin
         let offset = cast(f64) index * cast(f64) rate.denominator() * 1_000_000_000.0 / cast(f64) rate.numerator()
         if offset >= cast(f64) Swag.S64.Max - cast(f64) .presentationOrigin do
@@ -1848,9 +1848,9 @@ private impl Decoder
     mtd startSoundIndex() fail
     {
         let fileIndex = .fileIndex
-        if !fileIndex or Atomic.get(&fileIndex!.soundStatus) != SoundIndexIdle do
+        if not fileIndex or Atomic.get(&fileIndex!.soundStatus) != SoundIndexIdle do
             return
-        if !fileIndex!.progressive!.audioTracks.count and !fileIndex!.progressive!.subtitleTracks.count
+        if not fileIndex!.progressive!.audioTracks.count and not fileIndex!.progressive!.subtitleTracks.count
         {
             Atomic.exchange(&fileIndex!.soundStatus, SoundIndexReady)
             return
@@ -1887,13 +1887,13 @@ private impl Decoder
             layout.resetMediaAt(layout.segment.data)
 
         var reachedTarget: bool
-        while !layout.indexComplete and !reachedTarget
+        while not layout.indexComplete and not reachedTarget
         {
             let video = &layout.tracks[layout.selectedVideo]
             let count = video.videoSamples.count
             if count == Swag.U64.Max do
                 fail OverflowError{"Matroska video sample table is too large"}
-            if !layout.indexUntil(bytes, count + 1, &fileIndex.cancel) do
+            if not layout.indexUntil(bytes, count + 1, &fileIndex.cancel) do
                 fail BadParameterError{"video reader operation was cancelled"}
             for sample in video.videoSamples where sample.presentationTime >= target
             {
@@ -1903,15 +1903,15 @@ private impl Decoder
         }
 
         let video = &layout.tracks[layout.selectedVideo]
-        if !video.videoSamples.count do
+        if not video.videoSamples.count do
             fail BadParameterError{"Matroska frame index exceeds the stream frame count"}
 
         // Complete one following cluster before handing packets to H.264 so B-picture reorder
         // across the target cluster boundary is already represented.
-        if !layout.indexComplete
+        if not layout.indexComplete
         {
             let count = video.videoSamples.count
-            if !layout.indexUntil(bytes, count + 1, &fileIndex.cancel) do
+            if not layout.indexUntil(bytes, count + 1, &fileIndex.cancel) do
                 fail BadParameterError{"video reader operation was cancelled"}
         }
 
@@ -1939,9 +1939,9 @@ private impl Decoder
 
         let layout = fileIndex.progressive!
         let bytes  = fileIndex.region.bytes()
-        if !.streamOpen
+        if not .streamOpen
         {
-            if !layout.indexWindow(bytes, 0, &fileIndex.cancel) do
+            if not layout.indexWindow(bytes, 0, &fileIndex.cancel) do
                 fail BadParameterError{"video reader operation was cancelled"}
             let video = &layout.tracks[layout.selectedVideo]
             try .appendAvailableFrames(video)
@@ -1965,7 +1965,7 @@ private impl Decoder
         else
         {
             let localIndex = ahead
-            if !layout.indexWindow(bytes, localIndex, &fileIndex.cancel) do
+            if not layout.indexWindow(bytes, localIndex, &fileIndex.cancel) do
                 fail BadParameterError{"video reader operation was cancelled"}
             let video = &layout.tracks[layout.selectedVideo]
             try .appendAvailableFrames(video)
@@ -1973,7 +1973,7 @@ private impl Decoder
 
         if index < .windowBaseRank or index - .windowBaseRank >= .streamSampleCount do
             fail BadParameterError{"Matroska frame index exceeds the stream frame count"}
-        if layout.indexComplete and !.windowBaseRank do
+        if layout.indexComplete and not .windowBaseRank do
             .info.frameCount = .streamSampleCount
     }
 
@@ -1991,7 +1991,7 @@ private impl Decoder
             return
 
         let span = cast(u64) (.video.presentationTimeAtRank(.streamSampleCount - 1) - .presentationOrigin)
-        if !span do
+        if not span do
             return
 
         let observed = Math.max(span / (.streamSampleCount - 1), 1)
@@ -2027,7 +2027,7 @@ private impl Decoder
     mtd const frameAtTimestamp(timestampNanoseconds: f64)->u64
     {
         let rate = .currentFrameRate()
-        if !rate.isValid() do
+        if not rate.isValid() do
             return 0
         let seconds = Math.max((timestampNanoseconds - cast(f64) .presentationOrigin) / 1_000_000_000.0, 0)
         return cast(u64) Math.ceil(seconds * cast(f64) rate.numerator() / cast(f64) rate.denominator())
@@ -2042,9 +2042,9 @@ private impl Decoder
     mtd extendSoundWindow(index: u64)
     {
         let fileIndex = .fileIndex
-        if !fileIndex or (!fileIndex!.progressive!.audioTracks.count and !fileIndex!.progressive!.subtitleTracks.count) do
+        if not fileIndex or (not fileIndex!.progressive!.audioTracks.count and not fileIndex!.progressive!.subtitleTracks.count) do
             return
-        if !Atomic.get(&fileIndex!.currentSeekSound) do
+        if not Atomic.get(&fileIndex!.currentSeekSound) do
             return
 
         let target = .targetTimestamp(index)
@@ -2070,13 +2070,13 @@ private impl Decoder
 
         selectSoundWindow(index, target)
         Atomic.exchange(&index.windowBuilding, 1)
-        if !index.windowThread.isValid()
+        if not index.windowThread.isValid()
         {
             index.windowWake.init()
             catch index.windowThread.init(&runMatroskaSoundWindow, index, priority: .Normal) as startError
             if startError == null do
                 discard catch index.windowThread.start()
-            if !index.windowThread.isValid()
+            if not index.windowThread.isValid()
             {
                 // No worker means no window, and a silent film is worse than a late one.
                 Atomic.exchange(&index.windowBuilding, 0)
@@ -2090,7 +2090,7 @@ private impl Decoder
 
     mtd resumeSoundIndex()
     {
-        if !.resumeSoundIndexAfterDecode do
+        if not .resumeSoundIndexAfterDecode do
             return
         .resumeSoundIndexAfterDecode = false
         Sync.scopedLock(&.fileIndex!.soundLock)
@@ -2118,7 +2118,7 @@ private impl Decoder
 private func runMatroskaSoundWindow(thread: Threading.Thread)
 {
     let index = cast(*FileIndex) thread.userParam!
-    while !thread.requestEnd
+    while not thread.requestEnd
     {
         index.windowWake.wait()
         if thread.requestEnd do
@@ -2171,7 +2171,7 @@ impl IDecoder for Decoder
         }
 
         // A memory source lends its whole stream at once, which is what the layout parses.
-        if !source.size() do
+        if not source.size() do
             fail InvalidFormatError{"Matroska memory source has no bytes"}
         try source.seek(0)
         let bytes = try source.peek(source.size())
@@ -2188,11 +2188,11 @@ impl IDecoder for Decoder
         if index >= .windowBaseRank and index - .windowBaseRank < .streamSampleCount
         {
             let local = .video.syncRankAt(index - .windowBaseRank)
-            if local < .streamSampleCount or !fileIndex or fileIndex!.progressive!.indexComplete do
+            if local < .streamSampleCount or not fileIndex or fileIndex!.progressive!.indexComplete do
                 return .windowBaseRank + local
         }
 
-        if !fileIndex do
+        if not fileIndex do
             return index
         let timestamp = .targetTimestamp(index)
         if timestamp < 0 do
@@ -2243,7 +2243,7 @@ impl IDecoder for Decoder
                 return
 
             reach += 64
-            if !layout.indexWindow(bytes, reach, &fileIndex.cancel) do
+            if not layout.indexWindow(bytes, reach, &fileIndex.cancel) do
                 fail BadParameterError{"video reader operation was cancelled"}
             try .appendAvailableFrames(&layout.tracks[layout.selectedVideo])
         }
@@ -2308,7 +2308,7 @@ impl IAudioDecoder for Decoder
     mtd impl audioTrackCount()->u32
     {
         let fileIndex = .fileIndex
-        if !fileIndex do
+        if not fileIndex do
             return 0
         let seekSound = Atomic.get(&fileIndex!.currentSeekSound)
         if seekSound do
@@ -2319,7 +2319,7 @@ impl IAudioDecoder for Decoder
     mtd impl audioTrack(index: u32)->const *SoundFile?
     {
         let fileIndex = .fileIndex
-        if !fileIndex do
+        if not fileIndex do
             return null
         let seekSound = Atomic.get(&fileIndex!.currentSeekSound)
         if seekSound
@@ -2328,7 +2328,7 @@ impl IAudioDecoder for Decoder
             return index < tracks.count ? &tracks[index] : null
         }
 
-        if !Atomic.get(&fileIndex!.soundStage) do
+        if not Atomic.get(&fileIndex!.soundStage) do
             return null
         return index < fileIndex!.soundTracks.count ? &fileIndex!.soundTracks[index] : null
     }
@@ -2339,7 +2339,7 @@ impl ISubtitleDecoder for Decoder
     mtd const impl subtitleTrackCount()->u32
     {
         let fileIndex = .fileIndex
-        if !fileIndex do
+        if not fileIndex do
             return cast(u32) .memorySubtitleTracks.count
         let seekSound = Atomic.get(&fileIndex!.currentSeekSound)
         if seekSound do
@@ -2350,7 +2350,7 @@ impl ISubtitleDecoder for Decoder
     mtd const impl subtitleTrack(index: u32)->const *Subtitle.Track?
     {
         let fileIndex = .fileIndex
-        if !fileIndex do
+        if not fileIndex do
             return index < .memorySubtitleTracks.count ? &.memorySubtitleTracks[index] : null
         let seekSound = Atomic.get(&fileIndex!.currentSeekSound)
         if seekSound
@@ -2359,7 +2359,7 @@ impl ISubtitleDecoder for Decoder
             return index < tracks.count ? &tracks[index] : null
         }
 
-        if !Atomic.get(&fileIndex!.soundStage) do
+        if not Atomic.get(&fileIndex!.soundStage) do
             return null
         return index < fileIndex!.subtitleTracks.count ? &fileIndex!.subtitleTracks[index] : null
     }
@@ -2384,7 +2384,7 @@ impl ITimedDecoder for Decoder
         if count and seconds >= duration do
             return count
         let rate = .currentFrameRate()
-        if !rate.isValid() do
+        if not rate.isValid() do
             return 0
         return Math.min(cast(u64) (seconds * cast(f64) rate.numerator() / cast(f64) rate.denominator()), count ? count : Swag.U64.Max)
     }

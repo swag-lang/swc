@@ -83,7 +83,7 @@ struct AnimationOptions
         duration:         Time.Duration      = 150'ms          // Non-negative time of one play, between the start and end values.
         easing:           AnimationEasing    = .EaseInOut      // Named curve applied to normalized progress; ignored once 'curve' is set.
         direction:        AnimationDirection = .Forward        // Endpoint from which the track starts.
-        repeatCount:      u32                = 1               // Number of successive plays; zero repeats until the track is cancelled.
+        repeatCount:      u32 = 1                              // Number of successive plays; zero repeats until the track is cancelled.
         autoReverse:      bool                                 // Whether every second play runs back toward the value it started from.
         impact:           AnimationImpact    = .Paint          // Work invalidated by each update.
         motion:           AnimationMotion    = .Decorative     // Reduced-motion classification.
@@ -225,9 +225,9 @@ impl AnimationGroup
     {
         let track = .addTrack(target, channel, options, .F32)
         track.fromF32, track.currentF32 = from
-        track.toF32                     = destination
-        track.updateF32                 = update
-        track.completion                = completion
+        track.toF32      = destination
+        track.updateF32  = update
+        track.completion = completion
     }
 
     // Adds a color track, including alpha.
@@ -313,7 +313,7 @@ private impl Animator
     // endless one is treated as even because that is the value it keeps returning to.
     func restProgress(track: *AnimationTrack)->f32
     {
-        if !track.options.autoReverse do
+        if not track.options.autoReverse do
             return 1
         return track.options.repeatCount & 1 ? 1 : 0
     }
@@ -321,7 +321,7 @@ private impl Animator
     // Returns the elapsed time at which a track stops advancing, or an unreachable time while it repeats forever.
     func totalSeconds(track: *AnimationTrack)->f64
     {
-        if !track.options.repeatCount do
+        if not track.options.repeatCount do
             return Swag.F64.Max
         return track.options.delay.seconds + track.options.duration.seconds * cast(f64) track.options.repeatCount
     }
@@ -447,7 +447,7 @@ private impl Animator
         .animations.removeAtOrdered(index)
         for track in run.tracks
         {
-            if !track!.finished do
+            if not track!.finished do
                 .completeTrack(track!, result)
         }
 
@@ -463,7 +463,7 @@ private impl Animator
             for track in run!.tracks
             {
                 let value = track!
-                if !value.finished and value.target == target and value.channel == channel do
+                if not value.finished and value.target == target and value.channel == channel do
                     return value
             }
         }
@@ -488,7 +488,7 @@ private impl Animator
                 }
             }
 
-            if !matches do
+            if not matches do
                 continue
             if .duringAdvance do
                 run.cancelRequested = true
@@ -516,7 +516,7 @@ private impl Animator
                 break
             }
 
-            if !matches do
+            if not matches do
                 continue
             if .duringAdvance do
                 run.cancelRequested = true
@@ -528,7 +528,7 @@ private impl Animator
     mtd preserveCurrent(track, previous: *AnimationTrack)
     {
         let raw = progress(previous)
-        if !track.options.preserveProgress or raw <= 0
+        if not track.options.preserveProgress or raw <= 0
         {
             switch #complete track.kind
             {
@@ -692,7 +692,7 @@ private impl Animator
                 let track = trackIt!
                 if track.finished or track.step != run.currentStep do
                     continue
-                hasStep              = true
+                hasStep = true
                 track.elapsedSeconds += stepDelta
                 .applyTrack(track, progress(track))
                 if isElapsed(track)
@@ -706,11 +706,11 @@ private impl Animator
                     return false
             }
 
-            if hasStep and !stepDone do
+            if hasStep and not stepDone do
                 return false
 
             var nextStep = Swag.U32.Max
-            for track in run.tracks where !track!.finished do
+            for track in run.tracks where not track!.finished do
                 nextStep = Math.min(nextStep, track!.step)
             if nextStep == Swag.U32.Max do
                 return true
@@ -743,7 +743,7 @@ impl Animator
         for track in group.tracks
         {
             let target = track!.target
-            if target.isPendingDestroy or (target.wndFlags.has(.Hidden) and !target.paintsWhenHidden) or !target.surface
+            if target.isPendingDestroy or (target.wndFlags.has(.Hidden) and not target.paintsWhenHidden) or not target.surface
             {
                 for cancelledTrack in group.tracks do
                     .completeTrack(cancelledTrack!, .Cancelled)
@@ -754,7 +754,7 @@ impl Animator
         }
 
         let first = group.tracks[0]!
-        if !.app do
+        if not .app do
             .app = first.target.app()
         for track in group.tracks
         {
@@ -857,7 +857,7 @@ impl Animator
     // Cancels an active animation and reports `Cancelled` to unfinished callbacks.
     mtd cancel(handle: AnimationHandle)
     {
-        if !handle.isValid() do
+        if not handle.isValid() do
             return
         for index in .animations.count
         {
@@ -874,7 +874,7 @@ impl Animator
     // Reports whether a handle still names an active animation.
     mtd const isActive(handle: AnimationHandle)->bool
     {
-        if !handle.isValid() do
+        if not handle.isValid() do
             return false
         for run in .animations where run!.id == handle.id do
             return true
@@ -889,7 +889,7 @@ impl Animator
             for track in run!.tracks
             {
                 let value = track!
-                if !value.finished and value.target == target and value.channel == channel do
+                if not value.finished and value.target == target and value.channel == channel do
                     return true
             }
         }
@@ -927,7 +927,7 @@ impl Animator
         while index < initialCount
         {
             let run  = .animations[index]!
-            let done = !run.cancelRequested and .advanceRun(run, deltaSeconds)
+            let done = not run.cancelRequested and .advanceRun(run, deltaSeconds)
             if run.cancelRequested or done
             {
                 .duringAdvance = false
@@ -1026,14 +1026,14 @@ impl Animator
             if outgoing
             {
                 let wnd = outgoing!
-                if !wnd.isPendingDestroy
+                if not wnd.isPendingDestroy
                 {
                     wnd.resetPresentation()
                     wnd.setPaintWhenHidden(false)
                 }
             }
 
-            if !incoming.isPendingDestroy do
+            if not incoming.isPendingDestroy do
                 incoming.resetPresentation()
         })
         return .start(#move group)

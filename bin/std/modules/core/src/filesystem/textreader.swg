@@ -57,7 +57,7 @@ public impl TextReader
     // Opens the reader with the specified text encoding (default is UTF-8)
     mtd open(fullname: string, encoding = TextEncoding.Utf8) fail
     {
-        Swag.assert(!.stream.isOpen())
+        Swag.assert(not .stream.isOpen())
 
         .stream = try openRead(fullname)
         Swag.assert(.stream.isOpen())

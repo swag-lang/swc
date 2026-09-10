@@ -560,12 +560,14 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
     diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tknRef), "");
     if (id == DiagnosticId::parser_err_unexpected_token)
         tryEnhanceUnexpectedToken(diag, tknRef);
-    else if (id == DiagnosticId::parser_err_unexpected_and_or)
+    else if (id == DiagnosticId::parser_err_cstyle_logical_op)
     {
         if (ast_->srcView().token(tknRef).id == TokenId::SymAmpersandAmpersand)
             diag.addArgument(Diagnostic::ARG_VALUE, "and");
         else if (ast_->srcView().token(tknRef).id == TokenId::SymPipePipe)
             diag.addArgument(Diagnostic::ARG_VALUE, "or");
+        else if (ast_->srcView().token(tknRef).id == TokenId::SymBang)
+            diag.addArgument(Diagnostic::ARG_VALUE, "not");
     }
 
     if (tknRef == lastErrorToken_ || fwdReparseDepth_ > 0)
@@ -597,12 +599,14 @@ Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
     diag.last().addSpan(codeRange, "");
     if (id == DiagnosticId::parser_err_unexpected_token)
         tryEnhanceUnexpectedToken(diag, tknRef);
-    else if (id == DiagnosticId::parser_err_unexpected_and_or)
+    else if (id == DiagnosticId::parser_err_cstyle_logical_op)
     {
         if (ast_->srcView().token(tknRef).id == TokenId::SymAmpersandAmpersand)
             diag.addArgument(Diagnostic::ARG_VALUE, "and");
         else if (ast_->srcView().token(tknRef).id == TokenId::SymPipePipe)
             diag.addArgument(Diagnostic::ARG_VALUE, "or");
+        else if (ast_->srcView().token(tknRef).id == TokenId::SymBang)
+            diag.addArgument(Diagnostic::ARG_VALUE, "not");
     }
 
     if (tknRef == lastErrorToken_ || fwdReparseDepth_ > 0)

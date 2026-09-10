@@ -19,20 +19,20 @@ impl ViewerFileWatch
 
     mtd poll(fileName: string)->bool
     {
-        if !.load.started
+        if not .load.started
         {
             .load.start(fileName, &File.info)
             return false
         }
 
-        if !.load.isDone() do
+        if not .load.isDone() do
             return false
 
-        let matchesPath = .load.fileName == fileName and !.ignorePending
+        let matchesPath = .load.fileName == fileName and not .ignorePending
         .ignorePending = false
         var info: File.FileInfo
         let error = .load.finish(&info)
-        if !matchesPath or !error.isEmpty()
+        if not matchesPath or not error.isEmpty()
         {
             .hasCandidate = false
             return false

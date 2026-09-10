@@ -193,11 +193,11 @@ func(T) reverse(arr: *DynArray'T)
     Swag.assert(contains's32(&arr, -5))
     Swag.assert(contains's32(&arr, 0))
     Swag.assert(contains's32(&arr, 7))
-    Swag.assert(!contains's32(&arr, 99))
+    Swag.assert(not contains's32(&arr, 99))
 
     set's32(&arr, 1, 42)
     Swag.assert(get's32(&arr, 1) == 42)
-    Swag.assert(!contains's32(&arr, 0))
+    Swag.assert(not contains's32(&arr, 0))
 
     removeAt's32(&arr, 0)
     Swag.assert(arr.count == 3)

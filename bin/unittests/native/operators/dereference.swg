@@ -60,7 +60,7 @@ struct DereferenceStrictAA
 
     var st: AA
     var v:  const *AA = &st
-    var v1            = v[]
+    var v1 = v[]
     #assert(#typeof(v1) == AA)
     Swag.assert(v1.x == 0)
 }

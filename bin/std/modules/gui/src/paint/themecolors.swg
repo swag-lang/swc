@@ -25,10 +25,10 @@ struct ThemeColors
         border: Color     // The rule dividing two blocks of one surface.
         text:   Color     // Primary text.
 
-        hilight:              Color     // The accent, for anything that wants it directly.
+        hilight:    Color               // The accent, for anything that wants it directly.
         hilightLightContrast: Color     // Ink legible on a fill of the accent.
-        activeRail:           Color     // Narrow rule marking an active tool or tab, or transparent when unused.
-        focusRing:            Color     // Ring drawn around the control the keyboard focus is on.
+        activeRail: Color               // Narrow rule marking an active tool or tab, or transparent when unused.
+        focusRing:  Color               // Ring drawn around the control the keyboard focus is on.
 
         // The same ring, on a control whose own fill is the accent.
         //

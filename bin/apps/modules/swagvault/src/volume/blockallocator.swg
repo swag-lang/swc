@@ -17,7 +17,7 @@ impl BlockAllocator
 {
     mtd initialize(blockCount: u64)
     {
-        Swag.assert(!.free.count and !.deferredFree.count)
+        Swag.assert(not .free.count and not .deferredFree.count)
         if blockCount do
             .free.add({0, blockCount})
         .freeBlocksCount = blockCount
@@ -47,7 +47,7 @@ impl BlockAllocator
                     inRun = false
                 }
             }
-            elif !inRun
+            elif not inRun
             {
                 first = index
                 inRun = true
@@ -69,7 +69,7 @@ impl BlockAllocator
     // else in the list can be touched by them.
     mtd extend(first, count: u64)
     {
-        if !count do
+        if not count do
             return
 
         if .free.count and .free.back().first + .free.back().count == first
@@ -79,7 +79,7 @@ impl BlockAllocator
             return
         }
 
-        Swag.assert(!.free.count or .free.back().first + .free.back().count < first)
+        Swag.assert(not .free.count or .free.back().first + .free.back().count < first)
         .free.add({first, count})
         .freeBlocksCount += count
     }
@@ -91,7 +91,7 @@ impl BlockAllocator
     // keeps the node map proportional to extents rather than to every 4 KiB block.
     mtd allocateRun(maximumCount: u64)->FreeExtent fail
     {
-        if !.free.count do
+        if not .free.count do
             failWith("The virtual disk is full.", .DiskFull)
         Swag.assert(maximumCount != 0)
 
@@ -100,7 +100,7 @@ impl BlockAllocator
         let result = FreeExtent{.free[index].first, count}
         .free[index].first += count
         .free[index].count -= count
-        if !.free[index].count do
+        if not .free[index].count do
             .free.removeAtOrdered(index)
         .freeBlocksCount -= count
         return result
@@ -121,13 +121,13 @@ impl BlockAllocator
 
             let availableEnd = Math.min(extent.first + extent.count, limit)
             let count        = Math.min(maximumCount, availableEnd - extent.first)
-            if !count do
+            if not count do
                 continue
 
             let first = extent.first
             .free[index].first += count
             .free[index].count -= count
-            if !.free[index].count do
+            if not .free[index].count do
                 .free.removeAtOrdered(index)
             .freeBlocksCount -= count
             return {first, count}
@@ -168,7 +168,7 @@ impl BlockAllocator
 
     mtd releaseRun(first, count: u64)
     {
-        if !count do
+        if not count do
             return
         var index = 0'u64
         while index < .free.count and .free[index].first < first do

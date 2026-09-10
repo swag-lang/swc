@@ -27,7 +27,7 @@ impl Decoder
 
         .fw = .readU16()
         .fh = .readU16()
-        if !.fw or !.fh or .fw > .width - .fx or .fh > .height - .fy do
+        if not .fw or not .fh or .fw > .width - .fx or .fh > .height - .fy do
             fail InvalidFormatError{"GIF frame rectangle lies outside its canvas"}
 
         let fisrz     = .readU8()
@@ -45,7 +45,7 @@ impl Decoder
         else do
             .palette = &.gct
 
-        if !.palette!.size do
+        if not .palette!.size do
             fail InvalidFormatError{"GIF frame has no color table"}
         if decodePixels do
             .readImageData(interlace)

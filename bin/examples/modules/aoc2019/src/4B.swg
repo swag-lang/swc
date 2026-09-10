@@ -36,7 +36,7 @@ func day4B()
 
             if str[i] == str[i + 1]
             {
-                if !i or str[i - 1] != str[i]
+                if not i or str[i - 1] != str[i]
                 {
                     if i >= 4 or str[i + 1] != str[i + 2]
                     {

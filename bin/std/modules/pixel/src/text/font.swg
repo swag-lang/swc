@@ -486,7 +486,7 @@ impl GlyphCache
     mtd kerning(leftIndex, rightIndex: u32)->f32
     {
         // Most fonts carry no legacy 'kern' table: skip the per-pair hash lookup entirely.
-        if !.hasKerning or !leftIndex or !rightIndex do
+        if not .hasKerning or not leftIndex or not rightIndex do
             return 0
 
         let key  = (cast(u64) leftIndex << 32) | cast(u64) rightIndex
@@ -555,7 +555,7 @@ impl GlyphCache
             }
         }
 
-        if !atlas
+        if not atlas
         {
             var newAtlas: GlyphAtlas
             newAtlas.bytesPerPixel = bpp

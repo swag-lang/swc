@@ -111,12 +111,12 @@
 {
     func earlyReturnAndElif(enabled: bool, text: string?, hasClear: bool)->s32
     {
-        if !enabled do
+        if not enabled do
             return 1
 
         if text != null and text.count
         {
-            if !hasClear do
+            if not hasClear do
                 return 2
         }
         elif hasClear
@@ -191,12 +191,12 @@ impl EarlyReturnAndElifBox
 
     mtd showHide()
     {
-        if !.enabled do
+        if not .enabled do
             return
 
         if .text != null and (.text).count
         {
-            if !.button
+            if not .button
             {
                 let box = me
                 .button = &EarlyReturnAndElifGlobalButton

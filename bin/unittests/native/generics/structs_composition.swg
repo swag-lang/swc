@@ -96,12 +96,12 @@ func(T) swapPair(p: Pair'(T, T))->Pair'(T, T)
 #test
 {
     let p: Pair'(s32, s32) = {first: 10, second: 20}
-    let swapped            = swapPair'(s32)(p)
+    let swapped = swapPair'(s32)(p)
     Swag.assert(swapped.first == 20)
     Swag.assert(swapped.second == 10)
 
     let names: Pair'(string, string) = {first: "left", second: "right"}
-    let swappedNames                 = swapPair'(string)(names)
+    let swappedNames = swapPair'(string)(names)
     Swag.assert(swappedNames.first == "right")
     Swag.assert(swappedNames.second == "left")
 }

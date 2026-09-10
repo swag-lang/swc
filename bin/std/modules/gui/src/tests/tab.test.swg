@@ -51,12 +51,12 @@ var TabHeadlessSelChangedCount: u32
     tab.addItem("A", {}, viewA)
     tab.addItem("B", {}, viewB)
 
-    Swag.assert(!viewA.wndFlags.has(.Hidden))
+    Swag.assert(not viewA.wndFlags.has(.Hidden))
     Swag.assert(viewB.wndFlags.has(.Hidden))
 
     tab.setSelectedIndex(1)
     Swag.assert(viewA.wndFlags.has(.Hidden))
-    Swag.assert(!viewB.wndFlags.has(.Hidden))
+    Swag.assert(not viewB.wndFlags.has(.Hidden))
 }
 
 // Opt-in page transitions keep the outgoing page painted under the incoming fade while preserving
@@ -83,7 +83,7 @@ var TabHeadlessSelChangedCount: u32
     Swag.assert(beforeColor.argb != emptyColor.argb)
 
     tab.setSelectedIndex(1)
-    Swag.assert(viewA.wndFlags.has(.Hidden) and !viewB.wndFlags.has(.Hidden))
+    Swag.assert(viewA.wndFlags.has(.Hidden) and not viewB.wndFlags.has(.Hidden))
     Swag.assert(viewA.paintsWhenHidden)
     Swag.assert(viewA.presentationOpacity == 1)
     Swag.assert(viewB.presentationOpacity == 0)
@@ -99,7 +99,7 @@ var TabHeadlessSelChangedCount: u32
     let halfway = host.render()
     Swag.assert(halfway.pixelColor(160, 120).argb != emptyColor.argb)
     host.finishAnimations()
-    Swag.assert(!viewA.paintsWhenHidden)
+    Swag.assert(not viewA.paintsWhenHidden)
     Swag.assert(viewA.presentationOpacity == 1)
     Swag.assert(viewB.presentationOpacity == 1 and viewB.presentationOffset == Math.Point{})
     let finished = host.render()

@@ -582,7 +582,7 @@ AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
             break;
 
         if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymPipePipe))
-            raiseError(DiagnosticId::parser_err_unexpected_and_or, ref());
+            raiseError(DiagnosticId::parser_err_cstyle_logical_op, ref());
 
         const int precedence = getLogicalPrecedence(opId);
         if (precedence < minPrecedence)
@@ -1126,13 +1126,22 @@ AstNodeRef Parser::parsePrefixExpr()
             return parsePrefixExpr();
         }
 
+        case TokenId::SymBang:
+            // In prefix position '!' is the C spelling of a logical negation, and Swag
+            // writes that 'not', beside 'and' and 'or'. Keeping it out of the unary set is
+            // what leaves '!' one single meaning: the postfix not-null assertion. Report it
+            // and parse the operand alone, so one message is enough for the whole site.
+            raiseError(DiagnosticId::parser_err_cstyle_logical_op, ref());
+            consume();
+            return parsePrefixExpr();
+
         case TokenId::SymPlus:
         case TokenId::SymMinus:
-        case TokenId::SymBang:
+        case TokenId::KwdNot:
         case TokenId::SymTilde:
         {
             const TokenRef tokOp = consume();
-            if (isAny(TokenId::SymPlus, TokenId::SymMinus, TokenId::SymBang, TokenId::SymTilde))
+            if (isAny(TokenId::SymPlus, TokenId::SymMinus, TokenId::KwdNot, TokenId::SymTilde))
             {
                 const Diagnostic diag = reportError(DiagnosticId::parser_err_unexpected_token, ref());
                 diag.report(*ctx_);

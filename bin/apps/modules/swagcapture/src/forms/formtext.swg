@@ -160,7 +160,7 @@ impl IForm for FormText
             .gizmo.rect          = .boundRect() * z
             .gizmo.rotateEnabled = .canRotate()
             .gizmo.rotateValue   = .rotate
-            .gizmo.paint(painter, !flags.has(.Selected))
+            .gizmo.paint(painter, not flags.has(.Selected))
         }
     }
 
@@ -203,10 +203,10 @@ impl IForm for FormText
         }
 
         // Font
-        if !.typeFace or .isDirtyFont
+        if not .typeFace or .isDirtyFont
         {
             .isDirtyFont = false
-            if !.fontName.length do
+            if not .fontName.length do
                 .typeFace = null
             else
             {
@@ -216,7 +216,7 @@ impl IForm for FormText
         }
 
         var face = .typeFace
-        if !face
+        if not face
         {
             switch .fontStyle
             {
@@ -266,7 +266,7 @@ impl IForm for FormText
                 pathl.clean()
 
                 let borderPath = &.borderPaths[idx]
-                if !Math.isZeroEpsilon(bSize) and .borderColor.a
+                if not Math.isZeroEpsilon(bSize) and .borderColor.a
                 {
                     borderPath[] = expect face!.buildStringOutline(t, cast() fSize, cast() sSize)
                     borderPath.flatten(.Normal)
@@ -342,7 +342,7 @@ impl IForm for FormText
             painter.translateTransform(tt.tx, tt.ty)
             painter.translateTransform(drawX * rscale, drawY * rscale)
 
-            if !Math.isZeroEpsilon(bSize) and .borderColor.a do
+            if not Math.isZeroEpsilon(bSize) and .borderColor.a do
                 painter.fillPath(borderPath, .borderColor)
 
             if .backColor.a do

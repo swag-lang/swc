@@ -102,7 +102,7 @@ namespace
         return Result::Continue;
     }
 
-    Result codeGenUnaryBang(CodeGen& codeGen, AstNodeRef nodeExprRef)
+    Result codeGenUnaryNot(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
         const UnaryOperandInfo info = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
@@ -228,8 +228,8 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenUnaryPlus(codeGen, nodeExprRef);
         case TokenId::SymMinus:
             return codeGenUnaryMinus(codeGen, nodeExprRef);
-        case TokenId::SymBang:
-            return codeGenUnaryBang(codeGen, nodeExprRef);
+        case TokenId::KwdNot:
+            return codeGenUnaryNot(codeGen, nodeExprRef);
         case TokenId::SymTilde:
             return codeGenUnaryBitwiseNot(codeGen, nodeExprRef);
         case TokenId::SymLeftBracket:

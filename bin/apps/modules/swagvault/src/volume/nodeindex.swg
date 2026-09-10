@@ -91,7 +91,7 @@ impl NodeIndex
             children!.value.lastId = previousId
 
         .siblings.remove(node.id)
-        if !children!.value.firstId do
+        if not children!.value.firstId do
             .childLists.remove(node.parentId)
     }
 

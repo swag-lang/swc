@@ -38,7 +38,7 @@ impl StreamFormat
     // dialog asks this question while its name editor is still empty.
     mtd const matches(fileName: string)->bool
     {
-        if !fileName.count do
+        if not fileName.count do
             return false
 
         let extension = Path.lowercaseExtension(fileName)

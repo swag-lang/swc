@@ -30,7 +30,7 @@ func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWind
     while window.activeChoiceIndex < window.instances.count and steps < 10_000
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if !instance.view or !instance.isLoading or !instance.isLoading!(instance.view!) do
+        if not instance.view or not instance.isLoading or not instance.isLoading!(instance.view!) do
             break
         Threading.Thread.sleep(1'ms)
         host.fireTimers()
@@ -223,7 +223,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.assert(doc.report.formatName == "PE32+")
     Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "x64"))
     Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "DLL"))
-    Swag.assert(!doc.image.truncated)
+    Swag.assert(not doc.image.truncated)
 
     // The header block, read field by field.
     Swag.assert(rowDetail(&doc.report, "Machine") == "x64")
@@ -696,7 +696,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let note = findRow(&doc.report, "Note On")
     Swag.assert(note != null and note.value == "60 · velocity 96")
     Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "9 events"))
-    Swag.assert(!doc.image.truncated)
+    Swag.assert(not doc.image.truncated)
 }
 
 // A font is read through the directory of tables it is assembled from.
@@ -773,8 +773,8 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 {
     var doc: BinaryDocument
     let documentOpened = doc.open("this-file-does-not-exist.bin")
-    Swag.assert(!documentOpened)
-    Swag.assert(!doc.image.failureReason.isEmpty())
+    Swag.assert(not documentOpened)
+    Swag.assert(not doc.image.failureReason.isEmpty())
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
@@ -783,13 +783,13 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.assert(result.view != null and result.actions == null and result.commands != null and result.collectMatches != null and result.isLoading != null)
     let view = cast(*BinaryViewer) result.view!
     finishBinaryViewer(&host, view)
-    Swag.assert(!view.failureReason.isEmpty())
+    Swag.assert(not view.failureReason.isEmpty())
 }
 
 func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*BinaryViewer
 {
     var viewerSession = openTestViewer(binaryViewerPlugin(), &host.root, fileName)
-    let view          = cast(*BinaryViewer) viewerSession.view!
+    let view = cast(*BinaryViewer) viewerSession.view!
     finishBinaryViewer(host, view)
     view.dockStyle = .Center
     view.resize(width, height)
@@ -817,7 +817,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
 
     let view = createTestViewer(&host, fileName.toString(), 1100, 600)
     Swag.assert(view.rowLines.count == view.doc.report.rows.count)
-    Swag.assert(!view.list.iconMarginFirstCol)
+    Swag.assert(not view.list.iconMarginFirstCol)
     Swag.assert(Utf8.contains(view.details.toSlice(), "PE32+"))
 
     // The groups the report opened are visible; the ones it did not are folded away.
@@ -827,10 +827,10 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     let expandState = view.sendComputeCommandStateEvent(ActionBinary.ExpandAll)
     Swag.assert(expandState.name == binStrings().ui_MenuExpand)
     Swag.assert(expandState.shortcut == "Ctrl+E")
-    Swag.assert(!expandState.updatedFields.has(.Checked))
+    Swag.assert(not expandState.updatedFields.has(.Checked))
     let collapseState = view.sendComputeCommandStateEvent(ActionBinary.CollapseAll)
     Swag.assert(collapseState.shortcut == "Ctrl+Shift+E")
-    Swag.assert(!collapseState.updatedFields.has(.Checked))
+    Swag.assert(not collapseState.updatedFields.has(.Checked))
 
     view.sendCommandEvent(ActionBinary.ExpandAll)
     Swag.assert(view.list.lineCount() == cast(u32) view.doc.report.rows.count)
@@ -846,7 +846,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     Swag.assert(binaryCellText(selected, .Field) == ".text")
 
     revealed = view.revealOffset(FixtureSize + 64, "probe")
-    Swag.assert(!revealed)
+    Swag.assert(not revealed)
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "viewer.binary.document")
     Testing.assertContentFits(view)
@@ -855,7 +855,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
 // What leaves through the clipboard is the report a reader is looking at.
 #test
 {
-    if !Clipboard.isFake() do
+    if not Clipboard.isFake() do
         return
 
     let bytes    = buildPeFixture()
@@ -877,7 +877,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     view.copySelectedLine()
     let one = Clipboard.getString()
     Swag.assert(Utf8.contains(one.toSlice(), ".text"))
-    Swag.assert(!Utf8.contains(one.toSlice(), "swagExport"))
+    Swag.assert(not Utf8.contains(one.toSlice(), "swagExport"))
 }
 
 // Search indexes the decoded report, outlines the exact text, and reaches folded structures.
@@ -902,7 +902,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == "e_lfanew")
     let item = view.list.selectedLine()!.itemAt(cast(u32) BinaryColumn.Detail)
     Swag.assert(item.name.raw == "file offset of the PE signature")
-    Swag.assert(!item.colorBk.a)
+    Swag.assert(not item.colorBk.a)
 
     var bounds: Math.Rectangle
     Swag.assert(view.searchBounds(&bounds))

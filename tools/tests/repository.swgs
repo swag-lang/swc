@@ -128,7 +128,7 @@ func checkRelated(root: string, related: string, expectedExit: s32) fail
     var noArguments: Array'string
     relaunched.compiler = String.from(executable.toString())
     let sameCompiler = expect Tool.relaunchToolIfNeeded(&relaunched, #curlocation.fileName!, noArguments.toSlice(), true)
-    Swag.assert(!sameCompiler.didRun)
+    Swag.assert(not sameCompiler.didRun)
     relaunched.compiler = Path.combine(root.toString(), "a-different-compiler.exe")
     discard catch Tool.relaunchToolIfNeeded(&relaunched, #curlocation.fileName!, noArguments.toSlice(), true) as relaunchError
     Swag.assert(relaunchError != null)

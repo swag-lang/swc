@@ -41,7 +41,7 @@ func runIntrinsicDynamicTypeInfo()->bool
     var number  = 45
     var derived = Derived{}
 
-    if !Swag.typeIs(baseType, derivedType) or !Swag.typeIs(midType, derivedType) or !Swag.typeIs(intType, s32) do
+    if not Swag.typeIs(baseType, derivedType) or not Swag.typeIs(midType, derivedType) or not Swag.typeIs(intType, s32) do
         return false
     if Swag.typeIs(stringType, intType) do
         return false
@@ -84,7 +84,7 @@ func runIntrinsicDynamicTypeInfo()->bool
     Swag.assert(derivedPtr is Derived)
     Swag.assert(derivedPtr is Mid)
     Swag.assert(derivedPtr is Base)
-    Swag.assert(!derivedPtr is PointerWrapper)
+    Swag.assert(not derivedPtr is PointerWrapper)
     Swag.assert(asMid == &derived.mid)
     Swag.assert(asBase == &derived.mid.base)
 
@@ -100,7 +100,7 @@ func runIntrinsicDynamicTypeInfo()->bool
     Swag.assert(itf is Derived)
     Swag.assert(itf is Mid)
     Swag.assert(itf is Base)
-    Swag.assert(!itf is PointerWrapper)
+    Swag.assert(not itf is PointerWrapper)
     Swag.assert(itf.buffer != null)
     Swag.assert(itfBase != null)
     Swag.assert(itfBase!.value == 10)
@@ -109,12 +109,12 @@ func runIntrinsicDynamicTypeInfo()->bool
     let dynBase  = dyn as Base
     Swag.assert(dyn is Derived)
     Swag.assert(dyn is Base)
-    Swag.assert(!dyn is PointerWrapper)
+    Swag.assert(not dyn is PointerWrapper)
     Swag.assert(dynBase != null)
     Swag.assert(dynBase!.value == 10)
 
     let notStruct: any = 33
-    Swag.assert(!notStruct is Base)
+    Swag.assert(not notStruct is Base)
     Swag.assert(notStruct as Base == null)
 }
 

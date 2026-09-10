@@ -111,7 +111,7 @@ impl StandardFont
         var plain = name
         if plain.count > 7 and plain[6] == '+' do
             plain = plain[7 until]
-        if !plain.count do
+        if not plain.count do
             return {StandardFont.Helvetica, false}
 
         var lower: String = plain
@@ -172,7 +172,7 @@ impl StandardFont
         if code < StandardWidthFirst or code > StandardWidthLast
         {
             let base = latinBaseRune(value)
-            if !base do
+            if not base do
                 return cast(f32) table[cast(u32) '0' - StandardWidthFirst] / 1000.0
             code = cast(u32) base
         }

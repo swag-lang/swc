@@ -144,7 +144,7 @@ func loopUnsignedRef(value: *u32)->u32
 
 func semaTest005()
 {
-    var text             = "hello"
+    var text = "hello"
     var textRef: *string = &text
     #assert(#typeof((textRef[]).count) == u64)
     #assert(#typeof(countStringRef(textRef)) == u64)

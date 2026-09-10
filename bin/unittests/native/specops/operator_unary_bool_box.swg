@@ -14,7 +14,7 @@ impl BoolUnaryBox
     func(op: Swag.Operator) opUnary(const me)->BoolUnaryBox'T
         where op == .Not
     {
-        return {value: !me.value}
+        return {value: not me.value}
     }
 }
 
@@ -22,7 +22,7 @@ impl BoolUnaryBox
 #test
 {
     var value: BoolUnaryBox'bool = {value: false}
-    let flipped = !value
+    let flipped = not value
 
     Swag.assert(flipped.value)
 }
@@ -31,16 +31,16 @@ impl BoolUnaryBox
 #test
 {
     var value: BoolUnaryBox'bool = {value: true}
-    let flipped = !value
+    let flipped = not value
 
-    Swag.assert(!flipped.value)
+    Swag.assert(not flipped.value)
 }
 
 // Test: double negation on BoolUnaryBox'bool
 #test
 {
     var value: BoolUnaryBox'bool = {value: true}
-    let double_flip              = !(!value)
+    let double_flip = not (not value)
 
     Swag.assert(double_flip.value)
 }

@@ -59,7 +59,7 @@ impl GenVec3
 {
     var a: GenVec3's32 = {x: 1, y: 2, z: 3}
     var b: GenVec3's32 = {x: 10, y: 20, z: 30}
-    let sum            = a + b
+    let sum = a + b
 
     #assert(#typeof(sum) == GenVec3's32)
     Swag.assert(sum.x == 11)
@@ -72,7 +72,7 @@ impl GenVec3
 {
     var a: GenVec3's64 = {x: 100, y: 200, z: 300}
     var b: GenVec3's64 = {x: 150, y: 50, z: 300}
-    let diff           = a - b
+    let diff = a - b
 
     Swag.assert(diff.x == -50)
     Swag.assert(diff.y == 150)
@@ -84,7 +84,7 @@ impl GenVec3
 {
     var a: GenVec3'u32 = {x: 2, y: 3, z: 4}
     var b: GenVec3'u32 = {x: 5, y: 6, z: 7}
-    let prod           = a * b
+    let prod = a * b
 
     Swag.assert(prod.x == 10)
     Swag.assert(prod.y == 18)
@@ -96,7 +96,7 @@ impl GenVec3
 {
     var a: GenVec3'u64 = {x: 100, y: 200, z: 300}
     var b: GenVec3'u64 = {x: 10, y: 20, z: 30}
-    let quot           = a / b
+    let quot = a / b
 
     Swag.assert(quot.x == 10'u64)
     Swag.assert(quot.y == 10'u64)

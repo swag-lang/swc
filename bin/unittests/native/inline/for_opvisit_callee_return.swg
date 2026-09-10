@@ -15,7 +15,7 @@ impl InlineBug10VisitBytes
 
     #[Macro]
     mtd(ptr: bool) const visitBytes(stmt: #code(item: u8, index: u64))
-        where !ptr
+        where not ptr
     {
         for ordinal in .count
         {

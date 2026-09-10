@@ -6,7 +6,7 @@
     var p: *s32? = null
     #assert(#typeof(p) == *s32?)
     Swag.assert(p == null)
-    Swag.assert(!p)
+    Swag.assert(not p)
 }
 
 // null assignment and comparison
@@ -35,7 +35,7 @@
 #test
 {
     var p: *s32? = null
-    Swag.assert(!p)
+    Swag.assert(not p)
 
     var v: s32 = 7
     p = &v

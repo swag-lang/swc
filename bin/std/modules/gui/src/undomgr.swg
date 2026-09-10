@@ -130,7 +130,7 @@ impl UndoManager
     // Reverts the previous command group, if any.
     mtd undo()
     {
-        if !.canUndo() do
+        if not .canUndo() do
             return
 
         let serial = .steps[.next - 1].serial
@@ -144,7 +144,7 @@ impl UndoManager
     // Reapplies the next command group, if any.
     mtd redo()
     {
-        if !.canRedo() do
+        if not .canRedo() do
             return
 
         let serial = .steps[.next].serial

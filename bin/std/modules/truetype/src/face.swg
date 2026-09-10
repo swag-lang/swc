@@ -86,7 +86,7 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
     if bytes.count == 0 do
         fault(0x06)
     let allocationAllocator = (allocator orelse Swag.getContext().allocator)!
-    let faceData            = Memory.new'FaceImpl(allocationAllocator)
+    let faceData = Memory.new'FaceImpl(allocationAllocator)
     faceData.allocationAllocator = allocationAllocator
     defer #fail Memory.delete(faceData, allocationAllocator)
     faceData.fontData.resize(bytes.count)
@@ -198,7 +198,7 @@ public impl Face
     // Ownership and cleanup match [[TrueType.Face.load]].
     func loadSubset(bytes: const [..] u8, familyName: string, allocator: IAllocator? = null)->*Face? fail
     {
-        if !familyName.count do
+        if not familyName.count do
             fault(0x06)
         return loadFaceBytes(bytes, 0, familyName, allocator)
     }
@@ -283,14 +283,14 @@ public impl Face
     mtd setPixelSize(pixelWidth, pixelHeight: u32) fail
     {
         let faceData = getFaceImpl(me)
-        if (!pixelWidth and !pixelHeight) or pixelWidth > Swag.U16.Max or pixelHeight > Swag.U16.Max do
+        if (not pixelWidth and not pixelHeight) or pixelWidth > Swag.U16.Max or pixelHeight > Swag.U16.Max do
             fault(0x17)
 
         var width  = pixelWidth
         var height = pixelHeight
-        if !width do
+        if not width do
             width = height
-        if !height do
+        if not height do
             height = width
 
         .size.setPixelMetrics(width, height)
@@ -322,7 +322,7 @@ public impl Face
     {
         let faceData = cast(const *FaceImpl) cast(const *void) me
         var result: retval
-        if !leftGlyph or !rightGlyph or leftGlyph > Swag.U16.Max or rightGlyph > Swag.U16.Max do
+        if not leftGlyph or not rightGlyph or leftGlyph > Swag.U16.Max or rightGlyph > Swag.U16.Max do
             return result
 
         var units = 0's16
@@ -332,7 +332,7 @@ public impl Face
             units = err != null ? 0's16 : value
         }
 
-        if !units
+        if not units
         {
             let key  = (leftGlyph << 16) | rightGlyph
             let here = faceData.kernPairs.tryFind(key)
@@ -340,7 +340,7 @@ public impl Face
                 units = here.value
         }
 
-        if !units do
+        if not units do
             return result
 
         result.x = roundDiv(cast(s64) units * .size.metrics.xScale, 65536)

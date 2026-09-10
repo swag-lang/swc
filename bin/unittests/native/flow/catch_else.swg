@@ -12,7 +12,7 @@ struct CatchElseError
 
 func catchElseMayFail(ok: bool) fail
 {
-    if !ok do
+    if not ok do
         fail CatchElseError{base: Swag.BaseError{"boom"}, code: 42}
 }
 

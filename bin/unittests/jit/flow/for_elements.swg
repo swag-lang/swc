@@ -24,9 +24,9 @@ enum ForeachIndexedSlot: u8
 {
     func foreachStrictArrayAlias()->s32
     {
-        var raw: [3] s32            = [4, 5, 6]
+        var raw: [3] s32 = [4, 5, 6]
         var arr: ForeachStrictArray = cast(ForeachStrictArray) raw
-        var acc: s32                = 0
+        var acc: s32     = 0
 
         for v, i in arr
         {
@@ -44,10 +44,10 @@ enum ForeachIndexedSlot: u8
 {
     func foreachStrictSliceAlias()->s32
     {
-        var arr: [3] s32            = [7, 8, 9]
-        var rawSl                   = cast([..] s32) arr
+        var arr: [3] s32 = [7, 8, 9]
+        var rawSl        = cast([..] s32) arr
         var sl:  ForeachStrictSlice = cast(ForeachStrictSlice) rawSl
-        var acc: s32                = 0
+        var acc: s32     = 0
 
         for v, i in sl
         {

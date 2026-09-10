@@ -392,7 +392,7 @@ func resolvePropertyText(key: string)->string?
     for f in type.fields!
     {
         let field = f!
-        if !Utf8.startsWith(field.name orelse "", PropertyKeyPrefix) do
+        if not Utf8.startsWith(field.name orelse "", PropertyKeyPrefix) do
             continue
         if (reference + field.offset)[as string] != key do
             continue
@@ -434,7 +434,7 @@ private func checkPropertyKeysAreDistinct()
     {
         let field = f!
         let name  = field.name orelse ""
-        if !Utf8.startsWith(name, PropertyKeyPrefix) do
+        if not Utf8.startsWith(name, PropertyKeyPrefix) do
             continue
 
         let value = (data + field.offset)[as string]
@@ -443,7 +443,7 @@ private func checkPropertyKeysAreDistinct()
             let other = g!
             if other.offset >= field.offset do
                 break
-            if !Utf8.startsWith(other.name orelse "", PropertyKeyPrefix) do
+            if not Utf8.startsWith(other.name orelse "", PropertyKeyPrefix) do
                 continue
             if (data + other.offset)[as string] != value do
                 continue

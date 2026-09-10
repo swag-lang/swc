@@ -107,7 +107,7 @@ private func deblockMotion(dec: *Decoder, mbIndex, blockIndex: u64)->DeblockMoti
     let info = &dec.mbInfo[mbIndex]
 
     var result: retval
-    if info.skipped and !info.direct
+    if info.skipped and not info.direct
     {
         let mb    = &dec.parsedMbs[mbIndex]
         let job   = &mb.firstJob
@@ -148,7 +148,7 @@ private func edgeStrength(dec: *Decoder, pMbIndex, pIndex, qMbIndex, qIndex: u64
 
     let straight = p.refId[0] == q.refId[0] and p.refId[1] == q.refId[1]
     let crossed  = p.refId[0] == q.refId[1] and p.refId[1] == q.refId[0]
-    if !straight and !crossed do
+    if not straight and not crossed do
         return 1
 
     if straight and mvClose(&p, &q, false) do
@@ -245,10 +245,10 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         {
             for segment in 4's32
             {
-                let qx     = mbX * 4 + edge
-                let qy     = mbY * 4 + segment
-                let qIndex = cast(u64) (qy * gw + qx)
-                let pIndex = cast(u64) (qy * gw + qx - 1)
+                let qx       = mbX * 4 + edge
+                let qy       = mbY * 4 + segment
+                let qIndex   = cast(u64) (qy * gw + qx)
+                let pIndex   = cast(u64) (qy * gw + qx - 1)
                 var pIntra   = qIntra
                 var pCoded   = dec.codedLuma[pIndex] != 0
                 var pMbIndex = mbIndex
@@ -257,6 +257,7 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
                     pMbIndex = mbIndex - 1
                     pIntra   = dec.mbInfo[pMbIndex].class != MbClassInter
                 }
+
                 let bs = edgeStrength(dec, pMbIndex, pIndex, mbIndex, qIndex, edge == 0, pIntra, qIntra, pCoded, dec.codedLuma[qIndex] != 0)
                 strengths.bs[cast(u64) segment] = bs
                 if bs != 0 do
@@ -264,7 +265,7 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
             }
         }
 
-        if !hasAny do
+        if not hasAny do
             continue
 
         // Average QP of the two sides.
@@ -384,10 +385,10 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         {
             for segment in 4's32
             {
-                let qx     = mbX * 4 + segment
-                let qy     = mbY * 4 + edge
-                let qIndex = cast(u64) (qy * gw + qx)
-                let pIndex = cast(u64) ((qy - 1) * gw + qx)
+                let qx       = mbX * 4 + segment
+                let qy       = mbY * 4 + edge
+                let qIndex   = cast(u64) (qy * gw + qx)
+                let pIndex   = cast(u64) ((qy - 1) * gw + qx)
                 var pIntra   = qIntra
                 var pMbIndex = mbIndex
                 if edge == 0
@@ -395,6 +396,7 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
                     pMbIndex = mbIndex - cast(u64) sps.mbWidth
                     pIntra   = dec.mbInfo[pMbIndex].class != MbClassInter
                 }
+
                 let bs = edgeStrength(dec, pMbIndex, pIndex, mbIndex, qIndex, edge == 0, pIntra, qIntra, dec.codedLuma[pIndex] != 0, dec.codedLuma[qIndex] != 0)
                 strengths.bs[cast(u64) segment] = bs
                 if bs != 0 do
@@ -402,7 +404,7 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
             }
         }
 
-        if !hasAny do
+        if not hasAny do
             continue
 
         var qpP = cast(s32) info.qp
@@ -693,7 +695,7 @@ func filterChromaStrongHorizontal(pix: [*] u8, stride: u64, strengths: const *Ed
 #[Swag.Inline]
 private func storeLines4(dst: [*] u8, stride: u64, columns: Simd.U32x4)
 {
-    (cast([*] u32) dst)[0]                = columns[0]
+    (cast([*] u32) dst)[0] = columns[0]
     (cast([*] u32) (dst + stride))[0]     = columns[1]
     (cast([*] u32) (dst + 2 * stride))[0] = columns[2]
     (cast([*] u32) (dst + 3 * stride))[0] = columns[3]
@@ -767,7 +769,7 @@ func filterLumaVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength
     Simd.store(rows + 7 * TileStride, cast #bit(Simd.U8x16) Simd.interleaveHigh(c5, c7))
 
     let hasStrong = strengths.bs[0] == 4 or strengths.bs[1] == 4 or strengths.bs[2] == 4 or strengths.bs[3] == 4
-    if !hasStrong
+    if not hasStrong
     {
         filterLumaWeakHorizontal(rows + 4 * TileStride, TileStride, strengths, indexA, alpha, beta)
 
@@ -895,7 +897,7 @@ func filterLuma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alpha, beta
 
         let delta = clampS32((((q0 - p0) << 2) + (p1 - q1) + 4) >> 3, -tc, tc)
         (pix - step)[0] = clampPixel(p0 + delta)
-        pix[0]          = clampPixel(q0 - delta)
+        pix[0] = clampPixel(q0 - delta)
 
         if apMask != 0
         {
@@ -929,7 +931,7 @@ func filterLuma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alpha, beta
     if shortGap and aqMask != 0
     {
         let q3 = cast(s32) (pix + 3 * step)[0]
-        pix[0]              = cast(u8) ((q2 + 2 * q1 + 2 * q0 + 2 * p0 + p1 + 4) >> 3)
+        pix[0] = cast(u8) ((q2 + 2 * q1 + 2 * q0 + 2 * p0 + p1 + 4) >> 3)
         (pix + step)[0]     = cast(u8) ((q2 + q1 + q0 + p0 + 2) >> 2)
         (pix + 2 * step)[0] = cast(u8) ((2 * q3 + 3 * q2 + q1 + q0 + p0 + 4) >> 3)
     }
@@ -956,10 +958,10 @@ func filterChroma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alpha, be
         let tc    = cast(s32) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs - 1)] + 1
         let delta = clampS32((((q0 - p0) << 2) + (p1 - q1) + 4) >> 3, -tc, tc)
         (pix - step)[0] = clampPixel(p0 + delta)
-        pix[0]          = clampPixel(q0 - delta)
+        pix[0] = clampPixel(q0 - delta)
         return
     }
 
     (pix - step)[0] = cast(u8) ((2 * p1 + p0 + q1 + 2) >> 2)
-    pix[0]          = cast(u8) ((2 * q1 + q0 + p1 + 2) >> 2)
+    pix[0] = cast(u8) ((2 * q1 + q0 + p1 + 2) >> 2)
 }

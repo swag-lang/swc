@@ -151,7 +151,7 @@ impl ToggleButton
     // Flips the state and emits the same notifications as a user action.
     mtd toggle()
     {
-        .checked = !.checked
+        .checked = not .checked
         .invalidate()
         .sigChanged.call(me)
         .postCommandEvent(.id)

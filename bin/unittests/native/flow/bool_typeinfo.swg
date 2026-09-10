@@ -47,5 +47,5 @@ using Swag
     Swag.assert(switchHit == 11)
 
     intType = null
-    Swag.assert(!intType)
+    Swag.assert(not intType)
 }

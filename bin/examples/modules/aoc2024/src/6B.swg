@@ -104,7 +104,7 @@ func day6B()
 
     for l in lines
     {
-        if !sx
+        if not sx
         {
             let f = l.indexOf("^")
             if f != Swag.U64.Max do

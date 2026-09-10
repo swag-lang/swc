@@ -27,7 +27,7 @@ func assertCrc32(buffer: const [..] u8, seed: u32 = 0)
 {
     let expected = crc32Reference(buffer, seed)
 
-    if !seed do
+    if not seed do
         Swag.assert(Hash.Crc32.compute(buffer) == expected)
 
     var crc: Hash.Crc32

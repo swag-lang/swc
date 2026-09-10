@@ -56,7 +56,7 @@ impl Keyboard
         let now = Time.monotonicMilliseconds()
         for key in Key
         {
-            if !.currentState.isKeyPressed(key)
+            if not .currentState.isKeyPressed(key)
             {
                 .isRepeating[key] = false
                 .pressedAtMs[key] = 0
@@ -64,11 +64,11 @@ impl Keyboard
             elif .repeatEnabled
             {
                 // First pressed time
-                if !.pressedAtMs[key] do
+                if not .pressedAtMs[key] do
                     .pressedAtMs[key] = now
 
                 // First repetition
-                if !.isRepeating[key]
+                if not .isRepeating[key]
                 {
                     if now - .pressedAtMs[key] >= .initialRepeatDelayMs
                     {
@@ -104,19 +104,19 @@ impl Keyboard
     // Determines whether given key has just been pressed
     mtd isKeyJustPressed(key: Key)->bool
     {
-        return .currentState.pressed[key] and !.previousState.pressed[key]
+        return .currentState.pressed[key] and not .previousState.pressed[key]
     }
 
     // Determines whether given key is currently being released
     mtd isKeyReleased(key: Key)->bool
     {
-        return !.currentState.pressed[key]
+        return not .currentState.pressed[key]
     }
 
     // Determines whether given key has just been released
     mtd isKeyJustReleased(key: Key)->bool
     {
-        return !.currentState.pressed[key] and .previousState.pressed[key]
+        return not .currentState.pressed[key] and .previousState.pressed[key]
     }
 
     // Returns the modifier flags active in the latest state.

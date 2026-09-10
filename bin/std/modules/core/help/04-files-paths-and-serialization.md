@@ -33,7 +33,7 @@ is how a walker over frame headers scans a file at the cost of its index.
 using Core
 
 var source = try ByteSource.openFile("recording.mp3")
-while !source.isAtEnd()
+while not source.isAtEnd()
 {
     let header = try source.peek(4)
     let length = frameLength(header)

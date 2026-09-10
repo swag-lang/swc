@@ -115,7 +115,8 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
 struct PropWnd
 {
     using frameWnd: FrameWnd
-        late
+
+    late
     {
         late topLayout: *StackLayoutCtrl
         late grid:      *Properties
@@ -140,13 +141,13 @@ impl PropWnd
     mtd hasRealSelection()->bool
     {
         let capture = .main.getCapture()
-        return capture and !capture.selection.isEmpty()
+        return capture and not capture.selection.isEmpty()
     }
 
     mtd getSelectedBaseForm()->*BaseForm
     {
         let capture = .main.getCapture()
-        if !capture or capture.selection.isEmpty()
+        if not capture or capture.selection.isEmpty()
         {
             let iform = .main.editModeToModel(.main.editMode)
             return cast(*BaseForm) iform.buffer
@@ -173,7 +174,7 @@ impl PropWnd
     mtd getSelectedFormType()->typeinfo
     {
         let capture = .main.getCapture()
-        if !capture or capture.selection.isEmpty()
+        if not capture or capture.selection.isEmpty()
         {
             let iform = .main.editModeToModel(.main.editMode)
             return Swag.kindOf(iform)
@@ -187,7 +188,7 @@ impl PropWnd
         let capture = .main.getCapture()
 
         // Change model
-        if !capture or !capture.selection.count
+        if not capture or not capture.selection.count
         {
             let form   = .getSelectedBaseForm()
             let field  = Reflection.findField(type, name)!
@@ -198,11 +199,11 @@ impl PropWnd
         // Change selection
         else
         {
-            if !first do
+            if not first do
                 capture.undo()
             let undo = capture.newUndo(.SetTypedValue)
             undo.valU32 = val
-            if !common do
+            if not common do
                 undo.mdlType = type
             undo.valRef = Reflection.findField(type, name)!
             capture.pushUndo(undo)
@@ -349,7 +350,7 @@ impl PropWnd
     mtd createPopupCapStyle(btn: *IconButton, begin: bool)
     {
         let popup = .createStylePopup(btn, PopupCapRowHeight, PopupCapWidth)
-        if !popup do
+        if not popup do
             return
 
         let fieldName = begin ? #nameof(FormLine.beginCap) : #nameof(FormLine.endCap)
@@ -400,7 +401,7 @@ impl PropWnd
     mtd createPopupDashStyle(btn: *IconButton)
     {
         let popup = .createStylePopup(btn, PopupRowHeight, PopupDashWidth)
-        if !popup do
+        if not popup do
             return
 
         let curSel = .getSelectedBaseForm()
@@ -469,7 +470,7 @@ impl PropWnd
             rect.x = rect.horzCenter() - StyleGlyphSize * 0.5
             rect.y = rect.vertCenter() - StyleGlyphSize * 0.5
             rect.width, rect.height = StyleGlyphSize
-            if !curSel.borderColor.isOpaque() do
+            if not curSel.borderColor.isOpaque() do
                 bc.painter.drawRect(rect, Pen.createHatch(.CheckBoardLarge, Argb.DarkGray, 5))
             bc.painter.drawRect(rect, curSel.borderColor, 5)
         }
@@ -514,7 +515,7 @@ impl PropWnd
         switch .getSelectedFormType()
         {
         case FormLine, FormArrow: .pushTypedValue(color.argb, FormLine, #nameof(FormLine.outlineColor), first)
-        case FormDraw:            .pushTypedValue(color.argb, FormDraw, #nameof(FormDraw.outlineColor), first)
+        case FormDraw: .pushTypedValue(color.argb, FormDraw, #nameof(FormDraw.outlineColor), first)
         }
     }
 
@@ -535,7 +536,7 @@ impl PropWnd
             rect.x = rect.horzCenter() - StyleGlyphSize * 0.5
             rect.y = rect.vertCenter() - StyleGlyphSize * 0.5
             rect.width, rect.height = StyleGlyphSize
-            if !color.isOpaque() do
+            if not color.isOpaque() do
                 bc.painter.drawRect(rect, Pen.createHatch(.CheckBoardLarge, Argb.DarkGray, 5))
             bc.painter.drawRect(rect, color, 5)
         }
@@ -581,7 +582,7 @@ impl PropWnd
             rect.y = rect.vertCenter() - StyleGlyphSize * 0.5
             rect.width, rect.height = StyleGlyphSize
             var backCol = curSel.subKind == .PixSel ? g_Main!.pixSelFillCol : curSel.backColor
-            if !backCol.isOpaque() do
+            if not backCol.isOpaque() do
                 bc.painter.fillRect(rect, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
             bc.painter.fillRect(rect, backCol)
         }
@@ -629,7 +630,7 @@ impl PropWnd
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedForm'FormShape()
-            if !curSel do
+            if not curSel do
                 return
             drawShapeGlyph(bc.painter, curSel.kind, pos, btn.themeColors().btnIcon_Icon)
         }
@@ -648,7 +649,7 @@ impl PropWnd
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedForm'FormStep()
-            if !curSel do
+            if not curSel do
                 return
             drawShapeGlyph(bc.painter, curSel.kind, pos, btn.themeColors().btnIcon_Icon)
         }
@@ -740,7 +741,7 @@ impl PropWnd
                 // The button outlives the panel build; the capture may be gone by the
                 // time it is pressed, so guard instead of assuming it is still there.
                 let capture = prop.main.getCapture()
-                if !capture do
+                if not capture do
                     return
                 capture.nextStepIndex = 1
             }
@@ -777,13 +778,13 @@ impl PropWnd
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedForm'FormCallout()
-            if !curSel do
+            if not curSel do
                 return
             var rect = pos
             rect.x = rect.horzCenter() - StyleGlyphSize * 0.5
             rect.y = rect.vertCenter() - StyleGlyphSize * 0.5
             rect.width, rect.height = StyleGlyphSize
-            if !curSel.textColor.isOpaque() do
+            if not curSel.textColor.isOpaque() do
                 bc.painter.fillRect(rect, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
             bc.painter.fillRect(rect, curSel.textColor)
         }
@@ -791,7 +792,7 @@ impl PropWnd
         btn.sigPopupRequested += func|prop = me|(btn)
         {
             let curSel = prop.getSelectedForm'FormCallout()
-            if !curSel do
+            if not curSel do
                 return
             var picker = createColorPicker(btn, curSel.textColor)
             picker.sigColorChanged += func|prop, btn, var first = true|(pk)
@@ -821,7 +822,7 @@ impl PropWnd
     // negative (a form may sit outside the canvas).
     mtd propXY()
     {
-        if !.hasRealSelection() do
+        if not .hasRealSelection() do
             return
         let t = .getSelectedFormType()
         if t != FormShape and t != FormText and t != FormCallout do
@@ -888,7 +889,7 @@ impl PropWnd
         let capture = .main.getCapture()
         var bases: Array'(*u8?)
 
-        if !capture or !capture.selection.count
+        if not capture or not capture.selection.count
         {
             // Tool model: direct edition, no undo (as before)
             let mdl = .main.editModeToModel(.main.editMode)
@@ -908,7 +909,7 @@ impl PropWnd
             foreachSelected'BaseForm(capture, capture.selection)
             {
                 let t = Swag.kindOf(itf)
-                if !firstType do
+                if not firstType do
                     firstType = t
                 elif t != firstType do
                     allSame = false
@@ -938,7 +939,7 @@ impl PropWnd
             for item in .grid.items
             {
                 let it = item!
-                if it.typeValue.name != #nameof(BaseForm.borderSize) or !(it.sliderBox != null) do
+                if it.typeValue.name != #nameof(BaseForm.borderSize) or not (it.sliderBox != null) do
                     continue
                 let sliderBox = it.sliderBox
                 sliderBox.label.setText(appStrings().ui_Outline)
@@ -956,7 +957,7 @@ impl PropWnd
         for item in .grid.items
         {
             let it = item!
-            if !it.flags.has(.Category) do
+            if not it.flags.has(.Category) do
                 continue
             it.label.style.setFont(.theme().res.fontDefault)
             it.label.updateFlags(.SecondaryText)
@@ -1070,7 +1071,7 @@ impl PropWnd
             // between itself and the rows the grid generates under it.
             .topLayout.padding = {12, 16, 12, 16}
 
-            .grid           = Properties.create(prop, kind: .Panel)
+            .grid = Properties.create(prop, kind: .Panel)
             .grid.dockStyle = .Center
             .grid.setRevertButtonsVisible(false)
 

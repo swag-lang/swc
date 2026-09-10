@@ -23,7 +23,7 @@ func jitLateLifecycle()->bool
 
     box.item = &first
     box.name = "hello"
-    if !(box.item != null) or !(box.name != null) do
+    if not (box.item != null) or not (box.name != null) do
         return false
 
     let p: *JitLateItem = box.item
@@ -50,7 +50,7 @@ func jitLateAddressOf()->bool
 func jitLateLiteral()->bool
 {
     let box = JitLateBox{count: 4}
-    return box.count == 4 and !(box.item != null) and !(box.name != null)
+    return box.count == 4 and not (box.item != null) and not (box.name != null)
 }
 
 #test
@@ -81,7 +81,7 @@ func jitLateDirtyMemoryInit()->bool
     let box = cast(*JitLateDirty) raw
     Swag.init(box, 1)
 
-    let ok = box.tag == 5 and box.ratio == 1.5 and !(box.item != null)
+    let ok = box.tag == 5 and box.ratio == 1.5 and not (box.item != null)
     testFree(raw)
     return ok
 }

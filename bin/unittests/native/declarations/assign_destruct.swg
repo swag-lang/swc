@@ -28,7 +28,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
     var b: bool
     {a, b} = s
     Swag.assert(a == 0)
-    Swag.assert(!b)
+    Swag.assert(not b)
 }
 
 #test
@@ -159,7 +159,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
         let {nc, nm} = {n[start], n[start + 1]}
         start += 2
 
-        if !nc
+        if not nc
         {
             var sum: u32
             for i in nm do

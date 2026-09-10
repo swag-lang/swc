@@ -79,7 +79,7 @@ private func filledColors(resources: string, content: string, extra: const [..] 
 {
     let document = expect Document.decode(singlePagePdf("", cast(const [..] u8) "/Pattern cs 1 0 0 RG 0 0 5 5 re B", "").toSlice())
     let item     = onlyItem(document.pages[0], .Path)
-    Swag.assert(!item.hasFill)
+    Swag.assert(not item.hasFill)
     Swag.assert(item.pathStrokeWidth() == 1)
     Swag.assert(item.itemStrokeColor().r == 255)
 }

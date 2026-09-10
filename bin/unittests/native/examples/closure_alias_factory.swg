@@ -5,7 +5,7 @@
 
 struct SubscriptionPlan
 {
-    code:               string
+    code: string
     baseSeatPriceCents: s32
     includedSeats:      s32
 }

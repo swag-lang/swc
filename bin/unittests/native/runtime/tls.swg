@@ -22,9 +22,9 @@ tls var g_Point: TlsPoint
 {
     namespace Th
     {
-        alias HANDLE                 = *void
-        alias DWORD                  = u32
-        alias SIZE_T                 = u64
+        alias HANDLE = *void
+        alias DWORD  = u32
+        alias SIZE_T = u64
         alias LPTHREAD_START_ROUTINE = func(*void)->DWORD
 
         const INFINITE = 0xFFFF_FFFF'u32

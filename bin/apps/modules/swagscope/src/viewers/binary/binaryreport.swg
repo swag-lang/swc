@@ -173,7 +173,7 @@ impl BinaryReport
 
         for row, index in .rows
         {
-            if row.offset == Swag.U64.Max or !row.length do
+            if row.offset == Swag.U64.Max or not row.length do
                 continue
             if offset < row.offset or offset - row.offset >= row.length do
                 continue
@@ -201,13 +201,13 @@ impl BinaryReport
                 result += "    "
 
             result += row.label.toString()
-            if !row.value.isEmpty()
+            if not row.value.isEmpty()
             {
                 result += ": "
                 result += row.value.toString()
             }
 
-            if !row.detail.isEmpty()
+            if not row.detail.isEmpty()
             {
                 result += "  "
                 result += row.detail.toString()
@@ -263,7 +263,7 @@ func flagsText(value: u64, names: const [..] BinaryFlagName)->String
 
     for name in names where value & name.bit
     {
-        if !result.isEmpty() do
+        if not result.isEmpty() do
             result += " | "
         result += name.name
         rest   &= ~name.bit
@@ -271,7 +271,7 @@ func flagsText(value: u64, names: const [..] BinaryFlagName)->String
 
     if rest
     {
-        if !result.isEmpty() do
+        if not result.isEmpty() do
             result += " | "
         result += hexText(rest, 8)
     }
@@ -282,7 +282,7 @@ func flagsText(value: u64, names: const [..] BinaryFlagName)->String
 // Returns the calendar time a 32-bit seconds-since-1970 stamp names.
 func epochText(seconds: u64)->String
 {
-    if !seconds do
+    if not seconds do
         return String.from(binStrings().ui_NotSet)
 
     // A stamp beyond the calendar the runtime spells is a reproducible-build cookie or a corrupt
@@ -298,7 +298,7 @@ func epochText(seconds: u64)->String
 // Returns the mixed-endian textual form Microsoft tools print a GUID in.
 func guidText(image: *BinaryImage, offset: u64)->String
 {
-    if !image.has(offset, 16) do
+    if not image.has(offset, 16) do
         return String.from(BinaryNoValue)
 
     // The first three fields are stored little endian and the last two big endian, so the order the

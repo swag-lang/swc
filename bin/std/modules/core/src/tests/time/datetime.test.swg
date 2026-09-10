@@ -77,34 +77,34 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
     var invalid = value
     invalid.year = 0
-    Swag.assert(!invalid.isValid())
+    Swag.assert(not invalid.isValid())
     invalid      = value
     invalid.year = 10000
-    Swag.assert(!invalid.isValid())
+    Swag.assert(not invalid.isValid())
     invalid       = value
     invalid.month = 0
-    Swag.assert(!invalid.isValid())
+    Swag.assert(not invalid.isValid())
     invalid       = value
     invalid.month = 13
-    Swag.assert(!invalid.isValid())
+    Swag.assert(not invalid.isValid())
     invalid     = value
     invalid.day = 0
-    Swag.assert(!invalid.isValid())
+    Swag.assert(not invalid.isValid())
     invalid     = value
     invalid.day = 30
-    Swag.assert(!invalid.isValid())
+    Swag.assert(not invalid.isValid())
     invalid      = value
     invalid.hour = 24
-    Swag.assert(!invalid.isValid())
+    Swag.assert(not invalid.isValid())
     invalid        = value
     invalid.minute = 60
-    Swag.assert(!invalid.isValid())
+    Swag.assert(not invalid.isValid())
     invalid        = value
     invalid.second = 60
-    Swag.assert(!invalid.isValid())
-    invalid             = value
+    Swag.assert(not invalid.isValid())
+    invalid = value
     invalid.millisecond = 1000
-    Swag.assert(!invalid.isValid())
+    Swag.assert(not invalid.isValid())
 
     Swag.assert(Time.DateTime{1970, 1, 1, 0, 0, 0, 0}.dayOfWeek() == Time.DayOfWeek.Thursday)
     Swag.assert(Time.DateTime{2000, 2, 29, 0, 0, 0, 0}.dayOfWeek() == Time.DayOfWeek.Tuesday)

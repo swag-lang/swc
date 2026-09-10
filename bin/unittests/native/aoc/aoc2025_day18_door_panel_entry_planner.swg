@@ -21,12 +21,12 @@ struct PathBuffer
 
 func isNumericKey(x, y: s32)->bool
 {
-    return y >= 0 and y < 4 and x >= 0 and x < 3 and !(x == 0 and y == 3)
+    return y >= 0 and y < 4 and x >= 0 and x < 3 and not (x == 0 and y == 3)
 }
 
 func isDirectionalKey(x, y: s32)->bool
 {
-    return y >= 0 and y < 2 and x >= 0 and x < 3 and !(x == 0 and y == 0)
+    return y >= 0 and y < 2 and x >= 0 and x < 3 and not (x == 0 and y == 0)
 }
 
 func numericPos(key: u8)->KeyPos
@@ -110,7 +110,7 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
     var secondMove  = verticalMove
     var secondCount = verticalCount
 
-    if !horizontalFirst
+    if not horizontalFirst
     {
         firstMove   = verticalMove
         firstCount  = verticalCount
@@ -131,17 +131,17 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
 
         if directionalPad
         {
-            if !isDirectionalKey(x, y) do
+            if not isDirectionalKey(x, y) do
                 return false
         }
         else
         {
-            if !isNumericKey(x, y) do
+            if not isNumericKey(x, y) do
                 return false
         }
 
         path.buttons[path.count] = firstMove
-        path.count               += 1
+        path.count += 1
     }
 
     for secondCount
@@ -157,22 +157,22 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
 
         if directionalPad
         {
-            if !isDirectionalKey(x, y) do
+            if not isDirectionalKey(x, y) do
                 return false
         }
         else
         {
-            if !isNumericKey(x, y) do
+            if not isNumericKey(x, y) do
                 return false
         }
 
         path.buttons[path.count] = secondMove
-        path.count               += 1
+        path.count += 1
     }
 
     path.buttons[path.count] = 'A'u8
-    path.count               += 1
-    outPath[]                = path
+    path.count += 1
+    outPath[]  = path
     return true
 }
 

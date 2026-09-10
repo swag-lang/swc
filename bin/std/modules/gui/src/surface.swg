@@ -142,7 +142,7 @@ impl Surface
     {
         var surfacePos = screenPos
         .screenToSurface(&surfacePos)
-        if !.isMaximized and .wnd.hitTestBorders(surfacePos) != SizingBorder.None do
+        if not .isMaximized and .wnd.hitTestBorders(surfacePos) != SizingBorder.None do
             return .wnd
         return .wnd.windowAt(surfacePos.x, surfacePos.y)
     }
@@ -187,7 +187,7 @@ impl Surface
     mtd updateFlags(add: SurfaceFlags = .None, remove = SurfaceFlags.None)
     {
         // Cannot be changed at runtime
-        Swag.assert(!(add & .ToolWindow) and !(remove & .ToolWindow))
+        Swag.assert(not (add & .ToolWindow) and not (remove & .ToolWindow))
 
         .flags.add(add)
         .flags.remove(remove)
@@ -313,7 +313,7 @@ impl Surface
     // Adds a rectangle in surface coordinates to the pending repaint region.
     mtd invalidateRect(rect: Math.Rectangle)
     {
-        if !.isDirty
+        if not .isDirty
         {
             .dirtyRect = rect
             .isDirty   = true
@@ -385,7 +385,7 @@ impl Surface
 
     private mtd createRT()
     {
-        if !.rt.colorBuffer.isValid() or .rt.colorBuffer.width < .rc.width or .rt.colorBuffer.height < .rc.height
+        if not .rt.colorBuffer.isValid() or .rt.colorBuffer.width < .rc.width or .rt.colorBuffer.height < .rc.height
         {
             // Grow each axis independently. Recomputing both from the current client size would
             // shrink one axis while growing the other, then allocate again when the drag reverses.
@@ -411,7 +411,7 @@ impl Surface
         root.flushLayout()
         .createRT()
 
-        if !.isDirty do
+        if not .isDirty do
             return
 
         // Round the dirty rectangle once, on the logical grid the painter clip uses:
@@ -527,7 +527,7 @@ impl Surface
         }
         else
         {
-            color          = Argb.White
+            color = Argb.White
             .colorDisabled = Argb.White
         }
 
@@ -622,7 +622,7 @@ impl Surface
     // beside the caption, which nothing covers, and at half strength down the sides.
     private mtd paintBorder()
     {
-        if !.flags.has(.Border) do
+        if not .flags.has(.Border) do
             return
 
         var pen = Pen.createSolid(.app.theme.colors.wnd_Border, .painter.hairline(.app.theme.metrics.wnd_BorderSize))
@@ -713,10 +713,10 @@ impl Surface
             {clip.x,           interior.bottom(), clip.width,                      clip.bottom() - interior.bottom()},
             {clip.x,           interior.y,        interior.x - clip.x,             interior.height},
             {interior.right(), interior.y,        clip.right() - interior.right(), interior.height}]
-        for band in bands where !band.isEmpty()
+        for band in bands where not band.isEmpty()
         {
             .painter.pushClippingRect(band)
-            if !.painter.isEmptyClippingRect() do
+            if not .painter.isEmptyClippingRect() do
                 .painter.fillShadow(bodyRect, radius, spread, color)
             .painter.popClippingRect()
         }
@@ -729,9 +729,9 @@ impl Surface
     // simply does not answer.
     private mtd pressStandardButton(button: *Wnd?)->bool
     {
-        if !button do
+        if not button do
             return false
-        if !button.isVisible() or !button.isEnabled() do
+        if not button.isVisible() or not button.isEnabled() do
             return false
         return button.sendKeyPress(Input.Key.Return)
     }
@@ -790,7 +790,7 @@ impl Surface
     internal mtd loseKeyboardFocus()
     {
         let focused = .app.keyboardFocusWnd
-        if !focused or focused.surface != me do
+        if not focused or focused.surface != me do
             return
 
         .app.keyboardFocusWnd = null
@@ -855,7 +855,7 @@ impl Surface
         case .Tab:
             let backward = cast(bool) (modifiers & Input.KeyModifiers.Shift)
             .app.setFocusVisible(true)
-            return from.focusNext(!backward)
+            return from.focusNext(not backward)
 
         case .Left, .Up, .Right, .Down:
             if modifiers != .None do
@@ -897,14 +897,14 @@ impl Surface
             // further with its shadow, and a form tuned to its card would lose its last row.
             let margin = .shadowMargin() * .dpiScale
 
-            if !ser.isReading()
+            if not ser.isReading()
             {
                 .savedDpiScale = .dpiScale
                 .position.inflate(-margin)
                 .restoredPosition.inflate(-margin)
             }
 
-            defer if !ser.isReading()
+            defer if not ser.isReading()
             {
                 .position.inflate(margin)
                 .restoredPosition.inflate(margin)
@@ -946,7 +946,7 @@ impl Surface
                 // layout may since have changed, and there is no grip to correct it with — so a
                 // window redesigned to be smaller would open at its old size forever, holding
                 // content arranged for neither. The top left is still the reader's to keep.
-                if !.flags.has(.Resizable)
+                if not .flags.has(.Resizable)
                 {
                     .position.width          = declaredSize.x
                     .position.height         = declaredSize.y

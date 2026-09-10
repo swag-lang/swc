@@ -95,7 +95,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     buffer.addBytes(cast(const [..] u8) "prefix")
 
     var sink = ByteSink.createMemory(&buffer)
-    Swag.assert(!(sink.path()).count)
+    Swag.assert(not (sink.path()).count)
     let expected = writeSinkStream(&sink)
     expect sink.close()
 

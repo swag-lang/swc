@@ -12,7 +12,7 @@ using Swag, Core
     line.setStyleAt(0, 7)
     Swag.assert(line.styleAt(0) == 7)
     Swag.assert(line.setLexerState(12))
-    Swag.assert(!line.setLexerState(12))
+    Swag.assert(not line.setLexerState(12))
     Swag.assert(line.lexerState() == 12)
     line.dirtyStyle = false
     line.markStyleDirty()

@@ -69,7 +69,7 @@ private func reportSccManifest(report: *BinaryReport, manifest: const *Scc.Manif
     let profile = Format.toString("%", manifest.profileVersion)
     report.derived("Version", version.toString())
     report.derived("ProfileVersion", profile.toString())
-    if !manifest.description.isEmpty() do
+    if not manifest.description.isEmpty() do
         report.derived("Description", manifest.description.toString())
 
     let created  = manifest.createdAt.toString(.DateTimeIso)
@@ -79,12 +79,12 @@ private func reportSccManifest(report: *BinaryReport, manifest: const *Scc.Manif
     if manifest.modifiedAt.isValid() do
         report.derived(s.scc_Modified, modified.toString())
 
-    if !manifest.tags.isEmpty()
+    if not manifest.tags.isEmpty()
     {
         var joined: String
         for tag in manifest.tags
         {
-            if !joined.isEmpty() do
+            if not joined.isEmpty() do
                 joined += ", "
             joined += tag.toString()
         }
@@ -92,7 +92,7 @@ private func reportSccManifest(report: *BinaryReport, manifest: const *Scc.Manif
         report.derived(s.scc_Tags, joined.toString())
     }
 
-    if !manifest.profileData.isEmpty()
+    if not manifest.profileData.isEmpty()
     {
         let stored = StrConv.toDisplaySize(manifest.profileData.count)
         report.derived(s.scc_Profile, stored.toString())
@@ -105,7 +105,7 @@ private func reportSccManifest(report: *BinaryReport, manifest: const *Scc.Manif
 
 private func reportSccProperties(report: *BinaryReport, properties: const [..] Scc.Property)
 {
-    if !properties.count do
+    if not properties.count do
         return
 
     let s     = binStrings()
@@ -140,7 +140,7 @@ private func sccValueText(value: const *Scc.MetadataValue)->String
 // Adds the virtual hierarchy the manifest declares, parents before the entries they own.
 private func reportSccEntries(report: *BinaryReport, entries: const [..] Scc.Entry)
 {
-    if !entries.count do
+    if not entries.count do
         return
 
     let s     = binStrings()
@@ -154,19 +154,19 @@ private func reportSccEntries(report: *BinaryReport, entries: const [..] Scc.Ent
 
         let identity = entry.id.toString()
         report.derived("Id", identity.toString())
-        if !entry.parentId.isNull()
+        if not entry.parentId.isNull()
         {
             let parent = entry.parentId.toString()
             report.derived("ParentId", parent.toString())
         }
 
-        if !entry.primaryChunk.isNull()
+        if not entry.primaryChunk.isNull()
         {
             let chunk = entry.primaryChunk.toString()
             report.derived("PrimaryChunk", chunk.toString())
         }
 
-        if !entry.variantChunks.isEmpty()
+        if not entry.variantChunks.isEmpty()
         {
             let variants = countText(entry.variantChunks.count, s.word_Chunk, s.word_Chunks)
             report.derived("VariantChunks", variants.toString())
@@ -198,7 +198,7 @@ private func reportSccChunks(report: *BinaryReport, chunks: const [..] Scc.Chunk
         let roleId = chunk.roleId.toString()
         report.derived("TypeId", typeId.toString())
         report.derived("RoleId", roleId.toString())
-        if !chunk.codecId.isNull()
+        if not chunk.codecId.isNull()
         {
             let codecId = chunk.codecId.toString()
             report.derived("CodecId", codecId.toString(), codec)

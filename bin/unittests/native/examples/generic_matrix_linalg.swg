@@ -410,7 +410,7 @@ impl AffineMap
     let rot90: Mat2's32 = {a: 0, b: -1, c: 1, d: 0}
 
     var v0: Vec2's32 = {x: 1, y: 0}
-    var v1           = rot90.transform(&v0)
+    var v1 = rot90.transform(&v0)
     Swag.assert(v1.x == 0 and v1.y == 1)
 
     var v2 = rot90.transform(&v1)
@@ -428,7 +428,7 @@ impl AffineMap
 {
     let scale: Mat2's32 = {a: 3, b: 0, c: 0, d: 2}
     var v:     Vec2's32 = {x: 4, y: 5}
-    let result          = scale.transform(&v)
+    let result = scale.transform(&v)
     Swag.assert(result.x == 12 and result.y == 10)
 }
 
@@ -437,7 +437,7 @@ impl AffineMap
 {
     let shear: Mat2's32 = {a: 1, b: 2, c: 0, d: 1}
     var v:     Vec2's32 = {x: 3, y: 4}
-    let result          = shear.transform(&v)
+    let result = shear.transform(&v)
 
     // x' = 1*3 + 2*4 = 11, y' = 0*3 + 1*4 = 4
     Swag.assert(result.x == 11 and result.y == 4)
@@ -451,7 +451,7 @@ impl AffineMap
 {
     var c0: Vec2's32 = {x: 1, y: 3}
     var c1: Vec2's32 = {x: 2, y: 4}
-    let m            = Mat2's32.fromCols(&c0, &c1)
+    let m = Mat2's32.fromCols(&c0, &c1)
 
     // row0 = (c0.x, c1.x), row1 = (c0.y, c1.y)
     Swag.assert(m.a == 1 and m.b == 2)
@@ -468,7 +468,7 @@ impl AffineMap
 {
     var r0: Vec2's32 = {x: 5, y: 6}
     var r1: Vec2's32 = {x: 7, y: 8}
-    let m            = Mat2's32.fromRows(&r0, &r1)
+    let m = Mat2's32.fromRows(&r0, &r1)
 
     Swag.assert(m.a == 5 and m.b == 6)
     Swag.assert(m.c == 7 and m.d == 8)
@@ -484,7 +484,7 @@ impl AffineMap
 {
     var v: Vec2's32 = {x: 2, y: 3}
     var w: Vec2's32 = {x: 4, y: 5}
-    let m           = Mat2's32.outer(&v, &w)
+    let m = Mat2's32.outer(&v, &w)
 
     // | 2*4  2*5 |   | 8   10 |
     // | 3*4  3*5 | = | 12  15 |
@@ -574,8 +574,8 @@ impl AffineMap
     let a_bc = AffineMap's32.compose(&a, &bc)
 
     var p: Vec2's32 = {x: 1, y: 1}
-    let r1          = ab_c.apply(&p)
-    let r2          = a_bc.apply(&p)
+    let r1 = ab_c.apply(&p)
+    let r2 = a_bc.apply(&p)
     Swag.assert(r1.x == r2.x and r1.y == r2.y)
 }
 

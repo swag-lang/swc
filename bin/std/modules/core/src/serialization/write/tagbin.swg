@@ -15,7 +15,7 @@ const TagBinVersion1 = 0xFAFAFAFC
 #[Swag.EnumFlags]
 enum TagBinHeaderFlags: u32
 {
-    Zero             = 0     // No option is enabled.
+    Zero = 0                 // No option is enabled.
     StreamCompressed = 1     // The whole body is stored as one deflate payload.
 }
 
@@ -215,7 +215,7 @@ private impl TagBin
 
         sec.startSeek = output.position()
         output.addNative(0'u64)     // Will store the fat offset here
-        if !plan do
+        if not plan do
             output.addNative(0'u64)     // Ad-hoc sections also store the fat count here
 
         sec.payloadStart = ConcatBuffer.offsetOf(output.position())
@@ -269,7 +269,7 @@ impl TagBin
     #[Swag.NoDoc]
     mtd interfaceTypeKey(type: typeinfo?)->string fail
     {
-        if !type do
+        if not type do
             return ""
 
         let key = wireTypeKey(type)
@@ -448,7 +448,7 @@ impl TagBin
     mtd beginStruct(structType: typeinfo?, _structData: const [*] u8?)->bool fail
     {
         let output = .output!
-        if !structType
+        if not structType
         {
             output.addNative(TagBinSignature.Version)
             output.addNative(0'u32)
@@ -482,7 +482,7 @@ impl TagBin
     // Begins a new element inside the current section and records its metadata
     mtd beginElement(val: TypeValue) fail
     {
-        Swag.assert(!.sections.isEmpty(), "Missing a previous 'beginSection' call")
+        Swag.assert(not .sections.isEmpty(), "Missing a previous 'beginSection' call")
 
         // If section is raw, then we just have values without versioning
         let sec = .sections.back()!
@@ -560,13 +560,13 @@ impl TagBin
         if sec.kind == .Raw do
             return
 
-        Swag.assert(!.elemStack.isEmpty())
+        Swag.assert(not .elemStack.isEmpty())
         let ctx = .elemStack.popBack()
-        if !ctx.compressed do
+        if not ctx.compressed do
             return
 
         // We must have a previous buffer to append into
-        Swag.assert(!.outStack.isEmpty())
+        Swag.assert(not .outStack.isEmpty())
         let parentOut = .outStack.popBack()!
 
         // Gather uncompressed bytes
@@ -624,7 +624,7 @@ impl TagBin
                 // the payload even when the element type changed.
                 output.addNative(TagBinSignature.Raw)
                 .writeVarint(countElem * sizeof)
-                if !data do
+                if not data do
                     return true
                 let bufArr = cast(const *Array'u8) data
                 output.addBytes(Swag.makeSlice(bufArr.buffer, countElem * sizeof))
@@ -644,7 +644,7 @@ impl TagBin
             {
                 output.addNative(TagBinSignature.Raw)
                 .writeVarint(countElem * sizeof)
-                if !data do
+                if not data do
                     return true
                 output.addBytes(Swag.makeSlice(cast(const [*] u8) data, countElem * sizeof))
                 return true

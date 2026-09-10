@@ -30,7 +30,7 @@ func assertPoint(pt: Math.Vector2, x, y: f32, eps: f32 = 0.001)
 // because a failed assertion on a rectangle does not say which text was cut.
 func assertContentFits(root: *Wnd, tolerance = 0.5'f32)
 {
-    if !root.isLocallyVisible() do
+    if not root.isLocallyVisible() do
         return
 
     let content = root.itf.measureContent({root.position.width, root.position.height})
@@ -63,7 +63,7 @@ func tempFilePath(prefix, extension: string)->String
 {
     let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     let folder  = Path.combine(tempDir.toString(), "swag-tests")
-    if !Directory.exists(folder) do
+    if not Directory.exists(folder) do
         catch Directory.create(folder)
 
     var fileName = String.from(prefix)

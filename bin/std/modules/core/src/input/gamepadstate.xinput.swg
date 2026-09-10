@@ -43,9 +43,9 @@ func readRawGamepadState(padIndex: u32)->RawGamepadState fail
     let status = XInputGetState(padIndex, &state)
     switch status
     {
-    case ERROR_SUCCESS:              break
+    case ERROR_SUCCESS: break
     case ERROR_DEVICE_NOT_CONNECTED: fail Swag.SystemError{"not connected"}
-    default:                         Win32.failWinError(status)
+    default: Win32.failWinError(status)
     }
 
     return {rawButtons(state.Gamepad.wButtons),

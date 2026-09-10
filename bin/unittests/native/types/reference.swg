@@ -299,8 +299,8 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
 #test
 {
     var box: RefFloatBox = {value: 1.5}
-    let sum              = addRefValue(&box.value, 2.5'f32)
-    let temp             = dampRefValue(&box.value, 2.0'f32, 3.0'f32, 0.5'f32)
+    let sum  = addRefValue(&box.value, 2.5'f32)
+    let temp = dampRefValue(&box.value, 2.0'f32, 3.0'f32, 0.5'f32)
 
     #assert(#typeof(sum) == f32)
     #assert(#typeof(temp) == f32)

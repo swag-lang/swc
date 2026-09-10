@@ -210,19 +210,19 @@ private func drawingOpenDocumentXml()->String
     let text = expect parseOpenDocumentContent(textOpenDocumentXml().toString(), .Text)
     Swag.assert(Utf8.contains(text.html.toString(), "<h1>Quarterly report</h1>"))
     Swag.assert(Utf8.contains(text.html.toString(), "Paris &amp; Berlin"))
-    Swag.assert(Utf8.contains(text.html.toString(), "<span id=\"odf-bookmark-1\"></span>") and Utf8.contains(text.html.toString(), "href=\"#odf-bookmark-1\"") and !Utf8.contains(text.html.toString(), "javascript:"))
+    Swag.assert(Utf8.contains(text.html.toString(), "<span id=\"odf-bookmark-1\"></span>") and Utf8.contains(text.html.toString(), "href=\"#odf-bookmark-1\"") and not Utf8.contains(text.html.toString(), "javascript:"))
     Swag.assert(Utf8.contains(text.html.toString(), "href=\"https://www.swag-lang.org/?viewer=odf&amp;kind=text\""))
     Swag.assert(Utf8.contains(text.html.toString(), "<span style=\"font-size:150%\"><strong><em>remain</em></strong></span>") and Utf8.contains(text.html.toString(), "<u>readable</u>") and Utf8.contains(text.html.toString(), "<sup>1</sup>") and Utf8.contains(text.html.toString(), "<sup>2</sup>") and Utf8.contains(text.html.toString(), "<s>outdated</s>"))
     Swag.assert(Utf8.contains(text.html.toString(), "<blockquote><p>Stored footnote.</p></blockquote>"))
     Swag.assert(Utf8.contains(text.html.toString(), "<table>"))
     Swag.assert(Utf8.contains(text.html.toString(), "<th><p>City</p></th><th><p>Budget</p></th>"))
     Swag.assert(Utf8.contains(text.html.toString(), "<ol><li><p>Prioritized</p></li></ol>"))
-    Swag.assert(!Utf8.contains(text.html.toString(), "example.com"))
+    Swag.assert(not Utf8.contains(text.html.toString(), "example.com"))
 
     let inlineImages = expect parseOpenDocumentContent(inlineImageOpenDocumentXml().toString(), .Text)
     Swag.assert(countOpenDocumentImageTags(inlineImages.html.toString()) == 256)
     Swag.assert(Utf8.contains(inlineImages.html.toString(), "data:image/PNG;base64,"))
-    Swag.assert(!Utf8.contains(inlineImages.html.toString(), "svg+xml") and !Utf8.contains(inlineImages.html.toString(), "not@base64"))
+    Swag.assert(not Utf8.contains(inlineImages.html.toString(), "svg+xml") and not Utf8.contains(inlineImages.html.toString(), "not@base64"))
 
     let spreadsheet = expect parseOpenDocumentContent(spreadsheetOpenDocumentXml().toString(), .Spreadsheet)
     Swag.assert(spreadsheet.sheets.count == 2)
@@ -341,7 +341,7 @@ private func drawingOpenDocumentXml()->String
     var flatResult = openTestViewer(openDocumentViewerPlugin(), &flatHost.root, flatFileName.toString())
     let flatView   = cast(*OpenDocumentViewer) flatResult.view!
     completeViewerBackgroundLoad(&flatHost, &flatView.load, flatView.loadTimer)
-    Swag.assert((flatView.html != null) and !(flatView.table != null) and flatView.document.kind == .Drawing and flatView.document.slides.count == 2)
+    Swag.assert((flatView.html != null) and not (flatView.table != null) and flatView.document.kind == .Drawing and flatView.document.slides.count == 2)
     Swag.assert(flatResult.info != null and flatResult.info!.isVisible() and flatView.pageCombo.items.count == 2 and flatView.pageCombo.toolTip == openDocumentStrings().ui_TipPage)
 
     flatView.pageCombo.setSelectedIndex(1)
@@ -385,7 +385,7 @@ private func drawingOpenDocumentXml()->String
 
     let view = cast(*OpenDocumentViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    Swag.assert((view.html != null) and !(view.table != null))
+    Swag.assert((view.html != null) and not (view.table != null))
     let navigated = view.html.elementById("odf-bookmark-1") != HtmlNoNode and view.html.navigateToFragment("#odf-bookmark-1")
     Swag.assert(navigated)
     Swag.assert(result.info != null)
@@ -393,7 +393,7 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
     Swag.assert(view.document.metadata.title == "Quarterly & review" and view.document.metadata.subject == "Reader regression" and view.document.metadata.creator == "Swag Scope tests")
     Swag.assert(Utf8.contains(openDocumentReportedDetails.toString(), "OpenDocument") and Utf8.contains(openDocumentReportedDetails.toString(), "Quarterly & review"))
-    Swag.assert(Utf8.contains(view.document.html.toString(), "data:image/png;base64,") and Utf8.contains(view.document.html.toString(), "width=\"") and Utf8.contains(view.document.html.toString(), "height=\"") and Utf8.contains(view.document.html.toString(), "<p align=\"center\"><strong>Style from styles.xml</strong></p>") and !Utf8.contains(view.document.html.toString(), "example.com"))
+    Swag.assert(Utf8.contains(view.document.html.toString(), "data:image/png;base64,") and Utf8.contains(view.document.html.toString(), "width=\"") and Utf8.contains(view.document.html.toString(), "height=\"") and Utf8.contains(view.document.html.toString(), "<p align=\"center\"><strong>Style from styles.xml</strong></p>") and not Utf8.contains(view.document.html.toString(), "example.com"))
 
     var zoomIn = KeyEvent{kind: .Pressed, key: .OemPlus, modifiers: .Control}
     view.sendEvent(&zoomIn)
@@ -407,7 +407,7 @@ private func drawingOpenDocumentXml()->String
     let revealed = matches.count == 1 and result.revealMatch!(result.view!, matches[0], "Berlin")
     Swag.assert(revealed)
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
+    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and not bounds.isEmpty())
     result.clearSearch!(result.view!)
 }
 
@@ -447,7 +447,7 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(revealed)
     Swag.assert(view.sheetIndex == 1 and view.table.document.rows[0].cells[0] == "Lyon")
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
+    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and not bounds.isEmpty())
     result.clearSearch!(result.view!)
 
     expect host.app.setLanguage("fr")
@@ -477,7 +477,7 @@ private func drawingOpenDocumentXml()->String
     var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName.toString(), services: {reportDetails: &reportOpenDocumentTestDetails})
     let view   = cast(*OpenDocumentViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    Swag.assert((view.html != null) and !(view.table != null) and view.document.slides.count == 2)
+    Swag.assert((view.html != null) and not (view.table != null) and view.document.slides.count == 2)
     Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == openDocumentStrings().ui_TipSlide)
 
     view.pageCombo.setSelectedIndex(1)
@@ -491,7 +491,7 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(revealed)
     Swag.assert(view.slideIndex == 1)
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
+    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and not bounds.isEmpty())
     result.clearSearch!(result.view!)
 
     var previous = KeyEvent{kind: .Pressed, key: .Left}
@@ -499,7 +499,7 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(previous.accepted and view.slideIndex == 0)
     var firstEdge = KeyEvent{kind: .Pressed, key: .Left}
     view.sendEvent(&firstEdge)
-    Swag.assert(!firstEdge.accepted and view.slideIndex == 0)
+    Swag.assert(not firstEdge.accepted and view.slideIndex == 0)
     var next = KeyEvent{kind: .Pressed, key: .Right}
     view.sendEvent(&next)
     Swag.assert(next.accepted and view.slideIndex == 1)
@@ -555,7 +555,7 @@ private func drawingOpenDocumentXml()->String
 
     let view = cast(*OpenDocumentViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    view.dockStyle          = .Center
+    view.dockStyle = .Center
     view.commands.dockStyle = .None
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)

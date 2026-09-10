@@ -93,7 +93,7 @@ func addIdct4x4Scalar(destination: [*] u8, stride: u64, block: [*] s16)
         let z1 = work[column] - work[column + 8]
         let z2 = (work[column + 4] >> 1) - work[column + 12]
         let z3 = work[column + 4] + (work[column + 12] >> 1)
-        destination[column]              = clampPixel(cast(s32) destination[column] + ((z0 + z3) >> 6))
+        destination[column] = clampPixel(cast(s32) destination[column] + ((z0 + z3) >> 6))
         destination[stride + column]     = clampPixel(cast(s32) destination[stride + column] + ((z1 + z2) >> 6))
         destination[stride * 2 + column] = clampPixel(cast(s32) destination[stride * 2 + column] + ((z1 - z2) >> 6))
         destination[stride * 3 + column] = clampPixel(cast(s32) destination[stride * 3 + column] + ((z0 - z3) >> 6))
@@ -145,7 +145,7 @@ func addIdct4x4(destination: [*] u8, stride: u64, block: [*] s16)
     let sum32  = pred32 + rows32Out
     let out01  = cast #bit(Simd.U32x4) Simd.packUnsigned(sum01, sum01)
     let out32  = cast #bit(Simd.U32x4) Simd.packUnsigned(sum32, sum32)
-    (cast([*] u32) destination)[0]                = out01[0]
+    (cast([*] u32) destination)[0] = out01[0]
     (cast([*] u32) (destination + stride))[0]     = out01[1]
     (cast([*] u32) (destination + 3 * stride))[0] = out32[0]
     (cast([*] u32) (destination + 2 * stride))[0] = out32[1]
@@ -164,7 +164,7 @@ func addDc4x4(destination: [*] u8, stride: u64, dc: s32)
     let sum23  = pred23 + value
     let out01  = cast #bit(Simd.U32x4) Simd.packUnsigned(sum01, sum01)
     let out23  = cast #bit(Simd.U32x4) Simd.packUnsigned(sum23, sum23)
-    (cast([*] u32) destination)[0]                = out01[0]
+    (cast([*] u32) destination)[0] = out01[0]
     (cast([*] u32) (destination + stride))[0]     = out01[1]
     (cast([*] u32) (destination + 2 * stride))[0] = out23[0]
     (cast([*] u32) (destination + 3 * stride))[0] = out23[1]
@@ -368,7 +368,7 @@ func addIdct8x8Scalar(destination: [*] u8, stride: u64, block: [*] s16)
         let b5 = (a3 >> 2) - a5
         let b7 = a7 - (a1 >> 2)
 
-        destination[column]              = clampPixel(cast(s32) destination[column] + ((b0 + b7) >> 6))
+        destination[column] = clampPixel(cast(s32) destination[column] + ((b0 + b7) >> 6))
         destination[stride + column]     = clampPixel(cast(s32) destination[stride + column] + ((b2 + b5) >> 6))
         destination[stride * 2 + column] = clampPixel(cast(s32) destination[stride * 2 + column] + ((b4 + b3) >> 6))
         destination[stride * 3 + column] = clampPixel(cast(s32) destination[stride * 3 + column] + ((b6 + b1) >> 6))

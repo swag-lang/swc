@@ -42,12 +42,12 @@
     parallel for |&ran| index in 0 do
         ran = true
 
-    Swag.assert(!ran)
+    Swag.assert(not ran)
 
     parallel for |&ran| index in 5 until 5 do
         ran = true
 
-    Swag.assert(!ran)
+    Swag.assert(not ran)
 }
 
 // The bounds take any integer expression, and the index is an index.

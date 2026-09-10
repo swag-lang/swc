@@ -148,7 +148,7 @@ impl TableView
 
     mtd layout(width: f32)->f32
     {
-        if width <= 0 or !.columnCount do
+        if width <= 0 or not .columnCount do
             return 0
         if .layoutWidth == width do
             return .layoutHeight
@@ -216,7 +216,7 @@ impl TableView
     func create(owner: *View, parent: *Wnd, source: string)->*TableView
     {
         let result = Wnd.create'TableView(parent, "gui.markdown.table")
-        result.owner           = owner
+        result.owner = owner
         result.backgroundStyle = .View
         let lines = Tokenize.splitLines(source)
         if lines.count < 2 do
@@ -242,7 +242,7 @@ impl TableView
         result.rowCount = 1
         for index in 2 until lines.count
         {
-            if !(Latin1.trim(lines[index])).count do
+            if not (Latin1.trim(lines[index])).count do
                 continue
             let row = parseTableCells(lines[index])
             result.addRow(result, row.toSlice(), result.rowCount, false)

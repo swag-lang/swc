@@ -97,7 +97,7 @@ impl ViewerPluginRegistry
             fail InvalidFormatError{"viewer plugin key is missing"}
         if plugin.key != plugin.key.toLower() do
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin key '%' is not lowercase", plugin.key).toString())}
-        if plugin.staticName.isEmpty() and !plugin.resolveName do
+        if plugin.staticName.isEmpty() and not plugin.resolveName do
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no display name", plugin.key).toString())}
         if plugin.iconAtlas == null do
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no icon document", plugin.key).toString())}
@@ -105,7 +105,7 @@ impl ViewerPluginRegistry
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no creation callback", plugin.key).toString())}
         if plugin.smokeFixture.isEmpty() or (Path.fileName(plugin.smokeFixture.toString()) orelse "") != plugin.smokeFixture.toString() do
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' needs one smoke-fixture basename", plugin.key).toString())}
-        if plugin.selectors.isEmpty() and !plugin.probe do
+        if plugin.selectors.isEmpty() and not plugin.probe do
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no selector or content probe", plugin.key).toString())}
         for current in .plugins where current.key == plugin.key do
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin key '%' is already registered", plugin.key).toString())}
@@ -178,7 +178,7 @@ impl ViewerPluginRegistry
             content.claimedText = content.claimedText and plugin.textual
         }
 
-        for plugin, index in .plugins where !matched[index] and plugin.probe and plugin.probe!(content)
+        for plugin, index in .plugins where not matched[index] and plugin.probe and plugin.probe!(content)
         {
             result.add({index, plugin.key})
             matched[index]      = true
@@ -186,7 +186,7 @@ impl ViewerPluginRegistry
             content.claimedText = content.claimedText and plugin.textual
         }
 
-        for plugin, index in .plugins where !matched[index] and .matches(plugin, baseName.toString(), extension.toString(), wildcard: true) do
+        for plugin, index in .plugins where not matched[index] and .matches(plugin, baseName.toString(), extension.toString(), wildcard: true) do
             result.add({index, plugin.key})
         return result
     }
@@ -215,7 +215,7 @@ impl ViewerPluginRegistry
             anyB = anyB or matchB
         }
 
-        if !anyA and !anyB do
+        if not anyA and not anyB do
             return extensionA == extensionB
         return false
     }

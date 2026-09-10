@@ -52,7 +52,7 @@ impl IOrelseProbe for OrelseProbe
     {
         let primary:  typeinfo? = null
         let fallback: typeinfo  = s32
-        let resolved            = primary orelse fallback
+        let resolved = primary orelse fallback
         return resolved == s32
     }
 
@@ -77,10 +77,10 @@ impl IOrelseProbe for OrelseProbe
 {
     func interfaceFallback()->bool
     {
-        var probe                  = OrelseProbe{value: 55}
+        var probe    = OrelseProbe{value: 55}
         var primary: IOrelseProbe? = null
-        let fallback               = Swag.makeInterface(&probe, #typeof(probe), IOrelseProbe)
-        let resolved               = primary orelse fallback
+        let fallback = Swag.makeInterface(&probe, #typeof(probe), IOrelseProbe)
+        let resolved = primary orelse fallback
         return resolved.id() == 55
     }
 
@@ -99,7 +99,7 @@ impl IOrelseProbe for OrelseProbe
                boolTrue != null and
                boolFalse != null and
                cast(bool) boolTrue and
-               !cast(bool) boolFalse
+               not cast(bool) boolFalse
     }
 
     const V = #run explicitAnyChecks()

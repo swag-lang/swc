@@ -13,12 +13,12 @@ using Swag, Core, Win32
     Swag.assert(comApartmentIsUsable(S_OK))
     Swag.assert(comApartmentIsUsable(S_FALSE))
     Swag.assert(comApartmentIsUsable(RPC_E_CHANGED_MODE))
-    Swag.assert(!comApartmentIsUsable(E_INVALIDARG))
-    Swag.assert(!comApartmentIsUsable(E_OUTOFMEMORY))
+    Swag.assert(not comApartmentIsUsable(E_INVALIDARG))
+    Swag.assert(not comApartmentIsUsable(E_OUTOFMEMORY))
 
     Swag.assert(comOwnsInitialization(S_OK))
     Swag.assert(comOwnsInitialization(S_FALSE))
-    Swag.assert(!comOwnsInitialization(RPC_E_CHANGED_MODE))
+    Swag.assert(not comOwnsInitialization(RPC_E_CHANGED_MODE))
 }
 
 // XAudio2 rejects a source buffer when any unused playback or loop field contains garbage.

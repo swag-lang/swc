@@ -285,12 +285,12 @@ impl IForm for FormCallout
     {
         if flags.has(.Hot | .Selected)
         {
-            .gizmoRect.rect          = .rectFormBound() * z
+            .gizmoRect.rect = .rectFormBound() * z
             .gizmoRect.rotateEnabled = false
-            .gizmoRect.paint(painter, !flags.has(.Selected))
+            .gizmoRect.paint(painter, not flags.has(.Selected))
 
             .gizmoTail.anchors[0] = {.tailX * z, .tailY * z}
-            .gizmoTail.paint(null, painter, !flags.has(.Selected))
+            .gizmoTail.paint(null, painter, not flags.has(.Selected))
         }
     }
 
@@ -322,8 +322,8 @@ impl IForm for FormCallout
         let bodyForm = .rectFormBound()
 
         // An unplaced form keeps a (0,0) tip; skip the tail rather than aim it at the origin.
-        let drawTail = !(Math.isZeroEpsilon(.tailX) and Math.isZeroEpsilon(.tailY)) and
-                       !bodyForm.contains(tipF.x, tipF.y)
+        let drawTail = not (Math.isZeroEpsilon(.tailX) and Math.isZeroEpsilon(.tailY)) and
+                       not bodyForm.contains(tipF.x, tipF.y)
 
         // Body + tail as ONE closed outline, so the tail fuses seamlessly with the
         // rounded body: a single fill and a single stroke leave no overlapping edges to
@@ -355,7 +355,7 @@ impl IForm for FormCallout
         }
 
         // Text (skip during hit-testing: the body triangles already cover the area).
-        if !cxt.hitTest
+        if not cxt.hitTest
         {
             var inner = .rectFormBound()
 

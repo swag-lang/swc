@@ -34,7 +34,7 @@ func localHandle(value: u64)->u64 => value
 #[Swag.NoInline]
 func mayFail(ok: bool) fail
 {
-    if !ok do
+    if not ok do
         fail LocalCleanupError{base: Swag.BaseError{"body"}, code: 2}
 }
 

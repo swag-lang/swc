@@ -62,8 +62,8 @@ struct Application
         }
     }
 
-    rendererOgl:            Pixel.RenderOgl     // Default OpenGL renderer used when none is selected.
-    deterministicStreaming: bool                // Headless hosts limit streaming turns by work alone.
+    rendererOgl: Pixel.RenderOgl     // Default OpenGL renderer used when none is selected.
+    deterministicStreaming: bool     // Headless hosts limit streaming turns by work alone.
 
     public
     {
@@ -171,7 +171,7 @@ private impl Application
         for hook in .hookOnEvent do
             hook.itf.onHookEvent(&evt)
 
-        if !evt.target do
+        if not evt.target do
             return
 
         evt.accepted = true
@@ -195,7 +195,7 @@ private impl Application
         let event = cast(*Event) evt
 
         // Be sure we have a target
-        if !event.target do
+        if not event.target do
             return
 
         // Parent hook events
@@ -219,11 +219,11 @@ private impl Application
         // If the target does not accept the event, then pass it to the parent
         event.accepted = true
         event.target.processEvent(evt)
-        while !event.accepted
+        while not event.accepted
         {
             let target = event.target!
             event.target = target.owner orelse target.parent
-            if !event.target or event.target == stopAt do
+            if not event.target or event.target == stopAt do
                 break
             event.accepted = true
             event.target.processEvent(evt)
@@ -239,7 +239,7 @@ private impl Application
         // drive the pointer through synthesized events, so the polled state must not reach the
         // window tree — a real cursor parked over a popup's rectangle was enough to light one of
         // its rows in a golden image.
-        if !.renderer.needsNativeWindow() do
+        if not .renderer.needsNativeWindow() do
             return
 
         // A drag in flight owns the pointer, and the gesture is already being delivered as its
@@ -266,7 +266,7 @@ private impl Application
 
         // If no target window, but one target surface, then we will send
         // to the surfaceWnd (we probably are in the shadow area)
-        if !targetWnd
+        if not targetWnd
         {
             let targetSurface = .surfaceAt(mousePos.x, mousePos.y)
             if targetSurface
@@ -289,7 +289,7 @@ private impl Application
         }
 
         // Mouse enter/leave
-        if !targetWnd or targetWnd != .mouseEnterWnd
+        if not targetWnd or targetWnd != .mouseEnterWnd
         {
             // Enter
             if targetWnd
@@ -343,7 +343,7 @@ private impl Application
         else do
             Cursor.activate(Cursor.from(CursorShape.Arrow))
         .frameCursor.clear()
-        if !targetWnd do
+        if not targetWnd do
             return
 
         // Detect changes
@@ -351,7 +351,7 @@ private impl Application
         {
             let lastP = .mouse.previousState.pressed[i]
             let curP  = .mouse.currentState.pressed[i]
-            if !lastP and curP
+            if not lastP and curP
             {
                 if .mouse.isButtonDoubleClick(cast(Input.MouseButton) i) do
                     evt.kind = .DoubleClick
@@ -370,7 +370,7 @@ private impl Application
                 targetWnd.sendEvent(&evt)
                 .toolTip.hide()
             }
-            elif lastP and !curP
+            elif lastP and not curP
             {
                 evt.kind   = .Released
                 evt.button = cast(Input.MouseButton) i
@@ -390,11 +390,11 @@ private impl Application
         var surface = .mainSurface
         if .modalSurfaces.count do
             surface = .modalSurfaces.back()
-        if !surface do
+        if not surface do
             return
 
         surface.wnd.setInitialFocus()
-        if !.keyboardFocusWnd do
+        if not .keyboardFocusWnd do
             surface.wnd.view.setFocus()
     }
 
@@ -402,7 +402,7 @@ private impl Application
     {
         var targetWnd = .mouseEnterWnd
         targetWnd = skipDisabled(targetWnd)
-        if !targetWnd do
+        if not targetWnd do
             return
 
         var evt      = MouseEvent{kind: .Wheel}
@@ -422,7 +422,7 @@ private impl Application
         // key as released while this application is not the active one keeps its shortcuts
         // focus-bound: nothing is pressed, so nothing is dispatched and nothing re-seeds the
         // keyboard focus until the application is activated again.
-        if !.isActivated do
+        if not .isActivated do
             .keyboard.releaseAllKeys()
 
         // Modifiers
@@ -437,24 +437,24 @@ private impl Application
             // A surface nothing has focused yet would be deaf to the keyboard. The first key
             // pressed is what seeds the focus, so a window can be driven from the keyboard without
             // having been clicked once.
-            if curP and !lastP and !.keyboardFocusWnd do
+            if curP and not lastP and not .keyboardFocusWnd do
                 .seedKeyboardFocus()
 
             var targetWnd = .keyboardFocusWnd
             targetWnd = skipDisabled(targetWnd)
-            if !targetWnd do
+            if not targetWnd do
                 continue
 
-            if !lastP and curP
+            if not lastP and curP
             {
                 var evt = KeyEvent{kind: .Pressed}
                 evt.key       = cast(Input.Key) i
                 evt.modifiers = modifiers
                 targetWnd.sendEvent(&evt)
-                if !evt.accepted do
+                if not evt.accepted do
                     .routeUnhandledKey(targetWnd, cast(Input.Key) i, modifiers)
             }
-            elif lastP and !curP
+            elif lastP and not curP
             {
                 var evt = KeyEvent{kind: .Released}
                 evt.key       = cast(Input.Key) i
@@ -468,7 +468,7 @@ private impl Application
     {
         var targetWnd = .keyboardFocusWnd
         targetWnd = skipDisabled(targetWnd)
-        if !targetWnd do
+        if not targetWnd do
             return
 
         var evt = KeyEvent{kind: .Character}
@@ -568,7 +568,7 @@ private impl Application
             let shortcut = .hotKeys[hotKeyIndex]
             if shortcut.target == wnd
             {
-                if !.hotKeysDisabled do
+                if not .hotKeysDisabled do
                     unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
                 .hotKeys.removeAtOrdered(hotKeyIndex)
             }
@@ -588,7 +588,7 @@ private impl Application
     {
         for t in .timers
         {
-            if t.target == wnd and !t.isPendingRemoval
+            if t.target == wnd and not t.isPendingRemoval
             {
                 .timersToDelete.add(t)
                 t.isPendingRemoval = true
@@ -599,7 +599,7 @@ private impl Application
         // Retire that one too when its target is destroyed by the same callback.
         for t in .timersToAdd
         {
-            if t.target == wnd and !t.isPendingRemoval
+            if t.target == wnd and not t.isPendingRemoval
             {
                 .timersToDelete.add(t)
                 t.isPendingRemoval = true
@@ -615,7 +615,7 @@ private impl Application
             if t.isPendingRemoval do
                 continue
 
-            if !t.stopwatch.isRunning() do
+            if not t.stopwatch.isRunning() do
                 t.stopwatch.start()
 
             if t.stopwatch.elapsedMilliseconds() >= t.periodMilliseconds
@@ -755,7 +755,7 @@ private impl Application
         var disabledSurfaces: Array'(*Surface)
         for s in .surfaces
         {
-            if s != surface and !s.isDisabled
+            if s != surface and not s.isDisabled
             {
                 s.disable()
                 disabledSurfaces.add(s)
@@ -769,7 +769,7 @@ private impl Application
             .modalSurfaces.add(modalSurface)
         }
 
-        while !.mustQuit and !.endModal
+        while not .mustQuit and not .endModal
         {
             .runFrame()
             if cb do
@@ -786,7 +786,7 @@ private impl Application
         while index
         {
             index -= 1
-            if !.surfaces.contains(disabledSurfaces[index]) do
+            if not .surfaces.contains(disabledSurfaces[index]) do
                 disabledSurfaces.removeAtOrdered(index)
         }
 
@@ -797,7 +797,7 @@ private impl Application
         // its own — a captured pop-up, a colour picker — never moved it, and moving it now would
         // be the box choosing for a form that was never left.
         let focus       = .keyboardFocusWnd
-        var mustRestore = !focus
+        var mustRestore = not focus
         if focus and surface and focus.surface == surface do
             mustRestore = true
 
@@ -830,7 +830,7 @@ internal impl Application
     // Registers a surface with initialized renderer state; its creator owns its lifetime.
     mtd registerSurface(surface: *Surface)
     {
-        Swag.assert(!.surfaces.contains(surface), "surface is already registered")
+        Swag.assert(not .surfaces.contains(surface), "surface is already registered")
         .surfaces.add(surface)
     }
 
@@ -961,7 +961,7 @@ impl Application
     // application. When omitted, the first surface selects [[Pixel.RenderOgl]].
     mtd setRenderer(renderer: Pixel.IRenderer)
     {
-        Swag.assert(!.mainSurface, "renderer must be selected before creating a surface")
+        Swag.assert(not .mainSurface, "renderer must be selected before creating a surface")
         .renderer = renderer
     }
 
@@ -993,9 +993,9 @@ impl Application
         var app: Application
 
         var flags = SurfaceFlags.StandardWindow
-        if !canSize do
+        if not canSize do
             flags &= ~.Resizable
-        if !borders do
+        if not borders do
             flags &= ~.Border
         let surface = (expect app.createSurface(x, y, width, height, flags, view, hook))!
         surface.setTitle(title)
@@ -1016,7 +1016,7 @@ impl Application
     {
         let surface = Memory.new'Surface()
         var surfaceCreated: bool
-        defer if !surfaceCreated
+        defer if not surfaceCreated
         {
             surface.destroyNative()
             Memory.delete(surface.wnd)
@@ -1027,12 +1027,12 @@ impl Application
         surface.position  = {x, y, width, height}
         surface.surfaceId = surfaceId
 
-        if !.mainSurface
+        if not .mainSurface
         {
             .refreshSystemMotionPreference()
-            if !(.renderer != null) do
+            if not (.renderer != null) do
                 .setRenderer(&.rendererOgl)
-            if !(.theme != null) do
+            if not (.theme != null) do
                 .theme = Memory.new'Theme()
             .style.set(.theme)
             registerDefaultThemeResources(&.resources)
@@ -1042,7 +1042,7 @@ impl Application
         try Surface.create(surface, x, y, width, height, flags, .mainSurface)
         surfaceCreated = true
 
-        if !.mainSurface
+        if not .mainSurface
         {
             .renderer.setCurrentContext(surface.rc)
             .renderer.init()
@@ -1117,10 +1117,10 @@ impl Application
     mtd appIconAt(size: f32, ground: Pixel.Color)->Icon
     {
         var result: retval
-        if !.appIcon.isValid() do
+        if not .appIcon.isValid() do
             return result
 
-        if !.appIconLoaded
+        if not .appIconLoaded
         {
             // The two colors are the ones the chart declares for every product mark, so the
             // derivation follows the same rule as the art.
@@ -1133,7 +1133,7 @@ impl Application
         }
 
         let list = markReadsOn(ground) ? &.appIconList : &.appIconTileList
-        if !list.isValid() do
+        if not list.isValid() do
             return result
 
         result = Icon.from(list, 0, size, size)
@@ -1195,7 +1195,7 @@ impl Application
     {
         let wasReduced = .isReducedMotion()
         .motionPreference = preference
-        if !wasReduced and .isReducedMotion() do
+        if not wasReduced and .isReducedMotion() do
             .animator.finishDecorative()
     }
 
@@ -1220,7 +1220,7 @@ impl Application
     {
         func updateLanguage(app: *Application, wnd: *Wnd)
         {
-            if !wnd.surface do
+            if not wnd.surface do
                 return
 
             wnd.invalidate()
@@ -1230,7 +1230,7 @@ impl Application
             for c in children do
                 updateLanguage(app, c)
 
-            if !wnd.surface do
+            if not wnd.surface do
                 return
 
             app.sendBroadcastNotifyEvent(wnd, .LanguageChanged)
@@ -1331,7 +1331,7 @@ impl Application
             if reader.kind() != stateContainerKind() do
                 fail Errors.InvalidFormatError{"GUI state file has a different SCC profile"}
             let state = reader.findRole(stateChunkRole())
-            if !state do
+            if not state do
                 fail Errors.InvalidFormatError{"GUI state file has no state chunk"}
             buf = try reader.readChunk(state.id)
         }
@@ -1371,7 +1371,7 @@ impl Application
         .unregisterWnd(wnd)
 
         // Remove from parent
-        if wnd.parent and !wnd.parent.isPendingDestroy
+        if wnd.parent and not wnd.parent.isPendingDestroy
         {
             let oldParent = wnd.parent!
             let detached  = oldParent.detachChild(wnd)
@@ -1396,7 +1396,7 @@ impl Application
     internal mtd windowAt(screenPos: Math.Point)->*Wnd?
     {
         let targetSurface = .surfaceAt(screenPos.x, screenPos.y)
-        if !targetSurface do
+        if not targetSurface do
             return null
         return targetSurface.windowAt(screenPos)
     }
@@ -1404,7 +1404,7 @@ impl Application
     // Returns `wnd` or its closest enabled ancestor, or `null` when nothing there takes input.
     internal func skipDisabled(wnd: *Wnd?)->*Wnd?
     {
-        if !wnd do
+        if not wnd do
             return null
         if wnd.surface!.isDisabled do
             return null
@@ -1465,7 +1465,7 @@ impl Application
         let timer = Memory.new'Timer()
         Swag.assert(time.milliseconds() > 0, "timer period must be positive")
         timer.periodMilliseconds = time.milliseconds()
-        timer.target             = target
+        timer.target = target
         if .duringTimerEvents do
             .timersToAdd.add(timer)
         else do
@@ -1481,7 +1481,7 @@ impl Application
     // its own fields to recognize the duplicate request would read freed memory.
     mtd removeTimer(timer: *Timer)
     {
-        if !.ownsTimer(timer) do
+        if not .ownsTimer(timer) do
             return
 
         // Retirement is already queued for the end of the current dispatch.
@@ -1524,7 +1524,7 @@ impl Application
     // drops a destroyed window from the list, so a normal teardown needs nothing.
     mtd registerFrameEvent(target: *Wnd)
     {
-        Swag.assert(!.frameEvents.contains(target))
+        Swag.assert(not .frameEvents.contains(target))
         .frameEvents.add(target)
     }
 
@@ -1536,7 +1536,7 @@ impl Application
 
     internal mtd registerHookEvents(target: *Wnd)
     {
-        Swag.assert(!.hookOnEvent.contains(target))
+        Swag.assert(not .hookOnEvent.contains(target))
         .hookOnEvent.add(target)
     }
 
@@ -1557,7 +1557,7 @@ impl Application
     {
         // A smoke run is bounded by whoever launched it. Applying it here means no
         // application, example or script has to recognize that it is being exercised.
-        if !.maxRunFrame do
+        if not .maxRunFrame do
             .maxRunFrame = Env.smokeFrames()
 
         .frameTrace.setup()
@@ -1569,7 +1569,7 @@ impl Application
             s.wnd.view.sendEvent(&evt)
         }
 
-        while !.mustQuit do
+        while not .mustQuit do
             .runFrame()
 
         .frameTrace.report()
@@ -1592,10 +1592,10 @@ impl Application
     // Enables or disables all shortcuts registered with [[registerHotKey]].
     mtd setGlobalHotKeysEnabled(enabled = true)
     {
-        if .hotKeysDisabled == !enabled do
+        if .hotKeysDisabled == not enabled do
             return
 
-        .hotKeysDisabled = !enabled
+        .hotKeysDisabled = not enabled
         for shortcut in .hotKeys
         {
             if enabled do
@@ -1619,7 +1619,7 @@ impl Application
         }
 
         .hotKeys.add({modifiers, key, wndId, target})
-        if !.hotKeysDisabled do
+        if not .hotKeysDisabled do
             try registerNativeHotKey(modifiers, key)
     }
 
@@ -1630,7 +1630,7 @@ impl Application
         {
             if shortcut.modifiers == modifiers and shortcut.key == key
             {
-                if !.hotKeysDisabled do
+                if not .hotKeysDisabled do
                     unregisterNativeHotKey(modifiers, key)
                 .hotKeys.removeAtOrdered(idx)
                 return true
@@ -1643,7 +1643,7 @@ impl Application
     // Unregisters every system-wide keyboard shortcut owned by this application.
     mtd unregisterAllHotKeys()
     {
-        if !.hotKeysDisabled
+        if not .hotKeysDisabled
         {
             for shortcut in .hotKeys do
                 unregisterNativeHotKey(shortcut.modifiers, shortcut.key)

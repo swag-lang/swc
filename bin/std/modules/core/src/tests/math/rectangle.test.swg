@@ -98,19 +98,19 @@ using Swag
     Swag.assert(rect.contains(10, 49.999))
     Swag.assert(rect.contains(Math.Point{29.999, 49.999}))
     Swag.assert(rect.contains(Math.Point{10, 49.999}))
-    Swag.assert(!rect.contains(9.999, 10))
-    Swag.assert(!rect.contains(10, 9.999))
-    Swag.assert(!rect.contains(Math.Point{30, 50}))
-    Swag.assert(!rect.contains(Math.Point{30, 10}))
-    Swag.assert(!rect.contains(Math.Point{10, 50}))
+    Swag.assert(not rect.contains(9.999, 10))
+    Swag.assert(not rect.contains(10, 9.999))
+    Swag.assert(not rect.contains(Math.Point{30, 50}))
+    Swag.assert(not rect.contains(Math.Point{30, 10}))
+    Swag.assert(not rect.contains(Math.Point{10, 50}))
     Swag.assert(rect.contains(Math.Rectangle{10, 10, 20, 40}))
     Swag.assert(rect.contains(Math.Rectangle{12, 12, 4, 4}))
     Swag.assert(rect.contains(Math.Rectangle{30, 50, 0, 0}))
-    Swag.assert(!rect.contains(Math.Rectangle{9, 10, 1, 1}))
-    Swag.assert(!rect.contains(Math.Rectangle{10, 9, 1, 1}))
-    Swag.assert(!rect.contains(Math.Rectangle{29, 10, 2, 1}))
-    Swag.assert(!rect.contains(Math.Rectangle{10, 49, 1, 2}))
-    Swag.assert(!rect.contains(Math.Rectangle{12, 12, 40, 4}))
+    Swag.assert(not rect.contains(Math.Rectangle{9, 10, 1, 1}))
+    Swag.assert(not rect.contains(Math.Rectangle{10, 9, 1, 1}))
+    Swag.assert(not rect.contains(Math.Rectangle{29, 10, 2, 1}))
+    Swag.assert(not rect.contains(Math.Rectangle{10, 49, 1, 2}))
+    Swag.assert(not rect.contains(Math.Rectangle{12, 12, 40, 4}))
 
     Swag.assert(rect.clampPoint(Math.Point{20, 30}) == Math.Point{20, 30})
     Swag.assert(rect.clampPoint(Math.Point{35, 5}) == Math.Point{30, 10})
@@ -131,8 +131,8 @@ using Swag
     Swag.assert(Math.Rectangle.intersect(a, Math.Rectangle{10, 0, 5, 5}) == Math.Rectangle.Zero)
     Swag.assert(Math.Rectangle.intersect(a, Math.Rectangle{0, 10, 5, 5}) == Math.Rectangle.Zero)
     Swag.assert(a.intersects(b))
-    Swag.assert(!a.intersects(Math.Rectangle{10, 0, 5, 5}))
-    Swag.assert(!a.intersects(Math.Rectangle{0, 10, 5, 5}))
+    Swag.assert(not a.intersects(Math.Rectangle{10, 0, 5, 5}))
+    Swag.assert(not a.intersects(Math.Rectangle{0, 10, 5, 5}))
 
     var intersection = a
     intersection.intersect(b)
@@ -155,12 +155,12 @@ using Swag
 #test
 {
     var rect = Math.Rectangle{10, 20, -30, -40}
-    Swag.assert(!rect.isNormalized())
-    Swag.assert(!rect.isEmpty())
+    Swag.assert(not rect.isNormalized())
+    Swag.assert(not rect.isEmpty())
 
     let normalized = rect.normalized()
     Swag.assert(normalized == Math.Rectangle{-20, -20, 30, 40})
-    Swag.assert(!rect.isNormalized())
+    Swag.assert(not rect.isNormalized())
 
     rect.normalize()
     Swag.assert(rect == normalized)
@@ -184,18 +184,18 @@ using Swag
 {
     Swag.assert(Math.Rectangle{0, 0, 0, 10}.isEmpty())
     Swag.assert(Math.Rectangle{0, 0, 10, 0}.isEmpty())
-    Swag.assert(!Math.Rectangle{0, 0, 10, 10}.isEmpty())
-    Swag.assert(!Math.Rectangle{0, 0, -10, 10}.isEmpty())
-    Swag.assert(!Math.Rectangle{0, 0, 10, -10}.isEmpty())
-    Swag.assert(!Math.Rectangle{0, 0, -10, 10}.isNormalized())
-    Swag.assert(!Math.Rectangle{0, 0, 10, -10}.isNormalized())
+    Swag.assert(not Math.Rectangle{0, 0, 10, 10}.isEmpty())
+    Swag.assert(not Math.Rectangle{0, 0, -10, 10}.isEmpty())
+    Swag.assert(not Math.Rectangle{0, 0, 10, -10}.isEmpty())
+    Swag.assert(not Math.Rectangle{0, 0, -10, 10}.isNormalized())
+    Swag.assert(not Math.Rectangle{0, 0, 10, -10}.isNormalized())
     Swag.assert(Math.Rectangle{0, 0, 0.00001, 10}.isEmptyEpsilon(0.001))
     Swag.assert(Math.Rectangle{0, 0, 10, 0.00001}.isEmptyEpsilon(0.001))
-    Swag.assert(!Math.Rectangle{0, 0, 10, 10}.isEmptyEpsilon(0.001))
+    Swag.assert(not Math.Rectangle{0, 0, 10, 10}.isEmptyEpsilon(0.001))
     Swag.assert(Math.Rectangle{0.00001, -0.00001, 0.00002, -0.00002}.isZeroEpsilon(0.001))
-    Swag.assert(!Math.Rectangle{0, 0, 0.01, 0}.isZeroEpsilon(0.001))
+    Swag.assert(not Math.Rectangle{0, 0, 0.01, 0}.isZeroEpsilon(0.001))
     Swag.assert(Math.Rectangle{1, 2, 3, 4}.isEqualEpsilon(Math.Rectangle{1.00001, 1.99999, 3.00001, 3.99999}, 0.001))
-    Swag.assert(!Math.Rectangle{1, 2, 3, 4}.isEqualEpsilon(Math.Rectangle{1.01, 2, 3, 4}, 0.001))
+    Swag.assert(not Math.Rectangle{1, 2, 3, 4}.isEqualEpsilon(Math.Rectangle{1.01, 2, 3, 4}, 0.001))
 }
 
 #test

@@ -69,14 +69,14 @@ func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCo
             return true
         }
 
-        let x            = current % gridSize
-        let y            = current / gridSize
+        let x = current % gridSize
+        let y = current / gridSize
         let nextDistance = distance[current] + 1
 
         if x > 0
         {
             let nextCell = cellIndex(x - 1, y, gridSize)
-            if !blocked[nextCell] and !visited[nextCell]
+            if not blocked[nextCell] and not visited[nextCell]
             {
                 visited[nextCell]  = true
                 distance[nextCell] = nextDistance
@@ -88,7 +88,7 @@ func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCo
         if x + 1 < gridSize
         {
             let nextCell = cellIndex(x + 1, y, gridSize)
-            if !blocked[nextCell] and !visited[nextCell]
+            if not blocked[nextCell] and not visited[nextCell]
             {
                 visited[nextCell]  = true
                 distance[nextCell] = nextDistance
@@ -100,7 +100,7 @@ func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCo
         if y > 0
         {
             let nextCell = cellIndex(x, y - 1, gridSize)
-            if !blocked[nextCell] and !visited[nextCell]
+            if not blocked[nextCell] and not visited[nextCell]
             {
                 visited[nextCell]  = true
                 distance[nextCell] = nextDistance
@@ -112,7 +112,7 @@ func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCo
         if y + 1 < gridSize
         {
             let nextCell = cellIndex(x, y + 1, gridSize)
-            if !blocked[nextCell] and !visited[nextCell]
+            if not blocked[nextCell] and not visited[nextCell]
             {
                 visited[nextCell]  = true
                 distance[nextCell] = nextDistance
@@ -137,7 +137,7 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
     for index in extraDrops
     {
         let dropCount = initialDropCount + cast(u32) index + 1
-        if !hasEscapeRoute(&steps, drops, gridSize, dropCount)
+        if not hasEscapeRoute(&steps, drops, gridSize, dropCount)
         {
             let blocking = drops[dropCount - 1]
             result.firstBlockingX         = blocking.x

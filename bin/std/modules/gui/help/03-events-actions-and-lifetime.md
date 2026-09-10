@@ -77,7 +77,7 @@ target that has no policy of its own is one line:
 mtd impl onDragDropEvent(evt: *DragDropEvent)
 {
     let path = evt.data.singleFile()
-    if !path or !Path.hasExtension(path!, ".vault")
+    if not path or not Path.hasExtension(path!, ".vault")
     {
         evt.accepted = false
         return

@@ -196,14 +196,14 @@ func splatU8(value: u8)->#simd [16] u8 => Swag.vecsplat(value)
 
     Swag.assert(Swag.vecmask(mask) == 0b1010)
     Swag.assert(Swag.vecany(mask))
-    Swag.assert(!Swag.vecall(mask))
+    Swag.assert(not Swag.vecall(mask))
 
     let full = a == a
     Swag.assert(Swag.vecall(full))
     Swag.assert(Swag.vecmask(full) == 0b1111)
 
     let none = a != a
-    Swag.assert(!Swag.vecany(none))
+    Swag.assert(not Swag.vecany(none))
     Swag.assert(Swag.vecmask(none) == 0)
 
     // Byte and word masks route through the byte movemask.

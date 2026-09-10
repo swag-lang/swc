@@ -34,7 +34,7 @@ private const SilenceFrame: [2] u8 = [0xFF, 0xFF]
 // The count follows from the table of contents alone, so an index can be built without decoding.
 internal func packetFrames(packet: const [..] u8)->u64
 {
-    if !packet.count do
+    if not packet.count do
         return 0
     let toc    = cast(u32) packet[0]
     let config = toc >> 3
@@ -57,7 +57,7 @@ internal func packetFrames(packet: const [..] u8)->u64
         if packet.count < 2 do
             return 0
         frames = cast(u64) packet[1] & 63
-        if !frames do
+        if not frames do
             return 0
     }
 
@@ -171,7 +171,7 @@ private impl Decoder
                 if offset + page.totalBytes() > config.count do
                     fail InvalidFormatError{"Opus header pages are truncated"}
                 let body = config[offset + page.headerBytes until offset + page.totalBytes()]
-                if !hasSerial and (page.flags & Ogg.FirstPage) and body.count >= 8 and body[0] == 'O' and body[1] == 'p' and body[2] == 'u' and body[3] == 's' and body[4] == 'H' and body[5] == 'e' and body[6] == 'a' and body[7] == 'd'
+                if not hasSerial and (page.flags & Ogg.FirstPage) and body.count >= 8 and body[0] == 'O' and body[1] == 'p' and body[2] == 'u' and body[3] == 's' and body[4] == 'H' and body[5] == 'e' and body[6] == 'a' and body[7] == 'd'
                 {
                     .serial   = page.serial
                     hasSerial = true
@@ -212,7 +212,7 @@ private impl Decoder
         if (head[8] >> 4) != 0 do
             fail UnsupportedFormatError{"Opus stream uses an unknown version"}
         .channels = cast(u32) head[9]
-        if !.channels or .channels > 2 do
+        if not .channels or .channels > 2 do
             fail UnsupportedFormatError{"Opus stream needs one or two channels"}
         .gainQ8 = cast(s32) cast #bit (s16) (cast(u16) head[16] | (cast(u16) head[17] << 8))
         if head[18] != 0 do
@@ -262,7 +262,7 @@ private impl Decoder
             while decoded < frameSize
             {
                 let produced = try .silk.decode(&dec, decoded == 0, payloadMs, internalRate, info.streamChannels, silkOut + decoded * CC)
-                if !produced do
+                if not produced do
                     fail InvalidFormatError{"Opus SILK frame decoded to nothing"}
                 decoded += produced
             }
@@ -296,10 +296,10 @@ private impl Decoder
         var endBand = CeltBandCount
         switch info.bandwidth
         {
-        case BandwidthNarrow:                endBand = 13
+        case BandwidthNarrow:    endBand = 13
         case BandwidthMedium, BandwidthWide: endBand = 17
-        case BandwidthSuperWide:             endBand = 19
-        default:                             endBand = 21
+        case BandwidthSuperWide: endBand = 19
+        default: endBand = 21
         }
 
         .celt.streamChannels = info.streamChannels
@@ -318,11 +318,11 @@ private impl Decoder
         if mode != ModeSilk
         {
             let celtFrameSize = Math.min(Frame20Ms, frameSize)
-            if mode != .prevMode and .prevMode > 0 and !.prevRedundancy do
+            if mode != .prevMode and .prevMode > 0 and not .prevRedundancy do
                 .celt.reset()
             try .celt.decodeFrame(data[0 until usable], &dec, celtFrameSize, pcm)
         }
-        elif .prevMode == ModeHybrid and !(redundancy and celtToSilk and .prevRedundancy)
+        elif .prevMode == ModeHybrid and not (redundancy and celtToSilk and .prevRedundancy)
         {
             // Let the CELT overlap fade out through a frame of silence.
             .celt.startBand = 0
@@ -337,7 +337,7 @@ private impl Decoder
                 pcm[i] += cast(f32) silkOut[i] * (1.0 / 32768.0)
         }
 
-        if redundancy and !celtToSilk
+        if redundancy and not celtToSilk
         {
             .celt.reset()
             .celt.startBand = 0
@@ -363,7 +363,7 @@ private impl Decoder
         }
 
         .prevMode       = mode
-        .prevRedundancy = redundancy and !celtToSilk
+        .prevRedundancy = redundancy and not celtToSilk
         for i in frameSize * CC do
             .output[base + i] = cast(s16) Math.clamp(Math.round(cast(f64) pcm[i] * 32768.0), -32768.0, 32767.0)
     }
@@ -371,7 +371,7 @@ private impl Decoder
     // Splits a packet into its frames, RFC 6716 clause 3.2, and decodes each of them.
     mtd decodePacketFrames(packet: const [..] u8)->u64 fail
     {
-        if !packet.count do
+        if not packet.count do
             fail InvalidFormatError{"Opus packet is empty"}
         let info  = frameInfo(packet[0])
         var sizes: [MaxFramesPerPacket] u32
@@ -403,7 +403,7 @@ private impl Decoder
             pos   += 1
             len   -= 1
             count = flags & 63
-            if !count or cast(u64) info.frameSize * count > MaxPacketFrames do
+            if not count or cast(u64) info.frameSize * count > MaxPacketFrames do
                 fail InvalidFormatError{"Opus packet states an invalid frame count"}
             if flags & 0x40
             {

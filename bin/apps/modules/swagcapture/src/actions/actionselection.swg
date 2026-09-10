@@ -28,29 +28,29 @@ impl IActionUI for ActionSelection
         {
         case .SelectAll:
             evt.updatedFields |= .Disabled | .Name
-            evt.disabled      = !capture or !capture.forms.count or isLib
+            evt.disabled      = not capture or not capture.forms.count or isLib
             evt.name          = appStrings().act_SelectAll
 
         case .SelectSameAll:
             evt.updatedFields |= .Disabled | .Name
-            evt.disabled      = !capture or !capture.forms.count or !hasSel or isLib
+            evt.disabled      = not capture or not capture.forms.count or not hasSel or isLib
             evt.name          = appStrings().act_SelectSimilar
 
         case .DeSelectAll:
             evt.updatedFields |= .Disabled | .Name
-            evt.disabled      = !capture or !hasSel or isLib
+            evt.disabled      = not capture or not hasSel or isLib
             evt.name          = appStrings().act_DeselectAll
 
         case .InvertSelection:
             evt.updatedFields |= .Disabled | .Name
 
             // Nothing to invert when there are no forms (matches SelectAll).
-            evt.disabled = !capture or !capture.forms.count or isLib
+            evt.disabled = not capture or not capture.forms.count or isLib
             evt.name     = appStrings().act_InvertSelection
 
         case .DeleteSelection:
             evt.updatedFields |= .Disabled | .Name | .Icon
-            evt.disabled      = !hasSel
+            evt.disabled      = not hasSel
             evt.name          = appStrings().act_Delete
             evt.icon          = main.theme().icon(.Remove)
 
@@ -63,7 +63,7 @@ impl IActionUI for ActionSelection
             evt.updatedFields |= .Name | .Checked | .Disabled
             evt.name          = appStrings().act_FreezeSelection
             evt.checked       = main.freezeSel
-            evt.disabled      = !capture or isLib
+            evt.disabled      = not capture or isLib
         }
 
         return true
@@ -99,7 +99,7 @@ impl IActionUI for ActionSelection
 
         case .InvertSelection:
             var newSel: Array'u64
-            for i in capture.forms.count where !capture.selection.contains(i) do
+            for i in capture.forms.count where not capture.selection.contains(i) do
                 newSel.add(i)
             capture.selection = newSel
             capture.selectionHasChanged()
@@ -108,10 +108,10 @@ impl IActionUI for ActionSelection
             capture.pushUndo(capture.newUndo(.DeleteSelection))
 
         case .Snap:
-            main.snap = !main.snap
+            main.snap = not main.snap
 
         case .Freeze:
-            main.freezeSelection(!main.freezeSel)
+            main.freezeSelection(not main.freezeSel)
         }
 
         return true

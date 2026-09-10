@@ -69,8 +69,8 @@ impl VaultCard
     // so the pass is asked for here rather than waited for.
     mtd endForm()
     {
-        .actions.show(!.actions.children.isEmpty())
-        .form.show(!.form.rows.isEmpty())
+        .actions.show(not .actions.children.isEmpty())
+        .form.show(not .form.rows.isEmpty())
         VaultForm.finish(.form)
         .panel.computeLayout()
         .body.computeLayout()

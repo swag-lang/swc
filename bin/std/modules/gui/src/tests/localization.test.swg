@@ -159,7 +159,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     let french = findLanguage("fr")
     Swag.assert(french != null)
     Swag.assert(french.nativeName == "Français")
-    Swag.assert(!french.builtin)
+    Swag.assert(not french.builtin)
     Swag.assert(findLanguage("zz") == null)
 
     // The account language decides, and an unshipped one falls back to the reference.

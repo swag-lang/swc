@@ -12,38 +12,38 @@ const X3DAUDIO_HANDLE_BYTESIZE = 20
 alias X3DAUDIO_HANDLE   = [X3DAUDIO_HANDLE_BYTESIZE] BYTE
 
 alias XAUDIO2_PROCESSOR = UINT32
-const Processor1            = 0x00000001
-const Processor2            = 0x00000002
-const Processor3            = 0x00000004
-const Processor4            = 0x00000008
-const Processor5            = 0x00000010
-const Processor6            = 0x00000020
-const Processor7            = 0x00000040
-const Processor8            = 0x00000080
-const Processor9            = 0x00000100
-const Processor10           = 0x00000200
-const Processor11           = 0x00000400
-const Processor12           = 0x00000800
-const Processor13           = 0x00001000
-const Processor14           = 0x00002000
-const Processor15           = 0x00004000
-const Processor16           = 0x00008000
-const Processor17           = 0x00010000
-const Processor18           = 0x00020000
-const Processor19           = 0x00040000
-const Processor20           = 0x00080000
-const Processor21           = 0x00100000
-const Processor22           = 0x00200000
-const Processor23           = 0x00400000
-const Processor24           = 0x00800000
-const Processor25           = 0x01000000
-const Processor26           = 0x02000000
-const Processor27           = 0x04000000
-const Processor28           = 0x08000000
-const Processor29           = 0x10000000
-const Processor30           = 0x20000000
-const Processor31           = 0x40000000
-const Processor32           = 0x80000000
+const Processor1  = 0x00000001
+const Processor2  = 0x00000002
+const Processor3  = 0x00000004
+const Processor4  = 0x00000008
+const Processor5  = 0x00000010
+const Processor6  = 0x00000020
+const Processor7  = 0x00000040
+const Processor8  = 0x00000080
+const Processor9  = 0x00000100
+const Processor10 = 0x00000200
+const Processor11 = 0x00000400
+const Processor12 = 0x00000800
+const Processor13 = 0x00001000
+const Processor14 = 0x00002000
+const Processor15 = 0x00004000
+const Processor16 = 0x00008000
+const Processor17 = 0x00010000
+const Processor18 = 0x00020000
+const Processor19 = 0x00040000
+const Processor20 = 0x00080000
+const Processor21 = 0x00100000
+const Processor22 = 0x00200000
+const Processor23 = 0x00400000
+const Processor24 = 0x00800000
+const Processor25 = 0x01000000
+const Processor26 = 0x02000000
+const Processor27 = 0x04000000
+const Processor28 = 0x08000000
+const Processor29 = 0x10000000
+const Processor30 = 0x20000000
+const Processor31 = 0x40000000
+const Processor32 = 0x80000000
 const XAUDIO2_ANY_PROCESSOR = 0xFFFFFFFF
 
 const X3DAUDIO_SPEED_OF_SOUND = 343.5
@@ -280,6 +280,7 @@ struct IXAudio2SubmixVoice
 struct IXAudio2EngineCallbackItf
 {
     // Same contract as the voice callback table: filled by the module, called by XAudio2.
+
     late public
     {
         onProcessingPassStart: func(this: *IXAudio2EngineCallback)
@@ -292,6 +293,7 @@ struct IXAudio2VoiceCallbackItf
 {
     // The module fills this table once and XAudio2 is the only caller, so every entry starts
     // null and receives its function on the way in.
+
     late public
     {
         onVoiceProcessingPassStart: func(this: *IXAudio2VoiceCallback, bytesRequired: UINT32)

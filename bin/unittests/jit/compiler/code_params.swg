@@ -82,9 +82,9 @@ func runBare()->bool
 
 func runArrowCond()->bool
 {
-    if !arrowCond(#code => true) do
+    if not arrowCond(#code => true) do
         return false
-    if !arrowCond(1 == 1) do
+    if not arrowCond(1 == 1) do
         return false
     return true
 }

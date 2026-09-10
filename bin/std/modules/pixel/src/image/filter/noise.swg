@@ -5,7 +5,7 @@ public impl Image
     // Replaces the image's RGB channels with samples from `generator`.
     mtd fillNoise(generator: *Noise.FastNoise)
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
         {

@@ -39,7 +39,7 @@ func dumpPainter(painter: const *Painter, level = DumpLevel.Full)->String
     dump.run(painter)
 
     var result: retval
-    if !dump.legend.isEmpty()
+    if not dump.legend.isEmpty()
     {
         result += dump.legend
         result += "\n"
@@ -144,7 +144,7 @@ private
 
         mtd targetRef(target: const *RenderTarget?)->String
         {
-            if !target do
+            if not target do
                 return String.from("none")
 
             for it, idx in .targets where it == target do
@@ -158,7 +158,7 @@ private
 
         mtd shaderRef(shader: const *ShaderBase?)->String
         {
-            if !shader do
+            if not shader do
                 return String.from("none")
 
             for it, idx in .shaders where it == shader do
@@ -295,7 +295,7 @@ private
         mtd dumpFontEffect(cmd: const *Command)
         {
             let e = &cmd.fontEffect
-            if !e.enabled
+            if not e.enabled
             {
                 .body += " off"
                 return
@@ -316,7 +316,7 @@ private
         mtd dumpTriangles(painter: const *Painter, start, count: u32)
         {
             .body.appendFormat(" n=%", count)
-            if .level == .Commands or !count do
+            if .level == .Commands or not count do
                 return
 
             var bbMin = Vector2{Swag.F32.Max, Swag.F32.Max}
@@ -360,7 +360,7 @@ private
                     break
                 }
 
-                if !known
+                if not known
                 {
                     if colors.count < 4 do
                         colors.add(v.color)

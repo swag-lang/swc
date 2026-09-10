@@ -135,7 +135,7 @@ func parseProgram(text: string, cpu: *Cpu)
         if ch >= '0' and ch <= '9'
         {
             cpu.mem[cpu.memLen] = ch - '0'
-            cpu.memLen          += 1
+            cpu.memLen += 1
         }
         pos += 1
     }

@@ -5,7 +5,7 @@ namespace GenericCloneCodegenSupport
 {
     func helperFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null)
     {
-        if !buffer do
+        if not buffer do
             return
 
         var req: AllocatorRequest
@@ -62,7 +62,7 @@ namespace GenericCloneCodegenSupport
         mtd free()
         {
             helperFree(.buffer, .capacity * #sizeof(T), .allocator)
-            .buffer           = null
+            .buffer = null
             .count, .capacity = 0
         }
     }
@@ -100,7 +100,7 @@ namespace GenericCloneCodegenSupport
     {
         #[Swag.Macro]
         mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
-            where !ptr
+            where not ptr
         {
 
             if me.count > 0

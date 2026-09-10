@@ -25,16 +25,16 @@ impl PdfParser
     {
         if .pos + text.count > .bytes.count do
             return false
-        return !Memory.compare(.bytes.buffer + .pos, text.buffer, text.count)
+        return not Memory.compare(.bytes.buffer + .pos, text.buffer, text.count)
     }
 
     mtd consumeWord(text: string)->bool
     {
         .skip()
-        if !.startsWith(text) do
+        if not .startsWith(text) do
             return false
         let end = .pos + text.count
-        if end < .bytes.count and !isDelimiter(.bytes[end]) do
+        if end < .bytes.count and not isDelimiter(.bytes[end]) do
             return false
         .pos = end
         return true
@@ -50,7 +50,7 @@ impl PdfParser
     mtd parseUnsigned(value: *u64)->bool
     {
         .skip()
-        if .pos >= .bytes.count or !isDigit(.bytes[.pos]) do
+        if .pos >= .bytes.count or not isDigit(.bytes[.pos]) do
             return false
         var result = 0'u64
         while .pos < .bytes.count and isDigit(.bytes[.pos])
@@ -84,7 +84,7 @@ impl PdfParser
                 continue
             }
 
-            if c == '.' and !hasDot
+            if c == '.' and not hasDot
             {
                 hasDot = true
                 .pos   += 1
@@ -94,11 +94,11 @@ impl PdfParser
             break
         }
 
-        if !hasDigit do
+        if not hasDigit do
             fail InvalidFormatError{"PDF number has no digits"}
 
         let spelling = cast(string) Swag.makeSlice(.bytes.buffer + start, .pos - start)
-        if !hasDot
+        if not hasDot
         {
             let first      = try StrConv.toS64(spelling)
             let afterFirst = .pos
@@ -108,8 +108,8 @@ impl PdfParser
                 if cast(u64) first > Swag.U32.Max do
                     fail UnsupportedFormatError{"PDF object number exceeds 32 bits"}
                 var reference: Node
-                reference.kind                = .Reference
-                reference.reference           = cast(u32) first
+                reference.kind      = .Reference
+                reference.reference = cast(u32) first
                 reference.referenceGeneration = generation <= Swag.U16.Max ? cast(u16) generation : 0
                 return .addNode(#move reference)
             }
@@ -134,7 +134,7 @@ impl PdfParser
         .pos += 1
         var node: Node
         node.kind = .Name
-        while .pos < .bytes.count and !isDelimiter(.bytes[.pos])
+        while .pos < .bytes.count and not isDelimiter(.bytes[.pos])
         {
             if .bytes[.pos] == '#' and .pos + 2 < .bytes.count and isHex(.bytes[.pos + 1]) and isHex(.bytes[.pos + 2])
             {
@@ -237,7 +237,7 @@ impl PdfParser
 
     mtd parseHexString()->u32 fail
     {
-        Swag.assert(.bytes[.pos] == '<' and !.startsWith("<<"))
+        Swag.assert(.bytes[.pos] == '<' and not .startsWith("<<"))
         .pos += 1
         var node: Node
         node.kind = .String
@@ -248,7 +248,7 @@ impl PdfParser
             .pos += 1
             if isWhite(c) do
                 continue
-            if !isHex(c) do
+            if not isHex(c) do
                 fail InvalidFormatError{"PDF hexadecimal string contains a non-hexadecimal byte"}
             let value = hexValue(c)
             if high == Swag.U8.Max do
@@ -346,21 +346,21 @@ impl PdfParser
         }
         elif .consumeWord("false") do
             node.kind = .Boolean
-        elif !.consumeWord("null") do
+        elif not .consumeWord("null") do
             fail InvalidFormatError{"PDF value uses an unknown token"}
         return .addNode(#move node)
     }
 
     mtd findFrom(start: u64, text: string)->u64
     {
-        if !text.count or start >= .bytes.count do
+        if not text.count or start >= .bytes.count do
             return Swag.U64.Max
         let last = .bytes.count - text.count
         if start > last do
             return Swag.U64.Max
         for i in start to last
         {
-            if !Memory.compare(.bytes.buffer + i, text.buffer, text.count) do
+            if not Memory.compare(.bytes.buffer + i, text.buffer, text.count) do
                 return i
         }
 
@@ -404,7 +404,7 @@ impl PdfParser
     mtd attachStream(nodeId: u32) fail
     {
         let saved = .pos
-        if !.consumeWord("stream")
+        if not .consumeWord("stream")
         {
             .pos = saved
             return
@@ -414,7 +414,7 @@ impl PdfParser
             .pos += 1
         if .pos < .bytes.count and .bytes[.pos] == '\n' do
             .pos += 1
-        let start          = .pos
+        let start = .pos
         let declaredLength = .declaredStreamLength(nodeId)
         if declaredLength >= 0
         {
@@ -423,7 +423,7 @@ impl PdfParser
                 fail InvalidFormatError{"PDF stream exceeds its declared length"}
             .nodes[nodeId].stream = Swag.makeSlice(.bytes.buffer + start, length)
             .pos = start + length
-            if !.consumeWord("endstream") do
+            if not .consumeWord("endstream") do
                 fail InvalidFormatError{"PDF stream length does not end at endstream"}
             return
         }
@@ -452,7 +452,7 @@ impl PdfParser
             let last = Math.min(.bytes.count - 5, HeaderSearchLimit)
             for i in 0 to last
             {
-                if !Memory.compare(.bytes.buffer + i, ("%PDF-").buffer, 5)
+                if not Memory.compare(.bytes.buffer + i, ("%PDF-").buffer, 5)
                 {
                     headerPos = i
                     break
@@ -490,7 +490,7 @@ impl PdfParser
             let start        = .pos
             var objectNumber = 0'u64
             var generation   = 0'u64
-            if !.parseUnsigned(&objectNumber) or !.parseUnsigned(&generation) or !.consumeWord("obj")
+            if not .parseUnsigned(&objectNumber) or not .parseUnsigned(&generation) or not .consumeWord("obj")
             {
                 .pos = start + 1
                 continue
@@ -502,7 +502,7 @@ impl PdfParser
             if .nodes[nodeId].kind == .Dictionary do
                 try .attachStream(nodeId)
 
-            if !indexed.tryFind(cast(u32) objectNumber) do
+            if not indexed.tryFind(cast(u32) objectNumber) do
                 .objects[cast(u32) objectNumber] = nodeId
             discard .consumeWord("endobj")
         }
@@ -551,7 +551,7 @@ impl PdfParser
             visited.add(next)
 
             let section = .readXrefSection(next)
-            if !section.ok or !section.hasPrev do
+            if not section.ok or not section.hasPrev do
                 break
             next = section.prev
         }
@@ -582,7 +582,7 @@ impl PdfParser
             return Swag.U64.Max
         .pos = found + ("startxref").count
         var offset = 0'u64
-        if !.parseUnsigned(&offset) do
+        if not .parseUnsigned(&offset) do
             return Swag.U64.Max
         return offset
     }
@@ -611,7 +611,7 @@ impl PdfParser
 
             var first = 0'u64
             var count = 0'u64
-            if !.parseUnsigned(&first) or !.parseUnsigned(&count) do
+            if not .parseUnsigned(&first) or not .parseUnsigned(&count) do
                 return result
             if first > Swag.U32.Max or count > Swag.U32.Max do
                 return result
@@ -620,7 +620,7 @@ impl PdfParser
             {
                 var position   = 0'u64
                 var generation = 0'u64
-                if !.parseUnsigned(&position) or !.parseUnsigned(&generation) do
+                if not .parseUnsigned(&position) or not .parseUnsigned(&generation) do
                     return result
                 .skip()
                 if .pos >= .bytes.count do
@@ -644,10 +644,10 @@ impl PdfParser
             }
         }
 
-        if !.consumeWord("trailer") do
+        if not .consumeWord("trailer") do
             return result
         .skip()
-        if !.startsWith("<<") do
+        if not .startsWith("<<") do
             return result
         let dictId = catch .parseDictionary() as parseError
         if parseError != null do
@@ -675,7 +675,7 @@ impl PdfParser
         var result: retval
         .pos = offset
         var number, generation: u64
-        if !.parseUnsigned(&number) or !.parseUnsigned(&generation) or !.consumeWord("obj") do
+        if not .parseUnsigned(&number) or not .parseUnsigned(&generation) or not .consumeWord("obj") do
             return result
 
         let nodeId = catch .parseValue() as parseError
@@ -702,7 +702,7 @@ impl PdfParser
         }
 
         let entryBytes = widths[0] + widths[1] + widths[2]
-        if !entryBytes do
+        if not entryBytes do
             return result
 
         let data = catch .decodeStream(nodeId) as decodeError
@@ -873,7 +873,7 @@ impl PdfParser
             {
                 var number = 0'u64
                 var offset = 0'u64
-                if !embedded.parseUnsigned(&number) or !embedded.parseUnsigned(&offset) or number > Swag.U32.Max do
+                if not embedded.parseUnsigned(&number) or not embedded.parseUnsigned(&offset) or number > Swag.U32.Max do
                     fail InvalidFormatError{"PDF object stream header is malformed"}
                 numbers.add(cast(u32) number)
                 offsets.add(offset)
@@ -923,7 +923,7 @@ impl PdfParser
             search = found + ("trailer").count
             .pos   = search
             .skip()
-            if !.startsWith("<<") do
+            if not .startsWith("<<") do
                 continue
             let dictId = catch .parseDictionary() as parseError
             if parseError == null do
@@ -942,11 +942,11 @@ impl PdfParser
     mtd recordTrailer(dictId: u32, preferExisting = true)
     {
         let root = .dictRaw(dictId, "Root")
-        if root != InvalidNode and (!preferExisting or .trailerRoot == InvalidNode) do
+        if root != InvalidNode and (not preferExisting or .trailerRoot == InvalidNode) do
             .trailerRoot = root
 
         let info = .dictRaw(dictId, "Info")
-        if info != InvalidNode and (!preferExisting or .trailerInfo == InvalidNode) do
+        if info != InvalidNode and (not preferExisting or .trailerInfo == InvalidNode) do
             .trailerInfo = info
 
         if .dictRaw(dictId, "Encrypt") != InvalidNode do
@@ -1029,7 +1029,7 @@ impl PdfParser
 
         .pos = offset
         var found, generation: u64
-        if !.parseUnsigned(&found) or !.parseUnsigned(&generation) or !.consumeWord("obj") do
+        if not .parseUnsigned(&found) or not .parseUnsigned(&generation) or not .consumeWord("obj") do
             return InvalidNode
         if found != cast(u64) number do
             return InvalidNode
@@ -1052,7 +1052,7 @@ impl PdfParser
         if .objectDepth >= 32 do
             return InvalidNode
         let stream = .objectStream(container)
-        if !stream or index >= stream!.offsets.count do
+        if not stream or index >= stream!.offsets.count do
             return InvalidNode
 
         let position = stream!.first + stream!.offsets[index]
@@ -1104,7 +1104,7 @@ impl PdfParser
         {
             var objectNumber = 0'u64
             var objectOffset = 0'u64
-            if !header.parseUnsigned(&objectNumber) or !header.parseUnsigned(&objectOffset) or objectNumber > Swag.U32.Max do
+            if not header.parseUnsigned(&objectNumber) or not header.parseUnsigned(&objectOffset) or objectNumber > Swag.U32.Max do
                 break
             result.numbers.add(cast(u32) objectNumber)
             result.offsets.add(objectOffset)
@@ -1212,7 +1212,7 @@ impl PdfParser
     {
         var result: retval
         let filters = #move .streamFilters(nodeId)
-        if !filters.count do
+        if not filters.count do
             return result
         switch filters.back().toString()
         {
@@ -1232,8 +1232,8 @@ impl PdfParser
         if id == InvalidNode or .nodes[id].kind != .Dictionary do
             fail InvalidFormatError{"PDF stream dictionary is missing"}
         var result: Array'u8 = .nodes[id].stream
-        let filters          = #move .streamFilters(id)
-        var count            = filters.count
+        let filters = #move .streamFilters(id)
+        var count   = filters.count
         if stopAtImageCodec and count and .imageCodec(id).count do
             count -= 1
 

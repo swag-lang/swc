@@ -101,7 +101,7 @@ impl Ast
         result.captureNames.add(String{})
 
         result.root = result.parseAlternate()
-        if !result.atEnd()
+        if not result.atEnd()
         {
             if result.peek() == ')' do
                 fail SyntaxError{"unexpected ')'"}
@@ -219,7 +219,7 @@ impl Ast
     // Adds a literal node, which becomes a class when the flags fold its case.
     mtd addLiteralNode(value: rune)->u32
     {
-        if !.flags.ignoreCase do
+        if not .flags.ignoreCase do
             return .addNode({kind: .Literal, value: value})
 
         var cls: RuneClass
@@ -236,7 +236,7 @@ impl Ast
         var branches: Array'u32
         branches.add(.parseConcat())
 
-        while .peek() == '|' and !.atEnd()
+        while .peek() == '|' and not .atEnd()
         {
             .advance()
             branches.add(.parseConcat())
@@ -248,7 +248,7 @@ impl Ast
     mtd parseConcat()->u32 fail
     {
         var items: Array'u32
-        while !.atEnd() and .peek() != '|' and .peek() != ')'
+        while not .atEnd() and .peek() != '|' and .peek() != ')'
         {
             let item = .parseRepeat()
             if item != NoNode do
@@ -287,7 +287,7 @@ impl Ast
 
             case '{':
                 let counted = .parseCounted()
-                if !counted.valid do
+                if not counted.valid do
                     return current
 
                 minCount = counted.minCount
@@ -297,7 +297,7 @@ impl Ast
                 return current
             }
 
-            if !.canRepeat(current) do
+            if not .canRepeat(current) do
                 fail SyntaxError{"nothing to repeat"}
 
             var greedy = true
@@ -336,7 +336,7 @@ impl Ast
         let start = .pos
 
         .advance()
-        if !.isDigit(.peek())
+        if not .isDigit(.peek())
         {
             .pos = start
             return result
@@ -401,7 +401,7 @@ impl Ast
             .advance()
             var cls: RuneClass
             cls.add(0, MaxRune)
-            if !.flags.dotAll
+            if not .flags.dotAll
             {
                 cls.negate()
                 cls.addRune('\n')
@@ -482,7 +482,7 @@ impl Ast
             default:
 
                 // Inline flags, either scoped to the enclosing group or to this one.
-                if !.parseInlineFlags() do
+                if not .parseInlineFlags() do
                     fail SyntaxError{"invalid group modifier"}
 
                 // A flag group with no body sets the flags for the rest of the enclosing
@@ -490,7 +490,7 @@ impl Ast
                 if .eat(')') do
                     return NoNode
 
-                if !.eat(':') do
+                if not .eat(':') do
                     fail SyntaxError{"expected ':' or ')' after inline flags"}
             }
         }
@@ -500,7 +500,7 @@ impl Ast
         }
 
         let inner = .parseAlternate()
-        if !.eat(')') do
+        if not .eat(')') do
             fail SyntaxError{"missing ')'"}
         .flags = savedFlags
 
@@ -521,13 +521,13 @@ impl Ast
         .advance()
 
         var result: retval
-        while !.atEnd() and .peek() != closing
+        while not .atEnd() and .peek() != closing
         {
             result.append(.peek())
             .advance()
         }
 
-        if !.eat(closing) do
+        if not .eat(closing) do
             fail SyntaxError{"unterminated capture group name"}
         if result.isEmpty() do
             fail SyntaxError{"empty capture group name"}
@@ -545,13 +545,13 @@ impl Ast
             switch .peek()
             {
             case 'i':
-                .flags.ignoreCase = !negate
+                .flags.ignoreCase = not negate
 
             case 'm':
-                .flags.multiline = !negate
+                .flags.multiline = not negate
 
             case 's':
-                .flags.dotAll = !negate
+                .flags.dotAll = not negate
 
             case '-':
                 if negate do
@@ -698,7 +698,7 @@ impl Ast
         if .eat('{')
         {
             var digits = 0
-            while !.atEnd() and .peek() != '}'
+            while not .atEnd() and .peek() != '}'
             {
                 value  = value * 16 + .hexDigit(.peek())
                 digits += 1
@@ -707,7 +707,7 @@ impl Ast
 
             if digits == 0 or digits > 6 do
                 fail SyntaxError{"invalid hexadecimal escape"}
-            if !.eat('}') do
+            if not .eat('}') do
                 fail SyntaxError{"unterminated hexadecimal escape"}
         }
         else
@@ -762,13 +762,13 @@ impl Ast
 
         if .eat('{')
         {
-            while !.atEnd() and .peek() != '}'
+            while not .atEnd() and .peek() != '}'
             {
                 name.append(.peek())
                 .advance()
             }
 
-            if !.eat('}') do
+            if not .eat('}') do
                 fail SyntaxError{"unterminated Unicode property name"}
         }
         else
@@ -780,7 +780,7 @@ impl Ast
         }
 
         let found = RuneClass.unicodeProperty(name.toString())
-        if !found.known do
+        if not found.known do
             fail SyntaxError{"unknown Unicode property"}
 
         var result = found.value
@@ -801,7 +801,7 @@ impl Ast
         var negated = .eat('^')
         var first   = true
 
-        while !.atEnd() and (.peek() != ']' or first)
+        while not .atEnd() and (.peek() != ']' or first)
         {
             first = false
 
@@ -840,7 +840,7 @@ impl Ast
             result.addRune(low.scalar)
         }
 
-        if !.eat(']') do
+        if not .eat(']') do
             fail SyntaxError{"unterminated '['"}
 
         // Case folding happens before the negation: '[^a]' with case folding must reject
@@ -891,17 +891,17 @@ impl Ast
         let negated = .eat('^')
 
         var name: String
-        while !.atEnd() and .peek() != ':' and .peek() != ']'
+        while not .atEnd() and .peek() != ':' and .peek() != ']'
         {
             name.append(.peek())
             .advance()
         }
 
-        if !.eat(':') or !.eat(']') do
+        if not .eat(':') or not .eat(']') do
             fail SyntaxError{"unterminated POSIX character class"}
 
         let found = RuneClass.posix(name.toString())
-        if !found.known do
+        if not found.known do
             fail SyntaxError{"unknown POSIX character class"}
 
         var result = found.value
@@ -938,7 +938,7 @@ impl Ast
         case .Alternate:
             for var i = 0'u32; i < current.count; i += 1
             {
-                if !.nodeStartsAnchored(.kids[current.first + i]) do
+                if not .nodeStartsAnchored(.kids[current.first + i]) do
                     return false
             }
 

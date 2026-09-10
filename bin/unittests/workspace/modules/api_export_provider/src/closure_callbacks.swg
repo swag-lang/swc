@@ -124,7 +124,7 @@ func(T) depAllOf(values: const [..] T, cb: func||(T)->bool)->bool
 {
     for v in values
     {
-        if !cb(v) do
+        if not cb(v) do
             return false
     }
 

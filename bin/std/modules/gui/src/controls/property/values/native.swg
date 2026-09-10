@@ -186,19 +186,19 @@ internal impl Properties
         switch typeNative.nativeKind
         {
         case .U8, .U16, .U32, .U64:
-            if !hasMinMax do
+            if not hasMinMax do
                 ctrl.edit.setUnsignedIntegerRange()
             else do
                 ctrl.edit.setUnsignedIntegerRange(cast() minV, cast() maxV)
 
         case .S8, .S16, .S32, .S64:
-            if !hasMinMax do
+            if not hasMinMax do
                 ctrl.edit.setSignedIntegerRange()
             else do
                 ctrl.edit.setSignedIntegerRange(cast() minV, cast() maxV)
 
         case .F32, .F64:
-            if !hasMinMax do
+            if not hasMinMax do
                 ctrl.edit.setFloatingPointRange()
             else do
                 ctrl.edit.setFloatingPointRange(cast() minV, cast() maxV)
@@ -218,7 +218,7 @@ internal impl Properties
         elif Reflection.hasAttribute(value, .SliderMinMax)
         {
             var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
-            if !me.isGridLike() do
+            if not me.isGridLike() do
                 editWidth = me.listContentWidthFromUseful(editWidth)
             with let slider = SliderCtrl.create(item.line, null)
             {
@@ -247,14 +247,14 @@ internal impl Properties
             {
             case .U8, .U16, .U32, .U64: slider.setUnsignedBounds(cast() minV, cast() maxV)
             case .S8, .S16, .S32, .S64: slider.setSignedBounds(cast() minV, cast() maxV)
-            case .F32, .F64:            slider.setFloatBounds(minV, maxV)
+            case .F32, .F64: slider.setFloatBounds(minV, maxV)
             }
         }
         else
         {
             let unit      = Reflection.attributeValue(value, .Unit, "value")
             var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
-            if !me.isGridLike() do
+            if not me.isGridLike() do
                 editWidth = me.listContentWidthFromUseful(editWidth)
 
             with let ed = EditBox.create(item.line, value.name)
@@ -284,55 +284,55 @@ internal impl Properties
             switch typeNative.nativeKind
             {
             case .U8:
-                if !hasMinMax do
+                if not hasMinMax do
                     ed.setUnsignedIntegerRange(Swag.U8.Min, Swag.U8.Max)
                 else do
                     ed.setUnsignedIntegerRange(cast() minV, cast() maxV)
 
             case .U16:
-                if !hasMinMax do
+                if not hasMinMax do
                     ed.setUnsignedIntegerRange(Swag.U16.Min, Swag.U16.Max)
                 else do
                     ed.setUnsignedIntegerRange(cast() minV, cast() maxV)
 
             case .U32:
-                if !hasMinMax do
+                if not hasMinMax do
                     ed.setUnsignedIntegerRange(Swag.U32.Min, Swag.U32.Max)
                 else do
                     ed.setUnsignedIntegerRange(cast() minV, cast() maxV)
 
             case .U64:
-                if !hasMinMax do
+                if not hasMinMax do
                     ed.setUnsignedIntegerRange(Swag.U64.Min, Swag.U64.Max)
                 else do
                     ed.setUnsignedIntegerRange(cast() minV, cast() maxV)
 
             case .S8:
-                if !hasMinMax do
+                if not hasMinMax do
                     ed.setSignedIntegerRange(Swag.S8.Min, Swag.S8.Max)
                 else do
                     ed.setSignedIntegerRange(cast() minV, cast() maxV)
 
             case .S16:
-                if !hasMinMax do
+                if not hasMinMax do
                     ed.setSignedIntegerRange(Swag.S16.Min, Swag.S16.Max)
                 else do
                     ed.setSignedIntegerRange(cast() minV, cast() maxV)
 
             case .S32:
-                if !hasMinMax do
+                if not hasMinMax do
                     ed.setSignedIntegerRange(Swag.S32.Min, Swag.S32.Max)
                 else do
                     ed.setSignedIntegerRange(cast() minV, cast() maxV)
 
             case .S64:
-                if !hasMinMax do
+                if not hasMinMax do
                     ed.setSignedIntegerRange(Swag.S64.Min, Swag.S64.Max)
                 else do
                     ed.setSignedIntegerRange(cast() minV, cast() maxV)
 
             case .F32, .F64:
-                if !hasMinMax do
+                if not hasMinMax do
                     ed.setFloatingPointRange()
                 else do
                     ed.setFloatingPointRange(cast() minV, cast() maxV)

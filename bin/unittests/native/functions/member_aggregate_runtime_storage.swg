@@ -18,5 +18,5 @@ struct NativeMemberAggregateRuntimeStorageHolder
         }
 
     Swag.assert(holder.cb(flag).first == 60'u16)
-    Swag.assert(holder.cb(!flag).second == 51'u16)
+    Swag.assert(holder.cb(not flag).second == 51'u16)
 }

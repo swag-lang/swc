@@ -31,7 +31,7 @@ func logicalFloatProbe(value: f32, delta: s32)->f32
 {
     LogCounter = 0
     let value = logicalValueProbe(0, 1) and sideEffect(true, 10)
-    Swag.assert(!value)
+    Swag.assert(not value)
     Swag.assert(LogCounter == 1)
 }
 

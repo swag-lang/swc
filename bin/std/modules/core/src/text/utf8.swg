@@ -356,7 +356,7 @@ func decodeLastRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
     var result: retval
 
     let countof = buffer.count
-    if !countof
+    if not countof
     {
         result.c = RuneError
         return result
@@ -454,7 +454,7 @@ func decodeRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 
     // Length == 2
     let b1 = dataof[1]
-    if !(accept.lo <= b1 and b1 <= accept.hi)
+    if not (accept.lo <= b1 and b1 <= accept.hi)
     {
         result.c   = RuneError
         result.eat = 1
@@ -470,7 +470,7 @@ func decodeRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 
     // Length == 3
     let b2 = dataof[2]
-    if !(LoCB <= b2 and b2 <= HiCB)
+    if not (LoCB <= b2 and b2 <= HiCB)
     {
         result.c   = RuneError
         result.eat = 1
@@ -486,7 +486,7 @@ func decodeRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 
     // Length == 4
     let b3 = dataof[3]
-    if !(LoCB <= b3 and b3 <= HiCB)
+    if not (LoCB <= b3 and b3 <= HiCB)
     {
         result.c   = RuneError
         result.eat = 1
@@ -517,7 +517,7 @@ func encodeRune(dest: [..] u8, src: rune)->u32
         dest[1] = cast(u8) (((src >> 0) & 0x3F) | 0x80)
         return 2
 
-    case !isValidRune(src):
+    case not isValidRune(src):
         dest[0] = cast(u8) (((RuneError >> 12) & 0x0F) | 0xE0)
         dest[1] = cast(u8) (((RuneError >> 6) & 0x3F) | 0x80)
         dest[2] = cast(u8) (((RuneError >> 0) & 0x3F) | 0x80)
@@ -686,7 +686,7 @@ func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
                 let signed = cast #bit(Math.Simd.S16x8) values
                 Math.Simd.storeLow8(destPtr, Math.Simd.packUnsigned(signed, signed))
                 srcPtr, destPtr       += VectorSize
-                count                 += VectorSize
+                count += VectorSize
                 srcLength, destLength -= VectorSize
                 continue
             }
@@ -800,7 +800,7 @@ func countBytesAt(buffer: const [..] u8)->u32
 {
     let dataof  = buffer.buffer
     let countof = buffer.count
-    if !countof do
+    if not countof do
         return 1
 
     let p0 = cast(rune) dataof[]
@@ -821,19 +821,19 @@ func countBytesAt(buffer: const [..] u8)->u32
     let accept = AcceptRanges[x >> 4]
 
     let b1 = dataof[1]
-    if !(accept.lo <= b1 and b1 <= accept.hi) do
+    if not (accept.lo <= b1 and b1 <= accept.hi) do
         return 1
     if sz <= 2 do
         return 2
 
     let b2 = dataof[2]
-    if !(LoCB <= b2 and b2 <= HiCB) do
+    if not (LoCB <= b2 and b2 <= HiCB) do
         return 1
     if sz <= 3 do
         return 3
 
     let b3 = dataof[3]
-    if !(LoCB <= b3 and b3 <= HiCB) do
+    if not (LoCB <= b3 and b3 <= HiCB) do
         return 1
     return 4
 }
@@ -844,10 +844,10 @@ func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bo
     var result: retval
 
     var countof = buffer.count
-    if !countof do
+    if not countof do
         return result
 
-    if !charIndex
+    if not charIndex
     {
         result.success = true
         return result
@@ -859,11 +859,11 @@ func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bo
     var resultByte = 0'u64
     while countof and resultChar != charIndex
     {
-        if charIndex - resultChar >= #sizeof(Math.Simd.U8x16) and countof >= #sizeof(Math.Simd.U8x16) and !Math.Simd.bitmask(Math.Simd.load(dataof))
+        if charIndex - resultChar >= #sizeof(Math.Simd.U8x16) and countof >= #sizeof(Math.Simd.U8x16) and not Math.Simd.bitmask(Math.Simd.load(dataof))
         {
             resultByte, resultChar += #sizeof(Math.Simd.U8x16)
-            dataof                 += #sizeof(Math.Simd.U8x16)
-            countof                -= #sizeof(Math.Simd.U8x16)
+            dataof  += #sizeof(Math.Simd.U8x16)
+            countof -= #sizeof(Math.Simd.U8x16)
             continue
         }
 
@@ -889,7 +889,7 @@ func countRunes(buffer: const [..] u8)->u64
     var cpt = 0'u64
     while countof
     {
-        if countof >= #sizeof(Math.Simd.U8x16) and !Math.Simd.bitmask(Math.Simd.load(dataof))
+        if countof >= #sizeof(Math.Simd.U8x16) and not Math.Simd.bitmask(Math.Simd.load(dataof))
         {
             cpt     += #sizeof(Math.Simd.U8x16)
             dataof  += #sizeof(Math.Simd.U8x16)
@@ -933,7 +933,7 @@ func indexOf(src: const [..] u8, what: rune, startByteIndex = 0'u64)->u64
 func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, comparisonType = ComparisonType.Latin1)->u64
 {
     let length = src.count
-    if !length do
+    if not length do
         return Swag.U64.Max
     if startByteIndex >= length
     {
@@ -942,7 +942,7 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
     }
 
     let countof = what.count
-    if !countof or countof > (length - startByteIndex) do
+    if not countof or countof > (length - startByteIndex) do
         return Swag.U64.Max
 
     if comparisonType == .Latin1 or comparisonType == .Unicode
@@ -977,7 +977,7 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
 func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)->u64
 {
     let length = src.count
-    if !length do
+    if not length do
         return Swag.U64.Max
     if startByteIndex >= length
     {
@@ -986,7 +986,7 @@ func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)
     }
 
     let countof = what.count
-    if !countof do
+    if not countof do
         return Swag.U64.Max
 
     if countof <= 4
@@ -1013,7 +1013,7 @@ func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)
 func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u64)->u64
 {
     let length = src.count
-    if !length do
+    if not length do
         return Swag.U64.Max
     if startByteIndex >= length
     {
@@ -1022,7 +1022,7 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
     }
 
     let countof = what.count
-    if !countof do
+    if not countof do
         return Swag.U64.Max
 
     if countof <= 4
@@ -1047,7 +1047,7 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
     while remain
     {
         let res = Utf8.decodeRune(Swag.makeSlice(scan, remain))
-        if !res.eat do
+        if not res.eat do
             break
         if Slice.contains(what, res.c) do
             return idx
@@ -1094,10 +1094,10 @@ func lastIndexOf(src: const [..] u8, what: rune)->u64
 func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
 {
     let length = src.count
-    if !length do
+    if not length do
         return Swag.U64.Max
     let countof = what.count
-    if !countof do
+    if not countof do
         return Swag.U64.Max
 
     if countof <= 4
@@ -1136,9 +1136,9 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
 func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
 {
     let length = src.count
-    if !length do
+    if not length do
         return Swag.U64.Max
-    if !what.count do
+    if not what.count do
         return Swag.U64.Max
 
     if what.count <= 4 do
@@ -1161,12 +1161,12 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
 func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonType.Latin1)->u64
 {
     let length = src.count
-    if !length do
+    if not length do
         return Swag.U64.Max
     let lengthStr = what.count
     if lengthStr > length do
         return Swag.U64.Max
-    if !lengthStr do
+    if not lengthStr do
         return length
     if comparisonType == .Latin1 or comparisonType == .Unicode do
         return lastIndexOfSubslice(src.buffer, length, what)
@@ -1180,7 +1180,7 @@ func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonTy
         let res = compare(Swag.makeSlice(dataof, lengthStr), what, comparisonType)
         if res == 0 do
             return idx
-        if !idx do
+        if not idx do
             return Swag.U64.Max
         idx, dataof -= 1
     }
@@ -1192,7 +1192,7 @@ func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonTy
 func startsWith(src: const [..] u8?, str: string, comparisonType = ComparisonType.Latin1)->bool
 {
     let length = src.count
-    if !length do
+    if not length do
         return false
     let countof = str.count
     if countof > length do
@@ -1205,7 +1205,7 @@ func startsWith(src: const [..] u8?, str: string, comparisonType = ComparisonTyp
 func endsWith(src: const [..] u8, str: string, comparisonType = ComparisonType.Latin1)->bool
 {
     let length = src.count
-    if !length do
+    if not length do
         return false
     let countof = str.count
     if countof > length do
@@ -1218,7 +1218,7 @@ func endsWith(src: const [..] u8, str: string, comparisonType = ComparisonType.L
 func firstRune(src: const [..] u8)->rune
 {
     let countof = src.count
-    if !countof do
+    if not countof do
         return 0
     let dataof = src.buffer!
     if Latin1.isAscii(dataof[0]) do
@@ -1231,7 +1231,7 @@ func firstRune(src: const [..] u8)->rune
 func lastRune(src: const [..] u8)->rune
 {
     let countof = src.count
-    if !countof do
+    if not countof do
         return 0
     let dataof = src.buffer!
     if Latin1.isAscii(dataof[countof - 1]) do
@@ -1296,9 +1296,9 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
             otherData   += eat2
         }
 
-        if !eat1 and eat2 do
+        if not eat1 and eat2 do
             return -1
-        if eat1 and !eat2 do
+        if eat1 and not eat2 do
             return 1
         return 0
     }
@@ -1315,7 +1315,7 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
 func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteIdx: u64))
 {
     var count = buffer.count
-    if !count do
+    if not count do
         return
 
     var curByteIdx = 0'u64
@@ -1323,7 +1323,7 @@ func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteId
     var scan       = buffer.buffer
     while count
     {
-        let sl             = Swag.makeSlice(scan, count)
+        let sl = Swag.makeSlice(scan, count)
         let {curRune, eat} = decodeRune(sl)
         if eat == 0 do
             break
@@ -1344,7 +1344,7 @@ func isValid(buffer: const [..] u8)->bool
 {
     var p       = buffer.buffer
     var countof = buffer.count
-    if !countof do
+    if not countof do
         return true
 
     // Quick zap ascii characters
@@ -1381,7 +1381,7 @@ func isValid(buffer: const [..] u8)->bool
         let accept = AcceptRanges[x >> 4]
 
         let b1 = p[1]
-        if !(accept.lo <= b1 and b1 <= accept.hi) do
+        if not (accept.lo <= b1 and b1 <= accept.hi) do
             return false
         if sz <= 2
         {
@@ -1391,7 +1391,7 @@ func isValid(buffer: const [..] u8)->bool
         }
 
         let b2 = p[2]
-        if !(LoCB <= b2 and b2 <= HiCB) do
+        if not (LoCB <= b2 and b2 <= HiCB) do
             return false
         if sz <= 3
         {
@@ -1401,7 +1401,7 @@ func isValid(buffer: const [..] u8)->bool
         }
 
         let b3 = p[3]
-        if !(LoCB <= b3 and b3 <= HiCB) do
+        if not (LoCB <= b3 and b3 <= HiCB) do
             return false
         p       += 4
         countof -= 4
@@ -1421,7 +1421,7 @@ func beautifyName(name: const [..] u8)->String
     {
         if Unicode.isUpper(c)
         {
-            if !wasUpper
+            if not wasUpper
             {
                 wasUpper = true
                 result   += " "

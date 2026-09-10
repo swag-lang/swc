@@ -64,7 +64,7 @@ func readF2Dot14(buffer: const [..] u8?, offset: u64)->f64 fail
 
 func roundDiv(value, divisor: s64)->s32
 {
-    if !divisor do
+    if not divisor do
         return 0
     if value >= 0 do
         return cast(s32) ((value + divisor / 2) / divisor)

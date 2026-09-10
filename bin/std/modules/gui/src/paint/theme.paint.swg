@@ -68,7 +68,7 @@ impl Theme
     // rasterized that many times larger, as the theme atlas is on a scaled display.
     func drawSubRect(painter: *Painter, texture: Texture, dstRect: Math.Rectangle, subRect: *ThemeImageRect?, color: Color, center = true, interpol = InterpolationMode.Linear, srcScale = 1'f32)
     {
-        if !subRect or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0 do
+        if not subRect or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0 do
             return
 
         var k = srcScale
@@ -189,7 +189,7 @@ impl Theme
     func drawIconText(painter: *Painter, position: Math.Rectangle, icon: Icon, name: *RichString, stringFormat: RichStringFormat, iconMargin = 4'f32)
     {
         let count = (name[]).count
-        if count == 0 and !icon.isValid() do
+        if count == 0 and not icon.isValid() do
             return
 
         var pos       = position

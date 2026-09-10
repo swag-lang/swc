@@ -37,21 +37,21 @@ using Swag, Core
     let trash = Library.getTrashFolder()
 
     let u1 = Library.uniqueName(trash, src)
-    Swag.assert(!File.exists(u1))
+    Swag.assert(not File.exists(u1))
 
     let moved = Library.moveFile(trash, src)
-    Swag.assert(!moved.isEmpty())
-    Swag.assert(!File.exists(src))
+    Swag.assert(not moved.isEmpty())
+    Swag.assert(not File.exists(src))
     Swag.assert(File.exists(moved))
 
     let u2 = Library.uniqueName(trash, moved)
     Swag.assert(u2 != moved)
-    Swag.assert(!File.exists(u2))
+    Swag.assert(not File.exists(u2))
 
     // Restore brings the capture back into the library folder.
     let restored = Library.restoreFile(moved)
-    Swag.assert(!restored.isEmpty())
-    Swag.assert(!File.exists(moved))
+    Swag.assert(not restored.isEmpty())
+    Swag.assert(not File.exists(moved))
     Swag.assert(File.exists(restored))
 
     discard catch File.delete(restored)
@@ -67,7 +67,7 @@ using Swag, Core
     let cap = Memory.new'Capture()
     cap.width, cap.widthOrg   = 8
     cap.height, cap.heightOrg = 6
-    cap.backImg               = Gui.Testing.indexedImage(8, 6)
+    cap.backImg = Gui.Testing.indexedImage(8, 6)
     let path = testTempCapturePath()
     defer discard catch File.delete(path)
     cap.file    = path
@@ -94,7 +94,7 @@ using Swag, Core
     let cap = Memory.new'Capture()
     cap.width, cap.widthOrg   = 20
     cap.height, cap.heightOrg = 14
-    cap.backImg               = Gui.Testing.indexedImage(20, 14)
+    cap.backImg = Gui.Testing.indexedImage(20, 14)
     let path = testTempCapturePath()
     defer discard catch File.delete(path)
     cap.file    = path
@@ -164,7 +164,7 @@ using Swag, Core
     lib.fillBreadcrumbMenu(lib.breadcrumb, idx, menu)
 
     // Its recycle bin sub-folder is listed, with its path preserved in owned storage.
-    Swag.assert(!lib.menuPaths.isEmpty())
+    Swag.assert(not lib.menuPaths.isEmpty())
     var foundTrash = false
     for p in lib.menuPaths
     {
@@ -191,7 +191,7 @@ using Swag, Core
     let cap = Memory.new'Capture()
     cap.width, cap.widthOrg   = 8
     cap.height, cap.heightOrg = 6
-    cap.backImg               = Gui.Testing.indexedImage(8, 6)
+    cap.backImg = Gui.Testing.indexedImage(8, 6)
     let path = testTempCapturePath()
     defer discard catch File.delete(path)
     cap.file    = path
@@ -205,7 +205,7 @@ using Swag, Core
     view.loadOne(it)
 
     let itCapture = it.capture!
-    Swag.assert(!itCapture.preview.isValid())
+    Swag.assert(not itCapture.preview.isValid())
     Swag.assert(itCapture.haar.size == 0)
 }
 
@@ -221,7 +221,7 @@ using Swag, Core
     let capture = Memory.new'Capture()
     capture.width, capture.widthOrg   = 24
     capture.height, capture.heightOrg = 16
-    capture.backImg                   = Gui.Testing.indexedImage(24, 16)
+    capture.backImg = Gui.Testing.indexedImage(24, 16)
     let source = testTempCapturePath()
     capture.file    = source
     capture.changed = true

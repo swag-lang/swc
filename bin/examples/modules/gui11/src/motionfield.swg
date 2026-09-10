@@ -32,7 +32,7 @@ impl MotionField
     {
         let result = Wnd.create'MotionField(parent, {})
         result.backgroundStyle = .Transparent
-        result.cursor          = Cursor.from(CursorShape.Hand)
+        result.cursor = Cursor.from(CursorShape.Hand)
         return result
     }
 
@@ -149,7 +149,7 @@ impl IWnd for MotionField
         painter.fillCircle(.puck.x, .puck.y, PuckSize + 5, colors.hilight.withAlphaF32(0.16))
         painter.fillCircle(.puck.x, .puck.y, PuckSize, colors.hilight)
 
-        if !.hasGoal
+        if not .hasGoal
         {
             let font = .theme().createDefaultFont(14)
             let text = "Click anywhere. Click again before it lands."

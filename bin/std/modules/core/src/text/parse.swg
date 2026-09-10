@@ -11,14 +11,14 @@ func parseX64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
     var result: retval
 
     let countof = str.count
-    if !countof do
+    if not countof do
         fail SyntaxError{}
 
     var buffer = str.buffer
     var cpt    = 0'u32
     var value  = 0'u64
 
-    if !Latin1.isHexDigit(buffer[]) do
+    if not Latin1.isHexDigit(buffer[]) do
         fail SyntaxError{}
     while cpt < countof and Latin1.isHexDigit(buffer[])
     {
@@ -54,14 +54,14 @@ func parseB64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
     var result: retval
 
     let countof = str.count
-    if !countof do
+    if not countof do
         fail SyntaxError{}
 
     var buffer = str.buffer
     var cpt    = 0'u32
     var value  = 0'u64
 
-    if !Latin1.isBinDigit(buffer[]) do
+    if not Latin1.isBinDigit(buffer[]) do
         fail SyntaxError{}
     while cpt < countof and Latin1.isBinDigit(buffer[])
     {
@@ -118,7 +118,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
     var result: retval
 
     let countof = str.count
-    if !countof do
+    if not countof do
         fail SyntaxError{}
 
     // Detect 0x for hexa, 0b for binary
@@ -146,7 +146,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
     var cpt    = 0'u32
     var value  = 0'u64
 
-    if !Latin1.isDigit(buffer[]) do
+    if not Latin1.isDigit(buffer[]) do
         fail SyntaxError{}
     while cpt < countof and Latin1.isDigit(buffer[])
     {
@@ -159,7 +159,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         else do
             value = value1
 
-        if !result.ovf
+        if not result.ovf
         {
             let add = cast(u64) (buffer[] - '0'u8)
             if value + #wrap add < value
@@ -220,7 +220,7 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
     var result: retval
 
     let countof = str.count
-    if !countof do
+    if not countof do
         fail SyntaxError{}
 
     var buffer = str.buffer
@@ -236,18 +236,18 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
         buffer, cpt += 1
         signed      = true
         maxValue    += 1
-        if !Latin1.isDigit(buffer[]) and cpt == countof do
+        if not Latin1.isDigit(buffer[]) and cpt == countof do
             fail ParseIncompleteError{}
     }
     elif c == g_CultureInfo.numberFormat.positiveSign
     {
         buffer, cpt += 1
-        if !Latin1.isDigit(buffer[]) and cpt == countof do
+        if not Latin1.isDigit(buffer[]) and cpt == countof do
             fail ParseIncompleteError{}
     }
 
     // Parse the rest
-    if !Latin1.isDigit(buffer[]) do
+    if not Latin1.isDigit(buffer[]) do
         fail SyntaxError{}
     while cpt < countof and Latin1.isDigit(buffer[])
     {
@@ -260,7 +260,7 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
         else do
             value = value1
 
-        if !result.ovf
+        if not result.ovf
         {
             let toAdd = cast(u64) (buffer[] - '0'u8)
             if value + toAdd > maxValue
@@ -275,7 +275,7 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
         buffer, cpt += 1
     }
 
-    if !result.ovf
+    if not result.ovf
     {
         if signed
         {
@@ -298,7 +298,7 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
 func parseF32(str: string)->{ value: f32, eat: u32, ovf: bool } fail
 {
     let {res, eat, ovf} = try parseF64(str)
-    var absRes          = res
+    var absRes = res
     if absRes < 0 do
         absRes = -absRes
 
@@ -347,7 +347,7 @@ func parseBool(str: string)->{ value: bool, eat: u32 } fail
 func parseRune(str: string)->{ value: rune, eat: u32 } fail
 {
     let countof = str.count
-    if !countof do
+    if not countof do
         fail SyntaxError{}
     return Utf8.decodeRune(str)
 }
@@ -356,10 +356,10 @@ func parseRune(str: string)->{ value: rune, eat: u32 } fail
 func parseIdentifier(str: string)->string? fail
 {
     let countof = str.count
-    if !countof do
+    if not countof do
         fail SyntaxError{}
 
-    if str[0] != '_'u8 and !Latin1.isLetter(str[0]) do
+    if str[0] != '_'u8 and not Latin1.isLetter(str[0]) do
         fail SyntaxError{}
 
     var cpt = 1'u64
@@ -373,7 +373,7 @@ func parseIdentifier(str: string)->string? fail
 func parseString(result: *String, str: string)->u32 fail
 {
     let countof = str.count
-    if !countof do
+    if not countof do
         fail SyntaxError{}
 
     result.clear()

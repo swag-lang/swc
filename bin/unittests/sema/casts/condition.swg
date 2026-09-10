@@ -3,24 +3,24 @@
 func semaTest001()
 {
     var a: *s32?
-    if !a {}
+    if not a {}
     var b: string?
-    if !b {}
+    if not b {}
     var c: [..] s32?
-    if !c {}
+    if not c {}
     var d: [*] bool?
-    if !d {}
+    if not d {}
     var e: (func())?
-    if !e {}
+    if not e {}
     var f: typeinfo?
-    if !f {}
+    if not f {}
 }
 
 func semaTest002()
 {
     var a: *s32?
     var b: *s32?
-    if !a or !b {}
+    if not a or not b {}
 }
 
 const A = ""
@@ -36,15 +36,15 @@ func semaTest004()
     var a: *s32?
     var b: *s32?
 
-    Swag.assert(!a or !b)
+    Swag.assert(not a or not b)
 
     var ax: s32
     a = &ax
-    Swag.assert(!a or !b)
+    Swag.assert(not a or not b)
 
     var bx: s32
     b = &bx
-    Swag.assert((!a or !b) == false)
+    Swag.assert((not a or not b) == false)
 }
 
 func semaTest005()
@@ -52,12 +52,12 @@ func semaTest005()
     var a: s32
 
     Swag.assert((a and a) == false)
-    Swag.assert(a or !a)
+    Swag.assert(a or not a)
     Swag.assert((a or a) == false)
 
     a = 1
     Swag.assert(a and a)
-    Swag.assert(a or !a)
+    Swag.assert(a or not a)
     Swag.assert(a or a)
 }
 
@@ -66,23 +66,23 @@ func semaTest006()
     var a: *s32?
 
     Swag.assert((a and a) == false)
-    Swag.assert(a or !a)
+    Swag.assert(a or not a)
     Swag.assert((a or a) == false)
 
     var ax: s32
     a = &ax
     Swag.assert(a and a)
-    Swag.assert(a or !a)
+    Swag.assert(a or not a)
     Swag.assert(a or a)
 }
 
 func semaTest007()
 {
     var s: string?
-    Swag.assert(!s)
+    Swag.assert(not s)
 
     s = "abc"
-    Swag.assert(!s == false)
+    Swag.assert(not s == false)
 }
 
 // A slice answers a condition with its data pointer, so only a '?' slice asks a question.
@@ -90,8 +90,8 @@ func semaTest008()
 {
     var a: [2] s32
     var s: [..] s32? = a
-    Swag.assert(!s == false)
+    Swag.assert(not s == false)
 
     s = null
-    Swag.assert(!s)
+    Swag.assert(not s)
 }

@@ -45,7 +45,7 @@ namespace WinFsp
                     .volumeOpen = false
                 }
 
-                if .volume.dirty and !.volume.readOnly do
+                if .volume.dirty and not .volume.readOnly do
                     .volume.commit()
             }
         }

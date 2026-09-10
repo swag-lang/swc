@@ -48,7 +48,7 @@ const G_Extent = Extent{width: 4, height: 2}
 {
     let local = Extent{width: 3, height: 5}
     Swag.assert(local.area() == 15)
-    Swag.assert(!local.isWide())
+    Swag.assert(not local.isWide())
 }
 
 #test

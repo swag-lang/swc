@@ -5,7 +5,7 @@ public impl Image
     // Fill image with 'color'
     mtd fill(color: Color)
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
 
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied

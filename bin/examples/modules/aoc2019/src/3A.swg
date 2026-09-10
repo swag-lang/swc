@@ -146,7 +146,7 @@ func day3A1()
         for j in t0.count - 1
         {
             let {intersects, point} = Geometry.intersectSegments(t1[i], t1[i + 1], t0[j], t0[j + 1])
-            if intersects and !point.isZero()
+            if intersects and not point.isZero()
             {
                 let d = Math.abs(point.x) + Math.abs(point.y)
                 best = Math.min(best, cast(s32) d)

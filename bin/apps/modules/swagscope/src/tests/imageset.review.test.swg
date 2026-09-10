@@ -32,7 +32,7 @@ using Core, Pixel, Gui
     Swag.assert(movie.frameIndex == 32 and movie.failureReason.isEmpty())
     Swag.assert(Memory.compare(first.pixels.buffer, movie.frame.pixels.buffer, first.byteCount) != 0)
     discard host.render(&host.root)
-    Swag.assert(movie.frameIndex == 0 and !movie.isPaused)
+    Swag.assert(movie.frameIndex == 0 and not movie.isPaused)
     view.imageView.setPaused(true)
     view.dockStyle = .Center
     session.commands!.hide()

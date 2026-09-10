@@ -72,7 +72,7 @@ func createBtn(str: string, x, y: s32)
 
         switch str
         {
-        case "=":                btn.style.addStyleSheetColors("btnPush_Bk 0xFF880000")
+        case "=": btn.style.addStyleSheetColors("btnPush_Bk 0xFF880000")
         case "+", "-", Mul, Div: btn.style.addStyleSheetColors("btnPush_Bk 0xFF008800")
         }
     }

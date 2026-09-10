@@ -10,7 +10,7 @@ struct KeyFileField
 {
     using wnd: Wnd
 
-        late
+    late
     {
         files:    *ComboBox
         add:      *IconButton
@@ -43,7 +43,7 @@ impl IWnd for KeyFileField
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if !(.remove != null) do
+        if not (.remove != null) do
             return
         let room = .clientRect()
         let gap  = .themeMetrics().dialog_BtnPadding
@@ -52,7 +52,7 @@ impl IWnd for KeyFileField
         var right = room.right()
         for button in [cast(*Wnd) .remove, cast(*Wnd) .generate, cast(*Wnd) .add]
         {
-            if !button.isVisible() do
+            if not button.isVisible() do
                 continue
             right -= cell
             button.arrange({right, room.y, cell, cell})
@@ -110,8 +110,8 @@ private impl KeyFileField
     mtd chooseExisting()
     {
         var options: FileDlgOptions
-        options.mode              = .SelectFiles
-        options.title             = appStrings().dlg_TitleKeyFiles
+        options.mode  = .SelectFiles
+        options.title = appStrings().dlg_TitleKeyFiles
         options.confirmButtonText = appStrings().dlg_BtnAdd
         options.shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
         options.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
@@ -187,7 +187,7 @@ impl KeyFileField
             }
         }
 
-        if !canGenerate do
+        if not canGenerate do
             result.generate.hide()
 
         with result.remove = IconButton.create(result, result.theme().icon(.Remove, themeRowIconSize(result.themeMetrics())), flags: .IconOnly)

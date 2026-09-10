@@ -77,14 +77,14 @@ func day7A()
             var bad = false
             for c in v.prev
             {
-                if !Utf8.contains(result.toSlice(), cast(rune) c)
+                if not Utf8.contains(result.toSlice(), cast(rune) c)
                 {
                     bad = true
                     break
                 }
             }
 
-            if !bad and k < first do
+            if not bad and k < first do
                 first = k
         }
     }

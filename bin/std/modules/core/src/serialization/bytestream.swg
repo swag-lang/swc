@@ -86,7 +86,7 @@ public impl ByteStream
         Swag.assert(.writeBuffer != null)
 
         let count = slice.count
-        if !count do
+        if not count do
             return
 
         let wb = .writeBuffer!

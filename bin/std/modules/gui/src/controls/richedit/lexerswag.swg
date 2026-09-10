@@ -123,6 +123,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("and", State.Control)
         .mapWords.add("or", State.Control)
         .mapWords.add("orelse", State.Control)
+        .mapWords.add("not", State.Control)
         .mapWords.add("to", State.Control)
         .mapWords.add("until", State.Control)
         .mapWords.add("in", State.Control)
@@ -486,7 +487,7 @@ impl IRichEditLexer for RichEditLexerSwag
 
     mtd impl compute(linePrev: *RichEditLine?, line: *RichEditLine, lineNext: *RichEditLine?)
     {
-        var seek                = 0'u64
+        var seek = 0'u64
         var currentState: State = linePrev ? cast(State) linePrev.lexerEndingState : State.Default
         var currentCptCmt       = linePrev ? linePrev.lexerCptCmt : 0
 
@@ -501,7 +502,7 @@ impl IRichEditLexer for RichEditLexerSwag
         #[Swag.Mixin]
         func getNext()->rune
         {
-            if !line.chars.count do
+            if not line.chars.count do
                 return 0
             if seek >= line.chars.count - 1 do
                 return 0
@@ -514,14 +515,14 @@ impl IRichEditLexer for RichEditLexerSwag
             if seek >= line.chars.count do
                 return
             line.styles[seek] = cast(RichEditStyleRef) .mapStyles[currentState]
-            seek              += 1
+            seek += 1
         }
 
         for
         {
             var c  = getCur()
             let cn = getNext()
-            if !c
+            if not c
             {
                 switch currentState
                 {
@@ -558,7 +559,7 @@ impl IRichEditLexer for RichEditLexerSwag
                     continue
                 }
 
-                if !Unicode.isLatin1(c) or !Latin1.isHexDigit(cast(u8) c)
+                if not Unicode.isLatin1(c) or not Latin1.isHexDigit(cast(u8) c)
                 {
                     currentState = State.Default
                     .seekNext()
@@ -596,7 +597,7 @@ impl IRichEditLexer for RichEditLexerSwag
                     continue
                 }
 
-                if !Unicode.isNumber(c) and c != '.'
+                if not Unicode.isNumber(c) and c != '.'
                 {
                     currentState = State.Default
                     .seekNext()
@@ -653,7 +654,7 @@ impl IRichEditLexer for RichEditLexerSwag
                     .seekNext()
                     if currentCptCmt do
                         currentCptCmt -= 1
-                    if !currentCptCmt do
+                    if not currentCptCmt do
                         currentState = State.Default
                     continue
                 }
@@ -667,7 +668,7 @@ impl IRichEditLexer for RichEditLexerSwag
                 }
 
             case State.Attribute:
-                if c == 'S' and seek + 4 < line.chars.count and line.chars[seek + 1] == 'w' and line.chars[seek + 2] == 'a' and line.chars[seek + 3] == 'g' and line.chars[seek + 4] == '.' and (seek == 0 or (!Unicode.isLetterOrDigit(line.chars[seek - 1]) and line.chars[seek - 1] != '_'))
+                if c == 'S' and seek + 4 < line.chars.count and line.chars[seek + 1] == 'w' and line.chars[seek + 2] == 'a' and line.chars[seek + 3] == 'g' and line.chars[seek + 4] == '.' and (seek == 0 or (not Unicode.isLetterOrDigit(line.chars[seek - 1]) and line.chars[seek - 1] != '_'))
                 {
                     currentState = State.Namespace
                     for 4 do
@@ -719,7 +720,7 @@ impl IRichEditLexer for RichEditLexerSwag
 
                     if word == "opVisit" do
                         currentState = State.FunctionSpecOp
-                    elif !word.isEmpty()
+                    elif not word.isEmpty()
                     {
                         let res = .mapWords.tryFind(word.toString())
                         if res do

@@ -91,7 +91,7 @@ func midiTestFixture()->String
     viewer.trackCombo.setSelectedIndex(0)
     let fitZoom = viewer.roll.zoom
     viewer.roll.zoomIn()
-    Swag.assert(!viewer.roll.fit and viewer.roll.zoom > fitZoom)
+    Swag.assert(not viewer.roll.fit and viewer.roll.zoom > fitZoom)
     viewer.roll.zoomToFit()
 
     host.root.applyLayout()
@@ -123,5 +123,5 @@ func midiTestFixture()->String
     Swag.assert(result.view != null and result.commands != null)
     let viewer = cast(*MidiViewer) result.view!
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
-    Swag.assert(!viewer.failureReason.isEmpty())
+    Swag.assert(not viewer.failureReason.isEmpty())
 }

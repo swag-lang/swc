@@ -26,7 +26,7 @@ impl AstGeneratedBuilder
 {
     mtd opDrop()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         for i in .length do
@@ -36,7 +36,7 @@ impl AstGeneratedBuilder
 
     mtd append(value: string)
     {
-        if !.buffer
+        if not .buffer
         {
             .capacity = 128
             .buffer   = cast([*] u8?) testAlloc(.capacity)

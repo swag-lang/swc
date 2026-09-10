@@ -157,7 +157,7 @@ impl IWnd for Tab
         case .Flat:
             if idx == .selectedIndex
             {
-                if !railed
+                if not railed
                 {
                     subRect  = &rects.tabItem_FlatSelected
                     colorImg = colors.tabItem_FlatSelected
@@ -324,7 +324,7 @@ impl IWnd for Tab
         theme.drawSubRect(painter, clientRect, subRect, colorBk)
 
         // Paint all except selected one, which will be painted last
-        if !.items.isEmpty()
+        if not .items.isEmpty()
         {
             clientRect = .itemBarRect()
             for idx in .firstVisibleIndex until cast(u32) .items.count
@@ -355,7 +355,7 @@ impl IWnd for Tab
         .ensureVisible(.selectedIndex)
 
         let railChannel = AnimationChannel.from("Gui.Tab.SelectionRail")
-        if !.app().animator.isActive(me, railChannel)
+        if not .app().animator.isActive(me, railChannel)
         {
             .selectionRail    = .selectionRailRect(.selectedIndex)
             .hasSelectionRail = true
@@ -581,7 +581,7 @@ private impl Tab
         if .mostRightPos > barRect.right()
         {
             // Create a button if there are too many items for the given size
-            if !.buttonPopup
+            if not .buttonPopup
             {
                 let btnPopup = IconButton.create(me, .theme().icon(ThemeIcons.ChevronDown, metrics.tabBar_PopupButtonGlyph), {})
                 .buttonPopup = btnPopup
@@ -707,7 +707,7 @@ impl Tab
     mtd setPageTransitions(enabled: bool)
     {
         .pageTransitions = enabled
-        if !enabled and .selectedIndex < .items.count
+        if not enabled and .selectedIndex < .items.count
         {
             let view = .items[.selectedIndex]!.view
             if view
@@ -843,7 +843,7 @@ impl Tab
 
         .ensureVisible(index)
         let destination = .selectionRailRect(index)
-        if !.hasSelectionRail
+        if not .hasSelectionRail
         {
             .selectionRail    = oldIndex < .items.count ? .selectionRailRect(oldIndex) : destination
             .hasSelectionRail = true

@@ -53,7 +53,7 @@ private func readAdtsHeader(bytes: const [..] u8)->AdtsHeader fail
     result.sampleRate = AdtsRates[cast(u64) result.rateIndex]
 
     result.channelIndex = (cast(u32) (bytes[2] & 1) << 2) | (cast(u32) (bytes[3] >> 6) & 3)
-    if !result.channelIndex or result.channelIndex > 7 do
+    if not result.channelIndex or result.channelIndex > 7 do
         fail UnsupportedFormatError{"ADTS frame states a channel configuration this reader does not carry"}
 
     // Configuration seven is 7.1, whose eighth channel is the low frequency effects one.
@@ -105,7 +105,7 @@ internal func openFile(path: string)->SoundFile fail
         if at + header.frameBytes > size do
             break
 
-        if !packets.count
+        if not packets.count
         {
             rate     = header.sampleRate
             channels = header.channels
@@ -122,14 +122,14 @@ internal func openFile(path: string)->SoundFile fail
         // The transport header belongs to the file, not to the access unit: the codec is handed
         // the raw audio the same way a container hands it over.
         let payload = header.frameBytes - header.headerBytes
-        if !payload do
+        if not payload do
             fail InvalidFormatError{"ADTS frame carries no audio"}
         packets.add({at + header.headerBytes, cast(u32) payload, header.blocks * 1024})
         frames += cast(u64) header.blocks * 1024
         at     += header.frameBytes
     }
 
-    if !packets.count do
+    if not packets.count do
         fail InvalidFormatError{"file carries no ADTS frame"}
 
     source.close()

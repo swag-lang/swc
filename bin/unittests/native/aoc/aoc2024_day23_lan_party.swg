@@ -78,14 +78,14 @@ impl Graph
         let adj = me .adj!
         adj[a * MaxNodes + b] = true
         adj[b * MaxNodes + a] = true
-        if !me.nodeUsed[a]
+        if not me.nodeUsed[a]
         {
             me.nodeUsed[a]        = true
             me.names[me.count][0] = cast(u8) (a / 26) + 'a'
             me.names[me.count][1] = cast(u8) (a % 26) + 'a'
             me.count              += 1
         }
-        if !me.nodeUsed[b]
+        if not me.nodeUsed[b]
         {
             me.nodeUsed[b]        = true
             me.names[me.count][0] = cast(u8) (b / 26) + 'a'
@@ -164,12 +164,12 @@ func countTrianglesWithT(g: *Graph)->u64
         for jj in ii + 1 until nn
         {
             let j = nodes[jj]
-            if !g.edge(i, j) do continue
+            if not g.edge(i, j) do continue
             if jj + 1 >= nn do continue
             for kk in jj + 1 until nn
             {
                 let k = nodes[kk]
-                if !g.edge(i, k) or !g.edge(j, k) do continue
+                if not g.edge(i, k) or not g.edge(j, k) do continue
 
                 // At least one starts with 't'
                 if g.startsWithT(i) or g.startsWithT(j) or g.startsWithT(k)
@@ -228,7 +228,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
 
         // Add v to current clique
         state.current[state.curSize] = v
-        state.curSize                += 1
+        state.curSize += 1
 
         // New candidates = candidates ∩ neighbors(v)
         let newCand = cast([*] u32) (testAlloc(cast(u64) candCount * #sizeof(u32)))!
@@ -238,7 +238,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
             if g.edge(v, candidates[i])
             {
                 newCand[newCandCount] = candidates[i]
-                newCandCount          += 1
+                newCandCount += 1
             }
         }
 
@@ -250,7 +250,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
             if g.edge(v, excluded[i])
             {
                 newExcl[newExclCount] = excluded[i]
-                newExclCount          += 1
+                newExclCount += 1
             }
         }
 
@@ -383,7 +383,7 @@ func solve(text: string)->SolveResult
 
     // non-edge
     let de = nameToIdx('d', 'e')
-    Swag.assert(!g.edge(kh, de))
+    Swag.assert(not g.edge(kh, de))
 }
 
 // startsWithT inline
@@ -393,7 +393,7 @@ func solve(text: string)->SolveResult
     defer graphFree(&g)
     Swag.assert(g.startsWithT(nameToIdx('t', 'c')))
     Swag.assert(g.startsWithT(nameToIdx('t', 'a')))
-    Swag.assert(!g.startsWithT(nameToIdx('k', 'h')))
+    Swag.assert(not g.startsWithT(nameToIdx('k', 'h')))
 }
 
 // Minimal triangle test
@@ -438,7 +438,7 @@ func solve(text: string)->SolveResult
         for jj in ii + 1 until nn
         {
             let j = nodes[jj]
-            if !g.edge(i, j) do continue
+            if not g.edge(i, j) do continue
             if jj + 1 >= nn do continue
             for kk in jj + 1 until nn
             {

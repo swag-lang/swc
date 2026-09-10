@@ -31,10 +31,10 @@ const SurfaceId   = "swag.vault"
     // Persisted non-sensitive preferences. A failure to prepare the folder only
     // costs the memory between runs, never the application start.
     let stateRoot = Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag")
-    if !Directory.exists(stateRoot) do
+    if not Directory.exists(stateRoot) do
         discard catch Directory.create(stateRoot)
     let stateFolder = Path.combine(stateRoot, "vault")
-    if !Directory.exists(stateFolder) do
+    if not Directory.exists(stateFolder) do
         discard catch Directory.create(stateFolder)
     if Directory.exists(stateFolder)
     {

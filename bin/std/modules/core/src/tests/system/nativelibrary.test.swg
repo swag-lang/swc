@@ -10,7 +10,7 @@
     Swag.assert(library.symbol("MissingSymbolThatDoesNotExist") == null)
 
     library.close()
-    Swag.assert(!library.isOpen())
+    Swag.assert(not library.isOpen())
     Swag.assert(library.symbol("GetCurrentProcessId") == null)
 
     // Cleanup is idempotent so an early explicit close and the owner drop compose safely.

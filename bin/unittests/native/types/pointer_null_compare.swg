@@ -31,12 +31,12 @@ func isDetached(parent: *Wnd)->bool
     var w: Wnd
     w.x = 3
     Swag.assert(isAttached(&w))
-    Swag.assert(!isDetached(&w))
+    Swag.assert(not isDetached(&w))
 
     // The pointee's opEquals still answers value questions.
     var o: Wnd
     o.x = 3
     Swag.assert(w == o)
     o.x = 4
-    Swag.assert(!(w == o))
+    Swag.assert(not (w == o))
 }

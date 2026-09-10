@@ -29,10 +29,10 @@ internal func openElementaryStream(path: string)->SoundFile fail
         try source.seek(at)
         let probe = try source.peek(Math.min(HeaderBytes, size - at))
         let info  = try frameInfo(probe)
-        if !info.frameBytes or at + info.frameBytes > size do
+        if not info.frameBytes or at + info.frameBytes > size do
             break
 
-        if !packets.count
+        if not packets.count
         {
             rate     = info.sampleRate
             channels = info.channels
@@ -50,7 +50,7 @@ internal func openElementaryStream(path: string)->SoundFile fail
         at     += info.frameBytes
     }
 
-    if !packets.count do
+    if not packets.count do
         fail InvalidFormatError{"file carries no DTS core frame"}
     if at != size do
         fail InvalidFormatError{"DTS elementary stream ends between core frames"}

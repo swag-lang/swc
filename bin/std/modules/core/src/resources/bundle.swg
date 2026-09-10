@@ -125,18 +125,18 @@ impl Bundle
             for file in files
             {
                 let name = relativeResourceName(folder.toString(), file.fullname.toString())
-                if !Utf8.startsWith(name.toString(), prefix) do
+                if not Utf8.startsWith(name.toString(), prefix) do
                     continue
-                if !result.contains(name) do
+                if not result.contains(name) do
                     result.add(name)
             }
         }
 
         for entry in .embedded
         {
-            if !Utf8.startsWith(entry.name.toString(), prefix) do
+            if not Utf8.startsWith(entry.name.toString(), prefix) do
                 continue
-            if !result.contains(entry.name) do
+            if not result.contains(entry.name) do
                 result.add(entry.name)
         }
 

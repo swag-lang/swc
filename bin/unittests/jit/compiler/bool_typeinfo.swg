@@ -20,5 +20,5 @@ using Swag
     Swag.assert(selected == 10)
 
     arrayType = null
-    Swag.assert(!arrayType)
+    Swag.assert(not arrayType)
 }

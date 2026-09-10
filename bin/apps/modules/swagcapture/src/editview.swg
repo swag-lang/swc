@@ -17,7 +17,7 @@ impl IWnd for EditView
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         evt.accepted = false
-        if !.capture do
+        if not .capture do
             return
 
         if .capture.mouse(me, evt)
@@ -30,7 +30,7 @@ impl IWnd for EditView
 
         switch evt.kind
         {
-        case .Wheel where !.inPlaceEdit:
+        case .Wheel where not .inPlaceEdit:
             if evt.modifiers & .Control
             {
                 evt.accepted = true
@@ -58,7 +58,7 @@ impl IWnd for EditView
         let radius = .themeRects().panel_Bk.radius
         painter.setAntialiased(true)
         painter.fillRoundRect(rect, radius, radius, matte)
-        if !.capture do
+        if not .capture do
             return
 
         // Dim the matte as one rounded surface, then paint the opaque capture back over its
@@ -172,8 +172,8 @@ impl EditView
         .invalidate()
     }
 
-    mtd canZoomIn()  => !.inPlaceEdit and !Math.isEqualEpsilon(.zoom, MaxZoom, 0.001)
-    mtd canZoomOut() => !.inPlaceEdit and !Math.isEqualEpsilon(.zoom, MinZoom, 0.001)
+    mtd canZoomIn()  => not .inPlaceEdit and not Math.isEqualEpsilon(.zoom, MaxZoom, 0.001)
+    mtd canZoomOut() => not .inPlaceEdit and not Math.isEqualEpsilon(.zoom, MinZoom, 0.001)
 
     mtd zoomIn()
     {
@@ -187,7 +187,7 @@ impl EditView
 
     mtd zoomToFit(canZoom = true)
     {
-        if .inPlaceEdit or !.capture do
+        if .inPlaceEdit or not .capture do
             return
 
         // A degenerate (zero-sized) capture would divide by zero below.
@@ -199,7 +199,7 @@ impl EditView
         var zx = rect.width / .capture.width
         var zy = rect.height / .capture.height
 
-        if !canZoom
+        if not canZoom
         {
             zx = Math.min(zx, 1)
             zy = Math.min(zy, 1)

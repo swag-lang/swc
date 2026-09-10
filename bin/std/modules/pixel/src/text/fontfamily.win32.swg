@@ -27,7 +27,7 @@ impl FontFamily
     func enumSubFamily(fa: const *LOGFONTW, _tm: const *TEXTMETRICW, _fontType: DWORD, lParam: LPARAM)->BOOL
     {
         let len = Utf16.lengthUntilZero(fa.lfFaceName)
-        if !len do
+        if not len do
             return TRUE
         let x = Utf8.fromUtf16(Swag.makeSlice(&fa.lfFaceName[0], len))
 
@@ -54,7 +54,7 @@ impl FontFamily
         if fontType & TRUETYPE_FONTTYPE
         {
             let len = Utf16.lengthUntilZero(fa.lfFaceName)
-            if !len do
+            if not len do
                 return TRUE
             let x = Utf8.fromUtf16(Swag.makeSlice(&fa.lfFaceName[0], len))
 
@@ -157,7 +157,7 @@ impl FontFamily
             for i in FontFamilyStyle.count
             {
                 logFont = fontFamily.faces[i]
-                if !logFont.name.isEmpty() do
+                if not logFont.name.isEmpty() do
                     break
             }
 
@@ -171,9 +171,9 @@ impl FontFamily
         let fontName = Format.toString("%_%", logFont.name, cast(u32) style)
         let typeFace = try TypeFace.createFromHfont(fontName, hf)
 
-        if (style == .Italic or style == .BoldItalic) and !typeFace.isItalic() do
+        if (style == .Italic or style == .BoldItalic) and not typeFace.isItalic() do
             typeFace.forceItalic = true
-        if (style == .Bold or style == .BoldItalic) and !typeFace.isBold() do
+        if (style == .Bold or style == .BoldItalic) and not typeFace.isBold() do
             typeFace.forceBold = true
 
         return typeFace

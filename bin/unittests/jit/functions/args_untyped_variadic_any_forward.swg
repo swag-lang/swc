@@ -136,15 +136,15 @@ func variadicFirstAnyDataS32(values: ...)->s32
     func variadicDynamicIndexedAnyToAny(values: ...)->bool
     {
         var index: u64 = 0
-        if !anyIsS32(values[index]) do
+        if not anyIsS32(values[index]) do
             return false
 
         index += 1
-        if !anyIsString(values[index]) do
+        if not anyIsString(values[index]) do
             return false
 
         index += 1
-        if !anyIsBox(values[index]) do
+        if not anyIsBox(values[index]) do
             return false
 
         return true
@@ -161,11 +161,11 @@ func variadicFirstAnyDataS32(values: ...)->s32
     {
         for value, index in values
         {
-            if index == 0 and !anyIsS32(value) do
+            if index == 0 and not anyIsS32(value) do
                 return false
-            if index == 1 and !anyIsString(value) do
+            if index == 1 and not anyIsString(value) do
                 return false
-            if index == 2 and !anyIsBox(value) do
+            if index == 2 and not anyIsBox(value) do
                 return false
         }
 
@@ -232,7 +232,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     func boxedAnyStructThroughVariadic()->bool
     {
         var box:   VariadicAnyBox = {value: 314}
-        var boxed: any            = box
+        var boxed: any = box
         return anyIsBox(boxed) and variadicFirstAnyIsBox(boxed)
     }
 

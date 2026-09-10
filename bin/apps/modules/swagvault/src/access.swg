@@ -74,7 +74,7 @@ impl VaultAccess
         .clear()
     }
 
-    mtd const isProtected()->bool => !.password.isEmpty() or !.keyFiles.isEmpty()
+    mtd const isProtected()->bool => not .password.isEmpty() or not .keyFiles.isEmpty()
 
     // Produces the byte string the existing key-slot format consumes.
     //
@@ -111,7 +111,7 @@ impl VaultAccess
             {
                 let wanted = Math.min(remaining, #sizeof(buffer))
                 let count  = try stream.read(buffer[until wanted])
-                if !count do
+                if not count do
                     fail Swag.SystemError{"key file ended before its declared size"}
                 hash.update(buffer[until count])
                 remaining -= count

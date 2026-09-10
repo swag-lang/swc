@@ -91,7 +91,7 @@ using Core
     for level in Levels
     {
         let result = expect probe.compile("func value()->s32 { return 42 }", "pre-emit", level)
-        Swag.assert(!result.failed)
+        Swag.assert(not result.failed)
         Swag.assert(Utf8.indexOf(cast(const [..] u8) result.text.toString(), "\x1B[38;2;") != Swag.U64.Max)
 
         var output: CompilerOutput

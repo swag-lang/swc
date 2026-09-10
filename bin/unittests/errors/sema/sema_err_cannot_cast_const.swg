@@ -23,13 +23,13 @@ impl ICannotCastConst for CannotCastConstBox {}
 {
     var xv: s32
     var x:  const *s32 = &xv
-    var y              = cast(*u8) x     // swc-expected-error {{sema_err_cannot_cast_const}}
+    var y = cast(*u8) x     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test
 {
     var text: const cstring = cast(const cstring) ("abc").buffer
-    var bytes               = cast([..] u8) text     // swc-expected-error {{sema_err_cannot_cast_const}}
+    var bytes = cast([..] u8) text     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test
@@ -39,18 +39,18 @@ impl ICannotCastConst for CannotCastConstBox {}
 
 #test
 {
-    var value           = 1's32
+    var value = 1's32
     let ptr: const *s32 = &value
-    let boxed           = Swag.makeAny(ptr, s32)
-    let data            = cast(*s32) boxed.buffer     // swc-expected-error {{sema_err_cannot_cast_const}}
+    let boxed = Swag.makeAny(ptr, s32)
+    let data  = cast(*s32) boxed.buffer     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test
 {
-    var value           = 1's32
+    var value = 1's32
     let ptr: const *s32 = &value
-    let boxed           = Swag.makeAny(ptr, s32)
-    let data            = cast(*s32) boxed     // swc-expected-error {{sema_err_cannot_cast_const}}
+    let boxed = Swag.makeAny(ptr, s32)
+    let data  = cast(*s32) boxed     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test
@@ -70,9 +70,9 @@ impl ICannotCastConst for CannotCastConstBox {}
 
 #test
 {
-    var value           = 1's32
+    var value = 1's32
     let ptr: const *s32 = &value
-    let raw             = cast(*void) ptr     // swc-expected-error {{sema_err_cannot_cast_const}}
+    let raw   = cast(*void) ptr     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test

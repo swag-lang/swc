@@ -90,11 +90,11 @@ struct Slice
     // extra motion regions immediately, so one scratch record serves the whole slice instead of
     // one per macroblock of the picture. That removes about fifty megabytes per decoder lane at
     // this resolution, and the record stays in cache between the two passes over it.
-    scratchResidual:  MbResidual
+    scratchResidual: MbResidual
 
     // The colour planes of the macroblock a 4:4:4 picture reconstructs inline.
     scratchResidual444: MbResidual444
-    scratchExtraJobs: MbExtraJobs
+    scratchExtraJobs:   MbExtraJobs
 
     qp:          s32     // Current luma QP, carried from macroblock to macroblock.
     lastQpDelta: s32     // For the CABAC QP-delta context.
@@ -127,7 +127,7 @@ impl Slice
             fail InvalidFormatError{"H.264 IDR picture carries a predicted slice"}
 
         .header.ppsId = .bits.ue()
-        if .header.ppsId >= dec.ppsSet.count or !dec.ppsSet[.header.ppsId].valid do
+        if .header.ppsId >= dec.ppsSet.count or not dec.ppsSet[.header.ppsId].valid do
             fail InvalidFormatError{"H.264 slice references an unknown picture parameter set"}
         let pps = &dec.ppsSet[.header.ppsId]
         let sps = &dec.spsSet[pps.spsId]
@@ -146,7 +146,7 @@ impl Slice
             if pps.picOrderPresent do
                 .header.deltaPocBottom = .bits.se()
         }
-        elif sps.pocType == 1 and !sps.deltaPocAlwaysZero
+        elif sps.pocType == 1 and not sps.deltaPocAlwaysZero
         {
             .header.deltaPoc0 = .bits.se()
             if pps.picOrderPresent do
@@ -182,7 +182,7 @@ impl Slice
         {
             if .header.type == SliceTypeI or (list == 1 and .header.type != SliceTypeB) do
                 continue
-            if !.bits.bit() do
+            if not .bits.bit() do
                 continue
             while true
             {
@@ -221,7 +221,7 @@ impl Slice
         }
 
         // Reference marking, kept for the end of the picture; every slice repeats it.
-        if refIdc != 0 and !dec.markingParsed
+        if refIdc != 0 and not dec.markingParsed
         {
             dec.markingParsed   = true
             dec.adaptiveMarking = false
@@ -388,7 +388,7 @@ impl Slice
             .applyListOps(&initial[list], .listOps[list], cast(u32) list)
 
             let wanted = .header.refCount[list]
-            if !initial[list].count do
+            if not initial[list].count do
                 fail InvalidFormatError{"H.264 predicted slice has no reference picture"}
             .refCount[list] = wanted
             for index in wanted
@@ -450,7 +450,7 @@ impl Slice
                 let ref0    = .refs[0, index0]
                 let ref1    = .refs[1, index1]
                 var weight1 = 32's32
-                if !ref0.isLong and !ref1.isLong and ref0.poc != ref1.poc
+                if not ref0.isLong and not ref1.isLong and ref0.poc != ref1.poc
                 {
                     let tb    = Math.clamp(currentPoc - ref0.poc, -128, 127)
                     let td    = Math.clamp(ref1.poc - ref0.poc, -128, 127)
@@ -468,7 +468,7 @@ impl Slice
     // Applies the reference-list modification operations, section 8.2.4.3.
     private mtd applyListOps(list: *Array'*Frame, ops: Array'ListOp, listIndex: u32) fail
     {
-        if !ops.count do
+        if not ops.count do
             return
 
         let dec         = .dec!
@@ -509,7 +509,7 @@ impl Slice
                 }
             }
 
-            if !target do
+            if not target do
                 fail InvalidFormatError{"H.264 slice reorders a reference picture that does not exist"}
 
             // Insert at the running position, then drop the duplicate further down.
@@ -571,7 +571,7 @@ impl Slice
         let aPast = a.poc <= currentPoc
         let bPast = b.poc <= currentPoc
         if aPast != bPast do
-            return list1 ? !aPast : aPast
+            return list1 ? not aPast : aPast
         if aPast do
             return a.poc > b.poc
         return a.poc < b.poc

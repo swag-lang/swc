@@ -22,7 +22,7 @@ impl IWnd for EditCtrl
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !(.label != null) do
+        if not (.label != null) do
             return
 
         let rect   = .clientRect()

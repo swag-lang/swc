@@ -35,7 +35,7 @@ using Core, Pixel, Gui
         view.editor.setScrollPosition({0, forward ? end - viewport.height * 8 : start + viewport.height * 8})
         view.pendingSeek = false
         let previousStart = view.residentStart
-        for 20 where !view.pendingSeek do
+        for 20 where not view.pendingSeek do
             view.editor.setScrollPosition({0, view.editor.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25)})
         Swag.assert(view.pendingSeek)
         Swag.assert(view.editor.scrollPosition().y >= start + viewport.height * 3)
@@ -91,7 +91,7 @@ using Core, Pixel, Gui
         view.editor.setScrollPosition({0, forward ? end - viewport.height * 8 : start + viewport.height * 8})
         view.pendingSeek = false
         let previousStart = view.residentStart
-        for 20 where !view.pendingSeek do
+        for 20 where not view.pendingSeek do
             view.editor.setScrollPosition({0, view.editor.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25)})
         Swag.assert(view.pendingSeek)
         Swag.assert(view.editor.scrollPosition().y >= start + viewport.height * 3)

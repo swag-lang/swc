@@ -52,7 +52,7 @@ func loadMainWindowState(window: *MainWindow, bytes: const [..] u8)
 
 func containsStateBytes(bytes, needle: const [..] u8)->bool
 {
-    if !needle.count or needle.count > bytes.count do
+    if not needle.count or needle.count > bytes.count do
         return false
     for offset in bytes.count - needle.count + 1
     {
@@ -95,17 +95,17 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     defer host.shutdown()
 
     Swag.assert(window.privacyMode)
-    Swag.assert(!window.protectHidden.isChecked())
+    Swag.assert(not window.protectHidden.isChecked())
     Swag.assert(window.privacyModeControl.isChecked())
-    Swag.assert(!window.mountedDrives.startupEnabled)
+    Swag.assert(not window.mountedDrives.startupEnabled)
 
     window.mountSettings.path = String.from("C:\\private\\unlisted")
     window.startupVaults.add({String.from("C:\\private\\startup"), String.from("mount-x"), true, false})
     window.fileDlgState.currentFolder = String.from("C:\\private\\browse-private")
     var state = saveMainWindowState(window)
-    Swag.assert(!containsStateBytes(state.toSlice(), Swag.makeSlice(cast(const [*] u8) ("unlisted").buffer, 8)))
-    Swag.assert(!containsStateBytes(state.toSlice(), Swag.makeSlice(cast(const [*] u8) ("startup").buffer, 7)))
-    Swag.assert(!containsStateBytes(state.toSlice(), Swag.makeSlice(cast(const [*] u8) ("browse-private").buffer, 14)))
+    Swag.assert(not containsStateBytes(state.toSlice(), Swag.makeSlice(cast(const [*] u8) ("unlisted").buffer, 8)))
+    Swag.assert(not containsStateBytes(state.toSlice(), Swag.makeSlice(cast(const [*] u8) ("startup").buffer, 7)))
+    Swag.assert(not containsStateBytes(state.toSlice(), Swag.makeSlice(cast(const [*] u8) ("browse-private").buffer, 14)))
 
     window.clearPrivateState()
     Swag.assert(window.mountSettings.path.isEmpty())
@@ -119,7 +119,7 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    Swag.assert(!window.appearanceButton.sigAboutRequested.isEmpty())
+    Swag.assert(not window.appearanceButton.sigAboutRequested.isEmpty())
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     window.showAbout()
     host.pump()
@@ -237,7 +237,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.applyPrivacyControl()
 
     let drive = window.selectedMountPoint()
-    Swag.assert(!drive.isEmpty())
+    Swag.assert(not drive.isEmpty())
 
     window.operation.path     = String.from("C:\\vaults\\remembered")
     window.operation.mount    = drive
@@ -251,11 +251,11 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     var state       = saveMainWindowState(window)
     let secretBytes = Swag.makeSlice(cast(const [*] u8) secret.buffer, secret.count)
-    Swag.assert(!containsStateBytes(state.toSlice(), secretBytes))
+    Swag.assert(not containsStateBytes(state.toSlice(), secretBytes))
 
     window.mountKeyFiles.paths.add(String.from("C:\\private\\access.key"))
     state = saveMainWindowState(window)
-    Swag.assert(!containsStateBytes(state.toSlice(), Swag.makeSlice(cast(const [*] u8) ("access.key").buffer, 10)))
+    Swag.assert(not containsStateBytes(state.toSlice(), Swag.makeSlice(cast(const [*] u8) ("access.key").buffer, 10)))
 
     window.mountSettings = {}
     window.mountPath.setText("")
@@ -282,8 +282,8 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     Swag.assert(window.unmountOnLock.isChecked())
     Swag.assert(window.unmountOnSuspend.isChecked())
-    Swag.assert(!window.unmountOnIdle.isChecked())
-    Swag.assert(!window.idleTimeout.isEnabled())
+    Swag.assert(not window.unmountOnIdle.isChecked())
+    Swag.assert(not window.idleTimeout.isEnabled())
 
     window.unmountOnLock.toggle()
     window.unmountOnIdle.toggle()
@@ -295,7 +295,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.applyAutoUnmountControls()
     loadMainWindowState(window, state.toSlice())
 
-    Swag.assert(!window.autoUnmount.onSessionLock)
+    Swag.assert(not window.autoUnmount.onSessionLock)
     Swag.assert(window.autoUnmount.onSuspend)
     Swag.assert(window.autoUnmount.onIdle)
     Swag.assert(window.autoUnmount.idleMinutes == 30)
@@ -385,7 +385,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     Swag.assert(opened.stops[3] == cast(*Wnd) window.mountPassword)
     Swag.assert(opened.stops[4] == cast(*Wnd) window.hiddenButton)
     Swag.assert(opened.stops[5] == cast(*Wnd) window.mountKeyFiles.add)
-    Swag.assert(!window.mountKeyFiles.generate.isVisible())
+    Swag.assert(not window.mountKeyFiles.generate.isVisible())
     Swag.assert(opened.stops[6] == cast(*Wnd) window.drive)
     Swag.assert(opened.stops[7] == cast(*Wnd) window.readOnly)
     Swag.assert(opened.stops[8] == cast(*Wnd) window.protectHidden)
@@ -431,7 +431,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     var forced: bool
     host.app.sigFrame += func|host = &host, frames = &frames, forced = &forced|(app)
     {
-        if !host.openedSurfaceCount() do
+        if not host.openedSurfaceCount() do
             return
 
         frames[] += 1
@@ -449,7 +449,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     // A zero frame count means the browse action never opened the box; `forced` means the box
     // opened and Escape was not what closed it.
     Swag.assert(frames != 0)
-    Swag.assert(!forced)
+    Swag.assert(not forced)
     Swag.assert(host.openedSurfaceCount() == 0)
 
     // Nothing was chosen, and the keyboard is back where it was.
@@ -544,14 +544,14 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    Swag.assert(!window.canCreate())
+    Swag.assert(not window.canCreate())
     window.createPath.setText("C:\\open")
     Swag.assert(window.canCreate())
     Swag.assert(window.createButton.isEnabled())
 
     // The two actions that change a container need the file and nothing else: the password they
     // act on is the one their own box asks for, never what this card happens to be holding.
-    Swag.assert(!window.canModifyVault())
+    Swag.assert(not window.canModifyVault())
     window.mountPath.setText("C:\\open")
     Swag.assert(window.canModifyVault())
     Swag.assert(window.canMount())
@@ -600,8 +600,8 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     Swag.assert(resizeFields.capacity.text() == "256")
     Swag.assert(resizeFields.unit.selectedIndex == 0)
     Swag.assert(resizeFields.keepCapacity.isChecked())
-    Swag.assert(!resizeFields.capacity.isEnabled())
-    Swag.assert(!resizeFields.unit.isEnabled())
+    Swag.assert(not resizeFields.capacity.isEnabled())
+    Swag.assert(not resizeFields.unit.isEnabled())
     resizeFields.keepCapacity.toggle()
     Swag.assert(resizeFields.capacity.isEnabled())
     Swag.assert(resizeFields.unit.isEnabled())
@@ -686,17 +686,17 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     window.privacyMode = false
     window.applyPrivacyControl()
 
-    Swag.assert(!window.mountedDrives.list.isLocallyVisible())
+    Swag.assert(not window.mountedDrives.list.isLocallyVisible())
     Swag.assert(window.mountedDrives.empty.isLocallyVisible())
     Swag.assert(window.mountedDrives.selectedIndex() == Swag.U64.Max)
-    Swag.assert(!window.mountedDrives.unmountButton.isEnabled())
+    Swag.assert(not window.mountedDrives.unmountButton.isEnabled())
 
     window.mountedDrives.drives.add({null, String.from("C:\\vaults\\one"), String.from("mount-x"), String.from("X:"), true, false, false, 256 * 1024 * 1024, 192 * 1024 * 1024})
     window.mountedDrives.drives.add({null, String.from("C:\\vaults\\two"), String.from("mount-y"), String.from("Y:"), false, false, true, 2 * 1024 * 1024 * 1024, 1536 * 1024 * 1024})
     window.mountedDrives.refresh()
 
     Swag.assert(window.mountedDrives.list.isLocallyVisible())
-    Swag.assert(!window.mountedDrives.empty.isLocallyVisible())
+    Swag.assert(not window.mountedDrives.empty.isLocallyVisible())
     Swag.assert(window.mountedDrives.list.lineCount() == 2)
     window.showTab(2)
     Testing.assertContentFits(window)
@@ -707,7 +707,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     // The row a drive occupies is the row the drive list gives it, and the mark it carries
     // travels with it. A row names the vault, not the folder it happens to sit in.
-    Swag.assert(!window.mountedDrives.list.isLineChecked(0))
+    Swag.assert(not window.mountedDrives.list.isLineChecked(0))
     Swag.assert(window.mountedDrives.list.isLineChecked(1))
     Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Drive).name.raw == "Y:")
     Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Size).name.raw == "2 GiB")
@@ -724,7 +724,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     Swag.assert(window.mountedDrives.list.lineCount() == 1)
     discard window.mountedDrives.detach(0)
     Swag.assert(window.mountedDrives.empty.isLocallyVisible())
-    Swag.assert(!window.mountedDrives.unmountButton.isEnabled())
+    Swag.assert(not window.mountedDrives.unmountButton.isEnabled())
 }
 
 // Checking a drive puts it in the list Swag Vault mounts at its next start, and unchecking it
@@ -771,10 +771,10 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     Swag.assert(parseCapacity("256", 0).bytes == 256 * 1024 * 1024)
     Swag.assert(parseCapacity("2", 1).bytes == 2 * 1024 * 1024 * 1024)
-    Swag.assert(!parseCapacity("", 0).error.isEmpty())
-    Swag.assert(!parseCapacity("0", 0).error.isEmpty())
-    Swag.assert(!parseCapacity("12x", 0).error.isEmpty())
-    Swag.assert(!parseCapacity("18446744073709551615", 1).error.isEmpty())
+    Swag.assert(not parseCapacity("", 0).error.isEmpty())
+    Swag.assert(not parseCapacity("0", 0).error.isEmpty())
+    Swag.assert(not parseCapacity("12x", 0).error.isEmpty())
+    Swag.assert(not parseCapacity("18446744073709551615", 1).error.isEmpty())
 }
 
 // The creation dialog preserves the exact filename; a vault has no required extension.
@@ -972,12 +972,12 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     window.operation.hiddenAccess.setInputs("private hidden credentials", keyFiles.toSlice())
     window.protectHidden.setState(.Checked)
     let state = saveMainWindowState(window)
-    Swag.assert(!containsStateBytes(state.toSlice(), "private hidden credentials"))
+    Swag.assert(not containsStateBytes(state.toSlice(), "private hidden credentials"))
     window.startupVaults.clear()
     window.protectHidden.setState(.Unchecked)
     loadMainWindowState(window, state.toSlice())
     Swag.assert(window.startupVaults.count == 1 and window.startupVaults[0].protectHidden)
-    Swag.assert(!window.protectHidden.isChecked())
+    Swag.assert(not window.protectHidden.isChecked())
 }
 
 // The tallest panel sizes the frame at each display scale, independently of tab selection.
@@ -1003,7 +1003,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
                 available = card.panel.position.height
                 tallest   = Math.max(tallest, card.panel.itf.measureContent({card.panel.position.width, 0}).y)
                 Swag.assert(host.surface.position.height == height)
-                if !card.form.rows.isEmpty() do
+                if not card.form.rows.isEmpty() do
                     Swag.assert(card.form.position.width == card.body.clientRect().width)
             }
 

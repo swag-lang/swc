@@ -69,7 +69,7 @@ private func zipU64(bytes: const [..] u8, at: u64)->u64 fail
 
 func zipText(bytes: const [..] u8, utf8: bool)->String
 {
-    if !bytes.count do
+    if not bytes.count do
         return {}
     if utf8 and Utf8.isValid(bytes) do
         return String.from(Swag.makeString(bytes.buffer, bytes.count))
@@ -109,7 +109,7 @@ private func cleanZipPath(path: string)->String
         previousSlash = false
     }
 
-    while !result.isEmpty() and result.back() == '/' do
+    while not result.isEmpty() and result.back() == '/' do
         result.removeBack()
     return result
 }
@@ -228,7 +228,7 @@ func loadZipArchive(fileName: string)->ZipArchive fail
             }
         }
 
-        if !scan do
+        if not scan do
             break
         scan -= 1
     }
@@ -300,7 +300,7 @@ func loadZipArchive(fileName: string)->ZipArchive fail
 
         let external = try zipU32(data, at + 38)
         entry.isDirectory = (nameBytes.count and (nameBytes[nameBytes.count - 1] == '/'u8 or nameBytes[nameBytes.count - 1] == '\\'u8)) or cast(bool) (external & 0x10)
-        if !entry.isDirectory
+        if not entry.isDirectory
         {
             if entry.compressedSize > Swag.U64.Max - result.compressedSize or entry.uncompressedSize > Swag.U64.Max - result.uncompressedSize do
                 fail Errors.InvalidFormatError{"ZIP entry sizes exceed the supported range"}
@@ -339,7 +339,7 @@ func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fai
     if entry.localOffset > fileSize or 30 > fileSize - entry.localOffset do
         fail Errors.InvalidFormatError{"ZIP local header lies outside the file"}
     var header: [30] u8
-    if !(try stream.readExactAt(entry.localOffset, header)) do
+    if not (try stream.readExactAt(entry.localOffset, header)) do
         fail Errors.InvalidFormatError{"ZIP local header is truncated"}
     if try zipU32(header, 0) != ZipLocalSignature do
         fail Errors.InvalidFormatError{"ZIP local header has the wrong signature"}
@@ -355,7 +355,7 @@ func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fai
 
     var packed: Array'u8
     packed.resize(entry.compressedSize)
-    if entry.compressedSize and !(try stream.readExactAt(dataOffset, packed.toSlice())) do
+    if entry.compressedSize and not (try stream.readExactAt(dataOffset, packed.toSlice())) do
         fail Errors.InvalidFormatError{"ZIP entry payload is truncated"}
 
     var plain: retval

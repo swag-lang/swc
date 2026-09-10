@@ -327,7 +327,7 @@ impl QuickWnd
     mtd btnPopup(btn: *Button?, pos: Math.Point)
     {
         let menu = MenuCtrl.createPopup(me)
-        menu.addItem(appStrings().ui_RemoveQuickStyle, "0", disabled: !btn)
+        menu.addItem(appStrings().ui_RemoveQuickStyle, "0", disabled: not btn)
         menu.addSeparator()
         menu.addItem(ActionQuickStyle.Reset)
         let res = menu.doModal(pos, autoDestroy: true)
@@ -693,7 +693,7 @@ impl QuickWnd
 
     mtd updateSelection()
     {
-        if !.currentStyle do
+        if not .currentStyle do
             return
         var done = false
         let mode = .main.getEditMode()
@@ -717,8 +717,8 @@ impl QuickWnd
             let curMdl = cast(*IconButton) .layout.children.back()
             if curMdl.userData
             {
-                curMdl.show(!done)
-                if !done do
+                curMdl.show(not done)
+                if not done do
                     curMdl.setChecked(true)
                 .layout.computeLayout()
                 .setScrollSize(0, .layout.contentHeight)
@@ -730,7 +730,7 @@ impl QuickWnd
 
     mtd resetQuickStyles()
     {
-        if !.currentStyle do
+        if not .currentStyle do
             return
 
         let res = MessageDlg.confirm(.surface!, appStrings().msg_ResetStyles)
@@ -791,7 +791,7 @@ impl QuickWnd
         case .Selection: return
         }
 
-        if !.currentStyle do
+        if not .currentStyle do
             return
 
         let formItf     = .main.editModeToModel(.main.getEditMode())
@@ -815,7 +815,7 @@ impl QuickWnd
         // recreating every button is only needed when the style set itself changed;
         // check states and the model button repaint from live data.
         let wantBtns = .currentStyle.forms.count + (canAddModel ? 1 : 0)
-        if !forceRebuild and .currentStyle == prevStyle and .layout.children.count == wantBtns
+        if not forceRebuild and .currentStyle == prevStyle and .layout.children.count == wantBtns
         {
             .updateSelection()
             return
@@ -852,7 +852,7 @@ impl QuickWnd
                 let quickBtn = cast(*QuickButton) btn
                 let quick    = quickBtn.quickWnd
                 let it       = quickBtn.formItf!
-                if !btn.isChecked do
+                if not btn.isChecked do
                     return
                 quick.main.updateModel(it)
 

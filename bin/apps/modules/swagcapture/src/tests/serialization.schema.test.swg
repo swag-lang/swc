@@ -14,7 +14,7 @@ func testSchemaOf(type: typeinfo)->String fail
 
     for &pf in plan.fields
     {
-        if !result.isEmpty() do
+        if not result.isEmpty() do
             result += ","
         result += pf.key
         result += ":"

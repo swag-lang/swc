@@ -35,7 +35,7 @@ private func sampleDocument()->Document
     page.addPath(triangle, fillColor: Color.fromRgb(247, 249, 0), stroke: true, strokeColor: Color.fromRgb(11, 11, 13), strokeWidth: 2)
 
     let pixels: [12] u8 = [255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255]
-    let image           = Image.create(2, 2, .RGB8, pixels)
+    let image = Image.create(2, 2, .RGB8, pixels)
     page.addImage(image, 144, 40, 64, 64)
     document.addPage(#move page)
     return document
@@ -282,7 +282,7 @@ private func sampleDocument()->Document
 // region's size, and a mark outside it contributes nothing.
 #test
 {
-    var page          = Page.create(200, 100)
+    var page = Page.create(200, 100)
     var left: LinePathList
     with let leftPath = left.newPath()
     {
@@ -430,7 +430,7 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
     Swag.assert(reader.pageCount() == 1)
 
     // Both trailers deliberately omit the optional Info entry. The content object stays lazy.
-    Swag.assert(!reader.parser.hasScanned)
+    Swag.assert(not reader.parser.hasScanned)
     Swag.assert(reader.parser.objects.tryFind(5) == null)
     Swag.assert(reader.metadata().producer.isEmpty())
     var page = expect reader.loadPage(0)
@@ -455,7 +455,7 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
     Swag.assert(paths.count == 2)
 
     // The first rectangle is inside its clip, so the clip decides nothing.
-    Swag.assert(!paths[0].itemClip().clipped)
+    Swag.assert(not paths[0].itemClip().clipped)
 
     // The second triangle leaves its clip on every side, so the clip stays.
     Swag.assert(paths[1].itemClip().clipped)

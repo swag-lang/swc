@@ -32,14 +32,14 @@ func day9B()
         case line[i] == '>' and garbage:
             garbage -= 1
 
-        case line[i] == '<' and !garbage:
+        case line[i] == '<' and not garbage:
             garbage += 1
 
-        case line[i] == '{' and !garbage:
+        case line[i] == '{' and not garbage:
             group += 1
             score += group
 
-        case line[i] == '}' and !garbage:
+        case line[i] == '}' and not garbage:
             group -= 1
 
         case garbage:

@@ -79,7 +79,7 @@
 {
     var i    = 0
     var done = false
-    while i < 3 or !done
+    while i < 3 or not done
     {
         i += 1
         if i >= 5 do

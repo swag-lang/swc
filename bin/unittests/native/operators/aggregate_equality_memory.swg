@@ -45,7 +45,7 @@ var g_arr: [3] [3] s64
     g_p2[3] = P2{10000, 0}     // different x, same y
 
     Swag.assert(neP2(g_p2[0], g_p2[1]))
-    Swag.assert(!eqP2(g_p2[0], g_p2[1]))
+    Swag.assert(not eqP2(g_p2[0], g_p2[1]))
     Swag.assert(eqP2(g_p2[1], g_p2[2]))
     Swag.assert(neP2(g_p2[0], g_p2[3]))
     Swag.assert(eqP2(g_p2[1], g_p2[1]))
@@ -58,7 +58,7 @@ var g_arr: [3] [3] s64
     g_p3[1] = P3{1, 2, 9}     // differ in c only
     g_p3[2] = P3{1, 2, 3}     // identical to [0]
 
-    Swag.assert(!eqP3(g_p3[0], g_p3[1]))
+    Swag.assert(not eqP3(g_p3[0], g_p3[1]))
     Swag.assert(eqP3(g_p3[0], g_p3[2]))
 }
 
@@ -69,7 +69,7 @@ var g_arr: [3] [3] s64
     g_pb[1] = PB{[1, 2, 3, 4, 5, 6, 7, 8, 9]}     // differ in last byte
     g_pb[2] = PB{[1, 2, 3, 4, 5, 6, 7, 8, 9]}     // identical to [1]
 
-    Swag.assert(!eqPB(g_pb[0], g_pb[1]))
+    Swag.assert(not eqPB(g_pb[0], g_pb[1]))
     Swag.assert(eqPB(g_pb[1], g_pb[2]))
 }
 
@@ -81,8 +81,8 @@ var g_arr: [3] [3] s64
     g_big[2] = Big{P2{5, 7}, 200}     // differ only in k
     g_big[3] = Big{P2{5, 7}, 100}     // identical to [0]
 
-    Swag.assert(!eqBig(g_big[0], g_big[1]))
-    Swag.assert(!eqBig(g_big[0], g_big[2]))
+    Swag.assert(not eqBig(g_big[0], g_big[1]))
+    Swag.assert(not eqBig(g_big[0], g_big[2]))
     Swag.assert(eqBig(g_big[0], g_big[3]))
 }
 
@@ -93,6 +93,6 @@ var g_arr: [3] [3] s64
     g_arr[1] = [1, 2, 4]     // differ in last element
     g_arr[2] = [1, 2, 3]
 
-    Swag.assert(!eqArr3(g_arr[0], g_arr[1]))
+    Swag.assert(not eqArr3(g_arr[0], g_arr[1]))
     Swag.assert(eqArr3(g_arr[0], g_arr[2]))
 }

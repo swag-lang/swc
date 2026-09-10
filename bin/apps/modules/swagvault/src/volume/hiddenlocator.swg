@@ -22,7 +22,7 @@ impl HiddenLocator
     func opensOuter(stream: *File.FileStream, password: const [..] u8)->bool fail
     {
         var area: [KeySlotAreaSize] u8
-        if !stream.readExactAt(0, area) do
+        if not stream.readExactAt(0, area) do
             failWith("The container is truncated or unreadable.", .Io)
         var key = try Crypto.deriveSlotKey(password, area[until Crypto.SaltSize])
         defer Core.Crypto.secureClear(key)
@@ -46,7 +46,7 @@ impl HiddenLocator
         for index in KeySlotCount
         {
             var record: [HiddenLocatorSize] u8
-            if !stream.readExactAt(offset(index), record) do
+            if not stream.readExactAt(offset(index), record) do
                 break
             let salt   = record[until Crypto.SaltSize]
             let nonce  = record[HiddenNonceOffset until HiddenGeometryOffset]
@@ -56,7 +56,7 @@ impl HiddenLocator
             defer Core.Crypto.secureClear(key)
             var plain: [HiddenGeometrySize] u8
             defer Core.Crypto.secureClear(plain)
-            if !(try Core.Crypto.chacha20Poly1305Open(key, nonce, cipher, tag, Crypto.associatedData(HiddenLocatorKind, index), plain)) do
+            if not (try Core.Crypto.chacha20Poly1305Open(key, nonce, cipher, tag, Crypto.associatedData(HiddenLocatorKind, index), plain)) do
                 continue
             var reader = ByteStream.openRead(plain)
             let first  = reader.readLittleEndian'u64()

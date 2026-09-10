@@ -24,7 +24,7 @@ impl IActionUI for ActionView
 
             // We advertise .Disabled, so provide the state: clipping to the
             // selection is meaningless without a capture.
-            evt.disabled = !capture
+            evt.disabled = not capture
         }
 
         return true
@@ -35,7 +35,7 @@ impl IActionUI for ActionView
         let main = cast(*MainWnd) cxt.wnd!
         switch cxt.id
         {
-        case .Clip: main.editorOptions.clipToSelection = !main.editorOptions.clipToSelection
+        case .Clip: main.editorOptions.clipToSelection = not main.editorOptions.clipToSelection
         }
 
         return true

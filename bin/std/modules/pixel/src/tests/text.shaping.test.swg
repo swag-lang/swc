@@ -58,7 +58,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     let tab    = Painter.shapeRun("\t", font)
     Swag.assert(tab.glyphs.count == 1)
     Swag.assert(tab.glyphs[0].isTab)
-    Swag.assert(!tab.hasInk)
+    Swag.assert(not tab.hasInk)
     Swag.assert(Math.isEqualEpsilon(tab.metrics.width, spaces.metrics.width, 0.001))
 
     var tab8 = Painter.shapeRun("\t", font, 8)
@@ -75,7 +75,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Swag.assert(reshapedTab.tabSize == 8)
     Swag.assert(reshapedTab.glyphs[0].isTab)
 
-    let largeFont            = font.owner.createFont(font.cache.typeFace, 48, .Bitmap)
+    let largeFont = font.owner.createFont(font.cache.typeFace, 48, .Bitmap)
     var richText: RichString = "<b>A</b>\nA"
     var format:   RichStringFormat
     format.font.regular = font
@@ -102,12 +102,12 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     var visibleChunks = 0
     for &chunk in paragraphText.chunks
     {
-        if chunk.visible and !chunk.isEol do
+        if chunk.visible and not chunk.isEol do
             visibleChunks += 1
     }
 
     Swag.assert(visibleChunks == 2)
-    Swag.assert(!paragraphText.chunks[paragraphText.chunks.count - 1].visible)
+    Swag.assert(not paragraphText.chunks[paragraphText.chunks.count - 1].visible)
 
     var forced: RichString = "<b>A</b>"
     forced.compute()
@@ -140,7 +140,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Swag.assert(styledUrl.chunks[1].fontStyle == .Bold)
     Swag.assert(styledUrl.chunks[2].isUrl)
     Swag.assert(styledUrl.chunks[2].colorIdx == 1)
-    Swag.assert(!styledUrl.chunks[3].isUrl)
+    Swag.assert(not styledUrl.chunks[3].isUrl)
 
     var urlFormat: RichStringFormat
     urlFormat.font.regular = font
@@ -181,7 +181,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
 
     // Every word survives the wrap, not only the one that could not break.
     var visibleWords = 0
-    for &c in text.chunks where c.visible and !c.isSpace and !c.isEol do
+    for &c in text.chunks where c.visible and not c.isSpace and not c.isEol do
         visibleWords += 1
     Swag.assert(visibleWords == 3)
 }
@@ -258,7 +258,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
 
     let glyphs = kept.shaped.glyphs
     Swag.assert(glyphs.back().glyphIndex == font.glyphIndex('…'rune))
-    Swag.assert(!text.chunks[text.chunks.count - 1].visible)
+    Swag.assert(not text.chunks[text.chunks.count - 1].visible)
 
     // A budget the text stays under leaves every line alone.
     format.maxLines = 2

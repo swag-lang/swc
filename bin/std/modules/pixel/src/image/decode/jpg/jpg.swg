@@ -137,7 +137,7 @@ private
     #[Inline]
     {
         func descale(x: s32, n: u32)->s32 => cast(s32) ((x + (1's32 << (n - 1))) >> n)
-        func clamp(i: s32)->u8            => cast(u8) ((i & cast #bit (s32) 0xFFFFFF00) ? ((~i >> 31) & 0xFF) : i)
+        func clamp(i: s32)->u8 => cast(u8) ((i & cast #bit (s32) 0xFFFFFF00) ? ((~i >> 31) & 0xFF) : i)
 
         func extendSign(r: u32, s: s32)->s32
         {
@@ -148,7 +148,7 @@ private
         func rol(i, j: u32)->u32
         {
             let shift = j & 31
-            if !shift do
+            if not shift do
                 return i
             return cast(u32) ((i << #wrap shift) | (i >> (32 - shift)))
         }
@@ -334,7 +334,7 @@ internal impl IImageDecoder for Decoder
 
         // Creates image
         result.init(.imageSizeX, .imageSizeY, PixelFormat.BGR8)
-        if !options.decodePixels
+        if not options.decodePixels
         {
             result.metadata = #move .metadata
             return result

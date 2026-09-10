@@ -73,10 +73,10 @@ private func createPdfFixture()->String
     Swag.assert(pdf.zoomMode == .FitWidth)
     pdf.zoomToFit()
 
-    Swag.assert(!view.previousButton.isEnabled() and view.nextButton.isEnabled())
+    Swag.assert(not view.previousButton.isEnabled() and view.nextButton.isEnabled())
     pdf.showPage(1)
     Swag.assert(pdf.pageIndex == 1)
-    Swag.assert(view.previousButton.isEnabled() and !view.nextButton.isEnabled())
+    Swag.assert(view.previousButton.isEnabled() and not view.nextButton.isEnabled())
 
     let oldTip  = String.from(view.pageLabel.toolTip)
     let oldZoom = pdf.effectiveZoom()
@@ -90,7 +90,7 @@ private func createPdfFixture()->String
     host.notify(.LanguageChanged)
     Swag.assert(view.pageLabel.toolTip == oldTip)
     Swag.assert(view.goToTypedPage("1") and pdf.pageIndex == 0)
-    Swag.assert(!view.goToTypedPage("0") and !view.goToTypedPage("3") and !view.goToTypedPage("page"))
+    Swag.assert(not view.goToTypedPage("0") and not view.goToTypedPage("3") and not view.goToTypedPage("page"))
     Testing.assertContentFits(view)
 }
 
@@ -192,7 +192,7 @@ private func createPdfFixture()->String
     Swag.assert(result.view != null and result.commands == null)
     let view = cast(*PdfViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    Swag.assert(!view.failureReason.isEmpty())
+    Swag.assert(not view.failureReason.isEmpty())
 }
 
 // The viewer owns the search: PDF text lives compressed in the file, so only the viewer can
@@ -233,7 +233,7 @@ private func createPdfFixture()->String
         Threading.Thread.sleep(1'ms)
     }
 
-    Swag.assert(!bounds.isEmpty())
+    Swag.assert(not bounds.isEmpty())
     result.clearSearch!(result.view!)
     Swag.assert(view.pdfView.selectedText().isEmpty())
     matches.clear()

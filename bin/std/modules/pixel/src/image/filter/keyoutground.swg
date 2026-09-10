@@ -18,7 +18,7 @@ public impl Image
     // A format without an alpha channel has nowhere to put the result and is left as is.
     mtd keyOutGround(ground, foreground: Color)
     {
-        if !.pixelFormat.hasAlpha() or !.pixelFormat.isPacked() do
+        if not .pixelFormat.hasAlpha() or not .pixelFormat.isPacked() do
             return
 
         // The axis the two colors span, and the inverse of its squared length, so the
@@ -31,7 +31,7 @@ public impl Image
             return
 
         let legacy = (.pixelFormat == .BGRA8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
-        if !legacy
+        if not legacy
         {
             let groundValue     = colorPixelValue(ground)
             let foregroundValue = colorPixelValue(foreground)

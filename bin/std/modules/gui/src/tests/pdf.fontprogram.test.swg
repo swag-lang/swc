@@ -25,7 +25,7 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
     for font in page.fonts
     {
         var face: *TypeFace?
-        if !font.bytes.isEmpty()
+        if not font.bytes.isEmpty()
         {
             result.embedded += 1
             let key    = Format.toString("probe-%{X08}", Hash.Crc32.compute(font.bytes.toSlice()))
@@ -33,7 +33,7 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
             if loadError == null
             {
                 result.loaded += 1
-                face          = opened
+                face = opened
             }
         }
 
@@ -44,13 +44,13 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
     for item in page.items where item.kind == .Text and item.fontIndex < page.fonts.count
     {
         let face = faces[item.fontIndex]
-        if !face do
+        if not face do
             continue
 
         result.drawn += 1
         let font  = cache.createFont(face!, 16)
-        var whole = !item.textCodes.isEmpty()
-        for code in item.textCodes where !page.fonts[item.fontIndex].glyphFor(font, code).found do
+        var whole = not item.textCodes.isEmpty()
+        for code in item.textCodes where not page.fonts[item.fontIndex].glyphFor(font, code).found do
             whole = false
         if whole do
             result.resolved += 1

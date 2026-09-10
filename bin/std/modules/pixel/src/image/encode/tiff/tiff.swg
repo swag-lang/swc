@@ -87,7 +87,7 @@ internal impl IImageEncoder for Encoder
             userOptions = options.buffer![as EncodeOptions]
         }
 
-        if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
+        if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
             fail InvalidFormatError{"invalid image"}
 
         let width    = image.width

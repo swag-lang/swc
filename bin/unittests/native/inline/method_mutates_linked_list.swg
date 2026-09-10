@@ -34,7 +34,7 @@ impl InlineBug11List
     mtd pop(outNode: **InlineBug11Node)->bool
     {
         let head = .head
-        if !head do
+        if not head do
             return false
 
         let node = head!

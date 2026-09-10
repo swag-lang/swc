@@ -8,7 +8,7 @@ namespace Scope
 
 #assert(#defined(GlobalValue))
 #assert(#defined(Scope.NestedValue))
-#assert(!#defined(MissingValue))
+#assert(not #defined(MissingValue))
 #assert(#defined(ForwardDefined))
 const ForwardDefined = 3
 

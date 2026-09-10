@@ -155,7 +155,7 @@ using Swag, Core
     Swag.assert(painter.commandBuffer.count > 0)
 
     Swag.assert(cf.IForm.hitTest({80, 50}, 1))
-    Swag.assert(!cf.IForm.hitTest({500, 500}, 1))
+    Swag.assert(not cf.IForm.hitTest({500, 500}, 1))
 }
 
 // copy propagates callout style (not text) and isSame tracks style changes.
@@ -177,7 +177,7 @@ using Swag, Core
     Swag.assert(copy.text.isEmpty())
 
     copy.roundSize += 1
-    Swag.assert(!cf.IForm.isSame(&copy))
+    Swag.assert(not cf.IForm.isSame(&copy))
 }
 
 // The tail base stays on the straight part of an edge, clear of the rounded corners,

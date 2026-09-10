@@ -18,7 +18,7 @@ impl IWnd for DropCatcher
 {
     mtd impl onDragDropEvent(evt: *DragDropEvent)
     {
-        if !.claim
+        if not .claim
         {
             evt.accepted = false
             return
@@ -181,7 +181,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
     defer host.shutdown()
 
     var data: DragData
-    Swag.assert(!data.hasFiles() and !data.hasText() and !data.hasImage())
+    Swag.assert(not data.hasFiles() and not data.hasText() and not data.hasImage())
 
     data.addFile("c:/tmp/one.png")
     data.setText("beside it")
@@ -197,7 +197,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
     Swag.assert(held.width == 5 and held.height == 3)
 
     data.clear()
-    Swag.assert(!data.hasFiles() and !data.hasText() and !data.hasImage())
+    Swag.assert(not data.hasFiles() and not data.hasText() and not data.hasImage())
     Swag.assert(data.image() == null)
 }
 
@@ -217,7 +217,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
     Swag.assert(data.hasContents())
     Swag.assert(data.contents.count == 1)
     Swag.assert(data.contents[0].name == "late.txt")
-    Swag.assert(!data.contents[0].isReady())
+    Swag.assert(not data.contents[0].isReady())
     Swag.assert(runs == 0)
 
     // The first read pays for it, and every later one is free.
@@ -228,7 +228,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
     Swag.assert(data.contents[0].isReady())
 
     data.clear()
-    Swag.assert(!data.hasContents())
+    Swag.assert(not data.hasContents())
 }
 
 // A file whose content is already in hand needs no producer, and reads as ready straight away.

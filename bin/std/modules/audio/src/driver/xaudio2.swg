@@ -47,7 +47,7 @@ impl XAudio2DriverNative
     // Create the xaudio2 engine
     mtd createXAudio2(initCOM: bool = true) fail
     {
-        Swag.assert(!.xAudio2)
+        Swag.assert(not .xAudio2)
 
         var result: HRESULT
         defer #fail .destroyXAudio2()
@@ -55,7 +55,7 @@ impl XAudio2DriverNative
         if initCOM
         {
             result = CoInitializeEx(null, COINIT_MULTITHREADED)
-            if !comApartmentIsUsable(result) do
+            if not comApartmentIsUsable(result) do
                 fail SystemError{"failed to initialize COM", errorID: hresultErrorId(result)}
             .hasInitCOM = comOwnsInitialization(result)
         }
@@ -133,22 +133,22 @@ impl XAudio2DriverNative
 {
     mtd setOutputVolumeXAudio2(volume: f32) fail
     {
-        if !.masteringVoice do
+        if not .masteringVoice do
             return
         let safeMasteringVoice = .masteringVoice
-        let setVolume          = safeMasteringVoice.vtbl.setVolume
-        let hr                 = setVolume(cast(*IXAudio2Voice) cast(*void) safeMasteringVoice, volume, 0)
+        let setVolume = safeMasteringVoice.vtbl.setVolume
+        let hr        = setVolume(cast(*IXAudio2Voice) cast(*void) safeMasteringVoice, volume, 0)
         if hr != S_OK do
             fail SystemError{"setOutputVolume", errorID: hresultErrorId(hr)}
     }
 
     mtd outputVolumeXAudio2()->f32
     {
-        if !.masteringVoice do
+        if not .masteringVoice do
             return 0
         var volume: f32
         let safeMasteringVoice = .masteringVoice
-        let getVolume          = safeMasteringVoice.vtbl.getVolume
+        let getVolume = safeMasteringVoice.vtbl.getVolume
         getVolume(cast(*IXAudio2Voice) cast(*void) safeMasteringVoice, &volume)
         return volume
     }
@@ -183,7 +183,7 @@ internal
     func onBufferEnd(_me: *IXAudio2VoiceCallback, pBufferContext: *void?)
     {
         let voice = cast(*Voice?) pBufferContext
-        if !voice do
+        if not voice do
             return
         let safeVoice = voice
         if safeVoice.hasState(.PendingDestroy) do
@@ -248,12 +248,12 @@ impl Voice
         wfx.samples.wValidBitsPerSample = wfx.format.wBitsPerSample
 
         var flags: DWORD
-        if !createFlags.has(.PitchControl) do
+        if not createFlags.has(.PitchControl) do
             flags |= XAUDIO2_VOICE_NOPITCH
         var handle: *IXAudio2SourceVoice?
         let safeXAudio2       = g_Driver.xAudio2.xAudio2!
         let createSourceVoice = safeXAudio2.vtbl.createSourceVoice
-        let hr                = createSourceVoice(safeXAudio2, &handle, cast(const *WAVEFORMATEX) &wfx.format, flags, XAUDIO2_DEFAULT_FREQ_RATIO, &g_Cb, null, null)
+        let hr = createSourceVoice(safeXAudio2, &handle, cast(const *WAVEFORMATEX) &wfx.format, flags, XAUDIO2_DEFAULT_FREQ_RATIO, &g_Cb, null, null)
         if hr != S_OK do
             fail SystemError{"createSourceVoice", errorID: hresultErrorId(hr)}
         voice.handle = cast(*void?) handle
@@ -261,7 +261,7 @@ impl Voice
 
     mtd destroyXAudio2()
     {
-        if !.handle do
+        if not .handle do
             return
         let safeHandle   = .handle
         let handle       = cast(*IXAudio2SourceVoice) safeHandle
@@ -272,7 +272,7 @@ impl Voice
 
     mtd updateXAudio2()->bool fail
     {
-        if !.handle do
+        if not .handle do
             return false
 
         let safeHandle = .handle
@@ -283,7 +283,7 @@ impl Voice
         while voiceState.buffersQueued < NumDecodedBuffers - 1
         {
             let {ptrBuffer, sizeBuffer} = .readBuffer()
-            if !sizeBuffer do
+            if not sizeBuffer do
                 break
 
             let safePtrBuffer      = ptrBuffer!
@@ -300,7 +300,7 @@ impl Voice
 
     mtd playXAudio2(batchId: u32 = 0) fail
     {
-        if !.handle do
+        if not .handle do
             return
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SourceVoice) safeHandle
@@ -312,7 +312,7 @@ impl Voice
 
     mtd stopXAudio2(batchId: u32 = 0) fail
     {
-        if !.handle do
+        if not .handle do
             return
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SourceVoice) safeHandle
@@ -324,7 +324,7 @@ impl Voice
 
     mtd resetXAudio2() fail
     {
-        if !.handle do
+        if not .handle do
             return
         let handle = cast(*IXAudio2SourceVoice) .handle
         let hr     = handle.vtbl.flushSourceBuffers(handle)
@@ -334,7 +334,7 @@ impl Voice
 
     mtd playedFramesXAudio2()->u64
     {
-        if !.handle do
+        if not .handle do
             return 0
         let handle = cast(*IXAudio2SourceVoice) .handle
         var voiceState: XAUDIO2_VOICE_STATE
@@ -348,7 +348,7 @@ internal impl Voice
     // Sets this voice's XAudio2 gain as a linear value from `0` through `1`.
     mtd setVolumeXAudio2(volume: f32, batchId: u32 = 0) fail
     {
-        if !.handle do
+        if not .handle do
             return
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SourceVoice) safeHandle
@@ -362,7 +362,7 @@ internal impl Voice
     // Returns this voice's current XAudio2 linear gain.
     mtd volumeXAudio2()->f32 fail
     {
-        if !.handle do
+        if not .handle do
             return 0
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SourceVoice) safeHandle
@@ -379,7 +379,7 @@ internal impl Voice
     // [[Audio.Voice.setFrequencyRatio]] in backend-independent code.
     mtd setFrequencyRatioXAudio2(ratio: f32, batchId: u32 = 0) fail
     {
-        if !.handle do
+        if not .handle do
             return
         let safeHandle        = .handle
         let handle            = cast(*IXAudio2SourceVoice) safeHandle
@@ -392,7 +392,7 @@ internal impl Voice
     // Returns this voice's XAudio2 playback frequency ratio.
     mtd frequencyRatioXAudio2()->f32 fail
     {
-        if !.handle do
+        if not .handle do
             return 0
         let handle = cast(*IXAudio2SourceVoice) .handle
         var ratio: f32
@@ -419,7 +419,7 @@ internal impl Voice
         {
             for i in count
             {
-                let bus           = buses[i]
+                let bus = buses[i]
                 let safeBusHandle = bus.handle!
                 sfxSend[i].pOutputVoice = cast(*IXAudio2Voice) cast(*void) safeBusHandle
             }
@@ -452,7 +452,7 @@ impl Bus
 
         if parent
         {
-            if !parent.handle do
+            if not parent.handle do
                 fail BadParameterError{"parent bus invalid"}
 
             let safeParentHandle = parent.handle
@@ -465,7 +465,7 @@ impl Bus
         var handle: *IXAudio2SubmixVoice?
         let safeXAudio2       = g_Driver.xAudio2.xAudio2!
         let createSubmixVoice = safeXAudio2.vtbl.createSubmixVoice
-        let hr                = createSubmixVoice(safeXAudio2, &handle, numChannels, 44100, XAUDIO2_VOICE_USEFILTER, 0, pSFXSEndList, null)
+        let hr = createSubmixVoice(safeXAudio2, &handle, numChannels, 44100, XAUDIO2_VOICE_USEFILTER, 0, pSFXSEndList, null)
         if hr != S_OK do
             fail SystemError{"createSubmixVoice", errorID: hresultErrorId(hr)}
         bus.handle = cast(*void?) handle
@@ -473,7 +473,7 @@ impl Bus
 
     mtd destroyXAudio2()
     {
-        if !.handle do
+        if not .handle do
             return
         let safeHandle   = .handle
         let handle       = cast(*IXAudio2SubmixVoice) safeHandle
@@ -488,7 +488,7 @@ internal impl Bus
     // Sets this XAudio2 submix gain as a linear value from `0` through `1`.
     mtd setVolumeXAudio2(volume: f32, batchId: u32 = 0) fail
     {
-        if !.handle do
+        if not .handle do
             return
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SubmixVoice) safeHandle
@@ -502,7 +502,7 @@ internal impl Bus
     // Returns this XAudio2 submix's current linear gain.
     mtd volumeXAudio2()->f32 fail
     {
-        if !.handle do
+        if not .handle do
             return 0
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SubmixVoice) safeHandle

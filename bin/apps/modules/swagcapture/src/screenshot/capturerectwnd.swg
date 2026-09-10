@@ -85,7 +85,7 @@ impl IWnd for CaptureRectWnd
         let pt     = Input.mousePosition()
         let window = getCaptureWindowAtPos(.surface!, pt.x, pt.y)
         let r      = screenToDesktopRect(window.rect)
-        if !r.isEmpty()
+        if not r.isEmpty()
         {
             g_StartGrabX    = r.x
             g_StartGrabY    = r.y
@@ -174,7 +174,7 @@ impl IWnd for CaptureRectWnd
         case .Move:
 
             // Auto grab is always active when not dragging
-            if !.startGrab
+            if not .startGrab
             {
                 .autoGrab = true
                 .testAutoGrab()
@@ -188,7 +188,7 @@ impl IWnd for CaptureRectWnd
         var grabRect = getGrabRect()
 
         // Lerp grab rectangle only in auto grab mode
-        if .autoGrab and !.startGrab
+        if .autoGrab and not .startGrab
         {
             .lerpGrab.x      = easeGrab(.lerpGrab.x, grabRect.x)
             .lerpGrab.y      = easeGrab(.lerpGrab.y, grabRect.y)
@@ -196,7 +196,7 @@ impl IWnd for CaptureRectWnd
             .lerpGrab.height = easeGrab(.lerpGrab.height, grabRect.height)
             var roundRect = .lerpGrab
             roundRect.round()
-            if !grabRect.isEqualEpsilon(roundRect) do
+            if not grabRect.isEqualEpsilon(roundRect) do
                 .invalidate()
             grabRect = roundRect
         }
@@ -227,7 +227,7 @@ impl IWnd for CaptureRectWnd
         // Redraw the selected region at full brightness from the same texture. The
         // desktop texture texels are physical desktop pixels, so the grab rect is
         // the source rect directly.
-        if !grabRect.isEmpty() do
+        if not grabRect.isEmpty() do
             painter.drawTexture(dstGrab, grabRect, g_DesktopTexture)
 
         let colors = .themeColors()
@@ -246,7 +246,7 @@ impl IWnd for CaptureRectWnd
         // corner, so split each line around the selection instead of running it along
         // (and hiding it behind) the rectangle border. The cross then meets the corner
         // and stays clearly visible over the dimmed background.
-        if .main.captureOptions.drawCross and !.autoGrab
+        if .main.captureOptions.drawCross and not .autoGrab
         {
             // Translucent: the cross has to guide the eye without cutting the image.
             let cross: Color = {255, 255, 255, 110}

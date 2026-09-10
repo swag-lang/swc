@@ -15,16 +15,16 @@ func subtitleViewerFixturePath()->String
     Swag.assert(subtitleTimeSeconds("90", &seconds) and seconds == 90)
     Swag.assert(subtitleTimeSeconds("1:30", &seconds) and seconds == 90)
     Swag.assert(subtitleTimeSeconds("1:02:03.5", &seconds) and seconds == 3_723.5)
-    Swag.assert(!subtitleTimeSeconds("", &seconds))
-    Swag.assert(!subtitleTimeSeconds("1:", &seconds))
-    Swag.assert(!subtitleTimeSeconds("1:2:3:4", &seconds))
-    Swag.assert(!subtitleTimeSeconds("-1", &seconds))
-    Swag.assert(!subtitleTimeSeconds("NaN", &seconds))
-    Swag.assert(!subtitleTimeSeconds("Infinity", &seconds))
-    Swag.assert(!subtitleTimeSeconds("1e308:00", &seconds))
-    Swag.assert(!subtitleTimeSeconds("1:60", &seconds))
-    Swag.assert(!subtitleTimeSeconds("1:99", &seconds))
-    Swag.assert(!subtitleTimeSeconds("1.5:30", &seconds))
+    Swag.assert(not subtitleTimeSeconds("", &seconds))
+    Swag.assert(not subtitleTimeSeconds("1:", &seconds))
+    Swag.assert(not subtitleTimeSeconds("1:2:3:4", &seconds))
+    Swag.assert(not subtitleTimeSeconds("-1", &seconds))
+    Swag.assert(not subtitleTimeSeconds("NaN", &seconds))
+    Swag.assert(not subtitleTimeSeconds("Infinity", &seconds))
+    Swag.assert(not subtitleTimeSeconds("1e308:00", &seconds))
+    Swag.assert(not subtitleTimeSeconds("1:60", &seconds))
+    Swag.assert(not subtitleTimeSeconds("1:99", &seconds))
+    Swag.assert(not subtitleTimeSeconds("1.5:30", &seconds))
 }
 
 // The dedicated viewer presents a searchable timed transcript rather than raw subtitle syntax.
@@ -56,7 +56,7 @@ func subtitleViewerFixturePath()->String
     var revealed = result.revealMatch!(result.view!, matches[0], "second")
     Swag.assert(revealed)
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
+    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and not bounds.isEmpty())
     result.clearSearch!(result.view!)
     revealed = view.revealCue(1) and view.editor.selectedText() == "A second caption\non two lines."
     Swag.assert(revealed)

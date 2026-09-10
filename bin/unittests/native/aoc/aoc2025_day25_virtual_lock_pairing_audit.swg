@@ -14,8 +14,8 @@ struct PinProfile
 
 struct PairingAudit
 {
-    lockCount:           u32
-    keyCount:            u32
+    lockCount: u32
+    keyCount:  u32
     compatiblePairCount: u32
 }
 
@@ -197,10 +197,10 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
     Swag.assert(keyProfile0.heights[3] == 1)
     Swag.assert(keyProfile0.heights[4] == 3)
 
-    Swag.assert(!fits(lockProfile0, keyProfile0))
-    Swag.assert(!fits(lockProfile0, keyProfile1))
+    Swag.assert(not fits(lockProfile0, keyProfile0))
+    Swag.assert(not fits(lockProfile0, keyProfile1))
     Swag.assert(fits(lockProfile0, keyProfile2))
-    Swag.assert(!fits(lockProfile1, keyProfile0))
+    Swag.assert(not fits(lockProfile1, keyProfile0))
     Swag.assert(fits(lockProfile1, keyProfile1))
     Swag.assert(fits(lockProfile1, keyProfile2))
 

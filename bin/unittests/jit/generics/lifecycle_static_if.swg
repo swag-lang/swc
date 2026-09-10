@@ -43,7 +43,7 @@ struct MixedHolder
 {
     DropCount = 0
     var source: Holder'u32 = {{3}}
-    #assert(!#defined(source.field.opPostCopy))
+    #assert(not #defined(source.field.opPostCopy))
     let copied = source
     Swag.assert(copied.field.value == 3)
     Swag.postCopy(&source)
@@ -73,7 +73,7 @@ struct MixedHolder
 {
     let absent:  typeinfo = #typeof(Gated'u32)
     let present: typeinfo = #typeof(Gated's32)
-    let flags             = Swag.TypeInfoFlags.HasDrop | Swag.TypeInfoFlags.HasPostCopy | Swag.TypeInfoFlags.HasPostMove
+    let flags = Swag.TypeInfoFlags.HasDrop | Swag.TypeInfoFlags.HasPostCopy | Swag.TypeInfoFlags.HasPostMove
     Swag.assert((absent.flags & flags) == .Zero)
     Swag.assert((present.flags & flags) == flags)
 }
@@ -81,7 +81,7 @@ struct MixedHolder
 #test
 {
     var source: MixedHolder = {[{1}, {2}], {3}}
-    let copied              = source
+    let copied = source
     Swag.assert(copied.absent[0].value == 1)
     Swag.assert(copied.absent[1].value == 2)
     Swag.assert(copied.present.value == 13)

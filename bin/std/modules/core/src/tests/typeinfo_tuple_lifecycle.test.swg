@@ -43,7 +43,7 @@ func coreTupleLifecycleProbeAt(base: [*] u8, type: const *TypeInfoStruct, index:
 func testCoreTupleRuntimeLifecycle()->bool
 {
     let tupleType = #typeof({first: CoreTupleLifecycleProbe{}, second: CoreTupleLifecycleProbe{}})
-    if tupleType.kind != TypeInfoKind.Struct or !(tupleType.flags & TypeInfoFlags.Tuple) do
+    if tupleType.kind != TypeInfoKind.Struct or not (tupleType.flags & TypeInfoFlags.Tuple) do
         return false
 
     let tupleStruct = cast(const *TypeInfoStruct) tupleType
@@ -52,7 +52,7 @@ func testCoreTupleRuntimeLifecycle()->bool
 
     let source = Memory.new(tupleType)
     let target = Memory.new(tupleType)
-    if !source or !target do
+    if not source or not target do
         return false
     defer Memory.free(cast([*] void?) source, cast(u64) tupleType.sizeof)
     defer Memory.free(cast([*] void?) target, cast(u64) tupleType.sizeof)
@@ -64,8 +64,8 @@ func testCoreTupleRuntimeLifecycle()->bool
     if sourceFirst.id != 7 or sourceSecond.id != 7 or sourceFirst.value != "tuple-default" or sourceSecond.value != "tuple-default" do
         return false
 
-    sourceFirst.id                  = 1
-    sourceSecond.id                 = 2
+    sourceFirst.id  = 1
+    sourceSecond.id = 2
     CoreTupleLifecyclePostCopyOrder = 0
     Reflection.assign(target, source, tupleType)
     if CoreTupleLifecyclePostCopyOrder != 12 or targetFirst.id != 1 or targetSecond.id != 2 do
@@ -104,12 +104,12 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
         return false
 
     let arrayStruct = cast(const *TypeInfoArray) arrayType
-    if !(arrayStruct.pointedType.flags & TypeInfoFlags.Tuple) do
+    if not (arrayStruct.pointedType.flags & TypeInfoFlags.Tuple) do
         return false
 
     let tupleStruct = cast(const *TypeInfoStruct) arrayStruct.pointedType!
     let values      = Memory.new(arrayType)
-    if !values do
+    if not values do
         return false
     defer Memory.free(cast([*] void?) values, cast(u64) arrayType.sizeof)
 
@@ -146,18 +146,18 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
 {
     let aliasType = #typeof(CoreTupleLifecycleStrict)
     if aliasType.kind != TypeInfoKind.Alias or
-       !(aliasType.flags & TypeInfoFlags.HasDrop) or
-       !(aliasType.flags & TypeInfoFlags.HasPostCopy) or
-       !(aliasType.flags & TypeInfoFlags.HasPostMove) do
+       not (aliasType.flags & TypeInfoFlags.HasDrop) or
+       not (aliasType.flags & TypeInfoFlags.HasPostCopy) or
+       not (aliasType.flags & TypeInfoFlags.HasPostMove) do
         return false
 
     let rawType = (cast(const *TypeInfoAlias) aliasType).rawType
-    if !(rawType.flags & TypeInfoFlags.Tuple) do
+    if not (rawType.flags & TypeInfoFlags.Tuple) do
         return false
 
     let tupleStruct = cast(const *TypeInfoStruct) rawType!
     let value       = Memory.new(aliasType)
-    if !value do
+    if not value do
         return false
     defer Memory.free(cast([*] void?) value, cast(u64) aliasType.sizeof)
 

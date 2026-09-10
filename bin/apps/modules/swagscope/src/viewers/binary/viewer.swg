@@ -54,7 +54,7 @@ internal struct BinaryViewer
 {
     using wnd: Wnd
 
-        late
+    late
     {
         commands:      *Wnd
         backButton:    *IconButton
@@ -143,7 +143,7 @@ private func parseBinaryOffset(text: string, current, fileSize: u64)->u64
         index  += 1
     }
 
-    if !digits or !fileSize do
+    if not digits or not fileSize do
         return Swag.U64.Max
     var target = value
     if relative > 0 do
@@ -206,11 +206,11 @@ internal impl BinaryViewer
 
         for index in .fillIndex until end
         {
-            if !.filterIncluded.isEmpty() and !.filterIncluded[index] do
+            if not .filterIncluded.isEmpty() and not .filterIncluded[index] do
                 continue
 
-            let row                = &.doc.report.rows[index]
-            let depth              = cast(u64) row.level
+            let row   = &.doc.report.rows[index]
+            let depth = cast(u64) row.level
             var parent: *ListLine? = null
             if depth and depth <= .fillParents.count do
                 parent = .fillParents[depth - 1]
@@ -250,11 +250,11 @@ internal impl BinaryViewer
     // are only marked; expanding a root then inserts its whole marked subtree in one pass.
     private mtd applyExpansion()
     {
-        if !.filterQuery.isEmpty()
+        if not .filterQuery.isEmpty()
         {
             for row, index in .doc.report.rows where row.level and .rowLines[index] do
                 .rowLines[index]!.expanded = true
-            for row, index in .doc.report.rows where !row.level and .rowLines[index] do
+            for row, index in .doc.report.rows where not row.level and .rowLines[index] do
                 .list.expand(.rowLines[index]!)
             return
         }
@@ -269,7 +269,7 @@ internal impl BinaryViewer
         for row, index in .doc.report.rows
         {
             let open = index < .restoreExpanded.count ? .restoreExpanded[index] : row.open
-            if open and !row.level and .rowLines[index] do
+            if open and not row.level and .rowLines[index] do
                 .list.expand(.rowLines[index]!)
         }
 
@@ -278,7 +278,7 @@ internal impl BinaryViewer
 
     private mtd restoreSelection()
     {
-        if .restoreSelected >= .rowLines.count or !.rowLines[.restoreSelected]
+        if .restoreSelected >= .rowLines.count or not .rowLines[.restoreSelected]
         {
             if .filterQuery.isEmpty() do
                 .restoreSelected = Swag.U64.Max
@@ -297,7 +297,7 @@ internal impl BinaryViewer
         {
             for row, index in .doc.report.rows where row.level and .rowLines[index] do
                 .rowLines[index]!.expanded = true
-            for row, index in .doc.report.rows where !row.level and .rowLines[index] do
+            for row, index in .doc.report.rows where not row.level and .rowLines[index] do
                 .list.expand(.rowLines[index]!)
         }
 
@@ -326,7 +326,7 @@ internal impl BinaryViewer
         if index >= .rowLines.count do
             return false
         let line = .rowLines[index]
-        if !line do
+        if not line do
             return false
 
         .expandTo(line!)
@@ -346,7 +346,7 @@ internal impl BinaryViewer
 
     private mtd reportIndexOf(line: *ListLine?)->u64
     {
-        if !line do
+        if not line do
             return Swag.U64.Max
         for rowLine, index in .rowLines where rowLine == line do
             return index
@@ -384,7 +384,7 @@ internal impl BinaryViewer
 
         .historyNavigating = true
         defer .historyNavigating = false
-        if !.selectReportRow(.history[cast(u64) next], recordHistory: false) do
+        if not .selectReportRow(.history[cast(u64) next], recordHistory: false) do
             return false
         .historyIndex = cast(u64) next
         .refreshHistoryCommands()
@@ -396,7 +396,7 @@ internal impl BinaryViewer
     {
         for row, rowIndex in .doc.report.rows
         {
-            if !.filterIncluded.isEmpty() and !.filterIncluded[rowIndex] do
+            if not .filterIncluded.isEmpty() and not .filterIncluded[rowIndex] do
                 continue
             Viewer.collectTextMatches(row.label.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Field, 0, result)
             Viewer.collectTextMatches(row.value.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Value, 0, result)
@@ -415,7 +415,7 @@ internal impl BinaryViewer
         if match.major >= .doc.report.rows.count or match.minor > cast(u64) BinaryColumn.Detail do
             return false
         .clearSearchHighlight()
-        if !.selectReportRow(match.major) do
+        if not .selectReportRow(match.major) do
             return false
 
         let source = .cellText(match.major, match.minor)
@@ -432,7 +432,7 @@ internal impl BinaryViewer
 
     mtd searchBounds(result: *Math.Rectangle)->bool
     {
-        if .searchVisibleIndex == Swag.U32.Max or .searchRow >= .rowLines.count or !.rowLines[.searchRow] do
+        if .searchVisibleIndex == Swag.U32.Max or .searchRow >= .rowLines.count or not .rowLines[.searchRow] do
             return false
         let source = .cellText(.searchRow, .searchColumn)
         return Viewer.listCellMatchBounds(.list, .searchVisibleIndex, cast(u32) .searchColumn, source.toString(), .searchOffset, .searchLength, result)
@@ -468,7 +468,7 @@ internal impl BinaryViewer
             Viewer.collectTextMatches(offset.toString(), query, options, 0, 0, 0, &matches)
         }
 
-        return !matches.isEmpty()
+        return not matches.isEmpty()
     }
 
     // Keeps direct matches and every ancestor needed to reach them. Filtering therefore never
@@ -484,7 +484,7 @@ internal impl BinaryViewer
         var expression: Parser.RegExp
         if options.regularExpression
         {
-            catch expression.compile(.filterQuery.toString(), ignoreCase: !options.matchCase) as expressionError
+            catch expression.compile(.filterQuery.toString(), ignoreCase: not options.matchCase) as expressionError
             if expressionError == null do
                 options.expression = &expression
         }
@@ -519,10 +519,10 @@ internal impl BinaryViewer
         let enteringFilter = .filterQuery.isEmpty() and query.count
         if enteringFilter and .loadPublished do
             .captureViewState()
-        .filterQuery              = query
-        .filterOptions            = options
+        .filterQuery   = query
+        .filterOptions = options
         .filterOptions.expression = null
-        if !.loadPublished do
+        if not .loadPublished do
             return
 
         .rebuildFilterIndex()
@@ -538,7 +538,7 @@ internal impl BinaryViewer
             .layoutColumns()
             .invalidate()
         }
-        elif !.loadTimer do
+        elif not .loadTimer do
             .filterTimer = .addTimer(1'ms)
     }
 
@@ -574,7 +574,7 @@ internal impl BinaryViewer
     mtd copySelectedLine()
     {
         let line = .list.selectedLine()
-        if !line do
+        if not line do
             return
 
         var text: String
@@ -583,7 +583,7 @@ internal impl BinaryViewer
             let item = line!.itemAt(cast(u32) column)
             if item.name.raw.isEmpty() do
                 continue
-            if !text.isEmpty() do
+            if not text.isEmpty() do
                 text += "  "
             let plain = RichString.plainText(item.name.raw.toString())
             text += plain
@@ -608,7 +608,7 @@ internal impl BinaryViewer
     mtd promptGoToOffset()
     {
         let surface = .surface
-        if !surface or !.doc.image.fileSize do
+        if not surface or not .doc.image.fileSize do
             return
 
         var current  = 0'u64
@@ -655,7 +655,7 @@ internal impl BinaryViewer
     // has no natural width: a flag list is as long as the flags that are set.
     mtd layoutColumns()
     {
-        if !(.list != null) do
+        if not (.list != null) do
             return
 
         let room  = Math.max(.list.listView.paddedClientRect().width, 480.0)
@@ -710,11 +710,11 @@ internal impl BinaryViewer
     // instead of forcing a second permanent toolbar-sized band into the document.
     mtd layoutPreviews()
     {
-        if !.previewBand do
+        if not .previewBand do
             return
         let band  = .previewBand!
         let count = band.children.count
-        if !count do
+        if not count do
             return
         let room = Math.max(band.paddedClientRect().width - cast(f32) (count - 1) * band.spacing, 1)
 
@@ -779,14 +779,14 @@ internal impl IActionUI for ActionBinary
             evt.updatedFields |= .Name | .Shortcut | .Disabled
             evt.name          = s.ui_MenuGoTo
             evt.shortcut      = "Ctrl+G"
-            evt.disabled      = !view.doc.image.fileSize
+            evt.disabled      = not view.doc.image.fileSize
 
         case ActionBinary.Back:
             evt.updatedFields |= .Name | .Icon | .Shortcut | .Disabled
             evt.name          = s.ui_MenuBack
             evt.icon          = theme.icon(.ChevronLeft)
             evt.shortcut      = "Alt+Left"
-            evt.disabled      = view.historyIndex == Swag.U64.Max or !view.historyIndex
+            evt.disabled      = view.historyIndex == Swag.U64.Max or not view.historyIndex
 
         case ActionBinary.Forward:
             evt.updatedFields |= .Name | .Icon | .Shortcut | .Disabled
@@ -840,7 +840,7 @@ internal impl IWnd for BinaryViewer
     {
         if evt.timer == .filterTimer
         {
-            if !.fillListStep() do
+            if not .fillListStep() do
                 return
             .removeTimer(evt.timer)
             .filterTimer = null
@@ -856,16 +856,16 @@ internal impl IWnd for BinaryViewer
         }
 
         let state = Atomic.get(&.loadState)
-        if !state do
+        if not state do
             return
-        if !.loadPublished
+        if not .loadPublished
         {
             if .loadThread.isValid() do
                 .loadThread.wait()
             if .reloadLanguageRequested
             {
                 .reloadLanguageRequested = false
-                .pendingDoc              = {}
+                .pendingDoc = {}
                 catch .startLoad() as reloadError
                 if reloadError != null do
                     .publishLoadFailure(Errors.message(reloadError))
@@ -899,7 +899,7 @@ internal impl IWnd for BinaryViewer
                 .reportDetails!(me, .details.toString())
         }
 
-        if !.fillListStep() do
+        if not .fillListStep() do
             return
         .fillPreviews()
         .applyLayout()
@@ -991,7 +991,7 @@ internal impl BinaryViewer
         .loadPublished = false
         try .loadThread.init(&runBinaryViewerLoad, me, priority: .BelowNormal)
         try .loadThread.start()
-        if !.loadTimer do
+        if not .loadTimer do
             .loadTimer = .addTimer(1'ms)
         if notify and .reportLoadingChanged do
             .reportLoadingChanged!(me)
@@ -1027,7 +1027,7 @@ internal impl BinaryViewer
     {
         if .retired do
             return true
-        if !.retireRequested
+        if not .retireRequested
         {
             .retireRequested = true
             if .loadTimer
@@ -1040,7 +1040,7 @@ internal impl BinaryViewer
                 .loadThread.safeForceEnd()
         }
 
-        if .loadThread.isValid() and !.loadThread.isDone() do
+        if .loadThread.isValid() and not .loadThread.isDone() do
             return false
         if .loadThread.isValid() do
             .loadThread.wait()
@@ -1111,6 +1111,7 @@ internal impl BinaryViewer
                 discard list
                 view.showContextMenu(view.list.listView.localToSurface(position))
             }
+
             .sigSelectionChanged += func|view = result|(list)
             {
                 view.recordHistory(view.reportIndexOf(list.selectedLine()))

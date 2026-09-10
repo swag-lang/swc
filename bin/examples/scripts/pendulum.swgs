@@ -55,7 +55,7 @@ func stepPendulum(dt: f32)->bool
     den  = r2 * (2 * m1 + m2 - m2 * cos(2 * a1 - 2 * a2))
     let a2_a = (num1 * (num2 + num3 + num4)) / den
 
-    if !Math.isFinite(a1_a) or !Math.isFinite(a2_a) do
+    if not Math.isFinite(a1_a) or not Math.isFinite(a2_a) do
         return false
 
     a1_v += a1_a * dt
@@ -119,7 +119,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         while valid and remaining > 0
         {
             let dt = Math.min(remaining, FixedStep)
-            if !stepPendulum(dt)
+            if not stepPendulum(dt)
             {
                 valid = false
                 break
@@ -128,7 +128,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             remaining -= dt
         }
 
-        if !valid do
+        if not valid do
             restartPendulum()
 
         let x1 = r1 * sin(a1)
@@ -136,7 +136,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         let x2 = x1 + r2 * sin(a2)
         let y2 = y1 + r2 * cos(a2)
 
-        if !Math.isFinite(x1) or !Math.isFinite(y1) or !Math.isFinite(x2) or !Math.isFinite(y2)
+        if not Math.isFinite(x1) or not Math.isFinite(y1) or not Math.isFinite(x2) or not Math.isFinite(y2)
         {
             restartPendulum()
             return false

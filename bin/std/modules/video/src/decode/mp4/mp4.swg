@@ -169,14 +169,14 @@ private func readDescriptor(source: *ByteSource, parentEnd: u64)->Descriptor fai
             fail InvalidFormatError{"MP4 descriptor length runs past its parent descriptor"}
         let value = source.readByte()
         size = (size << 7) | cast(u64) (value & 0x7F)
-        if !(value & 0x80)
+        if not (value & 0x80)
         {
             complete = true
             break
         }
     }
 
-    if !complete do
+    if not complete do
         fail InvalidFormatError{"MP4 descriptor length exceeds four bytes"}
     if size > parentEnd - source.position() do
         fail InvalidFormatError{"MP4 descriptor runs past its parent descriptor"}
@@ -201,7 +201,7 @@ func readBox(source: *ByteSource, parentEnd: u64)->Box fail
         if size < 16 do
             fail InvalidFormatError{"MP4 extended box size is smaller than its header"}
     }
-    elif !compactSize
+    elif not compactSize
     {
         size = parentEnd - start
     }
@@ -247,11 +247,11 @@ private impl Layout
 
         if source.position() != source.size() do
             fail InvalidFormatError{"MP4 stream has trailing bytes outside a box"}
-        if !.hasMovie do
+        if not .hasMovie do
             fail InvalidFormatError{"MP4 stream has no movie box"}
-        if !.hasVideo do
+        if not .hasVideo do
             fail UnsupportedFormatError{"MP4 file has no video track"}
-        if !.track.hasDescription
+        if not .track.hasDescription
         {
             if .unsupportedCodec do
                 fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support the MP4 '%' video codec", describeId(.unsupportedCodec)))}
@@ -272,9 +272,9 @@ private impl Layout
                 if candidate.handler == VideoHandlerId
                 {
                     .hasVideo = true
-                    if candidate.hasDescription and (candidate.isJpeg or candidate.isCodedVideo()) and !.track.hasDescription do
+                    if candidate.hasDescription and (candidate.isJpeg or candidate.isCodedVideo()) and not .track.hasDescription do
                         .track = #move candidate
-                    elif !.unsupportedCodec do
+                    elif not .unsupportedCodec do
                         .unsupportedCodec = candidate.codec
                 }
                 elif candidate.handler == AudioHandlerId and candidate.hasDescription and candidate.isAac do
@@ -347,7 +347,7 @@ impl Track
             fail UnsupportedFormatError{"video decoder does not support this MP4 media-header version"}
         }
 
-        if !.timescale do
+        if not .timescale do
             fail InvalidFormatError{"MP4 video track has a zero timescale"}
     }
 
@@ -398,7 +398,7 @@ impl Track
             fail InvalidFormatError{"MP4 sample-description box is truncated"}
         discard readFullBox(source)
         let count = source.readBigEndian'u32()
-        if !count do
+        if not count do
             fail InvalidFormatError{"MP4 video track has no sample description"}
 
         let entry = readBox(source, end)
@@ -442,7 +442,7 @@ impl Track
         source.skip(4)
         .sampleRate     = source.readBigEndian'u32() >> 16
         .hasDescription = true
-        if !.channelCount or !.sampleRate do
+        if not .channelCount or not .sampleRate do
             fail InvalidFormatError{"MP4 audio track needs channels and a sample rate"}
         if version > 1 do
             fail UnsupportedFormatError{"video decoder does not support this MP4 audio sample-entry version"}
@@ -545,7 +545,7 @@ impl Track
         for count
         {
             let number = source.readBigEndian'u32()
-            if !number do
+            if not number do
                 fail InvalidFormatError{"MP4 sync-sample table holds a zero sample number"}
             .syncSamples.add(number - 1)
         }
@@ -671,7 +671,7 @@ impl Track
         discard readFullBox(source)
         let fixedSize = source.readBigEndian'u32()
         let count     = source.readBigEndian'u32()
-        if !fixedSize and cast(u64) count * 4 > end - source.position() do
+        if not fixedSize and cast(u64) count * 4 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-size table is truncated"}
         .sizes.resize(count)
         for &size in .sizes do
@@ -696,9 +696,9 @@ impl Track
     // of a variable one, which is what a caller pacing playback can best use.
     mtd const frameRate()->FrameRate fail
     {
-        if !.times.count do
+        if not .times.count do
             fail InvalidFormatError{"MP4 video track has no time-to-sample table"}
-        if !.timescale do
+        if not .timescale do
             fail InvalidFormatError{"MP4 video track has no media timescale"}
 
         let delta    = .times[0].sampleDelta
@@ -717,12 +717,12 @@ impl Track
             fail InvalidFormatError{"MP4 timing and sample-size tables describe different frame counts"}
         if constant
         {
-            if !delta do
+            if not delta do
                 fail InvalidFormatError{"MP4 video samples have a zero duration"}
             return FrameRate.create(.timescale, delta)
         }
 
-        if !ticks do
+        if not ticks do
             fail InvalidFormatError{"MP4 video samples have a zero duration"}
 
         // The average `timescale * samples / ticks`, reduced so it fits the rate's parts.
@@ -787,11 +787,11 @@ impl Track
     // Expands the chunk tables into one direct frame table.
     mtd buildFrames(sourceSize: u64)->Array'FrameEntry fail
     {
-        if !.sizes.count do
+        if not .sizes.count do
             fail InvalidFormatError{"MP4 video track has no samples"}
-        if !.offsets.count do
+        if not .offsets.count do
             fail InvalidFormatError{"MP4 video track has no chunk offsets"}
-        if !.chunks.count or .chunks[0].firstChunk != 1 do
+        if not .chunks.count or .chunks[0].firstChunk != 1 do
             fail InvalidFormatError{"MP4 sample-to-chunk table does not start at the first chunk"}
 
         var result: retval
@@ -804,7 +804,7 @@ impl Track
             while tableIndex + 1 < .chunks.count and cast(u64) .chunks[tableIndex + 1].firstChunk <= chunkNumber do
                 tableIndex += 1
             let mapping = .chunks[tableIndex]
-            if !mapping.samplesPerChunk or mapping.descriptionIndex != 1 do
+            if not mapping.samplesPerChunk or mapping.descriptionIndex != 1 do
                 fail UnsupportedFormatError{"video decoder does not support this MP4 sample-to-chunk mapping"}
 
             var offset = .offsets[chunkIndex]
@@ -813,7 +813,7 @@ impl Track
                 if sampleIndex >= .sizes.count do
                     fail InvalidFormatError{"MP4 chunk table describes more samples than the sample-size table"}
                 let size = cast(u64) .sizes[sampleIndex]
-                if !size do
+                if not size do
                     fail InvalidFormatError{"MP4 video sample has no payload"}
                 if offset > sourceSize or size > sourceSize - offset do
                     fail InvalidFormatError{"MP4 sample runs past the end of the stream"}
@@ -978,7 +978,7 @@ impl IDecoder for Decoder
 
     mtd impl syncFrameAt(index: u64)->u64
     {
-        if !.isCoded do
+        if not .isCoded do
             return index
         return .video.syncRankAt(index)
     }
@@ -1035,7 +1035,7 @@ impl IPlanarDecoder for Decoder
 
     mtd impl decodeFramePlanes(source: *ByteSource, target: *PlanarFrame) fail
     {
-        if !.isCoded do
+        if not .isCoded do
             fail UnsupportedFormatError{"MP4 track does not decode to planar pictures"}
         try .video.decodeNextPlanes(source, target)
     }
@@ -1057,14 +1057,14 @@ impl ITimedDecoder for Decoder
 {
     mtd impl frameTimestamp(index: u64)->f64
     {
-        if index >= .presentationTimes.count or !.presentationTimescale do
+        if index >= .presentationTimes.count or not .presentationTimescale do
             return 0
         return cast(f64) .presentationTimes[index] / cast(f64) .presentationTimescale
     }
 
     mtd impl frameAtTime(seconds: f64)->u64
     {
-        if !.presentationTimes.count or !.presentationTimescale do
+        if not .presentationTimes.count or not .presentationTimescale do
             return 0
         if seconds < 0 do
             return 0

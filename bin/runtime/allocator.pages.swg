@@ -161,7 +161,7 @@ func allocatorOsCommit(address: u64, size: u64)->bool
     if size == 0 do
         return true
 
-    if !__hostPageCommit(cast(*void) address, size) do
+    if not __hostPageCommit(cast(*void) address, size) do
         return false
 
     atomicAddU64(&g_AllocatorCommittedBytes, size)
@@ -310,14 +310,14 @@ impl AllocatorPage
         while list != 0
         {
             let block = .decode(list)
-            if !.isBlockAddress(block) do
+            if not .isBlockAddress(block) do
                 Swag.panic("allocator free list is corrupted", #curlocation)
 
             let next = (cast(*u64) block)[]
             (cast(*u64) block)[] = .freeList
-            .freeList            = list
-            list                 = next
-            taken                += 1
+            .freeList = list
+            list      = next
+            taken     += 1
         }
 
         Swag.assert(.used >= taken)
@@ -334,7 +334,7 @@ impl AllocatorPage
 
         .lockRemote()
         (cast(*u64) address)[] = .remoteFree
-        .remoteFree            = encoded
+        .remoteFree = encoded
         .unlockRemote()
     }
 
@@ -347,7 +347,7 @@ impl AllocatorPage
         if head != 0
         {
             let block = .decode(head)
-            if !.isBlockAddress(block) do
+            if not .isBlockAddress(block) do
                 Swag.panic("allocator free list is corrupted", #curlocation)
             .freeList = (cast(*u64) block)[]
             .used     += 1
@@ -402,7 +402,7 @@ impl AllocatorPage
     mtd releaseBlock(address: u64)
     {
         (cast(*u64) address)[] = .freeList
-        .freeList              = .encode(address)
+        .freeList = .encode(address)
         Swag.assert(.used > 0)
         .used -= 1
     }
@@ -449,7 +449,7 @@ impl AllocatorSegment
 
             let start = .pageCommitStart(index)
             let end   = .pageCommitEnd(index)
-            if !allocatorOsCommit(start, end - start)
+            if not allocatorOsCommit(start, end - start)
             {
                 .clearPageBit(bit)
                 return null
@@ -501,7 +501,7 @@ private func allocatorAddArena()->bool
     // Reserving one extra segment guarantees an aligned window inside the reservation, because a
     // reservation is released as a whole and cannot be trimmed to alignment.
     let reserved = osReserve(AllocatorArenaSize + AllocatorSegmentSize)
-    if !reserved do
+    if not reserved do
         return false
 
     let arena = &g_AllocatorArenas[g_AllocatorArenaCount]
@@ -532,9 +532,9 @@ private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
         }
     }
 
-    if !chosen
+    if not chosen
     {
-        if !allocatorAddArena() do
+        if not allocatorAddArena() do
             return null
         chosen = &g_AllocatorArenas[g_AllocatorArenaCount - 1]
     }
@@ -544,7 +544,7 @@ private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
     // not even one asked to free an address that never came from here.
     let arena = chosen!
     let base  = arena.used
-    if !allocatorOsCommit(base, AllocatorSegmentHeaderBytes) do
+    if not allocatorOsCommit(base, AllocatorSegmentHeaderBytes) do
         return null
 
     let segment = cast(*AllocatorSegment) base
@@ -571,7 +571,7 @@ func allocatorAcquireSegment(owner: *void, unitShift: u32)->*AllocatorSegment?
         let next = scan.nextSegment
         if scan.unitShift == unitShift
         {
-            if !prev do
+            if not prev do
                 g_AllocatorFreeSegment = next
             else do
                 prev.nextSegment = next
@@ -586,7 +586,7 @@ func allocatorAcquireSegment(owner: *void, unitShift: u32)->*AllocatorSegment?
     }
 
     let segment = allocatorCreateSegment(unitShift)
-    if !segment do
+    if not segment do
         return null
 
     segment.allocator = owner

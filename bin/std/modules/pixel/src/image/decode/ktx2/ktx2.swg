@@ -9,7 +9,7 @@
 using Core, Core.Errors
 
 const Identifier: [12] u8 = [0xAB, 'K', 'T', 'X', ' ', '2', '0', 0xBB, 0x0D, 0x0A, 0x1A, 0x0A]
-const HeaderSize          = 80'u64
+const HeaderSize = 80'u64
 
 internal struct Decoder
 {
@@ -27,30 +27,30 @@ func vkPixelFormat(vk: u32, format: *PixelFormat, blocks: *TextureBlocks.Format)
 {
     switch vk
     {
-    case 9, 15:              format[] = .Gray8
-    case 16, 22:             format[] = .GrayAlpha8
-    case 23, 29:             format[] = .RGB8
-    case 30, 36:             format[] = .BGR8
-    case 37, 43:             format[] = .RGBA8
-    case 44, 50:             format[] = .BGRA8
-    case 70:                 format[] = .Gray16
-    case 76:                 format[] = .GrayF16
-    case 77:                 format[] = .GrayAlpha16
-    case 83:                 format[] = .GrayAlphaF16
-    case 84:                 format[] = .RGB16
-    case 90:                 format[] = .RGBF16
-    case 91:                 format[] = .RGBA16
-    case 97:                 format[] = .RGBAF16
-    case 100:                format[] = .GrayF32
-    case 103:                format[] = .GrayAlphaF32
-    case 106:                format[] = .RGBF32
-    case 109:                format[] = .RGBAF32
+    case 9, 15:    format[] = .Gray8
+    case 16, 22:   format[] = .GrayAlpha8
+    case 23, 29:   format[] = .RGB8
+    case 30, 36:   format[] = .BGR8
+    case 37, 43:   format[] = .RGBA8
+    case 44, 50:   format[] = .BGRA8
+    case 70:       format[] = .Gray16
+    case 76:       format[] = .GrayF16
+    case 77:       format[] = .GrayAlpha16
+    case 83:       format[] = .GrayAlphaF16
+    case 84:       format[] = .RGB16
+    case 90:       format[] = .RGBF16
+    case 91:       format[] = .RGBA16
+    case 97:       format[] = .RGBAF16
+    case 100:      format[] = .GrayF32
+    case 103:      format[] = .GrayAlphaF32
+    case 106:      format[] = .RGBF32
+    case 109:      format[] = .RGBAF32
     case 131, 132, 133, 134: blocks[] = .BC1
-    case 135, 136:           blocks[] = .BC2
-    case 137, 138:           blocks[] = .BC3
-    case 139:                blocks[] = .BC4
-    case 141:                blocks[] = .BC5
-    default:                 return false
+    case 135, 136: blocks[] = .BC2
+    case 137, 138: blocks[] = .BC3
+    case 139:      blocks[] = .BC4
+    case 141:      blocks[] = .BC5
+    default:       return false
     }
 
     return true
@@ -98,7 +98,7 @@ impl Decoder
         let kvdLength        = readU32(buffer.buffer + 60)
         if baseWidth == 0 or baseWidth > cast(u32) Swag.S32.Max or baseHeight > cast(u32) Swag.S32.Max do
             fail UnsupportedFormatError{"KTX2 dimensions exceed the image limits"}
-        if (faceCount != 1 and faceCount != 6) or (depth and (faceCount != 1 or !baseHeight)) or (faceCount == 6 and baseWidth != baseHeight) do
+        if (faceCount != 1 and faceCount != 6) or (depth and (faceCount != 1 or not baseHeight)) or (faceCount == 6 and baseWidth != baseHeight) do
             fail InvalidFormatError{"KTX2 texture dimensions and face count disagree"}
         if storedLevelCount > 32 or levelIndex >= storedLevelCount do
             fail InvalidFormatError{"KTX2 mip level is out of range"}
@@ -149,7 +149,7 @@ impl Decoder
 
         var format = PixelFormat.RGBA8
         var blocks: TextureBlocks.Format
-        if !vkPixelFormat(vkFormat, &format, &blocks) do
+        if not vkPixelFormat(vkFormat, &format, &blocks) do
             fail UnsupportedFormatError{"KTX2 Vulkan pixel format is not supported"}
         if blocks != .None do
             format = .RGBA8
@@ -177,7 +177,7 @@ impl Decoder
             fail InvalidFormatError{"KTX2 level size disagrees with its image dimensions"}
         if options.maxDecodedBytes and rawLength > options.maxDecodedBytes do
             fail UnsupportedFormatError{"KTX2 level exceeds the decoded byte limit"}
-        if !options.decodePixels do
+        if not options.decodePixels do
             return result
 
         var inflated: Array'u8

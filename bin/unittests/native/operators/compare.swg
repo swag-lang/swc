@@ -51,7 +51,7 @@ func touch(flag: bool, delta: s32)->bool
     #assert(#typeof(b) == bool)
     #assert(#typeof(c) == bool)
     Swag.assert(b)
-    Swag.assert(!c)
+    Swag.assert(not c)
 }
 
 // Relational operators on integers
@@ -221,7 +221,7 @@ func matchReferenceValue(value: s32)->bool
     let a = touch(false, 1) and touch(true, 10)
     let b = touch(true, 100) or touch(true, 1000)
 
-    Swag.assert(!a)
+    Swag.assert(not a)
     Swag.assert(b)
     Swag.assert(CompareCounter == 101)
 }
@@ -355,12 +355,12 @@ impl CompareAllocatorHolder
     var holder = CompareAllocatorHolder{}
     Swag.assert(holder.needsAllocator())
     Swag.assert(holder.needsAllocatorLeft())
-    Swag.assert(!holder.hasAllocator())
+    Swag.assert(not holder.hasAllocator())
 
     var alloc = CompareAllocator{id: 55}
     holder.allocator = alloc
-    Swag.assert(!holder.needsAllocator())
-    Swag.assert(!holder.needsAllocatorLeft())
+    Swag.assert(not holder.needsAllocator())
+    Swag.assert(not holder.needsAllocatorLeft())
     Swag.assert(holder.hasAllocator())
     Swag.assert(holder.allocator.reserve() == 55)
 }

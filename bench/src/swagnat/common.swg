@@ -18,7 +18,7 @@ func benchAlloc(size: u64)->[*] void?
     request.alignment = 16
     let allocator = Swag.getContext().allocator!
     allocator.alloc(&request)
-    if !request.address do
+    if not request.address do
         return null
 
     let header = cast(*BenchAllocationHeader) request.address
@@ -29,7 +29,7 @@ func benchAlloc(size: u64)->[*] void?
 
 func benchFree(ptr: [*] void?)
 {
-    if !ptr do
+    if not ptr do
         return
 
     let header = cast(*BenchAllocationHeader) (cast([*] u8) ptr! - #sizeof(BenchAllocationHeader))

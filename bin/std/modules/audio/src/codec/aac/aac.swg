@@ -65,7 +65,7 @@ private impl HuffTree
         while bit >= 0
         {
             let branch = cast(s32) ((code >> cast(u32) bit) & 1)
-            if !bit
+            if not bit
             {
                 .child[at, branch] = ~leaf
                 return
@@ -78,7 +78,7 @@ private impl HuffTree
                 .child[at, branch] = .nodes
                 .child[.nodes, 0]  = 0
                 .child[.nodes, 1]  = 0
-                .nodes             += 1
+                .nodes += 1
             }
 
             at  = .child[at, branch]
@@ -275,7 +275,7 @@ private func initializeKbdWindow(window: [*] f64, alpha: f64, half: s32)
             step -= 1
         }
 
-        sum               += b
+        sum += b
         cumulative[index] = sum
     }
 
@@ -492,7 +492,7 @@ private impl AacCodec
                 let filter = &.tns[channel, window, filterIndex]
                 let top    = bottom
                 bottom = Math.max(top - filter.length, 0)
-                if !filter.order do
+                if not filter.order do
                     continue
                 let start = cast(s32) offsets[Math.min(bottom, maximum)]
                 let end   = cast(s32) offsets[Math.min(top, maximum)]
@@ -512,7 +512,7 @@ private impl AacCodec
                     while order > 0
                     {
                         history[order] = history[order - 1]
-                        order          -= 1
+                        order -= 1
                     }
 
                     history[0] = valueAtLine
@@ -588,7 +588,7 @@ private impl AacCodec
 
         for index in FrameSamples
         {
-            output[index]            = (time[index] + .overlap[channel, index]) / 32768.0
+            output[index] = (time[index] + .overlap[channel, index]) / 32768.0
             .overlap[channel, index] = time[FrameSamples + index]
         }
 
@@ -604,7 +604,7 @@ private impl AacCodec
         for band in bandCount
         {
             let book = .books[channel, band]
-            if !book
+            if not book
             {
                 .scaleFactors[channel, band] = 0
                 continue
@@ -653,7 +653,7 @@ private impl AacCodec
         let windowCount = value.windowSequence == 2 ? 8 : 1
         for window in windowCount
         {
-            let filterCount           = cast(s32) reader.get(value.windowSequence == 2 ? 1 : 2)
+            let filterCount = cast(s32) reader.get(value.windowSequence == 2 ? 1 : 2)
             let coefficientResolution = filterCount ? cast(s32) reader.get1() : 0
             for filterIndex in filterCount
             {
@@ -695,10 +695,10 @@ private impl AacCodec
                 if filterIndex < 3
                 {
                     let filter = &.tns[channel, window, filterIndex]
-                    filter.length                    = length
-                    filter.order                     = order
-                    filter.direction                 = direction
-                    filter.lpc                       = lpc
+                    filter.length    = length
+                    filter.order     = order
+                    filter.direction = direction
+                    filter.lpc       = lpc
                     .tnsFilterCount[channel, window] = filterIndex + 1
                 }
             }
@@ -724,7 +724,7 @@ private impl AacCodec
             else do
                 width = cast(s32) (offsets[band + 1] - offsets[band])
 
-            if !book or book >= 12
+            if not book or book >= 12
             {
                 line += width
                 continue
@@ -793,7 +793,7 @@ private impl AacCodec
     {
         let globalGain = cast(s32) reader.get(8)
         let value      = &.ics[channel]
-        if !commonWindow do
+        if not commonWindow do
             .parseIcsInfo(reader, value)
         let bandCount = value.windowSequence == 2 ? value.numWindowGroups * value.maxSfb : value.maxSfb
         if bandCount > MaxBands do
@@ -823,7 +823,7 @@ private impl AacCodec
                         break
                 }
 
-                if !length or filled + length > value.maxSfb do
+                if not length or filled + length > value.maxSfb do
                     fail InvalidFormatError{"AAC section exceeds its window group"}
                 for index in length do
                     .books[channel, flatBand + index] = book
@@ -865,7 +865,7 @@ private impl AacCodec
 
             let rightBook = .books[right, band]
             let intensity = rightBook == 14 or rightBook == 15
-            if .usesMs[left] and .msUsed[left, band] and !intensity
+            if .usesMs[left] and .msUsed[left, band] and not intensity
             {
                 for index in line until line + width
                 {
@@ -951,7 +951,7 @@ private impl AacCodec
 
     mtd decodeRaw(packet: const [..] u8, destination: [*] s16) fail
     {
-        var reader          = BitReader.create(packet.buffer, packet.count)
+        var reader = BitReader.create(packet.buffer, packet.count)
         var decodedChannels = 0's32
         Memory.set(&.pairStart, 0, #sizeof(.pairStart))
         Memory.set(&.usesMs, 0, #sizeof(.usesMs))

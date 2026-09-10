@@ -37,7 +37,7 @@ private impl PalettePicker
         for i in (.colors).count
         {
             .itemRects[i] = {x, y, cast(f32) .itemSize, cast(f32) .itemSize}
-            x             += .itemSize + .spacing
+            x += .itemSize + .spacing
             if x + .itemSize > rect.right()
             {
                 x = rect.x
@@ -127,14 +127,14 @@ impl IWnd for PalettePicker
         var index = .selectedIndex == Swag.S32.Max ? 0 : .selectedIndex
         switch evt.key
         {
-        case .Left:           index = Math.max(0, index - 1)
-        case .Right:          index = Math.min(cast(s32) .colors.count - 1, index + 1)
-        case .Up:             index = Math.max(0, index - .columnCount())
-        case .Down:           index = Math.min(cast(s32) .colors.count - 1, index + .columnCount())
-        case .Home:           index = 0
-        case .End:            index = cast(s32) .colors.count - 1
+        case .Left:  index = Math.max(0, index - 1)
+        case .Right: index = Math.min(cast(s32) .colors.count - 1, index + 1)
+        case .Up:    index = Math.max(0, index - .columnCount())
+        case .Down:  index = Math.min(cast(s32) .colors.count - 1, index + .columnCount())
+        case .Home:  index = 0
+        case .End:   index = cast(s32) .colors.count - 1
         case .Space, .Return: break
-        default:              return
+        default:     return
         }
 
         .setSelectedIndex(index)

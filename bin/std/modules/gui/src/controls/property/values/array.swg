@@ -157,7 +157,7 @@ internal impl Properties
 
     mtd constructArray(value: Swag.TypeValue, data: *u8?, parentItem: *PropertiesItem?)
     {
-        let item           = .addItem(value, data, parentItem)
+        let item = .addItem(value, data, parentItem)
         let numItemsBefore = .items.count
         item.flags.add(.NoSeparator)
 
@@ -181,7 +181,7 @@ internal impl Properties
         addBtn.dockStyle = .isGridLike() ? .Right : .None
         addBtn.setForm(IconButtonForm.Circle)
         item.arrayAddButton = addBtn
-        if !.isGridLike() do
+        if not .isGridLike() do
             item.label.wndFlags.remove(.ClipChildren)
         addBtn.sigPressed += func|prop = me, item|(btn) { prop.appendArrayValue(item) }
 

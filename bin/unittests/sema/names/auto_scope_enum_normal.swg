@@ -18,5 +18,5 @@ func semaTest003()
 {
     let values: [3] A    = [.R, .G, .B]
     let matrix: [2, 2] A = [[.R, .G], [.B, .R]]
-    let same             = values[1] == .G and matrix[1][0] == .B
+    let same = values[1] == .G and matrix[1][0] == .B
 }

@@ -173,7 +173,7 @@ impl DateTime
     internal func parseSep(buf: *string, sep: u8, eat: *u32) fail
     {
         let view = buf[]
-        if !view.count or view[0] != sep do
+        if not view.count or view[0] != sep do
             fail SyntaxError{}
         buf[] = Tokenize.eatCount(view, 1)
         eat[] += 1
@@ -185,7 +185,7 @@ impl DateTime
         var result: retval
         var buf = str
 
-        if !buf.count do
+        if not buf.count do
             fail SyntaxError{}
 
         if buf.count >= 1 and
@@ -207,7 +207,7 @@ impl DateTime
                 }
             }
 
-            if !done do
+            if not done do
                 fail SyntaxError{}
 
             done = false
@@ -227,7 +227,7 @@ impl DateTime
                 }
             }
 
-            if !done do
+            if not done do
                 fail SyntaxError{}
 
             parseSep(&buf, ' ', &result.eat)
@@ -300,7 +300,7 @@ impl DateTime
             }
         }
 
-        if checkDate and !result.value.isValid() do
+        if checkDate and not result.value.isValid() do
             fail SyntaxError{}
 
         return result

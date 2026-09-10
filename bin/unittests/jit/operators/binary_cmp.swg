@@ -12,7 +12,7 @@ enum CmpEnum: u16
     const V0 = #run eqS32(42, 42)
     const V1 = #run eqS32(42, 43)
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
 }
 
 #test
@@ -21,7 +21,7 @@ enum CmpEnum: u16
     const V0 = #run neS64(5000000000's64, 5000000001's64)
     const V1 = #run neS64(5000000000's64, 5000000000's64)
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
 }
 
 #test
@@ -30,7 +30,7 @@ enum CmpEnum: u16
     const V0 = #run ltS32(-5, 12)
     const V1 = #run ltS32(12, -5)
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
 }
 
 #test
@@ -39,7 +39,7 @@ enum CmpEnum: u16
     const V0 = #run leS32(12, 12)
     const V1 = #run leS32(13, 12)
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
 }
 
 #test
@@ -48,7 +48,7 @@ enum CmpEnum: u16
     const V0 = #run gtU64(0xFFFF_FFFF_FFFF_FFFF'u64, 1'u64)
     const V1 = #run gtU64(1'u64, 0xFFFF_FFFF_FFFF_FFFF'u64)
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
 }
 
 #test
@@ -57,7 +57,7 @@ enum CmpEnum: u16
     const V0 = #run geU64(9'u64, 9'u64)
     const V1 = #run geU64(8'u64, 9'u64)
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
 }
 
 #test
@@ -77,7 +77,7 @@ enum CmpEnum: u16
     const V0 = #run cmpEnum(CmpEnum.A, CmpEnum.A)
     const V1 = #run cmpEnum(CmpEnum.A, CmpEnum.B)
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
 }
 
 #test
@@ -87,7 +87,7 @@ enum CmpEnum: u16
     const V1 = #run cmpPointer(cast(*void) 0x1234'u64, cast(*void) 0x1234'u64)
     const V2 = #run cmpPointer(null, cast(*void) 0x1'u64)
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
     #assert(V2)
 }
 
@@ -97,7 +97,7 @@ enum CmpEnum: u16
     const V0 = #run cmpMixedFloat(1.25'f32, 2.0'f64)
     const V1 = #run cmpMixedFloat(3.5'f32, 2.0'f64)
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
 }
 
 #test
@@ -143,7 +143,7 @@ enum CmpEnum: u16
         cast(*void) 0x1111'u64, CmpEnum.B)
 
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
 }
 
 #test
@@ -157,7 +157,7 @@ enum CmpEnum: u16
     const V1 = #run cmpOrChain(3, 2, 1)
     const V2 = #run cmpOrChain(3, 2, 4)
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
     #assert(V2)
 }
 
@@ -173,7 +173,7 @@ enum CmpEnum: u16
     const V2 = #run cmpAndOrPrecedence(5, 2, 3)
     #assert(V0)
     #assert(V1)
-    #assert(!V2)
+    #assert(not V2)
 }
 
 #test
@@ -187,8 +187,8 @@ enum CmpEnum: u16
     const V1 = #run cmpLogicalInt(1, 0)
     const V2 = #run cmpLogicalInt(0, 2)
     #assert(V0)
-    #assert(!V1)
-    #assert(!V2)
+    #assert(not V1)
+    #assert(not V2)
 }
 
 #test
@@ -202,8 +202,8 @@ enum CmpEnum: u16
     const V1 = #run cmpLogicalPointer(cast(*void?) 0'u64, true)
     const V2 = #run cmpLogicalPointer(cast(*void) 0x1'u64, false)
     #assert(V0)
-    #assert(!V1)
-    #assert(!V2)
+    #assert(not V1)
+    #assert(not V2)
 }
 
 #test
@@ -280,7 +280,7 @@ enum CmpEnum: u16
     const V1 = #run cmpAndOrPrecedenceStress(false, true, false, true, false, false)
     const V2 = #run cmpAndOrPrecedenceStress(true, false, false, false, false, false)
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
     #assert(V2)
 }
 
@@ -345,13 +345,13 @@ impl CompareAllocatorHolder
 func cmpInterfaceFieldNullChecks()->bool
 {
     var holder = CompareAllocatorHolder{}
-    if !holder.needsAllocator() or !holder.needsAllocatorLeft() or holder.hasAllocator() do
+    if not holder.needsAllocator() or not holder.needsAllocatorLeft() or holder.hasAllocator() do
         return false
 
     var alloc = CompareAllocator{id: 55}
     holder.allocator = alloc
-    return !holder.needsAllocator() and
-           !holder.needsAllocatorLeft() and
+    return not holder.needsAllocator() and
+           not holder.needsAllocatorLeft() and
            holder.hasAllocator() and
            holder.allocator.reserve() == 55
 }

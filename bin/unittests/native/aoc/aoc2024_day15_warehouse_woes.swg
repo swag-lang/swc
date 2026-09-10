@@ -165,7 +165,7 @@ func parseInput(text: string)->Parsed
         elif ch == 'O' do tile = Tile.Box
         elif ch == '@'
         {
-            tile             = Tile.Robot
+            tile = Tile.Robot
             result.wh.robotR = row
             result.wh.robotC = col
         }

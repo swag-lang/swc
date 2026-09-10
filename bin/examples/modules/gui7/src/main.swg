@@ -165,7 +165,7 @@ func applyTheme()
 
 func toggleTheme(_btn: *Button)
 {
-    g_DarkTheme = !g_DarkTheme
+    g_DarkTheme = not g_DarkTheme
     applyTheme()
 }
 
@@ -200,7 +200,7 @@ func buildPage()
 
 func layoutRootView()
 {
-    if !g_View or !g_PageView do
+    if not g_View or not g_PageView do
         return
 
     let view     = g_View!
@@ -239,7 +239,7 @@ func previousPage()
 
 func updateTestMode()
 {
-    if !Env.isSmokeRun() or !g_Surface do
+    if not Env.isSmokeRun() or not g_Surface do
         return
 
     g_TestFrame += 1
@@ -258,22 +258,22 @@ func updateTestMode()
 
 func canUsePageArrows()->bool
 {
-    if !g_View or !g_PageView do
+    if not g_View or not g_PageView do
         return false
 
     let view2     = g_View!
     let pageView2 = g_PageView!
 
     let focus = view2.focusedWindow()
-    if !focus or focus == g_View do
+    if not focus or focus == g_View do
         return true
 
-    return !pageView2.isAncestorOf(focus!)
+    return not pageView2.isAncestorOf(focus!)
 }
 
 func onFrame(app: *Application)
 {
-    if !g_Surface or !g_View or !g_PageView do
+    if not g_Surface or not g_View or not g_PageView do
         return
 
     if app.keyboard.isKeyJustPressed(.F1) do
@@ -309,7 +309,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 func createRootView()
 {
     let view = g_Surface!.view()
-    g_View               = view
+    g_View = view
     view.backgroundStyle = .View
 
     let title = Label.create(view, "", {})
@@ -328,7 +328,7 @@ func createRootView()
     themeButton.sigPressed += &toggleTheme
 
     let pageView = Wnd.create'Wnd(view, {})
-    g_PageView               = pageView
+    g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 
     let footer = Label.create(view, "", {})

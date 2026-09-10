@@ -84,7 +84,7 @@ impl ReversedHashTable
             }
 
             remain -= 1
-            if !remain do
+            if not remain do
                 break
         }
     }
@@ -146,10 +146,10 @@ impl HashTable
         // duplicate what it owns: the table then states none either, and is handed over with '#move'.
         mtd opPostCopy()
         {
-            if !.table do
+            if not .table do
                 return
 
-            if !.allocator do
+            if not .allocator do
                 .allocator = Swag.getContext().allocator
 
             let oldTable = .tablePtr()
@@ -207,7 +207,7 @@ impl HashTable
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key, value))
     {
-        if !.count do
+        if not .count do
             return
 
         let table  = .constTablePtr()
@@ -233,7 +233,7 @@ impl HashTable
             }
 
             remain -= 1
-            if !remain do
+            if not remain do
                 break
         }
     }
@@ -261,7 +261,7 @@ impl HashTable
     // If keys or values have destructors, they are called.
     mtd free()
     {
-        if !.table do
+        if not .table do
             return
         let table = .tablePtr()
 
@@ -304,7 +304,7 @@ impl HashTable
         .count, .deleted = 0
         let newCapacityBytes = reqCapacity * #sizeof(HashTableEntry'(K, V))
 
-        if !.allocator do
+        if not .allocator do
             .allocator = Swag.getContext().allocator
         .table = cast([*] HashTableEntry'(K, V)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()
@@ -347,7 +347,7 @@ impl HashTable
         var index = idx
         let table = .tablePtr()
 
-        if !.deleted
+        if not .deleted
         {
             for
             {
@@ -420,7 +420,7 @@ impl HashTable
         }
 
         table[index].hash = hashVal
-        .count            += 1
+        .count += 1
         return table + index
     }
 
@@ -460,7 +460,7 @@ impl HashTable
         }
 
         table[index].hash = hashVal
-        .count            += 1
+        .count += 1
         return table + index
     }
 
@@ -468,7 +468,7 @@ impl HashTable
     // If the key exists, its slot is marked as 'DELETED'. Does nothing if the key is not found.
     mtd remove(key: K)
     {
-        if !.table do
+        if not .table do
             return
 
         let hashVal = hashKey(key)
@@ -481,8 +481,8 @@ impl HashTable
             if table[index].hash == hashVal and table[index].key == key
             {
                 table[index].hash = HashTable.HASH_DELETED
-                .count            -= 1
-                .deleted          += 1
+                .count   -= 1
+                .deleted += 1
                 return
             }
 
@@ -493,7 +493,7 @@ impl HashTable
     // Returns 'true' if the me.table contains the given key.
     mtd const contains(key: K)->bool
     {
-        if !.table do
+        if not .table do
             return false
 
         let hashVal = hashKey(key)
@@ -515,7 +515,7 @@ impl HashTable
     // Returns a pointer to the 'HashTableEntry' if found, otherwise returns 'null'.
     mtd tryFind(key: K)->*HashTableEntry?
     {
-        if !.table do
+        if not .table do
             return null
 
         let hashVal = hashKey(key)
@@ -544,7 +544,7 @@ impl HashTable
     // Returns a pointer to the 'HashTableEntry' if found, otherwise returns 'null'.
     mtd const tryFind(key: K)->const *HashTableEntry?
     {
-        if !.table do
+        if not .table do
             return null
 
         let hashVal = hashKey(key)
@@ -585,7 +585,7 @@ impl HashTable
     mtd const getOrDefault(key: K, defaultValue: V)->V
     {
         let it = .tryFind(key)
-        if !it do
+        if not it do
             return defaultValue
         return it.value
     }
@@ -621,7 +621,7 @@ impl HashTable
         }
 
         table[index].hash = hashVal
-        .count            += 1
+        .count += 1
         return table + index
     }
 
@@ -651,7 +651,7 @@ impl HashTable
                 table[i].hash = HashTable.HASH_FREE
 
                 // We are done if there's no more valid value, and no more me.deleted value
-                if !.count and !.deleted do
+                if not .count and not .deleted do
                     break
             }
         }
@@ -666,7 +666,7 @@ impl StrConv.IConvert for HashTable
         var first = true
         for k, v in me
         {
-            if !first do
+            if not first do
                 buf.addBytes(", ")
             first = false
 

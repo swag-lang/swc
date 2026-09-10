@@ -107,7 +107,7 @@ impl Brush
             return .color.a == 255
 
         case .Texture:
-            return .color.a == 255 and !.texture.pixelFormat.hasAlpha()
+            return .color.a == 255 and not .texture.pixelFormat.hasAlpha()
 
         case .LinearGradient, .RadialGradient, .SweepGradient:
             if .color.a != 255 do

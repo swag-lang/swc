@@ -284,10 +284,10 @@ func day9A()
 
             switch
             {
-            case dx > 1 and !dy:
+            case dx > 1 and not dy:
                 T.x += sdx
 
-            case dy > 1 and !dx:
+            case dy > 1 and not dx:
                 T.y += sdy
 
             case dx + dy > 2:

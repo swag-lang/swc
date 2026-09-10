@@ -111,7 +111,7 @@ func mapProbe(m: *StoneMap, key: u64)->u32
     let keys  = m.keys!
     for MapCap
     {
-        if !alive[idx] or keys[idx] == key do
+        if not alive[idx] or keys[idx] == key do
             return idx
         idx = (idx + 1) % MapCap
     }
@@ -246,9 +246,9 @@ func mapFromValues(values: u64...)->StoneMap
 func parseInput(text: string)->StoneMap
 {
     var result: retval = mapInit()
-    let bytes          = cast(const [..] u8) text
+    let bytes = cast(const [..] u8) text
     var acc:    u64
-    var inNum          = false
+    var inNum = false
 
     for index in bytes.count
     {
@@ -361,7 +361,7 @@ func solve(text: string)->BlinkResult
     Swag.assert(mapIsEmpty(&m))
 
     mapAdd(&m, 42, 5)
-    Swag.assert(!mapIsEmpty(&m))
+    Swag.assert(not mapIsEmpty(&m))
 
     var zero: u64 = 0
     let p         = mapLookup(&m, 42) orelse &zero
@@ -396,8 +396,8 @@ func solve(text: string)->BlinkResult
     mapAdd(&m, 10, 2)
     mapAdd(&m, 20, 3)
 
-    var sum: u64          = 0
-    let pSum              = &sum
+    var sum: u64 = 0
+    let pSum     = &sum
     let cb:  StoneVisitor = func|pSum|(key: u64, count: u64)
     {
         pSum[] += key * count

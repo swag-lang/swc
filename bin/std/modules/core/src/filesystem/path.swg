@@ -6,7 +6,7 @@ using Swag
 // Compile-time lexical policy for the selected target. Filesystem access remains a host concern;
 // every operation below is a string algorithm governed by these values.
 private const TargetHasWindowsPathSyntax = WINDOWS
-private const TargetPathCaseSensitive    = !WINDOWS
+private const TargetPathCaseSensitive    = not WINDOWS
 
 const DirectorySeparator    = '/'u8                       // Preferred directory separator.
 const AltDirectorySeparator = WINDOWS ? '\\'u8 : 0'u8     // Accepted alternate separator, or zero when none exists.
@@ -30,11 +30,11 @@ func isValidPathName(fullname: string)->bool
     {
         if c == 0 do
             return false
-        if !TargetHasWindowsPathSyntax do
+        if not TargetHasWindowsPathSyntax do
             continue
         if c < 32 or c == '"' or c == '<' or c == '>' or c == '|' or c == '*' do
             return false
-        if c == '?' and (!extendedSyntax or index != 2) do
+        if c == '?' and (not extendedSyntax or index != 2) do
             return false
     }
 
@@ -62,7 +62,7 @@ func rootLength(fullname: string)->u32
 {
     if fullname.count == 0 do
         return 0
-    if !TargetHasWindowsPathSyntax do
+    if not TargetHasWindowsPathSyntax do
         return isDirectorySeparator(fullname[0]) ? 1 : 0
 
     func startsWithOrdinal(source, value: string)->bool
@@ -92,7 +92,7 @@ func rootLength(fullname: string)->u32
             volumeSeparatorLength += ExtendedPathPrefix.count
     }
 
-    if (!extendedSyntax or extendedUncSyntax) and isDirectorySeparator(fullname[0])
+    if (not extendedSyntax or extendedUncSyntax) and isDirectorySeparator(fullname[0])
     {
         index = 1
         if extendedUncSyntax or pathLength > 1 and isDirectorySeparator(fullname[1])
@@ -104,7 +104,7 @@ func rootLength(fullname: string)->u32
                 if isDirectorySeparator(fullname[index])
                 {
                     separatorCount -= 1
-                    if !separatorCount
+                    if not separatorCount
                     {
                         index += 1
                         break
@@ -134,7 +134,7 @@ func rootName(fullname: string?)->string?
     let path = fullname
     Swag.assert(isValidPathName(path))
     let length = rootLength(path)
-    if !length do
+    if not length do
         return null
     return cast() Swag.makeSlice(path.buffer, cast(u64) length)
 }
@@ -315,7 +315,7 @@ func combine(fullnames: (string?)...)->String
         if result.length
         {
             let c = result.back()
-            if !isDirectorySeparator(c) do
+            if not isDirectorySeparator(c) do
                 result += DirectorySeparator
         }
 

@@ -154,13 +154,13 @@ impl CopyGate
         where T == string
     {
         .values[.count] = value
-        .count          += 1
+        .count += 1
     }
 
     mtd add(value: #move T)
     {
         .values[.count] = #move value
-        .count          += 1
+        .count += 1
     }
 }
 

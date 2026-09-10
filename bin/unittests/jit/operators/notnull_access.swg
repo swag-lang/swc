@@ -111,7 +111,7 @@ struct NotNullBox
 impl NotNullBox
 {
     mtd const at()->const *NotNullSlot => &.slot
-    mtd atMut()->*NotNullSlot          => &.slot
+    mtd atMut()->*NotNullSlot => &.slot
 }
 
 func notNullThroughConstRef(box: *NotNullBox)->s32

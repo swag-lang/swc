@@ -29,14 +29,14 @@ func inlineGeF64(a: f64, b: f64)->bool
 {
     const A = Swag.F32.NaN
     const B = Swag.F32.NaN
-    #assert(!#run inlineLeF32(A, B))
-    #assert(!#run inlineGeF32(A, B))
+    #assert(not #run inlineLeF32(A, B))
+    #assert(not #run inlineGeF32(A, B))
 }
 
 #test
 {
     const A = Swag.F64.NaN
     const B = Swag.F64.NaN
-    #assert(!#run inlineLeF64(A, B))
-    #assert(!#run inlineGeF64(A, B))
+    #assert(not #run inlineLeF64(A, B))
+    #assert(not #run inlineGeF64(A, B))
 }

@@ -15,7 +15,7 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
     let itf = makeCaptureAllocator(&alloc)
     Swag.assert(alloc.captureAllocStack)
     Swag.assert(alloc.detectLeaks)
-    Swag.assert(!alloc.trackAllocations)
+    Swag.assert(not alloc.trackAllocations)
     Swag.assert(alloc.fillAlloc)
 
     var req: AllocatorRequest

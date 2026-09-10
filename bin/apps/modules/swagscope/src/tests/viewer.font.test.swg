@@ -84,7 +84,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     commandBar.centerGroup = result.commands
     let view = cast(*FontViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    view.dockStyle          = .Center
+    view.dockStyle = .Center
     view.commands.dockStyle = .None
 
     host.root.applyLayout()
@@ -115,5 +115,5 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     Swag.assert(result.view != null and result.commands != null)
     let view = cast(*FontViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    Swag.assert(!view.failureReason.isEmpty())
+    Swag.assert(not view.failureReason.isEmpty())
 }

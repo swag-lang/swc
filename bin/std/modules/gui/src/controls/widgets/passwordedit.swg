@@ -71,7 +71,7 @@ private impl PasswordEdit
     {
         let rect = .clientRect()
         .edit.setPosition(rect)
-        if !.revealButton do
+        if not .revealButton do
             return
 
         let inset = 2'f32
@@ -189,13 +189,13 @@ private impl PasswordEdit
         let selection = .eraseSelection()
         var changed   = selection.changed
         var caret     = selection.caret
-        if !changed and key == .Back and caret
+        if not changed and key == .Back and caret
         {
             .eraseRunes(caret - 1, caret)
             caret   -= 1
             changed = true
         }
-        elif !changed and key == .Delete and caret < .runeCount
+        elif not changed and key == .Delete and caret < .runeCount
         {
             .eraseRunes(caret, caret + 1)
             changed = true
@@ -328,6 +328,7 @@ impl PasswordEdit
             discard edit
             password.sigSubmitted.call(password)
         }
+
         result.edit.sigCancelled += func|password = result|(edit)
         {
             discard edit
@@ -353,7 +354,7 @@ impl PasswordEdit
     mtd const bytes()->const [..] u8 => .storage[until .byteCount]
 
     // Returns true when no password bytes are stored.
-    mtd const isEmpty()->bool => !.byteCount
+    mtd const isEmpty()->bool => not .byteCount
 
     // Selects the complete masked password.
     mtd selectAll() => .edit.selectAll()

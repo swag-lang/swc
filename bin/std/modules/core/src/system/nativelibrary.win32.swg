@@ -12,7 +12,7 @@ internal func loadNativeLibrary(path: string)->*void fail
 {
     let nativePath = Utf16.toZeroTerminated(path)
     let handle     = LoadLibraryW(nativePath.buffer)
-    if !handle do
+    if not handle do
         failWinError(GetLastError())
     return handle!
 }

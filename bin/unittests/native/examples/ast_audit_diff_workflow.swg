@@ -191,15 +191,15 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
     Swag.assert(diff.old_rollout == .Manual)
     Swag.assert(diff.new_rollout == .Progressive)
 
-    Swag.assert(!diff.changed_pauseSeconds)
+    Swag.assert(not diff.changed_pauseSeconds)
     Swag.assert(diff.old_pauseSeconds == 20)
     Swag.assert(diff.new_pauseSeconds == 20)
 
     Swag.assert(diff.changed_alertsEnabled)
-    Swag.assert(!diff.old_alertsEnabled)
+    Swag.assert(not diff.old_alertsEnabled)
     Swag.assert(diff.new_alertsEnabled)
 
-    Swag.assert(!diff.changed_owner)
+    Swag.assert(not diff.changed_owner)
     Swag.assert(diff.old_owner == "ops@contoso.test")
     Swag.assert(diff.new_owner == "ops@contoso.test")
 
@@ -232,13 +232,13 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
     let diff    = buildAuditDiff'(WarehouseLimits)(before, after)
     let rebuilt = applyAuditDiff'(WarehouseLimits)(before, diff)
 
-    Swag.assert(!diff.changed_maxBins)
+    Swag.assert(not diff.changed_maxBins)
     Swag.assert(diff.changed_maxLoadKg)
     Swag.assert(diff.old_maxLoadKg == 1200)
     Swag.assert(diff.new_maxLoadKg == 1800)
     Swag.assert(diff.changed_requiresScan)
     Swag.assert(diff.old_requiresScan)
-    Swag.assert(!diff.new_requiresScan)
+    Swag.assert(not diff.new_requiresScan)
     Swag.assert(diff.changed_overflowContact)
     Swag.assert(diff.old_overflowContact == "night-shift@warehouse.test")
     Swag.assert(diff.new_overflowContact == "dispatch@warehouse.test")
@@ -246,6 +246,6 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
 
     Swag.assert(rebuilt.maxBins == 48)
     Swag.assert(rebuilt.maxLoadKg == 1800)
-    Swag.assert(!rebuilt.requiresScan)
+    Swag.assert(not rebuilt.requiresScan)
     Swag.assert(rebuilt.overflowContact == "dispatch@warehouse.test")
 }

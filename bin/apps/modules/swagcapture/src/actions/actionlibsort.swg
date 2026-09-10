@@ -112,7 +112,7 @@ impl IActionUI for ActionLibSort
         case .Dimensions:  libWnd.setSortMethod(.Dimensions)
         case .FileSize:    libWnd.setSortMethod(.FileSize)
         case .Similar:     libWnd.setSortMethod(.Similar)
-        case .Invert:      libWnd.setSortOrder(!libWnd.invertSort)
+        case .Invert:      libWnd.setSortOrder(not libWnd.invertSort)
         }
 
         return true

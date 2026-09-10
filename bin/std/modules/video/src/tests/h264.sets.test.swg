@@ -17,7 +17,7 @@ using Core
 
     var subsampled: H264.Sps
     expect subsampled.parse(Sps420)
-    Swag.assert(subsampled.chromaShift() == 1 and !subsampled.is444())
+    Swag.assert(subsampled.chromaShift() == 1 and not subsampled.is444())
     Swag.assert(subsampled.mbWidth == 6 and subsampled.mbHeight == 4)
     Swag.assert(subsampled.cropBottom == 6)
     Swag.assert(subsampled.width() == 96 and subsampled.height() == 58)

@@ -50,7 +50,7 @@ func boolTestEmptinessErrSlice(values: const [..] s32)->s32
 
 func boolTestEmptinessErrNot(text: string)->s32
 {
-    if !text do     // swc-expected-error {{sema_err_bool_test_not_nullable_emptiness}}
+    if not text do     // swc-expected-error {{sema_err_bool_test_not_nullable_emptiness}}
         return 0
     return 1
 }

@@ -122,7 +122,7 @@ func applyTheme()
 func toggleTheme(btn: *Button)
 {
     discard btn
-    g_DarkTheme = !g_DarkTheme
+    g_DarkTheme = not g_DarkTheme
     applyTheme()
 }
 
@@ -160,7 +160,7 @@ func buildCurvePage(parent: *Wnd)->*Wnd
 {
     let page = Wnd.create'Wnd(parent)
     page.backgroundStyle = .View
-    g_CurvePage          = page
+    g_CurvePage = page
 
     g_CurveNote = Label.create(page, "Nine curves, one clock. The dot on the graph and the puck under it are the same number: the shape is the movement. The clock repeats forever and reverses on every play, which is one track, not a frame callback.", {}, null, .WordWrap | .SecondaryText)
     g_Wall      = CurveWall.create(page)
@@ -172,7 +172,7 @@ func buildCurvePage(parent: *Wnd)->*Wnd
 func layoutCurvePage()
 {
     let page = g_CurvePage
-    if !page do
+    if not page do
         return
 
     let rect  = page.clientRect()
@@ -212,7 +212,7 @@ func buildStagePage(parent: *Wnd)->*Wnd
 {
     let page = Wnd.create'Wnd(parent)
     page.backgroundStyle = .View
-    g_StagePage          = page
+    g_StagePage = page
 
     g_StageNote = Label.create(page, "Six tiles, one parallel group, eighteen tracks. Each tile fades, rises, and grows on the same timeline, offset by its rank. Nothing below moves: presentation state never touches a layout rectangle.", {}, null, .WordWrap | .SecondaryText)
 
@@ -327,7 +327,7 @@ func onEntranceEnded(result: AnimationResult)
     // nothing: no layer, no resample, no per-frame composition.
     for card in g_Cards
     {
-        if !card!.isPendingDestroy do
+        if not card!.isPendingDestroy do
             card!.resetPresentation()
     }
 }
@@ -335,7 +335,7 @@ func onEntranceEnded(result: AnimationResult)
 func layoutStagePage()
 {
     let page = g_StagePage
-    if !page do
+    if not page do
         return
 
     let rect  = page.clientRect()
@@ -390,7 +390,7 @@ func buildFieldPage(parent: *Wnd)->*Wnd
 {
     let page = Wnd.create'Wnd(parent)
     page.backgroundStyle = .View
-    g_FieldPage          = page
+    g_FieldPage = page
 
     g_FieldNote = Label.create(page, "One channel owns the puck. Clicking again while it travels does not stack a second animation: it replaces the first one from the value on screen, which is why the trail bends instead of jumping.", {}, null, .WordWrap | .SecondaryText)
 
@@ -453,7 +453,7 @@ func updateFieldReadout()
 func layoutFieldPage()
 {
     let page = g_FieldPage
-    if !page do
+    if not page do
         return
 
     let rect  = page.clientRect()
@@ -528,7 +528,7 @@ func startEssentialBreath()
 func toggleExpander(btn: *Button)
 {
     discard btn
-    g_Expanded        = !g_Expanded
+    g_Expanded        = not g_Expanded
     g_ExpandBtn!.name = g_Expanded ? "Hide the panel" : "Show the panel"
     g_ExpandBtn!.invalidate()
     discard app.animator.animateLayoutHeight(g_Detail!, g_Expanded ? ExpandedDetail : CollapsedDetail)
@@ -538,7 +538,7 @@ func buildPrefPage(parent: *Wnd)->*Wnd
 {
     let page = Wnd.create'Wnd(parent)
     page.backgroundStyle = .View
-    g_PrefPage           = page
+    g_PrefPage = page
 
     g_PrefNote = Label.create(page, "A track says whether it decorates or whether it reports. Turn reduced motion on in the header: the left loop ends on its resting frame and the right one keeps going, because only one of them is carrying information.", {}, null, .WordWrap | .SecondaryText)
 
@@ -582,7 +582,7 @@ func buildPrefPage(parent: *Wnd)->*Wnd
 func layoutPrefPage()
 {
     let page = g_PrefPage
-    if !page do
+    if not page do
         return
 
     let rect  = page.clientRect()
@@ -628,7 +628,7 @@ func onPrefPageEvent(page: *Wnd, evt: IEvent)->bool
 func layoutRootView()
 {
     let view = g_View
-    if !view do
+    if not view do
         return
 
     let rect  = view.clientRect()
@@ -708,7 +708,7 @@ func onRootEvent(view: *Wnd, evt: IEvent)->bool
 func onFrame(application: *Application)
 {
     discard application
-    if !Env.isSmokeRun() or !g_Tabs do
+    if not Env.isSmokeRun() or not g_Tabs do
         return
 
     g_SmokeFrame += 1
@@ -734,7 +734,7 @@ func onFrame(application: *Application)
 func createRootView()
 {
     let view = g_Surface!.view()
-    g_View               = view
+    g_View = view
     view.backgroundStyle = .View
 
     let title = Label.create(view, "GUI11 motion laboratory")
@@ -752,7 +752,7 @@ func createRootView()
     themeButton.sigPressed += &toggleTheme
 
     let reduced = CheckButton.create(view, "Reduced motion")
-    g_Reduced          = reduced
+    g_Reduced = reduced
     reduced.sigChanged += &onReducedChanged
 
     let tabs = Tab.create(view)

@@ -60,7 +60,7 @@ func day5B()
                 }
             }
 
-            if !isOrdered
+            if not isOrdered
             {
                 var repaired: Array's32
                 repaired.resize(update.count)

@@ -27,7 +27,7 @@ public impl Image
     // Change the alpha channel
     mtd setAlpha(value: u8 = 0)
     {
-        if !.pixelFormat.hasAlpha() or !.pixelFormat.isPacked() do
+        if not .pixelFormat.hasAlpha() or not .pixelFormat.isPacked() do
             return
 
         if .pixelFormat != .BGRA8 or .alphaMode == .Premultiplied
@@ -64,14 +64,14 @@ public impl Image
     // Change specified color channels
     mtd setChannel(mode: ChannelMode, value: ChannelValueMode, color: u8 = 0)
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
 
         let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8) and .alphaMode == .Straight
-        if !legacy
+        if not legacy
         {
             var rmode = mode
-            if !.pixelFormat.hasAlpha()
+            if not .pixelFormat.hasAlpha()
             {
                 rmode &= ~.Alpha
                 if rmode == 0 or value == .Alpha do

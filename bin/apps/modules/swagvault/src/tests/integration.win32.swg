@@ -123,7 +123,7 @@ namespace Integration
         try verify((operation.lpVtbl.RenameItems)(operation, items!, name16.buffer!) >= 0, "the Shell must queue every file under the same requested name")
         try verify((operation.lpVtbl.PerformOperations)(operation) >= 0, "the Shell must complete the batch rename")
         var aborted: s32
-        try verify((operation.lpVtbl.GetAnyOperationsAborted)(operation, &aborted) >= 0 and !aborted, "the Shell must not skip any batch rename")
+        try verify((operation.lpVtbl.GetAnyOperationsAborted)(operation, &aborted) >= 0 and not aborted, "the Shell must not skip any batch rename")
     }
 
     func password()->const [..] u8
@@ -138,7 +138,7 @@ namespace Integration
 
     func verify(condition: bool, message: string) fail
     {
-        if !condition do
+        if not condition do
             failWith(Format.toString("Integration check failed: %", message))
         g_CheckCount += 1
     }
@@ -184,14 +184,14 @@ namespace Integration
     {
         let existing16    = Utf16.toZeroTerminated(existing)
         let replacement16 = Utf16.toZeroTerminated(replacement)
-        if !MoveFileExW(existing16.buffer, replacement16.buffer, replace ? MoveReplaceExisting : 0) do
+        if not MoveFileExW(existing16.buffer, replacement16.buffer, replace ? MoveReplaceExisting : 0) do
             failWith(Format.toString("Windows error %: cannot rename [[%]] to [[%]].", GetLastError(), existing, replacement))
     }
 
     func setAttributes(path: string, attributes: u32) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
-        if !SetFileAttributesW(path16.buffer, attributes) do
+        if not SetFileAttributesW(path16.buffer, attributes) do
             failWith(Format.toString("Windows error %: cannot set attributes on [[%]].", GetLastError(), path))
     }
 
@@ -204,7 +204,7 @@ namespace Integration
     func removeDirectory(path: string) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
-        if !WinFsp.RemoveDirectoryW(path16.buffer) do
+        if not WinFsp.RemoveDirectoryW(path16.buffer) do
             failWith(Format.toString("Windows error %: cannot remove directory [[%]].", GetLastError(), path))
     }
 
@@ -278,7 +278,7 @@ namespace Integration
 
         mtd unmountVolume() fail
         {
-            if !.mountedActive do
+            if not .mountedActive do
                 return
             let mounted = .mounted!
             discard catch mounted.close() as closeError
@@ -300,7 +300,7 @@ namespace Integration
                 .mountedActive = false
             }
 
-            if !.root.isEmpty() do
+            if not .root.isEmpty() do
                 WinFsp.removeRuntimeTree(.root)
         }
 
@@ -368,7 +368,7 @@ namespace Integration
         let appended: [4] u8 = [6, 5, 4, 3]
         discard try appendStream.write(&appended[0], #sizeof(appended))
         appendStream.close()
-        let afterAppend            = try File.readAllBytes(overwrite)
+        let afterAppend = try File.readAllBytes(overwrite)
         let expectedAppend: [7] u8 = [9, 8, 7, 6, 5, 4, 3]
         try verify(sameBytes(afterAppend.toSlice(), expectedAppend), "append mode must add data at end of file")
 
@@ -387,7 +387,7 @@ namespace Integration
         let renamed = Path.combine(documents, "renamed.bin")
         trace("FS: file and directory rename")
         movePath(overwrite, renamed)
-        try verify(!File.exists(overwrite) and File.exists(renamed), "files must be renameable")
+        try verify(not File.exists(overwrite) and File.exists(renamed), "files must be renameable")
 
         // Explorer computes progress while cached writes and namespace notifications are still
         // active. WinFsp 2.1 could deadlock in that overlap and leave Explorer waiting forever.
@@ -406,13 +406,13 @@ namespace Integration
         let movedSize        = try movedLargeStream.size()
         movedLargeStream.close()
         try verify(renameTimer.elapsedMilliseconds() < MaximumRenameDurationMs, "moving a large file between directories must not stall the filesystem host")
-        try verify(!File.exists(largeSource) and movedSize == LargeMoveSize, "a large moved file must retain its size and destination")
+        try verify(not File.exists(largeSource) and movedSize == LargeMoveSize, "a large moved file must retain its size and destination")
 
         let renamedNested = Path.combine(documents, "Renamed-Nested")
         movePath(nested, renamedNested)
         let movedPersistent = Path.combine(renamedNested, "external-copy.bin")
         let movedLargePath  = Path.combine(renamedNested, "large-move-destination.bin")
-        try verify(!Directory.exists(nested) and File.exists(movedPersistent) and File.exists(movedLargePath), "directories with children must be renameable")
+        try verify(not Directory.exists(nested) and File.exists(movedPersistent) and File.exists(movedLargePath), "directories with children must be renameable")
 
         let replacementSource = Path.combine(documents, "replacement-source.bin")
         trace("FS: rename with replacement")
@@ -422,7 +422,7 @@ namespace Integration
         discard File.writeAllBytes(replacementTarget, first)
         movePath(replacementSource, replacementTarget, true)
         let replacementRead = try File.readAllBytes(replacementTarget)
-        try verify(!File.exists(replacementSource) and sameBytes(replacementRead.toSlice(), replacementBytes), "rename with replacement must atomically replace the destination")
+        try verify(not File.exists(replacementSource) and sameBytes(replacementRead.toSlice(), replacementBytes), "rename with replacement must atomically replace the destination")
 
         let readOnlyPath = Path.combine(documents, "readonly.bin")
         trace("FS: read-only attributes")
@@ -439,11 +439,11 @@ namespace Integration
         trace("FS: file and directory deletion")
         discard File.writeAllBytes(disposable, first)
         try File.delete(disposable)
-        try verify(!File.exists(disposable), "files must be deletable")
+        try verify(not File.exists(disposable), "files must be deletable")
         let emptyDirectory = Path.combine(documents, "Empty-Directory")
         Directory.create(emptyDirectory)
         try removeDirectory(emptyDirectory)
-        try verify(!Directory.exists(emptyDirectory), "empty directories must be deletable")
+        try verify(not Directory.exists(emptyDirectory), "empty directories must be deletable")
 
         let bulk = Path.combine(documents, "Bulk")
         trace("FS: bulk directory enumeration")
@@ -474,14 +474,14 @@ namespace Integration
             let source16  = Utf16.toZeroTerminated(source)
             let collision = MoveFileExW(source16.buffer, occupied16.buffer, 0)
             let error     = GetLastError()
-            try verify(!collision and (error == 183 or error == 80), "a rename to an occupied name must report a name collision")
+            try verify(not collision and (error == 183 or error == 80), "a rename to an occupied name must report a name collision")
             try verify(File.exists(source) and sameBytes((try File.readAllBytes(occupied)).toSlice(), first), "a refused rename must preserve both files")
 
             let destination = Path.combine(bulk, Format.toString("clip (%).mp4", index + 1))
             renamePaths.add(destination)
             movePath(source, destination)
             let renamedBytes = try File.readAllBytes(destination)
-            try verify(!File.exists(source) and renamedBytes.count == 113, "batch renames must preserve each file and remove its old name")
+            try verify(not File.exists(source) and renamedBytes.count == 113, "batch renames must preserve each file and remove its old name")
             var expected: [113] u8
             for byteIndex in expected.count do
                 expected[byteIndex] = cast(u8) ((index * 31 + byteIndex * 17) & 0xFF)
@@ -496,7 +496,7 @@ namespace Integration
         {
             let numbered     = Path.combine(bulk, Format.toString("video (%).mp4", index + 1))
             let renamedBytes = try File.readAllBytes(numbered)
-            try verify(!File.exists(renamePaths[index]) and renamedBytes.count == 113, "the Shell must assign a distinct numbered name to every file")
+            try verify(not File.exists(renamePaths[index]) and renamedBytes.count == 113, "the Shell must assign a distinct numbered name to every file")
             var expected: [113] u8
             for byteIndex in expected.count do
                 expected[byteIndex] = cast(u8) ((index * 31 + byteIndex * 17) & 0xFF)
@@ -513,13 +513,13 @@ namespace Integration
     func runPersistenceScenarios(box: *Sandbox, original: const [..] u8) fail
     {
         try box.unmountVolume()
-        try verify(!Directory.exists(driveRoot(box.mountPoint)), "the drive letter must disappear after unmount")
+        try verify(not Directory.exists(driveRoot(box.mountPoint)), "the drive letter must disappear after unmount")
 
         var rejected: WinFsp.MountedVolume
         discard catch rejected.open(box.container, wrongPassword(), box.mountPoint) as passwordError
         rejected.close()
         try verify(passwordError != null, "a wrong password must not mount the container")
-        try verify(!Directory.exists(driveRoot(box.mountPoint)), "a rejected password must not leave a drive mounted")
+        try verify(not Directory.exists(driveRoot(box.mountPoint)), "a rejected password must not leave a drive mounted")
 
         try box.mountVolume(password())
         try verify(Directory.exists(driveRoot(box.mountPoint)), "the same container must remount on the same free letter")
@@ -536,12 +536,12 @@ namespace Integration
         try verify(entries.count == 25 and containsEntry(entries.toSlice(), "video (13).mp4") and containsEntry(entries.toSlice(), "occupied.bin"), "batch rename metadata must persist across remount")
 
         let newAfterRemount = Path.combine(root, "created-after-remount.txt")
-        let text            = "mounted twice"
+        let text = "mounted twice"
         discard File.writeAllBytes(newAfterRemount, Swag.makeSlice(cast(const [*] u8) text.buffer, text.count))
         try verify((try File.readAllText(newAfterRemount)) == text, "the remounted drive must remain writable")
 
         try box.unmountVolume()
-        try verify(!Directory.exists(driveRoot(box.mountPoint)), "the final unmount must release the drive letter")
+        try verify(not Directory.exists(driveRoot(box.mountPoint)), "the final unmount must release the drive letter")
     }
 
     func runHiddenScenarios() fail
@@ -558,7 +558,7 @@ namespace Integration
         try box.unmountVolume()
 
         try box.mountVolume(password(), HiddenPassword)
-        try verify(!File.exists(secret), "the outer mount must not expose hidden entries")
+        try verify(not File.exists(secret), "the outer mount must not expose hidden entries")
         let ordinary = Path.combine(driveRoot(box.mountPoint), "ordinary.bin")
         var stream   = try File.open(ordinary, .CreateNew, .ReadWrite, .Read)
         var chunk    = try createPayload(1024 * 1024)
@@ -626,7 +626,7 @@ namespace Integration
     func runInSandbox(box: *Sandbox)->u32 fail
     {
         g_CheckCount = 0
-        try verify(!WinFsp.isElevated(), "the filesystem host must use the normal Explorer security context")
+        try verify(not WinFsp.isElevated(), "the filesystem host must use the normal Explorer security context")
         try verifyRuntimeIsolation()
         Console.println("Swag Vault integration sandbox: ", box.root)
         Console.println("Using temporary drive: ", box.mountPoint)
@@ -706,7 +706,7 @@ namespace Integration
     {
         switch err
         {
-        case Error:            return (cast(Error) err).message orelse "Swag Vault integration error."
+        case Error: return (cast(Error) err).message orelse "Swag Vault integration error."
         case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse "Windows integration error."
         }
 

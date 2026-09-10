@@ -11,7 +11,7 @@ impl JitFieldVisits
 {
     #[Swag.Macro]
     func(ptr: bool) opVisit(me, stmt: #code(item: s32, index: u64))
-        where !ptr
+        where not ptr
     {
 
         for idx in 3
@@ -65,7 +65,7 @@ impl JitReverseVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
-        where !ptr
+        where not ptr
     {
         for idx in 3
         {
@@ -107,7 +107,7 @@ impl JitHiddenAliasVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, tens: s32, index: u64))
-        where !ptr
+        where not ptr
     {
         for idx in 3
         {
@@ -176,9 +176,9 @@ impl JitReturnVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32))
-        where !ptr
+        where not ptr
     {
-        if !(.values).count do
+        if not (.values).count do
             return
 
         var remain = (.values).count
@@ -191,7 +191,7 @@ impl JitReturnVisits
             }
 
             remain -= 1
-            if !remain do
+            if not remain do
                 break
         }
     }

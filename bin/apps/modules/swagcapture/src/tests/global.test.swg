@@ -15,10 +15,10 @@ func testSetupGlobalMain(main: *MainWnd)
         .dockStyle = .Bottom
     }
 
-    main.rightBar           = Wnd.create'Wnd(main, {0, 0, RightPanelWidth + 2 * main.themeMetrics().panel_GutterSize, 0})
+    main.rightBar = Wnd.create'Wnd(main, {0, 0, RightPanelWidth + 2 * main.themeMetrics().panel_GutterSize, 0})
     main.rightBar.dockStyle = .Right
 
-    main.quickStyleBar           = SplitterCtrl.create(main.rightBar, {0, 0, RightPanelWidth, 600}, vertical: true)
+    main.quickStyleBar = SplitterCtrl.create(main.rightBar, {0, 0, RightPanelWidth, 600}, vertical: true)
     main.quickStyleBar.dockStyle = .Center
 
     main.createToolRail()
@@ -68,8 +68,8 @@ func testSetupGlobalMain(main: *MainWnd)
     expect f.gui.app.setLanguage("fr")
     defer expect f.gui.app.setLanguage("en")
 
-    f.main.editorOptions.theme             = .SwagDark
-    f.main.editorOptions.language          = .English
+    f.main.editorOptions.theme    = .SwagDark
+    f.main.editorOptions.language = .English
     f.main.editorOptions.showToolBarLabels = true
     let lightBackground = f.main.themeColors().wnd_Bk
     discard f.main.applyOptionChange(#nameof(EditorOptions.showToolBarLabels))
@@ -124,7 +124,7 @@ func testSetupGlobalMain(main: *MainWnd)
     let bar     = f.main.libWnd.commandBar
     let spinner = cast(*Wnd) f.main.libWnd.view.imgSpin!
     Swag.assert(spinner.parent == cast(*Wnd) bar)
-    Swag.assert(!spinner.isLocallyVisible())
+    Swag.assert(not spinner.isLocallyVisible())
 
     let packed = bar.measure({}).preferred.x
     spinner.show()
@@ -134,8 +134,8 @@ func testSetupGlobalMain(main: *MainWnd)
 
     var evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
     Swag.assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
-    Swag.assert(!evt.name.isEmpty())
-    Swag.assert(!evt.checked)
+    Swag.assert(not evt.name.isEmpty())
+    Swag.assert(not evt.checked)
     Swag.assert((f.main.libraryBtn.text()).count != 0)
     Swag.assert(f.main.libraryBtn.icon.isValid())
     Swag.assert(f.main.libraryBtn.form == .Normal)
@@ -151,10 +151,10 @@ func testSetupGlobalMain(main: *MainWnd)
     // keeps the signature, and the page the reader can leave to is the other thing a theme owns
     // a second color for.
     Swag.assert(f.main.libraryBtn.form == .Alternate)
-    Swag.assert(!f.main.editWnd.isLocallyVisible())
+    Swag.assert(not f.main.editWnd.isLocallyVisible())
     Swag.assert(f.main.libWnd.isLocallyVisible())
-    Swag.assert(!f.main.commandReadouts.isLocallyVisible())
-    Swag.assert(!f.main.app().animator.isActive(f.main.libWnd, AnimationChannel.from("Gui.Page.Offset")))
+    Swag.assert(not f.main.commandReadouts.isLocallyVisible())
+    Swag.assert(not f.main.app().animator.isActive(f.main.libWnd, AnimationChannel.from("Gui.Page.Offset")))
     Swag.assert(f.main.libWnd.presentationOpacity == 1 and f.main.libWnd.presentationOffset == Math.Point{})
 
     evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
@@ -162,17 +162,17 @@ func testSetupGlobalMain(main: *MainWnd)
     Swag.assert(evt.checked)
 
     f.gui.keyPress(Input.Key.Space)
-    Swag.assert(!f.main.libraryMode)
+    Swag.assert(not f.main.libraryMode)
     Swag.assert(f.main.libraryBtn.form == .Normal)
     Swag.assert(f.main.editWnd.isLocallyVisible())
-    Swag.assert(!f.main.libWnd.isLocallyVisible())
+    Swag.assert(not f.main.libWnd.isLocallyVisible())
     Swag.assert(f.main.commandReadouts.isLocallyVisible())
-    Swag.assert(!f.main.app().animator.isActive(f.main.editWnd, AnimationChannel.from("Gui.Page.Offset")))
+    Swag.assert(not f.main.app().animator.isActive(f.main.editWnd, AnimationChannel.from("Gui.Page.Offset")))
     Swag.assert(f.main.editWnd.presentationOpacity == 1 and f.main.editWnd.presentationOffset == Math.Point{})
 
     let surface = f.main.surface!
     surface.show()
-    Swag.assert(!surface.isHidden)
+    Swag.assert(not surface.isHidden)
 
     var actionExecuted = Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.Minimize)
     Swag.assert(actionExecuted)
@@ -180,11 +180,11 @@ func testSetupGlobalMain(main: *MainWnd)
 
     actionExecuted = Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowEditor)
     Swag.assert(actionExecuted)
-    Swag.assert(!surface.isHidden)
+    Swag.assert(not surface.isHidden)
 
     evt = Gui.Testing.commandState(ActionGlobal.Exit)
     Swag.assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.Exit, &evt))
-    Swag.assert(!evt.name.isEmpty())
+    Swag.assert(not evt.name.isEmpty())
 }
 
 // The fixed dark matte was once the persisted default. It now migrates to the theme-derived

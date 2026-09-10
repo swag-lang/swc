@@ -206,7 +206,7 @@ impl SoundFile
     mtd const readPayload(offset, count: u64)->Array'u8 fail
     {
         var result: retval
-        if !count or offset >= .dataSize do
+        if not count or offset >= .dataSize do
             return result
 
         let wanted = Math.min(count, .dataSize - offset)
@@ -331,13 +331,13 @@ impl SoundFile
     // and language are copied from `options` and remain valid for this value's lifetime.
     func openPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, frameCount: u64, packets: const [..] SoundPacket, decoderConfig: const [..] u8, options: PacketStreamOptions = {})->SoundFile fail
     {
-        if !isPacketEncoding(encoding) do
+        if not isPacketEncoding(encoding) do
             fail UnsupportedFormatError{"unsupported packetized sound encoding"}
-        if !sampleRateHz or !channels or channels > 8 do
+        if not sampleRateHz or not channels or channels > 8 do
             fail BadParameterError{"packetized sound needs one to eight channels and a non-zero sample rate"}
-        if !packets.count do
+        if not packets.count do
             fail BadParameterError{"packetized sound needs packets"}
-        if packetEncodingNeedsConfig(encoding) and !decoderConfig.count do
+        if packetEncodingNeedsConfig(encoding) and not decoderConfig.count do
             fail BadParameterError{"packetized sound needs decoder configuration"}
 
         var stream     = File.openRead(path)
@@ -354,9 +354,9 @@ impl SoundFile
         result.timelineStart      = options.timelineStartSeconds
         result.mediaName.add(cast(const [..] u8) options.displayName)
         result.mediaLanguage.add(cast(const [..] u8) options.language)
-        if !Math.isFinite(result.timelineStart) or result.timelineStart < 0 do
+        if not Math.isFinite(result.timelineStart) or result.timelineStart < 0 do
             fail BadParameterError{"sound timeline start is not finite and non-negative"}
-        if !result.waveSpeakerMask
+        if not result.waveSpeakerMask
         {
             switch channels
             {
@@ -382,7 +382,7 @@ impl SoundFile
         {
             // A packet may complete no frame at all: the first Vorbis packet of a stream only
             // primes the overlap of the next one.
-            if !packet.byteSize do
+            if not packet.byteSize do
                 fail BadParameterError{"sound packets need non-zero byte counts"}
             if packet.sourceOffset > sourceSize or cast(u64) packet.byteSize > sourceSize - packet.sourceOffset do
                 fail InvalidFormatError{"sound packet runs past the end of its source file"}
@@ -426,9 +426,9 @@ impl SoundFile
         default:     fail UnsupportedFormatError{"packetized PCM stream only supports 8-, 16-, 24-, and 32-bit integer PCM"}
         }
 
-        if !sampleRateHz or !channels do
+        if not sampleRateHz or not channels do
             fail BadParameterError{"packetized PCM needs channels and a non-zero sample rate"}
-        if !packets.count do
+        if not packets.count do
             fail BadParameterError{"packetized PCM needs source chunks"}
         let bytesPerFrame = cast(u64) channels * cast(u64) (bitsPerSample / 8)
         var stream        = File.openRead(path)
@@ -450,7 +450,7 @@ impl SoundFile
 
         for packet in packets
         {
-            if !packet.byteSize or !packet.sampleFrameCount do
+            if not packet.byteSize or not packet.sampleFrameCount do
                 fail BadParameterError{"PCM source chunks need non-zero byte and sample-frame counts"}
             if packet.sourceOffset > sourceSize or cast(u64) packet.byteSize > sourceSize - packet.sourceOffset do
                 fail InvalidFormatError{"PCM source chunk runs past the end of its source file"}

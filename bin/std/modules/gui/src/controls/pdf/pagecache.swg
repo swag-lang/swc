@@ -208,7 +208,7 @@ impl PdfPageCache
     // stops the view from asking for it again on every frame.
     mtd adopt()->*PdfResidentPage?
     {
-        if !.loading or !.task.isDone() do
+        if not .loading or not .task.isDone() do
             return null
 
         .task.wait()
@@ -290,7 +290,7 @@ impl PdfPageCache
     // caller pays what remains of one page rather than of the document.
     mtd abandonLoad()
     {
-        if !.loading do
+        if not .loading do
             return
         .task.wait()
         .loading = false
@@ -306,9 +306,9 @@ impl PdfPageCache
     // than being retried once per page.
     private mtd runLoad()
     {
-        if !.readerReady
+        if not .readerReady
         {
-            if !.readerError.isEmpty()
+            if not .readerError.isEmpty()
             {
                 .loadFailure = .readerError
                 return

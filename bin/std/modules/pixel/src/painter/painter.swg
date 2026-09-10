@@ -330,7 +330,7 @@ struct Painter
         sharedRegions:      Array'FillRegion                        // The regions those contours form.
         sharedDirections:   HashTable'(u64, Vector2)                // Outward direction of each contour point of a region.
         sharedRoundTmp:     Array'{ factor: f32, pos: Vector2 }     // Reusable stroke-rounding workspace.
-        tess:               Poly2Tri.Tessellate                     // Reusable polygon tessellator.
+        tess: Poly2Tri.Tessellate                                   // Reusable polygon tessellator.
 
         // Reusable shaped run for the immediate drawString path, so per-frame text drawing
         // shapes without allocating a fresh glyph buffer on every call.
@@ -416,7 +416,7 @@ impl Painter
     // referenced by the painter.
     mtd setRenderer(renderer: IRenderer)
     {
-        Swag.assert(!.drawingBegin)
+        Swag.assert(not .drawingBegin)
         .rendererItf = renderer
     }
 
@@ -487,7 +487,7 @@ impl Painter
     // unchanged. Use it to keep hairlines and carets on whole device pixels.
     mtd const snapToDeviceX(x: f32)->f32
     {
-        if !.curState.transform.isTranslationOnly() do
+        if not .curState.transform.isTranslationOnly() do
             return x
         let k = .curContentScale
         return Math.round((x + .curState.transform.tx) * k) / k - .curState.transform.tx
@@ -498,7 +498,7 @@ impl Painter
     // See [[Pixel.Painter.snapToDeviceX]].
     mtd const snapToDeviceY(y: f32)->f32
     {
-        if !.curState.transform.isTranslationOnly() do
+        if not .curState.transform.isTranslationOnly() do
             return y
         let k = .curContentScale
         return Math.round((y + .curState.transform.ty) * k) / k - .curState.transform.ty
@@ -534,7 +534,7 @@ impl Painter
     // Rendering is synchronous. Call [[Painter.end]] before this method.
     mtd render()
     {
-        Swag.assert(!.drawingBegin)
+        Swag.assert(not .drawingBegin)
         .renderer().draw(me)
     }
 
@@ -569,7 +569,7 @@ impl Painter
 
     private mtd setTexture0(bvMin, bvMax: Vector2, brush: Brush)
     {
-        if !.canSetTexture0 do
+        if not .canSetTexture0 do
             return
         if brush.type == .SolidColor
         {
@@ -709,7 +709,7 @@ impl Painter
     {
         .curTextureFont      = null
         .curTextureFontAtlas = -1
-        if !.hasTextureFont do
+        if not .hasTextureFont do
             return
         .hasTextureFont = false
         discard .newCommand(.ResetTextureFont, true)
@@ -1026,7 +1026,7 @@ impl Painter
 
     private mtd updateFont(fontRef: *Font)
     {
-        if !fontRef.cache.dirty do
+        if not fontRef.cache.dirty do
             return
         let cmd = .newCommand(.UpdateFont, false)
         cmd.font.fontRef = fontRef
@@ -1037,7 +1037,7 @@ impl Painter
         var alpha = false
         if .curState.paintParams & .Antialiased do
             alpha = true
-        if !pen.brush.isOpaque() do
+        if not pen.brush.isOpaque() do
             alpha = true
         if .curPaintAlpha and .curState.paintParams & .Antialiased do
             alpha = true
@@ -1368,7 +1368,7 @@ impl Painter
     mtd pushClippingRect(rect: Math.Rectangle, isSurfacePos = false)
     {
         var rrect = rect
-        if !isSurfacePos do
+        if not isSurfacePos do
             rrect.offset(.curState.transform.tx, .curState.transform.ty)
         rrect.round()
 
@@ -1490,7 +1490,7 @@ impl Painter
     // Reports whether painting with `brush` cannot change the destination; see the color overload.
     internal mtd const isInvisible(brush: Brush)->bool
     {
-        return !brush.hasVisibleAlpha() and .curState.blendingMode != .Copy
+        return not brush.hasVisibleAlpha() and .curState.blendingMode != .Copy
     }
 
     // Sets the writable framebuffer channels from a mask value.
@@ -1557,7 +1557,7 @@ impl Painter
     // Release the render target
     mtd releaseRenderTarget(tgt: *RenderTarget?)
     {
-        if !tgt do
+        if not tgt do
             return
         .transientTargets.add(tgt!)
     }

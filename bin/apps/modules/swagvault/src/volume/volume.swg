@@ -128,7 +128,7 @@ impl VolumeProgress
     mtd ratio()->f32
     {
         let total = Atomic.get(&.total)
-        if !total do
+        if not total do
             return 0
         return cast(f32) Atomic.get(&.done) / cast(f32) total
     }
@@ -287,7 +287,7 @@ impl Volume
         // everything and leaves no half-written container on disk.
         defer
         {
-            if !completed
+            if not completed
             {
                 result.close()
                 if created do
@@ -310,7 +310,7 @@ impl Volume
         }
 
         result.file.stream = File.open(path, .CreateNew, .ReadWrite, .Read)
-        created            = true
+        created = true
         result.file.resize(result.physicalSize)
 
         // Fill the whole container with random bytes before anything real is
@@ -391,7 +391,7 @@ impl Volume
         var completed = false
         defer
         {
-            if !completed
+            if not completed
             {
                 result.dirty = false
                 result.close()
@@ -456,7 +456,7 @@ impl Volume
         // A shrink publishes its authenticated geometry before truncating the now-unused tail.
         // If the process stopped between those steps, the next writable open completes the
         // truncation; a read-only open simply ignores the unauthenticated excess bytes.
-        if !readOnly and !result.file.base and !result.file.protectedEnd and result.file.size() > result.physicalSize
+        if not readOnly and not result.file.base and not result.file.protectedEnd and result.file.size() > result.physicalSize
         {
             result.file.resize(result.physicalSize)
             result.file.flush()
@@ -489,7 +489,7 @@ impl Volume
     {
         if requestedSize < MinimumSize do
             failWith("The hidden volume is too small for its metadata.", .SizeTooSmall)
-        if !hiddenPassword.count do
+        if not hiddenPassword.count do
             failWith("A hidden volume needs a password or key files.", .PasswordRequired)
         var outer = try Volume.open(path, outerPassword)
         if outer.file.base do
@@ -531,7 +531,7 @@ impl Volume
         var completed = false
         defer
         {
-            if !completed
+            if not completed
             {
                 result.dirty = false
                 result.close()
@@ -584,7 +584,7 @@ impl Volume
     {
         var area: [KeySlotAreaSize] u8
         defer Core.Crypto.secureClear(area)
-        if !.file.readExactAt(KeySlotAreaOffset, area) do
+        if not .file.readExactAt(KeySlotAreaOffset, area) do
             failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
 
         Swag.memcpy(&.slotSalt[0], &area[0], Crypto.SaltSize)
@@ -605,7 +605,7 @@ impl Volume
             }
         }
 
-        if !found do
+        if not found do
             failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
         .keys = try Crypto.deriveKeys(.master)
     }
@@ -648,7 +648,7 @@ impl Volume
     {
         var area: [KeySlotAreaSize] u8
         defer Core.Crypto.secureClear(area)
-        if !.file.readExactAt(KeySlotAreaOffset, area) do
+        if not .file.readExactAt(KeySlotAreaOffset, area) do
             return Swag.U64.Max
 
         var slotKey = try Crypto.deriveSlotKey(password, .slotSalt)
@@ -679,7 +679,7 @@ impl Volume
     // which refuses to add an unprotected way into a container that has one.
     mtd changePassword(current, replacement: const [..] u8) fail
     {
-        if .file.base and (!replacement.count or (try HiddenLocator.opensOuter(&.file.stream, replacement))) do
+        if .file.base and (not replacement.count or (try HiddenLocator.opensOuter(&.file.stream, replacement))) do
             failWith("Hidden access needs nonempty credentials distinct from outer access.", .InvalidInput)
 
         let currentIndex = try .findKeySlot(current)
@@ -738,10 +738,10 @@ impl Volume
     // protection is [[Volume.changePassword]] with an empty replacement.
     mtd addPassword(additional: const [..] u8)->u64 fail
     {
-        if .file.base and (!additional.count or (try HiddenLocator.opensOuter(&.file.stream, additional))) do
+        if .file.base and (not additional.count or (try HiddenLocator.opensOuter(&.file.stream, additional))) do
             failWith("Hidden access needs nonempty credentials distinct from outer access.", .InvalidInput)
 
-        if !additional.count do
+        if not additional.count do
             failWith("A password is required.", .PasswordRequired)
         if (try .findKeySlot(additional)) != Swag.U64.Max do
             failWith("That password already opens this container.", .AlreadyExists)
@@ -828,7 +828,7 @@ impl Volume
         var committed = false
         defer
         {
-            if !committed
+            if not committed
             {
                 .blocks.free   = #move previousFree
                 .containerSize = previousSize
@@ -881,7 +881,7 @@ impl Volume
         var committed = false
         defer
         {
-            if !committed
+            if not committed
             {
                 .physicalSize = previousPhysical
                 discard catch .file.resize(previousPhysical)
@@ -966,17 +966,17 @@ impl Volume
         var committed = false
         defer
         {
-            if !committed
+            if not committed
             {
                 for &node, index in .nodes do
                     node.blocks = #move previousMaps[index].blocks
-                .blocks.free            = #move previousFree
+                .blocks.free   = #move previousFree
                 .blocks.freeBlocksCount = previousFreeBlocksCount
-                .containerSize          = previousSize
-                .physicalSize           = previousPhysical
-                .blockCount             = previousBlockCount
-                .scalarsDirty           = false
-                .dirty                  = false
+                .containerSize = previousSize
+                .physicalSize  = previousPhysical
+                .blockCount    = previousBlockCount
+                .scalarsDirty  = false
+                .dirty         = false
                 discard catch .file.resize(previousPhysical)
             }
         }
@@ -1072,7 +1072,7 @@ impl Volume
     {
         var result: retval
         result.plain = try .readFramedRecord(HeaderAreaOffset + slot * HeaderSlotSize, HeaderSlotSize, HeaderLocatorKind, HeaderKind, slot, HeaderPlainSize)
-        if !result.plain.count do
+        if not result.plain.count do
             return result
 
         let sequence = catch parseHeaderSequence(result.plain.toSlice()) as parseError
@@ -1183,7 +1183,7 @@ impl Volume
         {
             let first = reader.readLittleEndian'u64()
             let count = reader.readLittleEndian'u64()
-            if !count or first >= .blockCount or count > .blockCount - first or count > expectedPages - .metadataPages.count do
+            if not count or first >= .blockCount or count > .blockCount - first or count > expectedPages - .metadataPages.count do
                 failWith("A metadata page falls outside the container.", .Corrupted)
             for i in count do
                 .metadataPages.add(first + i)
@@ -1223,7 +1223,7 @@ impl Volume
     {
         var reader    = ByteStream.openRead(image)
         let nodeCount = reader.readLittleEndian'u64()
-        if !nodeCount or nodeCount > MaximumNodeCount do
+        if not nodeCount or nodeCount > MaximumNodeCount do
             failWith("The container declares an implausible number of entries.", .Corrupted)
 
         .nodes.reserve(nodeCount)
@@ -1232,7 +1232,7 @@ impl Volume
             let node      = try Node.deserialize(&reader, .blockCount)
             let nodeIndex = .nodes.count
             .nodes.add(#move node)
-            if !.nodeLookup.add(&.nodes[nodeIndex], nodeIndex) do
+            if not .nodeLookup.add(&.nodes[nodeIndex], nodeIndex) do
                 failWith("The container contains a duplicate entry.", .Corrupted)
         }
     }
@@ -1258,7 +1258,7 @@ impl Volume
         {
             for mapping in node.blocks
             {
-                if mapping.physical >= .blockCount or !mapping.count or mapping.count > .blockCount - mapping.physical do
+                if mapping.physical >= .blockCount or not mapping.count or mapping.count > .blockCount - mapping.physical do
                     failWith("A block mapping falls outside the container.", .Corrupted)
                 for physical in mapping.physical until mapping.physical + mapping.count do
                     used.set(physical, true)
@@ -1274,14 +1274,14 @@ impl Volume
         var record: [BlockRecordSize] u8
         {
             Sync.scopedLock(&.ioLock)
-            if !.file.readExactAt(DataOffset + physical * BlockRecordSize, record) do
+            if not .file.readExactAt(DataOffset + physical * BlockRecordSize, record) do
                 failWith("The container is truncated or unreadable.", .Io)
         }
 
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
         let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
-        if !(try Crypto.open(&.keys, MetadataPageKind, physical, nonce, ciphertext, tag, destination)) do
+        if not (try Crypto.open(&.keys, MetadataPageKind, physical, nonce, ciphertext, tag, destination)) do
             failWith("An encrypted metadata page is damaged.", .Corrupted)
     }
 
@@ -1306,7 +1306,7 @@ impl Volume
     mtd checkpoint() fail
     {
         try .requireWritable()
-        if !.dirty do
+        if not .dirty do
             return
 
         var previousPages: Array'u64
@@ -1318,11 +1318,11 @@ impl Volume
         var committed = false
         defer
         {
-            if !committed
+            if not committed
             {
-                .blocks.free            = #move previousFree
+                .blocks.free   = #move previousFree
                 .blocks.freeBlocksCount = previousFreeBlocksCount
-                .metadataPages          = #move previousPages
+                .metadataPages = #move previousPages
             }
         }
 
@@ -1404,21 +1404,21 @@ impl Volume
         var result: retval
 
         var prefix: [Crypto.RecordLocatorSize] u8
-        if !.file.readExactAt(offset, prefix) do
+        if not .file.readExactAt(offset, prefix) do
             return result
 
         var locator = try Crypto.recordLocator(.keys.locator, locatorKind, recordId)
         defer Core.Crypto.secureClear(locator)
-        if !Core.Crypto.constantTimeEqual(prefix[until HeaderLocatorCheckSize], locator[until HeaderLocatorCheckSize]) do
+        if not Core.Crypto.constantTimeEqual(prefix[until HeaderLocatorCheckSize], locator[until HeaderLocatorCheckSize]) do
             return result
 
         let plainSize = Crypto.load32(&prefix[HeaderLocatorCheckSize]) ^ Crypto.load32(&locator[HeaderLocatorCheckSize])
-        if !plainSize or plainSize > maximumPlain do
+        if not plainSize or plainSize > maximumPlain do
             return result
 
         var record: Array'u8
         record.resize(Crypto.NonceSize + plainSize + Crypto.TagSize)
-        if !.file.readExactAt(offset + #sizeof(prefix), record.toSlice()) do
+        if not .file.readExactAt(offset + #sizeof(prefix), record.toSlice()) do
             return result
 
         var plain: Array'u8
@@ -1426,7 +1426,7 @@ impl Volume
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + plainSize]
         let tag        = record[Crypto.NonceSize + plainSize until record.count]
-        if !(try Crypto.open(&.keys, recordKind, recordId, nonce, ciphertext, tag, plain.toSlice())) do
+        if not (try Crypto.open(&.keys, recordKind, recordId, nonce, ciphertext, tag, plain.toSlice())) do
             return result
 
         result = #move plain
@@ -1463,7 +1463,7 @@ impl Volume
             }
         }
 
-        if !.touchedSet.contains(id)
+        if not .touchedSet.contains(id)
         {
             .touchedSet.add(id)
             .touched.add(id)
@@ -1545,9 +1545,9 @@ impl Volume
     mtd commit() fail
     {
         try .requireWritable()
-        if !.dirty do
+        if not .dirty do
             return
-        if !.hasPendingChanges() do
+        if not .hasPendingChanges() do
             return .checkpoint()
         if .sequence - .checkpointAt >= JournalCapacity do
             return .checkpoint()
@@ -1610,7 +1610,7 @@ impl Volume
                 .journalRecordsRead += 1
 
             let plain = try .readFramedRecord(JournalAreaOffset + slot * JournalRecordSize, JournalRecordSize, JournalLocatorKind, JournalKind, slot, JournalPlainSize)
-            if !plain.count do
+            if not plain.count do
                 break
 
             var record = catch JournalRecord.decode(plain.toSlice(), .blockCount) as decodeError
@@ -1644,20 +1644,20 @@ impl Volume
             var copy   = node[]
             let target = .nodes.count
             .nodes.add(#move copy)
-            if !.nodeLookup.add(&.nodes[target], target) do
+            if not .nodeLookup.add(&.nodes[target], target) do
                 failWith("A journal record contains a duplicate entry.", .Corrupted)
         }
 
         for patch in record.metadata
         {
             let node = .nodeById(patch.id)
-            if !node do
+            if not node do
                 failWith("A journal metadata change names an entry that does not exist.", .Corrupted)
             let validNode = node!
             if patch.id != RootNodeId
             {
                 let parent = .nodeById(patch.parentId)
-                if !parent or !parent!.isDirectory() or !.nodeLookup.changeParent(validNode, patch.parentId, patch.name) do
+                if not parent or not parent!.isDirectory() or not .nodeLookup.changeParent(validNode, patch.parentId, patch.name) do
                     failWith("A journal metadata change has an invalid destination.", .Corrupted)
             }
 
@@ -1700,12 +1700,12 @@ impl Volume
     {
         let parts   = splitPath(path)
         var current = .nodeById(1)
-        if !current do
+        if not current do
             return null
         for part in parts
         {
             current = .findChild(current!.id, part)
-            if !current do
+            if not current do
                 return null
         }
 
@@ -1715,15 +1715,15 @@ impl Volume
     mtd resolveParent(path: string)->{parent: *Node?, name: string}
     {
         let parts = splitPath(path)
-        if !parts.count do
+        if not parts.count do
             return {null, ""}
         var parent = .nodeById(1)
-        if !parent do
+        if not parent do
             return {null, parts[parts.count - 1]}
         for i in 0 until parts.count - 1
         {
             parent = .findChild(parent!.id, parts[i])
-            if !parent or !parent!.isDirectory() do
+            if not parent or not parent!.isDirectory() do
                 return {null, parts[parts.count - 1]}
         }
 
@@ -1736,14 +1736,14 @@ impl Volume
         var record: [BlockRecordSize] u8
         {
             Sync.scopedLock(&.ioLock)
-            if !.file.readExactAt(DataOffset + physical * BlockRecordSize, record) do
+            if not .file.readExactAt(DataOffset + physical * BlockRecordSize, record) do
                 failWith("The container is truncated or unreadable.", .Io)
         }
 
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
         let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
-        if !(try Crypto.open(&.keys, DataKind, physical, nonce, ciphertext, tag, destination)) do
+        if not (try Crypto.open(&.keys, DataKind, physical, nonce, ciphertext, tag, destination)) do
             failWith("An encrypted data block is damaged.", .Corrupted)
     }
 
@@ -1768,7 +1768,7 @@ impl Volume
         records.resize(count * BlockRecordSize)
         {
             Sync.scopedLock(&.ioLock)
-            if !.file.readExactAt(DataOffset + physical * BlockRecordSize, records.toSlice()) do
+            if not .file.readExactAt(DataOffset + physical * BlockRecordSize, records.toSlice()) do
                 failWith("The container is truncated or unreadable.", .Io)
         }
 
@@ -1784,7 +1784,7 @@ impl Volume
             let tag          = batch.records[recordOffset + Crypto.NonceSize + BlockSize until recordOffset + BlockRecordSize]
             let opened       = catch Crypto.open(batch.keys, DataKind, batch.physical + index, nonce, ciphertext, tag, batch.plain[plainOffset until plainOffset + BlockSize]) as openError
             keepFirstBatchError(batch, openError)
-            if openError == null and !opened do
+            if openError == null and not opened do
                 Atomic.add(&batch.invalidTags, 1)
         }
 
@@ -1847,7 +1847,7 @@ impl Volume
 
             if mapping.logical >= end
             {
-                if !inserted
+                if not inserted
                 {
                     updated.add({logical, physical, count})
                     inserted = true
@@ -1866,7 +1866,7 @@ impl Volume
 
             if mappingEnd > end
             {
-                if !inserted
+                if not inserted
                 {
                     updated.add({logical, physical, count})
                     inserted = true
@@ -1876,7 +1876,7 @@ impl Volume
             }
         }
 
-        if !inserted do
+        if not inserted do
             updated.add({logical, physical, count})
 
         node.blocks.clear()
@@ -1892,7 +1892,7 @@ impl Volume
         var published = false
         defer
         {
-            if !published do
+            if not published do
                 .blocks.release(physical)
         }
 
@@ -1916,7 +1916,7 @@ impl Volume
             var published = false
             defer
             {
-                if !published do
+                if not published do
                     .blocks.releaseRun(allocated.first, allocated.count)
             }
 
@@ -1974,7 +1974,7 @@ impl Volume
         let node    = .nodeById(nodeId)!
         let logical = oldSize / BlockSize
         let search  = node.blockSearch(logical)
-        if !search.found do
+        if not search.found do
             return
         var block: [BlockSize] u8
         defer Core.Crypto.secureClear(block)
@@ -2006,12 +2006,12 @@ impl Volume
     mtd readNode(nodeId: u64, offset: u64, destination: [..] u8)->u32 fail
     {
         let node = .nodeById(nodeId)
-        if !node do
+        if not node do
             failWith("File handle is no longer valid.", .NotFound)
         let validNode = node!
         if validNode.isDirectory() do
             failWith("Cannot read a directory as a file.", .IsDirectory)
-        if offset >= validNode.size or !destination.count do
+        if offset >= validNode.size or not destination.count do
             return 0
 
         let count = Math.min(destination.count, validNode.size - offset)
@@ -2023,10 +2023,10 @@ impl Volume
             let inBlock  = absolute % BlockSize
             let chunk    = Math.min(count - done, BlockSize - inBlock)
 
-            if !inBlock and chunk == BlockSize
+            if not inBlock and chunk == BlockSize
             {
                 let remainingBlocks = (count - done) / BlockSize
-                let search          = validNode.blockSearch(logical)
+                let search = validNode.blockSearch(logical)
                 if search.found
                 {
                     let mapping       = validNode.blocks[search.index]
@@ -2060,7 +2060,7 @@ impl Volume
     {
         try .requireWritable()
         let node = .nodeById(nodeId)
-        if !node do
+        if not node do
             failWith("File handle is no longer valid.", .NotFound)
         let validNode = node!
         if validNode.isDirectory() do
@@ -2079,14 +2079,14 @@ impl Volume
             count = Math.min(count, validNode.size - writeOffset)
         }
 
-        if !count do
+        if not count do
             return 0
         if writeOffset > Swag.U64.Max - count do
             failWith("File size overflow.", .InvalidInput)
 
         let oldSize = validNode.size
         let end     = writeOffset + count
-        if !constrained and end > oldSize do
+        if not constrained and end > oldSize do
             .zeroOldTail(nodeId, oldSize, end)
 
         var done = 0'u64
@@ -2097,7 +2097,7 @@ impl Volume
             let inBlock  = absolute % BlockSize
             let chunk    = Math.min(count - done, BlockSize - inBlock)
 
-            if !inBlock and chunk == BlockSize
+            if not inBlock and chunk == BlockSize
             {
                 let fullBytes = (count - done) / BlockSize * BlockSize
                 .writeFullBlocks(nodeId, logical, source[done until done + fullBytes])
@@ -2133,10 +2133,10 @@ impl Volume
     {
         try .requireWritable()
         let {parent, name} = .resolveParent(path)
-        if parent == null or !parent!.isDirectory() do
+        if parent == null or not parent!.isDirectory() do
             failWith("Parent directory does not exist.", .NotFound)
         let validParent = parent!
-        if !name.count or name == "." or name == ".." do
+        if not name.count or name == "." or name == ".." do
             failWith("Invalid file name.", .InvalidInput)
         if .findChild(validParent.id, name) do
             failWith("A file with this name already exists.", .AlreadyExists)
@@ -2149,7 +2149,7 @@ impl Volume
         node.attributes = attributes
         if directory do
             node.attributes |= FileAttributeDirectory
-        elif !node.attributes do
+        elif not node.attributes do
             node.attributes = FileAttributeNormal
         node.creationTime   = now
         node.lastAccessTime = now
@@ -2218,7 +2218,7 @@ impl Volume
         if id == 1 do
             failWith("Cannot rename the root directory.", .AccessDenied)
         let {parent, name} = .resolveParent(newPath)
-        if parent == null or !parent!.isDirectory() or !name.count do
+        if parent == null or not parent!.isDirectory() or not name.count do
             failWith("The destination directory does not exist.", .NotFound)
         let validParent         = parent!
         let destinationParentId = validParent.id
@@ -2226,7 +2226,7 @@ impl Volume
         let existing            = .findChild(validParent.id, name)
         if existing and existing.id != id
         {
-            if !replace do
+            if not replace do
                 failWith("The destination already exists.", .AlreadyExists)
             if existing.isDirectory() != sourceIsDirectory do
                 failWith("A file cannot replace a directory, or conversely.", .InvalidInput)

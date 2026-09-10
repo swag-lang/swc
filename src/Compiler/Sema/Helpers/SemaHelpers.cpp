@@ -509,7 +509,7 @@ void SemaHelpers::collectNarrowGuards(Sema& sema, AstNodeRef condRef, NarrowGuar
         case AstNodeId::UnaryExpr:
         {
             const auto& unary = node.cast<AstUnaryExpr>();
-            if (sema.token(unary.codeRef()).id != TokenId::SymBang)
+            if (sema.token(unary.codeRef()).id != TokenId::KwdNot)
                 return;
 
             NarrowGuards child;

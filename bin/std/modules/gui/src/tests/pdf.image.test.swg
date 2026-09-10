@@ -33,8 +33,8 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 
     // Sixteen-bit samples are read most significant byte first and scaled down to eight bits.
     let sixteenBit: [6] u8 = [0x00, 0x00, 0x80, 0x00, 0xFF, 0xFF]
-    let deep               = imageDocument("/Type /XObject /Subtype /Image /Width 3 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 16", sixteenBit)
-    let deepImage          = onlyItem(deep.pages[0], .Image).imageValue()!
+    let deep      = imageDocument("/Type /XObject /Subtype /Image /Width 3 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 16", sixteenBit)
+    let deepImage = onlyItem(deep.pages[0], .Image).imageValue()!
     Swag.assert(deepImage.pixelColor(0, 0).r == 0)
     Swag.assert(deepImage.pixelColor(1, 0).r == 128)
     Swag.assert(deepImage.pixelColor(2, 0).r == 255)

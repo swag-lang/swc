@@ -41,8 +41,8 @@ struct Presentation
 {
     public readonly
     {
-        text:              String     // Active cues joined in timeline order.
-        nextChangeSeconds: f64        // Next cue start or end, or positive infinity past the last cue.
+        text: String               // Active cues joined in timeline order.
+        nextChangeSeconds: f64     // Next cue start or end, or positive infinity past the last cue.
     }
 }
 
@@ -80,7 +80,7 @@ struct Track
 private func timestampNumber(text: string)->f64 fail
 {
     let trimmed = Latin1.trim(text)
-    if !trimmed.count do
+    if not trimmed.count do
         fail InvalidFormatError{"subtitle timestamp has an empty component"}
     return try StrConv.toF64(trimmed)
 }
@@ -127,7 +127,7 @@ private func stripSubtitleMarkup(result: *String, text: string)
         if text[index] == '{'
         {
             insideOverride = true
-            index          += 1
+            index += 1
             continue
         }
 
@@ -158,7 +158,7 @@ private func stripSubtitleMarkup(result: *String, text: string)
         }
 
         let {c, eat} = Utf8.decodeRune(text[index to])
-        if !eat do
+        if not eat do
             break
         result.append(c)
         index += eat
@@ -211,7 +211,7 @@ private func cueTimeLine(line: string)->{startSeconds, endSeconds: f64} fail
     let start = try parseTimestamp(line[0 until arrow])
     let rest  = Latin1.trim(line[arrow + 3 to])
     var endAt = 0'u64
-    while endAt < rest.count and !Latin1.isSpace(rest[endAt]) do
+    while endAt < rest.count and not Latin1.isSpace(rest[endAt]) do
         endAt += 1
     let end = try parseTimestamp(rest[0 until endAt])
     if end <= start do
@@ -239,7 +239,7 @@ private func decodeSubRip(track: *Track, source: string) fail
     var index = 0'u64
     while index < lines.count
     {
-        while index < lines.count and !(Latin1.trim(lines[index])).count do
+        while index < lines.count and not (Latin1.trim(lines[index])).count do
             index += 1
         if index >= lines.count do
             break
@@ -268,7 +268,7 @@ private func decodeWebVtt(track: *Track, source: string) fail
         index = 1
     while index < lines.count
     {
-        while index < lines.count and !(Latin1.trim(lines[index])).count do
+        while index < lines.count and not (Latin1.trim(lines[index])).count do
             index += 1
         if index >= lines.count do
             break
@@ -341,7 +341,7 @@ private func decodeSubStationAlpha(track: *Track, source: string) fail
             continue
         }
 
-        if !inEvents do
+        if not inEvents do
             continue
         if Utf8.startsWith(line, "Format:", .Latin1NoCase)
         {
@@ -360,7 +360,7 @@ private func decodeSubStationAlpha(track: *Track, source: string) fail
             continue
         }
 
-        if !Utf8.startsWith(line, "Dialogue:", .Latin1NoCase) do
+        if not Utf8.startsWith(line, "Dialogue:", .Latin1NoCase) do
             continue
 
         let event = Latin1.trim(line[9 to])
@@ -412,7 +412,7 @@ private func decodeLyric(track: *Track, source: string) fail
 private func decodeMicroDvd(track: *Track, source: string) fail
 {
     var framesPerSecond = 25.0'f64
-    let lines           = Tokenize.splitLines(source)
+    let lines = Tokenize.splitLines(source)
     for raw in lines
     {
         let line = Latin1.trim(raw)
@@ -604,7 +604,7 @@ impl Track
         }
 
         result.sortCues()
-        if !result.cues.count do
+        if not result.cues.count do
             fail InvalidFormatError{"subtitle document has no timed cues"}
     }
 
@@ -625,7 +625,7 @@ impl Track
         let bytes    = try File.readAllBytes(fileName)
         let encoding = Text.detectEncoding(bytes.toSlice())
         let start    = Text.hasBom(bytes.toSlice(), encoding) ? Text.bomLength(encoding) : 0
-        if !Text.looksLikeText(bytes.toSlice()[start to], encoding) do
+        if not Text.looksLikeText(bytes.toSlice()[start to], encoding) do
             fail InvalidFormatError{"subtitle file does not contain readable text"}
         let source = Text.decode(bytes.toSlice()[start to], encoding)
         try Track.decodeInto(result, fileName, source.toString())
@@ -670,7 +670,7 @@ impl Track
     // after appending container cues that are not already ordered.
     mtd addCue(startSeconds, endSeconds: f64, text: string)
     {
-        if !text.count or startSeconds < 0 or endSeconds <= startSeconds do
+        if not text.count or startSeconds < 0 or endSeconds <= startSeconds do
             return
         let cue = .cues.emplaceInitAddress()
         cue.startSeconds = startSeconds

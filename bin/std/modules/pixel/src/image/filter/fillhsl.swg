@@ -25,12 +25,12 @@ public impl Image
     // supports every packed image format. Existing alpha is replaced with full opacity.
     mtd fillHsl(fillType: FillHslType, color: Color = Color.fromArgb(Argb.White))
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
 
         let hsl    = color.toHsl()
         let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
-        if !legacy
+        if not legacy
         {
             var context = {fillType: fillType, color: color, hsl: hsl}
             .transformLogicalPixels(&context)

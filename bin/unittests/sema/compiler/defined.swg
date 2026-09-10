@@ -2,7 +2,7 @@
 
 const A = 0
 #assert(#defined(A))
-#assert(!#defined(B))
+#assert(not #defined(B))
 
 namespace NS { const AA = 0 }
 #assert(#defined(NS.AA))

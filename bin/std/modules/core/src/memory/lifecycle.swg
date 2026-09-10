@@ -20,7 +20,7 @@ internal func canDefaultInit(type: typeinfo)->bool
     if concreteType.kind == TypeInfoKind.Array
     {
         let typeArray = cast(const *TypeInfoArray) concreteType
-        if !typeArray.count do
+        if not typeArray.count do
             return true
         if type.flags & TypeInfoFlags.RequiresExplicitInit do
             return false
@@ -35,15 +35,15 @@ internal func canDefaultInit(type: typeinfo)->bool
     let typeStruct = cast(const *TypeInfoStruct) concreteType
     if typeStruct.opInit do
         return true
-    if !(concreteType.flags & TypeInfoFlags.Tuple) do
+    if not (concreteType.flags & TypeInfoFlags.Tuple) do
         return false
 
     for field in typeStruct.fields
     {
         let pointedType = field.pointedType
-        if !pointedType do
+        if not pointedType do
             return false
-        if !canDefaultInit(pointedType orelse #typeof(u8)) do
+        if not canDefaultInit(pointedType orelse #typeof(u8)) do
             return false
     }
 
@@ -52,7 +52,7 @@ internal func canDefaultInit(type: typeinfo)->bool
 
 internal func defaultInit(dst: *void?, type: typeinfo)
 {
-    if !dst do
+    if not dst do
         return
     let data = dst
 
@@ -80,7 +80,7 @@ internal func defaultInit(dst: *void?, type: typeinfo)
             return
         }
 
-        if !(concreteType.flags & TypeInfoFlags.Tuple)
+        if not (concreteType.flags & TypeInfoFlags.Tuple)
         {
             Swag.assert(false)
             return
@@ -89,7 +89,7 @@ internal func defaultInit(dst: *void?, type: typeinfo)
         for field in typeStruct.fields
         {
             let pointedType = field.pointedType
-            if !pointedType do
+            if not pointedType do
                 return
             defaultInit(cast([*] u8) data + field.offset, pointedType orelse #typeof(u8))
         }
@@ -102,11 +102,11 @@ internal func defaultInit(dst: *void?, type: typeinfo)
 
 internal func dropType(dst: *void?, type: typeinfo)
 {
-    if !dst do
+    if not dst do
         return
     let data = dst
 
-    if !(type.flags & TypeInfoFlags.HasDrop) do
+    if not (type.flags & TypeInfoFlags.HasDrop) do
         return
 
     let concreteType = concreteRuntimeType(type)
@@ -138,7 +138,7 @@ internal func dropType(dst: *void?, type: typeinfo)
             for field in typeStruct.fields!.reversed()
             {
                 let pointedType = field.pointedType
-                if !pointedType do
+                if not pointedType do
                     return
                 dropType(cast([*] u8) data + field.offset, pointedType orelse #typeof(u8))
             }
@@ -148,11 +148,11 @@ internal func dropType(dst: *void?, type: typeinfo)
 
 internal func postCopyType(dst: *void?, type: typeinfo)
 {
-    if !dst do
+    if not dst do
         return
     let data = dst
 
-    if !(type.flags & TypeInfoFlags.HasPostCopy) do
+    if not (type.flags & TypeInfoFlags.HasPostCopy) do
         return
 
     let concreteType = concreteRuntimeType(type)
@@ -184,7 +184,7 @@ internal func postCopyType(dst: *void?, type: typeinfo)
             for field in typeStruct.fields
             {
                 let pointedType = field.pointedType
-                if !pointedType do
+                if not pointedType do
                     return
                 postCopyType(cast([*] u8) data + field.offset, pointedType orelse #typeof(u8))
             }
@@ -194,11 +194,11 @@ internal func postCopyType(dst: *void?, type: typeinfo)
 
 internal func postMoveType(dst: *void?, type: typeinfo)
 {
-    if !dst do
+    if not dst do
         return
     let data = dst
 
-    if !(type.flags & TypeInfoFlags.HasPostMove) do
+    if not (type.flags & TypeInfoFlags.HasPostMove) do
         return
 
     let concreteType = concreteRuntimeType(type)
@@ -230,7 +230,7 @@ internal func postMoveType(dst: *void?, type: typeinfo)
             for field in typeStruct.fields
             {
                 let pointedType = field.pointedType
-                if !pointedType do
+                if not pointedType do
                     return
                 postMoveType(cast([*] u8) data + field.offset, pointedType orelse #typeof(u8))
             }

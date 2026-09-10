@@ -18,7 +18,7 @@ struct SliderCtrl
             spacing:        f32  = 8        // Gap on each side of the slider track.
             autoValueWidth: bool = true     // Whether the numeric editor grows to fit the configured range.
 
-                late
+            late
             {
                 label:  *Label       // Descriptive label.
                 slider: *Slider      // Interactive value slider.
@@ -32,7 +32,7 @@ impl IWnd for SliderCtrl
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !(.label != null) do
+        if not (.label != null) do
             return
         let rect    = .clientRect()
         let metrics = .themeMetrics()
@@ -82,7 +82,7 @@ impl SliderCtrl
             .label = Label.create(ctrl, name, {})
             .label.setTextAlignment(.Right, .Center)
 
-            .slider            = Slider.create(ctrl, {})
+            .slider = Slider.create(ctrl, {})
             .slider.sigChanged += func|ctrl|(wnd)
             {
                 var val: String

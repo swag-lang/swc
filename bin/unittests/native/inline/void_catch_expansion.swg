@@ -30,7 +30,7 @@ func raiseNativeError(code: u32) fail
 func unmapView(address: const [*] void?) fail
 {
     g_Unmapped += 1
-    if !processId() do
+    if not processId() do
         raiseNativeError(lastError())
 }
 
@@ -92,5 +92,5 @@ var g_Storage: u64
     Swag.assert(region.mapHandle == 0)
     Swag.assert(region.fileHandle == 0)
     Swag.assert(region.length == 0)
-    Swag.assert(!region.valid)
+    Swag.assert(not region.valid)
 }

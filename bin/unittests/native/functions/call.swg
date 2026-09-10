@@ -339,7 +339,7 @@ namespace compiler167
 
     #test
     {
-        Swag.assert(!false)
+        Swag.assert(not false)
     }
 }
 
@@ -1020,7 +1020,7 @@ namespace compiler332
     #test
     {
         var a: [2] s32 = [50, 60]
-        let b          = 666
+        let b = 666
         Swag.assert(a[0] == 50)
         Swag.assert(a[1] == 60)
         Swag.assert(b == 666)

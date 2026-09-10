@@ -51,7 +51,7 @@ impl TelemetrySeries
     {
         let calibrated = clampToBand(raw * .scale + .offset, .band)
         .samples[.next] = calibrated
-        .next           = (.next + 1) % Count
+        .next = (.next + 1) % Count
         if .filled < Count do
             .filled += 1
         return calibrated

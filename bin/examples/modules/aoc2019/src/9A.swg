@@ -107,7 +107,7 @@ private func run(op: *Array's64, input: s64)->s64
             ip = param0 ? param1 : ip + 3
 
         case 6:
-            ip = !param0 ? param1 : ip + 3
+            ip = not param0 ? param1 : ip + 3
 
         case 7:
             addrp(op[ip + 3] + (mode2 == 2 ? base : 0))[] = param0 < param1 ? 1 : 0

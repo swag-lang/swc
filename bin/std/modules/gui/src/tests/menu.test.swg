@@ -120,7 +120,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     Swag.assert(sub.themeMetrics().menuPopup_IconSize == 16)
     Swag.assert(sub.themeMetrics().menuPopup_ItemHeight == 24)
     Swag.assert(sub.items[0]!.size + sub.themeMetrics().menuPopup_SpaceLines >= sub.themeMetrics().menuPopup_ItemHeight)
-    Swag.assert(!sub.items[0]!.separator)
+    Swag.assert(not sub.items[0]!.separator)
     Swag.assert(sub.items[1]!.separator)
     Swag.assert(sub.items[2]!.disabled)
     Swag.assert(sub.items[2]!.name.raw == "Quit")
@@ -243,7 +243,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.app.sigFrame += func|host = &host, popup, frames = &frameCount, didClick = &didClick|(app)
     {
         frames[] += 1
-        if !didClick[]
+        if not didClick[]
         {
             Swag.assert(host.capturedPopupMenu() == popup)
             let menuItemClicked = host.clickPopupMenuItem(Menu_Open)
@@ -307,16 +307,17 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         discard id
         hidTogether[] = popup.isHidden() and sub.isHidden()
     }
+
     host.app.sigFrame += func|host = &host, popup, sub, opened = &didOpen, clicked = &didClick|(app)
     {
-        if !opened[]
+        if not opened[]
         {
             let submenuOpened = host.openPopupSubMenu("More")
             Swag.assert(submenuOpened)
             Swag.assert(sub.position.x >= popup.position.right() - 2 * popup.themeMetrics().menuPopup_ShadowSize)
             opened[] = true
         }
-        elif !clicked[]
+        elif not clicked[]
         {
             let menuItemClicked = host.clickPopupMenuItem(Menu_Open)
             Swag.assert(menuItemClicked)
@@ -380,7 +381,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var didDismiss: bool
     host.app.sigFrame += func|host = &host, dismissed = &didDismiss|(app)
     {
-        if !dismissed[]
+        if not dismissed[]
         {
             let menuDismissed = host.dismissPopupMenu()
             Swag.assert(menuDismissed)
@@ -783,7 +784,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.mouseUp({0, 0})
 
     Swag.assert(bar.subVisible == sub)
-    Swag.assert(!sub.ignoreNextRelease)
+    Swag.assert(not sub.ignoreNextRelease)
 }
 
 // A taller menu bar centers its visual/hit item band and uses that band as popup anchor.

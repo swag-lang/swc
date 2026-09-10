@@ -34,7 +34,7 @@ func day8B()
         let {nc, nm} = {n[start], n[start + 1]}
         start += 2
 
-        if !nc
+        if not nc
         {
             var sum: u32
             for i in nm do

@@ -137,7 +137,7 @@ as shown in the reflection chapter.
 */
 #test
 {
-    let a               = 0     // Type of 'a' inferred as 's32'
+    let a = 0                   // Type of 'a' inferred as 's32'
     let b: #decltype(a) = 1     // 'b' declared with same type as 'a'
 
     Swag.assert(#typeof(a) == #typeof(b))

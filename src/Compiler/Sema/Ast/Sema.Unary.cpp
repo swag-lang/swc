@@ -103,7 +103,7 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    Result constantFoldBang(Sema& sema, ConstantRef& result, const SemaNodeView& view)
+    Result constantFoldNot(Sema& sema, ConstantRef& result, const SemaNodeView& view)
     {
         CastRequest castRequest(CastKind::BoolExpr);
         castRequest.errorNodeRef = view.nodeRef();
@@ -198,8 +198,8 @@ namespace
                 return constantFoldMinus(sema, result, view);
             case TokenId::SymPlus:
                 return constantFoldPlus(sema, result, view);
-            case TokenId::SymBang:
-                return constantFoldBang(sema, result, view);
+            case TokenId::KwdNot:
+                return constantFoldNot(sema, result, view);
             case TokenId::SymTilde:
                 return constantFoldTilde(sema, result, node, view);
             case TokenId::SymLeftBracket:
@@ -259,7 +259,7 @@ namespace
         return reportInvalidType(sema, expr, view);
     }
 
-    Result checkBang(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& view)
+    Result checkNot(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
         if (view.type()->isConvertibleToBoolAliasAware(sema.ctx()))
             return Result::Continue;
@@ -464,7 +464,7 @@ namespace
         return Result::Continue;
     }
 
-    Result semaBang(Sema& sema, const AstUnaryExpr& node, SemaNodeView& view)
+    Result semaNot(Sema& sema, const AstUnaryExpr& node, SemaNodeView& view)
     {
         SWC_UNUSED(node);
         SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr));
@@ -572,8 +572,8 @@ namespace
                 return checkMinus(sema, node, view);
             case TokenId::SymPlus:
                 return checkPlus(sema, node, view);
-            case TokenId::SymBang:
-                return checkBang(sema, node, view);
+            case TokenId::KwdNot:
+                return checkNot(sema, node, view);
             case TokenId::SymTilde:
                 return checkTilde(sema, node, view);
             case TokenId::SymAmpersand:
@@ -607,7 +607,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     const bool takesFunctionAddress = opId == TokenId::SymAmpersand && isFunctionAddressOperand(view);
     if (!takesFunctionAddress)
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
-    if (opId == TokenId::SymBang)
+    if (opId == TokenId::KwdNot)
     {
         SWC_RESULT(SemaHelpers::readReferenceValue(sema, view));
         SWC_RESULT(SemaCheck::prepareBoolExprValue(sema, view));
@@ -676,8 +676,8 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
             // '&x.field' consumes the address, never the value: no 'late' read guard.
             SemaHelpers::clearLateFieldReadGuard(sema, nodeExprRef);
             return semaTakeAddress(sema, *this, view);
-        case TokenId::SymBang:
-            return semaBang(sema, *this, view);
+        case TokenId::KwdNot:
+            return semaNot(sema, *this, view);
         case TokenId::ModifierMove:
         case TokenId::ModifierFwd:
             return semaMoveRef(sema, view);

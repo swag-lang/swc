@@ -21,9 +21,9 @@ private func textPluginName()->string => textStrings().ui_Name
 // reading of the same thing rather than a contradiction of the first.
 private func textPluginProbe(content: Viewer.ProbeContent)->bool
 {
-    if content.claimed and !content.claimedText do
+    if content.claimed and not content.claimedText do
         return false
-    if !content.head.count do
+    if not content.head.count do
         return false
     return TextView.probeHead(content.head).accepted
 }
@@ -132,7 +132,7 @@ private func runTextStatistics(thread: Threading.Thread)
     discard catch stream.seek(.Begin, view.statisticsStart)
 
     var counter: TextStatisticsCounter
-    while !thread.requestEnd
+    while not thread.requestEnd
     {
         let chunk = catch stream.readTextChunk(TextStreamChunkSize, view.statisticsEncoding) as readError
         if readError != null
@@ -224,7 +224,7 @@ impl TextView
             .statisticsTimer = null
         }
 
-        if .statisticsThread.isValid() and !.statisticsThread.isDone()
+        if .statisticsThread.isValid() and not .statisticsThread.isDone()
         {
             .statisticsThread.safeForceEnd()
             return false
@@ -289,7 +289,7 @@ impl TextView
 
     mtd needsMore()->bool
     {
-        if !.hasMore() do
+        if not .hasMore() do
             return false
         if .pauseStreaming do
             return false
@@ -303,16 +303,16 @@ impl TextView
     mtd updateEstimatedHeight()
     {
         let consumed = .bytesRead - .residentStart
-        if !consumed do
+        if not consumed do
             return
-        if .bytesRead >= .fileSize and !.residentStart
+        if .bytesRead >= .fileSize and not .residentStart
         {
             .editor.setEstimatedDocumentHeight(0)
             return
         }
 
         let loadedHeight = .editor.loadedDocumentHeight()
-        if .repositioning or !.residentStart do
+        if .repositioning or not .residentStart do
             .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
         if loadedHeight <= 0
         {
@@ -322,14 +322,14 @@ impl TextView
         }
 
         .virtualHeight = Math.max(.virtualHeight, loadedHeight * cast(f32) .fileSize / cast(f32) consumed, loadedHeight)
-        if .repositioning or !.residentStart do
+        if .repositioning or not .residentStart do
             .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
         .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
     }
 
     mtd scheduleMore()
     {
-        if .loadTimer or (!.pendingSeek and !.needsMore()) do
+        if .loadTimer or (not .pendingSeek and not .needsMore()) do
             return
         .loadTimer = .addTimer(8'ms)
     }
@@ -349,7 +349,7 @@ impl TextView
     {
         .stream.close()
         .bytesRead = .fileSize
-        if !.residentStart do
+        if not .residentStart do
             .editor.setEstimatedDocumentHeight(0)
     }
 
@@ -357,7 +357,7 @@ impl TextView
     {
         .stopLoading()
         let message = textStrings().ui_NotText
-        if !.hasText do
+        if not .hasText do
             .editor.setText(message)
         else do
             .editor.addText(Format.toString("\n\n%", message).toString())
@@ -366,7 +366,7 @@ impl TextView
 
     mtd loadNextChunk()
     {
-        if !.hasMore() do
+        if not .hasMore() do
             return
         if .bytesRead - .residentStart >= TextResidentWindowSize do
             return
@@ -378,7 +378,7 @@ impl TextView
             // An unmarked legacy file can open with an ASCII-only probe and reveal its first
             // code-page byte much later. UTF-8 is then only the probe's tentative answer: reread
             // the resident document as the single-byte fallback instead of rejecting the file.
-            if .encoding == .Utf8 and !.contentStart and readError is Errors.InvalidFormatError
+            if .encoding == .Utf8 and not .contentStart and readError is Errors.InvalidFormatError
             {
                 .applyEncoding(.Windows1252)
                 return
@@ -407,7 +407,7 @@ impl TextView
         .hasText = true
         .updateEstimatedHeight()
         .editor.setScrollPosition(oldPosition)
-        if !.hasMore() do
+        if not .hasMore() do
             .finishLoading()
     }
 
@@ -444,7 +444,7 @@ impl TextView
             .editor.setText(chunk.toString())
             let position = catch .stream.position() as positionError
             .bytesRead     = positionError == null ? position : actual + chunk.length
-            .hasText       = !chunk.isEmpty()
+            .hasText       = not chunk.isEmpty()
             .virtualHeight = previousHeight
             .updateEstimatedHeight()
             if text.count
@@ -498,7 +498,7 @@ impl TextView
 
     mtd toggleWrap()
     {
-        .wrapping = !.wrapping
+        .wrapping = not .wrapping
         .updateWrap()
     }
 
@@ -546,7 +546,7 @@ impl IWnd for TextView
     {
         if evt.timer == .statisticsTimer
         {
-            if !Atomic.get(&.statisticsState) do
+            if not Atomic.get(&.statisticsState) do
                 return
             .removeTimer(evt.timer)
             .statisticsTimer = null
@@ -700,7 +700,7 @@ impl TextView
                 // the timer was delayed. Ordinary prefetch still runs on the short timer.
                 if outside and Math.abs(newPosition.y - oldPosition.y) <= viewport.height
                 {
-                    if !before and !after and view.needsMore()
+                    if not before and not after and view.needsMore()
                     {
                         view.pendingSeek = false
                         view.loadNextChunk()
@@ -793,7 +793,7 @@ impl TextView
             else
             {
                 result.fileSize = size
-                if !size do
+                if not size do
                     result.stream.close()
                 else
                 {

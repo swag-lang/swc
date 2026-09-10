@@ -16,7 +16,7 @@ func fill(host: *Host, shift: u64, marker: u8, n: u64)
     for n
     {
         host.cells[i] = cast(u8) (i + shift)
-        i             += 1
+        i += 1
     }
     Swag.assert(marker == 0xEE)
 }
@@ -34,7 +34,7 @@ impl Table
     mtd add(length: u16, prefix: u16, suffix: u8)
     {
         .entries[.n] = {length, prefix, suffix}
-        .n           += 1
+        .n += 1
     }
 }
 

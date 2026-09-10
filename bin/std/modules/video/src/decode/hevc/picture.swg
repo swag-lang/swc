@@ -72,7 +72,7 @@ impl Decoder
             return false
         }
 
-        if !isVideoCodingNal(nalType) do
+        if not isVideoCodingNal(nalType) do
             return false
         return try .decodeSliceSegment(body, nalType, temporalId, deferPicture)
     }
@@ -93,12 +93,12 @@ impl Decoder
         if isIrapNal(nalType) do
             discard reader.bit()
         let ppsId = reader.ue()
-        if ppsId >= 64 or !.pps[ppsId].valid do
+        if ppsId >= 64 or not .pps[ppsId].valid do
             fail InvalidFormatError{"HEVC slice names a picture parameter set that was not received"}
 
         let pps = &.pps[ppsId]
         let sps = .sequenceOf(pps)
-        if !sps do
+        if not sps do
             fail InvalidFormatError{"HEVC picture parameter set names a sequence that was not received"}
 
         reader.init(.rbsp.toSlice())
@@ -113,13 +113,13 @@ impl Decoder
             try .startPicture(sps!, pps, &header, nalType)
             started = true
         }
-        elif !.current
+        elif not .current
         {
             // A picture whose first segment was lost cannot be reconstructed.
             fail InvalidFormatError{"HEVC slice segment continues a picture that was never started"}
         }
 
-        if !header.dependent
+        if not header.dependent
         {
             .previousHeader = header
             .sliceAddrRs    = header.segmentAddress
@@ -127,11 +127,11 @@ impl Decoder
             .sliceParams.add({header.deblockingDisabled, header.loopFilterAcrossSlices, cast(s8) header.betaOffsetDiv2, cast(s8) header.tcOffsetDiv2})
         }
 
-        .header              = header
+        .header = header
         .header.sliceAddress = .sliceAddrRs
         .header.initType     = .initTypeOf(&header)
 
-        if !header.dependent do
+        if not header.dependent do
             try .applyReferencePictureSet(&header, sps!)
 
         if deferPicture
@@ -151,7 +151,7 @@ impl Decoder
     // Completes the picture header published by [[prepareNalUnit]].
     mtd decodePreparedPicture()->*Frame? fail
     {
-        if !.preparedPicture do
+        if not .preparedPicture do
             return null
 
         var reader: BitReader
@@ -185,7 +185,7 @@ impl Decoder
             for index in .refList.count[list]
             {
                 let frame = .refList.frames[list, index]
-                if !frame do
+                if not frame do
                     continue
                 if frame!.waitProgress(frame!.progressComplete()) == FrameProgressFailed do
                     fail InvalidFormatError{"HEVC inter block has no decoded reference picture"}
@@ -232,13 +232,13 @@ impl Decoder
         }
 
         let frame = .acquireFrame()
-        if !frame do
+        if not frame do
             fail InvalidFormatError{"HEVC decoded picture buffer has no free picture"}
 
         frame!.prepare(sps)
         frame!.poc          = .pocValue
         frame!.marking      = .ShortTerm
-        frame!.outputNeeded = header.picOutputFlag and !(isRaslNal(nalType) and .raslSuppressed)
+        frame!.outputNeeded = header.picOutputFlag and not (isRaslNal(nalType) and .raslSuppressed)
         frame!.isIrap       = isIrapNal(nalType)
         frame!.noRaslOutput = .noRaslOutput
         try .holdReference(frame!, .ShortTerm)
@@ -279,7 +279,7 @@ impl Decoder
     mtd finishPicture()->*Frame? fail
     {
         let frame = .current
-        if !frame do
+        if not frame do
             return null
 
         .deblockPicture()
@@ -358,7 +358,7 @@ impl Decoder
         // A complete untiled WPP picture has one independently coded substream per coding tree
         // block row. Decode those rows concurrently; less regular slice layouts keep the exact
         // sequential path below.
-        if pps.entropyCodingSync and !pps.tilesEnabled and !.header.dependent and !.header.segmentAddress and sps.widthInCtbs >= 2 and bounds.count == cast(u64) sps.heightInCtbs + 1 and Swag.workerCount() > 1
+        if pps.entropyCodingSync and not pps.tilesEnabled and not .header.dependent and not .header.segmentAddress and sps.widthInCtbs >= 2 and bounds.count == cast(u64) sps.heightInCtbs + 1 and Swag.workerCount() > 1
         {
             try .decodeWavefrontRows(&bounds, sps)
             return
@@ -373,7 +373,7 @@ impl Decoder
         // segment continues the slice it belongs to, so only the other two apply to it.
         let startsRow  = pps.entropyCodingSync and (.ctbAddrRs % sps.widthInCtbs) == 0
         let startsTile = pps.tilesEnabled and (.ctbAddrTs == 0 or .tileId[.ctbAddrTs] != .tileId[.ctbAddrTs - 1])
-        if !.header.dependent or startsRow or startsTile
+        if not .header.dependent or startsRow or startsTile
         {
             .currentQp    = .header.sliceQp
             .qpYPred      = .header.sliceQp
@@ -423,7 +423,7 @@ impl Decoder
             let nextRs  = .ctbTsToRs[.ctbAddrTs]
             let newTile = pps.tilesEnabled and .tileId[.ctbAddrTs] != .tileId[.ctbAddrTs - 1]
             let newRow  = pps.entropyCodingSync and (nextRs % sps.widthInCtbs) == 0
-            if !newTile and !newRow do
+            if not newTile and not newRow do
                 continue
 
             // A new substream restarts the arithmetic engine on its own bytes.
@@ -453,7 +453,7 @@ impl Decoder
     // and to the right before the block itself is decoded, so it is claimed first.
     private mtd claimCodingTreeBlock()
     {
-        .ctbAddrRs                 = .ctbTsToRs[.ctbAddrTs]
+        .ctbAddrRs = .ctbTsToRs[.ctbAddrTs]
         .ctbSliceAddr[.ctbAddrRs]  = .sliceAddrRs
         .ctbSliceIndex[.ctbAddrRs] = cast(u16) .sliceIndex
     }
@@ -464,7 +464,7 @@ impl Decoder
     {
         let ctbX = ctbAddrRs % sps.widthInCtbs
         let ctbY = ctbAddrRs / sps.widthInCtbs
-        if !ctbY or ctbX + 1 >= sps.widthInCtbs do
+        if not ctbY or ctbX + 1 >= sps.widthInCtbs do
             return false
 
         let x = cast(s32) ((ctbX + 1) << sps.ctbLog2Size)
@@ -656,7 +656,7 @@ impl Decoder
 
         if row
         {
-            if !.waitWavefrontProgress(job, row - 1, 2) do
+            if not .waitWavefrontProgress(job, row - 1, 2) do
                 return
             .cabac.restore(job.states! + row - 1)
         }
@@ -668,7 +668,7 @@ impl Decoder
             if row
             {
                 let needed = Math.min(column + 2, job.width)
-                if !.waitWavefrontProgress(job, row - 1, needed) do
+                if not .waitWavefrontProgress(job, row - 1, needed) do
                     return
             }
 

@@ -115,9 +115,9 @@ using Swag, Core
     splitter.addPane(pane1, 100)
 
     splitter.setPaneVisible(1, false)
-    Swag.assert(!splitter.isPaneVisible(1))
+    Swag.assert(not splitter.isPaneVisible(1))
     Swag.assert(splitter.numVisiblePanes == 1)
-    Swag.assert(!pane1.isLocallyVisible())
+    Swag.assert(not pane1.isLocallyVisible())
 
     splitter.setPaneVisible(1, true)
     Swag.assert(splitter.isPaneVisible(1))
@@ -158,8 +158,8 @@ using Swag, Core
     let item2    = splitter.addPane(pane2, 90)
 
     splitter.setPaneVisible(1, false)
-    Swag.assert(!pane1.isLocallyVisible())
-    Swag.assert(item1.label and !item1.label.isLocallyVisible())
+    Swag.assert(not pane1.isLocallyVisible())
+    Swag.assert(item1.label and not item1.label.isLocallyVisible())
 
     let middleSize = item1.size
     let total      = item0.size + item2.size

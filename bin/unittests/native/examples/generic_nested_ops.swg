@@ -247,7 +247,7 @@ struct(A, B) Pair
 {
     var a: Vec2's32 = {x: 3, y: 4}
     var b: Vec2's32 = {x: 4, y: -3}
-    let d           = Vec2's32.dot(&a, &b)
+    let d = Vec2's32.dot(&a, &b)
 
     // 12 + (-12) = 0  (perpendicular)
     Swag.assert(d == 0)
@@ -271,7 +271,7 @@ struct(A, B) Pair
 #test
 {
     let r: Rect's32 = {min: {x: 0, y: 0}, max: {x: 20, y: 10}}
-    let c           = r.center()
+    let c = r.center()
 
     Swag.assert(c.x == 10)
     Swag.assert(c.y == 5)
@@ -282,7 +282,7 @@ struct(A, B) Pair
 {
     let r:      Rect's32 = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
     var offset: Vec2's32 = {x: 5, y: -3}
-    let moved            = r + offset
+    let moved = r + offset
 
     Swag.assert(moved.min.x == 5)
     Swag.assert(moved.min.y == -3)
@@ -298,7 +298,7 @@ struct(A, B) Pair
 {
     let r:      Rect's32 = {min: {x: 5, y: 5}, max: {x: 15, y: 15}}
     var offset: Vec2's32 = {x: 5, y: 5}
-    let moved            = r - offset
+    let moved = r - offset
 
     Swag.assert(moved.min.x == 0)
     Swag.assert(moved.min.y == 0)
@@ -352,7 +352,7 @@ struct(A, B) Pair
 {
     let r:      Rect's32 = {min: {x: 0, y: 0}, max: {x: 4, y: 2}}
     var offset: Vec2's32 = {x: 1, y: 1}
-    let result           = (r + offset) * 3's32
+    let result = (r + offset) * 3's32
 
     // After translate: min={1,1}, max={5,3}
     // After scale:     min={3,3}, max={15,9}
@@ -371,7 +371,7 @@ struct(A, B) Pair
 {
     let identity: Transform2D's32 = {pos: {x: 0, y: 0}, scale: {x: 1, y: 1}}
     var p:        Vec2's32        = {x: 7, y: 13}
-    let result                    = identity.apply(&p)
+    let result = identity.apply(&p)
 
     Swag.assert(result.x == 7)
     Swag.assert(result.y == 13)
@@ -431,7 +431,7 @@ struct(A, B) Pair
 {
     let a: Transform2D's32 = {pos: {x: 10, y: 20}, scale: {x: 2, y: 3}}
     let b: Transform2D's32 = {pos: {x: 5, y: -5}, scale: {x: 4, y: 2}}
-    let combined           = a + b
+    let combined = a + b
 
     // pos: 10+5=15, 20+(-5)=15
     // scale: 2*4=8, 3*2=6
@@ -445,7 +445,7 @@ struct(A, B) Pair
 #test
 {
     let t: Transform2D's32 = {pos: {x: 10, y: 20}, scale: {x: 2, y: 3}}
-    let inv                = -t
+    let inv = -t
 
     Swag.assert(inv.pos.x == -10)
     Swag.assert(inv.pos.y == -20)
@@ -458,7 +458,7 @@ struct(A, B) Pair
 #test
 {
     let t: Transform2D's32 = {pos: {x: 3, y: 4}, scale: {x: 1, y: 2}}
-    let result             = t * 5's32
+    let result = t * 5's32
 
     Swag.assert(result.pos.x == 15)
     Swag.assert(result.pos.y == 20)
@@ -489,7 +489,7 @@ struct(A, B) Pair
     let t:     Transform2D's32 = {pos: {x: 100, y: 100}, scale: {x: 2, y: 2}}
     let r:     Rect's32        = {min: {x: 0, y: 0}, max: {x: 5, y: 5}}
     let scene: Pair'(Transform2D's32, Rect's32) = {first: t, second: r}
-    let world                  = scene.first.applyRect(&scene.second)
+    let world = scene.first.applyRect(&scene.second)
 
     Swag.assert(world.min.x == 100)
     Swag.assert(world.min.y == 100)
@@ -502,7 +502,7 @@ struct(A, B) Pair
 {
     let t1: Transform2D's32 = {pos: {x: 10, y: 0}, scale: {x: 1, y: 1}}
     let t2: Transform2D's32 = {pos: {x: 0, y: 10}, scale: {x: 2, y: 2}}
-    let combined            = t1 + t2
+    let combined = t1 + t2
 
     var r: Rect's32 = {min: {x: 1, y: 1}, max: {x: 3, y: 3}}
     let result      = combined.applyRect(&r)
@@ -522,7 +522,7 @@ struct(A, B) Pair
 {
     let r:      Rect's32 = {min: {x: 2, y: 4}, max: {x: 6, y: 8}}
     var offset: Vec2's32 = {x: 10, y: 10}
-    let result           = (-r) + offset
+    let result = (-r) + offset
 
     // Reflected: min={-6,-8}, max={-2,-4}
     // Translated: min={4,2}, max={8,6}

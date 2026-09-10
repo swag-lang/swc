@@ -28,7 +28,7 @@ func __setErrRaw(data: *void, type: const *Swag.TypeInfoStruct)
 
     // We check that the contextual error allocator has been initialized.
     // In case an error is raised at a very very early stage (in #init)
-    if !cxt.errorAllocator.capacity do
+    if not cxt.errorAllocator.capacity do
         cxt.errorAllocator.setCapacity(cast() __buildCfg.errorAllocatorCapacity, __runtimeAllocator())
 
     let ptr = cxt.errorAllocator.alloc(cast(u64) type.sizeof)
@@ -93,7 +93,7 @@ func __popErr()
     cxt.hasError = cxt.errors[cxt.errorIndex].pushHasError
     Swag.memcpy(&cxt.curError, &cxt.errors[cxt.errorIndex].pushCurError, #sizeof(any?))
     Swag.memset(&cxt.errors[cxt.errorIndex].pushCurError, 0, #sizeof(any?))
-    cxt.traceIndex          = cxt.errors[cxt.errorIndex].pushTraceIndex
+    cxt.traceIndex = cxt.errors[cxt.errorIndex].pushTraceIndex
     cxt.errorAllocator.used = cxt.errors[cxt.errorIndex].pushUsedAlloc
 
     // The frame is no longer live, so what it recorded must not be read by the '#fail' lookup in
@@ -128,12 +128,12 @@ func __clearErr(dst: *(any?))
 func __catchErr()
 {
     let cxt = Swag.getContext()
-    if !cxt.hasError do
+    if not cxt.hasError do
         cxt.curError = null
     else do
         cxt.curError = cxt.errors[cxt.errorIndex].value
     cxt.errorAllocator.used = cxt.errorIndex ? cxt.errors[cxt.errorIndex - 1].pushUsedAlloc : 0
-    cxt.hasError            = 0
+    cxt.hasError = 0
     if cxt.errorIndex
     {
         cxt.errorIndex -= 1
@@ -202,7 +202,7 @@ func __stackTrace(loc: SourceCodeLocation)
     if cxt.traceIndex >= MaxTraces do
         return
     cxt.traces[cxt.traceIndex] = loc
-    cxt.traceIndex             += 1
+    cxt.traceIndex += 1
 }
 
 ////////////////////////////////////////////////////////////
@@ -264,7 +264,7 @@ func __printPanicReport(message: string?, loc: SourceCodeLocation)
     // more useful than release reports. A direct internal call still has a local fallback.
     var fallback: [64] (*void?) = cast(*void?) null
     var trace = Swag.makeSlice(&cxt.panicStack[0], cxt.panicStackCount)
-    if !cxt.panicStackCount
+    if not cxt.panicStackCount
     {
         let count = __captureStack(1, fallback)
         trace = Swag.makeSlice(&fallback[0], count)
@@ -327,7 +327,7 @@ func safetyPanic(message: string, loc: SourceCodeLocation)
 func __panic(file: const [*] u8, line: u32, col: u32, message: const [*] u8?)
 {
     var loc: SourceCodeLocation
-    loc.fileName               = Swag.makeString(file, (cast(const cstring) file).count)
+    loc.fileName = Swag.makeString(file, (cast(const cstring) file).count)
     loc.lineStart, loc.lineEnd = line
     loc.colStart, loc.colEnd   = col
 
@@ -338,7 +338,7 @@ func __panic(file: const [*] u8, line: u32, col: u32, message: const [*] u8?)
 func __compilerError(file: const [*] u8, line: u32, col: u32, message: const [*] u8?)
 {
     var loc: SourceCodeLocation
-    loc.fileName               = Swag.makeString(file, (cast(const cstring) file).count)
+    loc.fileName = Swag.makeString(file, (cast(const cstring) file).count)
     loc.lineStart, loc.lineEnd = line
     loc.colStart, loc.colEnd   = col
 

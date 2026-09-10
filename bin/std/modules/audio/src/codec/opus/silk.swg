@@ -541,9 +541,9 @@ private impl SilkChannel
                 var delta = cast(s32) dec.decodeIcdf(SilkPitchDeltaIcdf, 8)
                 if delta > 0
                 {
-                    delta             -= 9
+                    delta    -= 9
                     .indices.lagIndex = .ecPrevLagIndex + delta
-                    absolute          = false
+                    absolute = false
                 }
             }
 
@@ -804,15 +804,15 @@ private impl SilkChannel
                 for i in .subfrLength
                 {
                     var pred = 2's32
-                    pred                = smlawb(pred, sLtpQ15[predLag], control.ltpCoefQ14[ltpBase])
-                    pred                = smlawb(pred, sLtpQ15[predLag - 1], control.ltpCoefQ14[ltpBase + 1])
-                    pred                = smlawb(pred, sLtpQ15[predLag - 2], control.ltpCoefQ14[ltpBase + 2])
-                    pred                = smlawb(pred, sLtpQ15[predLag - 3], control.ltpCoefQ14[ltpBase + 3])
-                    pred                = smlawb(pred, sLtpQ15[predLag - 4], control.ltpCoefQ14[ltpBase + 4])
-                    predLag             += 1
-                    resQ14[i]           = .excQ14[excAt + i] + (pred << 1)
+                    pred       = smlawb(pred, sLtpQ15[predLag], control.ltpCoefQ14[ltpBase])
+                    pred       = smlawb(pred, sLtpQ15[predLag - 1], control.ltpCoefQ14[ltpBase + 1])
+                    pred       = smlawb(pred, sLtpQ15[predLag - 2], control.ltpCoefQ14[ltpBase + 2])
+                    pred       = smlawb(pred, sLtpQ15[predLag - 3], control.ltpCoefQ14[ltpBase + 3])
+                    pred       = smlawb(pred, sLtpQ15[predLag - 4], control.ltpCoefQ14[ltpBase + 4])
+                    predLag    += 1
+                    resQ14[i]  = .excQ14[excAt + i] + (pred << 1)
                     sLtpQ15[sLtpBufIdx] = resQ14[i] << 1
-                    sLtpBufIdx          += 1
+                    sLtpBufIdx += 1
                 }
             }
             else
@@ -1088,7 +1088,7 @@ private func stabilizeNlsf(nlsfQ15: [*] s32, deltaMinQ15: const [..] s16, order:
     var i = last
     while i > 0
     {
-        i          -= 1
+        i -= 1
         nlsfQ15[i] = Math.min(nlsfQ15[i], nlsfQ15[i + 1] - cast(s32) deltaMinQ15[i + 1])
     }
 }
@@ -1138,7 +1138,7 @@ private func nlsfToLpc(aQ12: [*] s32, nlsf: const [*] s32, order: u32)
     {
         let ptmp = p[k + 1] + p[k]
         let qtmp = q[k + 1] - q[k]
-        a32[k]             = -qtmp - ptmp
+        a32[k] = -qtmp - ptmp
         a32[order - k - 1] = qtmp - ptmp
     }
 
@@ -1226,7 +1226,7 @@ private func inversePredictionGain(aQ12: const [*] s32, order: u32)->s32
         return 0
 
     var invGainQ30 = 1's32 << 30
-    var k          = order - 1
+    var k = order - 1
     while k > 0
     {
         if aQA[k] > LpcALimit or aQA[k] < -LpcALimit do
@@ -1405,19 +1405,19 @@ internal impl SilkDecoder
                 {
                 case 10:
                     channel.nFramesPerPacket = 1
-                    channel.nbSubfr          = 2
+                    channel.nbSubfr = 2
 
                 case 20:
                     channel.nFramesPerPacket = 1
-                    channel.nbSubfr          = 4
+                    channel.nbSubfr = 4
 
                 case 40:
                     channel.nFramesPerPacket = 2
-                    channel.nbSubfr          = 4
+                    channel.nbSubfr = 4
 
                 case 60:
                     channel.nFramesPerPacket = 3
-                    channel.nbSubfr          = 4
+                    channel.nbSubfr = 4
 
                 default:
                     fail InvalidFormatError{"Opus SILK frame size is not one the layer supports"}
@@ -1484,7 +1484,7 @@ internal impl SilkDecoder
                         if internalChannels == 2 and n == 0
                         {
                             .decodeStereoPrediction(dec, &predQ13[0])
-                            if !.channels[1].lbrrFlags[i] do
+                            if not .channels[1].lbrrFlags[i] do
                                 discard dec.decodeIcdf(SilkStereoOnlyCodeMidIcdf, 8)
                         }
 
@@ -1499,11 +1499,11 @@ internal impl SilkDecoder
         if internalChannels == 2
         {
             .decodeStereoPrediction(dec, &predQ13[0])
-            if !.channels[1].vadFlags[.channels[0].nFramesDecoded] do
+            if not .channels[1].vadFlags[.channels[0].nFramesDecoded] do
                 decodeOnlyMiddle = dec.decodeIcdf(SilkStereoOnlyCodeMidIcdf, 8) != 0
         }
 
-        if internalChannels == 2 and !decodeOnlyMiddle and .prevDecodeOnlyMiddle
+        if internalChannels == 2 and not decodeOnlyMiddle and .prevDecodeOnlyMiddle
         {
             var side = &.channels[1]
             Memory.set(&side.outBuf, 0, #sizeof(side.outBuf))
@@ -1515,7 +1515,7 @@ internal impl SilkDecoder
         }
 
         let frameLength = .channels[0].frameLength
-        let hasSide     = !decodeOnlyMiddle
+        let hasSide     = not decodeOnlyMiddle
         for n in internalChannels
         {
             let target = .scratch[n].buffer! + 2

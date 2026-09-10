@@ -30,11 +30,11 @@ public impl Bus
     // must outlive this bus. Success returns a non-null pointer.
     func create(channelCount: u32, parent: *Bus? = null)->*Bus? fail
     {
-        if !g_Driver.isCreated do
+        if not g_Driver.isCreated do
             fail BadParameterError{"audio engine is not created"}
         if channelCount == 0 do
             fail BadParameterError{"bus channel count must be greater than zero"}
-        if parent and !parent.handle do
+        if parent and not parent.handle do
             fail BadParameterError{"parent bus is not valid"}
 
         let allocator = g_Driver.allocationAllocator

@@ -99,7 +99,7 @@ private func windows1252(text: string)->Array'u8 fail
             }
         }
 
-        if !found do
+        if not found do
             fail UnsupportedFormatError{"PDF text output cannot encode this Unicode character"}
     }
 
@@ -273,7 +273,7 @@ private func documentFonts(document: const *Document)->Array'StandardFont
                 break
             }
 
-            if !found do
+            if not found do
                 result.add(item.standardFont)
         }
     }
@@ -396,7 +396,7 @@ private func infoDictionary(metadata: const *Metadata)->String fail
 
 func encodeDocument(document: const *Document)->Array'u8 fail
 {
-    if !document.pages.count do
+    if not document.pages.count do
         fail BadParameterError{}
 
     const CatalogObject = 1'u32
@@ -416,7 +416,7 @@ func encodeDocument(document: const *Document)->Array'u8 fail
     var layout: Array'PageObjects
     for page in document.pages
     {
-        if page.width <= 0 or page.height <= 0 or !Math.isFinite(page.width) or !Math.isFinite(page.height) do
+        if page.width <= 0 or page.height <= 0 or not Math.isFinite(page.width) or not Math.isFinite(page.height) do
             fail BadParameterError{}
         var objects: PageObjects
         objects.page    = nextObject
@@ -512,7 +512,7 @@ func encodeDocument(document: const *Document)->Array'u8 fail
                 // An opaque channel still needs an object when one was reserved, so the
                 // cross-reference table keeps one entry per reserved number.
                 var alpha = encoded.alpha
-                if !alpha.count
+                if not alpha.count
                 {
                     alpha.resize(cast(u64) item.image.width * cast(u64) item.image.height)
                     for i in alpha.count do

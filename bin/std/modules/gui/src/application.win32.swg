@@ -34,12 +34,12 @@ impl Application
     internal mtd refreshSystemMotionPreference()
     {
         var animationsEnabled = TRUE
-        if !SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animationsEnabled, 0) do
+        if not SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animationsEnabled, 0) do
             return
 
         let wasReduced = .isReducedMotion()
-        .systemReducedMotion = !animationsEnabled
-        if !wasReduced and .isReducedMotion() do
+        .systemReducedMotion = not animationsEnabled
+        if not wasReduced and .isReducedMotion() do
             .animator.finishDecorative()
     }
 
@@ -144,7 +144,7 @@ impl Application
 
     internal mtd sendSystemEvents()
     {
-        if !.renderer.needsNativeWindow() do
+        if not .renderer.needsNativeWindow() do
             return
 
         var msg: MSG
@@ -259,7 +259,7 @@ impl Application
         }
 
         catch SHGetStockIconInfo(whatWin, SHGSI_ICON | (small ? SHGSI_SMALLICON : SHGSI_LARGEICON), &sgi)
-        if !sgi.hIcon do
+        if not sgi.hIcon do
             return {}
         return .addIconToImageList(name, sgi.hIcon, small)
     }
@@ -267,7 +267,7 @@ impl Application
     internal mtd fileOrDirectoryIcon(name: string, isDirectory: bool, small = true)->Icon
     {
         var result: retval
-        if !name.count do
+        if not name.count do
             return result
 
         var ext = Path.extension(name)
@@ -280,7 +280,7 @@ impl Application
         elif ext == ".exe" or ext == ".dll"
         {
             extractFromFile = true
-            ext             = name
+            ext = name
         }
         elif ext == null do
             ext = ".txt"
@@ -302,7 +302,7 @@ impl Application
         if extractFromFile
         {
             catch ExtractIconExA(ext.buffer, 0, null, &sfi.hIcon, 1)
-            if !sfi.hIcon
+            if not sfi.hIcon
             {
                 ext = Path.extension(name)
                 if ext == null do
@@ -323,9 +323,9 @@ impl Application
         }
 
         let safeExt = ext orelse ".txt"
-        if !sfi.hIcon do
+        if not sfi.hIcon do
             discard SHGetFileInfoA(safeExt.buffer, isDirectory ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL, &sfi, #sizeof(SHFILEINFOA), SHGFI_USEFILEATTRIBUTES | SHGFI_ICON | SHGFI_SMALLICON)
-        if !sfi.hIcon do
+        if not sfi.hIcon do
             return result
 
         return .addIconToImageList(safeExt, sfi.hIcon, small)

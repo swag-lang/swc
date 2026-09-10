@@ -22,7 +22,7 @@ private func findClosing(text: string, marker: string, start: u64, wordBoundaryC
 
         // Underscore emphasis never closes inside a word, so 'foo_bar' in '_foo_bar_' stays plain
         // and the emphasis closes on the word-final run instead.
-        let boundary = !wordBoundaryClose or runEnd >= text.count or !Latin1.isWord(text[runEnd])
+        let boundary = not wordBoundaryClose or runEnd >= text.count or not Latin1.isWord(text[runEnd])
         if markerLength == 1 and runLength & 1 and boundary do
             return runEnd - 1
         if markerLength > 1 and runLength >= markerLength and boundary do
@@ -35,7 +35,7 @@ private func findClosing(text: string, marker: string, start: u64, wordBoundaryC
 
 private func canOpenUnderscore(text: string, index: u64)->bool
 {
-    return index == 0 or !Latin1.isWord(text[index - 1])
+    return index == 0 or not Latin1.isWord(text[index - 1])
 }
 
 private func findInlineMathEnd(text: string, start: u64)->u64
@@ -55,7 +55,7 @@ private func findInlineMathEnd(text: string, start: u64)->u64
         let escaped     = index > start and text[index - 1] == '\\'
         let spaceBefore = index == start or Latin1.isSpace(text[index - 1])
         let digitAfter  = index + 1 < text.count and Latin1.isDigit(text[index + 1])
-        if !escaped and !spaceBefore and !digitAfter do
+        if not escaped and not spaceBefore and not digitAfter do
             return index
         index += 1
     }
@@ -66,7 +66,7 @@ private func findInlineMathEnd(text: string, start: u64)->u64
 private func findBareUrlEnd(text: string, start: u64)->u64
 {
     var end = start
-    while end < text.count and !Latin1.isSpace(text[end]) and text[end] != '<' and text[end] != '>' do
+    while end < text.count and not Latin1.isSpace(text[end]) and text[end] != '<' and text[end] != '>' do
         end += 1
     while end > start and (text[end - 1] == '.' or text[end - 1] == ',' or text[end - 1] == ';' or text[end - 1] == ':' or text[end - 1] == '!' or text[end - 1] == '?') do
         end -= 1
@@ -123,7 +123,7 @@ func parseLinkTarget(text: string, start: u64)->LinkTargetInfo
                 depth += 1
             elif value == ')'
             {
-                if !depth do
+                if not depth do
                     break
                 depth -= 1
             }
@@ -219,7 +219,7 @@ private struct HtmlInlineInfo
 // resolves them only when it lays out a resident block, through the shared offline cache.
 private func renderImage(alt, source: string)->String
 {
-    if !Utf8.startsWith(source, "data:") and htmlLocalResourcePath("", source).isEmpty() do
+    if not Utf8.startsWith(source, "data:") and htmlLocalResourcePath("", source).isEmpty() do
         return Format.toString("<a><p3>[Image: %]</p></a><t>%</t>", richText(alt, true), richText(source))
     return Format.toString("<img>%</img><src>%</src>", richText(alt, true), richText(source))
 }
@@ -713,7 +713,7 @@ func parseHeading(line: string)->HeadingInfo
     let trimmed = Latin1.trim(line)
     while result.level < trimmed.count and result.level < 6 and trimmed[result.level] == '#' do
         result.level += 1
-    if !result.level or result.level >= trimmed.count or trimmed[result.level] != ' '
+    if not result.level or result.level >= trimmed.count or trimmed[result.level] != ' '
     {
         result.level = 0
         return result
@@ -750,7 +750,7 @@ func isRule(line: string)->bool
             continue
         if value != '-' and value != '*' and value != '_' do
             return false
-        if !marker do
+        if not marker do
             marker = value
         elif marker != value do
             return false
@@ -809,7 +809,7 @@ func parseListItem(line: string)->ListInfo
 func isTableSeparator(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
-    if !Utf8.contains(trimmed, '|'rune) do
+    if not Utf8.contains(trimmed, '|'rune) do
         return false
     var dashCount = 0'u32
     for value in trimmed

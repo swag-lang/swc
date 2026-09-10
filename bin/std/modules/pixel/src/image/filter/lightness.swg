@@ -5,7 +5,7 @@ public impl Image
     // Change the lightness. 'factor' is [-1, 1]
     mtd lightness(factor: f32 = 0.5)
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
 
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
@@ -60,7 +60,7 @@ public impl Image
         var offset = .byteCount & ~15'u64
         while offset < .byteCount
         {
-            if !.pixelFormat.hasAlpha() or offset & 3 != 3 do
+            if not .pixelFormat.hasAlpha() or offset & 3 != 3 do
                 pixels[offset] = cast(u8) Math.clamp(cast(s32) pixels[offset] + level, 0, 255)
             offset += 1
         }

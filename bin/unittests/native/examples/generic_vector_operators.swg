@@ -108,7 +108,7 @@ impl Vector3
 #test
 {
     var v: Vector3's32 = {x: 1, y: -2, z: 3}
-    let pos            = +v
+    let pos = +v
 
     #assert(#typeof(pos) == Vector3's32)
     Swag.assert(pos.x == 1)
@@ -120,7 +120,7 @@ impl Vector3
 #test
 {
     var v: Vector3's32 = {x: 5, y: -10, z: 0}
-    let neg            = -v
+    let neg = -v
 
     Swag.assert(neg.x == -5)
     Swag.assert(neg.y == 10)
@@ -131,7 +131,7 @@ impl Vector3
 #test
 {
     var v: Vector3'u32 = {x: 0, y: 0xFFFF_FFFF, z: 0x00FF_00FF}
-    let inv            = ~v
+    let inv = ~v
 
     Swag.assert(inv.x == 0xFFFF_FFFF)
     Swag.assert(inv.y == 0)
@@ -142,7 +142,7 @@ impl Vector3
 #test
 {
     var v: Vector3's64 = {x: 42, y: -99, z: 0}
-    let dn             = -(-v)
+    let dn = -(-v)
 
     Swag.assert(dn.x == 42)
     Swag.assert(dn.y == -99)
@@ -153,7 +153,7 @@ impl Vector3
 #test
 {
     var v: Vector3'u64 = {x: 0xCAFE, y: 0xBABE, z: 0xDEAD}
-    let di             = ~(~v)
+    let di = ~(~v)
 
     Swag.assert(di.x == 0xCAFE'u64)
     Swag.assert(di.y == 0xBABE'u64)
@@ -169,7 +169,7 @@ impl Vector3
 {
     var a: Vector3's32 = {x: 1, y: 2, z: 3}
     var b: Vector3's32 = {x: 10, y: 20, z: 30}
-    let sum            = a + b
+    let sum = a + b
 
     #assert(#typeof(sum) == Vector3's32)
     Swag.assert(sum.x == 11)
@@ -182,7 +182,7 @@ impl Vector3
 {
     var a: Vector3's32 = {x: 3, y: 5, z: 1}
     var b: Vector3's32 = {x: 10, y: 5, z: 8}
-    let diff           = a - b
+    let diff = a - b
 
     Swag.assert(diff.x == -7)
     Swag.assert(diff.y == 0)
@@ -194,7 +194,7 @@ impl Vector3
 {
     var a: Vector3'u32 = {x: 2, y: 3, z: 4}
     var b: Vector3'u32 = {x: 5, y: 6, z: 7}
-    let prod           = a * b
+    let prod = a * b
 
     Swag.assert(prod.x == 10)
     Swag.assert(prod.y == 18)
@@ -206,7 +206,7 @@ impl Vector3
 {
     var a: Vector3'u64 = {x: 100, y: 200, z: 300}
     var b: Vector3'u64 = {x: 10, y: 20, z: 30}
-    let quot           = a / b
+    let quot = a / b
 
     Swag.assert(quot.x == 10'u64)
     Swag.assert(quot.y == 10'u64)
@@ -333,7 +333,7 @@ impl Vector3
 {
     var a: Vector3's32 = {x: 1, y: 0, z: 0}
     var b: Vector3's32 = {x: 0, y: 1, z: 0}
-    let d              = Vector3's32.dot(&a, &b)
+    let d = Vector3's32.dot(&a, &b)
 
     Swag.assert(d == 0)
 }
@@ -343,7 +343,7 @@ impl Vector3
 {
     var a: Vector3's32 = {x: 2, y: 3, z: 4}
     var b: Vector3's32 = {x: 2, y: 3, z: 4}
-    let d              = Vector3's32.dot(&a, &b)
+    let d = Vector3's32.dot(&a, &b)
 
     // 4 + 9 + 16 = 29
     Swag.assert(d == 29)
@@ -353,7 +353,7 @@ impl Vector3
 #test
 {
     var v: Vector3's32 = {x: 3, y: 4, z: 0}
-    let lsq            = v.lengthSq()
+    let lsq = v.lengthSq()
 
     // 9 + 16 + 0 = 25
     Swag.assert(lsq == 25)
@@ -384,7 +384,7 @@ impl Vector3
 #test
 {
     var v: Vector3's16 = {x: 100, y: -200, z: 300}
-    let neg            = -v
+    let neg = -v
 
     #assert(#typeof(neg) == Vector3's16)
     Swag.assert(neg.x == -100)

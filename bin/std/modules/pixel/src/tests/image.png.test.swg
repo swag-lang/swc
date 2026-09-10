@@ -333,7 +333,7 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
                 expected[i] = 0xA5
             }
 
-            source[1]                 = 0
+            source[1] = 0
             source[1 + bytesPerPixel] = 255
             var expectedScore = 0's32
             for i in count
@@ -791,7 +791,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     Swag.assert(samples.count == cast(u64) width * cast(u64) height * cast(u64) channels)
 
     var raw: ConcatBuffer
-    if !interlace
+    if not interlace
     {
         for y in height
         {
@@ -934,7 +934,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 #test
 {
     Swag.assert(Image.canLoad("in.png"))
-    Swag.assert(!Image.canLoad("in.pnm"))
+    Swag.assert(not Image.canLoad("in.pnm"))
     Swag.assert(Image.canSave("out.png"))
 }
 
@@ -1174,7 +1174,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     Swag.assert(img.width == 660)
     Swag.assert(img.height == 441)
     Swag.assert(img.pixelFormat == .RGB8)
-    Swag.assert(!img.isValid())
+    Swag.assert(not img.isValid())
 }
 
 // PNG text metadata must survive a normal decode with pixels enabled.

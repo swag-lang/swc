@@ -60,7 +60,7 @@ impl Mouse
         for v in MouseButton
         {
             .doubleClicked[v] = false
-            if .currentState.pressed[v] and !.previousState.pressed[v] and .previousState.pressedTime[v]
+            if .currentState.pressed[v] and not .previousState.pressed[v] and .previousState.pressedTime[v]
             {
                 if .currentState.pressedTime[v] - .previousState.pressedTime[v] < .doubleClickTimeMs
                 {
@@ -110,19 +110,19 @@ impl Mouse
     // Determines whether the specified mouse button has just been pressed
     mtd isButtonJustPressed(button: MouseButton)->bool
     {
-        return .currentState.pressed[button] and !.previousState.pressed[button]
+        return .currentState.pressed[button] and not .previousState.pressed[button]
     }
 
     // Determines whether the specified mouse button is released
     mtd isButtonReleased(button: MouseButton)->bool
     {
-        return !.currentState.pressed[button]
+        return not .currentState.pressed[button]
     }
 
     // Determines whether the specified mouse button has just been released
     mtd isButtonJustReleased(button: MouseButton)->bool
     {
-        return !.currentState.pressed[button] and .previousState.pressed[button]
+        return not .currentState.pressed[button] and .previousState.pressed[button]
     }
 
     // Returns the cursor position before the latest update.

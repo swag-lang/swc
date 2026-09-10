@@ -86,7 +86,7 @@ impl CaptureLibraryMetadata
 {
     private func isValidText(value: String)->bool
     {
-        if !Utf8.isValid(value.toSlice()) do
+        if not Utf8.isValid(value.toSlice()) do
             return false
         for c in value where c < 32 do
             return false
@@ -98,19 +98,19 @@ impl CaptureLibraryMetadata
     // instead of letting it reach path APIs or visible library text.
     mtd sanitize()
     {
-        if !.linkedImage.isEmpty() and (!isValidText(.linkedImage) or !Path.isValidPathName(.linkedImage))
+        if not .linkedImage.isEmpty() and (not isValidText(.linkedImage) or not Path.isValidPathName(.linkedImage))
         {
             .linkedImage.clear()
             .linkedUpToDate = true
         }
 
-        if !isValidText(.sourceApplication) do
+        if not isValidText(.sourceApplication) do
             .sourceApplication.clear()
-        if !.sourceExecutable.isEmpty() and (!isValidText(.sourceExecutable) or !Path.isValidPathName(.sourceExecutable)) do
+        if not .sourceExecutable.isEmpty() and (not isValidText(.sourceExecutable) or not Path.isValidPathName(.sourceExecutable)) do
             .sourceExecutable.clear()
-        if !isValidText(.sourceWindowTitle) do
+        if not isValidText(.sourceWindowTitle) do
             .sourceWindowTitle.clear()
-        if !isValidText(.sourceWindowClass) do
+        if not isValidText(.sourceWindowClass) do
             .sourceWindowClass.clear()
     }
 }
@@ -252,17 +252,17 @@ impl CaptureSaveQueue
     // True while a scheduled save is still producing its file.
     mtd busy()->bool
     {
-        if !.pending do
+        if not .pending do
             return false
         let job = .pending!
-        return !job.task.isDone()
+        return not job.task.isDone()
     }
 
     // Adopts one snapshot the caller has already submitted. The caller collected or flushed
     // the previous save first, so the slot holds one writer per file at all times.
     mtd adopt(job: *CaptureSaveJob)
     {
-        Swag.assert(!.pending)
+        Swag.assert(not .pending)
         .pending = job
     }
 
@@ -270,10 +270,10 @@ impl CaptureSaveQueue
     // or when nothing finished. A save still running is left alone.
     mtd collect()->String
     {
-        if !.pending do
+        if not .pending do
             return ""
         let job = .pending!
-        if !job.task.isDone() do
+        if not job.task.isDone() do
             return ""
 
         var result: retval
@@ -289,7 +289,7 @@ impl CaptureSaveQueue
     // writer of a capture file goes through here before touching it.
     mtd flush(file: string? = null)->String
     {
-        if !.pending do
+        if not .pending do
             return ""
         let job = .pending!
         if file != null and job.file != file do
@@ -548,7 +548,7 @@ impl Capture
 
     mtd computePreview()
     {
-        if !.editView do
+        if not .editView do
             return
         let zoom = Math.min(PreviewWidth / .width, PreviewHeight / .height)
         .previewBytes.clear()
@@ -647,7 +647,7 @@ impl Capture
         .pruneFormCaches()
 
         let editView = .editView
-        if !editView do
+        if not editView do
             return
         editView.invalidate()
         editView.main.captureHasChanged()
@@ -657,7 +657,7 @@ impl Capture
     // state / recent strip / full view that hasChanged() skipped during the drag.
     mtd endInteractiveMove()
     {
-        if !.interactiveMove do
+        if not .interactiveMove do
             return
         .interactiveMove = false
         .hasChanged()
@@ -695,7 +695,7 @@ impl Capture
     // Whether `file` is named like a capture and holds one.
     func isFile(file: string)->bool
     {
-        if !isFileName(file) do
+        if not isFileName(file) do
             return false
 
         var reader: Scc.Reader
@@ -809,7 +809,7 @@ impl Capture
 
     mtd save() fail
     {
-        if !.changed do
+        if not .changed do
             return
 
         // A scheduled save may still be writing this same file; land it first so the
@@ -827,7 +827,7 @@ impl Capture
     // file, so editing never waits on compression or disk.
     mtd scheduleSave() fail
     {
-        Swag.assert(!g_CaptureSaves.pending)
+        Swag.assert(not g_CaptureSaves.pending)
         let job = try .snapshotSave()
         g_CaptureSaves.adopt(job)
         job.task.submit(func|job|()
@@ -934,7 +934,7 @@ impl Capture
         else
         {
             let info = reader.findRole(modelRole())
-            if !info do
+            if not info do
                 fail Core.Errors.InvalidFormatError{"capture SCC has no document model chunk"}
             var bytes = try reader.readChunk(info.id)
             var decoder: Decoder'Read.TagBin
@@ -1013,7 +1013,7 @@ impl Capture
             let itf = .forms[s]
 
             // Add real image
-            if !imgDone and Swag.kindOf(itf) == FormImage
+            if not imgDone and Swag.kindOf(itf) == FormImage
             {
                 let fimg = cast(*FormImage) itf.buffer
                 if fimg.kind == .Image and fimg.image.isValid()
@@ -1038,7 +1038,7 @@ impl Capture
     mtd pasteImageInside()
     {
         let img = Clipboard.getImage()
-        if !img.isValid() do
+        if not img.isValid() do
             return
 
         let undo = .newUndo(.SetImageInside)
@@ -1215,11 +1215,11 @@ impl Capture
         let fi = cast(*FormImage) f.buffer
         switch fi.kind
         {
-        case .Image:   return !fi.image.isValid() or (fi.texture.isValid() and fi.textureKind == fi.kind and !fi.dirty)
+        case .Image:   return not fi.image.isValid() or (fi.texture.isValid() and fi.textureKind == fi.kind and not fi.dirty)
         case .Capture: return fi.texture.isValid() and fi.textureKind == fi.kind
         }
 
-        return fi.texture.isValid() and fi.textureKind == fi.kind and !fi.dirty and fi.xc == fi.x and fi.yc == fi.y and fi.wc == fi.w and fi.hc == fi.h and fi.stc == fi.strength and fi.serial == fi.capture!.serialBackTexture
+        return fi.texture.isValid() and fi.textureKind == fi.kind and not fi.dirty and fi.xc == fi.x and fi.yc == fi.y and fi.wc == fi.w and fi.hc == fi.h and fi.stc == fi.strength and fi.serial == fi.capture!.serialBackTexture
     }
 
     // Paints one form through its retained rendering, or returns false to use the
@@ -1264,7 +1264,7 @@ impl Capture
         // at a readable zoom. Lower the sampling until the layer fits instead, and give the form
         // up only when one sample per pixel still does not: a slightly softer glyph is a better
         // answer than repainting the whole form for every mouse move.
-        let scale           = painter.contentScale()
+        let scale = painter.contentScale()
         var textSuperSample = Swag.kindOf(f) == FormText ? TextFormSuperSample : 1
         while textSuperSample > 1 and (wt2 > cast(s32) (MaxFormCacheDim / (scale * textSuperSample)) or ht2 > cast(s32) (MaxFormCacheDim / (scale * textSuperSample))) do
             textSuperSample -= 1
@@ -1274,7 +1274,7 @@ impl Capture
             return false
 
         var found = .findFormCache(f)
-        if !found
+        if not found
         {
             let created = .formCaches.addNew()
             created.form = f
@@ -1282,15 +1282,15 @@ impl Capture
         }
 
         let entry = found!
-        let fresh = !entry.dirty and
+        let fresh = not entry.dirty and
                     entry.scale == scale and
                     entry.samples == textSuperSample and
                     entry.layer.contentTarget != null and
                     formContentFresh(f)
         var sharp = fresh and entry.zoom == zoom and entry.layer.width == wt2 and entry.layer.height == ht2
 
-        var renderNow = !fresh
-        if fresh and !sharp
+        var renderNow = not fresh
+        if fresh and not sharp
         {
             // The content is right but baked at another zoom: re-render a few forms
             // per repaint, and draw the rest scaled until their turn comes.
@@ -1312,7 +1312,7 @@ impl Capture
                 .pushTransform()
                 .translateTransform(-boundRect.x * zoom * textSuperSample, -boundRect.y * zoom * textSuperSample)
                 var cxt: FormPaintContext
-                cxt.z           = zoom
+                cxt.z = zoom
                 cxt.renderScale = cast() textSuperSample
                 f.paint(painter, cxt)
                 .popTransform()
@@ -1330,7 +1330,7 @@ impl Capture
         var paintRect = pos
 
         painter.pushTransform()
-        if base.subKind != .Highlight and base.subKind != .PixSel and !Math.isZeroEpsilon(base.rotate)
+        if base.subKind != .Highlight and base.subKind != .PixSel and not Math.isZeroEpsilon(base.rotate)
         {
             painter.translateTransform(noClipPos.horzCenter(), noClipPos.vertCenter())
             paintRect.offset(-noClipPos.horzCenter(), -noClipPos.vertCenter())
@@ -1342,7 +1342,7 @@ impl Capture
         var drawInfo: LayerDrawInfo
         drawInfo.dstRect           = paintRect
         drawInfo.color             = colForm
-        drawInfo.interpolationMode = (base.paintShadow or !sharp) ? .Linear : .Pixel
+        drawInfo.interpolationMode = (base.paintShadow or not sharp) ? .Linear : .Pixel
         drawInfo.releaseAfterDraw  = false
         drawInfo.shadow.enabled    = base.paintShadow
         drawInfo.shadow.radius     = 8.0
@@ -1385,7 +1385,7 @@ impl Capture
 
             saveNoClipPos = .paintPos
 
-            if !quickMode and !clip.isEmpty()
+            if not quickMode and not clip.isEmpty()
             {
                 if .paintPos.x >= clip.right() do
                     return
@@ -1409,7 +1409,7 @@ impl Capture
             ht2 = cast(s32) (.paintPos.height - clipOffset.y)
         }
 
-        let textSuperSample = (!quickMode and Swag.kindOf(f) == FormText) ? TextFormSuperSample : 1
+        let textSuperSample = (not quickMode and Swag.kindOf(f) == FormText) ? TextFormSuperSample : 1
         var layer: Layer
         layer.begin(painter, {width: wt2, height: ht2, renderScale: textSuperSample})
 
@@ -1444,7 +1444,7 @@ impl Capture
         // Rotation
         painter.pushTransform()
 
-        if base.subKind != .Highlight and base.subKind != .PixSel and !quickMode and !Math.isZeroEpsilon(base.rotate)
+        if base.subKind != .Highlight and base.subKind != .PixSel and not quickMode and not Math.isZeroEpsilon(base.rotate)
         {
             painter.translateTransform(saveNoClipPos.horzCenter(), saveNoClipPos.vertCenter())
             paintRect.offset(-saveNoClipPos.horzCenter(), -saveNoClipPos.vertCenter())
@@ -1483,7 +1483,7 @@ impl Capture
         let renderer = editView.app().renderer
 
         // Background image
-        if !.backTexture.isValid() and .backImg.width > 0
+        if not .backTexture.isValid() and .backImg.width > 0
         {
             .backTexture       = renderer.addImage(.backImg)
             .serialBackTexture += 1
@@ -1537,7 +1537,7 @@ impl Capture
     mtd invalidateMovedRegion(oldRect, newRect: Math.Rectangle)
     {
         let view = .editView
-        if !view do
+        if not view do
             return
 
         let snapNow = .snapX != -1 or .snapY != -1
@@ -1608,7 +1608,7 @@ impl Capture
             cull.inflate(BaseForm.paintOverdraw(f, false))
             cull = cull * zoom
             cull.offset(rect.x, rect.y)
-            if !cull.intersects(cullClip) do
+            if not cull.intersects(cullClip) do
                 continue
 
             if f.mustClipToBound()
@@ -1616,13 +1616,13 @@ impl Capture
                 var pp = f.boundRect() * zoom
                 pp.offset(rect.x, rect.y)
                 painter.pushClippingRect(pp)
-                if !.paintFormCached(painter, rect, f, zoom) do
+                if not .paintFormCached(painter, rect, f, zoom) do
                     paintForm(painter, clip, rect, f, zoom)
                 painter.popClippingRect()
             }
             else
             {
-                if !.paintFormCached(painter, rect, f, zoom) do
+                if not .paintFormCached(painter, rect, f, zoom) do
                     paintForm(painter, clip, rect, f, zoom)
             }
         }
@@ -1650,7 +1650,7 @@ impl Capture
             for s in .selection
             {
                 let g = formOuterGroup(.forms[s])
-                if g != 0 and !ids.contains(g) do
+                if g != 0 and not ids.contains(g) do
                     ids.add(g)
             }
 
@@ -1724,7 +1724,7 @@ impl Capture
         elif (.selection.count == 1 or editForm) and (type == FormLine or type == FormArrow)
         {
             let line = cast(*FormLine) form.buffer
-            if !right or !bottom
+            if not right or not bottom
             {
                 result.x = line.xa
                 result.y = line.ya
@@ -1779,7 +1779,7 @@ impl Capture
         let editView    = .editView!
         let keyboard    = &editView.app().keyboard
         let ctrlPressed = keyboard.isKeyPressed(.Control) or keyboard.isKeyPressed(.RControl) or keyboard.isKeyPressed(.LControl)
-        if !editView.main.snap and !ctrlPressed do
+        if not editView.main.snap and not ctrlPressed do
             return
 
         var nx = x ? x[] : 0
@@ -1806,12 +1806,12 @@ impl Capture
             {
             case FormLine, FormArrow:
                 let form2 = cast(*FormLine) form
-                if !autoSel or (idxPt != 0 and Math.abs(form2.ya - form2.yb) > 25) do
+                if not autoSel or (idxPt != 0 and Math.abs(form2.ya - form2.yb) > 25) do
                     arrX.add(cast(s32) form2.xa)
-                if !autoSel or (idxPt != 0 and Math.abs(form2.xa - form2.xb) > 25) do
+                if not autoSel or (idxPt != 0 and Math.abs(form2.xa - form2.xb) > 25) do
                     arrY.add(cast(s32) form2.ya)
 
-                if !autoSel or idxPt != 1
+                if not autoSel or idxPt != 1
                 {
                     arrX.add(cast(s32) form2.xb)
                     arrY.add(cast(s32) form2.yb)
@@ -1821,7 +1821,7 @@ impl Capture
                 let form2 = cast(*FormPolygon) form
                 for pt, idx in form2.points
                 {
-                    if !autoSel or idx != idxPt
+                    if not autoSel or idx != idxPt
                     {
                         arrX.add(cast(s32) pt.x)
                         arrY.add(cast(s32) pt.y)
@@ -2002,7 +2002,7 @@ impl Capture
             {
                 let selForm = .forms[.selection[0]]
                 let p       = cast(*BaseForm) selForm.buffer
-                if !view.main.freezeSel or !p.freeze
+                if not view.main.freezeSel or not p.freeze
                 {
                     if selForm.mouse(view, localPos, evt)
                     {
@@ -2087,7 +2087,7 @@ impl Capture
                     // Swap between objects at the same position if no mouse move
                     if .lastSelectPos.isEqualEpsilon(evt.surfacePos)
                     {
-                        if !evt.modifiers.has(.Control) and .selection.count
+                        if not evt.modifiers.has(.Control) and .selection.count
                         {
                             .selection.clear()
                             .selectionHasChanged()
@@ -2100,7 +2100,7 @@ impl Capture
                         .hotForm = res[.lastSelectHit]
                         here     = .selection.contains(.hotForm)
                     }
-                    elif !evt.modifiers.has(.Control) and !here and .selection.count
+                    elif not evt.modifiers.has(.Control) and not here and .selection.count
                     {
                         .updateModelValuesFromSelection()
                         .selection.clear()
@@ -2110,7 +2110,7 @@ impl Capture
 
                     if .hotForm != Swag.U64.Max
                     {
-                        if !here
+                        if not here
                         {
                             .lastSelectPos = evt.surfacePos
                             .selection.add(.hotForm)
@@ -2186,7 +2186,7 @@ impl Capture
             for f, idx in .forms
             {
                 let pp = f.boundRect() * view.zoom
-                if pp.intersects(r) and !newSel.contains(idx) do
+                if pp.intersects(r) and not newSel.contains(idx) do
                     newSel.add(idx)
             }
 
@@ -2194,7 +2194,7 @@ impl Capture
             .expandGroups(&newSel)
 
             var selChanged = newSel.count != .selection.count
-            if !selChanged
+            if not selChanged
             {
                 for i in newSel.count
                 {
@@ -2234,7 +2234,7 @@ impl Capture
             // only the region the selection leaves and enters is repainted below.
             let oldMovedBound = .getSelectionBoundRect()
             .interactiveMove = true
-            if !firstDragMove do
+            if not firstDragMove do
                 .undo()
 
             let u = .newUndo(.OffsetSelection)
@@ -2308,7 +2308,7 @@ impl Capture
             // is still empty, and the pushUndo above has already repainted the whole
             // view anyway.
             var oldCreateBound: Math.Rectangle
-            if !createdNow do
+            if not createdNow do
                 oldCreateBound = f.boundRect()
 
             // Sizing the new form is as interactive as a body drag: skip the full
@@ -2316,7 +2316,7 @@ impl Capture
             // the form covered and covers. The release commits the full refresh
             // through endInteractiveMove.
             .interactiveMove = true
-            if !f.edit(evt, .movingStart, localPos, view.zoom)
+            if not f.edit(evt, .movingStart, localPos, view.zoom)
             {
                 view.releaseMouse()
                 view.invalidate()
@@ -2350,13 +2350,13 @@ impl Capture
     mtd hitTests(localPos: Math.Point, retFirst: bool)->Array'u64
     {
         var result: retval
-        if !.forms.count do
+        if not .forms.count do
             return result
         let editView = .editView!
         for i in (.forms).count.reversed()
         {
             let f = .forms[i]
-            if !f.hitTest(localPos, editView.zoom) do
+            if not f.hitTest(localPos, editView.zoom) do
                 continue
             result.add(i)
             if retFirst do
@@ -2387,7 +2387,7 @@ impl Capture
 
     mtd updateEditModeFromSelection()
     {
-        if !.selection.count do
+        if not .selection.count do
             return
 
         let main = .editView!.main
@@ -2400,7 +2400,7 @@ impl Capture
 
     mtd updateModelValuesFromSelection()
     {
-        if !.selection.count do
+        if not .selection.count do
             return
         let f        = .forms[.selection.back()]
         let editView = .editView!
@@ -2409,7 +2409,7 @@ impl Capture
 
     mtd updateModelFromSelection()
     {
-        if !.selection.count do
+        if not .selection.count do
             return
         let f        = .forms[.selection.back()]
         let editView = .editView!
@@ -2461,7 +2461,7 @@ impl Capture
         for s in sel[]
         {
             let g = formOuterGroup(.forms[s])
-            if g != 0 and !ids.contains(g) do
+            if g != 0 and not ids.contains(g) do
                 ids.add(g)
         }
 
@@ -2471,7 +2471,7 @@ impl Capture
         for f, i in .forms
         {
             let g = formOuterGroup(f)
-            if g != 0 and ids.contains(g) and !sel.contains(i) do
+            if g != 0 and ids.contains(g) and not sel.contains(i) do
                 sel.add(i)
         }
 
@@ -2575,7 +2575,7 @@ impl Capture
 
         // During an interactive drag, apply() calls undo() every move to re-apply the
         // move from scratch; the per-form partial invalidate handles the repaint.
-        if !.interactiveMove do
+        if not .interactiveMove do
             .editView?.invalidate()
     }
 
@@ -2583,7 +2583,7 @@ impl Capture
     {
         .undoMgr.redo()
 
-        if !.interactiveMove do
+        if not .interactiveMove do
             .editView?.invalidate()
     }
 

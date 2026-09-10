@@ -144,7 +144,7 @@ namespace
     {
         switch (tokId)
         {
-            case TokenId::SymBang: return SpecOperator::Not;
+            case TokenId::KwdNot: return SpecOperator::Not;
             case TokenId::SymPlus: return SpecOperator::Pos;
             case TokenId::SymMinus: return SpecOperator::Neg;
             case TokenId::SymTilde: return SpecOperator::BitNot;
@@ -1798,7 +1798,7 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
     outHandled = false;
 
     const Token& tok = sema.token(node.codeRef());
-    if (!tok.isAny({TokenId::SymPlus, TokenId::SymMinus, TokenId::SymBang, TokenId::SymTilde}))
+    if (!tok.isAny({TokenId::SymPlus, TokenId::SymMinus, TokenId::KwdNot, TokenId::SymTilde}))
         return Result::Continue;
 
     if (!operandView.type())

@@ -33,5 +33,5 @@ func semaTest004()
     t.x = 1
     t.y = false
     Swag.assert(t.x == 1)
-    Swag.assert(!t.y)
+    Swag.assert(not t.y)
 }

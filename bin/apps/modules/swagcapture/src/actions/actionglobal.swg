@@ -22,7 +22,7 @@ impl IActionUI for ActionGlobal
         {
         case .ShowEditor:
             evt.updatedFields |= .Name
-            evt.name          = appStrings().act_ShowEditor
+            evt.name = appStrings().act_ShowEditor
 
         case .ShowLibrary:
             evt.updatedFields |= .Name | .Checked
@@ -31,13 +31,13 @@ impl IActionUI for ActionGlobal
 
         case .Exit:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = appStrings().act_Quit
-            evt.icon          = main.theme().icon(.Quit)
+            evt.name = appStrings().act_Quit
+            evt.icon = main.theme().icon(.Quit)
 
         case .Minimize:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = appStrings().act_Minimize
-            evt.icon          = main.theme().icon(.Minimize)
+            evt.name = appStrings().act_Minimize
+            evt.icon = main.theme().icon(.Minimize)
         }
 
         return true
@@ -84,15 +84,15 @@ impl MainWnd
 {
     mtd swapLibraryMode()
     {
-        .libraryMode = !.libraryMode
+        .libraryMode = not .libraryMode
         .updateLibraryButtonAppearance()
 
         // The tool rail and the tool column belong to the editor: in library mode there is
         // no form to draw and no form to style, so both leave instead of standing empty.
-        .rightBar.show(!.libraryMode)
-        .recentBar.show(!.libraryMode)
-        .toolRail.show(!.libraryMode)
-        .commandReadouts.show(!.libraryMode)
+        .rightBar.show(not .libraryMode)
+        .recentBar.show(not .libraryMode)
+        .toolRail.show(not .libraryMode)
+        .commandReadouts.show(not .libraryMode)
 
         if .libraryMode do
             .libWnd.fill()

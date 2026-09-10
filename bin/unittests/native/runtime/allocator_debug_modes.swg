@@ -34,7 +34,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     Swag.assert(alloc.maxQuarantineBytes == 16 * 1024 * 1024)
     Swag.assert(alloc.showMaxLeaks == 100)
     Swag.assert(alloc.detectLeaks)
-    Swag.assert(!alloc.trackAllocations)
+    Swag.assert(not alloc.trackAllocations)
 }
 
 #test

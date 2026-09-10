@@ -23,7 +23,7 @@ impl FrameRate
     // Fails when either part is zero.
     func create(numerator, denominator: u32)->FrameRate fail
     {
-        if !numerator or !denominator do
+        if not numerator or not denominator do
             fail BadParameterError{"frame rate numerator and denominator need positive values"}
         return {numerator, denominator}
     }
@@ -37,7 +37,7 @@ impl FrameRate
     // Returns the approximate number of frames per second.
     mtd const framesPerSecond()->f64
     {
-        if !.denominatorValue do
+        if not .denominatorValue do
             return 0
         return cast(f64) .numeratorValue / cast(f64) .denominatorValue
     }

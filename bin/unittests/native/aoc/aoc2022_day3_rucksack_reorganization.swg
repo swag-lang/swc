@@ -134,7 +134,7 @@ func solveClean(bytes: const [..] u8)->RucksackReport
         if isLineBreak(bytes[index]) or index == bytes.count - 1
         {
             var lineEnd = index
-            if !isLineBreak(bytes[index]) do
+            if not isLineBreak(bytes[index]) do
                 lineEnd = index + 1
 
             if lineEnd > lineStart
@@ -144,7 +144,7 @@ func solveClean(bytes: const [..] u8)->RucksackReport
                 result.misplacedPrioritySum += cast(u64) priorityFromMask(duplicateMask(line))
 
                 groupMasks[groupCount] = buildMask(line)
-                groupCount             += 1
+                groupCount += 1
                 if groupCount == 3
                 {
                     result.groupCount       += 1
@@ -241,7 +241,7 @@ func forEachLine(bytes: const [..] u8, stmt: #code(line))
         if isLineBreak(bytes[index]) or index == bytes.count - 1
         {
             var lineEnd = index
-            if !isLineBreak(bytes[index]) do
+            if not isLineBreak(bytes[index]) do
                 lineEnd = index + 1
 
             if lineEnd > lineStart

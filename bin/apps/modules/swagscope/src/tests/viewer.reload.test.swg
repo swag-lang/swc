@@ -56,7 +56,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     Swag.assert(window.pendingFile.isEmpty())
     for 8 where window.pendingFile.isEmpty() do
         pollFileWatch(&host, window)
-    Swag.assert(!window.pendingFile.isEmpty())
+    Swag.assert(not window.pendingFile.isEmpty())
     completeQueuedViewerFile(&host, window)
     for 64 where window.readingState.restoring
     {
@@ -64,7 +64,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
         host.fireTimer(window.fileWatchTimer)
     }
 
-    Swag.assert(!window.readingState.restoring)
+    Swag.assert(not window.readingState.restoring)
     Swag.assert(window.choices[window.activeChoiceIndex].key == "markdown")
     Swag.assert(window.searchBox.text() == "manuscript")
     Swag.assert((cast(*MarkdownZoomButton) window.currentInfo!.children[0]).zoomPercent == 150)
@@ -112,12 +112,12 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
         writeReloadFile(fileName, source)
         for 8 where window.pendingFile.isEmpty() do
             pollFileWatch(&host, window)
-        Swag.assert(!window.pendingFile.isEmpty())
+        Swag.assert(not window.pendingFile.isEmpty())
         completeQueuedViewerFile(&host, window)
         for 64 where window.readingState.restoring do
             host.fireTimer(window.fileWatchTimer)
         Swag.assert(window.choices[window.activeChoiceIndex].key == key)
-        Swag.assert(!window.readingState.restoring and window.currentView != null)
+        Swag.assert(not window.readingState.restoring and window.currentView != null)
         Swag.assert(window.fileWatch.current.size == source.length)
 
         // Editors also save by renaming a new file over the original path.
@@ -127,7 +127,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
         expect File.move(fileName, replacement)
         for 8 where window.pendingFile.isEmpty() do
             pollFileWatch(&host, window)
-        Swag.assert(!window.pendingFile.isEmpty())
+        Swag.assert(not window.pendingFile.isEmpty())
         completeQueuedViewerFile(&host, window)
         Swag.assert(window.fileWatch.current.size == 19)
     }
@@ -163,7 +163,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     Swag.assert(view.pageCount() == 2)
     for 8 where window.pendingFile.isEmpty() do
         pollFileWatch(&host, window)
-    Swag.assert(!window.pendingFile.isEmpty())
+    Swag.assert(not window.pendingFile.isEmpty())
     completeQueuedViewerFile(&host, window)
     for 64 where window.readingState.restoring do
         host.fireTimer(window.fileWatchTimer)
@@ -202,7 +202,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     writeReloadFile(fileName, source)
     for 8 where window.pendingFile.isEmpty() do
         pollFileWatch(&host, window)
-    Swag.assert(!window.pendingFile.isEmpty())
+    Swag.assert(not window.pendingFile.isEmpty())
     completeViewerWindowClassification(&host, window)
     for 128
     {
@@ -212,7 +212,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     }
 
     let replacement = cast(*Markdown.View) window.currentView!
-    Swag.assert(!window.readingState.restoring and !replacement.isLoading())
+    Swag.assert(not window.readingState.restoring and not replacement.isLoading())
     let scroll   = cast(*ScrollWnd) replacement.children[0]
     let position = scroll.scrollPosition()
     for 32
@@ -220,8 +220,8 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
         host.fireTimers()
         host.fireTimer(window.fileWatchTimer)
         host.finishAnimations()
-        Swag.assert(window.pendingFile.isEmpty() and !window.readingState.restoring)
-        Swag.assert(scroll.scrollPosition() == position and !replacement.isLoading())
+        Swag.assert(window.pendingFile.isEmpty() and not window.readingState.restoring)
+        Swag.assert(scroll.scrollPosition() == position and not replacement.isLoading())
     }
 }
 
@@ -232,10 +232,10 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     a.size = 12
     var b = a
     b.lastWriteTime.year = 2026
-    Swag.assert(!ViewerFileWatch.sameFile(a, b))
+    Swag.assert(not ViewerFileWatch.sameFile(a, b))
     b = a
     b.creationTime.year = 2026
-    Swag.assert(!ViewerFileWatch.sameFile(a, b))
+    Swag.assert(not ViewerFileWatch.sameFile(a, b))
 }
 
 // Manual reload uses the same state transfer for a transformed, panned image.
@@ -258,7 +258,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     completeQueuedViewerFile(&host, window)
     host.fireTimer(window.fileWatchTimer)
     let replacement = (cast(*ImageViewer) window.currentView!).imageView
-    Swag.assert(!replacement.isFitted and replacement.zoom == 2)
+    Swag.assert(not replacement.isFitted and replacement.zoom == 2)
     Swag.assert(replacement.rotationQuarterTurns == 1 and replacement.isMirrored)
     Swag.assert(replacement.panOffset == pan)
 }

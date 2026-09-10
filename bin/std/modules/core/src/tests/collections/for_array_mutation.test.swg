@@ -43,7 +43,7 @@ func compactMutationFor(text: string)->u64
         if map[i].num == map[last].num
         {
             map[last].what = MutationFreeSpanId
-            last           -= 1
+            last -= 1
         }
         elif map[i].num > map[last].num
         {
@@ -107,7 +107,7 @@ func compactMutationWhile(text: string)->u64
         if map[i].num == map[last].num
         {
             map[last].what = MutationFreeSpanId
-            last           -= 1
+            last -= 1
         }
         elif map[i].num > map[last].num
         {

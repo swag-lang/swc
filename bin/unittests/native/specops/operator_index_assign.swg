@@ -108,7 +108,7 @@ impl RuntimeMultiIndexAssignBox
     mtd(op: Swag.Operator) opIndexAssign(row: s32, col: s32, value: s32)
         where op == .AddAssign
     {
-        .writes                += 1
+        .writes += 1
         .values[row * 2 + col] += value
     }
 }

@@ -43,7 +43,7 @@ impl Generator
     #[Swag.Inline]
     mtd nextU32()->u32
     {
-        if !.seedDone do
+        if not .seedDone do
             .seedAutomatically()
 
         #static if #defined(T.nextU32) do
@@ -56,7 +56,7 @@ impl Generator
     #[Swag.Inline]
     mtd nextU64()->u64
     {
-        if !.seedDone do
+        if not .seedDone do
             .seedAutomatically()
 
         #static if #defined(T.nextU64) do

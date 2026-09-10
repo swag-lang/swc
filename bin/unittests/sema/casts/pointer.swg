@@ -41,7 +41,7 @@ func semaTest004()
 {
     var ax: s32
     var x:  const *s32 = &ax
-    var y              = cast #unconst (*u8) x
+    var y = cast #unconst (*u8) x
     #assert(#typeof(y) == *u8)
 }
 
@@ -76,15 +76,15 @@ func semaTest008()
 func semaTest009()
 {
     var a: typeinfo = #typeof(s32)
-    var b           = cast(const *u8) a
-    var c           = cast(const *void) a
+    var b = cast(const *u8) a
+    var c = cast(const *void) a
 }
 
 func semaTest010()
 {
     var ax: s32
     var x:  const *s32 = &ax
-    var y              = cast(const *u8) x
+    var y = cast(const *u8) x
     #assert(#typeof(y) == const *u8)
 }
 
@@ -169,10 +169,10 @@ func semaTest018()
 // A pointer cast between two structs is a move inside one composition. The compiler sees the
 // whole 'using' graph, so a pair with no path either way reads one object as an unrelated one.
 
-struct SemaCastBase    { a: s32 }
+struct SemaCastBase { a: s32 }
 struct SemaCastDerived { using base: SemaCastBase; b: s32 }
-struct SemaCastDeeper  { using derived: SemaCastDerived; c: s32 }
-struct SemaCastAlien   { x, y, z, w: s64 }
+struct SemaCastDeeper { using derived: SemaCastDerived; c: s32 }
+struct SemaCastAlien { x, y, z, w: s64 }
 
 func semaTestCastDescend(b: *SemaCastBase)->*SemaCastDeeper
 {

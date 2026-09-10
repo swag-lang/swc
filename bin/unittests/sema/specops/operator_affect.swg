@@ -141,7 +141,7 @@ impl LiteralSetTarget
 struct LiteralOverloadTarget
 {
     timeInSeconds: f32
-    tag:           s32
+    tag: s32
 }
 
 impl LiteralOverloadTarget
@@ -196,8 +196,8 @@ impl LiteralOverloadTarget
 }
 
 const ConstSetOne: ConstSetVector2 = 1.0
-const ConstPaletteCardOne          = ConstPaletteCard{"gray", ConstPaletteSource.Gray}
-const ConstPaletteCards            = [
+const ConstPaletteCardOne = ConstPaletteCard{"gray", ConstPaletteSource.Gray}
+const ConstPaletteCards   = [
     ConstPaletteCard{"gray", ConstPaletteSource.Gray},
     ConstPaletteCard{"blue", ConstPaletteSource.Blue}
     ]

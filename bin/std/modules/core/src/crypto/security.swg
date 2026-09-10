@@ -10,22 +10,22 @@ func constantTimeEqual(left, right: const [..] u8)->bool
         return false
 
     const VectorSize = #sizeof(Math.Simd.U8x16)
-    let zero             = Math.Simd.splat(0'u8)
+    let zero   = Math.Simd.splat(0'u8)
     var vectorDifference = zero
-    var offset           = 0'u64
+    var offset = 0'u64
     while left.count - offset >= 4 * VectorSize
     {
         vectorDifference |= Math.Simd.load(left.buffer + offset) ^ Math.Simd.load(right.buffer + offset)
         vectorDifference |= Math.Simd.load(left.buffer + offset + VectorSize) ^ Math.Simd.load(right.buffer + offset + VectorSize)
         vectorDifference |= Math.Simd.load(left.buffer + offset + 2 * VectorSize) ^ Math.Simd.load(right.buffer + offset + 2 * VectorSize)
         vectorDifference |= Math.Simd.load(left.buffer + offset + 3 * VectorSize) ^ Math.Simd.load(right.buffer + offset + 3 * VectorSize)
-        offset           += 4 * VectorSize
+        offset += 4 * VectorSize
     }
 
     while left.count - offset >= VectorSize
     {
         vectorDifference |= Math.Simd.load(left.buffer + offset) ^ Math.Simd.load(right.buffer + offset)
-        offset           += VectorSize
+        offset += VectorSize
     }
 
     var difference = 0'u8
@@ -35,7 +35,7 @@ func constantTimeEqual(left, right: const [..] u8)->bool
         offset     += 1
     }
 
-    return difference == 0 and !Math.Simd.anyTrue(vectorDifference != zero)
+    return difference == 0 and not Math.Simd.anyTrue(vectorDifference != zero)
 }
 
 // Fills `buffer` completely from the operating system cryptographic random-number source.
@@ -45,7 +45,7 @@ func randomBytes(buffer: [..] u8) fail
     while done < buffer.count
     {
         let chunk = cast(u32) Math.min(buffer.count - done, cast(u64) Swag.U32.Max)
-        if !randomFillNative(buffer.buffer + done, chunk) do
+        if not randomFillNative(buffer.buffer + done, chunk) do
             fail Swag.SystemError{"the operating system cryptographic random-number generator failed"}
         done += chunk
     }

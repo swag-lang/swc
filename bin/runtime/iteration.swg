@@ -11,7 +11,7 @@ impl ReversedCount
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: T))
-        where !ptr
+        where not ptr
     {
         var item = .count
         for .count
@@ -66,7 +66,7 @@ impl IterationRange
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: T))
-        where !ptr
+        where not ptr
     {
         if .lower <= .upper
         {
@@ -94,12 +94,12 @@ impl ReversedRange
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: T))
-        where !ptr
+        where not ptr
     {
         if .lower <= .upper and (.inclusive or .upper != .lower)
         {
             var item = .upper
-            if !.inclusive do
+            if not .inclusive do
                 item -= cast(T) 1
 
             #scope(Up)
@@ -151,7 +151,7 @@ impl ConstReversedSlice
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
-        where !ptr
+        where not ptr
     {
         var scan = (.values).buffer + (.values).count
         for offset in (.values).count
@@ -194,7 +194,7 @@ impl Pairs
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(left, right, index: u64))
-        where !ptr
+        where not ptr
     {
         let count = (.values).count
         if count < 2 do
@@ -229,7 +229,7 @@ impl ReversedCString
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: u8, index: u64))
-        where !ptr
+        where not ptr
     {
         let count = (.value).count
         for offset in count

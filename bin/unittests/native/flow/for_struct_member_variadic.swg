@@ -37,7 +37,7 @@ func argCount(args: ...)->u64
 {
     // Member through an explicit pointer.
     var items: [2] Tagged = [{name: "alpha", kind: 1}, {name: "beta", kind: 2}]
-    let p                 = &items[1]
+    let p = &items[1]
     Swag.assert(argCount(p.name) == 4)
 }
 

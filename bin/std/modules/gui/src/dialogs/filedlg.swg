@@ -112,7 +112,7 @@ private impl FileDlg
                 return false
             }
 
-            if !Path.isValidFileName(folderName)
+            if not Path.isValidFileName(folderName)
             {
                 MessageDlg.error(dlg.surface!, strings().fileDlg_ErrFolderName)
                 edit.selectAll()
@@ -135,7 +135,7 @@ private impl FileDlg
         if dlg.doModal() != Dialog.BtnOk do
             return
 
-        if !.browser.createFolder(edit.text())
+        if not .browser.createFolder(edit.text())
         {
             MessageDlg.error(.surface!, strings().fileDlg_ErrFolderCreate)
             return
@@ -180,13 +180,13 @@ impl FileDlg
         }
 
         var confirmText = opt.confirmButtonText
-        if !confirmText.count
+        if not confirmText.count
         {
             switch #complete opt.mode
             {
-            case .CreateFile:               confirmText = strings().fileDlg_BtnSave
+            case .CreateFile:   confirmText = strings().fileDlg_BtnSave
             case .SelectFile, .SelectFiles: confirmText = strings().fileDlg_BtnOpen
-            case .SelectFolder:             confirmText = strings().fileDlg_TitleSelectFolder
+            case .SelectFolder: confirmText = strings().fileDlg_TitleSelectFolder
             }
         }
 
@@ -197,8 +197,8 @@ impl FileDlg
         // paddings, so the body it sits in keeps none of the dialog inset around it.
         with dlg.browser = FileBrowserCtrl.create(dlg.createContentView(inset: false), opt)
         {
-            .dockStyle             = .Center
-            .sigAccepted           += func|fileDlg = dlg|(b) { fileDlg.closeWithResult(Dialog.BtnOk) }
+            .dockStyle   = .Center
+            .sigAccepted += func|fileDlg = dlg|(b) { fileDlg.closeWithResult(Dialog.BtnOk) }
             .sigNewFolderRequested += func|fileDlg = dlg|(b) { fileDlg.onNewFolder() }
         }
 
@@ -211,7 +211,7 @@ impl FileDlg
                 if dlg.options.mode != .SelectFolder
                 {
                     let target = dlg.browser.typedFolderTarget()
-                    if !target.isEmpty()
+                    if not target.isEmpty()
                     {
                         dlg.browser.setCurrentFolder(target.toString())
                         dlg.browser.setFileName(dlg.options.mode == .CreateFile ? dlg.options.initialName : "")
@@ -219,7 +219,7 @@ impl FileDlg
                     }
                 }
 
-                if !dlg.browser.hasValidSelection()
+                if not dlg.browser.hasValidSelection()
                 {
                     dlg.browser.editFile.selectAll()
                     dlg.browser.editFile.setFocus()
@@ -247,7 +247,7 @@ impl FileDlg
 
         // Restore the saved surface placement, then make sure it still lands on a
         // visible screen area: a stale rectangle must never open the dialog off-screen.
-        if opt.state and !opt.state.surfacePosition.isEmpty()
+        if opt.state and not opt.state.surfacePosition.isEmpty()
         {
             var pos = opt.state.surfacePosition
             pos.width  = Math.max(pos.width, srf.minSize.x)

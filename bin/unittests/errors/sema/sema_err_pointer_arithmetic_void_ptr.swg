@@ -9,35 +9,35 @@ alias StrictVoidAlias = void
 {
     var pv: u8
     var p:  [*] void = cast([*] void) &pv
-    let a            = p + 1     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
+    let a = p + 1     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
 }
 
 #test
 {
     var pv: u8
     var p:  [*] void = cast([*] void) &pv
-    let a            = p[0]     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
+    let a = p[0]     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
 }
 
 #test
 {
     var pv: u8
     var p:  [*] VoidAlias = cast([*] VoidAlias) &pv
-    let a                 = p[0]     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
+    let a = p[0]     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
 }
 
 #test
 {
     var pv: u8
     var p:  [*] void = cast([*] void) &pv
-    let a            = p[0 until 1]     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
+    let a = p[0 until 1]     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
 }
 
 #test
 {
     var pv: u8
     var p:  [*] VoidAlias = cast([*] VoidAlias) &pv
-    let a                 = p[0 until 1]     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
+    let a = p[0 until 1]     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
 }
 
 #test

@@ -137,7 +137,7 @@ impl HtmlParser
     {
         if .htmlElement != HtmlNoNode
         {
-            if !.isOpen(.Html) do
+            if not .isOpen(.Html) do
                 .stack.add({.htmlElement, HtmlTag.Html})
             return
         }
@@ -153,7 +153,7 @@ impl HtmlParser
         .ensureHtml(offset)
         if .headElement != HtmlNoNode
         {
-            if !.isOpen(.Head) do
+            if not .isOpen(.Head) do
                 .stack.add({.headElement, HtmlTag.Head})
             return
         }
@@ -172,7 +172,7 @@ impl HtmlParser
             .popTo(.Head)
         if .bodyElement != HtmlNoNode
         {
-            if !.isOpen(.Body) do
+            if not .isOpen(.Body) do
                 .stack.add({.bodyElement, HtmlTag.Body})
             return
         }
@@ -240,14 +240,14 @@ impl HtmlParser
             return
 
         let inHead = .stack.back().tag == .Head
-        if !.atDocumentLevel() and !inHead do
+        if not .atDocumentLevel() and not inHead do
             return
 
         // Head content stays in the head until something that belongs to the body has started
         // one; after that the head is closed and a stray `<style>` renders where it was written.
         if HtmlParser.belongsToHead(tag) and .bodyElement == HtmlNoNode
         {
-            if !inHead do
+            if not inHead do
                 .ensureHead(offset)
             return
         }
@@ -285,15 +285,15 @@ impl HtmlParser
     {
         switch open
         {
-        case .P:                     return HtmlParser.startsBlock(tag)
-        case .Li:                    return tag == .Li
-        case .Dt, .Dd:               return tag == .Dt or tag == .Dd
-        case .Option:                return tag == .Option or tag == .OptGroup
-        case .Td, .Th:               return tag == .Td or tag == .Th or tag == .Tr or tag == .TBody or tag == .THead or tag == .TFoot
-        case .Tr:                    return tag == .Tr or tag == .TBody or tag == .THead or tag == .TFoot
+        case .P:       return HtmlParser.startsBlock(tag)
+        case .Li:      return tag == .Li
+        case .Dt, .Dd: return tag == .Dt or tag == .Dd
+        case .Option:  return tag == .Option or tag == .OptGroup
+        case .Td, .Th: return tag == .Td or tag == .Th or tag == .Tr or tag == .TBody or tag == .THead or tag == .TFoot
+        case .Tr:      return tag == .Tr or tag == .TBody or tag == .THead or tag == .TFoot
         case .TBody, .THead, .TFoot: return tag == .TBody or tag == .THead or tag == .TFoot
-        case .Head:                  return tag == .Body
-        case .A:                     return tag == .A
+        case .Head:    return tag == .Body
+        case .A:       return tag == .A
         }
 
         return false
@@ -330,12 +330,12 @@ impl HtmlParser
                     break
                 }
 
-                if !HtmlParser.looksThroughImpliedClose(open) do
+                if not HtmlParser.looksThroughImpliedClose(open) do
                     return
                 depth -= 1
             }
 
-            if !found do
+            if not found do
                 return
             .stack.resize(found)
         }
@@ -359,7 +359,7 @@ impl HtmlParser
     // first content turns out to be, because the rule only ever applies to the very next token.
     mtd eatDroppedNewline(text: string)->u64
     {
-        if !.dropNewline do
+        if not .dropNewline do
             return 0
         .dropNewline = false
         if text[0] == '\r' do
@@ -373,23 +373,23 @@ impl HtmlParser
     // read in chunks yields exactly the tree the whole source yields.
     mtd emitText(text: string, hasReference: bool, offset: u64)
     {
-        if !text.count do
+        if not text.count do
             return
 
         let eat     = .eatDroppedNewline(text)
         let content = text[eat to]
-        if !content.count do
+        if not content.count do
             return
 
         // Whitespace between the sections of a document is not content; anything else there is
         // what starts the body.
         if .mode == .Document and (.atDocumentLevel() or .stack.back().tag == .Head)
         {
-            if !Latin1.trim(content).count do
+            if not Latin1.trim(content).count do
                 return
             .ensureBody(offset + eat)
         }
-        elif .stack.count == 1 and !Latin1.trim(content).count
+        elif .stack.count == 1 and not Latin1.trim(content).count
         {
             return
         }
@@ -398,7 +398,7 @@ impl HtmlParser
         // rows stays where the source put it — unless a fostered run already sits in front of
         // the table, where a chunk edge may have isolated one of the run's own spaces.
         var anchor = .fosterAnchor()
-        if anchor != HtmlNoNode and !Latin1.trim(content).count and !.document.precededByText(anchor) do
+        if anchor != HtmlNoNode and not Latin1.trim(content).count and not .document.precededByText(anchor) do
             anchor = HtmlNoNode
         let decoded = .internText(content, hasReference)
         if anchor != HtmlNoNode
@@ -413,12 +413,12 @@ impl HtmlParser
     // Emits raw element content verbatim, because a script or a stylesheet carries no markup.
     mtd emitRawText(text: string, offset: u64)
     {
-        if !text.count do
+        if not text.count do
             return
 
         let eat     = .eatDroppedNewline(text)
         let content = text[eat to]
-        if !content.count do
+        if not content.count do
             return
 
         .document.appendText(.current(), HtmlDocument.sourceRange(.sourceStart(content), content.count), offset + eat)
@@ -529,16 +529,16 @@ impl HtmlParser
                     }
 
                     attribute.hasReference = true
-                    closing                = next + 1
+                    closing = next + 1
                 }
 
                 attribute.value = {cast(u32) valueStart, cast(u32) (closing - valueStart)}
-                index           = closing + 1
+                index = closing + 1
             }
             else
             {
                 let valueStart = index
-                while index < count and !Latin1.isSpace(source[index]) and source[index] != '>'
+                while index < count and not Latin1.isSpace(source[index]) and source[index] != '>'
                 {
                     if source[index] == '&' do
                         attribute.hasReference = true
@@ -589,9 +589,9 @@ impl HtmlParser
     // structure between cells, `HtmlNoNode` when content belongs where it is.
     mtd const fosterAnchor()->u32
     {
-        let parent           = .stack.back().tag
+        let parent = .stack.back().tag
         let inTableStructure = parent == .Table or parent == .TBody or parent == .THead or parent == .TFoot or parent == .Tr
-        if !inTableStructure do
+        if not inTableStructure do
             return HtmlNoNode
 
         var depth = .stack.count
@@ -704,7 +704,7 @@ impl HtmlParser
             return
         }
 
-        if !.isOpen(interned) do
+        if not .isOpen(interned) do
             return
 
         // Misnested formatting keeps its formatting: the formatting elements this close pops
@@ -721,7 +721,7 @@ impl HtmlParser
                 depth -= 1
             }
 
-            for open in reopen where !HtmlParser.isFormattingTag(open.tag)
+            for open in reopen where not HtmlParser.isFormattingTag(open.tag)
             {
                 reopen.clear()
                 break
@@ -801,7 +801,7 @@ impl HtmlParser
             name   = folded.toString()
         }
 
-        .openElement(name, !scan.hasUpper, source, scan, index)
+        .openElement(name, not scan.hasUpper, source, scan, index)
         return scan.end + 1
     }
 
@@ -858,7 +858,7 @@ impl HtmlParser
     // is nearly all of them — becomes two numbers and no bytes at all.
     mtd internText(text: string, hasReference: bool, inAttribute = false)->HtmlRange
     {
-        if !hasReference do
+        if not hasReference do
             return HtmlDocument.sourceRange(.sourceStart(text), text.count)
         return .document.internDecoded(text, inAttribute)
     }
@@ -894,7 +894,7 @@ impl HtmlParser
                 let next = .readRawText(source, index)
                 if next == Swag.U64.Max
                 {
-                    if !final do
+                    if not final do
                         break
 
                     .emitRawText(source[index to], index)
@@ -914,7 +914,7 @@ impl HtmlParser
                 let next = .readMarkup(source, index)
                 if next == Swag.U64.Max
                 {
-                    if !final do
+                    if not final do
                         break
                     index = source.count
                     break
@@ -927,7 +927,7 @@ impl HtmlParser
 
             // The run ends at the next `<`, and the same pass reports the `&` that would make it
             // need decoding: a run of a page's text is then read once, not twice.
-            var end          = index
+            var end = index
             var hasReference = false
             while true
             {
@@ -945,11 +945,11 @@ impl HtmlParser
                 }
 
                 hasReference = true
-                end          = next + 1
+                end = next + 1
             }
 
             var text = source[index until end]
-            if !final and end == source.count
+            if not final and end == source.count
             {
                 let safe = HtmlParser.safeTextEnd(text)
                 text = text[0 until safe]

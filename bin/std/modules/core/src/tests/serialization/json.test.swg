@@ -131,7 +131,7 @@ func assertJsonPayload(value: JsonPayload)->bool
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let decoded = expect decoder.readAll'JsonPayload(json.toSlice())!
     Swag.assert(decoded.id == 8)
-    Swag.assert(!decoded.active)
+    Swag.assert(not decoded.active)
     Swag.assert(decoded.name.isNullOrEmpty())
     Swag.assert(assertIntArray(decoded.counts, [9, 8]))
     Swag.assert(decoded.pair.x == -1)
@@ -156,7 +156,7 @@ func assertJsonPayload(value: JsonPayload)->bool
     let missing: String = "{\"id\":12}"
     let partial         = expect decoder.readAll'JsonPayload(missing.toSlice())!
     Swag.assert(partial.id == 12)
-    Swag.assert(!partial.active)
+    Swag.assert(not partial.active)
     Swag.assert(partial.name.isNullOrEmpty())
     Swag.assert(partial.counts.count == 0)
     Memory.delete(partial)

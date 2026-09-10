@@ -43,7 +43,7 @@ impl MouseState
         {
             let b = .pressed[v]
             .pressed[v] = Mouse.isButtonPressed(v)
-            if !b and .pressed[v]
+            if not b and .pressed[v]
             {
                 .pressedTime[v] = Time.monotonicMilliseconds()
                 .pressedPos[v]  = .position

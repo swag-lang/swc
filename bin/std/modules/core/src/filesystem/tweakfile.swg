@@ -58,7 +58,7 @@ impl TweakFile
             let dot     = Slice.findLinear(rest, '.'u8)
             let segment = dot == Swag.U64.Max ? rest.count : dot
             let field   = Reflection.findField(current, Swag.makeString(rest.buffer, segment))
-            if !field do
+            if not field do
                 return {}
 
             result.offset += field.offset
@@ -76,7 +76,7 @@ impl TweakFile
     // Registers a new structure to be parsed as a folder
     mtd(T) registerFolder(folder: *T)
     {
-        #static if !Reflection.isStruct(T) do
+        #static if not Reflection.isStruct(T) do
             #error("type should be a struct")
         .folders.add({#typeof(T), folder})
     }
@@ -99,7 +99,7 @@ impl TweakFile
     // Parses tweak content from an array of lines
     mtd parse(lines: Array'(string)) fail
     {
-        Swag.assert(!.folders.isEmpty())
+        Swag.assert(not .folders.isEmpty())
 
         struct Ref
         {
@@ -111,8 +111,8 @@ impl TweakFile
             }
         }
 
-        var refs:          Array'Ref     // Pending references to resolve
-        var currentFolder: *Folder?      // Current folder being parsed
+        var refs: Array'Ref             // Pending references to resolve
+        var currentFolder: *Folder?     // Current folder being parsed
 
         for oneit, idx in lines
         {
@@ -143,7 +143,7 @@ impl TweakFile
                     }
                 }
 
-                if !currentFolder do
+                if not currentFolder do
                     fail SyntaxError{Errors.mkString(Format.toString("unknown folder [[%]]", folderName)), line: idx + 1}
                 continue
             }
@@ -159,11 +159,11 @@ impl TweakFile
 
             // Search value in folder type
             let path = resolveName(currentFolder.type, id)
-            if !path.type do
+            if not path.type do
                 fail SyntaxError{Errors.mkString(Format.toString("value [[%]] not found in folder [[%]]", id, currentFolder.type.name)), line: idx + 1}
             one = Tokenize.eatCount(one, id.count)
             one = Tokenize.eatSpaces(one)
-            if !one.count do
+            if not one.count do
                 fail SyntaxError{"missing value", line: idx + 1}
 
             // Reference to another value using '$' syntax
@@ -176,7 +176,7 @@ impl TweakFile
                 let other = refName!
 
                 let otherPath = resolveName(currentFolder.type, other)
-                if !otherPath.type do
+                if not otherPath.type do
                     fail SyntaxError{Errors.mkString(Format.toString("reference [[%]] not found in folder [[%]]", other, currentFolder.type.name)), line: idx + 1}
                 if path.type != otherPath.type do
                     fail SyntaxError{Errors.mkString(Format.toString("reference [[%]] type mismatch", other)), line: idx + 1}
@@ -196,7 +196,7 @@ impl TweakFile
             one = parsedOne orelse ""
 
             // Ensure nothing invalid follows the value
-            if one.count and !Latin1.isSpace(one[0]) and one[0] != '#' do
+            if one.count and not Latin1.isSpace(one[0]) and one[0] != '#' do
                 fail SyntaxError{"syntax error in value", line: idx + 1}
             one = Tokenize.eatSpaces(one)
             if one.count and one[0] != '#' do
@@ -228,7 +228,7 @@ impl TweakFile
                     }
                 }
 
-                if !restart do
+                if not restart do
                     break
             }
 

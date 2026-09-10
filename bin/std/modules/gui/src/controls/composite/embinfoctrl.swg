@@ -33,8 +33,8 @@ struct InfoBar
 
         readonly
         {
-            kind:             InfoBarKind             // Current semantic presentation.
-            flags:            InfoBarFlags            // Current placement and lifetime options.
+            kind:  InfoBarKind                        // Current semantic presentation.
+            flags: InfoBarFlags                       // Current placement and lifetime options.
             autoDismissDelay: Time.Duration = 4's     // Delay used by [[InfoBarFlags.AutoDismiss]].
 
             late label:       *Label          // Message label owned by this bar.

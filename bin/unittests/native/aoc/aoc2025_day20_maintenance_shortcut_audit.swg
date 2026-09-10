@@ -67,16 +67,16 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
     var tail: u32
 
     distFromStart[startCell] = 0
-    queue[tail]              = startCell
-    tail                     += 1
+    queue[tail] = startCell
+    tail        += 1
 
     while head < tail
     {
         let current = queue[head]
         head += 1
 
-        let x            = current % width
-        let y            = current / width
+        let x = current % width
+        let y = current / width
         let nextDistance = distFromStart[current] + 1
 
         if x > 0
@@ -85,8 +85,8 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
             if walkable[nextCell] and distFromStart[nextCell] == Swag.U32.Max
             {
                 distFromStart[nextCell] = nextDistance
-                queue[tail]             = nextCell
-                tail                    += 1
+                queue[tail] = nextCell
+                tail        += 1
             }
         }
 
@@ -96,8 +96,8 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
             if walkable[nextCell] and distFromStart[nextCell] == Swag.U32.Max
             {
                 distFromStart[nextCell] = nextDistance
-                queue[tail]             = nextCell
-                tail                    += 1
+                queue[tail] = nextCell
+                tail        += 1
             }
         }
 
@@ -107,8 +107,8 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
             if walkable[nextCell] and distFromStart[nextCell] == Swag.U32.Max
             {
                 distFromStart[nextCell] = nextDistance
-                queue[tail]             = nextCell
-                tail                    += 1
+                queue[tail] = nextCell
+                tail        += 1
             }
         }
 
@@ -118,25 +118,25 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
             if walkable[nextCell] and distFromStart[nextCell] == Swag.U32.Max
             {
                 distFromStart[nextCell] = nextDistance
-                queue[tail]             = nextCell
-                tail                    += 1
+                queue[tail] = nextCell
+                tail        += 1
             }
         }
     }
 
-    head                 = 0
-    tail                 = 0
+    head        = 0
+    tail        = 0
     distFromEnd[endCell] = 0
-    queue[tail]          = endCell
-    tail                 += 1
+    queue[tail] = endCell
+    tail        += 1
 
     while head < tail
     {
         let current = queue[head]
         head += 1
 
-        let x            = current % width
-        let y            = current / width
+        let x = current % width
+        let y = current / width
         let nextDistance = distFromEnd[current] + 1
 
         if x > 0
@@ -145,8 +145,8 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
             if walkable[nextCell] and distFromEnd[nextCell] == Swag.U32.Max
             {
                 distFromEnd[nextCell] = nextDistance
-                queue[tail]           = nextCell
-                tail                  += 1
+                queue[tail] = nextCell
+                tail        += 1
             }
         }
 
@@ -156,8 +156,8 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
             if walkable[nextCell] and distFromEnd[nextCell] == Swag.U32.Max
             {
                 distFromEnd[nextCell] = nextDistance
-                queue[tail]           = nextCell
-                tail                  += 1
+                queue[tail] = nextCell
+                tail        += 1
             }
         }
 
@@ -167,8 +167,8 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
             if walkable[nextCell] and distFromEnd[nextCell] == Swag.U32.Max
             {
                 distFromEnd[nextCell] = nextDistance
-                queue[tail]           = nextCell
-                tail                  += 1
+                queue[tail] = nextCell
+                tail        += 1
             }
         }
 
@@ -178,8 +178,8 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
             if walkable[nextCell] and distFromEnd[nextCell] == Swag.U32.Max
             {
                 distFromEnd[nextCell] = nextDistance
-                queue[tail]           = nextCell
-                tail                  += 1
+                queue[tail] = nextCell
+                tail        += 1
             }
         }
     }
@@ -190,7 +190,7 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
     for idx in totalCells
     {
         let fromCell = cast(u32) idx
-        if !walkable[fromCell] or distFromStart[fromCell] == Swag.U32.Max do
+        if not walkable[fromCell] or distFromStart[fromCell] == Swag.U32.Max do
             continue
 
         let fromX = fromCell % width
@@ -199,7 +199,7 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
         for ordinal in totalCells
         {
             let toCell = cast(u32) ordinal
-            if !walkable[toCell] or distFromEnd[toCell] == Swag.U32.Max do
+            if not walkable[toCell] or distFromEnd[toCell] == Swag.U32.Max do
                 continue
 
             let cheatLength = absDiff(fromX, toCell % width) + absDiff(fromY, toCell / width)

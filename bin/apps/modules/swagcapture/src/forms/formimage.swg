@@ -66,7 +66,7 @@ impl FormImage
             var maskImg = cast(*Image) userData!
             var pix1    = maskImg.pixels.buffer! + x * 4
             pix1 += maskImg.width * y * 4
-            if !pix1[0] do
+            if not pix1[0] do
                 pix[as u32] = 0
         }
 
@@ -101,7 +101,7 @@ impl IForm for FormImage
 {
     mtd impl canRotate()->bool
     {
-        return !.mustEditInside() and .subKind == .None
+        return not .mustEditInside() and .subKind == .None
     }
 
     mtd impl isSame(ptr: *BaseForm)->bool
@@ -224,7 +224,7 @@ impl IForm for FormImage
            evt.button == .Left and
            .image.isValid()
         {
-            .editInside = !.editInside
+            .editInside = not .editInside
             return true
         }
 
@@ -248,11 +248,11 @@ impl IForm for FormImage
                 .gizmo.rect.offset(.freePos.x * z, .freePos.y * z)
                 .gizmo.rect.width  = .freePos.width * z
                 .gizmo.rect.height = .freePos.height * z
-                .gizmo.paint(painter, !flags.has(.Selected), Argb.Yellow)
+                .gizmo.paint(painter, not flags.has(.Selected), Argb.Yellow)
             }
             else
             {
-                .gizmo.paint(painter, !flags.has(.Selected))
+                .gizmo.paint(painter, not flags.has(.Selected))
             }
         }
         else
@@ -287,7 +287,7 @@ impl IForm for FormImage
         var pp    = .boundRect() * z
         let pen   = Pen.createSolid(.borderColor, bSize)
 
-        if !cxt.quickMode
+        if not cxt.quickMode
         {
             let renderer = g_App.renderer
             let capture  = .capture!
@@ -297,27 +297,27 @@ impl IForm for FormImage
             switch .kind
             {
             case .Image:
-                if (!.texture.isValid() or .textureKind != .kind or .dirty) and .image.isValid()
+                if (not .texture.isValid() or .textureKind != .kind or .dirty) and .image.isValid()
                 {
                     .dirty       = false
                     .textureKind = .kind
                     renderer.removeTexture(&.texture)
                     .texture = renderer.addImage(.image)
-                    if !.freePos.width do
+                    if not .freePos.width do
                         .freePos.width = .image.width
-                    if !.freePos.height do
+                    if not .freePos.height do
                         .freePos.height = .image.height
                 }
 
             case .Capture:
-                if !.texture.isValid() or
+                if not .texture.isValid() or
                    .textureKind != .kind
                 {
                     .backCapture()
                 }
 
             case .Blur, .Pixelate:
-                if !.texture.isValid() or
+                if not .texture.isValid() or
                    .xc != .x or
                    .yc != .y or
                    .wc != .w or
@@ -349,7 +349,7 @@ impl IForm for FormImage
                 }
 
             case .Zoom:
-                if !.texture.isValid() or
+                if not .texture.isValid() or
                    .xc != .x or
                    .yc != .y or
                    .wc != .w or
@@ -419,11 +419,11 @@ impl IForm for FormImage
                 pp.inflate(-bSize * 0.5)
                 painter.drawRect(pp, pen)
             }
-            elif .kind == .Capture and !.texture.isValid()
+            elif .kind == .Capture and not .texture.isValid()
             {
                 painter.drawRect(pp, Argb.White, 4)
             }
-            elif .kind == .Image and !.image.isValid()
+            elif .kind == .Image and not .image.isValid()
             {
                 painter.fillRect(pp, .backColor)
                 let icon = g_Main!.icon(.Image, 48)

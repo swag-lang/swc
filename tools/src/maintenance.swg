@@ -110,7 +110,7 @@ private func runGoldenTests(context: *Context, options: *Options)->s32 fail
         created += 1
     }
 
-    if !ran
+    if not ran
     {
         Console.println("no golden directory found")
         return 1
@@ -210,7 +210,7 @@ private func goldenSnapshots(context: *Context)->Array'String fail
             for entry in entries
             {
                 let full = entry.fullname.toString()
-                if !Utf8.endsWith(cast(const [..] u8) full, ".actual.txt") and !Utf8.endsWith(cast(const [..] u8) full, ".actual.png") do
+                if not Utf8.endsWith(cast(const [..] u8) full, ".actual.txt") and not Utf8.endsWith(cast(const [..] u8) full, ".actual.png") do
                     result.add(entry.fullname)
             }
         }
@@ -227,7 +227,7 @@ private func goldenSnapshots(context: *Context)->Array'String fail
 public func runHelp(context: *Context, options: *Options)->s32 fail
 {
     let helpDir = Path.combine(context.binDir.toString(), "help")
-    if !Directory.exists(helpDir) do
+    if not Directory.exists(helpDir) do
         try Directory.create(helpDir.toString())
 
     var brand: Arguments
@@ -279,7 +279,7 @@ public func runVsix(context: *Context, _options: *Options)->s32 fail
     }
 
     let imagesDir = Path.combine(vscodeDir.toString(), "images")
-    if !Directory.exists(imagesDir) do
+    if not Directory.exists(imagesDir) do
         try Directory.create(imagesDir.toString())
 
     for image in ["swag_icon.png", "syntax.png"]
@@ -318,7 +318,7 @@ public func runSetup(context: *Context, _options: *Options)->s32 fail
         Console.println("Adding \"", native.toString(), "\" to user PATH...")
 
         var updated = String.from(current)
-        if !updated.isEmpty() do
+        if not updated.isEmpty() do
             updated += ";"
         updated += native
 
@@ -334,7 +334,7 @@ public func runSetup(context: *Context, _options: *Options)->s32 fail
 
     let compiler = Path.combine(context.binDir.toString(), "swc.exe")
     Console.println("Associating \".swgs\" with \"", compiler.toString(), "\"...")
-    if !Env.claimFileExtension(".swgs", "Swag.Script", "Swag script", compiler.toString())
+    if not Env.claimFileExtension(".swgs", "Swag.Script", "Swag script", compiler.toString())
     {
         Console.println("error: the file association could not be written")
         return 1

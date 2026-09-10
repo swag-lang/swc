@@ -135,7 +135,7 @@ func addDlgButton(parent: *Wnd, text: string, fn: func(*Button))
 func createRootView()
 {
     let view = g_Surface!.view()
-    g_View               = view
+    g_View = view
     view.backgroundStyle = .View
 
     // Title bar (docked top so the layout reflows on resize).
@@ -156,7 +156,7 @@ func createRootView()
     g_StartDir = Env.getSpecialDirectory(.UserDocuments)
 
     var opt: FileDlgOptions
-    opt.mode          = .SelectFile
+    opt.mode = .SelectFile
     opt.initialFolder = g_StartDir.toString()
     opt.filters.add({"All files", ""})
     opt.filters.add({"Text", ".txt"})

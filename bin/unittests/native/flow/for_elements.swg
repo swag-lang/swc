@@ -18,7 +18,7 @@ alias StrictForeachF32           = f32
 #test
 {
     var arr: [3] s32 = [1, 2, 3]
-    var sum          = 0
+    var sum = 0
     for v in arr
     {
         #assert(#typeof(v) == s32)
@@ -49,7 +49,7 @@ alias StrictForeachF32           = f32
 #test
 {
     var arr: [2] s32 = [1, 2]
-    var sum          = 0
+    var sum = 0
     for v in arr where v > 0
     {
         var x = v
@@ -90,7 +90,7 @@ alias StrictForeachF32           = f32
 #test
 {
     var text: string = "CD"
-    var sum          = 0
+    var sum = 0
     for &v in text
     {
         #assert(#typeof(v) == #type const *u8)
@@ -102,7 +102,7 @@ alias StrictForeachF32           = f32
 #test
 {
     var text: const cstring = cast(const cstring) ("AZ").buffer
-    var sumV                = 0
+    var sumV = 0
     var sumI: u64
     for v, i in text
     {
@@ -118,7 +118,7 @@ alias StrictForeachF32           = f32
 #test
 {
     var text: const cstring = cast(const cstring) ("CD").buffer
-    var sum                 = 0
+    var sum = 0
     for &v in text
     {
         #assert(#typeof(v) == #type const *u8)

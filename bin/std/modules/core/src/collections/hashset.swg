@@ -78,7 +78,7 @@ impl ReversedHashSet
             }
 
             remain -= 1
-            if !remain do
+            if not remain do
                 break
         }
     }
@@ -133,10 +133,10 @@ impl HashSet
     // A new me.table is allocated and all entries are copied over.
     mtd opPostCopy()
     {
-        if !.table do
+        if not .table do
             return
 
-        if !.allocator do
+        if not .allocator do
             .allocator = Swag.getContext().allocator
 
         let oldTable = .tablePtr()
@@ -168,7 +168,7 @@ impl HashSet
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key))
     {
-        if !.count do
+        if not .count do
             return
 
         let table  = .constTablePtr()
@@ -190,7 +190,7 @@ impl HashSet
             }
 
             remain -= 1
-            if !remain do
+            if not remain do
                 break
         }
     }
@@ -218,7 +218,7 @@ impl HashSet
     // If keys have destructors, they are called.
     mtd free()
     {
-        if !.table do
+        if not .table do
             return
         let table = .tablePtr()
 
@@ -262,7 +262,7 @@ impl HashSet
         .count, .deleted = 0
         let newCapacityBytes = reqCapacity * #sizeof(HashSetEntry'(K))
 
-        if !.allocator do
+        if not .allocator do
             .allocator = Swag.getContext().allocator
         .table = cast([*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()
@@ -303,7 +303,7 @@ impl HashSet
         var index = idx
         let table = .tablePtr()
 
-        if !.deleted
+        if not .deleted
         {
             for
             {
@@ -368,7 +368,7 @@ impl HashSet
         }
 
         table[index].hash = hashVal
-        .count            += 1
+        .count += 1
         return table + index
     }
 
@@ -399,7 +399,7 @@ impl HashSet
         }
 
         table[index].hash = hashVal
-        .count            += 1
+        .count += 1
         return table + index
     }
 
@@ -429,7 +429,7 @@ impl HashSet
                 }
                 else
                 {
-                    .deleted               -= 1
+                    .deleted -= 1
                     table[targetIndex].key = #fwd key
                 }
 
@@ -445,8 +445,8 @@ impl HashSet
             elif entryHash == hashVal and table[index].key == key
             {
                 table[index].hash = HashSet.HASH_DELETED
-                .count            -= 1
-                .deleted          += 1
+                .count   -= 1
+                .deleted += 1
                 return false
             }
 
@@ -458,7 +458,7 @@ impl HashSet
     // If the key exists, its slot is marked as 'DELETED'. Does nothing if the key is not found.
     mtd remove(key: K)
     {
-        if !.table do
+        if not .table do
             return
 
         let hashVal = hashKey(key)
@@ -471,8 +471,8 @@ impl HashSet
             if table[index].hash == hashVal and table[index].key == key
             {
                 table[index].hash = HashSet.HASH_DELETED
-                .count            -= 1
-                .deleted          += 1
+                .count   -= 1
+                .deleted += 1
                 return
             }
 
@@ -483,7 +483,7 @@ impl HashSet
     // Returns 'true' if the set contains the given key.
     mtd const contains(key: K)->bool
     {
-        if !.table do
+        if not .table do
             return false
 
         let hashVal = hashKey(key)
@@ -523,7 +523,7 @@ impl HashSet
                 table[i].hash = HashSet.HASH_FREE
 
                 // We are done if there's no more valid value, and no more me.deleted value
-                if !.count and !.deleted do
+                if not .count and not .deleted do
                     break
             }
         }
@@ -538,7 +538,7 @@ impl StrConv.IConvert for HashSet
         var first = true
         for k in me
         {
-            if !first do
+            if not first do
                 buf.addBytes(", ")
             first = false
             StrConv.convert'K(buf, k, convFormat, strFormat)

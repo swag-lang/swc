@@ -18,7 +18,7 @@ private func readRgb(image: Image, source: const [*] u8)->{ r: s32, g: s32, b: s
     {
     case .RGB8, .RGBA8: return {source[0], source[1], source[2]}
     case .BGR8, .BGRA8: return {source[2], source[1], source[0]}
-    default:            return {}
+    default: return {}
     }
 }
 

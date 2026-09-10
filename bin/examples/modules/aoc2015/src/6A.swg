@@ -203,7 +203,7 @@ func day6A1()
                 var scan = lightsBuf + (y * DAY6_GRID_SIZE) + x0
                 for writeCount
                 {
-                    scan[0] = !scan[0]
+                    scan[0] = not scan[0]
                     scan    += 1
                 }
             }

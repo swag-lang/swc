@@ -107,7 +107,7 @@ namespace Swag
         Shl
         Shr
 
-        // Unary operators: ! + - ~
+        // Unary operators: not + - ~
         Not
         Pos
         Neg
@@ -145,7 +145,7 @@ namespace Swag
             case .BitXor:       return "^"
             case .Shl:          return "<<"
             case .Shr:          return ">>"
-            case .Not:          return "!"
+            case .Not:          return "not"
             case .Pos:          return "+"
             case .Neg:          return "-"
             case .BitNot:       return "~"

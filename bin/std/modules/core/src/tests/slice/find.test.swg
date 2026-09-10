@@ -4,7 +4,7 @@
 using Swag
 
 #assert(Slice.contains([1'u8, 2, 3], 2'u8))
-#assert(!Slice.contains([1'u8, 2, 3], 4'u8))
+#assert(not Slice.contains([1'u8, 2, 3], 4'u8))
 
 #test
 {
@@ -17,7 +17,7 @@ using Swag
     Swag.assert(Slice.findSorted(values, 11) == 5)
     Swag.assert(Slice.findSorted(values, 4) == Swag.U64.Max)
     Swag.assert(Slice.containsSorted(values, 9))
-    Swag.assert(!Slice.containsSorted(values, 8))
+    Swag.assert(not Slice.containsSorted(values, 8))
 }
 
 #test
@@ -29,7 +29,7 @@ using Swag
     Swag.assert(Slice.findLinear(values, "missing") == Swag.U64.Max)
 
     Swag.assert(Slice.contains(values, "gamma"))
-    Swag.assert(!Slice.contains(values, "delta"))
+    Swag.assert(not Slice.contains(values, "delta"))
 }
 
 #test
@@ -54,8 +54,8 @@ using Swag
 
     Swag.assert(Slice.equals(emptyA, emptyB))
     Swag.assert(Slice.equals(left, same))
-    Swag.assert(!Slice.equals(left, other))
-    Swag.assert(!Slice.equals(left, [1, 2, 3]))
+    Swag.assert(not Slice.equals(left, other))
+    Swag.assert(not Slice.equals(left, [1, 2, 3]))
 }
 
 // Byte overloads cover every lane, unaligned starts, vector tails, and long
@@ -79,7 +79,7 @@ using Swag
             value[] = 0x11
         values[position] = 0xE7
         Swag.assert(Slice.contains(values, 0xE7'u8))
-        Swag.assert(!Slice.contains(values, 0xFF'u8))
+        Swag.assert(not Slice.contains(values, 0xFF'u8))
     }
 
     let needle: [5] u8 = [1, 2, 3, 4, 5]
@@ -101,7 +101,7 @@ using Swag
     for position in 96
     {
         same[position] ^= 0xFF
-        Swag.assert(!Slice.equals(values, same))
+        Swag.assert(not Slice.equals(values, same))
         same[position] ^= 0xFF
     }
 

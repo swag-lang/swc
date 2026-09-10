@@ -123,7 +123,7 @@ private func markedPixels(frame: const *Image)->u64
     let resources = "/ExtGState << /GS0 5 0 R >> /XObject << /Im0 7 0 R >>"
     let document  = transparencyDocument(resources, "/GS0 gs q 100 0 0 100 0 0 cm /Im0 Do Q", objects.toSlice())
     let item      = onlyItem(document.pages[0], .Image)
-    Swag.assert(!item.hasMask)
+    Swag.assert(not item.hasMask)
 
     let image = item.imageValue()!
     Swag.assert(image.pixelFormat == .RGBA8)
@@ -174,7 +174,7 @@ private func markedPixels(frame: const *Image)->u64
 
     let resources = "/ExtGState << /GS0 5 0 R /GS1 7 0 R >>"
     let document  = transparencyDocument(resources, "/GS0 gs /GS1 gs 0 0 100 100 re f", objects.toSlice())
-    Swag.assert(!onlyItem(document.pages[0], .Path).hasMask)
+    Swag.assert(not onlyItem(document.pages[0], .Path).hasMask)
 }
 
 // A mask stays registered with the marks it covers whatever transform the view paints under.
@@ -207,7 +207,7 @@ private func markedPixels(frame: const *Image)->u64
     view.setZoom(2)
     settlePdfView(&host, view)
     let doubledFrame = host.render()
-    Swag.assert(!view.reportedPaintError)
+    Swag.assert(not view.reportedPaintError)
     Swag.assert(Math.isEqualEpsilon(cast(f32) markedPixels(&singleFrame), 2500.0, 400.0))
     Swag.assert(Math.isEqualEpsilon(cast(f32) markedPixels(&doubledFrame), 10_000.0, 1_000.0))
 }

@@ -21,7 +21,7 @@ using Swag, Core, Pixel
 
     let view = ImageView.create(&host.root, {0, 0, 300, 200})
     view.exchangeMovie(&movie)
-    Swag.assert(view.movie.isValid() and !movie.isValid())
+    Swag.assert(view.movie.isValid() and not movie.isValid())
     Swag.assert(view.movie.frameCount == 1 and view.uploadedTexture.isValid())
 
     var replacement: Movie
@@ -46,30 +46,30 @@ using Swag, Core, Pixel
     Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 3, 0.001))
 
     view.actualSize()
-    Swag.assert(!view.isFitted)
+    Swag.assert(not view.isFitted)
     Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 1, 0.001))
 
     view.zoomIn()
     Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 1.25, 0.001))
 
     view.setPanOffset({37, -24})
-    Swag.assert(view.panOffset == Math.Point{37, -24} and !view.isFitted)
+    Swag.assert(view.panOffset == Math.Point{37, -24} and not view.isFitted)
 
     view.zoomToFit()
     Swag.assert(view.isFitted)
     Swag.assert(view.panOffset == Math.Point{})
 
     view.rotateClockwise()
-    Swag.assert(view.rotationQuarterTurns == 1 and !view.isMirrored)
+    Swag.assert(view.rotationQuarterTurns == 1 and not view.isMirrored)
     Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 2, 0.001))
     view.mirrorHorizontally()
     Swag.assert(view.rotationQuarterTurns == 3 and view.isMirrored)
     view.mirrorVertically()
-    Swag.assert(view.rotationQuarterTurns == 3 and !view.isMirrored)
+    Swag.assert(view.rotationQuarterTurns == 3 and not view.isMirrored)
     view.rotateCounterClockwise()
     Swag.assert(view.rotationQuarterTurns == 2)
     view.resetTransform()
-    Swag.assert(view.rotationQuarterTurns == 0 and !view.isMirrored)
+    Swag.assert(view.rotationQuarterTurns == 0 and not view.isMirrored)
 
     let textureHandle = view.uploadedTexture.handle
     image.fill(Argb.Red)
@@ -79,7 +79,7 @@ using Swag, Core, Pixel
     Swag.assert(view.isFitted)
 
     view.clear()
-    Swag.assert(!view.uploadedTexture.isValid() and view.rotationQuarterTurns == 0 and !view.isMirrored)
+    Swag.assert(not view.uploadedTexture.isValid() and view.rotationQuarterTurns == 0 and not view.isMirrored)
 }
 
 // Exchanging a picture keeps the texture and the view, and hands the previous pixels back.
@@ -95,7 +95,7 @@ using Swag, Core, Pixel
     view.setImage(image)
 
     let textureHandle = view.uploadedTexture.handle
-    var next          = Image.create(100, 50, .RGBA8)
+    var next = Image.create(100, 50, .RGBA8)
     next.fill(Argb.Red)
     let nextPixels = next.pixels.buffer
     view.exchangeImage(&next)
@@ -130,7 +130,7 @@ using Swag, Core, Pixel
 
     view.takeImage(&image)
 
-    Swag.assert(!image.isValid())
+    Swag.assert(not image.isValid())
     Swag.assert(view.image.pixels.buffer == pixels)
     Swag.assert(view.uploadedTexture.isValid() and view.isFitted)
 }
@@ -214,7 +214,7 @@ private func edgeSpread(image: *Image, row: s32)->s32
     let vectorEdge   = edgeSpread(&vectorRender, SlantedRow)
 
     view.setImage(drawing.rasterize(40, 40, 1))
-    Swag.assert(!view.hasDrawing() and view.image.width == 40)
+    Swag.assert(not view.hasDrawing() and view.image.width == 40)
     Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 6, 0.001))
     var rasterRender = host.render(&host.root)
     let rasterEdge   = edgeSpread(&rasterRender, SlantedRow)
@@ -223,7 +223,7 @@ private func edgeSpread(image: *Image, row: s32)->s32
     Swag.assert(rasterEdge >= vectorEdge * 3)
 
     view.clear()
-    Swag.assert(!view.hasContent() and !view.hasDrawing())
+    Swag.assert(not view.hasContent() and not view.hasDrawing())
 }
 
 // A video frame reaches the view as planes: the texture is kept across frames, the geometry comes
@@ -252,7 +252,7 @@ private func edgeSpread(image: *Image, row: s32)->s32
 
     view.updateVideoFrame(&picture)
     Swag.assert(view.hasContent())
-    Swag.assert(!view.image.isValid())
+    Swag.assert(not view.image.isValid())
     Swag.assert(view.uploadedTexture.isValid() and view.uploadedTexture.pixelFormat == .Yuv420)
     Swag.assert(view.contentSize().width == 100 and view.contentSize().height == 50)
     Swag.assert(view.isFitted)
@@ -276,8 +276,8 @@ private func edgeSpread(image: *Image, row: s32)->s32
     Swag.assert(view.contentSize().width == 60 and view.contentSize().height == 40)
 
     view.clear()
-    Swag.assert(!view.hasContent())
-    Swag.assert(!view.uploadedTexture.isValid())
+    Swag.assert(not view.hasContent())
+    Swag.assert(not view.uploadedTexture.isValid())
 }
 
 // A picture whose samples are not square is laid out and fitted with the size it is shown at,

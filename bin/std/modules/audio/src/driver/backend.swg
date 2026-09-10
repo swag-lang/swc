@@ -264,7 +264,7 @@ public impl Voice
     // to backends that support deferred operation sets.
     mtd setVolume(volume: f32, batchId: u32 = 0) fail
     {
-        if !.handle do
+        if not .handle do
             fail BadParameterError{"voice is not valid"}
         switch g_Driver.kind
         {
@@ -284,7 +284,7 @@ public impl Voice
     // Returns this voice's current linear gain.
     mtd volume()->f32 fail
     {
-        if !.handle do
+        if not .handle do
             fail BadParameterError{"voice is not valid"}
         switch g_Driver.kind
         {
@@ -310,7 +310,7 @@ public impl Voice
     // [[Audio.VoiceCreateFlags.PitchControl]] before changing this value.
     mtd setFrequencyRatio(ratio: f32, batchId: u32 = 0) fail
     {
-        if !.handle do
+        if not .handle do
             fail BadParameterError{"voice is not valid"}
         if ratio <= 0 do
             fail BadParameterError{"frequency ratio must be greater than zero"}
@@ -332,7 +332,7 @@ public impl Voice
     // Returns the current playback frequency ratio.
     mtd frequencyRatio()->f32 fail
     {
-        if !.handle do
+        if not .handle do
             fail BadParameterError{"voice is not valid"}
         switch g_Driver.kind
         {
@@ -357,11 +357,11 @@ public impl Voice
     // valid and must outlive this routing relationship.
     mtd setRouting(buses: const [..] *Bus) fail
     {
-        if !.handle do
+        if not .handle do
             fail BadParameterError{"voice is not valid"}
         for bus in buses
         {
-            if !bus.handle do
+            if not bus.handle do
                 fail BadParameterError{"routing contains an invalid bus"}
         }
 
@@ -427,7 +427,7 @@ public impl Bus
     // to backends that support deferred operation sets.
     mtd setVolume(volume: f32, batchId: u32 = 0) fail
     {
-        if !.handle do
+        if not .handle do
             fail BadParameterError{"bus is not valid"}
         switch g_Driver.kind
         {
@@ -447,7 +447,7 @@ public impl Bus
     // Returns this bus's current linear gain.
     mtd volume()->f32 fail
     {
-        if !.handle do
+        if not .handle do
             fail BadParameterError{"bus is not valid"}
         switch g_Driver.kind
         {

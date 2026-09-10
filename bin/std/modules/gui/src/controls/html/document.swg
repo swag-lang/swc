@@ -202,7 +202,7 @@ impl HtmlChildren
 {
     #[Macro]
     func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
-        where !ptr
+        where not ptr
     {
         var node  = .first
         var visit = 0'u64
@@ -771,7 +771,7 @@ impl HtmlDocument
 
         // Copied out first: appending to the pool can move the bytes both runs point at.
         var joined = String.from(.text(existing))
-        joined            += .text(text)
+        joined += .text(text)
         .nodes[node].text = .intern(joined.toString())
     }
 
@@ -863,7 +863,7 @@ impl HtmlDocument
                 while start < text.count and Latin1.isSpace(text[start]) do
                     start += 1
                 var end = start
-                while end < text.count and !Latin1.isSpace(text[end]) do
+                while end < text.count and not Latin1.isSpace(text[end]) do
                     end += 1
                 if end == start do
                     break

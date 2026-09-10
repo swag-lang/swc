@@ -109,6 +109,7 @@ SWC_TOKEN_DEF(KwdDefault, "default", TokenIdKindE::Keyword | TokenIdKindE::Logic
 SWC_TOKEN_DEF(KwdAnd, "and", TokenIdKindE::Keyword | TokenIdKindE::Logic | TokenIdKindE::OpLogical)
 SWC_TOKEN_DEF(KwdOr, "or", TokenIdKindE::Keyword | TokenIdKindE::Logic | TokenIdKindE::OpLogical)
 SWC_TOKEN_DEF(KwdOrElse, "orelse", TokenIdKindE::Keyword | TokenIdKindE::Logic)
+SWC_TOKEN_DEF(KwdNot, "not", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 
 SWC_TOKEN_DEF(KwdTo, "to", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdUntil, "until", TokenIdKindE::Keyword | TokenIdKindE::Logic)
@@ -160,10 +161,6 @@ SWC_TOKEN_DEF(KwdConst, "const", TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdLate, "late", TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdTls, "tls", TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdGlobal, "global", TokenIdKindE::Keyword)
-
-// RESERVED
-
-SWC_TOKEN_DEF(KwdNot, "not", TokenIdKindE::Reserved)
 
 // COMPILER FUNC
 

@@ -24,9 +24,9 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     result.panel = Wnd.create'Wnd(parent, rect)
 
-    result.actions           = StackLayoutCtrl.create(result.panel, .Right, {0, 0, 0, 30})
+    result.actions = StackLayoutCtrl.create(result.panel, .Right, {0, 0, 0, 30})
     result.actions.dockStyle = .Bottom
-    result.submit            = PushButton.create(result.actions, "Go")
+    result.submit  = PushButton.create(result.actions, "Go")
 
     result.body           = Wnd.create'Wnd(result.panel)
     result.body.dockStyle = .Center
@@ -131,14 +131,14 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     host.clickWnd(card.submit)
     Swag.assert(card.submit.hasFocus())
-    Swag.assert(!card.submit.hasVisibleFocus())
+    Swag.assert(not card.submit.hasVisibleFocus())
 
     host.keyPress(Input.Key.Tab)
     Swag.assert(card.field.hasFocus())
     Swag.assert(card.field.hasVisibleFocus())
 
     host.clickWnd(card.submit)
-    Swag.assert(!card.submit.hasVisibleFocus())
+    Swag.assert(not card.submit.hasVisibleFocus())
 }
 
 // Native surface deactivation removes the logical focus and its caret, then activation restores
@@ -163,7 +163,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     host.surface.loseKeyboardFocus()
     Swag.assert(host.app.keyboardFocusWnd == null)
-    Swag.assert(!edit.hasFocus())
+    Swag.assert(not edit.hasFocus())
     Swag.assert(edit.timerCaret == null)
     Swag.assert(host.surface.focusWnd == cast(*Wnd?) edit)
     Swag.assert(lostCount == 1)
@@ -567,7 +567,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
         Swag.assert(host.surface.isDisabled and cancel.hasFocus())
         caller.setFocus()
-        Swag.assert(cancel.hasFocus() and !caller.hasFocus())
+        Swag.assert(cancel.hasFocus() and not caller.hasFocus())
         host.keyPress(Input.Key.Escape)
     }
 
@@ -643,7 +643,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
         checked[] = true
 
         Swag.assert(no.hasFocus())
-        Swag.assert(!again.hasFocus() and !toggle.hasFocus())
+        Swag.assert(not again.hasFocus() and not toggle.hasFocus())
 
         // Passed over is not left out: the ring still wraps onto the options.
         host.keyPress(Input.Key.Tab)
@@ -685,7 +685,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     // A press takes the ring away again without taking the focus. The image is not compared
     // against the idle one: the pointer is over the button now, which is a state of its own.
     host.clickWnd(button)
-    Swag.assert(button.hasFocus() and !button.hasVisibleFocus())
+    Swag.assert(button.hasFocus() and not button.hasVisibleFocus())
     let pressed = host.render()
     Swag.assert(Memory.compare(pressed.pixels.buffer, ringed.pixels.buffer, pressed.byteCount) != 0)
 }

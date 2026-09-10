@@ -34,14 +34,14 @@ impl IActionUI for ActionEdit
         {
         case .EditText:
             evt.updatedFields |= .Disabled | .Name | .Hidden
-            evt.disabled      = !hasSel or !lastSelType or (lastSelType != FormText and lastSelType != FormCallout)
+            evt.disabled      = not hasSel or not lastSelType or (lastSelType != FormText and lastSelType != FormCallout)
             evt.hidden        = evt.disabled
             evt.name          = appStrings().ui_MenuEdit
 
         case .ClearImageInside:
             evt.updatedFields        |= .Disabled | .Name | .Hidden
             evt.disabled, evt.hidden = true
-            evt.name                 = appStrings().act_ClearInsideImage
+            evt.name = appStrings().act_ClearInsideImage
 
             if capture and hasSel
             {
@@ -65,18 +65,18 @@ impl IActionUI for ActionEdit
         case .ResetRotation:
             evt.updatedFields        |= .Disabled | .Name | .Hidden
             evt.disabled, evt.hidden = true
-            evt.name                 = appStrings().act_ResetRotation
+            evt.name = appStrings().act_ResetRotation
 
             if capture and hasSel
             {
                 for it in capture.selection
                 {
                     let itfForm = capture.forms[it]
-                    if !itfForm.canRotate() do
+                    if not itfForm.canRotate() do
                         continue
                     evt.hidden = false
                     let b = cast(*BaseForm) itfForm.buffer
-                    if !Math.isZeroEpsilon(b.rotate)
+                    if not Math.isZeroEpsilon(b.rotate)
                     {
                         evt.disabled = false
                         break

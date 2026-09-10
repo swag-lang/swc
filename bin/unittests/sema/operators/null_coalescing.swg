@@ -4,7 +4,7 @@
 // null; a type that never can is rejected, and a zero test is written with a ternary.
 
 const C: string? = null
-const D          = C orelse "d"
+const D = C orelse "d"
 #assert(D == "d")
 
 const E: string = "e"
@@ -22,7 +22,7 @@ const F         = E orelse "f"
 }
 
 const S0: const [..] u8? = null
-const S1                 = S0 orelse "abc"
+const S1 = S0 orelse "abc"
 #assert(#typeof(S1) == const [..] u8)
 #assert(S1[0] == 'a')
 #assert(S1[1] == 'b')

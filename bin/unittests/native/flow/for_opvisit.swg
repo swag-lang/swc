@@ -13,7 +13,7 @@ impl FieldVisits
 {
     #[Swag.Macro]
     func(ptr: bool) opVisit(me, stmt: #code(item: s32, index: u64))
-        where !ptr
+        where not ptr
     {
 
         for idx in 3
@@ -67,7 +67,7 @@ impl ReverseVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
-        where !ptr
+        where not ptr
     {
         for idx in 3
         {
@@ -114,7 +114,7 @@ impl HiddenAliasVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, tens: s32, index: u64))
-        where !ptr
+        where not ptr
     {
         for idx in 3
         {
@@ -178,9 +178,9 @@ impl ReturnVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32))
-        where !ptr
+        where not ptr
     {
-        if !(.values).count do
+        if not (.values).count do
             return
 
         var remain = (.values).count
@@ -193,7 +193,7 @@ impl ReturnVisits
             }
 
             remain -= 1
-            if !remain do
+            if not remain do
                 break
         }
     }
@@ -254,7 +254,7 @@ impl GenericScopedVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
-        where !ptr
+        where not ptr
     {
         #scope(Outer)
         for idx in 3

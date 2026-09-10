@@ -9,7 +9,7 @@ struct EmbeddedViewer
 {
     using wnd: Wnd
 
-        late
+    late
     {
         header:      *Wnd
         titleLabel:  *Label
@@ -36,7 +36,7 @@ struct EmbeddedViewer
 private func embeddedViewerFor(view: *Wnd)->*EmbeddedViewer
 {
     var parent = view.parent
-    while parent and !parent.userData do
+    while parent and not parent.userData do
         parent = parent.parent
     Swag.assert(parent != null and parent.userData != null)
     return cast(*EmbeddedViewer) parent!.userData!
@@ -73,9 +73,9 @@ impl Viewer.Embedded for EmbeddedViewer
 {
     mtd impl open(fileName, title: string) fail
     {
-        if !.instances.isEmpty() do
+        if not .instances.isEmpty() do
             fail Errors.BadParameterError{"embedded viewer already has an open file"}
-        if !File.exists(fileName) do
+        if not File.exists(fileName) do
             fail Errors.FileNotFoundError{fileName: Errors.mkString(fileName)}
 
         .fileName = fileName
@@ -95,13 +95,13 @@ impl Viewer.Embedded for EmbeddedViewer
         .titleLabel.setText(title)
         .viewerCombo.show(.choices.count > 1)
         .viewerCombo.setSelectedIndex(0, notify: false)
-        if !.activate(0) do
+        if not .activate(0) do
             fail Errors.InvalidFormatError{"embedded viewer could not create its selected view"}
     }
 
     mtd impl retire()->bool
     {
-        for &instance in .instances where !instance.retireView() do
+        for &instance in .instances where not instance.retireView() do
             return false
 
         for &instance in .instances
@@ -223,7 +223,7 @@ private impl EmbeddedViewer
         catch next.create(plugin, pluginHost) as viewerError
         if viewerError != null do
             next.failureReason = Errors.message(viewerError)
-        if !next.failureReason.isEmpty()
+        if not next.failureReason.isEmpty()
         {
             let reason = #move next.failureReason
             next.actions?.destroy()
@@ -232,12 +232,12 @@ private impl EmbeddedViewer
             next.sidePanelButton?.destroy()
             next.sidePanelHost?.destroy()
             next.view?.destroy()
-            next               = {}
+            next      = {}
             next.failureReason = #move reason
-            next.view          = ViewerErrorView.create(.document, next.failureReason.toString())
+            next.view = ViewerErrorView.create(.document, next.failureReason.toString())
         }
 
-        if !next.view do
+        if not next.view do
             return false
 
         next.view!.dockStyle = .Center
@@ -259,7 +259,7 @@ private impl EmbeddedViewer
     {
         for &instance, index in .instances where instance.view == view
         {
-            if !instance.retireView() do
+            if not instance.retireView() do
                 return
             instance.actions?.destroy()
             instance.info?.destroy()

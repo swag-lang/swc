@@ -126,7 +126,7 @@ impl Backtracker
                 }
 
             case .ByteSet:
-                if pos >= .limit or !byteSets![insts[pc].slot].contains(data[pos]) do
+                if pos >= .limit or not byteSets![insts[pc].slot].contains(data[pos]) do
                     failed = true
                 else
                 {
@@ -151,7 +151,7 @@ impl Backtracker
                 pc = insts[pc].next
 
             case .Assert:
-                if !assertionHolds(insts[pc].assertion, hay, pos) do
+                if not assertionHolds(insts[pc].assertion, hay, pos) do
                     failed = true
                 else do
                     pc = insts[pc].next
@@ -192,7 +192,7 @@ impl Backtracker
                 }
 
             case .Match:
-                if !.wholeSubject or pos == .limit do
+                if not .wholeSubject or pos == .limit do
                     return true
                 failed = true
             }
@@ -243,7 +243,7 @@ impl Backtracker
         if wanted == 0 do
             return 0
 
-        if !.ignoreCase
+        if not .ignoreCase
         {
             if pos + wanted > .limit do
                 return NoSlot

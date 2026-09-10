@@ -134,7 +134,7 @@ internal func readSoftMask(parser: *PdfParser, entry: u32, ctm: Transform2)->Sof
 internal func softMaskCoverage(group: *SoftMaskGroup, region: Math.Rectangle)->Image fail
 {
     var result: retval
-    if region.width <= 0 or region.height <= 0 or !Math.isFinite(region.width) or !Math.isFinite(region.height) do
+    if region.width <= 0 or region.height <= 0 or not Math.isFinite(region.width) or not Math.isFinite(region.height) do
         return result
 
     var options: RenderOptions

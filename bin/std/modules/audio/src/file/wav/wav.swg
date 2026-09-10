@@ -186,9 +186,9 @@ private func parseFormat(bytes: const [..] u8)->Format fail
     result.sampleRate = readU32(bytes, 4)
     let averageBytes = readU32(bytes, 8)
     result.blockAlign = readU16(bytes, 12)
-    if !result.channels do
+    if not result.channels do
         fail InvalidFormatError{"WAV channel count must be greater than zero"}
-    if !result.sampleRate do
+    if not result.sampleRate do
         fail InvalidFormatError{"WAV sample rate must be greater than zero"}
 
     // The oldest chunks state no sample width; the byte rate implies it.
@@ -251,7 +251,7 @@ private func readLayout(stream: *File.FileStream)->Layout fail
     var result: retval
     var stage:  Stage = FindRiff
     var header: ChunkHeader
-    let size          = stream.size()
+    let size = stream.size()
 
     for
     {
@@ -261,7 +261,7 @@ private func readLayout(stream: *File.FileStream)->Layout fail
         if seek & 1 do
             stream.skip(1)
 
-        if !stream.readValue(&header) do
+        if not stream.readValue(&header) do
             fail InvalidFormatError{"invalid wav"}
 
         switch header.chunkID
@@ -269,7 +269,7 @@ private func readLayout(stream: *File.FileStream)->Layout fail
         case .SND_WAV_FOURCC_RIFF:
             if stage == .FindRiff
             {
-                if !stream.readValue(&header.chunkID) do
+                if not stream.readValue(&header.chunkID) do
                     fail InvalidFormatError{"invalid riff chunk"}
                 if header.chunkID != SND_WAV_FOURCC_WAVE do
                     fail InvalidFormatError{"not a wav"}
@@ -293,7 +293,7 @@ private func readLayout(stream: *File.FileStream)->Layout fail
             if header.chunkSize >= 4
             {
                 var count: u32
-                if !stream.readValue(&count) do
+                if not stream.readValue(&count) do
                     fail InvalidFormatError{"invalid wav"}
                 result.factFrames = count
                 stream.skip(header.chunkSize - 4)
@@ -330,7 +330,7 @@ private func readLayout(stream: *File.FileStream)->Layout fail
 private func openAdpcm(path: string, layout: const *Layout)->SoundFile fail
 {
     let format = &layout.format
-    if !format.blockAlign do
+    if not format.blockAlign do
         fail InvalidFormatError{"WAV ADPCM block alignment is zero"}
     if format.channels > 2 do
         fail UnsupportedFormatError{"WAV ADPCM is only supported with one or two channels"}
@@ -342,14 +342,14 @@ private func openAdpcm(path: string, layout: const *Layout)->SoundFile fail
     {
         let bytes  = Math.min(cast(u64) format.blockAlign, layout.dataSize - at)
         let frames = Adpcm.blockFrameCount(format.encoding, format.channels, bytes)
-        if !frames do
+        if not frames do
             break
         packets.add({layout.dataOffset + at, cast(u32) bytes, cast(u32) frames})
         total += frames
         at    += bytes
     }
 
-    if !packets.count do
+    if not packets.count do
         fail InvalidFormatError{"WAV ADPCM data holds no complete block"}
     if layout.factFrames > total do
         fail InvalidFormatError{"WAV fact chunk declares more sample frames than the blocks decode to"}
@@ -374,7 +374,7 @@ internal func openFile(path: string, preloadData: bool)->SoundFile fail
     }
 
     let bytesPerSample = format.bitsPerSample / 8
-    if !bytesPerSample do
+    if not bytesPerSample do
         fail InvalidFormatError{"invalid wav"}
 
     var result: retval

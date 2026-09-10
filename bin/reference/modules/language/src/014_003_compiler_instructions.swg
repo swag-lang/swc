@@ -15,9 +15,9 @@ Use it to enforce compile-time invariants and validate assumptions.
 current context. It returns true if defined, false otherwise. Useful for
 conditional compilation before referencing variables, constants, or functions.
 */
-#assert(!#defined(DOES_NOT_EXISTS))     // Ensure the symbol is not defined.
-#assert(#defined(Global))               // Confirms 'Global' is defined.
-var Global = 0                          // Define a global variable 'Global'.
+#assert(not #defined(DOES_NOT_EXISTS))     // Ensure the symbol is not defined.
+#assert(#defined(Global))                  // Confirms 'Global' is defined.
+var Global = 0                             // Define a global variable 'Global'.
 
 /**
 # Static Control with '#static'

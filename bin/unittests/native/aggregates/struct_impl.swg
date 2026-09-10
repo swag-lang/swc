@@ -33,7 +33,7 @@ impl Vec2
 {
     var v: Vec2 = {x: 3, y: 4}
     Swag.assert(v.length2() == 25)
-    Swag.assert(!v.isZero())
+    Swag.assert(not v.isZero())
 
     var z: Vec2 = {x: 0, y: 0}
     Swag.assert(z.isZero())

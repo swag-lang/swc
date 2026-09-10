@@ -234,7 +234,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 
 #test
 {
-    var x          = cast(MkanyStrictS32) 409
+    var x = cast(MkanyStrictS32) 409
     let boxed: any = Swag.makeAny(&x, MkanyStrictS32)
 
     Swag.assert(Swag.kindOf(boxed) == MkanyStrictS32)
@@ -253,11 +253,11 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 
 #test
 {
-    var value           = 733's32
+    var value = 733's32
     let ptr: const *s32 = &value
-    let boxed           = Swag.makeAny(ptr, s32)
-    let data            = cast(const *s32) boxed
-    let raw             = cast(const *s32) boxed.buffer
+    let boxed = Swag.makeAny(ptr, s32)
+    let data  = cast(const *s32) boxed
+    let raw   = cast(const *s32) boxed.buffer
 
     Swag.assert(Swag.kindOf(boxed) == s32)
     Swag.assert(data[] == 733)
@@ -304,7 +304,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     var storage: [6] u8        = ['b'u8, 'o'u8, 'x'u8, 'e'u8, 'd'u8, 0]
     let text:    const cstring = cast(const cstring) &storage[0]
     let boxed:   const any     = text
-    let view                   = cast(const cstring) boxed
+    let view = cast(const cstring) boxed
 
     Swag.assert(view.count == 5)
     Swag.assert(view[0] == 'b'u8)

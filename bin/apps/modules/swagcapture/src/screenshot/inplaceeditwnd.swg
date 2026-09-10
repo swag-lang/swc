@@ -14,7 +14,8 @@ enum InPlaceEditMode
 struct InPlaceEditWnd
 {
     using wnd: Wnd
-        late
+
+    late
     {
         editWnd:   *EditWnd
         actionBar: *IconBar
@@ -24,10 +25,10 @@ struct InPlaceEditWnd
     capture:          *Capture?
     late newMain:     *MainWnd
     editMode:         InPlaceEditMode = .Arrow
-    editColor:        Color           = Argb.Red
-    editColorHilight: Color           = Argb.Yellow
-    uiScale:          f32             = 1     // Residual chrome scale, relative to the overlay surface
-    captureScale:     f32             = 1     // DPI scale of the monitor the capture sits on
+    editColor:        Color = Argb.Red
+    editColorHilight: Color = Argb.Yellow
+    uiScale:          f32   = 1     // Residual chrome scale, relative to the overlay surface
+    captureScale:     f32   = 1     // DPI scale of the monitor the capture sits on
 }
 
 // Returns the DPI scale of the monitor the captured area sits on.
@@ -108,7 +109,7 @@ impl InPlaceEditWnd
     {
         // The padding scales with the icon, or the buttons come out chunkier the further the
         // grabbed monitor sits below the surface's own scale.
-        .actionBar                 = IconBar.create(.editWnd.editView!, 24 * .uiScale, {}, itemPadding: 4 * .uiScale)
+        .actionBar = IconBar.create(.editWnd.editView!, 24 * .uiScale, {}, itemPadding: 4 * .uiScale)
         .actionBar.backgroundStyle = .Window
 
         let actions = [
@@ -126,7 +127,7 @@ impl InPlaceEditWnd
 
     mtd createEditBar(main: *MainWnd)
     {
-        .editBar                 = IconBar.create(.editWnd.editView!, 32 * .uiScale, {}, itemPadding: 4 * .uiScale)
+        .editBar = IconBar.create(.editWnd.editView!, 32 * .uiScale, {}, itemPadding: 4 * .uiScale)
         .editBar.backgroundStyle = .Window
         .editBar.setOrientation(.Vertical)
 
@@ -206,7 +207,7 @@ impl InPlaceEditWnd
             // in-place editor open instead of writing an empty path and tearing the
             // session down (which would discard the capture being edited).
             let fileName = .newMain.getSaveAsImageName()
-            if !fileName.isEmpty()
+            if not fileName.isEmpty()
             {
                 let cap = me .capture!
                 cap.crop()
@@ -313,31 +314,31 @@ impl InPlaceEditWnd
             switch me.editMode
             {
             case .Draw:
-                .editMode                = .Draw
+                .editMode = .Draw
                 .mdlFormDraw.borderSize  = BORDER_SIZE
                 .mdlFormDraw.borderColor = me.editColor
 
             case .Line:
-                .editMode                = .Line
+                .editMode = .Line
                 .mdlFormLine.borderSize  = BORDER_SIZE
                 .mdlFormLine.borderColor = me.editColor
 
             case .Circle:
-                .editMode                 = .Shape
+                .editMode = .Shape
                 .mdlFormShape.kind        = .Ellipse
                 .mdlFormShape.borderSize  = BORDER_SIZE
                 .mdlFormShape.borderColor = me.editColor
                 .mdlFormShape.backColor   = 0
 
             case .Rect:
-                .editMode                 = .Shape
+                .editMode = .Shape
                 .mdlFormShape.kind        = .RoundRectangle
                 .mdlFormShape.borderSize  = BORDER_SIZE
                 .mdlFormShape.borderColor = me.editColor
                 .mdlFormShape.backColor   = 0
 
             case .Arrow:
-                .editMode                 = .Arrow
+                .editMode = .Arrow
                 .mdlFormArrow.borderSize  = BORDER_SIZE
                 .mdlFormArrow.endSize     = ARROW_END_SIZE
                 .mdlFormArrow.endCap      = .ArrowAnchor
@@ -352,7 +353,7 @@ impl InPlaceEditWnd
                 .mdlFormText.backColor  = me.editColor
 
             case .Marker:
-                .editMode                = .Draw
+                .editMode = .Draw
                 .mdlFormDraw.borderSize  = MARKER_SIZE
                 .mdlFormDraw.borderColor = me.editColorHilight.withAlpha(160)
             }

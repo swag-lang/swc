@@ -80,7 +80,7 @@ func assignedOnEveryPath(ready: bool)->s32
 func assignedAfterEarlyReturn(ready: bool)->s32
 {
     var pointer: *Resource
-    if !ready do
+    if not ready do
         return -1
     pointer = &resourceStorage
     return pointer.weight
@@ -97,7 +97,7 @@ func lateSlotIsQueryable()->bool
     resourceStorage.weight = 5
     Swag.assert(assignedOnEveryPath(opaqueBool(true)) == 5)
     Swag.assert(assignedAfterEarlyReturn(opaqueBool(false)) == -1)
-    Swag.assert(!lateSlotIsQueryable())
+    Swag.assert(not lateSlotIsQueryable())
     lateResource = &resourceStorage
     Swag.assert(lateSlotIsQueryable())
     Swag.assert(lateResource.weight == 5)

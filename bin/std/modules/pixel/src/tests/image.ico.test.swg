@@ -439,7 +439,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.assert(img.width == 2)
     Swag.assert(img.height == 2)
     Swag.assert(img.pixelFormat == .BGRA8)
-    Swag.assert(!img.isValid())
+    Swag.assert(not img.isValid())
 }
 
 // Error: directory type is neither icon (1) nor cursor (2).

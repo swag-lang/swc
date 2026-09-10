@@ -74,7 +74,7 @@ impl IWnd for RichEditView
                 let cp = edn.cursorAt(pt)
                 .firstLineSelMode = cp.lineIndex
                 edn.setCursorPos(cp)
-                if !(evt.modifiers & .Shift) do
+                if not (evt.modifiers & .Shift) do
                     edn.selBeg = cp
                 .selMode = true
                 edn.setRectangularSelection(evt.modifiers & .Alt ? true : false)
@@ -178,7 +178,7 @@ impl IWnd for RichEditView
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        .visibleCaret = !.visibleCaret
+        .visibleCaret = not .visibleCaret
         .invalidate()
     }
 
@@ -262,7 +262,7 @@ impl IWnd for RichEditView
             }
 
             // Lex the line
-            if !l.wordWrap and (l.dirtyStyle or sizeChanged or edn.recomputeScroll)
+            if not l.wordWrap and (l.dirtyStyle or sizeChanged or edn.recomputeScroll)
             {
                 edn.unwrap(i)
 
@@ -285,7 +285,7 @@ impl IWnd for RichEditView
             maxx = Math.max(maxx, x)
             y    += size.y
             i    += 1
-            if !edn.recomputeScroll and y >= .scrollPos.y + clientRect.bottom() do
+            if not edn.recomputeScroll and y >= .scrollPos.y + clientRect.bottom() do
                 break
         }
 
@@ -323,7 +323,7 @@ impl IWnd for RichEditView
         y = Math.max(edn.residentContentOffset + edn.loadedContentHeight, edn.estimatedContentHeight)
         if edn.flags & .WordWrap do
             maxx = 0
-        elif !edn.recomputeScroll do
+        elif not edn.recomputeScroll do
             maxx = edn.scrollWnd.scrollSize.x
         else
         {
@@ -361,7 +361,7 @@ impl RichEditView
         let painter = bc.painter
 
         let fontR = edn.font().getFont(strStyle.fontMode)
-        if !fontR or str.isEmpty() do
+        if not fontR or str.isEmpty() do
             return x
         let font = nnFont(fontR)
 
@@ -444,7 +444,7 @@ impl RichEditView
 
             newStyle = edn.styles[pStyle[]]
 
-            var cr           = pChar[]
+            var cr = pChar[]
             let isTabulation = cr == '\t'
 
             var selected = false
@@ -475,7 +475,7 @@ impl RichEditView
                     newStyle = edn.stylesSelect[0]
                 elif edn.flags & .ShowFocusSel do
                     newStyle = edn.stylesSelect[1]
-                if !newStyle.colFg.a do
+                if not newStyle.colFg.a do
                     newStyle.colFg = edn.styles[pStyle[]].colFg
                 newStyle.fontMode  = edn.styles[pStyle[]].fontMode
                 newStyle.underline = edn.styles[pStyle[]].underline
@@ -486,7 +486,7 @@ impl RichEditView
                 if cr == ' ' and pChar != &dummyChar
                 {
                     newStyle.colFg = .themeColors().richEdit_TextSpecial
-                    cr             = '.'
+                    cr = '.'
                 }
                 elif isTabulation
                 {
@@ -519,7 +519,7 @@ impl RichEditView
         }
 
         // Remaining string
-        if !str.isEmpty()
+        if not str.isEmpty()
         {
             let x1 = .paintString(bc, x, y, str, oldStyle, visible)
             x = x1

@@ -85,7 +85,7 @@ func day9A()
         if map[i].num == map[last].num
         {
             map[last].what = -1
-            last           -= 1
+            last -= 1
         }
         elif map[i].num > map[last].num
         {

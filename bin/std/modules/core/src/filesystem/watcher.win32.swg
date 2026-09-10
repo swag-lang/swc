@@ -56,7 +56,7 @@ impl Watcher
         let raw   = Memory.alloc(#sizeof(WatcherNative))
         let state = cast(*WatcherNative) raw
         Swag.init(state, 1)
-        defer if !.native
+        defer if not .native
         {
             Swag.drop(state, 1)
             Memory.free(raw, #sizeof(WatcherNative))
@@ -64,11 +64,11 @@ impl Watcher
 
         let winPath = Utf16.toZeroTerminated(.root.toString())
         state.directory = CreateFileW(winPath.buffer, FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, null)
-        defer if !.native and state.directory do
+        defer if not .native and state.directory do
             CloseHandle(state.directory)
 
         state.event = CreateEventW(null, TRUE, FALSE, null)
-        defer if !.native and state.event do
+        defer if not .native and state.event do
             CloseHandle(state.event)
 
         state.buffer.reserve(.options.bufferSize)
@@ -80,7 +80,7 @@ impl Watcher
 
     internal mtd closeNative()
     {
-        if !.native do
+        if not .native do
             return
 
         let state = watcherNative(.native)
@@ -179,7 +179,7 @@ impl Watcher
                 appendChange(&result.changes, .Modified, .root.toString(), relative)
             }
 
-            if !info.NextEntryOffset do
+            if not info.NextEntryOffset do
                 break
             if info.NextEntryOffset > transferred - offset do
                 break
@@ -223,7 +223,7 @@ impl Watcher
             fail err
         }
 
-        if !transferred
+        if not transferred
         {
             var overflow: retval
             overflow.status = .Overflow

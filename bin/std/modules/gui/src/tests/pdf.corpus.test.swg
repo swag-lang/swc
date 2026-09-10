@@ -81,7 +81,7 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
             let index = TextIndex.build(&page)
             let text  = expect reader.loadPageText(pageIndex)
             Swag.assert(text == index.text)
-            if !text.isEmpty() do
+            if not text.isEmpty() do
                 indexed += 1
         }
     }

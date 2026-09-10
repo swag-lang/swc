@@ -222,7 +222,7 @@ impl InlineView
 
     mtd searchMatchCount(text: string)->u64
     {
-        if !text.count do
+        if not text.count do
             return 0
 
         let source = .text()
@@ -242,7 +242,7 @@ impl InlineView
     mtd highlightText(text: string, occurrence: u64 = 0)->bool
     {
         .clearSearchHighlight()
-        if !text.count do
+        if not text.count do
             return false
 
         let source = .text()
@@ -303,8 +303,8 @@ impl InlineView
         while index <= text.count
         {
             let atEnd = index == text.count
-            let split = !atEnd and (text[index] == ' ' or text[index] == '\t' or text[index] == '\n' or text[index] == '\r')
-            if !atEnd and !split
+            let split = not atEnd and (text[index] == ' ' or text[index] == '\t' or text[index] == '\n' or text[index] == '\r')
+            if not atEnd and not split
             {
                 index += 1
                 continue
@@ -321,7 +321,7 @@ impl InlineView
                 whitespaceEnd += 1
 
             let isBreak = text[index] == '\n' or text[index] == '\r'
-            .appendTextAtom(text[index until whitespaceEnd], state, !isBreak, isBreak)
+            .appendTextAtom(text[index until whitespaceEnd], state, not isBreak, isBreak)
             index = whitespaceEnd
             start = index
         }
@@ -417,11 +417,11 @@ impl InlineView
 
             case Utf8.startsWith(remaining, "<s>"):
                 state.strikeout += 1
-                eaten           = 3
+                eaten = 3
 
             case Utf8.startsWith(remaining, "</s>"):
                 state.strikeout = state.strikeout ? state.strikeout - 1 : 0
-                eaten           = 4
+                eaten = 4
 
             case Utf8.startsWith(remaining, "<c>"):
                 state.code += 1
@@ -433,81 +433,81 @@ impl InlineView
 
             case Utf8.startsWith(remaining, "<h>"):
                 state.highlight += 1
-                eaten           = 3
+                eaten = 3
 
             case Utf8.startsWith(remaining, "</h>"):
                 state.highlight = state.highlight ? state.highlight - 1 : 0
-                eaten           = 4
+                eaten = 4
 
             case Utf8.startsWith(remaining, "<sub>"):
                 state.subscript += 1
-                eaten           = 5
+                eaten = 5
 
             case Utf8.startsWith(remaining, "</sub>"):
                 state.subscript = state.subscript ? state.subscript - 1 : 0
-                eaten           = 6
+                eaten = 6
 
             case Utf8.startsWith(remaining, "<sup>"):
                 state.superscript += 1
-                eaten             = 5
+                eaten = 5
 
             case Utf8.startsWith(remaining, "</sup>"):
                 state.superscript = state.superscript ? state.superscript - 1 : 0
-                eaten             = 6
+                eaten = 6
 
             case Utf8.startsWith(remaining, "<lm>"):
                 state.listMarker += 1
-                eaten            = 4
+                eaten = 4
 
             case Utf8.startsWith(remaining, "</lm>"):
                 state.listMarker = state.listMarker ? state.listMarker - 1 : 0
-                eaten            = 5
+                eaten = 5
 
             case Utf8.startsWith(remaining, "<lb>"):
                 state.listMarker += 1
                 state.listBullet += 1
-                eaten            = 4
+                eaten = 4
 
             case Utf8.startsWith(remaining, "</lb>"):
                 state.listMarker = state.listMarker ? state.listMarker - 1 : 0
                 state.listBullet = state.listBullet ? state.listBullet - 1 : 0
-                eaten            = 5
+                eaten = 5
 
             case Utf8.startsWith(remaining, "<lu>"):
                 state.listMarker    += 1
                 state.listUnchecked += 1
-                eaten               = 4
+                eaten = 4
 
             case Utf8.startsWith(remaining, "</lu>"):
                 state.listMarker    = state.listMarker ? state.listMarker - 1 : 0
                 state.listUnchecked = state.listUnchecked ? state.listUnchecked - 1 : 0
-                eaten               = 5
+                eaten = 5
 
             case Utf8.startsWith(remaining, "<lc>"):
                 state.listMarker  += 1
                 state.listChecked += 1
-                eaten             = 4
+                eaten = 4
 
             case Utf8.startsWith(remaining, "</lc>"):
                 state.listMarker  = state.listMarker ? state.listMarker - 1 : 0
                 state.listChecked = state.listChecked ? state.listChecked - 1 : 0
-                eaten             = 5
+                eaten = 5
 
             case Utf8.startsWith(remaining, "<p1>"):
                 state.colorIndex = 1
-                eaten            = 4
+                eaten = 4
 
             case Utf8.startsWith(remaining, "<p2>"):
                 state.colorIndex = 2
-                eaten            = 4
+                eaten = 4
 
             case Utf8.startsWith(remaining, "<p3>"):
                 state.colorIndex = 3
-                eaten            = 4
+                eaten = 4
 
             case Utf8.startsWith(remaining, "</p>"):
                 state.colorIndex = 0
-                eaten            = 4
+                eaten = 4
 
             case Utf8.startsWith(remaining, "<a>"):
                 state.link += 1
@@ -545,7 +545,7 @@ impl InlineView
                 }
             }
 
-            if !eaten
+            if not eaten
             {
                 .appendText(text[index until index + 1], state)
                 eaten = 1
@@ -569,11 +569,11 @@ impl InlineView
             .textLength    += atomTextLength(atom)
             if atom.isImage do
                 imageCount += 1
-            elif !atom.isSpace and !atom.isBreak do
+            elif not atom.isSpace and not atom.isBreak do
                 hasText = true
         }
 
-        .standaloneImage = .kind == .Paragraph and imageCount == 1 and !hasText
+        .standaloneImage = .kind == .Paragraph and imageCount == 1 and not hasText
         .layoutWidth     = 0
     }
 
@@ -750,7 +750,7 @@ impl InlineView
     {
         var result: retval
         result.firstInk = Swag.U64.Max
-        if !wrapped or .horizontalAlignment != .Justify do
+        if not wrapped or .horizontalAlignment != .Justify do
             return result
 
         var gaps     = 0'u64
@@ -780,7 +780,7 @@ impl InlineView
             inkEnd         = .atoms[index].position.right()
         }
 
-        if !gaps do
+        if not gaps do
             return result
 
         let step = Math.max(right - inkEnd, 0) / cast(f32) gaps
@@ -834,9 +834,9 @@ impl InlineView
 
             // Whitespace the author wrote at the start of a line — code indentation, a nested
             // list level — is layout, so it renders; only the space a wrap left behind is dropped.
-            if atom.isSpace and x == lineLeft and !explicitStart do
+            if atom.isSpace and x == lineLeft and not explicitStart do
                 continue
-            if !atom.isSpace and x > lineLeft and x + atom.position.width > right
+            if not atom.isSpace and x > lineLeft and x + atom.position.width > right
             {
                 y        += .finishLine(first, index, y, lineLeft, right, wrapped: true)
                 x        = continuationLeft
@@ -846,14 +846,14 @@ impl InlineView
 
             atom.visible    = true
             atom.position.x = x
-            x               += atom.position.width
-            if !atom.isSpace do
+            x += atom.position.width
+            if not atom.isSpace do
                 explicitStart = false
             if atom.flags.has(.ListMarker) do
                 afterMarker = true
             elif afterMarker and atom.isSpace do
                 continuationLeft = x
-            elif !atom.isSpace do
+            elif not atom.isSpace do
                 afterMarker = false
         }
 
@@ -883,7 +883,7 @@ impl InlineView
         for &atom, index in .atoms
         {
             atom.textBatch = Swag.U32.Max
-            if !atom.visible do
+            if not atom.visible do
                 continue
             if atom.isMath or atom.isImage or atom.flags.has(.Link | .Strikeout | .ListBullet | .ListUnchecked | .ListChecked)
             {
@@ -970,7 +970,7 @@ impl InlineView
         let length = atomTextLength(atom)
         if bytes >= length do
             return atom.position.width
-        if !bytes do
+        if not bytes do
             return 0
         if atom.isBreak or atom.isSpace or isAtomOpaque(atom) do
             return atom.position.width
@@ -1012,7 +1012,7 @@ impl InlineView
     private mtd paintSelection(painter: *Painter)
     {
         let selection = .owner.selectionInInline(.orderIndex)
-        if !selection.has do
+        if not selection.has do
             return
 
         for &line in .lines
@@ -1061,7 +1061,7 @@ impl InlineView
                 continue
 
             let rect = Math.Rectangle{left, line.top, right - left, line.height}
-            if !found
+            if not found
             {
                 result[] = rect
                 found    = true
@@ -1082,7 +1082,7 @@ impl InlineView
     mtd searchMatchRect(result: *Math.Rectangle)->bool
     {
         var local: Math.Rectangle
-        if !.searchMatchRectLocal(&local) do
+        if not .searchMatchRectLocal(&local) do
             return false
         result[] = .localToSurface(local)
         return true
@@ -1146,7 +1146,7 @@ impl InlineView
         var result: retval
         let source = .text()
         let length = source.length
-        if !length do
+        if not length do
             return result
 
         // One pass records where each rune starts and whether it belongs to a word; the word is
@@ -1394,7 +1394,7 @@ impl IWnd for InlineView
         case .Pressed where evt.button == .Left:
             let local = .surfaceToLocal(evt.surfacePos)
             let atom  = .atomAt(local)
-            if atom and !atom!.target.isEmpty()
+            if atom and not atom!.target.isEmpty()
             {
                 .owner.sigLinkActivated.call(.owner, atom!.target.toString())
                 return
@@ -1404,7 +1404,7 @@ impl IWnd for InlineView
             .captureMouse()
 
         case .Released where evt.button == .Left:
-            if !.owner.isSelecting()
+            if not .owner.isSelecting()
             {
                 evt.accepted = false
                 return

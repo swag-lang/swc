@@ -139,10 +139,10 @@ func migrateSemaLegacyPointer(value: *SemaNonNullItem)->*SemaNonNullItem => valu
 
 func semaNonNullConstruction()
 {
-    var first                               = SemaNonNullItem{value: 11}
-    var second                              = SemaNonNullItem{value: 22}
+    var first  = SemaNonNullItem{value: 11}
+    var second = SemaNonNullItem{value: 22}
     var blockStorage:   [2] SemaNonNullItem = [{value: 31}, {value: 32}]
-    var cstringStorage: [4] u8              = ['a'u8, 'b'u8, 'c'u8, 0]
+    var cstringStorage: [4] u8 = ['a'u8, 'b'u8, 'c'u8, 0]
 
     let direct:                *SemaNonNullItem              = &first
     let readOnly:              const *SemaNonNullItem        = &first

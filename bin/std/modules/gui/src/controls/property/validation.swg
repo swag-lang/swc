@@ -110,7 +110,7 @@ internal impl Properties
             scan = scan.parent
         }
 
-        if !hasNtfy do
+        if not hasNtfy do
             return false
 
         return .applyItemValidation(item, result.state, result.message)
@@ -128,10 +128,10 @@ internal impl Properties
     // stay vertically centered together — see applyValidationVisual for the icon/colors.
     mtd paintValidationBar(painter: *Painter, item: *PropertiesItem)
     {
-        if item.validation == .None or !(item.validationLabel != null) do
+        if item.validation == .None or not (item.validationLabel != null) do
             return
         let lbl = item.validationLabel
-        if !lbl.isVisible() do
+        if not lbl.isVisible() do
             return
 
         // The label is sized to the text height; grow the colored background a little
@@ -147,7 +147,7 @@ internal impl Properties
     // switch (the Label colors are manual fields, not styles, so they don't follow the theme alone).
     mtd applyValidationVisual(item: *PropertiesItem)
     {
-        if !(item.validationLabel != null) or item.validation == .None do
+        if not (item.validationLabel != null) or item.validation == .None do
             return
         let lbl = item.validationLabel
         lbl.setIcon(.validationIcon(item.validation))
@@ -162,7 +162,7 @@ internal impl Properties
     // styles, so a note built under one theme would otherwise keep stale colors under the next.
     mtd applyNoteVisual(item: *PropertiesItem)
     {
-        if !(item.label != null) do
+        if not (item.label != null) do
             return
         let lbl = item.label
         lbl.setIcon(.theme().icon(.Information, .valBarIconSize))
@@ -219,7 +219,7 @@ internal impl Properties
             return true
         }
 
-        if !visible do
+        if not visible do
             return false
 
         // List rows use the same content width as labels and editors: the useful row width

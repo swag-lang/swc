@@ -69,7 +69,7 @@ private func panicAllocationFailure(operation: string, request: *AllocatorReques
 // A null buffer is accepted and performs no check.
 func assertIsAllocated(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if !buffer do
+    if not buffer do
         return
 
     var req: AllocatorRequest
@@ -86,7 +86,7 @@ func assertIsAllocated(buffer: [*] void?, size: u64, allocator: IAllocator? = nu
 // A null buffer is accepted and performs no operation.
 func free(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if !buffer do
+    if not buffer do
         return
 
     var req: AllocatorRequest
@@ -122,13 +122,13 @@ func realloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAllocato
     req.oldSize   = oldSize
     req.alignment = alignment
 
-    if !newSize do
+    if not newSize do
         panicAllocationFailure("Memory.realloc", &req, true)
 
     let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.realloc(&req)
 
-    if !req.address
+    if not req.address
     {
         req.address = buffer
         panicAllocationFailure("Memory.realloc", &req, true)
@@ -147,13 +147,13 @@ func alloc(size: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
     req.size      = size
     req.alignment = alignment
 
-    if !size do
+    if not size do
         panicAllocationFailure("Memory.alloc", &req, false)
 
     let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.alloc(&req)
 
-    if !req.address do
+    if not req.address do
         panicAllocationFailure("Memory.alloc", &req, false)
     return req.address!
 }
@@ -167,11 +167,11 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: string? = null, loc = #calle
     req.size      = size
     req.alignment = alignment
 
-    if !size do
+    if not size do
         panicAllocationFailure("Memory.tempAlloc", &req, false)
 
     Swag.getContext().tempAllocator.IAllocator.alloc(&req)
-    if !req.address do
+    if not req.address do
         panicAllocationFailure("Memory.tempAlloc", &req, false)
     return req.address!
 }
@@ -181,7 +181,7 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: string? = null, loc = #calle
 func new(type: typeinfo, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->*u8?
 {
     let userHint = hint orelse type.fullname
-    if !canDefaultInit(type)
+    if not canDefaultInit(type)
     {
         Swag.panic("Memory.new cannot default-initialize this type", loc)
         return null
@@ -204,7 +204,7 @@ func(T) new(allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = n
 // Drops and releases one value of T.
 func(T) delete(ptr: *T?, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if !ptr do
+    if not ptr do
         return
     let userHint = hint orelse #stringof(T)
     assertIsAllocated(ptr, #sizeof(T), allocator, userHint, loc)
@@ -215,7 +215,7 @@ func(T) delete(ptr: *T?, allocator: IAllocator? = null, hint: string? = null, lo
 // Drops and releases a value described at runtime.
 func delete(ptr: *void?, type: typeinfo, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if !ptr do
+    if not ptr do
         return
 
     Swag.assert(type != null)
@@ -241,7 +241,7 @@ func(T) new(num: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
 // Drops and releases num contiguous values of T.
 func(T) delete(ptr: [*] T?, num: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if !ptr do
+    if not ptr do
         return
     Swag.assert(num > 0)
 

@@ -168,9 +168,9 @@ impl Slice
     // Reports whether a macroblock's samples can serve intra prediction.
     mtd const intraMbAvailable(mbX, mbY: s32)->bool
     {
-        if !.mbAvailable(mbX, mbY) do
+        if not .mbAvailable(mbX, mbY) do
             return false
-        if !.pps!.constrainedIntra do
+        if not .pps!.constrainedIntra do
             return true
         return .mbInfoAt(mbX, mbY).class != MbClassInter
     }
@@ -429,7 +429,7 @@ impl Slice
                         continue
                     let position = cast(u64) Zigzag4[scan]
                     coeffs[position] = cast(s16) clampS32((coeff * cast(s32) table[position] + 8) >> 4, -32768, 32767)
-                    hasAny           = true
+                    hasAny = true
                 }
             }
 
@@ -477,7 +477,7 @@ impl Slice
             let job  = .jobAt(mb, jobIndex)
             let ref0 = job.refIdx[0] >= 0 ? .refs[0, cast(u64) job.refIdx[0]].frame : null
             let ref1 = job.refIdx[1] >= 0 ? .refs[1, cast(u64) job.refIdx[1]].frame : null
-            if !ref0 and !ref1 do
+            if not ref0 and not ref1 do
                 fail InvalidFormatError{"H.264 inter block has no reference picture"}
             if ref0 do
                 .awaitJobReference(mb, job, 0, ref0!)
@@ -490,9 +490,9 @@ impl Slice
             let planeCount = dec.sps!.is444() ? 3'u32 : 1'u32
             for plane in planeCount
             {
-                let x   = mb.mbX * 16 + job.x
-                let y   = mb.mbY * 16 + job.y
-                let dst = frame.pixPlane(plane, x, y)
+                let x         = mb.mbX * 16 + job.x
+                let y         = mb.mbY * 16 + job.y
+                let dst       = frame.pixPlane(plane, x, y)
                 let dstStride = frame.planeStride(plane)
                 if ref0 and ref1
                 {
@@ -574,8 +574,8 @@ impl Slice
     // last row, and the padding that carries it only exists once the picture is complete.
     mtd awaitJobReference(mb: *Mb, job: *McJob, list: u32, reference: *Frame) fail
     {
-        let mvY        = cast(s32) job.mv[list, 1]
-        let lumaLast   = mb.mbY * 16 + job.y + (mvY >> 2) + job.height + 3
+        let mvY      = cast(s32) job.mv[list, 1]
+        let lumaLast = mb.mbY * 16 + job.y + (mvY >> 2) + job.height + 3
 
         // A 4:4:4 colour plane is read through the luma interpolator over the same block, so it
         // never reaches further than luma does.

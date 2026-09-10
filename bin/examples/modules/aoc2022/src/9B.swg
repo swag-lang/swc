@@ -475,10 +475,10 @@ func day9B()
 
                 switch
                 {
-                case dx > 1 and !dy:
+                case dx > 1 and not dy:
                     rope[i].x += sdx
 
-                case dy > 1 and !dx:
+                case dy > 1 and not dx:
                     rope[i].y += sdy
 
                 case dx + dy > 2:

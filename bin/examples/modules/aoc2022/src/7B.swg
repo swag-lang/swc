@@ -52,7 +52,7 @@ func day7B()
             for
             {
                 folders.findOrAdd(tmp).value += size
-                if !tmp.length do
+                if not tmp.length do
                     break
                 tmp = Path.directoryName(tmp)
             }

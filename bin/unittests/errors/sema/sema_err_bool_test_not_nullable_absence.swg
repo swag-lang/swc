@@ -67,7 +67,7 @@ func boolTestAbsenceErrItf(itf: IBoolTestAbsence)->s32
 
 func boolTestAbsenceErrCString(text: cstring)->bool
 {
-    if !text do     // swc-expected-error {{sema_err_bool_test_not_nullable_absence}}
+    if not text do     // swc-expected-error {{sema_err_bool_test_not_nullable_absence}}
         return false
     return true
 }

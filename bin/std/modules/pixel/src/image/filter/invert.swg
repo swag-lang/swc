@@ -5,7 +5,7 @@ public impl Image
     // Invert colors
     mtd invert()
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
 
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
@@ -43,7 +43,7 @@ public impl Image
         var offset = .byteCount & ~15'u64
         while offset < .byteCount
         {
-            if !keepAlpha or offset & 3 != 3 do
+            if not keepAlpha or offset & 3 != 3 do
                 pixels[offset] = 255 - pixels[offset]
             offset += 1
         }

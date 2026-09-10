@@ -14,7 +14,7 @@ namespace WinFsp
     {
         switch err
         {
-        case Error:            return (cast(Error) err).message orelse "The portable WinFsp runtime failed."
+        case Error: return (cast(Error) err).message orelse "The portable WinFsp runtime failed."
         case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse "Windows rejected the WinFsp helper."
         }
 
@@ -37,7 +37,7 @@ namespace WinFsp
     func runPortableGuardian()->s32
     {
         let args = Env.arguments()
-        if args.count < 4 or args[1] != WinFspGuardianArgument or !isElevated() do
+        if args.count < 4 or args[1] != WinFspGuardianArgument or not isElevated() do
             return 2
 
         let parsed     = catch StrConv.parseU32(args[2]) as parseError
@@ -46,7 +46,7 @@ namespace WinFsp
             return 2
 
         let parent = OpenProcess(ProcessSynchronize, 0, parsed.value)
-        if !parent
+        if not parent
         {
             discard catch writeGuardianStatus(statusPath, "ERROR\nThe WinFsp helper could not monitor the Swag Vault process.")
             return 1
@@ -78,7 +78,7 @@ namespace WinFsp
     // and it is opt-in through the `vault.integration` tag.
     func canRequestElevation()->bool
     {
-        #static if #command == Swag.CompilerCommand.Test and !#hastag("vault.integration") do
+        #static if #command == Swag.CompilerCommand.Test and not #hastag("vault.integration") do
             return false
         return true
     }
@@ -86,7 +86,7 @@ namespace WinFsp
     func ensurePortableGuardian() fail
     {
         // Checked before anything else, so no test run can reach ShellExecute.
-        if !canRequestElevation() do
+        if not canRequestElevation() do
             failWith("This build must not request elevation. Mounting belongs to the privileged integration harness.")
 
         if g_WinFsp.guardianManaged do
@@ -144,7 +144,7 @@ namespace WinFsp
 
     func removeRuntimeTree(path: string)
     {
-        if !Directory.exists(path) do
+        if not Directory.exists(path) do
             return
 
         var options: Directory.EnumerationOptions
@@ -168,7 +168,7 @@ namespace WinFsp
         }
 
         let path16 = Utf16.toZeroTerminated(path)
-        if !RemoveDirectoryW(path16.buffer) do
+        if not RemoveDirectoryW(path16.buffer) do
             discard MoveFileExW(path16.buffer, null, MoveDelayUntilReboot)
     }
 
@@ -178,7 +178,7 @@ namespace WinFsp
         let executableDirectory = Path.directoryName(executablePath) orelse ""
         let sourceDll           = Path.combine(executableDirectory, WinFspDllName)
         let sourceDriver        = Path.combine(executableDirectory, WinFspDriverName)
-        if !File.exists(sourceDll) or !File.exists(sourceDriver) do
+        if not File.exists(sourceDll) or not File.exists(sourceDriver) do
             failWith("The signed portable WinFsp runtime is incomplete.")
 
         let temp = Env.getSpecialDirectory(.Temp)
@@ -189,7 +189,7 @@ namespace WinFsp
         // one guardian unregister another's driver, and a pending deletion blocks every restart.
         // WinFsp reads at most 32 bytes from the SxS identity file.
         let sxsName = Format.toString("%-%", WinFspSxsName, Guid64.random())
-        var root = Path.combine(temp, Format.toString("vault-WinFsp-%", sxsName))
+        var root    = Path.combine(temp, Format.toString("vault-WinFsp-%", sxsName))
         Directory.create(root)
 
         let bin = Path.combine(root, "bin")
@@ -198,7 +198,7 @@ namespace WinFsp
         let driver = Path.combine(bin, WinFspDriverName)
         discard catch File.duplicate(dll, sourceDll) as dllError
         discard catch File.duplicate(driver, sourceDriver) as driverError
-        if dllError != null or driverError != null or !File.exists(dll) or !File.exists(driver)
+        if dllError != null or driverError != null or not File.exists(dll) or not File.exists(driver)
         {
             removeRuntimeTree(root)
             failWith("The portable WinFsp runtime could not be staged.")
@@ -212,7 +212,7 @@ namespace WinFsp
 
     func registerPortableWinFsp() fail
     {
-        if !g_WinFsp.portable or g_WinFsp.registered or g_WinFsp.guardianManaged do
+        if not g_WinFsp.portable or g_WinFsp.registered or g_WinFsp.guardianManaged do
             return
 
         traceWinFspStage("registering portable driver")

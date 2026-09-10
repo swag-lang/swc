@@ -14,7 +14,7 @@ struct FormStep
 {
     using base: BaseForm
     kind:       FormShapeKind = Ellipse
-    index:      u32           = 1
+    index:      u32 = 1
     #[Name("Step")]
     typeIndex = FormStepType.Number
 
@@ -66,9 +66,9 @@ impl IForm for FormStep
         ya += ybu
         .setBaseForm(xa, ya, .ws, .hs)
 
-        .index                = capture.nextStepIndex
+        .index   = capture.nextStepIndex
         capture.nextStepIndex += 1
-        .isDirty              = true
+        .isDirty = true
 
         return false
     }
@@ -114,7 +114,7 @@ impl IForm for FormStep
         if flags.has(.Hot | .Selected)
         {
             .gizmo.rect = .boundRect() * z
-            .gizmo.paint(painter, !flags.has(.Selected))
+            .gizmo.paint(painter, not flags.has(.Selected))
         }
     }
 

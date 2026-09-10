@@ -8,7 +8,7 @@ using Swag
     var literal = expect Parser.RegExp.create("1")
 
     Swag.assert(literal.match("1"))
-    Swag.assert(!literal.match("2"))
+    Swag.assert(not literal.match("2"))
 }
 
 #test
@@ -16,7 +16,7 @@ using Swag
     var digitClass = expect Parser.RegExp.create("\\d")
 
     Swag.assert(digitClass.match("7"))
-    Swag.assert(!digitClass.match("x"))
+    Swag.assert(not digitClass.match("x"))
 }
 
 #test
@@ -24,8 +24,8 @@ using Swag
     var exact = expect Parser.RegExp.create("abc")
 
     Swag.assert(exact.match("abc"))
-    Swag.assert(!exact.match("ab"))
-    Swag.assert(!exact.match("abcd"))
+    Swag.assert(not exact.match("ab"))
+    Swag.assert(not exact.match("abcd"))
 }
 
 #test
@@ -64,7 +64,7 @@ using Swag
 
     Swag.assert(insensitive.match("abc"))
     Swag.assert(insensitive.match("ABC"))
-    Swag.assert(!sensitive.match("abc"))
+    Swag.assert(not sensitive.match("abc"))
 }
 
 #test
@@ -82,10 +82,10 @@ using Swag
     Swag.assert(noCaseList.match("ABBA"))
     Swag.assert(posixHex.match("1A2f"))
     Swag.assert(noDigits.match("abc!?"))
-    Swag.assert(!middleRange.match("AE"))
-    Swag.assert(!literals.match("cadz"))
-    Swag.assert(!posixHex.match("1A2g"))
-    Swag.assert(!noDigits.match("abc3"))
+    Swag.assert(not middleRange.match("AE"))
+    Swag.assert(not literals.match("cadz"))
+    Swag.assert(not posixHex.match("1A2g"))
+    Swag.assert(not noDigits.match("abc3"))
 }
 
 #test
@@ -95,10 +95,10 @@ using Swag
 
     Swag.assert(simpleAlt.match("a"))
     Swag.assert(simpleAlt.match("bc"))
-    Swag.assert(!simpleAlt.match("b"))
+    Swag.assert(not simpleAlt.match("b"))
     Swag.assert(groupedAlt.match("abe"))
     Swag.assert(groupedAlt.match("cde"))
-    Swag.assert(!groupedAlt.match("abce"))
+    Swag.assert(not groupedAlt.match("abce"))
 }
 
 #test
@@ -116,22 +116,22 @@ using Swag
 
     Swag.assert(wildcard.match("abc"))
     Swag.assert(wildcard.match("a\u00E9c"))
-    Swag.assert(!wildcard.match("ac"))
+    Swag.assert(not wildcard.match("ac"))
     Swag.assert(alnum.match("abc123"))
     Swag.assert(alpha.match("abcXYZ"))
-    Swag.assert(!alnum.match("abc-123"))
-    Swag.assert(!alpha.match("abc1"))
+    Swag.assert(not alnum.match("abc-123"))
+    Swag.assert(not alpha.match("abc1"))
     Swag.assert(asciiOnly.match("AZ09!?"))
-    Swag.assert(!asciiOnly.match("\u00E9"))
+    Swag.assert(not asciiOnly.match("\u00E9"))
     Swag.assert(blanks.match(" \t"))
-    Swag.assert(!blanks.match(" \n"))
+    Swag.assert(not blanks.match(" \n"))
     Swag.assert(spaces.match(" \t\n"))
     Swag.assert(words.match("abc_123"))
-    Swag.assert(!words.match("abc-123"))
+    Swag.assert(not words.match("abc-123"))
     Swag.assert(notLower.match("ABC!?"))
-    Swag.assert(!notLower.match("AbC"))
+    Swag.assert(not notLower.match("AbC"))
     Swag.assert(notUpper.match("abc!?"))
-    Swag.assert(!notUpper.match("aBc"))
+    Swag.assert(not notUpper.match("aBc"))
     Swag.assert(unicodeSym.match("+="))
 }
 
@@ -150,14 +150,14 @@ using Swag
     Swag.assert(openBracket.match("[["))
     Swag.assert(backslash.match("\\"))
     Swag.assert(backspace.match("\b\b"))
-    Swag.assert(!backspace.match("ab"))
+    Swag.assert(not backspace.match("ab"))
     Swag.assert(backspace.grep("ab") == null)
     Swag.assert(hyphen.match("--"))
     Swag.assert(caret.match("^^"))
     Swag.assert(digits.match("A42"))
-    Swag.assert(!digits.match("A4-2"))
+    Swag.assert(not digits.match("A4-2"))
     Swag.assert(spaces.match("a \t"))
-    Swag.assert(!spaces.match("ab"))
+    Swag.assert(not spaces.match("ab"))
 }
 
 #test
@@ -189,20 +189,20 @@ using Swag
     var controls                = expect Parser.RegExp.create("\\n\\r\\t\\f\\v\\a")
 
     Swag.assert(literalAlt.match("a|b"))
-    Swag.assert(!literalAlt.match("ab"))
+    Swag.assert(not literalAlt.match("ab"))
     Swag.assert(literalPipeLeadingAlt.match("|"))
     Swag.assert(literalPipeLeadingAlt.match("a"))
-    Swag.assert(!literalPipeLeadingAlt.match("b"))
+    Swag.assert(not literalPipeLeadingAlt.match("b"))
     Swag.assert(literalPipeTrailingAlt.match("a"))
     Swag.assert(literalPipeTrailingAlt.match("|"))
-    Swag.assert(!literalPipeTrailingAlt.match("b"))
+    Swag.assert(not literalPipeTrailingAlt.match("b"))
     Swag.assert(literalPipeMixedAlt.match("a|"))
     Swag.assert(literalPipeMixedAlt.match("b"))
-    Swag.assert(!literalPipeMixedAlt.match("|"))
+    Swag.assert(not literalPipeMixedAlt.match("|"))
     Swag.assert(multiLiteralPipeAlt.match("|"))
     Swag.assert(multiLiteralPipeAlt.match("a"))
     Swag.assert(multiLiteralPipeAlt.match("b"))
-    Swag.assert(!multiLiteralPipeAlt.match("ab"))
+    Swag.assert(not multiLiteralPipeAlt.match("ab"))
     Swag.assert(parenAlt.match("("))
     Swag.assert(parenAlt.match("a"))
     Swag.assert(closeParenAlt.match(")"))
@@ -241,19 +241,19 @@ using Swag
     Swag.assert(plainAlt.captures().count == 0)
     Swag.assert(leadingEmptyAlt.match(""))
     Swag.assert(leadingEmptyAlt.match("a"))
-    Swag.assert(!leadingEmptyAlt.match("aa"))
+    Swag.assert(not leadingEmptyAlt.match("aa"))
     Swag.assert(trailingEmptyAlt.match(""))
     Swag.assert(trailingEmptyAlt.match("a"))
-    Swag.assert(!trailingEmptyAlt.match("aa"))
+    Swag.assert(not trailingEmptyAlt.match("aa"))
     Swag.assert(doubleEmptyAlt.match(""))
     Swag.assert(doubleEmptyAlt.match("a"))
     Swag.assert(doubleEmptyAlt.match("b"))
-    Swag.assert(!doubleEmptyAlt.match("ab"))
+    Swag.assert(not doubleEmptyAlt.match("ab"))
     Swag.assert(onlyEmptyAlt.match(""))
-    Swag.assert(!onlyEmptyAlt.match("a"))
+    Swag.assert(not onlyEmptyAlt.match("a"))
     Swag.assert(middleEmptyAlt.match("c"))
     Swag.assert(middleEmptyAlt.match("ac"))
-    Swag.assert(!middleEmptyAlt.match("aac"))
+    Swag.assert(not middleEmptyAlt.match("aac"))
     Swag.assert(escaped.match("()[]{}.+*?"))
     Swag.assert(anchors.match("^$"))
     Swag.assert(slash.match("/path\\file"))
@@ -280,7 +280,7 @@ using Swag
 
     Swag.assert(expect overload.match(#raw "(\d+)", "123"))
     Swag.assert(overload.getCapture(1) == "123")
-    Swag.assert(!(expect overload.match(#raw "(\d+)", "abc")))
+    Swag.assert(not (expect overload.match(#raw "(\d+)", "abc")))
     Swag.assert(overload.captures().count == 0)
     Swag.assert(expect overload.match("AbC", "abc", true))
 }
@@ -291,7 +291,7 @@ using Swag
 
     Swag.assert(repeated.match("ll"))
     Swag.assert(repeated.getCapture(1) == "l")
-    Swag.assert(!repeated.match("ab"))
+    Swag.assert(not repeated.match("ab"))
 }
 
 #test
@@ -302,7 +302,7 @@ using Swag
 
         Swag.assert(repeated.match("abc-abc"))
         Swag.assert(repeated.getCapture(1) == "abc")
-        Swag.assert(!repeated.match("abc-ab"))
+        Swag.assert(not repeated.match("abc-ab"))
 
         for 256
         {
@@ -406,9 +406,9 @@ using Swag
 
     Swag.assert(optionalRef.match(""))
     Swag.assert(optionalRef.match("aa"))
-    Swag.assert(!optionalRef.match("a"))
+    Swag.assert(not optionalRef.match("a"))
     Swag.assert(zeroRef.match(""))
-    Swag.assert(!zeroRef.match("a"))
+    Swag.assert(not zeroRef.match("a"))
     Swag.assert(zeroFirst.match("b"))
     Swag.assert(zeroFirst.getCapture(2) == "b")
     Swag.assert(zeroNested.match("c"))
@@ -724,7 +724,7 @@ using Swag
     var letters  = expect Parser.RegExp.create(#raw "\pL+")
 
     Swag.assert(anchored.match("cat"))
-    Swag.assert(!anchored.match("scatter"))
+    Swag.assert(not anchored.match("scatter"))
     Swag.assert(letters.match("Cafe"))
     Swag.assert(letters.match("CafeNoir"))
 }
@@ -737,11 +737,11 @@ using Swag
 
     Swag.assert(optional.match("color"))
     Swag.assert(optional.match("colour"))
-    Swag.assert(!optional.match("colouur"))
+    Swag.assert(not optional.match("colouur"))
     Swag.assert(revRange.match("bcd"))
-    Swag.assert(!revRange.match("abe"))
+    Swag.assert(not revRange.match("abe"))
     Swag.assert(nonLetters.match("123!?"))
-    Swag.assert(!nonLetters.match("abc"))
+    Swag.assert(not nonLetters.match("abc"))
 }
 
 #test
@@ -755,12 +755,12 @@ using Swag
     Swag.assert(star.match("baaac"))
     Swag.assert(opt.match("bc"))
     Swag.assert(opt.match("bac"))
-    Swag.assert(!opt.match("baac"))
+    Swag.assert(not opt.match("baac"))
     Swag.assert(plus.match("bac"))
     Swag.assert(plus.match("baaac"))
-    Swag.assert(!plus.match("bc"))
+    Swag.assert(not plus.match("bc"))
     Swag.assert(same.match("bac"))
-    Swag.assert(!same.match("baac"))
+    Swag.assert(not same.match("baac"))
 }
 
 #test
@@ -776,14 +776,14 @@ using Swag
 
     Swag.assert(blanks.match(" \tabc"))
     Swag.assert(nonDigits.match("abc!?"))
-    Swag.assert(!nonDigits.match("abc3"))
+    Swag.assert(not nonDigits.match("abc3"))
     Swag.assert(nonWords.match("!? "))
-    Swag.assert(!nonWords.match("word_"))
+    Swag.assert(not nonWords.match("word_"))
     Swag.assert(nonSpaces.match("abc!?"))
-    Swag.assert(!nonSpaces.match("abc "))
+    Swag.assert(not nonSpaces.match("abc "))
     Swag.assert(unicodeLow.match("AbC"))
     Swag.assert(unicodeUp.match("ABC"))
-    Swag.assert(!unicodeUp.match("AbC"))
+    Swag.assert(not unicodeUp.match("AbC"))
     Swag.assert(unicodeNum.match("123"))
     Swag.assert(unicodeMath.match("+="))
 }
@@ -807,8 +807,8 @@ using Swag
 
     Swag.assert(counted.match("abbc"))
     Swag.assert(counted.match("abbbc"))
-    Swag.assert(!counted.match("abc"))
-    Swag.assert(!counted.match("abbbbc"))
+    Swag.assert(not counted.match("abc"))
+    Swag.assert(not counted.match("abbbbc"))
     Swag.assert(countedGroup.match("aab"))
     Swag.assert(countedGroup.getCapture(1) == "a")
     Swag.assert(countedGroup.getCapture(2) == "b")
@@ -927,7 +927,7 @@ using Swag
     Swag.assert(countedRangeGroup.getCapture(2) == "b")
     Swag.assert(countedBackRef.match("abb"))
     Swag.assert(countedBackRef.match("baa"))
-    Swag.assert(!countedBackRef.match("aba"))
+    Swag.assert(not countedBackRef.match("aba"))
 }
 
 #test
@@ -953,22 +953,22 @@ using Swag
     var groupUpToTwo     = expect Parser.RegExp.create(#raw "(ab){0,2}c")
 
     Swag.assert(emptyExactZero.match(""))
-    Swag.assert(!emptyExactZero.match("a"))
+    Swag.assert(not emptyExactZero.match("a"))
     Swag.assert(emptyGroupZero.match(""))
-    Swag.assert(!emptyGroupZero.match("ab"))
+    Swag.assert(not emptyGroupZero.match("ab"))
     Swag.assert(emptyDigitZero.match(""))
-    Swag.assert(!emptyDigitZero.match("1"))
+    Swag.assert(not emptyDigitZero.match("1"))
     Swag.assert(emptyUnicodeZero.match(""))
-    Swag.assert(!emptyUnicodeZero.match("7"))
+    Swag.assert(not emptyUnicodeZero.match("7"))
     Swag.assert(leftEmptyAlt.match(""))
     Swag.assert(leftEmptyAlt.match("b"))
-    Swag.assert(!leftEmptyAlt.match("a"))
+    Swag.assert(not leftEmptyAlt.match("a"))
     Swag.assert(rightEmptyAlt.match(""))
     Swag.assert(rightEmptyAlt.match("a"))
-    Swag.assert(!rightEmptyAlt.match("b"))
+    Swag.assert(not rightEmptyAlt.match("b"))
     Swag.assert(innerEmptyAlt.match("c"))
     Swag.assert(innerEmptyAlt.match("ac"))
-    Swag.assert(!innerEmptyAlt.match("bc"))
+    Swag.assert(not innerEmptyAlt.match("bc"))
     let emptyPrefix = emptyExactZero.partialMatch("abc")
     Swag.assert(emptyPrefix != null)
     Swag.assert(cast(string?) emptyPrefix == "")
@@ -981,44 +981,44 @@ using Swag
     Swag.assert(emptyAll[1] == "")
     Swag.assert(emptyAll[2] == "")
     Swag.assert(exactZero.match("bc"))
-    Swag.assert(!exactZero.match("abc"))
+    Swag.assert(not exactZero.match("abc"))
     Swag.assert(rangeZero.match("c"))
-    Swag.assert(!rangeZero.match("ac"))
+    Swag.assert(not rangeZero.match("ac"))
     Swag.assert(groupedZero.match("c"))
-    Swag.assert(!groupedZero.match("abc"))
+    Swag.assert(not groupedZero.match("abc"))
     Swag.assert(escapedZero.match("a"))
     Swag.assert(escapedZero.match("(a"))
     Swag.assert(escapedZero.match("((a"))
-    Swag.assert(!escapedZero.match("(((a"))
+    Swag.assert(not escapedZero.match("(((a"))
     Swag.assert(escapedCloseZero.match("a"))
     Swag.assert(escapedCloseZero.match(")a"))
     Swag.assert(escapedCloseZero.match("))a"))
-    Swag.assert(!escapedCloseZero.match(")))a"))
+    Swag.assert(not escapedCloseZero.match(")))a"))
     Swag.assert(escapedPipeZero.match("a"))
     Swag.assert(escapedPipeZero.match("|a"))
     Swag.assert(escapedPipeZero.match("||a"))
-    Swag.assert(!escapedPipeZero.match("|||a"))
+    Swag.assert(not escapedPipeZero.match("|||a"))
     Swag.assert(digitExactZero.match("a"))
-    Swag.assert(!digitExactZero.match("1a"))
+    Swag.assert(not digitExactZero.match("1a"))
     Swag.assert(digitUpToTwo.match("a"))
     Swag.assert(digitUpToTwo.match("1a"))
     Swag.assert(digitUpToTwo.match("12a"))
-    Swag.assert(!digitUpToTwo.match("123a"))
+    Swag.assert(not digitUpToTwo.match("123a"))
     Swag.assert(unicodeUpToTwo.match("a"))
     Swag.assert(unicodeUpToTwo.match("42a"))
-    Swag.assert(!unicodeUpToTwo.match("123a"))
+    Swag.assert(not unicodeUpToTwo.match("123a"))
     Swag.assert(anythingUpToTwo.match("a"))
     Swag.assert(anythingUpToTwo.match("xa"))
     Swag.assert(anythingUpToTwo.match("xya"))
-    Swag.assert(!anythingUpToTwo.match("xyza"))
+    Swag.assert(not anythingUpToTwo.match("xyza"))
     Swag.assert(upToTwo.match("bc"))
     Swag.assert(upToTwo.match("abc"))
     Swag.assert(upToTwo.match("aabc"))
-    Swag.assert(!upToTwo.match("aaabc"))
+    Swag.assert(not upToTwo.match("aaabc"))
     Swag.assert(groupUpToTwo.match("c"))
     Swag.assert(groupUpToTwo.match("abc"))
     Swag.assert(groupUpToTwo.match("ababc"))
-    Swag.assert(!groupUpToTwo.match("abababc"))
+    Swag.assert(not groupUpToTwo.match("abababc"))
 }
 
 #test
@@ -1135,19 +1135,19 @@ using Swag
     var noCaseAware = expect Parser.RegExp.create(#raw "[^a]+", true)
 
     Swag.assert(noLetters.match("xyz"))
-    Swag.assert(!noLetters.match("abc"))
-    Swag.assert(!noLetters.match("xbz"))
+    Swag.assert(not noLetters.match("abc"))
+    Swag.assert(not noLetters.match("xbz"))
     Swag.assert(noMixed.match("xyz8"))
-    Swag.assert(!noMixed.match("9"))
-    Swag.assert(!noMixed.match("b"))
+    Swag.assert(not noMixed.match("9"))
+    Swag.assert(not noMixed.match("b"))
     Swag.assert(noClass.match("ab!"))
-    Swag.assert(!noClass.match("a1"))
-    Swag.assert(!noClass.match("a b"))
+    Swag.assert(not noClass.match("a1"))
+    Swag.assert(not noClass.match("a b"))
     Swag.assert(noSingle.match("y"))
-    Swag.assert(!noSingle.match("x"))
+    Swag.assert(not noSingle.match("x"))
     Swag.assert(noCaseAware.match("bc"))
-    Swag.assert(!noCaseAware.match("A"))
-    Swag.assert(!noCaseAware.match("a"))
+    Swag.assert(not noCaseAware.match("A"))
+    Swag.assert(not noCaseAware.match("a"))
 }
 
 #test
@@ -1157,7 +1157,7 @@ using Swag
     var nestedOnly = expect Parser.RegExp.create(#raw "(?:(a)b)+")
 
     Swag.assert(group.match("ababab"))
-    Swag.assert(!group.match("aba"))
+    Swag.assert(not group.match("aba"))
     Swag.assert(group.captureCount() == 0)
     Swag.assert(mixed.match("abc"))
     Swag.assert(mixed.getCapture(1) == "c")
@@ -1202,7 +1202,7 @@ using Swag
     Swag.assert(cast(string?) shortest == "a")
 
     Swag.assert(lazyCount.match("aab"))
-    Swag.assert(!lazyCount.match("aaaab"))
+    Swag.assert(not lazyCount.match("aaaab"))
 }
 
 #test
@@ -1215,16 +1215,16 @@ using Swag
 
     Swag.assert(scoped.match("AbC"))
     Swag.assert(partial.match("abCDef"))
-    Swag.assert(!partial.match("ABcdef"))
+    Swag.assert(not partial.match("ABcdef"))
     Swag.assert(disabled.match("ABcd"))
-    Swag.assert(!disabled.match("ABCD"))
+    Swag.assert(not disabled.match("ABCD"))
 
     let line = lines.grep("a\nb\nc")
     Swag.assert(line != null)
     Swag.assert(cast(string?) line == "b")
 
     Swag.assert(noDotAll.match("axb"))
-    Swag.assert(!noDotAll.match("a\nb"))
+    Swag.assert(not noDotAll.match("a\nb"))
 }
 
 #test
@@ -1256,9 +1256,9 @@ using Swag
     Swag.assert(hexRune.match("\u00E9"))
     Swag.assert(hexWide.match("\U0001F600\U0001F600"))
     Swag.assert(escape.match("\u001B"))
-    Swag.assert(!nul.match("ab"))
+    Swag.assert(not nul.match("ab"))
     Swag.assert(inClass.match("ABC"))
-    Swag.assert(!inClass.match("D"))
+    Swag.assert(not inClass.match("D"))
 }
 
 #test
@@ -1269,13 +1269,13 @@ using Swag
     var print = expect Parser.RegExp.create(#raw "[[:print:]]+")
 
     Swag.assert(punct.match("!?;"))
-    Swag.assert(!punct.match("a"))
+    Swag.assert(not punct.match("a"))
     Swag.assert(cntrl.match("\u0001\u0002"))
-    Swag.assert(!cntrl.match(" "))
+    Swag.assert(not cntrl.match(" "))
     Swag.assert(graph.match("ab!"))
-    Swag.assert(!graph.match("a b"))
+    Swag.assert(not graph.match("a b"))
     Swag.assert(print.match("a b"))
-    Swag.assert(!print.match("a\tb"))
+    Swag.assert(not print.match("a\tb"))
 }
 
 #test
@@ -1286,9 +1286,9 @@ using Swag
     var titles     = expect Parser.RegExp.create(#raw "\p{Lt}")
 
     Swag.assert(decimals.match("123"))
-    Swag.assert(!decimals.match("12a"))
+    Swag.assert(not decimals.match("12a"))
     Swag.assert(notLetters.match("12!?"))
-    Swag.assert(!notLetters.match("12a"))
+    Swag.assert(not notLetters.match("12a"))
     Swag.assert(letters.match("Caf\u00E9"))
     Swag.assert(titles.match("\u01C5"))
 }
@@ -1305,12 +1305,12 @@ using Swag
     Swag.assert(spaces.match(allSeparators))
     for control in ["\t", "\n", "\v", "\f", "\r", "\u0085"]
     {
-        Swag.assert(!separators.match(control) and !named.match(control))
+        Swag.assert(not separators.match(control) and not named.match(control))
         Swag.assert(spaces.match(control) and notSeparators.match(control))
     }
 
-    Swag.assert(!spaces.match("\u200B"))
-    Swag.assert(!separators.match("\u200B"))
+    Swag.assert(not spaces.match("\u200B"))
+    Swag.assert(not separators.match("\u200B"))
 }
 
 #test
@@ -1323,12 +1323,12 @@ using Swag
     var wideClass = expect Parser.RegExp.create(#raw "[a\x{4E2D}\x{1F600}]+")
 
     Swag.assert(accented.match("\u00E9\u00FF"))
-    Swag.assert(!accented.match("a"))
+    Swag.assert(not accented.match("a"))
     Swag.assert(anyRune.match("a\u00E9\u4E2D"))
-    Swag.assert(!anyRune.match("ab"))
+    Swag.assert(not anyRune.match("ab"))
     Swag.assert(mixed.match("ab\u00E9cd"))
     Swag.assert(wideClass.match("a\u4E2D\U0001F600a"))
-    Swag.assert(!wideClass.match("b"))
+    Swag.assert(not wideClass.match("b"))
 
     let all = expect Parser.RegExp.grepAll(#raw "\x{00E9}+", "a\u00E9b\u00E9\u00E9c")
     Swag.assert(all.count == 2)
@@ -1350,8 +1350,8 @@ using Swag
     Swag.assert(second.span.start == 9)
     Swag.assert(second.span.end == 12)
 
-    Swag.assert(!digits.find("abc").found)
-    Swag.assert(!digits.find(null).found)
+    Swag.assert(not digits.find("abc").found)
+    Swag.assert(not digits.find(null).found)
 
     let spans = digits.findAll("ab 12 cd 345")
     Swag.assert(spans.count == 2)
@@ -1379,7 +1379,7 @@ using Swag
     Swag.assert(host.found)
     Swag.assert(host.span.start == 5)
 
-    Swag.assert(!parts.captureSpan(3).found)
+    Swag.assert(not parts.captureSpan(3).found)
 }
 
 #test
@@ -1427,9 +1427,9 @@ using Swag
     var nested     = expect Parser.RegExp.create(#raw "(a*)*b")
     var alternated = expect Parser.RegExp.create(#raw "(a|aa)+c")
 
-    Swag.assert(!nested.match("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+    Swag.assert(not nested.match("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
     Swag.assert(nested.match("aaab"))
-    Swag.assert(!alternated.match("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+    Swag.assert(not alternated.match("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
     Swag.assert(alternated.match("aaac"))
 }
 
@@ -1443,7 +1443,7 @@ using Swag
     var wide = expect Parser.RegExp.create(#raw "(?:ab){0,500}c")
 
     Swag.assert(many.match(subject.toString()))
-    Swag.assert(!many.match("aaa"))
+    Swag.assert(not many.match("aaa"))
     Swag.assert(wide.match("ababc"))
 
     discard catch Parser.RegExp.create(#raw "a{1001}") as tooMany
@@ -1666,7 +1666,7 @@ func buildSubject(rng: *Rng)->String
             compared += 1
 
             Swag.assert(found.found == reference)
-            if !reference do
+            if not reference do
                 continue
 
             Swag.assert(found.span.start == vm.matchSlots[0])
@@ -1681,7 +1681,7 @@ func buildSubject(rng: *Rng)->String
                 let expected = opening != Parser.Regex.NoSlot and closing != Parser.Regex.NoSlot
 
                 Swag.assert(span.found == expected)
-                if !expected do
+                if not expected do
                     continue
                 Swag.assert(span.span.start == opening)
                 Swag.assert(span.span.end == closing)
@@ -1697,7 +1697,7 @@ func buildSubject(rng: *Rng)->String
 
             while at <= subject.length
             {
-                if !vm.run(&program, hay, at, subject.length, false, false) do
+                if not vm.run(&program, hay, at, subject.length, false, false) do
                     break
 
                 Swag.assert(every[seen].start == vm.matchSlots[0])

@@ -109,7 +109,7 @@ using Core, Pixel, Gui, Gui.Testing
     }
 
     host.theme.setSwagDark()
-    host.theme.metrics.surfaceWnd_ShadowSize = 0
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
@@ -152,9 +152,9 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     view.applyLayout()
     for 64 where view.hasUnloadedSource() do
         host.fireTimers()
-    Swag.assert(!view.hasUnloadedSource())
+    Swag.assert(not view.hasUnloadedSource())
     Swag.assert(view.findText("Before after."))
-    Swag.assert(!view.findText("Opening spread") and !view.findText("</div>"))
+    Swag.assert(not view.findText("Opening spread") and not view.findText("</div>"))
     view.clearSearchHighlight()
     Testing.assertContentFits(view)
     var image = host.render(view)
@@ -236,7 +236,7 @@ private func markdownWhiteyFixturePath()->String
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_scope_markdown_%.md", Guid64.random()).toString())
     var result   = openTestViewer(markdownViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
-    Swag.assert(!result.failureReason.isEmpty())
+    Swag.assert(not result.failureReason.isEmpty())
 }
 
 #test
@@ -277,7 +277,7 @@ private func markdownWhiteyFixturePath()->String
     var comboPoint = widthCombo.surfaceRect().center()
     widthCombo.surface!.surfaceToScreen(&comboPoint)
     host.mouseDown(comboPoint)
-    Swag.assert(widthCombo.hasFocus() and !widthCombo.hasVisibleFocus())
+    Swag.assert(widthCombo.hasFocus() and not widthCombo.hasVisibleFocus())
     host.keyPress(Input.Key.Escape)
     Swag.assert((cast(*Markdown.View) wnd!).hasFocus())
     host.mouseUp(comboPoint)
@@ -285,7 +285,7 @@ private func markdownWhiteyFixturePath()->String
     comboPoint = themeCombo.surfaceRect().center()
     themeCombo.surface!.surfaceToScreen(&comboPoint)
     host.mouseDown(comboPoint)
-    Swag.assert(themeCombo.hasFocus() and !themeCombo.hasVisibleFocus())
+    Swag.assert(themeCombo.hasFocus() and not themeCombo.hasVisibleFocus())
     host.keyPress(Input.Key.Escape)
     Swag.assert((cast(*Markdown.View) wnd!).hasFocus())
     host.mouseUp(comboPoint)
@@ -293,7 +293,7 @@ private func markdownWhiteyFixturePath()->String
     // The application spinner follows scheduled work, not lazy source left on disk.
     for 64 where result.isLoading!(wnd!) do
         host.fireTimers()
-    Swag.assert(!result.isLoading!(wnd!))
+    Swag.assert(not result.isLoading!(wnd!))
     Swag.assert((cast(*Markdown.View) wnd!).hasUnloadedSource())
 }
 
@@ -330,13 +330,13 @@ private func markdownWhiteyFixturePath()->String
 
     var found:  bool
     var bounds: Math.Rectangle
-    for 4_000 where view.hasUnloadedSource() and !found
+    for 4_000 where view.hasUnloadedSource() and not found
     {
         host.fireTimers()
         found = view.searchMatchRect(&bounds)
     }
 
-    Swag.assert(found and !bounds.isEmpty())
+    Swag.assert(found and not bounds.isEmpty())
     Swag.assert(view.hasUnloadedSource())
     Swag.assert(view.loadedDocumentHeight() > view.documentStyle.topInset)
     let revealedBounds = bounds
@@ -345,7 +345,7 @@ private func markdownWhiteyFixturePath()->String
     Swag.assert(view.searchMatchRect(&bounds))
     Swag.assert(Math.abs(bounds.y - revealedBounds.y) < 1)
     view.clearSearchHighlight()
-    Swag.assert(!view.searchMatchRect(&bounds))
+    Swag.assert(not view.searchMatchRect(&bounds))
 }
 
 #[Swag.TestTag("golden")]
@@ -364,7 +364,7 @@ private func markdownWhiteyFixturePath()->String
     view.resize(960, 680)
     view.applyLayout()
 
-    Swag.assert(!view.isLoading())
+    Swag.assert(not view.isLoading())
     Swag.assert(view.loadedDocumentHeight() > style.topInset)
     Swag.assert(view.documentStyle.maxContentWidth == style.maxContentWidth)
     Testing.assertContentFits(view)
@@ -382,7 +382,7 @@ private func markdownWhiteyFixturePath()->String
 // including page color, typography, reading measure, and Whitey's centered headings.
 #test
 {
-    let source               = expect File.readAllText(markdownFixturePath())
+    let source = expect File.readAllText(markdownFixturePath())
     let backgrounds: [6] u32 = [0xFF15151A, 0xFFFFFFFF, 0xFFF3F2EE, 0xFF363B40, 0xFFFFFFFF, 0xFFFEFEFE]
     var host:        Testing.HeadlessHost
     host.setup(960, 680)

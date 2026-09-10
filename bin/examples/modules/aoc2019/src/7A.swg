@@ -44,7 +44,7 @@ using Core
 
 internal func run(prg: Array's32, input: const [2] s32)->s32
 {
-    var op                = prg
+    var op = prg
     var ip, output, incpt = 0
     while op[ip] != 99
     {
@@ -62,16 +62,16 @@ internal func run(prg: Array's32, input: const [2] s32)->s32
         {
         case 1:
             op[op[ip + 3]] = param0 + param1
-            ip             += 4
+            ip += 4
 
         case 2:
             op[op[ip + 3]] = param0 * param1
-            ip             += 4
+            ip += 4
 
         case 3:
             op[op[ip + 1]] = input[incpt]
-            ip             += 2
-            incpt          += 1
+            ip    += 2
+            incpt += 1
 
         case 4:
             output = param0
@@ -81,15 +81,15 @@ internal func run(prg: Array's32, input: const [2] s32)->s32
             ip = param0 ? param1 : ip + 3
 
         case 6:
-            ip = !param0 ? param1 : ip + 3
+            ip = not param0 ? param1 : ip + 3
 
         case 7:
             op[op[ip + 3]] = param0 < param1 ? 1 : 0
-            ip             += 4
+            ip += 4
 
         case 8:
             op[op[ip + 3]] = param0 == param1 ? 1 : 0
-            ip             += 4
+            ip += 4
         }
     }
 
@@ -117,7 +117,7 @@ func day7A()
         }
 
         total = Math.max(total, input)
-        if !Slice.nextPermutation(phase[to]) do
+        if not Slice.nextPermutation(phase[to]) do
             break
     }
 

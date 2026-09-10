@@ -16,7 +16,7 @@ public impl Stopwatch
     // Starts or resumes measuring elapsed time
     mtd start()
     {
-        if !.running
+        if not .running
         {
             .running        = true
             .startTimestamp = monotonicTicks()

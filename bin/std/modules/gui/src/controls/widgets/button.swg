@@ -58,7 +58,7 @@ impl IWnd for Button
         if evt.updatedFields & .Disabled
         {
             evt.accepted = true
-            .enable(!evt.disabled)
+            .enable(not evt.disabled)
         }
     }
 }
@@ -92,7 +92,7 @@ impl Button
     // Removes the displayed icon and repaints the button.
     mtd clearIcon()
     {
-        if !.icon.isValid() do
+        if not .icon.isValid() do
             return
         .icon.clear()
         .invalidate()
@@ -172,9 +172,9 @@ impl Button
 
     internal mtd clearPointerState()
     {
-        if !.isHot and !.isIn and !.isPressed and !.isPressing do
+        if not .isHot and not .isIn and not .isPressed and not .isPressing do
             return
-        .isHot, .isIn           = false
+        .isHot, .isIn = false
         .isPressed, .isPressing = false
         .invalidate()
     }
@@ -197,10 +197,10 @@ impl Button
             .invalidate()
 
         case .Move:
-            if !.isPressing do
+            if not .isPressing do
                 break
             let rect = .clientRect()
-            if !rect.contains(pos)
+            if not rect.contains(pos)
             {
                 .isPressed, .isIn = false
                 .invalidate()
@@ -208,7 +208,7 @@ impl Button
             else
             {
                 .isIn = true
-                if !.isPressed
+                if not .isPressed
                 {
                     .isPressed = true
                     .invalidate()

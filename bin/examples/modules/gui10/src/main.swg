@@ -11,7 +11,7 @@ using Core, Gui, Pixel
 const W = 1280
 const H = 860
 
-const MaxPages          = 4
+const MaxPages = 4
 const TestFramesPerPage = 30
 
 const RootMargin       = 24.0
@@ -140,7 +140,7 @@ func pageTitle(page: s32)->string
 
 // The command-line name of each palette and each page, in the order of the two enumerations.
 const VariantArgs: [ThemeVariantCount] string = ["--dark", "--light", "--swagdark", "--sheet"]
-const PageArgs:    [MaxPages] string          = ["--colors", "--palettes", "--metrics", "--widgets"]
+const PageArgs:    [MaxPages] string = ["--colors", "--palettes", "--metrics", "--widgets"]
 
 // Reads the palette and the page the command line asks the inspector to open on.
 //
@@ -245,7 +245,7 @@ func showPage(page: s32)
     let widgets = g_Widgets!
     let sheet   = g_Sheet!
     let isSheet = page != 3
-    widgets.show(!isSheet)
+    widgets.show(not isSheet)
     sheet.show(isSheet)
     if isSheet do
         sheet.view.setKind(sheetKindOfPage(page))
@@ -262,7 +262,7 @@ func nextPage()
 
 func layoutRootView()
 {
-    if !g_View do
+    if not g_View do
         return
 
     let view         = g_View!
@@ -325,7 +325,7 @@ func onRootEvent(view: *Wnd, evt: IEvent)->bool
 
 func updateTestMode()
 {
-    if !Env.isSmokeRun() or !g_Surface do
+    if not Env.isSmokeRun() or not g_Surface do
         return
 
     g_TestFrame += 1
@@ -354,7 +354,7 @@ func updateTestMode()
 
 func onFrame(app: *Application)
 {
-    if !g_Surface do
+    if not g_Surface do
         return
 
     if app.keyboard.isKeyJustPressed(.F1) do
@@ -368,7 +368,7 @@ func onFrame(app: *Application)
 func createRootView()
 {
     let view = g_Surface!.view()
-    g_View               = view
+    g_View = view
     view.backgroundStyle = .View
 
     let title = Label.create(view, "", {})
@@ -406,7 +406,7 @@ func createRootView()
     // the wall cannot show by standing still. The diagnostic draws every ring at once, which is
     // how the mark is judged against every shape a palette answers for rather than one at a time.
     let rings = CheckButton.create(view, "focus rings", {})
-    g_Rings          = rings
+    g_Rings = rings
     rings.sigChanged += func(box)
     {
         app.options.showFocusRings = box.state == .Checked

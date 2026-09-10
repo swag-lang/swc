@@ -162,7 +162,7 @@ private const ManyStopSvg = """\
         <circle cx='256' cy='210' r='46' fill='#f4b43c' fill-opacity='0.63'/>\
         <path d='M4 257 L296 3' stroke='white' stroke-width='3'/></svg>"""
 
-    let drawing             = expect Svg.Drawing.parse(Source)
+    let drawing = expect Svg.Drawing.parse(Source)
     var cpu:      RenderCpu
     let renderer: IRenderer = &cpu
     cpu.begin(300, 260)

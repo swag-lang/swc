@@ -89,7 +89,7 @@ func testPopulate(capture: *Capture)
     f.editView.setZoom(2)
     for 12 do
         discard f.gui.render(f.main)
-    Swag.assert(!f.capture.cacheNeedsRefine)
+    Swag.assert(not f.capture.cacheNeedsRefine)
 
     var settled = f.gui.render(f.main)
     f.capture.invalidateAllFormCaches()

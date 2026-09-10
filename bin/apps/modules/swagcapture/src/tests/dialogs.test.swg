@@ -24,7 +24,7 @@ using Swag, Core
     }
 
     Swag.assert(main.surface == &gui.surface and main.editWnd.editView.surface == &gui.surface)
-    Swag.assert(!main.appearanceButton.sigAboutRequested.isEmpty())
+    Swag.assert(not main.appearanceButton.sigAboutRequested.isEmpty())
     gui.clickModalButtonWhenShown(Dialog.BtnCancel)
     let actionExecuted = Gui.Testing.actionExecute'ActionAbout(main, ActionAbout.About)
     Swag.assert(actionExecuted)

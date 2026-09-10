@@ -35,9 +35,9 @@ struct SplitterCtrl
 {
     public
     {
-        using frameWnd: FrameWnd                     // Embedded frame wnd state.
-        flags               = SplitterFlags.None     // Orientation and divider options.
-        titleSize:      f32 = 30                     // Title extent along the splitting axis.
+        using frameWnd: FrameWnd       // Embedded frame wnd state.
+        flags = SplitterFlags.None     // Orientation and divider options.
+        titleSize:      f32 = 30       // Title extent along the splitting axis.
 
         // The panes the splitter manages, in order. Add them through the methods so the bars and
         // the layout follow.
@@ -132,7 +132,7 @@ impl IWnd for SplitterCtrl
         for item in .items
         {
             let it = item!
-            if !it.visible do
+            if not it.visible do
                 continue
 
             if .isVertical()
@@ -176,7 +176,7 @@ impl IWnd for SplitterCtrl
 
     mtd impl onAfterPaint(evt: *PaintEvent)
     {
-        if !.items.count do
+        if not .items.count do
             return
 
         let painter = evt.paintContext.painter
@@ -186,7 +186,7 @@ impl IWnd for SplitterCtrl
         for item, idx in .items
         {
             let it = item!
-            if !it.visible do
+            if not it.visible do
                 continue
             visibleIndex += 1
             if visibleIndex == .numVisiblePanes do
@@ -194,7 +194,7 @@ impl IWnd for SplitterCtrl
 
             let rect  = .barRectAt(cast(u32) idx)
             let isHot = .hotIdx == idx
-            if isHot or !.flags.has(.HideDividers)
+            if isHot or not .flags.has(.HideDividers)
             {
                 let colorBar = isHot ? colors.splitView_BarHot : colors.splitView_Bar
                 it.aniBar.apply(me, colorBar)
@@ -224,7 +224,7 @@ private impl SplitterCtrl
         let barSize = .themeMetrics().splitView_BarSize
 
         var dispatch: f32
-        if !.items.isEmpty()
+        if not .items.isEmpty()
         {
             // Compute the current total sizes of panes
             var countNotPreserve, countPreserve = 0
@@ -232,7 +232,7 @@ private impl SplitterCtrl
             for item, idx in .items
             {
                 let it = item!
-                if !it.visible do
+                if not it.visible do
                     continue
 
                 totalSize        += it.size
@@ -257,7 +257,7 @@ private impl SplitterCtrl
                     let it = item!
                     if it.preserveSize do
                         continue
-                    if !it.visible do
+                    if not it.visible do
                         continue
 
                     countNotPreserve -= 1
@@ -280,9 +280,9 @@ private impl SplitterCtrl
                 for item, idx in .items
                 {
                     let it = item!
-                    if !it.preserveSize do
+                    if not it.preserveSize do
                         continue
-                    if !it.visible do
+                    if not it.visible do
                         continue
 
                     countPreserve -= 1
@@ -302,7 +302,7 @@ private impl SplitterCtrl
         for item, idx in .items
         {
             let it = item!
-            if !it.visible do
+            if not it.visible do
                 continue
 
             .setPaneSizePrivate(cast(u32) idx, it.size)
@@ -322,7 +322,7 @@ private impl SplitterCtrl
         for item, idx in .items
         {
             let it = item!
-            if !it.visible do
+            if not it.visible do
                 continue
             visibleIndex += 1
             if visibleIndex == .numVisiblePanes do
@@ -357,7 +357,7 @@ private impl SplitterCtrl
         for item, i in .items
         {
             let pane = item!
-            if !pane.visible do
+            if not pane.visible do
                 continue
 
             if .isVertical()
@@ -401,7 +401,7 @@ private impl SplitterCtrl
         }
 
         var hasVisibleRight = false
-        var scan            = cast(u64) idx + 1
+        var scan = cast(u64) idx + 1
         while scan < .items.count
         {
             if .items[scan]!.visible
@@ -424,7 +424,7 @@ private impl SplitterCtrl
                 break
 
             let otherPane = .items[i]!
-            if !otherPane.visible do
+            if not otherPane.visible do
                 continue
 
             var transfer = remaining

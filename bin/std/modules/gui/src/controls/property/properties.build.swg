@@ -53,7 +53,7 @@ internal impl Properties
         {
             let stk = StackLayoutCtrl.create(.edView, .Top, {0, 0, .position.width, height != 0 ? height : .gridLineHeight})
             stk.fitToContent = true
-            rowWnd           = stk
+            rowWnd = stk
         }
 
         // Both paths build the row: name it once, non-null, for everything below.
@@ -100,10 +100,10 @@ internal impl Properties
         {
             let dispName = itemDisplayName(value)
 
-            if !dispName.isEmpty()
+            if not dispName.isEmpty()
             {
                 var labelWidth = cast(f32) .gridColumnSize
-                if !.isGridLike() do
+                if not .isGridLike() do
                     labelWidth = .listContentWidth()
                 with let label = Label.create(line, dispName, {0, 0, labelWidth, item.line.position.height})
                 {
@@ -148,7 +148,7 @@ internal impl Properties
 
             if flags.has(.Description)
             {
-                if !.isGridLike() and .kind != .Panel
+                if not .isGridLike() and .kind != .Panel
                 {
                     with let labelDesc = Label.create(line, "", {0, 0, .listContentWidth(), 0})
                     {
@@ -242,7 +242,7 @@ internal impl Properties
             // at the top of this method and never reach here.
             let pItem = parentItem!
             pItem.flags.add(.NoSeparator | .NoFocus)
-            let item           = .addItem(value, data, parentItem)
+            let item = .addItem(value, data, parentItem)
             let numItemsBefore = .items.count
             .addStructInternal(typeSubStruct, data, item)
             item.numChilds = cast(u32) (.items.count - numItemsBefore)
@@ -269,7 +269,7 @@ internal impl Properties
         let tsFields = typeStruct.fields!
         for i in typeStruct.fields.count
         {
-            if !.usingFieldsLast or !tsFields[i].flags.has(.HasUsing) do
+            if not .usingFieldsLast or not tsFields[i].flags.has(.HasUsing) do
                 walkOrder.add(i)
         }
 
@@ -321,8 +321,8 @@ internal impl Properties
             // carries an explicit display name. 'using' struct fields always recurse — their own
             // fields decide for themselves.
             if .buildOnlyNamed and
-               !value.flags.has(.HasUsing) and
-               !Reflection.hasAttribute(value, Properties.Name)
+               not value.flags.has(.HasUsing) and
+               not Reflection.hasAttribute(value, Properties.Name)
             {
                 continue
             }
@@ -349,7 +349,7 @@ internal impl Properties
                     for i in common until segs.count
                     {
                         let parentForCateg = categPath.count > 0 ? categPath[categPath.count - 1].item : parentItem
-                        let citem          = .addCategoryHeader(segs[i], parentForCateg)
+                        let citem = .addCategoryHeader(segs[i], parentForCateg)
                         categPath.add({segs[i], citem})
                     }
                 }
@@ -412,7 +412,7 @@ internal impl Properties
         item.label.setText(resolveText(name orelse ""))
         item.label.style.setFont(&.fontCategory)
         item.flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)
-        if !parentForCateg!.flags.has(.Category) do
+        if not parentForCateg!.flags.has(.Category) do
             item.level = 0
         .sections.add({item, 1})
         return item
@@ -422,7 +422,7 @@ internal impl Properties
     // fixed visual order. Grid modes only — list mode already stacks its own per-row description.
     mtd addDecorators(value: Swag.TypeValue, parentItem: *PropertiesItem?)
     {
-        if !.isGridLike() do
+        if not .isGridLike() do
             return
 
         if let space = Reflection.attributeValue(value, .Gap, "size") do

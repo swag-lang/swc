@@ -32,7 +32,7 @@ internal func decodeAsciiHex(data: const [..] u8)->Array'u8 fail
             continue
         if c == '>' do
             break
-        if !isHex(c) do
+        if not isHex(c) do
             fail InvalidFormatError{"ASCIIHexDecode stream contains a non-hexadecimal byte"}
         let value = hexValue(c)
         if high == Swag.U8.Max do

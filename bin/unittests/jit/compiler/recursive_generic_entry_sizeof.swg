@@ -139,7 +139,7 @@ impl RecursiveAssocTable
         table[index].hash  = hashVal
         table[index].key   = key[]
         table[index].value = value[]
-        .count             += 1
+        .count += 1
         return .table + index
     }
 

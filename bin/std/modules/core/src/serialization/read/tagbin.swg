@@ -226,7 +226,7 @@ private impl TagBin
     {
         if toType == fromType do
             return true
-        if !toType or !fromType do
+        if not toType or not fromType do
             return false
 
         // An enum travels as its underlying type, so conversions consider that type: a
@@ -341,7 +341,7 @@ private impl TagBin
             if Reflection.isDynamicArray(toStruct)
             {
                 // Conversion from simple value to Core.Array
-                if (!fromStruct or !Reflection.isDynamicArray(fromStruct)) and .canConvertType(Reflection.dynamicArrayElementType(toStruct), srcType)
+                if (not fromStruct or not Reflection.isDynamicArray(fromStruct)) and .canConvertType(Reflection.dynamicArrayElementType(toStruct), srcType)
                 {
                     .convertValToArray = true
                     return true
@@ -350,7 +350,7 @@ private impl TagBin
 
             // A statically requested structured payload is self-framed. Its source type
             // name is not part of the compatibility contract.
-            elif fromStruct and !Reflection.isDynamicArray(fromStruct) do
+            elif fromStruct and not Reflection.isDynamicArray(fromStruct) do
                 return true
         }
 
@@ -469,7 +469,7 @@ private impl TagBin
         // sits exactly where the decode expects it: read positionally and never touch
         // the fat. Ignored elements and custom 'ISerialize' fields break that pairing,
         // so they force the indexed path.
-        if plan and !plan.hasCustom and .ignoreElements.isEmpty() and .shapeMatchesPlan(shape, plan!)
+        if plan and not plan.hasCustom and .ignoreElements.isEmpty() and .shapeMatchesPlan(shape, plan!)
         {
             sec.positional = true
             return
@@ -520,7 +520,7 @@ private impl TagBin
     // from the decompressed payload when one was present.
     mtd enterElementPayload(compressed: bool, val: TypeValue) fail
     {
-        if !compressed
+        if not compressed
         {
             .elemStack.add({false, null})
             return
@@ -581,7 +581,7 @@ private impl TagBin
 
         // We try to find a registered type with the crc from the stream.
         let streamType = Reflection.typeFromCrc(streamCrc)
-        if !streamType
+        if not streamType
         {
             // A scalar has no self-validating framing, so reading an unknown type as
             // another width would silently produce garbage.
@@ -602,7 +602,7 @@ private impl TagBin
 
         // The type exists, but we do not have a way to convert it to the requested
         // type.
-        if !.canConvertType(val.pointedType, streamType) do
+        if not .canConvertType(val.pointedType, streamType) do
             fail SerializationError{"cannot convert field type", field: val}
 
         // It's an array in the stream, but now we want a single value.
@@ -630,10 +630,10 @@ private impl TagBin
         let reqKey = wireFieldKey(val)
         var ent    = sec.mapSeek.tryFind(reqKey)
 
-        if !ent do
+        if not ent do
             return {false, 0, 0}
 
-        if !ent.value.consumed
+        if not ent.value.consumed
         {
             ent.value.consumed = true
             sec.consumedCount  += 1
@@ -652,10 +652,10 @@ private impl TagBin
             if streamSchema != wantedSchema do
                 fail SerializationError{Errors.mkString(Format.toString("document schema is [[%]], but the requested type needs [[%]]", streamSchema, wantedSchema))}
         }
-        elif !.schema.isEmpty() and streamSchema != .schema do
+        elif not .schema.isEmpty() and streamSchema != .schema do
             fail SerializationError{Errors.mkString(Format.toString("document schema is [[%]], but the reader needs [[%]]", streamSchema, .schema))}
 
-        let flags          = .stream.readNative'Write.TagBinHeaderFlags()
+        let flags = .stream.readNative'Write.TagBinHeaderFlags()
         let shapeDirOffset = .stream.readNative'u64()
 
         if flags.has(.StreamCompressed)
@@ -743,7 +743,7 @@ impl TagBin
             return null
 
         let type = Reflection.typeFromKey(key)
-        if !type do
+        if not type do
             fail SerializationError{Errors.mkString(Format.toString("cannot resolve interface object key [[%]]", key))}
         return type
     }
@@ -829,7 +829,7 @@ impl TagBin
         {
             // If the stream contains a 'raw' representation of the struct, and the requested
             // type is not a POD, then we can load in place.
-            if !Reflection.hasAttribute(structType, Serialization.Final) do
+            if not Reflection.hasAttribute(structType, Serialization.Final) do
                 fail SerializationError{"cannot convert a type from final to non final"}
 
             .openSection(.Raw, null)
@@ -854,7 +854,7 @@ impl TagBin
         {
             // The stream version is more recent than the code that tries to read it.
             // Specific error, except if we want to try forward compatibility
-            if !.options.tryForward and plan.version < streamVersion do
+            if not .options.tryForward and plan.version < streamVersion do
                 fail InvalidVersion{wantedVersion: plan.version, foundVersion: streamVersion}
         }
 
@@ -875,7 +875,7 @@ impl TagBin
     // Returns true if the element exists in the stream and should be processed, false to skip it.
     mtd beginElement(val: TypeValue)->bool fail
     {
-        Swag.assert(!.sections.isEmpty(), "Missing a previous 'beginSection' call")
+        Swag.assert(not .sections.isEmpty(), "Missing a previous 'beginSection' call")
 
         // If this name is in the ignore list, then skip it
         if .ignoreElements.contains(val.name)
@@ -920,7 +920,7 @@ impl TagBin
         if sec.shape
         {
             let ent = .findFieldRef(sec, val)
-            if !ent.found
+            if not ent.found
             {
                 .elemStack.add({false, null})
                 return false
@@ -947,7 +947,7 @@ impl TagBin
             let ent = .findFieldRef(sec, val)
 
             // The requested field is not there, just ignore it
-            if !ent.found
+            if not ent.found
             {
                 .elemStack.add({false, null})
                 return false
@@ -988,13 +988,13 @@ impl TagBin
     {
         .convertNextNative = null
 
-        Swag.assert(!.elemStack.isEmpty())
+        Swag.assert(not .elemStack.isEmpty())
         let ctx = .elemStack.popBack()
-        if !ctx.compressed do
+        if not ctx.compressed do
             return
 
         // We must have a previous buffer to append into
-        Swag.assert(!.outStack.isEmpty())
+        Swag.assert(not .outStack.isEmpty())
         let {parentOut, parentSeek} = .outStack.popBack()
 
         // Switch current 'output' back to parent and recycle tmp
@@ -1076,7 +1076,7 @@ impl TagBin
                 // POD (same property the writer required to emit Raw). This stays robust to a
                 // 'Serialization.Final' toggle on a POD type, and fails cleanly rather than
                 // corrupting memory if the type became non-POD.
-                if !Reflection.isPod(valueType) do
+                if not Reflection.isPod(valueType) do
                     fail SerializationError{"cannot load a raw array into a non-pod element type"}
 
                 let vt       = valueType!
@@ -1116,7 +1116,7 @@ impl TagBin
             // Honor the stream's layout signature (see the dynamic-array case above).
             if sig == Write.TagBinSignature.Raw
             {
-                if !Reflection.isPod(typeElem) do
+                if not Reflection.isPod(typeElem) do
                     fail SerializationError{"cannot load a raw array into a non-pod element type"}
 
                 let te = typeElem!

@@ -72,7 +72,7 @@ var globalOwned: *s32?
 #[Swag.Sanity(.Lifecycle, true)]
 func freeWhatAGlobalHolds()->s32
 {
-    globalOwned = cast(*s32) heapAlloc(4)
+    globalOwned    = cast(*s32) heapAlloc(4)
     globalOwned![] = 6
     let value = globalOwned![]
     heapFree(globalOwned!, 4)

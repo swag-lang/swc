@@ -103,7 +103,7 @@ func storeChannel(image: *Image, channel: u16, sourceY: s32, source: const [..] 
         for x in image.width
         {
             target[channel] = source[x]
-            target          += image.bytesPerPixel
+            target += image.bytesPerPixel
         }
     }
     else
@@ -170,7 +170,7 @@ internal impl IImageDecoder for Decoder
         var result: retval
         result.init(cast(s32) width, cast(s32) height, format)
         options.checkImage(result.width, result.height, format)
-        if !options.decodePixels do
+        if not options.decodePixels do
             return result
 
         var offset = HeaderSize
@@ -288,7 +288,7 @@ impl Decoder
             if nameLength + 1 > extra.count - extraOffset do
                 fail InvalidFormatError{"PSD layer name exceeds its record"}
             layer.info.name = cast(string) extra[extraOffset + 1 until extraOffset + 1 + nameLength]
-            offset          += extraLength
+            offset += extraLength
             .layers.add(#move layer)
         }
 
@@ -311,7 +311,7 @@ impl Layer
     {
         var result: retval
         result.init(.info.width, .info.height, .info.pixelFormat)
-        if !options.decodePixels do
+        if not options.decodePixels do
             return result
         result.allocPixels()
         result.fill(Argb.Black)
@@ -399,7 +399,7 @@ impl IImageSetDecoder for Decoder
         var probeOptions = options
         probeOptions.decodePixels = false
         let single: IImageDecoder = me
-        let probe                 = single.decode(buffer, probeOptions)
+        let probe = single.decode(buffer, probeOptions)
         .depth     = readU16(buffer.buffer + 22)
         .colorMode = readU16(buffer.buffer + 24)
         var result: retval
@@ -413,7 +413,7 @@ impl IImageSetDecoder for Decoder
         offset += 4
         if sectionLength > buffer.count - offset do
             fail InvalidFormatError{"PSD layer section exceeds the file"}
-        if !sectionLength do
+        if not sectionLength do
             return result
         let section = buffer[offset until offset + sectionLength]
         if section.count < 4 do
@@ -457,7 +457,7 @@ impl IImageSetDecoder for Decoder
 
     mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
     {
-        if !index
+        if not index
         {
             let single: IImageDecoder = me
             return single.decode(.bytes!, options)

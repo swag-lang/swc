@@ -46,14 +46,14 @@ impl RegressionArray
     mtd add(value: T)
     {
         .values[.count] = value
-        .count          += 1
+        .count += 1
     }
 
     #[Macro]
     func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
 
-        if !.count do
+        if not .count do
             return
 
         var scan = cast([*] T) &.values[0] - 1

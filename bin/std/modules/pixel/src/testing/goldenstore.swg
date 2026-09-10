@@ -48,7 +48,7 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
     // No golden yet: write one and let the test pass. It is loud on purpose -- an untracked file
     // appearing in the working tree is what turns a mistyped name into something visible rather
     // than a test that silently asserts nothing forever.
-    if !File.exists(path)
+    if not File.exists(path)
     {
         writeText(path.toString(), text)
         Console.println("[golden] created ", name, " -- review it before committing")
@@ -111,9 +111,9 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
     Swag.assert(image != null and image.isValid(), "image golden needs allocated pixels")
     let path = goldenPath(name, ".png", loc)
 
-    if !File.exists(path)
+    if not File.exists(path)
     {
-        if !writeImage(image, path.toString())
+        if not writeImage(image, path.toString())
         {
             Swag.assert(false)
             return
@@ -168,7 +168,7 @@ private
     {
         var result: retval
         result.sameSize = expected.width == actual.width and expected.height == actual.height
-        if !result.sameSize do
+        if not result.sameSize do
             return result
 
         for y in actual.height
@@ -202,7 +202,7 @@ private
 
     func reportImageDifference(difference: const *ImageDifference, expected, actual: const *Image)
     {
-        if !difference.sameSize
+        if not difference.sameSize
         {
             Console.println("         size   : ", expected.width, "x", expected.height, " expected, ", actual.width, "x", actual.height, " produced")
             return
@@ -219,7 +219,7 @@ private
     func writeImage(image: const *Image, path: string)->bool
     {
         let dir = Path.directoryName(path)
-        if dir != null and !Directory.exists(dir)
+        if dir != null and not Directory.exists(dir)
         {
             catch Directory.create(dir) as errDir
             if errDir != null
@@ -247,7 +247,7 @@ private
     // problem on a file the reader can see is perfectly writable.
     func reportSandboxRefusal(path: string)
     {
-        if !Env.isSandboxed() or Env.isInsideCorpus(path) do
+        if not Env.isSandboxed() or Env.isInsideCorpus(path) do
             return
 
         Console.println("         it is outside the sandbox at ", Env.sandboxRoot())
@@ -281,7 +281,7 @@ private
     func writeText(path: string, text: string)
     {
         let dir = Path.directoryName(path)
-        if dir != null and !Directory.exists(dir)
+        if dir != null and not Directory.exists(dir)
         {
             catch Directory.create(dir) as errDir
             if errDir != null
@@ -316,7 +316,7 @@ private
                 cur.append(text[i])
         }
 
-        if !cur.isEmpty() do
+        if not cur.isEmpty() do
             result.add(cur)
         return result
     }

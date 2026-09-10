@@ -112,7 +112,7 @@ impl Window
     // value, so a later call or scope cleanup can retry the release.
     mtd close() fail
     {
-        if !.isOpen() do
+        if not .isOpen() do
             return
 
         // Keep callbacks bound to the owning value even when a return-value move was elided
@@ -215,7 +215,7 @@ impl WindowLoop
         if .frameBudget and .framesRun >= .frameBudget do
             return false
 
-        if !processWindowMessages() do
+        if not processWindowMessages() do
             return false
 
         if .frameBudget do

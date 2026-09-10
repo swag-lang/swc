@@ -7,7 +7,7 @@ func awaitFormat(window: *MainWindow)
 {
     var watch: Time.Stopwatch
     watch.start()
-    while !window.formatTask.isDone() and watch.elapsedMilliseconds() < 30000 do
+    while not window.formatTask.isDone() and watch.elapsedMilliseconds() < 30000 do
         Threading.Thread.sleep(10'ms)
     Swag.assert(window.formatTask.isDone())
     window.finishFormat()
@@ -25,7 +25,7 @@ func awaitFormat(window: *MainWindow)
     host.click(window.formatButton.localToSurface(Math.Point{20, 18}))
     Swag.assert(window.formatStatus == .Working and window.spinner.isVisible())
     awaitFormat(window)
-    Swag.assert(window.formatStatus == .Done and !window.spinner.isVisible())
+    Swag.assert(window.formatStatus == .Done and not window.spinner.isVisible())
     Swag.assert(Utf8.indexOf(cast(const [..] u8) window.editor.text().toString(), "\n    return 42\n") != Swag.U64.Max)
     window.editor.undo()
     Swag.assert(window.editor.text().toString() == Source)
@@ -47,7 +47,7 @@ func awaitFormat(window: *MainWindow)
     window.editor.setText(Source)
     window.format()
     awaitFormat(window)
-    Swag.assert(window.formatStatus == .Failed and !window.spinner.isVisible())
+    Swag.assert(window.formatStatus == .Failed and not window.spinner.isVisible())
     Swag.assert(window.editor.text().toString() == Source)
-    Swag.assert(!window.status.toolTip.isEmpty())
+    Swag.assert(not window.status.toolTip.isEmpty())
 }

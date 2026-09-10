@@ -47,14 +47,14 @@ impl OutlineBuilder
 
     mtd lineTo(x, y: f64)
     {
-        if !.open do
+        if not .open do
             return
         .addPoint(x, y, CURVE_TAG_ON)
     }
 
     mtd curveTo(c1x, c1y, c2x, c2y, x, y: f64)
     {
-        if !.open do
+        if not .open do
             return
         .addPoint(c1x, c1y, CURVE_TAG_CUBIC)
         .addPoint(c2x, c2y, CURVE_TAG_CUBIC)
@@ -68,7 +68,7 @@ impl OutlineBuilder
     // curve wrap onto the contour start instead of an extra zero-length segment.
     mtd closeContour()
     {
-        if !.open do
+        if not .open do
             return
         .open = false
 
@@ -154,7 +154,7 @@ private impl Type2State
     // Stem operators take pairs, so an odd argument count is what reveals a leading width.
     mtd takeStemWidth()
     {
-        if !.haveWidth
+        if not .haveWidth
         {
             .haveWidth = true
             if (.depth & 1) != 0 do
@@ -287,7 +287,7 @@ private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fai
                     state.lineTo(state.x + state.stack[i], state.y)
                 else do
                     state.lineTo(state.x, state.y + state.stack[i])
-                horizontal = !horizontal
+                horizontal = not horizontal
             }
 
             state.depth = 0
@@ -372,7 +372,7 @@ private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fai
 
         case 30, 31:
             var horizontal = b0 == 31
-            var i          = 0'u32
+            var i = 0'u32
             while i + 3 < state.depth
             {
                 // The very last group may carry a fifth argument that moves the axis the
@@ -395,14 +395,14 @@ private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fai
                     state.curveTo(c1x, c1y, c2x, c2y, c2x + state.stack[i + 3], c2y + trailing)
                 }
 
-                horizontal = !horizontal
-                i          += 4
+                horizontal = not horizontal
+                i += 4
             }
 
             state.depth = 0
 
         case 10, 29:
-            if !state.depth do
+            if not state.depth do
                 break
             state.depth -= 1
             let index = state.stack[state.depth]
@@ -418,7 +418,7 @@ private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fai
             return
 
         case 14:
-            if !state.haveWidth
+            if not state.haveWidth
             {
                 state.haveWidth = true
                 if state.depth == 1 or state.depth == 5 do
@@ -591,7 +591,7 @@ private func execType2Escape(state: *Type2State, op: u8)
         if state.depth and state.depth < MaxCharstringStack
         {
             state.stack[state.depth] = state.stack[state.depth - 1]
-            state.depth              += 1
+            state.depth += 1
         }
 
     case 28:
@@ -679,7 +679,7 @@ private func runComposedAccent(font: *CffFont, gid: u32, builder: *OutlineBuilde
 func cffGlyphForStandardCode(font: *CffFont, code: u8)->u32
 {
     let name = standardEncodingName(code)
-    if !name.count do
+    if not name.count do
         return 0
     return font.nameToGid.getOrDefault(String.from(name), 0)
 }
@@ -734,7 +734,7 @@ private impl Type1State
         if .resultDepth < 32
         {
             .results[.resultDepth] = value
-            .resultDepth           += 1
+            .resultDepth += 1
         }
     }
 
@@ -783,7 +783,7 @@ private impl Type1State
     mtd emitFlex()
     {
         .flexing = false
-        if .flexCount < 7 or !.builder do
+        if .flexCount < 7 or not .builder do
             return
         .builder!.curveTo(.flexX[1], .flexY[1], .flexX[2], .flexY[2], .flexX[3], .flexY[3])
         .builder!.curveTo(.flexX[4], .flexY[4], .flexX[5], .flexY[5], .flexX[6], .flexY[6])
@@ -920,7 +920,7 @@ private func execType1(state: *Type1State, code: const [..] u8?, depth: u32) fai
             state.depth = 0
 
         case 10:
-            if !state.depth do
+            if not state.depth do
                 break
             state.depth -= 1
             let index = cast(s32) state.stack[state.depth]
@@ -1114,7 +1114,7 @@ private func runType1ComposedAccent(font: *Type1Font, gid: u32, builder: *Outlin
 func type1GlyphForStandardCode(font: *Type1Font, code: u8)->u32
 {
     let name = standardEncodingName(code)
-    if !name.count do
+    if not name.count do
         return 0
     return font.nameToGid.getOrDefault(String.from(name), 0)
 }

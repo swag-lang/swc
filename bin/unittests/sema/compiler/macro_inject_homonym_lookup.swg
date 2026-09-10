@@ -20,7 +20,7 @@ func semaTest001()
     injectPlain()
     {
         let set: ShadowItem = {count: 3}
-        let count           = set.count
+        let count = set.count
         #assert(#typeof(count) == s32)
     }
 }
@@ -42,7 +42,7 @@ func semaTest003()
     {
         {
             let set: ShadowItem = {count: 6}
-            let count           = set.count
+            let count = set.count
             #assert(#typeof(count) == s32)
         }
 

@@ -260,17 +260,17 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
         var ai, bi = 0
         for
         {
-            let ca = !csrc ? 0 : src[ai]
-            let cb = !cdst ? 0 : dst[bi]
+            let ca = not csrc ? 0 : src[ai]
+            let cb = not cdst ? 0 : dst[bi]
 
             let dga = isDigit(ca)
             let dgb = isDigit(cb)
 
-            if !dga and !dgb do
+            if not dga and not dgb do
                 return 0
-            if !dga do
+            if not dga do
                 return -1
-            if !dgb do
+            if not dgb do
                 return 1
             if ca < cb do
                 return -1
@@ -292,30 +292,30 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
         var ai, bi = 0
         for
         {
-            let ca = !csrc ? 0 : src[ai]
-            let cb = !cdst ? 0 : dst[bi]
+            let ca = not csrc ? 0 : src[ai]
+            let cb = not cdst ? 0 : dst[bi]
 
             let dga = isDigit(ca)
             let dgb = isDigit(cb)
 
-            if !dga and !dgb do
+            if not dga and not dgb do
                 return bias
-            if !dga do
+            if not dga do
                 return -1
-            if !dgb do
+            if not dgb do
                 return 1
 
             if ca < cb
             {
-                if !bias do
+                if not bias do
                     bias = -1
             }
             elif ca > cb
             {
-                if !bias do
+                if not bias do
                     bias = 1
             }
-            elif !ca and !cb do
+            elif not ca and not cb do
                 return bias
 
             ai, bi     += 1
@@ -333,8 +333,8 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
     var ai, bi = 0
     for
     {
-        var ca = !csrc ? 0 : src[ai]
-        var cb = !cdst ? 0 : dst[bi]
+        var ca = not csrc ? 0 : src[ai]
+        var cb = not cdst ? 0 : dst[bi]
 
         // Skip over leading spaces or zeros
         while isSpace(ca)
@@ -365,7 +365,7 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
                 return result
         }
 
-        if !ca and !cb do
+        if not ca and not cb do
             return 0
 
         if ignoreCase

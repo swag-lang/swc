@@ -73,9 +73,9 @@ impl BlendColor
             options.duration = Time.Duration.fromSeconds(1.0 / .speed)
         else do
             options.duration = {}
-        options.easing           = .Linear
+        options.easing = .Linear
         options.preserveProgress = true
-        .targetWnd               = null
+        .targetWnd     = null
         let handle = wnd.app().animator.animateVector4(wnd,
                                                        AnimationChannel.fromPointer(me),
                                                        source,

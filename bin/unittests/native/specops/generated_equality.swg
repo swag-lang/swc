@@ -167,7 +167,7 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let b = StringHolder{text: rightText, tag: 7}
     let c = StringHolder{text: rightText, tag: 8}
     Swag.assert(a == b)
-    Swag.assert(!(a != b))
+    Swag.assert(not (a != b))
     Swag.assert(a != c)
 }
 
@@ -354,7 +354,7 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
     Swag.assert(eqPadded(a, b))
 
     b.wide = 3
-    Swag.assert(!eqPadded(a, b))
+    Swag.assert(not eqPadded(a, b))
 }
 
 #test
@@ -375,7 +375,7 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
     Swag.assert(eqPaddedHolder(a, b))
 
     b.second.wide = 5
-    Swag.assert(!eqPaddedHolder(a, b))
+    Swag.assert(not eqPaddedHolder(a, b))
 
     var c: [3] Padded
     var d: [3] Padded
@@ -392,7 +392,7 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
     Swag.assert(eqPaddedArray(c, d))
 
     d[2].wide = 3
-    Swag.assert(!eqPaddedArray(c, d))
+    Swag.assert(not eqPaddedArray(c, d))
 }
 
 #test

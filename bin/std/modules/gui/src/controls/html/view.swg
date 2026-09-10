@@ -283,7 +283,7 @@ internal impl HtmlView
     }
 
     // Reports whether source remains to be read.
-    public mtd const isLoading()->bool => !.sourceDone
+    public mtd const isLoading()->bool => not .sourceDone
 
     mtd viewportSize()->Math.Point
     {
@@ -357,7 +357,7 @@ internal impl HtmlView
     // reaching the network, whatever it links to.
     private mtd appendExternalStyleSheet(href: string)
     {
-        if !href.count or .images.basePath.isEmpty() do
+        if not href.count or .images.basePath.isEmpty() do
             return
         let fileName = htmlLocalResourcePath(.images.basePath.toString(), href)
         if fileName.isEmpty() do
@@ -409,11 +409,11 @@ internal impl HtmlView
         for state in states
         {
             let found = .layout.nodeBox.tryFind(state.node)
-            if !found do
+            if not found do
                 continue
 
             let box = .layout.box(found!.value)
-            if !box.scrollable do
+            if not box.scrollable do
                 continue
             box.scrollTop = Math.clamp(state.top, 0, Math.max(box.scrollHeight - box.content.height, 0))
         }
@@ -630,7 +630,7 @@ internal impl HtmlView
     // Feeds one bounded batch of source into the parser.
     mtd streamStep()
     {
-        if !.sourceDone
+        if not .sourceDone
         {
             let chunk = catch .stream.readTextChunk(HtmlStreamChunkSize, .encoding) as readError
             if readError != null
@@ -660,13 +660,13 @@ internal impl HtmlView
         let revealReady   = .hasReveal and .revealOffset < .bytesRead
         if .sourceDone or .bytesRead >= .nextRefresh or (.layout.root == HtmlNoNode and .bytesRead > 0) or fragmentReady or revealReady
         {
-            if !.sourceDone do
+            if not .sourceDone do
                 .nextRefresh = .bytesRead * 4
             .rebuild()
             .resolvePending()
         }
 
-        if !.sourceDone do
+        if not .sourceDone do
             .scheduleMore()
     }
 
@@ -689,7 +689,7 @@ internal impl HtmlView
 
     mtd scheduleMore()
     {
-        if .loadTimer or (.sourceDone and !.virtualPendingSeek) do
+        if .loadTimer or (.sourceDone and not .virtualPendingSeek) do
             return
         .loadTimer = .addTimer(4'ms)
     }
@@ -727,13 +727,13 @@ internal impl HtmlView
         if .hasReveal and (.sourceDone or .revealOffset < .bytesRead)
         {
             .hasReveal = false
-            if !.pendingSearch.isEmpty() and .highlightSourceMatch(.revealOffset, .pendingSearch.toString()) do
+            if not .pendingSearch.isEmpty() and .highlightSourceMatch(.revealOffset, .pendingSearch.toString()) do
                 .pendingSearch.clear()
             else do
                 discard .scrollToNode(.nodeAtSourceOffset(.revealOffset))
         }
 
-        if !.pendingSearch.isEmpty() and .findText(.pendingSearch.toString()) do
+        if not .pendingSearch.isEmpty() and .findText(.pendingSearch.toString()) do
             .pendingSearch.clear()
     }
 
@@ -782,7 +782,7 @@ internal impl HtmlView
     // Returns the element carrying an identifier, or `HtmlNoNode` when the document has none.
     public mtd const elementById(id: string)->u32
     {
-        if !id.count do
+        if not id.count do
             return HtmlNoNode
         for index in .document.nodes.count where .document.id(cast(u32) index) == id do
             return cast(u32) index
@@ -800,7 +800,7 @@ internal impl HtmlView
             return false
 
         let fragment = url[1 to]
-        if !fragment.count
+        if not fragment.count
         {
             let position = .scroll.scrollPosition()
             .scroll.setScrollPos(position.x, 0)
@@ -809,7 +809,7 @@ internal impl HtmlView
 
         if .scrollToNode(.elementById(fragment), useScrollMargin: true) do
             return true
-        if !.sourceDone
+        if not .sourceDone
         {
             .pendingFragment    = fragment
             .hasPendingFragment = true
@@ -873,7 +873,7 @@ internal impl HtmlView
     // destinations this offline renderer does not own.
     private mtd navigateToLocalDocument(url: string)->bool
     {
-        if .images.basePath.isEmpty() or !url.count do
+        if .images.basePath.isEmpty() or not url.count do
             return false
         if Utf8.contains(url, "://") or Utf8.startsWith(url, "//") or Utf8.startsWith(url, "data:") do
             return false
@@ -881,7 +881,7 @@ internal impl HtmlView
         let hash     = Utf8.indexOf(url, '#'rune)
         let path     = hash == Swag.U64.Max ? url : url[0 until hash]
         let fragment = hash == Swag.U64.Max ? "" : url[hash + 1 to]
-        if !path.count do
+        if not path.count do
             return false
 
         var fileName = htmlLocalResourcePath(.images.basePath.toString(), path)
@@ -889,7 +889,7 @@ internal impl HtmlView
             return false
 
         Path.normalize(&fileName)
-        if !File.exists(fileName.toString()) do
+        if not File.exists(fileName.toString()) do
             return false
 
         if Path.equals(fileName.toString(), .fileName.toString())
@@ -913,11 +913,11 @@ internal impl HtmlView
     // Scrolls to the next node whose text contains `text`, wrapping once at the end.
     public mtd findText(text: string)->bool
     {
-        if !text.count do
+        if not text.count do
             return false
 
         let count = .document.nodes.count
-        if !count do
+        if not count do
             return false
 
         var start = 0'u64
@@ -928,7 +928,7 @@ internal impl HtmlView
         {
             let index = cast(u32) ((start + offset) % count)
             let node  = .document.constNode(index)
-            if node.kind != .Text or !node.text.count do
+            if node.kind != .Text or not node.text.count do
                 continue
             let match = Utf8.indexOf(.document.textOf(index), text, 0, .Latin1NoCase)
             if match == Swag.U64.Max do
@@ -948,7 +948,7 @@ internal impl HtmlView
 
     mtd searchMatchCount(text: string)->u64
     {
-        if !text.count do
+        if not text.count do
             return 0
 
         var result: u64
@@ -971,7 +971,7 @@ internal impl HtmlView
 
     mtd findTextOccurrence(text: string, occurrence: u64)->bool
     {
-        if !text.count do
+        if not text.count do
             return false
 
         .clearSearchHighlight()
@@ -979,7 +979,7 @@ internal impl HtmlView
         for index in .document.nodes.count
         {
             let node = .document.constNode(cast(u32) index)
-            if node.kind != .Text or !node.text.count do
+            if node.kind != .Text or not node.text.count do
                 continue
 
             var from: u64
@@ -995,7 +995,7 @@ internal impl HtmlView
                     continue
                 }
 
-                if !.scrollToNode(cast(u32) index) do
+                if not .scrollToNode(cast(u32) index) do
                     return false
                 .searchNode  = cast(u32) index
                 .searchStart = match
@@ -1058,7 +1058,7 @@ internal impl HtmlView
         for index in .document.nodes.count
         {
             let node = .document.constNode(cast(u32) index)
-            if node.kind != .Text or !node.text.count do
+            if node.kind != .Text or not node.text.count do
                 continue
             if first == HtmlNoNode do
                 first = cast(u32) index
@@ -1086,7 +1086,7 @@ internal impl HtmlView
     // Puts the selected text on the clipboard, and reports whether there was one.
     public mtd copySelection()->bool
     {
-        if !.hasSelection() do
+        if not .hasSelection() do
             return false
         let text = .selectedText()
         if text.isEmpty() do
@@ -1103,7 +1103,7 @@ internal impl HtmlView
     mtd showContextMenu(surfacePos: Math.Point)
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(strings().edit_Copy, CtxCopy, rightName: "Ctrl+C", disabled: !.hasSelection())
+        menu.addItem(strings().edit_Copy, CtxCopy, rightName: "Ctrl+C", disabled: not .hasSelection())
         menu.addSeparator()
         menu.addItem(strings().edit_SelectAll, CtxSelectAll, rightName: "Ctrl+A")
 
@@ -1121,7 +1121,7 @@ internal impl HtmlView
         if node == HtmlNoNode or cast(u64) node >= .document.nodes.count do
             return
         let source = .document.textOf(node)
-        if !source.count do
+        if not source.count do
             return
 
         // One pass records where each rune starts and whether it belongs to a word; the word is
@@ -1222,7 +1222,7 @@ internal impl HtmlView
     // agree. An empty `text` only scrolls.
     public mtd revealFileOffset(offset: u64, text: string)->bool
     {
-        if .fileName.isEmpty() and !.sourceDone do
+        if .fileName.isEmpty() and not .sourceDone do
             return false
 
         if .virtualSource
@@ -1265,10 +1265,10 @@ internal impl HtmlView
     {
         var local: Math.Rectangle
         var paint = .painter()
-        if !paint.searchMatchRect(&local) do
+        if not paint.searchMatchRect(&local) do
             return false
         result[] = .canvas.localToSurface(local)
-        return !result.isEmpty()
+        return not result.isEmpty()
     }
 
     // Removes the programmatic search highlight without changing the document selection.
@@ -1410,7 +1410,7 @@ internal impl HtmlView
         .nextRefresh          = HtmlFirstRefreshSize
         .revealOffset         = 0
         .hasReveal            = false
-        .hasPendingFragment   = !fragmentCopy.isEmpty()
+        .hasPendingFragment   = not fragmentCopy.isEmpty()
         .pendingFragment      = fragmentCopy
         .searchNode           = HtmlNoNode
         .searchStart          = 0
@@ -1544,7 +1544,7 @@ internal impl IWnd for HtmlView
             }
         }
 
-        if .embedded or !scrollDocumentWithKey(.scroll, evt) do
+        if .embedded or not scrollDocumentWithKey(.scroll, evt) do
             evt.accepted = false
     }
 
@@ -1673,7 +1673,7 @@ internal impl IWnd for HtmlCanvas
             {
                 // A reference into the document itself is followed here; anything else is a
                 // destination only the host knows how to open.
-                if !owner.activateLink(url) do
+                if not owner.activateLink(url) do
                     owner.sigLinkActivated.call(owner, url)
                 return
             }

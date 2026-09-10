@@ -47,7 +47,7 @@ func renderCpu(scene: RenderParityScene)->Image
 
 private func makeRenderParityTexture(renderer: IRenderer)->Texture
 {
-    var image             = Image.create(4, 4, .BGRA8)
+    var image = Image.create(4, 4, .BGRA8)
     let colors: [4] Color = [Color.fromArgb(Argb.Crimson),
                              Color.fromArgb(Argb.Gold),
                              Color.fromArgb(Argb.DodgerBlue),

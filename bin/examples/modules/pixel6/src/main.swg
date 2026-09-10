@@ -65,7 +65,7 @@ func initGdiPlus()
 
 func shutdownGdiPlus()
 {
-    if !g_GdiToken do
+    if not g_GdiToken do
         return
 
     GdiplusShutdown(g_GdiToken)
@@ -84,7 +84,7 @@ func addGdiPathText(path: *GpPath, text16: const [*] u16, count: s32, family: *G
 
 func unpremultiplyChannel(value, alpha: u8)->u8
 {
-    if !alpha do
+    if not alpha do
         return 0
     if alpha == 255 do
         return value

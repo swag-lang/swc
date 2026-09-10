@@ -126,7 +126,7 @@ using Swag, Core
     Swag.assert(lLine.bezier)
     Swag.assert(lLine.xc == 6)
     Swag.assert(lLine.yc == 7)
-    Swag.assert(!lLine.paintShadow)
+    Swag.assert(not lLine.paintShadow)
 
     let lArrow = cast(*FormArrow) loaded.forms[2].buffer
     Swag.assert(lArrow.endSize == 9)
@@ -134,12 +134,12 @@ using Swag, Core
     let lPolygon = cast(*FormPolygon) loaded.forms[3].buffer
     Swag.assert(lPolygon.subKind == .Highlight)
     Swag.assert(lPolygon.bezier)
-    Swag.assert(!lPolygon.paintShadow)
+    Swag.assert(not lPolygon.paintShadow)
     Swag.assert(lPolygon.points.count == 3)
 
     let lDraw = cast(*FormDraw) loaded.forms[4].buffer
     Swag.assert(lDraw.subKind == .PixSel)
-    Swag.assert(!lDraw.paintShadow)
+    Swag.assert(not lDraw.paintShadow)
     Swag.assert(lDraw.points.count == 3)
 
     let lText = cast(*FormText) loaded.forms[5].buffer
@@ -199,7 +199,7 @@ using Swag, Core
     let loaded = expect Capture.load(path, preview: true)!
     defer Memory.delete(loaded)
     Swag.assert(loaded.forms.count == 0)
-    Swag.assert(!loaded.backImg.isValid())
+    Swag.assert(not loaded.backImg.isValid())
     Swag.assert(loaded.preview.isValid())
     Swag.assert(loaded.preview.width == 8)
     Swag.assert(loaded.preview.height == 6)
@@ -207,8 +207,8 @@ using Swag, Core
 
     let deferred = expect Capture.load(path, preview: true, deferPreviewDecode: true)!
     defer Memory.delete(deferred)
-    Swag.assert(!deferred.preview.isValid())
-    Swag.assert(!deferred.previewBytes.isEmpty())
+    Swag.assert(not deferred.preview.isValid())
+    Swag.assert(not deferred.previewBytes.isEmpty())
     expect deferred.materializePreview()
     Swag.assert(deferred.preview.isValid())
     Swag.assert(deferred.preview.width == 8)
@@ -221,8 +221,8 @@ using Swag, Core
     libraryView.loadOne(&libraryItem)
     Swag.assert(libraryItem.loaded)
     Swag.assert(libraryItem.capture != null)
-    Swag.assert(!libraryItem.capture!.preview.isValid())
-    Swag.assert(!libraryItem.capture!.previewBytes.isEmpty())
+    Swag.assert(not libraryItem.capture!.preview.isValid())
+    Swag.assert(not libraryItem.capture!.previewBytes.isEmpty())
     Swag.assert(libraryItem.haar.size != 0)
 }
 

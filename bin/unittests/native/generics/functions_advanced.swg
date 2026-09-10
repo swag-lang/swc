@@ -307,14 +307,14 @@ func(T, N: s32) countOf(values: [N] T, target: T)->s32
 #test
 {
     let arr: [4] s32 = [10, 20, 30, 40]
-    let rev          = reverse(arr)
+    let rev = reverse(arr)
     Swag.assert(rev[0] == 40)
     Swag.assert(rev[1] == 30)
     Swag.assert(rev[2] == 20)
     Swag.assert(rev[3] == 10)
 
     let farr: [3] f64 = [1.0, 2.0, 3.0]
-    let frev          = reverse(farr)
+    let frev = reverse(farr)
     Swag.assert(frev[0] == 3.0)
     Swag.assert(frev[1] == 2.0)
     Swag.assert(frev[2] == 1.0)

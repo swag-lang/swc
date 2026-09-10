@@ -85,7 +85,7 @@ public impl Options
     mtd const configurations()->Array'String
     {
         var result: retval
-        if !.allConfigs
+        if not .allConfigs
         {
             result.add(.buildCfg)
             return result

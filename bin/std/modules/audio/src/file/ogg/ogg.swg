@@ -134,9 +134,9 @@ private func identify(body: const [..] u8)->StreamInfo fail
         result.channels      = cast(u32) body[11]
         result.sampleRate    = readU32(body, 12)
         result.headerPackets = 3
-        if !result.channels or result.channels > Vorbis.MaxChannels do
+        if not result.channels or result.channels > Vorbis.MaxChannels do
             fail UnsupportedFormatError{"Vorbis stream needs one to eight channels"}
-        if !result.sampleRate do
+        if not result.sampleRate do
             fail InvalidFormatError{"Vorbis stream declares no sample rate"}
         result.speakerMask = Vorbis.speakerMask(result.channels)
         return result
@@ -153,7 +153,7 @@ private func identify(body: const [..] u8)->StreamInfo fail
         result.headerPackets = 2
         if body[18] != 0 do
             fail UnsupportedFormatError{"Opus stream uses a multistream channel mapping"}
-        if !result.channels or result.channels > 2 do
+        if not result.channels or result.channels > 2 do
             fail UnsupportedFormatError{"Opus stream needs one or two channels"}
         return result
     }
@@ -208,7 +208,7 @@ private func findStream(walker: *Walker)->StreamInfo fail
     var header: PageHeader
     while try walker.next(&header)
     {
-        if !(header.flags & FirstPage) do
+        if not (header.flags & FirstPage) do
             break
         let info = try identify(try walker.body(&header))
         if info.kind != .Unknown
@@ -298,10 +298,10 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
             for index in header.segments
             {
                 let size = cast(u64) header.lacing[index]
-                if !run.open
+                if not run.open
                 {
                     let frames = Opus.packetFrames(body[at until at + size])
-                    if !frames do
+                    if not frames do
                         fail InvalidFormatError{"Opus packet has an invalid table of contents"}
                     run.frames += frames
                 }
@@ -318,7 +318,7 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
         while true
         {
             walker.offset = probe
-            if !try walker.next(&lookahead) do
+            if not try walker.next(&lookahead) do
                 break
             if lookahead.serial == info.serial
             {
@@ -331,9 +331,9 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
         }
 
         walker.offset = pageOffset + pageBytes
-        let last = (header.flags & LastPage) != 0 or !more
+        let last = (header.flags & LastPage) != 0 or not more
 
-        if header.granule != NoGranule and (!continues or last)
+        if header.granule != NoGranule and (not continues or last)
         {
             var frames: u64
             if info.kind == .Vorbis
@@ -353,7 +353,7 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
 
             if frames or last
             {
-                if !frames
+                if not frames
                 {
                     // A final page that completes no frame extends the run before it.
                     if walker.packets.count do
@@ -395,7 +395,7 @@ func openFile(path: string)->SoundFile fail
     let info  = try findStream(&walker)
     let start = try skipHeaders(&walker, &info)
     let total = try indexRuns(&walker, &info)
-    if !walker.packets.count do
+    if not walker.packets.count do
         fail InvalidFormatError{"Ogg stream carries no sound page"}
 
     var config: Array'u8

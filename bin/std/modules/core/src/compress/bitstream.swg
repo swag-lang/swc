@@ -156,7 +156,7 @@ impl BitStream
     // Reverts stream to last byte-aligned state (undo partial read)
     mtd revert()
     {
-        Swag.assert(!(.numBits & 7))     // Must be aligned
+        Swag.assert(not (.numBits & 7))     // Must be aligned
         .curByte    -= .numBits / 8
         .numBits    = 0
         .codeBuffer = 0

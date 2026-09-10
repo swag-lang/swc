@@ -264,16 +264,16 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
     let top    = Math.ceilS32(bounds.maxY / 64.0)
     let width  = Math.max(0, right - left)
     let rows   = Math.max(0, top - bottom)
-    if !width or !rows do
+    if not width or not rows do
         return
 
     let edges = buildEdges(&safeSlot.outline)
-    if !edges.count do
+    if not edges.count do
         return
 
     faceData.bitmapPixels.resize(cast(u64) width * rows)
     let bitmapBuffer = faceData.bitmapPixels.buffer!
-    var dst          = bitmapBuffer
+    var dst = bitmapBuffer
 
     // Per-row signed-area accumulation buffers (analytic anti-aliasing).
     var area:  Array'f64

@@ -122,7 +122,7 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
     {
         var storage: [3] s32        = [4, 5, 6]
         let values:  const [..] s32 = storage
-        let empty                   = values[1 until 1]
+        let empty = values[1 until 1]
         Swag.assert(empty.count == 0)
         return storage[0] + storage[1] + storage[2]
     }

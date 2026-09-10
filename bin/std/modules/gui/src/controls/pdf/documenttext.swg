@@ -30,7 +30,7 @@ impl DocumentText
     // Starts extracting the `pageCount` pages of `fileName` on a worker.
     mtd start(fileName: string, pageCount: u64)
     {
-        Swag.assert(!.started)
+        Swag.assert(not .started)
         .fileName = fileName
         .pages.resize(pageCount)
         .ready   = 0
@@ -64,7 +64,7 @@ impl DocumentText
     // Stops the worker after the page it is on and releases everything extracted.
     mtd stop()
     {
-        if !.started do
+        if not .started do
             return
         Atomic.exchange(&.cancel, 1)
         .task.wait()

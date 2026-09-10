@@ -722,7 +722,7 @@ ships; history lives in git, not here.
   and `interface` cases still answer a non-null block pointer whatever the payload is. The
   container's own nullability is not the payload's: a non-null `any` built by `Swag.makeAny(null, type)`
   and an interface whose `obj` was never set both hand back null, and `bin/std` already tests for
-  it — `encoder.swg` writes `if !itf.obj` on the raw field precisely because `.buffer` would not
+  it — `encoder.swg` writes `if not itf.obj` on the raw field precisely because `.buffer` would not
   let it ask.
 - Evidence: `semaIntrinsicDataOf` ([Sema.Intrinsic.cpp](../src/Compiler/Sema/Ast/Sema.Intrinsic.cpp))
   builds the `any` and `interface` results with `TypeInfo::makeBlockPointer(typeVoid(), flags)`,

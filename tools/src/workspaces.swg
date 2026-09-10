@@ -19,7 +19,7 @@ public func runStd(context: *Context, options: *Options)->s32 fail
     testArguments.add(["--build-cfg", options.buildCfg.toString()])
 
     var hasTests = options.module.isEmpty()
-    if !options.module.isEmpty()
+    if not options.module.isEmpty()
     {
         let moduleDir = Path.combine(context.workspacePath("std").toString(), "modules", options.module.toString())
         if hasUnitTests(moduleDir.toString())
@@ -29,7 +29,7 @@ public func runStd(context: *Context, options: *Options)->s32 fail
         }
     }
 
-    if !hasTests do
+    if not hasTests do
         return try buildStd(context, options)
 
     // Native execution covers the library contract in every configuration. Release also keeps
@@ -47,7 +47,7 @@ private func buildStd(context: *Context, options: *Options)->s32 fail
 {
     var arguments: Arguments
     arguments.add(["build", "--workspace", context.workspacePath("std").toString(), "--build-cfg", options.buildCfg.toString()])
-    if !options.module.isEmpty() do
+    if not options.module.isEmpty() do
         arguments.add(["--workspace-module", options.module.toString()])
 
     options.appendExtra(&arguments)
@@ -88,7 +88,7 @@ public func runExamples(context: *Context, options: *Options)->s32 fail
     var arguments: Arguments
     arguments.add([command.toString(), "--workspace", context.workspacePath("examples").toString()])
     arguments.add(["--build-cfg", options.buildCfg.toString()])
-    if !options.module.isEmpty() do
+    if not options.module.isEmpty() do
         arguments.add(["--workspace-module", options.module.toString()])
 
     options.appendWorkspace(&arguments)
@@ -142,7 +142,7 @@ private func runApplicationWorkspace(context: *Context, options: *Options, name,
 
         // Swag Scope's smoke is a format review, not only a startup check: the application opens
         // the immutable fixture attached to every registered viewer and exits when all are ready.
-        if command == "smoke" and name == "swagscope" and !options.hasRunArgument("--review-viewers")
+        if command == "smoke" and name == "swagscope" and not options.hasRunArgument("--review-viewers")
         {
             let fixtures = Path.combine(applicationWorkspace(context).toString(), "modules", "swagscope", "src", "tests", "datas")
             arguments.add(["--run-arg", Format.toString("--review-viewers=%", fixtures).toString()])
@@ -212,7 +212,7 @@ private func packageApplication(context: *Context, options: *Options, name: stri
 {
     let appDir     = applicationDirectory(context, options, name)
     let executable = Path.combine(appDir.toString(), Format.toString("%.exe", name).toString())
-    if !File.exists(executable)
+    if not File.exists(executable)
     {
         // The applications workspace may hold a shared contract module used by one or more
         // executables. It has no application payload to package, and a successful workspace build
@@ -263,7 +263,7 @@ private func copyBeside(source: string, directory: string, name: string) fail
 // samples. The command stays `test` either way; `build` only stops short of executing.
 public func runReference(context: *Context, options: *Options)->s32 fail
 {
-    if !options.module.isEmpty()
+    if not options.module.isEmpty()
     {
         Console.println("The language reference is one workspace and takes no module name.")
         return 1
@@ -299,18 +299,18 @@ public func runScripts(context: *Context, options: *Options)->s32 fail
     if command.isEmpty()
     {
         command = String.from("smoke")
-        if !options.module.isEmpty() do
+        if not options.module.isEmpty() do
             command = String.from("run")
     }
 
     // A name is resolved before anything is built, so a typo costs nothing.
     var named: String
-    if !options.module.isEmpty()
+    if not options.module.isEmpty()
     {
         named = Path.combine(scriptsDir.toString(), options.module.toString())
-        if !Utf8.endsWith(cast(const [..] u8) named.toString(), ".swgs") do
+        if not Utf8.endsWith(cast(const [..] u8) named.toString(), ".swgs") do
             named += ".swgs"
-        if !File.exists(named)
+        if not File.exists(named)
         {
             Console.println("Unknown script \"", options.module.toString(), "\". Available scripts:")
             for script in scriptFiles(scriptsDir.toString()) do
@@ -319,7 +319,7 @@ public func runScripts(context: *Context, options: *Options)->s32 fail
         }
     }
 
-    if !named.isEmpty() do
+    if not named.isEmpty() do
         return try runOneScript(context, options, command.toString(), named.toString())
 
     for script in scriptFiles(scriptsDir.toString())
@@ -360,9 +360,9 @@ private func runOneScript(context: *Context, options: *Options, command: string,
 
     if command == "smoke"
     {
-        if !options.hasRunArgument("swag.smoke") do
+        if not options.hasRunArgument("swag.smoke") do
             arguments.add(["swag.smoke"])
-        if !options.hasRunArgument("swag.sandbox") do
+        if not options.hasRunArgument("swag.sandbox") do
             arguments.add(["swag.sandbox"])
     }
 

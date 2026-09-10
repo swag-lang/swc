@@ -175,11 +175,11 @@ func optChainNarrowedRedundant(p: *OptChainNode?)->s32
     Swag.assert(optChainTwoLinks(true) == 9)
     Swag.assert(optChainTwoLinks(false) == -1)
     Swag.assert(optChainCondition(true))
-    Swag.assert(!optChainCondition(false))
+    Swag.assert(not optChainCondition(false))
 
     g_optChainNode.next = null
     Swag.assert(optChainTwoLinks(true) == -1)
-    Swag.assert(!optChainCondition(true))
+    Swag.assert(not optChainCondition(true))
     g_optChainNode.next = &g_optChainOther
 
     g_optChainNode.value = 42

@@ -224,8 +224,8 @@ func repairUpdate(result: *Update, scenario: PrintQueueScenario, source: Update)
 
             writePage(&result.pages[writeIndex], source[candidateIndex])
             used[candidateIndex] = true
-            writeIndex           += 1'u32
-            found                = true
+            writeIndex += 1'u32
+            found      = true
             break
         }
 
@@ -273,7 +273,7 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
 #test
 {
     var update: Update = {count: 3'u32, pages: [75, 47, 61, 0, 0]}
-    let first          = update[0]
+    let first = update[0]
     writePage(&update.pages[1], 53)
 
     var copied: Update
@@ -307,7 +307,7 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
     let expected2: Update = {count: 5'u32, pages: [97, 75, 47, 29, 13]}
 
     Swag.assert(isOrderedUpdate(&sample, &sample.updates[0]))
-    Swag.assert(!isOrderedUpdate(&sample, &sample.updates[3]))
+    Swag.assert(not isOrderedUpdate(&sample, &sample.updates[3]))
     Swag.assert(sampleAudit.updateCount == 6'u32)
     Swag.assert(sampleAudit.validUpdateCount == 3'u32)
     Swag.assert(sampleAudit.orderedMiddleSum == 143)

@@ -39,7 +39,7 @@ internal impl IActionUI for ActionProperties
     {
         let prop = cast(*Properties) cxt.wnd!
         let item = prop.menuItem
-        if !item do
+        if not item do
             return false
 
         let theme = prop.theme()
@@ -49,31 +49,31 @@ internal impl IActionUI for ActionProperties
         {
         case ActionProperties.Copy:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = strings().prop_Copy
-            evt.icon          = theme.icon(.Copy)
+            evt.name = strings().prop_Copy
+            evt.icon = theme.icon(.Copy)
 
         case ActionProperties.Paste:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = strings().prop_Paste
             evt.icon          = theme.icon(.Paste)
-            evt.disabled      = !prop.canChangeItem(item!) or !Clipboard.hasTypedValue(item.type!)
+            evt.disabled      = not prop.canChangeItem(item!) or not Clipboard.hasTypedValue(item.type!)
 
         case ActionProperties.ResetDefault:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = strings().prop_ResetDefault
             evt.icon          = theme.icon(.Undo)
-            evt.disabled      = !item.isModified
+            evt.disabled      = not item.isModified
 
         case ActionProperties.MoveUp:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = strings().prop_MoveUp
             evt.icon          = theme.icon(.ChevronUp)
-            evt.disabled      = !arr.arrElem or !prop.canChangeItem(arr.arrItem!) or prop.arrayElementIndex(arr.arrElem!) == 0
+            evt.disabled      = not arr.arrElem or not prop.canChangeItem(arr.arrItem!) or prop.arrayElementIndex(arr.arrElem!) == 0
 
         case ActionProperties.MoveDown:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name          = strings().prop_MoveDown
-            evt.icon          = theme.icon(.ChevronDown)
+            evt.name = strings().prop_MoveDown
+            evt.icon = theme.icon(.ChevronDown)
             var atEnd = true
             if arr.arrElem
             {
@@ -81,18 +81,18 @@ internal impl IActionUI for ActionProperties
                 atEnd = prop.arrayElementIndex(arr.arrElem) + 1 >= info.count
             }
 
-            evt.disabled = !arr.arrElem or !prop.canChangeItem(arr.arrItem!) or atEnd
+            evt.disabled = not arr.arrElem or not prop.canChangeItem(arr.arrItem!) or atEnd
 
         case ActionProperties.Remove:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = strings().prop_Remove
             evt.icon          = theme.icon(.Remove)
-            evt.disabled      = !arr.arrElem or !prop.canChangeItem(arr.arrItem!)
+            evt.disabled      = not arr.arrElem or not prop.canChangeItem(arr.arrItem!)
 
         case ActionProperties.RemoveAll:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name          = strings().prop_RemoveAll
-            evt.icon          = theme.icon(.RemoveAll)
+            evt.name = strings().prop_RemoveAll
+            evt.icon = theme.icon(.RemoveAll)
             var empty = true
             if arr.arrItem
             {
@@ -100,7 +100,7 @@ internal impl IActionUI for ActionProperties
                 empty = arrData.isEmpty()
             }
 
-            evt.disabled = !arr.arrItem or !prop.canChangeItem(arr.arrItem) or empty
+            evt.disabled = not arr.arrItem or not prop.canChangeItem(arr.arrItem) or empty
         }
 
         return true
@@ -110,7 +110,7 @@ internal impl IActionUI for ActionProperties
     {
         let prop = cast(*Properties) cxt.wnd!
         let item = prop.menuItem
-        if !item do
+        if not item do
             return false
 
         let arr = prop.menuArrayContext()
@@ -139,14 +139,14 @@ internal impl IActionUI for ActionProperties
                 prop.moveArrayValue(arr.arrElem, 1)
 
         case ActionProperties.Remove:
-            if !arr.arrElem do
+            if not arr.arrElem do
                 break
             if MessageDlg.confirm(prop.wnd.surface!, strings().prop_ConfirmRemove) != Dialog.BtnYes do
                 break
             prop.removeArrayValue(arr.arrElem)
 
         case ActionProperties.RemoveAll:
-            if !arr.arrItem do
+            if not arr.arrItem do
                 break
             if MessageDlg.confirm(prop.wnd.surface!, strings().prop_ConfirmRemoveAll) != Dialog.BtnYes do
                 break

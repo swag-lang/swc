@@ -47,7 +47,7 @@ private impl BitReader
     // Reads `count` bits as an unsigned value. `count` is at most 32.
     mtd read(count: u32)->u32
     {
-        if !count do
+        if not count do
             return 0
         if .bitPos + count > .size * 8
         {
@@ -83,7 +83,7 @@ private impl BitReader
         // ever leaving the range of either type: the usual `(value ^ sign) - sign` is one unsigned
         // subtraction below zero, which is a fault here rather than a wrap.
         let sign = 1'u32 << (count - 1)
-        if !(value & sign) do
+        if not (value & sign) do
             return cast(s32) value
         return cast(s32) (value - sign) - cast(s32) sign
     }
@@ -209,13 +209,13 @@ private impl Codec
             .totalSamples  = (cast(u64) reader.read(4) << 32) | cast(u64) reader.read(32)
         }
 
-        if !.info.sampleRate do
+        if not .info.sampleRate do
             fail InvalidFormatError{"FLAC stream declares no sample rate"}
         if .info.channels > MaxChannels do
             fail UnsupportedFormatError{"FLAC stream declares more than eight channels"}
         if .info.bitsPerSample < 4 or .info.bitsPerSample > 32 do
             fail UnsupportedFormatError{"FLAC sample width is outside the supported range"}
-        if !.info.maxBlockSize do
+        if not .info.maxBlockSize do
             fail InvalidFormatError{"FLAC stream declares no maximum block size"}
     }
 
@@ -291,7 +291,7 @@ private impl Codec
         }
 
         result.bitsPerSample = depthCode ? CodedDepths[depthCode] : .info.bitsPerSample
-        if !result.bitsPerSample do
+        if not result.bitsPerSample do
             fail InvalidFormatError{"FLAC frame uses the reserved sample width code"}
 
         if result.channelAssignment < 8 do
@@ -375,7 +375,7 @@ private impl Codec
 
         let depth = bitsPerSample - wasted
 
-        if !kind
+        if not kind
         {
             let value = reader.readSigned(depth)
             for index in blockSize do
@@ -538,7 +538,7 @@ private impl Codec
             var depth = header.bitsPerSample
             if (header.channelAssignment == 8 or header.channelAssignment == 10) and channel == 1 do
                 depth += 1
-            elif header.channelAssignment == 9 and !channel do
+            elif header.channelAssignment == 9 and not channel do
                 depth += 1
             try .readSubframe(&reader, .channels[channel].buffer!, header.blockSize, depth)
         }
@@ -558,9 +558,9 @@ private impl Codec
             {
                 let value  = .channels[channel][sample]
                 var scaled = shift > 0 ? value >> cast(u32) shift : value << cast(u32) -shift
-                scaled             = Math.clamp(scaled, -32768, 32767)
+                scaled = Math.clamp(scaled, -32768, 32767)
                 destination[index] = cast(s16) scaled
-                index              += 1
+                index  += 1
             }
         }
     }

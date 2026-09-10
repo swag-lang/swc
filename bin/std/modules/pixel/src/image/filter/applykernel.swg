@@ -35,11 +35,11 @@ impl Image
     #[Swag.Safety(.All, false)]
     mtd doKernel(dstImage: *Image, kernel: Kernel)
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
 
         let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
-        if !legacy
+        if not legacy
         {
             var context = {kernel: cast(const [..] s32) kernel, dstImage: dstImage}
             .visitPixels(&context)

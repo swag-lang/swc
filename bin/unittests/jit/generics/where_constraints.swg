@@ -58,7 +58,7 @@ impl MovingWindow
     func push(me, value: T)
     {
         .values[.next] = value
-        .next          = (.next + 1) % Count
+        .next = (.next + 1) % Count
         if .filled < Count do
             .filled += 1
     }

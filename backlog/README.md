@@ -34,6 +34,7 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-10 08:42 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-09 19:33 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-09 17:44 |
 | [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers | 2026-09-09 13:55 |
@@ -67,7 +68,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [app.scope.indesign.md](app.scope.indesign.md) | The Swag Scope InDesign viewer | 2026-09-06 07:51 |
 | [app.scope.opendocument.md](app.scope.opendocument.md) | The Swag Scope OpenDocument decoder and reader | 2026-09-06 07:51 |
 | [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-06 07:51 |
-| [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-06 07:51 |
 | [compiler.distribution.md](compiler.distribution.md) | Release delivery, first use, local learning, and agent-grade command discovery | 2026-09-06 07:51 |
 | [std.audio.md](std.audio.md) | `std/audio` | 2026-09-06 07:51 |
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` | 2026-09-06 07:51 |

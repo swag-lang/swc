@@ -298,7 +298,7 @@ private impl Layout
                 header    = source.readNative'StreamHeader()
                 hasHeader = true
             }
-            elif chunk.id == StreamFormatId and hasHeader and !.hasStream and header.kind == VideoStreamId
+            elif chunk.id == StreamFormatId and hasHeader and not .hasStream and header.kind == VideoStreamId
             {
                 if chunk.size < #sizeof(Bmp.Header) do
                     fail UnsupportedFormatError{"AVI video stream is not described by a bitmap header"}
@@ -308,7 +308,7 @@ private impl Layout
                 .streamIndex = index
                 .hasStream   = true
             }
-            elif chunk.id == StreamFormatId and hasHeader and !hasAudio and header.kind == AudioStreamId and chunk.size >= #sizeof(AudioFormat)
+            elif chunk.id == StreamFormatId and hasHeader and not hasAudio and header.kind == AudioStreamId and chunk.size >= #sizeof(AudioFormat)
             {
                 let format = source.readNative'AudioFormat()
                 if format.isPlayable()
@@ -341,7 +341,7 @@ private impl AudioFormat
     // Reports whether std/audio can stream this interleaved AVI format without conversion.
     mtd const isPlayable()->bool
     {
-        if .formatTag != PcmFormatTag or !.channels or !.sampleRate do
+        if .formatTag != PcmFormatTag or not .channels or not .sampleRate do
             return false
         if .bitsPerSample != 8 and .bitsPerSample != 16 and .bitsPerSample != 24 and .bitsPerSample != 32 do
             return false
@@ -402,16 +402,16 @@ impl IDecoder for Decoder
     {
         var layout: Layout
         layout.parse(source)
-        if !layout.hasMain do
+        if not layout.hasMain do
             fail InvalidFormatError{"AVI file has no main header"}
-        if !layout.hasStream do
+        if not layout.hasStream do
             fail UnsupportedFormatError{"AVI file has no video stream"}
-        if !layout.frameList do
+        if not layout.frameList do
             fail InvalidFormatError{"AVI file has no frame list"}
 
         .describeFrames(&layout)
         .buildFrameTable(source, &layout)
-        if !.frames.count do
+        if not .frames.count do
             fail InvalidFormatError{"AVI video stream has no frame"}
 
         .info.frameCount = .frames.count
@@ -474,7 +474,7 @@ impl IPlanarDecoder for Decoder
 
     mtd impl decodeFramePlanes(source: *ByteSource, target: *PlanarFrame) fail
     {
-        if !.isCoded do
+        if not .isCoded do
             fail UnsupportedFormatError{"AVI frames of this codec are not coded planes"}
 
         let current = .nextIndex
@@ -506,7 +506,7 @@ private impl Decoder
     mtd buildSoundTracks(source: *ByteSource, layout: const *Layout) fail
     {
         let path = source.path()
-        if !path.count do
+        if not path.count do
             return
 
         .soundTracks.reserve(layout.audioTracks.count)
@@ -517,7 +517,7 @@ private impl Decoder
 
             var packets: Array'SoundPacket
             .walkSoundPackets(source, layout, track, &packets)
-            if !packets.count do
+            if not packets.count do
                 continue
 
             let sound = SoundFile.openPcmPacketStream(path, track.format.encoding(), track.format.sampleRate, track.format.channels, packets.toSlice())
@@ -579,7 +579,7 @@ private impl Decoder
             return
         }
 
-        if !Slice.contains(UncompressedIds, compression) do
+        if not Slice.contains(UncompressedIds, compression) do
             fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support the AVI '%' video codec", describeId(compression)))}
 
         let bitCount = layout.format.biBitCount
@@ -613,7 +613,7 @@ private impl Decoder
     // the frame list itself always holds the answer, so a rejected index falls back to a walk.
     mtd readIndex(source: *ByteSource, layout: const *Layout, dataId, compressedId: u32)->bool
     {
-        if !layout.indexSize do
+        if not layout.indexSize do
             return false
 
         catch .readIndexEntries(source, layout, dataId, compressedId) as indexError
@@ -725,9 +725,9 @@ private impl Decoder
     mtd const resolveFrame(index: u64)->u64 fail
     {
         var found = index
-        while !.frames[found].size
+        while not .frames[found].size
         {
-            if !found do
+            if not found do
                 fail InvalidFormatError{"AVI stream starts with a frame that carries no picture"}
             found -= 1
         }

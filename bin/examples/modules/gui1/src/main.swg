@@ -8,12 +8,12 @@ var g_Button: *PushButton?
 func centerButton(view: *Wnd)
 {
     let button = g_Button
-    if !button do
+    if not button do
         return
 
     let clientRect = view.clientRect()
-    let x          = clientRect.horzCenter() - button.position.width * 0.5
-    let y          = clientRect.vertCenter() - button.position.height * 0.5
+    let x = clientRect.horzCenter() - button.position.width * 0.5
+    let y = clientRect.vertCenter() - button.position.height * 0.5
     button.setPosition({x, y, button.position.width, button.position.height})
 }
 

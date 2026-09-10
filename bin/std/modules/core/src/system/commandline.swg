@@ -60,21 +60,21 @@ func isOption(oneArg: string, _options: ParseOptions)->bool
 // Returns whether value.
 func isValue(oneArg: string, typeField: typeinfo, options: ParseOptions)->bool
 {
-    if !isOption(oneArg, options) do
+    if not isOption(oneArg, options) do
         return true
 
     let concreteType = Reflection.resolveAliases(typeField)
 
-    if !Reflection.isInteger(concreteType) and !Reflection.isFloat(concreteType) do
+    if not Reflection.isInteger(concreteType) and not Reflection.isFloat(concreteType) do
         return false
 
     if oneArg.count < 2 do
         return false
-    if !Latin1.isDigit(oneArg[1])
+    if not Latin1.isDigit(oneArg[1])
     {
-        if !Reflection.isFloat(concreteType) do
+        if not Reflection.isFloat(concreteType) do
             return false
-        if oneArg[1] != '.'u8 or oneArg.count < 3 or !Latin1.isDigit(oneArg[2]) do
+        if oneArg[1] != '.'u8 or oneArg.count < 3 or not Latin1.isDigit(oneArg[2]) do
             return false
     }
 
@@ -97,10 +97,10 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
     {
         var oneArg = it
         oneArg = Latin1.trim(oneArg)
-        if !oneArg.count do
+        if not oneArg.count do
             continue
 
-        if !isOption(oneArg, options)
+        if not isOption(oneArg, options)
         {
             allArgs.add(SplitArgument{value: oneArg, raw: oneArg})
             continue
@@ -221,7 +221,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             fail SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", oneArg))}
 
         let nextArg = allArgs[itp + 1]
-        if !nextArg.attachedValue and !isValue(nextArg.value, typeField, options) do
+        if not nextArg.attachedValue and not isValue(nextArg.value, typeField, options) do
             fail SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", oneArg))}
     }
 
@@ -237,9 +237,9 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
     for var itp = 0; itp < maxItp; itp += 1
     {
         var oneArg = allArgs[itp].value
-        if !isOption(oneArg, options)
+        if not isOption(oneArg, options)
         {
-            if options.capturePositionals and !seenOption
+            if options.capturePositionals and not seenOption
             {
                 result.positionals.add(String.from(oneArg))
                 continue
@@ -263,7 +263,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
 
         let fieldResult = getField(typeof, oneArg)
         let typeParam   = fieldResult.field
-        if !typeParam
+        if not typeParam
         {
             if options.captureUnknown
             {
@@ -323,7 +323,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             while itp + 1 != maxItp
             {
                 let nextArg = allArgs[itp + 1]
-                if !nextArg.attachedValue and !isValue(nextArg.value, arrayType, options) do
+                if not nextArg.attachedValue and not isValue(nextArg.value, arrayType, options) do
                     break
 
                 var other = nextArg.value

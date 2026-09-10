@@ -40,7 +40,7 @@ using Core, Core.Math, Pdf
     Swag.assert(courier.found and courier.font == .CourierOblique)
 
     let unknown = StandardFont.fromBaseName("Wingdings")
-    Swag.assert(!unknown.found)
+    Swag.assert(not unknown.found)
 
     let all: [6] StandardFont = [.Helvetica, .HelveticaBold, .TimesRoman, .TimesBoldItalic, .Courier, .CourierBoldOblique]
     for font in all
@@ -241,10 +241,10 @@ endcmap
 
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) "", objects.toSlice()).toSlice())
     let font     = &document.pages[0].fonts[0]
-    Swag.assert(!font.identityGlyphs)
+    Swag.assert(not font.identityGlyphs)
     Swag.assert(font.glyphIndex(3) == {7, true})
     Swag.assert(font.glyphIndex(4) == {8, true})
-    Swag.assert(!font.glyphIndex(5).found)
+    Swag.assert(not font.glyphIndex(5).found)
 }
 
 // The writer keeps the face each run asks for, and a decoded document reports the standard

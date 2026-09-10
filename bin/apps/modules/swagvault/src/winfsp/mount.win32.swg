@@ -42,7 +42,7 @@ namespace WinFsp
 
             traceWinFspStage("portable driver registration complete")
 
-            if !g_FspInterfaceReady
+            if not g_FspInterfaceReady
             {
                 traceWinFspStage("building FSP_FILE_SYSTEM_INTERFACE")
                 g_FspInterface      = makeInterface()
@@ -53,7 +53,7 @@ namespace WinFsp
             .context        = Memory.new'NativeMountContext()
             .context.volume = volume
             let sddl = Utf16.toZeroTerminated("O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)")
-            if !ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl.buffer, SddlRevisionOne, &.context.defaultSecurity, null)
+            if not ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl.buffer, SddlRevisionOne, &.context.defaultSecurity, null)
             {
                 .stop()
                 failWith("Windows could not create the volume security descriptor.")
@@ -72,7 +72,7 @@ namespace WinFsp
             params.volumeSerialNumber = volumeSerialNumber(params.volumeCreationTime)
             traceWinFspStage("volume identity initialized")
             params.fileInfoTimeout = 1000
-            params.flags           = VolumeCasePreservedNames | VolumeUnicodeOnDisk | VolumePersistentAcls | VolumePostCleanupModified | VolumePassDirectoryName
+            params.flags = VolumeCasePreservedNames | VolumeUnicodeOnDisk | VolumePersistentAcls | VolumePostCleanupModified | VolumePassDirectoryName
 
             // Saying it here is what makes Explorer, and every program that asks Windows before
             // it tries, treat the drive as read only. The volume refuses the write on its own
@@ -150,7 +150,7 @@ namespace WinFsp
                 .holdsRuntime = false
                 Swag.assert(g_WinFsp.mountCount != 0)
                 g_WinFsp.mountCount -= 1
-                if !g_WinFsp.mountCount do
+                if not g_WinFsp.mountCount do
                     unloadWinFsp()
             }
         }

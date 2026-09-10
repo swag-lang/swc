@@ -139,7 +139,7 @@ private func reportZipEntries(image: *BinaryImage, report: *BinaryReport, at, si
         report.hexField(scan + 8, 2, "Flags", cast(u64) flags, flags & 1 ? s.zip_Encrypted : "")
         report.hexField(scan + 38, 4, "ExternalAttributes", cast(u64) image.u32At(scan + 38))
 
-        if plain and !folder
+        if plain and not folder
         {
             let ratio = Format.toString(s.zip_Ratio, compressed * 100 / plain)
             report.derived(s.zip_Ratio, ratio.toString())
@@ -190,7 +190,7 @@ private func zipEndAt(image: *BinaryImage)->u64
 // Returns the calendar time the two packed DOS words name.
 private func zipTimeText(date, time: u16)->String
 {
-    if !date do
+    if not date do
         return String.from(BinaryNoValue)
     return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}", 1980 + (date >> 9), (date >> 5) & 0xF, date & 0x1F, time >> 11, (time >> 5) & 0x3F, (time & 0x1F) * 2)
 }

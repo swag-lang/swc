@@ -161,7 +161,7 @@ impl RichEditCtrl
             .clearSelection()
 
         case .CursorUp:
-            if !.isSelectionEmpty()
+            if not .isSelectionEmpty()
             {
                 let pt = .cursorDisplayPosition(.cursorPos)
                 .setCursorPos(.selectionStart())
@@ -172,7 +172,7 @@ impl RichEditCtrl
             .clearSelection()
 
         case .CursorDown:
-            if !.isSelectionEmpty()
+            if not .isSelectionEmpty()
             {
                 let pt = .cursorDisplayPosition(.cursorPos)
                 .setCursorPos(.selectionEnd())
@@ -363,7 +363,7 @@ impl RichEditCtrl
             .redo()
 
         case .ToggleOverwrite:
-            .overwriteMode = !.overwriteMode
+            .overwriteMode = not .overwriteMode
             .invalidate()
 
         case .ClipboardCopy:
@@ -395,14 +395,14 @@ impl RichEditCtrl
     mtd showContextMenu(surfacePos: Math.Point)
     {
         let readOnly = .isReadOnly()
-        let hasSel   = !.isSelectionEmpty()
+        let hasSel   = not .isSelectionEmpty()
 
         let menu = MenuCtrl.createPopup(me, owner: me)
-        if !readOnly do
-            menu.addItem(strings().edit_Cut, CtxCut, rightName: "Ctrl+X", disabled: !hasSel)
-        menu.addItem(strings().edit_Copy, CtxCopy, rightName: "Ctrl+C", disabled: !hasSel)
-        if !readOnly do
-            menu.addItem(strings().edit_Paste, CtxPaste, rightName: "Ctrl+V", disabled: !Clipboard.hasString())
+        if not readOnly do
+            menu.addItem(strings().edit_Cut, CtxCut, rightName: "Ctrl+X", disabled: not hasSel)
+        menu.addItem(strings().edit_Copy, CtxCopy, rightName: "Ctrl+C", disabled: not hasSel)
+        if not readOnly do
+            menu.addItem(strings().edit_Paste, CtxPaste, rightName: "Ctrl+V", disabled: not Clipboard.hasString())
         menu.addSeparator()
         menu.addItem(strings().edit_SelectAll, CtxSelectAll, rightName: "Ctrl+A")
 

@@ -92,14 +92,14 @@ for more complex and controlled iteration logic.
 */
 #test
 {
-    var a          = 0
-    var b          = 1
+    var a = 0
+    var b = 1
     var iterations = 0
 
     while a < 100 and b < 200
     {
-        a          += 10
-        b          += 20
+        a += 10
+        b += 20
         iterations += 1
     }
 

@@ -97,7 +97,7 @@ func executeProgram(initial: VmState, program: const [..] u8)->VmReport
             break
         }
 
-        if !jumped do
+        if not jumped do
             ip += 2
     }
 

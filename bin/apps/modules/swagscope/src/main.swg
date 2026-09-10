@@ -1,6 +1,6 @@
 #global using Core, Pixel, Gui
 
-const AppIcon             = #include("../datas/appicon.png")
+const AppIcon = #include("../datas/appicon.png")
 const ViewerSmokeArgument = "--review-viewers="
 
 var g_App: Application
@@ -30,7 +30,7 @@ func viewerSmokeDirectory(arguments: const [..] string)->String
 
     for argument in arguments[1 until arguments.count]
     {
-        if !Utf8.startsWith(cast(const [..] u8) argument, ViewerSmokeArgument) do
+        if not Utf8.startsWith(cast(const [..] u8) argument, ViewerSmokeArgument) do
             continue
         return String.from(argument[ViewerSmokeArgument.count until argument.count])
     }
@@ -69,10 +69,10 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     registerAppStrings(&g_App.resources)
 
     let stateRoot = Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag")
-    if !Directory.exists(stateRoot) do
+    if not Directory.exists(stateRoot) do
         discard catch Directory.create(stateRoot)
     let stateFolder = Path.combine(stateRoot, "scope")
-    if !Directory.exists(stateFolder) do
+    if not Directory.exists(stateFolder) do
         discard catch Directory.create(stateFolder)
     if Directory.exists(stateFolder)
     {
@@ -89,7 +89,7 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     // The file is queued before the window shows, so the first frame is the surface that
     // file is about to fill rather than the hint to drop one.
     let smokeDirectory = viewerSmokeDirectory(Env.arguments())
-    if !smokeDirectory.isEmpty()
+    if not smokeDirectory.isEmpty()
     {
         // The review owns termination after the last fixture. A compiler smoke frame bound would
         // otherwise be allowed to report success before a progressive viewer had finished.
@@ -99,7 +99,7 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     else
     {
         let startupFile = viewerStartupFile(Env.arguments())
-        if !startupFile.isEmpty() do
+        if not startupFile.isEmpty() do
             window.queueFile(startupFile.toString())
     }
 

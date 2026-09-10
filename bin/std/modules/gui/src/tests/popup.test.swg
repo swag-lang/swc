@@ -95,7 +95,7 @@ func popupListContentPainter(item: *PopupListCtrlItem, cxt: *PaintContext, rect:
     popup.addItem("B")
 
     Swag.assert(popup.items.count == 3)
-    Swag.assert(!popup.items[0]!.isSeparator)
+    Swag.assert(not popup.items[0]!.isSeparator)
     Swag.assert(popup.items[1]!.isSeparator)
     Swag.assert(popup.selectedIndex == Swag.U32.Max)
 

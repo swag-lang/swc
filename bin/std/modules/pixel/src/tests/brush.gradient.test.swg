@@ -11,7 +11,7 @@ using Swag, Core
     Swag.assert(linear.gradientStops[0].offset == 0)
     Swag.assert(linear.gradientStops[1].offset == 1)
     Swag.assert(linear.hasVisibleAlpha())
-    Swag.assert(!linear.isOpaque())
+    Swag.assert(not linear.isOpaque())
 
     linear.addGradientStop(0.5, Argb.Green)
     Swag.assert(linear.gradientStops.count == 3)
@@ -39,15 +39,15 @@ using Swag, Core
     tinted.multiplyTint(Color.fromArgb(128'u8, Argb.White))
     Swag.assert(tinted.color.a == 128)
     Swag.assert(tinted.hasVisibleAlpha())
-    Swag.assert(!tinted.isOpaque())
+    Swag.assert(not tinted.isOpaque())
 
     var transparent = radial
     transparent.setOpacityF32(0)
-    Swag.assert(!transparent.hasVisibleAlpha())
-    Swag.assert(!transparent.isOpaque())
+    Swag.assert(not transparent.hasVisibleAlpha())
+    Swag.assert(not transparent.isOpaque())
 
     let hidden = Brush.createLinearGradient(0, 0, 1, 1, Color.fromArgb(0'u8, Argb.White), Color.fromArgb(0'u8, Argb.Black))
-    Swag.assert(!hidden.hasVisibleAlpha())
+    Swag.assert(not hidden.hasVisibleAlpha())
 }
 
 // Gradient storage grows with authored content and preserves every sorted stop.

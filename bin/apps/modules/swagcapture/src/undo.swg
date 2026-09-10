@@ -255,7 +255,7 @@ impl Undo
             foreachSelected'BaseForm(capture, .selection)
             {
                 let t = formEditableText(itf)
-                if !t do
+                if not t do
                     continue
                 .oldText.add(t[])
             }
@@ -266,7 +266,7 @@ impl Undo
             {
                 let np = formFontNamePtr(itf)
                 let sp = formFontStylePtr(itf)
-                if !np do
+                if not np do
                     continue
                 .oldText.add(np[])
                 .oldU32.add(cast(u32) sp![])
@@ -277,7 +277,7 @@ impl Undo
             foreachSelected'BaseForm(capture, .selection)
             {
                 let sp = formFontStylePtr(itf)
-                if !sp do
+                if not sp do
                     continue
                 .oldU32.add(cast(u32) sp[])
             }
@@ -286,7 +286,7 @@ impl Undo
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !.acceptsType(Swag.kindOf(itf)) do
+                if not .acceptsType(Swag.kindOf(itf)) do
                     continue
                 let mdlType = .mdlType orelse #typeof(FormShape)
                 let save    = cast(*BaseForm) Memory.new(mdlType)!
@@ -328,7 +328,7 @@ impl Undo
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !.acceptsType(Swag.kindOf(itf)) do
+                if not .acceptsType(Swag.kindOf(itf)) do
                     continue
                 var val: u32
                 Reflection.readFieldValue(&val, .valRef, form)
@@ -339,7 +339,7 @@ impl Undo
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !itf.canRotate() do
+                if not itf.canRotate() do
                     continue
                 .oldU32.add(cast #bit (u32) form.rotate)
             }
@@ -458,7 +458,7 @@ impl Undo
         case .Ungroup:
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !form.groups.isEmpty() do
+                if not form.groups.isEmpty() do
                     form.groups.removeAtOrdered(0)
             }
 
@@ -468,7 +468,7 @@ impl Undo
             foreachSelected'BaseForm(capture, .selection)
             {
                 let t = formEditableText(itf)
-                if !t do
+                if not t do
                     continue
                 t[] = .text
                 formEditableTextDirty(itf)
@@ -479,7 +479,7 @@ impl Undo
             {
                 let np = formFontNamePtr(itf)
                 let sp = formFontStylePtr(itf)
-                if !np do
+                if not np do
                     continue
                 np[]  = .text
                 sp![] = .fontStyle
@@ -490,7 +490,7 @@ impl Undo
             foreachSelected'BaseForm(capture, .selection)
             {
                 let sp = formFontStylePtr(itf)
-                if !sp do
+                if not sp do
                     continue
                 sp[] = .fontStyle
                 formFontDirty(itf)
@@ -499,7 +499,7 @@ impl Undo
         case .SetFormFromModel:
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !.acceptsType(Swag.kindOf(itf)) do
+                if not .acceptsType(Swag.kindOf(itf)) do
                     continue
                 Swag.assert(.mdlValue != null)
                 if form.subKind != .mdlValue.subKind do
@@ -510,7 +510,7 @@ impl Undo
         case .SetTypedValue:
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !.acceptsType(Swag.kindOf(itf)) do
+                if not .acceptsType(Swag.kindOf(itf)) do
                     continue
                 Reflection.writeFieldValue(form, .valRef, &.valU32)
             }
@@ -520,7 +520,7 @@ impl Undo
         case .ResetRotation:
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !itf.canRotate() do
+                if not itf.canRotate() do
                     continue
                 form.rotate = 0
             }
@@ -679,7 +679,7 @@ impl Undo
         case .Group:
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !form.groups.isEmpty() and form.groups[0] == .groupId do
+                if not form.groups.isEmpty() and form.groups[0] == .groupId do
                     form.groups.removeAtOrdered(0)
             }
 
@@ -698,7 +698,7 @@ impl Undo
             foreachSelected'BaseForm(capture, .selection)
             {
                 let t = formEditableText(itf)
-                if !t do
+                if not t do
                     continue
                 t[] = .oldText[idx]
                 formEditableTextDirty(itf)
@@ -709,7 +709,7 @@ impl Undo
             {
                 let np = formFontNamePtr(itf)
                 let sp = formFontStylePtr(itf)
-                if !np do
+                if not np do
                     continue
                 np[]  = .oldText[idx]
                 sp![] = cast() .oldU32[idx]
@@ -720,7 +720,7 @@ impl Undo
             foreachSelected'BaseForm(capture, .selection)
             {
                 let sp = formFontStylePtr(itf)
-                if !sp do
+                if not sp do
                     continue
                 sp[] = cast() .oldU32[idx]
                 formFontDirty(itf)
@@ -729,7 +729,7 @@ impl Undo
         case .SetFormFromModel:
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !.acceptsType(Swag.kindOf(itf)) do
+                if not .acceptsType(Swag.kindOf(itf)) do
                     continue
                 if form.subKind == .mdlValue!.subKind do
                     itf.copy(form, .oldForm[idx])
@@ -738,7 +738,7 @@ impl Undo
         case .SetTypedValue:
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !.acceptsType(Swag.kindOf(itf)) do
+                if not .acceptsType(Swag.kindOf(itf)) do
                     continue
                 var val = .oldU32[idx]
                 Reflection.writeFieldValue(form, .valRef, &val)
@@ -749,7 +749,7 @@ impl Undo
         case .ResetRotation:
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !itf.canRotate() do
+                if not itf.canRotate() do
                     continue
                 form.rotate = cast #bit (f32) .oldU32[idx]
             }

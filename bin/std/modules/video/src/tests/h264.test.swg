@@ -7,7 +7,7 @@ using Core, Core.Errors, Pixel
 // whole stream prefix. The pyramid fixture carries a later clean decode point.
 #test
 {
-    var source             = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-pyramid.mp4").toString())
+    var source = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-pyramid.mp4").toString())
     var decoder:  Mp4.Decoder
     let idecoder: IDecoder = &decoder
     discard expect idecoder.open(&source)
@@ -38,7 +38,7 @@ using Core, Core.Errors, Pixel
 {
     Swag.setWorkerCount(16)
 
-    var source             = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-pyramid.mp4").toString())
+    var source = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-pyramid.mp4").toString())
     var decoder:  Mp4.Decoder
     let idecoder: IDecoder = &decoder
     discard expect idecoder.open(&source)
@@ -107,7 +107,7 @@ using Core, Core.Errors, Pixel
 // released, or a long playback starves the decoder's frame pool.
 #test
 {
-    var source             = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-pyramid.mp4").toString())
+    var source = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-pyramid.mp4").toString())
     var decoder:  Mp4.Decoder
     let idecoder: IDecoder = &decoder
     discard expect idecoder.open(&source)

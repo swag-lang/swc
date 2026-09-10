@@ -315,7 +315,7 @@ private func encodePayload(codecs: Array'ICodec, codecId: Guid128, source: const
     }
 
     let codec = findCodec(codecs, codecId)
-    if !codec do
+    if not codec do
         fail UnsupportedFormatError{"SCC has no encoder for the selected chunk codec"}
     return codec.encode(source)
 }
@@ -336,7 +336,7 @@ private func decodePayload(codecs: Array'ICodec, info: const *ChunkInfo, source:
     }
 
     let codec = findCodec(codecs, info.codecId)
-    if !codec do
+    if not codec do
         fail UnsupportedFormatError{"SCC has no decoder for this chunk codec"}
     return codec.decode(source, info.decodedSize)
 }
@@ -359,9 +359,9 @@ private func validateManifest(manifest: const *Manifest, chunks: const [..] Chun
         if entry.parentId == entry.id do
             fail InvalidFormatError{"SCC virtual entry cannot be its own parent"}
         entryKinds.add(entry.id, entry.kind)
-        if !entry.primaryChunk.isNull() and !chunkIds.contains(entry.primaryChunk) do
+        if not entry.primaryChunk.isNull() and not chunkIds.contains(entry.primaryChunk) do
             fail InvalidFormatError{"SCC virtual entry references an unknown primary chunk"}
-        for chunkId in entry.variantChunks where !chunkIds.contains(chunkId) do
+        for chunkId in entry.variantChunks where not chunkIds.contains(chunkId) do
             fail InvalidFormatError{"SCC virtual entry references an unknown variant chunk"}
     }
 
@@ -370,7 +370,7 @@ private func validateManifest(manifest: const *Manifest, chunks: const [..] Chun
         if entry.parentId.isNull() do
             continue
         let parent = entryKinds.tryFind(entry.parentId)
-        if !parent do
+        if not parent do
             fail InvalidFormatError{"SCC virtual entry references an unknown parent"}
         if parent.value != .Directory do
             fail InvalidFormatError{"SCC virtual entry parent must be a directory"}
@@ -382,7 +382,7 @@ impl Writer
     // Initializes this writer as an empty container for `containerKind`.
     mtd initialize(containerKind: Guid128)
     {
-        Swag.assert(!containerKind.isNull())
+        Swag.assert(not containerKind.isNull())
         .header.containerKind = containerKind
         .header.containerId   = Guid128.random()
     }
@@ -403,10 +403,10 @@ impl Writer
     // Registers a borrowed custom chunk codec.
     mtd registerCodec(codec: ICodec)
     {
-        Swag.assert(!codec.id().isNull())
-        Swag.assert(!sameId(codec.id(), deflateCodecId()))
+        Swag.assert(not codec.id().isNull())
+        Swag.assert(not sameId(codec.id(), deflateCodecId()))
         for current in .codecs do
-            Swag.assert(!sameId(current.id(), codec.id()))
+            Swag.assert(not sameId(current.id(), codec.id()))
         .codecs.add(codec)
     }
 
@@ -453,7 +453,7 @@ impl Writer
                 fail OverflowError{"SCC chunk layout exceeds the addressable file size"}
             .chunks[i].info.offset   = dataOffset
             .header.chunks[i].offset = dataOffset
-            dataOffset               += .chunks[i].info.storedSize
+            dataOffset += .chunks[i].info.storedSize
         }
 
         .header.declaredFileSize = dataOffset
@@ -477,7 +477,7 @@ impl Writer
         var committed = false
         defer
         {
-            if !committed and File.exists(temporary) do
+            if not committed and File.exists(temporary) do
                 discard catch File.delete(temporary)
         }
 
@@ -523,7 +523,7 @@ impl Reader
         .stream = File.openRead(fileName)
 
         var prefix: [PrefixSize] u8
-        if !.stream.readExact(prefix) do
+        if not .stream.readExact(prefix) do
             fail InvalidFormatError{"SCC prefix is truncated"}
         if Swag.memcmp(&prefix[0], Magic.buffer, Magic.count) != 0 do
             fail InvalidFormatError{"file does not contain an SCC signature"}
@@ -543,7 +543,7 @@ impl Reader
 
         var headerBytes: Array'u8
         headerBytes.resize(headerSize)
-        if !.stream.readExact(headerBytes.toSlice()) do
+        if not .stream.readExact(headerBytes.toSlice()) do
             fail InvalidFormatError{"SCC header is truncated"}
         if Hash.Crc32.compute(headerBytes.toSlice()) != readU32(prefix, 24) do
             fail InvalidFormatError{"SCC header checksum does not match its bytes"}
@@ -551,7 +551,7 @@ impl Reader
         .header = try decodeHeader(headerBytes.toSlice())
         if .header.manifest.version > 1 do
             fail InvalidVersion{wantedVersion: 1, foundVersion: .header.manifest.version}
-        if .header.containerKind.isNull() or .header.containerId.isNull() or !.header.generation do
+        if .header.containerKind.isNull() or .header.containerId.isNull() or not .header.generation do
             fail InvalidFormatError{"SCC header identities and generation must be non-null"}
         if .header.chunks.count > limits.maxChunkCount do
             fail OverflowError{"SCC chunk count exceeds the configured limit"}
@@ -574,7 +574,7 @@ impl Reader
             previousEnd = chunk.offset + chunk.storedSize
             if chunk.codecId.isNull() and chunk.decodedSize != chunk.storedSize do
                 fail InvalidFormatError{"an uncompressed SCC chunk has different stored and decoded sizes"}
-            if !chunk.storedSize and chunk.decodedSize do
+            if not chunk.storedSize and chunk.decodedSize do
                 fail OverflowError{"SCC chunk expansion ratio exceeds the configured limit"}
             if chunk.storedSize
             {
@@ -603,10 +603,10 @@ impl Reader
     // Registers a borrowed custom chunk codec.
     mtd registerCodec(codec: ICodec)
     {
-        Swag.assert(!codec.id().isNull())
-        Swag.assert(!sameId(codec.id(), deflateCodecId()))
+        Swag.assert(not codec.id().isNull())
+        Swag.assert(not sameId(codec.id(), deflateCodecId()))
         for current in .codecs do
-            Swag.assert(!sameId(current.id(), codec.id()))
+            Swag.assert(not sameId(current.id(), codec.id()))
         .codecs.add(codec)
     }
 
@@ -645,12 +645,12 @@ impl Reader
     mtd readStoredChunk(id: Guid128)->Array'u8 fail
     {
         let info = .findChunk(id)
-        if !info do
+        if not info do
             fail BadParameterError{"SCC has no chunk with this identifier"}
 
         var result: retval
         result.resize(info.storedSize)
-        if !.stream.readExactAt(info.offset, result.toSlice()) do
+        if not .stream.readExactAt(info.offset, result.toSlice()) do
             fail InvalidFormatError{"SCC chunk payload is truncated"}
         if Hash.Crc32.compute(result.toSlice()) != info.storedChecksum do
             fail InvalidFormatError{"SCC stored chunk checksum does not match its bytes"}
@@ -661,7 +661,7 @@ impl Reader
     mtd readChunk(id: Guid128)->Array'u8 fail
     {
         let info = .findChunk(id)
-        if !info do
+        if not info do
             fail BadParameterError{"SCC has no chunk with this identifier"}
 
         var stored = try .readStoredChunk(id)
@@ -679,7 +679,7 @@ func hasSignature(fileName: string)->bool fail
 {
     var stream = File.openRead(fileName)
     var magic: [8] u8
-    if !stream.readExact(magic) do
+    if not stream.readExact(magic) do
         return false
     return Swag.memcmp(&magic[0], Magic.buffer, Magic.count) == 0
 }

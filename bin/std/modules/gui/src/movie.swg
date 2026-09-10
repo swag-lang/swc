@@ -91,7 +91,7 @@ private impl Movie
         if nextIndex == .frameCount
         {
             .completedLoops += 1
-            if !.loops or (.usesEncodedLoops and .reader.isOpen() and .reader.info.loopCount and .completedLoops >= .reader.info.loopCount)
+            if not .loops or (.usesEncodedLoops and .reader.isOpen() and .reader.info.loopCount and .completedLoops >= .reader.info.loopCount)
             {
                 .isPaused = true
                 return false
@@ -109,7 +109,7 @@ private impl Movie
             break
 
         case .Gif, .ImageSet:
-            if !.decodeFrame(nextIndex) do
+            if not .decodeFrame(nextIndex) do
                 return false
         }
 
@@ -172,7 +172,7 @@ impl Movie
         .frameCount = cast(s32) .reader.info.frames.count
         .frameIndex = cast(s32) firstIndex
         .frame      = #move firstFrame
-        .isPaused   = !.isAnimated()
+        .isPaused   = not .isAnimated()
         .cacheFrame(.frameIndex, .frame)
     }
 
@@ -182,7 +182,7 @@ impl Movie
     // Returns the indexed description of the current encoded frame, or null for a sprite sheet.
     mtd const frameInfo()->const *ImageFrameInfo?
     {
-        if !.reader.isOpen() do
+        if not .reader.isOpen() do
             return null
         return &.reader.info.frames[cast(u32) .frameIndex]
     }
@@ -205,7 +205,7 @@ impl Movie
     // Call this on a loading worker before publishing a movie to a GUI control.
     mtd prepareCache() fail
     {
-        if !.isAnimated() or !.cachesFrames do
+        if not .isAnimated() or not .cachesFrames do
             return
         while .cachedFrames.count < cast(u64) .frameCount
         {
@@ -233,7 +233,7 @@ impl Movie
     // Selects a frame, clamping the index to the loaded frame range.
     mtd setFrameIndex(index: s32)
     {
-        if !.isValid() do
+        if not .isValid() do
             return
 
         let targetIndex = Math.clamp(index, 0, .frameCount - 1)
@@ -246,7 +246,7 @@ impl Movie
             break
 
         case .Gif, .ImageSet:
-            if !.decodeFrame(targetIndex) do
+            if not .decodeFrame(targetIndex) do
                 return
 
         case .SpriteSheet:
@@ -264,7 +264,7 @@ impl Movie
     mtd setPaused(paused: bool)
     {
         .isPaused = paused
-        if !paused do
+        if not paused do
             .completedLoops = 0
     }
 
@@ -285,7 +285,7 @@ impl Movie
         while .elapsedFrameSeconds >= .currentFrameDuration()
         {
             .elapsedFrameSeconds -= .currentFrameDuration()
-            if !.nextFrame()
+            if not .nextFrame()
             {
                 .elapsedFrameSeconds = 0
                 break

@@ -148,7 +148,7 @@ internal struct MarkdownZoomButton
 {
     using button: IconButton
 
-        late
+    late
     {
         view:       *Markdown.View
         themeCombo: *ComboBox
@@ -167,7 +167,7 @@ impl IWnd for MarkdownZoomButton
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer != .statisticsTimer or !.statisticsLoad.isDone() do
+        if evt.timer != .statisticsTimer or not .statisticsLoad.isDone() do
             return
         .removeTimer(evt.timer)
         .statisticsTimer = null
@@ -181,9 +181,9 @@ impl MarkdownZoomButton
 {
     mtd reportStatistics()
     {
-        if !.reportDetails do
+        if not .reportDetails do
             return
-        if !.hasStatistics
+        if not .hasStatistics
         {
             .reportDetails!(.view, markdownStrings().ui_Details)
             return
@@ -214,6 +214,7 @@ impl MarkdownZoomButton
         .zoomPercent = bounded
         .setText(Format.toString("% %", bounded, "%"))
         applyMarkdownViewerStyle(.view, .themeCombo.selectedIndex, .widthCombo.selectedIndex, bounded, applyColors: false)
+
         // The window saves preferences on navigation and close, outside wheel handling.
         g_MarkdownViewerSettings.zoomPercent = bounded
     }
@@ -255,6 +256,7 @@ impl MarkdownZoomButton
         {
             (cast(*MarkdownZoomButton) button).showZoomMenu()
         }
+
         return result
     }
 }
@@ -263,7 +265,7 @@ impl MarkdownZoomButton
 func createMarkdownViewer(host: Viewer.Host)
 {
     let view = Markdown.View.createFile(host.contentParent(), host.fileName(), Markdown.Style.theme())
-    if !view.failureReason.isEmpty()
+    if not view.failureReason.isEmpty()
     {
         host.reject(view.failureReason.toString())
         view.destroy()
@@ -373,6 +375,7 @@ func createMarkdownViewer(host: Viewer.Host)
         applyMarkdownViewerStyle(view, index, widthCombo.selectedIndex, zoomButton.zoomPercent)
         catch g_App.saveState()
     }
+
     widthCombo.sigChanged += func|view, themeCombo, zoomButton|(combo, index)
     {
         discard combo
@@ -380,6 +383,7 @@ func createMarkdownViewer(host: Viewer.Host)
         applyMarkdownViewerStyle(view, themeCombo.selectedIndex, index, zoomButton.zoomPercent, applyColors: false)
         catch g_App.saveState()
     }
+
     view.sigLinkActivated += func(markdown, url)
     {
         discard markdown

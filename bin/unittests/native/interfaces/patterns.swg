@@ -60,10 +60,10 @@ func dispatch(base: *Base)->s32
     let actions: [2] IAction = [cast(IAction) undo, cast(IAction) redo]
 
     Swag.assert(actions[0].accept(1))
-    Swag.assert(!actions[0].accept(2))
+    Swag.assert(not actions[0].accept(2))
     Swag.assert(actions[0].execute(2) == 42)
     Swag.assert(actions[1].accept(2))
-    Swag.assert(!actions[1].accept(1))
+    Swag.assert(not actions[1].accept(1))
     Swag.assert(actions[1].execute(3) == 83)
 }
 

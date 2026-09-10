@@ -137,16 +137,16 @@ func isWholeWordMatch(source: string, match: u64, length: u64)->bool
 // Appends every non-overlapping match in one text container.
 func collectTextMatches(source, query: string, options: SearchOptions, major, minor, baseOffset: u64, result: *Array'SearchMatch)
 {
-    if !query.count do
+    if not query.count do
         return
 
     if options.regularExpression
     {
         var localExpression: Parser.RegExp
         var expression = options.expression
-        if !expression
+        if not expression
         {
-            catch localExpression.compile(query, ignoreCase: !options.matchCase) as expressionError
+            catch localExpression.compile(query, ignoreCase: not options.matchCase) as expressionError
             if expressionError != null do
                 return
             expression = &localExpression
@@ -157,10 +157,10 @@ func collectTextMatches(source, query: string, options: SearchOptions, major, mi
         {
             // Zero-width expressions are meaningful to a parser, but there is no document span
             // for a viewer to outline or select.
-            if !value.count do
+            if not value.count do
                 continue
             let found = cast(u64) cast(s64) (value.buffer - sourceData)
-            if !options.wholeWord or isWholeWordMatch(source, found, value.count) do
+            if not options.wholeWord or isWholeWordMatch(source, found, value.count) do
                 result.add({major, minor, baseOffset + found, value.count})
         }
 
@@ -175,7 +175,7 @@ func collectTextMatches(source, query: string, options: SearchOptions, major, mi
         if found == Swag.U64.Max do
             break
 
-        if !options.wholeWord or isWholeWordMatch(source, found, query.count) do
+        if not options.wholeWord or isWholeWordMatch(source, found, query.count) do
             result.add({major, minor, baseOffset + found, query.count})
         from = found + Math.max(query.count, 1)
     }
@@ -184,9 +184,9 @@ func collectTextMatches(source, query: string, options: SearchOptions, major, mi
 // Reports whether a non-empty regular-expression query can be compiled.
 func patternIsValid(query: string, options: SearchOptions)->bool
 {
-    if !options.regularExpression or !query.count do
+    if not options.regularExpression or not query.count do
         return true
-    discard catch Parser.RegExp.create(query, ignoreCase: !options.matchCase) as expressionError
+    discard catch Parser.RegExp.create(query, ignoreCase: not options.matchCase) as expressionError
     return expressionError == null
 }
 
@@ -204,7 +204,7 @@ func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length
         while scan < Math.min(byteOffset, source.count)
         {
             let {c, eat} = Utf8.decodeRune(source[scan to])
-            if !eat do
+            if not eat do
                 break
             scan += eat
             if c == '\r' do
@@ -236,7 +236,7 @@ func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length
 func richEditMatchBounds(editor: *RichEditCtrl, result: *Math.Rectangle)->bool
 {
     result[] = editor.selectionRect()
-    return !result.isEmpty()
+    return not result.isEmpty()
 }
 
 // Removes the rich-editor selection left by the last revealed match.
@@ -276,5 +276,5 @@ func listCellMatchBounds(list: *ListCtrl, index: u32, column: u32, text: string,
         return false
 
     result[] = list.listView.localToSurface(local)
-    return !result.isEmpty()
+    return not result.isEmpty()
 }

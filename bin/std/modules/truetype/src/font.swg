@@ -151,7 +151,7 @@ impl FaceImpl
     // Returns the character identifier map of a CID-keyed CFF, or nothing for another font.
     mtd glyphIndexByCid(cid: u32)->u32
     {
-        if .outlineSource != .Cff or !.cff.isCid do
+        if .outlineSource != .Cff or not .cff.isCid do
             return 0
         return .cff.cidToGid.getOrDefault(cid, 0)
     }
@@ -159,7 +159,7 @@ impl FaceImpl
 
 func getFaceImpl(face: *Face?)->*FaceImpl fail
 {
-    if !face do
+    if not face do
         fault(0x23)
     let safeFace = face!
     return cast(*FaceImpl) cast(*void) safeFace
@@ -184,7 +184,7 @@ func findTable(faceData: *FaceImpl, tag: u32)->const *TableRecord?
 func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->const [..] u8? fail
 {
     let rec = findTable(faceData, tag)
-    if !rec do
+    if not rec do
         fault(missingCode)
     let r = rec!
     return getSlice(faceData.fontData.toSlice(), r.offset, r.length)

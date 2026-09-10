@@ -10,11 +10,11 @@ public impl Image
     // Fill with an horizontal gradient from 'color0' to 'color1'
     mtd fillGradient(color0, color1: Color)
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
 
         let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
-        if !legacy
+        if not legacy
         {
             var context = {color0: color0, color1: color1}
             .transformLogicalPixels(&context)
@@ -69,12 +69,12 @@ public impl Image
     // Fill with a gradient with a different color at each corner
     mtd fillGradient(topLeft, topRight, bottomLeft, bottomRight: Color)
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
 
         var ctx    = FillGradient4Context{topLeft, topRight, bottomLeft, bottomRight}
         let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
-        if !legacy
+        if not legacy
         {
             .transformLogicalPixels(&ctx)
             {

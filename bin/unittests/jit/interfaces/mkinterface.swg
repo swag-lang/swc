@@ -45,7 +45,7 @@ func runActionRegistry()->bool
         Swag.makeInterface(null, #typeof(RedoAction{}), IAction)
         ]
 
-    var local               = UndoAction{}
+    var local = UndoAction{}
     var castAction: IAction = local
 
     return actions[0].accept(1) and

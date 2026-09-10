@@ -127,22 +127,22 @@ struct ThemeMetrics
         btnIcon_SpacingTextH:  f32 = 8     // Theme measurement used for btn icon spacing text h.
         btnIcon_SpacingTextV:  f32 = 0     // Theme measurement used for btn icon spacing text v.
 
-        frameWnd_SquarePadding:            f32          = 5                  // Theme measurement used for frame wnd square padding.
-        frameWnd_RoundPadding:             f32          = 5                  // Theme measurement used for frame wnd round padding.
-        frameWnd_FlatPadding:              f32          = 2                  // Theme measurement used for frame wnd flat padding.
+        frameWnd_SquarePadding:            f32 = 5                           // Theme measurement used for frame wnd square padding.
+        frameWnd_RoundPadding:             f32 = 5                           // Theme measurement used for frame wnd round padding.
+        frameWnd_FlatPadding:              f32 = 2                           // Theme measurement used for frame wnd flat padding.
         frameWnd_SmallShadowSize:          Math.Vector4 = {5, 5, 15, 15}     // Theme measurement used for frame wnd small shadow size.
-        frameWnd_AnchorWidth:              f32          = 24                 // Theme measurement used for frame wnd anchor width.
-        frameWnd_AnchorHeight:             f32          = 10                 // Theme measurement used for frame wnd anchor height.
-        frameWnd_AnchorOverlap:            f32          = 2                  // Theme measurement used for frame wnd anchor overlap.
-        frameWnd_AnchorRoundBorderMargin:  f32          = 16                 // Theme measurement used for frame wnd anchor round border margin.
-        frameWnd_AnchorSquareBorderMargin: f32          = 8                  // Theme measurement used for frame wnd anchor square border margin.
+        frameWnd_AnchorWidth:              f32 = 24                          // Theme measurement used for frame wnd anchor width.
+        frameWnd_AnchorHeight:             f32 = 10                          // Theme measurement used for frame wnd anchor height.
+        frameWnd_AnchorOverlap:            f32 = 2                           // Theme measurement used for frame wnd anchor overlap.
+        frameWnd_AnchorRoundBorderMargin:  f32 = 16                          // Theme measurement used for frame wnd anchor round border margin.
+        frameWnd_AnchorSquareBorderMargin: f32 = 8                           // Theme measurement used for frame wnd anchor square border margin.
 
         list_Padding:    f32 = 8      // Outer inset separating list rows from their frame.
         list_ExpandSize: f32 = 22     // Theme measurement used for list expand size.
 
-        header_Height:    f32          = 35                 // Theme measurement used for header height.
+        header_Height:    f32 = 35                          // Theme measurement used for header height.
         header_Padding:   Math.Vector4 = {10, 5, 10, 5}     // Theme measurement used for header padding.
-        header_Separator: f32          = 5                  // Theme measurement used for header separator.
+        header_Separator: f32 = 5                           // Theme measurement used for header separator.
 
         panel_GutterSize:  f32 = 4     // Gap separating a structural panel from adjacent application chrome.
         splitView_BarSize: f32 = 5     // Draggable gap between split panels, one pixel wider than the outer gutter.
@@ -185,9 +185,9 @@ struct ThemeMetrics
         // `toolTip_MaxHeight`, and it never scrolls — so both caps are a promise about the
         // largest box a reader can be shown, not a viewport onto a longer text.
         toolTip_Padding:   Math.Vector4 = {8, 6, 8, 6}     // Inset between a tool tip's border and its text.
-        toolTip_MaxWidth:  f32          = 360              // Width at which a tool tip wraps instead of growing.
-        toolTip_MaxHeight: f32          = 200              // Height at which a tool tip truncates instead of growing.
-        toolTip_Offset:    f32          = 12               // Gap a tool tip keeps from the pointer that summoned it.
+        toolTip_MaxWidth:  f32 = 360                       // Width at which a tool tip wraps instead of growing.
+        toolTip_MaxHeight: f32 = 200                       // Height at which a tool tip truncates instead of growing.
+        toolTip_Offset:    f32 = 12                        // Gap a tool tip keeps from the pointer that summoned it.
     }
 }
 

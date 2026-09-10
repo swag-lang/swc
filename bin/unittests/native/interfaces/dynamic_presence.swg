@@ -41,8 +41,8 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
     let value = metadata(#typeof(Metadata))
     Swag.assert(cast(bool) value)
     Swag.assert(value != null)
-    Swag.assert(!(value == null))
-    Swag.assert(!(!value))
+    Swag.assert(not (value == null))
+    Swag.assert(not (not value))
     Swag.assert(value and true)
     Swag.assert(false or value)
     Swag.assert((value ? 7 : 9) == 7)
@@ -62,16 +62,16 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
 #test
 {
     let value = metadata(#typeof(Other))
-    Swag.assert(!cast(bool) value)
+    Swag.assert(not cast(bool) value)
     Swag.assert(value == null)
-    Swag.assert(!(value != null))
-    Swag.assert(!value)
-    Swag.assert(!(value and true))
-    Swag.assert(!(false or value))
+    Swag.assert(not (value != null))
+    Swag.assert(not value)
+    Swag.assert(not (value and true))
+    Swag.assert(not (false or value))
     Swag.assert((value ? 7 : 9) == 9)
     var seen = false
     if value do seen = true
-    Swag.assert(!seen)
+    Swag.assert(not seen)
     Swag.assert((value?.answer() orelse 0) == 0)
     let fallback = Swag.makeInterface(null, Fallback, IMetadata)
     let selected = value orelse fallback
@@ -84,11 +84,11 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
     #assert(cast(bool) value)
     #assert(value != null)
     const missing = #run metadata(#typeof(Other))
-    #assert(!cast(bool) missing)
+    #assert(not cast(bool) missing)
     #assert(missing == null)
     const aliasMissing = cast(MetadataAlias?) missing
     #assert(aliasMissing == null)
-    #assert(!cast(bool) aliasMissing)
+    #assert(not cast(bool) aliasMissing)
     const fallback = #run metadata(#typeof(Fallback))
     const selected = missing orelse fallback
     #assert(cast(bool) selected)

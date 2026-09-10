@@ -91,7 +91,7 @@ impl Deque
 
     private mtd ensureFrontSegment()
     {
-        if .frontItems.count or !.backItems.count do
+        if .frontItems.count or not .backItems.count do
             return
 
         let sourceCount = .backItems.count
@@ -121,7 +121,7 @@ impl Deque
 
     private mtd ensureBackSegment()
     {
-        if .backItems.count or !.frontItems.count do
+        if .backItems.count or not .frontItems.count do
             return
 
         let sourceCount = .frontItems.count

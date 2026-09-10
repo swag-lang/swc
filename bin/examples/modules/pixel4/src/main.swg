@@ -357,7 +357,7 @@ func updateShortcuts()
 
 func updateTestMode()
 {
-    if !Env.isSmokeRun() do
+    if not Env.isSmokeRun() do
         return
 
     g_TestFrame += 1

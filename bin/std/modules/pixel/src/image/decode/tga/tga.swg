@@ -445,13 +445,13 @@ internal impl IImageDecoder for Decoder
             dataof += cast(u64) palette.count * palette.bytesPerPixel
         }
 
-        if isMappedType(header.imageTypeCode) and !palette.count do
+        if isMappedType(header.imageTypeCode) and not palette.count do
             fail InvalidFormatError{"missing palette"}
 
         var result: retval
         result.init(header.width, header.height, pixelFormat(header, palette))
 
-        if !options.decodePixels do
+        if not options.decodePixels do
             return result
 
         result.allocPixels()

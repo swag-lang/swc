@@ -297,8 +297,8 @@ impl Color
         var result: retval
 
         let {rf, gf, bf} = .toRgbF32()
-        let max          = Math.max(rf, gf, bf)
-        let min          = Math.min(rf, gf, bf)
+        let max = Math.max(rf, gf, bf)
+        let min = Math.min(rf, gf, bf)
         result.l = (max + min) * 0.5
         let delta = max - min
         if delta == 0
@@ -671,19 +671,19 @@ impl Core.StrConv.IPokeValue for Color
                 fail OverflowError{}
             one = Tokenize.eatCount(one, eat)
 
-            one            = Tokenize.eatSpaces(one)
+            one = Tokenize.eatSpaces(one)
             {.r, eat, ovf} = try parseU8(one)
             if ovf do
                 fail OverflowError{}
             one = Tokenize.eatCount(one, eat)
 
-            one            = Tokenize.eatSpaces(one)
+            one = Tokenize.eatSpaces(one)
             {.g, eat, ovf} = try parseU8(one)
             if ovf do
                 fail OverflowError{}
             one = Tokenize.eatCount(one, eat)
 
-            one            = Tokenize.eatSpaces(one)
+            one = Tokenize.eatSpaces(one)
             {.b, eat, ovf} = try parseU8(one)
             if ovf do
                 fail OverflowError{}

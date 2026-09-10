@@ -9,7 +9,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     Swag.assert(lease.wait(&cancelled))
     if lease.artifact!.result.failed do
         Console.print(lease.artifact!.result.text.toString())
-    Swag.assert(!lease.artifact!.result.failed)
+    Swag.assert(not lease.artifact!.result.failed)
 }
 
 // Identical requests share an in-flight process and retain completed output for later reuse.
@@ -22,7 +22,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
         var second = cache.acquire(request)
         Swag.assert(first.artifact == second.artifact and second.reused and cache.buildCount == 1)
         waitBuild(&second)
-        Swag.assert(!second.artifact!.result.text.isEmpty())
+        Swag.assert(not second.artifact!.result.text.isEmpty())
     }
 
     {
@@ -34,7 +34,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     cache.invalidate()
     {
         var fresh = cache.acquire(request)
-        Swag.assert(!fresh.reused and cache.buildCount == 2)
+        Swag.assert(not fresh.reused and cache.buildCount == 2)
         waitBuild(&fresh)
     }
 }
@@ -55,7 +55,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     {
         var unguarded = cache.acquire(request)
         waitBuild(&unguarded)
-        Swag.assert(!unguarded.reused and cache.buildCount == 2)
+        Swag.assert(not unguarded.reused and cache.buildCount == 2)
         Swag.assert(Utf8.indexOf(cast(const [..] u8) unguarded.artifact!.result.text.toString(), "safetyPanic") == Swag.U64.Max)
     }
 
@@ -65,7 +65,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     {
         var devmode = cache.acquire(request)
         waitBuild(&devmode)
-        Swag.assert(!devmode.reused and cache.buildCount == 3)
+        Swag.assert(not devmode.reused and cache.buildCount == 3)
         var output: CompilerOutput
         output.parse(devmode.artifact!.result.text.toString())
         Swag.assert(Utf8.indexOf(cast(const [..] u8) output.text.toString(), "  optimize : O1") != Swag.U64.Max)
@@ -84,7 +84,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     }
 
     waitBuild(&survivor)
-    Swag.assert(!Atomic.get(&survivor.artifact!.cancelled))
+    Swag.assert(not Atomic.get(&survivor.artifact!.cancelled))
 }
 
 // Pixel execution and inspection consume the same native build when settings match.
@@ -100,7 +100,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     let micro   = cast(*MicrocodeViewer) window.panels[1].viewer!.window()
     var watch: Time.Stopwatch
     watch.start()
-    while (micro.job.running or !preview.frameCount) and watch.elapsedMilliseconds() < 90000
+    while (micro.job.running or not preview.frameCount) and watch.elapsedMilliseconds() < 90000
     {
         Threading.Thread.sleep(5'ms)
         if micro.job.running do
@@ -111,7 +111,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 
     if preview.probe.failed do
         Console.print(preview.probe.diagnostics.toString())
-    Swag.assert(!micro.job.running and !micro.job.result.failed and preview.frameCount != 0)
+    Swag.assert(not micro.job.running and not micro.job.result.failed and preview.frameCount != 0)
     Swag.assert(micro.job.artifactId == preview.probe.artifactId and window.cache.buildCount == 1)
     Swag.assert(micro.outputText.colors.count != 0)
     window.shutdown()
@@ -131,7 +131,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     let second = cast(*PreviewViewer) window.panels[1].viewer!.window()
     var watch: Time.Stopwatch
     watch.start()
-    while (!first.frameCount or !second.frameCount) and watch.elapsedMilliseconds() < 90000
+    while (not first.frameCount or not second.frameCount) and watch.elapsedMilliseconds() < 90000
     {
         Threading.Thread.sleep(5'ms)
         if first.running do
@@ -147,7 +147,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     let pausedFrame = first.frameCount
     let otherFrame  = second.frameCount
     window.compile()
-    Swag.assert(!first.queued and !second.queued and first.frameCount == pausedFrame)
+    Swag.assert(not first.queued and not second.queued and first.frameCount == pausedFrame)
     while second.frameCount == otherFrame and watch.elapsedMilliseconds() < 90000
     {
         Threading.Thread.sleep(5'ms)
@@ -177,21 +177,21 @@ func waitBuild(lease: *Pipeline.BuildLease)
     window.liveEdit.setState(.Unchecked)
     let panel = window.panels[0]
     host.click(panel.optionsButton.localToSurface(Math.Point{18, 18}))
-    Swag.assert(panel.options.isVisible() and panel.optionsButton.isChecked and !panel.viewer!.window().isVisible())
+    Swag.assert(panel.options.isVisible() and panel.optionsButton.isChecked and not panel.viewer!.window().isVisible())
     panel.options.presetCombo.setSelectedIndex(1, notify: false)
     panel.options.editor.setText("#run { Swag.compiler().getBuildCfg()!.backend.vectorize = false }")
     panel.optimCombo.setSelectedIndex(2, notify: false)
     let settings = panel.request(window.editor.text().toString()).settings
     panel.selectViewer(.Gui)
     Swag.assert(panel.request(window.editor.text().toString()).settings.matches(settings))
-    Swag.assert(!panel.viewer!.window().isVisible())
+    Swag.assert(not panel.viewer!.window().isVisible())
     panel.selectViewer(.Render2D)
     panel.options.reset()
     Swag.assert(panel.optimCombo.selectedIndex == 0 and panel.options.presetCombo.selectedIndex == 0)
     Swag.assert(panel.options.editor.text().toString() == Pipeline.BuildSettings.DefaultConfiguration)
     Swag.assert(window.panels[1].optimCombo.selectedIndex == 2)
     panel.showOptions(false)
-    Swag.assert(panel.viewer!.window().isVisible() and !panel.optionsButton.isChecked)
+    Swag.assert(panel.viewer!.window().isVisible() and not panel.optionsButton.isChecked)
     window.shutdown()
 }
 
@@ -203,7 +203,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     expect artifact.run()
     if artifact.result.failed do
         Console.print(artifact.result.text.toString())
-    Swag.assert(!artifact.result.failed)
+    Swag.assert(not artifact.result.failed)
     for iteration in 3
     {
         discard iteration
@@ -221,8 +221,8 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var request: Pipeline.BuildRequest = {source: String.from("func dot(a, b: f32)->f32 => a * b"), stage: String.from("pre-emit")}
-    Swag.assert(request.kind == .Microcode and !request.needsDependency())
-    Swag.assert(!Utf8.contains(request.moduleSource().toString(), "#import"))
+    Swag.assert(request.kind == .Microcode and not request.needsDependency())
+    Swag.assert(not Utf8.contains(request.moduleSource().toString(), "#import"))
 
     request.source = String.from("using Core\nfunc value()->f32 => Math.sqrt(2'f32)")
     Swag.assert(request.needsDependency())

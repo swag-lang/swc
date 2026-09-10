@@ -18,7 +18,7 @@ public struct AboutDlg
         }
     }
 
-        late
+    late
     {
         late identityView:   *Wnd                 // Raised product block carrying the mark and heading.
         late identityAccent: *Separator           // Single Swag accent anchoring that product block.
@@ -94,7 +94,7 @@ public impl AboutDlg
             discard label
             if text == "Swag" do
                 Env.openUrl("https://www.swag-lang.org/")
-            elif !dlg.sourceUrl.isEmpty() do
+            elif not dlg.sourceUrl.isEmpty() do
                 Env.openUrl(dlg.sourceUrl.toString())
         }
 
@@ -214,7 +214,7 @@ public impl AboutDlg
         Swag.assert(title.count or content.count, "an about section carries no text")
 
         let metrics = .themeMetrics()
-        if !.sectionsScroll
+        if not .sectionsScroll
         {
             // Authored width, like the identity block above it: the column centers its children
             // vertically as a group and leaves the cross axis to each of them.
@@ -286,7 +286,7 @@ public impl AboutDlg
             }
         }
 
-        if !.fitsToContent do
+        if not .fitsToContent do
             return
 
         let availableWidth = Math.max(stack.position.width, 1)

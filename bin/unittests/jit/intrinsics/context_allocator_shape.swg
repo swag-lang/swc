@@ -62,7 +62,7 @@ func directContextAllocatorRoundtrip()->bool
 
     let directItf = Swag.getContext().allocator!
     directItf.alloc(&req)
-    if !req.address do
+    if not req.address do
         return false
 
     directItf.free(&req)
@@ -76,7 +76,7 @@ func copiedContextAllocatorRoundtrip()->bool
 
     let allocator = Swag.getContext().allocator!
     allocator.alloc(&req)
-    if !req.address do
+    if not req.address do
         return false
 
     allocator.free(&req)
@@ -94,7 +94,7 @@ func coalescedContextAllocatorRoundtrip()->bool
         return false
 
     allocator.alloc(&req)
-    if !req.address do
+    if not req.address do
         return false
 
     allocator.free(&req)

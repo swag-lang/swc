@@ -91,16 +91,16 @@ const GL_ARB_imaging                         = 1
 
 /* ------------------- GL_ARB_framebuffer_no_attachments ------------------- */
 
-const GL_FRAMEBUFFER_DEFAULT_WIDTH                  = 0x9310
-const GL_FRAMEBUFFER_DEFAULT_HEIGHT                 = 0x9311
-const GL_FRAMEBUFFER_DEFAULT_LAYERS                 = 0x9312
-const GL_FRAMEBUFFER_DEFAULT_SAMPLES                = 0x9313
+const GL_FRAMEBUFFER_DEFAULT_WIDTH      = 0x9310
+const GL_FRAMEBUFFER_DEFAULT_HEIGHT     = 0x9311
+const GL_FRAMEBUFFER_DEFAULT_LAYERS     = 0x9312
+const GL_FRAMEBUFFER_DEFAULT_SAMPLES    = 0x9313
 const GL_FRAMEBUFFER_DEFAULT_FIXED_SAMPLE_LOCATIONS = 0x9314
-const GL_MAX_FRAMEBUFFER_WIDTH                      = 0x9315
-const GL_MAX_FRAMEBUFFER_HEIGHT                     = 0x9316
-const GL_MAX_FRAMEBUFFER_LAYERS                     = 0x9317
-const GL_MAX_FRAMEBUFFER_SAMPLES                    = 0x9318
-const GL_ARB_framebuffer_no_attachments             = 1
+const GL_MAX_FRAMEBUFFER_WIDTH          = 0x9315
+const GL_MAX_FRAMEBUFFER_HEIGHT         = 0x9316
+const GL_MAX_FRAMEBUFFER_LAYERS         = 0x9317
+const GL_MAX_FRAMEBUFFER_SAMPLES        = 0x9318
+const GL_ARB_framebuffer_no_attachments = 1
 
 #[Extension, Swag.PlaceHolder]
 {
@@ -305,8 +305,8 @@ const GL_ARB_buffer_storage = 1
 alias GLclContext = *void?
 alias GLclEvent   = *void?
 
-const GL_ARB_cl_event               = 1
-const GL_SYNC_CL_EVENT_ARB          = 0x8240
+const GL_ARB_cl_event      = 1
+const GL_SYNC_CL_EVENT_ARB = 0x8240
 const GL_SYNC_CL_EVENT_COMPLETE_ARB = 0x8241
 
 #[Extension, Swag.PlaceHolder]
@@ -513,9 +513,9 @@ const GL_ARB_get_texture_sub_image = 1
 
 /* ---------------------------- GL_ARB_gl_spirv ---------------------------- */
 
-const GL_ARB_gl_spirv                    = 1
+const GL_ARB_gl_spirv      = 1
 const GL_SHADER_BINARY_FORMAT_SPIR_V_ARB = 0x9551
-const GL_SPIR_V_BINARY_ARB               = 0x9552
+const GL_SPIR_V_BINARY_ARB = 0x9552
 
 #[Extension, Swag.PlaceHolder]
 {
@@ -599,7 +599,7 @@ const GL_PARAMETER_BUFFER_BINDING_ARB = 0x80EF
 
 /* ------------------------ GL_ARB_instanced_arrays ------------------------ */
 
-const GL_ARB_instanced_arrays            = 1
+const GL_ARB_instanced_arrays = 1
 const GL_VERTEX_ATTRIB_ARRAY_DIVISOR_ARB = 0x88FE
 
 #[Extension, Swag.PlaceHolder]
@@ -718,7 +718,7 @@ const GL_ARB_robust_buffer_access_behavior = 1
 
 /* --------------------------- GL_ARB_robustness --------------------------- */
 
-const GL_ARB_robustness                     = 1
+const GL_ARB_robustness = 1
 const GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT_ARB = 0x00000004
 const GL_LOSE_CONTEXT_ON_RESET_ARB          = 0x8252
 const GL_GUILTY_CONTEXT_RESET_ARB           = 0x8253
@@ -764,8 +764,8 @@ const GL_FRAMEBUFFER_SAMPLE_LOCATION_PIXEL_GRID_ARB    = 0x9343
 
 /* ------------------------- GL_ARB_sample_shading ------------------------- */
 
-const GL_ARB_sample_shading           = 1
-const GL_SAMPLE_SHADING_ARB           = 0x8C36
+const GL_ARB_sample_shading = 1
+const GL_SAMPLE_SHADING_ARB = 0x8C36
 const GL_MIN_SAMPLE_SHADING_VALUE_ARB = 0x8C37
 
 #[Extension, Swag.PlaceHolder]
@@ -925,12 +925,12 @@ const GL_CLAMP_TO_BORDER_ARB      = 0x812D
 
 /* --------------------- GL_ARB_texture_buffer_object ---------------------- */
 
-const GL_ARB_texture_buffer_object             = 1
-const GL_TEXTURE_BUFFER_ARB                    = 0x8C2A
-const GL_MAX_TEXTURE_BUFFER_SIZE_ARB           = 0x8C2B
-const GL_TEXTURE_BINDING_BUFFER_ARB            = 0x8C2C
+const GL_ARB_texture_buffer_object   = 1
+const GL_TEXTURE_BUFFER_ARB          = 0x8C2A
+const GL_MAX_TEXTURE_BUFFER_SIZE_ARB = 0x8C2B
+const GL_TEXTURE_BINDING_BUFFER_ARB  = 0x8C2C
 const GL_TEXTURE_BUFFER_DATA_STORE_BINDING_ARB = 0x8C2D
-const GL_TEXTURE_BUFFER_FORMAT_ARB             = 0x8C2E
+const GL_TEXTURE_BUFFER_FORMAT_ARB   = 0x8C2E
 
 #[Extension, Swag.PlaceHolder]
 {

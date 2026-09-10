@@ -115,7 +115,7 @@ struct STGMEDIUM
 {
     public
     {
-        tymed:                DWORD
+        tymed: DWORD
         using DUMMYUNIONNAME: union
         {
             hGlobal: HANDLE        // Memory block, for `TYMED_HGLOBAL`.
@@ -172,6 +172,7 @@ struct IDataObjectVtbl
 {
     // The module builds this table and OLE is the only caller, so every entry starts
     // null and receives its function on the way in.
+
     late public
     {
         QueryInterface:        func(*IDataObject, const *GUID, *LPVOID)->HRESULT
@@ -226,6 +227,7 @@ struct IDropTargetVtbl
 {
     // The module builds this table and OLE is the only caller, so every entry starts
     // null and receives its function on the way in.
+
     late public
     {
         QueryInterface: func(*IDropTarget, const *GUID, *LPVOID)->HRESULT
@@ -247,6 +249,7 @@ struct IDropSourceVtbl
 {
     // The module builds this table and OLE is the only caller, so every entry starts
     // null and receives its function on the way in.
+
     late public
     {
         QueryInterface:    func(*IDropSource, const *GUID, *LPVOID)->HRESULT
@@ -266,6 +269,7 @@ struct IEnumFORMATETCVtbl
 {
     // The module builds this table and OLE is the only caller, so every entry starts
     // null and receives its function on the way in.
+
     late public
     {
         QueryInterface: func(*IEnumFORMATETC, const *GUID, *LPVOID)->HRESULT

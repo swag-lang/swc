@@ -12,7 +12,7 @@ func resetDropHooks()
 
 func helperFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null)
 {
-    if !buffer do
+    if not buffer do
         return
 
     var req: AllocatorRequest
@@ -37,7 +37,7 @@ func helperRealloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAl
 
 func memoryLikeFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if !buffer do
+    if not buffer do
         return
 
     var req: AllocatorRequest
@@ -166,7 +166,7 @@ impl DirectByteBuffer
 
     mtd free()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         Swag.drop(.buffer, .count)
@@ -176,7 +176,7 @@ impl DirectByteBuffer
         req.address = .buffer
         let talloc = .allocator!
         talloc.free(&req)
-        .buffer           = null
+        .buffer = null
         .count, .capacity = 0
     }
 }
@@ -223,12 +223,12 @@ impl HelperByteBuffer
 
     mtd free()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         Swag.drop(.buffer, .count)
         helperFree(.buffer, .capacity, .allocator)
-        .buffer           = null
+        .buffer = null
         .count, .capacity = 0
     }
 }
@@ -275,12 +275,12 @@ impl MemoryTrackedBuffer
 
     mtd free()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         Swag.drop(.buffer, .count)
         memoryLikeFree(.buffer, .capacity * #sizeof(DropTracked), .allocator)
-        .buffer           = null
+        .buffer = null
         .count, .capacity = 0
     }
 }

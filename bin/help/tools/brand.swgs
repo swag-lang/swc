@@ -89,7 +89,7 @@ impl MarkPen
         let px = .originX + (x + (GRID - y) * LEAN) * .scale
         let py = .originY + y * .scale
 
-        if !.started
+        if not .started
         {
             .path.start(px, py)
             .started = true

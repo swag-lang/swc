@@ -9,12 +9,12 @@ private const HtmlSvgRasterPixels = 8 * 1024 * 1024'u64
 // Resolves an offline resource without accepting URL schemes, UNC paths, or device namespaces.
 internal func htmlLocalResourcePath(basePath, source: string)->String
 {
-    if !Path.isValidPathName(source) or Utf8.contains(source, "://") or Utf8.startsWith(source, "data:") do
+    if not Path.isValidPathName(source) or Utf8.contains(source, "://") or Utf8.startsWith(source, "data:") do
         return {}
     let colon = Utf8.indexOf(source, ':'rune)
-    if colon != Swag.U64.Max and !(WINDOWS and colon == 1 and Latin1.isLetter(source[0])) do
+    if colon != Swag.U64.Max and not (WINDOWS and colon == 1 and Latin1.isLetter(source[0])) do
         return {}
-    if basePath.count and !Path.isValidPathName(basePath) do
+    if basePath.count and not Path.isValidPathName(basePath) do
         return {}
 
     let fileName = Path.isRooted(source) ? String.from(source) : Path.combine(basePath, source)
@@ -90,7 +90,7 @@ impl HtmlImageCache
     // it is asked to display, which is what makes viewing an untrusted file safe.
     mtd fetch(source: string)->*HtmlImageEntry?
     {
-        if !source.count do
+        if not source.count do
             return null
 
         let found = .index.tryFind(String.from(source))
@@ -147,7 +147,7 @@ impl HtmlImageCache
     mtd requestSize(source: string, pixelWidth, pixelHeight: f32)
     {
         let entry = .fetch(source)
-        if !entry or !entry!.isVector do
+        if not entry or not entry!.isVector do
             return
         entry!.rasterSize.x = Math.max(entry!.rasterSize.x, pixelWidth)
         entry!.rasterSize.y = Math.max(entry!.rasterSize.y, pixelHeight)
@@ -158,7 +158,7 @@ impl HtmlImageCache
     mtd texture(renderer: IRenderer, source: string, pixelWidth, pixelHeight: f32)->*Texture?
     {
         let entry = .fetch(source)
-        if !entry do
+        if not entry do
             return null
         if entry!.isVector
         {

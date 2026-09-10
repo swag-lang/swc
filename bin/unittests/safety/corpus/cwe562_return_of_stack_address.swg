@@ -140,7 +140,7 @@ impl ViewBag
         if .slots == null do
             .slots = cast([*] (*s32?)) heapAlloc(4 * 8)
         .slots![.count] = pointer
-        .count          += 1
+        .count += 1
     }
 }
 

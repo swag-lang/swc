@@ -111,8 +111,8 @@ namespace __Win32RT
 // Windows implementation of the host primitives used by common allocator and TLS policy.
 const AllocatorHostCommitGranularity = 4096'u64
 
-func __hostTlsAlloc()->u64                      => __Win32RT.TlsAlloc()
-func __hostTlsGet(id: u64)->*void?              => __Win32RT.TlsGetValue(cast(u32) id)
+func __hostTlsAlloc()->u64         => __Win32RT.TlsAlloc()
+func __hostTlsGet(id: u64)->*void? => __Win32RT.TlsGetValue(cast(u32) id)
 func __hostTlsSet(id: u64, value: *void?)->bool => __Win32RT.TlsSetValue(cast(u32) id, value) != 0
 
 func __hostThreadStorageAlloc(cleanup: (func(*void?))?)->u64
@@ -152,7 +152,7 @@ func __hostThreadCreate(entry: func(*void?)->u32, param: *void?)->*void?
 // Waits for a host thread to finish and releases the handle this runtime owns for it.
 func __hostThreadJoin(handle: *void?)
 {
-    if !handle do
+    if not handle do
         return
     discard __Win32RT.WaitForSingleObject(handle, __Win32RT.INFINITE)
     discard __Win32RT.CloseHandle(handle)
@@ -247,13 +247,13 @@ func __hostProcessSingleton(key: u32, candidate: *void)->*void
     name[length] = 0
 
     let mapping = __Win32RT.CreateFileMappingW(__Win32RT.INVALID_HANDLE, null, __Win32RT.PAGE_READWRITE_MAP, 0, 8, &name[0])
-    if !mapping do
+    if not mapping do
         return candidate
 
     // The section stays mapped and its handle stays open for the life of the process: it holds
     // the identity every later artifact resolves against.
     let view = __Win32RT.MapViewOfFile(mapping!, __Win32RT.FILE_MAP_ALL_ACCESS, 0, 0, 8)
-    if !view do
+    if not view do
         return candidate
 
     let slot     = cast(*u64) view!
@@ -441,7 +441,7 @@ func __osCommandLine()->string?
     }
 
     let cmdLine = GetCommandLineA()
-    if !cmdLine do
+    if not cmdLine do
         return null
     return Swag.makeString(cmdLine!, (cast(const cstring) cmdLine!).count)
 }
@@ -453,7 +453,7 @@ func __hostHasAvx2()->bool => __Win32RT.IsProcessorFeaturePresent(__Win32RT.PF_A
 ////////////////////////////////////////////////////////////
 func __printString(message: string?)
 {
-    if !message or !message.count do
+    if not message or not message.count do
         return
     using __Win32RT
     let len = cast(u32) message.count
@@ -466,10 +466,10 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
     // In a native binary there is no compiler above us to catch the exception:
     // route the failure through the panic path (which the native #test runner
     // hooks), instead of dying silently on an unhandled SEH exception.
-    if !Swag.jit()
+    if not Swag.jit()
     {
         var msg = message
-        if !msg
+        if not msg
         {
             switch kind
             {
@@ -555,7 +555,7 @@ private struct __HostExceptionPointers
 
 private func __hostTestUnhandledFilter(exceptionPointers: *void)->s32
 {
-    if !g_TestRunning or __hostCurrentThreadId() != g_TestThreadId do
+    if not g_TestRunning or __hostCurrentThreadId() != g_TestThreadId do
         return 0     // EXCEPTION_CONTINUE_SEARCH
 
     let pointers = cast(const *__HostExceptionPointers) exceptionPointers
@@ -650,15 +650,15 @@ func __hostDecodeDebugSection(section: [*] u8)->[*] u8?
         return null
 
     let ntdll = __Win32RT.GetModuleHandleA(("ntdll.dll").buffer)
-    if !ntdll do
+    if not ntdll do
         return null
     let decompressAddress = __Win32RT.GetProcAddress(ntdll, ("RtlDecompressBuffer").buffer)
-    if !decompressAddress do
+    if not decompressAddress do
         return null
     let decompress = cast(__Win32RT.RtlDecompressBufferFn) decompressAddress!
 
     let decoded = cast([*] u8?) __Win32RT.VirtualAlloc(null, decodedSize, __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
-    if !decoded do
+    if not decoded do
         return null
 
     var finalSize: u32

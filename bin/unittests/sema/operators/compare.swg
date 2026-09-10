@@ -53,7 +53,7 @@ func semaTest005()
 {
     var value:    s32  = 2
     var refValue: *s32 = &value
-    let ok             = refValue[] == 2
+    let ok = refValue[] == 2
     #assert(#typeof(ok) == bool)
 }
 

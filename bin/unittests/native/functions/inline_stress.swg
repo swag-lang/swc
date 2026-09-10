@@ -88,7 +88,7 @@ func runNestedInlineStress(count: u32)->s32
     Swag.assert(hasAnyAbove(&data[0], 6, 0))
     Swag.assert(hasAnyAbove(&data[0], 6, 4))
     Swag.assert(hasAnyAbove(&data[0], 6, 8))
-    Swag.assert(!hasAnyAbove(&data[0], 6, 9))
+    Swag.assert(not hasAnyAbove(&data[0], 6, 9))
 
     Swag.assert(firstAboveIndex(&data[0], 6, 0) == 0)
     Swag.assert(firstAboveIndex(&data[0], 6, 4) == 1)

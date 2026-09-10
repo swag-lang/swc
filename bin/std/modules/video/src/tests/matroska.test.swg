@@ -95,7 +95,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     Swag.assert(primary.sampleRateHz() == 44_100 and alternate.sampleRateHz() == 44_100)
     Swag.assert(primary.numChannels() == 2 and alternate.numChannels() == 2)
     Swag.assert(primary.packetCount() != 0 and primary.packetCount() == alternate.packetCount())
-    Swag.assert(!primary.isDataPreloaded() and !alternate.isDataPreloaded())
+    Swag.assert(not primary.isDataPreloaded() and not alternate.isDataPreloaded())
     let primaryBytes   = expect primary.readPayload(0, primary.payloadSize())
     let alternateBytes = expect alternate.readPayload(0, alternate.payloadSize())
     Swag.assert(Slice.equals(primaryBytes.toSlice(), alternateBytes.toSlice()))
@@ -131,7 +131,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         let sound = reader.audioTrack(0)!
         Swag.assert(sound.sampleEncoding() == Encodings[fileIndex])
         Swag.assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
-        Swag.assert(sound.speakerChannelMask() == 0x3F and !sound.isDataPreloaded())
+        Swag.assert(sound.speakerChannelMask() == 0x3F and not sound.isDataPreloaded())
         Swag.assert((expect sound.packet(0)).sampleFrameCount == PacketFrames[fileIndex])
     }
 }
@@ -223,7 +223,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 #test
 {
     Swag.assert(Reader.canOpen("clip.mkv"))
-    Swag.assert(!Reader.canOpen("clip.webm"))
+    Swag.assert(not Reader.canOpen("clip.webm"))
 
     const Truncated: [5] u8 = [0x1A, 0x45, 0xDF, 0xA3, 0x80]
     discard catch Reader.openMemory("broken.mkv", Truncated) as truncated
@@ -371,7 +371,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         let sound = reader.audioTrack(0)!
         Swag.assert(sound.sampleEncoding() == Encodings[fileIndex])
         Swag.assert(sound.sampleRateHz() == Rates[fileIndex] and sound.numChannels() == 2)
-        Swag.assert(!sound.isDataPreloaded() and sound.packetCount() > 40)
+        Swag.assert(not sound.isDataPreloaded() and sound.packetCount() > 40)
 
         var decoded: Array's16
         expect sound.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool

@@ -80,9 +80,9 @@ var g_other: [3] u8 = ['a', 'b', 'z']
 
     Swag.assert(left == right)
     Swag.assert(eqNames([left, left], [right, right]))
-    Swag.assert(!eqNames([left, left], [right, other]))
-    Swag.assert(!eqNames([left, left], [short, right]))
-    Swag.assert(!neNames([left, left], [right, right]))
+    Swag.assert(not eqNames([left, left], [right, other]))
+    Swag.assert(not eqNames([left, left], [short, right]))
+    Swag.assert(not neNames([left, left], [right, right]))
     Swag.assert(neNames([left, left], [right, other]))
 }
 
@@ -98,7 +98,7 @@ var g_other: [3] u8 = ['a', 'b', 'z']
     var different: [2, 2] string = [[right, right], [right, other]]
 
     Swag.assert(eqGrid(same, equal))
-    Swag.assert(!eqGrid(same, different))
+    Swag.assert(not eqGrid(same, different))
 }
 
 // A slice element compares its content, like a bare slice does.
@@ -110,7 +110,7 @@ var g_other: [3] u8 = ['a', 'b', 'z']
 
     Swag.assert(left == right)
     Swag.assert(eqViews([left, left], [right, right]))
-    Swag.assert(!eqViews([left, left], [right, other]))
+    Swag.assert(not eqViews([left, left], [right, other]))
 }
 
 // A struct element answers through the 'opEquals' it owns.
@@ -118,14 +118,14 @@ var g_other: [3] u8 = ['a', 'b', 'z']
 {
     Swag.assert(Point{1, 2} == Point{1, 9})
     Swag.assert(eqPoints([{1, 2}, {3, 4}], [{1, 9}, {3, 9}]))
-    Swag.assert(!eqPoints([{1, 2}, {3, 4}], [{1, 9}, {4, 9}]))
+    Swag.assert(not eqPoints([{1, 2}, {3, 4}], [{1, 9}, {4, 9}]))
 }
 
 // An array no wider than a machine register still asks its elements.
 #test
 {
     Swag.assert(eqTolerances([{10}, {20}], [{11}, {21}]))
-    Swag.assert(!eqTolerances([{10}, {20}], [{11}, {30}]))
+    Swag.assert(not eqTolerances([{10}, {20}], [{11}, {30}]))
 }
 
 // A struct holding such an array asks the array, which asks its elements.
@@ -136,13 +136,13 @@ var g_other: [3] u8 = ['a', 'b', 'z']
     let other = viewText(cast(const [*] u8) &g_other[0], 3)
 
     Swag.assert(eqHolder(Holder{[left, left], 7}, Holder{[right, right], 7}))
-    Swag.assert(!eqHolder(Holder{[left, left], 7}, Holder{[right, right], 8}))
-    Swag.assert(!eqHolder(Holder{[left, left], 7}, Holder{[right, other], 7}))
+    Swag.assert(not eqHolder(Holder{[left, left], 7}, Holder{[right, right], 8}))
+    Swag.assert(not eqHolder(Holder{[left, left], 7}, Holder{[right, other], 7}))
 }
 
 // An element with nothing of its own to say still compares as one contiguous run.
 #test
 {
     Swag.assert(eqPlain([1, 2, 3, 4], [1, 2, 3, 4]))
-    Swag.assert(!eqPlain([1, 2, 3, 4], [1, 2, 3, 5]))
+    Swag.assert(not eqPlain([1, 2, 3, 4], [1, 2, 3, 5]))
 }

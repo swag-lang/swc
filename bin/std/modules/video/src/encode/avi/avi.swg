@@ -181,10 +181,10 @@ private impl Encoder
     {
         var result: retval
         result.microSecPerFrame = cast(u32) (1_000_000'u64 * cast(u64) .info.frameRate.denominator() / cast(u64) .info.frameRate.numerator())
-        result.flags            = MainHasIndex
-        result.streams          = 1
-        result.width            = cast(u32) .info.width
-        result.height           = cast(u32) .info.height
+        result.flags   = MainHasIndex
+        result.streams = 1
+        result.width   = cast(u32) .info.width
+        result.height  = cast(u32) .info.height
         return result
     }
 
@@ -228,7 +228,7 @@ private impl Encoder
         patchValue(sink, .mainHeader, main)
 
         var stream = .createStreamHeader()
-        stream.length              = frames
+        stream.length = frames
         stream.suggestedBufferSize = cast(u32) .largestFrame
         patchValue(sink, .streamHeader, stream)
 

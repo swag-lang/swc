@@ -24,9 +24,9 @@ const SurfaceId     = "swag.capture"
     let args = Env.arguments()
     for arg in args
     {
-        if !Path.isValidPathName(arg) do
+        if not Path.isValidPathName(arg) do
             continue
-        if !Image.canLoad(arg) do
+        if not Image.canLoad(arg) do
             continue
         Clipboard.addString(arg)
         if Surface.sendCustomMessage(SurfaceId, 1, 0) do
@@ -48,7 +48,7 @@ const SurfaceId     = "swag.capture"
     g_App.notifyThemeChanged()
     let mainWnd = MainWnd.create(surface.wnd)
 
-    if !Env.hasArgument("--hide") do
+    if not Env.hasArgument("--hide") do
         surface.show()
 
     // Show the app icon in the notification area (system tray). Portable tray actions
@@ -62,9 +62,9 @@ const SurfaceId     = "swag.capture"
 
     for arg in args
     {
-        if !Path.isValidPathName(arg) do
+        if not Path.isValidPathName(arg) do
             continue
-        if !Image.canLoad(arg) do
+        if not Image.canLoad(arg) do
             continue
         Console.print(arg)
         mainWnd.loadExternalImage(arg)

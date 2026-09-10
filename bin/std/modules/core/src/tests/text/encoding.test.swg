@@ -6,7 +6,7 @@ using Swag
 func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 {
     var result: retval
-    for value, index in bytes where !value
+    for value, index in bytes where not value
     {
         if index & 1 do
             result.odd += 1
@@ -33,7 +33,7 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     Swag.assert(Text.detectEncoding(utf32le) == .Utf32Le)
     Swag.assert(Text.detectEncoding(utf32be) == .Utf32Be)
 
-    Swag.assert(Text.hasBom(utf16le, .Utf16Le) and !Text.hasBom(utf16le, .Utf16Be))
+    Swag.assert(Text.hasBom(utf16le, .Utf16Le) and not Text.hasBom(utf16le, .Utf16Be))
     Swag.assert(Text.bomLength(.Utf8) == 3 and Text.bomLength(.Windows1252) == 0)
     Swag.assert(Text.unitSize(.Utf16Be) == 2 and Text.unitSize(.Utf32Le) == 4 and Text.unitSize(.Windows1252) == 1)
 }
@@ -170,10 +170,10 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     Swag.assert(Text.looksLikeText(cast(const [..] u8) "a line\tand\r\nanother\n", .Utf8))
 
     let withNul: [4] u8 = ['a', 0, 'b', 'c']
-    Swag.assert(!Text.looksLikeText(withNul, .Windows1252))
+    Swag.assert(not Text.looksLikeText(withNul, .Windows1252))
 
     let controls: [8] u8 = [1, 2, 3, 4, 5, 6, 7, 'a']
-    Swag.assert(!Text.looksLikeText(controls, .Windows1252))
+    Swag.assert(not Text.looksLikeText(controls, .Windows1252))
 
     // The same zero bytes are ordinary content once they are read as UTF-16.
     let le: [12] u8 = ['H', 0, 'e', 0, 'l', 0, 'l', 0, 'o', 0, '!', 0]

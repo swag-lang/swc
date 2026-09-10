@@ -93,7 +93,7 @@ private func alertTitle(kind: BlockKind)->string
 internal func blockDisplayText(kind: BlockKind, body: string)->String
 {
     let title = alertTitle(kind)
-    if !title.count do
+    if not title.count do
         return body
 
     var result = Format.toString("<b><p1>%</p></b>", title)
@@ -119,7 +119,7 @@ private struct OrderedCounter
 internal func isHtmlBlockStart(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
-    if !trimmed.count or trimmed[0] != '<' do
+    if not trimmed.count or trimmed[0] != '<' do
         return false
 
     if Utf8.startsWith(trimmed, "<!--") do
@@ -166,7 +166,7 @@ internal func parseBlocks(source: string)->Array'Block
     for line in lines
     {
         let definition = parseReferenceDefinition(line)
-        if definition.found and !definition.footnote
+        if definition.found and not definition.footnote
         {
             var reference: Reference
             reference.name   = definition.name
@@ -205,7 +205,7 @@ internal func parseBlocks(source: string)->Array'Block
         }
 
         let trimmed = Latin1.trim(raw)
-        if !trimmed.count
+        if not trimmed.count
         {
             index += 1
             continue
@@ -231,7 +231,7 @@ internal func parseBlocks(source: string)->Array'Block
             for line in lines
             {
                 let entry = parseHeading(line)
-                if !entry.level do
+                if not entry.level do
                     continue
                 for entry.level - 1 do
                     contents += "  "
@@ -256,7 +256,7 @@ internal func parseBlocks(source: string)->Array'Block
                 // A closing fence carries no info and is at least as long as its opener, so a
                 // longer fence can display a shorter one as content.
                 let close = parseFence(lines[index])
-                if close.found and close.marker == fence.marker and close.length >= fence.length and !close.info.count
+                if close.found and close.marker == fence.marker and close.length >= fence.length and not close.info.count
                 {
                     index += 1
                     break
@@ -285,9 +285,9 @@ internal func parseBlocks(source: string)->Array'Block
                 if line.count do
                     math += Latin1.trim(line)
                 index += 1
-                while index < lines.count and !Utf8.startsWith(Latin1.trim(lines[index]), "$$")
+                while index < lines.count and not Utf8.startsWith(Latin1.trim(lines[index]), "$$")
                 {
-                    if !math.isEmpty() do
+                    if not math.isEmpty() do
                         math += "\n"
                     math  += Latin1.trim(lines[index])
                     index += 1
@@ -315,9 +315,9 @@ internal func parseBlocks(source: string)->Array'Block
                 if line.count do
                     math += line
                 index += 1
-                while index < lines.count and !Utf8.startsWith(Latin1.trim(lines[index]), "\\]")
+                while index < lines.count and not Utf8.startsWith(Latin1.trim(lines[index]), "\\]")
                 {
-                    if !math.isEmpty() do
+                    if not math.isEmpty() do
                         math += "\n"
                     math  += Latin1.trim(lines[index])
                     index += 1
@@ -340,15 +340,15 @@ internal func parseBlocks(source: string)->Array'Block
             while index < lines.count
             {
                 // A paired container owns its blank lines; comments may span them too.
-                if !(Latin1.trim(lines[index])).count and parser.stack.count == 1 and !parser.hasPendingSource() do
+                if not (Latin1.trim(lines[index])).count and parser.stack.count == 1 and not parser.hasPendingSource() do
                     break
-                if !html.isEmpty() do
+                if not html.isEmpty() do
                     html += "\n"
                 html += lines[index]
                 parser.feed(lines[index])
                 parser.feed("\n")
                 index += 1
-                if !document.childCount(0) and !parser.hasPendingSource() do
+                if not document.childCount(0) and not parser.hasPendingSource() do
                     break
             }
 
@@ -409,7 +409,7 @@ internal func parseBlocks(source: string)->Array'Block
             while index < lines.count
             {
                 let current = parseListItem(lines[index])
-                if !current.found do
+                if not current.found do
                     break
 
                 var content  = String.from(current.content)
@@ -419,7 +419,7 @@ internal func parseBlocks(source: string)->Array'Block
                 {
                     let continuation = parseListItem(lines[index])
                     let next         = Latin1.trim(lines[index])
-                    if !next.count or continuation.found or continuation.indent < current.contentIndent or parseFence(lines[index]).found do
+                    if not next.count or continuation.found or continuation.indent < current.contentIndent or parseFence(lines[index]).found do
                         break
 
                     content  += hasHardBreak(previous) ? "\n" : " "
@@ -497,7 +497,7 @@ internal func parseBlocks(source: string)->Array'Block
 
                 if content.count
                 {
-                    if !quote.isEmpty() do
+                    if not quote.isEmpty() do
                         quote += "\n"
                     quote += renderInline(content, references.toSlice())
                 }
@@ -518,7 +518,7 @@ internal func parseBlocks(source: string)->Array'Block
             let nextDefinition = parseReferenceDefinition(lines[index])
             if isHtmlBlockStart(lines[index]) do
                 break
-            if !next.count or parseHeading(lines[index]).level or isRule(lines[index]) or parseListItem(lines[index]).found or Utf8.startsWith(next, ">") or Utf8.startsWith(next, "$$") or Utf8.startsWith(next, "\\[") or Utf8.compare(next, "[TOC]", .Latin1NoCase) == 0 or nextDefinition.found or parseFence(lines[index]).found do
+            if not next.count or parseHeading(lines[index]).level or isRule(lines[index]) or parseListItem(lines[index]).found or Utf8.startsWith(next, ">") or Utf8.startsWith(next, "$$") or Utf8.startsWith(next, "\\[") or Utf8.compare(next, "[TOC]", .Latin1NoCase) == 0 or nextDefinition.found or parseFence(lines[index]).found do
                 break
             if index + 1 < lines.count and setextLevel(lines[index + 1]) do
                 break

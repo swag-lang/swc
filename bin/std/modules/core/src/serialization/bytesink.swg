@@ -69,11 +69,11 @@ impl ByteSink
     mtd write(bytes: const [..] u8) fail
     {
         let count = bytes.count
-        if !count do
+        if not count do
             return
 
         .written += count
-        if !.isFile
+        if not .isFile
         {
             .buffer!.addBytes(bytes, contiguous: false)
             return
@@ -145,12 +145,12 @@ impl ByteSink
     mtd patch(offset: u64, bytes: const [..] u8) fail
     {
         let count = bytes.count
-        if !count do
+        if not count do
             return
         if offset > .written or count > .written - offset do
             fail BadParameterError{"byte sink patch runs past the end of the written stream"}
 
-        if !.isFile
+        if not .isFile
         {
             let target = .buffer!
             let resume = target.position()
@@ -171,7 +171,7 @@ impl ByteSink
     // Hands every buffered byte to the file. A memory sink has nothing to flush.
     mtd flush() fail
     {
-        if !.pendingCount do
+        if not .pendingCount do
             return
         .stream.writeAll(.pending.toSlice()[0 until .pendingCount])
         .pendingCount = 0
@@ -184,7 +184,7 @@ impl ByteSink
     // scope unclosed drops whatever its window still holds.
     mtd close() fail
     {
-        if !.isFile do
+        if not .isFile do
             return
         .flush()
         .stream.close()

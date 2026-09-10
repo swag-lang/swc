@@ -7,7 +7,7 @@ using Swag, Core
 {
     let evt = Event.create'CommandStateEvent()
     Swag.assert(evt.type == #typeof(CommandStateEvent))
-    Swag.assert(!evt.accepted)
+    Swag.assert(not evt.accepted)
 
     evt.kind          = CommandStateEvent.Kind.Apply
     evt.id            = Dialog.BtnOk
@@ -20,7 +20,7 @@ using Swag, Core
     Swag.assert(evt.id == "Dialog.BtnOk")
     Swag.assert(evt.updatedFields.has(CommandStateEvent.UpdatedFields.Disabled))
     Swag.assert(evt.updatedFields.has(CommandStateEvent.UpdatedFields.Name))
-    Swag.assert(!evt.updatedFields.has(CommandStateEvent.UpdatedFields.Shortcut))
+    Swag.assert(not evt.updatedFields.has(CommandStateEvent.UpdatedFields.Shortcut))
     Swag.assert(evt.renderingHint.has(CommandStateEvent.RenderingHint.ExclusiveGroup))
     Swag.assert(evt.disabled)
     Swag.assert(evt.name == "Ok")
@@ -71,10 +71,10 @@ using Swag, Core
 
     var focus: FocusEvent
     Swag.assert(focus.canChangeFocus)
-    focus.kind           = .CanLose
+    focus.kind = .CanLose
     focus.canChangeFocus = false
     Swag.assert(focus.kind == FocusEvent.Kind.CanLose)
-    Swag.assert(!focus.canChangeFocus)
+    Swag.assert(not focus.canChangeFocus)
 
     var state: StateEvent
     state.kind = .Hide

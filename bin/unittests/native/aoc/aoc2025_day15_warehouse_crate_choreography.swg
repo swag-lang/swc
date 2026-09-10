@@ -8,7 +8,7 @@ const MaxWarehouseCells = 256
 struct WarehouseReport
 {
     successfulPushes: u32
-    gpsSum:           u64
+    gpsSum: u64
 }
 
 func lineWidth(line: string)->u32

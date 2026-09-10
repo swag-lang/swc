@@ -92,7 +92,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 #test
 {
     let args: [4] string = ["  -name:Bob  ", " -count = 42 ", "", "payload"]
-    let split            = CommandLine.splitArguments(args, CommandLine.ParseOptions{})
+    let split = CommandLine.splitArguments(args, CommandLine.ParseOptions{})
 
     Swag.assert(split.count == 5)
     Swag.assert(split[0] == "-name")
@@ -105,7 +105,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 #test
 {
     let args: [4] string = [" -threshold = -.5 ", "-values:-1", " 2 ", " 3 "]
-    let split            = CommandLine.splitArguments(args, CommandLine.ParseOptions{})
+    let split = CommandLine.splitArguments(args, CommandLine.ParseOptions{})
 
     Swag.assert(split.count == 6)
     Swag.assert(split[0] == "-threshold")
@@ -118,7 +118,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 
 #test
 {
-    var options          = BasicOptions{}
+    var options = BasicOptions{}
     let args: [7] string = ["-delta", "-7", "-count", "-12", "-enabled", "-mode", "Gamma"]
 
     let result = expect CommandLine.parse(&options, args)
@@ -167,7 +167,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     let result = expect CommandLine.parse(&options, ["-enabled", "false"])
     Swag.assert(options.enabled == false)
     Swag.assert(result.isSet.enabled)
-    Swag.assert(!result.isSet.threshold)
+    Swag.assert(not result.isSet.threshold)
 }
 
 #test
@@ -184,7 +184,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     let result = expect CommandLine.parse(&options, ["-threshold", "-0.5"])
     Swag.assert(options.threshold == -0.5)
     Swag.assert(result.isSet.threshold)
-    Swag.assert(!result.isSet.enabled)
+    Swag.assert(not result.isSet.enabled)
 }
 
 #test
@@ -192,7 +192,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     var options: ArrayOptions
     let result = expect CommandLine.parse(&options, ["-values:-1", "2", "3"])
     Swag.assert(assertIntValues(options.values, [-1, 2, 3]))
-    Swag.assert(!result.isSet.labels)
+    Swag.assert(not result.isSet.labels)
     Swag.assert(result.isSet.values)
 }
 
@@ -201,7 +201,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     var options: ArrayOptions
     let result = expect CommandLine.parse(&options, ["-labels", "Bob Smith", "Alice"])
     Swag.assert(assertStringValues(options.labels, ["Bob Smith", "Alice"]))
-    Swag.assert(!result.isSet.values)
+    Swag.assert(not result.isSet.values)
     Swag.assert(result.isSet.labels)
 }
 
@@ -210,7 +210,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     var options: ArrayOptions
     let result = expect CommandLine.parse(&options, ["-labels:-Bob", "Alice"])
     Swag.assert(assertStringValues(options.labels, ["-Bob", "Alice"]))
-    Swag.assert(!result.isSet.values)
+    Swag.assert(not result.isSet.values)
     Swag.assert(result.isSet.labels)
 }
 

@@ -2,7 +2,7 @@
 
 // A #[Macro] visitor with an explicit `const me` receiver, invoked with a
 // receiver expression that is itself an elided member access (`.header.bag`).
-// The macro body's own elided members (`if !.count`) must resolve against the
+// The macro body's own elided members (`if not .count`) must resolve against the
 // caller's receiver expression: the binding must not leak the leaf field symbol
 // (or the macro's raw `me` parameter) into the synthesized member access, since
 // neither resolves standalone at codegen. The padding fields keep every
@@ -25,7 +25,7 @@ impl VisitBag
     #[Swag.Macro]
     func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
-        if !.count do
+        if not .count do
             return
         let buffer = .buffer!
 

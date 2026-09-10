@@ -21,7 +21,7 @@ func hasFormat(fmt: ValueFormat)->bool
     if g_Fake.enabled do
         return fakeFind(fmt) != null
 
-    if !OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow()) do
         return false
     defer discard CloseClipboard()
 
@@ -34,18 +34,18 @@ func hasTypedData(fmt: ValueFormat, type: typeinfo?)->bool
     if g_Fake.enabled
     {
         let entry = fakeFind(fmt)
-        if !entry do
+        if not entry do
             return false
-        return !type or entry.crc == type.crc
+        return not type or entry.crc == type.crc
     }
 
-    if !OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow()) do
         return false
     defer discard CloseClipboard()
 
-    if !IsClipboardFormatAvailable(cast(UINT) fmt) do
+    if not IsClipboardFormatAvailable(cast(UINT) fmt) do
         return false
-    if !type do
+    if not type do
         return true
 
     let hglob = GetClipboardData(cast(UINT) fmt)
@@ -60,7 +60,7 @@ func addTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
     if g_Fake.enabled do
         return fakeAddTypedData(fmt, type, data)
 
-    if !OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow()) do
         return
     defer discard CloseClipboard()
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, data.count + #sizeof(u32) + #sizeof(u64))
@@ -90,7 +90,7 @@ func getTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
 
     var result: retval
 
-    if !OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow()) do
         return result
     defer discard CloseClipboard()
 
@@ -127,7 +127,7 @@ func hasImage()->bool
     if g_Fake.enabled do
         return g_Fake.hasImg
 
-    if !OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow()) do
         return false
     defer discard CloseClipboard()
 
@@ -146,14 +146,14 @@ func addImage(image: Image)
     if g_Fake.enabled
     {
         fakeClear()
-        if !image.isValid() do
+        if not image.isValid() do
             return
         g_Fake.hasImg = true
         g_Fake.img    = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice())
         return
     }
 
-    if !OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow()) do
         return
     defer discard CloseClipboard()
     discard EmptyClipboard()
@@ -217,7 +217,7 @@ func getImage()->Image
         return result
     }
 
-    if !OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow()) do
         return result
     defer discard CloseClipboard()
 
@@ -256,7 +256,7 @@ func hasString()->bool
     if g_Fake.enabled do
         return g_Fake.hasStr
 
-    if !OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow()) do
         return false
     defer discard CloseClipboard()
 
@@ -278,7 +278,7 @@ func addString(str: string)
         return
     }
 
-    if !OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow()) do
         return
     defer discard CloseClipboard()
 
@@ -316,7 +316,7 @@ func getString()->String
         return result
     }
 
-    if !OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow()) do
         return result
     defer discard CloseClipboard()
 
@@ -358,7 +358,7 @@ func clear()
         return
     }
 
-    if !OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow()) do
         return
     defer discard CloseClipboard()
     discard EmptyClipboard()

@@ -12,7 +12,7 @@ using Swag, Core
     let img = ImageRect.create(&host.root, {20, 20, 120, 120})
     Swag.assert(img != null)
     Swag.assert(host.wndAt({40, 40}) == img)
-    Swag.assert(!img.movie.isValid())
+    Swag.assert(not img.movie.isValid())
 }
 
 // Sprite-sheet geometry, exact-duration advancement, seeking, and pausing.
@@ -38,7 +38,7 @@ using Swag, Core
     Swag.assert(movie.frameIndex == 1)
 
     movie.setPaused(true)
-    Swag.assert(!movie.update(movie.frameDurationSeconds))
+    Swag.assert(not movie.update(movie.frameDurationSeconds))
     Swag.assert(movie.frameIndex == 1)
 
     movie.setPaused(false)
@@ -48,7 +48,7 @@ using Swag, Core
     Swag.assert(movie.frameIndex == 1)
 
     movie.clear()
-    Swag.assert(!movie.isValid())
+    Swag.assert(not movie.isValid())
     Swag.assert(movie.frameCount == 0)
     Swag.assert(movie.cachesFrames)
     Swag.assert(movie.loops)
@@ -69,8 +69,8 @@ using Swag, Core
     Swag.assert(view.uploadedTexture.isValid())
 
     view.clear()
-    Swag.assert(!view.movie.isValid())
-    Swag.assert(!view.uploadedTexture.isValid())
+    Swag.assert(not view.movie.isValid())
+    Swag.assert(not view.uploadedTexture.isValid())
 }
 
 // Image-list content is either a paused image or a playing sprite sheet, by explicit API choice.
@@ -90,7 +90,7 @@ using Swag, Core
     Swag.assert(view.movie.isPaused)
 
     view.setSpriteSheet(atlas)
-    Swag.assert(!view.movie.isPaused)
+    Swag.assert(not view.movie.isPaused)
     view.setFrameIndex(50)
     Swag.assert(view.movie.frameIndex == 1)
 

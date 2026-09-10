@@ -56,7 +56,7 @@ func testCoreNonNullDynamicInitialization()->bool
 
     var rejectedArray: Array'(*CoreNonNullDynamicItem)
     let rejectedAppend = Reflection.appendDynamicArrayElement(&rejectedArray, requiredType)
-    let preservedArray = rejectedAppend == null and rejectedArray.buffer == null and !rejectedArray.count and !rejectedArray.capacity
+    let preservedArray = rejectedAppend == null and rejectedArray.buffer == null and not rejectedArray.count and not rejectedArray.capacity
 
     let zeroType       = #typeof(CoreNonNullZeroUnion)
     let zeroStructType = cast(const *Swag.TypeInfoStruct) zeroType
@@ -83,7 +83,7 @@ func testCoreNonNullDynamicInitialization()->bool
 
     var zeroArray: Array'CoreNonNullZeroUnion
     let appendedZero       = Reflection.appendDynamicArrayElement(&zeroArray, zeroType)
-    let rejectedZeroAppend = appendedZero == null and zeroArray.buffer == null and !zeroArray.count and !zeroArray.capacity
+    let rejectedZeroAppend = appendedZero == null and zeroArray.buffer == null and not zeroArray.count and not zeroArray.capacity
 
     let defaultArrayType = #typeof([2] CoreNonNullRuntimeDefault)
     let defaultAliasType = #typeof(CoreNonNullRuntimeDefaultAlias)

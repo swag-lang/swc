@@ -190,7 +190,7 @@ private var g_Localization: LocalizationState
 // than waiting for the next switch. Add its resource to the bundle first. GUI thread only.
 func(T) registerStrings(table: *T, file: string)
 {
-    #static if !Reflection.isStruct(T) do
+    #static if not Reflection.isStruct(T) do
         #error("a string table must be a struct of 'string' fields")
     registerStrings(#typeof(T), table, file)
 }
@@ -208,7 +208,7 @@ func registerStrings(type: typeinfo, table: *void, file: string)
     // A table joining an already-translated program takes the active language now. A file it
     // has no translation for, or one a disk override left malformed, leaves it on its
     // reference wording — the same outcome [[Gui.applyLanguage]] gives an untranslated table.
-    if state.language.isEmpty() or !state.resources do
+    if state.language.isEmpty() or not state.resources do
         return
     discard catch applyTableLanguage(state.tables.backPtr(), state.resources!, state.language.toString())
 }
@@ -304,7 +304,7 @@ func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
     Swag.assert(tag.count != 0, "empty language tag")
 
     let state = &g_Localization
-    if !findLanguage(tag) do
+    if not findLanguage(tag) do
         fail BadParameterError{Errors.mkString(Format.toString("language [[%]] is not registered", tag))}
 
     if tag != ReferenceLanguage
@@ -312,7 +312,7 @@ func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
         var anyFound = false
         for &table in state.tables where resources.has(langResourceName(tag, table.file).toString()) do
             anyFound = true
-        if !anyFound do
+        if not anyFound do
             fail FileNotFoundError{fileName: Errors.mkString(tag)}
     }
 
@@ -332,7 +332,7 @@ private func applyTableLanguage(table: *StringTable, resources: const *Resources
         return
 
     let resName = langResourceName(tag, table.file)
-    if !resources.has(resName.toString()) do
+    if not resources.has(resName.toString()) do
         return
 
     let bytes = try resources.load(resName.toString())
@@ -427,7 +427,7 @@ private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, 
             fail SyntaxError{"invalid string key", line: idx + 1}
 
         let field = Reflection.findField(type, id)
-        if !field do
+        if not field do
             fail SyntaxError{Errors.mkString(Format.toString("string key [[%]] not found in [[%]]", id, type.name)), line: idx + 1}
         let safeField = field
         if safeField.pointedType != string do

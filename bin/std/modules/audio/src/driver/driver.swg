@@ -12,7 +12,7 @@ struct Driver
 {
     using native: DriverNative
 
-    isCreated:                bool
+    isCreated: bool
     late allocationAllocator: IAllocator
 
     updateTh:            Threading.Thread
@@ -34,7 +34,7 @@ struct Driver
 internal func updateThreadProc(th: Threading.Thread)
 {
     let driver = &g_Driver
-    while !th.requestEnd
+    while not th.requestEnd
     {
         // Wait for an update to be requested
         driver.wakeupUpdate.wait()
@@ -89,7 +89,7 @@ internal func updateThreadProc(th: Threading.Thread)
 
                 // A flush can deliver a late OnBufferEnd callback. Do not let that stale
                 // notification repopulate a voice that pause/stop has already taken offline.
-                if !voice.hasState(.Playing) do
+                if not voice.hasState(.Playing) do
                     continue
 
                 // Update buffer of voice, and stop it if nothing has been updated (end reached)
@@ -100,7 +100,7 @@ internal func updateThreadProc(th: Threading.Thread)
                 }
 
                 // If the voice is no more playing, register it for destruction if necessary
-                if !voice.isPlaying() and voice.playFlags.has(.DestroyOnStop) do
+                if not voice.isPlaying() and voice.playFlags.has(.DestroyOnStop) do
                     voice.destroy()
             }
         }
@@ -111,7 +111,7 @@ impl Driver
 {
     mtd create(kind: DriverKind = .Default) fail
     {
-        Swag.assert(!.isCreated)
+        Swag.assert(not .isCreated)
         .driverIsClosing     = false
         .allocationAllocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
 
@@ -134,7 +134,7 @@ impl Driver
 
     mtd destroy()
     {
-        if !.isCreated do
+        if not .isCreated do
             return
         .driverIsClosing = true
 
@@ -231,7 +231,7 @@ impl Driver
     {
         var back: *Voice?
         .mutexRecycleVoices.lock()
-        if !.toRecycleVoices.isEmpty() do
+        if not .toRecycleVoices.isEmpty() do
             back = .toRecycleVoices.popBack()
         .mutexRecycleVoices.unlock()
         if back do

@@ -35,30 +35,30 @@ func expectedAbs8(value: s8)->s8
     Swag.assert(Math.isPowerOf2(1'u8))
     Swag.assert(Math.isPowerOf2(128'u8))
     Swag.assert(Math.isPowerOf2(0x80'u8))
-    Swag.assert(!Math.isPowerOf2(0'u8))
-    Swag.assert(!Math.isPowerOf2(127'u8))
-    Swag.assert(!Math.isPowerOf2(255'u8))
+    Swag.assert(not Math.isPowerOf2(0'u8))
+    Swag.assert(not Math.isPowerOf2(127'u8))
+    Swag.assert(not Math.isPowerOf2(255'u8))
 
     Swag.assert(Math.isPowerOf2(1'u16))
     Swag.assert(Math.isPowerOf2(1024'u16))
     Swag.assert(Math.isPowerOf2(0x8000'u16))
-    Swag.assert(!Math.isPowerOf2(0'u16))
-    Swag.assert(!Math.isPowerOf2(1023'u16))
-    Swag.assert(!Math.isPowerOf2(0xFFFF'u16))
+    Swag.assert(not Math.isPowerOf2(0'u16))
+    Swag.assert(not Math.isPowerOf2(1023'u16))
+    Swag.assert(not Math.isPowerOf2(0xFFFF'u16))
 
     Swag.assert(Math.isPowerOf2(1'u32))
     Swag.assert(Math.isPowerOf2(1024'u32))
     Swag.assert(Math.isPowerOf2(0x80000000'u32))
-    Swag.assert(!Math.isPowerOf2(0'u32))
-    Swag.assert(!Math.isPowerOf2(1023'u32))
-    Swag.assert(!Math.isPowerOf2(0xFFFFFFFF'u32))
+    Swag.assert(not Math.isPowerOf2(0'u32))
+    Swag.assert(not Math.isPowerOf2(1023'u32))
+    Swag.assert(not Math.isPowerOf2(0xFFFFFFFF'u32))
 
     Swag.assert(Math.isPowerOf2(1'u64))
     Swag.assert(Math.isPowerOf2(1024'u64))
     Swag.assert(Math.isPowerOf2(0x80000000_00000000'u64))
-    Swag.assert(!Math.isPowerOf2(0'u64))
-    Swag.assert(!Math.isPowerOf2(1023'u64))
-    Swag.assert(!Math.isPowerOf2(0xFFFFFFFF_FFFFFFFF'u64))
+    Swag.assert(not Math.isPowerOf2(0'u64))
+    Swag.assert(not Math.isPowerOf2(1023'u64))
+    Swag.assert(not Math.isPowerOf2(0xFFFFFFFF_FFFFFFFF'u64))
 }
 
 #test
@@ -80,7 +80,7 @@ func expectedAbs8(value: s8)->s8
         if byte != 0xFF
         {
             let other = byte + 1
-            Swag.assert(!Math.hasByte(Math.makeRepeat16(byte), other))
+            Swag.assert(not Math.hasByte(Math.makeRepeat16(byte), other))
         }
     }
 
@@ -129,18 +129,18 @@ func expectedAbs8(value: s8)->s8
     Swag.assert(Math.hasZeroByte(0x0000'u16))
     Swag.assert(Math.hasZeroByte(0x0012'u16))
     Swag.assert(Math.hasZeroByte(0x1200'u16))
-    Swag.assert(!Math.hasZeroByte(0x1212'u16))
-    Swag.assert(!Math.hasZeroByte(0xFFFF'u16))
+    Swag.assert(not Math.hasZeroByte(0x1212'u16))
+    Swag.assert(not Math.hasZeroByte(0xFFFF'u16))
     Swag.assert(Math.hasZeroByte(0x00000000'u32))
     Swag.assert(Math.hasZeroByte(0x00345678'u32))
     Swag.assert(Math.hasZeroByte(0x12340078'u32))
-    Swag.assert(!Math.hasZeroByte(0x12345678'u32))
-    Swag.assert(!Math.hasZeroByte(0xFFFFFFFF'u32))
+    Swag.assert(not Math.hasZeroByte(0x12345678'u32))
+    Swag.assert(not Math.hasZeroByte(0xFFFFFFFF'u32))
     Swag.assert(Math.hasZeroByte(0x00000000_00000000'u64))
     Swag.assert(Math.hasZeroByte(0x00345678_89ABCDEF'u64))
     Swag.assert(Math.hasZeroByte(0x12345600_89ABCDEF'u64))
-    Swag.assert(!Math.hasZeroByte(0x12345678_89ABCDEF'u64))
-    Swag.assert(!Math.hasZeroByte(0xFFFFFFFF_FFFFFFFF'u64))
+    Swag.assert(not Math.hasZeroByte(0x12345678_89ABCDEF'u64))
+    Swag.assert(not Math.hasZeroByte(0xFFFFFFFF_FFFFFFFF'u64))
 
     Swag.assert(Math.makeRepeat16(0x00'u8) == 0x0000'u16)
     Swag.assert(Math.makeRepeat16(0x20'u8) == 0x2020'u16)
@@ -158,16 +158,16 @@ func expectedAbs8(value: s8)->s8
     Swag.assert(Math.hasByte(0x1234'u16, 0x12'u8))
     Swag.assert(Math.hasByte(0x1234'u16, 0x34'u8))
     Swag.assert(Math.hasByte(0x1200'u16, 0x00'u8))
-    Swag.assert(!Math.hasByte(0x1212'u16, 0x00'u8))
-    Swag.assert(!Math.hasByte(0x1234'u16, 0x56'u8))
+    Swag.assert(not Math.hasByte(0x1212'u16, 0x00'u8))
+    Swag.assert(not Math.hasByte(0x1234'u16, 0x56'u8))
     Swag.assert(Math.hasByte(0x12345678'u32, 0x12'u8))
     Swag.assert(Math.hasByte(0x12345678'u32, 0x56'u8))
     Swag.assert(Math.hasByte(0x12345678'u32, 0x78'u8))
-    Swag.assert(!Math.hasByte(0x12345678'u32, 0x9A'u8))
+    Swag.assert(not Math.hasByte(0x12345678'u32, 0x9A'u8))
     Swag.assert(Math.hasByte(0x12345678_89ABCDEF'u64, 0x12'u8))
     Swag.assert(Math.hasByte(0x12345678_89ABCDEF'u64, 0xAB'u8))
     Swag.assert(Math.hasByte(0x12345678_89ABCDEF'u64, 0xEF'u8))
-    Swag.assert(!Math.hasByte(0x12345678_89ABCDEF'u64, 0x00'u8))
+    Swag.assert(not Math.hasByte(0x12345678_89ABCDEF'u64, 0x00'u8))
 }
 
 #test

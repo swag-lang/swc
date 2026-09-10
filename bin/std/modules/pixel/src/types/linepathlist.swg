@@ -68,7 +68,7 @@ private func contoursIntersect(a, b: const *Polygon)->bool
 
 private func pathListNeedsCleaning(pathList: const *LinePathList)->bool
 {
-    for p in pathList.paths where !p.polygon.isSimple do
+    for p in pathList.paths where not p.polygon.isSimple do
         return true
 
     for i in pathList.paths.count
@@ -170,7 +170,7 @@ impl LinePathList
         for path, index in .paths
         {
             let bounds = path.controlBounds()
-            if !index do
+            if not index do
                 result = bounds
             else do
                 result.expandToInclude(bounds)
@@ -317,7 +317,7 @@ impl LinePathList
         for outer in solved.paths where outer.polygon.isClockwise
         {
             .paths.add(outer)
-            for hole, index in solved.paths where !hole.polygon.isClockwise and !claimed[index]
+            for hole, index in solved.paths where not hole.polygon.isClockwise and not claimed[index]
             {
                 // A hole lies wholly inside its outer, so the cheap bounds test settles
                 // every pair but the few that share a region, and one point decides those:
@@ -326,9 +326,9 @@ impl LinePathList
                     continue
                 if hole.minBounds.y < outer.minBounds.y or hole.maxBounds.y > outer.maxBounds.y do
                     continue
-                if !outer.polygon.points.count or !hole.polygon.points.count do
+                if not outer.polygon.points.count or not hole.polygon.points.count do
                     continue
-                if !outer.polygon.contains(hole.polygon.pointAt(0)[]) do
+                if not outer.polygon.contains(hole.polygon.pointAt(0)[]) do
                     continue
 
                 claimed[index] = true
@@ -338,7 +338,7 @@ impl LinePathList
 
         // A hole no outer claims encloses nothing, and the fill would paint it as a shape
         // of its own. Dropping it is what keeps the result the region the rule defined.
-        for path, index in solved.paths where !path.polygon.isClockwise and !claimed[index] do
+        for path, index in solved.paths where not path.polygon.isClockwise and not claimed[index] do
             Memory.delete(path)
 
         solved.paths.clear()
@@ -475,7 +475,7 @@ impl LinePathList
     // Reports whether the fill cache still describes the current contours.
     private mtd const fillCacheMatches(rule: Clipper.PolyFillType, byDirection: bool)->bool
     {
-        if !.fillCacheValid or .fillCacheRule != rule or .fillCacheByDirection != byDirection do
+        if not .fillCacheValid or .fillCacheRule != rule or .fillCacheByDirection != byDirection do
             return false
         if .fillCacheStamps.count != .paths.count do
             return false
@@ -507,11 +507,11 @@ impl LinePathList
 
         var direct = false
         if byDirection do
-            direct = !pathListNeedsCleaning(me)
+            direct = not pathListNeedsCleaning(me)
         else do
             direct = .paths.count < 2 and (.paths.isEmpty() or .paths[0].polygon.isSimple)
 
-        if !direct
+        if not direct
         {
             let cache = Memory.new'LinePathList()
             cache[] = me[]

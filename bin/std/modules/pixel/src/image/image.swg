@@ -484,10 +484,10 @@ impl Image
         Swag.assert(stride > 0)
 
         let self: const *Image = me
-        let step               = cast(u64) (.bytesPerPixel * stride)
-        let base               = cast([*] u8) self.pixels.buffer!
-        let visit              = self.pixels.count / step
-        let opaque             = pixelUserData
+        let step   = cast(u64) (.bytesPerPixel * stride)
+        let base   = cast([*] u8) self.pixels.buffer!
+        let visit  = self.pixels.count / step
+        let opaque = pixelUserData
         parallel for |self, base, step, opaque| parIndex in visit
         {
             let pixPtr   = base + parIndex * step
@@ -730,7 +730,7 @@ impl Image
     // Reports whether the image has equal width and height.
     mtd const isSquare()->bool
     {
-        if !.isValid() do
+        if not .isValid() do
             return false
         return .width == .height
     }

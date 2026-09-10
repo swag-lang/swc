@@ -57,7 +57,7 @@ func filterUpRow(source, previous: const [*] u8, destination: [*] u8, count: u64
     while offset < count
     {
         destination[offset] = cast #bit(u8) (source[offset] - #wrap previous[offset])
-        offset              += 1
+        offset += 1
     }
 }
 
@@ -69,7 +69,7 @@ func filterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPixe
     while offset < bytesPerPixel and offset < count
     {
         destination[offset] = source[offset]
-        offset              += 1
+        offset += 1
     }
 
     while count - offset >= BatchBytes
@@ -90,7 +90,7 @@ func filterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPixe
     while offset < count
     {
         destination[offset] = cast #bit(u8) (source[offset] - #wrap source[offset - bytesPerPixel])
-        offset              += 1
+        offset += 1
     }
 }
 
@@ -160,7 +160,7 @@ func filterAverageRow(source, previous: const [*] u8, destination: [*] u8, count
     {
         let average = cast(u16) previous[offset] / 2
         destination[offset] = cast #bit(u8) (source[offset] - #wrap average)
-        offset              += 1
+        offset += 1
     }
 
     while count - offset >= BatchBytes
@@ -186,7 +186,7 @@ func filterAverageRow(source, previous: const [*] u8, destination: [*] u8, count
     {
         let average = (cast(u16) source[offset - bytesPerPixel] + previous[offset]) / 2
         destination[offset] = cast #bit(u8) (source[offset] - #wrap average)
-        offset              += 1
+        offset += 1
     }
 }
 
@@ -268,7 +268,7 @@ func filterPaethRow(source, previous: const [*] u8, destination: [*] u8, count, 
     while offset < bytesPerPixel and offset < count
     {
         destination[offset] = cast #bit(u8) (source[offset] - #wrap previous[offset])
-        offset              += 1
+        offset += 1
     }
 
     while count - offset >= 16
@@ -282,7 +282,7 @@ func filterPaethRow(source, previous: const [*] u8, destination: [*] u8, count, 
     {
         let predictor = paethScalar(source[offset - bytesPerPixel], previous[offset], previous[offset - bytesPerPixel])
         destination[offset] = cast #bit(u8) (source[offset] - #wrap predictor)
-        offset              += 1
+        offset += 1
     }
 }
 
@@ -322,7 +322,7 @@ impl Encoder
             return .None
 
         let chl = cast(s32) .encodeFlags.filterChoice
-        if !(chl & (chl - 1))
+        if not (chl & (chl - 1))
         {
             for i in 5
             {
@@ -336,7 +336,7 @@ impl Encoder
         for i in 5
         {
             let flag = 1 << (i + 3)
-            if !(chl & flag) do
+            if not (chl & flag) do
                 continue
 
             let score = .filterSum(size, cast(Filter) i)

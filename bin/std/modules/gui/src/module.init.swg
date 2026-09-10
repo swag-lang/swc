@@ -20,10 +20,10 @@ func nnFont(font: *Font?)->*Font
 // the same point.
 func opticalTop(family: const *FontFamily?, centerY, size: f32)->f32
 {
-    if !family do
+    if not family do
         return centerY - size * 0.5
     let font = family.getFont(.Regular)
-    if !font do
+    if not font do
         return centerY - size * 0.5
     return font.opticalTop(centerY, size)
 }

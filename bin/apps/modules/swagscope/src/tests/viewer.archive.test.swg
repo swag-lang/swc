@@ -232,7 +232,7 @@ private func writeZipFixture()->String
     completeViewerWindowClassification(&host, window)
 
     let viewer = cast(*ArchiveViewer) window.currentView!
-    while !viewer.load.isDone() do
+    while not viewer.load.isDone() do
         Threading.Thread.sleep(1'ms)
     host.fireTimer(viewer.loadTimer)
     Swag.assert(viewer.list.lineCount() == 4)
@@ -263,10 +263,10 @@ private func writeZipFixture()->String
     viewer.requestPreview(1)
     Swag.assert(viewer.pendingPreview == Swag.U64.Max)
 
-    while viewer.extract.started and !viewer.extract.isDone() do
+    while viewer.extract.started and not viewer.extract.isDone() do
         Threading.Thread.sleep(1'ms)
     host.fireTimer(viewer.previewTimer)
-    Swag.assert(!viewer.previewFile.isEmpty())
+    Swag.assert(not viewer.previewFile.isEmpty())
 
     let embedded = cast(*EmbeddedViewer) viewer.previewPane.children[0]
     Swag.assert(embedded.choices[0].key == "text")
@@ -278,7 +278,7 @@ private func writeZipFixture()->String
         host.fireTimers()
     }
 
-    Swag.assert(!viewer.embedded.isLoading())
+    Swag.assert(not viewer.embedded.isLoading())
     host.settleAnimations(window, 4)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "viewer.archive.document")
@@ -290,7 +290,7 @@ private func writeZipFixture()->String
     let revealed = session.revealMatch!(viewer, matches[0], "readme")
     Swag.assert(revealed)
     var bounds: Math.Rectangle
-    Swag.assert(session.searchBounds!(viewer, matches[0], &bounds) and !bounds.isEmpty())
+    Swag.assert(session.searchBounds!(viewer, matches[0], &bounds) and not bounds.isEmpty())
     session.clearSearch!(viewer)
 
     defer discard catch host.app.setLanguage(ReferenceLanguage)

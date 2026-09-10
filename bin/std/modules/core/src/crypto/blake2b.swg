@@ -110,7 +110,7 @@ public impl Blake2b
     // Replaces any previous state and starts a new keyed sequence.
     mtd resetKeyed(key: const [..] u8, digestSize: u64) fail
     {
-        if !digestSize or digestSize > Blake2bMaxDigestSize do
+        if not digestSize or digestSize > Blake2bMaxDigestSize do
             fail Errors.BadParameterError{"BLAKE2b needs a digest length of 1 to 64 bytes"}
         if key.count > Blake2bMaxKeySize do
             fail Errors.BadParameterError{"BLAKE2b accepts a key of at most 64 bytes"}

@@ -68,7 +68,7 @@ impl Icon
     // Paint icon at the given position
     mtd const paint(painter: *Painter, x, y: f32, color: Color = Argb.White)
     {
-        if !.imageList or !.imageList.isValid() do
+        if not .imageList or not .imageList.isValid() do
             return
 
         let idx  = .index

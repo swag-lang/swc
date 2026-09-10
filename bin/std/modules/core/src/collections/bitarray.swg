@@ -21,7 +21,7 @@ private impl BitArray
 {
     mtd const wordCount()->u64
     {
-        if !.count do
+        if not .count do
             return 0
 
         var result = .count >> 5
@@ -44,7 +44,7 @@ private impl BitArray
     // Does nothing if the buffer is not allocated.
     mtd release()
     {
-        if !.buffer do
+        if not .buffer do
             return
         Memory.free(.buffer, .capacityBytes, .allocator)
         .buffer        = null
@@ -56,7 +56,7 @@ private impl BitArray
     // This is a low-level memory operation.
     mtd realloc(newCapacityBytes: u64)
     {
-        if !.allocator do
+        if not .allocator do
             .allocator = Swag.getContext().allocator
         .buffer        = cast() Memory.realloc(.buffer, newCapacityBytes, .capacityBytes, .allocator)
         .capacityBytes = newCapacityBytes
@@ -65,7 +65,7 @@ private impl BitArray
     mtd clearUnusedBits()
     {
         let usedBits = .count & 31
-        if !usedBits do
+        if not usedBits do
             return
 
         let lastWord = .wordCount() - 1
@@ -122,7 +122,7 @@ public impl BitArray
     {
         let len = what.count
         .resize(len)
-        if !len do
+        if not len do
             return
 
         for value, index in what do
@@ -135,7 +135,7 @@ public impl BitArray
     {
         if .count != other.count do
             return false
-        if !.count do
+        if not .count do
             return true
 
         let buffer      = .constDataPtr()
@@ -145,17 +145,17 @@ public impl BitArray
         var offset = 0'u64
         while wordCount - offset >= 4 * VectorWords
         {
-            if !Math.Simd.allTrue(Math.Simd.load(buffer + offset) == Math.Simd.load(otherBuffer + offset)) or
-               !Math.Simd.allTrue(Math.Simd.load(buffer + offset + VectorWords) == Math.Simd.load(otherBuffer + offset + VectorWords)) or
-               !Math.Simd.allTrue(Math.Simd.load(buffer + offset + 2 * VectorWords) == Math.Simd.load(otherBuffer + offset + 2 * VectorWords)) or
-               !Math.Simd.allTrue(Math.Simd.load(buffer + offset + 3 * VectorWords) == Math.Simd.load(otherBuffer + offset + 3 * VectorWords)) do
+            if not Math.Simd.allTrue(Math.Simd.load(buffer + offset) == Math.Simd.load(otherBuffer + offset)) or
+               not Math.Simd.allTrue(Math.Simd.load(buffer + offset + VectorWords) == Math.Simd.load(otherBuffer + offset + VectorWords)) or
+               not Math.Simd.allTrue(Math.Simd.load(buffer + offset + 2 * VectorWords) == Math.Simd.load(otherBuffer + offset + 2 * VectorWords)) or
+               not Math.Simd.allTrue(Math.Simd.load(buffer + offset + 3 * VectorWords) == Math.Simd.load(otherBuffer + offset + 3 * VectorWords)) do
                 return false
             offset += 4 * VectorWords
         }
 
         while wordCount - offset >= VectorWords
         {
-            if !Math.Simd.allTrue(Math.Simd.load(buffer + offset) == Math.Simd.load(otherBuffer + offset)) do
+            if not Math.Simd.allTrue(Math.Simd.load(buffer + offset) == Math.Simd.load(otherBuffer + offset)) do
                 return false
             offset += VectorWords
         }
@@ -175,9 +175,9 @@ public impl BitArray
     // Block parameters: 'item' is the boolean value, 'index' the bit index.
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(item: bool, index: u64))
-        where !ptr
+        where not ptr
     {
-        if !.count do
+        if not .count do
             return
         var totalWords = .count >> 5
         if totalWords << 5 < .count do
@@ -204,7 +204,7 @@ public impl BitArray
     // Changes the number of bits and initializes every bit to `initialValue`.
     mtd resize(bitCount: u64, initialValue = false)
     {
-        if !bitCount
+        if not bitCount
         {
             .release()
             return
@@ -221,7 +221,7 @@ public impl BitArray
     // Sets all bits in the array to the specified boolean value.
     mtd setAll(value: bool)
     {
-        if !.count do
+        if not .count do
             return
         Memory.set(.dataPtr(), value ? 0xFF : 0x00, .capacityBytes)
         .clearUnusedBits()
@@ -267,7 +267,7 @@ public impl BitArray
     // Bits set to 'true' are changed to 'false', and vice versa.
     mtd invert()
     {
-        if !.count do
+        if not .count do
             return
         const VectorWords = #sizeof(Math.Simd.U32x4) / #sizeof(u32)
         let buffer = .dataPtr()
@@ -293,7 +293,7 @@ public impl BitArray
     mtd andWith(other: BitArray)
     {
         Swag.assert(.count == other.count)
-        if !.count do
+        if not .count do
             return
         let buffer      = .dataPtr()
         let otherBuffer = other.constDataPtr()
@@ -320,7 +320,7 @@ public impl BitArray
     mtd orWith(other: BitArray)
     {
         Swag.assert(.count == other.count)
-        if !.count do
+        if not .count do
             return
         let buffer      = .dataPtr()
         let otherBuffer = other.constDataPtr()
@@ -347,7 +347,7 @@ public impl BitArray
     mtd xorWith(other: BitArray)
     {
         Swag.assert(.count == other.count)
-        if !.count do
+        if not .count do
             return
         let buffer      = .dataPtr()
         let otherBuffer = other.constDataPtr()

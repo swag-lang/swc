@@ -23,13 +23,13 @@ const PLAIN_TYPE  = #typeof(GenericFlagPlain)
 const STRUCT_TYPE = #typeof(GenericFlagBox'(u16, 3))
 const FUNC_TYPE   = #typeof(genericFlagRepeat'(u16, 3))
 
-#assert(!(PLAIN_TYPE.flags & TypeInfoFlags.Generic))
+#assert(not (PLAIN_TYPE.flags & TypeInfoFlags.Generic))
 #assert(STRUCT_TYPE.flags & TypeInfoFlags.Generic)
 #assert(FUNC_TYPE.flags & TypeInfoFlags.Generic)
 
 #test
 {
-    Swag.assert(!(PLAIN_TYPE.flags & TypeInfoFlags.Generic))
+    Swag.assert(not (PLAIN_TYPE.flags & TypeInfoFlags.Generic))
     Swag.assert(STRUCT_TYPE.flags & TypeInfoFlags.Generic)
     Swag.assert(FUNC_TYPE.flags & TypeInfoFlags.Generic)
 }

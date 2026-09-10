@@ -61,7 +61,7 @@ impl Counter
 #test
 {
     let c: Container's32 = {value: 42, count: 1}
-    let b                = c.toBox()
+    let b = c.toBox()
     Swag.assert(b.value == 42)
 
     let c2: Container'string = {value: "boxed", count: 1}
@@ -69,14 +69,14 @@ impl Counter
     Swag.assert(b2.value == "boxed")
 
     let c3: Container'bool = {value: true, count: 0}
-    let b3                 = c3.toBox()
+    let b3 = c3.toBox()
     Swag.assert(b3.value == true)
 }
 
 #test
 {
     let c: Container's32 = {value: 5, count: 1}
-    let p                = c.pairWith(10)
+    let p = c.pairWith(10)
     Swag.assert(p.first == 5)
     Swag.assert(p.second == 10)
 

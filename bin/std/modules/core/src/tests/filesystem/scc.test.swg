@@ -31,7 +31,7 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
 
 func sameSccBytes(left, right: const [..] u8)->bool
 {
-    return left.count == right.count and (!left.count or Swag.memcmp(left.buffer, right.buffer, left.count) == 0)
+    return left.count == right.count and (not left.count or Swag.memcmp(left.buffer, right.buffer, left.count) == 0)
 }
 
 // The header and one selected chunk are sufficient; unrelated payload corruption is lazy.
@@ -156,7 +156,7 @@ func sameSccBytes(left, right: const [..] u8)->bool
     reader.close()
 
     expect File.delete(path)
-    Swag.assert(!File.exists(path))
+    Swag.assert(not File.exists(path))
 }
 
 // The virtual hierarchy can group one logical file and its alternate representations.

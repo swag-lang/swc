@@ -10,7 +10,7 @@ struct RichChunk
 {
     public
     {
-        slice:        string          = ""          // Borrowed UTF-8 slice represented by this run.
+        slice:        string = ""                   // Borrowed UTF-8 slice represented by this run.
         fontStyle:    FontFamilyStyle = Regular     // Requested family style.
         hasFontStyle: bool                          // Whether markup explicitly selected `fontStyle`.
         isSpace:      bool                          // Whether the chunk is whitespace.
@@ -212,13 +212,13 @@ impl RichString
     // If an url does not exists, returns 'null'.
     mtd getUrlChunkAt(at: Math.Point)->*RichChunk?
     {
-        if !.hasUrl do
+        if not .hasUrl do
             return null
         for &c in .chunks
         {
-            if !c.isUrl do
+            if not c.isUrl do
                 continue
-            if !c.visible do
+            if not c.visible do
                 continue
 
             var r = c.boundRect
@@ -238,7 +238,7 @@ impl RichString
     // only when the text is dirty or when `force` is true.
     mtd compute(force = false)
     {
-        if !.dirty and !force do
+        if not .dirty and not force do
             return
 
         .dirty  = false
@@ -247,7 +247,7 @@ impl RichString
         .layoutRect.clear()
 
         var count = .raw.length
-        if !count do
+        if not count do
             return
 
         var startChunk = 0'u64

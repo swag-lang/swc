@@ -67,7 +67,7 @@ func initFastNoise()->Noise.FastNoise
     let withGain = noise.sample(3.5, -2.25)
     noise.gain = 0
     let noGain = noise.sample(3.5, -2.25)
-    Swag.assert(!Math.isEqualEpsilon(withGain, noGain, 0.00001'f32))
+    Swag.assert(not Math.isEqualEpsilon(withGain, noGain, 0.00001'f32))
 
     noise.octaves = 1
     Swag.assert(noise.sample(3.5, -2.25) >= -1)

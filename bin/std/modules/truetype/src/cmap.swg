@@ -63,7 +63,7 @@ func lookupCMap4(cmap: const [..] u8?, charCode: u32)->u32 fail
 
     let delta = readS16(cmap, deltasOff + idx * 2)
     let range = readU16(cmap, rangesOff + idx * 2)
-    if !range do
+    if not range do
         return cast(u32) ((cast(s32) charCode + delta) & 0xFFFF)
 
     let rangePos = rangesOff + idx * 2
@@ -253,11 +253,11 @@ func lookupNonDefaultVariation(cmap: const [..] u8?, listOffset, charCode: u32)-
 func lookupVariationGlyph(faceData: *FaceImpl, charCode, selector: u32)->u32 fail
 {
     let cmap = faceData.variationCMap
-    if !cmap do
+    if not cmap do
         return 0
 
     let record = findVariationSelector(cmap, selector)
-    if !record do
+    if not record do
         return 0
 
     let nonDefaultOffset = readU32(cmap, record + 7)
@@ -272,11 +272,11 @@ func lookupVariationGlyph(faceData: *FaceImpl, charCode, selector: u32)->u32 fai
 func hasVariationSequence(faceData: *FaceImpl, charCode, selector: u32)->bool fail
 {
     let cmap = faceData.variationCMap
-    if !cmap do
+    if not cmap do
         return false
 
     let record = findVariationSelector(cmap, selector)
-    if !record do
+    if not record do
         return false
 
     let defaultOffset = readU32(cmap, record + 3)
@@ -291,7 +291,7 @@ func lookupGlyphIndex(faceData: *FaceImpl, charCode: u32)->u32 fail
 {
     // A bare CFF or Type 1 program declares no character map; the one derived from its
     // built-in encoding answers in its place.
-    if !faceData.hasCMap do
+    if not faceData.hasCMap do
         return faceData.syntheticCMap.getOrDefault(charCode, 0)
 
     let cmap = faceData.chosenCMap

@@ -88,7 +88,7 @@ impl IWnd for ColorPicker
             .dirty = false
             let imageWidth  = cast(s32) Math.max(clientRect.width, 1)
             let imageHeight = cast(s32) Math.max(clientRect.height, 1)
-            if !.image.isValid() or .image.width != imageWidth or .image.height != imageHeight
+            if not .image.isValid() or .image.width != imageWidth or .image.height != imageHeight
             {
                 .image = Image.create(imageWidth, imageHeight, .RGBA8)
                 if .texture.isValid()

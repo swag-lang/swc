@@ -432,7 +432,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
     Swag.assert(users.auditCode == "tenant.users.list")
     Swag.assert(users.pathParamCount == 1)
     Swag.assert(users.paramCount == 2)
-    Swag.assert(!users.critical)
+    Swag.assert(not users.critical)
     Swag.assert(users.returnsValue)
 
     let rotateIndex = findGeneratedAdminRoute("POST", "/tenants/:tenantId/rotate-api-keys")
@@ -454,7 +454,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
     Swag.assert(delivery.handler == "setInvoiceDelivery")
     Swag.assert(delivery.pathParamCount == 0)
     Swag.assert(delivery.paramCount == 3)
-    Swag.assert(!delivery.critical)
+    Swag.assert(not delivery.critical)
     Swag.assert(delivery.returnsValue)
 
     let rebuildIndex = findGeneratedAdminRoute("POST", "/internal/search/rebuild-cache")
@@ -466,7 +466,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
     Swag.assert(rebuild.pathParamCount == 0)
     Swag.assert(rebuild.paramCount == 2)
     Swag.assert(rebuild.critical)
-    Swag.assert(!rebuild.returnsValue)
+    Swag.assert(not rebuild.returnsValue)
 
     let missing = getGeneratedAdminRoute(99)
     Swag.assert(missing.handler == "")

@@ -282,7 +282,7 @@ impl Dfa
 
         let atEnd = symbol == .stride - 1
         var byte  = 0'u8
-        if !atEnd do
+        if not atEnd do
             byte = program.classFirstByte[symbol]
 
         // The state remembers the side it came from; the byte being read is on the other side,
@@ -290,11 +290,11 @@ impl Dfa
         let fromStart   = (flags & FlagFromStart) != 0
         let fromWord    = (flags & FlagFromWord) != 0
         let fromNewline = (flags & FlagFromNewline) != 0
-        let byteWord    = !atEnd and isWordByte(byte)
-        let byteNewline = !atEnd and byte == '\n'
+        let byteWord    = not atEnd and isWordByte(byte)
+        let byteNewline = not atEnd and byte == '\n'
 
         var previousIsStart, previousIsWord, previousIsNewline: bool
-        var nextIsEnd, nextIsWord, nextIsNewline:               bool
+        var nextIsEnd, nextIsWord, nextIsNewline: bool
 
         if .reverse
         {
@@ -323,7 +323,7 @@ impl Dfa
             .stack.add(.stateData[offset + i])
 
         var isMatch = false
-        while !.stack.isEmpty()
+        while not .stack.isEmpty()
         {
             let pc = .stack.popBack()
             if .seen[pc] == .generation do
@@ -362,7 +362,7 @@ impl Dfa
                 // none of them can take part in the leftmost match any more. Dropping them is
                 // also what stops the search: the branch that skips ahead looking for a later
                 // start is one of them.
-                if !.matchAll do
+                if not .matchAll do
                     .stack.clear()
 
             case .ByteRange, .ByteSet:
@@ -376,7 +376,7 @@ impl Dfa
         }
 
         .stepped.clear()
-        if !atEnd
+        if not atEnd
         {
             for pc in .closure
             {
@@ -395,7 +395,7 @@ impl Dfa
 
         // A state holding nothing but the entry point has matched nothing yet, so a search
         // sitting in it may skip ahead to the next offset a match could begin at.
-        if !.reverse and .stepped.count == 1 and .stepped[0] == program.startUnanchored do
+        if not .reverse and .stepped.count == 1 and .stepped[0] == program.startUnanchored do
             newFlags |= FlagIsStart
 
         return .intern(.stepped.toSlice(), newFlags)
@@ -515,7 +515,7 @@ impl Dfa
         // The loop below sees every byte of the subject, so everything it needs is read once
         // into a local: the tables as raw pointers, and the two settings it tests. Everything
         // that happens rarely is a call, to keep this function — and its stack frame — small.
-        let usePrefilter = !anchored and prefilter.isEnabled()
+        let usePrefilter = not anchored and prefilter.isEnabled()
         let classes      = cast(const [*] u8) &program.byteClass[0]
         let data         = hay.buffer
         let quitHigh     = .quitHigh
@@ -565,7 +565,7 @@ impl Dfa
                         return result
                     }
 
-                    if !jump.found do
+                    if not jump.found do
                         return forwardResult(lastMatch)
 
                     pos         = jump.at

@@ -74,7 +74,7 @@ struct FileBrowserCtrl
             options:       FileDlgOptions     // Effective browsing and selection options.
             currentFolder: String             // Normalized folder currently displayed.
 
-                late
+            late
             {
                 listCtrl:        *ListCtrl       // Sortable file and folder list.
                 comboPath:       *ComboBox       // Current-folder and ancestor selector.
@@ -118,7 +118,7 @@ private impl FileBrowserCtrl
     {
         .backButton.enable(.history.canGoBack())
         .forwardButton.enable(.history.canGoForward())
-        .historyButton.enable(.options.state != null and !.options.state.recentFolders.isEmpty())
+        .historyButton.enable(.options.state != null and not .options.state.recentFolders.isEmpty())
         let parent = Path.directoryName(.currentFolder.toString()) orelse ""
         .upButton.enable(parent.count != 0 and parent != .currentFolder.toString())
     }
@@ -127,16 +127,16 @@ private impl FileBrowserCtrl
     mtd openRecentMenu()
     {
         let state = .options.state
-        if !state do
+        if not state do
             return
 
         let menu = MenuCtrl.createPopup(me)
         for &recent in state.recentFolders
         {
-            if !Directory.exists(recent.toString()) do
+            if not Directory.exists(recent.toString()) do
                 continue
             var name = Path.fileName(recent.toString()) orelse ""
-            if !name.count do
+            if not name.count do
                 name = recent.toString()
             var icon = .app().directoryIcon(recent.toString(), true)
             icon.color = .themeColors().label_Text
@@ -159,7 +159,7 @@ private impl FileBrowserCtrl
 
     mtd showFolder(folder: string)->bool
     {
-        if !folder.count or !Directory.exists(folder) do
+        if not folder.count or not Directory.exists(folder) do
             return false
 
         var normalized = String.from(folder)
@@ -216,7 +216,7 @@ private impl FileBrowserCtrl
     mtd fillLocationsPane()
     {
         let treeCtrl = .treeCtrl
-        if !treeCtrl do
+        if not treeCtrl do
             return
 
         treeCtrl.clear()
@@ -233,7 +233,7 @@ private impl FileBrowserCtrl
             .addLocationLine(v.name, c.toString(), icon)
         }
 
-        l           = treeCtrl.createLine(strings().browser_Drives)
+        l = treeCtrl.createLine(strings().browser_Drives)
         l.separator = true
 
         let volumes = catch Directory.drives()
@@ -275,7 +275,7 @@ private impl FileBrowserCtrl
             if fi.isDirectory() and .options.mode != FileDlgMode.SelectFolder do
                 continue
             selCount += 1
-            if !fi.isDirectory() do
+            if not fi.isDirectory() do
                 selBytes += fi.size
         }
 
@@ -320,7 +320,7 @@ private impl FileBrowserCtrl
                 case .Back:
                     if evt.modifiers.equals(.None)
                     {
-                        if !fileBrowser.goBack() do
+                        if not fileBrowser.goBack() do
                             discard fileBrowser.goUp()
                         evt.accepted = true
                     }
@@ -360,7 +360,7 @@ private impl FileBrowserCtrl
 
                 case .Enter:
                     let l = list.focusedLine()
-                    if !l do
+                    if not l do
                         break
                     let fi = cast(const *FileInfo) l.userData0!
                     if fi.isDirectory()
@@ -376,10 +376,11 @@ private impl FileBrowserCtrl
                     }
                 }
             }
+
             .sigLeftDoubleClicked += func|fileBrowser = me|(list, pt)
             {
                 var l = list.selectedLine()
-                if !l do
+                if not l do
                     return
                 var fi = cast(const *FileInfo) l.userData0!
                 if fi.isDirectory()
@@ -392,6 +393,7 @@ private impl FileBrowserCtrl
                     list.setFocus()
                 }
             }
+
             .sigSelectionChanged += func|fileBrowser = me|(list)
             {
                 var sel = list.selectedLines()
@@ -410,25 +412,26 @@ private impl FileBrowserCtrl
                             continue
                     }
 
-                    if !txt.isEmpty() do
+                    if not txt.isEmpty() do
                         txt += ";"
                     txt += Path.fileName(fi.fullname)
                 }
 
-                if !txt.isEmpty() do
+                if not txt.isEmpty() do
                     fileBrowser.editFile.setText(txt)
                 fileBrowser.updateStatus()
             }
+
             .compareLines = func(l1, l2, col, down)
             {
-                if !l1 or !l2 do
+                if not l1 or not l2 do
                     return 0
 
                 var fi1 = cast(*FileInfo) l1.userData0!
                 var fi2 = cast(*FileInfo) l2.userData0!
-                if fi1.isDirectory() and !fi2.isDirectory() do
+                if fi1.isDirectory() and not fi2.isDirectory() do
                     return -1
-                if !fi1.isDirectory() and fi2.isDirectory() do
+                if not fi1.isDirectory() and fi2.isDirectory() do
                     return 1
 
                 let byName = Utf8.compare(fi1.fullname.toSlice(), fi2.fullname.toSlice(), .Latin1NoCase)
@@ -460,7 +463,7 @@ impl FileBrowserCtrl
     // Copies the current browsing state into the optional borrowed state object.
     internal mtd saveState()
     {
-        if !.options.state do
+        if not .options.state do
             return
 
         let state = me .options.state!
@@ -518,7 +521,7 @@ impl FileBrowserCtrl
                 .sigSelectionChanged += func|fileBrowser|(list)
                 {
                     var line = list.selectedLine()
-                    if !line do
+                    if not line do
                         return
                     var idx = cast(u64) line.userData0
                     fileBrowser.setCurrentFolder(fileBrowser.treePathStr[idx].toString())
@@ -570,7 +573,7 @@ impl FileBrowserCtrl
             .sigPressed += func|fileBrowser|(btn) { fileBrowser.openRecentMenu() }
 
             // Without reusable state there is never a history to show.
-            if !fileBrowser.options.state do
+            if not fileBrowser.options.state do
                 .hide()
         }
 
@@ -660,7 +663,7 @@ impl FileBrowserCtrl
         {
             if fileBrowser.options.initialFolder.count do
                 .setCurrentFolder(fileBrowser.options.initialFolder)
-            elif fileBrowser.options.state and !fileBrowser.options.state.currentFolder.isEmpty() do
+            elif fileBrowser.options.state and not fileBrowser.options.state.currentFolder.isEmpty() do
                 .setCurrentFolder(fileBrowser.options.state.currentFolder)
             .listCtrl.sort(0)
             .editFile.setText(fileBrowser.options.initialName)
@@ -677,7 +680,7 @@ impl FileBrowserCtrl
         if fileBrowser.currentFolder.isEmpty() and fileBrowser.treeCtrl
         {
             let tree = fileBrowser.treeCtrl!
-            for line, idx in tree.lines where line and !line.separator
+            for line, idx in tree.lines where line and not line.separator
             {
                 tree.selectLine(cast(u32) idx)
                 break
@@ -693,7 +696,7 @@ impl FileBrowserCtrl
     #[Swag.Discardable]
     mtd setCurrentFolder(folder: string)->bool
     {
-        if !.showFolder(folder) do
+        if not .showFolder(folder) do
             return false
         .history.push(.currentFolder.toString())
         .updateNavigationState()
@@ -710,11 +713,11 @@ impl FileBrowserCtrl
     #[Swag.Discardable]
     mtd goBack()->bool
     {
-        if !.history.canGoBack() do
+        if not .history.canGoBack() do
             return false
         let oldIndex = .history.index
         let folder   = .history.goBack()
-        if !.showFolder(folder.toString())
+        if not .showFolder(folder.toString())
         {
             .history.index = oldIndex
             .updateNavigationState()
@@ -729,11 +732,11 @@ impl FileBrowserCtrl
     #[Swag.Discardable]
     mtd goForward()->bool
     {
-        if !.history.canGoForward() do
+        if not .history.canGoForward() do
             return false
         let oldIndex = .history.index
         let folder   = .history.goForward()
-        if !.showFolder(folder.toString())
+        if not .showFolder(folder.toString())
         {
             .history.index = oldIndex
             .updateNavigationState()
@@ -749,7 +752,7 @@ impl FileBrowserCtrl
     mtd goUp()->bool
     {
         let parent = Path.directoryName(.currentFolder.toString()) orelse ""
-        if !parent.count or parent == .currentFolder.toString() do
+        if not parent.count or parent == .currentFolder.toString() do
             return false
         return .setCurrentFolder(parent)
     }
@@ -797,7 +800,7 @@ impl FileBrowserCtrl
 
             // Filter
             var show = true
-            if !fi.isDirectory() and filterExtensions.count
+            if not fi.isDirectory() and filterExtensions.count
             {
                 show = false
                 for t in tokens
@@ -810,7 +813,7 @@ impl FileBrowserCtrl
                 }
             }
 
-            if !show do
+            if not show do
                 continue
 
             // Content
@@ -837,7 +840,7 @@ impl FileBrowserCtrl
     // Creates a folder inside [[Gui.FileBrowserCtrl.currentFolder]] and refreshes the list on success.
     mtd createFolder(name: string)->bool
     {
-        if .currentFolder.isEmpty() or !Path.isValidFileName(name) do
+        if .currentFolder.isEmpty() or not Path.isValidFileName(name) do
             return false
         let path = Path.combine(.currentFolder, name)
         catch Directory.create(path) else do
@@ -872,7 +875,7 @@ impl FileBrowserCtrl
             candidate = typed
         else do
             candidate = Path.combine(.currentFolder, typed.toString())
-        if !Directory.exists(candidate) do
+        if not Directory.exists(candidate) do
             return String.from("")
         return candidate
     }
@@ -883,12 +886,12 @@ impl FileBrowserCtrl
     // [[Gui.FileDlgState.recentFolders]], served by the recent-folders drop-down.
     mtd noteAccepted()
     {
-        if !.options.state do
+        if not .options.state do
             return
         if .options.mode == .SelectFolder
         {
             let sel = .selectedPath()
-            if !sel.isEmpty() do
+            if not sel.isEmpty() do
                 .recordRecentFolder(sel.toString())
         }
 
@@ -900,7 +903,7 @@ impl FileBrowserCtrl
     mtd recordRecentFolder(folder: string)
     {
         let state = .options.state
-        if !state or !folder.count or !Directory.exists(folder) do
+        if not state or not folder.count or not Directory.exists(folder) do
             return
 
         var normalized = String.from(folder)
@@ -951,9 +954,9 @@ impl FileBrowserCtrl
             t1.trim()
             if t1.isEmpty() do
                 continue
-            if .options.mode == .SelectFolder and !Path.isValidPathName(t1.toString()) do
+            if .options.mode == .SelectFolder and not Path.isValidPathName(t1.toString()) do
                 continue
-            if .options.mode != .SelectFolder and !Path.isValidFileName(t1.toString()) do
+            if .options.mode != .SelectFolder and not Path.isValidFileName(t1.toString()) do
                 continue
 
             // Get the full name
@@ -972,7 +975,7 @@ impl FileBrowserCtrl
                 }
             }
 
-            if .options.mode != .SelectFolder and filterExtensions.count and !hasFilterExtension and extensions.count do
+            if .options.mode != .SelectFolder and filterExtensions.count and not hasFilterExtension and extensions.count do
                 val += extensions[0]
 
             result.add(val)
@@ -997,7 +1000,7 @@ impl FileBrowserCtrl
             return paths.count == 1 and File.exists(paths[0])
 
         case .SelectFiles:
-            for path in paths where !File.exists(path.toString()) do
+            for path in paths where not File.exists(path.toString()) do
                 return false
             return true
 

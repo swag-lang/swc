@@ -63,7 +63,7 @@ using Core, Core.Errors, Pixel
 
     Swag.assert(stream.nextDecode == 0 and stream.skipBefore == 1)
     Swag.assert(stream.decodeLimit == 3)
-    Swag.assert(!stream.reachedEnd)
+    Swag.assert(not stream.reachedEnd)
 }
 
 // Geometry and content of `bars-scroll-c420.y4m`, the long fixture of this suite.
@@ -163,7 +163,7 @@ func barsAssertFrame(frame: Image, index: u64)
     let bytes  = expect File.readAllBytes(videoFixturePath(BarsFixture).toString())
     var reader = expect Reader.openMemory(BarsFixture, bytes.toSlice())
     Swag.assert(reader.frameCount() == BarsFrameCount)
-    Swag.assert(!(reader.sourcePath()).count)
+    Swag.assert(not (reader.sourcePath()).count)
 
     var frame: Image
     const Probes: [3] u64 = [0, 137, BarsFrameCount - 1]

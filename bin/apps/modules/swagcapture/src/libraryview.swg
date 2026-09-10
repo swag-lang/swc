@@ -72,7 +72,8 @@ impl LibraryItem
 struct LibraryView
 {
     using wnd: Wnd
-        late
+
+    late
     {
         scrollWnd: *ScrollWnd
         libWnd:    *LibraryWnd
@@ -132,7 +133,7 @@ impl IWnd for LibraryView
 
         if evt.kind == .Released and .hotItem != Swag.U32.Max and evt.button == .Left
         {
-            if !ctrlPressed and !shiftPressed do
+            if not ctrlPressed and not shiftPressed do
                 .selModel.clear()
 
             if shiftPressed and .focusItem < .items.count do
@@ -158,7 +159,7 @@ impl IWnd for LibraryView
 
         if evt.kind == .Pressed and evt.button == .Right and (.hotItem < .items.count or .focusItem < .items.count)
         {
-            if .hotItem < .items.count and !.selModel.isSelected(.hotItem)
+            if .hotItem < .items.count and not .selModel.isSelected(.hotItem)
             {
                 .setFocusItem(.hotItem)
                 .focusItem = .hotItem
@@ -212,7 +213,7 @@ impl IWnd for LibraryView
             }
 
             let result = menu.doModal(evt.surfacePos, autoDestroy: true)
-            if !result do
+            if not result do
                 return
             switch result!
             {
@@ -233,7 +234,7 @@ impl IWnd for LibraryView
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if !g_UpdatingLib do
+        if not g_UpdatingLib do
             .imgSpin.hide()
 
         let painter    = evt.paintContext.painter
@@ -278,7 +279,7 @@ impl IWnd for LibraryView
                 y += h + ItemMargin
             }
 
-            if !it.visible
+            if not it.visible
             {
                 // SCC items retain their compressed PNG, not a decoded image plus a texture for
                 // every file in the library, so a thumbnail that scrolled away is released. It
@@ -290,7 +291,7 @@ impl IWnd for LibraryView
                     .mutexLoaded.lock()
                     let capture = it.capture
                     .mutexLoaded.unlock()
-                    if capture and !capture.previewBytes.isEmpty() do
+                    if capture and not capture.previewBytes.isEmpty() do
                         evt.paintContext.renderer.removeTexture(&it.texture)
                 }
 
@@ -305,11 +306,11 @@ impl IWnd for LibraryView
             .mutexLoaded.unlock()
 
             // Materialize only what is visible, upload it, then release the transient pixels.
-            if capture and !it.texture.isValid()
+            if capture and not it.texture.isValid()
             {
                 // A preview that is already pixels only needs the upload. Retained PNG bytes
                 // need the decoder first, and that is the part this frame rations.
-                if !capture.preview.isValid() and !capture.previewBytes.isEmpty()
+                if not capture.preview.isValid() and not capture.previewBytes.isEmpty()
                 {
                     if decodeBudget == 0 do
                         decodesRemain = true
@@ -321,7 +322,7 @@ impl IWnd for LibraryView
                         // Bytes this build cannot turn into a picture. Drop them, so the cell
                         // settles on the preview-less icon instead of paying the decoder again
                         // on every frame the capture stays on screen.
-                        if !capture.preview.isValid() do
+                        if not capture.preview.isValid() do
                             capture.previewBytes.clear()
                     }
                 }
@@ -329,11 +330,11 @@ impl IWnd for LibraryView
                 if capture.preview.isValid()
                 {
                     it.texture = evt.paintContext.renderer.addImage(capture.preview)
-                    if !capture.previewBytes.isEmpty() do
+                    if not capture.previewBytes.isEmpty() do
                         capture.preview = {}
                 }
             }
-            elif it.kind == .Image and !it.texture.isValid() and image.isValid() do
+            elif it.kind == .Image and not it.texture.isValid() and image.isValid() do
                 it.texture = evt.paintContext.renderer.addImage(image)
 
             let selected = .selModel.isSelected(cast() i)
@@ -356,9 +357,9 @@ impl IWnd for LibraryView
             // User-given name, drawn along the bottom of the thumbnail with a soft
             // shadow so it stays readable over any background.
             var label = ""
-            if capture and !capture.title.isEmpty() do
+            if capture and not capture.title.isEmpty() do
                 label = capture.title
-            elif capture and !capture.sourceApplication.isEmpty() do
+            elif capture and not capture.sourceApplication.isEmpty() do
                 label = capture.sourceApplication
             elif it.kind == .Image do
                 label = Path.fileName(it.fi.fullname) orelse ""
@@ -405,12 +406,12 @@ impl IWnd for LibraryView
 
             // Loading, a decode this frame did not have the budget for, a legacy preview-less
             // capture, or an image the decoder rejected.
-            if !it.texture.isValid()
+            if not it.texture.isValid()
             {
                 var icon = .theme().icon(.HourGlass, 48)
                 if itemLoaded and it.kind == .Image do
                     icon = .theme().icon(.Warning, 48)
-                elif itemLoaded and (!capture or capture.previewBytes.isEmpty()) do
+                elif itemLoaded and (not capture or capture.previewBytes.isEmpty()) do
                     icon = .mainWnd.icon(.Archive, 48)
                 let color = Color.fromArgb(50, Argb.White)
                 icon.paint(painter, it.rect.horzCenter() - icon.sizeX * 0.5, it.rect.vertCenter() - icon.sizeY * 0.5, color)
@@ -447,7 +448,7 @@ impl LibraryView
 
     mtd stopLoading()
     {
-        if !.thread.isValid() do
+        if not .thread.isValid() do
             return
         .thread.safeForceEnd()
         .thread.wait()
@@ -456,10 +457,10 @@ impl LibraryView
     mtd startLoading() fail
     {
         var hasPending: bool
-        for it in .allItems where !it!.loaded do
+        for it in .allItems where not it!.loaded do
             hasPending = true
 
-        if !hasPending
+        if not hasPending
         {
             g_UpdatingLib = false
             return
@@ -486,13 +487,13 @@ impl LibraryView
         .mutexLoaded.lock()
         let capture = item.capture
         .mutexLoaded.unlock()
-        if !capture do
+        if not capture do
             return
 
         catch capture.materializePreview()
         catch File.touch(item.fi.fullname)
         .mainWnd.recentWnd.addRecent(item.fi.fullname, capture.preview, front: true, sel: true, linked: capture.linkedImage)
-        if !capture.previewBytes.isEmpty() do
+        if not capture.previewBytes.isEmpty() do
             capture.preview = {}
         .mainWnd.recentWnd.setScrollPos(0, 0)
         .mainWnd.swapLibraryMode()
@@ -625,12 +626,12 @@ impl LibraryView
             if .libWnd.contentFilter == .Images and itn.kind != .Image do
                 continue
 
-            if !itemLoaded
+            if not itemLoaded
             {
                 // Nothing is known about an item until its preview loads. While a search
                 // is active hide it (it re-appears once loaded if it matches) so results
                 // are not padded with unloaded, possibly non-matching, captures.
-                if search.count != 0 or .libWnd.contentFilter == .ScreenCaptures or .libWnd.contentFilter == .ImportedCaptures or .libWnd.favoritesOnly or .libWnd.minimumRating or !.libWnd.applicationFilter.isEmpty() or !.libWnd.tagFilter.isEmpty() do
+                if search.count != 0 or .libWnd.contentFilter == .ScreenCaptures or .libWnd.contentFilter == .ImportedCaptures or .libWnd.favoritesOnly or .libWnd.minimumRating or not .libWnd.applicationFilter.isEmpty() or not .libWnd.tagFilter.isEmpty() do
                     continue
                 itn.filtered = false
                 .items.add(itn)
@@ -639,15 +640,15 @@ impl LibraryView
 
             switch .libWnd.contentFilter
             {
-            case .ScreenCaptures where !capture or capture.sourceKind != .Screen: continue
-            case .ImportedCaptures where !capture or (capture.sourceKind != .ImageFile and capture.sourceKind != .Clipboard): continue
+            case .ScreenCaptures where not capture or capture.sourceKind != .Screen: continue
+            case .ImportedCaptures where not capture or (capture.sourceKind != .ImageFile and capture.sourceKind != .Clipboard): continue
             }
 
             if itn.kind == .Image
             {
-                if .libWnd.favoritesOnly or .libWnd.minimumRating or !.libWnd.applicationFilter.isEmpty() or !.libWnd.tagFilter.isEmpty() do
+                if .libWnd.favoritesOnly or .libWnd.minimumRating or not .libWnd.applicationFilter.isEmpty() or not .libWnd.tagFilter.isEmpty() do
                     continue
-                if !.matchSearch(itn, null, search) do
+                if not .matchSearch(itn, null, search) do
                     continue
                 itn.filtered = false
                 .items.add(itn)
@@ -655,25 +656,25 @@ impl LibraryView
             }
 
             let loaded = capture
-            if !loaded do
+            if not loaded do
                 continue
-            if !loaded.linkedImage.isEmpty() and !.libWnd.showLinkedImage do
+            if not loaded.linkedImage.isEmpty() and not .libWnd.showLinkedImage do
                 continue
-            if loaded.linkedImage.isEmpty() and !.libWnd.showUnLinkedImage do
+            if loaded.linkedImage.isEmpty() and not .libWnd.showUnLinkedImage do
                 continue
-            if loaded.linkedUpToDate and !loaded.linkedImage.isEmpty() and !.libWnd.showUpToDateLinkedImage do
+            if loaded.linkedUpToDate and not loaded.linkedImage.isEmpty() and not .libWnd.showUpToDateLinkedImage do
                 continue
-            if !loaded.linkedUpToDate and !loaded.linkedImage.isEmpty() and !.libWnd.showUnSavedLinkedImage do
+            if not loaded.linkedUpToDate and not loaded.linkedImage.isEmpty() and not .libWnd.showUnSavedLinkedImage do
                 continue
-            if .libWnd.favoritesOnly and !loaded.favorite do
+            if .libWnd.favoritesOnly and not loaded.favorite do
                 continue
             if loaded.rating < .libWnd.minimumRating do
                 continue
-            if !.libWnd.applicationFilter.isEmpty() and Utf8.compare(loaded.sourceApplication.toSlice(), .libWnd.applicationFilter, .Latin1NoCase) != 0 do
+            if not .libWnd.applicationFilter.isEmpty() and Utf8.compare(loaded.sourceApplication.toSlice(), .libWnd.applicationFilter, .Latin1NoCase) != 0 do
                 continue
-            if !.libWnd.tagFilter.isEmpty() and !loaded.hasTag(.libWnd.tagFilter) do
+            if not .libWnd.tagFilter.isEmpty() and not loaded.hasTag(.libWnd.tagFilter) do
                 continue
-            if !.matchSearch(itn, loaded, search) do
+            if not .matchSearch(itn, loaded, search) do
                 continue
 
             itn.filtered = false
@@ -706,7 +707,7 @@ impl LibraryView
                 if capture.preview.isValid()
                 {
                     haar = ImageStatistics.quickExtractHaarFeatures(capture.preview, 32)
-                    if !capture.previewBytes.isEmpty() do
+                    if not capture.previewBytes.isEmpty() do
                         capture.preview = {}
                 }
 
@@ -725,7 +726,7 @@ impl LibraryView
         else
         {
             var image = catch Image.load(it.fi.fullname)
-            var haar:          ImageStatistics.HaarFeatures
+            var haar: ImageStatistics.HaarFeatures
             var width, height: s32
             if image.isValid()
             {
@@ -759,7 +760,7 @@ impl LibraryView
         {
             if th.requestEnd do
                 break
-            if it.loaded or !it.visible do
+            if it.loaded or not it.visible do
                 continue
 
             .loadOne(it)
@@ -796,11 +797,11 @@ impl LibraryView
         var nitems: Array'*LibraryItem
 
         var toCompare: *LibraryItem?
-        while !remaining.isEmpty()
+        while not remaining.isEmpty()
         {
             // A capture with no Haar features (no preview) can't anchor a similarity
             // comparison; pass it straight through so it never reaches the compare below.
-            if !toCompare or toCompare.filtered or toCompare.haar.size == 0
+            if not toCompare or toCompare.filtered or toCompare.haar.size == 0
             {
                 toCompare = remaining.front()
                 remaining.removeAt(0)
@@ -864,8 +865,8 @@ impl LibraryView
                 value = b.fi.lastWriteTime <=> a.fi.lastWriteTime
 
             case .Name:
-                let nameA = captureA and !captureA.title.isEmpty() ? captureA.title.toString() : (Path.fileName(a.fi.fullname) orelse "")
-                let nameB = captureB and !captureB.title.isEmpty() ? captureB.title.toString() : (Path.fileName(b.fi.fullname) orelse "")
+                let nameA = captureA and not captureA.title.isEmpty() ? captureA.title.toString() : (Path.fileName(a.fi.fullname) orelse "")
+                let nameB = captureB and not captureB.title.isEmpty() ? captureB.title.toString() : (Path.fileName(b.fi.fullname) orelse "")
                 value = Utf8.compare(nameA, nameB, .Latin1NoCase)
 
             case .Application:
@@ -885,7 +886,7 @@ impl LibraryView
                 value = b.fi.size <=> a.fi.size
             }
 
-            if !value do
+            if not value do
                 value = Utf8.compare(a.fi.fullname.toSlice(), b.fi.fullname.toSlice(), .Latin1NoCase)
 
             if libWnd.invertSort do

@@ -92,10 +92,10 @@ impl Direction
     var dir = Direction.North
     Swag.assert(dir.opposite() == Direction.South)
     Swag.assert(dir.isVertical())
-    Swag.assert(!Direction.East.isVertical())
+    Swag.assert(not Direction.East.isVertical())
 }
 
-func invertUfcs(value: bool)->bool => !value
+func invertUfcs(value: bool)->bool => not value
 
 struct UfcsPoint
 {

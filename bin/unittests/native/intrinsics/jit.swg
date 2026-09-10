@@ -31,7 +31,7 @@ func jitCallCanDriveBranch()->bool
 func jitCallInCompoundExpression()->bool
 {
     let expected = contextSaysJit()
-    return (Swag.jit() and expected) or (!Swag.jit() and !expected)
+    return (Swag.jit() and expected) or (not Swag.jit() and not expected)
 }
 
 #[Swag.Compiler]

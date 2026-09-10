@@ -63,7 +63,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     Swag.assert(choiceName(&registry, &unknown[1]) == "Binary")
     Swag.assert(choiceName(&registry, &unknown[2]) == "Hexadecimal")
     Swag.assert(registry.explicitlySupports("clip.gif"))
-    Swag.assert(!registry.explicitlySupports("clip.bin"))
+    Swag.assert(not registry.explicitlySupports("clip.bin"))
 }
 
 // Every descriptor carries one immutable smoke basename, and that file discovers the descriptor
@@ -224,7 +224,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     let registry = createViewerPluginRegistry()
     for plugin, i in registry.plugins
     {
-        Swag.assert(!plugin.key.isEmpty() and plugin.key == plugin.key.toLower())
+        Swag.assert(not plugin.key.isEmpty() and plugin.key == plugin.key.toLower())
         for other, j in registry.plugins where j > i do
             Swag.assert(plugin.key != other.key and plugin.iconIndex != other.iconIndex)
     }
@@ -273,8 +273,8 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 {
     let registry = createViewerPluginRegistry()
     Swag.assert(registry.sharesViewer("a.png", "B.JPG"))
-    Swag.assert(!registry.sharesViewer("a.png", "b.wav"))
+    Swag.assert(not registry.sharesViewer("a.png", "b.wav"))
     Swag.assert(registry.sharesViewer("x.foo", "y.FOO"))
-    Swag.assert(!registry.sharesViewer("x.foo", "y.bar"))
-    Swag.assert(!registry.sharesViewer("a.png", "x.foo"))
+    Swag.assert(not registry.sharesViewer("x.foo", "y.bar"))
+    Swag.assert(not registry.sharesViewer("a.png", "x.foo"))
 }

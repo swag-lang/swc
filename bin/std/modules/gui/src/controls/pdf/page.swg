@@ -10,18 +10,18 @@ private func isFiniteTransform(transform: Transform2)->bool
 
 private func isValidStrokeStyle(style: const *PathStrokeStyle)->bool
 {
-    if style.miterLimit < 1 or !Math.isFinite(style.miterLimit) or !Math.isFinite(style.dashPhase) do
+    if style.miterLimit < 1 or not Math.isFinite(style.miterLimit) or not Math.isFinite(style.dashPhase) do
         return false
 
     var hasPositiveLength = false
     for length in style.dashPattern
     {
-        if length < 0 or !Math.isFinite(length) do
+        if length < 0 or not Math.isFinite(length) do
             return false
         hasPositiveLength = hasPositiveLength or length > 0
     }
 
-    return !style.dashPattern.count or hasPositiveLength
+    return not style.dashPattern.count or hasPositiveLength
 }
 
 // PDF repeats an odd dash array before alternating painted and blank intervals.
@@ -116,8 +116,8 @@ impl Page
     mtd addPath(path: LinePathList, fill = true, fillColor = Color.fromArgb(Argb.Black), stroke = false, strokeColor = Color.fromArgb(Argb.Black), strokeWidth = 1.0, strokeStyle: PathStrokeStyle = {})
     {
         Swag.assert(fill or stroke, "path has no paint operation")
-        Swag.assert(!stroke or (strokeWidth >= 0 and Math.isFinite(strokeWidth)), "invalid stroke width")
-        Swag.assert(!stroke or isValidStrokeStyle(&strokeStyle), "invalid path stroke style")
+        Swag.assert(not stroke or (strokeWidth >= 0 and Math.isFinite(strokeWidth)), "invalid stroke width")
+        Swag.assert(not stroke or isValidStrokeStyle(&strokeStyle), "invalid path stroke style")
         var item = Item.createPath()
         item.path        = path
         item.hasFill     = fill
@@ -262,7 +262,7 @@ impl Page
     // ```
     mtd prepare(scale: f32)
     {
-        if scale <= 0 or !Math.isFinite(scale) do
+        if scale <= 0 or not Math.isFinite(scale) do
             return
 
         var preparer: Pixel.FillPreparer

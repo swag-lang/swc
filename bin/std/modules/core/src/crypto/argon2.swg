@@ -164,9 +164,9 @@ private func nextAddresses(addresses, input: [*] u64, zero: const [*] u64)
 private func referenceIndex(random: u64, pass, slice, index, segmentLength, laneLength: u64, sameLane: bool)->u64
 {
     var areaSize: u64
-    if !pass
+    if not pass
     {
-        if !slice do
+        if not slice do
             areaSize = index - 1
         elif sameLane do
             areaSize = slice * segmentLength + index - 1
@@ -202,7 +202,7 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
 
     // Argon2id takes its addresses from a counter for the first half
     // of the first pass, and from the previous block afterwards.
-    let independent = !pass and slice < Argon2SyncPoints / 2
+    let independent = not pass and slice < Argon2SyncPoints / 2
     if independent
     {
         Swag.memset(&input[0], 0, Argon2BlockSize)
@@ -215,7 +215,7 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
     }
 
     var start = 0'u64
-    if !pass and !slice
+    if not pass and not slice
     {
         start = 2
         if independent do
@@ -241,7 +241,7 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
         // The first slice of the first pass has nothing to reference
         // in another lane yet.
         var referenceLane = (random >> 32) % lanes
-        if !pass and !slice do
+        if not pass and not slice do
             referenceLane = lane
 
         let offset    = referenceIndex(random, pass, slice, step, segmentLength, laneLength, referenceLane == lane)
@@ -291,9 +291,9 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
         fail Errors.BadParameterError{"Argon2 needs a tag of at least 4 bytes"}
     if salt.count < Argon2MinSaltSize do
         fail Errors.BadParameterError{"Argon2 needs a salt of at least 8 bytes"}
-    if !parameters.parallelism or parameters.parallelism > 0xFF_FFFF do
+    if not parameters.parallelism or parameters.parallelism > 0xFF_FFFF do
         fail Errors.BadParameterError{"Argon2 needs 1 to 16777215 lanes"}
-    if !parameters.iterations do
+    if not parameters.iterations do
         fail Errors.BadParameterError{"Argon2 needs at least one pass"}
     if parameters.memoryKib < 8 * parameters.parallelism do
         fail Errors.BadParameterError{"Argon2 needs at least eight kibibytes of memory per lane"}

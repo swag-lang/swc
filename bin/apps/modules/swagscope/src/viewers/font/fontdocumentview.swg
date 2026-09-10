@@ -96,7 +96,7 @@ internal struct FontDocumentView
 {
     using wnd: Wnd
 
-        late
+    late
     {
         scroll:     *ScrollWnd
         typeFace:   *TypeFace
@@ -157,7 +157,7 @@ private impl FontDocumentView
         let colors = .themeColors()
         painter.drawString(FontContentInset, .layout.mapTop, fontStrings().ui_CharacterMap, .fontLabel, colors.label_TextFaint)
 
-        if !.cells.count
+        if not .cells.count
         {
             painter.drawString(FontContentInset, .layout.gridTop, fontStrings().ui_NoCharacters, .fontCode, colors.label_TextLight)
             return
@@ -213,7 +213,7 @@ internal impl IWnd for FontDocumentView
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if !(.scroll != null) do
+        if not (.scroll != null) do
             return
         .refreshLayout()
     }
@@ -313,7 +313,7 @@ internal impl FontDocumentView
     {
         var y = FontContentInset
         .layout.nameTop = y
-        y               += .fontName.height
+        y += .fontName.height
 
         .layout.metricsTop = y
         y += .fontCode.height + FontSectionGap
@@ -371,7 +371,7 @@ internal impl FontDocumentView
 
     mtd nextPage()
     {
-        if !.hasNext do
+        if not .hasNext do
             return
         .history.add(.pageStart)
         .loadPage(.pageEnd + 1)
@@ -380,7 +380,7 @@ internal impl FontDocumentView
 
     mtd previousPage()
     {
-        if !.history.count do
+        if not .history.count do
             return
         .loadPage(.history.popBack())
         .revealCharacterMap()

@@ -109,10 +109,10 @@ var A: [..] s32?
 #test
 {
     let cstr: const cstring = cast(const cstring) ("slice").buffer
-    let a                   = cstr[1 to 3]
-    let b                   = cstr[2 to]
-    let c                   = cstr[until 2]
-    let full                = cstr[to]
+    let a    = cstr[1 to 3]
+    let b    = cstr[2 to]
+    let c    = cstr[until 2]
+    let full = cstr[to]
 
     Swag.assert(a == "lic")
     Swag.assert(b == "ice")
@@ -132,7 +132,7 @@ var A: [..] s32?
 
     var view:    [..] s32        = arr
     let viewRef: const *[..] s32 = &view
-    let sub                      = viewRef[][1 until 3]
+    let sub = viewRef[][1 until 3]
     Swag.assert(sub.count == 2)
     Swag.assert(sub[0] == 20)
     Swag.assert(sub[1] == 77)

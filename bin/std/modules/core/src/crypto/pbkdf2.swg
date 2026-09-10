@@ -15,9 +15,9 @@ private func accumulateDigest(result, current: [*] u8)
 // `iterations` needs at least one iteration. An empty destination succeeds without writing.
 func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destination: [..] u8) fail
 {
-    if !iterations do
+    if not iterations do
         fail BadParameterError{"PBKDF2 needs at least one iteration"}
-    if !destination.count do
+    if not destination.count do
         return
 
     const digestSize = #sizeof(HmacSha256Digest)

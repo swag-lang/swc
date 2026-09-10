@@ -24,7 +24,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     var sound = expect SoundFile.load(audioGetTestDataPath(Format.toString("%.opus", name).toString()).toString())
     Swag.assert(sound.sampleEncoding() == .Opus)
     Swag.assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == channels)
-    Swag.assert(sound.isPacketStream() and !sound.isDataPreloaded())
+    Swag.assert(sound.isPacketStream() and not sound.isDataPreloaded())
 
     let decoded = expect opusDecodeAll(&sound)
     let wanted  = expect File.readAllBytes(audioGetTestDataPath(Format.toString("%.pcm", name).toString()).toString())

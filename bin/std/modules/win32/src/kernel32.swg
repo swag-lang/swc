@@ -152,7 +152,7 @@ const CREATE_SUSPENDED        = 0x00000004
 const MAXIMUM_WAIT_OBJECTS    = 64'u32
 
 const CREATE_UNICODE_ENVIRONMENT = 0x00000400
-const CREATE_NO_WINDOW           = 0x08000000
+const CREATE_NO_WINDOW = 0x08000000
 
 const STARTF_USESHOWWINDOW = 0x00000001
 const STARTF_USESTDHANDLES = 0x00000100
@@ -160,9 +160,9 @@ const STARTF_USESTDHANDLES = 0x00000100
 const MOVEFILE_REPLACE_EXISTING = 0x00000001
 const MOVEFILE_COPY_ALLOWED     = 0x00000002
 
-const HANDLE_FLAG_INHERIT            = 0x00000001
+const HANDLE_FLAG_INHERIT   = 0x00000001
 const HANDLE_FLAG_PROTECT_FROM_CLOSE = 0x00000002
-const DUPLICATE_SAME_ACCESS          = 0x00000002
+const DUPLICATE_SAME_ACCESS = 0x00000002
 
 const FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100
 const FORMAT_MESSAGE_IGNORE_INSERTS  = 0x00000200
@@ -720,31 +720,31 @@ internal namespace Win32Priv
 {
     func AllocConsole() fail
     {
-        if !Win32Priv.AllocConsole() do
+        if not Win32Priv.AllocConsole() do
             failWinError(GetLastError())
     }
 
     func FreeConsole() fail
     {
-        if !Win32Priv.FreeConsole() do
+        if not Win32Priv.FreeConsole() do
             failWinError(GetLastError())
     }
 
     func AttachConsole(dwProcessId: DWORD) fail
     {
-        if !Win32Priv.AttachConsole(dwProcessId) do
+        if not Win32Priv.AttachConsole(dwProcessId) do
             failWinError(GetLastError())
     }
 
     func SetConsoleTextAttribute(hConsoleOutput: HANDLE, wAttributes: WORD) fail
     {
-        if !Win32Priv.SetConsoleTextAttribute(hConsoleOutput, wAttributes) do
+        if not Win32Priv.SetConsoleTextAttribute(hConsoleOutput, wAttributes) do
             failWinError(GetLastError())
     }
 
     func GetConsoleScreenBufferInfo(hConsoleOutput: HANDLE, lpConsoleScreenBufferInfo: *CONSOLE_SCREEN_BUFFER_INFO) fail
     {
-        if !Win32Priv.GetConsoleScreenBufferInfo(hConsoleOutput, lpConsoleScreenBufferInfo) do
+        if not Win32Priv.GetConsoleScreenBufferInfo(hConsoleOutput, lpConsoleScreenBufferInfo) do
             failWinError(GetLastError())
     }
 
@@ -775,7 +775,7 @@ internal namespace Win32Priv
 
     func SetThreadPriority(hThread: HANDLE, nPriority: s32) fail
     {
-        if !Win32Priv.SetThreadPriority(hThread, nPriority) do
+        if not Win32Priv.SetThreadPriority(hThread, nPriority) do
             failWinError(GetLastError())
     }
 
@@ -799,31 +799,31 @@ internal namespace Win32Priv
 
     func ReleaseMutex(hMutex: HANDLE) fail
     {
-        if !Win32Priv.ReleaseMutex(hMutex) do
+        if not Win32Priv.ReleaseMutex(hMutex) do
             failWinError(GetLastError())
     }
 
     func ResetEvent(hEvent: HANDLE) fail
     {
-        if !Win32Priv.ResetEvent(hEvent) do
+        if not Win32Priv.ResetEvent(hEvent) do
             failWinError(GetLastError())
     }
 
     func SetEvent(hEvent: HANDLE) fail
     {
-        if !Win32Priv.SetEvent(hEvent) do
+        if not Win32Priv.SetEvent(hEvent) do
             failWinError(GetLastError())
     }
 
     func CreateProcessA(lpApplicationName: LPCSTR, lpCommandLine: LPCSTR, lpProcessAttributes: *SECURITY_ATTRIBUTES?, lpThreadAttributes: *SECURITY_ATTRIBUTES?, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCSTR, lpStartupInfo: *STARTUPINFOA, lpProcessInformation: *PROCESS_INFORMATION) fail
     {
-        if !Win32Priv.CreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation) do
+        if not Win32Priv.CreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation) do
             failWinError(GetLastError())
     }
 
     func CreateProcessW(lpApplicationName: LPCWSTR, lpCommandLine: LPCWSTR, lpProcessAttributes: *SECURITY_ATTRIBUTES?, lpThreadAttributes: *SECURITY_ATTRIBUTES?, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCWSTR, lpStartupInfo: *STARTUPINFOW, lpProcessInformation: *PROCESS_INFORMATION) fail
     {
-        if !Win32Priv.CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation) do
+        if not Win32Priv.CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation) do
             failWinError(GetLastError())
     }
 
@@ -834,7 +834,7 @@ internal namespace Win32Priv
 
     func AssignProcessToJobObject(hJob: HANDLE, hProcess: HANDLE) fail
     {
-        if !Win32Priv.AssignProcessToJobObject(hJob, hProcess) do
+        if not Win32Priv.AssignProcessToJobObject(hJob, hProcess) do
             failWinError(GetLastError())
     }
 
@@ -846,44 +846,44 @@ internal namespace Win32Priv
 
     func SetProcessAffinityMask(hProcess: HANDLE, dwProcessAffinityMask: ULONG_PTR) fail
     {
-        if !Win32Priv.SetProcessAffinityMask(hProcess, dwProcessAffinityMask) do
+        if not Win32Priv.SetProcessAffinityMask(hProcess, dwProcessAffinityMask) do
             failWinError(GetLastError())
     }
 
     func GetExitCodeProcess(hProcess: HANDLE, lpExitCode: LPDWORD) fail
     {
-        if !Win32Priv.GetExitCodeProcess(hProcess, lpExitCode) do
+        if not Win32Priv.GetExitCodeProcess(hProcess, lpExitCode) do
             failWinError(GetLastError())
     }
 
     func TerminateProcess(hProcess: HANDLE, uExitCode: UINT) fail
     {
-        if !Win32Priv.TerminateProcess(hProcess, uExitCode) do
+        if not Win32Priv.TerminateProcess(hProcess, uExitCode) do
             failWinError(GetLastError())
     }
 
     func MoveFileExW(lpExistingFileName: LPCWSTR, lpNewFileName: LPCWSTR?, dwFlags: DWORD) fail
     {
-        if !Win32Priv.MoveFileExW(lpExistingFileName, lpNewFileName, dwFlags) do
+        if not Win32Priv.MoveFileExW(lpExistingFileName, lpNewFileName, dwFlags) do
             failWinError(GetLastError())
     }
 
     func CreatePipe(hReadPipe: *HANDLE, hWritePipe: *HANDLE, lpPipeAttributes: const *SECURITY_ATTRIBUTES?, nSize: DWORD) fail
     {
-        if !Win32Priv.CreatePipe(hReadPipe, hWritePipe, lpPipeAttributes, nSize) do
+        if not Win32Priv.CreatePipe(hReadPipe, hWritePipe, lpPipeAttributes, nSize) do
             failWinError(GetLastError())
     }
 
     func SetHandleInformation(hObject: HANDLE, dwMask: DWORD, dwFlags: DWORD) fail
     {
-        if !Win32Priv.SetHandleInformation(hObject, dwMask, dwFlags) do
+        if not Win32Priv.SetHandleInformation(hObject, dwMask, dwFlags) do
             failWinError(GetLastError())
     }
 
     func CreateEventA(lpEventAttributes: *SECURITY_ATTRIBUTES?, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCSTR)->HANDLE fail
     {
         let h = Win32Priv.CreateEventA(lpEventAttributes, bManualReset, bInitialState, lpName)
-        if !h do
+        if not h do
             failWinError(GetLastError())
         return h
     }
@@ -891,7 +891,7 @@ internal namespace Win32Priv
     func CreateEventW(lpEventAttributes: *SECURITY_ATTRIBUTES?, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCWSTR)->HANDLE fail
     {
         let h = Win32Priv.CreateEventW(lpEventAttributes, bManualReset, bInitialState, lpName)
-        if !h do
+        if not h do
             failWinError(GetLastError())
         return h
     }
@@ -899,7 +899,7 @@ internal namespace Win32Priv
     func CreateMutexA(lpMutexAttributes: *SECURITY_ATTRIBUTES?, bInitialOwner: BOOL, lpName: LPCSTR)->HANDLE fail
     {
         let h = Win32Priv.CreateMutexA(lpMutexAttributes, bInitialOwner, lpName)
-        if !h do
+        if not h do
             failWinError(GetLastError())
         return h
     }
@@ -907,14 +907,14 @@ internal namespace Win32Priv
     func CreateMutexW(lpMutexAttributes: *SECURITY_ATTRIBUTES?, bInitialOwner: BOOL, lpName: LPCWSTR)->HANDLE fail
     {
         let h = Win32Priv.CreateMutexW(lpMutexAttributes, bInitialOwner, lpName)
-        if !h do
+        if not h do
             failWinError(GetLastError())
         return h
     }
 
     func CreateTimerQueueTimer(phNewTimer: *HANDLE, timerQueue: HANDLE, callback: WAITORTIMERCALLBACK, parameter: *void?, dueTime: DWORD, period: DWORD, flags: ULONG) fail
     {
-        if !Win32Priv.CreateTimerQueueTimer(phNewTimer, timerQueue, callback, parameter, dueTime, period, flags) do
+        if not Win32Priv.CreateTimerQueueTimer(phNewTimer, timerQueue, callback, parameter, dueTime, period, flags) do
             failWinError(GetLastError())
     }
 
@@ -932,7 +932,7 @@ internal namespace Win32Priv
     func WriteFile(hFile: HANDLE, lpBuffer: LPCVOID, nNumberOfBytesToWrite: DWORD, lpNumberOfBytesWritten: LPDWORD, lpOverlapped: LPOVERLAPPED)->BOOL fail
     {
         let res = Win32Priv.WriteFile(hFile, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped)
-        if !res and GetLastError() != ERROR_IO_PENDING do
+        if not res and GetLastError() != ERROR_IO_PENDING do
             failWinError(GetLastError())
         return res
     }
@@ -940,7 +940,7 @@ internal namespace Win32Priv
     func CreateFileMappingW(hFile: HANDLE, lpFileMappingAttributes: *SECURITY_ATTRIBUTES?, flProtect: DWORD, dwMaximumSizeHigh: DWORD, dwMaximumSizeLow: DWORD, lpName: LPCWSTR)->HANDLE fail
     {
         let result = Win32Priv.CreateFileMappingW(hFile, lpFileMappingAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
-        if !result do
+        if not result do
             failWinError(GetLastError())
         return result
     }
@@ -948,26 +948,26 @@ internal namespace Win32Priv
     func MapViewOfFile(hFileMappingObject: HANDLE, dwDesiredAccess: DWORD, dwFileOffsetHigh: DWORD, dwFileOffsetLow: DWORD, dwNumberOfBytesToMap: SIZE_T)->LPVOID fail
     {
         let result = Win32Priv.MapViewOfFile(hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap)
-        if !result do
+        if not result do
             failWinError(GetLastError())
         return result
     }
 
     func UnmapViewOfFile(lpBaseAddress: LPCVOID) fail
     {
-        if !Win32Priv.UnmapViewOfFile(lpBaseAddress) do
+        if not Win32Priv.UnmapViewOfFile(lpBaseAddress) do
             failWinError(GetLastError())
     }
 
     func FlushViewOfFile(lpBaseAddress: LPCVOID, dwNumberOfBytesToFlush: SIZE_T) fail
     {
-        if !Win32Priv.FlushViewOfFile(lpBaseAddress, dwNumberOfBytesToFlush) do
+        if not Win32Priv.FlushViewOfFile(lpBaseAddress, dwNumberOfBytesToFlush) do
             failWinError(GetLastError())
     }
 
     func DuplicateHandle(hSourceProcessHandle: HANDLE, hSourceHandle: HANDLE, hTargetProcessHandle: HANDLE, lpTargetHandle: *HANDLE, dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwOptions: DWORD) fail
     {
-        if !Win32Priv.DuplicateHandle(hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, lpTargetHandle, dwDesiredAccess, bInheritHandle, dwOptions) do
+        if not Win32Priv.DuplicateHandle(hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, lpTargetHandle, dwDesiredAccess, bInheritHandle, dwOptions) do
             failWinError(GetLastError())
     }
 
@@ -975,50 +975,50 @@ internal namespace Win32Priv
     func ReadDirectoryChangesW(hDirectory: HANDLE, lpBuffer: LPVOID, nBufferLength: DWORD, bWatchSubtree: BOOL, dwNotifyFilter: DWORD, lpBytesReturned: LPDWORD, lpOverlapped: LPOVERLAPPED, lpCompletionRoutine: LPOVERLAPPED_COMPLETION_ROUTINE?)->BOOL fail
     {
         let result = Win32Priv.ReadDirectoryChangesW(hDirectory, lpBuffer, nBufferLength, bWatchSubtree, dwNotifyFilter, lpBytesReturned, lpOverlapped, lpCompletionRoutine)
-        if !result and GetLastError() != ERROR_IO_PENDING do
+        if not result and GetLastError() != ERROR_IO_PENDING do
             failWinError(GetLastError())
         return result
     }
 
     func GetOverlappedResult(hFile: HANDLE, lpOverlapped: *OVERLAPPED, lpNumberOfBytesTransferred: *DWORD, bWait: BOOL) fail
     {
-        if !Win32Priv.GetOverlappedResult(hFile, lpOverlapped, lpNumberOfBytesTransferred, bWait) do
+        if not Win32Priv.GetOverlappedResult(hFile, lpOverlapped, lpNumberOfBytesTransferred, bWait) do
             failWinError(GetLastError())
     }
 
     func CancelIoEx(hFile: HANDLE, lpOverlapped: LPOVERLAPPED) fail
     {
-        if !Win32Priv.CancelIoEx(hFile, lpOverlapped) do
+        if not Win32Priv.CancelIoEx(hFile, lpOverlapped) do
             failWinError(GetLastError())
     }
 
     func FileTimeToSystemTime(lpFileTime: const *FILETIME, lpSystemTime: *SYSTEMTIME) fail
     {
-        if !Win32Priv.FileTimeToSystemTime(lpFileTime, lpSystemTime) do
+        if not Win32Priv.FileTimeToSystemTime(lpFileTime, lpSystemTime) do
             failWinError(GetLastError())
     }
 
     func SystemTimeToFileTime(lpSystemTime: const *SYSTEMTIME, lpFileTime: *FILETIME) fail
     {
-        if !Win32Priv.SystemTimeToFileTime(lpSystemTime, lpFileTime) do
+        if not Win32Priv.SystemTimeToFileTime(lpSystemTime, lpFileTime) do
             failWinError(GetLastError())
     }
 
     func SetFileTime(hFile: HANDLE, lpCreationTime: const *FILETIME?, lpLastAccessTime: const *FILETIME?, lpLastWriteTime: const *FILETIME?) fail
     {
-        if !Win32Priv.SetFileTime(hFile, lpCreationTime, lpLastAccessTime, lpLastWriteTime) do
+        if not Win32Priv.SetFileTime(hFile, lpCreationTime, lpLastAccessTime, lpLastWriteTime) do
             failWinError(GetLastError())
     }
 
     func DeleteFileA(lpFileName: LPCSTR) fail
     {
-        if !Win32Priv.DeleteFileA(lpFileName) do
+        if not Win32Priv.DeleteFileA(lpFileName) do
             failWinError(GetLastError())
     }
 
     func DeleteFileW(lpFileName: LPCWSTR) fail
     {
-        if !Win32Priv.DeleteFileW(lpFileName) do
+        if not Win32Priv.DeleteFileW(lpFileName) do
             failWinError(GetLastError())
     }
 
@@ -1040,20 +1040,20 @@ internal namespace Win32Priv
 
     func GetFileAttributesExA(lpFileName: LPCSTR, fInfoLevelId: GET_FILEEX_INFO_LEVELS, lpFileInformation: LPVOID) fail
     {
-        if !Win32Priv.GetFileAttributesExA(lpFileName, fInfoLevelId, lpFileInformation) do
+        if not Win32Priv.GetFileAttributesExA(lpFileName, fInfoLevelId, lpFileInformation) do
             failWinError(GetLastError())
     }
 
     func GetFileAttributesExW(lpFileName: LPCWSTR, fInfoLevelId: GET_FILEEX_INFO_LEVELS, lpFileInformation: LPVOID) fail
     {
-        if !Win32Priv.GetFileAttributesExW(lpFileName, fInfoLevelId, lpFileInformation) do
+        if not Win32Priv.GetFileAttributesExW(lpFileName, fInfoLevelId, lpFileInformation) do
             failWinError(GetLastError())
     }
 
     func GetCurrentDirectoryA(nBufferLength: DWORD, lpBuffer: LPCSTR)->DWORD fail
     {
         let length = Win32Priv.GetCurrentDirectoryA(nBufferLength, lpBuffer)
-        if !length do
+        if not length do
             failWinError(GetLastError())
         return length
     }
@@ -1061,7 +1061,7 @@ internal namespace Win32Priv
     func GetCurrentDirectoryW(nBufferLength: DWORD, lpBuffer: LPCWSTR)->DWORD fail
     {
         let length = Win32Priv.GetCurrentDirectoryW(nBufferLength, lpBuffer)
-        if !length do
+        if not length do
             failWinError(GetLastError())
         return length
     }
@@ -1069,7 +1069,7 @@ internal namespace Win32Priv
     func GetTempPathA(nBufferLength: DWORD, lpBuffer: LPSTR)->DWORD fail
     {
         let length = Win32Priv.GetTempPathA(nBufferLength, lpBuffer)
-        if !length do
+        if not length do
             failWinError(GetLastError())
         return length
     }
@@ -1077,20 +1077,20 @@ internal namespace Win32Priv
     func GetTempPathW(nBufferLength: DWORD, lpBuffer: LPWSTR)->DWORD fail
     {
         let length = Win32Priv.GetTempPathW(nBufferLength, lpBuffer)
-        if !length do
+        if not length do
             failWinError(GetLastError())
         return length
     }
 
     func SetCurrentDirectoryA(lpPathName: LPCSTR) fail
     {
-        if !Win32Priv.SetCurrentDirectoryA(lpPathName) do
+        if not Win32Priv.SetCurrentDirectoryA(lpPathName) do
             failWinError(GetLastError())
     }
 
     func SetCurrentDirectoryW(lpPathName: LPCWSTR) fail
     {
-        if !Win32Priv.SetCurrentDirectoryW(lpPathName) do
+        if not Win32Priv.SetCurrentDirectoryW(lpPathName) do
             failWinError(GetLastError())
     }
 
@@ -1145,7 +1145,7 @@ internal namespace Win32Priv
     func FindNextFileA(hFindFile: HANDLE, lpFindFileData: *WIN32_FIND_DATAA)->BOOL fail
     {
         let res = Win32Priv.FindNextFileA(hFindFile, lpFindFileData)
-        if !res and GetLastError() != ERROR_NO_MORE_FILES do
+        if not res and GetLastError() != ERROR_NO_MORE_FILES do
             failWinError(GetLastError())
         return res
     }
@@ -1153,14 +1153,14 @@ internal namespace Win32Priv
     func FindNextFileW(hFindFile: HANDLE, lpFindFileData: *WIN32_FIND_DATAW)->BOOL fail
     {
         let res = Win32Priv.FindNextFileW(hFindFile, lpFindFileData)
-        if !res and GetLastError() != ERROR_NO_MORE_FILES do
+        if not res and GetLastError() != ERROR_NO_MORE_FILES do
             failWinError(GetLastError())
         return res
     }
 
     func FindClose(hFindFile: HANDLE) fail
     {
-        if !Win32Priv.FindClose(hFindFile) do
+        if not Win32Priv.FindClose(hFindFile) do
             failWinError(GetLastError())
     }
 
@@ -1183,7 +1183,7 @@ internal namespace Win32Priv
     func FindNextVolumeA(hFindVolume: HANDLE, lpszVolumeName: LPSTR, cchBufferLength: DWORD)->BOOL fail
     {
         let res = Win32Priv.FindNextVolumeA(hFindVolume, lpszVolumeName, cchBufferLength)
-        if !res and GetLastError() != ERROR_NO_MORE_FILES do
+        if not res and GetLastError() != ERROR_NO_MORE_FILES do
             failWinError(GetLastError())
         return res
     }
@@ -1191,26 +1191,26 @@ internal namespace Win32Priv
     func FindNextVolumeW(hFindVolume: HANDLE, lpszVolumeName: LPWSTR, cchBufferLength: DWORD)->BOOL fail
     {
         let res = Win32Priv.FindNextVolumeW(hFindVolume, lpszVolumeName, cchBufferLength)
-        if !res and GetLastError() != ERROR_NO_MORE_FILES do
+        if not res and GetLastError() != ERROR_NO_MORE_FILES do
             failWinError(GetLastError())
         return res
     }
 
     func FindVolumeClose(hFindVolume: HANDLE) fail
     {
-        if !Win32Priv.FindVolumeClose(hFindVolume) do
+        if not Win32Priv.FindVolumeClose(hFindVolume) do
             failWinError(GetLastError())
     }
 
     func GetVolumePathNamesForVolumeNameA(lpszVolumeName: LPCSTR, lpszVolumePathNames: LPCH, cchBufferLength: DWORD, lpcchReturnLength: *DWORD) fail
     {
-        if !Win32Priv.GetVolumePathNamesForVolumeNameA(lpszVolumeName, lpszVolumePathNames, cchBufferLength, lpcchReturnLength) do
+        if not Win32Priv.GetVolumePathNamesForVolumeNameA(lpszVolumeName, lpszVolumePathNames, cchBufferLength, lpcchReturnLength) do
             failWinError(GetLastError())
     }
 
     func GetVolumePathNamesForVolumeNameW(lpszVolumeName: LPCWSTR, lpszVolumePathNames: LPWCH, cchBufferLength: DWORD, lpcchReturnLength: *DWORD) fail
     {
-        if !Win32Priv.GetVolumePathNamesForVolumeNameW(lpszVolumeName, lpszVolumePathNames, cchBufferLength, lpcchReturnLength) do
+        if not Win32Priv.GetVolumePathNamesForVolumeNameW(lpszVolumeName, lpszVolumePathNames, cchBufferLength, lpcchReturnLength) do
             failWinError(GetLastError())
     }
 
@@ -1230,7 +1230,7 @@ internal namespace Win32Priv
 
     func SetFilePointerEx(hFile: HANDLE, liDistanceToMove: LARGE_INTEGER, lpNewFilePointer: *LARGE_INTEGER?, dwMoveMethod: DWORD) fail
     {
-        if !Win32Priv.SetFilePointerEx(hFile, liDistanceToMove, lpNewFilePointer, dwMoveMethod) do
+        if not Win32Priv.SetFilePointerEx(hFile, liDistanceToMove, lpNewFilePointer, dwMoveMethod) do
             failWinError(GetLastError())
     }
 
@@ -1249,19 +1249,19 @@ internal namespace Win32Priv
 
     func GetFileSizeEx(hFile: HANDLE, lpFileSize: *LARGE_INTEGER) fail
     {
-        if !Win32Priv.GetFileSizeEx(hFile, lpFileSize) do
+        if not Win32Priv.GetFileSizeEx(hFile, lpFileSize) do
             failWinError(GetLastError())
     }
 
     func SetEndOfFile(hFile: HANDLE) fail
     {
-        if !Win32Priv.SetEndOfFile(hFile) do
+        if not Win32Priv.SetEndOfFile(hFile) do
             failWinError(GetLastError())
     }
 
     func FlushFileBuffers(hFile: HANDLE) fail
     {
-        if !Win32Priv.FlushFileBuffers(hFile) do
+        if not Win32Priv.FlushFileBuffers(hFile) do
             failWinError(GetLastError())
     }
 
@@ -1269,7 +1269,7 @@ internal namespace Win32Priv
     func GetFullPathNameA(lpFileName: LPCSTR, nBufferLength: DWORD, lpBuffer: LPSTR, lpFilePart: *LPSTR?)->DWORD fail
     {
         let res = Win32Priv.GetFullPathNameA(lpFileName, nBufferLength, lpBuffer, lpFilePart)
-        if !res do
+        if not res do
             failWinError(GetLastError())
         return res
     }
@@ -1278,7 +1278,7 @@ internal namespace Win32Priv
     func GetFullPathNameW(lpFileName: LPCTSTR, nBufferLength: DWORD, lpBuffer: LPWSTR, lpFilePart: *LPWSTR?)->DWORD fail
     {
         let res = Win32Priv.GetFullPathNameW(lpFileName, nBufferLength, lpBuffer, lpFilePart)
-        if !res do
+        if not res do
             failWinError(GetLastError())
         return res
     }
@@ -1286,35 +1286,35 @@ internal namespace Win32Priv
     func CreateDirectoryA(lpPathName: LPCSTR, lpSecurityAttributes: *SECURITY_ATTRIBUTES?) fail
     {
         let res = Win32Priv.CreateDirectoryA(lpPathName, lpSecurityAttributes)
-        if !res do
+        if not res do
             failWinError(GetLastError())
     }
 
     func CreateDirectoryW(lpPathName: LPCWSTR, lpSecurityAttributes: *SECURITY_ATTRIBUTES?) fail
     {
         let res = Win32Priv.CreateDirectoryW(lpPathName, lpSecurityAttributes)
-        if !res do
+        if not res do
             failWinError(GetLastError())
     }
 
     func RemoveDirectoryA(lpPathName: LPCSTR) fail
     {
         let res = Win32Priv.RemoveDirectoryA(lpPathName)
-        if !res do
+        if not res do
             failWinError(GetLastError())
     }
 
     func RemoveDirectoryW(lpPathName: LPCWSTR) fail
     {
         let res = Win32Priv.RemoveDirectoryW(lpPathName)
-        if !res do
+        if not res do
             failWinError(GetLastError())
     }
 
     func GetUserDefaultLocaleName(lpLocaleName: LPWSTR, cchLocaleName: s32)->s32 fail
     {
         let res = Win32Priv.GetUserDefaultLocaleName(lpLocaleName, cchLocaleName)
-        if !res do
+        if not res do
             failWinError(GetLastError())
         return res
     }

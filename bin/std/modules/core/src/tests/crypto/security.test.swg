@@ -12,8 +12,8 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
 
 #test
 {
-    let key               = Swag.makeSlice(cast(const [*] u8) ("key").buffer, 3)
-    let text              = "The quick brown fox jumps over the lazy dog"
+    let key  = Swag.makeSlice(cast(const [*] u8) ("key").buffer, 3)
+    let text = "The quick brown fox jumps over the lazy dog"
     let expected: [32] u8 = [
         0xF7, 0xBC, 0x83, 0xF4, 0x30, 0x53, 0x84, 0x24,
         0xB1, 0x32, 0x98, 0xE6, 0xAA, 0x6F, 0xB1, 0x43,
@@ -28,13 +28,13 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
     incremental.update(Swag.makeSlice(cast(const [*] u8) text.buffer + 12, text.count - 12))
     let split = incremental.finalize()
     Swag.assert(cryptoBytesEqual(split, expected))
-    Swag.assert(!incremental.initialized)
+    Swag.assert(not incremental.initialized)
 }
 
 #test
 {
-    let password          = Swag.makeSlice(cast(const [*] u8) ("password").buffer, 8)
-    let salt              = Swag.makeSlice(cast(const [*] u8) ("salt").buffer, 4)
+    let password = Swag.makeSlice(cast(const [*] u8) ("password").buffer, 8)
+    let salt     = Swag.makeSlice(cast(const [*] u8) ("salt").buffer, 4)
     let expected: [64] u8 = [
         0xAE, 0x4D, 0x0C, 0x95, 0xAF, 0x6B, 0x46, 0xD3,
         0x2D, 0x0A, 0xDF, 0xF9, 0x28, 0xF0, 0x6D, 0xD0,
@@ -76,8 +76,8 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
     let other: [1] u8 = [2]
     Swag.assert(Crypto.constantTimeEqual(empty, empty))
     Swag.assert(Crypto.constantTimeEqual(one, one))
-    Swag.assert(!Crypto.constantTimeEqual(one, other))
-    Swag.assert(!Crypto.constantTimeEqual(empty, one))
+    Swag.assert(not Crypto.constantTimeEqual(one, other))
+    Swag.assert(not Crypto.constantTimeEqual(empty, one))
 
     var random: [64] u8
     expect Crypto.randomBytes(random)
@@ -111,7 +111,7 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
             if length
             {
                 right[offset + length - 1] ^= 0x80
-                Swag.assert(!Crypto.constantTimeEqual(a, b))
+                Swag.assert(not Crypto.constantTimeEqual(a, b))
                 right[offset + length - 1] ^= 0x80
             }
         }

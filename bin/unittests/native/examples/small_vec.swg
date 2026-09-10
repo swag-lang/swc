@@ -51,7 +51,7 @@ impl SmallVec
         for i in .count do
             newBuf[i] = oldPtr[i]
 
-        if !.isInline() do
+        if not .isInline() do
             testFree(oldPtr)
 
         .ptr      = newBuf
@@ -79,7 +79,7 @@ impl SmallVec
     mtd opDrop()
     {
         // Only free when data lives on the heap.
-        if !.isInline() do
+        if not .isInline() do
             testFree(.ptr)
         .ptr      = null
         .count    = 0
@@ -157,7 +157,7 @@ impl SmallVec
         v.push(cast(s32) i * 7)
 
     Swag.assert(v.count == 8)
-    Swag.assert(!v.isInline())
+    Swag.assert(not v.isInline())
     Swag.assert(v.capacity >= 8)
     Swag.assert(v.at(0) == 0)
     Swag.assert(v.at(7) == 49)
@@ -202,14 +202,14 @@ impl SmallVec
     for i in 6'u64 do
         src.push(cast(s32) i + 100)
 
-    Swag.assert(!src.isInline())
+    Swag.assert(not src.isInline())
 
     var dst: SmallVec
     dst.init()
     dst = src
 
     Swag.assert(dst.count == 6)
-    Swag.assert(!dst.isInline())
+    Swag.assert(not dst.isInline())
     Swag.assert(dst.ptr != src.ptr)
 
     Swag.assert(dst.at(0) == 100)
@@ -262,7 +262,7 @@ impl SmallVec
     for i in 6'u64 do
         src.push(cast(s32) i)
 
-    Swag.assert(!src.isInline())
+    Swag.assert(not src.isInline())
     let heapPtr = src.ptr
 
     var dst: SmallVec
@@ -270,7 +270,7 @@ impl SmallVec
     dst = #move src
 
     Swag.assert(dst.count == 6)
-    Swag.assert(!dst.isInline())
+    Swag.assert(not dst.isInline())
     Swag.assert(dst.ptr == heapPtr)
     Swag.assert(dst.at(5) == 5)
 }
@@ -298,7 +298,7 @@ impl SmallVec
     // Push b past inline cap -> heap
     b.push(5)
     b.push(6)
-    Swag.assert(!b.isInline())
+    Swag.assert(not b.isInline())
 
     // Copy b -> c  (heap opPostCopy)
     var c: SmallVec
@@ -316,7 +316,7 @@ impl SmallVec
     d = #move c
 
     Swag.assert(d.count == 6)
-    Swag.assert(!d.isInline())
+    Swag.assert(not d.isInline())
     Swag.assert(d.at(3) == 4)
 
     // Move a -> e  (inline opPostMove)
@@ -353,7 +353,7 @@ impl SmallVec
     dst.push(30)
     dst.push(40)
     dst.push(50)
-    Swag.assert(!dst.isInline())
+    Swag.assert(not dst.isInline())
     Swag.assert(dst.count == 5)
 
     // src still inline and untouched.
@@ -402,7 +402,7 @@ impl SmallVec
     dst.init()
     for i in 6'u64 do
         dst.push(cast(s32) i)
-    Swag.assert(!dst.isInline())
+    Swag.assert(not dst.isInline())
 
     // Copy a small vec into dst. The old heap buffer must be freed (opDrop)
     // before the new inline data is post-copied in.
@@ -427,7 +427,7 @@ impl SmallVec
     dst.init()
     for i in 8'u64 do
         dst.push(cast(s32) i * 3)
-    Swag.assert(!dst.isInline())
+    Swag.assert(not dst.isInline())
 
     var src: SmallVec
     src.init()
@@ -464,7 +464,7 @@ struct Pair
         p.right.push(cast(s32) i)
 
     Swag.assert(p.left.isInline())
-    Swag.assert(!p.right.isInline())
+    Swag.assert(not p.right.isInline())
 
     // Copy the whole pair -- both SmallVecs get opPostCopy'd.
     var q: Pair

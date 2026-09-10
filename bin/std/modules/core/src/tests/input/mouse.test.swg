@@ -10,11 +10,11 @@ using Swag
     for i in Input.MouseButton.count
     {
         let button = cast(Input.MouseButton) i
-        Swag.assert(!mouse.isButtonPressed(button))
+        Swag.assert(not mouse.isButtonPressed(button))
         Swag.assert(mouse.isButtonReleased(button))
-        Swag.assert(!mouse.isButtonJustPressed(button))
-        Swag.assert(!mouse.isButtonJustReleased(button))
-        Swag.assert(!mouse.isButtonDoubleClick(button))
+        Swag.assert(not mouse.isButtonJustPressed(button))
+        Swag.assert(not mouse.isButtonJustReleased(button))
+        Swag.assert(not mouse.isButtonDoubleClick(button))
     }
 
     Swag.assert(mouse.previousPosition() == Math.Point.Zero)
@@ -33,25 +33,25 @@ using Swag
         mouse.setButtonStates(button, false, true, true)
 
         Swag.assert(mouse.isButtonPressed(button))
-        Swag.assert(!mouse.isButtonReleased(button))
+        Swag.assert(not mouse.isButtonReleased(button))
         Swag.assert(mouse.isButtonJustPressed(button))
-        Swag.assert(!mouse.isButtonJustReleased(button))
+        Swag.assert(not mouse.isButtonJustReleased(button))
         Swag.assert(mouse.isButtonDoubleClick(button))
 
         mouse.setButtonStates(button, true, true, true)
 
         Swag.assert(mouse.isButtonPressed(button))
-        Swag.assert(!mouse.isButtonReleased(button))
-        Swag.assert(!mouse.isButtonJustPressed(button))
-        Swag.assert(!mouse.isButtonJustReleased(button))
+        Swag.assert(not mouse.isButtonReleased(button))
+        Swag.assert(not mouse.isButtonJustPressed(button))
+        Swag.assert(not mouse.isButtonJustReleased(button))
 
         mouse.setButtonStates(button, true, false, false)
 
-        Swag.assert(!mouse.isButtonPressed(button))
+        Swag.assert(not mouse.isButtonPressed(button))
         Swag.assert(mouse.isButtonReleased(button))
-        Swag.assert(!mouse.isButtonJustPressed(button))
+        Swag.assert(not mouse.isButtonJustPressed(button))
         Swag.assert(mouse.isButtonJustReleased(button))
-        Swag.assert(!mouse.isButtonDoubleClick(button))
+        Swag.assert(not mouse.isButtonDoubleClick(button))
     }
 }
 
@@ -74,11 +74,11 @@ using Swag
 
     mouse.clear()
 
-    Swag.assert(!mouse.previousState.pressed[Input.MouseButton.Left])
-    Swag.assert(!mouse.currentState.pressed[Input.MouseButton.Left])
+    Swag.assert(not mouse.previousState.pressed[Input.MouseButton.Left])
+    Swag.assert(not mouse.currentState.pressed[Input.MouseButton.Left])
     Swag.assert(mouse.previousState.pressedTime[Input.MouseButton.Left] == 0)
     Swag.assert(mouse.currentState.pressedTime[Input.MouseButton.Left] == 0)
     Swag.assert(mouse.previousState.pressedPos[Input.MouseButton.Left] == Math.Point.Zero)
     Swag.assert(mouse.currentState.pressedPos[Input.MouseButton.Left] == Math.Point.Zero)
-    Swag.assert(!mouse.isButtonDoubleClick(.Left))
+    Swag.assert(not mouse.isButtonDoubleClick(.Left))
 }

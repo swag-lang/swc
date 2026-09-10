@@ -11,7 +11,7 @@ func itoaCopy(result: [*] u8, value: s64)->[*] u8
         orgValue /= 10
         ptr[]    = conv[35 + (tmpValue - (orgValue * 10))]
         ptr      += 1
-        if !orgValue do
+        if not orgValue do
             break
     }
 

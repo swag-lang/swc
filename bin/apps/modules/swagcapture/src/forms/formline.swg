@@ -213,7 +213,7 @@ impl IForm for FormLine
                 painter.drawLine(.gizmo.anchors[1].x, .gizmo.anchors[1].y, .gizmo.anchors[2].x, .gizmo.anchors[2].y, Argb.White, 2)
             }
 
-            .gizmo.paint(null, painter, !flags.has(.Selected))
+            .gizmo.paint(null, painter, not flags.has(.Selected))
         }
     }
 
@@ -230,7 +230,7 @@ impl IForm for FormLine
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {
         let {bSize, sSize, eSize} = .paintSizes(cxt)
-        let outlineSize           = .paintOutlineSize(cxt)
+        let outlineSize = .paintOutlineSize(cxt)
 
         if .bezier
         {

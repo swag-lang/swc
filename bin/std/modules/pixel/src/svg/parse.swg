@@ -271,7 +271,7 @@ private impl GroupState
 {
     // Reports whether this element draws markers, so a path that draws none never pays for
     // collecting the vertices they would sit on.
-    mtd const hasMarkers()->bool => !.markerStartId.isEmpty() or !.markerMidId.isEmpty() or !.markerEndId.isEmpty()
+    mtd const hasMarkers()->bool => not .markerStartId.isEmpty() or not .markerMidId.isEmpty() or not .markerEndId.isEmpty()
 }
 
 private struct Parser
@@ -430,7 +430,7 @@ private func parseLength(value: string, defaultValue: SvgLength = {})->SvgLength
     var pos = 0'u64
     while pos < value.count and (value[pos] == ' ' or value[pos] == '\t' or value[pos] == '\n' or value[pos] == '\r') do
         pos += 1
-    if pos >= value.count or !isNumberStart(value[pos]) do
+    if pos >= value.count or not isNumberStart(value[pos]) do
         return defaultValue
 
     var result: retval
@@ -450,7 +450,7 @@ private func parseLength(value: string, defaultValue: SvgLength = {})->SvgLength
 private func parseImageLength(value: string)->f32
 {
     let text = Latin1.trim(value)
-    if !text.count or !isNumberStart(text[0]) do
+    if not text.count or not isNumberStart(text[0]) do
         return 0
     var pos    = 0'u64
     let number = scanNumber(text, &pos)
@@ -543,11 +543,11 @@ private func parseFontFamily(value: string)->{ kind: FontFamilyKind, matched: bo
 private func spacingLength(value: string, fontSize: f32)->f32
 {
     let text = Latin1.trim(value)
-    if !Latin1.compare(text, "normal", ignoreCase: true) do
+    if not Latin1.compare(text, "normal", ignoreCase: true) do
         return 0
 
     var pos = 0'u64
-    if text.count == 0 or !isNumberStart(text[0]) do
+    if text.count == 0 or not isNumberStart(text[0]) do
         return 0
 
     let amount = scanNumber(text, &pos)
@@ -559,7 +559,7 @@ private func spacingLength(value: string, fontSize: f32)->f32
     let unit = cast(string) Swag.makeSlice(text.buffer + pos, text.count - pos)
     if unit[0] == '%' do
         return amount * 0.01 * fontSize
-    if !Latin1.compare(unit, "em", ignoreCase: true) or !Latin1.compare(unit, "rem", ignoreCase: true) do
+    if not Latin1.compare(unit, "em", ignoreCase: true) or not Latin1.compare(unit, "rem", ignoreCase: true) do
         return amount * fontSize
     return amount
 }
@@ -572,7 +572,7 @@ private func normalizedText(value: string)->String
     {
         if c == ' ' or c == '\t' or c == '\r' or c == '\n'
         {
-            pendingSpace = !result.isEmpty()
+            pendingSpace = not result.isEmpty()
             continue
         }
 
@@ -619,13 +619,13 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
 
     let text = Latin1.trim(value)
 
-    if !Latin1.compare(text, "none", ignoreCase: true)
+    if not Latin1.compare(text, "none", ignoreCase: true)
     {
         result.enabled = false
         return result
     }
 
-    if !Latin1.compare(text, "transparent", ignoreCase: true)
+    if not Latin1.compare(text, "transparent", ignoreCase: true)
     {
         result.color = Color.fromArgb(Argb.Zero)
         return result
@@ -655,8 +655,8 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
         }
     }
 
-    let isRgb  = len > 4 and !Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 4), "rgb(", ignoreCase: true)
-    let isRgba = len > 5 and !Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 5), "rgba(", ignoreCase: true)
+    let isRgb  = len > 4 and not Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 4), "rgb(", ignoreCase: true)
+    let isRgba = len > 5 and not Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 5), "rgba(", ignoreCase: true)
     if isRgb or isRgba
     {
         var pos = isRgba ? 5'u64 : 4'u64
@@ -668,8 +668,8 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
         return result
     }
 
-    let isHsl  = len > 4 and !Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 4), "hsl(", ignoreCase: true)
-    let isHsla = len > 5 and !Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 5), "hsla(", ignoreCase: true)
+    let isHsl  = len > 4 and not Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 4), "hsl(", ignoreCase: true)
+    let isHsla = len > 5 and not Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 5), "hsla(", ignoreCase: true)
     if isHsl or isHsla
     {
         var pos = isHsla ? 5'u64 : 4'u64
@@ -688,7 +688,7 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
     let type = #typeof(Argb)
     for it in type.values
     {
-        if it.name and !Latin1.compare(it.name!, text, ignoreCase: true)
+        if it.name and not Latin1.compare(it.name!, text, ignoreCase: true)
         {
             result.color = Color.fromArgb(it.value![as Argb])
             return result
@@ -703,7 +703,7 @@ private func parseDashPattern(value: string)->Array'SvgLength
     var result: retval
     var total:  f32
     let text = Latin1.trim(value)
-    if !Latin1.compare(text, "none", ignoreCase: true) do
+    if not Latin1.compare(text, "none", ignoreCase: true) do
         return result
 
     var pos = 0'u64
@@ -711,7 +711,7 @@ private func parseDashPattern(value: string)->Array'SvgLength
     {
         while pos < text.count and (text[pos] == ' ' or text[pos] == ',' or text[pos] == '\t' or text[pos] == '\n' or text[pos] == '\r') do
             pos += 1
-        if pos >= text.count or !isNumberStart(text[pos]) do
+        if pos >= text.count or not isNumberStart(text[pos]) do
             break
 
         var length = SvgLength{value: scanNumber(text, &pos)}
@@ -749,7 +749,7 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
     {
     case "fill":
         let paintId = parsePaintId(value)
-        if !paintId.isEmpty()
+        if not paintId.isEmpty()
         {
             state.fillPaintId = #move paintId
             state.hasFill     = true
@@ -757,7 +757,7 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
         else
         {
             state.fillPaintId.clear()
-            if !Latin1.compare(Latin1.trim(value), "currentColor", ignoreCase: true)
+            if not Latin1.compare(Latin1.trim(value), "currentColor", ignoreCase: true)
             {
                 state.fillColor = state.currentColor
                 state.hasFill   = true
@@ -773,7 +773,7 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
 
     case "stroke":
         let paintId = parsePaintId(value)
-        if !paintId.isEmpty()
+        if not paintId.isEmpty()
         {
             state.strokePaintId = #move paintId
             state.hasStroke     = true
@@ -781,7 +781,7 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
         else
         {
             state.strokePaintId.clear()
-            if !Latin1.compare(Latin1.trim(value), "currentColor", ignoreCase: true)
+            if not Latin1.compare(Latin1.trim(value), "currentColor", ignoreCase: true)
             {
                 state.strokeColor = state.currentColor
                 state.hasStroke   = true
@@ -799,7 +799,7 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
         state.currentColor = parseColor(value).color
 
     case "display":
-        if !Latin1.compare(Latin1.trim(value), "none", ignoreCase: true) do
+        if not Latin1.compare(Latin1.trim(value), "none", ignoreCase: true) do
             state.isDisplayed = false
 
     case "visibility":
@@ -857,11 +857,11 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
         let weight = Latin1.trim(value)
         var pos    = 0'u64
         let number = scanNumber(weight, &pos)
-        state.forceBold = !Latin1.compare(weight, "bold", ignoreCase: true) or number >= 600
+        state.forceBold = not Latin1.compare(weight, "bold", ignoreCase: true) or number >= 600
 
     case "font-style":
         let style = Latin1.trim(value)
-        state.forceItalic = !Latin1.compare(style, "italic", ignoreCase: true) or !Latin1.compare(style, "oblique", ignoreCase: true)
+        state.forceItalic = not Latin1.compare(style, "italic", ignoreCase: true) or not Latin1.compare(style, "oblique", ignoreCase: true)
 
     case "text-anchor":
         switch Latin1.trim(value)
@@ -947,7 +947,7 @@ private func composeTransformList(value: string, parent: Math.Transform2)->Math.
             var look = pos
             while look < len and (value[look] == ' ' or value[look] == ',' or value[look] == '\t' or value[look] == '\n' or value[look] == '\r') do
                 look += 1
-            if look >= len or !isNumberStart(value[look]) do
+            if look >= len or not isNumberStart(value[look]) do
                 break
             arguments[count] = scanNumber(value, &pos)
             count += 1
@@ -1046,7 +1046,7 @@ private func styleValue(style, property: string)->String
         if sep < declaration.count
         {
             let name = Latin1.trim(cast(string) Swag.makeSlice(declaration.buffer, sep))
-            if !Latin1.compare(name, property, ignoreCase: true)
+            if not Latin1.compare(name, property, ignoreCase: true)
             {
                 result = Latin1.trim(cast(string) Swag.makeSlice(declaration.buffer + sep + 1, declaration.count - sep - 1))
                 return result
@@ -1293,7 +1293,7 @@ private func appendArc(path: *LinePath, state: *GroupState, x0, y0: f32, rxIn, r
     var sweepAngle = endAngle - startAngle
     if sweep and sweepAngle < 0 do
         sweepAngle += 2 * Math.ConstF32.Pi
-    elif !sweep and sweepAngle > 0 do
+    elif not sweep and sweepAngle > 0 do
         sweepAngle -= 2 * Math.ConstF32.Pi
 
     // Split into segments no larger than a quarter turn and emit each as a cubic.
@@ -1336,7 +1336,7 @@ private struct MarkerVertex
 private func polyVertices(points: string, wanted: bool)->Array'MarkerVertex
 {
     var result: retval
-    if !wanted do
+    if not wanted do
         return result
 
     var pos = 0'u64
@@ -1345,7 +1345,7 @@ private func polyVertices(points: string, wanted: bool)->Array'MarkerVertex
         var look = pos
         while look < points.count and (points[look] == ' ' or points[look] == ',') do
             look += 1
-        if look >= points.count or !isNumberStart(points[look]) do
+        if look >= points.count or not isNumberStart(points[look]) do
             break
 
         let x = scanNumber(points, &pos)
@@ -1367,7 +1367,7 @@ private func polyVertices(points: string, wanted: bool)->Array'MarkerVertex
 // Records the vertex a segment just reached, and the direction it left the previous one along.
 private func addMarkerVertex(vertices: *Array'MarkerVertex?, point, inDir, previousOutDir: Vector2)
 {
-    if !vertices do
+    if not vertices do
         return
     if vertices.count and (previousOutDir.x != 0 or previousOutDir.y != 0) do
         vertices[vertices.count - 1].outDir = previousOutDir
@@ -1394,13 +1394,13 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
     func number(data: string, pos: *u64, valid: *bool)->f32
     {
-        if !valid[] do
+        if not valid[] do
             return 0
 
         var look = pos[]
         while look < data.count and (data[look] == ' ' or data[look] == ',' or data[look] == '\t' or data[look] == '\n' or data[look] == '\r') do
             look += 1
-        if look >= data.count or !isNumberStart(data[look])
+        if look >= data.count or not isNumberStart(data[look])
         {
             valid[] = false
             return 0
@@ -1411,7 +1411,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
     func flag(data: string, pos: *u64, valid: *bool)->bool
     {
-        if !valid[] do
+        if not valid[] do
             return false
 
         while pos[] < data.count and (data[pos[]] == ' ' or data[pos[]] == ',' or data[pos[]] == '\t' or data[pos[]] == '\n' or data[pos[]] == '\r') do
@@ -1448,7 +1448,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             pos += 1
             if cmd == 'Z' or cmd == 'z'
             {
-                if !path do
+                if not path do
                     return
                 if started do
                     path.close()
@@ -1459,10 +1459,10 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
                 continue
             }
         }
-        elif !isNumberStart(c) do
+        elif not isNumberStart(c) do
             return
 
-        if !path and cmd != 'M' and cmd != 'm' do
+        if not path and cmd != 'M' and cmd != 'm' do
             return
 
         let rel   = cmd >= 'a'
@@ -1472,7 +1472,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
         case 'M', 'm':
             var x = number(data, &pos, &valid)
             var y = number(data, &pos, &valid)
-            if !valid do
+            if not valid do
                 return
             if rel
             {
@@ -1496,7 +1496,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
         case 'L', 'l':
             var x = number(data, &pos, &valid)
             var y = number(data, &pos, &valid)
-            if !valid do
+            if not valid do
                 return
             if rel
             {
@@ -1519,7 +1519,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
         case 'H', 'h':
             var x = number(data, &pos, &valid)
-            if !valid do
+            if not valid do
                 return
             if rel do
                 x += curX
@@ -1530,7 +1530,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
         case 'V', 'v':
             var y = number(data, &pos, &valid)
-            if !valid do
+            if not valid do
                 return
             if rel do
                 y += curY
@@ -1567,7 +1567,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             var c2y = number(data, &pos, &valid)
             var x   = number(data, &pos, &valid)
             var y   = number(data, &pos, &valid)
-            if !valid do
+            if not valid do
                 return
             if rel
             {
@@ -1614,7 +1614,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
             var x = number(data, &pos, &valid)
             var y = number(data, &pos, &valid)
-            if !valid do
+            if not valid do
                 return
             if rel
             {
@@ -1641,7 +1641,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             let sweepF   = flag(data, &pos, &valid)
             var x        = number(data, &pos, &valid)
             var y        = number(data, &pos, &valid)
-            if !valid do
+            if not valid do
                 return
             if rel
             {
@@ -1668,7 +1668,7 @@ private func emitShape(drawing: *Drawing, list: LinePathList, state: *GroupState
 {
     if list.paths.isEmpty() do
         return
-    if !state.isDisplayed or !state.isVisible or (!state.hasFill and !state.hasStroke) do
+    if not state.isDisplayed or not state.isVisible or (not state.hasFill and not state.hasStroke) do
         return
 
     // The triangulated fill treats every extra contour of a list as a hole cut into
@@ -1778,7 +1778,7 @@ private func emitShapeOne(drawing: *Drawing, list: LinePathList, state: *GroupSt
     shape.paintTransform = state.transform
     shape.filterId       = state.filterId
 
-    if !shape.hidden do
+    if not shape.hidden do
         drawing.items.add(DrawingItem{.Shape, shapeIndex})
 }
 
@@ -1835,7 +1835,7 @@ private func emitPoly(drawing: *Drawing, state: *GroupState, points: string, clo
         var look = pos
         while look < points.count and (points[look] == ' ' or points[look] == ',') do
             look += 1
-        if look >= points.count or !isNumberStart(points[look]) do
+        if look >= points.count or not isNumberStart(points[look]) do
             break
 
         let x     = scanNumber(points, &pos)
@@ -1870,7 +1870,7 @@ private impl Parser
         var contentEnd   = .pos
         while contentEnd + 7 < (.text).count
         {
-            if .text[contentEnd] == '<' and .text[contentEnd + 1] == '/' and !Latin1.compare(cast(string) Swag.makeSlice((.text).buffer + contentEnd + 2, 5), "style", ignoreCase: true) do
+            if .text[contentEnd] == '<' and .text[contentEnd + 1] == '/' and not Latin1.compare(cast(string) Swag.makeSlice((.text).buffer + contentEnd + 2, 5), "style", ignoreCase: true) do
                 break
             contentEnd += 1
         }
@@ -1923,7 +1923,7 @@ private impl Parser
                 switch specificity
                 {
                 case 0:
-                    matches = selector.count and selector[0] != '.' and selector[0] != '#' and !Latin1.compare(selector, elementName, ignoreCase: true)
+                    matches = selector.count and selector[0] != '.' and selector[0] != '#' and not Latin1.compare(selector, elementName, ignoreCase: true)
 
                 case 1:
                     if selector.count > 1 and selector[0] == '.' and classAttr
@@ -1935,7 +1935,7 @@ private impl Parser
                             var end = 0'u64
                             while end < classes.count and classes[end] != ' ' and classes[end] != '\t' and classes[end] != '\n' and classes[end] != '\r' do
                                 end += 1
-                            if !Latin1.compare(cast(string) Swag.makeSlice(classes.buffer, end), wanted) do
+                            if not Latin1.compare(cast(string) Swag.makeSlice(classes.buffer, end), wanted) do
                                 matches = true
                             if matches or end == classes.count do
                                 break
@@ -1945,7 +1945,7 @@ private impl Parser
 
                 case 2:
                     if selector.count > 1 and selector[0] == '#' and idAttr do
-                        matches = !Latin1.compare(cast(string) Swag.makeSlice(selector.buffer + 1, selector.count - 1), idAttr.value.toString())
+                        matches = not Latin1.compare(cast(string) Swag.makeSlice(selector.buffer + 1, selector.count - 1), idAttr.value.toString())
                 }
 
                 if matches do
@@ -2028,7 +2028,7 @@ private impl Parser
     mtd geoNumber(geo: *HashTable'(String, String), name: string, defaultValue = 0.0'f32)->f32
     {
         let here = geo.tryFind(name)
-        if !here do
+        if not here do
             return defaultValue
         var pos = 0'u64
         return scanNumber(here.value.toString(), &pos)
@@ -2037,7 +2037,7 @@ private impl Parser
     mtd geoLength(geo: *HashTable'(String, String), name: string, defaultValue: SvgLength)->SvgLength
     {
         let here = geo.tryFind(name)
-        if !here do
+        if not here do
             return defaultValue
         return parseLength(here.value.toString(), defaultValue)
     }
@@ -2124,11 +2124,11 @@ private impl Parser
                 if style
                 {
                     let styled = styleValue(style.value.toString(), "stop-color")
-                    if !styled.isEmpty() do
+                    if not styled.isEmpty() do
                         colorValue = #move styled
                 }
 
-                if !colorValue.isEmpty() do
+                if not colorValue.isEmpty() do
                     color = parseColor(colorValue.toString()).color
 
                 var opacity     = 1.0'f32
@@ -2142,7 +2142,7 @@ private impl Parser
                 if style
                 {
                     let styled = styleValue(style.value.toString(), "stop-opacity")
-                    if !styled.isEmpty()
+                    if not styled.isEmpty()
                     {
                         let parsed = parseLength(styled.toString(), {1, false})
                         opacity = Math.saturate(parsed.value)
@@ -2156,7 +2156,7 @@ private impl Parser
                 gradient.stops.add({normalizedOffset, color})
             }
 
-            if !selfClosed do
+            if not selfClosed do
                 try .parseGradientStops(gradient)
         }
     }
@@ -2168,7 +2168,7 @@ private impl Parser
         // The reference is kept rather than followed: a document may name a gradient defined
         // further down, and only the finished document knows every identifier.
         var href = geo.tryFind("href")
-        if !href do
+        if not href do
             href = geo.tryFind("xlink:href")
         if href
         {
@@ -2235,7 +2235,7 @@ private impl Parser
             gradient.specified.transform = true
         }
 
-        if !selfClosed
+        if not selfClosed
         {
             gradient.stops.clear()
             try .parseGradientStops(&gradient)
@@ -2265,7 +2265,7 @@ private impl Parser
 
         let combined = Path.combine(.options.externalResourceRoot, href)
         let fullPath = try Path.absolute(combined.toString())
-        if !Env.isInsideDirectory(.options.externalResourceRoot, fullPath.toString()) do
+        if not Env.isInsideDirectory(.options.externalResourceRoot, fullPath.toString()) do
             fail Swag.SystemError{"SVG image reference escapes its configured resource root"}
         let info = try File.info(fullPath.toString())
         if info.size > .options.maxImageBytes do
@@ -2275,13 +2275,13 @@ private impl Parser
 
     mtd emitImage(state: *GroupState, geo: *HashTable'(String, String)) fail
     {
-        if !state.isDisplayed or !state.isVisible do
+        if not state.isDisplayed or not state.isVisible do
             return
 
         var href = geo.tryFind("href")
-        if !href do
+        if not href do
             href = geo.tryFind("xlink:href")
-        if !href do
+        if not href do
             return
 
         let width  = .geoNumber(geo, "width")
@@ -2298,7 +2298,7 @@ private impl Parser
         let origin = mapPoint(state, .geoNumber(geo, "x"), .geoNumber(geo, "y"))
         item.rect    = {origin.x, origin.y, width * transformScaleX(state.transform), height * transformScaleY(state.transform)}
         item.opacity = state.opacity
-        if !state.inDefs do
+        if not state.inDefs do
             .drawing.items.add(DrawingItem{.Image, index})
     }
 
@@ -2320,7 +2320,7 @@ private impl Parser
         case .Mono:  fileName = .options.monoFontFileName
         }
 
-        if fileName.count == 0 or !TypeFace.exists(fileName) do
+        if fileName.count == 0 or not TypeFace.exists(fileName) do
             fileName = .options.fontFileName
         if fileName.count == 0 do
             fail Swag.SystemError{"SVG text requires a configured font file"}
@@ -2333,7 +2333,7 @@ private impl Parser
     mtd addTextRun(text: string, state: *GroupState, geo: *HashTable'(String, String), block: *SvgText, first: bool) fail
     {
         let normalized = normalizedText(text)
-        if normalized.isEmpty() or !state.isDisplayed or !state.isVisible or !state.hasFill do
+        if normalized.isEmpty() or not state.isDisplayed or not state.isVisible or not state.hasFill do
             return
 
         let typeFace = try .typeFaceFor(state.fontFamily)
@@ -2405,7 +2405,7 @@ private impl Parser
             .applyStyleRules(name, &childGeo, &childState)
             if name != "tspan"
             {
-                if !childClosed do
+                if not childClosed do
                     try .parseContent(childState)
                 continue
             }
@@ -2415,14 +2415,14 @@ private impl Parser
             let childText = cast(string) Swag.makeSlice((.text).buffer + childStart, .pos - childStart)
             try .addTextRun(childText, &childState, &childGeo, block, first)
             first = false
-            if !childClosed
+            if not childClosed
             {
                 .skipUntil('>')
                 .pos += 1
             }
         }
 
-        if block.runs.count and !state.inDefs do
+        if block.runs.count and not state.inDefs do
             .drawing.items.add(DrawingItem{.Text, index})
     }
 
@@ -2431,11 +2431,11 @@ private impl Parser
         let first        = .drawing.shapes.count
         var contentState = state
         contentState.inDefs = true
-        if !selfClosed do
+        if not selfClosed do
             try .parseContent(contentState)
 
         let id = geo.tryFind("id")
-        if !id do
+        if not id do
             return
 
         var pattern: Pattern
@@ -2453,7 +2453,7 @@ private impl Parser
     mtd parseFilter(geo: *HashTable'(String, String), selfClosed: bool) fail
     {
         var filter: SvgFilter
-        if !selfClosed
+        if not selfClosed
         {
             let len = (.text).count
             while .pos < len
@@ -2508,7 +2508,7 @@ private impl Parser
 
                 if keep do
                     filter.primitives.add(primitive)
-                if !childClosed do
+                if not childClosed do
                     try .parseContent(state)
             }
         }
@@ -2564,7 +2564,7 @@ private impl Parser
             // A clip is stated in the user space of the element that names it, and children may
             // add transforms of their own; remembering that space here is what keeps an
             // inherited clip where the group put it.
-            if !state.clipPathId.isEmpty() do
+            if not state.clipPathId.isEmpty() do
                 state.clipTransform = state.transform
 
             let firstShape = .drawing.shapes.count
@@ -2602,12 +2602,12 @@ private impl Parser
                     state.transform = prependTranslation(state.transform, .geoNumber(&geo, "x"), .geoNumber(&geo, "y"))
                 }
 
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(state)
                 .svgDepth -= 1
 
             case "g":
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(state)
 
             case "path":
@@ -2621,7 +2621,7 @@ private impl Parser
                     .applyMarkers(&state, vertices.toSlice())
                 }
 
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(state)
 
             case "rect":
@@ -2632,18 +2632,18 @@ private impl Parser
                 if ry < 0 do
                     ry = rx
                 emitRect(.drawing, &state, .geoNumber(&geo, "x"), .geoNumber(&geo, "y"), .geoNumber(&geo, "width"), .geoNumber(&geo, "height"), Math.max(rx, 0), Math.max(ry, 0))
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(state)
 
             case "circle":
                 let r = .geoNumber(&geo, "r")
                 emitEllipse(.drawing, &state, .geoNumber(&geo, "cx"), .geoNumber(&geo, "cy"), r, r)
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(state)
 
             case "ellipse":
                 emitEllipse(.drawing, &state, .geoNumber(&geo, "cx"), .geoNumber(&geo, "cy"), .geoNumber(&geo, "rx"), .geoNumber(&geo, "ry"))
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(state)
 
             case "line":
@@ -2670,7 +2670,7 @@ private impl Parser
                     .applyMarkers(&state, vertices.toSlice())
                 }
 
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(state)
 
             case "defs":
@@ -2679,7 +2679,7 @@ private impl Parser
                 // painting; `use` elements instantiate them.
                 var defState: GroupState
                 defState.inDefs = true
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(defState)
 
             case "clipPath":
@@ -2690,7 +2690,7 @@ private impl Parser
                 var clipState: GroupState
                 clipState.inDefs = true
                 let clipFirst = .drawing.shapes.count
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(clipState)
 
                 let clipId = geo.tryFind("id")
@@ -2705,7 +2705,7 @@ private impl Parser
                 var symbolState: GroupState
                 symbolState.inDefs = true
                 let symbolFirst = .drawing.shapes.count
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(symbolState)
 
                 let symbolId = geo.tryFind("id")
@@ -2736,7 +2736,7 @@ private impl Parser
                 var markerState: GroupState
                 markerState.inDefs = true
                 let markerFirst = .drawing.shapes.count
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(markerState)
 
                 let markerId = geo.tryFind("id")
@@ -2756,7 +2756,7 @@ private impl Parser
                 try .parseFilter(&geo, selfClosed)
 
             case "style":
-                if !selfClosed do
+                if not selfClosed do
                     .parseStyleSheet()
 
             case "text":
@@ -2764,12 +2764,12 @@ private impl Parser
 
             case "image":
                 try .emitImage(&state, &geo)
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(state)
 
             case "use":
                 var href = geo.tryFind("href")
-                if !href do
+                if not href do
                     href = geo.tryFind("xlink:href")
                 if href
                 {
@@ -2803,7 +2803,7 @@ private impl Parser
                     }
                 }
 
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(state)
 
             case "polygon":
@@ -2815,7 +2815,7 @@ private impl Parser
                     .applyMarkers(&state, vertices.toSlice())
                 }
 
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(state)
 
             case "polyline":
@@ -2829,13 +2829,13 @@ private impl Parser
                     .applyMarkers(&state, vertices.toSlice())
                 }
 
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(state)
 
             default:
 
                 // Unknown element: ignore it and its whole subtree.
-                if !selfClosed do
+                if not selfClosed do
                     try .parseContent(state)
             }
 
@@ -2885,12 +2885,12 @@ private impl Parser
         if orient
         {
             let text = Latin1.trim(orient.value.toString())
-            if !Latin1.compare(text, "auto-start-reverse", ignoreCase: true)
+            if not Latin1.compare(text, "auto-start-reverse", ignoreCase: true)
             {
                 result.orientAuto         = true
                 result.orientStartReverse = true
             }
-            elif !Latin1.compare(text, "auto", ignoreCase: true) do
+            elif not Latin1.compare(text, "auto", ignoreCase: true) do
                 result.orientAuto = true
             else
             {
@@ -2926,7 +2926,7 @@ private impl Parser
                 continue
 
             let definition = .markers.tryFind(id.toString())
-            if !definition or definition.value.count == 0 do
+            if not definition or definition.value.count == 0 do
                 continue
 
             .placeMarker(&definition.value, state, vertex, isStart)
@@ -2996,7 +2996,7 @@ private impl Parser
             return
 
         let definition = .clipPaths.tryFind(state.clipPathId)
-        if !definition or definition.value.count == 0 do
+        if not definition or definition.value.count == 0 do
             return
 
         var clipState: GroupState
@@ -3153,7 +3153,7 @@ private impl Parser
         for id in keys
         {
             let entry = .gradients.tryFind(id.toString())
-            if !entry do
+            if not entry do
                 continue
             var resolved = entry.value
 
@@ -3162,7 +3162,7 @@ private impl Parser
 
             var current = resolved.href
             var depth   = 0'u32
-            while !current.isEmpty() and depth < MaxInheritanceDepth
+            while not current.isEmpty() and depth < MaxInheritanceDepth
             {
                 var seen = false
                 for name in visited where name.toString() == current.toString() do
@@ -3172,89 +3172,89 @@ private impl Parser
                 visited.add(current)
 
                 let base = .gradients.tryFind(current.toString())
-                if !base do
+                if not base do
                     break
 
                 let from = &base.value
-                if !resolved.specified.x1
+                if not resolved.specified.x1
                 {
                     resolved.x1 = from.x1
                     resolved.specified.x1 = from.specified.x1
                 }
 
-                if !resolved.specified.y1
+                if not resolved.specified.y1
                 {
                     resolved.y1 = from.y1
                     resolved.specified.y1 = from.specified.y1
                 }
 
-                if !resolved.specified.x2
+                if not resolved.specified.x2
                 {
                     resolved.x2 = from.x2
                     resolved.specified.x2 = from.specified.x2
                 }
 
-                if !resolved.specified.y2
+                if not resolved.specified.y2
                 {
                     resolved.y2 = from.y2
                     resolved.specified.y2 = from.specified.y2
                 }
 
-                if !resolved.specified.cx
+                if not resolved.specified.cx
                 {
                     resolved.cx = from.cx
                     resolved.specified.cx = from.specified.cx
                 }
 
-                if !resolved.specified.cy
+                if not resolved.specified.cy
                 {
                     resolved.cy = from.cy
                     resolved.specified.cy = from.specified.cy
                 }
 
-                if !resolved.specified.r
+                if not resolved.specified.r
                 {
                     resolved.r = from.r
                     resolved.specified.r = from.specified.r
                 }
 
-                if !resolved.specified.fx
+                if not resolved.specified.fx
                 {
                     resolved.fx = from.fx
                     resolved.specified.fx = from.specified.fx
                 }
 
-                if !resolved.specified.fy
+                if not resolved.specified.fy
                 {
                     resolved.fy = from.fy
                     resolved.specified.fy = from.specified.fy
                 }
 
-                if !resolved.specified.fr
+                if not resolved.specified.fr
                 {
                     resolved.fr = from.fr
                     resolved.specified.fr = from.specified.fr
                 }
 
-                if !resolved.specified.units
+                if not resolved.specified.units
                 {
                     resolved.userSpace       = from.userSpace
                     resolved.specified.units = from.specified.units
                 }
 
-                if !resolved.specified.spread
+                if not resolved.specified.spread
                 {
                     resolved.spread = from.spread
                     resolved.specified.spread = from.specified.spread
                 }
 
-                if !resolved.specified.transform
+                if not resolved.specified.transform
                 {
                     resolved.transform = from.transform
                     resolved.specified.transform = from.specified.transform
                 }
 
-                if !resolved.specified.stops and from.stops.count
+                if not resolved.specified.stops and from.stops.count
                 {
                     resolved.stops = from.stops
                     resolved.specified.stops = true
@@ -3437,7 +3437,7 @@ private impl Parser
             shape.paintTransform = paintTransform
             shape.hidden         = hidden or state.inDefs
             shape.filterId       = #move filterId
-            if !shape.hidden do
+            if not shape.hidden do
                 .drawing.items.add(DrawingItem{.Shape, shapeIndex})
         }
 
@@ -3570,7 +3570,7 @@ impl Drawing
         for i in count
         {
             let bounds = .shapes[first + i].pathList.controlBounds()
-            if !i do
+            if not i do
                 result = bounds
             else do
                 result.expandToInclude(bounds)
@@ -3762,7 +3762,7 @@ impl Drawing
                 painter.setTransform(tr)
             }
 
-            if !hasInked
+            if not hasInked
             {
                 inked    = runBox
                 hasInked = true
@@ -3886,7 +3886,7 @@ impl Drawing
             {
                 var painted = tr.transformBounds(item.bounds)
                 painted.inflate(InkFringeMargin)
-                if !visible.intersects(painted) do
+                if not visible.intersects(painted) do
                     continue
             }
 
@@ -3922,7 +3922,7 @@ impl Drawing
 
                 // Where the runs landed is what the block covers, and it is the same at every
                 // scale because a run is shaped in its own upright space.
-                if !item.hasBounds
+                if not item.hasBounds
                 {
                     item.bounds = inked
                     if item.clipCount do

@@ -138,13 +138,13 @@ impl BreadcrumbCtrl
             w += Painter.measureString(it.name.toString(), font).width + .padX
 
             it.bodyRect = {x, client.y, w, client.height}
-            x           += w
+            x += w
 
             if it.hasArrow
             {
                 let aw = .arrowPad + m.chevron_Size + .arrowPad
                 it.arrowRect = {x, client.y, aw, client.height}
-                x            += aw
+                x += aw
             }
             else
             {
@@ -267,7 +267,7 @@ impl IWnd for BreadcrumbCtrl
         for i in .items.count
         {
             let it      = &.items[i]
-            let hotBody = i == .hotItem and !.hotArrow
+            let hotBody = i == .hotItem and not .hotArrow
             let hotArr  = i == .hotItem and .hotArrow
 
             // Body background + text

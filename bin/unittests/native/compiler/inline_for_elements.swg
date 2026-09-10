@@ -16,9 +16,9 @@ impl ReturnVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
-        where !ptr
+        where not ptr
     {
-        if !(.values).count do
+        if not (.values).count do
             return
 
         var remain = (.values).count
@@ -31,7 +31,7 @@ impl ReturnVisits
             }
 
             remain -= 1
-            if !remain do
+            if not remain do
                 break
         }
     }
@@ -118,11 +118,11 @@ func findValueAuto(target: s32)->bool
 
     Swag.assert(findValue(6))
     Swag.assert(findValue(4))
-    Swag.assert(!findValue(99))
+    Swag.assert(not findValue(99))
     Swag.assert(indexOfValue(5) == 1)
     Swag.assert(indexOfValue(99) == -1)
 
     Swag.assert(findFirstEvenAuto(data) == 2)
     Swag.assert(findValueAuto(6))
-    Swag.assert(!findValueAuto(99))
+    Swag.assert(not findValueAuto(99))
 }

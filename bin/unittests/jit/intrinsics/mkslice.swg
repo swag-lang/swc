@@ -5,7 +5,7 @@
     func mkSliceCount()->u64
     {
         var buf: [6] u8 = [65, 66, 67, 68, 69, 70]
-        let sl          = Swag.makeSlice(&buf[0], 6)
+        let sl = Swag.makeSlice(&buf[0], 6)
         return sl.count
     }
 
@@ -18,7 +18,7 @@
     func mkSliceRead()->u8
     {
         var buf: [4] u8 = [10, 20, 30, 40]
-        let sl          = Swag.makeSlice(&buf[1], 3)
+        let sl = Swag.makeSlice(&buf[1], 3)
         return sl[1]
     }
 
@@ -31,7 +31,7 @@
     func mkStringCount()->u64
     {
         var buf: [5] u8 = [72, 101, 108, 108, 111]
-        let s           = Swag.makeString(&buf[0], 5)
+        let s = Swag.makeString(&buf[0], 5)
         return s.count
     }
 
@@ -44,7 +44,7 @@
     func mkStringRead()->u8
     {
         var buf: [3] u8 = [120, 121, 122]
-        let s           = Swag.makeString(&buf[0], 3)
+        let s = Swag.makeString(&buf[0], 3)
         return s[2]
     }
 
@@ -68,7 +68,7 @@
     func mkSliceWriteThrough()->bool
     {
         var buf: [4] u8 = [1, 2, 3, 4]
-        let sl          = Swag.makeSlice(&buf[0], 4)
+        let sl = Swag.makeSlice(&buf[0], 4)
         sl[2] = 9
         return sl.count == 4 and buf[2] == 9'u8 and sl[2] == 9'u8
     }

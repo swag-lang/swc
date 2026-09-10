@@ -89,7 +89,7 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
 
 #test
 {
-    let text              = "A\u20AC\U0001F642"
+    let text = "A\u20AC\U0001F642"
     let expected: [4] u16 = [0x0041, 0x20AC, 0xD83D, 0xDE42]
 
     var dest: [8] u16
@@ -120,7 +120,7 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
 #test
 {
     let expected: [6] u16 = [0x0043, 0x0061, 0x0066, 0x00E9, 0xD83D, 0xDE42]
-    let zero              = Utf16.toZeroTerminated("Caf\u00E9\U0001F642")
+    let zero = Utf16.toZeroTerminated("Caf\u00E9\U0001F642")
 
     Swag.assert(zero.count == 7)
     for i in expected.count do

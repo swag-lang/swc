@@ -129,38 +129,38 @@ func vp8ParseResidual4(decoder: *Vp8Decoder, partition: *Vp8Partition, plane: s3
     var coefficient     = skipFirst ? 1 : 0
     var band            = cast(s32) VP8_BANDS[coefficient]
     var probabilityBase = vp8TokenIndex(plane, band, context, 0)
-    if !partition.readBit(decoder.tokenProb[probabilityBase]) do
+    if not partition.readBit(decoder.tokenProb[probabilityBase]) do
         return 0
 
     while coefficient != 16
     {
         coefficient += 1
-        if !partition.readBit(decoder.tokenProb[probabilityBase + 1])
+        if not partition.readBit(decoder.tokenProb[probabilityBase + 1])
         {
-            band            = VP8_BANDS[coefficient]
+            band = VP8_BANDS[coefficient]
             probabilityBase = vp8TokenIndex(plane, band, 0, 0)
             continue
         }
 
         var value: u32
-        if !partition.readBit(decoder.tokenProb[probabilityBase + 2])
+        if not partition.readBit(decoder.tokenProb[probabilityBase + 2])
         {
-            value           = 1
-            band            = VP8_BANDS[coefficient]
+            value = 1
+            band  = VP8_BANDS[coefficient]
             probabilityBase = vp8TokenIndex(plane, band, 1, 0)
         }
         else
         {
-            if !partition.readBit(decoder.tokenProb[probabilityBase + 3])
+            if not partition.readBit(decoder.tokenProb[probabilityBase + 3])
             {
-                if !partition.readBit(decoder.tokenProb[probabilityBase + 4]) do
+                if not partition.readBit(decoder.tokenProb[probabilityBase + 4]) do
                     value = 2
                 else do
                     value = 3 + partition.readUint(decoder.tokenProb[probabilityBase + 5], 1)
             }
-            elif !partition.readBit(decoder.tokenProb[probabilityBase + 6])
+            elif not partition.readBit(decoder.tokenProb[probabilityBase + 6])
             {
-                if !partition.readBit(decoder.tokenProb[probabilityBase + 7]) do
+                if not partition.readBit(decoder.tokenProb[probabilityBase + 7]) do
                     value = 5 + partition.readUint(159, 1)
                 else do
                     value = 7 + 2 * partition.readUint(165, 1) + partition.readUint(145, 1)
@@ -180,7 +180,7 @@ func vp8ParseResidual4(decoder: *Vp8Decoder, partition: *Vp8Partition, plane: s3
                 value += 3 + (8 << category)
             }
 
-            band            = VP8_BANDS[coefficient]
+            band = VP8_BANDS[coefficient]
             probabilityBase = vp8TokenIndex(plane, band, 2, 0)
         }
 
@@ -189,7 +189,7 @@ func vp8ParseResidual4(decoder: *Vp8Decoder, partition: *Vp8Partition, plane: s3
         if partition.readBit(VP8_UNIFORM_PROB) do
             decoded = -decoded
         decoder.coeff[coeffBase + zigzag] = cast(s16) decoded
-        if coefficient == 16 or !partition.readBit(decoder.tokenProb[probabilityBase]) do
+        if coefficient == 16 or not partition.readBit(decoder.tokenProb[probabilityBase]) do
             return 1
     }
 
@@ -292,7 +292,7 @@ func vp8PrepareYbr(decoder: *Vp8Decoder, mbX, mbY: s32)
         {
             decoder.ybr[y][7]  = 0x81
             decoder.ybr[y][23] = 0x81
-            y                  += 1
+            y += 1
         }
     }
     else
@@ -304,7 +304,7 @@ func vp8PrepareYbr(decoder: *Vp8Decoder, mbX, mbY: s32)
         {
             decoder.ybr[y][7]  = decoder.ybr[y][15]
             decoder.ybr[y][23] = decoder.ybr[y][31]
-            y                  += 1
+            y += 1
         }
     }
 
@@ -314,7 +314,7 @@ func vp8PrepareYbr(decoder: *Vp8Decoder, mbX, mbY: s32)
         while x < 28
         {
             decoder.ybr[0][x] = 0x7F
-            x                 += 1
+            x += 1
         }
 
         x = 7
@@ -419,7 +419,7 @@ func vp8Reconstruct(decoder: *Vp8Decoder, mbX, mbY: s32)->bool
 {
     if decoder.segmentHeader.updateMap
     {
-        if !decoder.firstPart.readBit(decoder.segmentHeader.probability[0]) do
+        if not decoder.firstPart.readBit(decoder.segmentHeader.probability[0]) do
             decoder.segment = cast(s32) decoder.firstPart.readUint(decoder.segmentHeader.probability[1], 1)
         else do
             decoder.segment = cast(s32) decoder.firstPart.readUint(decoder.segmentHeader.probability[2], 1) + 2
@@ -435,7 +435,7 @@ func vp8Reconstruct(decoder: *Vp8Decoder, mbX, mbY: s32)->bool
         vp8ParsePredY4(decoder, mbX)
     vp8ParsePredC8(decoder)
 
-    if !skip
+    if not skip
     {
         skip = vp8ParseResiduals(decoder, mbX, mbY)
     }

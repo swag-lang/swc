@@ -69,7 +69,7 @@ private impl HexStringScanner
 
     mtd append(offset, byteLength: u64, value: u8)
     {
-        if !.units do
+        if not .units do
             .start = offset
         .length += byteLength
         .units  += 1
@@ -137,7 +137,7 @@ private func finishHexAnalysis(result: *HexAnalysisResult, ascii: *HexStringScan
 
     result.strings.sort(func(a, b) { return a.offset <=> b.offset })
 
-    if !result.scanned do
+    if not result.scanned do
         return
     for count in result.histogram where count
     {
@@ -152,7 +152,7 @@ func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32?
 {
     var result: retval
     result.range = range
-    if !range.length do
+    if not range.length do
         return result
     if cancelled and Atomic.get(cancelled!)
     {
@@ -200,7 +200,7 @@ func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32?
             break
         }
 
-        if !count
+        if not count
         {
             result.failureReason = hexStrings().err_AnalysisShortRead
             break
@@ -248,7 +248,7 @@ impl HexAnalysisOperation
 {
     mtd start(fileName: string, range: HexAnalysisRange)
     {
-        Swag.assert(!.started)
+        Swag.assert(not .started)
         .fileName = fileName
         .range    = range
         .result   = {}
@@ -284,10 +284,10 @@ impl HexAnalysisOperation
     // Cancels active work and reports when this borrowed operation can be destroyed.
     mtd retire()->bool
     {
-        if !.started do
+        if not .started do
             return true
         .cancel()
-        if !.isDone() do
+        if not .isDone() do
             return false
         .task.wait()
         .started = false

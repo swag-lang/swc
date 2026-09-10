@@ -108,7 +108,7 @@ impl Frame
         .cropTop       = sps.cropTop
         .subWidthC     = sps.subWidthC
         .subHeightC    = sps.subHeightC
-        .studioRange   = !sps.fullRange
+        .studioRange   = not sps.fullRange
         switch sps.matrixCoefficients
         {
         case 1:     .matrix = .Bt709
@@ -137,7 +137,7 @@ impl Frame
 
         .marking      = .Unused
         .outputNeeded = false
-        if !.progressEvent.isValid() do
+        if not .progressEvent.isValid() do
             .progressEvent.init(manual: true)
         Atomic.exchange(&.heldByCaller, 0)
         Atomic.exchange(&.reconstructionHolds, 0)
@@ -297,7 +297,7 @@ impl Frame
     private mtd const reducePlane(destination: [*] u8, destinationStride: u64, source: const [*] u16, sourceStride: u64, left, top, width, height: s32, shift: u32)
     {
         let origin = source + (cast(u64) (top + cast(s32) FramePadding)) * sourceStride + cast(u64) (left + cast(s32) FramePadding)
-        if !shift
+        if not shift
         {
             for row in height
             {

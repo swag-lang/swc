@@ -24,7 +24,7 @@ var g_Functions: Array'OneFunc
         return
 
     let typeFunc = cast(const *TypeInfoFunc) msg.type
-    if !Reflection.hasAttribute(typeFunc, Extension) do
+    if not Reflection.hasAttribute(typeFunc, Extension) do
         return
     g_Functions.add({type: typeFunc, name: cast(string) (msg.name)})
 }

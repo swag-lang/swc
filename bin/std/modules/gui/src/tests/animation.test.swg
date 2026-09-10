@@ -94,7 +94,7 @@ func linearSecond()->AnimationOptions
 
     host.advanceAnimations(0.5)
     Swag.assert(AnimationTestF32 == 10 and AnimationTestPoint == Math.Point{10, 20})
-    Swag.assert(!host.app.animator.isActive(handle) and host.app.animator.activeCount() == 0)
+    Swag.assert(not host.app.animator.isActive(handle) and host.app.animator.activeCount() == 0)
     Swag.assert(AnimationTestCompleted == 1 and AnimationTestResult == .Completed)
     Swag.assert(host.app.frameEvents.isEmpty())
     discard host.render()
@@ -195,7 +195,7 @@ func linearSecond()->AnimationOptions
     let target = Wnd.create'Wnd(&host.root)
     let handle = host.app.animator.animateF32(target, AnimationChannel.from("test.lifetime"), 0, 10, &animationSetF32, linearSecond(), &animationCompleted)
     target.hide()
-    Swag.assert(!host.app.animator.isActive(handle))
+    Swag.assert(not host.app.animator.isActive(handle))
     Swag.assert(AnimationTestCompleted == 1 and AnimationTestResult == .Cancelled)
 
     target.show()
@@ -359,7 +359,7 @@ func linearSecond()->AnimationOptions
 
     host.advanceAnimations(0.5)
     Swag.assert(AnimationTestF32 == 10)
-    Swag.assert(!host.app.animator.isActive(handle))
+    Swag.assert(not host.app.animator.isActive(handle))
     Swag.assert(AnimationTestCompleted == 1 and AnimationTestResult == .Completed)
 }
 
@@ -385,7 +385,7 @@ func linearSecond()->AnimationOptions
     Swag.assert(Math.isEqualEpsilon(AnimationTestF32, 2.5, 0.001))
 
     host.advanceAnimations(0.25)
-    Swag.assert(AnimationTestF32 == 0 and !host.app.animator.isActive(handle))
+    Swag.assert(AnimationTestF32 == 0 and not host.app.animator.isActive(handle))
 }
 
 // An endless track never completes on its own, and finishes on its resting value.
@@ -404,7 +404,7 @@ func linearSecond()->AnimationOptions
     host.advanceAnimations(6.5)
     Swag.assert(AnimationTestF32 == 5 and host.app.animator.isActive(forward))
     host.finishAnimations()
-    Swag.assert(AnimationTestF32 == 10 and !host.app.animator.isActive(forward))
+    Swag.assert(AnimationTestF32 == 10 and not host.app.animator.isActive(forward))
 
     // A ping-pong loop rests at the value it keeps returning to, which is where it began.
     options.autoReverse = true

@@ -33,7 +33,7 @@ func formatInfo(format: PixelFormat, vk: *u32, typeSize: *u32, channelIds: *[4] 
         vk[] = 9
 
     case .GrayAlpha8:
-        vk[]            = 16
+        vk[] = 16
         channelIds[][1] = 15
 
     case .Gray16:
@@ -75,7 +75,7 @@ func formatInfo(format: PixelFormat, vk: *u32, typeSize: *u32, channelIds: *[4] 
         channelIds[] = [2, 1, 0, 15]
 
     case .RGBA8:
-        vk[]            = 37
+        vk[] = 37
         channelIds[][3] = 15
 
     case .BGRA8:
@@ -154,11 +154,11 @@ internal impl IImageEncoder for Encoder
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {
         discard options
-        if !image.isValid() or !image.pixelFormat.isPacked() do
+        if not image.isValid() or not image.pixelFormat.isPacked() do
             fail InvalidFormatError{"invalid packed image"}
 
         var vk:         u32
-        var typeSize           = 1'u32
+        var typeSize = 1'u32
         var channelIds: [4] u8 = [0, 1, 2, 3]
         var floating:   bool
         formatInfo(image.pixelFormat, &vk, &typeSize, &channelIds, &floating)

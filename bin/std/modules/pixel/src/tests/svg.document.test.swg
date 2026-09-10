@@ -40,7 +40,7 @@ func makeTrianglePath()->LinePath
 
     let text = doc.toString()
     Swag.assert(text.contains("M1.5 2L3.25 4"))
-    Swag.assert(!text.contains("1.500"))
+    Swag.assert(not text.contains("1.500"))
 }
 
 // A ground is painted before every shape, and a title names the document.
@@ -111,7 +111,7 @@ func makeTrianglePath()->LinePath
 {
     let text = Svg.Document.create(4, 4).toString()
     Swag.assert(text.contains("<svg "))
-    Swag.assert(!text.contains("<path"))
+    Swag.assert(not text.contains("<path"))
 }
 
 // Painting a document on screen goes through the stroker, not the rasterizer, and asks it to

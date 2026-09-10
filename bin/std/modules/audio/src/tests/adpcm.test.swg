@@ -23,7 +23,7 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
     var sound = expect SoundFile.load(path.toString())
     Swag.assert(sound.sampleEncoding() == encoding)
     Swag.assert(sound.sampleRateHz() == sampleRate and sound.numChannels() == channels)
-    Swag.assert(sound.isPacketStream() and !sound.isDataPreloaded())
+    Swag.assert(sound.isPacketStream() and not sound.isDataPreloaded())
     Swag.assert((expect sound.packet(0)).byteSize == 1024 and (expect sound.packet(0)).sampleFrameCount == blockFrames)
 
     let decoded = expect adpcmDecodeAll(&sound)

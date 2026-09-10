@@ -55,7 +55,7 @@ impl Task
     // The task must not already be in flight. A task may be submitted again after it finished.
     mtd submit(body: func||())
     {
-        Swag.assert(!.isPending())
+        Swag.assert(not .isPending())
         .body       = body
         .node.entry = &taskEntry
         submitWork(&.node)
@@ -85,7 +85,7 @@ private func taskEntry(node: *WorkNode)
 {
     let task = cast(*Task) node
     let body = task.body
-    if !body do
+    if not body do
         return
 
     let safeBody = body orelse func() {}
@@ -98,7 +98,7 @@ private func taskEntry(node: *WorkNode)
 private func runTaskBody(body: func||())
 {
     // Ordinary descendant joins consume no error frames and need no error-stack bookkeeping.
-    if !__isErrContext()
+    if not __isErrContext()
     {
         body()
         return
@@ -109,7 +109,7 @@ private func runTaskBody(body: func||())
     let frame   = context.errorIndex - 1
     let pending = context.errors[frame].pushHasError
     context.errors[frame].pushHasError = 0
-    context.traceIndex                 = 0
+    context.traceIndex = 0
 
     body()
 
@@ -282,7 +282,7 @@ impl TaskGroup
         }
 
         let block = cast(*GroupBlock?) __bootstrapAlloc(#sizeof(GroupBlock))
-        if !block do
+        if not block do
             Swag.panic("cannot allocate task group storage", #curlocation)
 
         block.next = .blocks
@@ -296,7 +296,7 @@ private func groupChildEntry(node: *WorkNode)
 {
     let child = cast(*GroupChild) node
     let body  = child.body
-    if !body do
+    if not body do
         return
 
     let safeBody = body orelse func() {}

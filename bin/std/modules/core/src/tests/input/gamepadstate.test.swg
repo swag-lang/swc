@@ -19,7 +19,7 @@ using Swag
     for i in Input.GamepadButton.count
     {
         let button = cast(Input.GamepadButton) i
-        Swag.assert(!state.pressed[button])
+        Swag.assert(not state.pressed[button])
         Swag.assert(state.position[button] == Math.Point.Zero)
     }
 }
@@ -41,11 +41,11 @@ using Swag
     Swag.assert(state.pressed[A])
     Swag.assert(state.pressed[DPadLeft])
     Swag.assert(state.pressed[RightShoulder])
-    Swag.assert(!state.pressed[B])
+    Swag.assert(not state.pressed[B])
     Swag.assert(state.position[LeftStick] == Math.Point{-1, 1})
     Swag.assert(state.pressed[LeftThumbstickLeft])
     Swag.assert(state.pressed[LeftThumbstickUp])
-    Swag.assert(!state.pressed[RightThumbstickRight])
+    Swag.assert(not state.pressed[RightThumbstickRight])
     Swag.assert(state.pressed[LeftTrigger])
     Swag.assert(state.pressed[RightTrigger])
 
@@ -56,7 +56,7 @@ using Swag
     state.update(raw)
     Swag.assert(state.pressed[LeftThumbstickRight])
     Swag.assert(state.pressed[LeftTrigger])
-    Swag.assert(!state.pressed[RightTrigger])
+    Swag.assert(not state.pressed[RightTrigger])
 
     raw.leftStickX  = cast(s16) (0.8 * 32767)
     raw.leftTrigger = cast(u8) (0.8 * 255)
@@ -67,6 +67,6 @@ using Swag
     raw.leftStickX  = cast(s16) (0.6 * 32767)
     raw.leftTrigger = cast(u8) (0.6 * 255)
     state.update(raw)
-    Swag.assert(!state.pressed[LeftThumbstickRight])
-    Swag.assert(!state.pressed[LeftTrigger])
+    Swag.assert(not state.pressed[LeftThumbstickRight])
+    Swag.assert(not state.pressed[LeftTrigger])
 }

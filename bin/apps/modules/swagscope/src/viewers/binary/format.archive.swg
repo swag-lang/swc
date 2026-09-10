@@ -31,7 +31,7 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
     while scan + ArHeaderSize <= image.bytes.count and offsets.count < BinaryListLimit
     {
         let size = arDecimalAt(image, scan + 48, 10)
-        if !image.matches(scan + 58, "`\n")
+        if not image.matches(scan + 58, "`\n")
         {
             complete = false
             break
@@ -41,7 +41,7 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
         scan += ArHeaderSize + size + (size & 1)
     }
 
-    if scan < image.fileSize and offsets.count < BinaryListLimit and complete and !image.isBounded() do
+    if scan < image.fileSize and offsets.count < BinaryListLimit and complete and not image.isBounded() do
         complete = false
 
     let longNamesAt = arLongNamesAt(image, offsets.toSlice())
@@ -83,7 +83,7 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
         report.endGroup()
     }
 
-    if !complete do
+    if not complete do
         report.note(s.ar_Malformed)
     report.listCut(offsets.count, offsets.count)
     report.endGroup()
@@ -101,9 +101,9 @@ private func arReportHeader(image: *BinaryImage, report: *BinaryReport, at, size
     let mode     = image.fixedTextAt(at + 40, 8)
 
     report.field(at + 16, 12, s.ar_Modified, modified.toString())
-    if !owner.isEmpty() do
+    if not owner.isEmpty() do
         report.field(at + 28, 12, s.ar_Owner, owner.toString())
-    if !mode.isEmpty() do
+    if not mode.isEmpty() do
         report.field(at + 40, 8, s.ar_Mode, mode.toString())
     report.numField(at + 48, 10, "Size", size)
 }
@@ -123,7 +123,7 @@ private func arReportLinkerMember(image: *BinaryImage, report: *BinaryReport, at
     var namesAt  = at + 4 + count * 4
     var offsetAt = at + 4
 
-    if !first
+    if not first
     {
         let memberCount = cast(u64) image.u32At(at)
         count    = cast(u64) image.u32At(at + 4 + memberCount * 4)

@@ -12,8 +12,8 @@ using Swag, Core, Pixel
     app.setRenderer(&cpu)
 
     let surface = (expect app.createSurface(0, 0, 160, 96))!
-    Swag.assert(!app.renderer.needsNativeWindow())
-    Swag.assert(!surface.hWnd)
+    Swag.assert(not app.renderer.needsNativeWindow())
+    Swag.assert(not surface.hWnd)
 
     surface.show()
     let image = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)

@@ -105,9 +105,9 @@ impl Decoder
     // Reads a framed type value into caller-owned storage described by its runtime type.
     mtd readTypeValue(typedVal: TypeValue, data: [*] void?) fail
     {
-        if !typedVal.pointedType do
+        if not typedVal.pointedType do
             fail SerializationError{"missing type value pointed type"}
-        if !data do
+        if not data do
             fail SerializationError{"missing data for type value"}
         discard .serializer.beginElement(typedVal)
         .readTypedContent(data, typedVal.pointedType)
@@ -117,7 +117,7 @@ impl Decoder
     // Reads one value into caller-owned storage large and aligned enough for `dataType`.
     mtd readTypedContent(data: [*] void, dataType: typeinfo?) fail
     {
-        if !dataType do
+        if not dataType do
             fail SerializationError{"missing data type"}
         var type = Reflection.resolveAliases(dataType orelse #typeof(u8))
         type = Reflection.enumUnderlyingType(type)
@@ -163,14 +163,14 @@ impl Decoder
             defer #nofail .serializer.endSection()
 
             var objType, itfType: typeinfo?
-            var typeVal:          TypeValue
+            var typeVal: TypeValue
             typeVal.pointedType = #typeof(typeinfo?)
 
             #static if T == Read.TagBin
             {
                 objType = .serializer.readInterfaceType()
                 itfType = type
-                if objType and !Reflection.hasInterface(objType, type) do
+                if objType and not Reflection.hasInterface(objType, type) do
                     fail SerializationError{"interface object type does not implement the requested interface"}
             }
             else
@@ -185,8 +185,8 @@ impl Decoder
                 itf.itable = Swag.tableOf(cast(const *Swag.TypeInfoStruct?) objType, cast(const *Swag.TypeInfoStruct?) itfType)
 
                 typeVal.pointedType = objType
-                itf.obj             = Memory.new(objType)
-                if !itf.obj do
+                itf.obj = Memory.new(objType)
+                if not itf.obj do
                     fail SerializationError{"cannot allocate interface object"}
                 .readTypeValue(typeVal, itf.obj)
             }
@@ -214,7 +214,7 @@ impl Decoder
                 let treated       = .serializer.beginSequence(type, data, &count)
                 defer #nofail .serializer.endSequence()
 
-                if !treated
+                if not treated
                 {
                     Reflection.clearDynamicArray(data, safeValueType)
                     while .serializer.toNextSequenceElement(&count)
@@ -247,7 +247,7 @@ impl Decoder
             for &pf in plan.fields
             {
                 let fieldType = pf.value.pointedType
-                if !itf or !itf.readElement(pf.value, cast([*] u8) data + pf.value.offset, idecoder)
+                if not itf or not itf.readElement(pf.value, cast([*] u8) data + pf.value.offset, idecoder)
                 {
                     let fieldData = cast([*] u8) data + pf.value.offset
                     let doIt      = catch .serializer.beginElement(pf.value) as beginErr
@@ -256,7 +256,7 @@ impl Decoder
                     // no element left open to close. Only pair the two once it returned.
                     if beginErr != null
                     {
-                        if !(.flags & .IgnoreStructFieldError) do
+                        if not (.flags & .IgnoreStructFieldError) do
                             fail beginErr
                         #static if T == Read.TagBin do
                             .serializer.diag.fieldErrors += 1
@@ -264,7 +264,7 @@ impl Decoder
                     }
 
                     defer #nofail .serializer.endElement(pf.value)
-                    if !doIt do
+                    if not doIt do
                         continue
 
                     catch .readTypedContent(fieldData, fieldType) as readErr
@@ -276,7 +276,7 @@ impl Decoder
                         continue
                     }
 
-                    if readErr != null and !(.flags & .IgnoreStructFieldError) do
+                    if readErr != null and not (.flags & .IgnoreStructFieldError) do
                         fail readErr
                 }
             }
@@ -338,7 +338,7 @@ impl Decoder
         // through the diagnostics.
         #static if T == Read.TagBin
         {
-            if .serializer.diag.corruptPayloads and !(.flags & .IgnoreStructFieldError) do
+            if .serializer.diag.corruptPayloads and not (.flags & .IgnoreStructFieldError) do
                 fail SerializationError{"stream carried corrupt payloads"}
         }
     }
@@ -378,7 +378,7 @@ impl IDecoder for Decoder
     // Begins field.
     mtd impl beginField(val: Swag.TypeValue)->bool fail
     {
-        if !.serializer.beginElement(val) do
+        if not .serializer.beginElement(val) do
             return false
         .serializer.beginValue()
         return true
@@ -424,7 +424,7 @@ impl IDecoder for Decoder
     // Reads buffer u8.
     mtd impl readBufferU8(count: u64)->*u8? fail
     {
-        if !count do
+        if not count do
             return null
 
         let safeData = cast([*] u8) Memory.alloc(count)
@@ -433,7 +433,7 @@ impl IDecoder for Decoder
         let treated = .serializer.beginSequence(u8, safeData, &cpt)
         defer #nofail .serializer.endSequence()
 
-        if !treated
+        if not treated
         {
             var ptr = safeData
             for Math.min(cpt, count)

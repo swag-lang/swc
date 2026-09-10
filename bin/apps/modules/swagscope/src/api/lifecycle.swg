@@ -23,9 +23,9 @@ struct LifecycleApi
 {
     public
     {
-        isLoading:           IsLoading?               // Reports unfinished viewer work.
+        isLoading: IsLoading?                         // Reports unfinished viewer work.
         needsLoadingOverlay: NeedsLoadingOverlay?     // Reports whether useful content is unavailable.
-        retire:              Retire?                  // Releases external resources before destruction.
+        retire:    Retire?                            // Releases external resources before destruction.
     }
 }
 
@@ -50,7 +50,7 @@ impl BackgroundOperation
     // that has nothing to do until the result exists, such as teardown or a test.
     mtd wait()
     {
-        if !.started do
+        if not .started do
             return
         .task.wait()
         .started = false
@@ -74,7 +74,7 @@ impl BackgroundLoad
 {
     mtd start(fileName: string, load: func(string)->T fail)
     {
-        Swag.assert(!.started)
+        Swag.assert(not .started)
         .fileName = fileName
         .load     = load
         .started  = true
@@ -101,9 +101,9 @@ impl BackgroundLoad
     // Reports when the borrowed worker state may be destroyed without waiting on the GUI thread.
     mtd retire()->bool
     {
-        if !.started do
+        if not .started do
             return true
-        if !.isDone() do
+        if not .isDone() do
             return false
         .wait()
         return true

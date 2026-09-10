@@ -72,9 +72,9 @@ impl AutoUnmountMonitor
         if .hwnd do
             return
         let hwnd = window.surface!.win32Handle()
-        if !hwnd do
+        if not hwnd do
             return
-        if !SetWindowSubclass(hwnd, cast() &autoUnmountSubclass, AutoUnmountSubclassId, cast(u64) window) do
+        if not SetWindowSubclass(hwnd, cast() &autoUnmountSubclass, AutoUnmountSubclassId, cast(u64) window) do
             return
         .hwnd = hwnd
         discard WTSRegisterSessionNotification(hwnd, NotifyForThisSession)
@@ -82,7 +82,7 @@ impl AutoUnmountMonitor
 
     mtd stop()
     {
-        if !.hwnd do
+        if not .hwnd do
             return
         discard WTSUnRegisterSessionNotification(.hwnd)
         discard RemoveWindowSubclass(.hwnd, cast() &autoUnmountSubclass, AutoUnmountSubclassId)
@@ -95,7 +95,7 @@ func autoUnmountIdleMilliseconds()->u64
 {
     var info: LastInputInfo
     info.cbSize = #sizeof(LastInputInfo)
-    if !GetLastInputInfo(&info) do
+    if not GetLastInputInfo(&info) do
         return 0
 
     let now = GetTickCount()

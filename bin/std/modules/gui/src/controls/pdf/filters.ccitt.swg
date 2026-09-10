@@ -118,7 +118,7 @@ private impl CcittBits
     // zeroes cannot open any run code, so such a window is fill and nothing else.
     mtd skipFill()
     {
-        while !.isAtEnd() and .peek(CcittEndOfLineBits) == 0 do
+        while not .isAtEnd() and .peek(CcittEndOfLineBits) == 0 do
             .skip(1)
     }
 }
@@ -131,7 +131,7 @@ private func readCcittRun(bits: *CcittBits, table: const *CcittRunTable)->s32 fa
     {
         let index  = bits.peek(CcittLookupBits)
         let length = table.length[index]
-        if !length do
+        if not length do
             fail InvalidFormatError{"CCITTFaxDecode stream contains an undefined run code"}
 
         bits.skip(length)

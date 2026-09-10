@@ -153,7 +153,7 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
 #test
 {
     var tagged = expect SoundFile.load(audioGetTestDataPath("mp3-stereo-44100.mp3").toString())
-    Swag.assert(tagged.isPacketStream() and !tagged.isDataPreloaded())
+    Swag.assert(tagged.isPacketStream() and not tagged.isDataPreloaded())
     Swag.assert((expect tagged.packet(0)).sampleFrameCount == 1152)
     Swag.assert(tagged.leadingTrim == 1105)
     Swag.assert(tagged.speakerChannelMask() == 0x0003)

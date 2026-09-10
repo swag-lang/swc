@@ -36,7 +36,7 @@ impl AutoScopeFileInfo
 {
     let counter = Counter{count: 4}
     Swag.assert(counter.whereFunction(4))
-    Swag.assert(!counter.whereFunction(3))
+    Swag.assert(not counter.whereFunction(3))
 
     let info = AutoScopeFileInfo{attributes: AutoScopeAttributes.Directory}
     Swag.assert(info.isDirectory())

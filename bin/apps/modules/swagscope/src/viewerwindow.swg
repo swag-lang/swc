@@ -122,7 +122,7 @@ impl ViewerActionBar
 
     mtd centerContent()
     {
-        if !.centerGroup do
+        if not .centerGroup do
             return
         let client         = .paddedClientRect()
         let group          = .centerGroup!
@@ -201,7 +201,7 @@ impl ViewerInfoLayout
         var viewers: Array'(*Wnd)
         for child in .children
         {
-            if child == cast(*Wnd) .filesButton or child == cast(*Wnd) .fileGroup or child == cast(*Wnd) .generalLabel or (.sideButton and child == cast(*Wnd) .sideButton!) or !child.isLocallyVisible() do
+            if child == cast(*Wnd) .filesButton or child == cast(*Wnd) .fileGroup or child == cast(*Wnd) .generalLabel or (.sideButton and child == cast(*Wnd) .sideButton!) or not child.isLocallyVisible() do
                 continue
             viewers.add(child)
         }
@@ -542,7 +542,7 @@ impl ViewerChoiceLoad
 {
     mtd start(index: *ViewerPluginRegistry, fileName: string, recent: const [..] String)
     {
-        Swag.assert(!.started)
+        Swag.assert(not .started)
 
         // The operation is reusable. A completed result was moved to the window, so rebuild every
         // owning field before the worker appends the next folder and history snapshot.
@@ -575,7 +575,7 @@ impl ViewerChoiceLoad
                 operation.result.recent.add(one[])
 
             let folder = Path.directoryName(operation.result.absoluteFileName.toString())
-            if !folder do
+            if not folder do
                 return
             let files = catch Directory.enumerateFiles(folder) as listError
             if listError != null do
@@ -853,14 +853,14 @@ impl IWnd for ViewerWindow
         }
 
         let fileName = evt.data.singleFile()
-        if !fileName
+        if not fileName
         {
             .dropHighlight.hide()
             evt.accepted = false
             return
         }
 
-        .dropHighlight.showTarget(!.emptyView.isLocallyVisible())
+        .dropHighlight.showTarget(not .emptyView.isLocallyVisible())
 
         // The system holds the whole drag — the source window's own loop included — until this
         // returns, so a drop only records the file. Reading a header, building a viewer and
@@ -886,7 +886,7 @@ impl IWnd for ViewerWindow
         }
 
         if evt.key == .F11 and evt.modifiers == .None do
-            .setFullScreen(!.fullScreen)
+            .setFullScreen(not .fullScreen)
         elif evt.key == .Escape and evt.modifiers == .None and .fullScreen do
             .setFullScreen(false)
         elif evt.key == .O and evt.modifiers.has(.Control) do
@@ -899,10 +899,10 @@ impl IWnd for ViewerWindow
             .findNext()
         elif (evt.key == .Left or evt.key == .Right) and evt.modifiers == .None
         {
-            if .forwardingViewerKey or !.forwardKeyToViewer(evt) do
+            if .forwardingViewerKey or not .forwardKeyToViewer(evt) do
                 evt.accepted = false
         }
-        elif evt.key == .F5 and !.currentFile.isEmpty() do
+        elif evt.key == .F5 and not .currentFile.isEmpty() do
             .reloadCurrentFile()
         else do
             evt.accepted = false
@@ -912,7 +912,7 @@ impl IWnd for ViewerWindow
     {
         if evt.timer == .fileWatchTimer
         {
-            if !.pendingFile.isEmpty() or .currentFile.isEmpty() do
+            if not .pendingFile.isEmpty() or .currentFile.isEmpty() do
                 return
             if .readingState.restoring and .activeChoiceIndex < .instances.count
             {
@@ -974,9 +974,9 @@ impl IWnd for ViewerWindow
 
         .removeTimer(.startupTimer!)
         .startupTimer = null
-        if !.pendingFile.isEmpty() do
+        if not .pendingFile.isEmpty() do
             .processQueuedFile()
-        elif !.pendingEmpty.isEmpty()
+        elif not .pendingEmpty.isEmpty()
         {
             let message = #move .pendingEmpty
             .showEmpty(message.toString())
@@ -1026,7 +1026,7 @@ impl IWnd for ViewerWindow
 
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
     {
-        if !evt.serializer.isReading() and .filePanel.items.count do
+        if not evt.serializer.isReading() and .filePanel.items.count do
             .recentPaneSize = .filePanel.items[0]!.size
 
         catch evt.serializer.serialize("ViewerWindow.fileDlgState", &me.fileDlgState)
@@ -1055,7 +1055,7 @@ impl IWnd for ViewerWindow
                 .recent.removeAtOrdered(.recent.count - 1)
             while .folderHistory.count > ViewerFolderHistoryCount do
                 .folderHistory.removeAtOrdered(.folderHistory.count - 1)
-            .folderHistoryButton.enable(!.folderHistory.isEmpty())
+            .folderHistoryButton.enable(not .folderHistory.isEmpty())
             .searchBox.setValidator(.searchBox.validator)
             if cast(u32) .playMode > cast(u32) Viewer.PlayMode.Shuffle do
                 .playMode = .Once
@@ -1076,7 +1076,7 @@ impl IWnd for ViewerWindow
         }
         elif evt.kind == .ThemeChanged
         {
-            for &instance in .instances where instance.view and !instance.failureReason.isEmpty() do
+            for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
                 (cast(*ViewerErrorView) instance.view!).refreshTheme()
             .refreshArtwork()
             .refreshEmptyArtwork()
@@ -1095,7 +1095,7 @@ impl ViewerWindow
     // the host, which keeps one set per document and releases them with the window.
     mtd pluginIcon(plugin: const *Viewer.Plugin, size = 0.0)->Icon
     {
-        if !plugin.iconAtlas do
+        if not plugin.iconAtlas do
             return {}
         let resolvedSize = size ? size : themeRowIconSize(.themeMetrics())
         for &set in .pluginIcons where set.atlas == plugin.iconAtlas do
@@ -1148,7 +1148,7 @@ impl ViewerWindow
     // it never pays for it; the hint takes its glyph the moment it is actually shown.
     private mtd refreshEmptyArtwork()
     {
-        if !.emptyView.isVisible() do
+        if not .emptyView.isVisible() do
             return
         .emptyIconLabel.setIcon(.theme().icon(.OpenFile, 48))
         .emptyIconLabel.setIconColor(.themeColors().label_TextFaint)
@@ -1249,7 +1249,7 @@ impl ViewerWindow
     // Reveals full-screen chrome only while the pointer is at the corresponding screen edge.
     mtd updateFullScreenChrome(position: Math.Point)
     {
-        if !.fullScreen do
+        if not .fullScreen do
             return
         let height = .clientRect().height
         let top    = position.y <= ViewerFullScreenRevealEdge or (.fullScreenTopVisible and position.y <= ViewerActionBarHeight + .infoBarHost.position.height)
@@ -1264,7 +1264,7 @@ impl ViewerWindow
     // Positions the transient bars over the content without changing its full-screen rectangle.
     mtd layoutFullScreenChrome()
     {
-        if !.fullScreen do
+        if not .fullScreen do
             return
         let rect = .clientRect()
         .commandBar.show(.fullScreenTopVisible)
@@ -1798,7 +1798,7 @@ impl ViewerWindow
         var result: retval
         for plugin in .index.plugins
         {
-            if !result.isEmpty() do
+            if not result.isEmpty() do
                 result += "  ·  "
             result += "<b>"
             result += plugin.displayName()
@@ -1811,7 +1811,7 @@ impl ViewerWindow
     // Reloads the current path while retaining the active reading session.
     mtd reloadCurrentFile()
     {
-        if .currentFile.isEmpty() or !.pendingFile.isEmpty() or .activeChoiceIndex >= .instances.count do
+        if .currentFile.isEmpty() or not .pendingFile.isEmpty() or .activeChoiceIndex >= .instances.count do
             return
         .readingState.capture(&.instances[.activeChoiceIndex], .choices[.activeChoiceIndex].key.toString(), .searchBox.text())
         .queueFile(.currentFile.toString(), remember: false, preserveReading: true)
@@ -1821,7 +1821,7 @@ impl ViewerWindow
     mtd queueFile(fileName: string, remember = true, preserveReading = false)
     {
         .reloading = preserveReading
-        if !preserveReading do
+        if not preserveReading do
             .readingState = {}
 
         // A query belongs to the document it was started against. Stop its file stream as soon as
@@ -1847,7 +1847,7 @@ impl ViewerWindow
         // glyph is never rasterized for a launch that names its file.
         .emptyView.hide()
         .updateLoadingIndicator()
-        if !.startupTimer do
+        if not .startupTimer do
             .startupTimer = .addTimer(1'ms)
     }
 
@@ -1857,7 +1857,7 @@ impl ViewerWindow
     {
         if .choiceLoad.started
         {
-            if !.choiceLoad.isDone()
+            if not .choiceLoad.isDone()
             {
                 .startupTimer = .addTimer(ViewerRetirePollInterval)
                 return
@@ -1872,7 +1872,7 @@ impl ViewerWindow
             }
 
             // A save can temporarily remove the path. Keep the current document and retry.
-            if .reloading and !.choiceLoad.result.exists
+            if .reloading and not .choiceLoad.result.exists
             {
                 discard .choiceLoad.finish()
                 .pendingFile.clear()
@@ -1884,7 +1884,7 @@ impl ViewerWindow
             .stopSearch()
             .searchMatch = Swag.U64.Max
             .searchQuery.clear()
-            if !.destroyInstances(preserveVisible: true)
+            if not .destroyInstances(preserveVisible: true)
             {
                 .startupTimer = .addTimer(ViewerRetirePollInterval)
                 return
@@ -1893,7 +1893,7 @@ impl ViewerWindow
             let remember   = .pendingRemember
             let classified = .choiceLoad.finish()
             .pendingFile.clear()
-            if !classified.exists
+            if not classified.exists
             {
                 .showEmpty(appStrings().ui_OpenStopped)
                 return
@@ -1913,7 +1913,7 @@ impl ViewerWindow
     mtd reviewSmokeFixtures(directory: string)
     {
         var absolute = catch Path.absolute(directory) as pathError
-        if pathError != null or !Directory.exists(absolute)
+        if pathError != null or not Directory.exists(absolute)
         {
             .finishSmokeReview(1, Format.toString("Swag Scope smoke fixture directory is missing: %", directory).toString())
             return
@@ -1967,7 +1967,7 @@ impl ViewerWindow
         let fixture = plugin.smokeFixture
 
         let fileName = Path.combine(.smokeDirectory.toString(), fixture.toString())
-        if !File.exists(fileName)
+        if not File.exists(fileName)
         {
             .finishSmokeReview(1, Format.toString("Swag Scope smoke fixture is missing: %", fileName).toString())
             return
@@ -1980,7 +1980,7 @@ impl ViewerWindow
             return
         }
 
-        if !.smokeOpened
+        if not .smokeOpened
         {
             .smokeOpened = true
             .queueFile(absolute.toString(), remember: false)
@@ -1993,7 +1993,7 @@ impl ViewerWindow
             return
         }
 
-        if !.smokeSelected
+        if not .smokeSelected
         {
             var selected = Swag.U32.Max
             for choice, index in .choices where choice.key == key
@@ -2008,7 +2008,7 @@ impl ViewerWindow
                 return
             }
 
-            if !.activateChoice(selected)
+            if not .activateChoice(selected)
             {
                 .waitForSmokeViewer(key.toString(), fileName.toString())
                 return
@@ -2025,7 +2025,7 @@ impl ViewerWindow
         }
 
         let instance = &.instances[.activeChoiceIndex]
-        if !instance.failureReason.isEmpty()
+        if not instance.failureReason.isEmpty()
         {
             .finishSmokeReview(1, Format.toString("Swag Scope smoke viewer '%' cannot open '%': %", key, fileName, instance.failureReason).toString())
             return
@@ -2073,10 +2073,10 @@ impl ViewerWindow
         .searchIndex    = Swag.U64.Max
         .searchMatch    = Swag.U64.Max
         .searchComplete = false
-        if !.destroyInstances()
+        if not .destroyInstances()
         {
             .pendingEmpty = message
-            if !.startupTimer do
+            if not .startupTimer do
                 .startupTimer = .addTimer(ViewerRetirePollInterval)
             return
         }
@@ -2104,7 +2104,7 @@ impl ViewerWindow
         .infoSizeLabel.toolTip = ""
         .layoutFileInfo()
         .infoIconLabel.setIcon({})
-        .infoBarHost.show(!.fullScreen or .fullScreenTopVisible)
+        .infoBarHost.show(not .fullScreen or .fullScreenTopVisible)
         .updateViewerBar()
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .updateSearchAvailability()
@@ -2114,12 +2114,12 @@ impl ViewerWindow
     // Cooperatively retires every viewer without waiting on the GUI thread.
     mtd destroyInstances(preserveVisible = false)->bool
     {
-        if !preserveVisible do
+        if not preserveVisible do
             .discardOutgoingViewer()
 
         for &instance in .instances
         {
-            if !instance.retireView() do
+            if not instance.retireView() do
                 return false
         }
 
@@ -2154,7 +2154,7 @@ impl ViewerWindow
         }
 
         .instances.clear()
-        if !keepCurrent
+        if not keepCurrent
         {
             .currentActions  = null
             .currentInfo     = null
@@ -2177,7 +2177,7 @@ impl ViewerWindow
         .currentSidePanelButton      = button
         .infoContentGroup.sideButton = button
 
-        if button and !.fullScreen
+        if button and not .fullScreen
         {
             button.show()
             panel?.show(button.isChecked)
@@ -2189,7 +2189,7 @@ impl ViewerWindow
     // Releases the retired presentation once its replacement is ready to cover it.
     private mtd discardOutgoingViewer()
     {
-        if !.outgoingView do
+        if not .outgoingView do
             return
         let oldView            = .outgoingView!
         let oldActions         = .outgoingActions
@@ -2224,10 +2224,10 @@ impl ViewerWindow
     // Swaps presentations only after the incoming progressive viewer has something to show.
     mtd commitViewerTransition(expected: *Wnd? = null)
     {
-        if !.outgoingView or .activeChoiceIndex >= .instances.count do
+        if not .outgoingView or .activeChoiceIndex >= .instances.count do
             return
         let instance = &.instances[.activeChoiceIndex]
-        if !instance.view or (expected and instance.view != expected) do
+        if not instance.view or (expected and instance.view != expected) do
             return
         if instance.needsLoadingOverlay and instance.needsLoadingOverlay!(instance.view!) do
             return
@@ -2261,7 +2261,7 @@ impl ViewerWindow
 
         for &instance, index in .instances where instance.view == view
         {
-            if !instance.retireView() do
+            if not instance.retireView() do
                 return
             instance.actions?.destroy()
             instance.info?.destroy()
@@ -2329,10 +2329,10 @@ impl ViewerWindow
         if .activeChoiceIndex == nextIndex or .activeChoiceIndex >= .instances.count do
             return true
         let instance = &.instances[.activeChoiceIndex]
-        if !instance.view or !instance.isLoading or !instance.isLoading!(instance.view!) do
+        if not instance.view or not instance.isLoading or not instance.isLoading!(instance.view!) do
             return true
 
-        if !instance.retireView() do
+        if not instance.retireView() do
             return false
         instance.actions?.destroy()
         instance.info?.destroy()
@@ -2397,10 +2397,10 @@ impl ViewerWindow
     mtd updateLoadingIndicator()
     {
         .commitViewerTransition()
-        let pending     = !.pendingFile.isEmpty() or !.pendingEmpty.isEmpty()
+        let pending     = not .pendingFile.isEmpty() or not .pendingEmpty.isEmpty()
         var loading     = pending
         var wantOverlay = pending and .currentView != null
-        if !loading and .activeChoiceIndex < .instances.count
+        if not loading and .activeChoiceIndex < .instances.count
         {
             let instance = &.instances[.activeChoiceIndex]
             loading     = instance.view and instance.isLoading and instance.isLoading!(instance.view!)
@@ -2411,11 +2411,11 @@ impl ViewerWindow
         var lingering: bool
         if wantOverlay and .currentView
         {
-            if !.loadingWantedSince do
+            if not .loadingWantedSince do
                 .loadingWantedSince = now
             if .loadingShownSince or now - .loadingWantedSince >= ViewerLoadingShowDelayMicroseconds
             {
-                if !.loadingShownSince
+                if not .loadingShownSince
                 {
                     .loadingShownSince = now
                     .loadingOverlay.reveal()
@@ -2437,9 +2437,9 @@ impl ViewerWindow
         }
 
         let watching = loading or lingering
-        if watching and !.loadingTimer do
+        if watching and not .loadingTimer do
             .loadingTimer = .addTimer(ViewerLoadingPollInterval)
-        elif !watching and .loadingTimer
+        elif not watching and .loadingTimer
         {
             .removeTimer(.loadingTimer!)
             .loadingTimer = null
@@ -2455,7 +2455,7 @@ impl ViewerWindow
         let instance = &.instances[index]
         if instance.view
         {
-            if !.retireActiveLoadingChoice(index) do
+            if not .retireActiveLoadingChoice(index) do
                 return false
             .currentActions?.hide()
             .currentInfo?.hide()
@@ -2514,7 +2514,7 @@ impl ViewerWindow
                 next.failureReason = appStrings().ui_OpenStopped
         }
 
-        if !next.failureReason.isEmpty()
+        if not next.failureReason.isEmpty()
         {
             if next.view and next.retire do
                 discard next.retire!(next.view!)
@@ -2546,7 +2546,7 @@ impl ViewerWindow
             next.details.clear()
         }
 
-        if !next.view
+        if not next.view
         {
             next.actions?.destroy()
             next.info?.destroy()
@@ -2556,7 +2556,7 @@ impl ViewerWindow
             return false
         }
 
-        if !.retireActiveLoadingChoice(index)
+        if not .retireActiveLoadingChoice(index)
         {
             if next.retire do
                 discard next.retire!(next.view!)
@@ -2605,15 +2605,15 @@ impl ViewerWindow
         }
 
         .activeChoiceIndex = index
-        if !stage do
+        if not stage do
             next.view!.dockStyle = .Center
         if next.commands
         {
-            if !stage do
+            if not stage do
                 next.commands!.dockStyle = .None
         }
 
-        if !stage do
+        if not stage do
             .updateViewerBar()
         instance[] = #move next
         .viewerCombo.setSelectedIndex(index, notify: false)
@@ -2657,7 +2657,7 @@ impl ViewerWindow
         let canFilter = .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].filterSearch != null
         if canFilter
         {
-            menu.addRadioItem(texts.ui_SearchMode, SearchModeId, checked: !.searchFilterMode)
+            menu.addRadioItem(texts.ui_SearchMode, SearchModeId, checked: not .searchFilterMode)
             menu.addRadioItem(texts.ui_FilterMode, FilterModeId, checked: .searchFilterMode)
             menu.addSeparator()
         }
@@ -2669,7 +2669,7 @@ impl ViewerWindow
         switch menu.doModal(.searchOptionsButton, autoDestroy: true) orelse ""
         {
         case SearchModeId:
-            if !.searchFilterMode do
+            if not .searchFilterMode do
                 return
             .searchFilterMode = false
 
@@ -2679,13 +2679,13 @@ impl ViewerWindow
             .searchFilterMode = true
 
         case MatchCaseId:
-            .searchMatchCaseOption = !.searchMatchCaseOption
+            .searchMatchCaseOption = not .searchMatchCaseOption
 
         case WholeWordId:
-            .searchWholeWordOption = !.searchWholeWordOption
+            .searchWholeWordOption = not .searchWholeWordOption
 
         case RegExpId:
-            .searchRegexOption = !.searchRegexOption
+            .searchRegexOption = not .searchRegexOption
 
         default:
             return
@@ -2701,7 +2701,7 @@ impl ViewerWindow
 
     private mtd validateSearchEdit(edit: *EditBox)->EditBoxCheckResult
     {
-        if !(edit.text()).count do
+        if not (edit.text()).count do
             return .Valid
         if .activeChoiceIndex < .instances.count
         {
@@ -2727,7 +2727,7 @@ impl ViewerWindow
                 instance.describeSearch!(instance.view!, &presentation)
         }
 
-        if !presentation.canFilter do
+        if not presentation.canFilter do
             .searchFilterMode = false
 
         if .searchFilterMode
@@ -2779,7 +2779,7 @@ impl ViewerWindow
         .searchError.clear()
         .refreshSearchReadout()
 
-        if !.searchBox.isEnabled() or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count do
+        if not .searchBox.isEnabled() or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count do
             return
 
         let instance = &.instances[.activeChoiceIndex]
@@ -2789,7 +2789,7 @@ impl ViewerWindow
             var expression: Parser.RegExp
             if options.regularExpression
             {
-                catch expression.compile(.searchQuery.toString(), ignoreCase: !options.matchCase) as expressionError
+                catch expression.compile(.searchQuery.toString(), ignoreCase: not options.matchCase) as expressionError
                 if expressionError != null
                 {
                     .searchComplete = true
@@ -2815,7 +2815,7 @@ impl ViewerWindow
         if .searchQuery.isEmpty() do
             return
 
-        if !.searchBox.isValid() and !(instance.prepareSearch and instance.view)
+        if not .searchBox.isValid() and not (instance.prepareSearch and instance.view)
         {
             .searchComplete = true
             .refreshSearchReadout()
@@ -2867,14 +2867,14 @@ impl ViewerWindow
         var expression: Parser.RegExp
         if options.regularExpression
         {
-            catch expression.compile(.searchQuery.toString(), ignoreCase: !options.matchCase) as expressionError
+            catch expression.compile(.searchQuery.toString(), ignoreCase: not options.matchCase) as expressionError
             if expressionError != null do
                 return true
             options.expression = &expression
         }
 
         let complete = instance.collectMatches!(instance.view!, .searchQuery.toString(), options, &.searchProgress, &.searchMatches)
-        if !complete and !.searchSelectLast and .searchIndex >= .searchMatches.count and !.searchMatches.isEmpty()
+        if not complete and not .searchSelectLast and .searchIndex >= .searchMatches.count and not .searchMatches.isEmpty()
         {
             .searchIndex = 0
             .revealCurrentSearchMatch()
@@ -2892,7 +2892,7 @@ impl ViewerWindow
 
     private mtd navigateSearch(direction: s32)
     {
-        if !.searchBox.isEnabled() or !(.searchBox.text()).count do
+        if not .searchBox.isEnabled() or not (.searchBox.text()).count do
             return
         if .searchQuery != .searchBox.text()
         {
@@ -2927,17 +2927,17 @@ impl ViewerWindow
             .searchCountLabel.setText("")
             .searchCountLabel.toolTip = ""
         }
-        elif !.searchError.isEmpty()
+        elif not .searchError.isEmpty()
         {
             .searchCountLabel.setText("!")
             .searchCountLabel.toolTip = .searchError
         }
-        elif !.searchBox.isValid()
+        elif not .searchBox.isValid()
         {
             .searchCountLabel.setText("0/0")
             .searchCountLabel.toolTip = appStrings().ui_SearchInvalidRegularExpression
         }
-        elif !.searchComplete
+        elif not .searchComplete
         {
             // A viewer still reading its document counts what it has found so far.
             if .searchIndex < .searchMatches.count do
@@ -2957,7 +2957,7 @@ impl ViewerWindow
             .searchCountLabel.toolTip = .searchCountLabel.text()
         }
 
-        let canNavigate = !.searchMatches.isEmpty()
+        let canNavigate = not .searchMatches.isEmpty()
         .searchPrevious.enable(canNavigate)
         .searchNext.enable(canNavigate)
         .searchBox.toolTip = .searchError.isEmpty() ? .searchToolTip.toString() : .searchError.toString()
@@ -2968,7 +2968,7 @@ impl ViewerWindow
         if .searchIndex >= .searchMatches.count or .activeChoiceIndex >= .instances.count do
             return
         let instance = &.instances[.activeChoiceIndex]
-        if !instance.revealMatch or !instance.view do
+        if not instance.revealMatch or not instance.view do
             return
 
         // Revealing may legitimately focus a document when invoked outside the search bar. Live
@@ -2979,7 +2979,7 @@ impl ViewerWindow
             .searchBox.setFocus()
 
         let match = .searchMatches[.searchIndex]
-        if !instance.revealMatch!(instance.view!, match, .searchQuery.toString()) do
+        if not instance.revealMatch!(instance.view!, match, .searchQuery.toString()) do
             return
         .searchMatch = match.offset
         .refreshSearchReadout()
@@ -2995,7 +2995,7 @@ impl ViewerWindow
         }
 
         let instance = &.instances[.activeChoiceIndex]
-        if !instance.view or !instance.searchBounds
+        if not instance.view or not instance.searchBounds
         {
             .searchOverlay.hide()
             return
@@ -3006,7 +3006,7 @@ impl ViewerWindow
         {
             let viewport = instance.view!.surfaceRect()
             bounds.intersect(viewport)
-            if !bounds.isEmpty() do
+            if not bounds.isEmpty() do
                 .searchOverlay.showMatch(bounds)
             else do
                 .searchOverlay.hide()
@@ -3023,7 +3023,7 @@ impl ViewerWindow
         // A streamed document can materialize the result after revealMatch returns, and any
         // viewer can still adjust its scroll or layout. Follow the geometry for as long as this
         // occurrence is current rather than freezing an overlay at yesterday's coordinates.
-        if !.searchBoundsTimer do
+        if not .searchBoundsTimer do
             .searchBoundsTimer = .addTimer(ViewerSearchBoundsPoll)
     }
 
@@ -3031,7 +3031,7 @@ impl ViewerWindow
     {
         .stopSearch(clearPresentation: false)
         .searchComplete = true
-        if .searchIndex >= .searchMatches.count and !.searchMatches.isEmpty()
+        if .searchIndex >= .searchMatches.count and not .searchMatches.isEmpty()
         {
             .searchIndex = .searchSelectLast ? .searchMatches.count - 1 : 0
             .revealCurrentSearchMatch()
@@ -3042,7 +3042,7 @@ impl ViewerWindow
 
     mtd showSearch()
     {
-        if !.searchBox.isEnabled() do
+        if not .searchBox.isEnabled() do
             return
         .searchBox.setFocus()
     }
@@ -3058,7 +3058,7 @@ impl ViewerWindow
     mtd viewerFocusTarget()->*Wnd?
     {
         let view = .currentView
-        if !view do
+        if not view do
             return null
         let order = FocusOrder.collect(view!)
         let stop  = order.stops.isEmpty() ? view! : order.stops[0]!
@@ -3077,7 +3077,7 @@ impl ViewerWindow
         let focused         = .focusedWindow()
         let inSearchField   = focused and (focused! == .searchBox or .searchBox.isOwnerOf(focused!))
         let fieldNavigation = inSearchField and ((evt.modifiers == .None and (evt.key == .Up or evt.key == .Down)) or (evt.modifiers == .Control and (evt.key == .Home or evt.key == .End)))
-        if !pageKey and !fieldNavigation do
+        if not pageKey and not fieldNavigation do
             return false
 
         return .forwardKeyToViewer(evt, takeFocus: false)
@@ -3104,7 +3104,7 @@ impl ViewerWindow
             return false
         let key = .choices[.activeChoiceIndex].key.toString()
         let playbackViewer = key == "video" or key == "sound" or key == "image"
-        if !playbackViewer do
+        if not playbackViewer do
             return false
 
         if toggle
@@ -3124,7 +3124,7 @@ impl ViewerWindow
     private mtd forwardKeyToViewer(evt: *KeyEvent, skipFocused = true, takeFocus = true)->bool
     {
         let target = .viewerFocusTarget()
-        if !target do
+        if not target do
             return false
 
         // A key the viewer's key owner already saw and declined must not be offered twice.
@@ -3157,11 +3157,11 @@ impl ViewerWindow
         .searchOptionsButton.enable(available)
         .searchGroup.show(available)
         let actionsBesideSearch = .currentActions and .currentActions!.dockStyle != .None
-        .currentActions?.show(!available or actionsBesideSearch)
+        .currentActions?.show(not available or actionsBesideSearch)
         .commandBar.centerGroup = available ? .searchGroup : (actionsBesideSearch ? null : .currentActions)
         .commandBar.centerContent()
         .restartSearch()
-        if !available and searchHadFocus do
+        if not available and searchHadFocus do
             .viewerFocusTarget()?.setFocus()
     }
 
@@ -3219,7 +3219,7 @@ impl ViewerWindow
             return
         }
 
-        if !.searchStream.isOpen() do
+        if not .searchStream.isOpen() do
             return
 
         var bytes: Array'u8
@@ -3239,7 +3239,7 @@ impl ViewerWindow
         // A regular expression may span an arbitrary number of chunks, and ^/$ refer to the
         // document rather than to an implementation buffer. Keep reading incrementally so the
         // interface remains responsive, then evaluate once against the complete source.
-        if .searchRegexOption and !instance.collectFileMatches and !eof
+        if .searchRegexOption and not instance.collectFileMatches and not eof
         {
             .searchTimer = .addTimer(1'ms)
             return
@@ -3283,7 +3283,7 @@ impl ViewerWindow
             .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
         .layoutFileInfo()
-        .infoBarHost.show(!.fullScreen or .fullScreenTopVisible)
+        .infoBarHost.show(not .fullScreen or .fullScreenTopVisible)
     }
 
     // Measures the identity row again after asynchronous metadata changes. Text widths are
@@ -3302,7 +3302,7 @@ impl ViewerWindow
         .readingState.restoring = false
         if index == .activeChoiceIndex do
             return
-        if !.activateChoice(index)
+        if not .activateChoice(index)
         {
             if .activeChoiceIndex != Swag.U32.Max do
                 .viewerCombo.setSelectedIndex(.activeChoiceIndex, notify: false)
@@ -3373,7 +3373,7 @@ impl ViewerWindow
         .fileWatch.current       = #move classified.metadata
         .fileWatch.hasCandidate  = false
         .fileWatch.ignorePending = .fileWatch.load.started
-        if !.fileWatchTimer do
+        if not .fileWatchTimer do
             .fileWatchTimer = .addTimer(250'ms)
         .currentFile     = #move classified.absoluteFileName
         .currentFileSize = #move classified.fileSize
@@ -3400,7 +3400,7 @@ impl ViewerWindow
                 selected = cast(u32) index
         }
 
-        if !.activateChoice(selected)
+        if not .activateChoice(selected)
         {
             selected = Swag.U32.Max
             for choice, index in .choices where choice.key == TextViewerKey
@@ -3410,7 +3410,7 @@ impl ViewerWindow
                 break
             }
 
-            if selected == Swag.U32.Max or !.activateChoice(selected)
+            if selected == Swag.U32.Max or not .activateChoice(selected)
             {
                 .showEmpty(appStrings().ui_Unsupported)
                 return
@@ -3462,7 +3462,7 @@ impl ViewerWindow
         .refreshSearchPresentation()
         .refreshSearchReadout()
         .recentLabel.setText(texts.ui_Recent)
-        for &instance in .instances where instance.view and !instance.failureReason.isEmpty() do
+        for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
             (cast(*ViewerErrorView) instance.view!).retranslate()
         if .currentFile.isEmpty() do
             .folderLabel.setText(texts.ui_Folder)
@@ -3479,7 +3479,7 @@ impl ViewerWindow
     // Shows or hides the panel listing what is beside the current file.
     mtd toggleFilePanel()
     {
-        .setFilePanelVisible(!.panelVisible)
+        .setFilePanelVisible(not .panelVisible)
         catch .saveState()
     }
 
@@ -3517,7 +3517,7 @@ impl ViewerWindow
     mtd rememberFolder(fileName: string)
     {
         let folder = Path.directoryName(fileName)
-        if !folder do
+        if not folder do
             return
 
         for one, index in .folderHistory where Utf8.compare(one.folder.toSlice(), folder, .Latin1NoCase) == 0
@@ -3569,7 +3569,7 @@ impl ViewerWindow
         .fillFileList(.recentList, .recent.toSlice())
         .fillFileList(.folderList, .siblings.toSlice())
 
-        let hasRecent = !.recent.isEmpty()
+        let hasRecent = not .recent.isEmpty()
         .filePanel.setPaneVisible(0, hasRecent)
         .folderLabel.setText(Path.fileName(Path.directoryName(.currentFile.toString())) orelse appStrings().ui_Folder)
         .filePanel.applyLayout()
@@ -3583,7 +3583,7 @@ impl ViewerWindow
     mtd showFileMenu(list: *ListCtrl, files: const [..] String, position: Math.Point)
     {
         let line = list.selectedLine()
-        if !line do
+        if not line do
             return
         let index = line!.index
         if index >= files.count do
@@ -3612,7 +3612,7 @@ impl ViewerWindow
     // Opens the current file with the handler registered by the operating system.
     mtd openCurrentFileDefault()
     {
-        if !.currentFile.isEmpty() do
+        if not .currentFile.isEmpty() do
             discard Env.openFile(.currentFile.toString())
     }
 
@@ -3623,7 +3623,7 @@ impl ViewerWindow
         for one in .folderHistory where Directory.exists(one.folder.toString()) and File.exists(one.file.toString())
         {
             var name = Path.fileName(one.folder.toString()) orelse one.folder.toString()
-            if !name.count do
+            if not name.count do
                 name = one.folder.toString()
             var icon = .app().directoryIcon(one.folder.toString(), true)
             icon.color = .themeColors().label_Text
@@ -3637,7 +3637,7 @@ impl ViewerWindow
         }
 
         let folder = menu.doModal(.folderHistoryButton, autoDestroy: true) orelse ""
-        if !folder.count do
+        if not folder.count do
             return
         for one in .folderHistory where one.folder == folder
         {
@@ -3672,7 +3672,7 @@ impl ViewerWindow
         let menu = .createFileActionsMenu(history)
 
         let chosen = menu.doModal(position, .TopLeft, autoDestroy: true)
-        if !chosen do
+        if not chosen do
             return
 
         switch chosen!
@@ -3720,7 +3720,7 @@ impl ViewerWindow
         if .refreshingLists do
             return
         let selected = list.selectedLines()
-        if selected.isEmpty() or !selected[0] do
+        if selected.isEmpty() or not selected[0] do
             return
         let index = selected[0]!.index
         if index >= files.count do
@@ -3736,7 +3736,7 @@ impl ViewerWindow
         .siblingIndex = 0
         for file in .folderFiles
         {
-            if .folderSameKind and !.index.sharesViewer(.currentFile.toString(), file[].toString()) do
+            if .folderSameKind and not .index.sharesViewer(.currentFile.toString(), file[].toString()) do
                 continue
             .siblings.add(file[])
         }
@@ -3758,7 +3758,7 @@ impl ViewerWindow
         .folderSameKind = value
         .kindButton.setChecked(value)
         .siblingsDirty = true
-        if .panelVisible and !.currentFile.isEmpty() do
+        if .panelVisible and not .currentFile.isEmpty() do
             .refreshFileLists()
         catch .saveState()
     }
@@ -3843,11 +3843,11 @@ impl ViewerWindow
             .shufflePlayed.clear()
         }
 
-        if !.shufflePlayed.contains(.currentFile) do
+        if not .shufflePlayed.contains(.currentFile) do
             .shufflePlayed.add(.currentFile)
 
         var candidates: Array'u64
-        for one, index in files where !.shufflePlayed.contains(one[]) do
+        for one, index in files where not .shufflePlayed.contains(one[]) do
             candidates.add(index)
         if candidates.isEmpty()
         {
@@ -3893,7 +3893,7 @@ impl ViewerWindow
     mtd armSlide()
     {
         .stopSlide()
-        if !.stillView or .stillView != .currentView do
+        if not .stillView or .stillView != .currentView do
             return
         if .playMode != .Folder and .playMode != .Shuffle do
             return
@@ -3902,7 +3902,7 @@ impl ViewerWindow
 
     mtd stopSlide()
     {
-        if !.slideTimer do
+        if not .slideTimer do
             return
         .removeTimer(.slideTimer!)
         .slideTimer = null
@@ -3911,7 +3911,7 @@ impl ViewerWindow
     // Moves the slideshow on once its pace has elapsed on the picture that started it.
     mtd continueSlide()
     {
-        if !.stillView or .stillView != .currentView do
+        if not .stillView or .stillView != .currentView do
             return
         discard .continueFile(.playMode)
     }

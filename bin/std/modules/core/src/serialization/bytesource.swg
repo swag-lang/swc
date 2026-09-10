@@ -119,10 +119,10 @@ impl ByteSource
     mtd read(buffer: [..] u8)->u64 fail
     {
         let wanted = Math.min(buffer.count, .remaining())
-        if !wanted do
+        if not wanted do
             return 0
 
-        if !.isFile
+        if not .isFile
         {
             Memory.copy(buffer.buffer, (.memory).buffer! + .cursor, wanted)
             .cursor += wanted
@@ -146,7 +146,7 @@ impl ByteSource
             // byte twice and evict a window the header parser still uses.
             if missing >= WindowSize
             {
-                if !.stream.readExactAt(.cursor, buffer[done until done + missing]) do
+                if not .stream.readExactAt(.cursor, buffer[done until done + missing]) do
                     fail InvalidFormatError{"byte source ends before the requested bytes"}
                 .cursor += missing
                 return wanted
@@ -243,7 +243,7 @@ impl ByteSource
         if .isAtEnd() do
             return Swag.makeSlice(.window.buffer, 0)
 
-        if !.isFile do
+        if not .isFile do
             return Swag.makeSlice((.memory).buffer! + .cursor, .remaining())
 
         if .cursor < .windowStart or .cursor + count > .windowStart + .windowCount do
@@ -259,7 +259,7 @@ impl ByteSource
             .window.resize(size)
 
         let count = Math.min(size, .remaining())
-        if !.stream.readExactAt(.cursor, .window.toSlice()[0 until count]) do
+        if not .stream.readExactAt(.cursor, .window.toSlice()[0 until count]) do
             fail InvalidFormatError{"byte source ends before the requested bytes"}
 
         .windowStart = .cursor

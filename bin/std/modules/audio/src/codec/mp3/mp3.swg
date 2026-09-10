@@ -64,7 +64,7 @@ func readHeader(bytes: const [..] u8)->FrameHeader fail
         fail InvalidFormatError{"MP3 frame states the reserved sampling frequency"}
 
     let bitrateIndex = cast(u32) (bytes[2] >> 4) & 15
-    if !bitrateIndex do
+    if not bitrateIndex do
         fail UnsupportedFormatError{"audio decoder does not read free-format MP3"}
     if bitrateIndex == 15 do
         fail InvalidFormatError{"MP3 frame states the reserved bit rate"}
@@ -212,7 +212,7 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
             if reader.read(1) != 0
             {
                 info.blockType = reader.read(2)
-                if !info.blockType do
+                if not info.blockType do
                     fail InvalidFormatError{"MP3 granule switches windows and then states a normal block"}
                 info.mixedBlock = reader.read(1) != 0
 
@@ -220,7 +220,7 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
                 info.regionBands[1] = 255
                 if info.blockType == 2
                 {
-                    if !info.mixedBlock
+                    if not info.mixedBlock
                     {
                         info.regionBands[0] = 8
                         info.bandKind       = 1
@@ -346,8 +346,8 @@ impl Codec
                 {
                     let modulus = cast(s32) LsfModulus[k + cast(u64) index]
                     sizes[cast(u64) index] = cast(u32) (remaining / product % modulus)
-                    product                *= modulus
-                    index                  -= 1
+                    product *= modulus
+                    index   -= 1
                 }
 
                 remaining -= product
@@ -368,7 +368,7 @@ impl Codec
         for partition in 4'u64
         {
             let count = cast(u64) counts[partition]
-            if !count do
+            if not count do
                 break
 
             if header.isMpeg1 and (share & 8) != 0
@@ -388,7 +388,7 @@ impl Codec
 
                     // A low sampling frequency granule marks an unusable intensity position by
                     // saturating the field.
-                    if !header.isMpeg1 and bits and value == full do
+                    if not header.isMpeg1 and bits and value == full do
                         .intensityPos[cast(u64) channel, at + index] = 255
                     else do
                         .intensityPos[cast(u64) channel, at + index] = cast(u8) value
@@ -527,7 +527,7 @@ impl Codec
         var region    = 0'u64
         var ended     = false
 
-        while region < 3 and big and !ended
+        while region < 3 and big and not ended
         {
             let select = info.tableSelect[region]
 
@@ -543,7 +543,7 @@ impl Codec
             while big and spans > 0
             {
                 let width = info.bandWidth(header.rateIndex, band)
-                if !width
+                if not width
                 {
                     ended = true
                     break
@@ -567,7 +567,7 @@ impl Codec
                         {
                             lines[][line]     = 0
                             lines[][line + 1] = 0
-                            line              += 2
+                            line += 2
                         }
 
                         continue
@@ -595,7 +595,7 @@ impl Codec
                         if line < 576
                         {
                             lines[][line] = sample
-                            line          += 1
+                            line += 1
                         }
                     }
                 }
@@ -604,7 +604,7 @@ impl Codec
 
         // The count1 region codes four lines at a time until the granule's bits run out.
         let quadTree: const [..] s16 = info.count1Table != 0 ? Count1BTree : Count1ATree
-        while line + 4 <= 576 and reader.bitPos < limit and !ended
+        while line + 4 <= 576 and reader.bitPos < limit and not ended
         {
             let symbol = .decodeSymbol(quadTree, reader)
             if symbol < 0 or reader.bitPos > limit do
@@ -613,10 +613,10 @@ impl Codec
             // A quadruple spans two pairs, and the band may change between them.
             for half in 2'u32
             {
-                if !pairsLeft
+                if not pairsLeft
                 {
                     let width = info.bandWidth(header.rateIndex, band)
-                    if !width
+                    if not width
                     {
                         ended = true
                         break
@@ -625,7 +625,7 @@ impl Codec
                     gain      = .bandGain[cast(u64) channel, band]
                     band      += 1
                     pairsLeft = cast(u64) width / 2
-                    if !pairsLeft do
+                    if not pairsLeft do
                         continue
                 }
 
@@ -643,7 +643,7 @@ impl Codec
                     if line < 576
                     {
                         lines[][line] = sample
-                        line          += 1
+                        line += 1
                     }
                 }
             }
@@ -673,7 +673,7 @@ impl Codec
             for band in info.bandCount()
             {
                 let width = cast(u64) info.bandWidth(header.rateIndex, band)
-                if !width do
+                if not width do
                     break
                 var index = 0'u64
                 while index < width
@@ -721,7 +721,7 @@ impl Codec
         for band in info.bandCount()
         {
             let width = cast(u64) info.bandWidth(header.rateIndex, band)
-            if !width do
+            if not width do
                 break
 
             let position = cast(u32) .intensityPos[1, band]
@@ -949,7 +949,7 @@ impl IPacketCodec for Codec
             {
                 let value = .output[channel, index] * 32767.0
                 samples[at] = cast(s16) Math.clamp(value, -32768.0'f32, 32767.0'f32)
-                at          += 1
+                at += 1
             }
         }
 

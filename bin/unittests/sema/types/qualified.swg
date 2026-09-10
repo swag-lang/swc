@@ -33,7 +33,7 @@ var E2:  [*] s32?
 var E3:  any?
 var E4:  string?
 var E5:  cstring?
-var E6:  typeinfo?                = null
+var E6:  typeinfo? = null
 var E7:  QualifiedStrictPtr?
 var E8:  QualifiedStrictSlice?
 var E9:  QualifiedStrictString?
@@ -63,26 +63,26 @@ func acceptNullableTypeInfo(value: typeinfo?) {}
 
 func semaTest001()
 {
-    var storage:           s32                 = 7
-    let ptr:               *s32                = &storage
-    var nullablePtr:       *s32?               = ptr
+    var storage:           s32   = 7
+    let ptr:               *s32  = &storage
+    var nullablePtr:       *s32? = ptr
     var nullableStrictPtr: QualifiedStrictPtr? = cast(QualifiedStrictPtr) ptr
-    let widenedPtr:        *s32?               = widenNullablePointer(ptr)
+    let widenedPtr:        *s32? = widenNullablePointer(ptr)
     acceptNullablePointer(ptr)
     acceptNullablePointer(widenedPtr)
 
-    let text:               string                 = "abc"
-    let nullableText:       string?                = text
+    let text:               string  = "abc"
+    let nullableText:       string? = text
     var nullableStrictText: QualifiedStrictString? = cast(QualifiedStrictString) text
-    let widenedText:        string?                = widenNullableString(text)
+    let widenedText:        string? = widenNullableString(text)
     acceptNullableString(text)
     acceptNullableString(widenedText)
 
-    let values:              [3] s32               = [1, 2, 3]
-    let slice:               [..] s32              = values
-    let nullableSlice:       [..] s32?             = slice
+    let values:              [3] s32   = [1, 2, 3]
+    let slice:               [..] s32  = values
+    let nullableSlice:       [..] s32? = slice
     var nullableStrictSlice: QualifiedStrictSlice? = cast(QualifiedStrictSlice) slice
-    let widenedSlice:        [..] s32?             = widenNullableSlice(slice)
+    let widenedSlice:        [..] s32? = widenNullableSlice(slice)
     acceptNullableSlice(slice)
     acceptNullableSlice(widenedSlice)
 
@@ -97,18 +97,18 @@ func semaTest001()
     acceptConstAny(widenedConstAny)
     #assert(#typeof(constAny) == const any)
 
-    var cstrData:           [4] u8                  = ['a'u8, 'b'u8, 'c'u8, 0]
-    let cstr:               cstring                 = cast(cstring) &cstrData[0]
-    var nullableCstr:       cstring?                = cstr
+    var cstrData:           [4] u8   = ['a'u8, 'b'u8, 'c'u8, 0]
+    let cstr:               cstring  = cast(cstring) &cstrData[0]
+    var nullableCstr:       cstring? = cstr
     var nullableStrictCstr: QualifiedStrictCString? = cast(QualifiedStrictCString) cstr
-    let widenedCstr:        cstring?                = widenNullableCString(cstr)
+    let widenedCstr:        cstring? = widenNullableCString(cstr)
     acceptNullableCString(cstr)
     acceptNullableCString(widenedCstr)
 
-    let info:               typeinfo                 = s32
-    let nullableInfo:       typeinfo?                = info
+    let info:               typeinfo  = s32
+    let nullableInfo:       typeinfo? = info
     var nullableStrictInfo: QualifiedStrictTypeInfo? = cast(QualifiedStrictTypeInfo) info
-    let widenedInfo:        typeinfo?                = widenNullableTypeInfo(info)
+    let widenedInfo:        typeinfo? = widenNullableTypeInfo(info)
     acceptNullableTypeInfo(info)
     acceptNullableTypeInfo(widenedInfo)
 

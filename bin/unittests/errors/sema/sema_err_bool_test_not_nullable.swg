@@ -19,7 +19,7 @@ func nonNullConditionNullableIf(item: *NonNullConditionItem?)->s32
 
 func nonNullConditionNullableNot(item: *NonNullConditionItem?)->s32
 {
-    if !item do
+    if not item do
         return 0
     return item.value
 }
@@ -87,7 +87,7 @@ func nonNullConditionErrWhile(item: *NonNullConditionItem)->s32
 
 func nonNullConditionErrNot(item: *NonNullConditionItem)->s32
 {
-    if !item do     // swc-expected-error {{sema_err_bool_test_not_nullable}}
+    if not item do     // swc-expected-error {{sema_err_bool_test_not_nullable}}
         return 0
     return item.value
 }

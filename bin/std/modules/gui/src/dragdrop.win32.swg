@@ -84,7 +84,7 @@ private func loadDragHelper()
 // helper paints on the desktop, and there is no desktop under it.
 private func dropTargetHelper(surface: *Surface)->*IDropTargetHelper?
 {
-    if !surface.hWnd do
+    if not surface.hWnd do
         return null
 
     loadDragHelper()
@@ -167,7 +167,7 @@ private func readStream(stream: *IStream, dest: *Array'u8)
         let hr = stream.lpVtbl.Read(stream, cast([*] void) &chunk[0], chunk.count, &read)
         if hr != S_OK and hr != S_FALSE do
             return
-        if !read do
+        if not read do
             return
 
         dest.add(Swag.makeSlice(cast(const [*] u8) &chunk[0], cast(u64) read))
@@ -184,7 +184,7 @@ private func readFormat(dataObj: *IDataObject, format: u32, index: s32 = -1)->Ar
     var result: retval
 
     var med: STGMEDIUM
-    if !requestMedium(dataObj, format, TYMED_HGLOBAL | TYMED_ISTREAM, index, &med) do
+    if not requestMedium(dataObj, format, TYMED_HGLOBAL | TYMED_ISTREAM, index, &med) do
         return result
     defer ReleaseStgMedium(&med)
 
@@ -196,11 +196,11 @@ private func readFormat(dataObj: *IDataObject, format: u32, index: s32 = -1)->Ar
     }
 
     let size = GlobalSize(med.hGlobal)
-    if !size do
+    if not size do
         return result
 
     let buf = cast([*] u8?) GlobalLock(med.hGlobal)
-    if !buf do
+    if not buf do
         return result
     defer discard GlobalUnlock(buf)
 
@@ -215,7 +215,7 @@ private func readFormat(dataObj: *IDataObject, format: u32, index: s32 = -1)->Ar
 // move is exactly what deferred rendering exists to avoid, on both sides of the gesture.
 private func readFileContents(obj: *IDataObject, data: *DragData, withContents: bool)
 {
-    if !g_FileDescriptorFormat or !g_FileContentsFormat do
+    if not g_FileDescriptorFormat or not g_FileContentsFormat do
         return
 
     let block = readFormat(obj, g_FileDescriptorFormat)
@@ -223,7 +223,7 @@ private func readFileContents(obj: *IDataObject, data: *DragData, withContents: 
         return
 
     let count = cast(u64) block.buffer![as UINT]
-    if !count or #sizeof(UINT) + count * #sizeof(FILEDESCRIPTORW) > block.count do
+    if not count or #sizeof(UINT) + count * #sizeof(FILEDESCRIPTORW) > block.count do
         return
 
     let descriptors = cast(const [*] FILEDESCRIPTORW) (block.buffer! + #sizeof(UINT))
@@ -246,7 +246,7 @@ private func readFileContents(obj: *IDataObject, data: *DragData, withContents: 
 private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents: bool)
 {
     data.clear()
-    if !dataObj do
+    if not dataObj do
         return
 
     let obj = dataObj!
@@ -255,7 +255,7 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
     #scope(Files)
     {
         var med: STGMEDIUM
-        if !requestMedium(obj, CF_HDROP, TYMED_HGLOBAL, -1, &med) do
+        if not requestMedium(obj, CF_HDROP, TYMED_HGLOBAL, -1, &med) do
             break to Files
         defer ReleaseStgMedium(&med)
 
@@ -266,7 +266,7 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
         for i in count
         {
             let len = DragQueryFileW(hDrop, i, null, 0)
-            if !len do
+            if not len do
                 continue
             buf.resize(len + 1)
             discard DragQueryFileW(hDrop, i, buf.buffer, len + 1)
@@ -279,7 +279,7 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
     // advertise this deferred representation for a file that already has a path. Prefer the path
     // in that case: asking for FILECONTENTS can otherwise copy a multi-gigabyte local file into
     // the drop payload before the target receives its event.
-    if !data.hasFiles() do
+    if not data.hasFiles() do
         readFileContents(obj, data, withContents)
 
     // Text, preferring the Unicode form the way the clipboard does.
@@ -322,12 +322,12 @@ private func dropTargetOf(itf: *IDropTarget)->*SurfaceDropTarget => cast(*Surfac
 private func comQueryInterface(itf: *IDropTarget, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     ppv[] = null
-    if !isEqualGuid(riid[], IID_IUnknown) and !isEqualGuid(riid[], IID_IDropTarget) do
+    if not isEqualGuid(riid[], IID_IUnknown) and not isEqualGuid(riid[], IID_IDropTarget) do
         return E_NOINTERFACE
 
     let target = dropTargetOf(itf)
     target.refCount += 1
-    ppv[]           = cast([*] void) itf
+    ppv[] = cast([*] void) itf
     return S_OK
 }
 
@@ -478,11 +478,11 @@ private func offeredFormats(data: *DragData)->Array'FORMATETC
 private func toGlobalBlock(bytes: const [..] u8)->HGLOBAL
 {
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, bytes.count)
-    if !hglob do
+    if not hglob do
         return null
 
     let buf = cast([*] u8?) GlobalLock(hglob)
-    if !buf
+    if not buf
     {
         discard GlobalFree(hglob)
         return null
@@ -503,11 +503,11 @@ private func buildHDrop(data: *DragData)->HGLOBAL
 
     let size  = cast(u64) #sizeof(DROPFILES) + chars * 2
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
-    if !hglob do
+    if not hglob do
         return null
 
     let base = cast([*] u8?) GlobalLock(hglob)
-    if !base
+    if not base
     {
         discard GlobalFree(hglob)
         return null
@@ -537,17 +537,17 @@ private func buildHDrop(data: *DragData)->HGLOBAL
 private func buildDib(data: *DragData)->HGLOBAL
 {
     let image = data.image()
-    if !image do
+    if not image do
         return null
 
     let img   = image!
     let size  = cast(u64) #sizeof(Bmp.Header) + img.byteCount
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
-    if !hglob do
+    if not hglob do
         return null
 
     let base = cast([*] u8?) GlobalLock(hglob)
-    if !base
+    if not base
     {
         discard GlobalFree(hglob)
         return null
@@ -577,11 +577,11 @@ private func buildFileGroupDescriptor(data: *DragData)->HGLOBAL
     let count = data.contents.count
     let size  = cast(u64) #sizeof(UINT) + count * #sizeof(FILEDESCRIPTORW)
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
-    if !hglob do
+    if not hglob do
         return null
 
     let base = cast([*] u8?) GlobalLock(hglob)
-    if !base
+    if not base
     {
         discard GlobalFree(hglob)
         return null
@@ -616,11 +616,11 @@ private func buildUnicodeText(data: *DragData)->HGLOBAL
 {
     let wide  = Utf16.fromUtf8(data.text.toString())
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, (wide.count + 1) * 2)
-    if !hglob do
+    if not hglob do
         return null
 
     let buf = cast([*] u16?) GlobalLock(hglob)
-    if !buf
+    if not buf
     {
         discard GlobalFree(hglob)
         return null
@@ -716,7 +716,7 @@ private func dropSourceOf(itf: *IDropSource)->*DragDropSource    => cast(*DragDr
 private func srcQueryInterface(itf: *IDataObject, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     ppv[] = null
-    if !isEqualGuid(riid[], IID_IUnknown) and !isEqualGuid(riid[], IID_IDataObject) do
+    if not isEqualGuid(riid[], IID_IUnknown) and not isEqualGuid(riid[], IID_IDataObject) do
         return E_NOINTERFACE
 
     dataObjectOf(itf).refCount += 1
@@ -753,7 +753,7 @@ private func srcOfferedIndex(obj: *DragDataObject, fmt: const *FORMATETC)->s64
 
     for &f, i in obj.formats
     {
-        if f.cfFormat != fmt.cfFormat or !(fmt.tymed & f.tymed) do
+        if f.cfFormat != fmt.cfFormat or not (fmt.tymed & f.tymed) do
             continue
         if f.lindex != -1 and f.lindex != fmt.lindex do
             continue
@@ -770,7 +770,7 @@ private func srcStoredIndex(obj: *DragDataObject, fmt: const *FORMATETC)->s64
     {
         if s.format.cfFormat != fmt.cfFormat or s.format.lindex != fmt.lindex do
             continue
-        if s.format.dwAspect != fmt.dwAspect or !(fmt.tymed & s.medium.tymed) do
+        if s.format.dwAspect != fmt.dwAspect or not (fmt.tymed & s.medium.tymed) do
             continue
         return cast(s64) i
     }
@@ -798,12 +798,12 @@ private func srcGetStored(obj: *DragDataObject, entry: s64, med: *STGMEDIUM)->HR
 
     let size = GlobalSize(source.hGlobal)
     let buf  = cast([*] u8?) GlobalLock(source.hGlobal)
-    if !buf do
+    if not buf do
         return E_OUTOFMEMORY
     defer discard GlobalUnlock(buf)
 
     let hglob = toGlobalBlock(Swag.makeSlice(cast(const [*] u8) buf!, size))
-    if !hglob do
+    if not hglob do
         return E_OUTOFMEMORY
 
     med.tymed          = TYMED_HGLOBAL
@@ -842,7 +842,7 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
     elif g_FileContentsFormat and format == g_FileContentsFormat do
         hglob = toGlobalBlock(data.contentData(cast(u64) fmt.lindex))
 
-    if !hglob do
+    if not hglob do
         return E_OUTOFMEMORY
 
     // A stream is what the shell reads a file with no path through, and the block becomes the
@@ -856,8 +856,8 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
             return E_OUTOFMEMORY
         }
 
-        med.tymed          = TYMED_ISTREAM
-        med.pstm           = cast(*IStream) raw!
+        med.tymed = TYMED_ISTREAM
+        med.pstm  = cast(*IStream) raw!
         med.pUnkForRelease = null
         return S_OK
     }
@@ -891,7 +891,7 @@ private func srcGetCanonicalFormatEtc(itf: *IDataObject, fmtIn: const *FORMATETC
 // that case is refused instead of half-supported.
 private func srcSetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM, release: BOOL)->HRESULT
 {
-    if !release do
+    if not release do
         return E_NOTIMPL
 
     let obj = dataObjectOf(itf)
@@ -956,7 +956,7 @@ private func srcEnumDAdvise(itf: *IDataObject, ppenum: *LPVOID)->HRESULT
 private func enumQueryInterface(itf: *IEnumFORMATETC, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     ppv[] = null
-    if !isEqualGuid(riid[], IID_IUnknown) and !isEqualGuid(riid[], IID_IEnumFORMATETC) do
+    if not isEqualGuid(riid[], IID_IUnknown) and not isEqualGuid(riid[], IID_IEnumFORMATETC) do
         return E_NOINTERFACE
 
     formatEnumOf(itf).refCount += 1
@@ -977,7 +977,7 @@ private func enumRelease(itf: *IEnumFORMATETC)->ULONG
     if obj.refCount do
         obj.refCount -= 1
     let left = obj.refCount
-    if !left do
+    if not left do
         Memory.delete(obj)
     return left
 }
@@ -1028,7 +1028,7 @@ private func enumClone(itf: *IEnumFORMATETC, ppenum: *LPVOID)->HRESULT
 private func dropSrcQueryInterface(itf: *IDropSource, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     ppv[] = null
-    if !isEqualGuid(riid[], IID_IUnknown) and !isEqualGuid(riid[], IID_IDropSource) do
+    if not isEqualGuid(riid[], IID_IUnknown) and not isEqualGuid(riid[], IID_IDropSource) do
         return E_NOINTERFACE
 
     dropSourceOf(itf).refCount += 1
@@ -1058,7 +1058,7 @@ private func dropSrcQueryContinueDrag(itf: *IDropSource, escapePressed: BOOL, gr
     discard itf
     if escapePressed do
         return DRAGDROP_S_CANCEL
-    if !(grfKeyState & (MK_LBUTTON | MK_RBUTTON)) do
+    if not (grfKeyState & (MK_LBUTTON | MK_RBUTTON)) do
         return DRAGDROP_S_DROP
     return S_OK
 }
@@ -1102,7 +1102,7 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
     var result: retval
 
     var img = image[]
-    if !img.isValid() do
+    if not img.isValid() do
         return result
 
     if img.width >= img.height and img.width > DragImageMaxSide do
@@ -1122,7 +1122,7 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
 
     var raw: *void?
     let bmp = catch CreateDIBSection(null, &info, DIB_RGB_COLORS, &raw, null, 0) as err
-    if err != null or !bmp or !raw do
+    if err != null or not bmp or not raw do
         return result
 
     let dest = cast([*] u8) raw!
@@ -1153,12 +1153,12 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
 private func attachDragImage(dataObj: *IDataObject, image: const *Image)
 {
     let found = dragSourceHelper()
-    if !found do
+    if not found do
         return
 
     let helper  = found!
     let picture = buildDragBitmap(image)
-    if !picture.bmp do
+    if not picture.bmp do
         return
 
     with var shape: SHDRAGIMAGE
@@ -1214,9 +1214,9 @@ impl Wnd
     mtd startDrag(data: *DragData, allowed = DropEffect.Copy, picture: const *Pixel.Image? = null)->DropEffect
     {
         let surface = .surface
-        if !surface or !surface.app.renderer.needsNativeWindow() do
+        if not surface or not surface.app.renderer.needsNativeWindow() do
             return .None
-        if !data.hasFiles() and !data.hasContents() and !data.hasText() and !data.hasImage() do
+        if not data.hasFiles() and not data.hasContents() and not data.hasText() and not data.hasImage() do
             return .None
 
         // The desktop takes the pointer for the duration; a capture still held here would
@@ -1271,7 +1271,7 @@ internal impl Surface
         target.surface  = me
         target.refCount = 1
 
-        if !.app.renderer.needsNativeWindow() or !.hWnd or .dropTargetActive do
+        if not .app.renderer.needsNativeWindow() or not .hWnd or .dropTargetActive do
             return
 
         startOle()
@@ -1284,7 +1284,7 @@ internal impl Surface
     // Stops the surface from receiving drags and releases the reference OLE holds.
     mtd revokeDropTarget()
     {
-        if !.dropTargetActive do
+        if not .dropTargetActive do
             return
         .dropTargetActive = false
 

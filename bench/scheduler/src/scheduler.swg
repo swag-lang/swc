@@ -285,7 +285,7 @@ func measureHerd(observed: bool)
         sleepers[index].submit(func|&stop, &running|()
         {
             discard running.add(1)
-            while !stop.isRaised() do
+            while not stop.isRaised() do
                 Threading.Thread.sleep(1'ms)
         })
     }

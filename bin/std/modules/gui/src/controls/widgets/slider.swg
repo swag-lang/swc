@@ -85,7 +85,7 @@ impl IWnd for Slider
         else
         {
             colorBkRight = colors.slider_BkRight
-            if !.flags.has(.Range) and .flags.has(.HilightBar) do
+            if not .flags.has(.Range) and .flags.has(.HilightBar) do
                 colorBkLeft = colors.slider_HilightBk
             else do
                 colorBkLeft = colors.slider_BkLeft
@@ -220,7 +220,7 @@ impl IWnd for Slider
             .invalidate()
 
         case .Move:
-            if !.isMoving
+            if not .isMoving
             {
                 .hitTest(evt.surfacePos)
                 break
@@ -268,7 +268,7 @@ impl IWnd for Slider
                     else do
                         .correcMoving = pos.x - posBox.horzCenter()
                 }
-                elif !.flags.has(.Range)
+                elif not .flags.has(.Range)
                 {
                     .correcMoving   = 0
                     .isLowerPressed = true
@@ -629,7 +629,7 @@ impl Slider
         let newUpper = .clamp((upper - .min) / diff)
         Swag.assert(newLower <= newUpper)
 
-        let changed = !.hasLowerValue or !.hasUpperValue or newLower != .lowerRatio or newUpper != .upperRatio
+        let changed = not .hasLowerValue or not .hasUpperValue or newLower != .lowerRatio or newUpper != .upperRatio
         .hasLowerValue, .hasUpperValue = true
         .lowerRatio = newLower
         .upperRatio = newUpper

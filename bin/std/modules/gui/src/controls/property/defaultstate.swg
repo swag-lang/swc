@@ -72,7 +72,7 @@ internal impl Properties
             let it = .items[i]!
             it.defaultData = null
 
-            if !it.data do
+            if not it.data do
                 continue
 
             // Items under a dynamic array live in a heap buffer, not at a fixed offset from the
@@ -80,7 +80,7 @@ internal impl Properties
             if .isUnderDynamicArray(it!) do
                 continue
 
-            if !canHaveDefault(it.type) do
+            if not canHaveDefault(it.type) do
                 continue
 
             let off = cast([*] u8?) it.data - base0
@@ -103,7 +103,7 @@ internal impl Properties
     // comparable default, is not read-only, and its type is one the grid can copy back safely.
     mtd canReset(item: *PropertiesItem)->bool
     {
-        if !.revertButtonsVisible or !item.defaultData or !item.data or !item.type do
+        if not .revertButtonsVisible or not item.defaultData or not item.data or not item.type do
             return false
         if .isItemReadOnly(item) do
             return false
@@ -115,7 +115,7 @@ internal impl Properties
     // built-in per-instance comparison.
     mtd computeItemModified(item: *PropertiesItem)->bool
     {
-        if !.canReset(item) do
+        if not .canReset(item) do
             return false
 
         var scan = cast(*PropertiesItem?) item
@@ -176,7 +176,7 @@ internal impl Properties
             scan = scan.parent
         }
 
-        if !.canReset(item) do
+        if not .canReset(item) do
             return
 
         // Write the default into every instance ourselves (composite editors set selfPropagate,
@@ -222,7 +222,7 @@ internal impl Properties
     // buffers) are left out — a raw byte copy would corrupt them.
     func canHaveDefault(type: typeinfo?)->bool
     {
-        if !type do
+        if not type do
             return false
         if type == Core.String do
             return true
@@ -242,7 +242,7 @@ internal impl Properties
         let wasModified = item.isModified
         item.assignModified(.computeItemModified(item))
 
-        if !.isGridLike()
+        if not .isGridLike()
         {
             if item.isModified != wasModified do
                 item.line.invalidate()
@@ -251,13 +251,13 @@ internal impl Properties
 
         if .canReset(item) do
             .ensureRevertButton(item)
-        if !(item.revertButton != null) do
+        if not (item.revertButton != null) do
             return false
 
         let btn = item.revertButton
         if item.isModified
         {
-            if !btn.icon.isValid() do
+            if not btn.icon.isValid() do
                 btn.setIcon(.theme().icon(.Undo, .revertIconSize(btn.position.height)))
             btn.enable(true)
         }
@@ -278,11 +278,11 @@ internal impl Properties
     // the painted modified bar instead (see updateItemDefaultState).
     mtd ensureRevertButton(item: *PropertiesItem)
     {
-        if (item.revertButton != null) or !.isGridLike() do
+        if (item.revertButton != null) or not .isGridLike() do
             return
 
         let host = .rowActionArea(item)
-        if !host do
+        if not host do
             return
 
         let h = .revertButtonSize()

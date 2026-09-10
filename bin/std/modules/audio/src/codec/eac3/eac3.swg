@@ -98,7 +98,7 @@ private func parseEac3Bsi(reader: *BitReader)->Eac3Bsi fail
     discard reader.read(5)
     if reader.read(1) do
         reader.skip(8)
-    if !result.acmod
+    if not result.acmod
     {
         reader.skip(5)
         if reader.read(1) do
@@ -116,7 +116,7 @@ private func parseEac3Bsi(reader: *BitReader)->Eac3Bsi fail
             reader.skip(2)     // dsurexmod
         if reader.read(1) do
             reader.skip(8)     // mixlevel, roomtyp, adconvtyp
-        if !result.acmod and reader.read(1) do
+        if not result.acmod and reader.read(1) do
             reader.skip(8)
         if result.fscod < 3 do
             reader.skip(1)     // sourcefscod
@@ -277,7 +277,7 @@ private impl Eac3Codec
         block.coupling = frame.coupling[blockIndex]
         if frame.couplingNew[blockIndex]
         {
-            if !block.coupling
+            if not block.coupling
             {
                 for channel in bsi.nfchans do
                     block.channelCoupled[channel] = false
@@ -321,7 +321,7 @@ private impl Eac3Codec
             block.couplingEndMantissa = cast(s32) (block.couplingEnd + 3) * 12 + 37
         }
 
-        if !block.coupling do
+        if not block.coupling do
             return
 
         var anyCoordinates = false
@@ -331,7 +331,7 @@ private impl Eac3Codec
             firstCoordinates[][channel] = false
             if newCoordinates
             {
-                anyCoordinates                = true
+                anyCoordinates = true
                 block.couplingMaster[channel] = reader.read(2)
                 for band in block.couplingBands
                 {
@@ -353,7 +353,7 @@ private impl Eac3Codec
             var coordinateBand = 0'u32
             for subband in block.couplingSubbands
             {
-                if !block.couplingBandJoin[subband]
+                if not block.couplingBandJoin[subband]
                 {
                     let exponent = block.couplingCoordExp[channel, coordinateBand]
                     let mantissa = block.couplingCoordMant[channel, coordinateBand]
@@ -377,7 +377,7 @@ private impl Eac3Codec
             block.channelExpStrategy[channel] = frame.channelExp[blockIndex, channel]
         block.lfeExpStrategy = frame.lfeExp[blockIndex]
 
-        for channel in bsi.nfchans where block.channelExpStrategy[channel] and !block.channelCoupled[channel] do
+        for channel in bsi.nfchans where block.channelExpStrategy[channel] and not block.channelCoupled[channel] do
             block.channelBandwidth[channel] = reader.read(6)
         if block.coupling and block.couplingExpStrategy
         {
@@ -394,7 +394,7 @@ private impl Eac3Codec
             discard reader.read(2)
         }
 
-        for channel in bsi.nfchans where !block.channelExpStrategy[channel] and block.channelCoupled[channel] do
+        for channel in bsi.nfchans where not block.channelExpStrategy[channel] and block.channelCoupled[channel] do
             block.channelEnd[channel] = block.couplingStart
         if bsi.lfeon and block.lfeExpStrategy do
             try decodeExponents(reader, 1, 2, reader.read(4), 1, &block.lfeExponents)
@@ -411,7 +411,7 @@ private impl Eac3Codec
             block.dbPerBitCode  = reader.read(2)
             block.floorCode     = reader.read(3)
         }
-        elif !blockIndex
+        elif not blockIndex
         {
             block.slowDecayCode = 2
             block.fastDecayCode = 1
@@ -420,7 +420,7 @@ private impl Eac3Codec
             block.floorCode     = 7
         }
 
-        if !blockIndex
+        if not blockIndex
         {
             block.coarseSnr = frame.coarseSnr
             for channel in bsi.nfchans
@@ -437,7 +437,7 @@ private impl Eac3Codec
 
         if frame.snrStrategy != 0
         {
-            let present = !blockIndex or reader.read(1) != 0
+            let present = not blockIndex or reader.read(1) != 0
             if present
             {
                 block.coarseSnr = reader.read(6)
@@ -475,7 +475,7 @@ private impl Eac3Codec
             reader.skip(10)
         if block.coupling
         {
-            let leakPresent = !blockIndex or reader.read(1) != 0
+            let leakPresent = not blockIndex or reader.read(1) != 0
             if leakPresent
             {
                 block.couplingFastLeak = reader.read(3)
@@ -570,11 +570,11 @@ private impl Eac3Codec
             for bin in cast(u64) block.channelEnd[channel]
             {
                 let bap   = block.channelBap[channel, bin]
-                let value = bap or !block.dither[channel] ? mantissas.get(bap) : .ditherValue()
+                let value = bap or not block.dither[channel] ? mantissas.get(bap) : .ditherValue()
                 .coefficients[channel, bin] = value * Math.pow(2.0, -cast(f64) block.channelExponents[channel, bin])
             }
 
-            if block.coupling and block.channelCoupled[channel] and !couplingRead
+            if block.coupling and block.channelCoupled[channel] and not couplingRead
             {
                 let count = cast(u64) (block.couplingEndMantissa - block.couplingStart)
                 for bin in count do
@@ -601,7 +601,7 @@ private impl Eac3Codec
                     {
                         let source = subband * 12 + bin
                         var value  = couplingMantissas[source]
-                        if !value and block.dither[channel] do
+                        if not value and block.dither[channel] do
                             value = .ditherValue() * Math.pow(2.0, -cast(f64) block.couplingExponents[source])
                         let destination = block.couplingBegin * 12 + subband * 12 + bin + 37
                         .coefficients[channel, destination] = value * block.couplingCoord[channel, subband] * 8.0
@@ -636,19 +636,19 @@ private impl Eac3Codec
             for channel in bsi.nfchans do
                 .block.blockSwitch[channel] = frame.blockSwitch and reader.read(1) != 0
             for channel in bsi.nfchans do
-                .block.dither[channel] = !frame.ditherFlags or reader.read(1) != 0
+                .block.dither[channel] = not frame.ditherFlags or reader.read(1) != 0
             if reader.read(1) do
                 reader.skip(8)
-            if !bsi.acmod and reader.read(1) do
+            if not bsi.acmod and reader.read(1) do
                 reader.skip(8)
 
-            let spxStrategy = !blockIndex or reader.read(1) != 0
+            let spxStrategy = not blockIndex or reader.read(1) != 0
             if spxStrategy and reader.read(1) do
                 fail UnsupportedFormatError{"E-AC-3 spectral extension is not supported"}
             try .readCoupling(&reader, &bsi, &frame, blockIndex, &firstCoordinates, &firstStrategy)
             if bsi.acmod == 2
             {
-                let rematrixNew = !blockIndex or reader.read(1) != 0
+                let rematrixNew = not blockIndex or reader.read(1) != 0
                 if rematrixNew
                 {
                     .block.rematrixCount = .block.coupling ? (.block.couplingBegin > 2 ? 4 : .block.couplingBegin > 0 ? 3 : 2) : 4
@@ -687,7 +687,7 @@ impl IPacketCodec for Eac3Codec
     mtd impl initialize(config: const [..] u8, sampleRateHz, channels: u32) fail
     {
         discard config
-        if !sampleRateHz or !channels or channels > MaxChannels do
+        if not sampleRateHz or not channels or channels > MaxChannels do
             fail BadParameterError{"E-AC-3 audio needs one to six channels and a non-zero sample rate"}
         .sampleRate = sampleRateHz
         .channels   = channels

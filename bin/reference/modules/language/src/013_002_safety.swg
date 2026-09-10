@@ -52,7 +52,7 @@ flow-narrowed code. Keep required side effects outside the assertion.
 
     #[Swag.Safety(.Assert, false)]
     {
-        #assert(!#safety(Swag.SafetyWhat.Assert))
+        #assert(not #safety(Swag.SafetyWhat.Assert))
         Swag.assert(false)
     }
 }
@@ -204,7 +204,7 @@ Indexing a slice is checked for bounds.
 #test
 {
     let x: const [..] s32 = [0, 1, 2]
-    var idx               = 1
+    var idx = 1
     Swag.assert(x[idx] == 1)
     idx += 9
 

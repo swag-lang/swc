@@ -29,7 +29,7 @@ alias IndexStrictU8 = u8
 {
     var backing6: [2] s32  = [11, 22]
     var a6:       [..] s32 = backing6
-    var b6                 = a6[0]
+    var b6 = a6[0]
     #assert(#typeof(b6) == s32)
     Swag.assert(b6 == 11)
 }
@@ -39,7 +39,7 @@ alias IndexStrictU8 = u8
 {
     var backing2: [2] s32  = [33, 44]
     var a2:       [..] s32 = backing2
-    var b2                 = a2[0]
+    var b2 = a2[0]
     #assert(#typeof(b2) == s32)
     Swag.assert(b2 == 33)
 }
@@ -77,7 +77,7 @@ alias IndexStrictU8 = u8
 
 #test
 {
-    var text             = "hello"
+    var text = "hello"
     var textRef: *string = &text
     Swag.assert(textRef[][1] == cast(u8) 'e'rune)
 

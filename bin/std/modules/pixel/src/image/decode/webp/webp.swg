@@ -150,7 +150,7 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
             options.checkImage(result.canvasWidth, result.canvasHeight, .RGBA8)
 
         case WEBP_FOURCC_ALPH:
-            if !result.hasExtendedHeader or !result.expectsAlpha do
+            if not result.hasExtendedHeader or not result.expectsAlpha do
                 fail InvalidFormatError{"WebP ALPH chunk is not declared by VP8X"}
             if result.alpha.data do
                 fail InvalidFormatError{"WebP data contains more than one ALPH chunk"}
@@ -166,14 +166,14 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
             result.image = {kind: kind, data: chunkData, size: chunkSize}
 
         case WEBP_FOURCC_ANIM:
-            if !result.animated or seenAnimation or chunkSize != 6 or result.frames.count do
+            if not result.animated or seenAnimation or chunkSize != 6 or result.frames.count do
                 fail InvalidFormatError{"WebP animation header is invalid or misplaced"}
             seenAnimation     = true
             result.background = {r: chunkData[2], g: chunkData[1], b: chunkData[0], a: chunkData[3]}
             result.loopCount  = chunkData[4] | (cast(u32) chunkData[5] << 8)
 
         case WEBP_FOURCC_ANMF:
-            if !seenAnimation or chunkSize < 16 do
+            if not seenAnimation or chunkSize < 16 do
                 fail InvalidFormatError{"WebP animation frame has no valid animation header"}
             options.checkFrameCount(result.frames.count + 1)
             var frame: Frame
@@ -208,7 +208,7 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
                 nested = payload + padded
             }
 
-            if !frame.image.data do
+            if not frame.image.data do
                 fail InvalidFormatError{"WebP animation frame has no image chunk"}
             result.frames.add(#move frame)
         }
@@ -220,14 +220,14 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
         fail InvalidFormatError{"WebP chunks do not end at the declared RIFF size"}
     if result.animated
     {
-        if !seenAnimation or !result.frames.count or result.image.data or result.alpha.data do
+        if not seenAnimation or not result.frames.count or result.image.data or result.alpha.data do
             fail InvalidFormatError{"WebP animation has missing or conflicting chunks"}
         return result
     }
 
-    if !result.image.data do
+    if not result.image.data do
         fail InvalidFormatError{"WebP data does not contain a VP8 or VP8L image chunk"}
-    if result.expectsAlpha and result.image.kind == WEBP_FOURCC_VP8 and !result.alpha.data do
+    if result.expectsAlpha and result.image.kind == WEBP_FOURCC_VP8 and not result.alpha.data do
         fail InvalidFormatError{"WebP VP8X chunk declares alpha but no ALPH chunk is present"}
     return result
 }
@@ -262,7 +262,7 @@ func decodeLossless(container: Container, options: DecodeOptions)->Image fail
     var result: retval
     result.init(width, height, .RGBA8)
     options.checkImage(width, height, .RGBA8)
-    if !options.decodePixels do
+    if not options.decodePixels do
         return result
 
     var pixels: Array'u8
@@ -274,7 +274,7 @@ func decodeLossless(container: Container, options: DecodeOptions)->Image fail
 
 func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) fail
 {
-    if !container.alpha.data do
+    if not container.alpha.data do
         return
     if container.alpha.size == 0 do
         fail InvalidFormatError{"WebP ALPH chunk does not contain a control byte"}
@@ -396,14 +396,14 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
             outData[destination + 1] = vp8YuvToG(luma, cb, cr)
             outData[destination + 2] = vp8YuvToB(luma, cb)
             outData[destination + 3] = aData ? aData[alphaRow + x] : 0xFF
-            destination              += 4
+            destination += 4
         }
     }
 }
 
 func decodeLossy(container: Container, options: DecodeOptions)->Image fail
 {
-    let imageData           = Swag.makeSlice(cast(const [*] u8) container.image.data!, container.image.size)
+    let imageData = Swag.makeSlice(cast(const [*] u8) container.image.data!, container.image.size)
     var decoder: Vp8Decoder = {source: imageData.buffer}
     vp8DecodeFrameHeader(&decoder, imageData)
 
@@ -416,7 +416,7 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
     var result: retval
     result.init(decoder.header.width, decoder.header.height, .RGBA8)
     options.checkImage(result.width, result.height, .RGBA8)
-    if !options.decodePixels do
+    if not options.decodePixels do
         return result
 
     vp8ParseHeaders(&decoder)
@@ -428,7 +428,7 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
         {
             let skip      = vp8Reconstruct(&decoder, mbX, mbY)
             var parameter = decoder.filterParams[decoder.segment][decoder.usePredY16 ? 0 : 1]
-            parameter.inner = parameter.inner or !skip
+            parameter.inner = parameter.inner or not skip
             decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX] = parameter
         }
     }
@@ -493,7 +493,7 @@ impl IImageSetDecoder for Decoder
 
     mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
     {
-        if !.container.animated
+        if not .container.animated
         {
             if index do
                 fail InvalidFormatError{"WebP image index is out of range"}
@@ -505,7 +505,7 @@ impl IImageSetDecoder for Decoder
 
         if index >= .container.frames.count do
             fail InvalidFormatError{"WebP image index is out of range"}
-        let frame                = &.container.frames[index]
+        let frame = &.container.frames[index]
         let container: Container = {image: frame.image, alpha: frame.alpha, canvasWidth: frame.info.width, canvasHeight: frame.info.height, hasExtendedHeader: true, expectsAlpha: frame.alpha.data != null}
         var result:    retval    = container.image.kind == WEBP_FOURCC_VP8L ? decodeLossless(container, options) : decodeLossy(container, options)
         if options.decodeMetadata do

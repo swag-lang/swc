@@ -59,7 +59,7 @@ func playVideoThrough(view: *VideoViewer)
 func completeVideoHandover(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
     var steps = 0'u32
-    while !window.pendingFile.isEmpty() and steps < 5_000
+    while not window.pendingFile.isEmpty() and steps < 5_000
     {
         Threading.Thread.sleep(1'ms)
         Swag.drainWork()
@@ -76,14 +76,14 @@ func waitForVideoFrame(view: *VideoViewer)
     // Playback runs a producer ahead of the clock, so a picture reaches the screen only when
     // the viewer is next pumped. Drive that pump until the requested picture is published.
     var attempts: u32
-    while (!view.openFinished or view.awaitingFrame) and attempts < 5_000
+    while (not view.openFinished or view.awaitingFrame) and attempts < 5_000
     {
         Threading.Thread.sleep(1'ms)
         view.updatePlayback()
         attempts += 1
     }
 
-    Swag.assert(view.openFinished and !view.awaitingFrame)
+    Swag.assert(view.openFinished and not view.awaitingFrame)
 }
 
 // Withhold every free slot and drain any in-flight decode before observing a loading state.
@@ -96,7 +96,7 @@ func holdVideoProducer(view: *VideoViewer)
             Sync.scopedLock(&view.queueLock)
             view.ready.clear()
             view.freeSlots.clear()
-            if !view.inFlight do
+            if not view.inFlight do
                 return
         }
 
@@ -110,7 +110,7 @@ func releaseVideoProducer(view: *VideoViewer)
 {
     {
         Sync.scopedLock(&view.queueLock)
-        Swag.assert(!view.inFlight and !view.ready.count and !view.freeSlots.count)
+        Swag.assert(not view.inFlight and not view.ready.count and not view.freeSlots.count)
         for index in view.slotCount do
             view.freeSlots.add(cast(u32) index)
     }
@@ -134,7 +134,7 @@ func waitForVideoAudio(view: *VideoViewer, count: u32)
 func waitForVideoVoicePlaying(view: *VideoViewer)
 {
     var attempts: u32
-    while view.voice and !view.voice!.isPlaying() and attempts < 5_000
+    while view.voice and not view.voice!.isPlaying() and attempts < 5_000
     {
         Threading.Thread.sleep(1'ms)
         view.updatePlayback()
@@ -206,7 +206,7 @@ func videoMatroskaFixturePath()->String
     Swag.assert(Utf8.contains(sidecarTrackText, "<b>") and Utf8.contains(sidecarTrackText, "<p3>External file</p>"))
     Swag.assert(Utf8.contains(languageText, "<p2> (fr)</p>"))
     Swag.assert(Utf8.contains(embeddedTrackText, "<p3>Embedded</p>"))
-    Swag.assert(!Utf8.contains(RichString.plainText(sidecarTrackText), "<p"))
+    Swag.assert(not Utf8.contains(RichString.plainText(sidecarTrackText), "<p"))
     let opening = videoSubtitleText(view.subtitleOverlay.sidecars[0].cueTextData(0), view.subtitleOverlay.sidecars[0].cueTextLength(0))
     Swag.assert(opening == "Opening caption")
     Swag.assert(view.subtitleOverlay.text == "Opening caption")
@@ -269,7 +269,7 @@ func videoMatroskaFixturePath()->String
         }
 
         Swag.assert(window.outgoingView == previous and window.currentView == previous)
-        Swag.assert(!previous.isPendingDestroy)
+        Swag.assert(not previous.isPendingDestroy)
         let incoming = cast(*VideoViewer) window.instances[window.activeChoiceIndex].view!
         Swag.assert(incoming != previous)
         waitForVideoFrame(incoming)
@@ -324,7 +324,7 @@ func videoMatroskaFixturePath()->String
     view.clock.reset()
     view.updatePlayback()
     view.playing = false
-    Swag.assert(!view.clock.isRunning())
+    Swag.assert(not view.clock.isRunning())
     Swag.assert(view.frameIndex == 10)
 }
 
@@ -345,21 +345,21 @@ func videoMatroskaFixturePath()->String
     waitForVideoFrame(view)
     Swag.assert(view.video.frameCount() == 4)
     Swag.assert(result.sidePanelButton != null and result.sidePanelHost != null)
-    Swag.assert(!result.sidePanelHost!.isLocallyVisible())
+    Swag.assert(not result.sidePanelHost!.isLocallyVisible())
     result.sidePanelButton!.setChecked(true)
     result.sidePanelButton!.sigCheckedChanged.call(result.sidePanelButton!)
     Swag.assert(result.sidePanelHost!.isLocallyVisible())
     Swag.assert(Utf8.contains(view.information.text(), "Dimensions: 160 × 90 px"))
     Swag.assert(Utf8.contains(view.information.text(), "Frames: 4"))
     view.information.closeButton.sigPressed.call(view.information.closeButton)
-    Swag.assert(!result.sidePanelHost!.isLocallyVisible())
+    Swag.assert(not result.sidePanelHost!.isLocallyVisible())
     Swag.assert(view.frameIndex == 0 and view.playing)
     Swag.assert(view.playButton.icon.index == cast(s32) ThemeIcons.Pause)
     view.togglePlayback()
-    Swag.assert(!view.playing)
+    Swag.assert(not view.playing)
 
     // A Motion JPEG stream has no planes to hand over, so the queue holds packed pictures.
-    Swag.assert(!view.planar)
+    Swag.assert(not view.planar)
     Swag.assert(view.details.indexOf("160") != Swag.U64.Max)
     Swag.assert(view.details.indexOf("4 frames") != Swag.U64.Max)
     Swag.assert(view.details.indexOf("Swag CPU") != Swag.U64.Max)
@@ -375,7 +375,7 @@ func videoMatroskaFixturePath()->String
     reading.applySettings(&result)
     discard reading.restore(&result)
     waitForVideoFrame(view)
-    Swag.assert(view.frameIndex == 2 and !view.playing)
+    Swag.assert(view.frameIndex == 2 and not view.playing)
     view.seekRelative(-10)
     Swag.assert(view.seekOverlay!.isLocallyVisible() and view.seekOverlay!.direction == -1 and view.seekOverlay!.text == "-10")
     Swag.assert(view.seekOverlay!.presentationOffset == {} and view.seekOverlay!.presentationScale == {1, 1})
@@ -392,7 +392,7 @@ func videoMatroskaFixturePath()->String
     view.togglePlayback()
     Swag.assert(view.playing)
     view.togglePlayback()
-    Swag.assert(!view.playing)
+    Swag.assert(not view.playing)
     view.stopPlayback()
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 0 and view.elapsed == 0)
@@ -421,14 +421,14 @@ func videoMatroskaFixturePath()->String
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
     view.togglePlayback()
-    Swag.assert(!view.playing)
-    view.dockStyle          = .Center
+    Swag.assert(not view.playing)
+    view.dockStyle = .Center
     view.commands.dockStyle = .Center
     view.seekFrame(2)
     waitForVideoFrame(view)
-    Swag.assert(view.audioButton.isVisible() and !view.audioButton.isEnabled())
-    Swag.assert(view.muteButton.isVisible() and !view.muteButton.isEnabled())
-    Swag.assert(view.volumeSlider.isVisible() and !view.volumeSlider.isEnabled())
+    Swag.assert(view.audioButton.isVisible() and not view.audioButton.isEnabled())
+    Swag.assert(view.muteButton.isVisible() and not view.muteButton.isEnabled())
+    Swag.assert(view.volumeSlider.isVisible() and not view.volumeSlider.isEnabled())
 
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
@@ -441,7 +441,7 @@ func videoMatroskaFixturePath()->String
 
     let overlayTimer = view.seekOverlay!.timer!
     host.fireTimer(overlayTimer)
-    Swag.assert(!view.seekOverlay!.isLocallyVisible() and view.seekOverlay!.timer == null)
+    Swag.assert(not view.seekOverlay!.isLocallyVisible() and view.seekOverlay!.timer == null)
 
     host.theme.setLight()
     host.notify(.ThemeChanged)
@@ -464,7 +464,7 @@ func videoMatroskaFixturePath()->String
     Swag.assert(result.view != null and result.commands != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
-    Swag.assert(!view.openFailure.isEmpty() and !view.video.isOpen())
+    Swag.assert(not view.openFailure.isEmpty() and not view.video.isOpen())
 }
 
 #test
@@ -499,10 +499,10 @@ func videoMatroskaFixturePath()->String
     Swag.assert(view.awaitingFrame and view.resumeAudioAfterSeek)
     releaseVideoProducer(view)
     waitForVideoFrame(view)
-    Swag.assert(!view.resumeAudioAfterSeek and view.voice!.isPlaying())
+    Swag.assert(not view.resumeAudioAfterSeek and view.voice!.isPlaying())
     Swag.assert(view.voice!.playbackSampleFrame() == cast(u64) Math.round(view.video.frameTimestamp(5) * 44_100.0))
     view.togglePlayback()
-    Swag.assert(!view.playing and !view.voice!.isPlaying())
+    Swag.assert(not view.playing and not view.voice!.isPlaying())
     view.stopPlayback()
     Swag.assert(view.voice!.playbackSampleFrame() == 0)
 }
@@ -525,7 +525,7 @@ func videoMatroskaFixturePath()->String
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
     Swag.assert(view.speedButton.icon.index == cast(s32) ThemeIcons.PlaybackSpeed and view.speedButton.isEnabled())
-    Swag.assert(!view.playModeButton.isEnabled())
+    Swag.assert(not view.playModeButton.isEnabled())
     Swag.assert(view.audio != null and view.voice != null)
 
     // The speed entry rescales the voice with the clock, and the summary declares the rate.
@@ -567,7 +567,7 @@ func videoMatroskaFixturePath()->String
     // Told that the next file is on its way, the transport parks on the last picture.
     answer = .Next
     playVideoThrough(view)
-    Swag.assert(!view.playing and view.frameIndex == view.video.frameCount() - 1)
+    Swag.assert(not view.playing and view.frameIndex == view.video.frameCount() - 1)
 }
 
 // Played through with the folder mode on, a movie hands over to the next movie of its folder,
@@ -610,7 +610,7 @@ func videoMatroskaFixturePath()->String
         menu.destroy()
 
         playVideoThrough(view)
-        Swag.assert(!view.playing and Path.fileName(window.pendingFile.toString()) == expected)
+        Swag.assert(not view.playing and Path.fileName(window.pendingFile.toString()) == expected)
         completeVideoHandover(&host, window)
         Swag.assert(Path.fileName(window.currentFile.toString()) == expected)
     }
@@ -638,7 +638,7 @@ func videoMatroskaFixturePath()->String
     // taken long enough to be a wait.
     holdVideoProducer(view)
     view.timeline.setValue(cast(f32) view.frameSeconds(5))
-    Swag.assert(view.awaitingFrame and !window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0)
+    Swag.assert(view.awaitingFrame and not window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0)
     expireViewerLoadingDelay(window)
     Swag.assert(window.loadingOverlay.isLocallyVisible())
     releaseVideoProducer(view)
@@ -646,7 +646,7 @@ func videoMatroskaFixturePath()->String
     window.updateLoadingIndicator()
     Swag.assert(window.loadingOverlay.isLocallyVisible())
     expireViewerLoadingLinger(window)
-    Swag.assert(!window.loadingOverlay.isLocallyVisible())
+    Swag.assert(not window.loadingOverlay.isLocallyVisible())
 
     let voice = view.voice!
 
@@ -673,17 +673,17 @@ func videoMatroskaFixturePath()->String
     window.openFile(videoAudioFixturePath(), remember: false)
     completeViewerWindowClassification(&host, window)
     let view = cast(*VideoViewer) window.currentView!
-    Swag.assert(!window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0)
+    Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0)
     expireViewerLoadingDelay(window)
     Swag.assert(window.loadingOverlay.isLocallyVisible())
     waitForVideoFrame(view)
     window.updateLoadingIndicator()
     expireViewerLoadingLinger(window)
-    Swag.assert(!window.loadingOverlay.isLocallyVisible())
+    Swag.assert(not window.loadingOverlay.isLocallyVisible())
 
     // Start the shortcut scenario from a deliberate pause; opening itself already started play.
     view.togglePlayback()
-    Swag.assert(!view.playing and !view.voice!.isPlaying())
+    Swag.assert(not view.playing and not view.voice!.isPlaying())
 
     window.viewerCombo.setFocus()
     var press = KeyEvent{kind: .Pressed, key: .Space}
@@ -695,7 +695,7 @@ func videoMatroskaFixturePath()->String
     var release = KeyEvent{kind: .Released, key: .Space}
     Swag.assert(window.hookOnChildEvent!(window.viewerCombo, &release))
     Swag.assert(window.hookOnChildEvent!(window.viewerCombo, &press))
-    Swag.assert(!view.playing and !view.voice!.isPlaying() and window.viewerCombo.hasFocus())
+    Swag.assert(not view.playing and not view.voice!.isPlaying() and window.viewerCombo.hasFocus())
     Swag.assert(window.hookOnChildEvent!(window.viewerCombo, &release))
 }
 
@@ -752,14 +752,14 @@ func videoMatroskaFixturePath()->String
     view.togglePlayback()
     view.seekFrame(5)
     waitForVideoFrame(view)
-    Swag.assert(!view.playing and !view.voice!.isPlaying())
+    Swag.assert(not view.playing and not view.voice!.isPlaying())
     let previousVoice = view.voice!
 
     host.clickPopupMenuItemWhenShown("scope.video.audioTrack.1")
     view.showAudioTrackMenu()
     Swag.assert(view.audioTrackIndex == 1 and view.audio == view.video.audioTrack(1))
     Swag.assert(view.voice != null and view.voice != previousVoice)
-    Swag.assert(!view.playing and !view.voice!.isPlaying())
+    Swag.assert(not view.playing and not view.voice!.isPlaying())
     Swag.assert(view.muted and Math.isEqualEpsilon(expect view.voice!.volume(), 0, 0.001))
     let switchedSample = view.voice!.playbackSampleFrame()
     let seekSample     = cast(u64) Math.round(view.video.frameTimestamp(5) * 44_100.0)
@@ -791,7 +791,7 @@ func videoMatroskaFixturePath()->String
     Swag.assert(videoAudioTrackText(1, view.video.audioTrack(1)!).indexOf("can.") != Swag.U64.Max)
     Swag.assert(view.details.indexOf("2 can.") != Swag.U64.Max)
 
-    view.dockStyle          = .Center
+    view.dockStyle = .Center
     view.commands.dockStyle = .Center
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
@@ -846,7 +846,7 @@ func videoMatroskaFixturePath()->String
     view.clock.restart()
     view.seekFrame(8)
     waitForVideoFrame(view)
-    Swag.assert(view.audioRangePending and view.resumeAudioAfterSeek and !view.voice!.isPlaying())
+    Swag.assert(view.audioRangePending and view.resumeAudioAfterSeek and not view.voice!.isPlaying())
     Swag.assert(view.currentSeconds() >= 1.9 and view.voice!.playbackSampleFrame() == 0)
     view.followAudioClock()
     Swag.assert(view.currentSeconds() >= 1.9)
@@ -865,7 +865,7 @@ func videoMatroskaFixturePath()->String
     view.audio = longerSound
     view.voice = expect Voice.create(longerSound)
     view.resumeAudio()
-    Swag.assert(!view.audioRangePending and !view.resumeAudioAfterSeek and view.voice!.isPlaying())
+    Swag.assert(not view.audioRangePending and not view.resumeAudioAfterSeek and view.voice!.isPlaying())
     Swag.assert(view.voice!.playbackSampleFrame() >= 200)
     view.voice!.destroy()
     view.voice = null
@@ -883,10 +883,10 @@ func videoMatroskaFixturePath()->String
     var config: Array'u8
     var sound = expect SoundFile.openPacketStream(soundPath, .Ac3, 48_000, 2, 1536, Packets, config.toSlice(), {timelineStartSeconds: 100})
 
-    Swag.assert(!videoSoundCovers(&sound, 99.99))
+    Swag.assert(not videoSoundCovers(&sound, 99.99))
     Swag.assert(videoSoundCovers(&sound, 100.01))
     Swag.assert(videoSoundSample(&sound, 100.01) == 480)
-    Swag.assert(!videoSoundCovers(&sound, 101))
+    Swag.assert(not videoSoundCovers(&sound, 101))
 }
 
 // An output device that never consumes what it was given reports the same position for ever.
@@ -940,7 +940,7 @@ func videoMatroskaFixturePath()->String
     let fileName = videoAvcFixturePath()
     var result   = openTestViewer(videoViewerPlugin(), &host.root, fileName, commandParent: commands, services: {reportLoadingChanged: &countVideoLoadingChange})
     Swag.assert(result.view != null)
-    let view           = cast(*VideoViewer) result.view!
+    let view = cast(*VideoViewer) result.view!
     var counters: ArrayPtr'u32
     let loadingChanges = counters.allocate()
     counters.add(loadingChanges)
@@ -950,8 +950,8 @@ func videoMatroskaFixturePath()->String
 
     Swag.assert(view.planar)
     Swag.assert(view.video.width() == 64 and view.video.height() == 48)
-    Swag.assert(view.frameIndex == 0 and !view.hasFailure)
-    Swag.assert(result.isLoading != null and !result.isLoading!(view))
+    Swag.assert(view.frameIndex == 0 and not view.hasFailure)
+    Swag.assert(result.isLoading != null and not result.isLoading!(view))
 
     // A viewer reports every outstanding visible picture, not only its first one. The application
     // can therefore cover a stale frame while this exact seek reconstructs its target.
@@ -960,8 +960,8 @@ func videoMatroskaFixturePath()->String
     Swag.assert(loadingChanges[] == 1)
     view.decodeWake.signal()
     waitForVideoFrame(view)
-    Swag.assert(view.frameIndex == 12 and !view.hasFailure)
-    Swag.assert(!result.isLoading!(view))
+    Swag.assert(view.frameIndex == 12 and not view.hasFailure)
+    Swag.assert(not result.isLoading!(view))
     Swag.assert(loadingChanges[] == 2)
     Swag.assert(view.planar)
     view.userData = null
@@ -991,7 +991,7 @@ func videoMatroskaFixturePath()->String
     Swag.assert(view.frameIndex == 0)
 
     view.togglePlayback()
-    Swag.assert(!view.playing)
+    Swag.assert(not view.playing)
 
     // A paused viewer decodes only the picture it is parked on, so let the producer run and wait
     // until it has filled every slot, which is also when it stops touching the queue.

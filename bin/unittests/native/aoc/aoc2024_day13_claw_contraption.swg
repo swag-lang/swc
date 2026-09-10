@@ -132,8 +132,8 @@ func parseMachines(text: string, out: [*] Machine)->u32
             break
         case ParseState.WantPrize:
             out[count].prize = {x: v1, y: v2}
-            count            += 1
-            state            = ParseState.WantA
+            count += 1
+            state = ParseState.WantA
             break
         case ParseState.Done:
             break
@@ -264,7 +264,7 @@ func costTier(cost: u64)->u32
     let b: Vec2 = {x: 10, y: 20}
     let c: Vec2 = {x: 10, y: 99}
     Swag.assert(vec2Eq(a, b))
-    Swag.assert(!vec2Eq(a, c))
+    Swag.assert(not vec2Eq(a, c))
 }
 
 // Parse number with ternary, negative, while..do

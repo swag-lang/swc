@@ -42,7 +42,7 @@ impl BuildArtifact
         defer retireProcess(&process)
         var watch: Time.Stopwatch
         watch.start()
-        while !try process.tryWaitForExit(5'ms)
+        while not try process.tryWaitForExit(5'ms)
         {
             if Atomic.get(&.cancelled) do
                 return

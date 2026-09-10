@@ -687,13 +687,13 @@ private impl RenderCpu
 
         var out = Color.fromArgbF32(outA, outColor.x, outColor.y, outColor.z)
 
-        if !.colorMask.r do
+        if not .colorMask.r do
             out.r = dst.r
-        if !.colorMask.g do
+        if not .colorMask.g do
             out.g = dst.g
-        if !.colorMask.b do
+        if not .colorMask.b do
             out.b = dst.b
-        if !.colorMask.a do
+        if not .colorMask.a do
             out.a = dst.a
         writePixel(image, x, y, out)
     }
@@ -969,7 +969,7 @@ private impl RenderCpu
 
         case .Texture:
             let image = batch.paintImage
-            if !image do
+            if not image do
                 return Color.fromArgb(Argb.Zero)
 
             if p.uvMode == .FillSubRect and .program != CpuProgram_Blur and .program != CpuProgram_Resolve do
@@ -1072,7 +1072,7 @@ private impl RenderCpu
 
     mtd fontAtlas()->*GlyphAtlas?
     {
-        if !.font or .fontAtlasIndex < 0 do
+        if not .font or .fontAtlasIndex < 0 do
             return null
 
         let cache = .font.cache
@@ -1105,7 +1105,7 @@ private impl RenderCpu
     {
         let width  = cast(s32) (atlas.width / atlas.bytesPerPixel)
         let height = cast(s32) atlas.height
-        if !linear
+        if not linear
         {
             let x = Math.clamp(cast(s32) Math.floor(uv.x * width), 0, width - 1)
             let y = Math.clamp(cast(s32) Math.floor(uv.y * height), 0, height - 1)
@@ -1326,7 +1326,7 @@ private impl RenderCpu
         if .program == CpuProgram_Font
         {
             let atlas = batch.atlas
-            if !atlas do
+            if not atlas do
                 return Color.fromArgb(Argb.Zero)
 
             // Nearest atlas fetch, inlined: the sample value only feeds the gamma power, so the
@@ -1342,7 +1342,7 @@ private impl RenderCpu
         elif .program == CpuProgram_Msdf
         {
             let atlas = batch.atlas
-            if !atlas do
+            if not atlas do
                 return Color.fromArgb(Argb.Zero)
             result = .shadeMsdf(result, fontUv, fontUvDx, fontUvDy, atlas)
         }
@@ -1408,17 +1408,17 @@ private impl RenderCpu
         let fontUvDy = Vector2{(v0.uv.x * (p2.x - p1.x) + v1.uv.x * (p0.x - p2.x) + v2.uv.x * (p1.x - p0.x)) * invArea,
                                (v0.uv.y * (p2.x - p1.x) + v1.uv.y * (p0.x - p2.x) + v2.uv.y * (p1.x - p0.x)) * invArea}
 
-        let c0            = Color.fromArgb(v0.color)
-        let c1            = Color.fromArgb(v1.color)
-        let c2            = Color.fromArgb(v2.color)
+        let c0 = Color.fromArgb(v0.color)
+        let c1 = Color.fromArgb(v1.color)
+        let c2 = Color.fromArgb(v2.color)
         let constantColor = c0 == c1 and c1 == c2
 
         let image       = batch.image!
         let stencilTest = .stencilOn
-        let maskColor   = .colorMask.r and .colorMask.g and .colorMask.b and !.colorMask.a
+        let maskColor   = .colorMask.r and .colorMask.g and .colorMask.b and not .colorMask.a
         let maskFull    = .colorMask.r and .colorMask.g and .colorMask.b and .colorMask.a
-        let maskAlpha   = !.colorMask.r and !.colorMask.g and !.colorMask.b and .colorMask.a
-        let plainBgra8  = !.alphaResolve and .overlapPass == 0 and image.pixelFormat == .BGRA8
+        let maskAlpha   = not .colorMask.r and not .colorMask.g and not .colorMask.b and .colorMask.a
+        let plainBgra8  = not .alphaResolve and .overlapPass == 0 and image.pixelFormat == .BGRA8
         let fastAlpha   = plainBgra8 and .blendingMode == .Alpha and maskColor
         let fastCopy    = plainBgra8 and .blendingMode == .Copy and (maskColor or maskFull)
 
@@ -1442,7 +1442,7 @@ private impl RenderCpu
 
         // Writing a region shades nothing and takes the general loop below, which is the one that
         // computes the coverage each pixel contributes to it.
-        if constShade and plainBgra8 and !.stencilWrite
+        if constShade and plainBgra8 and not .stencilWrite
         {
             // Multiplying the destination by an opaque coverage returns every channel's own
             // byte, masked or not, so the whole triangle leaves the target untouched.
@@ -1502,7 +1502,7 @@ private impl RenderCpu
 
                         // Translucent alpha keeps the scalar float blend so every byte rounds as
                         // before; the other full spans collapse to one packed load/store pair.
-                        if laneCount == 4 and coverage == 0xF and !stencilTest and (!fastAlpha or constColor.a == 255)
+                        if laneCount == 4 and coverage == 0xF and not stencilTest and (not fastAlpha or constColor.a == 255)
                         {
                             if copyAll do
                                 Math.Simd.store(pixel, fill)
@@ -1516,7 +1516,7 @@ private impl RenderCpu
 
                         for lane in laneCount
                         {
-                            if !(coverage & (1'u32 << lane)) do
+                            if not (coverage & (1'u32 << lane)) do
                                 continue
                             let pixelX = x + cast(s32) lane
 
@@ -1583,7 +1583,7 @@ private impl RenderCpu
         // expression the sampler evaluates, so the bytes stored are the same bytes.
         let paint = &.paintCommand.texture0
         let white = Color.fromArgb(Argb.White).argb
-        if fastAlpha and !batch.solidPaint and !stencilTest and batch.paintImage != null and v0.color == white and v1.color == white and v2.color == white and paint.type == .Texture and paint.uvMode == .FillSubRect and paint.interpolationMode == .Pixel and .contentScale == 1 and (.program == CpuProgram_Simple or (.program == CpuProgram_Default and v0.cov == v1.cov and v1.cov == v2.cov and v0.cov > 0.51))
+        if fastAlpha and not batch.solidPaint and not stencilTest and batch.paintImage != null and v0.color == white and v1.color == white and v2.color == white and paint.type == .Texture and paint.uvMode == .FillSubRect and paint.interpolationMode == .Pixel and .contentScale == 1 and (.program == CpuProgram_Simple or (.program == CpuProgram_Default and v0.cov == v1.cov and v1.cov == v2.cov and v0.cov > 0.51))
         {
             let source       = batch.paintImage!
             let directFormat = source.pixelFormat == .BGR8 or source.pixelFormat == .BGRA8 or source.pixelFormat == .RGB8 or source.pixelFormat == .RGBA8
@@ -1623,7 +1623,7 @@ private impl RenderCpu
                         let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
                         let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
                         let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
-                        if !insideEdge(e0, edge0TopLeft) or !insideEdge(e1, edge1TopLeft) or !insideEdge(e2, edge2TopLeft) do
+                        if not insideEdge(e0, edge0TopLeft) or not insideEdge(e1, edge1TopLeft) or not insideEdge(e2, edge2TopLeft) do
                             continue
 
                         let w0 = e0 * invArea
@@ -1665,7 +1665,7 @@ private impl RenderCpu
             }
         }
 
-        let needPaintPos = !batch.solidPaint
+        let needPaintPos = not batch.solidPaint
         let needFontUv   = .program == CpuProgram_Font or .program == CpuProgram_Msdf
         let needCoverage = .program == CpuProgram_Default
         let copyAll      = fastCopy and maskFull
@@ -1684,14 +1684,14 @@ private impl RenderCpu
                 let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
                 let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
                 let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
-                if !insideEdge(e0, edge0TopLeft) or !insideEdge(e1, edge1TopLeft) or !insideEdge(e2, edge2TopLeft) do
+                if not insideEdge(e0, edge0TopLeft) or not insideEdge(e1, edge1TopLeft) or not insideEdge(e2, edge2TopLeft) do
                     continue
 
                 var clip = 255'u8
                 if stencilTest
                 {
                     clip = rowStencil[x]
-                    if clip == 0 and !.stencilWrite do
+                    if clip == 0 and not .stencilWrite do
                         continue
                 }
 
@@ -1823,7 +1823,7 @@ private impl RenderCpu
 
         batch.stencil = .currentStencil().buffer!
 
-        batch.solidPaint      = !.paintOn or .paintCommand.texture0.type == .SolidColor
+        batch.solidPaint      = not .paintOn or .paintCommand.texture0.type == .SolidColor
         batch.paintImage      = null
         batch.blurWeights     = null
         batch.blurWeightCount = 0
@@ -1847,16 +1847,16 @@ private impl RenderCpu
     {
         if batch.count != 6 or .program != CpuProgram_Default and .program != CpuProgram_Simple do
             return false
-        if .contentScale != 1 or !batch.transform.isTranslationOnly() do
+        if .contentScale != 1 or not batch.transform.isTranslationOnly() do
             return false
-        if .blendingMode != .Copy or !.colorMask.r or !.colorMask.g or !.colorMask.b or !.colorMask.a do
+        if .blendingMode != .Copy or not .colorMask.r or not .colorMask.g or not .colorMask.b or not .colorMask.a do
             return false
         if .stencilOn or .stencilWrite or .scissorOn or .overlapMode or .alphaResolve do
             return false
 
         let source = batch.paintImage
         let target = batch.image
-        if !source or !target or source == target or source.pixelFormat != .BGRA8 or target.pixelFormat != .BGRA8 do
+        if not source or not target or source == target or source.pixelFormat != .BGRA8 or target.pixelFormat != .BGRA8 do
             return false
 
         let params = &.paintCommand.texture0
@@ -1916,7 +1916,7 @@ private impl RenderCpu
     mtd drawTriangles(painter: *Painter, start, count: u32)
     {
         let image = .currentImage()
-        if !image or count < 3 do
+        if not image or count < 3 do
             return
 
         let bounds = .triangleRangeBounds(image, painter, start, count)
@@ -1950,7 +1950,7 @@ private impl RenderCpu
             }
         }
 
-        if !.overlapMode or .alphaResolve
+        if not .overlapMode or .alphaResolve
         {
             .rasterizeRange(&batch, bounds)
             return
@@ -1978,7 +1978,7 @@ private impl RenderCpu
     // Returns the region the scissor allows, as the bounds an unrestricted pass covers.
     mtd clipBounds(image: *Image)->PixelBounds
     {
-        if !.scissorOn do
+        if not .scissorOn do
             return {0, 0, image.width - 1, image.height - 1}
 
         var result: retval
@@ -2001,7 +2001,7 @@ private impl RenderCpu
     // trip made this the dominant cost of rasterizing a vector atlas.
     mtd clearAlpha(image: *Image, bounds: PixelBounds)
     {
-        if !image.pixelFormat.hasAlpha() do
+        if not image.pixelFormat.hasAlpha() do
             return
 
         let minX = Math.clamp(bounds.minX, 0, image.width)
@@ -2038,7 +2038,7 @@ private impl RenderCpu
     mtd clearCurrent(color: Color, forceColorMask = false)
     {
         let image = .currentImage()
-        if !image do
+        if not image do
             return
 
         let minX = .scissorOn ? Math.clamp(cast(s32) .scissorRect.x, 0, image.width) : 0
@@ -2059,14 +2059,14 @@ private impl RenderCpu
         // clears: all channels under a forced or full mask, or the three color bytes under the
         // default mask, whose disabled alpha simply keeps the fourth byte in place.
         let writeAll = forceColorMask or (.colorMask.r and .colorMask.g and .colorMask.b and .colorMask.a)
-        let writeRgb = !writeAll and .colorMask.r and .colorMask.g and .colorMask.b and !.colorMask.a
+        let writeRgb = not writeAll and .colorMask.r and .colorMask.g and .colorMask.b and not .colorMask.a
         if image.pixelFormat == .BGRA8 and (writeAll or writeRgb)
         {
             let pixels = image.pixels.buffer!
 
             // Transparent target clears are the common layer setup. Clear each contiguous
             // BGRA row in one operation instead of issuing four stores per pixel.
-            if writeAll and !color.a and !color.r and !color.g and !color.b
+            if writeAll and not color.a and not color.r and not color.g and not color.b
             {
                 let byteCount = runWidth * 4
                 for var y = minY; y < maxY; y += 1
@@ -2122,13 +2122,13 @@ private impl RenderCpu
 
                 let old = readPixel(image, x, y)
                 var out = color
-                if !.colorMask.r do
+                if not .colorMask.r do
                     out.r = old.r
-                if !.colorMask.g do
+                if not .colorMask.g do
                     out.g = old.g
-                if !.colorMask.b do
+                if not .colorMask.b do
                     out.b = old.b
-                if !.colorMask.a do
+                if not .colorMask.a do
                     out.a = old.a
                 writePixel(image, x, y, out)
             }
@@ -2161,7 +2161,7 @@ private impl RenderCpu
     mtd replayTargetAlpha(painter: *Painter, first, last: u64)
     {
         let image = .currentImage()
-        if !image do
+        if not image do
             return
 
         // The replay rebuilds the whole alpha plane rather than one batch's scratch, so it starts
@@ -2264,11 +2264,11 @@ private impl RenderCpu
             .program = CpuProgram_Default
 
         case .BindTextureFont:
-            .font           = cmd.textureFont.font
+            .font = cmd.textureFont.font
             .fontAtlasIndex = cmd.textureFont.atlasIndex
 
         case .ResetTextureFont:
-            .font           = null
+            .font = null
             .fontAtlasIndex = -1
 
         case .UpdateFont:
@@ -2338,7 +2338,7 @@ private impl RenderCpu
 
         case .SetShader:
             let shader = cmd.shader.shader
-            if !shader do
+            if not shader do
                 .program = CpuProgram_Default
             else do
                 Swag.assert(false, "RenderCpu does not support custom shaders")
@@ -2440,11 +2440,11 @@ impl RenderCpu
     internal mtd bindRenderTargetImpl(rt: *RenderTarget)
     {
         Swag.assert(rt != null, "bindRenderTarget needs a target")
-        if !rt.colorBuffer.isValid() do
+        if not rt.colorBuffer.isValid() do
             return
         if .curRT do
             .stackRT.add(.curRT)
-        .curRT            = rt
+        .curRT = rt
         .curRT.paintAlpha = false
         .ensureStencil(rt.colorBuffer.width, rt.colorBuffer.height)
     }
@@ -2513,7 +2513,7 @@ impl RenderCpu
     // Releases an off-screen target and invalidates its descriptor.
     internal mtd deleteRenderTargetImpl(rt: *RenderTarget)
     {
-        if rt.handle == InvalidRenderTargetHandle or !rt.colorBuffer.isValid() do
+        if rt.handle == InvalidRenderTargetHandle or not rt.colorBuffer.isValid() do
             return
         .removeTextureStorage(rt.colorBuffer.handle)
         rt.clear()
@@ -2554,7 +2554,7 @@ impl RenderCpu
     // Converts a planar picture into the surface that holds it.
     internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)
     {
-        if !texture.isValid() do
+        if not texture.isValid() do
             return
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
@@ -2563,7 +2563,7 @@ impl RenderCpu
 
     internal mtd addImageImpl(image: const *Image)->Texture
     {
-        if !image.isValid() do
+        if not image.isValid() do
             return {}
 
         var result: retval
@@ -2595,7 +2595,7 @@ impl RenderCpu
     internal mtd readTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array'u8
     {
         var result: retval
-        if !texture.isValid() do
+        if not texture.isValid() do
             return result
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
@@ -2608,7 +2608,7 @@ impl RenderCpu
     // Releases a renderer-owned texture and invalidates its descriptor.
     internal mtd removeTextureImpl(texture: *Texture)
     {
-        if !texture.isValid() do
+        if not texture.isValid() do
             return
         .removeTextureStorage(texture.handle)
         texture.clear()

@@ -30,7 +30,7 @@ internal func testRoundTrip(host: *Testing.HeadlessHost, source: *IDataObject)->
     host.surface.registerDropTarget()
     let target = cast(*IDropTarget) cast(*void) &host.surface.dropTarget
 
-    var effect          = DROPEFFECT_COPY
+    var effect = DROPEFFECT_COPY
     var dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
     Swag.assert(dragEnterResult == S_OK)
     return &host.surface.dropTarget.data
@@ -108,7 +108,7 @@ func streamOnlyRelease(itf: *IDataObject)->ULONG
 
 func streamOnlyQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
 {
-    if !(fmt.tymed & TYMED_ISTREAM) do
+    if not (fmt.tymed & TYMED_ISTREAM) do
         return DV_E_TYMED
 
     let inner = cast(*IDataObject) cast(*void) streamOnlyOf(itf).inner!
@@ -119,7 +119,7 @@ func streamOnlyQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
 
 func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM)->HRESULT
 {
-    if !(fmt.tymed & TYMED_ISTREAM) do
+    if not (fmt.tymed & TYMED_ISTREAM) do
         return DV_E_TYMED
 
     let inner = cast(*IDataObject) cast(*void) streamOnlyOf(itf).inner!
@@ -137,8 +137,8 @@ func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM
         return E_OUTOFMEMORY
     }
 
-    med.tymed          = TYMED_ISTREAM
-    med.pstm           = cast(*IStream) raw!
+    med.tymed = TYMED_ISTREAM
+    med.pstm  = cast(*IStream) raw!
     med.pUnkForRelease = null
     return S_OK
 }
@@ -297,7 +297,7 @@ impl IWnd for PlatformCatcher
     host.surface.registerDropTarget()
     let target = cast(*IDropTarget) cast(*void) &host.surface.dropTarget
 
-    var effect          = DROPEFFECT_COPY
+    var effect = DROPEFFECT_COPY
     var dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
     Swag.assert(dragEnterResult == S_OK)
     Swag.assert(effect == DROPEFFECT_COPY)
@@ -330,8 +330,8 @@ impl IWnd for PlatformCatcher
     Swag.assert(payload.files[0] == "c:/tmp/first.png")
     Swag.assert(payload.files[1] == "c:/tmp/second name with spaces.png")
     Swag.assert(payload.singleFile() == null)
-    Swag.assert(!payload.hasText())
-    Swag.assert(!payload.hasImage())
+    Swag.assert(not payload.hasText())
+    Swag.assert(not payload.hasImage())
 }
 
 // One file alone is what a field naming a document reads through `singleFile`.
@@ -363,7 +363,7 @@ impl IWnd for PlatformCatcher
     let payload = testRoundTrip(&host, testDragSource(&session, &data))
 
     Swag.assert(payload.text == "drag héllo → wörld")
-    Swag.assert(!payload.hasFiles())
+    Swag.assert(not payload.hasFiles())
 }
 
 // A picture survives the PNG medium, pixel for pixel.

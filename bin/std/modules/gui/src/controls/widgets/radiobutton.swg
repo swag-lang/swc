@@ -118,14 +118,14 @@ impl IWnd for RadioButton
         format.flags         = .Clip
         format.font          = .font()
         var labelPos = clientRect
-        if !.flags.has(.RightAligned) do
+        if not .flags.has(.RightAligned) do
             labelPos.x += posBox.width + metrics.btnCheck_Padding
         labelPos.width -= posBox.width + metrics.btnCheck_Padding
         Theme.drawIconText(bc.painter, labelPos, .icon, &.name, format, metrics.iconText_Margin)
 
         // The box and the wording are one target, and the ring is drawn around that rather than
         // around the cell the layout gave the control. See [[Gui.Button.markerFocusRect]].
-        if !bc.isDisabled and .showsFocusRing() do
+        if not bc.isDisabled and .showsFocusRing() do
             theme.drawFocusRing(bc.painter, .markerFocusRect(posBox))
     }
 
@@ -242,7 +242,7 @@ impl RadioButton
     // keeps standing on the option that is checked.
     mtd selectSibling(forward: bool)->bool
     {
-        if (.groupId).count == 0 or !.parent do
+        if (.groupId).count == 0 or not .parent do
             return false
 
         var group: Array'(*RadioButton)
@@ -273,7 +273,7 @@ impl RadioButton
     // Clears selected sibling radios from the same non-null group.
     mtd uncheckGroupSiblings()
     {
-        if (.groupId).count == 0 or !.parent do
+        if (.groupId).count == 0 or not .parent do
             return
 
         for c in .parent.children

@@ -6,14 +6,14 @@ public impl Image
     #[Swag.Safety(.All, false)]
     mtd colorize(hue, saturation: f32, strength = 1.0)
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
 
         let h      = Math.clamp(hue, 0.0, 1.0)
         let s      = Math.clamp(saturation, 0.0, 1.0)
         let st     = Math.clamp(strength, 0.0, 1.0)
         let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
-        if !legacy
+        if not legacy
         {
             var context = {h: h, s: s, strength: st}
             .transformLogicalPixels(&context)

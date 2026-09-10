@@ -10,10 +10,10 @@ using Swag
     for i in Input.GamepadButton.count
     {
         let button = cast(Input.GamepadButton) i
-        Swag.assert(!pad.isButtonPressed(button))
+        Swag.assert(not pad.isButtonPressed(button))
         Swag.assert(pad.isButtonReleased(button))
-        Swag.assert(!pad.isButtonJustPressed(button))
-        Swag.assert(!pad.isButtonJustReleased(button))
+        Swag.assert(not pad.isButtonJustPressed(button))
+        Swag.assert(not pad.isButtonJustReleased(button))
         Swag.assert(pad.position(button) == Math.Point.Zero)
     }
 }
@@ -30,21 +30,21 @@ using Swag
         pad.setControlStates(button, false, true, Math.Point.Zero, pos)
 
         Swag.assert(pad.isButtonPressed(button))
-        Swag.assert(!pad.isButtonReleased(button))
+        Swag.assert(not pad.isButtonReleased(button))
         Swag.assert(pad.isButtonJustPressed(button))
-        Swag.assert(!pad.isButtonJustReleased(button))
+        Swag.assert(not pad.isButtonJustReleased(button))
         Swag.assert(pad.position(button) == pos)
 
         pad.setControlStates(button, true, true, Math.Point.Zero, pos)
         Swag.assert(pad.isButtonPressed(button))
-        Swag.assert(!pad.isButtonReleased(button))
-        Swag.assert(!pad.isButtonJustPressed(button))
-        Swag.assert(!pad.isButtonJustReleased(button))
+        Swag.assert(not pad.isButtonReleased(button))
+        Swag.assert(not pad.isButtonJustPressed(button))
+        Swag.assert(not pad.isButtonJustReleased(button))
 
         pad.setControlStates(button, true, false, Math.Point.Zero, pos)
-        Swag.assert(!pad.isButtonPressed(button))
+        Swag.assert(not pad.isButtonPressed(button))
         Swag.assert(pad.isButtonReleased(button))
-        Swag.assert(!pad.isButtonJustPressed(button))
+        Swag.assert(not pad.isButtonJustPressed(button))
         Swag.assert(pad.isButtonJustReleased(button))
     }
 }
@@ -64,8 +64,8 @@ using Swag
     for i in Input.GamepadButton.count
     {
         let button = cast(Input.GamepadButton) i
-        Swag.assert(!pad.previousState.pressed[button])
-        Swag.assert(!pad.currentState.pressed[button])
+        Swag.assert(not pad.previousState.pressed[button])
+        Swag.assert(not pad.currentState.pressed[button])
         Swag.assert(pad.previousState.position[button] == Math.Point.Zero)
         Swag.assert(pad.currentState.position[button] == Math.Point.Zero)
     }

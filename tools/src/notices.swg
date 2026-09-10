@@ -34,7 +34,7 @@ public func auditNotices(context: *Context)->s32 fail
     for root in NoticeRoots
     {
         let directory = Path.combine(context.root.toString(), root)
-        if !Directory.exists(directory.toString()) do
+        if not Directory.exists(directory.toString()) do
             continue
         errors += try auditNoticeIndex(context, directory.toString(), index.toString())
         errors += try auditNoticeReferences(context, directory.toString())
@@ -136,7 +136,7 @@ private func auditNoticeTarget(context: *Context, fileName: string, lineNumber: 
 
     Path.normalize(&resolved)
 
-    if !File.exists(resolved.toString())
+    if not File.exists(resolved.toString())
     {
         Console.println("error: ", fileName, ":", lineNumber, ": notice target '", target, "' is missing")
         return 1

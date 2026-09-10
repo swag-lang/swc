@@ -28,17 +28,17 @@ impl IActionUI for ActionLibTrash
 
         case .Empty:
             evt.updatedFields |= .Name
-            evt.name          = appStrings().act_EmptyRecycleBin
+            evt.name = appStrings().act_EmptyRecycleBin
 
         case .Restore:
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_Restore
-            evt.disabled      = !hasSel
+            evt.disabled      = not hasSel
 
         case .DeleteForever:
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_DeletePermanently
-            evt.disabled      = !hasSel
+            evt.disabled      = not hasSel
         }
 
         return true
@@ -51,7 +51,7 @@ impl IActionUI for ActionLibTrash
         switch cxt.id
         {
         case .Toggle:
-            libWnd.setTrashMode(!libWnd.trashMode)
+            libWnd.setTrashMode(not libWnd.trashMode)
 
         case .Empty:
             let res = MessageDlg.confirm(libWnd.main.surface!, appStrings().msg_EraseTrash)

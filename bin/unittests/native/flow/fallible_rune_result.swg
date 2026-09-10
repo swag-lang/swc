@@ -11,7 +11,7 @@ struct RuneError
 
 func readRune(ok: bool)->rune fail
 {
-    if !ok do
+    if not ok do
         fail RuneError{base: Swag.BaseError{"nope"}}
     return 'é'rune
 }

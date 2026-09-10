@@ -109,7 +109,7 @@ func semaTest010()
     #assert(#typeof(p) == *s32)
 
     var cr: const *s32 = &x
-    let cp             = cr
+    let cp = cr
     #assert(#typeof(cp) == const *s32)
 }
 

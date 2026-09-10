@@ -113,7 +113,7 @@ func delayTestViewerRetirement(wnd: *Wnd)->bool
 func completeViewerStatistics(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
     let view = cast(*TextView) window.currentView!
-    while !Atomic.get(&view.statisticsState) do
+    while not Atomic.get(&view.statisticsState) do
         host.pump()
     if view.statisticsTimer do
         host.fireTimer(view.statisticsTimer)
@@ -127,7 +127,7 @@ func completeViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     while window.searchTimer and steps < 4_096
     {
         host.fireTimer(window.searchTimer)
-        if window.searchTimer and !window.searchStream.isOpen() do
+        if window.searchTimer and not window.searchStream.isOpen() do
             Threading.Thread.sleep(1'ms)
         steps += 1
     }
@@ -167,7 +167,7 @@ func createSidePanelFixture(host: Viewer.Host)
     Swag.assert(session.sidePanelHost!.padding.x == 0 and session.sidePanelHost!.padding.z == host.root.themeMetrics().panel_GutterSize)
     Swag.assert(session.sidePanelHost!.padding.y == 0 and session.sidePanelHost!.padding.w == 0)
     Swag.assert(session.sidePanelHost!.position.width == 220 + host.root.themeMetrics().panel_GutterSize)
-    Swag.assert(!session.sidePanelHost!.isLocallyVisible() and !session.sidePanelButton!.isLocallyVisible())
+    Swag.assert(not session.sidePanelHost!.isLocallyVisible() and not session.sidePanelButton!.isLocallyVisible())
 
     session.sidePanelButton!.show()
     let closedWidth = session.view!.position.width
@@ -180,7 +180,7 @@ func createSidePanelFixture(host: Viewer.Host)
     session.sidePanelButton!.setChecked(false)
     session.sidePanelButton!.sigCheckedChanged.call(session.sidePanelButton!)
     host.root.applyLayout()
-    Swag.assert(!session.sidePanelHost!.isLocallyVisible() and session.view!.position.width == closedWidth)
+    Swag.assert(not session.sidePanelHost!.isLocallyVisible() and session.view!.position.width == closedWidth)
 }
 
 #test
@@ -202,7 +202,7 @@ func createSidePanelFixture(host: Viewer.Host)
     Viewer.collectTextMatches(Source, #raw "c.t(a)?", {regularExpression: true}, 0, 0, 0, &matches)
     Swag.assert(matches.count == 5 and matches[0].length == 3 and matches[1].length == 4)
     Swag.assert(Viewer.patternIsValid(#raw "c.t(a)?", {regularExpression: true}))
-    Swag.assert(!Viewer.patternIsValid("(", {regularExpression: true}))
+    Swag.assert(not Viewer.patternIsValid("(", {regularExpression: true}))
 }
 
 #test
@@ -274,7 +274,7 @@ func createSidePanelFixture(host: Viewer.Host)
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, fileName.toString(), commandParent: commands)
     let view          = cast(*TextView) viewerSession.view!
-    while !Atomic.get(&view.statisticsState) do
+    while not Atomic.get(&view.statisticsState) do
         host.pump()
     if view.statisticsTimer do
         host.fireTimer(view.statisticsTimer)
@@ -323,7 +323,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.openFile(second.toString(), remember: false)
     Swag.assert(window.searchTimer == null)
-    Swag.assert(!(window.searchBox.text()).count and window.searchMatches.isEmpty())
+    Swag.assert(not (window.searchBox.text()).count and window.searchMatches.isEmpty())
 }
 
 // A file that is not UTF-8 is read as text rather than sent to the hexadecimal view: the mark
@@ -413,7 +413,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.fireTimer(view.loadTimer)
     Swag.assert(view.encoding == .Windows1252)
     Swag.assert(Utf8.endsWith(view.editor.text(), "é\n"))
-    Swag.assert(!Utf8.contains(view.editor.text(), textStrings().ui_NotText))
+    Swag.assert(not Utf8.contains(view.editor.text(), textStrings().ui_NotText))
 }
 
 // Deciding an encoding is not accepting the file: code page 1252 gives every byte a meaning, so
@@ -425,7 +425,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         binary.add(cast(u8) ((i * 7) & 0xFF))
     let file = writeTempFile("binary.bin", binary.toSlice())
     defer discard catch File.delete(file.toString())
-    Swag.assert(!TextView.supports(file.toString()))
+    Swag.assert(not TextView.supports(file.toString()))
 }
 
 // The panel lists what is beside the current file and what was read before it, and a row opens
@@ -454,7 +454,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.openFile(names[0].toString())
     completeQueuedViewerFile(&host, window)
 
-    Swag.assert(!window.panelVisible and !window.filePanelHost.isLocallyVisible())
+    Swag.assert(not window.panelVisible and not window.filePanelHost.isLocallyVisible())
     window.toggleFilePanel()
     Swag.assert(window.panelVisible and window.filePanelHost.isLocallyVisible())
     Swag.assert(window.filesButton.isChecked)
@@ -493,7 +493,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     assertFolderFiles(window, names.toSlice())
 
     window.setFilePanelVisible(false)
-    Swag.assert(!window.filesButton.isChecked)
+    Swag.assert(not window.filesButton.isChecked)
     window.setFilePanelVisible(true)
 
     window.filePanel.setPaneSize(0, 120)
@@ -596,7 +596,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     {
         let label = window.folderList.lineAt(i)!.itemAt(0).name.raw
         Swag.assert(Utf8.startsWith(label, "file") and Utf8.endsWith(label, ".txt"))
-        Swag.assert(!Utf8.contains(label, "document text"))
+        Swag.assert(not Utf8.contains(label, "document text"))
     }
 }
 
@@ -616,7 +616,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.setFilePanelVisible(true)
     Swag.assert(window.panelVisible and window.filePanelHost.isLocallyVisible())
     Swag.assert(window.folderList.lineCount() == 0 and window.recentList.lineCount() == 0)
-    Swag.assert(!window.filePanel.isPaneVisible(0) and !window.recentPane.isLocallyVisible())
+    Swag.assert(not window.filePanel.isPaneVisible(0) and not window.recentPane.isLocallyVisible())
     Swag.assert(window.folderLabel.text() == appStrings().ui_Folder)
 }
 
@@ -664,7 +664,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     Swag.assert(window.recentClearButton.parent == window.recentLabel.parent)
     Swag.assert(window.recentClearButton.icon.isValid())
-    Swag.assert(!Utf8.contains(appStrings().ui_ConfirmClearHistory, "?"))
+    Swag.assert(not Utf8.contains(appStrings().ui_ConfirmClearHistory, "?"))
 
     host.clickModalButtonWhenShown(Dialog.BtnNo)
     window.confirmClearRecent()
@@ -676,7 +676,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.pump()
     Swag.assert(host.autoHandled)
     Swag.assert(window.recent.isEmpty() and window.recentList.lineCount() == 0)
-    Swag.assert(!window.filePanel.isPaneVisible(0) and !window.recentPane.isLocallyVisible())
+    Swag.assert(not window.filePanel.isPaneVisible(0) and not window.recentPane.isLocallyVisible())
     Swag.assert(window.currentFile == names[2] and window.folderList.lineCount() == 3)
 }
 
@@ -907,7 +907,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(view.editor.scrollPosition().y > 0)
     host.keyPress(Input.Key.Home)
     discard host.render(view)
-    Swag.assert(view.residentStart == 0 and !view.pendingSeek)
+    Swag.assert(view.residentStart == 0 and not view.pendingSeek)
     Swag.assert(view.editor.selectionEnd().lineIndex == 0)
     Swag.assert(view.editor.scrollPosition().y == 0)
     host.fireTimers()
@@ -943,7 +943,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     view.editor.setScrollPosition({0, view.virtualHeight * 0.85})
     Swag.assert(view.pendingSeek)
     view.editor.setScrollPosition({0, 0})
-    Swag.assert(!view.pendingSeek)
+    Swag.assert(not view.pendingSeek)
 
     view.editor.setScrollPosition({0, view.virtualHeight * 0.85})
     view.editor.setScrollPosition({0, view.virtualHeight * 0.2})
@@ -962,7 +962,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         let offset = cast(u64) (ratio * cast(f32) view.fileSize)
         Swag.assert(view.residentStart <= offset and view.bytesRead >= offset)
         Swag.assert(Math.abs(view.editor.scrollPosition().y - requestedY) <= 1)
-        Swag.assert(!view.editor.text().isEmpty())
+        Swag.assert(not view.editor.text().isEmpty())
     }
 }
 
@@ -1006,10 +1006,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     let index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    Swag.assert(!window.appearanceButton.sigAboutRequested.isEmpty())
+    Swag.assert(not window.appearanceButton.sigAboutRequested.isEmpty())
     let capabilities = window.aboutViewerList()
     Swag.assert(Utf8.contains(capabilities.toSlice(), "<b>Archive</b>"))
-    Swag.assert(!Utf8.contains(capabilities.toSlice(), "\n") and !Utf8.contains(capabilities.toSlice(), ".zip"))
+    Swag.assert(not Utf8.contains(capabilities.toSlice(), "\n") and not Utf8.contains(capabilities.toSlice(), ".zip"))
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     window.showAbout()
     host.pump()
@@ -1222,7 +1222,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.searchBox.isValid() and window.searchMatches.count == 3)
 
     window.searchBox.setText("(")
-    Swag.assert(!window.searchBox.isValid() and window.searchTimer == null)
+    Swag.assert(not window.searchBox.isValid() and window.searchTimer == null)
     Swag.assert(window.searchCountLabel.text() == "0/0" and window.searchCountLabel.toolTip == appStrings().ui_SearchInvalidRegularExpression)
 
     window.searchRegexOption = false
@@ -1231,14 +1231,14 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.searchBox.setText("absent")
     completeViewerSearch(&host, window)
     Swag.assert(window.searchMatches.isEmpty() and window.searchCountLabel.text() == "0/0")
-    Swag.assert(window.searchBox.hasFocus() and !window.searchOverlay.isLocallyVisible())
+    Swag.assert(window.searchBox.hasFocus() and not window.searchOverlay.isLocallyVisible())
 
     window.searchBox.setText("cat")
     completeViewerSearch(&host, window)
-    Swag.assert(!window.searchBox.children.isEmpty())
+    Swag.assert(not window.searchBox.children.isEmpty())
     window.searchBox.setText(null)
-    Swag.assert(!(window.searchBox.text()).count)
-    Swag.assert(!(window.searchCountLabel.text()).count and !window.searchOverlay.isLocallyVisible())
+    Swag.assert(not (window.searchBox.text()).count)
+    Swag.assert(not (window.searchCountLabel.text()).count and not window.searchOverlay.isLocallyVisible())
     Swag.assert((cast(*TextView) window.currentView!).editor.isSelectionEmpty())
 }
 
@@ -1281,28 +1281,28 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     completeViewerSearch(&host, window)
     Swag.assert(window.searchMatches.count == 3 and window.searchMatch == offsets[0])
 
-    for 2_048 where !window.searchOverlay.isLocallyVisible() do
+    for 2_048 where not window.searchOverlay.isLocallyVisible() do
         host.fireTimers()
     Swag.assert(window.searchOverlay.isLocallyVisible())
 
     window.findNext()
     Swag.assert(window.searchIndex == 1 and window.searchMatch == offsets[1])
     window.searchOverlay.hide()
-    for 2_048 where !window.searchOverlay.isLocallyVisible() do
+    for 2_048 where not window.searchOverlay.isLocallyVisible() do
         host.fireTimers()
     Swag.assert(window.searchOverlay.isLocallyVisible())
 
     window.findNext()
     Swag.assert(window.searchIndex == 2 and window.searchMatch == offsets[2])
     window.searchOverlay.hide()
-    for 2_048 where !window.searchOverlay.isLocallyVisible() do
+    for 2_048 where not window.searchOverlay.isLocallyVisible() do
         host.fireTimers()
     Swag.assert(window.searchOverlay.isLocallyVisible())
 
     window.findPrevious()
     Swag.assert(window.searchIndex == 1 and window.searchMatch == offsets[1])
     window.searchOverlay.hide()
-    for 2_048 where !window.searchOverlay.isLocallyVisible() do
+    for 2_048 where not window.searchOverlay.isLocallyVisible() do
         host.fireTimers()
     Swag.assert(window.searchOverlay.isLocallyVisible())
 
@@ -1330,8 +1330,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(markdown.hasFocus())
 
     window.searchBox.setText(null)
-    Swag.assert(!markdown.searchMatchRect(&bounds))
-    Swag.assert(!window.searchOverlay.isLocallyVisible())
+    Swag.assert(not markdown.searchMatchRect(&bounds))
+    Swag.assert(not window.searchOverlay.isLocallyVisible())
 }
 
 #test
@@ -1355,10 +1355,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.searchNavigation.parent == window.searchGroup)
     Swag.assert(window.fullScreenButton.parent == window.commandBar)
     Swag.assert(window.fullScreenButton.flags.has(.Toggle) and window.fullScreenButton.checkIndicator == .Frame)
-    Swag.assert(window.openDefaultButton.parent == window.commandBar and !window.openDefaultButton.isEnabled())
-    Swag.assert(!window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
+    Swag.assert(window.openDefaultButton.parent == window.commandBar and not window.openDefaultButton.isEnabled())
+    Swag.assert(not window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
     Swag.assert(window.searchPrevious.icon.isValid() and window.searchNext.icon.isValid())
-    Swag.assert(!window.searchPrevious.isEnabled() and !window.searchNext.isEnabled())
+    Swag.assert(not window.searchPrevious.isEnabled() and not window.searchNext.isEnabled())
     Swag.assert(window.infoBar.position.height == ViewerInfoHeight)
     let panelGutter = window.themeMetrics().panel_GutterSize
     Swag.assert(window.infoBarHost.position.height == ViewerInfoHeight + 2 * panelGutter)
@@ -1394,7 +1394,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(Utf8.contains(window.emptyLabel.name.raw, appStrings().ui_DropTitle))
 
     // The large empty-state glyph is intentionally deferred until the surface's Init event.
-    Swag.assert(window.emptyView.isLocallyVisible() and !window.emptyIconLabel.icon.isValid())
+    Swag.assert(window.emptyView.isLocallyVisible() and not window.emptyIconLabel.icon.isValid())
     Swag.assert(window.documentHost.position.y >= window.infoBarHost.position.bottom())
     Swag.assert(window.infoBar.surfaceRect().y - window.openButton.surfaceRect().bottom() == panelGutter)
     Swag.assert(window.emptyHintLabel.text() == appStrings().ui_DropHint)
@@ -1402,8 +1402,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.currentCommands == null)
     Swag.assert(window.currentActions == null and window.currentInfo == null)
     Swag.assert(window.filesButton.flags.has(.Toggle) and window.filesButton.checkIndicator == .Frame)
-    Swag.assert(!window.filesButton.isChecked and !window.loadingOverlay.isLocallyVisible())
-    Swag.assert(!window.viewerCombo.isLocallyVisible())
+    Swag.assert(not window.filesButton.isChecked and not window.loadingOverlay.isLocallyVisible())
+    Swag.assert(not window.viewerCombo.isLocallyVisible())
     Swag.assert(window.infoNameLabel.parent == window.infoFileGroup)
     Swag.assert(window.infoSizeLabel.parent == window.infoFileGroup)
     Swag.assert(window.infoNameLabel.textVerticalAlignment == .OpticalCenter)
@@ -1465,10 +1465,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.openFile(midiFile.toString())
     completeQueuedViewerFile(&host, window)
 
-    Swag.assert(!window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
+    Swag.assert(not window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
     Swag.assert(window.searchPrevious.isHidden() and window.searchNext.isHidden())
     Swag.assert(window.searchOptionsButton.isHidden())
-    Swag.assert(!window.searchBox.hasFocus())
+    Swag.assert(not window.searchBox.hasFocus())
 
     window.openFile(viewerFixturePath().toString())
     completeQueuedViewerFile(&host, window)
@@ -1560,20 +1560,20 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.sendEvent(&key)
     Swag.assert(window.fullScreen and window.fullScreenButton.isChecked)
     Swag.assert(host.surface.flags.has(.NoShadow) and host.surface.flags.has(.TopMost))
-    Swag.assert(!host.surface.flags.has(.LargeCaption) and !host.surface.flags.has(.Border))
-    Swag.assert(!window.commandBar.isLocallyVisible() and !window.infoBarHost.isLocallyVisible())
-    Swag.assert(!window.viewerBar.isLocallyVisible() and !window.filePanelHost.isLocallyVisible())
+    Swag.assert(not host.surface.flags.has(.LargeCaption) and not host.surface.flags.has(.Border))
+    Swag.assert(not window.commandBar.isLocallyVisible() and not window.infoBarHost.isLocallyVisible())
+    Swag.assert(not window.viewerBar.isLocallyVisible() and not window.filePanelHost.isLocallyVisible())
 
     window.updateFullScreenChrome({10, 1})
     Swag.assert(window.commandBar.isLocallyVisible() and window.infoBarHost.isLocallyVisible())
-    Swag.assert(!window.viewerBar.isLocallyVisible())
+    Swag.assert(not window.viewerBar.isLocallyVisible())
     window.updateFullScreenChrome({10, window.clientRect().height / 2})
-    Swag.assert(!window.commandBar.isLocallyVisible() and !window.infoBarHost.isLocallyVisible())
+    Swag.assert(not window.commandBar.isLocallyVisible() and not window.infoBarHost.isLocallyVisible())
     window.updateFullScreenChrome({10, window.clientRect().height - 1})
     Swag.assert(window.viewerBar.isLocallyVisible())
 
     window.setFullScreen(false)
-    Swag.assert(!window.fullScreen and !window.fullScreenButton.isChecked)
+    Swag.assert(not window.fullScreen and not window.fullScreenButton.isChecked)
     Swag.assert(host.surface.flags == flags and host.surface.position == position)
     Swag.assert(window.commandBar.isLocallyVisible() and window.infoBarHost.isLocallyVisible())
     Swag.assert(window.viewerBar.isLocallyVisible() and window.filePanelHost.isLocallyVisible())
@@ -1674,13 +1674,13 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     loading.setPosition({17, 83, 611, 391})
 
     reportViewerLoadingChanged(loading)
-    Swag.assert(!window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
+    Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
 
     // The mark waits before it appears: a wait that has just begun shows nothing, and the one
     // that has lasted the delay shows the mark, faded in over the preserved document.
     window.instances[0].needsLoadingOverlay = func(wnd)->bool { discard wnd; return true }
     reportViewerLoadingChanged(loading)
-    Swag.assert(!window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0 and window.loadingTimer != null)
+    Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0 and window.loadingTimer != null)
     expireViewerLoadingDelay(window)
     Swag.assert(window.loadingOverlay.isLocallyVisible() and window.loadingShownSince != 0)
     host.app.animator.finishAll()
@@ -1720,13 +1720,13 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     reportViewerLoadingChanged(loading)
     Swag.assert(window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince == 0 and window.loadingTimer != null)
     expireViewerLoadingLinger(window)
-    Swag.assert(!window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
+    Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
     Swag.assert(window.activateChoice(1))
     Swag.assert(loading.retired and loading.isPendingDestroy)
     Swag.assert(window.instances[0].view == null)
     Swag.assert(window.currentView != null and window.currentView != loading)
     Swag.assert(window.instances[1].view == window.currentView)
-    Swag.assert(!window.loadingOverlay.isLocallyVisible() and window.loadingTimer == null)
+    Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer == null)
 }
 
 // File selection never waits for a viewer that needs another event-loop turn to retire. The
@@ -1751,7 +1751,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.openFile(fileName, remember: false)
     Swag.assert(window.currentView == old and retireCalls == 0)
     Swag.assert(window.pendingFile == fileName and window.startupTimer != null)
-    Swag.assert(!window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0)
+    Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0)
     expireViewerLoadingDelay(window)
     Swag.assert(window.loadingOverlay.isLocallyVisible() and window.loadingOverlay.position == old.position)
 
@@ -1788,7 +1788,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.currentFile.isEmpty())
     Swag.assert(window.infoNameLabel.name.raw.isEmpty())
     Swag.assert(window.infoNameLabel.position.width == 0 and window.infoStatsLabel.position.width == 0)
-    Swag.assert(window.infoBarHost.isLocallyVisible() and !window.infoIconLabel.icon.isValid())
+    Swag.assert(window.infoBarHost.isLocallyVisible() and not window.infoIconLabel.icon.isValid())
     Swag.assert(window.emptyView.isLocallyVisible() and window.documentHost.position.y >= window.infoBarHost.position.bottom())
 }
 
@@ -1816,7 +1816,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var comboPoint = window.viewerCombo.surfaceRect().center()
     window.viewerCombo.surface!.surfaceToScreen(&comboPoint)
     host.sendMouseEvent(window.viewerCombo, .Pressed, comboPoint, .Left, .None)
-    Swag.assert(window.viewerCombo.hasFocus() and !window.viewerCombo.hasVisibleFocus())
+    Swag.assert(window.viewerCombo.hasFocus() and not window.viewerCombo.hasVisibleFocus())
     host.keyPress(Input.Key.Escape)
     Swag.assert(textView.editor.hasFocus())
 
@@ -1924,14 +1924,14 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.dropHighlight.isLocallyVisible())
     Swag.assert(window.dropHighlight.parent == window.documentPanel)
     Swag.assert(window.dropHighlight.prompt.text() == appStrings().ui_DropTitle)
-    Swag.assert(!window.dropHighlight.prompt.isLocallyVisible())
+    Swag.assert(not window.dropHighlight.prompt.isLocallyVisible())
     Swag.assert(window.dropHighlight.wndFlags.has(.Disabled))
     Swag.assert(window.dropHighlight.clientRect().width == window.documentPanel.clientRect().width)
     Swag.assert(window.dropHighlight.clientRect().height == window.documentPanel.clientRect().height)
     Swag.assert(window.pendingFile.isEmpty() and window.startupTimer == null)
 
     host.cancelDrag()
-    Swag.assert(!window.dropHighlight.isLocallyVisible())
+    Swag.assert(not window.dropHighlight.isLocallyVisible())
     Swag.assert(window.pendingFile.isEmpty() and window.startupTimer == null)
 
     Swag.assert(host.dragFilesOver(point, [file.toString()]) == DropEffect.Copy)
@@ -1941,7 +1941,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Testing.assertContentFits(window)
 
     Swag.assert(host.dropFiles(point, [file.toString()]) == DropEffect.Copy)
-    Swag.assert(!window.dropHighlight.isLocallyVisible())
+    Swag.assert(not window.dropHighlight.isLocallyVisible())
     Swag.assert(window.pendingFile == file and window.startupTimer != null)
     completeQueuedViewerFile(&host, window)
     Swag.assert(window.currentFile == file)
@@ -1976,7 +1976,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     Swag.assert(window.viewerCombo.isLocallyVisible())
     Swag.assert(window.openDefaultButton.isEnabled())
-    Swag.assert(window.infoBarHost.isLocallyVisible() and !window.emptyView.isLocallyVisible())
+    Swag.assert(window.infoBarHost.isLocallyVisible() and not window.emptyView.isLocallyVisible())
     Swag.assert(window.infoIconLabel.icon.isValid())
     Swag.assert(window.infoIconLabel.position.right() <= window.infoNameLabel.position.x)
     Swag.assert(window.infoNameLabel.position.right() <= window.infoSizeLabel.position.x)
@@ -2104,7 +2104,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     completeQueuedViewerFile(&host, window)
     let textView = cast(*TextView) window.currentView!
     window.openButton.setFocus()
-    Swag.assert(!textView.editor.hasFocus())
+    Swag.assert(not textView.editor.hasFocus())
     host.keyPress(Input.Key.Right)
     Swag.assert(Path.fileName(window.currentFile.toString()) == "t1.txt")
     Swag.assert(textView.editor.hasFocus())
@@ -2166,7 +2166,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     // The one text file has nothing of its kind to go on with, in either folder mode.
     window.openFile(Path.combine(folder.toString(), "notes.txt").toString())
     completeQueuedViewerFile(&host, window)
-    Swag.assert(!window.continueFile(.Folder) and !window.continueFile(.Shuffle))
+    Swag.assert(not window.continueFile(.Folder) and not window.continueFile(.Shuffle))
     Swag.assert(window.pendingFile.isEmpty())
 }
 
@@ -2194,7 +2194,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
         Swag.assert(seen.count == step)
         Swag.assert(window.continueFile(.Shuffle))
         let picked = Path.fileName(window.pendingFile.toString()) orelse ""
-        Swag.assert(picked != "pic1.svg" and !seen.contains(String.from(picked)))
+        Swag.assert(picked != "pic1.svg" and not seen.contains(String.from(picked)))
         seen.add(String.from(picked))
         completeQueuedViewerFile(&host, window)
     }
@@ -2318,7 +2318,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     }
 
     completeQueuedViewerFile(&host, window)
-    Swag.assert(!button.isVisible())
+    Swag.assert(not button.isVisible())
     window.selectViewer(0)
     completeQueuedViewerFile(&host, window)
     Swag.assert(button.isVisible())

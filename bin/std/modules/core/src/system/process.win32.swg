@@ -35,7 +35,7 @@ func currentEnvironment()->ProcessEnvironment
     var result: retval
 
     let block = GetEnvironmentStringsW()
-    if !block do
+    if not block do
         return result
     defer discard FreeEnvironmentStringsW(block)
 
@@ -72,14 +72,14 @@ func variable(name: string)->String
     let name16 = Utf16.toZeroTerminated(name)
 
     let needed = GetEnvironmentVariableW(name16.buffer, null, 0)
-    if !needed do
+    if not needed do
         return ""
 
     var buffer: Array'u16
     buffer.resize(needed)
 
     let written = GetEnvironmentVariableW(name16.buffer, (buffer.toSlice()).buffer, needed)
-    if !written or written >= needed do
+    if not written or written >= needed do
         return ""
     return Utf8.fromUtf16(Swag.makeSlice((buffer.toSlice()).buffer, cast(u64) written))
 }
@@ -124,7 +124,7 @@ private func appendQuoted(commandLine: *String, argument: string)
             mustQuote = true
     }
 
-    if !mustQuote
+    if not mustQuote
     {
         commandLine.append(argument)
         return
@@ -181,7 +181,7 @@ private func nativePath(path: string)->String
 private func releaseHandle(handle: *ProcessHandle)
 {
     let native = cast(HANDLE) handle[]
-    if !native do
+    if not native do
         return
 
     CloseHandle(native)
@@ -353,7 +353,7 @@ func startProcess(info: StartInfo)->Process fail
     // Nothing here decides whether a window appears for a program that draws its own; the flag
     // only stops the system from building a console, and the host process that draws it, for a
     // console child that has none to inherit.
-    if !info.consoleWindow do
+    if not info.consoleWindow do
         creationFlags |= CREATE_NO_WINDOW
 
     // Accounting and affinity both have to be in place before the first instruction runs: a job
@@ -403,7 +403,7 @@ impl Process
         if info.measureResources
         {
             let job = CreateJobObjectW(null, null)
-            if !job do
+            if not job do
                 failWinError(GetLastError())
 
             .jobHandle = cast(ProcessHandle) job
@@ -441,7 +441,7 @@ impl Process
     mtd const resources()->ProcessResources
     {
         var result: retval
-        if !.jobHandle do
+        if not .jobHandle do
             return result
 
         var accounting: JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
@@ -487,7 +487,7 @@ impl Process
     private mtd drainPipe(pipe: *ProcessHandle, text: *String)
     {
         let handle = cast(HANDLE) pipe[]
-        if !handle do
+        if not handle do
             return
 
         var buffer: [PipeReadChunk] u8
@@ -496,7 +496,7 @@ impl Process
             // Peeking first is what keeps this from blocking: a read of a pipe that holds
             // nothing waits for the child, and this side may be the one it is waiting on.
             var available: DWORD
-            if !PeekNamedPipe(handle, null, 0, null, &available, null)
+            if not PeekNamedPipe(handle, null, 0, null, &available, null)
             {
                 // The writing end is gone for good. Releasing the reading end now is what
                 // makes the next pass a no-op instead of a peek that fails again.
@@ -504,11 +504,11 @@ impl Process
                 return
             }
 
-            if !available do
+            if not available do
                 return
 
             var read: DWORD
-            if !ReadFile(handle, &buffer[0], Math.min(available, PipeReadChunk), &read, null) or !read
+            if not ReadFile(handle, &buffer[0], Math.min(available, PipeReadChunk), &read, null) or not read
             {
                 releaseHandle(pipe)
                 return
@@ -529,7 +529,7 @@ impl Process
         Swag.assert(.handle != null, "invalid process handle")
 
         let interval: DWORD = .hasCapturedStream() ? PipePollInterval : INFINITE
-        while !.exited
+        while not .exited
         {
             .readAvailable()
             let status = try WaitForSingleObject(cast(HANDLE) .handle, interval)
@@ -583,7 +583,7 @@ impl Process
     // in the captured streams. Killing a process that already exited does nothing.
     mtd kill(exitCode: s32 = 1) fail
     {
-        if .exited or !.handle do
+        if .exited or not .handle do
             return
         try TerminateProcess(cast(HANDLE) .handle, cast #bit (u32) exitCode)
     }
@@ -596,7 +596,7 @@ impl Process
     mtd writeStandardInput(data: string) fail
     {
         let handle = cast(HANDLE) .inputPipe
-        if !handle do
+        if not handle do
             fail BadParameterError{"standard input is not redirected to a pipe"}
 
         var offset = 0'u64
@@ -604,7 +604,7 @@ impl Process
         {
             var written: DWORD
             try WriteFile(handle, data.buffer + offset, cast(u32) Math.min(data.count - offset, cast(u64) Swag.U32.Max), &written, null)
-            if !written do
+            if not written do
                 failWinError(ERROR_NO_DATA)
             offset += written
         }
@@ -627,7 +627,7 @@ impl Process
     {
         var buffer: [32768] u16
         let count = GetModuleFileNameW(null, buffer.buffer, cast(u32) buffer.count)
-        if !count do
+        if not count do
             failWinError(GetLastError())
         if count >= buffer.count do
             failWinError(ERROR_INSUFFICIENT_BUFFER)

@@ -60,7 +60,7 @@ private func readEncoderInfo(frame: const [..] u8, header: const *FrameHeader)->
         return result
     let isXing = frame[at] == 'X' and frame[at + 1] == 'i' and frame[at + 2] == 'n' and frame[at + 3] == 'g'
     let isInfo = frame[at] == 'I' and frame[at + 1] == 'n' and frame[at + 2] == 'f' and frame[at + 3] == 'o'
-    if !isXing and !isInfo do
+    if not isXing and not isInfo do
         return result
 
     result.isHeaderFrame = true
@@ -102,7 +102,7 @@ private func readFrameIndex(source: *ByteSource, start: u64, packets: *Array'Sou
         if at + header.frameBytes > size do
             break
 
-        if !seen
+        if not seen
         {
             seen    = true
             first[] = header
@@ -128,7 +128,7 @@ private func readFrameIndex(source: *ByteSource, start: u64, packets: *Array'Sou
         at    += header.frameBytes
     }
 
-    if !seen do
+    if not seen do
         fail InvalidFormatError{"file carries no MP3 frame"}
     return total
 }
@@ -146,12 +146,12 @@ internal func openFile(path: string)->SoundFile fail
     var info:    EncoderInfo
     var first:   FrameHeader
     let frames = try readFrameIndex(&source, start, &packets, &info, &first)
-    if !packets.count do
+    if not packets.count do
         fail InvalidFormatError{"MP3 file carries no audio frame"}
 
     // A file with no encoder tag still has the decoder's own priming to drop.
     var trim = info.delayFrames
-    if !trim and info.isHeaderFrame do
+    if not trim and info.isHeaderFrame do
         trim = DecoderDelay
     if trim >= frames do
         trim = 0

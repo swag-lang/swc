@@ -58,7 +58,7 @@ impl Encoder
 
     func imageHasTransparentPixels(image: Image)->bool
     {
-        if !image.pixelFormat.hasAlpha() do
+        if not image.pixelFormat.hasAlpha() do
             return false
 
         var pix = cast([*] u8) image.pixels.buffer!
@@ -75,7 +75,7 @@ impl Encoder
 
     func quantLevel(level, maxLevel: u32)->u8
     {
-        if !maxLevel do
+        if not maxLevel do
             return 0
         return cast(u8) ((level * 255 + maxLevel / 2) / maxLevel)
     }
@@ -230,7 +230,7 @@ impl Encoder
         if hasTransparent
         {
             data.transparentIndex = 0
-            data.count            = 1
+            data.count = 1
         }
 
         var dstIndex = 0'u64
@@ -259,7 +259,7 @@ impl Encoder
                         if data.count == MaxPaletteColors do
                             return false
 
-                        paletteIndex              = cast(u8) data.count
+                        paletteIndex = cast(u8) data.count
                         data.colors[paletteIndex] = {col.r, col.g, col.b}
                         colorMap.add(key, paletteIndex)
                         data.count += 1
@@ -267,8 +267,8 @@ impl Encoder
                 }
 
                 data.indexes[dstIndex] = paletteIndex
-                dstIndex               += 1
-                pix                    += image.bytesPerPixel
+                dstIndex += 1
+                pix      += image.bytesPerPixel
             }
         }
 
@@ -351,7 +351,7 @@ impl Encoder
     {
         let hasTransparent = imageHasTransparentPixels(image)
         var result: retval
-        if !tryBuildExactPalette(&result, image, hasTransparent) do
+        if not tryBuildExactPalette(&result, image, hasTransparent) do
             buildQuantizedPalette(&result, image, hasTransparent)
         return result
     }

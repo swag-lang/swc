@@ -78,7 +78,7 @@ impl PlaybackApi
         let state    = .settings(view)
         let texts    = appStrings()
         let labels   = [texts.ui_PlayOnce, texts.ui_PlayRepeat, texts.ui_PlayFolder, texts.ui_PlayShuffle]
-        let disabled = !.isAvailable()
+        let disabled = not .isAvailable()
         for label, index in labels
         {
             let mode = cast(PlayMode) index
@@ -101,7 +101,7 @@ impl PlaybackApi
     // without playback callbacks return false, so a viewer can handle its other settings normally.
     mtd const applyMenuChoice(view: *Wnd, chosen: WndId, showSlideDuration = false)->bool
     {
-        if !.isAvailable() do
+        if not .isAvailable() do
             return false
         var state = .settings(view)
         for id, index in PlayIds where chosen == id

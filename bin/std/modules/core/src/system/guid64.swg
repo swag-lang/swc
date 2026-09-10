@@ -2,8 +2,9 @@
 
 using Core.Errors
 
-    // Thread-local storage for identifier generation.
-    tls
+// Thread-local storage for identifier generation.
+
+tls
 {
     private var g_Rng:     Random.MersenneTwister64     // Mersenne Twister 64-bit random number generator
     private var g_RngInit: bool                         // Flag indicating whether the RNG has been initialized
@@ -15,7 +16,7 @@ using Core.Errors
 #[Swag.Inline]
 private func initRng()
 {
-    if !g_RngInit
+    if not g_RngInit
     {
         var seed: [3] u64
         seed[0] = Time.monotonicMilliseconds()
@@ -168,7 +169,7 @@ impl Guid64
     func parse(str: string)->Guid64 fail
     {
         var result: retval
-        if !tryParse(str, &result) do
+        if not tryParse(str, &result) do
             fail InvalidFormatError{"invalid 64-bit identifier"}
         return result
     }

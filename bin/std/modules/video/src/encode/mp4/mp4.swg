@@ -149,7 +149,7 @@ impl IEncoder for Encoder
 
     mtd impl end(sink: *ByteSink) fail
     {
-        if !.frames.count do
+        if not .frames.count do
             fail BadParameterError{"MP4 stream needs at least one frame"}
         patchU64(sink, .mediaDataSize, sink.position() - .mediaData)
         .writeMovie(sink)

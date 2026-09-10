@@ -106,7 +106,7 @@ impl IForm for FormDraw
 
     mtd impl boundRect()->Math.Rectangle
     {
-        if !.points.count do
+        if not .points.count do
             .setDefaultShape()
         return boundOfPoints(&.points, .borderSize * 0.5 + .outlineSize)
     }

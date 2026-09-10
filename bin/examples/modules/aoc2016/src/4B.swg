@@ -22,7 +22,7 @@ func day4B()
     {
         var idx = 0
         var str: String
-        while !Latin1.isDigit(l[idx])
+        while not Latin1.isDigit(l[idx])
         {
             if l[idx] != '-' do
                 str += l[idx] - 'a'

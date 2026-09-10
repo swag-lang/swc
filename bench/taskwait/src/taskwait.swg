@@ -44,7 +44,7 @@ func measure(sleeping: bool, repeats: u32)
             // tasks keep the normal race between worker execution and caller assistance.
             if sleeping
             {
-                while !started.isRaised() do
+                while not started.isRaised() do
                     Sleep(1)
             }
 

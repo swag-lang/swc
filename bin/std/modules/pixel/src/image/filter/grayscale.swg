@@ -14,7 +14,7 @@ public impl Image
     // Transform image to grayscale, with a given factor
     mtd grayscale(factor: f32 = 1)
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
 
         let f = Math.saturate(factor)

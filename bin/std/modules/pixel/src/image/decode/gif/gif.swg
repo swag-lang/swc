@@ -124,7 +124,7 @@ public impl Decoder
         Swag.init(me, 1)
 
         .streamStart, .stream = buffer.buffer
-        .streamLen            = buffer.count
+        .streamLen = buffer.count
 
         // Header
         var sigver: [3] u8
@@ -249,7 +249,7 @@ impl IImageSetDecoder for SetDecoder
         {
             options.checkFrameCount(.frames.count + 1)
             .frames.add({.decoder.descriptorOffset, .decoder.descriptorRemaining, .decoder.gce})
-            let control               = .decoder.gce
+            let control = .decoder.gce
             let frame: ImageFrameInfo = {kind: .Animation, width: .decoder.fw, height: .decoder.fh, x: .decoder.fx, y: .decoder.fy, pixelFormat: control.transparency ? .RGBA8 : .RGB8, durationSeconds: cast(f64) control.delay / 100, disposal: control.disposal == 3 ? .Previous : (control.disposal == 2 ? .Background : .Keep), blend: .Over}
             result.frames.add(frame)
             if result.frames.count == 1 and control.transparency do
@@ -272,7 +272,7 @@ impl IImageSetDecoder for SetDecoder
         .decoder.readImage(options.decodePixels)
         var result: retval
         result.init(.decoder.fw, .decoder.fh, .decoder.gce.transparency ? .RGBA8 : .RGB8)
-        if !options.decodePixels do
+        if not options.decodePixels do
             return result
         result.allocPixels()
         let palette = .decoder.palette!

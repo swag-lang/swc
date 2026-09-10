@@ -54,24 +54,24 @@ impl PixelFormat
     {
         switch #complete me
         {
-        case .Gray8:        return true
-        case .GrayAlpha8:   return true
-        case .Gray16:       return true
-        case .GrayAlpha16:  return true
-        case .GrayF16:      return true
-        case .GrayAlphaF16: return true
-        case .GrayF32:      return true
-        case .GrayAlphaF32: return true
-        case .BGR8:         return true
-        case .BGRA8:        return true
-        case .RGB8:         return true
-        case .RGBA8:        return true
-        case .RGB16:        return true
-        case .RGBA16:       return true
-        case .RGBF16:       return true
-        case .RGBAF16:      return true
-        case .RGBF32:       return true
-        case .RGBAF32:      return true
+        case .Gray8:           return true
+        case .GrayAlpha8:      return true
+        case .Gray16:          return true
+        case .GrayAlpha16:     return true
+        case .GrayF16:         return true
+        case .GrayAlphaF16:    return true
+        case .GrayF32:         return true
+        case .GrayAlphaF32:    return true
+        case .BGR8:            return true
+        case .BGRA8:           return true
+        case .RGB8:            return true
+        case .RGBA8:           return true
+        case .RGB16:           return true
+        case .RGBA16:          return true
+        case .RGBF16:          return true
+        case .RGBAF16:         return true
+        case .RGBF32:          return true
+        case .RGBAF32:         return true
         case .Yuv420, .Yuv444: return false
         }
 
@@ -118,24 +118,24 @@ impl PixelFormat
     {
         switch #complete me
         {
-        case .Gray8:        return 1
-        case .GrayAlpha8:   return 2
-        case .Gray16:       return 1
-        case .GrayAlpha16:  return 2
-        case .GrayF16:      return 1
-        case .GrayAlphaF16: return 2
-        case .GrayF32:      return 1
-        case .GrayAlphaF32: return 2
-        case .BGR8:         return 3
-        case .BGRA8:        return 4
-        case .RGB8:         return 3
-        case .RGBA8:        return 4
-        case .RGB16:        return 3
-        case .RGBA16:       return 4
-        case .RGBF16:       return 3
-        case .RGBAF16:      return 4
-        case .RGBF32:       return 3
-        case .RGBAF32:      return 4
+        case .Gray8:           return 1
+        case .GrayAlpha8:      return 2
+        case .Gray16:          return 1
+        case .GrayAlpha16:     return 2
+        case .GrayF16:         return 1
+        case .GrayAlphaF16:    return 2
+        case .GrayF32:         return 1
+        case .GrayAlphaF32:    return 2
+        case .BGR8:            return 3
+        case .BGRA8:           return 4
+        case .RGB8:            return 3
+        case .RGBA8:           return 4
+        case .RGB16:           return 3
+        case .RGBA16:          return 4
+        case .RGBF16:          return 3
+        case .RGBAF16:         return 4
+        case .RGBF32:          return 3
+        case .RGBAF32:         return 4
         case .Yuv420, .Yuv444: return 3
         }
 
@@ -148,24 +148,24 @@ impl PixelFormat
     {
         switch #complete me
         {
-        case .Gray8:        return 8
-        case .GrayAlpha8:   return 8
-        case .Gray16:       return 16
-        case .GrayAlpha16:  return 16
-        case .GrayF16:      return 16
-        case .GrayAlphaF16: return 16
-        case .GrayF32:      return 32
-        case .GrayAlphaF32: return 32
-        case .BGR8:         return 8
-        case .BGRA8:        return 8
-        case .RGB8:         return 8
-        case .RGBA8:        return 8
-        case .RGB16:        return 16
-        case .RGBA16:       return 16
-        case .RGBF16:       return 16
-        case .RGBAF16:      return 16
-        case .RGBF32:       return 32
-        case .RGBAF32:      return 32
+        case .Gray8:           return 8
+        case .GrayAlpha8:      return 8
+        case .Gray16:          return 16
+        case .GrayAlpha16:     return 16
+        case .GrayF16:         return 16
+        case .GrayAlphaF16:    return 16
+        case .GrayF32:         return 32
+        case .GrayAlphaF32:    return 32
+        case .BGR8:            return 8
+        case .BGRA8:           return 8
+        case .RGB8:            return 8
+        case .RGBA8:           return 8
+        case .RGB16:           return 16
+        case .RGBA16:          return 16
+        case .RGBF16:          return 16
+        case .RGBAF16:         return 16
+        case .RGBF32:          return 32
+        case .RGBAF32:         return 32
         case .Yuv420, .Yuv444: return 8
         }
 
@@ -178,24 +178,24 @@ impl PixelFormat
     {
         switch #complete me
         {
-        case .Gray8:        return false
-        case .GrayAlpha8:   return true
-        case .Gray16:       return false
-        case .GrayAlpha16:  return true
-        case .GrayF16:      return false
-        case .GrayAlphaF16: return true
-        case .GrayF32:      return false
-        case .GrayAlphaF32: return true
-        case .BGR8:         return false
-        case .BGRA8:        return true
-        case .RGB8:         return false
-        case .RGBA8:        return true
-        case .RGB16:        return false
-        case .RGBA16:       return true
-        case .RGBF16:       return false
-        case .RGBAF16:      return true
-        case .RGBF32:       return false
-        case .RGBAF32:      return true
+        case .Gray8:           return false
+        case .GrayAlpha8:      return true
+        case .Gray16:          return false
+        case .GrayAlpha16:     return true
+        case .GrayF16:         return false
+        case .GrayAlphaF16:    return true
+        case .GrayF32:         return false
+        case .GrayAlphaF32:    return true
+        case .BGR8:            return false
+        case .BGRA8:           return true
+        case .RGB8:            return false
+        case .RGBA8:           return true
+        case .RGB16:           return false
+        case .RGBA16:          return true
+        case .RGBF16:          return false
+        case .RGBAF16:         return true
+        case .RGBF32:          return false
+        case .RGBAF32:         return true
         case .Yuv420, .Yuv444: return false
         }
 
@@ -211,7 +211,7 @@ impl PixelFormat
 
     // Reports whether channels use one unsigned normalized integer representation.
     #[ConstExpr]
-    func isNormalizedInteger(me)->bool => me.isPacked() and !me.isFloat()
+    func isNormalizedInteger(me)->bool => me.isPacked() and not me.isFloat()
 
     // Reports whether the format stores one luminance channel instead of separate RGB channels.
     #[ConstExpr]

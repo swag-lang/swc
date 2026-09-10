@@ -85,14 +85,14 @@ impl HexDocument
     // for more than one screen of bytes, which is what keeps that bound invisible.
     mtd ensure(offset, length: u64)->bool
     {
-        if .readFailed or !.stream.isOpen() do
+        if .readFailed or not .stream.isOpen() do
             return false
         if offset >= .fileSize do
             return length == 0
         let end         = Math.min(offset + length, .fileSize)
         let margin      = Math.min(Math.max(length * 6, HexWindowAlign), HexWindowSize / 4)
         let windowEnd   = .windowStart + .window.count
-        let readyBefore = !.windowStart or offset >= .windowStart + margin
+        let readyBefore = not .windowStart or offset >= .windowStart + margin
         let readyAfter  = windowEnd >= .fileSize or end + margin <= windowEnd
         if offset >= .windowStart and end <= windowEnd and readyBefore and readyAfter do
             return true
@@ -152,7 +152,7 @@ impl HexDocument
     mtd read(offset, count: u64)->Array'u8
     {
         var result: retval
-        if .readFailed or !.stream.isOpen() or !count or offset >= .fileSize do
+        if .readFailed or not .stream.isOpen() or not count or offset >= .fileSize do
             return result
 
         let wanted = Math.min(count, .fileSize - offset)

@@ -53,13 +53,13 @@ impl BinaryDocument
         .previews.clear()
         .report.level = 0
         .opened       = .image.load(fileName)
-        if !.opened do
+        if not .opened do
             return false
 
         // Recognition reads past the end of a short file on purpose, so what it learned about the
         // bytes is dropped before the chosen reader starts: only the reader's own short reads are
         // worth telling the reader about.
-        .kind            = detectBinaryFormat(&.image)
+        .kind = detectBinaryFormat(&.image)
         .image.truncated = false
 
         switch .kind
@@ -114,7 +114,7 @@ impl BinaryDocument
         // The bytes and their printable rendering go in separate lanes: together they are wider
         // than any column, and a signature cut in half says nothing.
         let magic = .signatureText()
-        if !magic.isEmpty()
+        if not magic.isEmpty()
         {
             let readable = .signatureAsText()
             head.field(0, Math.min(.image.bytes.count, 16'u64), s.rep_FirstBytes, magic.toString(), readable.toString())
@@ -138,7 +138,7 @@ impl BinaryDocument
     private mtd const signatureText()->String
     {
         let count = Math.min(.image.bytes.count, 16'u64)
-        if !count do
+        if not count do
             return {}
 
         var text: Array'u8
@@ -160,7 +160,7 @@ impl BinaryDocument
     private mtd const signatureAsText()->String
     {
         let count = Math.min(.image.bytes.count, 16'u64)
-        if !count do
+        if not count do
             return {}
 
         var text: Array'u8
@@ -181,7 +181,7 @@ impl BinaryDocument
     private mtd const entropy()->f32
     {
         let count = Math.min(.image.bytes.count, BinaryEntropySample)
-        if !count do
+        if not count do
             return 0
 
         var histogram: [256] u32

@@ -23,8 +23,8 @@ const Zigzag8: [64] u8 = [
 // One sequence parameter set, reduced to what a progressive 8-bit decoder uses.
 struct Sps
 {
-    valid:                bool
-    profile:              u8
+    valid:   bool
+    profile: u8
 
     // `chroma_format_idc`: 1 for 4:2:0, 3 for 4:4:4. It is the one number the rest of the
     // decoder reads to know whether a chroma plane is half the picture or all of it, and in
@@ -49,7 +49,7 @@ struct Sps
     cropTop:              s32
     cropBottom:           s32
     hasScaling:           bool
-    scaling4:             [96] u8      // Six weight lists of Table 7-2, in zig-zag scan order.
+    scaling4:             [96] u8     // Six weight lists of Table 7-2, in zig-zag scan order.
 
     // 8x8 weight lists of Table 7-2, in zig-zag scan order: intra then inter for luma, and in
     // 4:4:4 the same pair for Cb and then for Cr. A 4:2:0 stream leaves the last four flat.
@@ -132,7 +132,7 @@ private func parseScalingMatrices(bits: *BitReader, sps: *Sps, scaling4: [..] u8
         if present do
             useDefault = parseScalingList(bits, is8x8 ? list8 : list4)
 
-        if present and !useDefault do
+        if present and not useDefault do
             continue
 
         // Fall-back rules A and B of Table 7-2, with the in-stream default escape folded in.
@@ -252,7 +252,7 @@ impl Sps
         let widthInMbs       = bits.ue() + 1
         let heightInMapUnits = bits.ue() + 1
         .frameMbsOnly = bits.bit() != 0
-        if !.frameMbsOnly do
+        if not .frameMbsOnly do
             fail UnsupportedFormatError{"video decoder does not support interlaced H.264 streams"}
         if widthInMbs > 1024 or heightInMapUnits > 1024 do
             fail UnsupportedFormatError{"H.264 frame size exceeds the decoder's limits"}
@@ -265,7 +265,7 @@ impl Sps
             // Cropping is expressed in chroma samples, section 7.4.2.1.1, so a unit is two luma
             // samples on both axes in 4:2:0 and one in 4:4:4, whose chroma planes are the size
             // of luma. Keep luma pixels.
-            let unit    = 1's32 << .chromaShift()
+            let unit = 1's32 << .chromaShift()
             .cropLeft   = cast(s32) bits.ue() * unit
             .cropRight  = cast(s32) bits.ue() * unit
             .cropTop    = cast(s32) bits.ue() * unit
@@ -313,8 +313,8 @@ impl Pps
         bits.init(payload)
 
         discard bits.ue()     // pic_parameter_set_id, checked by the caller.
-        .spsId           = bits.ue()
-        .cabac           = bits.bit() != 0
+        .spsId = bits.ue()
+        .cabac = bits.bit() != 0
         .picOrderPresent = bits.bit() != 0
 
         let sliceGroups = bits.ue() + 1
@@ -351,6 +351,7 @@ impl Pps
                     listCount += sps.is444() ? 6 : 2
                 parseScalingMatrices(&bits, sps, scaling4, scaling8, fromSps: false, listCount: listCount)
             }
+
             .chromaQpOffset[1] = bits.se()
         }
 

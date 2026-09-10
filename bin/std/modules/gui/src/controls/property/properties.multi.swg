@@ -241,16 +241,16 @@ private impl Properties
     // The field's byte size (the pointed type of the value).
     mtd fieldSize(item: *PropertiesItem)->u64
     {
-        if !item.type do
+        if not item.type do
             return 0
         return item.type.sizeof
     }
 
     func isDynamicArrayType(t: typeinfo?)->bool
     {
-        if !t do
+        if not t do
             return false
-        if !Reflection.isStruct(t) do
+        if not Reflection.isStruct(t) do
             return false
         return (cast(const *Swag.TypeInfoStruct?) t).fromGeneric == Array
     }

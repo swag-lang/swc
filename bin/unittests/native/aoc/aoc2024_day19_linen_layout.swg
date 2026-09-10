@@ -119,7 +119,7 @@ func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
             if pat.len < MaxPatLen
             {
                 pat.bytes[pat.len] = ch
-                pat.len            += 1
+                pat.len += 1
             }
             pos += 1
         }
@@ -163,7 +163,7 @@ func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
             if des.len < MaxDesignLen
             {
                 des.bytes[des.len] = ch
-                des.len            += 1
+                des.len += 1
             }
             pos += 1
         }
@@ -284,8 +284,8 @@ func solve(text: string)->SolveResult
     let sl = Swag.makeSlice(&buf[0], 5'u64)
 
     Swag.assert(pat.matchAt(sl, 0))
-    Swag.assert(!pat.matchAt(sl, 1))
-    Swag.assert(!pat.matchAt(sl, 4))
+    Swag.assert(not pat.matchAt(sl, 1))
+    Swag.assert(not pat.matchAt(sl, 4))
 }
 
 // Pointer-backed receiver: hidden 'me' reference and narrow return value
@@ -408,5 +408,5 @@ func solve(text: string)->SolveResult
     var buf: [2] u8
     buf[0] = 'a'; buf[1] = 'b'
     let sl = Swag.makeSlice(&buf[0], 2'u64)
-    Swag.assert(!pat.matchAt(sl, 0))
+    Swag.assert(not pat.matchAt(sl, 0))
 }

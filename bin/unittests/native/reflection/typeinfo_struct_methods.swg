@@ -280,7 +280,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
         return false
     RuntimeMethodPointerCalls += 1
 
-    return !hasMethodNamed(type, "injectStmt") and !hasMethodNamed(type, "compilerOnly")
+    return not hasMethodNamed(type, "injectStmt") and not hasMethodNamed(type, "compilerOnly")
 }
 
 func runtimeMethodReflectionWorks()->bool

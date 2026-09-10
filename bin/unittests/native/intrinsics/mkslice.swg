@@ -19,7 +19,7 @@ alias MksliceStrictConstS32Ptr = const *s32
 
     var backing: [20] s32
     var ptr:     const *s32 = &backing[0]
-    let str3                = Swag.makeSlice(ptr, 20)
+    let str3 = Swag.makeSlice(ptr, 20)
     #assert(#typeof(str3) == const [..] s32)
     Swag.assert(str.count == 100)
     Swag.assert(str1.count == 10)
@@ -38,8 +38,8 @@ alias MksliceStrictConstS32Ptr = const *s32
 #test
 {
     var cstr: const cstring = cast(const cstring) ("hello").buffer
-    let bytes               = Swag.makeSlice(cstr, cstr.count)
-    let text                = Swag.makeString(cstr, cstr.count)
+    let bytes = Swag.makeSlice(cstr, cstr.count)
+    let text  = Swag.makeString(cstr, cstr.count)
 
     #assert(#typeof(bytes) == const [..] u8)
     #assert(#typeof(text) == string)
@@ -62,7 +62,7 @@ alias MksliceStrictConstS32Ptr = const *s32
 #test
 {
     var buf: [4] u8 = [10, 20, 30, 40]
-    let sl          = Swag.makeSlice(&buf[2], 0)
+    let sl = Swag.makeSlice(&buf[2], 0)
 
     #assert(#typeof(sl) == [..] u8)
     Swag.assert(sl.count == 0)
@@ -71,7 +71,7 @@ alias MksliceStrictConstS32Ptr = const *s32
 #test
 {
     var buf: [5] u8 = [1, 2, 3, 4, 5]
-    let sl          = Swag.makeSlice(&buf[1], 3)
+    let sl = Swag.makeSlice(&buf[1], 3)
 
     Swag.assert(sl.count == 3)
     Swag.assert(sl[0] == 2)
@@ -82,7 +82,7 @@ alias MksliceStrictConstS32Ptr = const *s32
 #test
 {
     var buf: [4] u16 = [11, 22, 33, 44]
-    let sl           = Swag.makeSlice(&buf[0], 4)
+    let sl = Swag.makeSlice(&buf[0], 4)
 
     sl[1] = 77
     sl[3] = 99
@@ -96,7 +96,7 @@ alias MksliceStrictConstS32Ptr = const *s32
 {
     var buf: [3] s32    = [5, 6, 7]
     let ptr: const *s32 = &buf[0]
-    let sl              = Swag.makeSlice(ptr, 3)
+    let sl = Swag.makeSlice(ptr, 3)
 
     #assert(#typeof(sl) == const [..] s32)
     Swag.assert(sl.count == 3)
@@ -107,8 +107,8 @@ alias MksliceStrictConstS32Ptr = const *s32
 #test
 {
     var buf: [4] u16 = [8, 13, 21, 34]
-    let ptr          = cast(MksliceStrictU16Ptr) &buf[0]
-    let sl           = Swag.makeSlice(ptr, 3)
+    let ptr = cast(MksliceStrictU16Ptr) &buf[0]
+    let sl  = Swag.makeSlice(ptr, 3)
 
     #assert(#typeof(sl) == [..] u16)
     Swag.assert(sl.count == 3)
@@ -119,8 +119,8 @@ alias MksliceStrictConstS32Ptr = const *s32
 #test
 {
     var buf: [3] s32 = [5, 10, 15]
-    let ptr          = cast(MksliceStrictConstS32Ptr) &buf[0]
-    let sl           = Swag.makeSlice(ptr, 2)
+    let ptr = cast(MksliceStrictConstS32Ptr) &buf[0]
+    let sl  = Swag.makeSlice(ptr, 2)
 
     #assert(#typeof(sl) == const [..] s32)
     Swag.assert(sl.count == 2)

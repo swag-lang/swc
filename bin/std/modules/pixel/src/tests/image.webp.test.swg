@@ -113,7 +113,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 #test
 {
     Swag.assert(Image.canLoad("image.webp"))
-    Swag.assert(!Image.canLoad("image.webm"))
+    Swag.assert(not Image.canLoad("image.webm"))
     Swag.assert(Image.canSave("image.webp"))
 }
 
@@ -203,7 +203,7 @@ func assertEncodedWebpRoundtrip(source: Image)
     Swag.assert(decoded.width == 75)
     Swag.assert(decoded.height == 100)
     Swag.assert(decoded.pixelFormat == .RGBA8)
-    Swag.assert(!decoded.isValid())
+    Swag.assert(not decoded.isValid())
 }
 
 // Invalid and truncated RIFF data fails before allocating an image.
@@ -284,7 +284,7 @@ func assertEncodedWebpRoundtrip(source: Image)
     Swag.assert(decoded.width == 150)
     Swag.assert(decoded.height == 100)
     Swag.assert(decoded.pixelFormat == .RGBA8)
-    Swag.assert(!decoded.isValid())
+    Swag.assert(not decoded.isValid())
 }
 
 // Animated WebP is rejected because Image represents one static image.

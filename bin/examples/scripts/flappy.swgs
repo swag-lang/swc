@@ -241,7 +241,7 @@ func paint(painter: *Painter)
     painter.drawTexture(0, 0, g_BackTexture)
 
     // Bird
-    if !g_FirstStart
+    if not g_FirstStart
     {
         // Save the painter state and restore it automatically when this scope leaves.
         painter.pushState()
@@ -265,7 +265,7 @@ func paint(painter: *Painter)
         pt.y = -g_BirdTexture[frame].height * 0.5
 
         // Add a small idle wave before the first flap.
-        if !g_Start
+        if not g_Start
         {
             pt.y   += 5 * Math.sin(g_Time)
             g_Time += 5 * g_Dt
@@ -284,7 +284,7 @@ func paint(painter: *Painter)
     // Scroll two ground copies to form a seamless strip.
     painter.drawTexture(-g_BasePos, g_Rect.bottom() - GroundHeight, cast(f32) g_BaseTexture.width, GroundHeight, g_BaseTexture)
     painter.drawTexture(-g_BasePos + g_BaseTexture.width, g_Rect.bottom() - GroundHeight, cast(f32) g_BaseTexture.width, GroundHeight, g_BaseTexture)
-    if !g_GameOver do
+    if not g_GameOver do
         g_BasePos += SpeedHorz * g_Dt
     if g_BasePos >= g_BaseTexture.width do
         g_BasePos = 0
@@ -299,7 +299,7 @@ func paint(painter: *Painter)
     }
 
     // Draw the score using the loaded game font.
-    if !g_FirstStart
+    if not g_FirstStart
     {
         painter.drawStringCenter(g_Rect.horzCenter(), 50, Format.toString("%", g_Score), g_Font!, Argb.White)
     }
@@ -388,7 +388,7 @@ func move()
             }
 
             // Award one point when the bird passes a pipe for the first time.
-            if g_Bird.pos.x > pipe.rectUp.right() and !pipe.scored
+            if g_Bird.pos.x > pipe.rectUp.right() and not pipe.scored
             {
                 expect Audio.Voice.play(&g_SoundScore)
                 pipe.scored = true

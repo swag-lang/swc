@@ -206,7 +206,7 @@ var g_LinkText:  String
     let btn = PushButton.create(&host.root, "Refresh", {20, 20, 100, 30})
     let lbl = showTip(btn, "Refresh")
 
-    Swag.assert(!lbl.name.hasUrl)
+    Swag.assert(not lbl.name.hasUrl)
     host.app.toolTip.pointerMoved(btn, lbl)
     Swag.assert(host.app.toolTip.current == null)
 }

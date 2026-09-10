@@ -146,7 +146,7 @@ internal func parseTableDocument(text: string, delimiter: u8)->TableDocument fai
             continue
         }
 
-        if value == '"' and cell.isEmpty() and !closedQuote
+        if value == '"' and cell.isEmpty() and not closedQuote
         {
             quoted  = true
             touched = true
@@ -169,7 +169,7 @@ internal func parseTableDocument(text: string, delimiter: u8)->TableDocument fai
 
     if quoted do
         fail InvalidFormatError{Errors.mkString(tableStrings().err_UnclosedQuote)}
-    if touched or !cell.isEmpty() or !row.cells.isEmpty() do
+    if touched or not cell.isEmpty() or not row.cells.isEmpty() do
         finishTableRow(&result, &row, &cell)
     if result.rows.isEmpty() do
         return result
@@ -209,16 +209,16 @@ private func delimiterCount(text: string, delimiter: u8)->u64
                 at += 2
             else
             {
-                quoted = !quoted
+                quoted = not quoted
                 at     += 1
             }
 
             continue
         }
 
-        if !quoted and value == delimiter do
+        if not quoted and value == delimiter do
             result += 1
-        if !quoted and (value == '\r' or value == '\n')
+        if not quoted and (value == '\r' or value == '\n')
         {
             records += 1
             if value == '\r' and at + 1 < text.count and text[at + 1] == '\n' do
@@ -304,13 +304,13 @@ private impl IWnd for TableViewer
             return
         }
 
-        if !.load.isDone() do
+        if not .load.isDone() do
             return
 
         .removeTimer(evt.timer)
         .loadTimer     = null
         .failureReason = .load.finish(&.document)
-        if !.failureReason.isEmpty()
+        if not .failureReason.isEmpty()
         {
             if .reportFailure do
                 .reportFailure!(me, .failureReason.toString())
@@ -368,7 +368,7 @@ private impl TableViewer
 
     mtd retire()->bool
     {
-        if !.load.retire() do
+        if not .load.retire() do
             return false
         if .loadTimer
         {

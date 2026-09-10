@@ -47,7 +47,7 @@ using Swag, Core
     Swag.assert(file.dataSize == 8)
     Swag.assert(file.dataOffset == 44)
     Swag.assert(file.data.count == 0)
-    Swag.assert(!file.isDataPreloaded())
+    Swag.assert(not file.isDataPreloaded())
     Swag.assert((file.preloadedData()).count == 0)
     Swag.assert(file.frameCount == 2)
 
@@ -146,7 +146,7 @@ using Swag, Core
     }
 
     Swag.assert(SoundFile.canLoad("CLIP.MP3"))
-    Swag.assert(!SoundFile.canLoad("clip.mid") and !SoundFile.canLoad("clip"))
+    Swag.assert(not SoundFile.canLoad("clip.mid") and not SoundFile.canLoad("clip"))
 }
 
 #test

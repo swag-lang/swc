@@ -145,7 +145,7 @@ impl Cursor
     mtd const atEnd(limit: u64)->bool
     {
         let end = Math.min(limit, (.bytes).count)
-        return .position >= end or !.bytes[.position]
+        return .position >= end or not .bytes[.position]
     }
 
     mtd readElement(limit: u64)->Element fail
@@ -179,7 +179,7 @@ impl Cursor
     mtd readUnsigned(element: Element)->u64 fail
     {
         let size = element.end - element.data
-        if !size or size > 8 do
+        if not size or size > 8 do
             fail InvalidFormatError{"Matroska integer needs between one and eight bytes"}
         .seek(element.data)
         var result = 0'u64
@@ -192,7 +192,7 @@ impl Cursor
     mtd readSigned(element: Element)->s64 fail
     {
         let size = element.end - element.data
-        if !size or size > 8 do
+        if not size or size > 8 do
             fail InvalidFormatError{"Matroska integer needs between one and eight bytes"}
         .seek(element.data)
         var result = 0'u64
@@ -236,7 +236,7 @@ impl Cursor
     {
         .seek(element.end)
         var size = element.end - element.data
-        while size and !.bytes[element.data + size - 1] do
+        while size and not .bytes[element.data + size - 1] do
             size -= 1
         return String.from(Swag.makeString((.bytes).buffer + element.data, size))
     }

@@ -75,7 +75,7 @@ impl IPropertyEditor for AlignEditor
         {
             btns[i].sigCheckedChanged += func|list, item, align, i|(btn)
             {
-                if !btn.isChecked
+                if not btn.isChecked
                 {
                     // The selected alignment cannot be untoggled, only replaced
                     btn.setChecked(align[] == Values[i])

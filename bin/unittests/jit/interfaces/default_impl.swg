@@ -28,7 +28,7 @@ func runDefaultImpl()->bool
 
     let i2 = cast(ITest) v2
     let i3 = cast(ITest) v3
-    return i2.isImplemented() and !i3.isImplemented()
+    return i2.isImplemented() and not i3.isImplemented()
 }
 
 #test

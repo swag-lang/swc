@@ -71,7 +71,7 @@ func npcOkGuarded(x: *s32?)->s32
 // Truthiness guard first.
 func npcOkTruthGuard(v: *NpcItem?)->s32
 {
-    if !v do
+    if not v do
         return 0
     return v.value
 }
@@ -87,7 +87,7 @@ func npcOkAsserted(v: *NpcItem?)->s32
 // fatal for null. The dereference itself still needs its own local proof.
 func npcOkDelegated(x: *s32?)->s32
 {
-    if !npcCheck(x) do
+    if not npcCheck(x) do
         return 0
     if x == null do
         return 0

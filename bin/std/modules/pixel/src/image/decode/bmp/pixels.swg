@@ -91,13 +91,13 @@ func decodeUncompressedDirect(result: *Image, src, last: const [*] u8, bitCount:
 
 func decode16Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, masks: Masks)
 {
-    if masks.r.value == 0x7C00 and masks.g.value == 0x03E0 and masks.b.value == 0x001F and !masks.a.value
+    if masks.r.value == 0x7C00 and masks.g.value == 0x03E0 and masks.b.value == 0x001F and not masks.a.value
     {
         PackedPixel.decodeBgr555Row(source, destination, pixelCount)
         return
     }
 
-    if masks.r.value == 0xF800 and masks.g.value == 0x07E0 and masks.b.value == 0x001F and !masks.a.value
+    if masks.r.value == 0xF800 and masks.g.value == 0x07E0 and masks.b.value == 0x001F and not masks.a.value
     {
         PackedPixel.decodeBgr565Row(source, destination, pixelCount)
         return

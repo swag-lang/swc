@@ -120,7 +120,7 @@ impl IWnd for IconButton
 
         var iconWidth  = .iconWidth != 0 ? .iconWidth : .icon.sizeX
         var iconHeight = .iconHeight != 0 ? .iconHeight : .icon.sizeY
-        if !.icon.isValid()
+        if not .icon.isValid()
         {
             iconWidth  = 0
             iconHeight = 0
@@ -129,7 +129,7 @@ impl IWnd for IconButton
         var width  = iconWidth
         var height = iconHeight
 
-        let showsLabel = !.name.isEmpty() and !.flags.has(.IconOnly)
+        let showsLabel = not .name.isEmpty() and not .flags.has(.IconOnly)
         if showsLabel
         {
             .name.compute()
@@ -175,8 +175,8 @@ impl IWnd for IconButton
         switch #complete .checkIndicator
         {
         case .None, .Ink, .Frame, .Full: break
-        case .Left, .Right:              width += metrics.activeRail_Size + metrics.activeRail_Margin
-        case .Bottom, .Top:              height += metrics.activeRail_Size + metrics.activeRail_Margin
+        case .Left, .Right: width += metrics.activeRail_Size + metrics.activeRail_Margin
+        case .Bottom, .Top: height += metrics.activeRail_Size + metrics.activeRail_Margin
         }
 
         let padding = 2 * metrics.btnIcon_Padding
@@ -185,7 +185,7 @@ impl IWnd for IconButton
 
     mtd impl onHookEvent(evt: IEvent)
     {
-        if !.popup do
+        if not .popup do
             return
 
         if let ptr = evt as MouseEvent where ptr.kind == .Pressed
@@ -300,7 +300,7 @@ impl IWnd for IconButton
         // A framed selection has a neutral ground in every palette, so its glyph remains the
         // accent mark. The generic checked ink is the inverse ink used by a filled selection in
         // neutral themes; reusing it here made checked tools white on the light theme.
-        if .isChecked and .checkIndicator == .Frame and !bc.isDisabled
+        if .isChecked and .checkIndicator == .Frame and not bc.isDisabled
         {
             if .isPressed do
                 colorIcon = colors.btnIcon_CheckedPressedMark
@@ -341,7 +341,7 @@ impl IWnd for IconButton
         // publishing one would send the ring after a fill that is not there.
         .focusRingGround = {}
 
-        if !flat and !overlay
+        if not flat and not overlay
         {
             .aniBk.apply(me, colorBk)
             theme.drawSubRect(bc.painter, clientRect, subRectBk, .aniBk.cur())
@@ -351,7 +351,7 @@ impl IWnd for IconButton
         // A checked button says so with a mark of its own, unless it was told to draw none:
         // `None` then reads as pressed and `Ink` keeps the checked ink, and both leave the box
         // exactly as the state colors above left it.
-        let marked = !flat and !overlay and .isChecked and .checkIndicator != .None and .checkIndicator != .Ink
+        let marked = not flat and not overlay and .isChecked and .checkIndicator != .None and .checkIndicator != .Ink
         if marked and .checkIndicator == .Frame
         {
             var frame = clientRect
@@ -459,7 +459,7 @@ impl IWnd for IconButton
             var nh = hasIcon ? icon.sizeY : 0
             marginArrow = 0
 
-            let showsLabel = !.name.isEmpty() and !.flags.has(.IconOnly)
+            let showsLabel = not .name.isEmpty() and not .flags.has(.IconOnly)
             if showsLabel
             {
                 let fontR = nnFont(.font().regular)
@@ -533,23 +533,23 @@ impl IWnd for IconButton
         }
 
         // Name
-        if !.name.isEmpty() and !.flags.has(.IconOnly)
+        if not .name.isEmpty() and not .flags.has(.IconOnly)
         {
             var sf: RichStringFormat
             theme.setTextColors(&sf, colorText)
-            sf.font          = .font()
+            sf.font = .font()
             sf.horzAlignment = .Center
             sf.vertAlignment = .Center
             switch .textPosition
             {
             case .Left:
                 sf.horzAlignment = .Left
-                if !hasIcon and (.arrowPosition == .Top or .arrowPosition == .Bottom) do
+                if not hasIcon and (.arrowPosition == .Top or .arrowPosition == .Bottom) do
                     sf.horzAlignment = .Center
                 bc.painter.drawRichString(pos, &.name, sf)
                 pos.moveLeft(.name.boundRect.width + metrics.btnIcon_SpacingTextH)
 
-                if !icon.isValid() do
+                if not icon.isValid() do
                     icon.sizeX = pos.width
                 if pos.width < icon.sizeX
                 {
@@ -569,11 +569,11 @@ impl IWnd for IconButton
                 // pushed to the other end of a wide row it reads as a second column rather
                 // than as the name of the glyph it belongs to.
                 sf.horzAlignment = .Left
-                if !hasIcon and (.arrowPosition == .Top or .arrowPosition == .Bottom) do
+                if not hasIcon and (.arrowPosition == .Top or .arrowPosition == .Bottom) do
                     sf.horzAlignment = .Center
 
                 // A painter that declares no size keeps taking what the label leaves it.
-                if !icon.isValid() and !.iconWidth
+                if not icon.isValid() and not .iconWidth
                 {
                     let textWidth = Painter.measureString(.name.raw.toString(), nnFont(sf.font.regular)).width
                     icon.sizeX = Math.max(pos.width - textWidth - metrics.btnIcon_SpacingTextH, 0)
@@ -596,7 +596,7 @@ impl IWnd for IconButton
                 bc.painter.drawRichString(pos, &.name, sf)
                 pos.moveTop(sf.font.regular!.height + metrics.btnIcon_SpacingTextV)
 
-                if !icon.isValid() do
+                if not icon.isValid() do
                     icon.sizeY = pos.height
                 if pos.height < icon.sizeY
                 {
@@ -615,7 +615,7 @@ impl IWnd for IconButton
                 bc.painter.drawRichString(pos, &.name, sf)
 
                 pos.height -= sf.font.regular!.height + metrics.btnIcon_SpacingTextV
-                if !icon.isValid() do
+                if not icon.isValid() do
                     icon.sizeY = pos.height
                 if pos.height < icon.sizeY
                 {
@@ -669,7 +669,7 @@ impl IWnd for IconButton
         // so hover/press/checked reads elegantly on ANY background (it darkens on light themes and
         // lightens on dark ones) instead of an opaque box that clashes with a pastel accent row or
         // tints a color swatch with a hard fill.
-        if overlay and !bc.isDisabled
+        if overlay and not bc.isDisabled
         {
             var a = 0'f32
             switch
@@ -739,10 +739,10 @@ private impl IconButton
         var stateChanged: bool
         if .flags.has(.Toggle)
         {
-            .isChecked   = !.isChecked
+            .isChecked   = not .isChecked
             stateChanged = true
         }
-        elif .flags.has(.Radio) and !.isChecked
+        elif .flags.has(.Radio) and not .isChecked
         {
             .isChecked   = true
             stateChanged = true
@@ -754,10 +754,10 @@ private impl IconButton
             .postCommandEvent(.id)
             .sigCheckedChanged.call(me)
         }
-        elif !.flags.has(.Radio) and !.flags.has(.Toggle) do
+        elif not .flags.has(.Radio) and not .flags.has(.Toggle) do
             .postCommandEvent(.id)
 
-        if .flags.has(.Popup) and !.popup
+        if .flags.has(.Popup) and not .popup
         {
             .sigPopupRequested.call(me)
             if .popup do
@@ -783,7 +783,7 @@ impl IconButton
             icon.sizeY = .iconHeight
 
         let hasIcon   = icon.isValid()
-        let showsText = !.name.isEmpty() and !.flags.has(.IconOnly)
+        let showsText = not .name.isEmpty() and not .flags.has(.IconOnly)
         var textWidth = 0'f32
         if showsText do
             textWidth = Painter.measureString(.name.raw.toString(), nnFont(.font().regular)).width
@@ -871,7 +871,7 @@ impl IconButton
     // Closes and destroys the owned popup, if any.
     mtd hidePopup()
     {
-        if !.popup do
+        if not .popup do
             return
 
         .app().unregisterHookEvents(me)
@@ -919,9 +919,9 @@ impl IconButton
         var newFlags = .flags
         newFlags.add(add)
         newFlags.remove(remove)
-        Swag.assert(!(newFlags.has(.Radio) and newFlags.has(.Toggle)), "radio and toggle modes are mutually exclusive")
+        Swag.assert(not (newFlags.has(.Radio) and newFlags.has(.Toggle)), "radio and toggle modes are mutually exclusive")
         .flags = newFlags
-        if !.flags.has(.Radio) and !.flags.has(.Toggle) do
+        if not .flags.has(.Radio) and not .flags.has(.Toggle) do
             .isChecked = false
         .invalidate()
     }

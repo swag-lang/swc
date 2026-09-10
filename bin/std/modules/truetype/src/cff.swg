@@ -128,7 +128,7 @@ impl CffFont
     // Returns the local subroutines and width defaults that apply to one glyph.
     mtd const privateFor(gid: u32)->{ subrs: const *CffIndex, defaultWidth: f64, nominalWidth: f64 }
     {
-        if !.isCid or .fdLocalSubrs.isEmpty() do
+        if not .isCid or .fdLocalSubrs.isEmpty() do
             return {&.localSubrs, .defaultWidthX, .nominalWidthX}
 
         var fd = 0'u32
@@ -178,7 +178,7 @@ func readCffIndex(block: const [..] u8?, offset: u64)->CffIndex fail
 {
     var result: retval
     let count = readU16(block, offset)
-    if !count
+    if not count
     {
         result.end = offset + 2
         return result
@@ -222,7 +222,7 @@ func readCffReal(data: const [..] u8?, offset: u64)->{ value: f64, next: u64 } f
     var done        = false
     var pos         = offset
 
-    while !done
+    while not done
     {
         let byte = readU8(data, pos)
         pos += 1
@@ -358,7 +358,7 @@ private func readCffPrivate(font: *CffFont, dict: const *CffDict)->{ subrs: CffI
     var result: retval
     let size   = cast(u64) dict.value(CFF_OP_PRIVATE, 0, 0)
     let offset = cast(u64) dict.value(CFF_OP_PRIVATE, 1, 0)
-    if !size or !offset do
+    if not size or not offset do
         return result
 
     let priv = parseCffDict(getSlice(font.block, offset, size))
@@ -433,7 +433,7 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
     for sid, gid in sids
     {
         let name = font.stringOf(sid)
-        if name.length and !font.nameToGid.contains(name) do
+        if name.length and not font.nameToGid.contains(name) do
             font.nameToGid.add(name, cast(u32) gid)
         font.glyphNames.add(name)
     }
@@ -451,7 +451,7 @@ private func readCffEncoding(font: *CffFont, offset: u64) fail
         for code in 256'u32
         {
             let name = standardEncodingName(cast(u8) code)
-            if !name.count do
+            if not name.count do
                 continue
             let found = font.nameToGid.tryFind(String.from(name))
             if found do
@@ -567,11 +567,11 @@ func parseCffFont(block: const [..] u8?)->CffFont fail
     let topDict = readCffIndex(block, names.end)
     result.strings     = readCffIndex(block, topDict.end)
     result.globalSubrs = readCffIndex(block, result.strings.end)
-    if !topDict.count() do
+    if not topDict.count() do
         fault(0x08)
 
     let top = parseCffDict(topDict.item(block, 0))
-    result.isCid          = top.has(CFF_OP_ROS)
+    result.isCid = top.has(CFF_OP_ROS)
     result.charstringType = cast(u32) top.value(CFF_OP_CHARSTRING_TYPE, 0, 2)
     if result.charstringType != 2 do
         fault(0x07)
@@ -587,7 +587,7 @@ func parseCffFont(block: const [..] u8?)->CffFont fail
     }
 
     let charStrings = cast(u64) top.value(CFF_OP_CHARSTRINGS, 0, 0)
-    if !charStrings do
+    if not charStrings do
         fault(0x08)
     result.charStrings = readCffIndex(block, charStrings)
 

@@ -140,7 +140,7 @@ private func readEscape(reader: *BitReader, inter: bool, result: *Coefficient)->
     reader.marker()
     if level >= 2048 do
         level -= 4096
-    if !level do
+    if not level do
         return false
     result.level = level
     return true

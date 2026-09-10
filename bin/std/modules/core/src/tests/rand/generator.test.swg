@@ -42,7 +42,7 @@ using Swag
     for value in values
     {
         Swag.assert(value < found.count)
-        Swag.assert(!found[value])
+        Swag.assert(not found[value])
         found[value] = true
     }
 

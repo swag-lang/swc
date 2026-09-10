@@ -46,7 +46,7 @@ impl PreviewProbe
     mtd run(request: BuildRequest, cache: *CompilationCache) fail
     {
         var lease = cache.acquire(request)
-        if !lease.wait(&.cancelled) do
+        if not lease.wait(&.cancelled) do
             return
         .compileMs  = lease.artifact!.elapsedMs
         .artifactId = lease.artifact!.id
@@ -72,7 +72,7 @@ impl PreviewProbe
         Atomic.exchange(&.ready, 1)
         watch.restart()
         var lastFrame = 0'u32
-        while !try child.tryWaitForExit(20'ms)
+        while not try child.tryWaitForExit(20'ms)
         {
             if Atomic.get(&.cancelled) do
                 return

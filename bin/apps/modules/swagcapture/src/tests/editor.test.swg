@@ -81,8 +81,8 @@ using Swag, Core
     Swag.assert(f.capture.selection.count == 2)
     Swag.assert(f.capture.selection.contains(0))
     Swag.assert(f.capture.selection.contains(1))
-    Swag.assert(!f.capture.selection.contains(2))
-    Swag.assert(!f.capture.drawSelRect)
+    Swag.assert(not f.capture.selection.contains(2))
+    Swag.assert(not f.capture.drawSelRect)
     Swag.assert(f.capture.mouseMode == .None)
 }
 
@@ -127,8 +127,8 @@ using Swag, Core
     Swag.assert((cast(*BaseForm) f.capture.forms[5].buffer).subKind == .Highlight)
 
     f.main.mdlFormShape.subKind = .None
-    f.main.mdlPixSel            = &f.main.mdlFormShape
-    f.main.editMode             = .PixSel
+    f.main.mdlPixSel = &f.main.mdlFormShape
+    f.main.editMode  = .PixSel
     f.gui.drag({200, 130}, {250, 170})
     Swag.assert(Swag.kindOf(f.capture.forms[6]) == FormShape)
     Swag.assert((cast(*BaseForm) f.capture.forms[6].buffer).subKind == .PixSel)
@@ -383,7 +383,7 @@ using Swag, Core
     Swag.assert(image.IForm.canRotate())
     f.gui.doubleClick({60, 70})
     Swag.assert(image.editInside)
-    Swag.assert(!image.IForm.canRotate())
+    Swag.assert(not image.IForm.canRotate())
 
     testPrimeGizmo(image)
     f.gui.drag({65, 72}, {75, 82})
@@ -395,7 +395,7 @@ using Swag, Core
     Gui.Testing.assertRect(image.freePos, 5, 6, 20, 16)
 
     f.gui.doubleClick({60, 70})
-    Swag.assert(!image.editInside)
+    Swag.assert(not image.editInside)
 }
 
 // Point-form gizmos move line endpoints through Capture.mouse and create a

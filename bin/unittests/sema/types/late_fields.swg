@@ -27,7 +27,7 @@ func semaLateDefaultConstructible()->bool
 func semaLateLiteralOmits()->bool
 {
     let b = SemaLateBox{count: 2}
-    return !(b.item != null)
+    return not (b.item != null)
 }
 
 // The field type is plain non-null at every read: no proof, no '!'.

@@ -111,7 +111,7 @@ struct Triangle
 struct EdgeEvent
 {
     constrainedEdge: *Edge?
-    right:           bool
+    right: bool
 }
 
 struct Basin
@@ -134,8 +134,8 @@ struct Node
 
 struct AdvancingFront
 {
-    head:            *Node?
-    tail:            *Node?
+    head: *Node?
+    tail: *Node?
     late searchNode: *Node
 }
 
@@ -859,7 +859,7 @@ impl Tessellate
     private mtd dupForget(p: *Point)
     {
         let entry = .dupCells.tryFind(dupCellKey(dupCellCoord(p.x), dupCellCoord(p.y)))
-        if !entry do
+        if not entry do
             return
 
         var link = entry!.value
@@ -888,7 +888,7 @@ impl Tessellate
             for dx in -1 to 1
             {
                 let entry = .dupCells.tryFind(dupCellKey(cx + dx, cy + dy))
-                if !entry do
+                if not entry do
                     continue
 
                 var link = entry!.value
@@ -1079,7 +1079,7 @@ impl Tessellate
                 triangle.markConstrainedEdge(eq, p1)
                 let constrainedEdge = .edgeEvent.constrainedEdge!
                 constrainedEdge.q = p1
-                triangle          = nnTriangle(triangle.neighborAcross(point))
+                triangle = nnTriangle(triangle.neighborAcross(point))
                 .addEdgeEvent(ep, p1, triangle, p1)
             }
             else
@@ -1099,7 +1099,7 @@ impl Tessellate
                 triangle.markConstrainedEdge(eq, p2)
                 let constrainedEdge = .edgeEvent.constrainedEdge!
                 constrainedEdge.q = p2
-                triangle          = nnTriangle(triangle.neighborAcross(point))
+                triangle = nnTriangle(triangle.neighborAcross(point))
                 .addEdgeEvent(ep, p2, triangle, p2)
             }
             else
@@ -1207,7 +1207,7 @@ impl Tessellate
     mtd addEdgeEvent2(edge: *Edge, node: *Node)
     {
         .edgeEvent.constrainedEdge = edge
-        .edgeEvent.right           = edge.p.x > edge.q.x
+        .edgeEvent.right = edge.p.x > edge.q.x
 
         if isEdgeSideOfTriangle(node.triangle, edge.p, edge.q) do
             return
@@ -1481,17 +1481,17 @@ impl Tessellate
     {
         let nextNode = nnNode(node.next)
         let prevNode = nnNode(node.prev)
-        if !angleExceeds90Degrees(node.point, nextNode.point, prevNode.point) do
+        if not angleExceeds90Degrees(node.point, nextNode.point, prevNode.point) do
             return false
         if angleIsNegative(node.point, nextNode.point, prevNode.point) do
             return true
 
         let next2Node = nextNode.next
-        if next2Node and !angleExceedsPlus90DegreesOrIsNegative(node.point, next2Node.point, prevNode.point) do
+        if next2Node and not angleExceedsPlus90DegreesOrIsNegative(node.point, next2Node.point, prevNode.point) do
             return false
 
         let prev2Node = prevNode.prev
-        if prev2Node and !angleExceedsPlus90DegreesOrIsNegative(node.point, nextNode.point, prev2Node.point) do
+        if prev2Node and not angleExceedsPlus90DegreesOrIsNegative(node.point, nextNode.point, prev2Node.point) do
             return false
 
         return true
@@ -1543,7 +1543,7 @@ impl Tessellate
         prev.next = node.next
         next.prev = node.prev
 
-        if !.legalize(triangle) do
+        if not .legalize(triangle) do
             .mapTriangleToNodes(triangle)
     }
 
@@ -1567,7 +1567,7 @@ impl Tessellate
         oldNext.prev = newNode
         node.next    = newNode
 
-        if !.legalize(triangle) do
+        if not .legalize(triangle) do
             .mapTriangleToNodes(triangle)
 
         return newNode
@@ -1662,11 +1662,11 @@ impl Tessellate
                     let safeOt = nnTriangle(ot)
                     rotateTrianglePair(t, p, safeOt, op)
 
-                    var notLegalized = !.legalize(t)
+                    var notLegalized = not .legalize(t)
                     if notLegalized do
                         .mapTriangleToNodes(t)
 
-                    notLegalized = !.legalize(safeOt)
+                    notLegalized = not .legalize(safeOt)
                     if notLegalized do
                         .mapTriangleToNodes(safeOt)
 
@@ -1727,7 +1727,7 @@ impl Tessellate
     {
         for i in 3
         {
-            if !t.neighbors[i]
+            if not t.neighbors[i]
             {
                 let n = .front.locatePoint(t.pointCW(t.points[i]))
                 if n do
@@ -1746,7 +1746,7 @@ impl Tessellate
         let headNext      = nnNode(nnNode(.front.head).next)
         var t: *Triangle? = headNext.triangle
         let p             = headNext.point
-        while t and !t.getConstrainedEdgeCW(p) do
+        while t and not t.getConstrainedEdgeCW(p) do
             t = t.neighborCCW(p)
         if t do
             .meshClean(t)
@@ -1762,17 +1762,17 @@ impl Tessellate
         while stack.count
         {
             let t = stack.popBack()
-            if !t or t.interior do
+            if not t or t.interior do
                 continue
 
             t.interior = true
             .triIndices.add(t.idx)
 
-            if !t.constrainedEdge[0] do
+            if not t.constrainedEdge[0] do
                 stack.add(t.neighbors[0])
-            if !t.constrainedEdge[1] do
+            if not t.constrainedEdge[1] do
                 stack.add(t.neighbors[1])
-            if !t.constrainedEdge[2] do
+            if not t.constrainedEdge[2] do
                 stack.add(t.neighbors[2])
         }
 
@@ -1783,7 +1783,7 @@ impl Tessellate
             for e in 3
             {
                 let neighbor = tri.neighbors[e]
-                if neighbor and !neighbor.interior do
+                if neighbor and not neighbor.interior do
                     tri.neighbors[e] = null
             }
         }

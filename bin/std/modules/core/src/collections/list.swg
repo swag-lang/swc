@@ -74,7 +74,7 @@ impl List
     // Copies the nodes into independently owned storage while preserving their order.
     mtd opPostCopy()
     {
-        if !.head do
+        if not .head do
             return
 
         let oldHead = .head
@@ -105,7 +105,7 @@ impl List
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(item, node, index: u64))
     {
-        var n            = .head
+        var n = .head
         var ordinal: u64 = 0
         #scope(Up)
         while n
@@ -176,7 +176,7 @@ impl List
 
         if .head
         {
-            n.next            = .head
+            n.next = .head
             .head.prev, .head = n
         }
         else
@@ -199,7 +199,7 @@ impl List
 
         if .tail
         {
-            n.prev            = .tail
+            n.prev = .tail
             .tail.next, .tail = n
         }
         else
@@ -222,7 +222,7 @@ impl List
 
         n.next = node
         n.prev = node.prev
-        if !n.prev do
+        if not n.prev do
             .head = n
         else do
             n.prev.next = n
@@ -242,7 +242,7 @@ impl List
 
         n.prev = node
         n.next = node.next
-        if !n.next do
+        if not n.next do
             .tail = n
         else do
             n.next.prev = n

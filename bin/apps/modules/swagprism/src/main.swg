@@ -19,10 +19,10 @@ const SurfaceId   = "swag.prism"
     registerAppStrings(&g_App.resources)
 
     let stateRoot = Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag")
-    if !Directory.exists(stateRoot) do
+    if not Directory.exists(stateRoot) do
         discard catch Directory.create(stateRoot)
     let stateFolder = Path.combine(stateRoot, "prism")
-    if !Directory.exists(stateFolder) do
+    if not Directory.exists(stateFolder) do
         discard catch Directory.create(stateFolder)
     if Directory.exists(stateFolder)
     {

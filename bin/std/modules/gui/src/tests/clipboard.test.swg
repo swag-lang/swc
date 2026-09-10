@@ -10,8 +10,8 @@ using Swag, Core, Pixel
     Swag.assert(Clipboard.isFake())
     expect Clipboard.resetFake()
 
-    Swag.assert(!Clipboard.hasString())
-    Swag.assert(!Clipboard.hasImage())
+    Swag.assert(not Clipboard.hasString())
+    Swag.assert(not Clipboard.hasImage())
 
     Clipboard.addString("hello")
     Swag.assert(Clipboard.hasString())
@@ -21,7 +21,7 @@ using Swag, Core, Pixel
     img.clear()
     Clipboard.addImage(img)
     Swag.assert(Clipboard.hasImage())
-    Swag.assert(!Clipboard.hasString())
+    Swag.assert(not Clipboard.hasString())
     let back = Clipboard.getImage()
     Swag.assert(back.isValid())
     Swag.assert(back.width == 3 and back.height == 2)
@@ -41,7 +41,7 @@ using Swag, Core, Pixel
     Swag.assert(got == 1664)
 
     Clipboard.clear()
-    Swag.assert(!Clipboard.hasString())
-    Swag.assert(!Clipboard.hasImage())
-    Swag.assert(!Clipboard.hasTypedValue(s32))
+    Swag.assert(not Clipboard.hasString())
+    Swag.assert(not Clipboard.hasImage())
+    Swag.assert(not Clipboard.hasTypedValue(s32))
 }

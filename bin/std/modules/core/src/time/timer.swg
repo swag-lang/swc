@@ -50,7 +50,7 @@ impl Timer
     {
         Swag.assert(.handle == null)
         let delayMs = delay.milliseconds()
-        if !delayMs or delayMs >= Swag.U32.Max do
+        if not delayMs or delayMs >= Swag.U32.Max do
             fail Errors.OverflowError{"timer delay must be between 1 and 4294967294 milliseconds"}
 
         .callback = callback
@@ -61,7 +61,7 @@ impl Timer
     // Stops the timer and waits for any active callback before returning.
     mtd release()
     {
-        if !.handle do
+        if not .handle do
             return
         releaseTimerNative(.handle)
         .handle = null

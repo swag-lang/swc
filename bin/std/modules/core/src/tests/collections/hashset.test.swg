@@ -40,7 +40,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 {
     var values: HashSet's32
     Swag.assert(values.count == 0)
-    Swag.assert(!values.contains(1))
+    Swag.assert(not values.contains(1))
 
     values.add(1)
     values.add(3)
@@ -75,7 +75,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     values.add(3)
 
     values.remove(2)
-    Swag.assert(!values.contains(2))
+    Swag.assert(not values.contains(2))
     Swag.assert(values.count == 2)
 
     values.add(2)
@@ -84,9 +84,9 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
     values.clear()
     Swag.assert(values.count == 0)
-    Swag.assert(!values.contains(1))
-    Swag.assert(!values.contains(2))
-    Swag.assert(!values.contains(3))
+    Swag.assert(not values.contains(1))
+    Swag.assert(not values.contains(2))
+    Swag.assert(not values.contains(3))
 }
 
 #test
@@ -115,7 +115,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     copy.add("gamma")
     copy.add("alpha")
 
-    Swag.assert(!assertStringSetHas(original, "alpha"))
+    Swag.assert(not assertStringSetHas(original, "alpha"))
     Swag.assert(assertStringSetHas(original, "beta"))
 
     Swag.assert(assertStringSetHas(copy, "alpha"))
@@ -133,8 +133,8 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     values = seed
 
     Swag.assert(values.count == 1)
-    Swag.assert(!values.contains(1))
-    Swag.assert(!values.contains(2))
+    Swag.assert(not values.contains(1))
+    Swag.assert(not values.contains(2))
     Swag.assert(values.contains(3))
 }
 
@@ -161,12 +161,12 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     Swag.assert(values.contains(10))
     Swag.assert(values.count == 1)
 
-    Swag.assert(!values.toggle(10))
-    Swag.assert(!values.contains(10))
+    Swag.assert(not values.toggle(10))
+    Swag.assert(not values.contains(10))
     Swag.assert(values.count == 0)
 
     values.add(42)
-    Swag.assert(!values.toggle(42))
-    Swag.assert(!values.contains(42))
+    Swag.assert(not values.toggle(42))
+    Swag.assert(not values.contains(42))
     Swag.assert(values.count == 0)
 }

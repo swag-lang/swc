@@ -113,7 +113,7 @@ func ddsRoundtrip(source: Image)->Image
     var options: DecodeOptions
     options.decodePixels = false
     let header = expect Image.decode("block.dds", nnBytes(bytes.toSlice()), options)
-    Swag.assert(header.width == 4 and header.height == 4 and header.pixelFormat == .RGBA8 and !header.isValid())
+    Swag.assert(header.width == 4 and header.height == 4 and header.pixelFormat == .RGBA8 and not header.isValid())
 }
 
 #test

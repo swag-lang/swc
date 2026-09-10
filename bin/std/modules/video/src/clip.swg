@@ -29,7 +29,7 @@ impl Clip
     {
         if width <= 0 or height <= 0 do
             fail BadParameterError{"video width and height need positive values"}
-        if !frameRate.isValid() do
+        if not frameRate.isValid() do
             fail BadParameterError{"video frame rate needs positive numerator and denominator values"}
 
         var result: retval
@@ -57,7 +57,7 @@ impl Clip
     // Returns the clip duration in seconds.
     mtd const durationInSeconds()->f64
     {
-        if !.rate.isValid() do
+        if not .rate.isValid() do
             return 0
         return cast(f64) .frameCount() * cast(f64) .rate.denominator() / cast(f64) .rate.numerator()
     }
@@ -69,7 +69,7 @@ impl Clip
     // does not carry it.
     mtd addFrame(frame: Image) fail
     {
-        if !frame.isValid() do
+        if not frame.isValid() do
             fail BadParameterError{"video frame needs allocated pixels"}
         if frame.width != .frameWidth or frame.height != .frameHeight do
             fail BadParameterError{"video frame dimensions do not match the clip"}
@@ -136,9 +136,9 @@ impl Clip
     // not it holds frames, and adding one never turns that answer into a different error.
     private mtd const validateEncode(fileName: string) fail
     {
-        if !Writer.canCreate(fileName) do
+        if not Writer.canCreate(fileName) do
             fail UnsupportedFormatError{"no video encoder accepts this file extension"}
-        if !.frameCount() do
+        if not .frameCount() do
             fail InvalidFormatError{"video clip needs at least one frame"}
     }
 

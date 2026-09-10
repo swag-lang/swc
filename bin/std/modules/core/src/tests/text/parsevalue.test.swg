@@ -26,7 +26,7 @@ struct ParseOuter
     Swag.assert(value.rect.w == 27)
     Swag.assert(value.rect.h == 27)
     Swag.assert(value.corner == 13)
-    Swag.assert(!value.keep)
+    Swag.assert(not value.keep)
     Swag.assert(Tokenize.eatSpaces(rest orelse "") == "tail")
 }
 

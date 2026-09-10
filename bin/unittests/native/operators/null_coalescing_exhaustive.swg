@@ -37,7 +37,7 @@ func typeInfoFallback()->bool
 {
     let primary:  typeinfo? = null
     let fallback: typeinfo  = s32
-    let resolved            = primary orelse fallback
+    let resolved = primary orelse fallback
     return resolved == s32
 }
 
@@ -51,10 +51,10 @@ func cstringFallback()->bool
 
 func interfaceFallback()->bool
 {
-    var probe                  = OrelseProbe{value: 55}
+    var probe    = OrelseProbe{value: 55}
     var primary: IOrelseProbe? = null
-    let fallback               = Swag.makeInterface(&probe, #typeof(probe), IOrelseProbe)
-    let resolved               = primary orelse fallback
+    let fallback = Swag.makeInterface(&probe, #typeof(probe), IOrelseProbe)
+    let resolved = primary orelse fallback
     return resolved.id() == 55
 }
 
@@ -90,7 +90,7 @@ func interfaceFallback()->bool
                boolTrue != null and
                boolFalse != null and
                cast(bool) boolTrue and
-               !cast(bool) boolFalse
+               not cast(bool) boolFalse
     }
 
     Swag.assert(explicitAnyChecks())

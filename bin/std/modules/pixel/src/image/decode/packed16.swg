@@ -84,7 +84,7 @@ func(REVERSE: bool, GREEN6: bool) decodeBgr16RowImpl(source: const [*] u8, desti
         else do
             dst[1] = cast(u8) ((((pixel >> 5) & 0x1F) * 255 + 15) / 31)
         dst[2] = cast(u8) ((((pixel >> (GREEN6 ? 11 : 10)) & 0x1F) * 255 + 15) / 31)
-        #static if !REVERSE do
+        #static if not REVERSE do
             src += 2
         dst   += 3
         count -= 1
@@ -252,7 +252,7 @@ func(REVERSE: bool) decodeBgra5551RowImpl(source: const [*] u8, destination: [*]
         dst[1] = cast(u8) ((((pixel >> 5) & 0x1F) * 255 + 15) / 31)
         dst[2] = cast(u8) ((((pixel >> 10) & 0x1F) * 255 + 15) / 31)
         dst[3] = alphaFromBit ? (pixel & 0x8000 ? 255'u8 : 0'u8) : 255'u8
-        #static if !REVERSE do
+        #static if not REVERSE do
             src += 2
         dst   += 4
         count -= 1

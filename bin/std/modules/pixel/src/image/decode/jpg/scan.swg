@@ -64,7 +64,7 @@ impl Decoder
                         blockMcuOfsY += 1
                         if blockMcuOfsY == .compSampV[componentId]
                         {
-                            blockMcuOfsY           = 0
+                            blockMcuOfsY = 0
                             blockMcuX[componentId] += .compSampH[componentId]
                         }
                     }
@@ -155,8 +155,8 @@ impl Decoder
             for mcuBlock in .blocksPerMcu
             {
                 let componentId = .mcuOrg[mcuBlock]
-                var p           = .blockSeg[rowBlock]!
-                let q           = .quant[.compQuant[componentId]].buffer!
+                var p = .blockSeg[rowBlock]!
+                let q = .quant[.compQuant[componentId]].buffer!
 
                 var s = .huffDecode(&.h[.compDcTab[componentId]])
                 if s != 0
@@ -298,7 +298,7 @@ impl Decoder
         elif .compsInFrame == 3
         {
             let directRgb = (.hasAdobeMarker and .adobeTransform == 0) or
-                            (!.hasAdobeMarker and !.hasJfifMarker and .compIdent[0] == 'R' and .compIdent[1] == 'G' and .compIdent[2] == 'B')
+                            (not .hasAdobeMarker and not .hasJfifMarker and .compIdent[0] == 'R' and .compIdent[1] == 'G' and .compIdent[2] == 'B')
             if directRgb
             {
                 for i in 3
@@ -421,7 +421,7 @@ impl Decoder
     mtd initScan()->bool fail
     {
         let res = .locateSosMarker()
-        if !res do
+        if not res do
             return false
 
         .calcMcuBlockOrder()
@@ -478,14 +478,14 @@ impl Decoder
         var huffSize: [257] u8
         var huffCode: [257] u32
 
-        var p          = 0
+        var p = 0
         let huffNumBuf = .huffNum[idx].buffer!
         for l in 1 to 16
         {
             for var i = 1; i <= huffNumBuf[l]; i += 1
             {
                 huffSize[p] = cast(u8) l
-                p           += 1
+                p += 1
             }
         }
 
@@ -529,7 +529,7 @@ impl Decoder
                 for var l = 1 << (8 - codeSize); l > 0; l -= 1
                 {
                     hs.lookUp[cde] = entry
-                    cde            += 1
+                    cde += 1
                 }
             }
             else
@@ -554,8 +554,8 @@ impl Decoder
                     if hs.tree[-currentEntry - 1] == 0
                     {
                         hs.tree[-currentEntry - 1] = nextFreeEntry
-                        currentEntry               = nextFreeEntry
-                        nextFreeEntry              -= 2
+                        currentEntry  = nextFreeEntry
+                        nextFreeEntry -= 2
                     }
                     else do
                         currentEntry = hs.tree[-currentEntry - 1]
@@ -648,8 +648,8 @@ impl Decoder
                 while num_blocks
                 {
                     .mcuOrg[.blocksPerMcu] = cid
-                    .blocksPerMcu          += 1
-                    num_blocks             -= 1
+                    .blocksPerMcu += 1
+                    num_blocks    -= 1
                 }
             }
         }
@@ -658,7 +658,7 @@ impl Decoder
     mtd initSequential() fail
     {
         let res = .initScan()
-        if !res do
+        if not res do
             fail InvalidFormatError{"unexpected marker"}
     }
 }

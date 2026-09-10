@@ -85,7 +85,7 @@ impl RuneClass
                 continue
             }
 
-            write          += 1
+            write += 1
             .ranges[write] = cur
         }
 
@@ -277,7 +277,7 @@ impl RuneClass
         case "Sm", "Math_Symbol":      result.value.addTable(Unicode.TableSymbolMath)
         case "Z", "Separator":         result.value.addTable(Unicode.TableSeparator)
         case "White_Space":            result.value.addTable(Unicode.TableWhiteSpace)
-        default:                       return result
+        default: return result
         }
 
         result.value.normalize()

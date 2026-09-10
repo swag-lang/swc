@@ -71,7 +71,7 @@ func day4B()
     for cardIndex in (lines.count - 2 + 5) / 6
     {
         let line = 2 + cardIndex * 6
-        var card:            Array'u64
+        var card: Array'u64
         var maxCol, maxLine: [5] u64
 
         for y in line to line + 4

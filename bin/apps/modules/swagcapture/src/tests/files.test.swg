@@ -47,7 +47,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     expect Library.init()
     g_Library.loaded = true
 
-    if !(main.recentWnd != null) do
+    if not (main.recentWnd != null) do
         main.recentWnd = RecentWnd.create(main, main)
 }
 
@@ -65,7 +65,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     f.capture.changed = true
     expect f.capture.scheduleSave()
-    Swag.assert(!f.capture.changed)
+    Swag.assert(not f.capture.changed)
 
     // The scheduled write only reads its snapshot, never the live capture.
     f.capture.title = "Mutated after scheduling"
@@ -212,7 +212,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(data.contents.count == 1)
     Swag.assert(Path.lowercaseExtension(data.contents[0].name) == ".png")
     Swag.assert(Path.fileNameWithoutExtension(data.contents[0].name) == Path.fileNameWithoutExtension(f.capture.file))
-    Swag.assert(!data.contents[0].isReady())
+    Swag.assert(not data.contents[0].isReady())
 
     // Asking for the file is what produces it, and what it holds is the capture, readable by
     // anything that reads a PNG.
@@ -247,7 +247,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     var expected = String.from(Path.fileNameWithoutExtension(f.capture.file) orelse "capture")
     expected += ".png"
     let exported = Path.combine(Path.combine(temp.toString(), "Swag Capture").toString(), expected.toString())
-    Swag.assert(!File.exists(exported))
+    Swag.assert(not File.exists(exported))
 }
 
 // A picture dropped on the editor opens it, exactly as the Open command does.
@@ -594,12 +594,12 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(f.gui.autoHandled)
     Swag.assert(f.gui.openedSurfaceCount() == 0)
     Swag.assert(f.capture.linkedImage.isEmpty())
-    Swag.assert(!f.capture.linkedUpToDate)
+    Swag.assert(not f.capture.linkedUpToDate)
 
     let loaded = expect Capture.load(capturePath)!
     defer Memory.delete(loaded)
     Swag.assert(loaded.linkedImage.isEmpty())
-    Swag.assert(!loaded.linkedUpToDate)
+    Swag.assert(not loaded.linkedUpToDate)
 }
 
 // Duplicate Capture creates an independent capture file and recent entry.
@@ -628,7 +628,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
         g_Library.files.clear()
     }
 
-    Swag.assert(!testSamePath(duplicatedPath, originalPath))
+    Swag.assert(not testSamePath(duplicatedPath, originalPath))
     Swag.assert(File.exists(duplicatedPath))
 
     let duplicated = expect Capture.load(duplicatedPath)!
@@ -669,7 +669,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     Swag.assert(f.gui.autoHandled)
     Swag.assert(f.gui.openedSurfaceCount() == 0)
-    Swag.assert(!File.exists(capturePath))
+    Swag.assert(not File.exists(capturePath))
     Swag.assert(g_Library.files.count == 0)
     Swag.assert(f.main.recentWnd.recentView.items.count == 0)
     Swag.assert(f.main.libWnd.view.items.count == 0)
@@ -807,14 +807,14 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.main.recentWnd = RecentWnd.create(f.main, f.main)
     f.main.recentWnd.loadRecent()
 
-    Swag.assert(!g_Library.loaded)
+    Swag.assert(not g_Library.loaded)
     while f.main.recentWnd.loadTimer
     {
         let timer = f.main.recentWnd.loadTimer!
         f.gui.fireTimer(timer)
     }
 
-    Swag.assert(!g_Library.loaded)
+    Swag.assert(not g_Library.loaded)
     Swag.assert(f.main.recentWnd.recentView.items.count == 1)
     Swag.assert(f.main.recentWnd.recentView.selected == 0)
     Swag.assert(f.main.editWnd.getCapture()!.file == capturePath)

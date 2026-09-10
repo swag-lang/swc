@@ -126,7 +126,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
             edges[edgeCount].a     = cast(u32) lhs
             edges[edgeCount].b     = cast(u32) rhs
             edges[edgeCount].dist2 = squaredDistance(points[lhs], points[rhs])
-            edgeCount              += 1
+            edgeCount += 1
         }
     }
 

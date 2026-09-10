@@ -294,7 +294,7 @@ impl Decoder
 
     mtd findEoi() fail
     {
-        if !.progressiveFlag
+        if not .progressiveFlag
         {
             .bitsLeft = 16
             .getBits1(16)
@@ -365,7 +365,7 @@ impl Decoder
     {
         let row       = .maxMcuSizeY - .mcuLinesLeft
         let chromatic = .adobeTransform == 2
-        let inverse   = .hasAdobeMarker and !chromatic
+        let inverse   = .hasAdobeMarker and not chromatic
         var d         = .scanLine0.buffer!
         var s         = .safeSampleBuf() + row * 8
         for i in rangeTo(1, .maxMcusPerRow).reversed()

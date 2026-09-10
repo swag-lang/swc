@@ -23,7 +23,7 @@ func nativeLateLifecycle()->bool
 
     box.item = &first
     box.name = "hello"
-    if !(box.item != null) or !(box.name != null) do
+    if not (box.item != null) or not (box.name != null) do
         return false
 
     let p: *NativeLateItem = box.item
@@ -50,7 +50,7 @@ func nativeLateAddressOf()->bool
 func nativeLateLiteral()->bool
 {
     let box = NativeLateBox{count: 4}
-    return box.count == 4 and !(box.item != null) and !(box.name != null)
+    return box.count == 4 and not (box.item != null) and not (box.name != null)
 }
 
 #test

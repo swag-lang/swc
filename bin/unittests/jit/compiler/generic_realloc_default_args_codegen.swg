@@ -48,7 +48,7 @@ namespace GenericReallocDefaultArgsCodegen
     {
         func free(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
         {
-            if !buffer do
+            if not buffer do
                 return
 
             var req: AllocatorRequest
@@ -170,7 +170,7 @@ namespace GenericReallocDefaultArgsCodegen
         mtd free()
         {
             LocalMemory.free(.buffer, .capacity * #sizeof(T), .allocator)
-            .buffer           = null
+            .buffer = null
             .count, .capacity = 0
         }
     }

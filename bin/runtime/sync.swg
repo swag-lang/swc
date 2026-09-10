@@ -69,7 +69,7 @@ impl RWLock
 //
 // ```swag
 // mutex.lock()
-// while !ready do
+// while not ready do
 //     condition.wait(&mutex)
 // mutex.unlock()
 // ```

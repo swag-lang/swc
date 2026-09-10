@@ -20,7 +20,7 @@ enum CrossAstSafetyWhat
 #[Swag.Macro]
 func(what: CrossAstSafetyWhat) crossAstSafety(cond: #code->bool, loc = #callerlocation)
 {
-    if !#inject(cond) do
+    if not #inject(cond) do
         Swag.panic("cross-ast safety failed", loc)
 }
 

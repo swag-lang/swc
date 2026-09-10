@@ -397,18 +397,23 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FormatSpacing_AfterUnaryOperator)
 {
+    // The option removes the blank after a unary SYMBOL. The logical negation is the
+    // keyword 'not', and a keyword always keeps the blank that separates it from its
+    // operand: gluing it would spell an identifier.
     static constexpr std::string_view SOURCE =
         "func bar(v: bool)\n"
         "{\n"
         "    var x = - 1\n"
-        "    var y = ! v\n"
+        "    var y = ~ 1\n"
+        "    var z = not v\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
         "func bar(v: bool)\n"
         "{\n"
         "    var x = -1\n"
-        "    var y = !v\n"
+        "    var y = ~1\n"
+        "    var z = not v\n"
         "}\n";
 
     FormatOptions options;

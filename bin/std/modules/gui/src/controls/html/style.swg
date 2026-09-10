@@ -250,11 +250,11 @@ public struct HtmlComputedStyle
 
     // Inherited.
     color:                   Color
-    fontSize:                f32               = 16
-    fontWeight:              u32               = 400
+    fontSize:                f32 = 16
+    fontWeight:              u32 = 400
     italic:                  bool
     fontFamily:              HtmlFontFamilyKind
-    lineHeight                                 = HtmlLength.auto()
+    lineHeight                   = HtmlLength.auto()
     letterSpacing:           f32
     wordSpacing:             f32
     textAlign:               HtmlTextAlign
@@ -265,9 +265,9 @@ public struct HtmlComputedStyle
     wordBreak:               HtmlWordBreak
     listStyleType:           HtmlListStyleType = .Disc
     listStyleInside:         bool
-    visible                                    = true
+    visible                      = true
     cursorPointer:           bool
-    textDecoration                             = HtmlTextDecoration.None
+    textDecoration               = HtmlTextDecoration.None
     textDecorationColor:     Color
     hasDecorationColor:      bool
     textDecorationStyle:     HtmlTextDecorationStyle
@@ -286,14 +286,14 @@ public struct HtmlComputedStyle
     radiusTopRight:       f32
     radiusBottomRight:    f32
     radiusBottomLeft:     f32
-    width                     = HtmlLength.auto()
-    height                    = HtmlLength.auto()
-    minWidth                  = HtmlLength.auto()
-    maxWidth                  = HtmlLength.auto()
-    minHeight                 = HtmlLength.auto()
-    maxHeight                 = HtmlLength.auto()
+    width     = HtmlLength.auto()
+    height    = HtmlLength.auto()
+    minWidth  = HtmlLength.auto()
+    maxWidth  = HtmlLength.auto()
+    minHeight = HtmlLength.auto()
+    maxHeight = HtmlLength.auto()
     scrollMarginTop:      HtmlLength
-    inset                     = HtmlEdges.auto()
+    inset     = HtmlEdges.auto()
     overflowX:            HtmlOverflow
     overflowY:            HtmlOverflow
     textOverflowEllipsis: bool
@@ -711,7 +711,7 @@ impl HtmlComputedStyle
     private mtd readColor(value: string, target: *Color)->bool
     {
         let parsed = htmlParseColor(value)
-        if !parsed.matched do
+        if not parsed.matched do
             return false
         target[] = parsed.current ? .color : parsed.color
         return true
@@ -774,7 +774,7 @@ impl HtmlComputedStyle
             }
 
             let parsed = .length(text, context)
-            if parsed.matched and parsed.length.kind == .Pixels and !sawWidth
+            if parsed.matched and parsed.length.kind == .Pixels and not sawWidth
             {
                 edge.width = parsed.length.value
                 sawWidth   = true
@@ -830,12 +830,12 @@ impl HtmlComputedStyle
         switch value
         {
         case "flex-start", "start", "left", "normal": result.value = .Start
-        case "flex-end", "end", "right":              result.value = .End
-        case "center":                                result.value = .Center
-        case "space-between":                         result.value = .SpaceBetween
-        case "space-around":                          result.value = .SpaceAround
-        case "space-evenly":                          result.value = .SpaceEvenly
-        default:                                      result.matched = false
+        case "flex-end", "end", "right": result.value = .End
+        case "center":        result.value = .Center
+        case "space-between": result.value = .SpaceBetween
+        case "space-around":  result.value = .SpaceAround
+        case "space-evenly":  result.value = .SpaceEvenly
+        default:              result.matched = false
         }
 
         return result
@@ -847,12 +847,12 @@ impl HtmlComputedStyle
         result.matched = true
         switch value
         {
-        case "stretch", "normal", "auto":                   result.value = .Stretch
-        case "flex-start", "start", "self-start":           result.value = .Start
-        case "flex-end", "end", "self-end":                 result.value = .End
-        case "center":                                      result.value = .Center
+        case "stretch", "normal", "auto":         result.value = .Stretch
+        case "flex-start", "start", "self-start": result.value = .Start
+        case "flex-end", "end", "self-end":       result.value = .End
+        case "center":                            result.value = .Center
         case "baseline", "first baseline", "last baseline": result.value = .Baseline
-        default:                                            result.matched = false
+        default:                                  result.matched = false
         }
 
         return result
@@ -916,10 +916,10 @@ impl HtmlComputedStyle
                 continue
 
             let parsed = .length(text, context)
-            var isSize = parsed.matched and !parsed.length.isAuto() and !parsed.length.isNone()
-            if !isSize and Utf8.indexOf(text, '/'rune) != Swag.U64.Max do
+            var isSize = parsed.matched and not parsed.length.isAuto() and not parsed.length.isNone()
+            if not isSize and Utf8.indexOf(text, '/'rune) != Swag.U64.Max do
                 isSize = true
-            if !isSize
+            if not isSize
             {
                 switch text
                 {
@@ -927,7 +927,7 @@ impl HtmlComputedStyle
                 }
             }
 
-            if !isSize do
+            if not isSize do
                 continue
             sizeIndex = index
             break
@@ -986,7 +986,7 @@ impl HtmlComputedStyle
         var family: String
         for index in familyStart until parts.count
         {
-            if !family.isEmpty() do
+            if not family.isEmpty() do
                 family += " "
             family += parts[index]
         }
@@ -1026,7 +1026,7 @@ impl HtmlComputedStyle
             let number = htmlParseNumber(text)
             if number.eat == text.count and numbers < 2
             {
-                if !numbers do
+                if not numbers do
                     .flexGrow = number.value
                 else do
                     .flexShrink = number.value
@@ -1112,21 +1112,21 @@ impl HtmlComputedStyle
         case .Display:
             switch value
             {
-            case "none":                               .display = .None
-            case "contents":                           .display = .Contents
-            case "block", "flow-root":                 .display = .Block
-            case "inline":                             .display = .Inline
-            case "inline-block":                       .display = .InlineBlock
-            case "list-item":                          .display = .ListItem
-            case "flex":                               .display = .Flex
-            case "inline-flex":                        .display = .InlineFlex
-            case "grid":                               .display = .Grid
-            case "inline-grid":                        .display = .InlineGrid
-            case "table":                              .display = .Table
-            case "table-caption":                      .display = .TableCaption
+            case "none":               .display = .None
+            case "contents":           .display = .Contents
+            case "block", "flow-root": .display = .Block
+            case "inline":             .display = .Inline
+            case "inline-block":       .display = .InlineBlock
+            case "list-item":          .display = .ListItem
+            case "flex":               .display = .Flex
+            case "inline-flex":        .display = .InlineFlex
+            case "grid":               .display = .Grid
+            case "inline-grid":        .display = .InlineGrid
+            case "table":              .display = .Table
+            case "table-caption":      .display = .TableCaption
             case "table-row-group", "table-header-group", "table-footer-group": .display = .TableRowGroup
-            case "table-row":                          .display = .TableRow
-            case "table-cell":                         .display = .TableCell
+            case "table-row":          .display = .TableRow
+            case "table-cell":         .display = .TableCell
             case "table-column", "table-column-group": .display = .TableColumnGroup
             }
 
@@ -1152,7 +1152,7 @@ impl HtmlComputedStyle
             var found:       bool
             for part in parts
             {
-                if !.readColor(part.toString(), &parsedColor) do
+                if not .readColor(part.toString(), &parsedColor) do
                     continue
                 found = true
                 break
@@ -1181,7 +1181,7 @@ impl HtmlComputedStyle
             let parsed = .length(value, context)
             if parsed.matched and parsed.length.kind != .Auto
             {
-                .fontSize               = Math.max(parsed.length.resolve(context.pool, context.length, context.length.fontSize), 1)
+                .fontSize = Math.max(parsed.length.resolve(context.pool, context.length, context.length.fontSize), 1)
                 context.length.fontSize = .fontSize
             }
             else
@@ -1356,11 +1356,11 @@ impl HtmlComputedStyle
         case .WhiteSpace:
             switch value
             {
-            case "normal":                   .whiteSpace = .Normal
-            case "nowrap":                   .whiteSpace = .NoWrap
-            case "pre":                      .whiteSpace = .Pre
+            case "normal":   .whiteSpace = .Normal
+            case "nowrap":   .whiteSpace = .NoWrap
+            case "pre":      .whiteSpace = .Pre
             case "pre-wrap", "break-spaces": .whiteSpace = .PreWrap
-            case "pre-line":                 .whiteSpace = .PreLine
+            case "pre-line": .whiteSpace = .PreLine
             }
 
         case .VerticalAlign:

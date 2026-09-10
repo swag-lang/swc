@@ -16,7 +16,7 @@ const A2 = [1, true, 3]
 
 func semaTest001()
 {
-    var x          = 1
+    var x = 1
     var B: [3] s32 = [x, 2, 3]
     #assert(#typeof(B) == #type [3] s32)
 

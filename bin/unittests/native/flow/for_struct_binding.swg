@@ -33,12 +33,12 @@ struct Pair
 #test
 {
     var values: [3] s32 = [10, 20, 30]
-    var sum             = 0
+    var sum = 0
     for value, index in values
     {
         #assert(#typeof(value) == s32)
         values[index] = 100
-        sum           += value
+        sum += value
     }
 
     Swag.assert(sum == 60)
@@ -127,7 +127,7 @@ struct Pair
 #test
 {
     var text: string = "AB"
-    var sum          = 0
+    var sum = 0
     for &b in text do
         sum += cast(s32) b[]
     Swag.assert(sum == 65 + 66)

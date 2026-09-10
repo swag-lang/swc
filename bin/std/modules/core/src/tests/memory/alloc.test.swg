@@ -58,14 +58,14 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
 
 #test
 {
-    let cxt           = Swag.getContext()
+    let cxt = Swag.getContext()
     let previousPanic = cxt.panic
     let previousUser0 = cxt.user0
     defer cxt.panic = previousPanic
     defer cxt.user0 = previousUser0
 
     AllocationFailureMatched = false
-    cxt.panic                = &recordAllocationFailure
+    cxt.panic = &recordAllocationFailure
 
     var reject:    RejectAllocationAllocator
     let allocator: Swag.IAllocator = &reject

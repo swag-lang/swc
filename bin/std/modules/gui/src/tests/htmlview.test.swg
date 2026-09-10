@@ -30,7 +30,7 @@ using Core, Pixel
         view.scroll.setScrollPos(0, forward ? end - viewport.height * 9 : start + viewport.height * 8)
         view.virtualPendingSeek = false
         let previousStart = view.virtualWindowStart
-        for 20 where !view.virtualPendingSeek do
+        for 20 where not view.virtualPendingSeek do
             view.scroll.setScrollPos(0, view.scroll.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25))
         Swag.assert(view.virtualPendingSeek)
         Swag.assert(view.scroll.scrollPosition().y > start + viewport.height * 3)
@@ -86,7 +86,7 @@ using Core, Pixel
     view.scroll.smoothScrollTo({0, viewport.height * 2})
     Swag.assert(host.app.animator.isActive(view.scroll.scrollAnimation))
     let returned = view.revealFileOffset(view.virtualContentStart, "")
-    Swag.assert(returned and !host.app.animator.isActive(view.scroll.scrollAnimation))
+    Swag.assert(returned and not host.app.animator.isActive(view.scroll.scrollAnimation))
     host.finishAnimations()
     Swag.assert(view.scroll.scrollPosition().y == 0 and view.scroll.scrollTarget().y == 0)
 }
@@ -110,7 +110,7 @@ using Core, Pixel
     let sized   = view.layout.constBox(view.boxOfNode(view.elementById("sized"))).content
     Swag.assert(natural.width == 120 and natural.height == 60)
     Swag.assert(sized.width == 240 and sized.height == 120)
-    Swag.assert(view.images.entries.count == 1 and !view.images.entries[0].image.isValid())
+    Swag.assert(view.images.entries.count == 1 and not view.images.entries[0].image.isValid())
     var image = host.render(view)
     Swag.assert(image.isValid() and view.images.entries[0].image.width == 240)
 
@@ -258,7 +258,7 @@ func loadTemporaryDocument(host: *Testing.HeadlessHost, bytes: const [..] u8, ta
         steps += 1
     }
 
-    Swag.assert(!view.isLoading())
+    Swag.assert(not view.isLoading())
     return view.document.textContent(0)
 }
 
@@ -324,7 +324,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let division = findTag(&document, .Div)
     Swag.assert(document.hasClass(division, "x") and document.hasClass(division, "y"))
-    Swag.assert(!document.hasClass(division, "z"))
+    Swag.assert(not document.hasClass(division, "z"))
     Swag.assert(document.id(division) == "z")
     Swag.assert(document.attribute(division, "class") == "x y")
 }
@@ -408,7 +408,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(style.fontSize == 20)
 
     let emphasis = findTag(&view.document, .Em)
-    Swag.assert(!view.layout.styleOfNode(emphasis).italic)
+    Swag.assert(not view.layout.styleOfNode(emphasis).italic)
 }
 
 // Unsupported complex functional selectors cannot silently become their first compound.
@@ -473,7 +473,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let node  = findClass(&view.document, "cut")
     let style = view.layout.constStyle(view.layout.constBox(view.boxOfNode(node)).style)
     Swag.assert(style.clipPath != HtmlNoNode)
-    Swag.assert(!style.masked)
+    Swag.assert(not style.masked)
 
     var image = host.render(view)
     Swag.assert(image.isValid())
@@ -489,11 +489,11 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(htmlParseColor("rgba(255 0 0 / 50%)").color.a == 128)
     Swag.assert(htmlParseColor("hsl(0, 100%, 50%)").color == Color.fromArgb(0xFFFF0000))
     let translucent = htmlParseColor("color-mix(in srgb, #ff0000 25%, transparent)")
-    Swag.assert(translucent.matched and translucent.color.a == 64 and translucent.color.r == 255 and !translucent.color.g and !translucent.color.b)
+    Swag.assert(translucent.matched and translucent.color.a == 64 and translucent.color.r == 255 and not translucent.color.g and not translucent.color.b)
     Swag.assert(htmlParseColor("color-mix(in srgb, #0000ff 20%, #ffffff)").color == Color.fromArgb(0xFFCCCCFF))
     Swag.assert(htmlParseColor("rebeccapurple").color == Color.fromArgb(0xFF663399))
-    Swag.assert(htmlParseColor("transparent").matched and !htmlParseColor("transparent").color.a)
-    Swag.assert(!htmlParseColor("inherit").matched)
+    Swag.assert(htmlParseColor("transparent").matched and not htmlParseColor("transparent").color.a)
+    Swag.assert(not htmlParseColor("inherit").matched)
 }
 
 // Blocks stack with collapsed margins, and a grid places its children over its declared tracks.
@@ -664,9 +664,9 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.rebuild()
 
     let cell = view.layout.constBox(view.boxOfNode(view.elementById("bottom")))
-    Swag.assert(!cell.children.isEmpty())
+    Swag.assert(not cell.children.isEmpty())
     let content = view.layout.constBox(cell.children[0])
-    Swag.assert(!content.items.isEmpty())
+    Swag.assert(not content.items.isEmpty())
     Swag.assert(content.items[0].y + content.items[0].ascent + content.items[0].descent >= cell.content.bottom() - 1)
 }
 
@@ -829,7 +829,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let text = view.document.textContent(0)
     Swag.assert(Utf8.contains(text.toString(), "Heading level one"))
     Swag.assert(Utf8.contains(text.toString(), "The distant html verification marker"))
-    Swag.assert(!Utf8.contains(text.toString(), "must not render"))
+    Swag.assert(not Utf8.contains(text.toString(), "must not render"))
 
     // A hidden container is parsed and then left out of the box tree entirely.
     for index in view.layout.boxes.count
@@ -889,7 +889,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
         steps += 1
     }
 
-    Swag.assert(!view.isLoading())
+    Swag.assert(not view.isLoading())
     Swag.assert(view.pendingSearch.isEmpty())
     Swag.assert(view.searchNode != HtmlNoNode)
     Swag.assert(Utf8.contains(view.document.textOf(view.searchNode), query))
@@ -1006,9 +1006,9 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(revealed)
     Swag.assert(view.searchNode != HtmlNoNode and view.searchStart == 5 and view.searchEnd == 9)
     var bounds: Math.Rectangle
-    Swag.assert(view.searchMatchRect(&bounds) and !bounds.isEmpty())
+    Swag.assert(view.searchMatchRect(&bounds) and not bounds.isEmpty())
     view.clearSearch()
-    Swag.assert(!view.searchMatchRect(&bounds))
+    Swag.assert(not view.searchMatchRect(&bounds))
 }
 
 // A real generated Rustdoc page keeps its full production scale. Its highlighted source expands
@@ -1048,7 +1048,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(middleStart < middle and middleEnd > middle)
     Swag.assert(middle - middleStart > (middleEnd - middleStart) / 4)
     Swag.assert(middleEnd - middle > (middleEnd - middleStart) / 4)
-    Swag.assert(!view.virtualPendingSeek)
+    Swag.assert(not view.virtualPendingSeek)
     Swag.assert(view.document.nodes.count < 20_000)
 
     revealed = view.revealFileOffset(view.virtualContentStart, "")
@@ -1086,7 +1086,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let view = HtmlView.createFile(&host.root, fileName)
     view.resize(720, 480)
     view.applyLayout()
-    Swag.assert(view.virtualSource and !view.virtualPreformatted)
+    Swag.assert(view.virtualSource and not view.virtualPreformatted)
     Swag.assert(view.document.nodes.count < 20_000)
 
     let middle   = view.fileSize / 2
@@ -1138,7 +1138,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
         steps += 1
     }
 
-    Swag.assert(!view.isLoading())
+    Swag.assert(not view.isLoading())
 
     // Three positions, visited downwards and then upwards; every one must draw the same pixels
     // both times, and none of them may be blank.
@@ -1190,7 +1190,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.scroll.setScrollPos(0, view.virtualHeight * 0.85)
     Swag.assert(view.virtualPendingSeek)
     view.scroll.setScrollPos(0, residentY)
-    Swag.assert(!view.virtualPendingSeek)
+    Swag.assert(not view.virtualPendingSeek)
 
     // Two gestures before the timer fires coalesce to the newest request.
     view.scroll.setScrollPos(0, view.virtualHeight * 0.85)
@@ -1199,7 +1199,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     host.fireTimer(view.loadTimer)
     let lowOffset = view.virtualContentStart + cast(u64) (0.15 * cast(f32) (view.fileSize - view.virtualContentStart))
     Swag.assert(view.virtualWindowStart <= lowOffset and view.virtualWindowEnd >= lowOffset)
-    Swag.assert(!view.virtualPendingSeek)
+    Swag.assert(not view.virtualPendingSeek)
 
     let ratios = [0.15'f32, 0.75'f32, 0.35'f32, 0.9'f32]
     var firstPass: [4] u32
@@ -1212,7 +1212,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
             host.fireTimer(view.loadTimer)
         }
 
-        Swag.assert(!view.virtualPendingSeek)
+        Swag.assert(not view.virtualPendingSeek)
         Swag.assert(view.layout.boxes.count > 1)
         var image = host.render(view)
         firstPass[index] = Hash.hashBytes32(image.pixels.toSlice())
@@ -1270,7 +1270,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     // A pointer gesture on prose restores the document after another control temporarily owned
     // the keyboard, so later navigation keys cannot disappear into stale focus.
     host.focus(&host.root)
-    Swag.assert(!view.hasFocus())
+    Swag.assert(not view.hasFocus())
     host.click({20, 20})
     Swag.assert(view.hasFocus())
 }
@@ -1346,7 +1346,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let github = view.layout.constBox(view.boxOfNode(view.elementById("github-link")))
     Swag.assert(header.rect.height == 66)
     Swag.assert(Math.abs(brand.rect.vertCenter() - header.rect.vertCenter()) <= 1)
-    Swag.assert(!links.children.isEmpty())
+    Swag.assert(not links.children.isEmpty())
     Swag.assert(Math.abs(github.rect.y - view.layout.constBox(links.children[0]).rect.y) <= 1)
 }
 
@@ -1478,7 +1478,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let header     = view.layout.constBox(view.boxOfNode(headerNode))
     let links      = view.layout.constBox(view.boxOfNode(linksNode))
     Swag.assert(header.rect.height <= 68)
-    Swag.assert(!links.children.isEmpty())
+    Swag.assert(not links.children.isEmpty())
     let firstY = view.layout.constBox(links.children[0]).rect.y
     for child in links.children do
         Swag.assert(Math.abs(view.layout.constBox(child).rect.y - firstY) <= 1)
@@ -1511,7 +1511,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
         steps += 1
     }
 
-    Swag.assert(!view.isLoading())
+    Swag.assert(not view.isLoading())
 
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.pixel-api")
@@ -1527,8 +1527,8 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_gui_html_%.html", Guid64.random()).toString())
     let view = HtmlView.createFile(&host.root, path)
-    Swag.assert(!view.failureReason.isEmpty())
-    Swag.assert(!view.isLoading())
+    Swag.assert(not view.failureReason.isEmpty())
+    Swag.assert(not view.isLoading())
 }
 
 // A `>` inside a quoted attribute value belongs to the value, not to the tag.
@@ -1720,7 +1720,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
         steps += 1
     }
 
-    Swag.assert(!view.isLoading())
+    Swag.assert(not view.isLoading())
     host.settleAnimations(view, 4)
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.tables")
@@ -1790,7 +1790,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let wideText = loadTemporaryDocument(&host, wide.toSlice(), "wide")
     Swag.assert(Utf8.contains(wideText.toString(), "wide text"))
-    Swag.assert(!Utf8.contains(wideText.toString(), "ÿþ"))
+    Swag.assert(not Utf8.contains(wideText.toString(), "ÿþ"))
 }
 
 // The flex and grid fixture renders through the production view, pinning wrap, alignment, and
@@ -1814,7 +1814,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
         steps += 1
     }
 
-    Swag.assert(!view.isLoading())
+    Swag.assert(not view.isLoading())
     host.settleAnimations(view, 4)
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.flex-grid")
@@ -2206,7 +2206,7 @@ func countTextItems(view: *HtmlView, box: u32)->u64
     let whole = view.boxOfNode(view.elementById("n"))
     Swag.assert(view.layout.constBox(whole).lines.count == 1)
     for item in view.layout.constBox(whole).items do
-        Swag.assert(!item.hyphenAtBreak)
+        Swag.assert(not item.hyphenAtBreak)
 }
 
 // The `font` shorthand expands into its longhands, including the `/line-height` form, and
@@ -2247,7 +2247,7 @@ func countTextItems(view: *HtmlView, box: u32)->u64
 // what a conversion through another color space can promise.
 func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
 {
-    if !value.matched do
+    if not value.matched do
         return false
 
     let expected = Pixel.Color.fromArgb(argb)
@@ -2285,7 +2285,7 @@ func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
     Swag.assert(vivid.matched and vivid.color.g == 255)
 
     // An unknown color space is refused, so the cascade keeps its previous value.
-    Swag.assert(!htmlParseColor("color(rec2020 1 0 0)").matched)
+    Swag.assert(not htmlParseColor("color(rec2020 1 0 0)").matched)
 }
 
 // The full `an+b` grammar matches, and the `-of-type` selectors count within their type.
@@ -2397,7 +2397,7 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
     view.applyLayout()
     view.rebuild()
 
-    Swag.assert(!view.hasSelection())
+    Swag.assert(not view.hasSelection())
     view.selectAll()
     Swag.assert(view.hasSelection())
     Swag.assert(view.selectedText() == "alpha beta\ngamma delta")
@@ -2405,8 +2405,8 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
     Swag.assert(Clipboard.getString() == "alpha beta\ngamma delta")
 
     view.clearSelection()
-    Swag.assert(!view.hasSelection())
-    Swag.assert(!view.copySelection())
+    Swag.assert(not view.hasSelection())
+    Swag.assert(not view.copySelection())
 }
 
 // A mouse drag selects what it crosses, and a double click takes the word under the pointer.

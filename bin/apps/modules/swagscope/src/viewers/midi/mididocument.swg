@@ -25,7 +25,7 @@ struct MidiTrack
 
 struct MidiTempo
 {
-    tick:             u64
+    tick: u64
     microsPerQuarter: u32
 }
 
@@ -73,7 +73,7 @@ private func midiHas(bytes: const [..] u8, offset, count: u64)->bool
 
 private func midiMatches(bytes: const [..] u8, offset: u64, value: string)->bool
 {
-    if !midiHas(bytes, offset, value.count) do
+    if not midiHas(bytes, offset, value.count) do
         return false
     for index in value.count where bytes[offset + index] != value[index] do
         return false
@@ -101,7 +101,7 @@ private func midiVlq(bytes: const [..] u8, at, end: u64)->MidiVlq
         let value = bytes[result.next]
         result.next  += 1
         result.value = (result.value << 7) | cast(u64) (value & 0x7F)
-        if !(value & 0x80)
+        if not (value & 0x80)
         {
             result.valid = true
             return result
@@ -113,7 +113,7 @@ private func midiVlq(bytes: const [..] u8, at, end: u64)->MidiVlq
 
 private func midiText(bytes: const [..] u8, at, length: u64)->String
 {
-    if !length do
+    if not length do
         return {}
     var text: Array'u8
     text.reserve(length)
@@ -132,7 +132,7 @@ private func midiText(bytes: const [..] u8, at, length: u64)->String
 
 private func closeMidiNote(document: *MidiDocument, active: *u64, tick: u64)
 {
-    if !active[] do
+    if not active[] do
         return
     let note = &document.notes[active[] - 1]
     note.endTick = Math.max(tick, note.startTick + 1)
@@ -150,7 +150,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
     while scan < end
     {
         let delta = midiVlq(bytes, scan, end)
-        if !delta.valid do
+        if not delta.valid do
             fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
         tick += delta.value
         scan = delta.next
@@ -175,7 +175,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
             running = status
             let kind  = status >> 4
             let count = kind == 0xC or kind == 0xD ? 1'u64 : 2'u64
-            if !midiHas(bytes, scan, count) or scan + count > end do
+            if not midiHas(bytes, scan, count) or scan + count > end do
                 fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
             let data1 = bytes[scan]
             let data2 = count == 2 ? bytes[scan + 1] : 0
@@ -210,7 +210,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
                 fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
             let kind   = bytes[scan]
             let length = midiVlq(bytes, scan + 1, end)
-            if !length.valid or length.value > end - length.next do
+            if not length.valid or length.value > end - length.next do
                 fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
             let body = length.next
 
@@ -238,7 +238,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
         {
             running = 0
             let length = midiVlq(bytes, scan, end)
-            if !length.valid or length.value > end - length.next do
+            if not length.valid or length.value > end - length.next do
                 fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
             scan = length.next + length.value
         }
@@ -266,7 +266,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
 
 private func computeMidiDuration(document: *MidiDocument)
 {
-    if !document.durationTicks do
+    if not document.durationTicks do
         return
 
     if document.division & 0x8000
@@ -280,7 +280,7 @@ private func computeMidiDuration(document: *MidiDocument)
     }
 
     let quarter = cast(u64) document.division
-    if !quarter do
+    if not quarter do
         return
     document.tempos.sort(func(a, b) { return a.tick <=> b.tick })
     var previous: u64
@@ -288,8 +288,8 @@ private func computeMidiDuration(document: *MidiDocument)
     for tempo in document.tempos where tempo.tick <= document.durationTicks
     {
         document.durationSeconds += cast(f64) (tempo.tick - previous) * cast(f64) micros / (cast(f64) quarter * 1_000_000)
-        previous                 = tempo.tick
-        micros                   = tempo.microsPerQuarter
+        previous = tempo.tick
+        micros   = tempo.microsPerQuarter
     }
 
     document.durationSeconds += cast(f64) (document.durationTicks - previous) * cast(f64) micros / (cast(f64) quarter * 1_000_000)
@@ -301,24 +301,24 @@ func loadMidiDocument(fileName: string)->MidiDocument fail
     if info.size > MidiFileLimit do
         fail UnsupportedFormatError{Errors.mkString(midiStrings().err_TooLarge)}
     let bytes = try File.readAllBytes(fileName)
-    if !midiHas(bytes.toSlice(), 0, 14) or !midiMatches(bytes.toSlice(), 0, "MThd") do
+    if not midiHas(bytes.toSlice(), 0, 14) or not midiMatches(bytes.toSlice(), 0, "MThd") do
         fail InvalidFormatError{Errors.mkString(midiStrings().err_Header)}
 
     let headerLength = cast(u64) midiU32(bytes.toSlice(), 4)
-    if headerLength < 6 or !midiHas(bytes.toSlice(), 8, headerLength) do
+    if headerLength < 6 or not midiHas(bytes.toSlice(), 8, headerLength) do
         fail InvalidFormatError{Errors.mkString(midiStrings().err_Header)}
 
     var result: retval
     result.format         = midiU16(bytes.toSlice(), 8)
     result.declaredTracks = midiU16(bytes.toSlice(), 10)
     result.division       = midiU16(bytes.toSlice(), 12)
-    if result.format > 2 or !result.declaredTracks or !result.division do
+    if result.format > 2 or not result.declaredTracks or not result.division do
         fail InvalidFormatError{Errors.mkString(midiStrings().err_Header)}
 
     var scan = 8 + headerLength
     for trackIndex in result.declaredTracks
     {
-        if !midiHas(bytes.toSlice(), scan, 8) or !midiMatches(bytes.toSlice(), scan, "MTrk") do
+        if not midiHas(bytes.toSlice(), scan, 8) or not midiMatches(bytes.toSlice(), scan, "MTrk") do
             fail InvalidFormatError{Errors.mkString(midiStrings().err_Track)}
         let length = cast(u64) midiU32(bytes.toSlice(), scan + 4)
         let body   = scan + 8

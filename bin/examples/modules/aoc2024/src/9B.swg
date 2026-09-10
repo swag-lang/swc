@@ -125,7 +125,7 @@ func day9BB()
     {
         if idx % 2 == 0
         {
-            if !moved.contains(idx)
+            if not moved.contains(idx)
             {
                 total    += fileSum(blockIdx, line[idx] - '0', idx / 2)
                 blockIdx += line[idx] - '0'

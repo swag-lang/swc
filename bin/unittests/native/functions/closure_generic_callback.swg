@@ -4,14 +4,14 @@
 {
     var result: ClosureGenericCallbackSupport.ByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
     Swag.assert(ClosureGenericCallbackSupport.invokeUnary('C'u8, func|&result|(x: u8)->bool { return result.contains(x) }))
-    Swag.assert(!ClosureGenericCallbackSupport.invokeUnary('Z'u8, func|&result|(x: u8)->bool { return result.contains(x) }))
+    Swag.assert(not ClosureGenericCallbackSupport.invokeUnary('Z'u8, func|&result|(x: u8)->bool { return result.contains(x) }))
 }
 
 #test
 {
     var result: ClosureGenericCallbackSupport.ByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
     Swag.assert(ClosureGenericCallbackSupport.invokeGeneric('A'u8, func|&result|(x: u8)->bool { return result.contains(x) }))
-    Swag.assert(!ClosureGenericCallbackSupport.invokeGeneric('Z'u8, func|&result|(x: u8)->bool { return result.contains(x) }))
+    Swag.assert(not ClosureGenericCallbackSupport.invokeGeneric('Z'u8, func|&result|(x: u8)->bool { return result.contains(x) }))
 }
 
 #test

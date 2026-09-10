@@ -13,7 +13,7 @@ impl SemaFieldVisits
 {
     #[Swag.Macro]
     func(ptr: bool) opVisit(me, stmt: #code(item: s32, index: u64))
-        where !ptr
+        where not ptr
     {
 
         for idx in 3
@@ -94,7 +94,7 @@ impl SemaHiddenAliasVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, tens: s32, index: u64))
-        where !ptr
+        where not ptr
     {
         for idx in 3
         {
@@ -136,7 +136,7 @@ impl SemaReverseVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
-        where !ptr
+        where not ptr
     {
         for idx in 3
         {
@@ -151,7 +151,7 @@ impl SemaGenericReverseVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
-        where !ptr
+        where not ptr
     {
 
         for idx in 3
@@ -200,7 +200,7 @@ impl SemaGenericScopedVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
-        where !ptr
+        where not ptr
     {
         #scope(Outer)
         for idx in 3
@@ -364,7 +364,7 @@ func semaTest010()
 
     for value, i in visits
     {
-        if !(i & 1) do
+        if not (i & 1) do
             outside += value
         else do
             inside += value

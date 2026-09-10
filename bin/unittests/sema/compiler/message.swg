@@ -214,7 +214,7 @@ var MessageUnknownCountArrayCount = 0
     Swag.assert(MessageSawLateGlobal)
     Swag.assert(MessageSawStrictAlias)
     Swag.assert(MessageSawUnknownCountArray)
-    Swag.assert(!MessageSawCompilerOnlyFunction)
+    Swag.assert(not MessageSawCompilerOnlyFunction)
     Swag.assert(MessageEarlyFunctionCount == 1)
     Swag.assert(MessageLateFunctionCount == 1)
     Swag.assert(MessagePlaceholderFunctionCount == 1)

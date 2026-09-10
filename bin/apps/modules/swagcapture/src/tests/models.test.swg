@@ -90,7 +90,7 @@ using Swag, Core
     let image = f.main.newFormFromModel(.Image, clear: true)
     Swag.assert(Swag.kindOf(image) == FormImage)
     Swag.assert((cast(*FormImage) image.buffer).kind == .Pixelate)
-    Swag.assert(!(cast(*FormImage) image.buffer).image.isValid())
+    Swag.assert(not (cast(*FormImage) image.buffer).image.isValid())
     testDeleteForm(image)
 
     f.main.mdlFormCallout.roundSize = 22

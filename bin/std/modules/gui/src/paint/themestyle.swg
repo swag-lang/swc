@@ -17,9 +17,9 @@ struct ThemeStyle
 {
     public
     {
-        styleSheetMetrics: String         // Style sheet metrics associated with this value.
-        styleSheetColors:  String         // Style sheet colors associated with this value.
-        font:              FontFamily     // Font associated with this value.
+        styleSheetMetrics: String     // Style sheet metrics associated with this value.
+        styleSheetColors:  String     // Style sheet colors associated with this value.
+        font: FontFamily              // Font associated with this value.
     }
 
     // The shared theme this style resolves against, and whether it must be resolved again.
@@ -42,7 +42,7 @@ impl ThemeStyle
     // released its reference no longer holds a pointer it could decrement a second time.
     private mtd free()
     {
-        if !.refr do
+        if not .refr do
             return
 
         let refr = .refr!
@@ -96,7 +96,7 @@ impl ThemeStyle
     private mtd compute(owner: *Wnd, parent: *ThemeStyle)
     {
         // First time, initialize to parent
-        if !.refr
+        if not .refr
         {
             .share(parent)
             .dirty = true
@@ -104,7 +104,7 @@ impl ThemeStyle
 
         // If parent is dirty, or i am dirty, then we need
         // to compute.
-        if !.dirty and !parent.dirty do
+        if not .dirty and not parent.dirty do
             return
         .dirty = true
 
@@ -121,11 +121,11 @@ impl ThemeStyle
         // Nothing to override
         if .styleSheetColors.length == 0 and
            .styleSheetMetrics.length == 0 and
-           !.font.regular and
-           !.font.bold and
-           !.font.italic and
-           !.font.boldItalic and
-           !evt.accepted
+           not .font.regular and
+           not .font.bold and
+           not .font.italic and
+           not .font.boldItalic and
+           not evt.accepted
         {
             return
         }
@@ -162,7 +162,7 @@ impl ThemeStyle
     mtd setStyleSheetColors(str: string)
     {
         .styleSheetColors = str
-        .dirty            = true
+        .dirty = true
     }
 
     // Adds style sheet colors.
@@ -177,7 +177,7 @@ impl ThemeStyle
     mtd setStyleSheetMetrics(str: string)
     {
         .styleSheetMetrics = str
-        .dirty             = true
+        .dirty = true
     }
 
     // Adds style sheet metrics.

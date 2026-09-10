@@ -43,7 +43,7 @@ public impl Plan
     mtd const fieldByKey(key: string)->const *PlanField?
     {
         let e = .keyToIndex.tryFind(key)
-        if !e do
+        if not e do
             return null
         return .fields.buffer! + e.value
     }

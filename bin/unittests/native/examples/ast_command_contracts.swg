@@ -205,7 +205,7 @@ func appendCommandRedaction(buffer: [*] u8, start: u64, contractName: string, ty
                 continue
             if attribute.type != #typeof(StringPolicyRule) do
                 continue
-            if !cast(bool) params[3].value do
+            if not cast(bool) params[3].value do
                 continue
 
             len = appendAst(buffer, len, "    result.")
@@ -238,7 +238,7 @@ func appendCommandSecretCount(buffer: [*] u8, start: u64, contractName: string, 
                 continue
             if attribute.type != #typeof(StringPolicyRule) do
                 continue
-            if !cast(bool) params[3].value do
+            if not cast(bool) params[3].value do
                 continue
 
             len = appendAst(buffer, len, "    count += 1\n")
@@ -261,14 +261,14 @@ func appendCommandInvoke(buffer: [*] u8, start: u64, contractName, handlerName: 
     len = appendAst(buffer, len, "(command: const *")
     len = appendAst(buffer, len, contractName)
     len = appendAst(buffer, len, ")")
-    if !returnsVoid
+    if not returnsVoid
     {
         len = appendAst(buffer, len, "->")
         len = appendAst(buffer, len, (typeFunc.returnType!.name)!)
     }
 
     len = appendAst(buffer, len, "\n{\n    ")
-    if !returnsVoid do
+    if not returnsVoid do
         len = appendAst(buffer, len, "return ")
     len = appendAst(buffer, len, handlerName)
     len = appendAst(buffer, len, "(")
@@ -331,7 +331,7 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
     Swag.assert(countScheduleDeploymentCommandSecrets() == 1)
     Swag.assert(redacted.replicas == 6)
     Swag.assert(redacted.region == "eu-west")
-    Swag.assert(!redacted.dryRun)
+    Swag.assert(not redacted.dryRun)
     Swag.assert(redacted.authToken == "<redacted>")
     Swag.assert(result == .Accepted)
 }
@@ -346,7 +346,7 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
 
     let redacted = redactScheduleDeploymentCommand(command)
 
-    Swag.assert(!validateScheduleDeploymentCommand(command))
+    Swag.assert(not validateScheduleDeploymentCommand(command))
     Swag.assert(redacted.authToken == "<redacted>")
 }
 

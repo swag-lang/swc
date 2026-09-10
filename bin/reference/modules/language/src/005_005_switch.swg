@@ -254,7 +254,7 @@ Add a `where` clause to a `case` to refine matching conditions based on addition
     {
     case 6 where y == 9:  Swag.assert(false)
     case 6 where y == 10: Swag.assert(true)
-    default:              Swag.assert(false)
+    default: Swag.assert(false)
     }
 }
 
@@ -273,7 +273,7 @@ A `where` clause can also modify the `default` case for conditional fallbacks.
     case 6 where y == 10:  Swag.assert(false)
     case 7 where y == 9:   Swag.assert(false)
     default where y == 10: break
-    default:               Swag.assert(false)
+    default: Swag.assert(false)
     }
 }
 

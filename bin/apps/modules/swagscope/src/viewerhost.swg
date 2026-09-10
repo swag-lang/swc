@@ -38,20 +38,20 @@ impl ViewerSession
     mtd create(plugin: const *Viewer.Plugin, host: Viewer.Host) fail
     {
         plugin.create(host)
-        if .view and !.failureReason.isEmpty() do
+        if .view and not .failureReason.isEmpty() do
             fail Errors.InvalidFormatError{"viewer plugin returned both a document view and a rejection reason"}
-        if !.view and .failureReason.isEmpty() do
+        if not .view and .failureReason.isEmpty() do
             fail Errors.InvalidFormatError{"viewer plugin returned neither a document view nor a rejection reason"}
-        if !.view and (.actions or .info or .commands) do
+        if not .view and (.actions or .info or .commands) do
             fail Errors.InvalidFormatError{"viewer plugin returned chrome without a document view"}
     }
 
     // Requests resource release and reports whether GUI destruction may proceed.
     mtd retireView()->bool
     {
-        if !.view or !.retire do
+        if not .view or not .retire do
             return true
-        if !.retire!(.view!) do
+        if not .retire!(.view!) do
             return false
         .retire = null
         return true
@@ -140,7 +140,7 @@ impl Viewer.Host for ViewerPluginHost
     mtd impl createEmbedded(parent: *Wnd)->Viewer.Embedded
     {
         Swag.assert(.window != null, "embedded viewers need an application window")
-        let embedded                = EmbeddedViewer.create(parent, .window!)
+        let embedded = EmbeddedViewer.create(parent, .window!)
         let result: Viewer.Embedded = embedded
         return result
     }
@@ -253,8 +253,8 @@ impl Viewer.Host for ViewerPluginHost
 
     mtd impl setLifecycle(api: Viewer.LifecycleApi)
     {
-        .session.isLoading           = api.isLoading
+        .session.isLoading = api.isLoading
         .session.needsLoadingOverlay = api.needsLoadingOverlay
-        .session.retire              = api.retire
+        .session.retire    = api.retire
     }
 }

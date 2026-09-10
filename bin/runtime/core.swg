@@ -22,7 +22,7 @@ func typeIs(toType, fromType: typeinfo?)->bool
 {
     if Swag.typeCmp(toType, fromType, .Strict) do
         return true
-    if !toType or !fromType do
+    if not toType or not fromType do
         return false
     if fromType.kind != .Struct and fromType.kind != .Interface do
         return false
@@ -58,7 +58,7 @@ func typeAs(toType, fromType: typeinfo?, ptr: *void?)->*void?
 {
     if Swag.typeCmp(toType, fromType, .Strict) do
         return ptr
-    if !toType or !fromType or !ptr do
+    if not toType or not fromType or not ptr do
         return null
     if fromType.kind != .Struct and fromType.kind != .Interface do
         return null
@@ -96,9 +96,9 @@ func typeAs(toType, fromType: typeinfo?, ptr: *void?)->*void?
 
 func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
 {
-    if !typeA and !typeB do
+    if not typeA and not typeB do
         return true
-    if !typeA or !typeB do
+    if not typeA or not typeB do
         return false
     let type1 = __concreteAlias(typeA)
     let type2 = __concreteAlias(typeB)
@@ -156,10 +156,10 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
             if field2.flags & .AutoName do
                 namesAreEqual = true
 
-            if !namesAreEqual and field1.name != field2.name do
+            if not namesAreEqual and field1.name != field2.name do
                 return false
 
-            if !Swag.typeCmp(field1.pointedType!, field2.pointedType!, cmpFlags) do
+            if not Swag.typeCmp(field1.pointedType!, field2.pointedType!, cmpFlags) do
                 return false
         }
 
@@ -175,7 +175,7 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
 
 func tableOf(structType, itfType: const *TypeInfoStruct?)->const *void?
 {
-    if !structType or !itfType do
+    if not structType or not itfType do
         return null
 
     let itfs = structType.interfaces
@@ -258,17 +258,17 @@ func jit()->bool    => Swag.getContext().runtimeFlags & .FromCompiler ? true : f
 func __runtimeAllocator()->IAllocator
 {
     let cxt = Swag.getContext()
-    if !cxt.allocator
+    if not cxt.allocator
     {
         // Under the compiler (JIT) the host installs a process-stable runtime allocator into the
         // context. Building a swag Swag.makeInterface allocator here would place its interface table in
         // per-run JIT memory that is released between workspace modules; if that interface is then
         // cached in a process-persistent imported-DLL global (e.g. a reflection hash table) it
         // dangles and crashes on a later module's allocation. So only build it for native runs.
-        if !Swag.jit()
+        if not Swag.jit()
         {
             let allocator = defaultAllocator()
-            if !allocator.installed() do
+            if not allocator.installed() do
                 allocator.setup()
             cxt.allocator        = Swag.makeInterface(allocator, #typeof(allocator[]), IAllocator)
             cxt.defaultAllocator = cxt.allocator
@@ -330,10 +330,10 @@ func __setupRuntime(flags: RuntimeFlags)
     // executable seeds its copy here and hands it down the hook chain to the modules it imports.
     // Under the compiler the real command line belongs to 'swc' itself; the host has already
     // filled the slot with the one the program is effectively launched with, so leave it alone.
-    if !(flags & .FromCompiler) do
+    if not (flags & .FromCompiler) do
         Swag.processInfos().args = __osCommandLine()
 
-    discard installAllocator(electricMode: __buildCfg.allocatorElectricMode, detectLeaks: __buildCfg.allocatorLeaks, captureStack: __buildCfg.allocatorCaptureStack, trackAllocations: __buildCfg.allocatorTrackAllocations, fillMemory: __buildCfg.allocatorFillMemory, installInContext: !(flags & .FromCompiler))
+    discard installAllocator(electricMode: __buildCfg.allocatorElectricMode, detectLeaks: __buildCfg.allocatorLeaks, captureStack: __buildCfg.allocatorCaptureStack, trackAllocations: __buildCfg.allocatorTrackAllocations, fillMemory: __buildCfg.allocatorFillMemory, installInContext: not (flags & .FromCompiler))
 
     let allocator = __runtimeAllocator()
 

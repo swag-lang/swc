@@ -63,7 +63,7 @@ impl Decoder
         }
 
         .table.entries[.table.nentries] = {length, prefix, suffix}
-        .table.nentries                 += 1
+        .table.nentries += 1
         if (.table.nentries & (.table.nentries - 1)) == 0 do
             return 1
         return 0
@@ -127,7 +127,7 @@ impl Decoder
                 .table.nentries = (1 << (keySize - 1)) + 2
                 tableIsFull     = 0
             }
-            elif !tableIsFull
+            elif not tableIsFull
             {
                 ret = .addEntry(cast(u16) (strLen + 1), key, entry.suffix)
                 if .table.nentries == 0x1000
@@ -148,7 +148,7 @@ impl Decoder
                 fail InvalidFormatError{"GIF LZW code is outside its dictionary"}
             entry  = .table.entries.buffer![key]
             strLen = entry.length
-            if !strLen or strLen > frmSize - frmOff do
+            if not strLen or strLen > frmSize - frmOff do
                 fail InvalidFormatError{"GIF LZW string exceeds its frame"}
             for i in strLen
             {
@@ -166,7 +166,7 @@ impl Decoder
             }
 
             frmOff += strLen
-            if key < .table.nentries - 1 and !tableIsFull do
+            if key < .table.nentries - 1 and not tableIsFull do
                 .table.entries[.table.nentries - 1].suffix = entry.suffix
         }
 

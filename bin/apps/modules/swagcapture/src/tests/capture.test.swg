@@ -28,23 +28,23 @@ func testAddMonitor(main: *MainWnd, idx: u32)
 
     var evt = Gui.Testing.commandState(ActionCapture.DoIt)
     Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.DoIt, &evt))
-    Swag.assert(!evt.name.isEmpty())
+    Swag.assert(not evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionCapture.Area)
     Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Area, &evt))
-    Swag.assert(!evt.name.isEmpty())
+    Swag.assert(not evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionCapture.LastArea)
     Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.LastArea, &evt))
-    Swag.assert(!evt.name.isEmpty())
+    Swag.assert(not evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionCapture.FullScreen)
     Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.FullScreen, &evt))
-    Swag.assert(!evt.name.isEmpty())
+    Swag.assert(not evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionCapture.ActiveWnd)
     Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.ActiveWnd, &evt))
-    Swag.assert(!evt.name.isEmpty())
+    Swag.assert(not evt.name.isEmpty())
 
     // One command per connected monitor, minted on demand: the sixth is reachable
     // exactly like the first, and each carries a distinct id and an enabled state.
@@ -58,15 +58,15 @@ func testAddMonitor(main: *MainWnd, idx: u32)
         Swag.assert(ActionCapture.screenIndex(id) == idx)
         evt = Gui.Testing.commandState(id)
         Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, id, &evt))
-        Swag.assert(!evt.name.isEmpty())
-        Swag.assert(!evt.disabled)
+        Swag.assert(not evt.name.isEmpty())
+        Swag.assert(not evt.disabled)
     }
 
     // A command whose monitor is gone stays answerable and reports itself disabled.
     let goneId = ActionCapture.screenId(f.main.monitors.count)
     evt = Gui.Testing.commandState(goneId)
     Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, goneId, &evt))
-    Swag.assert(!evt.name.isEmpty())
+    Swag.assert(not evt.name.isEmpty())
     Swag.assert(evt.disabled)
 }
 

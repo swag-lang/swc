@@ -76,7 +76,7 @@ impl BinaryImage
     mtd const matches(offset: u64, magic: string)->bool
     {
         let count = magic.count
-        if !.has(offset, count) do
+        if not .has(offset, count) do
             return false
         for index in count where .bytes[offset + index] != magic[index] do
             return false
@@ -86,7 +86,7 @@ impl BinaryImage
     // Returns `[offset, offset + count)`, or an empty slice when the prefix does not hold it.
     mtd const slice(offset, count: u64)->const [..] u8
     {
-        if !.has(offset, count) do
+        if not .has(offset, count) do
             return .bytes[0 until 0]
         return .bytes[offset until offset + count]
     }
@@ -94,7 +94,7 @@ impl BinaryImage
     // Assembles `size` bytes at `offset` in the image byte order.
     mtd scalarAt(offset, size: u64)->u64
     {
-        if !.has(offset, size)
+        if not .has(offset, size)
         {
             .truncated = true
             return 0
@@ -137,7 +137,7 @@ impl BinaryImage
     // Returns the fixed-width text at `offset`, cut at its first NUL and trimmed of trailing blanks.
     mtd fixedTextAt(offset, length: u64)->String
     {
-        if !.has(offset, length)
+        if not .has(offset, length)
         {
             .truncated = true
             return {}
@@ -161,7 +161,7 @@ impl BinaryImage
         while index < maxUnits
         {
             let unit = .u16At(offset + index * 2)
-            if !unit do
+            if not unit do
                 break
             index += 1
 
@@ -185,7 +185,7 @@ impl BinaryImage
     // Returns `length` bytes at `offset` with every unprintable byte shown as a dot.
     private mtd const printableAt(offset, length: u64)->String
     {
-        if !length or !.has(offset, length) do
+        if not length or not .has(offset, length) do
             return {}
 
         var text: Array'u8

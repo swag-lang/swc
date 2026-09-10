@@ -25,9 +25,9 @@ func editHeadlessEnter(eb: *EditBox)
 
     let field = EditBox.create(&host.root, "query", {20, 30, 220, 28}, flags: .ClearButton)
     field.setFocus()
-    Swag.assert(!field.children.isEmpty())
+    Swag.assert(not field.children.isEmpty())
     host.click(field.children.back().surfaceRect().center())
-    Swag.assert(!(field.text()).count and field.hasFocus())
+    Swag.assert(not (field.text()).count and field.hasFocus())
 }
 
 func editHeadlessEscape(eb: *EditBox)
@@ -468,5 +468,5 @@ func editHeadlessEscape(eb: *EditBox)
     host.keyPress(Input.Key.Escape)
     Swag.assert(host.commandCount == before)
     Swag.assert(field.text() == "kept")
-    Swag.assert(!field.hasFocus())
+    Swag.assert(not field.hasFocus())
 }

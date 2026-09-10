@@ -41,7 +41,7 @@ struct(var T, const Count: s32) GenericBuffer
     let flags: GenericBuffer'(bool, 3) = {values: [true, false, true]}
 
     #assert(#typeof(flags.values) == #type [3] bool)
-    Swag.assert(flags.values[0] and !flags.values[1] and flags.values[2])
+    Swag.assert(flags.values[0] and not flags.values[1] and flags.values[2])
 }
 
 /**

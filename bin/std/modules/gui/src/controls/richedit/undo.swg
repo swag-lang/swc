@@ -98,7 +98,7 @@ impl RichEditCtrl
         for i in .toUndo.count
         {
             let undo = .toUndo[i]!
-            undo.serial             = .serialUndo
+            undo.serial = .serialUndo
             undo.begSelectionBefore = .selBegUndo
             undo.endSelectionBefore = .cursorPosUndo
             undo.begSelectionAfter  = .selBeg
@@ -115,7 +115,7 @@ impl RichEditCtrl
     {
         if .undoMgr.count == 0 do
             return false
-        if !.currentUndo do
+        if not .currentUndo do
             return false
         return true
     }
@@ -123,7 +123,7 @@ impl RichEditCtrl
     // Reverts the newest recorded edit.
     mtd undo()
     {
-        if !.canUndo() do
+        if not .canUndo() do
             return
 
         .currentUndo -= 1
@@ -151,7 +151,7 @@ impl RichEditCtrl
             .selBeg    = undo.begSelectionBefore
             .cursorPos = undo.endSelectionBefore
             .setRectangularSelection(undo.hasSelRect)
-            if !.currentUndo do
+            if not .currentUndo do
                 break
             undo = (.undoMgr[.currentUndo - 1])!
             if undo.serial != serial do
@@ -179,7 +179,7 @@ impl RichEditCtrl
     // Reapplies the newest reverted edit.
     mtd redo()
     {
-        if !.canRedo() do
+        if not .canRedo() do
             return
 
         var undo   = .undoMgr[.currentUndo]!

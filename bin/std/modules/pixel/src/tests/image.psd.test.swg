@@ -80,7 +80,7 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
     options.decodePixels = false
     let metadataOnly = expect Image.decode("deep.psd", nnBytes(bytes.toSlice()), options)
     Swag.assert(metadataOnly.width == 1 and metadataOnly.height == 1 and metadataOnly.pixelFormat == .RGBA16)
-    Swag.assert(!metadataOnly.isValid())
+    Swag.assert(not metadataOnly.isValid())
 }
 
 #test

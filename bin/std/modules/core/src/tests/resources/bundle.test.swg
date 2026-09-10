@@ -13,8 +13,8 @@ const EmbeddedOther = [111'u8, 107]
     bundle.addEmbedded("lang/fr/app.tweak", EmbeddedHello)
 
     Swag.assert(bundle.has("lang/fr/app.tweak"))
-    Swag.assert(!bundle.has("lang/de/app.tweak"))
-    Swag.assert(!bundle.isOverridden("lang/fr/app.tweak"))
+    Swag.assert(not bundle.has("lang/de/app.tweak"))
+    Swag.assert(not bundle.isOverridden("lang/fr/app.tweak"))
 
     let bytes = expect bundle.load("lang/fr/app.tweak")
     Swag.assert(bytes.count == 5)
@@ -60,7 +60,7 @@ const EmbeddedOther = [111'u8, 107]
 
     // A name only the embedded table knows still resolves through it.
     bundle.addEmbedded("only/embedded.bin", EmbeddedOther)
-    Swag.assert(!bundle.isOverridden("only/embedded.bin"))
+    Swag.assert(not bundle.isOverridden("only/embedded.bin"))
     Swag.assert(bundle.has("only/embedded.bin"))
 }
 
@@ -104,5 +104,5 @@ const EmbeddedOther = [111'u8, 107]
     Swag.assert(Directory.exists(root))
 
     expect Directory.delete(root, recurse: true)
-    Swag.assert(!Directory.exists(root))
+    Swag.assert(not Directory.exists(root))
 }

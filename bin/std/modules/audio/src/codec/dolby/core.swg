@@ -81,7 +81,7 @@ private impl BitReader
     mtd readSigned(count: u32)->s32
     {
         let raw = .read(count)
-        if !count do
+        if not count do
             return 0
         let sign = 1'u32 << (count - 1)
         if raw & sign do
@@ -334,7 +334,7 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
 
     var begin   = bandStart
     var lowComp = 0's32
-    if !bandStart
+    if not bandStart
     {
         lowComp       = lowCompensation(lowComp, bandPsd[0], bandPsd[1], 0)
         excitation[0] = bandPsd[0] - fastGain - lowComp
@@ -420,7 +420,7 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
         {
             let address = Math.min(63, Math.max(0, (psd[source] - masked) >> 5))
             result[source - start] = BAPTAB[address]
-            source                 += 1
+            source += 1
         }
 
         band += 1

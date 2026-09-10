@@ -24,7 +24,7 @@
     func printTypeInfoFlags()->bool
     {
         let t: typeinfo = #typeof(s32)
-        let f           = t.flags | .Nullable
+        let f = t.flags | .Nullable
         // Swag.print("flags", f)
         return (f & .Nullable) != 0
     }

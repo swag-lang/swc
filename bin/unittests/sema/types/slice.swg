@@ -62,11 +62,11 @@ func semaTest007()
 
     var view:    [..] s32        = arr
     let viewRef: const *[..] s32 = &view
-    let sub                      = viewRef[][1 until 3]
+    let sub = viewRef[][1 until 3]
     #assert(#typeof(sub) == [..] s32)
 
-    let text                   = "string"
+    let text      = "string"
     let textRef: const *string = &text
-    let textSlice              = textRef[][1 to 3]
+    let textSlice = textRef[][1 to 3]
     #assert(#typeof(textSlice) == string)
 }

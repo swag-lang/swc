@@ -241,7 +241,7 @@ impl IPacketCodec for Codec
 
     mtd impl initialize(config: const [..] u8, sampleRateHz, channels: u32) fail
     {
-        if !sampleRateHz or !channels or channels > MaxChannels do
+        if not sampleRateHz or not channels or channels > MaxChannels do
             fail BadParameterError{"ADPCM audio needs one or two channels and a non-zero sample rate"}
         .channels = channels
         if .sourceEncoding == .AdpcmMs do
@@ -253,7 +253,7 @@ impl IPacketCodec for Codec
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
         let frames = blockFrameCount(.sourceEncoding, .channels, packet.count)
-        if !frames do
+        if not frames do
             fail InvalidFormatError{"ADPCM block is shorter than its header"}
         let produced = frames * .channels * #sizeof(s16)
         if destinationSize < produced do

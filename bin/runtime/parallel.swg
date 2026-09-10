@@ -118,7 +118,7 @@ impl ParallelFailure
 
         let type = cast(const *TypeInfoStruct) Swag.kindOf(error)
         let data = __bootstrapAlloc(cast(u64) type.sizeof)
-        if !data do
+        if not data do
             Swag.panic("cannot allocate a parallel loop error", #curlocation)
         Swag.memcpy(data, error.buffer, cast(u64) type.sizeof)
         if type.opPostCopy do
@@ -150,6 +150,7 @@ internal func __parallelRangeFallible(begin, end: u64, body: func||(u64, u64) fa
         if error != null do
             failure.record(error!)
     }
+
     parallelRange(begin, end, partition, entry)
 
     if failure.value != null do
@@ -263,10 +264,10 @@ private func parallelChunkEntry(node: *WorkNode)
 private func runParallelChunk(chunk: *ParallelChunk)->u64
 {
     let dispatch = chunk.dispatch
-    if !dispatch do
+    if not dispatch do
         return 0
     let body = dispatch.body
-    if !body do
+    if not body do
         return 0
 
     let safeBody  = body orelse func(begin, end: u64) {}

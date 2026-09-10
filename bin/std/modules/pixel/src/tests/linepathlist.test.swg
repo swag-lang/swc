@@ -62,7 +62,7 @@ func nestedSquares()->LinePathList
     let moved = list.normalizedFill(.EvenOdd, byDirection: false)
     Swag.assert(moved.count() == 2)
     var holeBounds: Math.Rectangle
-    for p in moved.paths where !p.polygon.isClockwise do
+    for p in moved.paths where not p.polygon.isClockwise do
         holeBounds = {p.minBounds.x, p.minBounds.y, p.maxBounds.x - p.minBounds.x, p.maxBounds.y - p.minBounds.y}
     Swag.assert(Math.isEqualEpsilon(holeBounds.x, 10, 0.01) and Math.isEqualEpsilon(holeBounds.width, 10, 0.01))
 }

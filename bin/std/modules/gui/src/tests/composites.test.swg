@@ -54,13 +54,14 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     host.app.sigFrame += func|host = &host, didClose = &didClose|(app)
     {
         discard app
-        if !didClose[]
+        if not didClose[]
         {
             let modalButtonClicked = host.clickModalButton(Dialog.BtnCancel)
             Swag.assert(modalButtonClicked)
             didClose[] = true
         }
     }
+
     let modalResult = dlg.doModal()
     Swag.assert(modalResult == Dialog.BtnCancel)
     Swag.assert(didClose)
@@ -98,7 +99,7 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     var didSet: bool
     host.app.sigFrame += func|host = &host, ctrl, didSet = &didSet|(app)
     {
-        if !didSet[]
+        if not didSet[]
         {
             Swag.assert(host.setModalEditText("Name", "Alice"))
             Swag.assert(ctrl.edit.text() == "Alice")
@@ -128,7 +129,7 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     ctrl.setLayoutMetrics(50, 55, 6)
     ctrl.setAutomaticValueWidth(false)
     Swag.assert(ctrl.labelWidth == 50 and ctrl.valueWidth == 55 and ctrl.spacing == 6)
-    Swag.assert(!ctrl.autoValueWidth)
+    Swag.assert(not ctrl.autoValueWidth)
     ctrl.setFloatBounds(0, 100)
 
     ctrl.setValue(50)

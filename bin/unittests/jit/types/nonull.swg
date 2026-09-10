@@ -101,19 +101,19 @@ struct JitNonNullNested
 
 func jitHasNonNullFlags(type: typeinfo)->bool
 {
-    if !(type.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if not (type.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
-    return !(type.flags & Swag.TypeInfoFlags.Nullable)
+    return not (type.flags & Swag.TypeInfoFlags.Nullable)
 }
 
 func migrateJitLegacyPointer(value: *JitNonNullItem)->*JitNonNullItem => value
 
 func jitNonNullConstruction()->bool
 {
-    var first                              = JitNonNullItem{value: 11}
-    var second                             = JitNonNullItem{value: 22}
+    var first  = JitNonNullItem{value: 11}
+    var second = JitNonNullItem{value: 22}
     var blockStorage:   [2] JitNonNullItem = [{value: 31}, {value: 32}]
-    var cstringStorage: [4] u8             = ['a'u8, 'b'u8, 'c'u8, 0]
+    var cstringStorage: [4] u8 = ['a'u8, 'b'u8, 'c'u8, 0]
 
     let direct:                    *JitNonNullItem              = &first
     let block:                     [*] JitNonNullItem           = cast([*] JitNonNullItem) &blockStorage[0]
@@ -152,13 +152,13 @@ func jitNonNullConstruction()->bool
     #assert(#typeof(boxed) == any)
     #assert(#typeof(reflectedType) == typeinfo)
 
-    if !jitHasNonNullFlags(#typeof(direct)) or
-       !jitHasNonNullFlags(#typeof(block)) or
-       !jitHasNonNullFlags(#typeof(slice)) or
-       !jitHasNonNullFlags(#typeof(text)) or
-       !jitHasNonNullFlags(#typeof(ctext)) or
-       !jitHasNonNullFlags(#typeof(boxed)) or
-       !jitHasNonNullFlags(#typeof(reflectedType)) do
+    if not jitHasNonNullFlags(#typeof(direct)) or
+       not jitHasNonNullFlags(#typeof(block)) or
+       not jitHasNonNullFlags(#typeof(slice)) or
+       not jitHasNonNullFlags(#typeof(text)) or
+       not jitHasNonNullFlags(#typeof(ctext)) or
+       not jitHasNonNullFlags(#typeof(boxed)) or
+       not jitHasNonNullFlags(#typeof(reflectedType)) do
         return false
 
     let aliasReadOnlyType = #typeof(aliasReadOnly)
@@ -175,15 +175,15 @@ func jitNonNullConstruction()->bool
     let defaultContainerType = #typeof(JitNonNullDefaultContainer)
     let genericRequiredType  = cast(const *Swag.TypeInfoStruct) #typeof(JitNonNullGenericBox'(*JitNonNullItem))
     let genericDefaultType   = cast(const *Swag.TypeInfoStruct) #typeof(JitNonNullGenericBox'JitNonNullStringDefault)
-    if holderType.opInit != null or !(holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if holderType.opInit != null or not (holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
-    if !(nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or !(holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or !(pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if not (nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or not (holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or not (pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
-    if !JIT_NONULL_FORWARD_ARRAY_REQUIRES_INIT do
+    if not JIT_NONULL_FORWARD_ARRAY_REQUIRES_INIT do
         return false
     if defaultContainerType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false
-    if genericRequiredType.opInit != null or !(genericRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if genericRequiredType.opInit != null or not (genericRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
     if genericDefaultType.opInit == null or genericDefaultType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false

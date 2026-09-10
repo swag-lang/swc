@@ -113,7 +113,7 @@ internal impl Image
             let bytes  = failing ? "x" : "input"
             let result = catch Image.decode("image.registrytest", cast(const [..] u8) bytes) as err
             Swag.assert((err != null) == failing)
-            if !failing do
+            if not failing do
                 Swag.assert(result.width == 1 and result.height == 1)
             Swag.assert(registryDecoderDrops == (failing ? 1 : 2))
         }
@@ -123,7 +123,7 @@ internal impl Image
             let options: any? = failing ? cast(any?) true : null
             let result        = catch image.encode("image.registrytest", options) as err
             Swag.assert((err != null) == failing)
-            if !failing do
+            if not failing do
                 Swag.assert(result.toString() == "encoded")
             Swag.assert(registryEncoderDrops == 1)
         }

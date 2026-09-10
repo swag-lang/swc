@@ -45,11 +45,11 @@ func updateFromTable(cxt: ActionContext, evt: *CommandStateEvent, table: const [
         switch #complete d.need
         {
         case .Nothing:   break
-        case .Capture:   disabled = !capture
-        case .Selection: disabled = !capture or !capture.selection.count
-        case .MultiSel:  disabled = !capture or capture.selection.count < 2
-        case .Forms:     disabled = !capture or !capture.forms.count
-        case .PixSel:    disabled = !capture or !capture.hasSelectedPixSel()
+        case .Capture:   disabled = not capture
+        case .Selection: disabled = not capture or not capture.selection.count
+        case .MultiSel:  disabled = not capture or capture.selection.count < 2
+        case .Forms:     disabled = not capture or not capture.forms.count
+        case .PixSel:    disabled = not capture or not capture.hasSelectedPixSel()
         }
 
         evt.updatedFields |= .Name | .Disabled

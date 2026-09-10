@@ -93,13 +93,13 @@ public interface IImageSetDecoder
 public struct ImageReader
 {
     public readonly info: ImageSetInfo     // Indexed images; valid until close or replacement of the reader.
-    bytes:                Array'u8
-    decoder:              *void?
-    decoderType:          const *TypeInfoStruct?
-    options:              DecodeOptions
-    canvas:               Image
-    previous:             Image
-    lastIndex:            s32 = -1
+    bytes:       Array'u8
+    decoder:     *void?
+    decoderType: const *TypeInfoStruct?
+    options:     DecodeOptions
+    canvas:      Image
+    previous:    Image
+    lastIndex:   s32 = -1
 }
 
 impl ImageReader
@@ -185,7 +185,7 @@ public impl ImageReader
         if options.maxInputBytes and bytes.count > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
         let found = Image.getDecoder(fileName)
-        if !found do
+        if not found do
             fail UnsupportedFormatError{"no matching image decoder"}
         var result: retval
         result.bytes.add(bytes)
@@ -204,7 +204,7 @@ public impl ImageReader
             result.info.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
         }
 
-        if !result.info.frames.count or result.info.representativeIndex >= result.info.frames.count do
+        if not result.info.frames.count or result.info.representativeIndex >= result.info.frames.count do
             fail InvalidFormatError{"image container has no representative image"}
         options.checkFrameCount(result.info.frames.count)
         for frame in result.info.frames
@@ -234,10 +234,10 @@ public impl ImageReader
     // Decodes a zero-based image index, failing for a closed reader or an out-of-range index.
     mtd read(index: u32)->Image fail
     {
-        if !.decoder or index >= .info.frames.count do
+        if not .decoder or index >= .info.frames.count do
             fail InvalidFormatError{"image index is outside the open container"}
         let multiple = Swag.makeInterface(.decoder, .decoderType!, IImageSetDecoder)
-        if !multiple
+        if not multiple
         {
             let single = Swag.makeInterface(.decoder, .decoderType!, IImageDecoder)!
             return single.decode(.bytes.toSlice(), .options)
@@ -245,7 +245,7 @@ public impl ImageReader
 
         if .info.frames[index].kind != .Animation do
             return multiple.readFrame(index, .options)
-        if !.options.decodePixels
+        if not .options.decodePixels
         {
             let frame = multiple.readFrame(index, .options)
             var result: retval
@@ -255,7 +255,7 @@ public impl ImageReader
         }
 
         var succeeded = false
-        defer if !succeeded do
+        defer if not succeeded do
             .lastIndex = -1
         if .lastIndex < 0 or cast(s32) index < .lastIndex
         {

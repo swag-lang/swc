@@ -115,7 +115,7 @@ private func reportRiffKnownChunk(image: *BinaryImage, report: *BinaryReport, id
     if size and size <= 512 and id[0] == 'I'u8
     {
         let text = image.fixedTextAt(at, size)
-        if !text.isEmpty() do
+        if not text.isEmpty() do
             report.field(at, size, "Text", text.toString())
     }
 }

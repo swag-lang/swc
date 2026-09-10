@@ -48,7 +48,7 @@ func inlineF32Degrees(value: f32)->f32 => toDegrees(value)
 #[Swag.Inline]
 func nestedIfParam(num: u64)->u64
 {
-    if !num do
+    if not num do
         return 7
     return num + 1
 }
@@ -98,7 +98,7 @@ func(what: bool) genericSafetyLike(expr: #code->bool)->bool
 {
     if what
     {
-        if !#inject(expr) do
+        if not #inject(expr) do
             return false
     }
 

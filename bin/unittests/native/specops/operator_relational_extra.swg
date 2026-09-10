@@ -26,7 +26,7 @@ impl RuntimeEqualOnlyBox
     var rhs = RuntimeEqualOnlyBox{a: 1, b: 2}
 
     Swag.assert(lhs == rhs)
-    Swag.assert(!(lhs != rhs))
+    Swag.assert(not (lhs != rhs))
 }
 
 // Test: different first field
@@ -36,7 +36,7 @@ impl RuntimeEqualOnlyBox
     var rhs = RuntimeEqualOnlyBox{a: 9, b: 2}
 
     Swag.assert(lhs != rhs)
-    Swag.assert(!(lhs == rhs))
+    Swag.assert(not (lhs == rhs))
 }
 
 // Test: different second field
@@ -54,7 +54,7 @@ impl RuntimeEqualOnlyBox
     var x = RuntimeEqualOnlyBox{a: 42, b: 77}
 
     Swag.assert(x == x)
-    Swag.assert(!(x != x))
+    Swag.assert(not (x != x))
 }
 
 // ============================================================================

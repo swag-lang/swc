@@ -72,7 +72,7 @@ internal struct FontViewer
 {
     using wnd: Wnd
 
-        late
+    late
     {
         commands:       *Wnd
         sampleEdit:     *EditBox
@@ -112,7 +112,7 @@ private impl FontViewer
         .sampleEdit.setPlaceholder(fontStrings().ui_SamplePlaceholder)
         .previousButton.toolTip = fontStrings().ui_PreviousPage
         .nextButton.toolTip     = fontStrings().ui_NextPage
-        if !.loadTimer do
+        if not .loadTimer do
             .document.invalidate()
     }
 
@@ -147,14 +147,14 @@ private impl IWnd for FontViewer
             return
         }
 
-        if !.load.isDone() do
+        if not .load.isDone() do
             return
 
         .removeTimer(evt.timer)
         .loadTimer = null
         var content: FontViewerContent
         .failureReason = .load.finish(&content)
-        if !.failureReason.isEmpty()
+        if not .failureReason.isEmpty()
         {
             if .reportFailure do
                 .reportFailure!(me, .failureReason.toString())
@@ -186,7 +186,7 @@ internal impl FontViewer
 {
     mtd retire()->bool
     {
-        if !.load.retire() do
+        if not .load.retire() do
             return false
         if .loadTimer
         {
@@ -216,7 +216,7 @@ internal impl FontViewer
             .sigTextChanged += func|view = result|(edit)
             {
                 discard edit
-                if !view.loadTimer do
+                if not view.loadTimer do
                     view.document.invalidate()
             }
         }

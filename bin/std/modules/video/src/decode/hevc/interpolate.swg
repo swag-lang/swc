@@ -179,12 +179,12 @@ impl Decoder
             let height = cast(u32) (nPbH / scale)
             let x      = xPb / scale
             let y      = yPb / scale
-            if !width or !height do
+            if not width or not height do
                 continue
 
             // A signaled weight table often carries the identity weights. Those samples follow
             // the same direct paths as an unweighted prediction.
-            var identityWeights = !weighted
+            var identityWeights = not weighted
             if weighted
             {
                 identityWeights = true
@@ -192,7 +192,7 @@ impl Decoder
                 for list in ListCount where (cast(u32) motion.predFlags & (1'u32 << list)) != 0
                 {
                     let entry = &.header.weights[list, cast(u32) motion.refIdx[list]]
-                    if (!component and (entry.lumaWeight != 1 << denominator or entry.lumaOffset != 0)) or (component and (entry.chromaWeight[component - 1] != 1 << denominator or entry.chromaOffset[component - 1] != 0))
+                    if (not component and (entry.lumaWeight != 1 << denominator or entry.lumaOffset != 0)) or (component and (entry.chromaWeight[component - 1] != 1 << denominator or entry.chromaOffset[component - 1] != 0))
                     {
                         identityWeights = false
                         break
@@ -246,10 +246,10 @@ impl Decoder
 
                 let refIdx = cast(u32) motion.refIdx[list]
                 let frame  = .refList.frames[list, refIdx]
-                if !frame do
+                if not frame do
                     continue
 
-                if !component do
+                if not component do
                     .interpolateLuma(frame!, x, y, width, height, motion.mv[list, 0], motion.mv[list, 1], list)
                 else do
                     .interpolateChroma(frame!, component, x, y, width, height, motion.mv[list, 0], motion.mv[list, 1], list)
@@ -268,7 +268,7 @@ impl Decoder
         var source1Width, source1Height:  s32
         var destination:                  [*] u16
         var destinationStride:            u64
-        if !component
+        if not component
         {
             source0           = reference0.luma.buffer!
             source1           = reference1.luma.buffer!
@@ -354,7 +354,7 @@ impl Decoder
         var sourceWidth, sourceHeight: s32
         var destination:               [*] u16
         var destinationStride:         u64
-        if !component
+        if not component
         {
             source            = reference.luma.buffer!
             sourceStride      = reference.strideLuma
@@ -405,7 +405,7 @@ impl Decoder
         var plane:  const [*] u16
         var stride: u64
         var planeWidth, planeHeight: s32
-        if !component
+        if not component
         {
             plane       = frame.luma.buffer!
             stride      = frame.strideLuma
@@ -480,7 +480,7 @@ impl Decoder
             .gatherReference(frame, 0, xInt, yInt, width, height, 3, 8, &gathered[0], referenceStride)
         }
 
-        if !xFrac and !yFrac
+        if not xFrac and not yFrac
         {
             for row in height
             {
@@ -492,7 +492,7 @@ impl Decoder
             return
         }
 
-        if !yFrac
+        if not yFrac
         {
             for row in height
             {
@@ -523,7 +523,7 @@ impl Decoder
             return
         }
 
-        if !xFrac
+        if not xFrac
         {
             for row in height
             {
@@ -647,7 +647,7 @@ impl Decoder
             .gatherReference(frame, component, xInt, yInt, width, height, 1, 4, &gathered[0], referenceStride)
         }
 
-        if !xFrac and !yFrac
+        if not xFrac and not yFrac
         {
             for row in height
             {
@@ -659,7 +659,7 @@ impl Decoder
             return
         }
 
-        if !yFrac
+        if not yFrac
         {
             for row in height
             {
@@ -690,7 +690,7 @@ impl Decoder
             return
         }
 
-        if !xFrac
+        if not xFrac
         {
             for row in height
             {
@@ -787,7 +787,7 @@ impl Decoder
 
         var destination: [*] u16
         var stride:      u64
-        if !component
+        if not component
         {
             destination = frame.lumaAtMutable(x, y)
             stride      = frame.strideLuma
@@ -801,7 +801,7 @@ impl Decoder
         let usesL0 = (motion.predFlags & 1) != 0
         let usesL1 = (motion.predFlags & 2) != 0
 
-        let weighted = !identityWeights and header.hasWeights and ((header.sliceType == SliceTypeP and .activePps!.weightedPred) or (header.sliceType == SliceTypeB and .activePps!.weightedBipred))
+        let weighted = not identityWeights and header.hasWeights and ((header.sliceType == SliceTypeP and .activePps!.weightedPred) or (header.sliceType == SliceTypeB and .activePps!.weightedBipred))
         if weighted
         {
             .combineWeighted(destination, stride, component, width, height, motion, usesL0, usesL1, bitDepth, maximum)
@@ -903,7 +903,7 @@ impl Decoder
             if (cast(u32) motion.predFlags & (1'u32 << list)) == 0 do
                 continue
             let entry = &header.weights[list, cast(u32) motion.refIdx[list]]
-            if !component
+            if not component
             {
                 weight[list] = entry.lumaWeight
                 offset[list] = entry.lumaOffset << offsetShift

@@ -9,14 +9,14 @@ using Swag
     Swag.assert(guid.isNull())
 
     Swag.assert(Guid64.tryParse("0123456789ABCDEF", &guid))
-    Swag.assert(!guid.isNull())
+    Swag.assert(not guid.isNull())
     Swag.assert(guid.value == 0x0123456789ABCDEF'u64)
     Swag.assert(guid.toString() == "0123456789ABCDEF")
     Swag.assert((expect Guid64.parse("0123456789ABCDEF")) == guid)
     Swag.assert((expect Guid64.parse("0x0123456789ABCDEF")) == guid)
-    Swag.assert(!Guid64.tryParse("A1zz", &guid))
-    Swag.assert(!Guid64.tryParse("0123456789ABCDE", &guid))
-    Swag.assert(!Guid64.tryParse("0123456789ABCDEG", &guid))
+    Swag.assert(not Guid64.tryParse("A1zz", &guid))
+    Swag.assert(not Guid64.tryParse("0123456789ABCDE", &guid))
+    Swag.assert(not Guid64.tryParse("0123456789ABCDEG", &guid))
     Swag.assert(Hash.hash32(guid) == Hash.Crc32.compute(Swag.makeSlice(cast(const [*] u8) &guid.value, #sizeof(u64))))
 
     guid.clear()
@@ -30,8 +30,8 @@ using Swag
 
     Swag.assert(guid.toString() == "01234567-89ab-cdef-1032-547698badcfe")
     Swag.assert((expect Guid128.parse("01234567-89AB-CDEF-1032-547698BADCFE")) == guid)
-    Swag.assert(!Guid128.tryParse("0123456789ab-cdef-1032-547698badcfe", &guid))
-    Swag.assert(!Guid128.tryParse("01234567-89ab-cdef-1032-547698badcfz", &guid))
+    Swag.assert(not Guid128.tryParse("0123456789ab-cdef-1032-547698badcfe", &guid))
+    Swag.assert(not Guid128.tryParse("01234567-89ab-cdef-1032-547698badcfz", &guid))
     Swag.assert(Hash.hash32(guid) == Hash.Crc32.compute(Swag.makeSlice(&guid.bytes[0], 16)))
 
     var copy = guid

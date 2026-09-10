@@ -171,7 +171,7 @@ func parseGrid(outGrid: *GridMap, text: string)
     let bytes = cast(const [..] u8) text
 
     var width: u32
-    while width < bytes.count and !isLineBreak(bytes[width])
+    while width < bytes.count and not isLineBreak(bytes[width])
     {
         width += 1
     }
@@ -218,8 +218,8 @@ func parseGrid(outGrid: *GridMap, text: string)
         let writeIndex = cellIndex(x, y, width)
         if ch == '^'u8
         {
-            result.startX            = x
-            result.startY            = y
+            result.startX = x
+            result.startY = y
             result.cells[writeIndex] = '.'u8
         }
         else
@@ -258,7 +258,7 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
     let startIndex = cellIndex(grid.startX, grid.startY, grid.width)
     visited[startIndex] = 1'u8
     outVisitedCount[]   = 1'u32
-    trace               = appendIndex(trace, startIndex)
+    trace = appendIndex(trace, startIndex)
 
     while true
     {
@@ -271,7 +271,7 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
 
         let nextX = x + dx
         let nextY = y + dy
-        if !inBounds(nextX, nextY, grid) do
+        if not inBounds(nextX, nextY, grid) do
             break
 
         let nextIndex = cellIndex(cast(u32) nextX, cast(u32) nextY, grid.width)
@@ -288,7 +288,7 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
         {
             visited[nextIndex] = 1'u8
             outVisitedCount[]  += 1'u32
-            trace              = appendIndex(trace, nextIndex)
+            trace = appendIndex(trace, nextIndex)
         }
     }
 
@@ -319,7 +319,7 @@ func doesObstacleCauseLoop(grid: GridMap, obstacleIndex: u32)->bool
 
         let nextX = x + dx
         let nextY = y + dy
-        if !inBounds(nextX, nextY, grid) do
+        if not inBounds(nextX, nextY, grid) do
             return false
 
         let nextIndex = cellIndex(cast(u32) nextX, cast(u32) nextY, grid.width)

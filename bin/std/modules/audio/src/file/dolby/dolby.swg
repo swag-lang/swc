@@ -31,10 +31,10 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
         try source.seek(at)
         let probe = try source.peek(HeaderBytes)
         let info  = encoding == .Eac3 ? try eac3FrameInfo(probe) : try ac3FrameInfo(probe)
-        if !info.frameBytes or at + info.frameBytes > size do
+        if not info.frameBytes or at + info.frameBytes > size do
             break
 
-        if !packets.count
+        if not packets.count
         {
             rate     = info.sampleRate
             channels = info.channels
@@ -52,7 +52,7 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
         at     += info.frameBytes
     }
 
-    if !packets.count do
+    if not packets.count do
         fail InvalidFormatError{"file carries no Dolby sync frame"}
 
     source.close()

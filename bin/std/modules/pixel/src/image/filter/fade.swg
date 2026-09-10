@@ -5,7 +5,7 @@ public impl Image
     // Fade to a given color. 'factor' is [0, 1]
     mtd fade(color: Color, factor: f32 = 0.5)
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
 
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied

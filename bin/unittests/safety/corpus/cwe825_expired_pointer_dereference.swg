@@ -54,7 +54,7 @@ impl Bag
         if .count == .capacity do
             .grow()
         .buffer![.count] = value
-        .count           += 1
+        .count += 1
     }
 
     // Hands out a view INTO the payload, which is what goes stale.

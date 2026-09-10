@@ -43,7 +43,7 @@ func defaultsAreObservable()->bool
     var text:    string?
     var buffer:  [4] s32
 
-    return !flag and number == 0 and pointer == null and text == null and buffer[3] == 0
+    return not flag and number == 0 and pointer == null and text == null and buffer[3] == 0
 }
 
 // The default survives even when every field is overwritten right after, which is what makes

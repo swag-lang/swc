@@ -171,7 +171,7 @@ func bfs(g: *Grid)->s32
 {
     let er = g.h - 1
     let ec = g.w - 1
-    if !g.passable(0, 0) or !g.passable(er, ec) do
+    if not g.passable(0, 0) or not g.passable(er, ec) do
         return -1
 
     var dist: [Dim] [Dim] s32
@@ -211,7 +211,7 @@ func bfs(g: *Grid)->s32
                 continue
             let ur = cast(u32) nr
             let uc = cast(u32) nc
-            if !g.passable(ur, uc) or dist[ur][uc] >= 0 do
+            if not g.passable(ur, uc) or dist[ur][uc] >= 0 do
                 continue
             dist[ur][uc]    = dist[cr][cc] + 1
             queue[tail]     = ur
@@ -375,7 +375,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
     g.set(2, 3, 1)
     Swag.assert(g.at(2, 3) == 1)
     Swag.assert(g.at(0, 0) == 0)
-    Swag.assert(!g.passable(2, 3))
+    Swag.assert(not g.passable(2, 3))
     Swag.assert(g.passable(0, 0))
 }
 

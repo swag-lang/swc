@@ -214,7 +214,7 @@ namespace NS {}
 #test
 {
     var buf: [5] s32 = [10, 20, 30, 40, 50]
-    let sl           = Swag.makeSlice(&buf[0], 3)
+    let sl = Swag.makeSlice(&buf[0], 3)
     Swag.assert(sl.count == 3)
 
     let sl2 = Swag.makeSlice(&buf[0], 5)
@@ -301,7 +301,7 @@ func loopSignedRef(value: *s32)->s32
 
 #test
 {
-    var text             = "hello"
+    var text = "hello"
     var textRef: *string = &text
     Swag.assert((textRef[]).count == 5)
     Swag.assert(countStringRef(textRef) == 5)
@@ -325,7 +325,7 @@ func loopSignedRef(value: *s32)->s32
     Swag.assert((arrayRef[]).count == 6)
 
     var flat:     [6] u8         = [1, 2, 3, 4, 5, 6]
-    let slice                    = cast([..] u8) flat
+    let slice = cast([..] u8) flat
     var sliceRef: const *[..] u8 = &slice
     Swag.assert((sliceRef[]).count == 6)
     Swag.assert(countSliceRef(sliceRef[]) == 6)

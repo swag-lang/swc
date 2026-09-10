@@ -351,13 +351,13 @@ public func claimFileExtension(extension, progId, description, appPath: string)-
     var native = String.from(appPath)
     native.replace("/", "\\")
 
-    if !writeUserClassString(Format.toString("Software\\Classes\\%", progId), "", description) do
+    if not writeUserClassString(Format.toString("Software\\Classes\\%", progId), "", description) do
         return false
-    if !writeUserClassString(Format.toString("Software\\Classes\\%\\DefaultIcon", progId), "", Format.toString("%,0", native)) do
+    if not writeUserClassString(Format.toString("Software\\Classes\\%\\DefaultIcon", progId), "", Format.toString("%,0", native)) do
         return false
-    if !writeUserClassString(Format.toString("Software\\Classes\\%\\shell\\open\\command", progId), "", Format.toString("\"%\" \"%%1\" %%*", native)) do
+    if not writeUserClassString(Format.toString("Software\\Classes\\%\\shell\\open\\command", progId), "", Format.toString("\"%\" \"%%1\" %%*", native)) do
         return false
-    if !writeUserClassString(Format.toString("Software\\Classes\\%", extension), "", progId) do
+    if not writeUserClassString(Format.toString("Software\\Classes\\%", extension), "", progId) do
         return false
 
     SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, null, null)
@@ -528,7 +528,7 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
         style |= WS_MAXIMIZEBOX
 
     let hWnd = CreateWindowExA(0, options.identifier.buffer, options.title.buffer, style, CW_USEDEFAULT, CW_USEDEFAULT, options.width, options.height, null, null, wc.hInstance, result)
-    if !hWnd do
+    if not hWnd do
         failWinError(GetLastError())
 
     result.setNativeHandle(hWnd)
@@ -581,7 +581,7 @@ public impl Window
     // Returns the physical device pixels per logical unit on the window's monitor.
     mtd const dpiScale()->f32
     {
-        if !.nativeHandle do
+        if not .nativeHandle do
             return 1
         return cast(f32) GetDpiForWindow(.win32Handle()) / cast(f32) USER_DEFAULT_SCREEN_DPI
     }
@@ -590,9 +590,9 @@ public impl Window
     {
         var windowRect: RECT
         var clientRect: RECT
-        if !GetWindowRect(.win32Handle(), &windowRect) do
+        if not GetWindowRect(.win32Handle(), &windowRect) do
             failWinError(GetLastError())
-        if !GetClientRect(.win32Handle(), &clientRect) do
+        if not GetClientRect(.win32Handle(), &clientRect) do
             failWinError(GetLastError())
 
         let frameWidth  = (windowRect.right - windowRect.left) - (clientRect.right - clientRect.left)
@@ -603,7 +603,7 @@ public impl Window
     internal mtd clientSizeNative()->{width, height: s32} fail
     {
         var clientRect: RECT
-        if !GetClientRect(.win32Handle(), &clientRect) do
+        if not GetClientRect(.win32Handle(), &clientRect) do
             failWinError(GetLastError())
         return {clientRect.right - clientRect.left, clientRect.bottom - clientRect.top}
     }

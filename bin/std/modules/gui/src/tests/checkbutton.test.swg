@@ -25,7 +25,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     let check = CheckButton.create(&host.root, "Enable", {20, 20, 120, 30}, CheckButtonHeadless_Command)
     check.sigChanged += &checkButtonHeadlessChanged
 
-    Swag.assert(!check.isChecked())
+    Swag.assert(not check.isChecked())
     Swag.assert(check.state == .Unchecked)
 
     host.click({40, 35})
@@ -36,7 +36,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     Swag.assert(host.lastCommand == CheckButtonHeadless_Command)
 
     host.click({40, 35})
-    Swag.assert(!check.isChecked())
+    Swag.assert(not check.isChecked())
     Swag.assert(check.state == .Unchecked)
     Swag.assert(CheckButtonHeadlessChangedCount == 2)
     Swag.assert(host.commandCount == 2)
@@ -88,7 +88,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     Swag.assert(CheckButtonHeadlessChangedCount == 1)
 
     host.keyPress(Input.Key.Return)
-    Swag.assert(!check.isChecked())
+    Swag.assert(not check.isChecked())
     Swag.assert(CheckButtonHeadlessChangedCount == 2)
 }
 
@@ -106,7 +106,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     check.disable()
 
     host.click({40, 35})
-    Swag.assert(!check.isChecked())
+    Swag.assert(not check.isChecked())
     Swag.assert(CheckButtonHeadlessChangedCount == 0)
     Swag.assert(host.commandCount == 0)
 }

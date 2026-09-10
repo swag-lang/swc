@@ -52,13 +52,13 @@ impl Voice
         voice.handle = cast(*void?) Memory.new'NoSoundVoice(voice.allocationAllocator)
         let file = voice.file!
         voice.requestedEncoding = file.encoding == .AacLc ? .Pcm16 : file.encoding
-        if !voice.handle do
+        if not voice.handle do
             fail BadParameterError{"cannot create no-sound voice"}
     }
 
     mtd destroyNoSound()
     {
-        if !.handle do
+        if not .handle do
             return
         let allocator = .allocationAllocator
         Memory.delete(cast(*NoSoundVoice) .handle, allocator)
@@ -68,7 +68,7 @@ impl Voice
     mtd updateNoSound()->bool fail
     {
         let handle = cast(*NoSoundVoice?) .handle
-        if !handle or !handle.isPlaying do
+        if not handle or not handle.isPlaying do
             return false
 
         if .playFlags.has(.Loop)
@@ -81,7 +81,7 @@ impl Voice
         for
         {
             let {_, sizeBuffer} = .readBuffer()
-            if !sizeBuffer do
+            if not sizeBuffer do
                 break
             handle.samplesPlayed += sizeBuffer / .decodedBytesPerFrame()
         }
@@ -123,7 +123,7 @@ internal impl Voice
     // Sets the linear gain recorded by the no-sound backend.
     mtd setVolumeNoSound(volume: f32, batchId: u32 = 0) fail
     {
-        if !.handle do
+        if not .handle do
             return
         let handle = cast(*NoSoundVoice) .handle
         handle.volume = Math.clamp(volume, 0, 1)
@@ -132,7 +132,7 @@ internal impl Voice
     // Returns the linear gain recorded by the no-sound backend.
     mtd volumeNoSound()->f32 fail
     {
-        if !.handle do
+        if not .handle do
             return 0
         let handle = cast(*NoSoundVoice) .handle
         return handle.volume
@@ -141,7 +141,7 @@ internal impl Voice
     // Sets the frequency ratio recorded by the no-sound backend.
     mtd setFrequencyRatioNoSound(ratio: f32, batchId: u32 = 0) fail
     {
-        if !.handle do
+        if not .handle do
             return
         let handle = cast(*NoSoundVoice) .handle
         handle.frequencyRatio = ratio
@@ -150,7 +150,7 @@ internal impl Voice
     // Returns the frequency ratio recorded by the no-sound backend.
     mtd frequencyRatioNoSound()->f32 fail
     {
-        if !.handle do
+        if not .handle do
             return 0
         let handle = cast(*NoSoundVoice) .handle
         return handle.frequencyRatio
@@ -159,7 +159,7 @@ internal impl Voice
     // Validates and records no-sound bus routing without producing audio.
     mtd setRoutingNoSound(buses: const [..] *Bus) fail
     {
-        if !.handle do
+        if not .handle do
             return
 
         let handle = cast(*NoSoundVoice) .handle
@@ -171,7 +171,7 @@ internal impl Voice
         for i in count
         {
             let bus = buses[i]
-            if !bus.handle do
+            if not bus.handle do
                 fail BadParameterError{"bus invalid"}
             handle.buses[i] = bus
         }
@@ -182,7 +182,7 @@ impl Bus
 {
     func createNoSound(bus: *Bus, numChannels: u32, parent: *Bus? = null) fail
     {
-        if parent and !parent.handle do
+        if parent and not parent.handle do
             fail BadParameterError{"parent bus invalid"}
 
         let handle = Memory.new'NoSoundBus(bus.allocationAllocator)
@@ -193,7 +193,7 @@ impl Bus
 
     mtd destroyNoSound()
     {
-        if !.handle do
+        if not .handle do
             return
         let allocator = .allocationAllocator
         Memory.delete(cast(*NoSoundBus) .handle, allocator)
@@ -206,7 +206,7 @@ internal impl Bus
     // Sets the linear bus gain recorded by the no-sound backend.
     mtd setVolumeNoSound(volume: f32, batchId: u32 = 0) fail
     {
-        if !.handle do
+        if not .handle do
             return
         let handle = cast(*NoSoundBus) .handle
         handle.volume = Math.clamp(volume, 0, 1)
@@ -215,7 +215,7 @@ internal impl Bus
     // Returns the linear bus gain recorded by the no-sound backend.
     mtd volumeNoSound()->f32 fail
     {
-        if !.handle do
+        if not .handle do
             return 0
         let handle = cast(*NoSoundBus) .handle
         return handle.volume

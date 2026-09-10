@@ -5,7 +5,7 @@ public impl Image
     // Change the gamma.
     mtd gamma(level: f32 = 2.2)
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
 
         let g = 1.0 / Math.clamp(level, Math.ConstF32.Epsilon, 5.0)

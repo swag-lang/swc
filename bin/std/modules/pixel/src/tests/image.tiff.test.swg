@@ -478,7 +478,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.assert(img.width == 1)
     Swag.assert(img.height == 1)
     Swag.assert(img.pixelFormat == .RGB8)
-    Swag.assert(!img.isValid())
+    Swag.assert(not img.isValid())
 }
 
 // Error: bad byte-order signature.

@@ -4,8 +4,8 @@
 using Core, Core.Errors
 
 // Network abstraction layer unit types and the payload type that carries a picture digest.
-const PrefixSeiNal              = 39'u32
-const SuffixSeiNal              = 40'u32
+const PrefixSeiNal = 39'u32
+const SuffixSeiNal = 40'u32
 const DecodedPictureHashPayload = 132'u32
 
 // Decodes an elementary H.265 byte stream and checks every picture against the digest the stream
@@ -148,7 +148,7 @@ impl ConformanceRun
         .pictureCount      += 1
 
         let sps = .decoder.activeSps
-        if !sps do
+        if not sps do
             return
 
         var text: String

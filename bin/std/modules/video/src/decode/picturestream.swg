@@ -63,7 +63,7 @@ impl PictureStream
         {
         case PictureHevc:  try .hevc.appendFrames(frames)
         case PictureMpeg4: try .mpeg4.appendFrames(frames)
-        default:           try .avc.appendFrames(frames)
+        default: try .avc.appendFrames(frames)
         }
     }
 
@@ -76,7 +76,7 @@ impl PictureStream
         {
         case PictureHevc:  try .hevc.replaceFrames(#move owned)
         case PictureMpeg4: try .mpeg4.replaceFrames(#move owned)
-        default:           try .avc.replaceFrames(#move owned)
+        default: try .avc.replaceFrames(#move owned)
         }
     }
 
@@ -127,7 +127,7 @@ impl PictureStream
         {
         case PictureHevc:  try .hevc.decodeNext(source, target)
         case PictureMpeg4: try .mpeg4.decodeNext(source, target)
-        default:           try .avc.decodeNext(source, target)
+        default: try .avc.decodeNext(source, target)
         }
     }
 
@@ -138,7 +138,7 @@ impl PictureStream
         {
         case PictureHevc:  try .hevc.decodeNextPlanes(source, target)
         case PictureMpeg4: try .mpeg4.decodeNextPlanes(source, target)
-        default:           try .avc.decodeNextPlanes(source, target)
+        default: try .avc.decodeNextPlanes(source, target)
         }
     }
 

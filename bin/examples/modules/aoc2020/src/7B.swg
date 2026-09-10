@@ -60,7 +60,7 @@ func day7B0()
     func count(id: *T, what: string)->u32
     {
         let it = id.tryFind(what)
-        if !it do
+        if not it do
             return 0
 
         var total: u32
@@ -102,7 +102,7 @@ func day7B1()
     func count(id: *T, what: string)->u32
     {
         let it = id.tryFind(what)
-        if !it do
+        if not it do
             return 0
 
         var total: u32

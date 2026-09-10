@@ -311,11 +311,11 @@ func vp8PredictLarge(decoder: *Vp8Decoder, y, x, size: s32, predictor: u8)
 func vp8ParsePredY16(decoder: *Vp8Decoder, mbX: s32)
 {
     var predictor: u8
-    if !decoder.firstPart.readBit(156)
+    if not decoder.firstPart.readBit(156)
     {
         predictor = decoder.firstPart.readBit(163) ? VP8_PRED_VE : VP8_PRED_DC
     }
-    elif !decoder.firstPart.readBit(128)
+    elif not decoder.firstPart.readBit(128)
     {
         predictor = VP8_PRED_HE
     }
@@ -335,11 +335,11 @@ func vp8ParsePredY16(decoder: *Vp8Decoder, mbX: s32)
 
 func vp8ParsePredC8(decoder: *Vp8Decoder)
 {
-    if !decoder.firstPart.readBit(142) do
+    if not decoder.firstPart.readBit(142) do
         decoder.predC8 = VP8_PRED_DC
-    elif !decoder.firstPart.readBit(114) do
+    elif not decoder.firstPart.readBit(114) do
         decoder.predC8 = VP8_PRED_VE
-    elif !decoder.firstPart.readBit(183) do
+    elif not decoder.firstPart.readBit(183) do
         decoder.predC8 = VP8_PRED_HE
     else do
         decoder.predC8 = VP8_PRED_TM
@@ -353,31 +353,31 @@ func vp8ParsePredY4(decoder: *Vp8Decoder, mbX: s32)
         for i in 4
         {
             let probability = cast(u64) (decoder.upMb[mbX].predictor[i] * 10 + predictor) * 9
-            if !decoder.firstPart.readBit(VP8_PRED_PROB[probability + 0]) do
+            if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 0]) do
                 predictor = VP8_PRED_DC
-            elif !decoder.firstPart.readBit(VP8_PRED_PROB[probability + 1]) do
+            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 1]) do
                 predictor = VP8_PRED_TM
-            elif !decoder.firstPart.readBit(VP8_PRED_PROB[probability + 2]) do
+            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 2]) do
                 predictor = VP8_PRED_VE
-            elif !decoder.firstPart.readBit(VP8_PRED_PROB[probability + 3])
+            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 3])
             {
-                if !decoder.firstPart.readBit(VP8_PRED_PROB[probability + 4]) do
+                if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 4]) do
                     predictor = VP8_PRED_HE
-                elif !decoder.firstPart.readBit(VP8_PRED_PROB[probability + 5]) do
+                elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 5]) do
                     predictor = VP8_PRED_RD
                 else do
                     predictor = VP8_PRED_VR
             }
-            elif !decoder.firstPart.readBit(VP8_PRED_PROB[probability + 6]) do
+            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 6]) do
                 predictor = VP8_PRED_LD
-            elif !decoder.firstPart.readBit(VP8_PRED_PROB[probability + 7]) do
+            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 7]) do
                 predictor = VP8_PRED_VL
-            elif !decoder.firstPart.readBit(VP8_PRED_PROB[probability + 8]) do
+            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 8]) do
                 predictor = VP8_PRED_HD
             else do
                 predictor = VP8_PRED_HU
 
-            decoder.predY4[j][i]           = predictor
+            decoder.predY4[j][i] = predictor
             decoder.upMb[mbX].predictor[i] = predictor
         }
 

@@ -165,7 +165,7 @@ func parseAntennaMap(result: *AntennaMap, text: string)
     let bytes = cast(const [..] u8) text
 
     var width: u32
-    while width < bytes.count and !isLineBreak(bytes[width])
+    while width < bytes.count and not isLineBreak(bytes[width])
     {
         width += 1
     }
@@ -195,7 +195,7 @@ func parseAntennaMap(result: *AntennaMap, text: string)
             let group = &result.groups[freq]
             Swag.assert(group.count < MaxAntennasPerFreq)
             group.positions[group.count] = {x: cast(s32) x, y: cast(s32) y}
-            group.count                  += 1
+            group.count += 1
             result.freqUsed[freq]        = true
         }
 
@@ -238,7 +238,7 @@ func computeSimpleAntinodes(grid: *AntinodeGrid, map: AntennaMap)
     for index in MaxFrequencies
     {
         let freq = cast(u32) index
-        if !map.freqUsed[freq] do
+        if not map.freqUsed[freq] do
             continue
 
         let group = &map.groups[freq]
@@ -265,7 +265,7 @@ func computeHarmonicAntinodes(grid: *AntinodeGrid, map: AntennaMap)
     for index in MaxFrequencies
     {
         let freq = cast(u32) index
-        if !map.freqUsed[freq] do
+        if not map.freqUsed[freq] do
             continue
 
         let group = &map.groups[freq]

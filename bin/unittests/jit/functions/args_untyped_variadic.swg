@@ -331,7 +331,7 @@ enum VariadicKind: u16
 
     const arr0: [4] s32 = [1, 2, 3, 4]
     const arr1: [4] s32 = [10, 20, 30, 40]
-    const V0            = #run variadicAny(arr0, arr1)
+    const V0 = #run variadicAny(arr0, arr1)
     #assert(V0 == 55)
 }
 
@@ -401,7 +401,7 @@ enum VariadicKind: u16
 
     const arr0: [4] s32 = [1, 2, 3, 4]
     const arr1: [4] s32 = [10, 20, 30, 40]
-    const V0            = #run variadicAny(arr0, arr1)
+    const V0 = #run variadicAny(arr0, arr1)
     #assert(V0 == 55)
 }
 
@@ -435,7 +435,7 @@ enum VariadicKind: u16
     const payload: VariadicPayload = {arr: [9, 8, 7], flag: true, tag: 5'u8}
     const values:  [2] u64         = [10'u64, 20'u64]
     const ptr:     *void           = cast(*void) 0x11'u64
-    const V0                       = #run variadicAny(payload, values, "Az", ptr)
+    const V0 = #run variadicAny(payload, values, "Az", ptr)
     #assert(#typeof(V0) == u64)
     #assert(V0 == 110'u64)
 }
@@ -663,10 +663,10 @@ enum VariadicKind: u16
 
         Swag.assert(p.a == 33 and p.b == 44)
         Swag.assert(payload.arr[0] == 1 and payload.arr[1] == 2 and payload.arr[2] == 3)
-        Swag.assert(!payload.flag and payload.tag == 9'u8)
+        Swag.assert(not payload.flag and payload.tag == 9'u8)
         Swag.assert(kind == VariadicKind.A)
         Swag.assert(text == "head-check")
-        Swag.assert(!b)
+        Swag.assert(not b)
         Swag.assert(f == 1.25'f32)
         Swag.assert(ptr == cast(*void) 0x99'u64)
         return true
@@ -760,7 +760,7 @@ enum VariadicKind: u16
     const pair:    VariadicPair    = {a: 2, b: 3}
     const payload: VariadicPayload = {arr: [4, 5, 6], flag: true, tag: 7'u8}
     const arr:     [3] s32         = [8, 9, 10]
-    const V0                       = #run variadicAnyStressAggregates(pair, payload, arr)
+    const V0 = #run variadicAnyStressAggregates(pair, payload, arr)
     #assert(V0 == 54'u64)
 }
 

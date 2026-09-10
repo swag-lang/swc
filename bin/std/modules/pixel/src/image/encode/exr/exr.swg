@@ -69,7 +69,7 @@ internal impl IImageEncoder for Encoder
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {
         discard options
-        if !image.isValid() or !image.pixelFormat.isPacked() do
+        if not image.isValid() or not image.pixelFormat.isPacked() do
             fail InvalidFormatError{"invalid packed image"}
 
         let grayscale = image.pixelFormat.isGrayscale()

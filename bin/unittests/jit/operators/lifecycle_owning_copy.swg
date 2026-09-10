@@ -56,9 +56,9 @@ namespace LifecycleOwningCopy.Reflection
 // release takes it away from the enclosing type too.
 #test
 {
-    #assert(!LifecycleOwningCopy.Reflection.canCopy(#typeof(Owning)))
+    #assert(not LifecycleOwningCopy.Reflection.canCopy(#typeof(Owning)))
     #assert(LifecycleOwningCopy.Reflection.canCopy(#typeof(Duplicable)))
-    #assert(!LifecycleOwningCopy.Reflection.canCopy(#typeof(OwningMember)))
+    #assert(not LifecycleOwningCopy.Reflection.canCopy(#typeof(OwningMember)))
     #assert(LifecycleOwningCopy.Reflection.canCopy(#typeof(DuplicableMember)))
 }
 

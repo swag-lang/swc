@@ -83,7 +83,7 @@ func parseGrid(text: string)->Grid
                 if result.height == 0 do
                     result.width = col
                 result.height += 1
-                col           = 0
+                col = 0
             }
             continue
         }
@@ -132,7 +132,7 @@ func dfs(g: Grid, row, col: u32, vis: [..] bool, scoreOut: *u32)->u32
     if h == TrailEnd
     {
         let idx = row * MaxDim + col
-        if !vis[idx]
+        if not vis[idx]
         {
             vis[idx]   = true
             scoreOut[] += 1
@@ -271,7 +271,7 @@ func analyzeTrails(text: string)->HikingReport
     Swag.assert(NumDirections == 4'u32)
     let a: TrailResult = {score: 10, rating: 20}
     let b: TrailResult = {score: 5, rating: 15}
-    let c              = addTrailResult(a, b)
+    let c = addTrailResult(a, b)
     Swag.assert(c.score == 15'u32)
     Swag.assert(c.rating == 35'u32)
 }

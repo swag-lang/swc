@@ -14,7 +14,7 @@ impl ScratchAllocator
     // Adapt the value depending on the requested alignment
     func align(value: u64, alignment: u32)->u64
     {
-        Swag.assert(!alignment or !(alignment & (alignment - 1)))
+        Swag.assert(not alignment or not (alignment & (alignment - 1)))
         let toAlign = alignment != 0 ? alignment : #sizeof(*void)
         let mask    = cast(u64) (toAlign - 1)
         var result  = value & ~mask
@@ -90,7 +90,7 @@ impl IAllocator for ScratchAllocator
     mtd impl free(request: *AllocatorRequest)
     {
         Swag.assert(.block != null)
-        if !request.address do
+        if not request.address do
             return
         let reqAddr = request.address
 
@@ -100,7 +100,7 @@ impl IAllocator for ScratchAllocator
         if ptr == request.address
         {
             request.address = null
-            .used           -= request.size
+            .used -= request.size
             return
         }
 
@@ -115,7 +115,7 @@ impl IAllocator for ScratchAllocator
         // the allocator
         var leak = cast([*] LeakHeader) reqAddr
         leak -= 1
-        if !leak.prev do
+        if not leak.prev do
             .firstLeak = leak.next
         else do
             leak.prev.next = leak.next
@@ -196,7 +196,7 @@ impl IAllocator for ScratchAllocator
         .allocBlock(request)
 
         let newAddress = request.address
-        if !newAddress
+        if not newAddress
         {
             request.address = oldAddress
             return

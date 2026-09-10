@@ -13,11 +13,11 @@ const HexDefaultGroupSize = 8'u64
 // Rows a wheel notch moves, and the range a row is allowed to hold. Automatic fitting aligns the
 // chosen count to the active scalar, so a row can use the last available columns without ending in
 // the middle of a value.
-const HexWheelRows                     = 3'u64
-const HexMinBytesPerRow                = 8'u64
-const HexMaxBytesPerRow                = 64'u64
-const HexMinFontSize                   = 8'u32
-const HexMaxFontSize                   = 24'u32
+const HexWheelRows      = 3'u64
+const HexMinBytesPerRow = 8'u64
+const HexMaxBytesPerRow = 64'u64
+const HexMinFontSize    = 8'u32
+const HexMaxFontSize    = 24'u32
 const HexDragScrollRate: Time.Duration = 50'ms
 
 // Largest pixel span the vertical scrollbar is given.
@@ -62,7 +62,7 @@ func hexGroupingSize(grouping: HexGrouping)->u64
 {
     switch grouping
     {
-    case .Hex16, .Unsigned16, .Signed16:           return 2
+    case .Hex16, .Unsigned16, .Signed16: return 2
     case .Hex32, .Unsigned32, .Signed32, .Float32: return 4
     case .Hex64, .Unsigned64, .Signed64, .Float64: return 8
     default: return 1
@@ -155,7 +155,7 @@ func isHexPrintable(value: u8)->bool
 func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offsetDigits: u64, groupSize = HexDefaultGroupSize)->String
 {
     var result: retval
-    if !bytesPerRow do
+    if not bytesPerRow do
         return result
     result.reserve(bytes.count * 5)
 
@@ -208,7 +208,7 @@ func parseHexOffset(text: string, caret, fileSize: u64)->u64
 {
     let trimmed = Latin1.trim(text)
     let count   = trimmed.count
-    if !count or !fileSize do
+    if not count or not fileSize do
         return Swag.U64.Max
 
     var index    = 0'u64
@@ -223,12 +223,12 @@ func parseHexOffset(text: string, caret, fileSize: u64)->u64
         return Swag.U64.Max
 
     let valueText = cast(string) trimmed[index to]
-    if !relative and Utf8.compare(valueText, "caret", .Latin1NoCase) == 0 do
+    if not relative and Utf8.compare(valueText, "caret", .Latin1NoCase) == 0 do
         return caret
-    if !relative and Utf8.compare(valueText, "filesize", .Latin1NoCase) == 0 do
+    if not relative and Utf8.compare(valueText, "filesize", .Latin1NoCase) == 0 do
         return fileSize - 1
 
-    let percentage = !relative and trimmed[count - 1] == '%'u8
+    let percentage = not relative and trimmed[count - 1] == '%'u8
     let end        = percentage ? count - 1 : count
     if index >= end do
         return Swag.U64.Max
@@ -273,7 +273,7 @@ func parseHexOffset(text: string, caret, fileSize: u64)->u64
         index  += 1
     }
 
-    if !digits do
+    if not digits do
         return Swag.U64.Max
 
     if percentage
@@ -356,7 +356,7 @@ impl HexGridView
 
     mtd rowCount()->u64
     {
-        if !.doc.fileSize or !.bytesPerRow do
+        if not .doc.fileSize or not .bytesPerRow do
             return 1
         return (.doc.fileSize + .bytesPerRow - 1) / .bytesPerRow
     }
@@ -468,7 +468,7 @@ impl HexGridView
     // one occurrence still has one unmistakable visual anchor.
     mtd matchBounds(result: *Math.Rectangle)->bool
     {
-        if !.matchLength or !.doc.fileSize do
+        if not .matchLength or not .doc.fileSize do
             return false
 
         let matchLast    = Math.min(.matchStart + .matchLength - 1, .lastOffset())
@@ -494,7 +494,7 @@ impl HexGridView
         }
 
         result[] = .localToSurface(local)
-        return !result.isEmpty()
+        return not result.isEmpty()
     }
 
     // Returns the widest row that still fits, in whole groups.
@@ -523,7 +523,7 @@ impl HexGridView
     {
         let family   = .font()
         let resolved = family.regular
-        if !resolved do
+        if not resolved do
             return
 
         // The advance a glyph is *drawn* with is snapped to the device pixel grid, and every column
@@ -591,7 +591,7 @@ impl HexGridView
     // Publishes the row range as a pixel span the scrollbar can drive, and places the thumb.
     mtd syncScrollBar()
     {
-        if !(.scroll != null) do
+        if not (.scroll != null) do
             return
 
         let span   = Math.min(cast(f32) .rowCount() * .rowHeight, HexScrollSpan)
@@ -612,7 +612,7 @@ impl HexGridView
     // them.
     mtd adoptScrollPosition(position: f32)
     {
-        if .syncing or !(.scroll != null) do
+        if .syncing or not (.scroll != null) do
             return
         let usable = Math.max(.scroll.scrollSize.y - .clientRect().height, 1)
         let maxTop = .maxTopRow()
@@ -641,7 +641,7 @@ impl HexGridView
 
     mtd ensureCaretVisible(center: bool)
     {
-        if !.bytesPerRow do
+        if not .bytesPerRow do
             return
         let row     = .caret / .bytesPerRow
         let visible = .visibleRows()
@@ -661,11 +661,11 @@ impl HexGridView
     // Moves the caret to `target`, extending the selection instead of replacing it when asked.
     mtd moveCaret(target: u64, extend: bool, center = false)
     {
-        if !.doc.fileSize do
+        if not .doc.fileSize do
             return
         let clamped = Math.min(target, .lastOffset())
         .caret = clamped
-        if !extend do
+        if not extend do
             .anchor = clamped
         .ensureCaretVisible(center)
         .sigCaretChanged.call(me)
@@ -674,7 +674,7 @@ impl HexGridView
 
     mtd moveCaretBy(delta: s64, extend: bool)
     {
-        if !.doc.fileSize do
+        if not .doc.fileSize do
             return
         let target = cast(s64) .caret + delta
         if target < 0 do
@@ -685,7 +685,7 @@ impl HexGridView
 
     mtd selectAll()
     {
-        if !.doc.fileSize do
+        if not .doc.fileSize do
             return
         .anchor = 0
         .caret  = .lastOffset()
@@ -696,7 +696,7 @@ impl HexGridView
     // Returns the byte under a point in view coordinates, or `Swag.U64.Max` outside the rows.
     mtd offsetAt(local: Math.Point)->u64
     {
-        if .rowHeight <= 0 or .charWidth <= 0 or !.doc.fileSize do
+        if .rowHeight <= 0 or .charWidth <= 0 or not .doc.fileSize do
             return Swag.U64.Max
 
         let x = local.x + .scrollPos.x
@@ -769,7 +769,7 @@ impl HexGridView
     // Returns the first match whose end reaches `offset`. Search results arrive in file order.
     mtd firstSearchHitAt(offset: u64)->u64
     {
-        if !.searchHits do
+        if not .searchHits do
             return 0
         let hits  = .searchHits!
         var first = 0'u64
@@ -795,7 +795,7 @@ impl HexGridView
     mtd setBytesPerRow(count: u64, auto: bool)
     {
         .autoFitRow = auto
-        if !auto do
+        if not auto do
             .bytesPerRow = Math.clamp(count, HexMinBytesPerRow, HexMaxBytesPerRow)
         .refreshLayout()
         .ensureCaretVisible(false)
@@ -848,9 +848,9 @@ impl HexGridView
         if offset != Swag.U64.Max do
             .moveCaret(offset, true)
 
-        if (above or below) and !.selectionTimer do
+        if (above or below) and not .selectionTimer do
             .selectionTimer = .addTimer(HexDragScrollRate)
-        elif !above and !below and .selectionTimer
+        elif not above and not below and .selectionTimer
         {
             .removeTimer(.selectionTimer!)
             .selectionTimer = null
@@ -870,7 +870,7 @@ impl HexGridView
     // clipboard operation rather than a way to load it.
     mtd copySelection(form: HexCopyForm)
     {
-        if !.doc.fileSize do
+        if not .doc.fileSize do
             return
         let start = .selectionStart()
         let bytes = .doc.read(start, Math.min(.selectionLength(), HexCopyLimit))
@@ -907,7 +907,7 @@ impl HexGridView
     mtd promptGoToOffset()
     {
         let surface = .surface
-        if !surface or !.doc.fileSize do
+        if not surface or not .doc.fileSize do
             return
 
         var current: Array'u8
@@ -1031,7 +1031,7 @@ impl HexGridView
 
     mtd drawBuffer(painter: *Painter, buffer: *Array'u8, x, y: f32, font: *Font, color: Color)
     {
-        if !buffer.count do
+        if not buffer.count do
             return
         painter.drawString(x, y, Swag.makeString(buffer.buffer!, buffer.count), font, color)
     }
@@ -1077,11 +1077,11 @@ impl IActionUI for ActionHex
 
         case ActionHex.CopyText:
             evt.updatedFields |= .Name
-            evt.name          = bounded ? Format.toString(hexStrings().ui_CopyTextMax, limit) : String.from(hexStrings().ui_CopyText)
+            evt.name = bounded ? Format.toString(hexStrings().ui_CopyTextMax, limit) : String.from(hexStrings().ui_CopyText)
 
         case ActionHex.CopyDump:
             evt.updatedFields |= .Name
-            evt.name          = bounded ? Format.toString(hexStrings().ui_CopyDumpMax, limit) : String.from(hexStrings().ui_CopyDump)
+            evt.name = bounded ? Format.toString(hexStrings().ui_CopyDumpMax, limit) : String.from(hexStrings().ui_CopyDump)
 
         case ActionHex.SelectAll:
             evt.updatedFields |= .Name | .Shortcut
@@ -1117,7 +1117,7 @@ impl IWnd for HexGridView
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer != .selectionTimer or !.selecting
+        if evt.timer != .selectionTimer or not .selecting
         {
             evt.accepted = false
             return
@@ -1144,7 +1144,7 @@ impl IWnd for HexGridView
 
     mtd impl onFocusEvent(evt: *FocusEvent)
     {
-        if evt.kind != .Lost or !.selecting
+        if evt.kind != .Lost or not .selecting
         {
             evt.accepted = false
             return
@@ -1183,7 +1183,7 @@ impl IWnd for HexGridView
 
         case .Pressed where evt.button == .Right:
             let offset = .offsetAt(local)
-            if offset != Swag.U64.Max and !(offset >= .selectionStart() and offset <= .selectionEnd()) do
+            if offset != Swag.U64.Max and not (offset >= .selectionStart() and offset <= .selectionEnd()) do
                 .moveCaret(offset, false)
             .setFocus()
             .showContextMenu(evt.surfacePos)
@@ -1292,7 +1292,7 @@ impl IWnd for HexGridView
         let painter  = evt.paintContext.painter
         let family   = .font()
         let resolved = family.regular
-        if !resolved or .rowHeight <= 0 do
+        if not resolved or .rowHeight <= 0 do
             return
 
         let font    = resolved!
@@ -1303,7 +1303,7 @@ impl IWnd for HexGridView
         if .doc.readFailed do
             return
 
-        if !.doc.fileSize
+        if not .doc.fileSize
         {
             painter.drawString(originX + HexViewInset, client.y + HexViewInset, hexStrings().ui_Empty, font, colors.label_TextLight)
             return
@@ -1398,7 +1398,7 @@ impl HexGridView
         scroll.dockStyle = .Center
 
         let result = scroll.createView'HexGridView()
-        result.scroll          = scroll
+        result.scroll = scroll
         result.backgroundStyle = .View
         result.registerAction'ActionHex()
         result.focusPolicy = .Tab

@@ -170,7 +170,7 @@ impl Prefilter
 
             // A sequence of single bytes is a literal, and comparing a literal outright beats
             // testing it set by set — except for a lone byte, which is a plain byte scan.
-            if !singles
+            if not singles
             {
                 result.kind       = .Sequence
                 result.sequence   = sequence
@@ -184,10 +184,10 @@ impl Prefilter
                 {
                     for var b = 0'u32; b < 256; b += 1
                     {
-                        if !sequence[rarest].contains(cast(u8) b) do
+                        if not sequence[rarest].contains(cast(u8) b) do
                             continue
                         result.bytes[result.byteCount] = cast(u8) b
-                        result.byteCount               += 1
+                        result.byteCount += 1
                     }
 
                     result.addSecondScan(&sequence, rarest, bestScore)
@@ -295,10 +295,10 @@ impl Prefilter
             var written = 0'u32
             for var b = 0'u32; b < 256; b += 1
             {
-                if !sets[bestSingle].contains(cast(u8) b) do
+                if not sets[bestSingle].contains(cast(u8) b) do
                     continue
                 result.bytes[written] = cast(u8) b
-                written               += 1
+                written += 1
             }
 
             return result
@@ -369,10 +369,10 @@ impl Prefilter
         .scanAt2 = second
         for var b = 0'u32; b < 256; b += 1
         {
-            if !sequence[second].contains(cast(u8) b) do
+            if not sequence[second].contains(cast(u8) b) do
                 continue
             .bytes2[.byteCount2] = cast(u8) b
-            .byteCount2          += 1
+            .byteCount2 += 1
         }
     }
 

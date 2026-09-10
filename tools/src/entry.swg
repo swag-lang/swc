@@ -62,7 +62,7 @@ private func dispatch(name: string, root: string, script: string, tokens: const 
     {
         let moduleTool  = name == "std" or name == "examples" or name == "apps" or name == "reference"
         let testCommand = options.command == "test" or (name == "reference" and options.command.isEmpty())
-        if !moduleTool or !testCommand
+        if not moduleTool or not testCommand
         {
             Console.println("error: test filters are available only with a module tool's 'test' command")
             Console.println("Use '--file-filter' for standalone compiler-suite inputs.")

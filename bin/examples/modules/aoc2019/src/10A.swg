@@ -134,7 +134,7 @@ func day10A()
                     }
                 }
 
-                if !hit
+                if not hit
                 {
                     tot[i] += 1
                     tot[j] += 1

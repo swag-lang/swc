@@ -41,10 +41,10 @@ func narrowCmpElse(p: *NarrowNode?)->s32
     return takesPtr(p)
 }
 
-// `if !p do return` guards the remainder of the function.
+// `if not p do return` guards the remainder of the function.
 func narrowEarlyReturn(p: *NarrowNode?)->s32
 {
-    if !p do
+    if not p do
         return -1
     return takesPtr(p)
 }
@@ -155,7 +155,7 @@ func narrowIfLet(o: *NarrowOwner)->s32
 // `!` on an already non-null value is a tolerated no-op.
 func narrowNotNullTolerant()->s32
 {
-    var node           = NarrowNode{value: 9}
+    var node = NarrowNode{value: 9}
     let q: *NarrowNode = &node
     return takesPtr(q!)
 }
@@ -234,8 +234,8 @@ func narrowAssertScoped(p: *NarrowNode?)->s32
     Swag.assert(narrowAnd(&node, null) == -1)
     Swag.assert(narrowAnd(null, &node2) == -1)
     Swag.assert(narrowAndRhs(&node))
-    Swag.assert(!narrowAndRhs(&node2))
-    Swag.assert(!narrowAndRhs(null))
+    Swag.assert(not narrowAndRhs(&node2))
+    Swag.assert(not narrowAndRhs(null))
     Swag.assert(narrowOrReturn(&node, &node2) == 50)
     Swag.assert(narrowOrReturn(null, &node2) == -1)
     Swag.assert(narrowWhile(&node) == 50)

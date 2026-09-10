@@ -130,7 +130,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
         g_Main = null
     }
 
-    Swag.assert(!main.quickStyleBar.flags.has(.HideDividers))
+    Swag.assert(not main.quickStyleBar.flags.has(.HideDividers))
 
     let capture = Memory.new'Capture()
     capture.width, capture.widthOrg   = 400
@@ -313,7 +313,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
         let capture = Memory.new'Capture()
         capture.width, capture.widthOrg   = 96 + cast(s32) i
         capture.height, capture.heightOrg = 64 + cast(s32) i
-        capture.backImg                   = Gui.Testing.indexedImage(capture.width, capture.height)
+        capture.backImg = Gui.Testing.indexedImage(capture.width, capture.height)
 
         let image = testAddImage(capture, 8, 8, 40, 32)
         image.kind  = .Image

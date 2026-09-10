@@ -53,7 +53,7 @@ impl Mpeg4Stream
     // Configures the decoder from a container's setup headers and installs the samples.
     mtd open(config: const [..] u8, frames: Array'SampleEntry) fail
     {
-        if !config.count do
+        if not config.count do
             fail InvalidFormatError{"MPEG-4 track has no decoder configuration"}
 
         .config.clear()
@@ -109,7 +109,7 @@ impl Mpeg4Stream
     // decoder has read, so the anchors it holds stay the anchors they were.
     mtd appendFrames(frames: const [..] SampleEntry) fail
     {
-        if !frames.count do
+        if not frames.count do
             return
         .frames.add(frames)
         .rebuildOrder()
@@ -165,7 +165,7 @@ impl Mpeg4Stream
                 .decoder.reference().writePlanar(&.queue[.queued].planes)
                 .queue[.queued].time = .decoder.pictureTime
                 .queue[.queued].kind = .decoder.pictureKind
-                .queued              += 1
+                .queued += 1
             }
         }
     }
@@ -197,7 +197,7 @@ impl Mpeg4Stream
             fail InvalidFormatError{"MPEG-4 stream has no picture at the requested position"}
 
         // A picture that is not a clean decode point needs everything back to the last one.
-        if !.started or .emitRank > .nextRank
+        if not .started or .emitRank > .nextRank
         {
             .decoder.reset()
             .queued     = 0
@@ -209,7 +209,7 @@ impl Mpeg4Stream
         while true
         {
             try .fill(source)
-            if !.queued do
+            if not .queued do
                 fail InvalidFormatError{"MPEG-4 stream ends before the picture asked for"}
 
             let at = .earliest()

@@ -11,7 +11,7 @@ using Core, Core.Errors
 // Table 8-2: the three directional modes a chroma block may take instead of the luma one, plus
 // the diagonal it falls back to when the chosen one is already the luma mode.
 const ChromaModeCandidates: [4] u8 = [IntraPlanar, 26, 10, IntraDc]
-const IntraAngular34               = 34'u8
+const IntraAngular34 = 34'u8
 
 impl Decoder
 {
@@ -54,7 +54,7 @@ impl Decoder
             .beginQuantizationGroup(x0, y0)
         }
 
-        if !split
+        if not split
         {
             try .codingUnit(x0, y0, log2CbSize, depth)
             return
@@ -120,7 +120,7 @@ impl Decoder
             isIntra = .cabac.decision(CtxPredModeFlag) != 0
 
         var partMode = Part2Nx2N
-        if !isIntra or log2CbSize == sps.minCbLog2Size do
+        if not isIntra or log2CbSize == sps.minCbLog2Size do
             partMode = .readPartMode(isIntra, log2CbSize, sps)
 
         .fillBlocks(.predMode.buffer!, x0, y0, nCbS, isIntra ? ModeIntra : ModeInter)
@@ -336,7 +336,7 @@ impl Decoder
 
         // A whole unit taken from a merge candidate carries its residual flag implicitly.
         var hasResidual = true
-        if !(partMode == Part2Nx2N and merge2Nx2N) do
+        if not (partMode == Part2Nx2N and merge2Nx2N) do
             hasResidual = .cabac.decision(CtxRqtRootCbf) != 0
 
         if hasResidual
@@ -482,7 +482,7 @@ impl Decoder
         var result: retval
         for component in 2'u32
         {
-            if !greater0[component] do
+            if not greater0[component] do
                 continue
 
             var magnitude = 1'u32
@@ -516,9 +516,9 @@ impl Decoder
         let smallest   = log2CbSize == sps.minCbLog2Size
         let horizontal = .cabac.decision(CtxPartMode + 1) != 0
 
-        if !smallest
+        if not smallest
         {
-            if !sps.ampEnabled do
+            if not sps.ampEnabled do
                 return horizontal ? Part2NxN : PartNx2N
             if .cabac.decision(CtxPartMode + 3) != 0 do
                 return horizontal ? Part2NxN : PartNx2N
@@ -558,7 +558,7 @@ impl Decoder
         let sps = .activeSps!
 
         var split = false
-        if log2TrafoSize <= sps.maxTbLog2Size and log2TrafoSize > sps.minTbLog2Size and trafoDepth < maxTrafoDepth and !(intraSplit and !trafoDepth)
+        if log2TrafoSize <= sps.maxTbLog2Size and log2TrafoSize > sps.minTbLog2Size and trafoDepth < maxTrafoDepth and not (intraSplit and not trafoDepth)
         {
             split = .cabac.decision(CtxSplitTransformFlag + 5 - log2TrafoSize) != 0
         }
@@ -566,8 +566,8 @@ impl Decoder
         {
             // Clause 7.4.9.8: a block larger than the largest transform, or the first depth of a
             // split intra unit, splits without saying so.
-            let interSplit = !isIntra and sps.maxTrafoDepthInter == 0 and partMode != Part2Nx2N and !trafoDepth
-            split = log2TrafoSize > sps.maxTbLog2Size or (intraSplit and !trafoDepth) or interSplit
+            let interSplit = not isIntra and sps.maxTrafoDepthInter == 0 and partMode != Part2Nx2N and not trafoDepth
+            split = log2TrafoSize > sps.maxTbLog2Size or (intraSplit and not trafoDepth) or interSplit
         }
 
         // The chroma coded-block flags of a block that still covers a chroma block of its own.
@@ -577,9 +577,9 @@ impl Decoder
         {
             cbfCb = false
             cbfCr = false
-            if !trafoDepth or parentCbfCb do
+            if not trafoDepth or parentCbfCb do
                 cbfCb = .cabac.decision(CtxCbfChroma + trafoDepth) != 0
-            if !trafoDepth or parentCbfCr do
+            if not trafoDepth or parentCbfCr do
                 cbfCr = .cabac.decision(CtxCbfChroma + trafoDepth) != 0
         }
 
@@ -613,11 +613,11 @@ impl Decoder
         let log2ChromaSize = smallest ? 2'u32 : log2TrafoSize - 1
         let xChroma        = smallest ? xBase : x0
         let yChroma        = smallest ? yBase : y0
-        let hasChroma      = !smallest or blkIdx == 3
+        let hasChroma      = not smallest or blkIdx == 3
 
         if cbfLuma or cbfCb or cbfCr
         {
-            if pps.cuQpDeltaEnabled and !.isCuQpDeltaCoded do
+            if pps.cuQpDeltaEnabled and not .isCuQpDeltaCoded do
                 .readQuantizationDelta()
         }
 
@@ -653,7 +653,7 @@ impl Decoder
         elif cbfLuma do
             .addResidualInPlace(&block)
 
-        if !hasChroma do
+        if not hasChroma do
             return
 
         // Chroma, in its own sample grid.

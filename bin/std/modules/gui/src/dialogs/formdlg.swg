@@ -56,7 +56,7 @@ impl FormDlg
         surface.center(from)
         surface.minSize = {Math.min(options.width, 360), Math.min(options.height, 240)}
 
-        result.form           = FormLayoutCtrl.create(result.createContentView(), options.formOptions)
+        result.form = FormLayoutCtrl.create(result.createContentView(), options.formOptions)
         result.form.dockStyle = .Center
 
         result.addButton(options.confirmButtonText.count ? options.confirmButtonText : strings().dlg_Ok, Dialog.BtnOk, true)

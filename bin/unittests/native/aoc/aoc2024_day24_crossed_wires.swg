@@ -338,13 +338,13 @@ func simulate(c: *Circuit)
     var changed = true
     for
     {
-        if !changed do break
+        if not changed do break
         changed = false
         for gi in c.gateCount
         {
             let g = &c.gates[gi]
             if c.isSet(g.out) do continue
-            if !c.isSet(g.inA) or !c.isSet(g.inB) do continue
+            if not c.isSet(g.inA) or not c.isSet(g.inB) do continue
 
             let va     = c.getWire(g.inA)
             let vb     = c.getWire(g.inB)
@@ -456,13 +456,13 @@ func findSwapped(c: *Circuit)->SwappedResult
         let isHighestZ = outIsZ and g.nameOut1 == cast(u8) (c.maxZBit / 10) + '0' and g.nameOut2 == cast(u8) (c.maxZBit % 10) + '0'
 
         // Rule 1: z-output gates must be XOR (except highest)
-        if outIsZ and !isHighestZ and g.op != GateOp.OpXor
+        if outIsZ and not isHighestZ and g.op != GateOp.OpXor
         {
             addSwapped(&result, g.nameOut0, g.nameOut1, g.nameOut2)
         }
 
         // Rule 2: non-z output with non-xy inputs must NOT be XOR
-        if !outIsZ and !inputsAreXY and g.op == GateOp.OpXor
+        if not outIsZ and not inputsAreXY and g.op == GateOp.OpXor
         {
             addSwapped(&result, g.nameOut0, g.nameOut1, g.nameOut2)
         }
@@ -476,7 +476,7 @@ func findSwapped(c: *Circuit)->SwappedResult
                              (g.nameB0 == 'x' and
                               encodeWire(g.nameB0, cast(u8) '0', cast(u8) '0') == g.inB)
 
-            if !isFirstBit and !hasDownstream(c, g.out, GateOp.OpXor)
+            if not isFirstBit and not hasDownstream(c, g.out, GateOp.OpXor)
             {
                 addSwapped(&result, g.nameOut0, g.nameOut1, g.nameOut2)
             }
@@ -490,7 +490,7 @@ func findSwapped(c: *Circuit)->SwappedResult
                              (g.nameB0 == 'x' and
                               encodeWire(g.nameB0, cast(u8) '0', cast(u8) '0') == g.inB)
 
-            if !isFirstBit and !hasDownstream(c, g.out, GateOp.OpOr)
+            if not isFirstBit and not hasDownstream(c, g.out, GateOp.OpOr)
             {
                 addSwapped(&result, g.nameOut0, g.nameOut1, g.nameOut2)
             }
@@ -616,10 +616,10 @@ func solve(wiresText: string, gatesText: string)->SolveResult
 #test
 {
     Swag.assert(wireIsZ('z'))
-    Swag.assert(!wireIsZ('x'))
+    Swag.assert(not wireIsZ('x'))
     Swag.assert(wireIsX('x'))
     Swag.assert(wireIsY('y'))
-    Swag.assert(!wireIsY('z'))
+    Swag.assert(not wireIsY('z'))
 }
 
 // GateOp enum
@@ -742,7 +742,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
 #test
 {
     var c = circuitInit()
-    Swag.assert(!c.isSet(0))
+    Swag.assert(not c.isSet(0))
     c.setWire(0, 1)
     Swag.assert(c.isSet(0))
     Swag.assert(c.getWire(0) == 1)
@@ -754,8 +754,8 @@ func solve(wiresText: string, gatesText: string)->SolveResult
 {
     Swag.assert(isXY('x'))
     Swag.assert(isXY('y'))
-    Swag.assert(!isXY('z'))
-    Swag.assert(!isXY('a'))
+    Swag.assert(not isXY('z'))
+    Swag.assert(not isXY('a'))
 }
 
 // addSwapped dedup (exercises struct with array of arrays)
@@ -833,7 +833,7 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
     Swag.assert(wi.encoded == encodeWire('z', '0', '1'))
 
     let wi2 = makeWireInfo('x', '0', '0')
-    Swag.assert(!wi2.isOutput)
+    Swag.assert(not wi2.isOutput)
 }
 
 // Nested inline calls: makeWireInfo calls encodeWire and wireIsZ (both inline)
@@ -858,8 +858,8 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
     c.gateCount    = 1
 
     Swag.assert(hasDownstream(&c, encodeWire('a', 'b', 'c'), GateOp.OpXor))
-    Swag.assert(!hasDownstream(&c, encodeWire('a', 'b', 'c'), GateOp.OpAnd))
-    Swag.assert(!hasDownstream(&c, encodeWire('z', 'z', 'z'), GateOp.OpXor))
+    Swag.assert(not hasDownstream(&c, encodeWire('a', 'b', 'c'), GateOp.OpAnd))
+    Swag.assert(not hasDownstream(&c, encodeWire('z', 'z', 'z'), GateOp.OpXor))
 }
 
 // Full solve with small example

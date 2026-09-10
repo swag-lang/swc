@@ -30,11 +30,11 @@ func __dbgFindSection(base: *void?)
         return
 
     let encoded = __hostDebugSection(base)
-    if !encoded do
+    if not encoded do
         return
 
     let section = __hostDecodeDebugSection(encoded!)
-    if !section do
+    if not section do
         return
 
     __dbgCacheSection = section
@@ -59,11 +59,11 @@ func __symbolize(addr: *void)->__SwagSym
     var result: __SwagSym
 
     let imageBase = __hostImageBaseForAddress(addr)
-    if !imageBase do
+    if not imageBase do
         return result
     if imageBase != __dbgCacheBase do
         __dbgFindSection(imageBase)
-    if !__dbgCacheValid do
+    if not __dbgCacheValid do
         return result
 
     let rva = cast(u32) (cast(u64) addr - cast(u64) imageBase)
@@ -109,17 +109,17 @@ func __logStackTrace(wh: const [..] (*void?), startAfter: *Swag.SourceCodeLocati
 
     for i in wh.count
     {
-        if !wh[i] do
+        if not wh[i] do
             continue
         let info = __symbolize(wh[i]!)
-        if !info.found do
+        if not info.found do
             continue
-        if !info.hasLine and !printNoLine do
+        if not info.hasLine and not printNoLine do
             continue
 
-        if !hasStarted and startAfter
+        if not hasStarted and startAfter
         {
-            if !info.hasLine do
+            if not info.hasLine do
                 continue
             if startAfter.lineStart != info.line do
                 continue
@@ -143,7 +143,7 @@ func __logStackTrace(wh: const [..] (*void?), startAfter: *Swag.SourceCodeLocati
                 }
             }
 
-            if !samePath do
+            if not samePath do
                 continue
             hasStarted = true
             continue

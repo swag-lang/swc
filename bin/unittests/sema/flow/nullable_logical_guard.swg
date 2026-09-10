@@ -7,7 +7,7 @@ struct NullableLogicalGuardItem
 
 func nullableLogicalGuardOrFallthrough(item: *NullableLogicalGuardItem?)->s32
 {
-    if !item or item.value == 0
+    if not item or item.value == 0
     {
         return 0
     }
@@ -17,7 +17,7 @@ func nullableLogicalGuardOrFallthrough(item: *NullableLogicalGuardItem?)->s32
 
 func nullableLogicalGuardOrElse(item: *NullableLogicalGuardItem?)->s32
 {
-    if !item or item.value == 0
+    if not item or item.value == 0
     {
         return 0
     }
@@ -39,7 +39,7 @@ func nullableLogicalGuardAndThen(item: *NullableLogicalGuardItem?)->s32
 
 func nullableLogicalGuardKeepsVarStorageNullable(item: *NullableLogicalGuardItem?)->*NullableLogicalGuardItem?
 {
-    if !item
+    if not item
     {
         return null
     }

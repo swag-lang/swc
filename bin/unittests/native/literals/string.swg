@@ -231,7 +231,7 @@ namespace compiler302
     //
     #test
     {
-        let str             = "ABCD"
+        let str = "ABCD"
         let p: const [*] u8 = str.buffer
         Swag.assert(p[0] == cast(u8) 'A'rune)
         Swag.assert(p[1] == cast(u8) 'B'rune)

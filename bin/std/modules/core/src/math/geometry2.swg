@@ -285,7 +285,7 @@ func intersectLines(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32
     var result: retval
 
     let {intersects, firstFactor, ?} = lineIntersectionFactors(start0, end0, start1, end1, epsilon)
-    if !intersects do
+    if not intersects do
         return result
 
     result.intersects = true
@@ -374,7 +374,7 @@ func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = Const
     }
 
     let {intersects, firstFactor, secondFactor} = lineIntersectionFactors(start0, end0, start1, end1, epsilon)
-    if !intersects do
+    if not intersects do
         return result
 
     if firstFactor < -epsilon or firstFactor > 1 + epsilon or secondFactor < -epsilon or secondFactor > 1 + epsilon do
@@ -391,7 +391,7 @@ func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = Const
 func polygonContainsPoint(polygon: Array'Math.Vector2, point: Math.Vector2)->bool
 {
     var contains = false
-    if !polygon.count do
+    if not polygon.count do
         return contains
     let buffer = polygon.buffer!
     var verti  = buffer
@@ -401,7 +401,7 @@ func polygonContainsPoint(polygon: Array'Math.Vector2, point: Math.Vector2)->boo
         if ((verti.y > point.y) != (vertj.y > point.y)) and
            (point.x < (vertj.x - verti.x) * (point.y - verti.y) / (vertj.y - verti.y) + verti.x)
         {
-            contains = !contains
+            contains = not contains
         }
 
         vertj = verti

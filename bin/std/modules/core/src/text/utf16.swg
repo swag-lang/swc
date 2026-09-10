@@ -22,7 +22,7 @@ func decodeRune(buffer: const [..] u16)->{ c: rune, eat: u32 }
 {
     var result: retval
 
-    if !buffer.count
+    if not buffer.count
     {
         result.c = RuneError
         return result
@@ -88,7 +88,7 @@ func fromUtf8(dest: [..] u16, src: const [..] u8)->u64
         if srcLength >= VectorSize and destLength >= VectorSize
         {
             let values = Math.Simd.load(srcPtr)
-            if !Math.Simd.bitmask(values)
+            if not Math.Simd.bitmask(values)
             {
                 Math.Simd.store(destPtr, Math.Simd.widenLow(values))
                 Math.Simd.store(destPtr + VectorSize / 2, Math.Simd.widenHigh(values))
@@ -155,7 +155,7 @@ func toZeroTerminated(src: string)->Array'u16
     var result: retval
     result.reserve(2 * src.count + 1)
     let buffer = result.buffer!
-    result.count             = Utf16.fromUtf8(Swag.makeSlice(buffer, result.capacity), src) + 1
+    result.count = Utf16.fromUtf8(Swag.makeSlice(buffer, result.capacity), src) + 1
     result[result.count - 1] = 0
     return result
 }

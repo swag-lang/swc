@@ -60,9 +60,9 @@ private func formatHexOctalScalar(value, bits: u64)->String
 private func loadHexDocument(fileName: string)->HexDocument fail
 {
     var result: retval
-    if !result.open(fileName) do
+    if not result.open(fileName) do
         fail InvalidFormatError{Errors.mkString(result.failureReason.toString())}
-    if result.fileSize and !result.ensure(0, Math.min(result.fileSize, HexWindowSize)) do
+    if result.fileSize and not result.ensure(0, Math.min(result.fileSize, HexWindowSize)) do
         fail InvalidFormatError{Errors.mkString(result.failureReason.toString())}
     return #move result
 }
@@ -76,7 +76,7 @@ internal struct HexViewer
 {
     using wnd: Wnd
 
-        late
+    late
     {
         commands:       *Wnd
         analysisButton: *IconButton
@@ -110,7 +110,7 @@ private impl IWnd for HexViewer
     {
         if evt.timer == .analysisTimer
         {
-            if !.analysis.isDone()
+            if not .analysis.isDone()
             {
                 .analysisView.setProgress(.analysis.progress())
                 return
@@ -130,14 +130,14 @@ private impl IWnd for HexViewer
             return
         }
 
-        if !.load.isDone() do
+        if not .load.isDone() do
             return
 
         .removeTimer(evt.timer)
         .loadTimer = null
         var document: HexDocument
         .failureReason = .load.finish(&document)
-        if !.failureReason.isEmpty()
+        if not .failureReason.isEmpty()
         {
             if .reportFailure do
                 .reportFailure!(me, .failureReason.toString())
@@ -173,9 +173,9 @@ internal impl HexViewer
 {
     mtd retire()->bool
     {
-        if !.load.retire() do
+        if not .load.retire() do
             return false
-        if !.analysis.retire() do
+        if not .analysis.retire() do
             return false
         if .loadTimer
         {
@@ -209,7 +209,7 @@ internal impl HexViewer
             return
         }
 
-        if !.grid.doc.fileSize do
+        if not .grid.doc.fileSize do
             return
         let target = .analysisRange()
         .startAnalysisRange(target.range, target.selection)
@@ -270,7 +270,7 @@ internal impl HexViewer
     mtd applyRowWidth()
     {
         let index = .rowWidthCombo.selectedIndex
-        if !index
+        if not index
         {
             .grid.setBytesPerRow(0, true)
             return
@@ -372,7 +372,7 @@ internal impl HexViewer
 
     private mtd showZoomMenu()
     {
-        if !.zoomLabel do
+        if not .zoomLabel do
             return
         let base = .themeMetrics().defaultFixedFontSize
         let menu = MenuCtrl.createPopup(me, owner: me)
@@ -428,10 +428,10 @@ internal impl HexViewer
     // glanceable; its tooltip spells the same bytes at every common scalar width.
     mtd refreshInspector()
     {
-        if !.inspectorLabel do
+        if not .inspectorLabel do
             return
         let label = .inspectorLabel!
-        if !.grid.doc.fileSize
+        if not .grid.doc.fileSize
         {
             label.setText(hexStrings().ui_InspectorEmpty)
             label.toolTip = hexStrings().ui_InspectorEmpty
@@ -513,7 +513,7 @@ internal impl HexViewer
     // Reveals the byte range the host's search matched.
     mtd revealOffset(offset, length: u64)->bool
     {
-        if !.grid.revealRange(offset, length) do
+        if not .grid.revealRange(offset, length) do
             return false
         .grid.setFocus()
         return true
@@ -639,22 +639,25 @@ internal impl HexViewer
             }
         }
 
-        result.analysisView            = HexAnalysisView.create(sidePanel.content)
+        result.analysisView = HexAnalysisView.create(sidePanel.content)
         result.analysisView.sigAnalyze += func|view = result|(panel)
         {
             discard panel
             view.startAnalysis()
         }
+
         result.analysisView.sigCancel += func|view = result|(panel)
         {
             discard panel
             view.analysis.cancel()
         }
+
         result.analysisView.sigClose += func|view = result|(panel)
         {
             discard panel
             view.closeAnalysis()
         }
+
         result.analysisView.sigNavigate += func|view = result|(panel, offset, length)
         {
             discard panel
@@ -663,17 +666,19 @@ internal impl HexViewer
             view.grid.setFocus()
         }
 
-        result.grid                 = HexGridView.create(result)
+        result.grid = HexGridView.create(result)
         result.grid.sigCaretChanged += func|view = result|(grid)
         {
             discard grid
             view.refreshInspector()
         }
+
         result.grid.sigZoomChanged += func|view = result|(grid)
         {
             discard grid
             view.refreshZoom()
         }
+
         if services.reportFailure
         {
             let report = services.reportFailure!

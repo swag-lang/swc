@@ -314,7 +314,7 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
                     py = y - 0.5 + crossing(c00, c01, thr)
                 }
 
-                if !path
+                if not path
                 {
                     path = result.newPath()
                     path!.start(px, py)

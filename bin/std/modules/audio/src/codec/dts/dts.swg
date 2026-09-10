@@ -55,7 +55,7 @@ private impl BitReader
         let littleEndian16 = packet[0] == 0xFE and packet[1] == 0x7F and packet[2] == 0x01 and packet[3] == 0x80
         let bigEndian14    = packet[0] == 0x1F and packet[1] == 0xFF and packet[2] == 0xE8 and packet[3] == 0x00
         let littleEndian14 = packet[0] == 0xFF and packet[1] == 0x1F and packet[2] == 0x00 and packet[3] == 0xE8
-        if !bigEndian16 and !littleEndian16 and !bigEndian14 and !littleEndian14 do
+        if not bigEndian16 and not littleEndian16 and not bigEndian14 and not littleEndian14 do
             fail InvalidFormatError{"DTS packet has no core sync word"}
 
         let packed14 = bigEndian14 or littleEndian14
@@ -99,7 +99,7 @@ private impl BitReader
     mtd readSigned(count: u32)->s32
     {
         let raw = .read(count)
-        if !count do
+        if not count do
             return 0
         let sign = 1'u32 << (count - 1)
         if raw & sign do
@@ -171,7 +171,7 @@ private func parseFrameHeader(reader: *BitReader)->FrameHeader fail
     result.primaryChannels = ModeChannels[result.mode]
     let rateIndex = reader.read(4)
     result.sampleRate = SampleRates[rateIndex]
-    if !result.sampleRate do
+    if not result.sampleRate do
         fail InvalidFormatError{"DTS packet states a reserved sampling frequency"}
     result.bitRateIndex = reader.read(5)
     if result.bitRateIndex >= 25 and result.bitRateIndex != 29 and result.bitRateIndex != 31 do
@@ -185,7 +185,7 @@ private func parseFrameHeader(reader: *BitReader)->FrameHeader fail
     discard reader.read(3)
     discard reader.read(1)
     result.syncSubsubframes = reader.read(1) != 0
-    result.lfe              = reader.read(2)
+    result.lfe = reader.read(2)
     if result.lfe == 3 do
         fail InvalidFormatError{"DTS packet states a reserved LFE mode"}
     result.channels         = result.primaryChannels + (result.lfe ? 1 : 0)
@@ -394,7 +394,7 @@ private impl Codec
 
     mtd synthesizeLfe(destination: [*] s16, header: const *FrameHeader, samples: const [*] f64, sampleCount: u32)
     {
-        if !header.lfe do
+        if not header.lfe do
             return
         let factor           = header.lfe == 1 ? 128'u32 : 64
         let coefficients     = header.lfe == 1 ? LfeFir128 : LfeFir64
@@ -414,7 +414,7 @@ private impl Codec
                 }
 
                 let frame = sample * factor
-                destination[(frame + half) * header.channels + outputChannel]              = cast(s16) Math.clamp(Math.round(first * OutputScale), -32_768.0, 32_767.0)
+                destination[(frame + half) * header.channels + outputChannel] = cast(s16) Math.clamp(Math.round(first * OutputScale), -32_768.0, 32_767.0)
                 destination[(frame + factor / 2 + half) * header.channels + outputChannel] = cast(s16) Math.clamp(Math.round(second * OutputScale), -32_768.0, 32_767.0)
             }
         }
@@ -552,7 +552,7 @@ private impl Codec
                 let bitCount = scaleSelector[channel] + 1
                 for band in subbandCount[channel]
                 {
-                    if band < vqStart[channel] and !allocation[channel, band] do
+                    if band < vqStart[channel] and not allocation[channel, band] do
                         continue
                     let scaleIndex = reader.read(bitCount)
                     if scaleIndex >= ScaleFactors.count do
@@ -610,7 +610,7 @@ private impl Codec
                     {
                         let bits = allocation[channel, band]
                         var audio: [SamplesPerSubband] s32
-                        if !bits {}
+                        if not bits {}
                         elif bits <= 10 and quantSelector[channel, bits - 1] < QuantGroupSize[bits - 1]
                         {
                             fail UnsupportedFormatError{"DTS Huffman-coded audio samples are not supported"}
@@ -705,7 +705,7 @@ impl IPacketCodec for Codec
     mtd impl initialize(config: const [..] u8, sampleRateHz, channels: u32) fail
     {
         discard config
-        if !sampleRateHz or !channels or channels > MaxChannels do
+        if not sampleRateHz or not channels or channels > MaxChannels do
             fail BadParameterError{"DTS audio needs one to six channels and a non-zero sample rate"}
         .sampleRate = sampleRateHz
         .channels   = channels

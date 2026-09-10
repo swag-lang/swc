@@ -53,7 +53,7 @@ impl ProcessEnvironment
     mtd const value(name: string)->string?
     {
         let entry = .variables.tryFind(ProcessEnvironment.storedName(name))
-        if !entry do
+        if not entry do
             return null
         return entry.value.toString()
     }
@@ -216,7 +216,7 @@ impl Process
     //
     // This reports recorded state and never queries the system, so it stays true until a wait,
     // a kill or a close observes the exit.
-    mtd const isRunning()->bool => .handle != null and !.exited
+    mtd const isRunning()->bool => .handle != null and not .exited
 
     // Returns the exit code reported by the process.
     //

@@ -14,12 +14,12 @@ private impl DtsTestBits
     {
         for index in count
         {
-            if !(.bitCount & 7) do
+            if not (.bitCount & 7) do
                 .bytes.add(0)
             let source = count - 1 - index
             let target = cast(u32) (7 - (.bitCount & 7))
             .bytes[.bitCount >> 3] |= cast(u8) (((value >> source) & 1) << target)
-            .bitCount              += 1
+            .bitCount += 1
         }
     }
 }
@@ -336,7 +336,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
         let first = bigEndian[index]
         bigEndian[index]     = bigEndian[index + 1]
         bigEndian[index + 1] = first
-        index                += 2
+        index += 2
     }
 
     let swapped = expect Dts.frameInfo(bigEndian.toSlice())
@@ -353,7 +353,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
         let first = littleEndian14[index]
         littleEndian14[index]     = littleEndian14[index + 1]
         littleEndian14[index + 1] = first
-        index                     += 2
+        index += 2
     }
 
     let swapped14 = expect Dts.frameInfo(littleEndian14.toSlice())

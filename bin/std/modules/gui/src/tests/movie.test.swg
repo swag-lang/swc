@@ -12,9 +12,9 @@ func movieFixture(name: string)->String => String.from(Path.combine(Path.directo
         var movie: Movie
         expect movie.load(movieFixture(name).toString())
         Swag.assert(movie.isAnimated() and movie.frameCount == 3 and movie.frameIndex == 0)
-        Swag.assert(!movie.isPaused and movie.currentFrameDuration() == 0.04)
+        Swag.assert(not movie.isPaused and movie.currentFrameDuration() == 0.04)
         Swag.assert(movie.update(0.04) and movie.frameIndex == 1)
-        Swag.assert(!movie.update(0.05) and movie.frameIndex == 1)
+        Swag.assert(not movie.update(0.05) and movie.frameIndex == 1)
         Swag.assert(movie.update(0.071) and movie.frameIndex == 2)
         discard movie.update(0.08)
         Swag.assert(movie.isPaused and movie.frameIndex == 2)
@@ -22,10 +22,10 @@ func movieFixture(name: string)->String => String.from(Path.combine(Path.directo
         movie.usesEncodedLoops = false
         movie.setPaused(false)
         discard movie.update(0.241)
-        Swag.assert(!movie.isPaused and movie.frameIndex == 0)
+        Swag.assert(not movie.isPaused and movie.frameIndex == 0)
         movie.setPaused(true)
         discard movie.update(0)
-        Swag.assert(!movie.update(10) and movie.frameIndex == 0)
+        Swag.assert(not movie.update(10) and movie.frameIndex == 0)
     }
 }
 
@@ -53,7 +53,7 @@ func movieFixture(name: string)->String => String.from(Path.combine(Path.directo
     defer host.shutdown()
     let view = ImageView.create(&host.root, {0, 0, 300, 200})
     expect view.loadMovie(movieFixture("imageset-icons.ico").toString())
-    Swag.assert(!view.movie.isAnimated() and view.movie.isPaused and view.movie.frameIndex == 1)
+    Swag.assert(not view.movie.isAnimated() and view.movie.isPaused and view.movie.frameIndex == 1)
     Swag.assert(view.uploadedTexture.width == 4)
     view.setFrameIndex(0)
     Swag.assert(view.uploadedTexture.width == 2 and view.movie.frame.pixelColor(0, 0).r == 255)

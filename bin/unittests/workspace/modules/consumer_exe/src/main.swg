@@ -70,7 +70,7 @@ func verifyImportedInterfaceTablePreparation()
     Swag.assert(runtimeScore.itable == table)
     Swag.assert(cast(const *Swag.TypeInfoStruct?) runtimeScore.itable![] == objectInfo)
 
-    var concreteScore             = DepTableScore{value: 32}
+    var concreteScore = DepTableScore{value: 32}
     var castScore: IDepTableScore = concreteScore
     Swag.assert(castScore.score() == 32)
 }
@@ -90,12 +90,12 @@ func verifyImportedClosureCallbacks()
 {
     var unarySet: DepByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
     Swag.assert(depInvokeUnary('C'u8, func|&unarySet|(x: u8)->bool { return unarySet.contains(x) }))
-    Swag.assert(!depInvokeUnary('Z'u8, func|&unarySet|(x: u8)->bool { return unarySet.contains(x) }))
+    Swag.assert(not depInvokeUnary('Z'u8, func|&unarySet|(x: u8)->bool { return unarySet.contains(x) }))
     Swag.assert(depInvokeUnary('A'u8, func|&unarySet|(x: u8)->bool { return unarySet.containsViaGeneric(x) }))
 
     var genericSet: DepByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
     Swag.assert(depInvokeGeneric('A'u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
-    Swag.assert(!depInvokeGeneric('Z'u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
+    Swag.assert(not depInvokeGeneric('Z'u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
     Swag.assert(depInvokeGeneric('B'u8, func|&genericSet|(x: u8)->bool { return genericSet.containsViaGeneric(x) }))
 
     var prev:     [3] u8     = ['C', 'A', 'B']
@@ -120,15 +120,15 @@ func verifyImportedClosureCallbacks()
 
     var sharedUnarySet: CtxClosureByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
     Swag.assert(ctxSharedInvokeUnary('C'u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.contains(x) }))
-    Swag.assert(!ctxSharedInvokeUnary('Z'u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.contains(x) }))
+    Swag.assert(not ctxSharedInvokeUnary('Z'u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.contains(x) }))
     Swag.assert(ctxSharedInvokeUnary('A'u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.containsViaGeneric(x) }))
 
     var sharedGenericSet: CtxClosureByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
     Swag.assert(ctxSharedInvokeGeneric('A'u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
-    Swag.assert(!ctxSharedInvokeGeneric('Z'u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
+    Swag.assert(not ctxSharedInvokeGeneric('Z'u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
     Swag.assert(ctxSharedInvokeGeneric('B'u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.containsViaGeneric(x) }))
 
-    var sharedPrev:     [3] u8            = ['C', 'A', 'B']
+    var sharedPrev:     [3] u8 = ['C', 'A', 'B']
     var sharedAllOfSet: CtxClosureByteSet = {values: ['A'u8, 'B'u8, 'C'u8, 'D'u8], count: 4}
     Swag.assert(ctxSharedAllOf(sharedPrev[to], func|&sharedAllOfSet|(x: u8)->bool { return sharedAllOfSet.contains(x) }))
     Swag.assert(ctxSharedAllOf(sharedPrev[to], func|&sharedAllOfSet|(x: u8)->bool { return sharedAllOfSet.containsViaGeneric(x) }))

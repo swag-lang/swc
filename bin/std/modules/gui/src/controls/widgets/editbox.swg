@@ -237,7 +237,7 @@ impl IWnd for EditBox
         }
 
         // Placeholder note
-        if !.name.isEmpty() and .textStorage.isEmpty()
+        if not .name.isEmpty() and .textStorage.isEmpty()
         {
             var format: RichStringFormat
             format.palette[0]    = colors.edit_Note
@@ -294,7 +294,7 @@ impl IWnd for EditBox
         bc.painter.drawString(clientRect.x, y, .textStorage, fontR, colorText)
 
         // Left-aligned boxes let the unit trail the value inside the scrolled content.
-        if !.unit.isEmpty() and !.flags.has(.RightAligned)
+        if not .unit.isEmpty() and not .flags.has(.RightAligned)
         {
             bc.painter.drawString(clientRect.x + sizeX + metrics.editBox_UnitMargin, y, .unit, fontR, colorUnit)
         }
@@ -315,7 +315,7 @@ impl IWnd for EditBox
 
         // Right-aligned boxes pin the unit to the right edge, outside the scroll
         // transform, so it stays put while the value text scrolls underneath.
-        if !.unit.isEmpty() and .flags.has(.RightAligned)
+        if not .unit.isEmpty() and .flags.has(.RightAligned)
         {
             let unitW = Painter.measureString(.unit, fontR).width
             bc.painter.drawString(editRight - unitW, y, .unit, fontR, colorUnit)
@@ -358,7 +358,7 @@ impl IWnd for EditBox
             evt.accepted = true
 
         case .Move:
-            if !.isDragging do
+            if not .isDragging do
                 break
             evt.accepted = true
             let x = .byteIndexAt(pos.x)
@@ -383,8 +383,8 @@ impl IWnd for EditBox
     mtd impl onDragDropEvent(evt: *DragDropEvent)
     {
         let takesFile = .flags.has(.AcceptFileDrop) and evt.data.singleFile() != null
-        let takesText = !takesFile and evt.data.hasText()
-        if .flags.has(.ReadOnly) or (!takesFile and !takesText)
+        let takesText = not takesFile and evt.data.hasText()
+        if .flags.has(.ReadOnly) or (not takesFile and not takesText)
         {
             evt.accepted = false
             return
@@ -422,7 +422,7 @@ impl IWnd for EditBox
     // Blinking caret timer handler.
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        .visibleCaret = !.visibleCaret
+        .visibleCaret = not .visibleCaret
 
         // Repaint the whole (small) edit box on each blink. Invalidating only the
         // caret rectangle is fragile: the caret is painted inside the horizontal
@@ -442,7 +442,7 @@ impl IWnd for EditBox
             if evt.accepted do
                 .forceVisibleCaret()
         }
-        elif evt.kind == .Character and !.flags.has(.ReadOnly)
+        elif evt.kind == .Character and not .flags.has(.ReadOnly)
         {
             if evt.character < 32 do
                 evt.accepted = false
@@ -462,12 +462,12 @@ private impl EditBox
     mtd syncClearButton()
     {
         let mustShow = .flags.has(.ClearButton) and .textStorage != null and (.textStorage).count
-        if !mustShow
+        if not mustShow
         {
             if .clearBtn
             {
                 .clearBtn.destroy()
-                .clearBtn           = null
+                .clearBtn = null
                 .clearBtnTextMargin = 0
                 .applyLayout()
             }
@@ -475,9 +475,9 @@ private impl EditBox
             return
         }
 
-        if !.clearBtn
+        if not .clearBtn
         {
-            .clearBtn           = IconButton.create(me, .theme().icon(ThemeIcons.WndClose, 18), {0, 0, 24, 24})
+            .clearBtn = IconButton.create(me, .theme().icon(ThemeIcons.WndClose, 18), {0, 0, 24, 24})
             .clearBtn.dockStyle = .Right
             .clearBtn.setForm(IconButtonForm.Circle)
             .clearBtn.sigPressed += func|edit = me|(btn)
@@ -486,6 +486,7 @@ private impl EditBox
                 edit.setText(null)
                 edit.setFocus()
             }
+
             .clearBtnTextMargin = .clearBtn.position.width + .themeMetrics().iconText_Margin
             .applyLayout()
         }
@@ -500,19 +501,19 @@ private impl EditBox
         switch key
         {
         case .A:
-            if ctrl and !shift
+            if ctrl and not shift
             {
                 .setSelection(0, .textStorage.length)
                 return true
             }
 
         case .Insert:
-            if ctrl and !shift and .selBeg != .selEnd
+            if ctrl and not shift and .selBeg != .selEnd
             {
                 Clipboard.addString(Swag.makeString(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
                 return true
             }
-            elif shift and !ctrl
+            elif shift and not ctrl
             {
                 let str = Clipboard.getString()
                 .insertString(str.toString())
@@ -549,13 +550,13 @@ private impl EditBox
         // field exactly as from anywhere else.
         case .Return:
             .sigSubmitted.call(me)
-            if !.flags.has(.ReleaseFocusOnEnterOrEscape) do
+            if not .flags.has(.ReleaseFocusOnEnterOrEscape) do
                 return false
             .topView().setFocus()
             return true
 
         case .Escape:
-            if !.flags.has(.ReleaseFocusOnEnterOrEscape)
+            if not .flags.has(.ReleaseFocusOnEnterOrEscape)
             {
                 .sigCancelled.call(me)
                 return false
@@ -603,7 +604,7 @@ private impl EditBox
         case .Back:
             if .selBeg == .selEnd
             {
-                if !.selBeg do
+                if not .selBeg do
                     return true
                 .selBeg = .moveCaretLeft(.selBeg)
             }
@@ -719,13 +720,13 @@ private impl EditBox
         // Convert rune to UTF‑8.
         var utf8: [5] u8
         let cpt = Utf8.fromUnicode(utf8, [r])
-        if !cpt do
+        if not cpt do
             return
         utf8[cpt] = 0
 
         // Determine whether we need to validate the content.
         let mustValidate = .validator or .inputMode != .Text
-        if !mustValidate
+        if not mustValidate
         {
             .insertUtf8(Swag.makeString(&utf8[0], cpt))
             .notifyChanged()
@@ -799,7 +800,7 @@ private impl EditBox
     // Returns the right padding for text rendering (accounts for 'unit').
     mtd rightTextMargin()->f32
     {
-        if !.flags.has(.RightAligned) do
+        if not .flags.has(.RightAligned) do
             return 0
         if .unit.isEmpty() do
             return 0
@@ -827,7 +828,7 @@ private impl EditBox
     mtd numericPreferredWidth()->f32
     {
         let fontR = .font().regular
-        if !fontR do
+        if not fontR do
             return 0
         let font = nnFont(fontR)
 
@@ -885,7 +886,7 @@ private impl EditBox
         result = clientRect
         let fontR = .font().regular
         let font  = nnFont(fontR)
-        if !.textStorage.isEmpty()
+        if not .textStorage.isEmpty()
         {
             if .flags.has(.RightAligned)
             {
@@ -911,7 +912,7 @@ private impl EditBox
     // Converts an X mouse position into a byte index inside "text".
     mtd byteIndexAt(xmouse: f32)->u64
     {
-        if !.textStorage.length do
+        if not .textStorage.length do
             return 0
 
         var x = xmouse
@@ -1004,7 +1005,7 @@ private impl EditBox
     // Moves caret left to the start of the previous word.
     mtd moveCaretLeftStartWord(sel: u64)->u64
     {
-        if !sel do
+        if not sel do
             return sel
 
         var s = sel
@@ -1012,7 +1013,7 @@ private impl EditBox
         if s == sel do
             return sel
 
-        let test = !Latin1.isSpace(.textStorage.buffer![s])
+        let test = not Latin1.isSpace(.textStorage.buffer![s])
         for
         {
             let ns = .moveCaretLeft(s)
@@ -1032,7 +1033,7 @@ private impl EditBox
         if sel == .textStorage.length do
             return sel
 
-        let test = !Latin1.isSpace(.textStorage.buffer![sel])
+        let test = not Latin1.isSpace(.textStorage.buffer![sel])
         var s    = sel
         while s != .textStorage.length
         {
@@ -1047,7 +1048,7 @@ private impl EditBox
     // Moves caret left by one rune.
     mtd moveCaretLeft(sel: u64)->u64
     {
-        if !sel do
+        if not sel do
             return sel
         let str      = Swag.makeString(.textStorage.buffer, sel)
         let {?, eat} = Utf8.decodeLastRune(str)
@@ -1123,7 +1124,7 @@ internal impl EditBox
         else
         {
             var contentWidth = sizeX
-            if !.unit.isEmpty() do
+            if not .unit.isEmpty() do
                 contentWidth += metrics.editBox_UnitMargin + Painter.measureString(.unit, fontR).width
 
             // Reserve room for the caret that sits *after* the last character. Without
@@ -1386,5 +1387,5 @@ impl EditBox
         .selBeg, .selEnd}
 
     // Returns true when the current content is valid.
-    mtd const isValid()->bool => !.isInvalid
+    mtd const isValid()->bool => not .isInvalid
 }

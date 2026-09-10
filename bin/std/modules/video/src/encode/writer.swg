@@ -173,9 +173,9 @@ impl Writer
     {
         if width <= 0 or height <= 0 do
             fail BadParameterError{"video width and height need positive values"}
-        if !frameRate.isValid() do
+        if not frameRate.isValid() do
             fail BadParameterError{"video frame rate needs positive numerator and denominator values"}
-        if !canCreate(fileName) do
+        if not canCreate(fileName) do
             fail UnsupportedFormatError{"no video encoder accepts this file extension"}
 
         .info.width     = width
@@ -212,9 +212,9 @@ impl Writer
     {
         if .isEnded do
             fail BadParameterError{"video frames cannot be added to an ended stream"}
-        if !.encoder do
+        if not .encoder do
             fail BadParameterError{"video writer has no open stream"}
-        if !image.isValid() do
+        if not image.isValid() do
             fail BadParameterError{"video frame needs allocated pixels"}
         if image.width != .info.width or image.height != .info.height do
             fail BadParameterError{"video frame dimensions do not match the stream"}
@@ -230,7 +230,7 @@ impl Writer
     {
         if .isEnded do
             return
-        if !.encoder do
+        if not .encoder do
             fail BadParameterError{"video writer has no open stream"}
 
         .isEnded = true
@@ -251,7 +251,7 @@ impl Writer
     // Releases the encoder instance. The sink closes itself with the writer.
     private mtd release()
     {
-        if !.encoder do
+        if not .encoder do
             return
 
         let type     = .encoderType!

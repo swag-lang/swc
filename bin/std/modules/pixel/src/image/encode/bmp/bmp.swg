@@ -16,7 +16,7 @@ internal impl IImageEncoder for Encoder
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {
-        if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
+        if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
             fail InvalidFormatError{"invalid image"}
         if image.width > Swag.S32.Max / image.bytesPerPixel or image.height > Swag.S32.Max / image.width do
             fail UnsupportedFormatError{"image is too big"}

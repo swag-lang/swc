@@ -51,7 +51,7 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
 
     for &image in images
     {
-        if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
+        if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
             fail InvalidFormatError{"invalid image"}
         if image.width > 256 or image.height > 256 do
             fail UnsupportedFormatError{"icon dimensions must be <= 256"}

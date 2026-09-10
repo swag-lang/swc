@@ -48,15 +48,15 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.assert(assertString(value, ""))
 
     value.ensureNotNull()
-    Swag.assert(!value.isNull())
+    Swag.assert(not value.isNull())
     Swag.assert(value.isEmpty())
     Swag.assert(value.isNullOrEmpty())
     Swag.assert(assertString(value, ""))
 
     value = " core "
-    Swag.assert(!value.isNull())
-    Swag.assert(!value.isEmpty())
-    Swag.assert(!value.isNullOrEmpty())
+    Swag.assert(not value.isNull())
+    Swag.assert(not value.isEmpty())
+    Swag.assert(not value.isNullOrEmpty())
     Swag.assert(assertString(value, " core "))
 
     value.trim()
@@ -180,7 +180,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 #test
 {
     var value: String = "1234"
-    let tail          = value[1 to 3]
+    let tail = value[1 to 3]
     value = tail
     Swag.assert(assertString(value, "234"))
 
@@ -252,10 +252,10 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 
     Swag.assert(value.startsWith("Core"))
     Swag.assert(value.startsWith("core", Utf8.ComparisonType.Latin1NoCase))
-    Swag.assert(!value.startsWith("Cafe"))
+    Swag.assert(not value.startsWith("Cafe"))
 
     Swag.assert(value.endsWith("Café"))
-    Swag.assert(!value.endsWith("Core"))
+    Swag.assert(not value.endsWith("Core"))
     Swag.assert(value.endsWith("café", Utf8.ComparisonType.Latin1NoCase))
 
     Swag.assert(value.indexOf("Core") == 0)
@@ -274,7 +274,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 #test
 {
     var value: String = "alpha"
-    let ptr           = cast(const *String) &value
+    let ptr = cast(const *String) &value
 
     Swag.assert(ptr.toString() == "alpha")
     Swag.assert(ptr[] == "alpha")
@@ -315,7 +315,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     movedSmall = #move smallCopy
     Swag.assert(assertString(movedSmall, "small"))
 
-    var big                 = makePatternString(80)
+    var big = makePatternString(80)
     var expectedBig: String = big
     Swag.assert(big.capacity > StringSmallSize)
 

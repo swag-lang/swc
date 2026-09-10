@@ -62,7 +62,7 @@ func day5B0()
         {
             for c in 1 to 6     // Can't be on the side
             {
-                if !here[r, c]
+                if not here[r, c]
                 {
                     // Console.print("total: ", r, " ", c, " ", r*8+c,"\n")
                     Swag.assert(r * 8 + c == 714)
@@ -92,9 +92,9 @@ func day5B1()
             switch
             {
             case c < 7 and l[c] == 'F': row1 = (row1 + row0) / 2
-            case c < 7:                 row0 = 1 + (row1 + row0) / 2
-            case l[c] == 'L':           col1 = (col1 + col0) / 2
-            default:                    col0 = 1 + (col1 + col0) / 2
+            case c < 7:       row0 = 1 + (row1 + row0) / 2
+            case l[c] == 'L': col1 = (col1 + col0) / 2
+            default:          col0 = 1 + (col1 + col0) / 2
             }
         }
 

@@ -8,7 +8,7 @@ private const ArchiveTreeWidth = 380.0
 // within each kind. Directory rows carry no entry payload, including empty explicit directories.
 func compareArchiveTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s32
 {
-    if !a or !b do
+    if not a or not b do
         return 0
 
     let aFolder = a.userData0 == null
@@ -33,7 +33,7 @@ func compareArchiveTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s
 // its end record.
 private func archivePluginProbe(content: Viewer.ProbeContent)->bool
 {
-    if !content.startsWith("PK") or content.head.count < 4 do
+    if not content.startsWith("PK") or content.head.count < 4 do
         return false
     return (content.head[2] == 3 and content.head[3] == 4) or (content.head[2] == 5 and content.head[3] == 6)
 }
@@ -67,7 +67,7 @@ impl ZipEntryExtract
 {
     mtd start(archiveFileName: string, entry: const *ZipEntry, destination: string)
     {
-        Swag.assert(!.started)
+        Swag.assert(not .started)
         .archiveFileName = archiveFileName
         .entry           = entry[]
         .destination     = destination
@@ -93,9 +93,9 @@ impl ZipEntryExtract
 
     mtd retire()->bool
     {
-        if !.started do
+        if not .started do
             return true
-        if !.isDone() do
+        if not .isDone() do
             return false
         .wait()
         return true
@@ -111,7 +111,7 @@ struct ArchiveViewer
 {
     using wnd: Wnd
 
-        late
+    late
     {
         splitter:      *SplitterCtrl
         treePane:      *Wnd
@@ -144,12 +144,12 @@ private impl IWnd for ArchiveViewer
     {
         if evt.timer == .loadTimer
         {
-            if !.load.isDone() do
+            if not .load.isDone() do
                 return
             .removeTimer(evt.timer)
             .loadTimer     = null
             .failureReason = .load.finish(&.archive)
-            if !.failureReason.isEmpty()
+            if not .failureReason.isEmpty()
             {
                 if .reportFailure do
                     .reportFailure!(me, .failureReason.toString())
@@ -164,7 +164,7 @@ private impl IWnd for ArchiveViewer
 
         if evt.timer == .previewTimer
         {
-            if .extract.started and !.extract.isDone() do
+            if .extract.started and not .extract.isDone() do
                 return
             .continuePreview()
             return
@@ -178,7 +178,7 @@ private impl IWnd for ArchiveViewer
         if evt.kind == .LanguageChanged
         {
             .retranslate()
-            if !.archive.entries.isEmpty() do
+            if not .archive.entries.isEmpty() do
                 .publishArchiveDetails()
         }
 
@@ -190,7 +190,7 @@ private impl ArchiveViewer
 {
     mtd publishArchiveDetails()
     {
-        if !.reportDetails do
+        if not .reportDetails do
             return
         let text = Format.toString(archiveStrings().ui_Details,
                                    .archive.entries.count,
@@ -220,13 +220,13 @@ private impl ArchiveViewer
             var parent: *ListLine?
             for part, partIndex in parts
             {
-                if !part.count do
+                if not part.count do
                     continue
-                if !prefix.isEmpty() do
+                if not prefix.isEmpty() do
                     prefix += '/'u8
                 prefix += part
                 let isLeaf = partIndex + 1 == parts.count
-                if !isLeaf or entry.isDirectory
+                if not isLeaf or entry.isDirectory
                 {
                     let found = folders.tryFind(prefix)
                     if found
@@ -246,7 +246,7 @@ private impl ArchiveViewer
                 let line = .list.createLine(parent)
                 line.setItem(0, part, .fileIcon(entry))
                 line.setItem(1, StrConv.toDisplaySize(entry.uncompressedSize).toString())
-                line.userData0          = cast(*void?) (entryIndex + 1)
+                line.userData0 = cast(*void?) (entryIndex + 1)
                 .entryLines[entryIndex] = line
             }
         }
@@ -274,7 +274,7 @@ private impl ArchiveViewer
     mtd selectedEntryIndex()->u64
     {
         let line = .list.selectedLine()
-        if !line or !line.userData0 do
+        if not line or not line.userData0 do
             return Swag.U64.Max
         return cast(u64) line.userData0 - 1
     }
@@ -287,7 +287,7 @@ private impl ArchiveViewer
             return
         .pendingPreview = index
         .showPreviewStatus(archiveStrings().ui_Previewing)
-        if !.previewTimer do
+        if not .previewTimer do
             .previewTimer = .addTimer(Viewer.BackgroundPollInterval)
         .continuePreview()
     }
@@ -305,10 +305,10 @@ private impl ArchiveViewer
     {
         if .extract.started
         {
-            if !.extract.isDone() do
+            if not .extract.isDone() do
                 return
             let error = .extract.finish()
-            if !error.isEmpty()
+            if not error.isEmpty()
             {
                 .clearPreviewFile()
                 .showPreviewStatus(Format.toString("%\n%", archiveStrings().ui_PreviewError, error).toString())
@@ -344,7 +344,7 @@ private impl ArchiveViewer
             return
         }
 
-        if !.embedded.retire() do
+        if not .embedded.retire() do
             return
 
         .clearPreviewFile()
@@ -354,7 +354,7 @@ private impl ArchiveViewer
         let entry     = &.archive.entries[index]
         var extension = String.from(Path.extension(entry.path.toString()) orelse ".bin")
         let safeName  = Format.toString("entry%", extension)
-        if extension.length > 24 or !Path.isValidFileName(safeName.toString()) do
+        if extension.length > 24 or not Path.isValidFileName(safeName.toString()) do
             extension = ".bin"
         var tempName = Format.toString("swagscope-archive-%", Guid64.random())
         tempName     += extension
@@ -374,7 +374,7 @@ private impl ArchiveViewer
         if match.major >= .entryLines.count do
             return false
         let line = .entryLines[match.major]
-        if !line do
+        if not line do
             return false
 
         var chain: Array'(*ListLine)
@@ -409,7 +409,7 @@ private impl ArchiveViewer
         if .list.focusIndex >= .list.lineCount() do
             return false
         let line = .list.lineAt(.list.focusIndex)
-        if !line or line!.items.isEmpty() do
+        if not line or line!.items.isEmpty() do
             return false
         let name = Pixel.RichString.plainText(line!.items[0]!.name.raw.toString())
         return Viewer.listCellMatchBounds(.list, .list.focusIndex, 0, name.toString(), 0, name.length, result)
@@ -437,14 +437,14 @@ private impl ArchiveViewer
         .list.header.itemAt(0).name = archiveStrings().ui_ColName
         .list.header.itemAt(1).name = archiveStrings().ui_ColSize
         .list.header.invalidate()
-        if .activePreview == Swag.U64.Max and !.extract.started do
-            .showPreviewStatus(.archive.entries.isEmpty() and !.loadTimer ? archiveStrings().ui_Empty : archiveStrings().ui_Select)
+        if .activePreview == Swag.U64.Max and not .extract.started do
+            .showPreviewStatus(.archive.entries.isEmpty() and not .loadTimer ? archiveStrings().ui_Empty : archiveStrings().ui_Select)
     }
 
     mtd retire()->bool
     {
         .retiring = true
-        if !.load.retire() or !.extract.retire() or !.embedded.retire() do
+        if not .load.retire() or not .extract.retire() or not .embedded.retire() do
             return false
         if .loadTimer
         {
@@ -472,7 +472,7 @@ private impl ArchiveViewer
         result.reportDetails        = services.reportDetails
         result.reportLoadingChanged = services.reportLoadingChanged
 
-        result.splitter           = SplitterCtrl.create(result)
+        result.splitter = SplitterCtrl.create(result)
         result.splitter.dockStyle = .Center
 
         with result.treePane = Wnd.create'Wnd(result.splitter)
@@ -499,6 +499,7 @@ private impl ArchiveViewer
                 if index != Swag.U64.Max do
                     viewer.requestPreview(index)
             }
+
             .sigLeftDoubleClicked += func|viewer = result|(list, point)
             {
                 discard list
@@ -507,6 +508,7 @@ private impl ArchiveViewer
                 if index != Swag.U64.Max do
                     viewer.requestPreview(index)
             }
+
             .sigKeyPressed += func|viewer = result|(list, event)
             {
                 discard list

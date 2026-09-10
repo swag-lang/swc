@@ -160,7 +160,7 @@ private impl Reader
         for index in limit
         {
             let byte = .bytes[offset + index]
-            if !byte do
+            if not byte do
                 return result
             result += cast(rune) (byte < 32 and byte != 9 and byte != 10 and byte != 13 ? 32 : byte)
         }
@@ -230,7 +230,7 @@ private impl Reader
             case 5, 10:   size = 8
             }
 
-            if !size or !elements do
+            if not size or not elements do
                 continue
             let byteCount = elements * size
             let valueAt   = byteCount <= 4 ? at + 8 : try .number(at + 8, 4)

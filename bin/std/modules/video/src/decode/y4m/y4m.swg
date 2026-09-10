@@ -56,7 +56,7 @@ func clampByte(value: s32)->u8 => cast(u8) Math.clamp(value, 0, 255)
 private func parsePositiveU32(value, field: string)->u32 fail
 {
     let parsed = catch StrConv.toU32(value) as parseError
-    if parseError != null or !parsed do
+    if parseError != null or not parsed do
         fail InvalidFormatError{Errors.mkString(Format.toString("YUV4MPEG2 % needs a positive integer", field))}
     return parsed
 }
@@ -64,7 +64,7 @@ private func parsePositiveU32(value, field: string)->u32 fail
 private func parseHeader(line: string)->Header fail
 {
     let tokens = Tokenize.split(line, ' 'u8)
-    if !tokens.count or tokens[0] != StreamSignature do
+    if not tokens.count or tokens[0] != StreamSignature do
         fail InvalidFormatError{"YUV4MPEG2 stream header is missing"}
 
     var result: retval
@@ -83,14 +83,14 @@ private func parseHeader(line: string)->Header fail
             if width > cast(u32) (Swag.S32.Max / 4) do
                 fail UnsupportedFormatError{"YUV4MPEG2 frame width exceeds Pixel image storage"}
             result.info.width = cast(s32) width
-            hasWidth          = true
+            hasWidth = true
 
         case 'H':
             let height = parsePositiveU32(value, "height")
             if height > Swag.S32.Max do
                 fail UnsupportedFormatError{"YUV4MPEG2 frame height exceeds Pixel image storage"}
             result.info.height = cast(s32) height
-            hasHeight          = true
+            hasHeight = true
 
         case 'F':
             let parts = Tokenize.split(value, ':'u8, removeEmpty: false)
@@ -99,7 +99,7 @@ private func parseHeader(line: string)->Header fail
             let numerator   = parsePositiveU32(parts[0], "frame-rate numerator")
             let denominator = parsePositiveU32(parts[1], "frame-rate denominator")
             result.info.frameRate = FrameRate.create(numerator, denominator)
-            hasRate               = true
+            hasRate = true
 
         case 'I':
             if value != "p" do
@@ -129,11 +129,11 @@ private func parseHeader(line: string)->Header fail
         }
     }
 
-    if !hasWidth or !hasHeight do
+    if not hasWidth or not hasHeight do
         fail InvalidFormatError{"YUV4MPEG2 stream needs width and height"}
-    if !hasRate do
+    if not hasRate do
         fail InvalidFormatError{"YUV4MPEG2 stream needs a frame rate"}
-    if !hasInterlace do
+    if not hasInterlace do
         fail InvalidFormatError{"YUV4MPEG2 stream needs an interlacing mode"}
     return result
 }
@@ -247,11 +247,11 @@ impl IDecoder for Decoder
         // it on a stream of any length: the frames must tile the file exactly, and the last marker
         // must be where that tiling says it is. A stream failing either one is walked instead,
         // and reports no frame count rather than a computed one that would be wrong.
-        let span           = source.size() - .firstMarker
+        let span = source.size() - .firstMarker
         var result: retval = .header.info
         result.frameCount = span / .frameStride
-        .isRandomAccess   = !(span % .frameStride) and .probeLastFrame(source, result.frameCount)
-        if !.isRandomAccess do
+        .isRandomAccess   = not (span % .frameStride) and .probeLastFrame(source, result.frameCount)
+        if not .isRandomAccess do
             result.frameCount = 0
 
         source.seek(.firstMarker)
@@ -345,7 +345,7 @@ private impl Decoder
     // first frame either way.
     mtd probeLastFrame(source: *ByteSource, frameCount: u64)->bool
     {
-        if !frameCount do
+        if not frameCount do
             return false
 
         catch .checkFrameAt(source, .firstMarker + (frameCount - 1) * .frameStride) as probeError

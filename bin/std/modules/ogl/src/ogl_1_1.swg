@@ -82,7 +82,7 @@ const GL_DST_ALPHA           = 0x0304
 const GL_ONE_MINUS_DST_ALPHA = 0x0305
 
 /* BlendingFactorSrc */
-const GL_DST_COLOR           = 0x0306
+const GL_DST_COLOR = 0x0306
 const GL_ONE_MINUS_DST_COLOR = 0x0307
 const GL_SRC_ALPHA_SATURATE  = 0x0308
 
@@ -410,7 +410,7 @@ const GL_LINEAR_ATTENUATION    = 0x1208
 const GL_QUADRATIC_ATTENUATION = 0x1209
 
 /* ListMode */
-const GL_COMPILE             = 0x1300
+const GL_COMPILE = 0x1300
 const GL_COMPILE_AND_EXECUTE = 0x1301
 
 /* LogicOp */
@@ -715,7 +715,7 @@ const GL_PHONG_HINT_WIN = 0x80EB
 const GL_FOG_SPECULAR_TEXTURE_WIN = 0x80EC
 
 /* For compatibility with OpenGL v1.0 */
-const GL_LOGIC_OP           = GL_INDEX_LOGIC_OP
+const GL_LOGIC_OP = GL_INDEX_LOGIC_OP
 const GL_TEXTURE_COMPONENTS = GL_TEXTURE_INTERNAL_FORMAT
 
 #[Swag.Foreign("opengl32", callconv: Swag.CallConv.C)]

@@ -310,7 +310,7 @@ impl HtmlStyleResolver
         let container = .document.constNode(element).parent
         if container != HtmlNoNode and .document.constNode(container).tag == .Details
         {
-            if node.tag != .Summary and !.document.hasAttribute(container, "open") do
+            if node.tag != .Summary and not .document.hasAttribute(container, "open") do
                 style.display = .None
         }
 
@@ -357,7 +357,7 @@ impl HtmlStyleResolver
             let source = &.sheet.rules[rule]
             if source.parts.backPtr().pseudoElement != pseudo do
                 continue
-            if !.sheet.matches(source, element, &.match) do
+            if not .sheet.matches(source, element, &.match) do
                 continue
 
             let block = &.sheet.blocks[source.block]
@@ -443,7 +443,7 @@ impl HtmlStyleResolver
     private mtd apply(style: *HtmlComputedStyle, context: *HtmlDeclarationContext, declaration: const *HtmlDeclaration)
     {
         let value = declaration.value.toString()
-        if !Utf8.contains(value, "var(")
+        if not Utf8.contains(value, "var(")
         {
             style.applyDeclaration(declaration.property, value, context)
             return
@@ -475,7 +475,7 @@ impl HtmlStyleResolver
             .customValues.removeBack()
         }
 
-        if !style.hasContent or style.display == .None do
+        if not style.hasContent or style.display == .None do
             return
 
         var record: HtmlPseudoStyle
@@ -548,7 +548,7 @@ impl HtmlStyleResolver
         state.viewportWidth  = viewport.x
         state.viewportHeight = viewport.y
         state.darkScheme     = darkScheme
-        .media               = sheet.evaluateMedia(state)
+        .media = sheet.evaluateMedia(state)
 
         .match.prepare(document)
         .match.mediaOn = .media
@@ -574,7 +574,7 @@ impl HtmlStyleResolver
     mtd const pseudoStyle(element: u32, which: HtmlPseudoElement)->const *HtmlComputedStyle?
     {
         let found = .pseudoIndex.tryFind(HtmlStyleResolver.pseudoKey(element, which))
-        if !found do
+        if not found do
             return null
         return &.pseudos[found!.value].style
     }

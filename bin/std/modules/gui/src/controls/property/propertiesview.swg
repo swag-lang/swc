@@ -29,7 +29,7 @@ internal impl IWnd for PropertiesView
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .stackWnd.IWnd.onResizeEvent(evt)
-        if !(.ed != null) or !.ed.items.count do
+        if not (.ed != null) or not .ed.items.count do
             return
 
         .ed.refreshGridColumnLayout()
@@ -37,7 +37,7 @@ internal impl IWnd for PropertiesView
         // List mode: every row owns the complete useful width (selection/hot/hit-test), and
         // the name/description labels re-wrap over the full content width. The value editors
         // keep their own maxSize cap, so they don't stretch with the row.
-        if !.ed.isGridLike()
+        if not .ed.isGridLike()
         {
             let cw       = .ed.listUsefulWidth()
             let contentW = .ed.listContentWidthFromUseful(cw)

@@ -141,7 +141,7 @@ impl BaseForm
 
     func adaptSize(size: f32, minSize, maxSize: f32, cxt: FormPaintContext, dstMin: f32 = 2, dstMax: f32 = 5)->f32
     {
-        if !cxt.quickMode do
+        if not cxt.quickMode do
             return size * cxt.z
         return Math.map(size * cxt.z, minSize, maxSize, dstMin, dstMax)
     }
@@ -246,7 +246,7 @@ impl BaseForm
         // center at draw time), so un-rotate the test point to match.
         let base = cast(*BaseForm) itf.buffer
         var pos  = Math.Vector2{pt.x, pt.y}
-        if base.subKind != .Highlight and base.subKind != .PixSel and !Math.isZeroEpsilon(base.rotate)
+        if base.subKind != .Highlight and base.subKind != .PixSel and not Math.isZeroEpsilon(base.rotate)
         {
             let br  = itf.boundRect()
             let cx  = br.horzCenter() * z
@@ -264,7 +264,7 @@ impl BaseForm
         // beyond the form's actual stroke/cap extent around the bound.
         var bound = itf.boundRect() * z
         bound.inflate(BaseForm.paintOverdraw(itf, false) * z)
-        if !bound.contains(pos.x, pos.y) do
+        if not bound.contains(pos.x, pos.y) do
             return false
 
         var painter: Painter

@@ -25,7 +25,7 @@ impl ArrayDropTracked
             return
 
         let bit = 1'u32 << cast(u32) .value
-        if !(ArrayDropMask & bit)
+        if not (ArrayDropMask & bit)
         {
             ArrayDropCount += 1
             ArrayDropTrace = ArrayDropTrace * 100 + cast(s64) .value
@@ -150,7 +150,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     let expectedFilled: [6] s32 = [10, 20, 30, 40, 50, 60]
     Swag.assert(assertIntArray(values, expectedFilled))
     Swag.assert(values.contains(20))
-    Swag.assert(!values.contains(99))
+    Swag.assert(not values.contains(99))
     Swag.assert(values.front() == 10)
     Swag.assert(values.back() == 60)
 
@@ -175,7 +175,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     {
         #assert(#typeof(value) == s32)
         values[index] = 100
-        sum           += value
+        sum += value
     }
 
     Swag.assert(sum == 60)
@@ -588,7 +588,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     scratch.setCapacity(64 * 1024, backing)
     defer scratch.release()
 
-    let context                = Swag.getContext()
+    let context = Swag.getContext()
     let originalAllocator      = context.allocator
     let scratchItf: IAllocator = &scratch
     context.allocator = scratchItf

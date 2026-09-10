@@ -40,7 +40,7 @@ func iconButtonHeadlessReset()
 
     host.click({40, 40})
     Swag.assert(IconButtonHeadlessPressedCount == 1)
-    Swag.assert(!btn.isChecked)
+    Swag.assert(not btn.isChecked)
 }
 
 // A Toggle button flips its checked state on every click.
@@ -61,7 +61,7 @@ func iconButtonHeadlessReset()
     Swag.assert(IconButtonHeadlessCheckCount == 1)
 
     host.click({40, 40})
-    Swag.assert(!btn.isChecked)
+    Swag.assert(not btn.isChecked)
     Swag.assert(IconButtonHeadlessCheckCount == 2)
 }
 
@@ -102,7 +102,7 @@ func iconButtonHeadlessReset()
     Swag.assert(IconButtonHeadlessCheckCount == 0)
 
     toggle.setChecked(false)
-    Swag.assert(!toggle.isChecked)
+    Swag.assert(not toggle.isChecked)
     Swag.assert(IconButtonHeadlessCheckCount == 0)
 
     let radio = IconButton.create(&host.root, {}, {80, 20, 40, 40}, flags: .Radio)
@@ -128,7 +128,7 @@ func iconButtonHeadlessReset()
     host.keyPress(Input.Key.Space)
     Swag.assert(btn.isChecked)
     host.keyPress(Input.Key.Return)
-    Swag.assert(!btn.isChecked)
+    Swag.assert(not btn.isChecked)
     Swag.assert(IconButtonHeadlessCheckCount == 2)
     Swag.assert(host.commandCount == 2 and host.lastCommand == IconButtonHeadless_Command)
 }
@@ -316,8 +316,8 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 
     btn.hide()
 
-    Swag.assert(!btn.isHot)
-    Swag.assert(!btn.isPressed)
+    Swag.assert(not btn.isHot)
+    Swag.assert(not btn.isPressed)
     Swag.assert(btn.aniBk.themeCrc == Swag.U32.Max)
 }
 
@@ -338,10 +338,10 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 
     btn.disable()
 
-    Swag.assert(!btn.isHot)
-    Swag.assert(!btn.isIn)
-    Swag.assert(!btn.isPressed)
-    Swag.assert(!btn.isPressing)
+    Swag.assert(not btn.isHot)
+    Swag.assert(not btn.isIn)
+    Swag.assert(not btn.isPressed)
+    Swag.assert(not btn.isPressing)
     Swag.assert(btn.aniBk.themeCrc == Swag.U32.Max)
     Swag.assert(host.app.mouseEnterWnd == null)
     Swag.assert(host.app.mouseCaptureWnd == null)

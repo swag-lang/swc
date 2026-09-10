@@ -141,7 +141,7 @@ enum SystemMetric
 
 #premain
 {
-    if !(Swag.runtimeFlags() & .FromCompiler)
+    if not (Swag.runtimeFlags() & .FromCompiler)
     {
         let str = getNativeArgs()
         if str.count do

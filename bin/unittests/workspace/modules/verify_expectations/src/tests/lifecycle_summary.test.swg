@@ -20,8 +20,8 @@ using Core
 #test
 {
     let buffer = cast([*] u8) Memory.alloc(16)
-    Memory.free(buffer, 16)         // swc-expected-note {{sanity_note_pointer_released_here}}
-    Memory.free(buffer, 16)         // swc-expected-error {{sanity_err_double_free}}
+    Memory.free(buffer, 16)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    Memory.free(buffer, 16)     // swc-expected-error {{sanity_err_double_free}}
 }
 
 // The copy names the same block across the boundary too.
@@ -30,8 +30,8 @@ using Core
 {
     let buffer = cast([*] u8) Memory.alloc(16)
     let same   = buffer
-    Memory.free(buffer, 16)         // swc-expected-note {{sanity_note_pointer_released_here}}
-    Swag.assert(same[0] == 0)       // swc-expected-error {{sanity_err_use_after_free}}
+    Memory.free(buffer, 16)       // swc-expected-note {{sanity_note_pointer_released_here}}
+    Swag.assert(same[0] == 0)     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 // Allocating, using and releasing once is what correct code looks like.

@@ -65,7 +65,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
     var long:  [64] u8
     expect Hash.Blake2b.compute("abc", short)
     expect Hash.Blake2b.compute("abc", long)
-    Swag.assert(!Crypto.constantTimeEqual(short, long[0 until 32]))
+    Swag.assert(not Crypto.constantTimeEqual(short, long[0 until 32]))
 
     // BLAKE2b-256 of "abc", from the reference implementation.
     let expected = hexBytes("bddd813c634239723171ef3fee98579b94964e3bb1cb3e427262c8c068d52319")
@@ -81,7 +81,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
     var unkeyed: [32] u8
     expect Hash.Blake2b.computeKeyed(key, "abc", keyed)
     expect Hash.Blake2b.compute("abc", unkeyed)
-    Swag.assert(!Crypto.constantTimeEqual(keyed, unkeyed))
+    Swag.assert(not Crypto.constantTimeEqual(keyed, unkeyed))
 
     // RFC 7693 appendix E keyed vector: key 00..3f, input 00, 64-byte digest.
     var fullKey: [64] u8

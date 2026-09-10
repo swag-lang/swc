@@ -14,8 +14,8 @@ func openImage(surface: *Surface?)
     var opt: FileDlgOptions
     with opt
     {
-        .mode              = .SelectFile
-        .title             = "Load Image"
+        .mode  = .SelectFile
+        .title = "Load Image"
         .confirmButtonText = "Load"
         .shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
         .shortcuts.add({Env.SpecialDirectory.UserPictures, "My Images"})
@@ -37,7 +37,7 @@ func openImage(surface: *Surface?)
 
 func compute(render: IRenderer)
 {
-    if !g_Img.isValid() do
+    if not g_Img.isValid() do
         return
 
     g_Img.resize(128, 128)
@@ -62,7 +62,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         g_Font = wnd.theme().createDefaultFont(10)
 
     case PaintEvent as paintEvt:
-        if !g_Img.isValid() do
+        if not g_Img.isValid() do
             break
 
         let painter = paintEvt.paintContext.painter

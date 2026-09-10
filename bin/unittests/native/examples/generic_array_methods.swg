@@ -195,11 +195,11 @@ impl DynArray
     Swag.assert(arr.contains(-5))
     Swag.assert(arr.contains(0))
     Swag.assert(arr.contains(7))
-    Swag.assert(!arr.contains(99))
+    Swag.assert(not arr.contains(99))
 
     arr.set(1, 42)
     Swag.assert(arr.get(1) == 42)
-    Swag.assert(!arr.contains(0))
+    Swag.assert(not arr.contains(0))
 
     arr.removeAt(0)
     Swag.assert(arr.count == 3)

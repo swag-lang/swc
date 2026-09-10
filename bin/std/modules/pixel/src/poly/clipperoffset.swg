@@ -176,7 +176,7 @@ impl Offset
     // Reverses polygon vertex order if the bottommost polygon has incorrect orientation.
     mtd fixOrientations()
     {
-        if .lowest.x >= 0 and !orientation(.polyNodes.childs[.lowest.x].contour)
+        if .lowest.x >= 0 and not orientation(.polyNodes.childs[.lowest.x].contour)
         {
             for node in .polyNodes.childs do
                 Slice.reverse(node.contour.toSlice())

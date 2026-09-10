@@ -49,7 +49,7 @@ func searchedGroup(value: string)->s32
     for text, index in names do Swag.assert(searchedGroup(runtimeString(&buffer[0], text)) == cast(s32) index + 1)
 
     let others: [4] string = ["alpha-name0", "alpha-name010", "alpha-name02", "zulu--name99"]
-    for text in others do Swag.assert(!searchedGroup(runtimeString(&buffer[0], text)))
+    for text in others do Swag.assert(not searchedGroup(runtimeString(&buffer[0], text)))
 }
 
 // Ten names of one length that share their first eight bytes. Nothing tells them apart there, so
@@ -84,7 +84,7 @@ func sharedPrefixGroup(value: string)->s32
     for text, index in names do Swag.assert(sharedPrefixGroup(runtimeString(&buffer[0], text)) == cast(s32) index + 1)
 
     let others: [3] string = ["shared--a11", "shared--a0", "shared--b01"]
-    for text in others do Swag.assert(!sharedPrefixGroup(runtimeString(&buffer[0], text)))
+    for text in others do Swag.assert(not sharedPrefixGroup(runtimeString(&buffer[0], text)))
 }
 
 // Twenty names of one single length, so the length separates nothing at all and the whole answer
@@ -134,7 +134,7 @@ func sameLengthNames(value: string)->s32
 
     // Every one of these shares a chunk with a case it must not be mistaken for.
     let others: [8] string = ["alpha6", "beta04", "zeta03", "iota02", "eta003", "kappa2", "alpha", "alpha11"]
-    for text in others do Swag.assert(!sameLengthNames(runtimeString(&buffer[0], text)))
+    for text in others do Swag.assert(not sameLengthNames(runtimeString(&buffer[0], text)))
 }
 
 // One case listing strings of two different lengths belongs to both length groups.
@@ -142,10 +142,10 @@ func twoLengthsOneBody(value: string)->s32
 {
     switch value
     {
-    case "":              return 1
+    case "":   return 1
     case "a", "abcdefgh": return 2
-    case "bb":            return 3
-    default:              return 9
+    case "bb": return 3
+    default:   return 9
     }
 }
 
@@ -178,7 +178,7 @@ func longStringCase(value: string)->s32
     var buffer: [128] u8
     Swag.assert(longStringCase(runtimeString(&buffer[0], "short")) == 1)
     Swag.assert(longStringCase(runtimeString(&buffer[0], "0123456789012345678901234567890123456789012345678901234567890123456789")) == 2)
-    Swag.assert(!longStringCase(runtimeString(&buffer[0], "012345678901234567890123456789012345678901234567890123456789012345678")))
+    Swag.assert(not longStringCase(runtimeString(&buffer[0], "012345678901234567890123456789012345678901234567890123456789012345678")))
 }
 
 // Values written out of order, and enough of them to be searched rather than scanned. A search
@@ -209,7 +209,7 @@ func searchedValue(value: s32)->s32
     for value, index in values do Swag.assert(searchedValue(value) == cast(s32) index + 1)
 
     let others: [6] s32 = [1, 2, 4, -2, -99999, 1000001]
-    for value in others do Swag.assert(!searchedValue(value))
+    for value in others do Swag.assert(not searchedValue(value))
 }
 
 // The upper half of an unsigned type sorts above its lower half, never below it.
@@ -237,7 +237,7 @@ func unsignedValue(value: u8)->s32
     for value, index in values do Swag.assert(unsignedValue(value) == cast(s32) index + 1)
 
     let others: [4] u8 = [3, 63, 130, 253]
-    for value in others do Swag.assert(!unsignedValue(value))
+    for value in others do Swag.assert(not unsignedValue(value))
 }
 
 // A sixty-four bit key does not fit an instruction immediate and has to be materialized first.
@@ -259,9 +259,9 @@ func wideValue(value: u64)->s32
     Swag.assert(wideValue(0xFFFFFFFF) == 2)
     Swag.assert(wideValue(0x123456789ABCDEF0) == 3)
     Swag.assert(wideValue(0xFFFFFFFFFFFFFFFF) == 4)
-    Swag.assert(!wideValue(1))
-    Swag.assert(!wideValue(0x100000000))
-    Swag.assert(!wideValue(0xFFFFFFFFFFFFFFFE))
+    Swag.assert(not wideValue(1))
+    Swag.assert(not wideValue(0x100000000))
+    Swag.assert(not wideValue(0xFFFFFFFFFFFFFFFE))
 }
 
 // Ranges, single values and an empty range, all in one search.
@@ -298,7 +298,7 @@ func rangedValue(value: s32)->s32
 
     // Nothing matches an empty range, and nothing falls just outside a bound.
     let others: [7] s32 = [20, -51, -39, 12, 99, 201, 2002]
-    for value in others do Swag.assert(!rangedValue(value))
+    for value in others do Swag.assert(not rangedValue(value))
 }
 
 enum Fruit
@@ -339,8 +339,8 @@ func fruitValue(value: Fruit)->s32
     let values: [10] Fruit = [.Apple, .Banana, .Cherry, .Date, .Elder, .Fig, .Grape, .Honey, .Ivy, .Jack]
     for value, index in values do Swag.assert(fruitValue(value) == cast(s32) index + 1)
 
-    Swag.assert(!fruitValue(cast(Fruit) 0))
-    Swag.assert(!fruitValue(cast(Fruit) 30))
+    Swag.assert(not fruitValue(cast(Fruit) 0))
+    Swag.assert(not fruitValue(cast(Fruit) 30))
 }
 
 #test
@@ -405,7 +405,7 @@ func boolValue(value: bool)->s32
     Swag.assert(runeValue('z') == 3)
     Swag.assert(runeValue('0') == 4)
     Swag.assert(runeValue('9') == 5)
-    Swag.assert(!runeValue('c'))
+    Swag.assert(not runeValue('c'))
 
     Swag.assert(boolValue(true) == 1)
     Swag.assert(boolValue(false) == 2)
@@ -481,9 +481,9 @@ func guardedValue(value: s32, allow: bool)->s32
     switch value
     {
     case 1 where allow: return 1
-    case 1:             return 2
-    case 2:             return 3
-    default:            return 0
+    case 1:  return 2
+    case 2:  return 3
+    default: return 0
     }
 }
 
@@ -492,7 +492,7 @@ func guardedValue(value: s32, allow: bool)->s32
     Swag.assert(guardedValue(1, true) == 1)
     Swag.assert(guardedValue(1, false) == 2)
     Swag.assert(guardedValue(2, true) == 3)
-    Swag.assert(!guardedValue(3, true))
+    Swag.assert(not guardedValue(3, true))
 }
 
 // A case body still owns its scope: what it defers runs when it leaves.

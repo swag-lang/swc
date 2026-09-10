@@ -45,16 +45,16 @@ func dcScaler(isLuma: bool, quant: u32)->u32
 // coefficient, in which case it is already reconstructed and must not be scaled again.
 func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra, isLuma: bool)
 {
-    if !layer.quantType
+    if not layer.quantType
     {
         // The H.263 method, clause 7.4.4.2.
         let odd = (quant & 1) != 0
         for index in 64'u64
         {
-            if intra and !index do
+            if intra and not index do
                 continue
             let level = block[][index]
-            if !level
+            if not level
             {
                 continue
             }
@@ -72,7 +72,7 @@ func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra, isLuma
     for index in 64'u64
     {
         var value = 0's32
-        if intra and !index
+        if intra and not index
         {
             value = block[][0]
         }
@@ -89,15 +89,15 @@ func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra, isLuma
             }
         }
 
-        value          = Math.clamp(value, CoefficientFloor, CoefficientCeil)
+        value = Math.clamp(value, CoefficientFloor, CoefficientCeil)
         block[][index] = value
-        sum            += value
+        sum   += value
     }
 
     // Clause 7.4.4.5 repairs the parity of the block. Every decoder in the field applies it to
     // predicted blocks only, and a stream encoded against one of those reconstructs wrongly if
     // an intra block is repaired as well.
-    if !intra and !(sum & 1) do
+    if not intra and not (sum & 1) do
         block[][63] ^= 1
 
     discard isLuma

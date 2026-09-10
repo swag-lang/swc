@@ -64,12 +64,12 @@ func accessTestPath(tag: string)->String
     var reversed: VaultAccess
     reversed.setInputs(accessTestPassword(), reversedFiles.toSlice())
     var reversedCredential = expect reversed.derive()
-    Swag.assert(!accessTestSame(firstCredential.toSlice(), reversedCredential.toSlice()))
+    Swag.assert(not accessTestSame(firstCredential.toSlice(), reversedCredential.toSlice()))
 
     var otherPassword: VaultAccess
     otherPassword.setInputs("different", firstFiles.toSlice())
     var otherCredential = expect otherPassword.derive()
-    Swag.assert(!accessTestSame(firstCredential.toSlice(), otherCredential.toSlice()))
+    Swag.assert(not accessTestSame(firstCredential.toSlice(), otherCredential.toSlice()))
 }
 
 // Adding, replacing, and removing key files all keep exactly one verified access slot.

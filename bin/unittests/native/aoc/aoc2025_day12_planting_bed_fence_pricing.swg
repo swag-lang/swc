@@ -80,7 +80,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
             if x + 1 < width
             {
                 let next = cellIndex(x + 1, y, width)
-                if !visited[next] and cropAt(layout, x + 1, y) == crop
+                if not visited[next] and cropAt(layout, x + 1, y) == crop
                 {
                     visited[next] = true
                     queue[tail]   = next
@@ -91,7 +91,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
             if x > 0
             {
                 let next = cellIndex(x - 1, y, width)
-                if !visited[next] and cropAt(layout, x - 1, y) == crop
+                if not visited[next] and cropAt(layout, x - 1, y) == crop
                 {
                     visited[next] = true
                     queue[tail]   = next
@@ -102,7 +102,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
             if y + 1 < height
             {
                 let next = cellIndex(x, y + 1, width)
-                if !visited[next] and cropAt(layout, x, y + 1) == crop
+                if not visited[next] and cropAt(layout, x, y + 1) == crop
                 {
                     visited[next] = true
                     queue[tail]   = next
@@ -113,7 +113,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
             if y > 0
             {
                 let next = cellIndex(x, y - 1, width)
-                if !visited[next] and cropAt(layout, x, y - 1) == crop
+                if not visited[next] and cropAt(layout, x, y - 1) == crop
                 {
                     visited[next] = true
                     queue[tail]   = next
@@ -141,10 +141,10 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
             let topRightInRegion   = x + 1 < width and y > 0 and inRegion[cellIndex(x + 1, y - 1, width)]
             let bottomLeftInRegion = x > 0 and y + 1 < height and inRegion[cellIndex(x - 1, y + 1, width)]
 
-            let exposedTop    = !topInRegion
-            let exposedBottom = !bottomInRegion
-            let exposedLeft   = !leftInRegion
-            let exposedRight  = !rightInRegion
+            let exposedTop    = not topInRegion
+            let exposedBottom = not bottomInRegion
+            let exposedLeft   = not leftInRegion
+            let exposedRight  = not rightInRegion
 
             if exposedTop do
                 perimeter += 1
@@ -155,13 +155,13 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
             if exposedRight do
                 perimeter += 1
 
-            if exposedTop and (!leftInRegion or topLeftInRegion) do
+            if exposedTop and (not leftInRegion or topLeftInRegion) do
                 sideCount += 1
-            if exposedBottom and (!leftInRegion or bottomLeftInRegion) do
+            if exposedBottom and (not leftInRegion or bottomLeftInRegion) do
                 sideCount += 1
-            if exposedLeft and (!topInRegion or topLeftInRegion) do
+            if exposedLeft and (not topInRegion or topLeftInRegion) do
                 sideCount += 1
-            if exposedRight and (!topInRegion or topRightInRegion) do
+            if exposedRight and (not topInRegion or topRightInRegion) do
                 sideCount += 1
         }
 

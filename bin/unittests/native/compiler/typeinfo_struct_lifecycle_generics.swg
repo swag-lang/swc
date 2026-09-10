@@ -168,7 +168,7 @@ func genericDirectAndFieldShapeWorks()->bool
 func genericDirectAndFieldInitWorks()->bool
 {
     let type = #typeof(GenericDirectAndField'GenericInitProbe)
-    if !hasLifecycleShape(type, true, true, true) do
+    if not hasLifecycleShape(type, true, true, true) do
         return false
 
     var value = GenericDirectAndField'GenericInitProbe{child: GenericInitProbe{value: 3, ready: false}, stamp: -1}
@@ -220,7 +220,7 @@ func genericDirectAndFieldMoveWorks()->bool
 func nestedGenericCompositionWorks()->bool
 {
     let type = #typeof(NestedGenericLifecycle'GenericProbe)
-    if !hasLifecycleShape(type, true, true, true) do
+    if not hasLifecycleShape(type, true, true, true) do
         return false
 
     var value = NestedGenericLifecycle'GenericProbe{pair: PairBox'GenericProbe{left: GenericProbe{value: 1}, right: GenericProbe{value: 2}}, tail: GenericProbe{value: 3}}
@@ -243,7 +243,7 @@ func nestedGenericCompositionWorks()->bool
 func nestedGenericInitWorks()->bool
 {
     let type = #typeof(NestedGenericLifecycle'GenericInitProbe)
-    if !hasLifecycleShape(type, false, false, false) do
+    if not hasLifecycleShape(type, false, false, false) do
         return false
 
     var value = NestedGenericLifecycle'GenericInitProbe{pair: PairBox'GenericInitProbe{left: GenericInitProbe{value: 1, ready: false}, right: GenericInitProbe{value: 2, ready: false}}, tail: GenericInitProbe{value: 3, ready: false}, stamp: -7}
@@ -288,7 +288,7 @@ func genericConstArrayInitWorks()->bool
 func genericConstArrayLifecycleWorks()->bool
 {
     let type = #typeof(GenericArrayLifecycle'(GenericProbe, 3))
-    if !hasLifecycleShape(type, true, true, true) do
+    if not hasLifecycleShape(type, true, true, true) do
         return false
 
     var value: GenericArrayLifecycle'(GenericProbe, 3)
@@ -314,7 +314,7 @@ func genericConstArrayLifecycleWorks()->bool
 func genericCascadeInitRestoresArraysAndNestedFields()->bool
 {
     let type = #typeof(GenericInitCascade'(GenericInitProbe, 3))
-    if !hasLifecycleShape(type, true, true, true) do
+    if not hasLifecycleShape(type, true, true, true) do
         return false
 
     var value: GenericInitCascade'(GenericInitProbe, 3)

@@ -63,7 +63,7 @@ func(T, V) findSorted(values: const [..] T?, value: V)->u64
 {
     var lower = 0'u64
     var upper = values.count
-    if !upper do
+    if not upper do
         return Swag.U64.Max
     let vals = values!
 
@@ -89,7 +89,7 @@ func(T, V) findSorted(values: const [..] T?, value: V)->u64
 func findLinear(values: const [..] u8?, value: u8)->u64
 {
     let count = values.count
-    if !count do
+    if not count do
         return Swag.U64.Max
     return findByte((values!).buffer, count, value)
 }
@@ -106,7 +106,7 @@ func findSubslice(values, subslice: const [..] u8)->u64
 {
     let valueCount = values.count
     let subCount   = subslice.count
-    if !subCount do
+    if not subCount do
         return 0
     if subCount > valueCount do
         return Swag.U64.Max
@@ -147,7 +147,7 @@ func findSubslice(values, subslice: const [..] u8)->u64
 
 func(T) findSubslice(values: const [..] T, subslice: const [..] T)->u64
 {
-    if !subslice.count do
+    if not subslice.count do
         return 0
     if subslice.count > values.count do
         return Swag.U64.Max
@@ -200,7 +200,7 @@ func equals(dst, src: const [..] u8?)->bool
 {
     if dst.count != src.count do
         return false
-    if !dst.count do
+    if not dst.count do
         return true
     return Memory.compare((dst!).buffer, (src!).buffer, dst.count) == 0
 }
@@ -210,7 +210,7 @@ func(T) equals(dst, src: const [..] T?)->bool
 {
     if dst.count != src.count do
         return false
-    if !dst.count or !src.count do
+    if not dst.count or not src.count do
         return true
 
     let dstn = dst!

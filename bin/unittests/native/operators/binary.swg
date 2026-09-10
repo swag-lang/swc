@@ -363,9 +363,9 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
 #test
 {
     var data: [3] s32 = [10, 20, 30]
-    let base          = cast(BinaryStrictS32Ptr) &data[0]
-    let one           = cast(BinaryStrictS32) 1
-    let next          = binaryStrictPointerOffset(base, one)
+    let base = cast(BinaryStrictS32Ptr) &data[0]
+    let one  = cast(BinaryStrictS32) 1
+    let next = binaryStrictPointerOffset(base, one)
 
     #assert(#typeof(next) == BinaryStrictS32Ptr)
     Swag.assert(next[] == 20)

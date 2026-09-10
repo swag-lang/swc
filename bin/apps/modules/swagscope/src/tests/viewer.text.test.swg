@@ -10,7 +10,7 @@ func textViewerFixturePath()->String
 
 func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextView)
 {
-    while !Atomic.get(&view.statisticsState) do
+    while not Atomic.get(&view.statisticsState) do
         host.pump()
     if view.statisticsTimer do
         host.fireTimer(view.statisticsTimer)
@@ -41,7 +41,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextView)
     Swag.assert(Utf8.contains(view.detailsText().toSlice(), lineDetails.toSlice()))
 
     var toggleWrap = KeyEvent{kind: .Pressed, key: .W, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent!(view.editor, &toggleWrap) and !view.wrapping)
+    Swag.assert(view.hookOnChildEvent!(view.editor, &toggleWrap) and not view.wrapping)
     var zoomIn = KeyEvent{kind: .Pressed, key: .OemPlus, modifiers: .Control}
     Swag.assert(view.hookOnChildEvent!(view.editor, &zoomIn) and view.zoomPercent == 125)
     var resetZoom = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}

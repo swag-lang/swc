@@ -264,7 +264,7 @@ struct LocalVarKeyEvent
         var evt = LocalVarKeyEvent{kind: .Pressed}
         evt.key = 9
 
-        if evt.kind == .Pressed and !evt.accepted
+        if evt.kind == .Pressed and not evt.accepted
         {
             return evt.key + evt.modifiers
         }

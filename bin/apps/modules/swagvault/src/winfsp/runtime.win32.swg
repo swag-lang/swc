@@ -21,7 +21,7 @@ namespace WinFsp
         let setDebugLogHandle = GetProcAddress(g_WinFsp.module, ("FspDebugLogSetHandle").buffer)
         let startService      = GetProcAddress(g_WinFsp.module, ("FspFsctlStartService").buffer)
 
-        if !create or !destroy or !setMountPoint or !removeMountPoint or !startDispatcher or !stopDispatcher or !addDirInfo or !setGuard or !setSecurity or !deleteSecurity or !registerServer or !unregisterServer or !setDebugLogHandle or !startService do
+        if not create or not destroy or not setMountPoint or not removeMountPoint or not startDispatcher or not stopDispatcher or not addDirInfo or not setGuard or not setSecurity or not deleteSecurity or not registerServer or not unregisterServer or not setDebugLogHandle or not startService do
             failWith("The bundled WinFsp runtime does not expose the expected ABI.")
 
         g_WinFsp.fsCreate                 = cast(FspFileSystemCreateFn) create!
@@ -55,7 +55,7 @@ namespace WinFsp
 
     func traceWinFspStage(message: string)
     {
-        #static if !#hastag("vault.integration") do
+        #static if not #hastag("vault.integration") do
             return
         var stream = catch File.open(winFspStageLogPath(), .Append, .Write, .Read) as openError
         if openError != null do
@@ -107,7 +107,7 @@ namespace WinFsp
         else
         {
             let programFiles = environmentValue("ProgramFiles(x86)")
-            if !programFiles.isEmpty()
+            if not programFiles.isEmpty()
             {
                 let installedPath = Path.combine(programFiles, "WinFsp", "bin", "winfsp-x64.dll")
                 if File.exists(installedPath)
@@ -118,7 +118,7 @@ namespace WinFsp
             }
         }
 
-        if !g_WinFsp.module
+        if not g_WinFsp.module
         {
             if g_WinFsp.guardianProcess
             {
@@ -133,9 +133,9 @@ namespace WinFsp
             g_WinFsp.portable = true
         }
 
-        if !g_WinFsp.module
+        if not g_WinFsp.module
         {
-            if !g_WinFsp.guardianManaged
+            if not g_WinFsp.guardianManaged
             {
                 removeRuntimeTree(g_WinFsp.runtimeRoot)
                 g_WinFsp.runtimeRoot.clear()
@@ -150,7 +150,7 @@ namespace WinFsp
         {
             discard FreeLibrary(g_WinFsp.module)
             g_WinFsp.module = null
-            if !g_WinFsp.guardianManaged
+            if not g_WinFsp.guardianManaged
             {
                 removeRuntimeTree(g_WinFsp.runtimeRoot)
                 g_WinFsp.runtimeRoot.clear()
@@ -167,7 +167,7 @@ namespace WinFsp
 
     func unloadWinFsp()
     {
-        if g_WinFsp.guardianManaged and !g_WinFsp.guardianProcess
+        if g_WinFsp.guardianManaged and not g_WinFsp.guardianProcess
         {
             if g_WinFsp.module
             {

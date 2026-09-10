@@ -17,7 +17,7 @@ else {}
 
 #assert(true)
 #assert(ENABLED)
-#assert(!DISABLED)
+#assert(not DISABLED)
 
 #static if ENABLED
 {

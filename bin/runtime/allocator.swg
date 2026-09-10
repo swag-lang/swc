@@ -163,7 +163,7 @@ private var g_DefaultAllocator: Allocator
 
 private func retireAllocatorThreadHeap(value: *void?)
 {
-    if !value do
+    if not value do
         return
 
     let heap      = cast(*AllocatorThreadHeap) value
@@ -322,9 +322,9 @@ impl Allocator
     {
         let rounded = memAlign(size, cast(u32) AllocatorCommitGranularity)
         let address = __hostPageReserve(rounded)
-        if !address do
+        if not address do
             return null
-        if !__hostPageCommit(address, rounded)
+        if not __hostPageCommit(address, rounded)
         {
             __hostPageRelease(address, rounded)
             return null
@@ -342,9 +342,9 @@ impl Allocator
     {
         let reservedBytes = commitBytes + AllocatorCommitGranularity
         let address       = __hostPageReserve(reservedBytes)
-        if !address do
+        if not address do
             return null
-        if !__hostPageCommit(address, commitBytes)
+        if not __hostPageCommit(address, commitBytes)
         {
             __hostPageRelease(address, reservedBytes)
             return null
@@ -357,7 +357,7 @@ impl Allocator
 
     mtd osFree(address: *void?, size: u64)
     {
-        if !address do
+        if not address do
             return
 
         __hostPageRelease(address, size)
@@ -373,7 +373,7 @@ impl Allocator
     mtd allocateThreadHeap()->*AllocatorThreadHeap?
     {
         let address = .osAlloc(#sizeof(AllocatorThreadHeap))
-        if !address do
+        if not address do
             return null
 
         Swag.memset(address, 0, #sizeof(AllocatorThreadHeap))
@@ -409,7 +409,7 @@ impl Allocator
         }
 
         let newHeap = .allocateThreadHeap()
-        if !newHeap do
+        if not newHeap do
             return null
 
         setCurrentAllocatorThreadHeap(newHeap)
@@ -526,7 +526,7 @@ impl Allocator
             let next = scan.nextPage
             if scan.classIndex == classIndex
             {
-                if !prev do
+                if not prev do
                     .firstAbandoned = next
                 else do
                     prev.nextPage = next
@@ -562,7 +562,7 @@ impl Allocator
         }
 
         let fresh = allocatorAcquireSegment(me, unitShift)
-        if !fresh do
+        if not fresh do
             return null
 
         fresh.nextSegment = .firstSegment
@@ -571,7 +571,7 @@ impl Allocator
         .firstSegment = fresh
 
         let page = fresh.acquirePage(classIndex, blockSize)
-        if !page do
+        if not page do
             return null
 
         page.ownerHeap = heap
@@ -617,7 +617,7 @@ impl Allocator
         while true
         {
             let page = .acquirePageForClass(heap, classIndex)
-            if !page do
+            if not page do
                 return 0
 
             cls.page = page
@@ -680,7 +680,7 @@ impl Allocator
 
     mtd setFooterMagic(header: *AllocatorHeader, value: u32)
     {
-        if !header.isElectric do
+        if not header.isElectric do
             .footer(header).magic = value
     }
 
@@ -718,7 +718,7 @@ impl Allocator
 
     mtd unlinkAllocated(header: *AllocatorHeader)
     {
-        if !header.prev do
+        if not header.prev do
             .firstAlloc = header.next
         else do
             header.prev.next = header.next
@@ -746,7 +746,7 @@ impl Allocator
 
         // Electric mode never evicts: an address it handed out is never handed out again, so a
         // pointer kept past its free can never reach a different, live allocation.
-        while !.electricMode and .firstQuarantine and .quarantineBytes > .maxQuarantineBytes
+        while not .electricMode and .firstQuarantine and .quarantineBytes > .maxQuarantineBytes
         {
             let oldest = .firstQuarantine!
             .checkFree(oldest)
@@ -799,7 +799,7 @@ impl Allocator
     // of the cache stays bounded whatever the churn.
     mtd cacheFreedBlock(address: [*] void?, size: u64)
     {
-        if !address do
+        if not address do
             return
 
         if size < AllocatorBlockCacheMinBytes or size > AllocatorBlockCacheMaxBytes
@@ -863,15 +863,15 @@ impl Allocator
         else
         {
             allocSize = memAlign(prefix + alignment + blockSize + #sizeof(AllocatorFooter), cast(u32) AllocatorCommitGranularity)
-            if !.diagnosticMode() do
+            if not .diagnosticMode() do
                 base = .popCachedBlock(allocSize)
-            if !base do
+            if not base do
                 base = .osAlloc(allocSize)
             if base do
                 userAddr = memAlign(cast(u64) base + prefix, alignment)
         }
 
-        if !base
+        if not base
         {
             request.address = null
             return
@@ -977,7 +977,7 @@ impl Allocator
         }
 
         let heap = .threadHeap()
-        if !heap
+        if not heap
         {
             request.address = null
             return
@@ -1000,7 +1000,7 @@ impl Allocator
 
     mtd reallocate(request: *AllocatorRequest)
     {
-        if !request.address
+        if not request.address
         {
             .allocate(request)
             return
@@ -1028,7 +1028,7 @@ impl Allocator
             oldBlockSize = oldHeader.blockSize
 
             // Growing inside the block the header already covers only moves the footer.
-            if request.size <= oldHeader.blockSize and request.alignment <= oldHeader.alignment and !oldHeader.isElectric
+            if request.size <= oldHeader.blockSize and request.alignment <= oldHeader.alignment and not oldHeader.isElectric
             {
                 let oldSize = oldHeader.userSize
                 .setFooterMagic(oldHeader, 0)
@@ -1044,7 +1044,7 @@ impl Allocator
 
         // A page block keeps its address whenever the request still fits its class, which is what
         // makes a growing buffer stop calling the operating system.
-        if oldPage and request.size <= oldBlockSize and request.alignment <= AllocatorPagePathAlignment and !.diagnosticMode()
+        if oldPage and request.size <= oldBlockSize and request.alignment <= AllocatorPagePathAlignment and not .diagnosticMode()
         {
             request.address = cast(*void) oldAddress
             return
@@ -1053,7 +1053,7 @@ impl Allocator
         var allocReq = request[]
         allocReq.address = null
         .allocate(&allocReq)
-        if !allocReq.address
+        if not allocReq.address
         {
             request.address = null
             return
@@ -1074,20 +1074,20 @@ impl Allocator
     {
         if page.state == AllocatorPageState.Free do
             Swag.panic("memory block is not allocated", callerLoc)
-        if !page.isBlockAddress(address) do
+        if not page.isBlockAddress(address) do
             Swag.panic("memory block address is not the start of an allocation", callerLoc)
     }
 
     mtd freeBlock(request: *AllocatorRequest)
     {
-        if !request.address do
+        if not request.address do
             return
 
         let address = cast(u64) request.address!
         request.address = null
 
         let page = allocatorPageOf(address)
-        if !page
+        if not page
         {
             .freeHeaderBlock(address, request.callerLoc)
             return
@@ -1116,7 +1116,7 @@ impl Allocator
 
     mtd assertIsAllocated(addr: *void?, callerLoc = #callerlocation)
     {
-        if !addr do
+        if not addr do
             return
 
         let address = cast(u64) addr!
@@ -1218,7 +1218,7 @@ impl Allocator
             abandoned.collectRemote()
             if abandoned.used == 0
             {
-                if !prevAbandoned do
+                if not prevAbandoned do
                     .firstAbandoned = next
                 else do
                     prevAbandoned.nextPage = next
@@ -1351,7 +1351,7 @@ impl Allocator
 
     mtd printLeaks()
     {
-        if !.detectLeaks do
+        if not .detectLeaks do
             return
 
         let snapshot = .stats()
@@ -1405,7 +1405,7 @@ impl Allocator
 
     mtd release()
     {
-        if !.installed() do
+        if not .installed() do
             return
 
         .mutex.lock()
@@ -1418,7 +1418,7 @@ impl Allocator
 
     mtd opDrop()
     {
-        if !.installed() do
+        if not .installed() do
             return
 
         if me == defaultAllocator() do
@@ -1500,7 +1500,7 @@ func defaultAllocator()->*Allocator
 func releaseAllocatorThreadCache()
 {
     let heap = currentAllocatorThreadHeap()
-    if !heap do
+    if not heap do
         return
 
     setCurrentAllocatorThreadHeap(null)
@@ -1515,7 +1515,7 @@ func installAllocator(electricMode: bool = false, detectLeaks: bool = true, capt
     let cxt = Swag.getContext()
 
     let alloc = &g_DefaultAllocator
-    if !alloc.installed() do
+    if not alloc.installed() do
         alloc.setup()
     alloc.configure(electricMode, detectLeaks, captureStack, trackAllocations, fillMemory)
 

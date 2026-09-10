@@ -22,14 +22,14 @@ impl BuildLease
 
     mtd wait(cancelled: *u32)->bool
     {
-        while !.artifact!.task.isDone()
+        while not .artifact!.task.isDone()
         {
             if Atomic.get(cancelled) do
                 return false
             Threading.Thread.sleep(1'ms)
         }
 
-        return !Atomic.get(cancelled)
+        return not Atomic.get(cancelled)
     }
 }
 
@@ -63,7 +63,7 @@ impl CompilationCache
         defer .mutex.unlock()
         for entry in .entries
         {
-            if entry.generation == .generation and !Atomic.get(&entry.cancelled) and entry.request.satisfies(request)
+            if entry.generation == .generation and not Atomic.get(&entry.cancelled) and entry.request.satisfies(request)
             {
                 entry.users += 1
                 return {cache: me, artifact: entry, reused: true}
@@ -82,7 +82,7 @@ impl CompilationCache
                 break
             }
 
-            if !removed do
+            if not removed do
                 break
         }
 
@@ -108,7 +108,7 @@ impl CompilationCache
         defer .mutex.unlock()
         Swag.assert(entry.users != 0)
         entry.users -= 1
-        if !entry.users and !entry.task.isDone() do
+        if not entry.users and not entry.task.isDone() do
             Atomic.exchange(&entry.cancelled, 1)
     }
 

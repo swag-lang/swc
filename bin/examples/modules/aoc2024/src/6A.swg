@@ -103,7 +103,7 @@ func day6A()
 
     for l in lines
     {
-        if !sx
+        if not sx
         {
             let f = l.indexOf("^")
             if f != Swag.U64.Max do
@@ -154,7 +154,7 @@ func day6A()
 
         if arr.ptr2(sx, sy, w)[] != 'O'
         {
-            total                 += 1
+            total += 1
             arr.ptr2(sx, sy, w)[] = 'O'
         }
     }

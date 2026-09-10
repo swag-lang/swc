@@ -72,7 +72,7 @@ var g_CaptureIconsParsed: bool
 
 func captureIcons()->*Gui.IconAtlas
 {
-    if !g_CaptureIconsParsed
+    if not g_CaptureIconsParsed
     {
         expect g_CaptureIcons.setup(cast(string) IconsSvg)
         g_CaptureIconsParsed = true
@@ -92,21 +92,22 @@ enum BottomSize
 struct MainWnd
 {
     using wnd: Wnd
-        late
+
+    late
     {
         topBar, recentBar, rightBar, editBar: *Wnd
-        toolRail, commandReadouts:            *StackLayoutCtrl
-        editWnd:                              *EditWnd
-        quickWnd:                             *QuickWnd
-        propWnd:                              *PropWnd
-        libWnd:                               *LibraryWnd
-        recentWnd:                            *RecentWnd
-        quickStyleBar:                        *SplitterCtrl
-        toolTitle:                            *Label
-        topMenu:                              *MenuCtrl
-        libraryBtn, captureBtn:               *PushButton
-        zoomBtn:                              *IconButton
-        appearanceButton:                     *AppearanceButton
+        toolRail, commandReadouts: *StackLayoutCtrl
+        editWnd:                   *EditWnd
+        quickWnd:                  *QuickWnd
+        propWnd:                   *PropWnd
+        libWnd:                    *LibraryWnd
+        recentWnd:                 *RecentWnd
+        quickStyleBar:             *SplitterCtrl
+        toolTitle:                 *Label
+        topMenu:                   *MenuCtrl
+        libraryBtn, captureBtn:    *PushButton
+        zoomBtn:                   *IconButton
+        appearanceButton:          *AppearanceButton
     }
 
     sizeBtn:       *IconButton?
@@ -185,7 +186,7 @@ impl IWnd for MainWnd
 
         sf.show()
         sf.bringToFront()
-        while !menu.isModalEnded() do
+        while not menu.isModalEnded() do
             .app().runFrame()
         sf.hide()
         if menu.modalResult() do
@@ -221,7 +222,7 @@ impl IWnd for MainWnd
     // image dragged out of a web page does, becomes a capture with nothing linked to it.
     mtd impl onDragDropEvent(evt: *DragDropEvent)
     {
-        if !.hasDroppableImage(evt.data)
+        if not .hasDroppableImage(evt.data)
         {
             evt.accepted = false
             return
@@ -323,7 +324,7 @@ impl IWnd for MainWnd
             // transparent came to mean "follow the active palette".
             .migrateStoredOptions()
 
-            if !.libraryFolder.isEmpty() do
+            if not .libraryFolder.isEmpty() do
                 discard catch g_Library.setFolder(.libraryFolder)
             .setTheme()
             .setLanguage()
@@ -356,7 +357,7 @@ impl MainWnd
 
     mtd saveAppState()
     {
-        if !.firstShow do
+        if not .firstShow do
             catch g_App.saveState()
     }
 
@@ -374,7 +375,7 @@ impl MainWnd
     mtd flushCaptureSave(file: string? = null)
     {
         let failed = g_CaptureSaves.flush(file)
-        if !failed.isEmpty() do
+        if not failed.isEmpty() do
             MessageDlg.error(.surface!, Format.toString(appStrings().msg_FailedSaveCapture, failed))
     }
 
@@ -463,7 +464,7 @@ impl MainWnd
             }
         }
 
-        if !done do
+        if not done do
             .newCapture(imgToLoad, arg)
 
         if .libraryMode
@@ -503,21 +504,21 @@ impl MainWnd
 
     mtd freezeSelection(freeze: bool)
     {
-        if !freeze and .embInfoFreeze
+        if not freeze and .embInfoFreeze
         {
             .embInfoFreeze.destroy()
             .embInfoFreeze = null
             .freezeSel     = false
         }
-        elif freeze and !.embInfoFreeze
+        elif freeze and not .embInfoFreeze
         {
             // Nothing to freeze without a capture (the Freeze command is disabled in
             // that case, but guard here too so no code path can fault on getCapture()).
             let capture = .getCapture()
-            if !capture do
+            if not capture do
                 return
 
-            .embInfoFreeze              = InfoBar.create(.editWnd.view!, appStrings().ui_Frozen, .Message, flags: .Bottom)
+            .embInfoFreeze = InfoBar.create(.editWnd.view!, appStrings().ui_Frozen, .Message, flags: .Bottom)
             .embInfoFreeze.sigDismissed += func|main = me|(ctrl)
             {
                 main.freezeSel     = false
@@ -576,14 +577,14 @@ impl MainWnd
     {
         let z   = cast(s32) (.editWnd.editView.zoom * 100)
         var txt = Format.toString("%", z)
-        txt           += "%"
+        txt += "%"
         .zoomBtn.name = txt
         .zoomBtn.invalidate()
     }
 
     mtd updateSizeDisplay()
     {
-        if !.sizeBtn do
+        if not .sizeBtn do
             return
 
         let capture = .getCapture()
@@ -598,7 +599,7 @@ impl MainWnd
     // panel used to carry, and unlike them it says something the reader does not know.
     mtd updateToolTitle()
     {
-        if !(.toolTitle != null) do
+        if not (.toolTitle != null) do
             return
 
         var name = appStrings().act_Select
@@ -699,7 +700,7 @@ impl MainWnd
         {
             catch .app().registerHotKey(modifiers, key, wndId, me) else
             {
-                if !errorReg
+                if not errorReg
                 {
                     var msg = Format.toString(appStrings().msg_ShortcutTaken, Input.formatKeyShortcut(modifiers, key))
                     msg += appStrings().msg_ShortcutTakenWhy
@@ -1067,7 +1068,7 @@ impl MainWnd
             .monitors        = Env.getMonitors()
         }
 
-        res.appearanceButton                 = AppearanceButton.create(srf, "capture.appearance")
+        res.appearanceButton = AppearanceButton.create(srf, "capture.appearance")
         res.appearanceButton.sigThemeChanged += func|main = res|(button)
         {
             main.editorOptions.theme = button.appearanceTheme
@@ -1076,6 +1077,7 @@ impl MainWnd
                 capture.invalidateAllFormCaches()
             main.saveAppState()
         }
+
         res.appearanceButton.sigLanguageChanged += func|main = res|(button)
         {
             if button.language.isEmpty() do
@@ -1086,6 +1088,7 @@ impl MainWnd
                 main.editorOptions.language = .English
             main.saveAppState()
         }
+
         res.appearanceButton.sigAboutRequested += func|main = res|(button)
         {
             discard button

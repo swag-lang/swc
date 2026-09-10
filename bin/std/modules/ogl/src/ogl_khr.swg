@@ -65,21 +65,21 @@ const GL_KHR_debug                        = 1
 /* -------------------- GL_KHR_blend_equation_advanced --------------------- */
 
 const GL_KHR_blend_equation_advanced = 1
-const GL_MULTIPLY_KHR                = 0x9294
-const GL_SCREEN_KHR                  = 0x9295
-const GL_OVERLAY_KHR                 = 0x9296
-const GL_DARKEN_KHR                  = 0x9297
-const GL_LIGHTEN_KHR                 = 0x9298
-const GL_COLORDODGE_KHR              = 0x9299
-const GL_COLORBURN_KHR               = 0x929A
-const GL_HARDLIGHT_KHR               = 0x929B
-const GL_SOFTLIGHT_KHR               = 0x929C
-const GL_DIFFERENCE_KHR              = 0x929E
-const GL_EXCLUSION_KHR               = 0x92A0
-const GL_HSL_HUE_KHR                 = 0x92AD
-const GL_HSL_SATURATION_KHR          = 0x92AE
-const GL_HSL_COLOR_KHR               = 0x92AF
-const GL_HSL_LUMINOSITY_KHR          = 0x92B0
+const GL_MULTIPLY_KHR       = 0x9294
+const GL_SCREEN_KHR         = 0x9295
+const GL_OVERLAY_KHR        = 0x9296
+const GL_DARKEN_KHR         = 0x9297
+const GL_LIGHTEN_KHR        = 0x9298
+const GL_COLORDODGE_KHR     = 0x9299
+const GL_COLORBURN_KHR      = 0x929A
+const GL_HARDLIGHT_KHR      = 0x929B
+const GL_SOFTLIGHT_KHR      = 0x929C
+const GL_DIFFERENCE_KHR     = 0x929E
+const GL_EXCLUSION_KHR      = 0x92A0
+const GL_HSL_HUE_KHR        = 0x92AD
+const GL_HSL_SATURATION_KHR = 0x92AE
+const GL_HSL_COLOR_KHR      = 0x92AF
+const GL_HSL_LUMINOSITY_KHR = 0x92B0
 
 #[Extension, Swag.PlaceHolder]
 {
@@ -89,7 +89,7 @@ const GL_HSL_LUMINOSITY_KHR          = 0x92B0
 /* ---------------- GL_KHR_blend_equation_advanced_coherent ---------------- */
 
 const GL_KHR_blend_equation_advanced_coherent = 1
-const GL_BLEND_ADVANCED_COHERENT_KHR          = 0x9285
+const GL_BLEND_ADVANCED_COHERENT_KHR = 0x9285
 
 /* --------------------- GL_KHR_context_flush_control ---------------------- */
 

@@ -37,9 +37,9 @@ func day8A()
         Swag.assert(re.match(l[]))
         var v0 = expect StrConv.toS32(re[3])
         let v1 = expect StrConv.toS32(re[6])
-        if !regs.contains(re[1]) do
+        if not regs.contains(re[1]) do
             regs.add(re[1], 0)
-        if !regs.contains(re[4]) do
+        if not regs.contains(re[4]) do
             regs.add(re[4], 0)
         if re[2] == "dec" do
             v0 = -v0

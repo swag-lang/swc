@@ -17,5 +17,5 @@
             break
     }
 
-    Swag.assert(!InlineRegressionBug15.isResourceCreated(resource))
+    Swag.assert(not InlineRegressionBug15.isResourceCreated(resource))
 }

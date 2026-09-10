@@ -101,7 +101,7 @@ impl IForm for FormPolygon
 
     mtd impl boundRect()->Math.Rectangle
     {
-        if !.points.count do
+        if not .points.count do
             .setDefaultShape()
         return boundOfPoints(&.points)
     }
@@ -119,7 +119,7 @@ impl IForm for FormPolygon
             for pt in .points do
                 .gizmo.anchors.add({pt.x * z, pt.y * z})
             let col = .subKind == .PixSel ? Argb.Yellow : Argb.White
-            .gizmo.paint(null, painter, !flags.has(.Selected), col)
+            .gizmo.paint(null, painter, not flags.has(.Selected), col)
         }
     }
 
@@ -147,7 +147,7 @@ impl IForm for FormPolygon
         if .subKind == .PixSel
         {
             {bSize, dash} = .applyPixSelStyle(painter, cxt)
-            bk.a          = 5
+            bk.a = 5
         }
 
         var pen = Pen.createDash(dash, .borderColor, bSize)
@@ -179,7 +179,7 @@ impl IForm for FormPolygon
 
     mtd impl setup(capt: *Capture)
     {
-        .capture          = capt
+        .capture = capt
         .gizmo.sigChanged = func|form = me|(diff, pt, first) { GizmoPoints.apply(form, diff, pt, first) }
     }
 }

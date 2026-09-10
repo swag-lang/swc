@@ -45,7 +45,7 @@ func readVectorDelta(reader: *BitReader, fcode: u32, result: *Vector)->bool
             value = coded < 0 ? -magnitude : magnitude
         }
 
-        if !component do
+        if not component do
             result.x = value
         else do
             result.y = value
@@ -135,14 +135,14 @@ func compensate(destination: [*] u8, destinationStride: u64, source: const [*] u
     let halfY = (vector.y & 1) != 0
     let at    = cast(u64) (cast(s64) sourceOrigin + cast(s64) fullY * cast(s64) sourceStride + cast(s64) fullX)
 
-    if !halfX and !halfY
+    if not halfX and not halfY
     {
         for row in cast(u64) height do
             Memory.copy(destination + row * destinationStride, source + at + row * sourceStride, cast(u64) width)
         return
     }
 
-    if halfX and !halfY
+    if halfX and not halfY
     {
         for row in cast(u64) height
         {
@@ -155,7 +155,7 @@ func compensate(destination: [*] u8, destinationStride: u64, source: const [*] u
         return
     }
 
-    if !halfX and halfY
+    if not halfX and halfY
     {
         for row in cast(u64) height
         {

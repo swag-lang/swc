@@ -101,19 +101,19 @@ struct NativeNonNullNested
 
 func nativeHasNonNullFlags(type: typeinfo)->bool
 {
-    if !(type.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if not (type.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
-    return !(type.flags & Swag.TypeInfoFlags.Nullable)
+    return not (type.flags & Swag.TypeInfoFlags.Nullable)
 }
 
 func migrateNativeLegacyPointer(value: *NativeNonNullItem)->*NativeNonNullItem => value
 
 func nativeNonNullConstruction()->bool
 {
-    var first                                 = NativeNonNullItem{value: 11}
-    var second                                = NativeNonNullItem{value: 22}
+    var first  = NativeNonNullItem{value: 11}
+    var second = NativeNonNullItem{value: 22}
     var blockStorage:   [2] NativeNonNullItem = [{value: 31}, {value: 32}]
-    var cstringStorage: [4] u8                = ['a'u8, 'b'u8, 'c'u8, 0]
+    var cstringStorage: [4] u8 = ['a'u8, 'b'u8, 'c'u8, 0]
 
     let direct:                    *NativeNonNullItem              = &first
     let block:                     [*] NativeNonNullItem           = cast([*] NativeNonNullItem) &blockStorage[0]
@@ -152,20 +152,20 @@ func nativeNonNullConstruction()->bool
     #assert(#typeof(boxed) == any)
     #assert(#typeof(reflectedType) == typeinfo)
 
-    if !nativeHasNonNullFlags(#typeof(direct)) or
-       !nativeHasNonNullFlags(#typeof(block)) or
-       !nativeHasNonNullFlags(#typeof(slice)) or
-       !nativeHasNonNullFlags(#typeof(text)) or
-       !nativeHasNonNullFlags(#typeof(ctext)) or
-       !nativeHasNonNullFlags(#typeof(boxed)) or
-       !nativeHasNonNullFlags(#typeof(reflectedType)) do
+    if not nativeHasNonNullFlags(#typeof(direct)) or
+       not nativeHasNonNullFlags(#typeof(block)) or
+       not nativeHasNonNullFlags(#typeof(slice)) or
+       not nativeHasNonNullFlags(#typeof(text)) or
+       not nativeHasNonNullFlags(#typeof(ctext)) or
+       not nativeHasNonNullFlags(#typeof(boxed)) or
+       not nativeHasNonNullFlags(#typeof(reflectedType)) do
         return false
 
     let aliasReadOnlyType = #typeof(aliasReadOnly)
     let aliasRequiredType = #typeof(aliasRequired)
-    if !(aliasReadOnlyType.flags & Swag.TypeInfoFlags.Const) or !(aliasReadOnlyType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if not (aliasReadOnlyType.flags & Swag.TypeInfoFlags.Const) or not (aliasReadOnlyType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
-    if !(aliasRequiredType.flags & Swag.TypeInfoFlags.Const) or !(aliasRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if not (aliasRequiredType.flags & Swag.TypeInfoFlags.Const) or not (aliasRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
 
     let holderType           = cast(const *Swag.TypeInfoStruct) #typeof(NativeNonNullHolder)
@@ -175,15 +175,15 @@ func nativeNonNullConstruction()->bool
     let defaultContainerType = #typeof(NativeNonNullDefaultContainer)
     let genericRequiredType  = cast(const *Swag.TypeInfoStruct) #typeof(NativeNonNullGenericBox'(*NativeNonNullItem))
     let genericDefaultType   = cast(const *Swag.TypeInfoStruct) #typeof(NativeNonNullGenericBox'NativeNonNullStringDefault)
-    if holderType.opInit != null or !(holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if holderType.opInit != null or not (holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
-    if !(nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or !(holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or !(pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if not (nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or not (holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or not (pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
-    if !NATIVE_NONULL_FORWARD_ARRAY_REQUIRES_INIT do
+    if not NATIVE_NONULL_FORWARD_ARRAY_REQUIRES_INIT do
         return false
     if defaultContainerType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false
-    if genericRequiredType.opInit != null or !(genericRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if genericRequiredType.opInit != null or not (genericRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
     if genericDefaultType.opInit == null or genericDefaultType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false

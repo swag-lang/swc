@@ -47,10 +47,10 @@ public struct Voice
 
     internal
     {
-        late allocationAllocator: IAllocator            // Allocator that owns this voice and its buffers.
-        handle:                   *void?                // Identity of the voice inside the driver.
-        file:                     const *SoundFile?     // Borrowed source, alive for the voice's lifetime.
-        dataMutex:                Sync.Mutex            // Serializes buffer feeding with transport changes.
+        late allocationAllocator: IAllocator     // Allocator that owns this voice and its buffers.
+        handle:    *void?                        // Identity of the voice inside the driver.
+        file:      const *SoundFile?             // Borrowed source, alive for the voice's lifetime.
+        dataMutex: Sync.Mutex                    // Serializes buffer feeding with transport changes.
 
         requestedEncoding          = SoundFileEncoding.Unknown     // Encoding the caller asked to decode to.
         codec:       ICodec?       = null                          // Decoder instance for a streamed source.
@@ -128,9 +128,9 @@ public impl Voice
     // [[Audio.VoicePlayFlags.DestroyOnStop]]. Success returns a non-null pointer.
     func create(file: const *SoundFile, createFlags = VoiceCreateFlags.Default)->*Voice? fail
     {
-        if !g_Driver.isCreated do
+        if not g_Driver.isCreated do
             fail BadParameterError{"audio engine is not created"}
-        if !file.availableFields.has(.Data) do
+        if not file.availableFields.has(.Data) do
             fail BadParameterError{"sound file has no audio data"}
 
         let voice = g_Driver.createVoice()
@@ -141,7 +141,7 @@ public impl Voice
             Memory.delete(voice, allocator)
         }
 
-        voice.file              = file
+        voice.file = file
         voice.seekDiscardFrames = cast(u32) file.leadingTrim
 
         voice.createNative(createFlags)
@@ -180,7 +180,7 @@ public impl Voice
         .playNative()
         .setState(.Playing)
 
-        if !.hasState(.PlayedOnce)
+        if not .hasState(.PlayedOnce)
         {
             .setState(.PlayedOnce)
             .nativeFrameOrigin = .playedFramesNative()
@@ -199,7 +199,7 @@ public impl Voice
     {
         .dataMutex.lock()
         defer .dataMutex.unlock()
-        if !.hasState(.Playing) do
+        if not .hasState(.Playing) do
             return
         .stopNative()
         .resetState(.Playing)
@@ -213,7 +213,7 @@ public impl Voice
     {
         .dataMutex.lock()
         defer .dataMutex.unlock()
-        if !.hasState(.PlayedOnce) do
+        if not .hasState(.PlayedOnce) do
             return
         if .hasState(.Playing) do
             .stopNative()
@@ -237,7 +237,7 @@ public impl Voice
     {
         .dataMutex.lock()
         defer .dataMutex.unlock()
-        if !.handle or !.file do
+        if not .handle or not .file do
             fail BadParameterError{"voice is not valid"}
         let file       = .file!
         let target     = Math.min(frame, file.frameCount)
@@ -256,8 +256,8 @@ public impl Voice
         if file.usesPacketCodec() and target < file.frameCount
         {
             let decodedTarget = target + file.leadingTrim
-            var low           = 0'u64
-            var high          = file.packetStarts.count
+            var low  = 0'u64
+            var high = file.packetStarts.count
             while low + 1 < high
             {
                 let middle = low + (high - low) / 2
@@ -273,7 +273,7 @@ public impl Voice
             .streamPacketIdx   = preroll
             .seekDiscardFrames = cast(u32) (decodedTarget - file.packetStarts[preroll])
         }
-        elif !file.usesPacketCodec()
+        elif not file.usesPacketCodec()
         {
             let bytesPerFrame = cast(u64) file.channelCount * cast(u64) (file.bitsPerSample / 8)
             .streamCurSeek = Math.min(target * bytesPerFrame, file.dataSize)
@@ -302,7 +302,7 @@ public impl Voice
     // Returns the decoded source sample frame currently heard at the output device.
     mtd playbackSampleFrame()->u64
     {
-        if !.handle or !.file do
+        if not .handle or not .file do
             return 0
         let native   = .playedFramesNative()
         let advanced = native >= .nativeFrameOrigin ? native - .nativeFrameOrigin : 0
@@ -312,7 +312,7 @@ public impl Voice
     // Returns the output-device playback position in seconds.
     mtd playbackPositionSeconds()->f64
     {
-        if !.file or !.file!.sampleRate do
+        if not .file or not .file!.sampleRate do
             return 0
         return cast(f64) .playbackSampleFrame() / cast(f64) .file!.sampleRate
     }
@@ -332,7 +332,7 @@ public impl Voice
     // Returns whether the voice is currently marked as playing.
     mtd isPlaying()->bool
     {
-        if !.handle do
+        if not .handle do
             return false
         return .hasState(.Playing)
     }

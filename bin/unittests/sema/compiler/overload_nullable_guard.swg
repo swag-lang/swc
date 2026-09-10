@@ -25,7 +25,7 @@ func pick(n: *Node?)->bool
 
 func select(n: *Node?)->bool
 {
-    if !n do
+    if not n do
         return false
     return select(n!)
 }
@@ -56,7 +56,7 @@ func semaTest001()
 {
     var node:        Node
     var guardedNode: GuardedNode
-    Swag.assert(!pick())
+    Swag.assert(not pick())
     Swag.assert(select(&node))
     Swag.assert(guardedMethod(&guardedNode))
     Swag.assert(guardedNotNull(&guardedNode))

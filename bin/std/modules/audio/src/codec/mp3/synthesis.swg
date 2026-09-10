@@ -52,7 +52,7 @@ func reorderShortBlocks(lines: *Granule576, bands: const [..] u8, firstBand, fir
     while band < bands.count
     {
         let width = cast(u32) bands[band]
-        if !width do
+        if not width do
             break
         band += 3
 
@@ -153,7 +153,7 @@ func invertFrequencies(lines: *Granule576)
         while index < 18
         {
             lines[][base + index] = -lines[][base + index]
-            index                 += 2
+            index += 2
         }
 
         subband += 2

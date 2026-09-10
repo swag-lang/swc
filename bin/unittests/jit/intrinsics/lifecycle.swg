@@ -22,7 +22,7 @@ func resetLifecycleHooks()
 
 func helperFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null)
 {
-    if !buffer do
+    if not buffer do
         return
 
     var req: AllocatorRequest
@@ -47,7 +47,7 @@ func helperRealloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAl
 
 func memoryLikeFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if !buffer do
+    if not buffer do
         return
 
     var req: AllocatorRequest
@@ -271,7 +271,7 @@ impl OwnedDropBuffer
 {
     mtd free()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         Swag.drop(.buffer, .count)
@@ -325,7 +325,7 @@ impl ReallocDropBuffer
 
     mtd free()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         Swag.drop(.buffer, .count)
@@ -379,7 +379,7 @@ impl GenericOwnedBuffer
 
     mtd free()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         Swag.drop(.buffer, .count)
@@ -435,7 +435,7 @@ impl LazyAllocatorGenericBuffer
 
     mtd free()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         Swag.drop(.buffer, .count)
@@ -485,7 +485,7 @@ impl HelperAllocatorGenericBuffer
 
     mtd free()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         Swag.drop(.buffer, .count)
@@ -530,7 +530,7 @@ impl MemoryAllocatorGenericBuffer
 
     mtd remove(index, num: u64)
     {
-        if !num do
+        if not num do
             return
 
         // Drop the removed elements, then relocate the survivors into the freed slots.
@@ -545,7 +545,7 @@ impl MemoryAllocatorGenericBuffer
 
     mtd clear()
     {
-        if !.count do
+        if not .count do
             return
         for index in .count do
             Swag.drop(.buffer + index)
@@ -554,12 +554,12 @@ impl MemoryAllocatorGenericBuffer
 
     mtd free()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         Swag.drop(.buffer, .count)
         memoryLikeFree(.buffer, .capacity * #sizeof(T), .allocator)
-        .buffer           = null
+        .buffer = null
         .count, .capacity = 0
     }
 }
@@ -602,7 +602,7 @@ impl PostCopyAllocatorGenericBuffer
 
     mtd free()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         Swag.drop(.buffer, .count)

@@ -92,7 +92,7 @@ Use 'field: binding' for selection by name.
 
 #test
 {
-    let tuple1           = {x: 1.0, y: 2.0}
+    let tuple1 = {x: 1.0, y: 2.0}
     let {value0, value1} = tuple1
     Swag.assert(value0 == 1.0)
     Swag.assert(value1 == 2.0)
@@ -155,12 +155,12 @@ and unnamed fields appear in either order.
 
 #test
 {
-    let namedThenUnnamed          = {x: 11, 22}
+    let namedThenUnnamed = {x: 11, 22}
     let {x: first, item1: second} = namedThenUnnamed
     Swag.assert(first == 11)
     Swag.assert(second == 22)
 
-    let unnamedThenNamed          = {33, y: 44}
+    let unnamedThenNamed = {33, y: 44}
     let {item0: third, y: fourth} = unnamedThenNamed
     Swag.assert(third == 33)
     Swag.assert(fourth == 44)

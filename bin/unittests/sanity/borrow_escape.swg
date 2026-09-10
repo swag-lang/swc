@@ -493,8 +493,8 @@ alias BorrowEscapeVisitor = func||()->s32
 
 func borrowEscapeClosureLocal()->s32
 {
-    var total: s32                 = 7
-    let pTotal                     = &total
+    var total: s32 = 7
+    let pTotal     = &total
     let cb:    BorrowEscapeVisitor = func|pTotal|()->s32 { return pTotal[] }
     return cb()
 }

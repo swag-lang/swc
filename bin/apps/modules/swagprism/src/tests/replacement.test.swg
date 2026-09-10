@@ -13,7 +13,7 @@ private func awaitReplacement(viewer: *PreviewViewer)
         viewer.poll()
     }
 
-    Swag.assert(!viewer.queued and viewer.running)
+    Swag.assert(not viewer.queued and viewer.running)
 }
 
 // Editing keeps the previous process alive, then publishes only the last requested complete frame.
@@ -28,14 +28,14 @@ private func awaitReplacement(viewer: *PreviewViewer)
     let previous = viewer.probe
     let oldFrame = viewer.frameCount
     viewer.compileSource("func shade(x, y, time: f32)->u32 { discard x; discard y; discard time; return 0xFF445566 }")
-    Swag.assert(viewer.preparing != null and !Atomic.get(&previous.cancelled))
+    Swag.assert(viewer.preparing != null and not Atomic.get(&previous.cancelled))
     Swag.assert(window.spinner.isVisible())
     awaitFrame(viewer, oldFrame)
     Swag.assert(viewer.probe == previous)
     viewer.compileSource("func shade(x, y, time: f32)->u32 { discard x; discard y; discard time; return 0xFF778899 }")
     viewer.compileSource("func shade(x, y, time: f32)->u32 { discard x; discard y; discard time; return 0xFFAABBCC }")
     awaitReplacement(viewer)
-    Swag.assert(viewer.probe != previous and !window.spinner.isVisible())
+    Swag.assert(viewer.probe != previous and not window.spinner.isVisible())
     Swag.assert((cast([*] u32) viewer.image.pixels.buffer!)[0] == 0xFFAABBCC)
     window.shutdown()
     for entry in window.cache.entries do
@@ -61,10 +61,10 @@ private func awaitReplacement(viewer: *PreviewViewer)
     Swag.assert(viewer.frameCount == 1)
     viewer.compileSource("func shade(")
     awaitReplacement(viewer)
-    Swag.assert(viewer.output.isVisible() and !viewer.output.text().isEmpty())
+    Swag.assert(viewer.output.isVisible() and not viewer.output.text().isEmpty())
     viewer.compileSource("func shade(x, y, time: f32)->u32 { discard x; discard y; discard time; return 0xFF778899 }")
     awaitReplacement(viewer)
-    Swag.assert(viewer.canvas.isVisible() and !viewer.output.isVisible())
+    Swag.assert(viewer.canvas.isVisible() and not viewer.output.isVisible())
     Swag.assert((cast([*] u32) viewer.image.pixels.buffer!)[0] == 0xFF778899)
     window.shutdown()
 }

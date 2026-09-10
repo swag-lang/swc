@@ -36,7 +36,7 @@ func(T) choose(box: const *OtherQualified.Box'T)->u32 => 2
 #test
 {
     var holder: Holder'(u32, 3)
-    holder.box           = make'u32(42)
+    holder.box = make'u32(42)
     holder.buffer.values = [1, 2, 3]
     Swag.assert(read'u32(&holder.box) == 42)
     Swag.assert(read(&holder.box) == 42)

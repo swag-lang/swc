@@ -286,7 +286,7 @@ public impl LinePath
     // work against, and unsuitable for measuring a drawing.
     //
     // ```swag
-    // if !path.controlBounds().intersects(dirtyRect) do
+    // if not path.controlBounds().intersects(dirtyRect) do
     //     return
     // ```
     mtd const controlBounds()->Math.Rectangle
@@ -333,7 +333,7 @@ public impl LinePath
     // Will add a line or a curve to the first point if necessary
     mtd close()
     {
-        if .isClosed or !.elements.count do
+        if .isClosed or not .elements.count do
             return
 
         let v = .endPoint - .startPoint
@@ -579,7 +579,7 @@ public impl LinePath
         if .isPolyOnly do
             return
         let tolerance = getFlattenDistance(quality) / Math.max(scale, 1.0)
-        if !.isDirty and .isFlatten and .flattenTolerance <= tolerance do
+        if not .isDirty and .isFlatten and .flattenTolerance <= tolerance do
             return
 
         // A path of straight segments answers every tolerance with the same points, so it
@@ -601,7 +601,7 @@ public impl LinePath
         .flattenTolerance      = curved ? tolerance : 0
         .minBounds, .maxBounds = .startPoint
 
-        if !.elements.count do
+        if not .elements.count do
             return
 
         .endPosBuffer = .startPoint
@@ -657,7 +657,7 @@ impl LinePath
         let center = arc.position
         let radii  = arc.p2
         let first  = arcPoint(center, radii, arc.p1.x)
-        if !first.isEqualEpsilon(current)
+        if not first.isEqualEpsilon(current)
         {
             var line: Element
             line.type     = .Line
@@ -698,7 +698,7 @@ impl LinePath
             break
         }
 
-        if !hasArc do
+        if not hasArc do
             return
 
         var rewritten: Array'Element

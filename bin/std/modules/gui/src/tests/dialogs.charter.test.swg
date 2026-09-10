@@ -25,7 +25,7 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
     Swag.assert(Math.abs(bar.position.height - (metrics.btnPush_Height + 2 * metrics.dialog_BtnPadding)) < 0.5)
 
     // Every action is at least the theme button and they all read as one row.
-    Swag.assert(!dlg.buttons.isEmpty())
+    Swag.assert(not dlg.buttons.isEmpty())
     for btn in dlg.buttons
     {
         Swag.assert(Math.abs(btn.position.height - metrics.btnPush_Height) < 0.5)
@@ -60,7 +60,7 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
     Swag.assert(Math.abs(body.padding.w - bodyInset) < 0.5)
 
     // A box names itself: the caption takes its band whether or not anything is written in it.
-    Swag.assert(!dlg.surface!.wnd.name.isEmpty())
+    Swag.assert(not dlg.surface!.wnd.name.isEmpty())
 
     // And it is as tall as what it holds: nothing of the body falls under the action bar.
     Swag.assert(body.position.bottom() <= bar.position.y + 0.5)
@@ -130,7 +130,7 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
     defer host.shutdown()
 
     var opt: FileDlgOptions
-    opt.mode              = .SelectFile
+    opt.mode = .SelectFile
     opt.showLocationsPane = false
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 860, 580})

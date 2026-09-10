@@ -53,8 +53,8 @@ func(T) readAndReset(value: *T)->s32
     return result
 }
 
-func(T) classify(value: T)->s32 where T is IValue    => 1
-func(T) classify(value: T)->s32 where !(T is IValue) => 2
+func(T) classify(value: T)->s32 where T is IValue       => 1
+func(T) classify(value: T)->s32 where not (T is IValue) => 2
 
 struct(T) Holder where T is IValue
 {
@@ -67,10 +67,10 @@ struct(T) Holder where T is IValue
     #assert(CounterAlias is ValueAlias)
     #assert(Wrapper is IValue)
     #assert(IValue is IValue)
-    #assert(!(IReset is IValue))
-    #assert(!(Missing is IValue))
-    #assert(!(s32 is IValue))
-    #assert(!((#type *Counter) is IValue))
+    #assert(not (IReset is IValue))
+    #assert(not (Missing is IValue))
+    #assert(not (s32 is IValue))
+    #assert(not ((#type *Counter) is IValue))
 
     var value = Counter{42}
     Swag.assert(readValue(&value) == 42)

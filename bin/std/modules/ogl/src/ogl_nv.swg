@@ -105,7 +105,7 @@ const GL_XOR_NV                     = 0x1506
 /* ---------------- GL_NV_blend_equation_advanced_coherent ----------------- */
 
 const GL_NV_blend_equation_advanced_coherent = 1
-const GL_BLEND_ADVANCED_COHERENT_NV          = 0x9285
+const GL_BLEND_ADVANCED_COHERENT_NV = 0x9285
 
 /* ----------------------- GL_NV_blend_minmax_factor ----------------------- */
 
@@ -220,7 +220,7 @@ const GL_CONSERVATIVE_RASTER_MODE_PRE_SNAP_NV = 0x9550
 /* ------------- GL_NV_conservative_raster_pre_snap_triangles -------------- */
 
 const GL_NV_conservative_raster_pre_snap_triangles      = 1
-const GL_CONSERVATIVE_RASTER_MODE_NV                    = 0x954D
+const GL_CONSERVATIVE_RASTER_MODE_NV = 0x954D
 const GL_CONSERVATIVE_RASTER_MODE_POST_SNAP_NV          = 0x954E
 const GL_CONSERVATIVE_RASTER_MODE_PRE_SNAP_TRIANGLES_NV = 0x954F
 
@@ -724,11 +724,11 @@ const GL_FRAGMENT_INPUT_NV                       = 0x936D
 /* ------------------- GL_NV_path_rendering_shared_edge -------------------- */
 
 const GL_NV_path_rendering_shared_edge = 1
-const GL_SHARED_EDGE_NV                = 0xC0
+const GL_SHARED_EDGE_NV = 0xC0
 
 /* --------------------- GL_NV_primitive_shading_rate ---------------------- */
 
-const GL_NV_primitive_shading_rate           = 1
+const GL_NV_primitive_shading_rate = 1
 const GL_SHADING_RATE_IMAGE_PER_PRIMITIVE_NV = 0x95B1
 const GL_SHADING_RATE_IMAGE_PALETTE_COUNT_NV = 0x95B2
 
@@ -819,7 +819,7 @@ const GL_MAX_SHADER_BUFFER_ADDRESS_NV = 0x8F35
 
 /* ----------------------- GL_NV_shader_buffer_store ----------------------- */
 
-const GL_NV_shader_buffer_store              = 1
+const GL_NV_shader_buffer_store = 1
 const GL_SHADER_GLOBAL_ACCESS_BARRIER_BIT_NV = 0x00000010
 
 /* ------------------- GL_NV_shader_subgroup_partitioned ------------------- */

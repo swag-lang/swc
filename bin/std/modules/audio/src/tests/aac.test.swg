@@ -56,7 +56,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     var sound = expect aacTestSound()
     Swag.assert(sound.sampleEncoding() == .AacLc)
     Swag.assert(sound.sampleRateHz() == 44_100 and sound.numChannels() == 2)
-    Swag.assert(sound.packetCount() > 40 and !sound.isDataPreloaded())
+    Swag.assert(sound.packetCount() > 40 and not sound.isDataPreloaded())
 
     // Logical payload reads cross the ADTS headers between sparse access units instead of
     // treating their file offsets as a contiguous byte stream.
@@ -126,7 +126,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 // identical stream to that decoded position, including the AAC overlap pre-roll.
 #test
 {
-    const Trim           = 1280'u64
+    const Trim = 1280'u64
     const Config: [2] u8 = [0x12, 0x10]
     let path    = audioGetTestDataPath("aac-lc-stereo-44100.aac")
     let packets = expect aacTestPackets(path)
@@ -171,7 +171,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     discard expect voice.play()
     discard expect voice.updateNoSound()
     Swag.assert(voice.playbackSampleFrame() == sound.sampleFrameCount())
-    Swag.assert(!(cast(*NoSoundVoice) voice.handle!).isPlaying)
+    Swag.assert(not (cast(*NoSoundVoice) voice.handle!).isPlaying)
     voice.destroy()
 }
 
@@ -192,7 +192,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 
     discard expect voice.pause()
     discard expect voice.seekSampleFrame(2 * 1024)
-    Swag.assert(!voice.hasState(.PlayedOnce))
+    Swag.assert(not voice.hasState(.PlayedOnce))
 
     discard expect voice.play()
     Swag.assert(voice.hasState(.PlayedOnce))

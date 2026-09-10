@@ -15,7 +15,7 @@ internal impl Properties
     mtd menuArrayContext()->{ arrItem: *PropertiesItem?, arrElem: *PropertiesItem? }
     {
         var result: retval
-        if !.menuItem do
+        if not .menuItem do
             return result
 
         result.arrElem = .resolveArrayElement(.menuItem)
@@ -85,7 +85,7 @@ internal impl Properties
             }
         }
 
-        if !menu.items.count
+        if not menu.items.count
         {
             menu.destroy()
             return

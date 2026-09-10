@@ -45,8 +45,8 @@ the number of elements.
 #test
 {
     var a: const [..] u32 = [10, 20, 30, 40, 50]
-    let count             = a.count
-    let addr              = a.buffer
+    let count = a.count
+    let addr  = a.buffer
 
     Swag.assert(count == 5)
     Swag.assert(addr[0] == 10)

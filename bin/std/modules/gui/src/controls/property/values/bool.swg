@@ -59,7 +59,7 @@ internal impl Properties
         else
         {
             var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
-            if !.isGridLike() do
+            if not .isGridLike() do
                 editWidth = .listContentWidthFromUseful(editWidth)
             with let ed = ComboBox.create(item.line)
             {
@@ -113,7 +113,7 @@ internal impl Properties
         let item     = .addItem(value, data, parentItem, flags: PropertiesAddItemFlags.Name)
 
         var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
-        if !.isGridLike() do
+        if not .isGridLike() do
             editWidth = .listContentWidthFromUseful(editWidth)
         let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : .themeMetrics().btnPush_Height
         let line       = Wnd.create'Wnd(item.line, {0, 0, editWidth, lineHeight})
@@ -131,7 +131,7 @@ internal impl Properties
         else do
             line.layoutSpec.alignX = .Stretch
 
-        if !(item.label != null)
+        if not (item.label != null)
         {
             line.margin.y = .listNameMarginBefore
             line.margin.w = .listNameMarginAfter

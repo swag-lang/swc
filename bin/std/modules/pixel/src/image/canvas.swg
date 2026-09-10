@@ -138,7 +138,7 @@ impl ImageCanvas
     // ```
     func create(image: Image)->ImageCanvas fail
     {
-        if !image.isValid() do
+        if not image.isValid() do
             fail InvalidFormatError{"invalid image"}
 
         var result: retval
@@ -175,7 +175,7 @@ impl ImageCanvas
     // images without being opened again.
     mtd toImage()->Image fail
     {
-        if !.isOpen do
+        if not .isOpen do
             fail InvalidFormatError{"the canvas is closed"}
 
         // An antialiased pass uses the destination alpha as scratch and leaves only its own
@@ -210,7 +210,7 @@ impl ImageCanvas
     // Releases the graphics resources when the canvas leaves scope.
     mtd opDrop()
     {
-        if !.isOpen do
+        if not .isOpen do
             return
         .isOpen = false
 

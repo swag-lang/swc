@@ -45,7 +45,7 @@ public func isFake()->bool => g_Fake.enabled
 // clearing the system clipboard instead would destroy the user's own content.
 public func resetFake() fail
 {
-    if !g_Fake.enabled do
+    if not g_Fake.enabled do
         fail Core.Errors.BadParameterError{"the clipboard is not faked outside a sandbox"}
     fakeClear()
 }
@@ -72,7 +72,7 @@ func fakeFind(fmt: ValueFormat)->*FakeTypedData?
 func fakeAddTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
 {
     var entry = fakeFind(fmt)
-    if !entry
+    if not entry
     {
         g_Fake.typed.add({fmt: fmt})
         entry = g_Fake.typed.backPtr()
@@ -88,7 +88,7 @@ func fakeGetTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
 {
     var result: retval
     let entry = fakeFind(fmt)
-    if !entry or (type and entry.crc != type.crc) do
+    if not entry or (type and entry.crc != type.crc) do
         return result
 
     result.add(entry.data.toSlice())

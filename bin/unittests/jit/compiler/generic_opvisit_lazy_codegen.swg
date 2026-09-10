@@ -5,7 +5,7 @@ namespace GenericForeachLazyCodegen
 {
     func helperFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null)
     {
-        if !buffer do
+        if not buffer do
             return
 
         var req: AllocatorRequest
@@ -69,7 +69,7 @@ namespace GenericForeachLazyCodegen
         mtd free()
         {
             helperFree(.buffer, .capacity * #sizeof(T), .allocator)
-            .buffer           = null
+            .buffer = null
             .count, .capacity = 0
         }
     }

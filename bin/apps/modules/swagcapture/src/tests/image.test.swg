@@ -107,7 +107,7 @@ using Swag, Core
         frames[] += 1
         g_Width  = 42
         g_Height = 27
-        if !didClick[]
+        if not didClick[]
         {
             let modalButtonClicked = host.clickModalButton(Dialog.BtnOk)
             Swag.assert(modalButtonClicked)
@@ -149,7 +149,7 @@ using Swag, Core
     {
         g_Width  = 42
         g_Height = 27
-        if !didClick[]
+        if not didClick[]
         {
             let modalButtonClicked = host.clickModalButton(Dialog.BtnOk)
             Swag.assert(modalButtonClicked)

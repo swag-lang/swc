@@ -10,7 +10,7 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
     discard header.addColumn("Name", 190, app.theme.icon(.OpenFile, 16))
     header.setItemWidthLimits(0, 120, 260)
     let state = header.addColumn("State", 120, app.theme.icon(.Filter, 16))
-    state.isClickable = !disabledClick
+    state.isClickable = not disabledClick
     let size = header.addColumn("Size", 92)
     size.isResizable = false
     discard header.addColumn("Owner", Math.max(rect.width - 36 - 190 - 120 - 92, 140.0), app.theme.icon(.Sort, 16))

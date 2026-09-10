@@ -501,10 +501,10 @@ private
     // @ORIGIN: Chromium zlib, https://github.com/chromium/chromium/blob/main/third_party/zlib/crc32_simd.c
     // @MODIFIED: Ported to Swag vector intrinsics.
     // @NOTICE: /bin/THIRDPARTY.md#zlib
-    const FoldK1K2 = cast(Math.Simd.U64x2) [0x0154442bd4'u64, 0x01c6e41596]
-    const FoldK3K4 = cast(Math.Simd.U64x2) [0x01751997d0'u64, 0x00ccaa009e]
-    const FoldK5   = cast(Math.Simd.U64x2) [0x0163cd6124'u64, 0x0000000000]
-    const FoldPoly = cast(Math.Simd.U64x2) [0x01db710641'u64, 0x01f7011641]
+    const FoldK1K2 = cast(Math.Simd.U64x2) [0x0154442BD4'u64, 0x01C6E41596]
+    const FoldK3K4 = cast(Math.Simd.U64x2) [0x01751997D0'u64, 0x00CCAA009E]
+    const FoldK5   = cast(Math.Simd.U64x2) [0x0163CD6124'u64, 0x0000000000]
+    const FoldPoly = cast(Math.Simd.U64x2) [0x01DB710641'u64, 0x01F7011641]
     const FoldZero = cast(Math.Simd.U64x2) [0'u64, 0]
     const FoldMask = cast(Math.Simd.U64x2) [0x0000_0000_FFFF_FFFF'u64, 0x0000_0000_FFFF_FFFF]
 
@@ -565,9 +565,9 @@ private
 
         while len >= 16
         {
-            x5 = Math.Simd.clmulLowLow(x1, k)
-            x1 = Math.Simd.clmulHighHigh(x1, k)
-            x1 ^= Math.Simd.load(buf) ^ x5
+            x5  = Math.Simd.clmulLowLow(x1, k)
+            x1  = Math.Simd.clmulHighHigh(x1, k)
+            x1  ^= Math.Simd.load(buf) ^ x5
             buf += 2
             len -= 16
         }
@@ -607,7 +607,7 @@ public impl Crc32
     mtd update(data: const [..] u8?)
     {
         var length = data.count
-        if !length do
+        if not length do
             return
         var current = cast(const [*] u32) data.buffer!
 
@@ -615,7 +615,7 @@ public impl Crc32
 
         // The carry-less folding path wants at least sixty-four bytes and works in
         // sixteen-byte steps; the table path finishes whatever remains.
-        #static if !BIG_ENDIAN
+        #static if not BIG_ENDIAN
         {
             if length >= 64
             {

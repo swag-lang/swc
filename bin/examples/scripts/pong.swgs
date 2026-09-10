@@ -125,7 +125,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         g_PaddleRight.pos.y = g_Rect.vertCenter() - PaddleHeight * 0.5
 
     case ResizeEvent:
-        g_Rect              = wnd.clientRect()
+        g_Rect = wnd.clientRect()
         g_PaddleLeft.pos.x  = BallRadius + PaddleWidth
         g_PaddleRight.pos.x = g_Rect.right() - BallRadius - PaddleWidth
 

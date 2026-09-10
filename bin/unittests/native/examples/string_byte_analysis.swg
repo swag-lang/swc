@@ -15,7 +15,7 @@ struct CsvPreview
 func countRows(csv: string)->u32
 {
     let bytes = cast(const [..] u8) csv
-    if !bytes.count do
+    if not bytes.count do
         return 0
 
     var result = 1'u32
@@ -31,7 +31,7 @@ func countRows(csv: string)->u32
 func countColumns(csv: string)->u32
 {
     let bytes = cast(const [..] u8) csv
-    if !bytes.count do
+    if not bytes.count do
         return 0
 
     var result = 1'u32

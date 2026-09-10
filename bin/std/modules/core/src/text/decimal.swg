@@ -374,13 +374,13 @@ impl Decimal
         {
             buffer, cpt += 1
             .neg        = true
-            if !Latin1.isDigit(buffer[]) and cpt == countof do
+            if not Latin1.isDigit(buffer[]) and cpt == countof do
                 fail ParseIncompleteError{}
         }
         elif c == plusSign
         {
             buffer, cpt += 1
-            if !Latin1.isDigit(buffer[]) and cpt == countof do
+            if not Latin1.isDigit(buffer[]) and cpt == countof do
                 fail ParseIncompleteError{}
         }
 
@@ -434,9 +434,9 @@ impl Decimal
             cpt, buffer += 1
         }
 
-        if !sawDigits do
+        if not sawDigits do
             fail SyntaxError{}
-        if !sawdot do
+        if not sawdot do
             .dp = .nd
 
         // Exponent
@@ -454,14 +454,14 @@ impl Decimal
                 buffer, cpt += 1
                 esign       = -1
                 c           = buffer[]
-                if !Latin1.isDigit(c) and cpt >= countof do
+                if not Latin1.isDigit(c) and cpt >= countof do
                     fail ParseIncompleteError{}
             }
             elif c == plusSign
             {
                 buffer, cpt += 1
-                c           = buffer[]
-                if !Latin1.isDigit(c) and cpt >= countof do
+                c = buffer[]
+                if not Latin1.isDigit(c) and cpt >= countof do
                     fail ParseIncompleteError{}
             }
 

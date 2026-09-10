@@ -276,14 +276,14 @@ impl Slice
         if .mbX > 0
         {
             let left = &dec.mbInfo[.mbAddr - 1]
-            if left.sliceId == .sliceId and !left.skipped do
+            if left.sliceId == .sliceId and not left.skipped do
                 ctx += 1
         }
 
         if .mbY > 0
         {
             let top = &dec.mbInfo[.mbAddr - cast(u32) width]
-            if top.sliceId == .sliceId and !top.skipped do
+            if top.sliceId == .sliceId and not top.skipped do
                 ctx += 1
         }
 
@@ -324,9 +324,9 @@ impl Slice
         else
         {
             var ctx = 0'u32
-            if .mbAvailable(mb.mbX - 1, mb.mbY) and !.mbInfoAt(mb.mbX - 1, mb.mbY).direct do
+            if .mbAvailable(mb.mbX - 1, mb.mbY) and not .mbInfoAt(mb.mbX - 1, mb.mbY).direct do
                 ctx += 1
-            if .mbAvailable(mb.mbX, mb.mbY - 1) and !.mbInfoAt(mb.mbX, mb.mbY - 1).direct do
+            if .mbAvailable(mb.mbX, mb.mbY - 1) and not .mbInfoAt(mb.mbX, mb.mbY - 1).direct do
                 ctx += 1
 
             if .cabac.decision(27 + ctx) == 0
@@ -392,7 +392,7 @@ impl Slice
             let delta = .qpDeltaCabac()
             if delta < -26 or delta > 25 do
                 fail InvalidFormatError{"H.264 macroblock QP delta is out of range"}
-            .qp          = (.qp + delta + 52) % 52
+            .qp = (.qp + delta + 52) % 52
             .lastQpDelta = delta
         }
         else
@@ -729,7 +729,7 @@ impl Slice
                 if .cabac.significanceDecision(sigBase + cast(u32) SigCoeffCtx8x8[scan], &arithmetic) != 0
                 {
                     indices[count] = scan
-                    count          += 1
+                    count += 1
                     if .cabac.significanceDecision(lastBase + cast(u32) LastCoeffCtx8x8[scan], &arithmetic) != 0
                     {
                         foundLast = true
@@ -747,7 +747,7 @@ impl Slice
                 if .cabac.significanceDecision(sigBase + scan, &arithmetic) != 0
                 {
                     indices[count] = scan
-                    count          += 1
+                    count += 1
                     if .cabac.significanceDecision(lastBase + scan, &arithmetic) != 0
                     {
                         foundLast = true
@@ -762,10 +762,10 @@ impl Slice
         .cabac.low   = arithmetic.low
         .cabac.range = arithmetic.range
 
-        if !foundLast and scan == maxCoeffs - 1
+        if not foundLast and scan == maxCoeffs - 1
         {
             indices[count] = scan
-            count          += 1
+            count += 1
         }
 
         if count == 0 do
@@ -895,6 +895,7 @@ impl Slice
                 let nzA   = .blockNz8x8(mb, plane, mb.mbX * 4 + (first & 3) - 1, mb.mbY * 4 + (first >> 2))
                 let nzB   = .blockNz8x8(mb, plane, mb.mbX * 4 + (first & 3), mb.mbY * 4 + (first >> 2) - 1)
                 let count = .residualCabac(mb, CatPlane8x8[cast(u64) plane], storage.t8 + cast(u64) quad * 64, 64, nzA, nzB)
+
                 // In 4:4:4 the block states a coded flag of its own, so a quadrant the pattern
                 // named can still hold nothing.
                 for cell in 4's32
@@ -932,7 +933,7 @@ impl Slice
     mtd const dcFlagNeighbor(mb: *Mb, dx, dy: s32, which: s32)->s32
     {
         let dec = .dec!
-        if !.mbAvailable(mb.mbX + dx, mb.mbY + dy) do
+        if not .mbAvailable(mb.mbX + dx, mb.mbY + dy) do
             return -1
         let index = cast(u64) ((mb.mbY + dy) * dec.sps!.mbWidth + mb.mbX + dx)
         if dec.mbInfo[index].skipped do

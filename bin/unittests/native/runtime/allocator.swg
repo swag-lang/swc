@@ -22,9 +22,9 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 {
     namespace AllocatorThreadTest
     {
-        alias HANDLE                 = *void
-        alias DWORD                  = u32
-        alias SIZE_T                 = u64
+        alias HANDLE = *void
+        alias DWORD  = u32
+        alias SIZE_T = u64
         alias LPTHREAD_START_ROUTINE = func(*void)->DWORD
 
         const INFINITE = 0xFFFF_FFFF'u32
@@ -500,7 +500,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(header.magic == Allocator.MagicAlloc)
     Swag.assert(tracking.stackCount <= tracking.stack.count)
     #static if #os == Swag.TargetOs.Windows do
-        if !Swag.jit() do
+        if not Swag.jit() do
             Swag.assert(tracking.stackCount > 0)
 
     itf.free(&req)
@@ -628,7 +628,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(alloc.footer(header).magic == Allocator.MagicAlloc)
     Swag.assert(tracking.stackCount <= tracking.stack.count)
     #static if #os == Swag.TargetOs.Windows do
-        if !Swag.jit() do
+        if not Swag.jit() do
             Swag.assert(tracking.stackCount > 0)
 
     var assertReq: AllocatorRequest
@@ -778,7 +778,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(req.address != null)
 
     alloc.release()
-    Swag.assert(!alloc.installed())
+    Swag.assert(not alloc.installed())
 
     let itf2 = makeAllocator(&alloc, fillMemory: true)
     req.size = 33

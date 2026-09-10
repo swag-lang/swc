@@ -68,7 +68,7 @@ func semaTest002()
     #assert(#typeof(code) == s32)
 }
 
-func invertUfcs(value: bool)->bool => !value
+func invertUfcs(value: bool)->bool => not value
 
 struct UfcsPoint
 {

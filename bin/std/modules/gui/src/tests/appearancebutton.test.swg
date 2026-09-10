@@ -84,11 +84,13 @@ using Swag, Core, Pixel
         discard appearance
         count[] += 1
     }
+
     button.sigLanguageChanged += func|count = &languageChanges|(appearance)
     {
         Swag.assert(appearance.language == "fr")
         count[] += 1
     }
+
     button.sigAboutRequested += func|count = &aboutRequests|(appearance)
     {
         discard appearance

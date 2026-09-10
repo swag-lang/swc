@@ -547,7 +547,7 @@ impl Ghost
             let newDir = cast(Direction) ((Random.shared().nextU32() % cast(u32) Direction.LEFT) + 1)
 
             // Ensure random direction is traversible
-            if !isImpassible(.getNextTile(newDir))
+            if not isImpassible(.getNextTile(newDir))
             {
                 .dir = newDir
                 .setSpeed(40)
@@ -600,10 +600,10 @@ impl Ghost
 
         // Check UP exit
         // UP exits have an additional condition such that, at 4 specific intersections, the ghost cannot opt to travel UP
-        if !(.getY() == 19 and (.getX() == 12 or .getX() == 15)) and !(.getY() == 7 and (.getX() == 12 or .getX() == 15))
+        if not (.getY() == 19 and (.getX() == 12 or .getX() == 15)) and not (.getY() == 7 and (.getX() == 12 or .getX() == 15))
         {
             // Prevent direction reversing and ensure exit is traversible
-            if .dir != .DOWN and !isImpassible(.getNextTile(.UP))
+            if .dir != .DOWN and not isImpassible(.getNextTile(.UP))
             {
                 nextPos = {.getX(), .getY() + 1}
                 let d = distanceBetween(nextPos, target)
@@ -618,7 +618,7 @@ impl Ghost
         }
 
         // Check RIGHT exit
-        if .dir != .LEFT and !isImpassible(.getNextTile(.RIGHT))
+        if .dir != .LEFT and not isImpassible(.getNextTile(.RIGHT))
         {
             nextPos = {.getX() + 1, .getY()}
             let d = distanceBetween(nextPos, target)
@@ -630,7 +630,7 @@ impl Ghost
         }
 
         // Check DOWN exit
-        if .dir != .UP and !isImpassible(.getNextTile(.DOWN))
+        if .dir != .UP and not isImpassible(.getNextTile(.DOWN))
         {
             nextPos = {.getX(), .getY() - 1}
             let d = distanceBetween(nextPos, target)
@@ -642,7 +642,7 @@ impl Ghost
         }
 
         // Check LEFT exit
-        if .dir != .RIGHT and !isImpassible(.getNextTile(.LEFT))
+        if .dir != .RIGHT and not isImpassible(.getNextTile(.LEFT))
         {
             nextPos = {.getX() - 1, .getY()}
             let d = distanceBetween(nextPos, target)
@@ -678,13 +678,13 @@ impl Ghost
      */
     mtd turnCorner()
     {
-        if .dir != .DOWN and !isImpassible(.getNextTile(.UP)) do
+        if .dir != .DOWN and not isImpassible(.getNextTile(.UP)) do
             .dir = .UP
-        elif .dir != .LEFT and !isImpassible(.getNextTile(.RIGHT)) do
+        elif .dir != .LEFT and not isImpassible(.getNextTile(.RIGHT)) do
             .dir = .RIGHT
-        elif .dir != .UP and !isImpassible(.getNextTile(.DOWN)) do
+        elif .dir != .UP and not isImpassible(.getNextTile(.DOWN)) do
             .dir = .DOWN
-        elif .dir != .RIGHT and !isImpassible(.getNextTile(.LEFT)) do
+        elif .dir != .RIGHT and not isImpassible(.getNextTile(.LEFT)) do
             .dir = .LEFT
     }
 
@@ -731,13 +731,13 @@ impl Ghost
         var exits = 0
         if .atTileCenter()
         {
-            if !isImpassible(.getNextTile(.UP)) do
+            if not isImpassible(.getNextTile(.UP)) do
                 exits += 1
-            if !isImpassible(.getNextTile(.RIGHT)) do
+            if not isImpassible(.getNextTile(.RIGHT)) do
                 exits += 1
-            if !isImpassible(.getNextTile(.DOWN)) do
+            if not isImpassible(.getNextTile(.DOWN)) do
                 exits += 1
-            if !isImpassible(.getNextTile(.LEFT)) do
+            if not isImpassible(.getNextTile(.LEFT)) do
                 exits += 1
         }
 
@@ -1004,14 +1004,14 @@ impl Pacman
      */
     mtd eat()->s32
     {
-        if !.atTileCenter() do
+        if not .atTileCenter() do
             return 0
 
         switch getTile(.getX(), .getY())
         {
         case .o:
             let chomp = g_VoiceChomp
-            if !chomp or !chomp.isPlaying()
+            if not chomp or not chomp.isPlaying()
             {
                 if chomp do
                     chomp.destroy()
@@ -1052,7 +1052,7 @@ impl Pacman
 
         default:
             let chomp = g_VoiceChomp
-            if chomp and !chomp.isPlaying()
+            if chomp and not chomp.isPlaying()
             {
                 chomp.destroy()
                 g_VoiceChomp = null
@@ -1086,17 +1086,17 @@ impl Pacman
         // Direction can only be changed at the center of a tile
         if .atTileCenter()
         {
-            if !isImpassible(.getNextTile(.tempDir)) do
+            if not isImpassible(.getNextTile(.tempDir)) do
                 .dir = .tempDir
             elif isImpassible(.getNextTile(.dir)) do
                 .dir = .NONE
         }
 
         // The only exception to the above rule is at game start (when ready=false), as Pac-Man starts between two tiles
-        if !.ready and .tempDir != .NONE and !isImpassible(.getNextTile(.tempDir))
+        if not .ready and .tempDir != .NONE and not isImpassible(.getNextTile(.tempDir))
         {
             .dir = .tempDir
-            if !.ready
+            if not .ready
             {
                 // Ready flag is set to true, enabling position rounding when dir=NONE and correct texture drawing
                 .ready = true
@@ -1229,7 +1229,7 @@ impl Pacman
 
         // Increment texture counter only if moving
         // If stationary, continue until sprite animation cycle is complete
-        if !(.dir == .NONE and .texCount % 20 < 5) and .ready do
+        if not (.dir == .NONE and .texCount % 20 < 5) and .ready do
             .texCount += 1
 
         thePainter().popTransform()
@@ -1409,7 +1409,7 @@ func drawPause(gameover: bool)
 {
     thePainter().pushTransform()
     translateMapOrigin()
-    if !gameover do
+    if not gameover do
         thePainter().drawTexture(0, 0, 224, 248, g_PauseTex)
     else do
         thePainter().drawTexture(0, 0, 224, 248, g_PauseAltTex)
@@ -1560,7 +1560,7 @@ func soundState()
             g_VoiceScared = null
         }
 
-        if !g_VoiceRetreat do
+        if not g_VoiceRetreat do
             g_VoiceRetreat = expect Audio.Voice.play(&g_SoundRetreat, playFlags: .Loop)
 
     case .FRIGHTENED:
@@ -1576,7 +1576,7 @@ func soundState()
             g_VoiceRetreat = null
         }
 
-        if !g_VoiceScared do
+        if not g_VoiceScared do
             g_VoiceScared = expect Audio.Voice.play(&g_SoundScared, playFlags: .Loop)
 
     case .SIREN:
@@ -1592,7 +1592,7 @@ func soundState()
             g_VoiceRetreat = null
         }
 
-        if !g_VoiceSiren
+        if not g_VoiceSiren
         {
             let siren = expect Audio.Voice.play(&g_SoundSiren, playFlags: .Loop)!
             g_VoiceSiren = siren
@@ -1640,7 +1640,7 @@ func checkCollisions()
     }
 
     // Award extra life for reaching 10000 points
-    if !g_ExtraLife and g_Score > 10000
+    if not g_ExtraLife and g_Score > 10000
     {
         g_Lives     += 1
         g_ExtraLife = true
@@ -1925,10 +1925,10 @@ func gameLoop()
     switch g_Mode
     {
     case .STARTLEVEL:
-        if !g_VoiceReady do
+        if not g_VoiceReady do
             g_VoiceReady = expect Audio.Voice.play(&g_SoundReady)
         let voice = g_VoiceReady!
-        if !voice.isPlaying()
+        if not voice.isPlaying()
         {
             voice.destroy()
             g_VoiceReady = null
@@ -1955,7 +1955,7 @@ func gameLoop()
 
             // If no fruit is currently spawned, enough pills have been eaten,
             // The eaten fruit count doesn't exceed the level and a random quantifier is satisfied, spawn a fruit
-            if !g_FruitSpawned and g_Fruits < g_Level and g_PillsLeft <= 240 - 30 and Random.shared().nextU32() % 1500 == 0 do
+            if not g_FruitSpawned and g_Fruits < g_Level and g_PillsLeft <= 240 - 30 and Random.shared().nextU32() % 1500 == 0 do
                 spawnFruit()
         }
 
@@ -1982,12 +1982,12 @@ func gameLoop()
         }
 
     case .FRUIT:
-        if !g_VoiceEatFruit do
+        if not g_VoiceEatFruit do
             g_VoiceEatFruit = expect Audio.Voice.play(&g_SoundEatFruit)
 
         // if g_Ticks == g_TimeStamp + 90
         let voice = g_VoiceEatFruit!
-        if !voice.isPlaying()
+        if not voice.isPlaying()
         {
             voice.destroy()
             g_VoiceEatFruit = null
@@ -1997,12 +1997,12 @@ func gameLoop()
         }
 
     case .EAT:
-        if !g_VoiceEatGhost do
+        if not g_VoiceEatGhost do
             g_VoiceEatGhost = expect Audio.Voice.play(&g_SoundEatGhost)
 
         // if g_Ticks == g_TimeStamp + 90
         let voice = g_VoiceEatGhost!
-        if !voice.isPlaying()
+        if not voice.isPlaying()
         {
             voice.destroy()
             g_VoiceEatGhost = null
@@ -2012,12 +2012,12 @@ func gameLoop()
         }
 
     case .DEATH:
-        if !g_VoiceDeath do
+        if not g_VoiceDeath do
             g_VoiceDeath = expect Audio.Voice.play(&g_SoundDeath)
 
         // if g_Ticks > g_TimeStamp + 180
         let voice = g_VoiceDeath!
-        if !voice.isPlaying()
+        if not voice.isPlaying()
         {
             voice.destroy()
             g_VoiceDeath = null

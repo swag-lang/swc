@@ -193,7 +193,7 @@ func compileShader(stage: GLenum, source: string)->GLuint
 
     var ok: GLint
     glGetShaderiv(id, GL_COMPILE_STATUS, &ok)
-    if !ok
+    if not ok
     {
         var len: s32
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &len)

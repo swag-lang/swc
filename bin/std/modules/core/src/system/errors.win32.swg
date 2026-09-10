@@ -16,6 +16,6 @@ func transformWinErrors(err: any?, val0: string? = null) fail
     {
     case ERROR_FILE_NOT_FOUND: fail Errors.FileNotFoundError{fileName: Errors.mkString(val0)}
     case ERROR_INVALID_NAME:   fail Errors.InvalidFileNameError{fileName: Errors.mkString(val0)}
-    default:                   fail err
+    default: fail err
     }
 }

@@ -141,9 +141,9 @@ impl Encoder
     // Write a given Swag.TypeValue.
     mtd writeTypeValue(typeVal: TypeValue, data: const [*] void?) fail
     {
-        if !typeVal.pointedType do
+        if not typeVal.pointedType do
             fail SerializationError{"missing type value pointed type"}
-        if !data do
+        if not data do
             fail SerializationError{"missing data for type value"}
         .serializer.beginElement(typeVal)
         .writeValue(data, typeVal.pointedType)
@@ -153,7 +153,7 @@ impl Encoder
     // Write a given value with a given type.
     mtd writeValue(data: const [*] void, dataType: typeinfo?) fail
     {
-        if !dataType do
+        if not dataType do
             fail SerializationError{"missing data type"}
         var type = Reflection.resolveAliases(dataType orelse #typeof(u8))
         type = Reflection.enumUnderlyingType(type)
@@ -166,7 +166,7 @@ impl Encoder
             if Reflection.isInterface(type)
             {
                 let itf = cast(const *Swag.Interface) data
-                if !itf.itable and type.flags & .Nullable == 0 do
+                if not itf.itable and type.flags & .Nullable == 0 do
                     fail SerializationError{"non-null interface value is missing"}
                 let objType = itf.itable ? cast(const *Swag.TypeInfoStruct?) itf.itable![] : null
                 discard .serializer.interfaceTypeKey(objType)
@@ -224,7 +224,7 @@ impl Encoder
                 .serializer.writeInterfaceType(objType)
                 if objType
                 {
-                    if !itf.obj do
+                    if not itf.obj do
                         fail SerializationError{"interface object is missing"}
                     var objValue: TypeValue
                     objValue.pointedType = objType
@@ -242,7 +242,7 @@ impl Encoder
             {
                 .writeTypeValue(typeVal, &itfType)
                 typeVal.pointedType = objType
-                if !itf.obj do
+                if not itf.obj do
                     fail SerializationError{"missing interface object"}
                 .writeTypeValue(typeVal, itf.obj)
             }
@@ -276,7 +276,7 @@ impl Encoder
                 let treated       = .serializer.beginSequence(type, data, ptrArr.count)
                 defer .serializer.endSequence()
 
-                if !treated
+                if not treated
                 {
                     var bufArr = cast(const [*] u8?) ptrArr.buffer
                     for i in ptrArr.count
@@ -310,7 +310,7 @@ impl Encoder
             let plan = planFor(structType)
             for &pf in plan.fields
             {
-                if !itf or !itf.writeElement(pf.value, cast(const [*] u8?) data + pf.value.offset, cast(IEncoder) me[])
+                if not itf or not itf.writeElement(pf.value, cast(const [*] u8?) data + pf.value.offset, cast(IEncoder) me[])
                 {
                     .writeTypeValue(pf.value, cast(const [*] u8?) data + pf.value.offset)
                 }
@@ -410,7 +410,7 @@ impl IEncoder for Encoder
     // Writes buffer u8.
     mtd impl writeBufferU8(data: const [*] u8?, count: u64) fail
     {
-        if !data
+        if not data
         {
             if count do
                 fail SerializationError{"cannot write a null u8 buffer"}
@@ -421,7 +421,7 @@ impl IEncoder for Encoder
         let treated  = .serializer.beginSequence(u8, safeData, count)
         defer #nofail .serializer.endSequence()
 
-        if !treated
+        if not treated
         {
             var ptr = safeData
             for count

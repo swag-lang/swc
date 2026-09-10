@@ -111,7 +111,7 @@ private func isMachFat(image: *BinaryImage)->bool
 
     image.bigEndian = true
     let count = image.u32At(4)
-    if !count or count > 32 do
+    if not count or count > 32 do
         return false
     return machCpuName(image.u32At(8)) != "?"
 }
@@ -163,7 +163,7 @@ private func reportMachFat(image: *BinaryImage, report: *BinaryReport, wide: boo
         let label   = Format.toString(s.mo_Slice, index)
         let stored  = StrConv.toDisplaySize(size)
 
-        if !names.isEmpty() do
+        if not names.isEmpty() do
             names += ", "
         names += machCpuName(cpu)
 
@@ -232,7 +232,7 @@ private func reportMachCommands(image: *BinaryImage, report: *BinaryReport, imag
     var scan = at
     for shown
     {
-        if !image.has(scan, 8) do
+        if not image.has(scan, 8) do
             break
 
         let command = image.u32At(scan)
@@ -251,7 +251,7 @@ private func reportMachCommands(image: *BinaryImage, report: *BinaryReport, imag
     report.listCut(shown, count)
     report.endGroup()
 
-    if !libraries.isEmpty()
+    if not libraries.isEmpty()
     {
         let counted = countText(libraries.count, s.word_Library, s.word_Libraries)
         report.beginGroup(s.shr_Libraries, counted.toString(), "", open: open)
@@ -332,7 +332,7 @@ private func reportMachCommandBody(image: *BinaryImage, report: *BinaryReport, i
 
 private func reportMachSections(image: *BinaryImage, report: *BinaryReport, imageAt, at, count: u64, wide: bool)
 {
-    if !count do
+    if not count do
         return
 
     let s     = binStrings()
@@ -403,7 +403,7 @@ private func machVersionText(value: u32)->String
 // Returns the build identity, in the plain hexadecimal grouping Apple's tools print.
 private func machUuidText(image: *BinaryImage, at: u64)->String
 {
-    if !image.has(at, 16) do
+    if not image.has(at, 16) do
         return String.from(BinaryNoValue)
 
     var text: Array'u8

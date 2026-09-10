@@ -310,11 +310,11 @@ impl DynString
 
     var c: DynString
     c = "MATCH"
-    Swag.assert(!(a == c))
+    Swag.assert(not (a == c))
 
     var d: DynString
     d = "matchx"
-    Swag.assert(!(a == d))
+    Swag.assert(not (a == d))
 }
 
 // ---------------------------------------------------------------------------

@@ -23,7 +23,7 @@ impl PreviewCanvas
 
     mtd update(image: *Image)
     {
-        if !.texture.isValid() do
+        if not .texture.isValid() do
             .texture = .app().renderer.addImage(image[])
         else do
             .app().renderer.updateTexture(.texture, image.pixels.buffer!)
@@ -41,7 +41,7 @@ impl IWnd for PreviewCanvas
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if evt.kind != .Released or !.texture.isValid() do
+        if evt.kind != .Released or not .texture.isValid() do
             return
         let point = .surfaceToLocal(evt.surfacePos)
         let rect  = .frameRect()

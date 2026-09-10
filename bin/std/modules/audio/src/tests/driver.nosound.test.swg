@@ -11,7 +11,7 @@ func audioStartNoSoundEngine()
 
 #test
 {
-    Swag.assert(!isEngineCreated())
+    Swag.assert(not isEngineCreated())
     discard catch outputVolume() as errNoEngine
     Swag.assert(errNoEngine is Errors.BadParameterError)
 
@@ -30,7 +30,7 @@ func audioStartNoSoundEngine()
     Swag.assert(errFile is Errors.BadParameterError)
 
     destroyEngine()
-    Swag.assert(!isEngineCreated())
+    Swag.assert(not isEngineCreated())
     Swag.assert(activeDriverKind() == .Default)
     destroyEngine()     // Repeated shutdown is a no-op.
 }
@@ -98,7 +98,7 @@ func audioStartNoSoundEngine()
     let voice       = voiceResult!
     let handle      = cast(*NoSoundVoice) voice.handle!
     Swag.assert(voice.requestedEncoding == .Pcm16)
-    Swag.assert(!voice.isPlaying())
+    Swag.assert(not voice.isPlaying())
 
     discard expect voice.setVolume(1.5)
     audioAssertFloat(expect voice.volume(), 1)
@@ -128,14 +128,14 @@ func audioStartNoSoundEngine()
     Swag.assert(handle.isPlaying)
 
     discard expect voice.pause()
-    Swag.assert(!voice.isPlaying())
-    Swag.assert(!handle.isPlaying)
+    Swag.assert(not voice.isPlaying())
+    Swag.assert(not handle.isPlaying)
 
     discard expect voice.play(.Loop)
     for 4
     {
         discard expect voice.pause()
-        Swag.assert(!voice.isPlaying() and !handle.isPlaying)
+        Swag.assert(not voice.isPlaying() and not handle.isPlaying)
         discard expect voice.play(.Loop)
         Swag.assert(voice.isPlaying() and handle.isPlaying)
     }
@@ -145,8 +145,8 @@ func audioStartNoSoundEngine()
     Swag.assert(handle.isPlaying)
 
     discard expect voice.stop()
-    Swag.assert(!voice.isPlaying())
-    Swag.assert(!handle.isPlaying)
+    Swag.assert(not voice.isPlaying())
+    Swag.assert(not handle.isPlaying)
     Swag.assert(voice.streamCurSeek == 0)
 
     voice.destroy()
@@ -159,8 +159,8 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    var file              = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false)
-    let context           = Swag.getContext()
+    var file    = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false)
+    let context = Swag.getContext()
     let originalAllocator = context.allocator!
     var scratch: ScratchAllocator
     scratch.setCapacity(1024 * 1024, originalAllocator)
@@ -179,7 +179,7 @@ func audioStartNoSoundEngine()
 
     context.allocator = originalAllocator
     destroyEngine()
-    Swag.assert(!isEngineCreated())
+    Swag.assert(not isEngineCreated())
 }
 
 // A full stop closes a lazily opened streaming file and rewinds the source.
@@ -195,7 +195,7 @@ func audioStartNoSoundEngine()
     Swag.assert(voice.stream.isOpen())
 
     discard expect voice.stop()
-    Swag.assert(!voice.stream.isOpen())
+    Swag.assert(not voice.stream.isOpen())
     Swag.assert(voice.streamCurSeek == 0)
     voice.destroy()
 }
@@ -212,8 +212,8 @@ func audioStartNoSoundEngine()
 
     discard expect voice.play()
     let shouldKeepUpdating = expect voice.updateNoSound()
-    Swag.assert(!shouldKeepUpdating)
-    Swag.assert(!handle.isPlaying)
+    Swag.assert(not shouldKeepUpdating)
+    Swag.assert(not handle.isPlaying)
     Swag.assert(voice.streamCurSeek == file.dataSize)
 
     voice.destroy()

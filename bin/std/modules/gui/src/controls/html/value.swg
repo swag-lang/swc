@@ -220,7 +220,7 @@ impl HtmlLength
         {
         case .Pixels, .ViewportWidth, .ViewportHeight: return true
         case .Percent: return hasBasis
-        case .Calc:    return hasBasis or !pool.calcNeedsBasis(cast(u32) .value)
+        case .Calc:    return hasBasis or not pool.calcNeedsBasis(cast(u32) .value)
         }
 
         return false
@@ -260,7 +260,7 @@ func htmlSplitValue(value: string, separator: u8 = ' ')->Array'String
                 depth -= 1
         }
 
-        let split = !depth and (character == separator or (separator == ' ' and Latin1.isSpace(character)))
+        let split = not depth and (character == separator or (separator == ' ' and Latin1.isSpace(character)))
         if split
         {
             let part = Latin1.trim(value[start until index])
@@ -327,7 +327,7 @@ func htmlParseNumber(text: string)->{ value: f32, eat: u64 }
         }
     }
 
-    if !digits do
+    if not digits do
         return result
 
     let parsed = catch StrConv.parseF64(text[0 until index]) as parseError
@@ -370,7 +370,7 @@ private func htmlParseCalcTerm(text: string, context: HtmlLengthContext)->{ node
     var result: retval
     let trimmed = Latin1.trim(text)
     let number  = htmlParseNumber(trimmed)
-    if !number.eat do
+    if not number.eat do
         return result
 
     let unit = String.from(Latin1.trim(trimmed[number.eat to])).toLower()
@@ -549,14 +549,14 @@ private func htmlParseCalcPrimary(pool: *HtmlValuePool, text: string, scan: *u64
 
     let term = htmlParseCalcTerm(text[scan[] until termEnd], context)
     scan[] = termEnd
-    if !term.matched do
+    if not term.matched do
         return HtmlNoNode
     return pool.addCalc(term.node)
 }
 
 private func htmlFoldCalcArguments(pool: *HtmlValuePool, arguments: const [..] String, op: HtmlCalcOp, context: HtmlLengthContext)->u32
 {
-    if !arguments.count do
+    if not arguments.count do
         return HtmlNoNode
 
     var folded = htmlParseCalcExpression(pool, arguments[0].toString(), context)
@@ -581,7 +581,7 @@ func htmlParseLength(pool: *HtmlValuePool, text: string, context: HtmlLengthCont
 {
     var result: retval
     let trimmed = Latin1.trim(text)
-    if !trimmed.count do
+    if not trimmed.count do
         return result
 
     let lower = String.from(trimmed).toLower()
@@ -620,7 +620,7 @@ func htmlParseLength(pool: *HtmlValuePool, text: string, context: HtmlLengthCont
     if number.eat
     {
         let unit = Latin1.trim(lower.toString()[number.eat to])
-        if !unit.count or unit == "px"
+        if not unit.count or unit == "px"
         {
             result.length  = HtmlLength.pixels(number.value)
             result.matched = true
@@ -671,7 +671,7 @@ func htmlParseLength(pool: *HtmlValuePool, text: string, context: HtmlLengthCont
         return result
 
     let node = &pool.calc[root]
-    if node.op == .Value and !node.percent and !node.vw and !node.vh
+    if node.op == .Value and not node.percent and not node.vw and not node.vh
     {
         result.length  = HtmlLength.pixels(node.pixels)
         result.matched = true

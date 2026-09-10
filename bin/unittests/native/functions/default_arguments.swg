@@ -151,7 +151,7 @@ func arrayDefaultSum(values: [3] s32 = [1, 2, 3])->s32
 
     Swag.assert(pointerDefaultIsNull())
     var local: s32 = 10
-    Swag.assert(!pointerDefaultIsNull(&local))
+    Swag.assert(not pointerDefaultIsNull(&local))
     Swag.assert(pointerDefaultIsNull(ptr: null))
 }
 

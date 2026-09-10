@@ -53,7 +53,7 @@ func testCoreAliasLifecycleRuntimeFlags()->bool
     let arrayType = #typeof([2] CoreAliasLifecycleStrict)
     if aliasType.kind != TypeInfoKind.Alias or arrayType.kind != TypeInfoKind.Array do
         return false
-    if !hasCoreAliasLifecycleFlags(aliasType) or !hasCoreAliasLifecycleFlags(arrayType) do
+    if not hasCoreAliasLifecycleFlags(aliasType) or not hasCoreAliasLifecycleFlags(arrayType) do
         return false
 
     let directRaw = Memory.alloc(#sizeof(CoreAliasLifecycleProbe))
@@ -82,7 +82,7 @@ func testCoreAliasLifecycleRuntimeFlags()->bool
         return false
 
     let nestedArrayType = #typeof([3][2] CoreAliasLifecycleStrict)
-    if nestedArrayType.kind != TypeInfoKind.Array or !hasCoreAliasLifecycleFlags(nestedArrayType) do
+    if nestedArrayType.kind != TypeInfoKind.Array or not hasCoreAliasLifecycleFlags(nestedArrayType) do
         return false
 
     let nestedArrayRaw = Memory.alloc(#sizeof([3][2] CoreAliasLifecycleProbe))

@@ -230,7 +230,7 @@ func setStatus(text: string)
 func updateThemeButton()
 {
     let btn = g_ThemeButton
-    if !btn do
+    if not btn do
         return
 
     if g_DarkTheme do
@@ -253,7 +253,7 @@ func applyTheme()
 
 func toggleTheme(_btn: *Button)
 {
-    g_DarkTheme = !g_DarkTheme
+    g_DarkTheme = not g_DarkTheme
     applyTheme()
 }
 
@@ -446,7 +446,7 @@ func createPreview(parent: *Wnd, rect: Math.Rectangle)->*Wnd
 
 func setMode(mode: PreviewMode)
 {
-    g_Mode          = mode
+    g_Mode = mode
     g_DocumentDirty = true
     setStatus(Format.toString("Preview mode changed to %.", currentModeName()))
 }
@@ -514,13 +514,13 @@ func processMenuCommand(id: WndId)->bool
         setStatus("Duplicate command selected.")
 
     case MenuCmd.ToggleGrid:
-        g_ShowGrid      = !g_ShowGrid
+        g_ShowGrid      = not g_ShowGrid
         g_DocumentDirty = true
         g_ActionCount   += 1
         setStatus(Format.toString("Grid visibility is now %.", boolWord(g_ShowGrid)))
 
     case MenuCmd.ToggleGuides:
-        g_ShowGuides    = !g_ShowGuides
+        g_ShowGuides    = not g_ShowGuides
         g_DocumentDirty = true
         g_ActionCount   += 1
         setStatus(Format.toString("Guide visibility is now %.", boolWord(g_ShowGuides)))
@@ -559,7 +559,7 @@ func processMenuCommand(id: WndId)->bool
         setStatus("Rename command selected from the context menu.")
 
     case MenuCmd.ContextPin:
-        g_ContextPinned = !g_ContextPinned
+        g_ContextPinned = not g_ContextPinned
         g_ActionCount   += 1
         setStatus(Format.toString("Context item pinned state is now %.", boolWord(g_ContextPinned)))
 
@@ -600,11 +600,11 @@ func computeMenuCommandState(evt: *CommandStateEvent)->bool
     {
     case MenuCmd.SaveFile:
         evt.updatedFields |= .Disabled
-        evt.disabled      = !g_DocumentDirty
+        evt.disabled      = not g_DocumentDirty
 
     case MenuCmd.Undo:
         evt.updatedFields |= .Disabled
-        evt.disabled      = !g_DocumentDirty
+        evt.disabled      = not g_DocumentDirty
 
     case MenuCmd.Redo:
         evt.updatedFields |= .Disabled
@@ -636,7 +636,7 @@ func computeMenuCommandState(evt: *CommandStateEvent)->bool
     case MenuCmd.ThemeLight:
         evt.updatedFields |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
-        evt.checked       = !g_DarkTheme
+        evt.checked       = not g_DarkTheme
 
     case MenuCmd.ThemeDark:
         evt.updatedFields |= .Checked | .RenderingHint
@@ -737,7 +737,7 @@ func buildPage()
 
 func layoutRootView()
 {
-    if !g_View or !g_PageView do
+    if not g_View or not g_PageView do
         return
 
     let view     = g_View!
@@ -776,7 +776,7 @@ func previousPage()
 
 func updateTestMode()
 {
-    if !Env.isSmokeRun() or !g_Surface do
+    if not Env.isSmokeRun() or not g_Surface do
         return
 
     g_TestFrame += 1
@@ -795,22 +795,22 @@ func updateTestMode()
 
 func canUsePageArrows()->bool
 {
-    if !g_View or !g_PageView do
+    if not g_View or not g_PageView do
         return false
 
     let view2     = g_View!
     let pageView2 = g_PageView!
 
     let focus = view2.focusedWindow()
-    if !focus or focus == g_View do
+    if not focus or focus == g_View do
         return true
 
-    return !pageView2.isAncestorOf(focus!)
+    return not pageView2.isAncestorOf(focus!)
 }
 
 func onFrame(app: *Application)
 {
-    if !g_Surface or !g_View or !g_PageView do
+    if not g_Surface or not g_View or not g_PageView do
         return
 
     if app.keyboard.isKeyJustPressed(.F1) do
@@ -838,7 +838,7 @@ func registerMenuShortcuts()
 func createRootView()
 {
     let view = g_Surface!.view()
-    g_View               = view
+    g_View = view
     view.backgroundStyle = .View
 
     let title = Label.create(view, "", {})
@@ -857,7 +857,7 @@ func createRootView()
     themeButton.sigPressed += &toggleTheme
 
     let pageView = Wnd.create'Wnd(view, {})
-    g_PageView               = pageView
+    g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 
     let footer = Label.create(view, "", {})

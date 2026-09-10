@@ -29,7 +29,7 @@ struct OrderedMapKey
     Swag.assert(map.count == 3 and map.capacity() >= 3)
     Swag.assert(map.lowerBound(20) == 1)
     Swag.assert(map.upperBound(20) == 2)
-    Swag.assert(map.contains(10) and !map.contains(11))
+    Swag.assert(map.contains(10) and not map.contains(11))
     Swag.assert(map.find(30).value == "thirty")
 
     let middle = map.range(15, 30)
@@ -37,7 +37,7 @@ struct OrderedMapKey
     Swag.assert((map.range(30, 10)).count == 0)
 
     Swag.assert(map.remove(20))
-    Swag.assert(!map.remove(20))
+    Swag.assert(not map.remove(20))
     Swag.assert(map.count == 2)
 }
 

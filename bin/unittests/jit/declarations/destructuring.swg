@@ -102,7 +102,7 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 
 #test
 {
-    let point                 = DestructPair{x: 10, y: 20}
+    let point = DestructPair{x: 10, y: 20}
     let {y: second, x: first} = point
     Swag.assert(first == 10)
     Swag.assert(second == 20)
@@ -113,12 +113,12 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 
 #test
 {
-    let namedThenUnnamed          = {x: 11's32, 22's32}
+    let namedThenUnnamed = {x: 11's32, 22's32}
     let {item1: second, x: first} = namedThenUnnamed
     Swag.assert(first == 11)
     Swag.assert(second == 22)
 
-    let unnamedThenNamed          = {33's32, y: 44's32}
+    let unnamedThenNamed = {33's32, y: 44's32}
     let {y: fourth, item0: third} = unnamedThenNamed
     Swag.assert(third == 33)
     Swag.assert(fourth == 44)
@@ -259,7 +259,7 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
         let {nc, nm} = {n[start], n[start + 1]}
         start += 2
 
-        if !nc
+        if not nc
         {
             var sum: u32
             for i in nm do

@@ -64,7 +64,7 @@ impl RefCountedRuntime
     func countSlice(value: const [..] u8)->u64 { return value.count }
 
     const data: [6] u8 = [0, 0, 0, 0, 0, 0]
-    const V0           = #run countSlice(cast(const [..] u8) data)
+    const V0 = #run countSlice(cast(const [..] u8) data)
     #assert(V0 == 6'u64)
 }
 
@@ -159,16 +159,16 @@ impl RefCountedRuntime
 {
     func countStringRef()->u64
     {
-        var text             = "hello"
+        var text = "hello"
         var textRef: *string = &text
         return (textRef[]).count
     }
 
     func loopStringRef()->u64
     {
-        var text                   = "hello"
+        var text         = "hello"
         let textRef: const *string = &text
-        var count:   u64           = 0
+        var count:   u64 = 0
         for textRef[] do
             count += 1
         return count
@@ -215,7 +215,7 @@ impl RefCountedRuntime
         var arrayRef: *[2, 3] u8 = &array
 
         var flat:     [6] u8         = [1, 2, 3, 4, 5, 6]
-        let slice                    = cast([..] u8) flat
+        let slice = cast([..] u8) flat
         let sliceRef: const *[..] u8 = &slice
         return (arrayRef[]).count + (sliceRef[]).count
     }

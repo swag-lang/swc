@@ -72,7 +72,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
 
     let original = data
     expect Crypto.chacha20Xor(key, nonce, data, data, 1)
-    Swag.assert(!sameChaChaBytes(data, original))
+    Swag.assert(not sameChaChaBytes(data, original))
 
     // Each block of the result is the matching key-stream block folded into the input, so the
     // counter advances by exactly one block and never repeats one.

@@ -107,7 +107,7 @@ func readMask(mask: u32)->Mask
     while cur and (cur & 1) == 0
     {
         result.shift += 1
-        cur          >>= 1
+        cur >>= 1
     }
 
     while cur and (cur & 1)
@@ -121,7 +121,7 @@ func readMask(mask: u32)->Mask
 
 func maskToByte(pixel: u32, mask: Mask)->u8
 {
-    if !mask.value or !mask.bits do
+    if not mask.value or not mask.bits do
         return 0
 
     let value = cast(u64) ((pixel & mask.value) >> cast(u32) mask.shift)
@@ -197,7 +197,7 @@ internal impl IImageDecoder for Decoder
         {
             checkBuffer(dataof, last, #sizeof(CoreHeader))
             let ch = cast(const *CoreHeader) dataof
-            dataof           += #sizeof(CoreHeader)
+            dataof += #sizeof(CoreHeader)
             paletteEntrySize = 3
 
             bh.biSize        = ch.bcSize
@@ -248,7 +248,7 @@ internal impl IImageDecoder for Decoder
             else do
                 fail InvalidFormatError{"invalid source buffer"}
 
-            if !masks.r.value or !masks.g.value or !masks.b.value do
+            if not masks.r.value or not masks.g.value or not masks.b.value do
                 fail InvalidFormatError{"invalid bit masks"}
         }
 
@@ -258,8 +258,8 @@ internal impl IImageDecoder for Decoder
         switch bh.biBitCount
         {
         case 1, 4, 8, 16, 24: result.init(bh.biWidth, height, PixelFormat.BGR8)
-        case 32:              result.init(bh.biWidth, height, PixelFormat.BGRA8)
-        default:              fail UnsupportedFormatError{"unsupported bit count"}
+        case 32: result.init(bh.biWidth, height, PixelFormat.BGRA8)
+        default: fail UnsupportedFormatError{"unsupported bit count"}
         }
 
         if bh.biCompression == BI_RLE8 and bh.biBitCount != 8 do
@@ -285,7 +285,7 @@ internal impl IImageDecoder for Decoder
         if pixelData < dataof do
             fail InvalidFormatError{"invalid source buffer"}
 
-        if !options.decodePixels do
+        if not options.decodePixels do
             return result
         result.allocPixels()
 

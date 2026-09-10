@@ -148,7 +148,7 @@ impl Properties
         let s = strings()
         switch text
         {
-        case "Debug":                                                        return s.prop_CategoryDebug
+        case "Debug": return s.prop_CategoryDebug
         case "Show Clip Rect":                                               return s.prop_ShowClipRect
         case "Display an overlay of the current drawing clipping rectangle": return s.prop_ShowClipRectDesc
         case "Show Layout Rects":                                            return s.prop_ShowLayoutRects

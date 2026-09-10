@@ -36,8 +36,8 @@ impl IValue for Counter
 #test
 {
     var c: Counter = {label: "hits", count: 0}
-    var n          = cast(IName) c
-    var v          = cast(IValue) c
+    var n = cast(IName) c
+    var v = cast(IValue) c
 
     Swag.assert(n.getName() == "hits")
     Swag.assert(v.getValue() == 0)

@@ -68,5 +68,5 @@ This provides a natural, object-oriented style of method invocation.
     Swag.assert(R.isRedOrBlue())
 
     // Verify that `G` is not recognized as red or blue
-    Swag.assert(!G.isRedOrBlue())
+    Swag.assert(not G.isRedOrBlue())
 }

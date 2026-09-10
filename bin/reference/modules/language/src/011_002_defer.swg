@@ -100,7 +100,7 @@ release logic stay close together and cleanup always happens.
             break     // Defer ensures cleanup even on early exit.
     }
 
-    Swag.assert(!resource.isResourceCreated())
+    Swag.assert(not resource.isResourceCreated())
 }
 
 /**
@@ -124,7 +124,7 @@ to errors. This pattern creates robust, error-resilient code.
         var resource = createResource()
         defer releaseResource(&resource)     // Always release resource.
 
-        if !resource.isResourceCreated()
+        if not resource.isResourceCreated()
         {
             // Early return still triggers defer.
             return false

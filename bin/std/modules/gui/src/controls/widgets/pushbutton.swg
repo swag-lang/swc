@@ -217,7 +217,7 @@ impl IWnd for PushButton
         // The bold weight is what makes a filled button the primary action of the surface.
         // A button that cannot be pressed is the primary action of nothing, and kept bold it
         // read as a lighter grey than the plain button beside it, in the same disabled state.
-        if form == .Strong and !bc.isDisabled do
+        if form == .Strong and not bc.isDisabled do
             format.fontStyle = .Bold
         var labelPos = clientRect
         labelPos.inflate(-metrics.btnPush_Padding)
@@ -309,7 +309,7 @@ impl PushButton
             return .form
 
         let srf = .surface
-        if !srf or !srf.defaultButton do
+        if not srf or not srf.defaultButton do
             return .form
 
         var dominant = srf.defaultButton!

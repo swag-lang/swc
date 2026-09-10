@@ -56,9 +56,9 @@ using Core, Pixel, Gui
     Swag.assert(revealed)
     Swag.assert(view.searchRow == 2 and view.searchColumn == 2 and view.searchOffset == 0 and view.searchLength == 5)
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
+    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and not bounds.isEmpty())
     result.clearSearch!(result.view!)
-    Swag.assert(!result.searchBounds!(result.view!, matches[0], &bounds))
+    Swag.assert(not result.searchBounds!(result.view!, matches[0], &bounds))
 }
 
 #test

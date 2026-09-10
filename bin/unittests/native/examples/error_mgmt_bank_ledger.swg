@@ -20,8 +20,8 @@ struct BankError
 {
     using base: Swag.BaseError
     kind:       BankErrorKind = BankErrorKind.None
-    account:    s32           = -1
-    amount:     s64           = 0
+    account:    s32 = -1
+    amount:     s64 = 0
 }
 
 struct Account
@@ -146,7 +146,7 @@ impl Ledger
         defer #fail
         {
             .accounts[from].balance += amount
-            .rolledBack             += 1
+            .rolledBack += 1
         }
 
         // Commit counter only moves when the whole transfer runs to the end.

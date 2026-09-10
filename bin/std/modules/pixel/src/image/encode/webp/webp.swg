@@ -339,7 +339,7 @@ internal impl IImageEncoder for Encoder
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {
-        if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
+        if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
             fail InvalidFormatError{"WebP encoder needs a non-empty image"}
         if image.width > WEBP_ENCODE_MAX_DIMENSION or image.height > WEBP_ENCODE_MAX_DIMENSION do
             fail UnsupportedFormatError{"WebP lossless dimensions cannot exceed 16384 pixels"}

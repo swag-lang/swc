@@ -16,7 +16,7 @@ var DropCount:     u32 = 0
 var DropTrace:     s64 = 0
 var PostCopyCount: u32 = 0
 var PostMoveCount: u32 = 0
-var g_pick             = false
+var g_pick = false
 
 func resetHooks()
 {

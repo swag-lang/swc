@@ -40,7 +40,7 @@ impl IUndoCommand for IncCommand
     mgr.undo()
     Swag.assert(g_undoCounter == 5 and mgr.canUndo() and mgr.canRedo())
     mgr.undo()
-    Swag.assert(g_undoCounter == 0 and !mgr.canUndo())
+    Swag.assert(g_undoCounter == 0 and not mgr.canUndo())
 
     mgr.redo()
     Swag.assert(g_undoCounter == 5)
@@ -48,7 +48,7 @@ impl IUndoCommand for IncCommand
     // A new push after an undo truncates the redo tail.
     mgr.undo()     // -> 0
     mgr.push(IncCommand{10})
-    Swag.assert(g_undoCounter == 10 and mgr.count() == 1 and !mgr.canRedo())
+    Swag.assert(g_undoCounter == 10 and mgr.count() == 1 and not mgr.canRedo())
 }
 
 // Commands sharing a serial are undone/redone together as one step.
@@ -67,9 +67,9 @@ impl IUndoCommand for IncCommand
     Swag.assert(g_undoCounter == 3 and mgr.count() == 2)
 
     mgr.undo()     // both revert in one step
-    Swag.assert(g_undoCounter == 0 and !mgr.canUndo())
+    Swag.assert(g_undoCounter == 0 and not mgr.canUndo())
     mgr.redo()     // both re-apply in one step
-    Swag.assert(g_undoCounter == 3 and !mgr.canRedo())
+    Swag.assert(g_undoCounter == 3 and not mgr.canRedo())
 }
 
 // clear() drops the whole history.
@@ -83,5 +83,5 @@ impl IUndoCommand for IncCommand
     Swag.assert(mgr.count() == 2)
 
     mgr.clear()
-    Swag.assert(mgr.count() == 0 and !mgr.canUndo() and !mgr.canRedo())
+    Swag.assert(mgr.count() == 0 and not mgr.canUndo() and not mgr.canRedo())
 }

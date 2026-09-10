@@ -151,7 +151,7 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64
     let sound = reader.audioTrack(0)!
     Swag.assert(sound.sampleEncoding() == .AacLc)
     Swag.assert(sound.sampleRateHz() == 44_100 and sound.numChannels() == 2)
-    Swag.assert(sound.packetCount() >= 18 and !sound.isDataPreloaded())
+    Swag.assert(sound.packetCount() >= 18 and not sound.isDataPreloaded())
     Swag.assert(Math.isEqualEpsilon(reader.frameTimestamp(5), 0.2, 0.000001))
     Swag.assert(reader.frameAtTime(0.219) == 5)
 }

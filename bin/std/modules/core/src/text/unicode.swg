@@ -122,7 +122,7 @@ public
         if res.foundMapping do
             return res.mappedRune
         res = caseChangeTo(WantedCase.LowerCase, c, TableCaseRanges)
-        if !res.foundMapping do
+        if not res.foundMapping do
             return c
         return res.mappedRune
     }
@@ -137,7 +137,7 @@ public
         if res.foundMapping do
             return res.mappedRune
         res = caseChangeTo(WantedCase.UpperCase, c, TableCaseRanges)
-        if !res.foundMapping do
+        if not res.foundMapping do
             return c
 
         return res.mappedRune
@@ -153,7 +153,7 @@ public
         if res.foundMapping do
             return res.mappedRune
         res = caseChangeTo(WantedCase.TitleCase, c, TableCaseRanges)
-        if !res.foundMapping do
+        if not res.foundMapping do
             return c
 
         return res.mappedRune

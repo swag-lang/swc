@@ -45,8 +45,8 @@ private struct GraphicsState
     //
     // These are what a document sets a watermark, an overlay, and a feathered shadow with. A mark
     // painted without them arrives at full strength over what it was meant to let through.
-    fillAlpha:   f32          = 1
-    strokeAlpha: f32          = 1
+    fillAlpha:   f32 = 1
+    strokeAlpha: f32 = 1
     blend:       BlendingMode = .Alpha
     softMask:    SoftMaskRef
 
@@ -69,7 +69,7 @@ impl GraphicsState
     // Narrows the clip to `rect`, which is what nesting a clip inside another means.
     mtd intersectClip(rect: Math.Rectangle)
     {
-        if !.hasClip
+        if not .hasClip
         {
             .clip    = rect
             .hasClip = true
@@ -186,7 +186,7 @@ private func operandInteger(parser: *PdfParser, operands: const [..] ContentOper
     let operand = operands[index]
     if operand.node == InvalidNode
     {
-        if operand.number != Math.trunc(operand.number) or !Math.isFinite(operand.number) do
+        if operand.number != Math.trunc(operand.number) or not Math.isFinite(operand.number) do
             return result
         result.value = cast(s64) operand.number
         result.found = true
@@ -262,12 +262,12 @@ private func isAxisAlignedRectangle(path: const *LinePathList)->bool
         if elem.type != .Line or count >= corners.count do
             return false
         corners[count] = elem.position
-        count          += 1
+        count += 1
     }
 
     if count == 5
     {
-        if !corners[4].isEqualEpsilon(corners[0], RectangleEpsilon) do
+        if not corners[4].isEqualEpsilon(corners[0], RectangleEpsilon) do
             return false
         count = 4
     }
@@ -301,10 +301,10 @@ private func clipFillType(evenOdd: bool)->Clipper.PolyFillType => evenOdd ? Clip
 // inside another intersects with it.
 private func applyPendingClip(page: *Page, state: *GraphicsState, path: *LinePathList, evenOdd: bool, pending: *bool, decode: PageDecode)
 {
-    if !pending[] do
+    if not pending[] do
         return
     pending[] = false
-    if decode == .TextOnly or !path.count() do
+    if decode == .TextOnly or not path.count() do
         return
 
     state.intersectClip(path.controlBounds())
@@ -318,7 +318,7 @@ private func applyPendingClip(page: *Page, state: *GraphicsState, path: *LinePat
         return
     }
 
-    let outer               = page.clipPaths[state.clipPath]!
+    let outer = page.clipPaths[state.clipPath]!
     var frame: LinePathList = outer.path
     frame.flatten(.High, ClipIntersectionScale)
     shape.flatten(.High, ClipIntersectionScale)
@@ -328,14 +328,14 @@ private func applyPendingClip(page: *Page, state: *GraphicsState, path: *LinePat
 
 private func appendPathItem(parser: *PdfParser, page: *Page, path: *LinePathList, state: const *GraphicsState, fill, stroke, close: bool, depth: u32, decode: PageDecode, evenOdd = false)
 {
-    if !path.count() do
+    if not path.count() do
         return
 
     // A paint operation whose color space could not be reduced paints nothing rather than a
     // color of this module's own choosing, and a text extraction keeps no path at all.
-    let paintFill   = fill and !state.fillSpace.unsupported
-    let paintStroke = stroke and !state.strokeSpace.unsupported
-    if decode == .TextOnly or (!paintFill and !paintStroke)
+    let paintFill   = fill and not state.fillSpace.unsupported
+    let paintStroke = stroke and not state.strokeSpace.unsupported
+    if decode == .TextOnly or (not paintFill and not paintStroke)
     {
         path.clear()
         return
@@ -412,7 +412,7 @@ private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state
     // an invisible layer over a scanned page stays aligned with what it transcribes.
     let invisible = state.renderMode == 3 or state.renderMode == 7
     let text      = #move (font ? font.decodeText(bytes) : Text.decode(cast(const [..] u8) bytes, .Windows1252))
-    if !invisible and !text.isEmpty()
+    if not invisible and not text.isEmpty()
     {
         var combined = Transform2{state.horizScale, 0, 0, 1, 0, state.rise}
         combined.multiply(state.textMatrix)
@@ -608,7 +608,7 @@ private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *P
 
     let imageId = parser.addNode(#move node)
     var length  = parser.integer(parser.dict(imageId, "Length"), -1)
-    if length < 0 and !parser.streamFilters(imageId).count
+    if length < 0 and not parser.streamFilters(imageId).count
     {
         // Unfiltered samples have a length the dictionary already implies.
         let width   = parser.integer(parser.dict(imageId, "Width"))
@@ -663,21 +663,21 @@ private func blendingMode(name: string)->{ mode: BlendingMode, found: bool }
     switch name
     {
     case "Normal", "Compatible": return {.Alpha, true}
-    case "Multiply":             return {.Multiply, true}
-    case "Screen":               return {.Screen, true}
-    case "Overlay":              return {.Overlay, true}
-    case "Darken":               return {.Darken, true}
-    case "Lighten":              return {.Lighten, true}
-    case "ColorDodge":           return {.ColorDodge, true}
-    case "ColorBurn":            return {.ColorBurn, true}
-    case "HardLight":            return {.HardLight, true}
-    case "SoftLight":            return {.SoftLight, true}
-    case "Difference":           return {.Difference, true}
-    case "Exclusion":            return {.Exclusion, true}
-    case "Hue":                  return {.Hue, true}
-    case "Saturation":           return {.Saturation, true}
-    case "Color":                return {.Color, true}
-    case "Luminosity":           return {.Luminosity, true}
+    case "Multiply":   return {.Multiply, true}
+    case "Screen":     return {.Screen, true}
+    case "Overlay":    return {.Overlay, true}
+    case "Darken":     return {.Darken, true}
+    case "Lighten":    return {.Lighten, true}
+    case "ColorDodge": return {.ColorDodge, true}
+    case "ColorBurn":  return {.ColorBurn, true}
+    case "HardLight":  return {.HardLight, true}
+    case "SoftLight":  return {.SoftLight, true}
+    case "Difference": return {.Difference, true}
+    case "Exclusion":  return {.Exclusion, true}
+    case "Hue":        return {.Hue, true}
+    case "Saturation": return {.Saturation, true}
+    case "Color":      return {.Color, true}
+    case "Luminosity": return {.Luminosity, true}
     }
 
     return {.Alpha, false}
@@ -799,7 +799,7 @@ private func meanCoverage(coverage: const *Image)->f32
     }
 
     let count = cast(u64) coverage.width * cast(u64) coverage.height
-    if !count do
+    if not count do
         return 1
     return cast(f32) total / (cast(f32) count * 255.0)
 }
@@ -812,7 +812,7 @@ private func meanCoverage(coverage: const *Image)->f32
 // stated at.
 private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.Rectangle)
 {
-    if !item.image.isValid() or !coverage.isValid() do
+    if not item.image.isValid() or not coverage.isValid() do
         return
     if item.image.pixelFormat != .RGBA8
     {
@@ -852,11 +852,11 @@ private func maskItem(parser: *PdfParser, page: *Page, mask: const *SoftMaskRef,
 
     item.refreshPaintBounds()
     let region = item.maskRegion()
-    if !region.known do
+    if not region.known do
         return
 
     var coverage = catch softMaskCoverage(group!, region.rect) as coverageError
-    if coverageError != null or !coverage.isValid() do
+    if coverageError != null or not coverage.isValid() do
         return
 
     switch item.kind
@@ -951,7 +951,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         }
 
         let start = content.pos
-        while content.pos < bytes.count and !isDelimiter(bytes[content.pos]) do
+        while content.pos < bytes.count and not isDelimiter(bytes[content.pos]) do
             content.pos += 1
         if content.pos == start
         {
@@ -994,7 +994,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             if ops.count
             {
                 let width = operandNumber(&content, ops, ops.count - 1)
-                if width < 0 or !Math.isFinite(width) do
+                if width < 0 or not Math.isFinite(width) do
                     fail InvalidFormatError{"PDF line width needs a non-negative finite number"}
                 state.strokeWidth = width
             }
@@ -1003,7 +1003,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             if ops.count
             {
                 let cap = operandInteger(&content, ops, ops.count - 1)
-                if !cap.found do
+                if not cap.found do
                     fail InvalidFormatError{"PDF line cap needs an integer from 0 to 2"}
                 switch cap.value
                 {
@@ -1018,7 +1018,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             if ops.count
             {
                 let join = operandInteger(&content, ops, ops.count - 1)
-                if !join.found do
+                if not join.found do
                     fail InvalidFormatError{"PDF line join needs an integer from 0 to 2"}
                 switch join.value
                 {
@@ -1033,7 +1033,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             if ops.count
             {
                 let limit = operandNumber(&content, ops, ops.count - 1)
-                if limit < 1 or !Math.isFinite(limit) do
+                if limit < 1 or not Math.isFinite(limit) do
                     fail InvalidFormatError{"PDF miter limit needs a finite number of at least 1"}
                 state.strokeStyle.miterLimit = limit
             }
@@ -1045,7 +1045,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 let phase   = operandNumber(&content, ops, ops.count - 1)
                 if arrayId == InvalidNode or content.nodes[arrayId].kind != .Array do
                     fail InvalidFormatError{"PDF dash pattern needs an array"}
-                if !Math.isFinite(phase) do
+                if not Math.isFinite(phase) do
                     fail InvalidFormatError{"PDF dash phase needs a finite number"}
 
                 var pattern: Array'f32
@@ -1053,13 +1053,13 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 for valueId in content.nodes[arrayId].values
                 {
                     let value = nodeNumber(&content, valueId)
-                    if value < 0 or !Math.isFinite(value) do
+                    if value < 0 or not Math.isFinite(value) do
                         fail InvalidFormatError{"PDF dash lengths need non-negative finite numbers"}
                     pattern.add(value)
                     hasPositiveLength = hasPositiveLength or value > 0
                 }
 
-                if pattern.count and !hasPositiveLength do
+                if pattern.count and not hasPositiveLength do
                     fail InvalidFormatError{"PDF dash pattern needs a positive length"}
                 if pattern.count & 1
                 {
@@ -1459,7 +1459,7 @@ internal func pageBox(parser: *PdfParser, pageId, inheritedMediaBox, inheritedCr
             result.box = cropped
     }
 
-    if result.box.width <= 0 or result.box.height <= 0 or !Math.isFinite(result.box.width) or !Math.isFinite(result.box.height) do
+    if result.box.width <= 0 or result.box.height <= 0 or not Math.isFinite(result.box.width) or not Math.isFinite(result.box.height) do
         fail InvalidFormatError{"PDF page has invalid dimensions"}
 
     result.rotate = ((rotate % 360) + 360) % 360
@@ -1597,7 +1597,7 @@ internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Arr
     // The file's own cross-reference chain says where every object is, so opening costs the
     // chain and the page tree rather than the whole file. A chain that is missing or damaged
     // falls back to the scan, which is the only thing that can read such a file at all.
-    if !parser.readXrefChain() do
+    if not parser.readXrefChain() do
         try parser.scanObjects()
 
     // The trailer names the catalog and the metadata; searching for them is the fallback for a
@@ -1657,13 +1657,13 @@ internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Arr
     if pageTree == InvalidNode do
         fail InvalidFormatError{"PDF page tree is missing"}
     try collectPages(parser, pages, pageTree, InvalidNode, InvalidNode, InvalidNode, 0, 0)
-    if !pages.count do
+    if not pages.count do
         fail InvalidFormatError{"PDF document has no pages"}
 }
 
 func decodeDocument(bytes: const [..] u8)->Document fail
 {
-    var parser          = PdfParser{bytes: bytes}
+    var parser = PdfParser{bytes: bytes}
     var sources: Array'PageSource
     var result:  retval = Document.create()
     try indexDocument(&parser, &result.metadata, &sources)

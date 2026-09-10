@@ -84,11 +84,11 @@ public impl Image
     // Fails if the image is invalid or no encoder accepts the extension.
     mtd const encode(fileName: string, options: any? = null)->ConcatBuffer fail
     {
-        if !.pixels.buffer do
+        if not .pixels.buffer do
             fail InvalidFormatError{"invalid image"}
 
         let found = getEncoder(fileName)
-        if !found do
+        if not found do
             fail UnsupportedFormatError{"no matching image encoder"}
 
         // Codec code may register more encoders and relocate the registry.

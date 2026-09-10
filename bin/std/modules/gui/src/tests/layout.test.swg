@@ -27,7 +27,7 @@ using Swag, Core
 #test
 {
     var rootResizeCount: u32
-    var host:            Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(520, 100)
     defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 500, 80})

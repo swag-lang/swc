@@ -25,7 +25,7 @@ struct StackLayoutCtrl
         using wnd: Wnd     // Embedded wnd state.
 
         mode:         StackLayoutMode = Top     // Direction and distribution policy.
-        spacing:      f32             = 5       // Gap between adjacent children.
+        spacing:      f32 = 5                   // Gap between adjacent children.
         fitToContent: bool                      // Whether the control resizes along the stacking axis to its content.
     }
 }
@@ -64,7 +64,7 @@ impl IWnd for StackLayoutCtrl
         var count:       u64
         for c in .children
         {
-            if !c.isLocallyVisible() do
+            if not c.isLocallyVisible() do
                 continue
 
             let margin = c.layoutMargin()
@@ -74,7 +74,7 @@ impl IWnd for StackLayoutCtrl
             count += 1
         }
 
-        if !count do
+        if not count do
             return {}
 
         main += cast(f32) (count - 1) * .spacing
@@ -244,7 +244,7 @@ private impl StackLayoutCtrl
         var oldSizes: Array'Math.Point
         for c in .children
         {
-            if !c.isLocallyVisible() do
+            if not c.isLocallyVisible() do
                 continue
             visible.add(c)
             hints.add(c.measure({client.width, client.height}))
@@ -275,7 +275,7 @@ private impl StackLayoutCtrl
             if pol == SizePolicy.Expand or .isFitMain()
             {
                 var itemWeight = 1'f32
-                if !.isFitMain() do
+                if not .isFitMain() do
                     itemWeight = .mainWeight(c)
                 totalWeight += itemWeight
             }
@@ -344,7 +344,7 @@ private impl StackLayoutCtrl
             let crossAvailable = Math.max(availableCross - .crossMargin(margin), 0)
             let polCross       = .crossPolicy(c)
             let align          = .isHorizontal() ? c.layoutSpec.alignY : c.layoutSpec.alignX
-            if (!.isCenteringMain() and align == LayoutAlign.Stretch) or polCross == SizePolicy.Expand do
+            if (not .isCenteringMain() and align == LayoutAlign.Stretch) or polCross == SizePolicy.Expand do
                 crossSize = crossAvailable
             else do
                 crossSize = .preferredCross(hint)

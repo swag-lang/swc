@@ -16,8 +16,8 @@ struct Texture
     {
         handle:      TextureHandle = InvalidTextureHandle     // Renderer-specific resource handle.
         pixelFormat: PixelFormat                              // Pixel encoding; alpha formats use straight samples.
-        width:       s32           = 0                        // Width, in texels.
-        height:      s32           = 0                        // Height, in texels.
+        width:       s32 = 0                                  // Width, in texels.
+        height:      s32 = 0                                  // Height, in texels.
     }
 }
 

@@ -99,7 +99,7 @@ public func chacha20Poly1305Open(key, nonce, ciphertext, tag, associatedData: co
 
     var computed = try authenticate(key, nonce, associatedData, ciphertext)
     defer secureClear(computed)
-    if !constantTimeEqual(computed, tag) do
+    if not constantTimeEqual(computed, tag) do
         return false
 
     try chacha20Xor(key, nonce, ciphertext, plaintext, 1)

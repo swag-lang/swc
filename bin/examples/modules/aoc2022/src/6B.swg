@@ -34,7 +34,7 @@ func day6B()
         if i >= LEN
         {
             arr[str[i - LEN]] -= 1
-            len               -= cast(s32) (arr[str[i - LEN]] == 0)
+            len -= cast(s32) (arr[str[i - LEN]] == 0)
         }
 
         if len == LEN

@@ -14,7 +14,7 @@ internal struct MidiRollView
 {
     using wnd: Wnd
 
-        late
+    late
     {
         scroll:    *ScrollWnd
         titleFont: *Font
@@ -24,7 +24,7 @@ internal struct MidiRollView
 
     document:       MidiDocument
     selectedTrack        = Swag.U32.Max
-    zoom                 = 1'f32
+    zoom = 1'f32
     fit:            bool = true
     lowKey:         u8
     highKey:        u8
@@ -104,7 +104,7 @@ internal func midiMeterText(document: const *MidiDocument)->String
 
 internal func midiKeyText(document: const *MidiDocument)->String
 {
-    if !document.keySignatures.count do
+    if not document.keySignatures.count do
         return Format.toString("C %", midiStrings().ui_Major)
     let key = &document.keySignatures[0]
     return Format.toString("% %", midiViewKeyName(key.sharps), key.minor ? midiStrings().ui_Minor : midiStrings().ui_Major)
@@ -112,7 +112,7 @@ internal func midiKeyText(document: const *MidiDocument)->String
 
 internal func midiBpm(document: const *MidiDocument)->u32
 {
-    if !document.tempos.count or !document.tempos[0].microsPerQuarter do
+    if not document.tempos.count or not document.tempos[0].microsPerQuarter do
         return 120
     return 60_000_000'u32 / document.tempos[0].microsPerQuarter
 }

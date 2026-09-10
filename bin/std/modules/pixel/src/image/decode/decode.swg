@@ -152,10 +152,10 @@ public impl Image
     // Decode the given image buffer
     func decode(fileName: string, bytes: const [..] u8?, options: DecodeOptions = {})->Image fail
     {
-        if !bytes do
+        if not bytes do
             fail InvalidFormatError{"invalid image buffer"}
         let found = getDecoder(fileName)
-        if !found do
+        if not found do
             fail UnsupportedFormatError{"no matching image decoder"}
 
         // Both the metadata probe and decoding may register more codec types.
@@ -166,7 +166,7 @@ public impl Image
     func load(fileName: string, options: DecodeOptions = {})->Image fail
     {
         let found = getDecoder(fileName)
-        if !found do
+        if not found do
             fail UnsupportedFormatError{"no matching image decoder"}
         var file = File.MappedFile.open(fileName)
         if options.maxInputBytes and file.size() > options.maxInputBytes do
@@ -185,7 +185,7 @@ public impl Image
     // `UnsupportedFormatError`; a malformed payload reports the codec's own failure.
     func fromDataUri(uri: string, options: DecodeOptions = {})->Image fail
     {
-        if !Utf8.startsWith(uri, "data:image/") do
+        if not Utf8.startsWith(uri, "data:image/") do
             fail UnsupportedFormatError{"not an image data URI"}
 
         let marker = Utf8.indexOf(uri, ";base64,")

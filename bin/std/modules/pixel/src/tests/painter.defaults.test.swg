@@ -9,7 +9,7 @@ using Swag, Core
     Swag.assert(painter.params().has(.Antialiased))
 
     painter.setAntialiased(false)
-    Swag.assert(!painter.params().has(.Antialiased))
+    Swag.assert(not painter.params().has(.Antialiased))
 
     painter.setAntialiased()
     Swag.assert(painter.params().has(.Antialiased))

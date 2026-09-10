@@ -144,7 +144,7 @@ Element iteration works with multi-dimensional arrays and visits each element in
 #test
 {
     var array: [2, 2] s32 = [[10, 20], [30, 40]]
-    var result            = 0
+    var result = 0
     for it in array do
         result += it
     Swag.assert(result == 10 + 20 + 30 + 40)
@@ -166,7 +166,7 @@ Use '&' when the loop must write.
     }
 
     var points: [2] Point = [{1, 2}, {3, 4}]
-    var sum               = 0
+    var sum = 0
 
     for p in points
     {
@@ -188,7 +188,7 @@ binding; the whole element is read or written with '[]'.
 #test
 {
     var array: [2, 2] s32 = [[1, 2], [3, 4]]
-    var result            = 0
+    var result = 0
 
     for &it in array
     {

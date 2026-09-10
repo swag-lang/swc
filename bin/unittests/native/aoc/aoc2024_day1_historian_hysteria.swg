@@ -156,7 +156,7 @@ func computeDistanceFromFrequencies(leftFreq, rightFreq: [..] u32, pairCount: u3
 
         Swag.assert(leftValue < limit)
         Swag.assert(rightValue < limit)
-        result                += cast(u64) distanceBetween(leftValue, rightValue)
+        result += cast(u64) distanceBetween(leftValue, rightValue)
         leftFreq[leftValue]   -= 1
         rightFreq[rightValue] -= 1
     }
@@ -206,7 +206,7 @@ func sortValues(values: [..] u32)
         }
 
         values[insertIndex] = value
-        index               += 1
+        index += 1
     }
 }
 

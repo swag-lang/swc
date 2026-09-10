@@ -10,7 +10,7 @@ namespace InlineCodePayloadDebug
     {
         #static if #safety(what)
         {
-            if !#inject(expr) do
+            if not #inject(expr) do
                 Swag.panic(message, loc)
         }
     }

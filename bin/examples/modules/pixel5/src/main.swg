@@ -208,7 +208,7 @@ func fitTextureRect(bounds: Math.Rectangle, sourceWidth, sourceHeight: f32, angl
 
 func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: TextureCard)
 {
-    if !card.texture.isValid() do
+    if not card.texture.isValid() do
         return
 
     let srcRect      = card.options.sourceRect
@@ -224,7 +224,7 @@ func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: Textur
 
     painter.pushClippingRect(rect)
     painter.setInterpolationMode(card.options.interpolation)
-    if !Math.isZeroEpsilon(card.options.angle.radians)
+    if not Math.isZeroEpsilon(card.options.angle.radians)
     {
         painter.pushTransform()
         painter.rotateTransform(card.options.angle, textureRect.horzCenter(), textureRect.vertCenter())
@@ -319,7 +319,7 @@ func updateShortcuts()
 
 func updateTestMode()
 {
-    if !Env.isSmokeRun() do
+    if not Env.isSmokeRun() do
         return
 
     g_TestFrame += 1

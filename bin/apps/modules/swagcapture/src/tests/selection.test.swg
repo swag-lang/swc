@@ -390,7 +390,7 @@ using Swag, Core
 
     var evt = Gui.Testing.commandState(ActionSelection.Freeze)
     Swag.assert(Gui.Testing.actionUpdate'ActionSelection(f.main, ActionSelection.Freeze, &evt))
-    Swag.assert(!evt.disabled)
+    Swag.assert(not evt.disabled)
 
     f.main.sendCommandEvent(ActionSelection.Freeze)
     Swag.assert(f.main.freezeSel)
@@ -398,7 +398,7 @@ using Swag, Core
 
     // Unfreeze cleanly, then drop the capture entirely.
     f.main.freezeSelection(false)
-    Swag.assert(!f.main.freezeSel)
+    Swag.assert(not f.main.freezeSel)
 
     let old = f.main.editWnd.editView.capture
     f.main.editWnd.editView.capture = null
@@ -410,7 +410,7 @@ using Swag, Core
     Swag.assert(evt.disabled)
 
     f.main.freezeSelection(true)
-    Swag.assert(!f.main.freezeSel)
+    Swag.assert(not f.main.freezeSel)
     Swag.assert(f.main.embInfoFreeze == null)
 }
 
@@ -442,8 +442,8 @@ using Swag, Core
     Swag.assert(f.capture.snapY == 300)
 
     f.main.snap = false
-    nx          = -42
-    ny          = -42
+    nx = -42
+    ny = -42
     f.capture.snap(&nx, &ny, false, false, editForm: moving)
     Swag.assert(nx == -42)
     Swag.assert(ny == -42)

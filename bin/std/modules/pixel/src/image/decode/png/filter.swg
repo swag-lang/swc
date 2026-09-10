@@ -62,7 +62,7 @@ func defilterUpRow(source, previous: const [*] u8, destination: [*] u8, count: u
     while offset < count
     {
         destination[offset] = cast #bit(u8) (source[offset] + #wrap previous[offset])
-        offset              += 1
+        offset += 1
     }
 }
 
@@ -185,7 +185,7 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
     while offset < bytesPerPixel and offset < count
     {
         destination[offset] = source[offset]
-        offset              += 1
+        offset += 1
     }
 
     switch bytesPerPixel
@@ -217,6 +217,7 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
         }
 
     case 3:
+
         // The prefix sum with strides three, six, and twelve reaches back twenty-one
         // bytes, so fifteen bytes — five whole pixels — resolve per step; the sixteenth
         // stored byte is a partial sum the next step or the scalar tail rewrites.
@@ -259,7 +260,7 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
     while offset < count
     {
         destination[offset] = cast #bit(u8) (source[offset] + #wrap destination[offset - bytesPerPixel])
-        offset              += 1
+        offset += 1
     }
 }
 
@@ -347,7 +348,7 @@ func defilterAverageRow(source, previous: const [*] u8, destination: [*] u8, cou
         let left    = offset >= bytesPerPixel ? destination[offset - bytesPerPixel] : 0'u8
         let average = cast(u8) ((cast(u16) previous[offset] + left) >> 1)
         destination[offset] = cast #bit(u8) (source[offset] + #wrap average)
-        offset              += 1
+        offset += 1
     }
 }
 
@@ -379,7 +380,7 @@ func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count
         let upLeft    = offset >= bytesPerPixel ? previous[offset - bytesPerPixel] : 0'u8
         let predictor = filterPaeth(left, previous[offset], upLeft)
         destination[offset] = cast #bit(u8) (source[offset] + #wrap predictor)
-        offset              += 1
+        offset += 1
     }
 }
 
@@ -445,7 +446,7 @@ impl Decoder
 
         var src  = input
         var dest = output
-        if !.orderDefilter do
+        if not .orderDefilter do
             dest += rowStrideOut * (height - 1)
 
         // A temporary line "before" the first one, if filter needs one
@@ -461,7 +462,7 @@ impl Decoder
         // samples (bit depths below 8) have an effective byte offset of 1, not
         // the number of channels; otherwise narrow Adam7 passes underflow here.
         let filterOffset = .header.bitDepth < 8 ? 1'u64 : cast(u64) .inChannels * (.header.bitDepth / 8)
-        var row          = 0'u32
+        var row = 0'u32
         while row < height
         {
             let filter = cast(RowFilter) src[0]

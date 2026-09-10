@@ -112,7 +112,7 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
 
     // Palette (for indexed images): one BGRA quad per entry
     var paletteCount = dib.clrUsed
-    if !paletteCount and dib.bitCount <= 8 do
+    if not paletteCount and dib.bitCount <= 8 do
         paletteCount = 1'u32 << cast(u32) dib.bitCount
 
     let palette = src
@@ -151,7 +151,7 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
                 }
             }
 
-            if !useAndMaskFor32 do
+            if not useAndMaskFor32 do
                 break
         }
     }
@@ -238,7 +238,7 @@ impl Decoder
             let entry = (base + #sizeof(IconDir) + cast(u64) i * #sizeof(IconDirEntry))[as IconDirEntry]
             let area  = cast(u64) dimFromByte(entry.width) * cast(u64) dimFromByte(entry.height)
             let score = (area << 16) + entry.bitCount
-            if !found or score > bestScore
+            if not found or score > bestScore
             {
                 bestScore = score
                 bestEntry = entry
@@ -274,7 +274,7 @@ impl Decoder
         result.init(dib.width, dib.height / 2, PixelFormat.BGRA8)
         options.checkImage(result.width, result.height, result.pixelFormat)
 
-        if !options.decodePixels do
+        if not options.decodePixels do
             return result
 
         result.allocPixels()

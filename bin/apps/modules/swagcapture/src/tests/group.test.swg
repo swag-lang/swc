@@ -15,10 +15,10 @@ using Swag, Core
     let c = testAddShape(f.capture, 40, 0, 10, 10)
 
     f.capture.selection.add(0)
-    Swag.assert(!f.capture.canGroup())
+    Swag.assert(not f.capture.canGroup())
     f.capture.selection.add(1)
     Swag.assert(f.capture.canGroup())
-    Swag.assert(!f.capture.canUngroup())
+    Swag.assert(not f.capture.canUngroup())
 
     f.capture.pushUndo(f.capture.newUndo(.Group))
     Swag.assert(a.groups.count == 1)

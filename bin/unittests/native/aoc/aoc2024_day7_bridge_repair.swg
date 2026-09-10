@@ -5,7 +5,7 @@
 // and explicit cleanup through defer.
 
 const InitialEquationCapacity = 4'u32
-const MaxOperands             = 16'u32
+const MaxOperands = 16'u32
 
 const SampleInput =
     """190: 10 19
@@ -163,11 +163,11 @@ func parseEquations(text: string)->EquationList
         pos += 1
         skipSpaces(bytes, &pos)
 
-        while pos < bytes.count and !isLineBreak(bytes[pos])
+        while pos < bytes.count and not isLineBreak(bytes[pos])
         {
             Swag.assert(eq.operandCount < MaxOperands)
             eq.operands[eq.operandCount] = parseU64(bytes, &pos)
-            eq.operandCount              += 1
+            eq.operandCount += 1
             skipSpaces(bytes, &pos)
         }
 

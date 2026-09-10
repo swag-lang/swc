@@ -80,7 +80,7 @@ impl Decoder
     mtd configure(config: const [..] u8) fail
     {
         discard try .readStartCodes(config, null)
-        if !.layer.configured do
+        if not .layer.configured do
             fail InvalidFormatError{"MPEG-4 decoder configuration holds no video object layer"}
     }
 
@@ -97,9 +97,9 @@ impl Decoder
             let body = at + 4
             if code == CodeVop
             {
-                if !header do
+                if not header do
                     return cast(s64) (body * 8)
-                if !.layer.configured do
+                if not .layer.configured do
                     fail InvalidFormatError{"MPEG-4 plane arrived before its layer"}
                 var reader = BitReader.create(bytes[body until bytes.count])
                 try readPlaneHeader(&.layer, &reader, header)
@@ -138,14 +138,14 @@ impl Decoder
             let bitAt = try .readStartCodes(bytes, &header, .sampleAt)
             if bitAt < 0 do
                 return false
-            if !.layer.configured do
+            if not .layer.configured do
                 fail InvalidFormatError{"MPEG-4 sample arrived before its video object layer"}
 
             .sampleAt = (cast(u64) bitAt + 7) / 8
             .allocate()
             let time = .readClock(&header)
 
-            if !header.coded
+            if not header.coded
             {
                 // A plane that codes nothing repeats the one before it, which is what a stream
                 // says when nothing moved. A packed stream also writes one to pad the sample a
@@ -159,7 +159,7 @@ impl Decoder
                     continue
                 }
 
-                if !.anchors do
+                if not .anchors do
                     continue
                 .pictureTime  = time
                 .pictureKind  = 9
@@ -169,7 +169,7 @@ impl Decoder
 
             if header.codingType == VopSprite do
                 fail UnsupportedFormatError{"video decoder does not read MPEG-4 sprite planes"}
-            if header.codingType == VopPredicted and !.anchors do
+            if header.codingType == VopPredicted and not .anchors do
                 continue
             if header.codingType == VopBidirectional and .anchors < 2 do
                 continue
@@ -301,7 +301,7 @@ impl Decoder
         var index = 0'u64
         while index < total
         {
-            if index and !.layer.resyncDisabled
+            if index and not .layer.resyncDisabled
             {
                 let after = .findResyncMarker(reader, &active)
                 if after >= 0
@@ -388,7 +388,7 @@ impl Decoder
         index[] = number
 
         .quant = reader.read(.layer.quantPrecision)
-        if !.quant do
+        if not .quant do
             fail InvalidFormatError{"MPEG-4 video packet states a zero quantiser"}
         header.quant = .quant
 
@@ -432,7 +432,7 @@ impl Decoder
         if header.codingType == VopPredicted and reader.read(1) != 0 do
             coded = false
 
-        if !coded
+        if not coded
         {
             // A macroblock the plane did not code repeats what the reference holds, unmoved.
             .predictMacroblock(mbX, mbY, state, header.rounding)
@@ -447,7 +447,7 @@ impl Decoder
             let tree:   const [..] s16 = header.codingType == VopIntra ? McbpcITree : McbpcPTree
             let types:  const [..] u8  = header.codingType == VopIntra ? McbpcIType : McbpcPType
             let chroma: const [..] u8  = header.codingType == VopIntra ? McbpcICbpc : McbpcPCbpc
-            let entry                  = reader.decode(tree)
+            let entry = reader.decode(tree)
             if entry < 0 do
                 fail InvalidFormatError{"MPEG-4 macroblock states no coded block pattern"}
             mbType = cast(u32) types[cast(u64) entry]
@@ -478,14 +478,14 @@ impl Decoder
         state.intra = intra
         state.coded = true
 
-        if !intra
+        if not intra
         {
             let count = mbType == TypeInter4V ? 4'u64 : 1'u64
             for index in count
             {
                 var vector: Vector
                 let predicted = .predictVector(mbX, mbY, index, mbType == TypeInter4V)
-                if !readVectorDelta(reader, header.fcodeForward, &vector) do
+                if not readVectorDelta(reader, header.fcodeForward, &vector) do
                     fail InvalidFormatError{"MPEG-4 macroblock states no motion vector"}
                 state.vectors[index].x = wrapVector(predicted.x + vector.x, header.fcodeForward)
                 state.vectors[index].y = wrapVector(predicted.y + vector.y, header.fcodeForward)
@@ -525,7 +525,7 @@ impl Decoder
 
         // Each direction predicts from the macroblock before it, and a row starts over: the
         // macroblock at the end of a row is no neighbour of the one that opens the next.
-        if !mbX
+        if not mbX
         {
             .forward  = Vector{}
             .backward = Vector{}
@@ -533,7 +533,7 @@ impl Decoder
 
         // A macroblock the anchor ahead did not code is not coded here either, and the stream
         // spends no bit on it: it takes that macroblock's motion, which was none.
-        if !.coLocated[mbIndex].coded
+        if not .coLocated[mbIndex].coded
         {
             .predictDirect(mbX, mbY, Vector{}, header.rounding)
             return
@@ -576,7 +576,7 @@ impl Decoder
             if kind == TypeDirect
             {
                 // The direct mode states one delta, read as though the code were one.
-                if !readVectorDelta(reader, 1, &delta) do
+                if not readVectorDelta(reader, 1, &delta) do
                     fail InvalidFormatError{"MPEG-4 direct macroblock states no motion vector"}
             }
             else
@@ -586,7 +586,7 @@ impl Decoder
                 if kind == TypeForward or kind == TypeInterpolated
                 {
                     var step: Vector
-                    if !readVectorDelta(reader, header.fcodeForward, &step) do
+                    if not readVectorDelta(reader, header.fcodeForward, &step) do
                         fail InvalidFormatError{"MPEG-4 macroblock states no forward vector"}
                     .forward.x = wrapVector(.forward.x + step.x, header.fcodeForward)
                     .forward.y = wrapVector(.forward.y + step.y, header.fcodeForward)
@@ -596,7 +596,7 @@ impl Decoder
                 if kind == TypeBackward or kind == TypeInterpolated
                 {
                     var step: Vector
-                    if !readVectorDelta(reader, header.fcodeBackward, &step) do
+                    if not readVectorDelta(reader, header.fcodeBackward, &step) do
                         fail InvalidFormatError{"MPEG-4 macroblock states no backward vector"}
                     .backward.x = wrapVector(.backward.x + step.x, header.fcodeBackward)
                     .backward.y = wrapVector(.backward.y + step.y, header.fcodeBackward)
@@ -652,12 +652,12 @@ impl Decoder
         for block in 4'u64
         {
             var mv: Vector
-            if !source.intra do
+            if not source.intra do
                 mv = source.vectors[block]
             forward[block].x  = cast(s32) ((trb * cast(s64) mv.x) / trd) + delta.x
             forward[block].y  = cast(s32) ((trb * cast(s64) mv.y) / trd) + delta.y
-            backward[block].x = !delta.x ? cast(s32) (((trb - trd) * cast(s64) mv.x) / trd) : forward[block].x - mv.x
-            backward[block].y = !delta.y ? cast(s32) (((trb - trd) * cast(s64) mv.y) / trd) : forward[block].y - mv.y
+            backward[block].x = not delta.x ? cast(s32) (((trb - trd) * cast(s64) mv.x) / trd) : forward[block].x - mv.x
+            backward[block].y = not delta.y ? cast(s32) (((trb - trd) * cast(s64) mv.y) / trd) : forward[block].y - mv.y
         }
 
         .predictFrom(&.anchorOld, mbX, mbY, forward, rounding, false)
@@ -735,7 +735,7 @@ impl Decoder
             switch block
             {
             case 0:
-                if !slot
+                if not slot
                 {
                     nx    -= 1
                     which = 1
@@ -753,7 +753,7 @@ impl Decoder
                 }
 
             case 1:
-                if !slot
+                if not slot
                 {
                     which = 0
                 }
@@ -770,7 +770,7 @@ impl Decoder
                 }
 
             case 2:
-                if !slot
+                if not slot
                 {
                     nx    -= 1
                     which = 3
@@ -785,7 +785,7 @@ impl Decoder
                 }
 
             default:
-                if !slot
+                if not slot
                 {
                     which = 2
                 }
@@ -827,7 +827,7 @@ impl Decoder
         for slot in 3'u64 where valid[slot] do
             count += 1
 
-        if !count do
+        if not count do
             return Vector{}
         if count == 1
         {
@@ -835,7 +835,7 @@ impl Decoder
                 return candidates[slot]
         }
 
-        for slot in 3'u64 where !valid[slot] do
+        for slot in 3'u64 where not valid[slot] do
             candidates[slot] = Vector{}
 
         var result: retval
@@ -847,7 +847,7 @@ impl Decoder
     // Fills one macroblock of the current picture from the reference it points at.
     mtd predictMacroblock(mbX, mbY: s32, state: const *MacroblockState, rounding: u32)
     {
-        if !.anchors do
+        if not .anchors do
             return
 
         let lumaAt   = .anchorNew.lumaOrigin()
@@ -864,10 +864,10 @@ impl Decoder
         }
 
         var vectors: [4] Vector = state.vectors
-        let chroma              = chromaVector(vectors)
-        let cx                  = mbX * 8
-        let cy                  = mbY * 8
-        let target              = .current.chromaOrigin() + cast(u64) cast(s64) (cast(s64) cy * cast(s64) .current.strideChroma + cast(s64) cx)
+        let chroma = chromaVector(vectors)
+        let cx     = mbX * 8
+        let cy     = mbY * 8
+        let target = .current.chromaOrigin() + cast(u64) cast(s64) (cast(s64) cy * cast(s64) .current.strideChroma + cast(s64) cx)
         compensate(.current.chromaB.buffer! + target, .current.strideChroma, .anchorNew.chromaB.buffer!, chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
         compensate(.current.chromaR.buffer! + target, .current.strideChroma, .anchorNew.chromaR.buffer!, chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
     }
@@ -927,7 +927,7 @@ impl Decoder
             {
                 let tree:  const [..] s16 = isLuma ? DcLumaTree : DcChromaTree
                 let sizes: const [..] u8  = isLuma ? DcLumaSize : DcChromaSize
-                let entry                 = reader.decode(tree)
+                let entry = reader.decode(tree)
                 if entry < 0 do
                     fail InvalidFormatError{"MPEG-4 intra block states no direct-current width"}
                 let size = cast(u32) sizes[cast(u64) entry]
@@ -945,13 +945,13 @@ impl Decoder
 
         if coded
         {
-            let scan: const [..] u8 = !intra or !acPred ? ScanZigzag
+            let scan: const [..] u8 = not intra or not acPred ? ScanZigzag
                                       : (fromAbove ? ScanAlternateHorizontal : ScanAlternateVertical)
             var at = intra and usesDcCode(header.intraDcThreshold, .quant) ? 1'u64 : 0'u64
             for 64'u32
             {
                 var event: Coefficient
-                if !readCoefficient(reader, !intra, &event) do
+                if not readCoefficient(reader, not intra, &event) do
                     fail InvalidFormatError{"MPEG-4 block states an unknown coefficient"}
                 at += cast(u64) event.run
                 if at >= 64 do
@@ -1010,7 +1010,7 @@ impl Decoder
             }
         }
 
-        if !coded and !intra do
+        if not coded and not intra do
             return
 
         if intra do

@@ -11,7 +11,7 @@ var SigArrayTestTrace: String
 {
     var signal: SigArray'func||()
     SigArrayTestTotal = 0
-    signal            += func() { SigArrayTestTotal += 1 }
+    signal += func() { SigArrayTestTotal += 1 }
     signal.call()
     Swag.assert(SigArrayTestTotal == 1)
     signal.disable()
@@ -36,7 +36,7 @@ func sigArrayTestAddDelta(value: *s32, delta: s32)
 
 func sigArrayTestAppendA(value: *s32)
 {
-    value[]           += 1
+    value[] += 1
     SigArrayTestTrace += "A"
 }
 
@@ -47,7 +47,7 @@ func sigArrayTestAppendA(value: *s32)
 
     signal += &sigArrayTestAdd
     signal += func(value: *s32) { discard value; SigArrayTestTotal += 10 }
-    Swag.assert(!signal.isEmpty())
+    Swag.assert(not signal.isEmpty())
     Swag.assert(signal.count() == 2)
 
     var value = 3
@@ -65,14 +65,14 @@ func sigArrayTestAppendA(value: *s32)
     Swag.assert(signal.isDisabled())
 
     signal.enable()
-    Swag.assert(!signal.isDisabled())
+    Swag.assert(not signal.isDisabled())
     value = 4
     signal.call(&value)
     Swag.assert(SigArrayTestTotal == 22)
 
     signal.clear()
     Swag.assert(signal.isEmpty())
-    Swag.assert(!signal.isDisabled())
+    Swag.assert(not signal.isDisabled())
 }
 
 #test
@@ -97,12 +97,13 @@ func sigArrayTestAppendA(value: *s32)
     signal += &sigArrayTestAppendA
     signal += func(value: *s32)
     {
-        value[]           *= 3
+        value[] *= 3
         SigArrayTestTrace += "B"
     }
+
     signal += func(value: *s32)
     {
-        value[]           -= 2
+        value[] -= 2
         SigArrayTestTrace += "C"
     }
 

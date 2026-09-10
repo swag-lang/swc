@@ -140,7 +140,7 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
             if pos < bytes.count
             {
                 grid[row][col] = bytes[pos]
-                pos            += 1
+                pos += 1
             }
         }
         // Skip line ending
@@ -279,7 +279,7 @@ func solve(text: string)->SolveResult
     key.col[0] = 5; key.col[1] = 0; key.col[2] = 2; key.col[3] = 1; key.col[4] = 3
 
     // col 4: 3+3=6 > 5 → overlap
-    Swag.assert(!lock.fits(key))
+    Swag.assert(not lock.fits(key))
 }
 
 // Heights.eq inline method
@@ -293,7 +293,7 @@ func solve(text: string)->SolveResult
 
     Swag.assert(a.eq(b))
     b.col[3] = 0
-    Swag.assert(!a.eq(b))
+    Swag.assert(not a.eq(b))
 }
 
 // Parse lock from sample
@@ -419,7 +419,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     key.col[0] = 1; key.col[1] = 0; key.col[2] = 0; key.col[3] = 0; key.col[4] = 0
 
     let pair = makeHeightPair(lock, key)
-    Swag.assert(!pair.fit)
+    Swag.assert(not pair.fit)
 }
 
 // parseInit/parseFree (exercises dynamic memory)
@@ -492,7 +492,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     lock.col[0] = 5; lock.col[1] = 5; lock.col[2] = 5; lock.col[3] = 5; lock.col[4] = 5
     var key: Heights
     key.col[0] = 1; key.col[1] = 0; key.col[2] = 0; key.col[3] = 0; key.col[4] = 0
-    Swag.assert(!lock.fits(key))
+    Swag.assert(not lock.fits(key))
 }
 
 // Boundary: exactly MaxHeight in each column → fits
@@ -514,7 +514,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     var key: Heights
     key.col[0] = 2; key.col[1] = 3; key.col[2] = 4; key.col[3] = 5; key.col[4] = 0
     // col 3: 1+5=6 > 5 → overlap
-    Swag.assert(!lock.fits(key))
+    Swag.assert(not lock.fits(key))
 }
 
 // Full solve
@@ -534,13 +534,13 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     let keys  = pr.keys!
 
     // Lock 0 (0,5,3,4,3) vs Key 0 (5,0,2,1,3): overlap col4: 3+3=6
-    Swag.assert(!locks[0].fits(keys[0]))
+    Swag.assert(not locks[0].fits(keys[0]))
     // Lock 0 vs Key 1 (4,3,4,0,2): overlap col1: 5+3=8
-    Swag.assert(!locks[0].fits(keys[1]))
+    Swag.assert(not locks[0].fits(keys[1]))
     // Lock 0 vs Key 2 (3,0,2,0,1): fit
     Swag.assert(locks[0].fits(keys[2]))
     // Lock 1 (1,2,0,5,3) vs Key 0: overlap col0: 1+5=6
-    Swag.assert(!locks[1].fits(keys[0]))
+    Swag.assert(not locks[1].fits(keys[0]))
     // Lock 1 vs Key 1: fit
     Swag.assert(locks[1].fits(keys[1]))
     // Lock 1 vs Key 2: fit
@@ -579,7 +579,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     var key: Heights
     key.col[0] = 2
     // cast(u32) 4 + cast(u32) 2 = 6 > 5 → overlap
-    Swag.assert(!lock.fits(key))
+    Swag.assert(not lock.fits(key))
     key.col[0] = 1
     // cast(u32) 4 + cast(u32) 1 = 5 ≤ 5 → fits
     Swag.assert(lock.fits(key))

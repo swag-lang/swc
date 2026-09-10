@@ -50,13 +50,13 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
     Swag.assert(validateRuntimeInterface(actions[0], cast(const *Swag.TypeInfoStruct) #typeof(UndoAction{}), true))
     Swag.assert(validateRuntimeInterface(actions[1], cast(const *Swag.TypeInfoStruct) #typeof(RedoAction{}), true))
 
-    var local               = UndoAction{}
+    var local = UndoAction{}
     var castAction: IAction = local
     Swag.assert(validateRuntimeInterface(castAction, cast(const *Swag.TypeInfoStruct) #typeof(UndoAction{}), false))
 
     let constPtr: const *UndoAction = &local
-    let constAction                 = Swag.makeInterface(constPtr, UndoAction, IAction)
-    let rawConst                    = cast(const *UndoAction) constAction.buffer
+    let constAction = Swag.makeInterface(constPtr, UndoAction, IAction)
+    let rawConst    = cast(const *UndoAction) constAction.buffer
     #assert(#typeof(constAction) == const IAction)
     Swag.assert(rawConst == constPtr)
 
@@ -66,8 +66,8 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
     Swag.assert(rawFromDeref != null)
 
     let constRef: const *UndoAction = &local
-    let constFromRef                = Swag.makeInterface(constRef, UndoAction, IAction)
-    let rawFromRef                  = cast(const *UndoAction) constFromRef.buffer
+    let constFromRef = Swag.makeInterface(constRef, UndoAction, IAction)
+    let rawFromRef   = cast(const *UndoAction) constFromRef.buffer
     #assert(#typeof(constFromRef) == const IAction)
     Swag.assert(rawFromRef == constPtr)
 

@@ -106,7 +106,7 @@ impl StaticArray
         }
 
         .clear()
-        if !countof do
+        if not countof do
             return
         Swag.assert(countof <= N, "slice is too big")
         var dataof = arr.buffer
@@ -131,7 +131,7 @@ impl StaticArray
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
-        if !.count do
+        if not .count do
             return
 
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
@@ -241,7 +241,7 @@ impl StaticArray
             return
         Swag.assert(.count != N, "the array is full")
         .buffer[.count] = #nodrop #fwd value
-        .count          += 1
+        .count += 1
     }
 
     // Adds an element to the end of the array.
@@ -250,7 +250,7 @@ impl StaticArray
     {
         Swag.assert(.count != N, "the array is full")
         .buffer[.count] = #nodrop #fwd value
-        .count          += 1
+        .count += 1
     }
 
     // Makes room for 'num' elements at the end of the array and returns a pointer to the new space.
@@ -303,7 +303,7 @@ impl StaticArray
         where Reflection.canCopy(T)
     {
         var sliceCount = values.count
-        if !sliceCount do
+        if not sliceCount do
             return
         let buffer = cast([*] T) &.buffer[0]
         let dataof = values.buffer
@@ -348,7 +348,7 @@ impl StaticArray
         where Reflection.canCopy(T)
     {
         var sliceCount = values.count
-        if !sliceCount do
+        if not sliceCount do
             return
         let buffer = cast([*] T) &.buffer[0]
         let dataof = values.buffer
@@ -392,7 +392,7 @@ impl StaticArray
         where Reflection.canCopy(T)
     {
         var sliceCount = values.count
-        if !sliceCount do
+        if not sliceCount do
             return
         let buffer = cast([*] T) &.buffer[0]
         let dataof = values.buffer
@@ -427,13 +427,13 @@ impl StaticArray
     // This is an unstable remove; the order of remaining elements is not preserved.
     mtd remove(index, num: u64)
     {
-        if !num do
+        if not num do
             return
         Swag.assert(index + num <= .count, "index out of range")
         let oldCount   = .count
         let shiftCount = .count - (index + num)
 
-        #static if !Reflection.hasPostMove(T) and !Reflection.hasDrop(T)
+        #static if not Reflection.hasPostMove(T) and not Reflection.hasDrop(T)
         {
             Memory.copyOverlapping(cast([*] T) &.buffer[0] + index, cast([*] T) &.buffer[0] + index + num, shiftCount * #sizeof(T))
         }
@@ -496,7 +496,7 @@ impl StaticArray
     // This is slower than 'removeAt', but preserves the order of the remaining elements.
     mtd removeAtOrdered(index: u64, numValues: u64 = 1)
     {
-        if !numValues do
+        if not numValues do
             return
         Swag.assert(index + numValues <= .count, "index out of range")
         let oldCount = .count
@@ -524,7 +524,7 @@ impl StaticArray
             for .count - index
             {
                 .buffer[idx] = #relocate .buffer[idx + numValues]
-                idx          += 1
+                idx += 1
             }
         }
         else

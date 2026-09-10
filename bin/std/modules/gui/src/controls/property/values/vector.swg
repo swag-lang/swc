@@ -11,14 +11,14 @@ internal impl Properties
         let item = .addItem(value, data, parentItem)
         item.selfPropagate = true     // each component box writes every instance itself
         var width = .position.width
-        if !.isGridLike()
+        if not .isGridLike()
         {
             width = cast(f32) Reflection.attributeValue(value, .EditSize, "size", .editorWidth)
             width = .listContentWidthFromUseful(width)
         }
 
         let line = Wnd.create'Wnd(item.line, {0, 0, width, .themeMetrics().editBox_Height})
-        if !.isGridLike() do
+        if not .isGridLike() do
             line.maxSize.x = width
 
         // Grid rows center the field row vertically in the cell; list rows stack it

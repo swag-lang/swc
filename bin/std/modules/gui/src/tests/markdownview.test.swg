@@ -105,24 +105,24 @@ using Swag, Core
     for 64 where view.isLoading() do
         host.fireTimers()
     host.settleAnimations(view, 12)
-    Swag.assert(!view.waitingScroll and view.scroll.scrollPosition().y > held)
+    Swag.assert(not view.waitingScroll and view.scroll.scrollPosition().y > held)
 
     Swag.assert(view.revealFileOffset(source.length / 2, ""))
     for 1_024 where view.hasPendingTarget do
         host.fireTimers()
-    Swag.assert(!view.hasPendingTarget and view.retainedBlocks.isEmpty())
+    Swag.assert(not view.hasPendingTarget and view.retainedBlocks.isEmpty())
     view.scroll.setScrollPos(0, view.virtualOrigin + viewport.height * 7)
-    for 8 where !view.pendingSeek do
+    for 8 where not view.pendingSeek do
         view.scroll.setScrollPos(0, view.scroll.scrollPosition().y - viewport.height / 4)
     Swag.assert(view.pendingSeek and view.pendingSeekPreservesPosition)
     host.fireTimer(view.loadTimer)
-    Swag.assert(!view.retainedBlocks.isEmpty())
+    Swag.assert(not view.retainedBlocks.isEmpty())
     view.beginSelection(view.retainedBlocks[0].inline!, 0)
     view.selectAll()
-    Swag.assert(!view.isSelecting() and !view.hasSelection())
+    Swag.assert(not view.isSelecting() and not view.hasSelection())
     let anchorOffset = view.replacementAnchorOffset
     let anchorY      = view.replacementAnchorY
-    for 1_024 where !view.retainedBlocks.isEmpty()
+    for 1_024 where not view.retainedBlocks.isEmpty()
     {
         Swag.assert(view.retainedBlocks[0].wnd.isVisible())
         Swag.assert(view.scroll.scrollPosition().y >= view.retainedOrigin)
@@ -160,7 +160,7 @@ using Swag, Core
     host.finishAnimations()
     var searchRect: Math.Rectangle
     let hasSearchRect = view.searchMatchRect(&searchRect)
-    Swag.assert(hasSearchRect and !view.waitingScroll)
+    Swag.assert(hasSearchRect and not view.waitingScroll)
     Swag.assert(searchRect.y >= 0 and searchRect.bottom() <= viewport.height)
 }
 
@@ -219,7 +219,7 @@ using Swag, Core
     cache.basePath = Path.directoryName(fileName.toString())!
     let entry = cache.fetch(Path.fileName(fileName.toString())!)
     Swag.assert(entry != null and entry!.loaded)
-    Swag.assert(entry!.naturalSize == Math.Vector2{40, 20} and !entry!.image.isValid())
+    Swag.assert(entry!.naturalSize == Math.Vector2{40, 20} and not entry!.image.isValid())
     var host: Testing.HeadlessHost
     host.setup(80, 40)
     defer host.shutdown()
@@ -292,13 +292,13 @@ using Swag, Core
     view.applyLayout()
     for 64 where view.hasUnloadedSource() do
         host.fireTimers()
-    Swag.assert(!view.hasUnloadedSource() and view.blocks.count == 5)
+    Swag.assert(not view.hasUnloadedSource() and view.blocks.count == 5)
     for index in 3 do
         Swag.assert(view.blocks[index].inline!.atoms[0].imageLoaded)
     Swag.assert(view.blocks[2].inline!.images.entries.count == 1)
     Swag.assert(view.blocks[3].inline!.images.entries.isEmpty())
     Swag.assert(view.blocks[3].inline!.text() == "[Image: Remote]")
-    Swag.assert(!view.blocks[4].inline!.atoms[0].imageLoaded)
+    Swag.assert(not view.blocks[4].inline!.atoms[0].imageLoaded)
     Swag.assert(view.findText("Local figure"))
     Swag.assert(view.blocks[0].inline!.text() == "Local figure")
     view.clearSearchHighlight()
@@ -356,7 +356,7 @@ using Swag, Core
         let cache = embedded ? &view.blocks[0].html!.images : &view.blocks[0].inline!.images
         Swag.assert(cache.entries.count == 1 and cache.entries[0].loaded)
         Swag.assert(cache.entries[0].naturalSize == Math.Vector2{120, 60})
-        Swag.assert(!cache.entries[0].uploaded)
+        Swag.assert(not cache.entries[0].uploaded)
     }
 }
 
@@ -381,7 +381,7 @@ using Swag, Core
     Swag.assert(pending)
     discard view.prepareImages()
     let revealed = view.revealFileOffset(0, "")
-    Swag.assert(revealed and !view.imageTask.isPending())
+    Swag.assert(revealed and not view.imageTask.isPending())
     discard expect File.writeAllBytes(imagePath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"240\" height=\"80\"/>")
     host.app.deterministicStreaming = true
     host.fireTimer(view.loadTimer)
@@ -407,10 +407,10 @@ using Swag, Core
     view.applyLayout()
     for 64 where view.hasUnloadedSource() do
         host.fireTimers()
-    Swag.assert(!view.hasUnloadedSource() and view.blocks.count == 2)
+    Swag.assert(not view.hasUnloadedSource() and view.blocks.count == 2)
     Swag.assert(view.blocks[0].html != null)
     Swag.assert(view.findText("Visible spread") and view.findText("After."))
-    Swag.assert(!view.findText("hidden note") and !view.findText("</div>"))
+    Swag.assert(not view.findText("hidden note") and not view.findText("</div>"))
 }
 
 func markdownFixturePath()->String
@@ -521,7 +521,7 @@ func markdownFixturePath()->String
     view.layoutDocument()
 
     var rebuilt: String
-    for &atom in view.blocks[0].inline!.atoms where !atom.isSpace and !atom.isBreak do
+    for &atom in view.blocks[0].inline!.atoms where not atom.isSpace and not atom.isBreak do
         rebuilt += atom.text
     Swag.assert(rebuilt == "a<b")
     Swag.assert(view.findText("a < b"))
@@ -694,7 +694,7 @@ func markdownFixturePath()->String
     for 64 where view.hasUnloadedSource() do
         host.fireTimers()
 
-    Swag.assert(!view.hasUnloadedSource() and view.blocks.count == 1 and view.blocks[0].html != null)
+    Swag.assert(not view.hasUnloadedSource() and view.blocks.count == 1 and view.blocks[0].html != null)
     Swag.assert(view.blocks[0].html!.images.entries.count == 1 and view.blocks[0].html!.images.entries[0].loaded)
     var imageNode = HtmlNoNode
     for node, index in view.blocks[0].html!.document.nodes where node.tag == .Img do
@@ -757,7 +757,7 @@ func paragraphLineEdges(view: *Markdown.View)->Array'f32
 {
     var result: retval
     var line = -1'f32
-    for &atom in view.blocks[0].inline!.atoms where atom.visible and !atom.isSpace
+    for &atom in view.blocks[0].inline!.atoms where atom.visible and not atom.isSpace
     {
         if atom.position.y != line
         {
@@ -838,7 +838,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.applyLayout()
     view.layoutDocument()
 
-    Swag.assert(!view.hasSelection())
+    Swag.assert(not view.hasSelection())
     view.selectAll()
     Swag.assert(view.hasSelection())
     Swag.assert(view.selectedText() == "alpha beta\ngamma delta")
@@ -846,8 +846,8 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.assert(Clipboard.getString() == "alpha beta\ngamma delta")
 
     view.clearSelection()
-    Swag.assert(!view.hasSelection())
-    Swag.assert(!view.copySelection())
+    Swag.assert(not view.hasSelection())
+    Swag.assert(not view.copySelection())
 }
 
 // A drag selects what it crosses, blocks included, and stops on the byte it was released on
@@ -891,7 +891,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     // Pressing somewhere else drops it, the way every document viewer reads.
     host.click(first.localToSurface(Math.Point{alpha.x + 1, alpha.vertCenter()}))
-    Swag.assert(!view.hasSelection())
+    Swag.assert(not view.hasSelection())
 }
 
 // A table copies as a table: one line per row, one tab between cells.
@@ -935,8 +935,8 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.assert(Utf8.contains(text.toString(), "func answer()->u32 => 42"))
 
     // Nothing of the marked-up source reaches the clipboard: what comes out is what is read.
-    Swag.assert(!Utf8.contains(text.toString(), "<b>"))
-    Swag.assert(!Utf8.contains(text.toString(), "**bold**"))
+    Swag.assert(not Utf8.contains(text.toString(), "<b>"))
+    Swag.assert(not Utf8.contains(text.toString(), "**bold**"))
 }
 
 // The selection is one band per line, not one per word.
@@ -1014,7 +1014,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.assert(Clipboard.getString() == "menu content")
 
     host.keyPress(.Escape)
-    Swag.assert(!view.hasSelection())
+    Swag.assert(not view.hasSelection())
 }
 
 // One find result marks one exact text range, even when its atom also carries another word.
@@ -1057,7 +1057,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.assert(revealed)
 
     var bounds: Math.Rectangle
-    for 128 where !view.searchMatchRect(&bounds) do
+    for 128 where not view.searchMatchRect(&bounds) do
         host.fireTimers()
     Swag.assert(view.searchMatchRect(&bounds))
     Swag.assert(view.blocks[0].inline!.searchStart == 11 and view.blocks[0].inline!.searchEnd == 16)
@@ -1106,13 +1106,13 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         if target == offsets[2] do
             Swag.assert(view.pendingSearchOccurrence == 0)
         var bounds: Math.Rectangle
-        for 2_048 where !view.searchMatchRect(&bounds) do
+        for 2_048 where not view.searchMatchRect(&bounds) do
             host.fireTimers()
         Swag.assert(view.pendingSearch.isEmpty())
         Swag.assert(view.searchBlockIndex < view.blocks.count)
         Swag.assert(view.searchMatchRect(&bounds))
         Swag.assert(view.residentStart <= target and target < view.bytesRead)
-        Swag.assert(!view.pendingSeek and !view.hasPendingTarget and view.pendingSearch.isEmpty())
+        Swag.assert(not view.pendingSeek and not view.hasPendingTarget and view.pendingSearch.isEmpty())
         let resident = view.residentStart
         for 32 do
             host.fireTimers()
@@ -1122,7 +1122,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let previousRevealed = view.revealFileOffset(offsets[1], Query)
     Swag.assert(previousRevealed)
     var previousBounds: Math.Rectangle
-    for 2_048 where !view.searchMatchRect(&previousBounds) do
+    for 2_048 where not view.searchMatchRect(&previousBounds) do
         host.fireTimers()
     Swag.assert(view.searchMatchRect(&previousBounds) and view.residentStart <= offsets[1] and offsets[1] < view.bytesRead)
 }
@@ -1209,7 +1209,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     for 64 where view.isLoading() do
         host.fireTimers()
-    Swag.assert(!view.isLoading() and view.hasUnloadedSource())
+    Swag.assert(not view.isLoading() and view.hasUnloadedSource())
 
     for 16 do
         host.mouseWheel({360, 180}, -1)
@@ -1223,7 +1223,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         steps += 1
     }
 
-    Swag.assert(!view.isLoading())
+    Swag.assert(not view.isLoading())
     Swag.assert(view.hasUnloadedSource())
     Swag.assert(view.scroll.scrollPosition().y > 0)
 }
@@ -1316,7 +1316,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         navigationSteps += 1
     }
 
-    Swag.assert(!view.hasPendingTarget)
+    Swag.assert(not view.hasPendingTarget)
     Swag.assert(Math.abs(view.scroll.scrollPosition().y - expectedLine) <= 1)
     host.keyPress(Input.Key.Up)
     Swag.assert(view.scroll.scrollPosition().y == 0)
@@ -1328,7 +1328,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         navigationSteps += 1
     }
 
-    Swag.assert(!view.hasPendingTarget)
+    Swag.assert(not view.hasPendingTarget)
     let pagePosition = view.scroll.scrollPosition().y
     Swag.assert(pagePosition > expectedLine)
     host.keyPress(Input.Key.PageUp)
@@ -1346,8 +1346,8 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         steps += 1
     }
 
-    Swag.assert(!view.hasUnloadedSource())
-    Swag.assert(!view.jumpToEnd)
+    Swag.assert(not view.hasUnloadedSource())
+    Swag.assert(not view.jumpToEnd)
     Swag.assert(view.scroll.scrollPosition().y > before.y)
     host.keyPress(Input.Key.Home)
     Swag.assert(view.residentStart == 0)
@@ -1397,11 +1397,11 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         Swag.assert(view.hasFocus())
         let after = view.scroll.scrollPosition().y
         Swag.assert(after >= before)
-        if after == before and !view.hasUnloadedSource() do
+        if after == before and not view.hasUnloadedSource() do
             break
     }
 
-    Swag.assert(!view.hasUnloadedSource() and view.bytesRead > initialBytes)
+    Swag.assert(not view.hasUnloadedSource() and view.bytesRead > initialBytes)
     Swag.assert(seenHtml.count == 16)
 }
 
@@ -1443,7 +1443,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         steps += 1
     }
 
-    Swag.assert(!view.hasPendingTarget and !view.blocks.isEmpty())
+    Swag.assert(not view.hasPendingTarget and not view.blocks.isEmpty())
     Swag.assert(view.scroll.scrollPosition().y - view.virtualOrigin >= view.scroll.paddedClientRect().height * 6)
     let firstResidentStart = view.residentStart
     let viewport = view.scroll.paddedClientRect()
@@ -1462,7 +1462,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         steps += 1
     }
 
-    Swag.assert(!view.hasPendingTarget and view.residentStart < firstResidentStart)
+    Swag.assert(not view.hasPendingTarget and view.residentStart < firstResidentStart)
     let position = view.scroll.scrollPosition().y
     var visibleBlock: bool
     for &block in view.blocks
@@ -1500,7 +1500,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.scroll.setScrollPos(0, view.virtualHeight * 0.8)
     Swag.assert(view.pendingSeek)
     view.scroll.setScrollPos(0, 0)
-    Swag.assert(!view.pendingSeek)
+    Swag.assert(not view.pendingSeek)
 
     let high = view.virtualHeight * 0.8
     view.scroll.setScrollPos(0, high)
@@ -1526,7 +1526,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         steps += 1
     }
 
-    Swag.assert(!view.hasPendingTarget)
+    Swag.assert(not view.hasPendingTarget)
     Swag.assert(view.residentStart < staleOffset / 2)
     Swag.assert(Math.abs(view.scroll.scrollPosition().y - view.virtualHeight * 0.2) <= view.scroll.paddedClientRect().height, Format.toString("position=%, virtualHeight=%, target=%, origin=%, contentHeight=%", view.scroll.scrollPosition().y, view.virtualHeight, view.pendingTarget, view.virtualOrigin, view.contentHeight).toString())
 }
@@ -1680,10 +1680,10 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_gui_markdown_%.md", Guid64.random()).toString())
     let view = Markdown.View.createFile(&host.root, path)
-    Swag.assert(!view.failureReason.isEmpty())
+    Swag.assert(not view.failureReason.isEmpty())
     for 64 where view.hasUnloadedSource() do
         host.fireTimers()
-    Swag.assert(!view.hasUnloadedSource())
+    Swag.assert(not view.hasUnloadedSource())
 }
 
 // A decoder failure found by the progressive reader is signaled after construction.
@@ -1708,6 +1708,6 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     for 64 where reported.isEmpty() do
         host.fireTimers()
-    Swag.assert(!reported.isEmpty())
+    Swag.assert(not reported.isEmpty())
     Swag.assert(reported == view.failureReason)
 }

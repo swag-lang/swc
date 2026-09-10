@@ -24,7 +24,6 @@ namespace
         {
             case TokenId::SymMinus:
             case TokenId::SymPlus:
-            case TokenId::SymBang:
             case TokenId::SymTilde:
             case TokenId::SymAmpersand:
             case TokenId::SymAsterisk:

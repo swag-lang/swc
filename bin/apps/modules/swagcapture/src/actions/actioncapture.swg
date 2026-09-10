@@ -68,28 +68,28 @@ impl IActionUI for ActionCapture
         {
         case .DoIt:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = appStrings().ui_MenuCapture
-            evt.icon          = main.icon(.Capture)
+            evt.name = appStrings().ui_MenuCapture
+            evt.icon = main.icon(.Capture)
 
         case .Area:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = appStrings().act_CaptureArea
-            evt.icon          = main.icon(.CaptureArea)
+            evt.name = appStrings().act_CaptureArea
+            evt.icon = main.icon(.CaptureArea)
 
         case .LastArea:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = appStrings().act_CaptureLastArea
-            evt.icon          = main.icon(.LastArea)
+            evt.name = appStrings().act_CaptureLastArea
+            evt.icon = main.icon(.LastArea)
 
         case .FullScreen:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = appStrings().act_CaptureFullScreen
-            evt.icon          = main.icon(.FullScreen)
+            evt.name = appStrings().act_CaptureFullScreen
+            evt.icon = main.icon(.FullScreen)
 
         case .ActiveWnd:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = appStrings().act_CaptureActiveWindow
-            evt.icon          = main.icon(.ActiveWindow)
+            evt.name = appStrings().act_CaptureActiveWindow
+            evt.icon = main.icon(.ActiveWindow)
 
         case .HideEditor:
             evt.updatedFields |= .Name | .Checked
@@ -143,11 +143,11 @@ impl IActionUI for ActionCapture
         case .LastArea:      main.captureScreen(.LastArea)
         case .FullScreen:    main.captureScreen(.FullScreen)
         case .ActiveWnd:     main.captureScreen(.ActiveWindow)
-        case .ToInPlace:     main.captureOptions.inPlaceEdit = !main.captureOptions.inPlaceEdit
-        case .HideEditor:    main.captureOptions.hideEditorBefore = !main.captureOptions.hideEditorBefore
-        case .CaptureCursor: main.captureOptions.captureCursor = !main.captureOptions.captureCursor
-        case .ToEditor:      main.captureOptions.sendToEditor = !main.captureOptions.sendToEditor
-        case .ToClipboard:   main.captureOptions.sendToClipboard = !main.captureOptions.sendToClipboard
+        case .ToInPlace:     main.captureOptions.inPlaceEdit = not main.captureOptions.inPlaceEdit
+        case .HideEditor:    main.captureOptions.hideEditorBefore = not main.captureOptions.hideEditorBefore
+        case .CaptureCursor: main.captureOptions.captureCursor = not main.captureOptions.captureCursor
+        case .ToEditor:      main.captureOptions.sendToEditor = not main.captureOptions.sendToEditor
+        case .ToClipboard:   main.captureOptions.sendToClipboard = not main.captureOptions.sendToClipboard
         }
 
         return true
@@ -158,11 +158,11 @@ impl MainWnd
 {
     mtd newCapture(img: Image, linked: string = "", from: *Capture? = null, sourceKind = CaptureSourceKind.Unknown)
     {
-        if !img.isValid() do
+        if not img.isValid() do
             return
 
         var capture = from
-        if !capture
+        if not capture
         {
             with capture = Memory.new'Capture()
             {

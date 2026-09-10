@@ -120,7 +120,7 @@ private func systemCjkTypeFace()->*TypeFace? fail
 {
     for name in CjkFontCandidates
     {
-        if !TypeFace.exists(name) do
+        if not TypeFace.exists(name) do
             continue
         return try TypeFace.load(name)
     }
@@ -132,7 +132,7 @@ private func defaultThemeImages()->*ThemeImages
 {
     let cache = &g_DefaultThemeImages
     Sync.scopedLock(&cache.lock)
-    if !cache.decoded
+    if not cache.decoded
     {
         // The include payloads own their bytes for the process lifetime. Borrow them as strings
         // so the parsers and the resource bundle share one static copy.
@@ -198,7 +198,8 @@ struct ThemeResources
         imgWidgets: Texture     // Widgets atlas texture, rasterized from the vector theme document.
         atlasScale: f32         // Device pixels per authored atlas texel; zero until the atlas is built.
         icons:      IconSet     // The theme icon set, rasterized on demand per size and scale.
-            late
+
+        late
         {
             defaultTypeFaceR:    *TypeFace     // Default type face r associated with this value.
             defaultTypeFaceB:    *TypeFace     // Default type face b associated with this value.
@@ -552,7 +553,7 @@ impl Theme
     // installation falls back to the default face instead of making opening a document fail.
     internal mtd createCjkFont(size: u32, style = FontFamilyStyle.Regular)->*Font
     {
-        if !.res.cjkTypeFaceResolved
+        if not .res.cjkTypeFaceResolved
         {
             .res.cjkTypeFaceResolved = true
             let face = catch systemCjkTypeFace() as loadError
@@ -560,7 +561,7 @@ impl Theme
                 .res.cjkTypeFace = face
         }
 
-        if !.res.cjkTypeFace do
+        if not .res.cjkTypeFace do
             return .createDefaultFont(size, style)
 
         switch #complete style

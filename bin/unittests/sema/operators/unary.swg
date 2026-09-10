@@ -25,14 +25,14 @@
 
 #assert(-128's8 == -128)
 
-#assert(!true == false)
-#assert(!false == true)
+#assert(not true == false)
+#assert(not false == true)
 
-#assert(!false)
-#assert(!(!false == false))
-#assert(!(!true == true))
+#assert(not false)
+#assert(not (not false == false))
+#assert(not (not true == true))
 
-#assert(!(1 == 2))
-#assert(!("1" == "2"))
-#assert(!1 == false)
-#assert(!0 == true)
+#assert(not (1 == 2))
+#assert(not ("1" == "2"))
+#assert(not 1 == false)
+#assert(not 0 == true)

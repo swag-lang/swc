@@ -2,42 +2,42 @@
 
 #test
 {
-    func unaryBangBool(a: bool)->bool { return !a }
+    func unaryBangBool(a: bool)->bool { return not a }
     const V0 = #run unaryBangBool(true)
     const V1 = #run unaryBangBool(false)
-    #assert(!V0)
+    #assert(not V0)
     #assert(V1)
 }
 
 #test
 {
-    func unaryBangInt(a: s32)->bool { return !a }
+    func unaryBangInt(a: s32)->bool { return not a }
     const V0 = #run unaryBangInt(0)
     const V1 = #run unaryBangInt(1)
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
 }
 
 #test
 {
-    func unaryBangBad(a: [2] s32)->bool { return !a }     // swc-expected-error {{sema_err_unary_operand_type}}
+    func unaryBangBad(a: [2] s32)->bool { return not a }     // swc-expected-error {{sema_err_unary_operand_type}}
 }
 
 #test
 {
-    func unaryBangPointer(a: *void?)->bool { return !a }
+    func unaryBangPointer(a: *void?)->bool { return not a }
     const V0 = #run unaryBangPointer(null)
     const V1 = #run unaryBangPointer(cast(*void) 0x1000'u64)
     #assert(V0)
-    #assert(!V1)
+    #assert(not V1)
 }
 
 #test
 {
-    func unaryBangBang(a: s32)->bool { return !(!a) }
+    func unaryBangBang(a: s32)->bool { return not (not a) }
     const V0 = #run unaryBangBang(0)
     const V1 = #run unaryBangBang(12)
-    #assert(!V0)
+    #assert(not V0)
     #assert(V1)
 }
 
@@ -54,11 +54,11 @@
 
     // through .buffer (the original Swag.print swallowed-strings repro)
     let s: string? = Swag.makeString(p!, 1)
-    if !s.buffer do
+    if not s.buffer do
         Swag.assert(false)
 
     // raw pointer under unary bang
-    if !p do
+    if not p do
         Swag.assert(false)
 
     // raw pointer as a logical operand
@@ -69,8 +69,8 @@
 
     // integer with a zero low byte (256) under unary bang, from a runtime source
     let x = cast(s64) ((cast(u64) p & 0xFF) + 256)
-    if !x do
+    if not x do
         Swag.assert(false)
-    if !(-x) do
+    if not (-x) do
         Swag.assert(false)
 }

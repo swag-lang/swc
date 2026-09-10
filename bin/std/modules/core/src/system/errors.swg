@@ -138,12 +138,12 @@ func mkString(str: string?)->string?
 {
     if str == null do
         return null
-    if !str.count do
+    if not str.count do
         return ""
 
     // A foreign thread can copy a message before its first 'fail' initializes error storage.
     let context = Swag.getContext()
-    if !context.errorAllocator.capacity
+    if not context.errorAllocator.capacity
     {
         const Capacity = #run Swag.compiler().getBuildCfg()!.errorAllocatorCapacity
         context.errorAllocator.setCapacity(Capacity, context.allocator!)
@@ -153,7 +153,7 @@ func mkString(str: string?)->string?
     let ptr   = context.errorAllocator.alloc(count)
     Swag.memcpy(ptr, str.buffer, count)
     let safePtr = cast([*] u8?) ptr
-    if !safePtr do
+    if not safePtr do
         return null
     return Swag.makeString(safePtr, count)
 }

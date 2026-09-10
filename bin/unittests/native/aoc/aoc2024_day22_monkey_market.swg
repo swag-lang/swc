@@ -86,7 +86,7 @@ func parseBuyers(text: string)->BuyerList
             if result.count < MaxBuyers
             {
                 result.secrets[result.count] = acc
-                result.count                 += 1
+                result.count += 1
             }
             acc   = 0
             inNum = false
@@ -96,7 +96,7 @@ func parseBuyers(text: string)->BuyerList
     if inNum and result.count < MaxBuyers
     {
         result.secrets[result.count] = acc
-        result.count                 += 1
+        result.count += 1
     }
 
     return result
@@ -189,7 +189,7 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
             {
                 // Encode oldest→newest: ch[3], ch[2], ch[1], ch[0]
                 let idx = encodeSeq(ch[3], ch[2], ch[1], ch[0])
-                if !seen[idx]
+                if not seen[idx]
                 {
                     seen[idx]   = true
                     totals[idx] += cast(u64) price

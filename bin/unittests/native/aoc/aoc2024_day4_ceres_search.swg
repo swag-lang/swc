@@ -108,7 +108,7 @@ func parseGrid(bytes: const [..] u8)->Grid
                     result.colCount = col
                 Swag.assert(col == result.colCount)
                 result.rowCount += 1
-                col             = 0
+                col = 0
             }
             continue
         }
@@ -146,7 +146,7 @@ func matchWord(grid: Grid, startRow, startCol: s32, dir: Vec2)->bool
     {
         let r = startRow + cast(s32) index * dir.dy
         let c = startCol + cast(s32) index * dir.dx
-        if !inBounds(r, c, grid.rowCount, grid.colCount) do
+        if not inBounds(r, c, grid.rowCount, grid.colCount) do
             return false
         if gridAt(grid, cast(u32) r, cast(u32) c) != XmasWord[index] do
             return false

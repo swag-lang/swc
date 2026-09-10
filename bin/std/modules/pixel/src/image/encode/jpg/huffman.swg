@@ -14,7 +14,7 @@ impl Encoder
         for i in 64
         {
             var temp = (cast(s32) basicTable[i] * .scaleFactor + 50) / 100
-            temp                = Math.clamp(temp, 1, 255)
+            temp = Math.clamp(temp, 1, 255)
             newTable[ZigZag[i]] = cast(u8) temp
         }
     }
@@ -127,7 +127,7 @@ impl Encoder
             {
                 .fdtblY[i]  = cast(f32) (1.0 / (cast(f64) .dqtInfo.tableY[ZigZag[i]] * AanSf[row] * AanSf[col] * 8.0))
                 .fdtblCb[i] = cast(f32) (1.0 / (cast(f64) .dqtInfo.tableCb[ZigZag[i]] * AanSf[row] * AanSf[col] * 8.0))
-                i           += 1
+                i += 1
             }
         }
     }

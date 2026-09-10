@@ -15,7 +15,7 @@ func mpeg4WalkTree(tree: const [..] s16, length: u32, code: u32)->s32
             return -1
 
         let next = tree[slot]
-        if !next do
+        if not next do
             return -1
         if next < 0
         {
@@ -131,7 +131,7 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
     {
         let delta = Mpeg4.MvdDelta[index]
         Swag.assert(delta >= -32 and delta <= 32)
-        Swag.assert(!seen[cast(u64) (delta + 32)])
+        Swag.assert(not seen[cast(u64) (delta + 32)])
         seen[cast(u64) (delta + 32)] = true
     }
 }
@@ -150,7 +150,7 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
         for index in 64'u64
         {
             Swag.assert(scan[index] < 64)
-            Swag.assert(!seen[cast(u64) scan[index]])
+            Swag.assert(not seen[cast(u64) scan[index]])
             seen[cast(u64) scan[index]] = true
         }
     }

@@ -225,7 +225,7 @@ alias TypedVariadicAlias = s32
 
     const a0: [4] s32 = [1, 2, 3, 4]
     const a1: [4] s32 = [10, 20, 30, 40]
-    const V0          = #run variadicTyped(a0, a1)
+    const V0 = #run variadicTyped(a0, a1)
     #assert(V0 == 55)
 }
 

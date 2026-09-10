@@ -5,7 +5,7 @@ using Swag, Core, Pixel
 #test
 {
     var style: ThemeStyle
-    Swag.assert(!style.dirty)
+    Swag.assert(not style.dirty)
     Swag.assert(style.styleSheetColors.length == 0)
     Swag.assert(style.styleSheetMetrics.length == 0)
 

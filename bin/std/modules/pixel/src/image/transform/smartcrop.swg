@@ -60,7 +60,7 @@ impl Image
             let baseOut = y * pitch
             for x in 1 to w
             {
-                rowSum          += src[baseIn + (x - 1)]
+                rowSum += src[baseIn + (x - 1)]
                 ii[baseOut + x] = ii[baseOut - pitch + x] + rowSum
             }
         }
@@ -509,7 +509,7 @@ impl Image
     {
         let scales: [5] f32 = [0.88, 0.94, 1.00, 1.06, 1.12]
 
-        var bx          = bestX, by = bestY, bw = bestW, bh = bestH
+        var bx = bestX, by = bestY, bw = bestW, bh = bestH
         var bScore: f32 = -1.0e30
         var bD2:    f32 = 1.0e30
 
@@ -640,8 +640,8 @@ impl Image
         let steps   = opts.maxSearchSteps
 
         var bestX, bestY, bestW, bestH = 0
-        var bestScore:    f32          = -1.0e30
-        var bestCenterD2: f32          = 1.0e30
+        var bestScore:    f32 = -1.0e30
+        var bestCenterD2: f32 = 1.0e30
 
         for step in 0 to (steps - 1)
         {

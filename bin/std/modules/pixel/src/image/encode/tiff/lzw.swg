@@ -45,7 +45,7 @@ func packLzw(result: *Array'u8, src: const [*] u8, count: u64)
     writer.pendingBits = 0
     writer.write(LZW_CLEAR_CODE, 9)
 
-    if !count
+    if not count
     {
         writer.write(LZW_EOI_CODE, 9)
         writer.finish()

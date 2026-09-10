@@ -637,7 +637,7 @@ func notNullPointerSuccess()->s32
 {
     var storage: s32   = 91
     let maybe:   *s32? = notNullMaybePtr(&storage)
-    let ptr            = maybe!
+    let ptr = maybe!
     #assert(#typeof(ptr) == *s32)
     return ptr[]
 }
@@ -646,7 +646,7 @@ func notNullSliceSuccess()->s32
 {
     var values: [3] s32   = [4, 5, 6]
     let maybe:  [..] s32? = values
-    let slice             = maybe!
+    let slice = maybe!
     #assert(#typeof(slice) == [..] s32)
     return slice[1] + cast(s32) slice.count
 }
@@ -712,7 +712,7 @@ func notNullSliceSuccess()->s32
     let info = errIsAsFailureInfo()
     Swag.assert(info.exactType)
     Swag.assert(info.baseType)
-    Swag.assert(!info.wrongType)
+    Swag.assert(not info.wrongType)
     Swag.assert(info.exactCastOk)
     Swag.assert(info.baseCastOk)
     Swag.assert(info.wrongCastNull)
@@ -723,8 +723,8 @@ func notNullSliceSuccess()->s32
 #test
 {
     let info = errIsAsNullInfo()
-    Swag.assert(!info.exactType)
-    Swag.assert(!info.baseType)
+    Swag.assert(not info.exactType)
+    Swag.assert(not info.baseType)
     Swag.assert(info.exactCastNull)
     Swag.assert(info.baseCastNull)
 }
@@ -796,7 +796,7 @@ func notNullSliceSuccess()->s32
 {
     let info = dismissFailureInfo()
     Swag.assert(info.value == 0)
-    Swag.assert(!info.hasErr)
+    Swag.assert(not info.hasErr)
     Swag.assert(info.code == 0)
 }
 
@@ -804,7 +804,7 @@ func notNullSliceSuccess()->s32
 {
     let info = inlineDismissFailureInfo()
     Swag.assert(info.value == 0)
-    Swag.assert(!info.hasErr)
+    Swag.assert(not info.hasErr)
     Swag.assert(info.code == 0)
 }
 
@@ -816,9 +816,9 @@ func notNullSliceSuccess()->s32
     Swag.assert(info.value.payload[0] == 0)
     Swag.assert(info.value.payload[1] == 0)
     Swag.assert(info.value.payload[2] == 0)
-    Swag.assert(!info.hasErr)
+    Swag.assert(not info.hasErr)
     Swag.assert(info.code == 0)
-    Swag.assert(!info.messageOk)
+    Swag.assert(not info.messageOk)
 }
 
 #test
@@ -848,7 +848,7 @@ func notNullSliceSuccess()->s32
 {
     let info = expectFailureNoSafety()
     Swag.assert(info.value == 0)
-    Swag.assert(!info.hasErr)
+    Swag.assert(not info.hasErr)
     Swag.assert(info.code == 0)
 }
 
@@ -890,7 +890,7 @@ func notNullSliceSuccess()->s32
 {
     let info = dismissNullablePointerFailureInfo()
     Swag.assert(info.isNull)
-    Swag.assert(!info.hasErr)
+    Swag.assert(not info.hasErr)
     Swag.assert(info.code == 0)
 }
 
@@ -898,7 +898,7 @@ func notNullSliceSuccess()->s32
 {
     let info = dismissNullableStringFailureInfo()
     Swag.assert(info.isNull)
-    Swag.assert(!info.hasErr)
+    Swag.assert(not info.hasErr)
     Swag.assert(info.code == 0)
 }
 
@@ -906,7 +906,7 @@ func notNullSliceSuccess()->s32
 {
     let info = dismissNullableSliceFailureInfo()
     Swag.assert(info.isNull)
-    Swag.assert(!info.hasErr)
+    Swag.assert(not info.hasErr)
     Swag.assert(info.code == 0)
 }
 
@@ -941,7 +941,7 @@ func notNullSliceSuccess()->s32
 {
     let info = dismissErrDeferOverrideFailureInfo()
     Swag.assert(info.value == 0)
-    Swag.assert(!info.hasErr)
+    Swag.assert(not info.hasErr)
     Swag.assert(info.code == 0)
     Swag.assert(info.trace == 123)
 }

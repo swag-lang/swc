@@ -108,8 +108,8 @@ struct SliceHeader
     ltMsbCycle:      [32] u32
 
     temporalMvpEnabled: bool
-    saoLuma:            bool
-    saoChroma:          bool
+    saoLuma:   bool
+    saoChroma: bool
 
     numRefIdx:        [ListCount] u32
     listModification: [ListCount] bool
@@ -125,10 +125,10 @@ struct SliceHeader
     weights:               [ListCount, MaxRefPics] PredWeight
     hasWeights:            bool
 
-    sliceQpDelta:            s32
-    sliceQp:                 s32
-    cbQpOffset:              s32
-    crQpOffset:              s32
+    sliceQpDelta: s32
+    sliceQp:      s32
+    cbQpOffset:   s32
+    crQpOffset:   s32
     cuChromaQpOffsetEnabled: bool
 
     deblockingOverride:     bool
@@ -169,7 +169,7 @@ impl SliceHeader
             .noOutputOfPriorPics = reader.bit() != 0
         .ppsId = reader.ue()
 
-        if !.firstSliceInPic
+        if not .firstSliceInPic
         {
             if pps.dependentSliceSegments do
                 .dependent = reader.bit() != 0
@@ -185,7 +185,7 @@ impl SliceHeader
 
         if .dependent
         {
-            if !previous.firstSliceInPic and previous.segmentAddress == 0 and !previous.dependent do
+            if not previous.firstSliceInPic and previous.segmentAddress == 0 and not previous.dependent do
                 fail InvalidFormatError{"HEVC dependent slice segment has no independent segment before it"}
             .inheritFrom(previous)
             try .readEntryPoints(reader, pps)
@@ -203,11 +203,11 @@ impl SliceHeader
         if sps.separateColour do
             discard reader.read(2)
 
-        if !isIdrNal(nalType)
+        if not isIdrNal(nalType)
         {
-            .pocLsb              = reader.read(sps.log2MaxPocLsb)
+            .pocLsb = reader.read(sps.log2MaxPocLsb)
             .shortTermRpsSpsFlag = reader.bit() != 0
-            if !.shortTermRpsSpsFlag
+            if not .shortTermRpsSpsFlag
             {
                 // A set stated in the header takes the slot past the ones the sequence declared.
                 var sets: [65] ShortTermRps
@@ -311,7 +311,7 @@ impl SliceHeader
                 for list in (.sliceType == SliceTypeB ? 2'u32 : 1'u32)
                 {
                     .listModification[list] = reader.bit() != 0
-                    if !.listModification[list] do
+                    if not .listModification[list] do
                         continue
                     for index in .numRefIdx[list]
                     {
@@ -369,7 +369,7 @@ impl SliceHeader
         if .deblockingOverride
         {
             .deblockingDisabled = reader.bit() != 0
-            if !.deblockingDisabled
+            if not .deblockingDisabled
             {
                 .betaOffsetDiv2 = reader.se()
                 .tcOffsetDiv2   = reader.se()
@@ -377,7 +377,7 @@ impl SliceHeader
         }
 
         .loopFilterAcrossSlices = pps.loopFilterAcrossSlices
-        if pps.loopFilterAcrossSlices and (.saoLuma or .saoChroma or !.deblockingDisabled) do
+        if pps.loopFilterAcrossSlices and (.saoLuma or .saoChroma or not .deblockingDisabled) do
             .loopFilterAcrossSlices = reader.bit() != 0
 
         try .readEntryPoints(reader, pps)
@@ -436,7 +436,7 @@ impl SliceHeader
     // which only screen content coding can produce; every picture here therefore carries one.
     private mtd readPredWeightTable(reader: *BitReader, sps: const *Sps) fail
     {
-        .hasWeights            = true
+        .hasWeights = true
         .lumaLog2WeightDenom   = reader.ue()
         .chromaLog2WeightDenom = .lumaLog2WeightDenom
         if .lumaLog2WeightDenom > 7 do
@@ -473,7 +473,7 @@ impl SliceHeader
                 for component in 2'u32
                 {
                     weight.chromaWeight[component] = 1 << .chromaLog2WeightDenom
-                    if !weight.chromaFlag do
+                    if not weight.chromaFlag do
                         continue
 
                     weight.chromaWeight[component] = (1 << .chromaLog2WeightDenom) + reader.se()

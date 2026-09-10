@@ -14,7 +14,7 @@ func jitStableWithNullAllocatorContext()->bool
     cxt.allocator = null
     Swag.setContext(cxt)
 
-    let during              = Swag.jit()
+    let during = Swag.jit()
     let matchesRuntimeFlags = during == jitValueFromRuntimeFlags()
 
     Swag.setContext(prev)

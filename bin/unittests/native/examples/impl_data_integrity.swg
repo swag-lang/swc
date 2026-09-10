@@ -50,8 +50,8 @@ func reverse32(x: u32)->u32
 
 #[Swag.Safety(.Overflow, false)]
 {
-    func isPowerOf2(x: u32)->bool => x != 0 and !(x & (x - 1))
-    func isPowerOf2(x: u64)->bool => x != 0 and !(x & (x - 1))
+    func isPowerOf2(x: u32)->bool => x != 0 and not (x & (x - 1))
+    func isPowerOf2(x: u64)->bool => x != 0 and not (x & (x - 1))
 }
 
 #[Swag.Safety(.Overflow, false)]
@@ -120,7 +120,7 @@ impl Adler32
         var s2 = (.adler >> 16) & 0xFFFF
 
         let count = buffer.count
-        if !count do
+        if not count do
             return
 
         let input = buffer.buffer
@@ -323,10 +323,10 @@ func analyze(data: const [..] u8)->IntegrityReport
     Swag.assert(isPowerOf2(4'u32))
     Swag.assert(isPowerOf2(1024'u32))
     Swag.assert(isPowerOf2(0x80000000'u32))
-    Swag.assert(!isPowerOf2(0'u32))
-    Swag.assert(!isPowerOf2(3'u32))
-    Swag.assert(!isPowerOf2(6'u32))
-    Swag.assert(!isPowerOf2(0xFFFFFFFF'u32))
+    Swag.assert(not isPowerOf2(0'u32))
+    Swag.assert(not isPowerOf2(3'u32))
+    Swag.assert(not isPowerOf2(6'u32))
+    Swag.assert(not isPowerOf2(0xFFFFFFFF'u32))
 
     // All u32 powers of 2
     for i in 32'u32
@@ -337,16 +337,16 @@ func analyze(data: const [..] u8)->IntegrityReport
     // hasZeroByte
     Swag.assert(hasZeroByte(0x12003456))
     Swag.assert(hasZeroByte(0x00010101))
-    Swag.assert(!hasZeroByte(0x01010101))
-    Swag.assert(!hasZeroByte(0xFFFFFFFF))
+    Swag.assert(not hasZeroByte(0x01010101))
+    Swag.assert(not hasZeroByte(0xFFFFFFFF))
 
     // hasByte
     Swag.assert(hasByte(0x12345678, 0x12))
     Swag.assert(hasByte(0x12345678, 0x34))
     Swag.assert(hasByte(0x12345678, 0x56))
     Swag.assert(hasByte(0x12345678, 0x78))
-    Swag.assert(!hasByte(0x12345678, 0xFF))
-    Swag.assert(!hasByte(0x12345678, 0x00))
+    Swag.assert(not hasByte(0x12345678, 0xFF))
+    Swag.assert(not hasByte(0x12345678, 0x00))
 
     // gcd / lcm
     Swag.assert(gcd(12, 8) == 4)

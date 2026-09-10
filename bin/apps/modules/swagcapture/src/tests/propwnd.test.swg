@@ -18,7 +18,7 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
     discard f.main.quickStyleBar.addPane(f.main.propWnd)
     f.main.quickStyleBar.setPaneSize(0, 300)
     f.main.quickWnd.setDefault()
-    Swag.assert(!f.main.quickStyleBar.flags.has(.HideDividers))
+    Swag.assert(not f.main.quickStyleBar.flags.has(.HideDividers))
     return f.main.propWnd
 }
 
@@ -97,7 +97,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     let next = Memory.new'Capture()
     next.width, next.widthOrg   = 120
     next.height, next.heightOrg = 80
-    next.backImg                = Gui.Testing.indexedImage(120, 80)
+    next.backImg = Gui.Testing.indexedImage(120, 80)
     discard testAddShape(next, 20, 20, 40, 30)
     let nextPath = testTempCapturePath()
     defer discard catch File.delete(nextPath)
@@ -165,7 +165,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     draw.subKind = .PixSel
     prop.selectionHasChanged()
     f.gui.pump()
-    Swag.assert(!testFindItem(prop, #nameof(FormDraw.outlineSize))!.line.isVisible())
+    Swag.assert(not testFindItem(prop, #nameof(FormDraw.outlineSize))!.line.isVisible())
 }
 
 // FormArrow embeds FormLine, so the start/end samples and their list must read and write the
@@ -278,9 +278,9 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
 
     // Icon-only bars explain themselves through their glyphs and selected state, so they do
     // not reserve a heading line repeating what the controls already say.
-    Swag.assert(!(testFindItem(prop, #nameof(FormText.fontStyle))!.label != null))
-    Swag.assert(!(testFindItem(prop, #nameof(FormText.alignHorz))!.label != null))
-    Swag.assert(!(testFindItem(prop, #nameof(FormText.alignVert))!.label != null))
+    Swag.assert(not (testFindItem(prop, #nameof(FormText.fontStyle))!.label != null))
+    Swag.assert(not (testFindItem(prop, #nameof(FormText.alignHorz))!.label != null))
+    Swag.assert(not (testFindItem(prop, #nameof(FormText.alignVert))!.label != null))
 
     // Most specific first: the text form's own fields come before the shared BaseForm
     // block, even though the language declares 'using base' first
@@ -349,7 +349,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
 
     // Dead zone just above the row (inside the separator margin)
     let posItemDead = testFindItem(prop, appStrings().ui_PropPosition)!
-    var pt          = posItemDead.line.surfaceRect().center()
+    var pt = posItemDead.line.surfaceRect().center()
     pt.y = posItemDead.line.surfaceRect().y - 8
     let lineSrf = posItemDead.line.surface!
     lineSrf.surfaceToScreen(&pt)
@@ -406,9 +406,9 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     f.gui.pump()
 
     let border = testFindItem(prop, #nameof(BaseForm.borderSize))
-    Swag.assert(border != null and !border.line.isVisible())
+    Swag.assert(border != null and not border.line.isVisible())
     let joins = testFindItem(prop, #nameof(BaseForm.joinStyle))
-    Swag.assert(joins != null and !joins.line.isVisible())
+    Swag.assert(joins != null and not joins.line.isVisible())
     Swag.assert(testFindItem(prop, "Effects") == null)
 
     Swag.assert(testFindItem(prop, appStrings().ui_PropPosition) == null)
@@ -430,9 +430,9 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     f.gui.pump()
 
     let border = testFindItem(prop, #nameof(BaseForm.borderSize))
-    Swag.assert(border != null and !border.line.isVisible())
+    Swag.assert(border != null and not border.line.isVisible())
     let round = testFindItem(prop, #nameof(FormShape.roundSize))
-    Swag.assert(round != null and !round.line.isVisible())
+    Swag.assert(round != null and not round.line.isVisible())
     Swag.assert(testFindItem(prop, "Effects") == null)
 }
 
@@ -457,7 +457,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
 
     let start = testFindItem(prop, #nameof(FormLine.startSize))
     let end   = testFindItem(prop, #nameof(FormLine.endSize))
-    Swag.assert(start != null and !start.line.isVisible())
+    Swag.assert(start != null and not start.line.isVisible())
     Swag.assert(end != null and end.line.isVisible())
 
     // Picking an anchor for the other end brings its row back, on the next frame: the style cell

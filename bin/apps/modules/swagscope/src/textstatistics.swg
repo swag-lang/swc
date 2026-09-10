@@ -27,12 +27,12 @@ impl TextStatisticsCounter
         {
             let {c, eat} = Utf8.decodeRune(text[scan to])
             scan += eat
-            if !.sawRune and c == '\uFEFF' do
+            if not .sawRune and c == '\uFEFF' do
                 continue
             .sawRune = true
             if c == '\r' or c == '\n'
             {
-                if c == '\r' or !.previousCr do
+                if c == '\r' or not .previousCr do
                     .totals.lines += 1
                 .previousCr         = c == '\r'
                 .endedWithLineBreak = true
@@ -48,7 +48,7 @@ impl TextStatisticsCounter
                 continue
             }
 
-            if !.inWord do
+            if not .inWord do
                 .totals.words += 1
             .inWord = true
         }
@@ -57,7 +57,7 @@ impl TextStatisticsCounter
     mtd const finish()->TextStatistics
     {
         var result = .totals
-        if .sawRune and !.endedWithLineBreak do
+        if .sawRune and not .endedWithLineBreak do
             result.lines += 1
         return result
     }

@@ -21,10 +21,10 @@ func lateGlobalLifecycle()->bool
         return false
 
     g_lateGlobalStorage.value = 7
-    g_lateGlobalItem          = &g_lateGlobalStorage
-    g_lateGlobalName          = "hello"
+    g_lateGlobalItem = &g_lateGlobalStorage
+    g_lateGlobalName = "hello"
 
-    if !(g_lateGlobalItem != null) or !(g_lateGlobalName != null) do
+    if not (g_lateGlobalItem != null) or not (g_lateGlobalName != null) do
         return false
 
     let p: *LateGlobalItem = g_lateGlobalItem
@@ -58,7 +58,7 @@ func lateGlobalRead()->s32 => g_lateGlobalInline.value
 func lateGlobalThroughAccessor()->bool
 {
     g_lateGlobalInlineStorage.value = 42
-    g_lateGlobalInline              = &g_lateGlobalInlineStorage
+    g_lateGlobalInline = &g_lateGlobalInlineStorage
     return lateGlobalRead() == 42
 }
 

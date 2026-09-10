@@ -89,9 +89,9 @@ private func mathNormalizedClass(row: *MathNode, index: u64)->MathAtomClass
         n += 1
     }
 
-    if !hasPrev or prev == .Bin or prev == .Op or prev == .Rel or prev == .Open or prev == .Punct do
+    if not hasPrev or prev == .Bin or prev == .Op or prev == .Rel or prev == .Open or prev == .Punct do
         return .Ord
-    if !hasNext or next == .Rel or next == .Close or next == .Punct do
+    if not hasNext or next == .Rel or next == .Close or next == .Punct do
         return .Ord
     return cls
 }
@@ -176,7 +176,7 @@ private func mathLayoutRow(node: *MathNode, font: *Font, style: MathStyle, varia
         }
 
         node.offsets[idx]    = {x, 0}
-        x                    += child.metrics.width
+        x += child.metrics.width
         node.metrics.ascent  = Math.max(node.metrics.ascent, child.metrics.ascent)
         node.metrics.descent = Math.max(node.metrics.descent, child.metrics.descent)
     }
@@ -269,7 +269,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
 
     let scriptStyle = mathNextStyle(style)
     var childIndex  = 1'u64
-    var sub, sup:           *MathNode?
+    var sub, sup: *MathNode?
     var subIndex, supIndex: u64
     if node.flag
     {
@@ -434,11 +434,11 @@ private func mathMeasureDelimiter(text: string, font: *Font, minScale, targetHei
         switch path.kind
         {
         case .LeftParenthesis, .RightParenthesis: result.width = Math.clamp(targetHeight * 0.15, 0.28 * em, 0.50 * em)
-        case .LeftBrace, .RightBrace:             result.width = Math.clamp(targetHeight * 0.20, 0.38 * em, 0.68 * em)
-        case .LeftAngle, .RightAngle:             result.width = Math.clamp(targetHeight * 0.16, 0.30 * em, 0.52 * em)
-        case .Bar:                                result.width = 0.14 * em
-        case .DoubleBar:                          result.width = 0.30 * em
-        default:                                  result.width = 0.30 * em
+        case .LeftBrace, .RightBrace: result.width = Math.clamp(targetHeight * 0.20, 0.38 * em, 0.68 * em)
+        case .LeftAngle, .RightAngle: result.width = Math.clamp(targetHeight * 0.16, 0.30 * em, 0.52 * em)
+        case .Bar:                    result.width = 0.14 * em
+        case .DoubleBar:              result.width = 0.30 * em
+        default:                      result.width = 0.30 * em
         }
 
         return result
@@ -484,7 +484,7 @@ private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle,
     }
 
     node.offsets[0] = {x, 0}
-    x               += body.metrics.width
+    x += body.metrics.width
 
     if node.text2.toString() != "."
     {
@@ -675,8 +675,8 @@ private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, va
         {
             let child = node.children[childIndex]
             node.offsets[childIndex] = {x + (columnWidths[column] - child.metrics.width) * 0.5, baseline}
-            x                        += columnWidths[column] + columnGap
-            childIndex               += 1
+            x += columnWidths[column] + columnGap
+            childIndex += 1
         }
 
         y += rowAscents[row] + rowDescents[row] + rowGap

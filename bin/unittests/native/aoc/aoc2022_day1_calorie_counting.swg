@@ -10,7 +10,7 @@
 // structs, enums, generics, lambdas, interfaces, UFCS,
 // slices, element iteration, compile-time assertions, and more.
 
-const MaxElves           = 8
+const MaxElves = 8
 const MaxFoodItemsPerElf = 8
 
 // ---------------------------------------------------------------------------

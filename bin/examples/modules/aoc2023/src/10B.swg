@@ -113,7 +113,7 @@ func day10B()
     let lines    = expect File.readAllLines(dataPath)
 
     var width, height: u64
-    var maze:          Array'Dir
+    var maze: Array'Dir
 
     width  = lines[0].length + 2
     height = lines.count + 2
@@ -177,19 +177,19 @@ func day10B()
 
         switch
         {
-        case one[] & .East and !(mp(visitX + 1, visitY)[] & .Edge):
+        case one[] & .East and not (mp(visitX + 1, visitY)[] & .Edge):
             visitX += 1
             moved  = true
 
-        case one[] & .West and !(mp(visitX - 1, visitY)[] & .Edge):
+        case one[] & .West and not (mp(visitX - 1, visitY)[] & .Edge):
             visitX -= 1
             moved  = true
 
-        case one[] & .North and !(mp(visitX, visitY - 1)[] & .Edge):
+        case one[] & .North and not (mp(visitX, visitY - 1)[] & .Edge):
             visitY -= 1
             moved  = true
 
-        case one[] & .South and !(mp(visitX, visitY + 1)[] & .Edge):
+        case one[] & .South and not (mp(visitX, visitY + 1)[] & .Edge):
             visitY += 1
             moved  = true
         }
@@ -213,7 +213,7 @@ func day10B()
             {
                 let one1 = mp(cast(s64) x, cast(s64) line)[]
                 if one1 & .Edge and one1 & .North do
-                    inside = !inside
+                    inside = not inside
             }
 
             total += inside ? 1 : 0

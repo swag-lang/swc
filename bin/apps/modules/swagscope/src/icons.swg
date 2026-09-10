@@ -40,7 +40,7 @@ private var g_ViewerIconsParsed: bool
 // would name a cell of the document it embeds itself.
 func viewerIcons()->*IconAtlas
 {
-    if !g_ViewerIconsParsed
+    if not g_ViewerIconsParsed
     {
         expect g_ViewerIcons.setup(cast(string) IconsSvg)
         g_ViewerIconsParsed = true

@@ -78,7 +78,7 @@ public impl IWnd for ScrollWnd
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .computeLayout()
-        if !(.view != null) do
+        if not (.view != null) do
             return
         var rect = .paddedClientRect()
         rect.width  -= .paddingZ
@@ -95,7 +95,7 @@ public impl IWnd for ScrollWnd
         switch evt.kind
         {
         case .Wheel:
-            if evt.modifiers & .Shift or !.showBarV do
+            if evt.modifiers & .Shift or not .showBarV do
                 .setScrollPos(.view.scrollPos.x - (evt.delta.y * .horizontalScrollStep), .view.scrollPos.y)
             else do
                 .setScrollPos(.view.scrollPos.x, .view.scrollPos.y - (evt.delta.y * .verticalScrollStep))
@@ -128,7 +128,7 @@ public impl IWnd for ScrollWnd
                 break
             }
 
-            if !.isMoving
+            if not .isMoving
             {
                 .hitTest(evt.surfacePos)
                 break
@@ -229,8 +229,8 @@ public impl IWnd for ScrollWnd
         switch
         {
         case .flags.has(.TransparentBars): break
-        case bc.isDisabled:                colorBk = colors.scrollBar_DisabledBk
-        default:                           colorBk = colors.scrollBar_Bk
+        case bc.isDisabled: colorBk = colors.scrollBar_DisabledBk
+        default: colorBk = colors.scrollBar_Bk
         }
 
         // Vertical bar
@@ -244,7 +244,7 @@ public impl IWnd for ScrollWnd
             theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, colorBk)
 
             var colBk = colors.scrollBar_HotBk
-            if !.isHotBarV do
+            if not .isHotBarV do
                 colBk.a = 0
             .aniBkBarV.apply(me, colBk)
             theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, .aniBkBarV.cur())
@@ -278,7 +278,7 @@ public impl IWnd for ScrollWnd
             theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, colorBk)
 
             var colBk = colors.scrollBar_HotBk
-            if !.isHotBarH do
+            if not .isHotBarH do
                 colBk.a = 0
             .aniBkBarH.apply(me, colBk)
             theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, .aniBkBarH.cur())
@@ -363,7 +363,7 @@ impl ScrollWnd
         var result: retval = .clientRect()
         result.x     = result.right() - .paddingZ
         result.width = .paddingZ
-        if !full
+        if not full
         {
             result.y      = .posBoxV
             result.height = .sizeBoxV
@@ -377,7 +377,7 @@ impl ScrollWnd
         var result: retval = .clientRect()
         result.y      = result.bottom() - .paddingW
         result.height = .paddingW
-        if !full
+        if not full
         {
             result.x     = .posBoxH
             result.width = .sizeBoxH
@@ -404,12 +404,12 @@ impl ScrollWnd
         if .needV or .flags.has(.AlwaysShowVertical) do
             .showBarV = true
 
-        if !.flags.has(.DisableHorizontal) and sx > clientRect.width do
+        if not .flags.has(.DisableHorizontal) and sx > clientRect.width do
             .needH = true
         if .needH or .flags.has(.AlwaysShowHorizontal) do
             .showBarH = true
 
-        if !.flags.has(.DisableHorizontal) and .showBarV and .scrollSize.x > clientRect.width - barSize do
+        if not .flags.has(.DisableHorizontal) and .showBarV and .scrollSize.x > clientRect.width - barSize do
             .needH = true
         if .needH or .flags.has(.AlwaysShowHorizontal) do
             .showBarH = true
@@ -595,7 +595,7 @@ public impl ScrollWnd
         // Only a size that clips the current position or destination interrupts it.
         let position = .scrollPositionPrivate(.view.scrollPos.x, .view.scrollPos.y)
         let target   = .scrollPositionPrivate(.scrollRequestPos.x, .scrollRequestPos.y)
-        if !.app().animator.isActive(.scrollAnimation) or position != .view.scrollPos or target != .scrollRequestPos do
+        if not .app().animator.isActive(.scrollAnimation) or position != .view.scrollPos or target != .scrollRequestPos do
             .setScrollPos(position)
         .sigScrollSizeChanged.call(me, oldScrollSize, .scrollSize)
         .sendResizeEvent()

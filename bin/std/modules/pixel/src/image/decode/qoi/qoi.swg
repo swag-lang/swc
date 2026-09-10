@@ -87,7 +87,7 @@ internal impl IImageDecoder for Decoder
 
         var result: retval
         result.init(cast(s32) width, cast(s32) height, channels == 4 ? .RGBA8 : .RGB8)
-        if !options.decodePixels do
+        if not options.decodePixels do
             return result
 
         result.allocPixels()

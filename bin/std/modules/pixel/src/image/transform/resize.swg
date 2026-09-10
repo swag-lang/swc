@@ -217,7 +217,7 @@ namespace ResizeTools
                     resf = 0
 
                     // We are on the left side, trim left
-                    if !nonZeroFound
+                    if not nonZeroFound
                     {
                         left = src + 1
                         continue

@@ -58,7 +58,7 @@ struct LibraryWnd
 {
     using wnd: Wnd
 
-        late
+    late
     {
         main:        *MainWnd
         view:        *LibraryView
@@ -123,7 +123,7 @@ impl LibraryWnd
 {
     mtd applyLanguage()
     {
-        if !(.viewBtn != null) do
+        if not (.viewBtn != null) do
             return
 
         .viewBtn.setText(appStrings().ui_BarView)
@@ -173,7 +173,7 @@ impl LibraryWnd
 
     mtd const hasSelected()->bool
     {
-        return !.view.selModel.isEmpty()
+        return not .view.selModel.isEmpty()
     }
 
     mtd removeSelected()
@@ -218,7 +218,7 @@ impl LibraryWnd
         for name in .selectedFiles()
         {
             let dst = Library.restoreFile(name)
-            if !dst.isEmpty() do
+            if not dst.isEmpty() do
                 g_Library.addFile(dst)
         }
 
@@ -309,7 +309,7 @@ impl LibraryWnd
             .view.mutexLoaded.lock()
             let capture = item!.capture
             .view.mutexLoaded.unlock()
-            if !capture do
+            if not capture do
                 continue
 
             if applications
@@ -321,12 +321,12 @@ impl LibraryWnd
                 for &entry in result where Utf8.compare(entry.name.toSlice(), capture.sourceApplication, .Latin1NoCase) == 0
                 {
                     entry.count += 1
-                    if entry.executable.isEmpty() and !capture.sourceExecutable.isEmpty() do
+                    if entry.executable.isEmpty() and not capture.sourceExecutable.isEmpty() do
                         entry.executable = capture.sourceExecutable
                     found = true
                 }
 
-                if !found do
+                if not found do
                     result.add({capture.sourceApplication, capture.sourceExecutable, 1})
                 continue
             }
@@ -340,7 +340,7 @@ impl LibraryWnd
                     found       = true
                 }
 
-                if !found do
+                if not found do
                     result.add({tag[], "", 1})
             }
         }
@@ -380,7 +380,7 @@ impl LibraryWnd
         for value, i in values[]
         {
             var icon: Icon
-            if kind == .Application and !value.executable.isEmpty() and Path.isValidPathName(value.executable)
+            if kind == .Application and not value.executable.isEmpty() and Path.isValidPathName(value.executable)
             {
                 icon       = .app().fileIcon(value.executable)
                 icon.color = Argb.White
@@ -401,7 +401,7 @@ impl LibraryWnd
     // what prevents a fixed-width rail from manufacturing a horizontal scroll bar.
     mtd layoutSidebarColumns()
     {
-        if !(.listCtrl != null) do
+        if not (.listCtrl != null) do
             return
         let available = .listCtrl.listView.paddedClientRect().width
         if available <= 0 do
@@ -416,9 +416,9 @@ impl LibraryWnd
     mtd selectActiveSidebarLine()
     {
         var wantedKind = LibrarySidebarFilter.Date
-        if !.applicationFilter.isEmpty() do
+        if not .applicationFilter.isEmpty() do
             wantedKind = .Application
-        elif !.tagFilter.isEmpty() do
+        elif not .tagFilter.isEmpty() do
             wantedKind = .Tag
 
         for i in .listCtrl.lineCount()
@@ -508,7 +508,7 @@ impl LibraryWnd
 
         for fi in g_Library.files
         {
-            if !hasLastDateTime or fi.lastWriteTime.year != lastDateTime.year
+            if not hasLastDateTime or fi.lastWriteTime.year != lastDateTime.year
             {
                 fillLastYear()
                 lastLine           = .listCtrl.createLine(Format.toString("%", fi.lastWriteTime.year), icon1)
@@ -516,7 +516,7 @@ impl LibraryWnd
                 lastLineYear       = lastLine
             }
 
-            if !hasLastDateTime or fi.lastWriteTime.month != lastDateTime.month
+            if not hasLastDateTime or fi.lastWriteTime.month != lastDateTime.month
             {
                 fillLastMonth()
                 lastLine           = .listCtrl.createLine(Format.toString("%", DateTime.monthName(fi.lastWriteTime.month)), icon1, lastLineYear)
@@ -525,7 +525,7 @@ impl LibraryWnd
                 lastLineMonth      = lastLine
             }
 
-            if !hasLastDateTime or fi.lastWriteTime.day != lastDateTime.day
+            if not hasLastDateTime or fi.lastWriteTime.day != lastDateTime.day
             {
                 fillLastDay()
                 lastLine           = .listCtrl.createLine(Format.toString("%, %", DateTime.dayOfWeekName(fi.lastWriteTime.dayOfWeek()), fi.lastWriteTime.day), icon1, lastLineMonth)
@@ -535,8 +535,8 @@ impl LibraryWnd
                 lastLineDay        = lastLine
             }
 
-            lastDateTime              = fi.lastWriteTime
-            hasLastDateTime           = true
+            lastDateTime    = fi.lastWriteTime
+            hasLastDateTime = true
             cptYear, cptMonth, cptDay += 1
         }
 
@@ -552,12 +552,12 @@ impl LibraryWnd
 
     mtd refreshAutomaticFilters(force = false)
     {
-        if !(.listCtrl != null) do
+        if not (.listCtrl != null) do
             return
 
         let applications = .collectNamedFilters(true)
         let tags         = .collectNamedFilters(false)
-        if !force and .namedFiltersEqual(.sidebarApplications.toSlice(), applications.toSlice()) and .namedFiltersEqual(.sidebarTags.toSlice(), tags.toSlice()) do
+        if not force and .namedFiltersEqual(.sidebarApplications.toSlice(), applications.toSlice()) and .namedFiltersEqual(.sidebarTags.toSlice(), tags.toSlice()) do
             return
 
         .sidebarApplications = applications
@@ -567,13 +567,13 @@ impl LibraryWnd
 
     mtd fill()
     {
-        if !g_Library.loaded do
+        if not g_Library.loaded do
             g_Library.fill()
 
         if .listCtrl.lineCount() and .filledRevision == g_Library.revision do
             return
 
-        if !.deleteObserverRegistered
+        if not .deleteObserverRegistered
         {
             g_Library.onDeleteFile += func|libWnd = me|(file)
             {
@@ -675,7 +675,7 @@ impl LibraryWnd
 
     mtd updateFolderMode()
     {
-        if !(.sideBar != null) do
+        if not (.sideBar != null) do
             return
         if .currentFolder() == Library.getFolder() do
             .sideBar.show()
@@ -760,7 +760,7 @@ impl LibraryWnd
         }
 
         let result = menu.doModal(btn, autoDestroy: true)
-        if !result do
+        if not result do
             return
         switch result!
         {
@@ -781,7 +781,7 @@ impl LibraryWnd
 
     mtd applyDynamicFilter(result: WndId?)
     {
-        if !result do
+        if not result do
             return
         let id = result!
         if Utf8.startsWith(id, "capture.library.app:")
@@ -918,7 +918,7 @@ impl LibraryWnd
             {
                 for tag in item.capture!.tags
                 {
-                    if !text.isEmpty() do
+                    if not text.isEmpty() do
                         text += ", "
                     text += tag[]
                 }
@@ -943,7 +943,7 @@ impl LibraryWnd
             var exists = false
             for own in tags where Utf8.compare(own.toSlice(), tag, .Latin1NoCase) == 0 do
                 exists = true
-            if !exists do
+            if not exists do
                 tags.add(#move tag)
         }
 
@@ -957,7 +957,7 @@ impl LibraryWnd
         var favorite = false
         for item, i in .view.items
         {
-            if item.capture and .view.selModel.isSelected(cast() i) and !item.capture!.favorite do
+            if item.capture and .view.selModel.isSelected(cast() i) and not item.capture!.favorite do
                 favorite = true
         }
 
@@ -1037,7 +1037,7 @@ impl LibraryWnd
     // each carrying its full path in 'tag' so navigation can act on it.
     mtd updateBreadcrumb()
     {
-        if !(.breadcrumb != null) do
+        if not (.breadcrumb != null) do
             return
         .breadcrumb.clear()
 
@@ -1193,11 +1193,11 @@ impl LibraryWnd
             .header.hide()
             .backgroundStyle = .Transparent
             .updateFlags(.ReserveExpandMargin)
-            .dockStyle           = .Center
+            .dockStyle = .Center
             .sigSelectionChanged += func|res|(list)
             {
                 let sel = list.selectedLine()
-                if !sel do
+                if not sel do
                     return
                 res.applySidebarFilter(sel)
             }

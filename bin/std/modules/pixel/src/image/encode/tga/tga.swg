@@ -53,9 +53,9 @@ func sameTgaPixel(left, right: const [*] u8, bytesPerPixel: u64)->bool
 func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
 {
     var result: retval = 1
-    let first          = src + index * bytesPerPixel
-    let limit          = Math.min(128'u64, pixelCount - index)
-    if limit == 1 or !sameTgaPixel(first, first + bytesPerPixel, bytesPerPixel) do
+    let first = src + index * bytesPerPixel
+    let limit = Math.min(128'u64, pixelCount - index)
+    if limit == 1 or not sameTgaPixel(first, first + bytesPerPixel, bytesPerPixel) do
         return result
 
     result = 2
@@ -68,7 +68,7 @@ func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
 
     while result < limit
     {
-        if !sameTgaPixel(first, first + result * bytesPerPixel, bytesPerPixel) do
+        if not sameTgaPixel(first, first + result * bytesPerPixel, bytesPerPixel) do
             break
         result += 1
     }
@@ -136,7 +136,7 @@ internal impl IImageEncoder for Encoder
             userOptions = options.buffer![as EncodeOptions]
         }
 
-        if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
+        if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
             fail InvalidFormatError{"invalid image"}
         if image.width > Swag.U16.Max do
             fail UnsupportedFormatError{"width is too big"}

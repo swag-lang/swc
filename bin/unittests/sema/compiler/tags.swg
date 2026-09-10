@@ -10,7 +10,7 @@ const EndianTagName = endianTag()
 
 #assert(#hastag("Swag.Endian"))
 #assert(#hastag(EndianTagName))
-#assert(!#hastag("Swag.DoesNotExist"))
+#assert(not #hastag("Swag.DoesNotExist"))
 
 const EndianValue = #gettag("Swag.Endian", string, "big")
 #assert(#typeof(EndianValue) == string)
@@ -18,7 +18,7 @@ const EndianValue = #gettag("Swag.Endian", string, "big")
 
 const MissingBool = #gettag("Swag.Missing.Bool", bool, false)
 #assert(#typeof(MissingBool) == bool)
-#assert(!MissingBool)
+#assert(not MissingBool)
 
 const MissingByte = #gettag("Swag.Missing.Byte", u8, 42)
 #assert(#typeof(MissingByte) == u8)

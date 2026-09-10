@@ -136,7 +136,7 @@ internal impl Item
     // page does not hold, so it reports the whole plane and is treated as unbounded.
     mtd const paintBounds()->Math.Rectangle
     {
-        if !.paintBoxKnown do
+        if not .paintBoxKnown do
             return {-Swag.F32.Max * 0.5, -Swag.F32.Max * 0.5, Swag.F32.Max, Swag.F32.Max}
         return .paintBox
     }
@@ -193,7 +193,7 @@ internal impl Item
     // size and no resampling stands between them.
     mtd multiplyMask(coverage: #move Image, rect: Math.Rectangle)
     {
-        if !.hasMask
+        if not .hasMask
         {
             .maskImage = #move coverage
             .maskRect  = rect

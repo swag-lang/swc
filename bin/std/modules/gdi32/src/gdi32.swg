@@ -519,20 +519,20 @@ internal namespace Gdi32Priv
     func ChoosePixelFormat(hdc: HDC, ppfd: const *PIXELFORMATDESCRIPTOR)->s32 fail
     {
         let res = Gdi32Priv.ChoosePixelFormat(hdc, ppfd)
-        if !res do
+        if not res do
             failWinError(GetLastError())
         return res
     }
 
     func SetPixelFormat(hdc: HDC, fmt: s32, ppfd: const *PIXELFORMATDESCRIPTOR) fail
     {
-        if !Gdi32Priv.SetPixelFormat(hdc, fmt, ppfd) do
+        if not Gdi32Priv.SetPixelFormat(hdc, fmt, ppfd) do
             failWinError(GetLastError())
     }
 
     func SwapBuffers(arg1: HDC) fail
     {
-        if !Gdi32Priv.SwapBuffers(arg1) do
+        if not Gdi32Priv.SwapBuffers(arg1) do
             failWinError(GetLastError())
     }
 
@@ -540,7 +540,7 @@ internal namespace Gdi32Priv
     func DescribePixelFormat(hdc: HDC, iPixelFormat: s32, nBytes: UINT, ppfd: *PIXELFORMATDESCRIPTOR)->s32 fail
     {
         let res = Gdi32Priv.DescribePixelFormat(hdc, iPixelFormat, nBytes, ppfd)
-        if !res do
+        if not res do
             failWinError(GetLastError())
         return res
     }
@@ -564,49 +564,49 @@ internal namespace Gdi32Priv
     func DeleteDC(hdc: HDC) fail
     {
         let res = Gdi32Priv.DeleteDC(hdc)
-        if !res do
+        if not res do
             failWinError(GetLastError())
     }
 
     func DeleteObject(ho: HGDIOBJ) fail
     {
         let res = Gdi32Priv.DeleteObject(ho)
-        if !res do
+        if not res do
             failWinError(GetLastError())
     }
 
     func BitBlt(hdc: HDC, x, y, cx, cy: s32, hdcSrc: HDC, x1, y1: s32, rop: DWORD) fail
     {
         let res = Gdi32Priv.BitBlt(hdc, x, y, cx, cy, hdcSrc, x1, y1, rop)
-        if !res do
+        if not res do
             failWinError(GetLastError())
     }
 
     func GetObjectA(h: HANDLE, c: s32, pv: LPVOID) fail
     {
         let res = Gdi32Priv.GetObjectA(h, c, pv)
-        if !res do
+        if not res do
             failWinError(GetLastError())
     }
 
     func GetObjectW(h: HANDLE, c: s32, pv: LPVOID) fail
     {
         let res = Gdi32Priv.GetObjectW(h, c, pv)
-        if !res do
+        if not res do
             failWinError(GetLastError())
     }
 
     func GetBitmapBits(hbit: HBITMAP, cb: LONG, lpvBits: LPVOID) fail
     {
         let res = Gdi32Priv.GetBitmapBits(hbit, cb, lpvBits)
-        if !res do
+        if not res do
             failWinError(GetLastError())
     }
 
     func SetBitmapBits(hbit: HBITMAP, cb: DWORD, lpvBits: LPVOID) fail
     {
         let res = Gdi32Priv.SetBitmapBits(hbit, cb, lpvBits)
-        if !res do
+        if not res do
             failWinError(GetLastError())
     }
 

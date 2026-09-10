@@ -110,7 +110,7 @@ func day10B()
                     }
                 }
 
-                if !hit
+                if not hit
                 {
                     tot[i] += 1
                     tot[j] += 1
@@ -147,11 +147,11 @@ func day10B()
     })
 
     var groups: Array'DirectionGroup
-    var haveGroup          = false
+    var haveGroup = false
     var lastDirX, lastDirY = 0's64
     for it in arr
     {
-        if !haveGroup or it.dirX != lastDirX or it.dirY != lastDirY
+        if not haveGroup or it.dirX != lastDirX or it.dirY != lastDirY
         {
             var group: DirectionGroup
             group.asteroids.add(it)
@@ -172,7 +172,7 @@ func day10B()
         var vaporizedOne = false
         for gi in groups.count
         {
-            if !groups[gi].asteroids.count do
+            if not groups[gi].asteroids.count do
                 continue
 
             vaporizedOne = true
@@ -189,7 +189,7 @@ func day10B()
             }
         }
 
-        if !vaporizedOne do
+        if not vaporizedOne do
             break
     }
 }

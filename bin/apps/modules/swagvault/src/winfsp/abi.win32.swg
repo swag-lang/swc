@@ -160,8 +160,9 @@ namespace WinFsp
     {
         module: NativeModule
 
-            // The runtime entry points, resolved once when the library is loaded.
-            late
+        // The runtime entry points, resolved once when the library is loaded.
+
+        late
         {
             fsCreate:              FspFileSystemCreateFn
             destroy:               FspFileSystemDeleteFn
@@ -176,7 +177,7 @@ namespace WinFsp
 
         setSecurityAddress: const *void?
 
-            late
+        late
         {
             deleteSecurityDescriptor: FspDeleteSecurityDescriptorFn
             registerServer:           WinFspRegistrationFn
@@ -242,7 +243,7 @@ namespace WinFsp
     {
         var buffer: [32768] u8
         let count = GetEnvironmentVariableA(name.buffer, buffer.buffer, cast(u32) buffer.count)
-        if !count or count >= buffer.count do
+        if not count or count >= buffer.count do
             return ""
         return Swag.makeString(buffer.buffer, count)
     }

@@ -81,14 +81,14 @@ impl MainWnd
         var params = {capture: capture, boundRects: boundRects.buffer, forms: &forms, argb: argb}
         undo.newImg.visitPixels(&params)
         {
-            var p          = cast(*#decltype(params)) userData!
+            var p = cast(*#decltype(params)) userData!
             let boundRects = p.boundRects!
             for f, idx in p.forms[]
             {
                 var pt = Math.Point{cast(f32) x, cast(f32) p.capture.backImg.height - y}
                 pt.x += p.capture.backImagePos.x
                 pt.y += p.capture.backImagePos.y
-                if !boundRects[idx].contains(pt) do
+                if not boundRects[idx].contains(pt) do
                     continue
 
                 if f.isInside(pt)
@@ -189,7 +189,7 @@ impl MainWnd
                 var pt = Math.Point{cast(f32) x, cast(f32) p.capture.backImg.height - y}
                 pt.x += p.capture.backImagePos.x
                 pt.y += p.capture.backImagePos.y
-                if !infos[idx].boundRect.contains(pt) do
+                if not infos[idx].boundRect.contains(pt) do
                     continue
 
                 if f.isInside(pt)
@@ -212,7 +212,7 @@ impl MainWnd
                             if xx < pmask.width and yy < pmask.height
                             {
                                 var pix1 = pmask.pixels.buffer! + xx * pmask.bytesPerPixel
-                                pix1          += yy * pmask.width * pmask.bytesPerPixel
+                                pix1 += yy * pmask.width * pmask.bytesPerPixel
                                 pix1![as u32] = 0xFFFFFFFF
                             }
                         }

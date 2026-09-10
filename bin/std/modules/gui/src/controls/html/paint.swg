@@ -115,7 +115,7 @@ impl HtmlPainter
     private mtd const stickyOffset(box: u32, offset: Math.Point)->f32
     {
         let target = .layout.constBox(box)
-        if !target.sticky do
+        if not target.sticky do
             return 0
 
         // `offset` carries the scroll translation and whatever sticky offsets the ancestors added,
@@ -182,7 +182,7 @@ impl HtmlPainter
         }
 
         let radius = Math.max(Math.max(style.radiusTopLeft, style.radiusTopRight), Math.max(style.radiusBottomRight, style.radiusBottomLeft))
-        if style.background.a and !style.masked and !skipBackground
+        if style.background.a and not style.masked and not skipBackground
         {
             let ground = HtmlPainter.withAlpha(style.background, alpha)
             let area   = Math.Rectangle.intersect(rect, .band())
@@ -258,7 +258,7 @@ impl HtmlPainter
     {
         var result: retval
         let parsed = htmlFunctionArguments(.layout.pool.text(style.clipPath), "polygon")
-        if !parsed.matched or parsed.arguments.count < 3 do
+        if not parsed.matched or parsed.arguments.count < 3 do
             return result
 
         var values:  HtmlValuePool
@@ -284,7 +284,7 @@ impl HtmlPainter
             context.basis = rect.height
             let y  = htmlParseLength(&values, coordinates[1].toString(), context)
             let py = y.length.resolve(&values, context)
-            if !x.matched or !y.matched
+            if not x.matched or not y.matched
             {
                 result.clear()
                 return result
@@ -305,11 +305,11 @@ impl HtmlPainter
         if points.count < 3 do
             return
 
-        if style.background.a and !style.masked do
+        if style.background.a and not style.masked do
             .painter.fillPolygon(points.toSlice(), Brush.createSolid(HtmlPainter.withAlpha(style.background, alpha)))
 
         let border = &style.borderTop
-        if border.width <= 0 or border.style == .None or !border.color.a do
+        if border.width <= 0 or border.style == .None or not border.color.a do
             return
         if style.borderRight.width != border.width or style.borderBottom.width != border.width or style.borderLeft.width != border.width do
             return
@@ -338,7 +338,7 @@ impl HtmlPainter
 
     private mtd fillSide(x, y, width, height: f32, color: Color)
     {
-        if !color.a do
+        if not color.a do
             return
 
         var side: Math.Rectangle
@@ -353,7 +353,7 @@ impl HtmlPainter
     // shape.
     private mtd fillQuad(ax, ay, bx, by, cx, cy, dx, dy: f32, color: Color)
     {
-        if !color.a do
+        if not color.a do
             return
 
         var points: Array'Math.Vector2
@@ -428,11 +428,11 @@ impl HtmlPainter
         for index in range.first until range.last
         {
             let item = &target.items[index]
-            if !item.visible do
+            if not item.visible do
                 continue
 
             let style = .layout.constStyle(item.style)
-            if !style.visible do
+            if not style.visible do
                 continue
 
             // An atomic inline owns a real box, whose extent can be much taller than the font
@@ -577,7 +577,7 @@ impl HtmlPainter
                 let padBottom = item.descent * 0.4
                 let rect      = Math.Rectangle{span.left, item.y - .scrollY - padTop, span.width,
                                                item.ascent + item.descent + padTop + padBottom}
-                if !found
+                if not found
                 {
                     result[] = rect
                     found    = true
@@ -617,7 +617,7 @@ impl HtmlPainter
     private mtd paintSelectionHit(item: const *HtmlInlineItem, alpha: f32, x: f32, y: f32)
     {
         let range = .selectionRangeInNode(item.node)
-        if !range.has or range.end <= item.sourceStart or range.start >= item.sourceEnd do
+        if not range.has or range.end <= item.sourceStart or range.start >= item.sourceEnd do
             return
 
         let span = .coveredSpan(item, range.start, range.end, x)
@@ -701,7 +701,7 @@ impl HtmlPainter
         while true
         {
             let next = .nextStackingLevel(box, previous, hasPrevious, positive, true)
-            if !next.found do
+            if not next.found do
                 return
             for child in children where .stackingLevel(child) == next.value do
                 .paintBox(child, offset, alpha)
@@ -714,7 +714,7 @@ impl HtmlPainter
     // positive positioned levels.
     private mtd paintChildren(box: u32, offset: Math.Point, alpha: f32)
     {
-        if !.layout.constBox(box).hasStacked
+        if not .layout.constBox(box).hasStacked
         {
             for child in .layout.constBox(box).children do
                 .paintBox(child, offset, alpha)
@@ -740,7 +740,7 @@ impl HtmlPainter
     {
         var result: retval
         let target = .layout.constBox(box)
-        if !target.scrollable or target.scrollHeight <= target.content.height or rect.height <= 0 do
+        if not target.scrollable or target.scrollHeight <= target.content.height or rect.height <= 0 do
             return result
 
         let width = Math.min(Math.max(.scrollBarSize, 2), rect.width)
@@ -775,7 +775,7 @@ impl HtmlPainter
     mtd paintBox(box: u32, parentOffset: Math.Point, alpha: f32)
     {
         let style = .layout.constStyle(.layout.constBox(box).style)
-        if !style.visible or style.display == .None do
+        if not style.visible or style.display == .None do
             return
 
         var offset = parentOffset
@@ -792,7 +792,7 @@ impl HtmlPainter
 
         // Visible overflow can outlive the parent's own rectangle, so prune by the complete
         // subtree extent rather than clipping an image or positioned descendant too early.
-        if !bounds.intersects(.visible) do
+        if not bounds.intersects(.visible) do
             return
 
         .paintDecorations(rect, style, combined, box == .canvasBox)
@@ -890,11 +890,11 @@ impl HtmlPainter
         result.box = HtmlNoNode
 
         let box = .layout.nodeBox.tryFind(node)
-        if !box do
+        if not box do
             return result
 
         let style = .layout.constStyle(.layout.constBox(box!.value).style)
-        if !style.background.a or style.masked do
+        if not style.background.a or style.masked do
             return result
 
         result.color = style.background
@@ -937,7 +937,7 @@ impl HtmlPainter
         while true
         {
             let next = .nextStackingLevel(box, previous, hasPrevious, positive, false)
-            if !next.found do
+            if not next.found do
                 return {}
             for index in children.count
             {
@@ -957,7 +957,7 @@ impl HtmlPainter
     private mtd const scrollBarAtChildren(box: u32, point: Math.Point, offset: Math.Point)->HtmlRegionScrollBar
     {
         let children = .layout.constBox(box).children
-        if !.layout.constBox(box).hasStacked
+        if not .layout.constBox(box).hasStacked
         {
             for index in children.count
             {
@@ -989,7 +989,7 @@ impl HtmlPainter
     private mtd const scrollBarAtBox(box: u32, point: Math.Point, parentOffset: Math.Point)->HtmlRegionScrollBar
     {
         let style = .layout.constStyle(.layout.constBox(box).style)
-        if !style.visible or style.display == .None do
+        if not style.visible or style.display == .None do
             return {}
 
         var offset = parentOffset
@@ -997,7 +997,7 @@ impl HtmlPainter
 
         var rect = .layout.constBox(box).rect
         rect.offset(offset.x, offset.y)
-        if !rect.contains(point) do
+        if not rect.contains(point) do
             return {}
 
         // A region paints its own bar after its contents, so that bar also wins hit testing over
@@ -1035,7 +1035,7 @@ impl HtmlPainter
         while true
         {
             let next = .nextStackingLevel(box, previous, hasPrevious, positive, false)
-            if !next.found do
+            if not next.found do
                 return HtmlNoNode
             for index in children.count
             {
@@ -1055,7 +1055,7 @@ impl HtmlPainter
     private mtd const nodeAtChildren(box: u32, point: Math.Point, offset: Math.Point)->u32
     {
         let children = .layout.constBox(box).children
-        if !.layout.constBox(box).hasStacked
+        if not .layout.constBox(box).hasStacked
         {
             for index in children.count
             {
@@ -1087,7 +1087,7 @@ impl HtmlPainter
     private mtd const nodeAtBox(box: u32, point: Math.Point, parentOffset: Math.Point)->u32
     {
         let style = .layout.constStyle(.layout.constBox(box).style)
-        if !style.visible or style.display == .None do
+        if not style.visible or style.display == .None do
             return HtmlNoNode
 
         var offset = parentOffset
@@ -1097,13 +1097,13 @@ impl HtmlPainter
         var bounds = .layout.constBox(box).paintBounds
         rect.offset(offset.x, offset.y)
         bounds.offset(offset.x, offset.y)
-        if !bounds.contains(point) do
+        if not bounds.contains(point) do
             return HtmlNoNode
 
         var inner = offset
         if style.overflowX != .Visible or style.overflowY != .Visible
         {
-            if !rect.contains(point) do
+            if not rect.contains(point) do
                 return HtmlNoNode
             inner.y -= .layout.constBox(box).scrollTop
         }
@@ -1117,7 +1117,7 @@ impl HtmlPainter
         for index in range.first until range.last
         {
             let item = &target.items[index]
-            if !item.visible do
+            if not item.visible do
                 continue
 
             if item.kind == .Atomic and item.box != HtmlNoNode
@@ -1155,7 +1155,7 @@ impl HtmlPainter
         while true
         {
             let next = .nextStackingLevel(box, previous, hasPrevious, positive, false)
-            if !next.found do
+            if not next.found do
                 return HtmlNoNode
             for index in children.count
             {
@@ -1175,7 +1175,7 @@ impl HtmlPainter
     private mtd const scrollableAtChildren(box: u32, point: Math.Point, offset: Math.Point)->u32
     {
         let children = .layout.constBox(box).children
-        if !.layout.constBox(box).hasStacked
+        if not .layout.constBox(box).hasStacked
         {
             for index in children.count
             {
@@ -1211,7 +1211,7 @@ impl HtmlPainter
 
         var rect = .layout.constBox(box).rect
         rect.offset(offset.x, offset.y)
-        if !rect.contains(point) do
+        if not rect.contains(point) do
             return HtmlNoNode
 
         var inner = offset
@@ -1253,7 +1253,7 @@ impl HtmlPainter
     private mtd textHitBox(box: u32, point: Math.Point, parentOffset: Math.Point, best: *HtmlTextHit)
     {
         let style = .layout.constStyle(.layout.constBox(box).style)
-        if !style.visible or style.display == .None do
+        if not style.visible or style.display == .None do
             return
 
         var offset = parentOffset
@@ -1265,7 +1265,7 @@ impl HtmlPainter
         var inner = offset
         if style.overflowX != .Visible or style.overflowY != .Visible
         {
-            if !rect.contains(point) do
+            if not rect.contains(point) do
                 return
             inner.y -= .layout.constBox(box).scrollTop
         }
@@ -1275,7 +1275,7 @@ impl HtmlPainter
         for index in range.first until range.last
         {
             let item = &target.items[index]
-            if !item.visible do
+            if not item.visible do
                 continue
 
             if item.kind == .Atomic
@@ -1327,7 +1327,7 @@ impl HtmlPainter
     private mtd offsetAtRun(item: const *HtmlInlineItem, localX: f32)->u64
     {
         let sourceLength = item.sourceEnd - item.sourceStart
-        if sourceLength != item.textCount or !sourceLength do
+        if sourceLength != item.textCount or not sourceLength do
             return localX < item.width * 0.5 ? item.sourceStart : item.sourceEnd
 
         let source   = .layout.inlineText(item)
@@ -1371,10 +1371,10 @@ impl HtmlPainter
                 continue
             }
 
-            if !item.visible or item.node == HtmlNoNode do
+            if not item.visible or item.node == HtmlNoNode do
                 continue
             let range = .selectionRangeInNode(item.node)
-            if !range.has or range.end <= item.sourceStart or range.start >= item.sourceEnd do
+            if not range.has or range.end <= item.sourceStart or range.start >= item.sourceEnd do
                 continue
 
             if lastBox[] != HtmlNoNode

@@ -2,7 +2,7 @@
 
 #assert(s32 == s32)
 #assert(s32 != u32)
-#assert(!(s8 == s32))
+#assert(not (s8 == s32))
 
 #assert((cast(const *Swag.TypeInfo) #typeof(f32)).name == "f32")
 #assert((cast(typeinfo) #typeof(f32)).name == "f32")
@@ -40,14 +40,14 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
 func semaTest002()
 {
     var a: typeinfo = #typeof(f32)
-    let b           = a.flags | .Nullable
+    let b = a.flags | .Nullable
 }
 
 func semaTest003()
 {
     var a: typeinfo = #typeof(*f32)
-    var b           = cast(const *Swag.TypeInfoPointer) (a)
-    var c           = b.pointedType == f32
+    var b = cast(const *Swag.TypeInfoPointer) (a)
+    var c = b.pointedType == f32
 }
 
 func semaTest004()

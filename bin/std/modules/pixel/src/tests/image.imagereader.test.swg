@@ -93,7 +93,7 @@ using Swag, Core
         let retained = expect reader.read(2)
         reader.close()
         reader.close()
-        Swag.assert(!reader.isOpen() and retained.isValid())
+        Swag.assert(not reader.isOpen() and retained.isValid())
         var invalid = catch reader.read(0) as error
         Swag.assert(error != null)
     }

@@ -7,9 +7,9 @@ impl Voice
         var bytesPerSample = 2'u64
         switch .requestedEncoding
         {
-        case .Pcm8:            bytesPerSample = 1
-        case .Pcm16:           bytesPerSample = 2
-        case .Pcm24:           bytesPerSample = 3
+        case .Pcm8:  bytesPerSample = 1
+        case .Pcm16: bytesPerSample = 2
+        case .Pcm24: bytesPerSample = 3
         case .Pcm32, .Float32: bytesPerSample = 4
         }
 
@@ -58,7 +58,7 @@ impl Voice
         {
             if .streamPacketIdx >= file.packets.count
             {
-                if !.playFlags.has(.Loop) do
+                if not .playFlags.has(.Loop) do
                     return {null, 0}
                 .rewindData()
             }
@@ -75,7 +75,7 @@ impl Voice
         // the source before filling the next buffer.
         if .streamCurSeek >= file.dataSize
         {
-            if !.playFlags.has(.Loop) do
+            if not .playFlags.has(.Loop) do
                 return {null, 0}
             .rewindData()
         }
@@ -92,7 +92,7 @@ impl Voice
         }
 
         // Otherwise decode into a temporary buffer.
-        if !.decodedBuffers[.decodedBufferIdx].buffer do
+        if not .decodedBuffers[.decodedBufferIdx].buffer do
             .decodedBuffers[.decodedBufferIdx].resize(DecodedBufferSize)
 
         let destBuffer = .decodedBuffers[.decodedBufferIdx].buffer!
@@ -113,7 +113,7 @@ impl Voice
     {
         let file = .file!
         let desc = findCodec(.requestedEncoding, file.encoding)
-        if !desc do
+        if not desc do
             fail UnsupportedFormatError{"unsupported encoding"}
         let allocator   = .handle ? .allocationAllocator : Swag.getContext().allocator!
         let decoderData = Memory.new(desc.type, allocator)!
@@ -124,7 +124,7 @@ impl Voice
 
     mtd destroyCodec()
     {
-        if !.codec do
+        if not .codec do
             return
         let decoder   = cast(*Codec) (.codec).buffer!
         let allocator = decoder.allocationAllocator
@@ -138,7 +138,7 @@ impl Voice
     {
         let file = .file!
         let desc = findPacketCodec(file.encoding)
-        if !desc do
+        if not desc do
             fail UnsupportedFormatError{"unsupported packetized encoding"}
         let allocator   = .handle ? .allocationAllocator : Swag.getContext().allocator!
         let decoderData = Memory.new(desc.type, allocator)!
@@ -151,7 +151,7 @@ impl Voice
 
     mtd destroyPacketCodec()
     {
-        if !.packetCodec do
+        if not .packetCodec do
             return
         let decoder   = cast(*Codec) (.packetCodec).buffer!
         let allocator = decoder.allocationAllocator
@@ -167,7 +167,7 @@ impl Voice
     mtd decodePacketData(destination: [*] void, destinationSize: u64)->u64 fail
     {
         let file = .file!
-        if !.packetCodec do
+        if not .packetCodec do
             .createPacketCodec()
 
         var written = 0'u64
@@ -180,7 +180,7 @@ impl Voice
 
             if .packetBuffer.count != packet.byteSize do
                 .packetBuffer.resize(packet.byteSize)
-            if !.stream.isOpen() do
+            if not .stream.isOpen() do
                 .stream = ByteSource.openFile(file.path)
             .stream.seek(packet.sourceOffset)
             if .stream.read(.packetBuffer.toSlice()) != packet.byteSize do
@@ -241,7 +241,7 @@ impl Voice
         }
 
         // Otherwise we need a codec
-        if !.codec
+        if not .codec
         {
             expect .createCodec()
             .streamBuffer.reserve(StreamBufferSize)
@@ -285,12 +285,12 @@ impl Voice
             if .streamCurSeek >= file.dataSize do
                 return remain
             wantedLength -= remain
-            if !wantedLength do
+            if not wantedLength do
                 return remain
         }
 
         // Open file for streaming
-        if !.stream.isOpen() do
+        if not .stream.isOpen() do
             .stream = ByteSource.openFile(file.path)
 
         // Read from file. A payload the header declares past what the file holds ends where the
@@ -325,7 +325,7 @@ impl Voice
 
         var packetIndex = low
 
-        if !.stream.isOpen() do
+        if not .stream.isOpen() do
             .stream = ByteSource.openFile(file.path)
 
         while written < length and packetIndex < file.packets.count

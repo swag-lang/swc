@@ -35,17 +35,17 @@ internal impl MappedRegion
         let mappedLength = length + prefix
 
         let mapping = CreateFileMappingW(cast(HANDLE) sourceHandle, null, protect, 0, 0, null)
-        defer if !.mapHandle do
+        defer if not .mapHandle do
             CloseHandle(mapping)
 
         let currentProcess = GetCurrentProcess()
         var duplicate: HANDLE
         DuplicateHandle(currentProcess, cast(HANDLE) sourceHandle, currentProcess, &duplicate, 0, FALSE, DUPLICATE_SAME_ACCESS)
-        defer if !.fileHandle do
+        defer if not .fileHandle do
             CloseHandle(duplicate)
 
         let nativeView = MapViewOfFile(mapping, desiredAccess, cast(DWORD) (alignedOffset >> 32), cast(DWORD) alignedOffset, mappedLength)
-        defer if !.nativeView do
+        defer if not .nativeView do
             discard catch UnmapViewOfFile(nativeView)
 
         .mapHandle  = cast(FileHandle) mapping

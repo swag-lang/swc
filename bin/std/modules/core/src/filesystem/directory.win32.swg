@@ -31,7 +31,7 @@ func exists(dirName: string)->bool
         return false
     if attributes == 0xFFFFFFFF do
         return false
-    if !(attributes & FILE_ATTRIBUTE_DIRECTORY) do
+    if not (attributes & FILE_ATTRIBUTE_DIRECTORY) do
         return false
     return true
 }
@@ -72,7 +72,7 @@ func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
         result.add(#move info)
 
         let next = catch FindNextFileW(handle, &findfile)
-        if !next do
+        if not next do
             break
     }
 
@@ -150,7 +150,7 @@ func volumes()->Array'String fail
             }
         }
 
-        if !FindNextVolumeA(h, volName, MAX_PATH) do
+        if not FindNextVolumeA(h, volName, MAX_PATH) do
             break
     }
 

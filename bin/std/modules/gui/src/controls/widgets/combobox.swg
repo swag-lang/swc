@@ -148,9 +148,9 @@ impl IWnd for ComboBox
 
         // In flat (cell) mode the field is only painted while active. A transparent field keeps
         // the ground it sits on while retaining the border that identifies it as a control.
-        if !.flags.has(.Flat) or .isHot or .popup
+        if not .flags.has(.Flat) or .isHot or .popup
         {
-            if !.flags.has(.TransparentBackground)
+            if not .flags.has(.TransparentBackground)
             {
                 theme.drawSubRect(painter, clientRect, subRectBk, .aniBk.cur())
                 .focusRingGround = .aniBk.cur()
@@ -163,7 +163,7 @@ impl IWnd for ComboBox
             .focusRingGround = {}
 
         // Item
-        if !.editBox and .selectedIndex < .items.count
+        if not .editBox and .selectedIndex < .items.count
         {
             var format: RichStringFormat
             let item     = .items[.selectedIndex]!
@@ -328,7 +328,7 @@ private impl ComboBox
             idx += dir
             if idx < 0 or idx >= cast(s32) .items.count do
                 return
-            if !.items[idx]!.isSeparator do
+            if not .items[idx]!.isSeparator do
                 break
         }
 
@@ -342,7 +342,7 @@ private impl ComboBox
         {
             for item, idx in .items
             {
-                if !item!.isSeparator
+                if not item!.isSeparator
                 {
                     .setSelectedIndex(cast(u32) idx)
                     return
@@ -353,7 +353,7 @@ private impl ComboBox
         {
             for var i = cast(s32) .items.count - 1; i >= 0; i -= 1
             {
-                if !.items[i]!.isSeparator
+                if not .items[i]!.isSeparator
                 {
                     .setSelectedIndex(cast(u32) i)
                     return
@@ -365,7 +365,7 @@ private impl ComboBox
     mtd showPopup()
     {
         let popup = PopupListCtrl.create(cast(*Wnd) me)
-        .popup              = popup
+        .popup = popup
         popup.minimumWidth  = .minimumPopupWidth
         popup.maximumHeight = .maximumPopupHeight
         popup.fitVertically = true
@@ -395,17 +395,17 @@ private impl ComboBox
     mtd hidePopup()
     {
         let popup = .popup
-        if !popup do
+        if not popup do
             return
 
-        let restoreFocus = .hasFocus() and !.hasVisibleFocus() ? .pointerFocusReturn : null
+        let restoreFocus = .hasFocus() and not .hasVisibleFocus() ? .pointerFocusReturn : null
         .popup = null
         popup.destroy()
         .pointerFocusReturn = null
 
         // Pointer-opened command lists are temporary overlays. Once dismissed they return the
         // keyboard to its previous owner instead of leaving an invisible focus on the field.
-        if restoreFocus and !restoreFocus!.isPendingDestroy and restoreFocus!.surface == .surface and restoreFocus!.isEnabled() do
+        if restoreFocus and not restoreFocus!.isPendingDestroy and restoreFocus!.surface == .surface and restoreFocus!.isEnabled() do
             restoreFocus!.setFocus()
     }
 }
@@ -442,7 +442,7 @@ impl ComboBox
         if result.mode == .Editable
         {
             // The field is the control's own writing surface, not a second stop beside it.
-            result.editBox             = EditBox.create(result, null, {})
+            result.editBox = EditBox.create(result, null, {})
             result.editBox.focusPolicy = .Inner
             result.editBox.setForm(EditBoxForm.Transparent)
         }
@@ -521,7 +521,7 @@ impl ComboBox
     // Opens the drop-down without moving keyboard focus away from the combo box.
     mtd openPopup()
     {
-        if !.popup do
+        if not .popup do
             .showPopup()
     }
 
@@ -529,7 +529,7 @@ impl ComboBox
     mtd setSelectedIndex(index: u32, notify = true)
     {
         Swag.assert(index < .items.count)
-        Swag.assert(!.items[index]!.isSeparator)
+        Swag.assert(not .items[index]!.isSeparator)
         .applySelectedIndex(index, notify)
     }
 

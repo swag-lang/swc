@@ -198,7 +198,7 @@ func readAfterFreeAcrossCall()->s32
     let pointer = cast(*s32) heapAlloc(4)
     heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     discard opaqueS32(1)
-    return pointer[]         // swc-expected-error {{sanity_err_use_after_free}}
+    return pointer[]     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #test
@@ -344,7 +344,7 @@ func reassignObjectFieldAfterFree()->s32
     let owner = cast(*Owner) heapAlloc(16)
     owner.buffer = cast(*s32) heapAlloc(4)
     heapFree(owner.buffer!, 4)
-    owner.buffer = cast(*s32) heapAlloc(4)
+    owner.buffer    = cast(*s32) heapAlloc(4)
     owner.buffer![] = 8
     let value = owner.buffer![]
     heapFree(owner.buffer!, 4)
@@ -357,8 +357,8 @@ func reassignObjectFieldAfterFree()->s32
 func readOtherTableElement()->s32
 {
     var table: [2] (*s32?)
-    table[0] = cast(*s32) heapAlloc(4)
-    table[1] = cast(*s32) heapAlloc(4)
+    table[0]    = cast(*s32) heapAlloc(4)
+    table[1]    = cast(*s32) heapAlloc(4)
     table[1]![] = 5
     heapFree(table[0]!, 4)
     let value = table[1]![]

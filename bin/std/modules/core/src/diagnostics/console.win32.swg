@@ -94,7 +94,7 @@ public func prompt()->String
     let h = GetStdHandle(STD_INPUT_HANDLE)
     for
     {
-        if !ReadFile(h, &buffer[0], BufSize, &dwRead, null) do
+        if not ReadFile(h, &buffer[0], BufSize, &dwRead, null) do
             break
         result.append(Swag.makeString(&buffer[0], dwRead))
         if dwRead < BufSize do

@@ -136,7 +136,7 @@ func bareNeedsNothing(node: *Node)->s32
     Swag.assert(narrowedByTest(null) == -1)
     Swag.assert(narrowedByAssert(&nodeStorage) == 5)
     Swag.assert(narrowedByConjunction(&nodeStorage))
-    Swag.assert(!narrowedByConjunction(null))
+    Swag.assert(not narrowedByConjunction(null))
     Swag.assert(narrowedByJoin(opaqueBool(true)) == 5)
     Swag.assert(guardedAccess(null) == -1)
     Swag.assert(guardedAccess(&nodeStorage) == 5)

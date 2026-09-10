@@ -34,7 +34,7 @@ func runDynamicStructCast()->bool
     let derivedPtr = &derived
     let asMid      = derivedPtr as Mid
     let asBase     = derivedPtr as Base
-    if !derivedPtr is Derived or !derivedPtr is Mid or !derivedPtr is Base do
+    if not derivedPtr is Derived or not derivedPtr is Mid or not derivedPtr is Base do
         return false
     if derivedPtr is PointerWrapper do
         return false
@@ -47,12 +47,12 @@ func runDynamicStructCast()->bool
     var wrapper     = PointerWrapper{base: &base}
     let wrapperPtr  = &wrapper
     let wrappedBase = wrapperPtr as Base
-    if !wrapperPtr is Base or wrappedBase != &base do
+    if not wrapperPtr is Base or wrappedBase != &base do
         return false
 
     let itf: INode = derived
     let itfBase    = itf as Base
-    if !itf is Derived or !itf is Mid or !itf is Base do
+    if not itf is Derived or not itf is Mid or not itf is Base do
         return false
     if itf is PointerWrapper do
         return false
@@ -63,7 +63,7 @@ func runDynamicStructCast()->bool
 
     let dyn: any = derived
     let dynBase  = dyn as Base
-    if !dyn is Derived or !dyn is Base do
+    if not dyn is Derived or not dyn is Base do
         return false
     if dyn is PointerWrapper do
         return false
@@ -90,7 +90,7 @@ func runIntrinsicDynamicTypeInfo()->bool
     var number  = 45
     var derived = Derived{}
 
-    if !Swag.typeIs(baseType, derivedType) or !Swag.typeIs(midType, derivedType) or !Swag.typeIs(intType, s32) do
+    if not Swag.typeIs(baseType, derivedType) or not Swag.typeIs(midType, derivedType) or not Swag.typeIs(intType, s32) do
         return false
     if Swag.typeIs(stringType, intType) do
         return false

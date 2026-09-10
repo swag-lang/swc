@@ -60,7 +60,7 @@ func findBytes(data: const [..] u8?, from: u64, needle: string)->u64
 {
     let size  = needle.count
     let total = data.count
-    if !size or size > total do
+    if not size or size > total do
         return total
 
     let bytes = data!
@@ -105,7 +105,7 @@ private func readPostScriptToken(data: const [..] u8?, from: u64)->{ text: strin
 {
     var pos   = skipPostScriptSpaces(data, from)
     let start = pos
-    while pos < data.count and !isPostScriptDelimiter(data![pos]) do
+    while pos < data.count and not isPostScriptDelimiter(data![pos]) do
         pos += 1
 
     return {cast(string) Swag.makeSlice(data.buffer + start, pos - start), pos}
@@ -223,7 +223,7 @@ private func isHexPrivateSection(data: const [..] u8?)->bool
         if isPostScriptSpace(c) do
             continue
         let isHexDigit = (c >= '0' and c <= '9') or (c >= 'A' and c <= 'F') or (c >= 'a' and c <= 'f')
-        if !isHexDigit do
+        if not isHexDigit do
             return false
         seen += 1
         if seen == 4 do
@@ -240,7 +240,7 @@ private func readCharstringData(data: const [..] u8?, from: u64, lenIV: u64)->{ 
     let length = readPostScriptNumber(data, from)
     let size   = cast(u64) length.value
     let token  = readPostScriptToken(data, length.next)
-    if !token.text.count
+    if not token.text.count
     {
         result.next = data.count
         return result
@@ -267,7 +267,7 @@ private func parseType1Subrs(font: *Type1Font, data: const [..] u8?, lenIV: u64)
 
     let count = readPostScriptNumber(data, marker + 6)
     let total = cast(u64) count.value
-    if !total or total > 65_536 do
+    if not total or total > 65_536 do
         return
 
     font.subrs.resize(total)
@@ -315,7 +315,7 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8?, lenIV
         if data![pos] != '/'
         {
             let token = readPostScriptToken(data, pos)
-            if !token.text.count
+            if not token.text.count
             {
                 pos += 1
                 continue
@@ -328,7 +328,7 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8?, lenIV
         }
 
         let name = readPostScriptToken(data, pos + 1)
-        if !name.text.count
+        if not name.text.count
         {
             pos += 1
             continue
@@ -342,11 +342,11 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8?, lenIV
         if owned == NotDefName
         {
             font.charstrings[0] = entry.bytes
-            pos                 = entry.next
+            pos = entry.next
             continue
         }
 
-        if !font.nameToGid.contains(owned) do
+        if not font.nameToGid.contains(owned) do
             font.nameToGid.add(owned, cast(u32) font.charstrings.count)
         font.glyphNames.add(owned)
         font.charstrings.add(entry.bytes)
@@ -369,7 +369,7 @@ private func parseType1Encoding(font: *Type1Font, clear: const [..] u8?) fail
         for code in 256'u32
         {
             let name = standardEncodingName(cast(u8) code)
-            if !name.count do
+            if not name.count do
                 continue
             let found = font.nameToGid.tryFind(String.from(name))
             if found do

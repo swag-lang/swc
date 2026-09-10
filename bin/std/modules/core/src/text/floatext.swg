@@ -213,7 +213,7 @@ impl FloatExt
         // Find power of ten such that x * 10^n has a binary exponent
         // between expMin and expMax.
         let approxExp10 = ((expMin + expMax) / 2 - .exp) * 28 / 93     // log(10)/log(2) is close to 93/28.
-        var i           = (approxExp10 - firstPowerOfTen) / stepPowerOfTen
+        var i = (approxExp10 - firstPowerOfTen) / stepPowerOfTen
         #scope(Loop)
         for
         {
@@ -222,7 +222,7 @@ impl FloatExt
             {
             case exp1 < expMin: i += 1
             case exp1 > expMax: i -= 1
-            default:            break to Loop
+            default: break to Loop
             }
         }
 
@@ -358,7 +358,7 @@ impl FloatExt
         // We pass this information to the rounding routine for adjustment.
 
         let ok = adjustLastDigitFixed(d, (cast(u64) rest << shift) | fraction, pow10, shift, e)
-        if !ok do
+        if not ok do
             return false
 
         // Trim trailing zeros.

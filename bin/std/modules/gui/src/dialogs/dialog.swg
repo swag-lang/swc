@@ -64,7 +64,7 @@ impl Dialog
     // keyboard starts.
     mtd keyboardEntry()->*Wnd?
     {
-        for stop in FocusOrder.collect(.surface!.wnd).stops where !stop.wndFlags.has(.ActivatesOnKey) do
+        for stop in FocusOrder.collect(.surface!.wnd).stops where not stop.wndFlags.has(.ActivatesOnKey) do
             return stop
         return .surface!.defaultButton
     }
@@ -96,7 +96,7 @@ impl Dialog
         // own it reads as part of the surface underneath it, so every dialog is outlined.
         let captionFlags = flags.has(.LargeCaption) ? SurfaceFlags.LargeCaption : SurfaceFlags.SmallCaption
         let surfaceFlags = captionFlags | SurfaceFlags.ToolWindow | SurfaceFlags.Border | (flags & ~(SurfaceFlags.CloseButton | SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption))
-        let srf          = (expect from.app.createSurface(x, y, width, height, surfaceFlags, me))!
+        let srf = (expect from.app.createSurface(x, y, width, height, surfaceFlags, me))!
         srf.wnd.view.backgroundStyle = .Dialog
 
         let metrics = .themeMetrics()
@@ -245,7 +245,7 @@ impl Dialog
     {
         let safeResult = result orelse ""
         let validator  = .validateResult
-        if validator and !validator(me, safeResult) do
+        if validator and not validator(me, safeResult) do
             return false
         .app().exitModal(safeResult)
         return true

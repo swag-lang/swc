@@ -33,7 +33,7 @@ impl Rack
     #[Swag.Macro]
     func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
-        if !.count do
+        if not .count do
             return
         let buffer = .buffer!
 

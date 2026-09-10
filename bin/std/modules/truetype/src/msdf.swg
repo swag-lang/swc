@@ -376,7 +376,7 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
         msdfColorContour(&elements, first, count, &seed)
     }
 
-    if !segs.count do
+    if not segs.count do
         return
     let sbuf = segs.buffer!
 
@@ -418,8 +418,8 @@ func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, 
         epy += s.aby
     }
 
-    let eqx          = epx - px
-    let eqy          = epy - py
+    let eqx = epx - px
+    let eqy = epy - py
     let endpointDist = Math.sqrt(eqx * eqx + eqy * eqy)
 
     if param > 0 and param < 1
@@ -535,7 +535,7 @@ impl MsdfBest
     {
         .abs[0], .abs[1], .abs[2], .allAbs = Swag.F64.Max
         .signed[0], .signed[1], .signed[2] = -Swag.F64.Max
-        .dot[0], .dot[1], .dot[2]          = Swag.F64.Max
+        .dot[0], .dot[1], .dot[2] = Swag.F64.Max
         .idx[0], .idx[1], .idx[2], .allIdx = -1
         for i in 8 do
             .reach2[i] = Swag.F64.Max
@@ -562,7 +562,7 @@ impl MsdfBest
     mtd fold(s: const *MsdfSeg, index: s32, px, py: f64)
     {
         let {sd, dt, param} = msdfSegSignedDistance(s, px, py)
-        let a               = Math.abs(sd)
+        let a = Math.abs(sd)
 
         var won = false
         if a < .allAbs or (a == .allAbs and index < .allIdx)
@@ -574,7 +574,7 @@ impl MsdfBest
 
         for ch in 3
         {
-            if !(s.color & cast(u8) (1 << ch)) do
+            if not (s.color & cast(u8) (1 << ch)) do
                 continue
 
             // An exact tie goes to the more perpendicular contact, which is what keeps a
@@ -737,7 +737,7 @@ func msdfProcessRow(c: *MsdfRowCtx, py: u32)
         // corner-ray artifacts; the true SDF is smooth there, so outer effects (glow,
         // outline outer edge, soft shadow) sample it instead.
         let {r, g, b, trueDist} = msdfChannelDistances(segsS, sampleX, sampleY, &seed)
-        let trueSd              = inside ? trueDist : -trueDist
+        let trueSd = inside ? trueDist : -trueDist
 
         let idx = (cast(u64) py * cast(u64) c.width + cast(u64) px) * 4
         c.channels[idx + 0] = cast(f32) r
@@ -777,7 +777,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
         return
 
     var safeSpread = spread
-    if !safeSpread do
+    if not safeSpread do
         safeSpread = 1
     safeSpread = Math.min(safeSpread, 64)
 
@@ -789,7 +789,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
     let top     = Math.ceilS32(bounds.maxY / 64.0) + padding
     let width   = Math.max(0, right - left)
     let rows    = Math.max(0, top - bottom)
-    if !width or !rows do
+    if not width or not rows do
         return
 
     var segs: Array'MsdfSeg

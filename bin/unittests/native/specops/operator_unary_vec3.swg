@@ -123,7 +123,7 @@ impl IntUnaryVec3
 #test
 {
     var value: IntUnaryVec3's32 = {x: 1, y: -2, z: 3}
-    let double_neg              = -(-value)
+    let double_neg = -(-value)
 
     Swag.assert(double_neg.x == 1)
     Swag.assert(double_neg.y == -2)
@@ -134,7 +134,7 @@ impl IntUnaryVec3
 #test
 {
     var value: IntUnaryVec3'u64 = {x: 0xCAFE, y: 0xBABE, z: 0xDEAD}
-    let double_inv              = ~(~value)
+    let double_inv = ~(~value)
 
     Swag.assert(double_inv.x == 0xCAFE'u64)
     Swag.assert(double_inv.y == 0xBABE'u64)

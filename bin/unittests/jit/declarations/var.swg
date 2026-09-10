@@ -184,7 +184,7 @@ enum IfElseKind: u16
     {
         if flag
         {
-            var b       = 10 > 5 and !false
+            var b       = 10 > 5 and not false
             var r: rune = 'A'
             if b
             {

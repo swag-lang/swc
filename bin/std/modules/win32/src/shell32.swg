@@ -487,13 +487,13 @@ const SHCNF_IDLIST       = 0x0000'u32
 {
     func SHGetSpecialFolderPathA(hwnd: HWND, pszPath: LPSTR, csidl: s32, fCreate: BOOL) fail
     {
-        if !Shell32Priv.SHGetSpecialFolderPathA(hwnd, pszPath, csidl, fCreate) do
+        if not Shell32Priv.SHGetSpecialFolderPathA(hwnd, pszPath, csidl, fCreate) do
             failWinError(GetLastError())
     }
 
     func SHGetSpecialFolderPathW(hwnd: HWND, pszPath: LPWSTR, csidl: s32, fCreate: BOOL) fail
     {
-        if !Shell32Priv.SHGetSpecialFolderPathW(hwnd, pszPath, csidl, fCreate) do
+        if not Shell32Priv.SHGetSpecialFolderPathW(hwnd, pszPath, csidl, fCreate) do
             failWinError(GetLastError())
     }
 
@@ -524,13 +524,13 @@ const SHCNF_IDLIST       = 0x0000'u32
 
     func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA) fail
     {
-        if !Shell32Priv.Shell_NotifyIconA(dwMessage, lpData) do
+        if not Shell32Priv.Shell_NotifyIconA(dwMessage, lpData) do
             failWinError(GetLastError())
     }
 
     func Shell_NotifyIconW(dwMessage: DWORD, lpData: *NOTIFYICONDATAW) fail
     {
-        if !Shell32Priv.Shell_NotifyIconW(dwMessage, lpData) do
+        if not Shell32Priv.Shell_NotifyIconW(dwMessage, lpData) do
             failWinError(GetLastError())
     }
 

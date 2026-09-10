@@ -97,7 +97,7 @@ private func indesignHas(bytes: const [..] u8, offset, count: u64)->bool
 
 private func indesignMatches(bytes: const [..] u8, offset: u64, text: string)->bool
 {
-    if !indesignHas(bytes, offset, text.count) do
+    if not indesignHas(bytes, offset, text.count) do
         return false
     for index in text.count where bytes[offset + index] != text[index] do
         return false
@@ -106,7 +106,7 @@ private func indesignMatches(bytes: const [..] u8, offset: u64, text: string)->b
 
 private func indesignMatchesContiguousMarker(bytes: const [..] u8, offset: u64, trailer = false)->bool
 {
-    if !indesignHas(bytes, offset, IndesignContiguousHeader.count) do
+    if not indesignHas(bytes, offset, IndesignContiguousHeader.count) do
         return false
     for index in IndesignContiguousHeader.count where bytes[offset + index] != (trailer ? IndesignContiguousTrailer[index] : IndesignContiguousHeader[index]) do
         return false
@@ -115,7 +115,7 @@ private func indesignMatchesContiguousMarker(bytes: const [..] u8, offset: u64, 
 
 private func indesignMatchesSignature(bytes: const [..] u8, offset: u64)->bool
 {
-    if !indesignHas(bytes, offset, IndesignSignature.count) do
+    if not indesignHas(bytes, offset, IndesignSignature.count) do
         return false
     for index in IndesignSignature.count where bytes[offset + index] != IndesignSignature[index] do
         return false
@@ -162,7 +162,7 @@ private func indesignU64(bytes: const [..] u8, offset: u64)->u64
 // sequence and storage-page fields are the little-endian master-page values InDesign writes.
 private func parseIndesignHeader(bytes: const [..] u8, offset: u64, result: *IndesignHeader)->bool
 {
-    if !indesignHas(bytes, offset, IndesignHeaderMinimumSize) or !indesignMatchesSignature(bytes, offset) or !indesignMatches(bytes, offset + IndesignSignature.count, IndesignHeaderType) do
+    if not indesignHas(bytes, offset, IndesignHeaderMinimumSize) or not indesignMatchesSignature(bytes, offset) or not indesignMatches(bytes, offset + IndesignSignature.count, IndesignHeaderType) do
         return false
 
     let byteOrder = bytes[offset + IndesignByteOrderOffset]
@@ -170,7 +170,7 @@ private func parseIndesignHeader(bytes: const [..] u8, offset: u64, result: *Ind
         return false
 
     let storagePages = indesignU32(bytes, offset + IndesignStoragePageCountOffset, false)
-    if !storagePages do
+    if not storagePages do
         return false
 
     result.offset        = offset
@@ -323,7 +323,7 @@ private func indexIndesignPreviews(bytes: const [..] u8, start, end: u64)->Array
         {
             let payloadStart = imageStart + IndesignPreviewImageOpen.count
             var page         = indesignPreviewPageNumber(bytes, contentStart, itemEnd)
-            if !page
+            if not page
             {
                 page = fallbackPage
                 if fallbackPage != Swag.U32.Max do
@@ -382,7 +382,7 @@ private func indexIndesignObjectPreviews(bytes: const [..] u8, start, end: u64, 
     var cursor = start
     while cursor + IndesignContiguousMarkerSize <= end
     {
-        if !indesignMatchesContiguousMarker(bytes, cursor)
+        if not indesignMatchesContiguousMarker(bytes, cursor)
         {
             cursor += 1
             continue
@@ -397,7 +397,7 @@ private func indexIndesignObjectPreviews(bytes: const [..] u8, start, end: u64, 
         }
 
         let trailer = payloadStart + length
-        if !indesignMatchesContiguousMarker(bytes, trailer, true)
+        if not indesignMatchesContiguousMarker(bytes, trailer, true)
         {
             cursor += 1
             continue
@@ -410,14 +410,14 @@ private func indexIndesignObjectPreviews(bytes: const [..] u8, start, end: u64, 
             break
         }
 
-        if !sameMarker
+        if not sameMarker
         {
             cursor += 1
             continue
         }
 
         let previews = indexIndesignPreviews(bytes, payloadStart, trailer)
-        if !previews.isEmpty()
+        if not previews.isEmpty()
         {
             indesignAppendPreviews(&result, &previews)
             streamCount[] += 1
@@ -436,7 +436,7 @@ private func loadIndesignPreview(fileName: string, preview: const *IndesignPrevi
     var file   = try File.MappedFile.open(fileName)
     let region = try file.mapAll()
     let bytes  = region.bytes()
-    if preview.payloadEnd < preview.payloadStart or !indesignHas(bytes, preview.payloadStart, preview.payloadEnd - preview.payloadStart) do
+    if preview.payloadEnd < preview.payloadStart or not indesignHas(bytes, preview.payloadStart, preview.payloadEnd - preview.payloadStart) do
         fail InvalidFormatError{indesignStrings().err_Preview}
 
     let payload = indesignPreviewBase64(bytes, preview.payloadStart, preview.payloadEnd)
@@ -449,12 +449,12 @@ private func loadIndesignPreview(fileName: string, preview: const *IndesignPrevi
         fail InvalidFormatError{indesignStrings().err_Preview}
 
     var geometry: IndesignPreviewGeometry
-    if !indesignJpegGeometry(previewBytes.toSlice(), &geometry) do
+    if not indesignJpegGeometry(previewBytes.toSlice(), &geometry) do
         fail InvalidFormatError{indesignStrings().err_Preview}
 
     var result: retval
     result = catch Image.decode("indesign-preview.jpg", previewBytes.toSlice()) as decodeError
-    if decodeError != null or !result.isValid() or result.width != cast(s32) geometry.width or result.height != cast(s32) geometry.height do
+    if decodeError != null or not result.isValid() or result.width != cast(s32) geometry.width or result.height != cast(s32) geometry.height do
         fail InvalidFormatError{indesignStrings().err_Preview}
     return #move result
 }
@@ -474,7 +474,7 @@ private impl IndesignPreviewLoad
 {
     mtd start(fileName: string, preview: const *IndesignPreview)
     {
-        Swag.assert(!.started)
+        Swag.assert(not .started)
         .fileName = fileName
         .preview  = preview[]
         .started  = true
@@ -499,9 +499,9 @@ private impl IndesignPreviewLoad
 
     mtd retire()->bool
     {
-        if !.started do
+        if not .started do
             return true
-        if !.isDone() do
+        if not .isDone() do
             return false
         .wait()
         return true
@@ -522,18 +522,18 @@ func loadIndesignDocument(fileName: string)->IndesignDocument fail
     let headerBytes = Math.min(fileSize, 2 * IndesignHeaderCopySize)
     var headerData: Array'u8
     headerData.resize(headerBytes)
-    if !try stream.readExact(headerData.toSlice()) do
+    if not try stream.readExact(headerData.toSlice()) do
         fail InvalidFormatError{indesignStrings().err_Header}
 
     var first, second: IndesignHeader
     let hasFirst  = parseIndesignHeader(headerData.toSlice(), 0, &first)
     let hasSecond = parseIndesignHeader(headerData.toSlice(), IndesignHeaderCopySize, &second)
-    if !hasFirst and !hasSecond do
+    if not hasFirst and not hasSecond do
         fail InvalidFormatError{indesignStrings().err_Header}
 
     var file          = try File.MappedFile.open(fileName)
     let region        = try file.mapAll()
-    let header        = hasSecond and (!hasFirst or second.sequence > first.sequence) ? second : first
+    let header        = hasSecond and (not hasFirst or second.sequence > first.sequence) ? second : first
     let declaredBytes = cast(u64) header.storagePages * IndesignHeaderCopySize
     if declaredBytes > fileSize do
         fail InvalidFormatError{indesignStrings().err_Header}
@@ -738,7 +738,7 @@ private impl IndesignViewer
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem("50%", "scope.indesign.zoom50")
-        if !.isMarkup() do
+        if not .isMarkup() do
             menu.addItem(indesignStrings().ui_Actual, "scope.indesign.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
         menu.addItem("125%", "scope.indesign.zoom125")
         menu.addItem("150%", "scope.indesign.zoom150")
@@ -815,7 +815,7 @@ private impl IndesignViewer
             }
         }
 
-        while !.cachedPreviews.isEmpty() and .cachedPixels > IndesignPreviewCachePixelLimit - pixelCount
+        while not .cachedPreviews.isEmpty() and .cachedPixels > IndesignPreviewCachePixelLimit - pixelCount
         {
             var oldestIndex = 0'u64
             for cached, cachedIndex in .cachedPreviews where cached.lastUsed < .cachedPreviews[oldestIndex].lastUsed do
@@ -920,7 +920,7 @@ private impl IndesignViewer
         .pageLabel.toolTip      = .isMarkup() ? indesignStrings().ui_ChooseDocumentPage : indesignStrings().ui_ChoosePage
         .zoomLabel.toolTip      = indesignStrings().ui_ZoomMenu
         .refreshZoom()
-        if !.loadTimer and .pageCount()
+        if not .loadTimer and .pageCount()
         {
             .refreshPageCommands()
             if .isMarkup()
@@ -928,7 +928,7 @@ private impl IndesignViewer
                 .details = .markupDetails(.previewIndex)
                 .reportCurrentDetails()
             }
-            elif !.showCachedPreview(.previewIndex)
+            elif not .showCachedPreview(.previewIndex)
             {
                 .details = Format.toString(indesignStrings().ui_LoadingDetails, .previewIndex + 1, .previews.count)
                 .reportCurrentDetails()
@@ -941,7 +941,7 @@ private impl IndesignViewer
     mtd goToTypedPage(text: string)->bool
     {
         let parsed = catch StrConv.parseU64(text) as parseError
-        if parseError != null or parsed.eat != text.count or parsed.ovf or !parsed.value or parsed.value > .pageCount() do
+        if parseError != null or parsed.eat != text.count or parsed.ovf or not parsed.value or parsed.value > .pageCount() do
             return false
         .selectPreview(parsed.value - 1)
         return true
@@ -949,7 +949,7 @@ private impl IndesignViewer
 
     mtd promptGoToPage()
     {
-        if !.surface or !.pageCount() do
+        if not .surface or not .pageCount() do
             return
         var options: EditDlgOptions
         options.title   = indesignStrings().ui_GoToPage
@@ -976,7 +976,7 @@ private impl IndesignViewer
         }
 
         let chosen = menu.doModal(.pageLabel, autoDestroy: true)
-        if !chosen do
+        if not chosen do
             return
         if chosen! == "scope.indesign.goToPage"
         {
@@ -995,7 +995,7 @@ private impl IndesignViewer
     // ZIP bytes, which keeps matches on selectable document text and makes page navigation exact.
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
-        if !.isMarkup() do
+        if not .isMarkup() do
             return
         for page, index in .markupPages do
             Viewer.collectTextMatches(page.html(1).toString(), text, options, index, 0, 0, result)
@@ -1003,7 +1003,7 @@ private impl IndesignViewer
 
     mtd revealMatch(match: Viewer.SearchMatch, text: string)->bool
     {
-        if !.isMarkup() or match.major >= .markupPages.count do
+        if not .isMarkup() or match.major >= .markupPages.count do
             return false
         .selectMarkupPage(match.major)
         return .htmlView!.revealFileOffset(match.offset, text)
@@ -1022,9 +1022,9 @@ private impl IndesignViewer
 
     mtd retire()->bool
     {
-        if !.load.retire() do
+        if not .load.retire() do
             return false
-        if !.previewLoad.retire() do
+        if not .previewLoad.retire() do
             return false
         if .loadTimer
         {
@@ -1059,14 +1059,14 @@ private impl IWnd for IndesignViewer
     {
         if evt.timer == .loadTimer
         {
-            if !.load.isDone() do
+            if not .load.isDone() do
                 return
 
             .removeTimer(evt.timer)
             .loadTimer = null
             var document: IndesignViewerDocument
             .failureReason = .load.finish(&document)
-            if !.failureReason.isEmpty()
+            if not .failureReason.isEmpty()
             {
                 if .reportFailure do
                     .reportFailure!(me, .failureReason.toString())
@@ -1085,7 +1085,7 @@ private impl IWnd for IndesignViewer
             return
         }
 
-        if !.previewLoad.isDone() do
+        if not .previewLoad.isDone() do
             return
 
         .removeTimer(evt.timer)
@@ -1125,7 +1125,7 @@ private impl IWnd for IndesignViewer
             return
         }
 
-        if !.pageCount()
+        if not .pageCount()
         {
             evt.accepted = false
             return
@@ -1148,7 +1148,7 @@ private impl IWnd for IndesignViewer
             else do
                 .imageView.zoomOut()
 
-        case .D0 where !.isMarkup() and evt.modifiers.has(.Control):
+        case .D0 where not .isMarkup() and evt.modifiers.has(.Control):
             .imageView.actualSize()
 
         case .F where evt.modifiers == .None:
@@ -1344,6 +1344,6 @@ func createIndesignViewer(host: Viewer.Host)
         clear: func(wnd) { (cast(*IndesignViewer) wnd).clearSearch() }})
     host.setLifecycle({
         isLoading: func(wnd)->bool { let view = cast(*IndesignViewer) wnd; return view.loadTimer != null or view.previewLoadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { let view = cast(*IndesignViewer) wnd; return view.loadTimer != null or (view.previewLoadTimer != null and !view.hasPreviewContent) },
+        needsLoadingOverlay: func(wnd)->bool { let view = cast(*IndesignViewer) wnd; return view.loadTimer != null or (view.previewLoadTimer != null and not view.hasPreviewContent) },
         retire: func(wnd)->bool { return (cast(*IndesignViewer) wnd).retire() }})
 }

@@ -68,7 +68,7 @@ impl MappedFile
         while remaining
         {
             let count = source.read(buffer[0 until Math.min(remaining, buffer.count)])
-            if !count do
+            if not count do
                 fail Errors.InvalidFormatError{}
             result.stream.writeAll(buffer[0 until count])
             remaining -= count
@@ -215,7 +215,7 @@ impl MappedRegion
     mtd flush() fail
     {
         Swag.assert(.isOpen())
-        if .access != .ReadWrite or !.length do
+        if .access != .ReadWrite or not .length do
             return
         .flushNative()
     }
@@ -234,7 +234,7 @@ impl MappedRegion
     // that page resident only until its next access.
     func releasePages(bytes: const [..] u8)
     {
-        if !bytes.count do
+        if not bytes.count do
             return
         releasePagesNative(bytes)
     }

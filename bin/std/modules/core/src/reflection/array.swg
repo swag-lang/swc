@@ -6,12 +6,12 @@ using Swag
 // Returns whether the type is a Core dynamic array.
 func isDynamicArray(t: typeinfo?)->bool
 {
-    if !t or !isStruct(t) do
+    if not t or not isStruct(t) do
         return false
 
-    let tt           = cast(const *TypeInfoStruct) t
+    let tt = cast(const *TypeInfoStruct) t
     let arrayGeneric = (cast(const *TypeInfoStruct) #typeof(Array'u8)).fromGeneric
-    if !tt.fromGeneric do
+    if not tt.fromGeneric do
         return false
     return tt.fromGeneric.fullname == arrayGeneric.fullname
 }
@@ -19,7 +19,7 @@ func isDynamicArray(t: typeinfo?)->bool
 // Returns a dynamic array's element type, or null for another kind of type.
 func dynamicArrayElementType(t: typeinfo?)->typeinfo?
 {
-    if !isDynamicArray(t) do
+    if not isDynamicArray(t) do
         return null
 
     let tt       = cast(const *TypeInfoStruct) t!
@@ -30,7 +30,7 @@ func dynamicArrayElementType(t: typeinfo?)->typeinfo?
 // Removes every element from a runtime-typed dynamic array.
 func clearDynamicArray(arrayPointer: *void?, elementType: typeinfo?)
 {
-    if !arrayPointer or !elementType do
+    if not arrayPointer or not elementType do
         return
 
     let arr    = cast(*Array'u8) arrayPointer
@@ -52,7 +52,7 @@ func clearDynamicArray(arrayPointer: *void?, elementType: typeinfo?)
 // Removes an element from a runtime-typed dynamic array while preserving value lifecycles.
 func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, index: u64)
 {
-    if !arrayPointer or !elementType do
+    if not arrayPointer or not elementType do
         return
 
     let arr       = cast(*Array'u8) arrayPointer
@@ -92,7 +92,7 @@ func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ind
 // a post-move fixup after their bytes are relocated.
 func swapRuntimeValues(basePointer: *void?, valueType: typeinfo?, indexA, indexB: u64)
 {
-    if !basePointer or !valueType or indexA == indexB do
+    if not basePointer or not valueType or indexA == indexB do
         return
 
     let nnType = valueType
@@ -123,14 +123,14 @@ func swapRuntimeValues(basePointer: *void?, valueType: typeinfo?, indexA, indexB
 // implicit default, like non-null interfaces.
 func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, initialize: bool = true)->*void?
 {
-    if !arrayPointer or !elementType
+    if not arrayPointer or not elementType
     {
         Swag.panic("Reflection.appendDynamicArrayElement cannot append to a null array or null type", #curlocation)
         return null
     }
 
     let nnType = elementType
-    if initialize and !Memory.canDefaultInit(nnType)
+    if initialize and not Memory.canDefaultInit(nnType)
     {
         Swag.panic("Reflection.appendDynamicArrayElement cannot default-initialize this type", #curlocation)
         return null

@@ -72,8 +72,8 @@ struct FormLayoutCtrl
 
         readonly
         {
-            rows:          Array'FormLayoutRow     // Rows in display order.
-            contentHeight: f32                     // Height required by the latest layout pass.
+            rows: Array'FormLayoutRow     // Rows in display order.
+            contentHeight: f32            // Height required by the latest layout pass.
         }
     }
 }
@@ -120,7 +120,7 @@ private impl FormLayoutCtrl
     // height would cut the last one off.
     mtd rowHelpHeight(row: const *FormLayoutRow, width: f32)->f32
     {
-        if !row.help do
+        if not row.help do
             return 0
         return Math.max(.options.helpHeight, row.help.measure({width, 0}).preferred.y)
     }
@@ -270,7 +270,7 @@ private impl FormLayoutCtrl
     // Gives the row appended last its single trailing control.
     mtd attachToLastRow(control: *Wnd)
     {
-        Swag.assert(!.rows.isEmpty(), "a trailing control needs a field row to extend")
+        Swag.assert(not .rows.isEmpty(), "a trailing control needs a field row to extend")
         let row = .rows.backPtr()
         Swag.assert(row.action == null, "a form row holds a single trailing control")
         row.action = control
@@ -300,7 +300,7 @@ impl FormLayoutCtrl
     mtd addField(label: string, field: *Wnd, action: *Wnd? = null, help: string? = null)->u64
     {
         Swag.assert(field.parent == me, "form field needs the form as its parent")
-        Swag.assert(!action or action.parent == me, "form action needs the form as its parent")
+        Swag.assert(not action or action.parent == me, "form action needs the form as its parent")
 
         var row = FormLayoutRow{
             label: Label.create(me, label, flags: .options.labelFlags),

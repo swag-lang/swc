@@ -126,7 +126,7 @@ impl Container
 #test
 {
     let r: Rect's32 = {min: {x: 0, y: 0}, max: {x: 20, y: 10}}
-    let c           = r.center()
+    let c = r.center()
 
     #assert(#typeof(c) == Vec2's32)
     Swag.assert(c.x == 10)
@@ -138,7 +138,7 @@ impl Container
 {
     let r:      Rect's32 = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
     var offset: Vec2's32 = {x: 5, y: -3}
-    let moved            = r.translate(&offset)
+    let moved = r.translate(&offset)
 
     #assert(#typeof(moved) == Rect's32)
     Swag.assert(moved.min.x == 5)
@@ -198,7 +198,7 @@ impl Container
 #test
 {
     let c: Container's32 = {val: {x: 42, y: 99}}
-    let v                = c.getVec()
+    let v = c.getVec()
 
     #assert(#typeof(v) == Vec2's32)
     Swag.assert(v.x == 42)
@@ -209,7 +209,7 @@ impl Container
 #test
 {
     let r: Rect's64 = {min: {x: 0, y: 0}, max: {x: 100000, y: 50000}}
-    let c           = r.center()
+    let c = r.center()
 
     #assert(#typeof(c) == Vec2's64)
     Swag.assert(c.x == 50000)
@@ -220,7 +220,7 @@ impl Container
 #test
 {
     let w: Wrapper's32 = {inner: 42}
-    let val            = w.get()
+    let val = w.get()
 
     #assert(#typeof(val) == s32)
     Swag.assert(val == 42)

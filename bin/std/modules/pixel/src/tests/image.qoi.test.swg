@@ -83,7 +83,7 @@ using Swag, Core
     let image = expect Image.decode("metadata.qoi", Bytes, options)
     Swag.assert(image.width == 1 and image.height == 1)
     Swag.assert(image.pixelFormat == .RGB8)
-    Swag.assert(!image.isValid())
+    Swag.assert(not image.isValid())
 }
 
 // Malformed headers, truncated chunks, oversized runs, and missing end markers fail cleanly.

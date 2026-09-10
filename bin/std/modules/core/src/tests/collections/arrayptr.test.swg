@@ -102,7 +102,7 @@ impl ApTracked
     Swag.assert(arr.indexOf(third) == 2)
     Swag.assert(arr.contains(third))
     Swag.assert(arr.indexOf(cast(*ApTracked?) null) == Swag.U64.Max)
-    Swag.assert(!arr.contains(cast(*ApTracked?) null))
+    Swag.assert(not arr.contains(cast(*ApTracked?) null))
 
     // deleteAt keeps order and drops the object: [0,1,2,3,4] -> remove id 1 -> [0,2,3,4].
     arr.deleteAt(1)

@@ -142,7 +142,7 @@ func vp8ComputeFilterParams(decoder: *Vp8Decoder)
                 iLevel = Math.min(iLevel, 9 - decoder.filterHeader.sharpness)
             }
 
-            iLevel           = Math.max(iLevel, 1)
+            iLevel = Math.max(iLevel, 1)
             parameter.iLevel = cast(u8) iLevel
             parameter.level  = cast(u8) (2 * level + iLevel)
             parameter.hLevel = level < 15 ? 0 : (level < 40 ? 1 : 2)
@@ -158,7 +158,7 @@ func vp8SimpleFilter(decoder: *Vp8Decoder)
         for mbX in decoder.mbWidth
         {
             let parameter = decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX]
-            if !parameter.level do
+            if not parameter.level do
                 continue
             let level  = cast(s32) parameter.level
             let offset = (mbY * decoder.yStride + mbX) * 16
@@ -193,7 +193,7 @@ func vp8NormalFilter(decoder: *Vp8Decoder)
         for mbX in decoder.mbWidth
         {
             let parameter = decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX]
-            if !parameter.level do
+            if not parameter.level do
                 continue
             let level   = cast(s32) parameter.level
             let iLevel  = cast(s32) parameter.iLevel
@@ -237,7 +237,7 @@ func vp8NormalFilter(decoder: *Vp8Decoder)
 
 func vp8ApplyFilter(decoder: *Vp8Decoder)
 {
-    if !decoder.filterHeader.level do
+    if not decoder.filterHeader.level do
         return
     if decoder.filterHeader.simple do
         vp8SimpleFilter(decoder)

@@ -121,7 +121,7 @@ struct Mb
     residual444: *MbResidual444?     // The two colour planes of a 4:4:4 macroblock, if any.
 
     // Nonzero bookkeeping, CAVLC count semantics.
-    nzLuma:      [16] u8     // Per raster 4x4 block.
+    nzLuma: [16] u8     // Per raster 4x4 block.
 
     // Per chroma block: four of them in 4:2:0, and the sixteen raster 4x4 blocks of the plane
     // in 4:4:4, where a colour plane carries as many blocks as luma.
@@ -207,7 +207,7 @@ impl Slice
             return result
         }
 
-        if !isCurrent and .header.type == SliceTypeP and neighbor.skipped
+        if not isCurrent and .header.type == SliceTypeP and neighbor.skipped
         {
             let job = &dec.parsedMbs[neighborIndex].firstJob
             result.available = true
@@ -268,26 +268,26 @@ impl Slice
         let a     = .motionAt(mb, list, baseX - 1, baseY)
         let b     = .motionAt(mb, list, baseX, baseY - 1)
         var c     = .motionAt(mb, list, baseX + w4, baseY - 1)
-        if !c.available do
+        if not c.available do
             c = .motionAt(mb, list, baseX - 1, baseY - 1)
 
         // Directional shortcuts for the two-partition shapes.
         switch shapeHint
         {
         case 1:
-            if b.available and !b.intra and cast(s32) b.refIdx == refIdx do
+            if b.available and not b.intra and cast(s32) b.refIdx == refIdx do
                 return [b.mvX, b.mvY]
 
         case 2:
-            if a.available and !a.intra and cast(s32) a.refIdx == refIdx do
+            if a.available and not a.intra and cast(s32) a.refIdx == refIdx do
                 return [a.mvX, a.mvY]
 
         case 3:
-            if a.available and !a.intra and cast(s32) a.refIdx == refIdx do
+            if a.available and not a.intra and cast(s32) a.refIdx == refIdx do
                 return [a.mvX, a.mvY]
 
         case 4:
-            if c.available and !c.intra and cast(s32) c.refIdx == refIdx do
+            if c.available and not c.intra and cast(s32) c.refIdx == refIdx do
                 return [c.mvX, c.mvY]
 
         default:
@@ -295,18 +295,18 @@ impl Slice
         }
 
         // With only the left neighbor to go by, its motion is the prediction.
-        if a.available and !b.available and !c.available do
+        if a.available and not b.available and not c.available do
             return [a.mvX, a.mvY]
 
         // A single neighbor sharing the reference wins over the median.
-        let matchA = a.available and !a.intra and cast(s32) a.refIdx == refIdx
-        let matchB = b.available and !b.intra and cast(s32) b.refIdx == refIdx
-        let matchC = c.available and !c.intra and cast(s32) c.refIdx == refIdx
-        if matchA and !matchB and !matchC do
+        let matchA = a.available and not a.intra and cast(s32) a.refIdx == refIdx
+        let matchB = b.available and not b.intra and cast(s32) b.refIdx == refIdx
+        let matchC = c.available and not c.intra and cast(s32) c.refIdx == refIdx
+        if matchA and not matchB and not matchC do
             return [a.mvX, a.mvY]
-        if matchB and !matchA and !matchC do
+        if matchB and not matchA and not matchC do
             return [b.mvX, b.mvY]
-        if matchC and !matchA and !matchB do
+        if matchC and not matchA and not matchB do
             return [c.mvX, c.mvY]
 
         let medianX = maxS32(minS32(cast(s32) a.mvX, cast(s32) b.mvX), minS32(maxS32(cast(s32) a.mvX, cast(s32) b.mvX), cast(s32) c.mvX))
@@ -348,10 +348,10 @@ impl Slice
     // duplicate store made by two independent list assignments.
     mtd assignSkipMotion(mb: *Mb, x4, y4, w4, h4: s32, refIdx: [2] s8, mv0, mv1: [2] s16, isDirect: bool)
     {
-        let dec = .dec!
-        let gw  = dec.sps!.mbWidth * 4
-        let id0 = refIdx[0] >= 0 ? .refs[0, cast(u64) refIdx[0]].identity : NoReferenceIdentity
-        let id1 = refIdx[1] >= 0 ? .refs[1, cast(u64) refIdx[1]].identity : NoReferenceIdentity
+        let dec    = .dec!
+        let gw     = dec.sps!.mbWidth * 4
+        let id0    = refIdx[0] >= 0 ? .refs[0, cast(u64) refIdx[0]].identity : NoReferenceIdentity
+        let id1    = refIdx[1] >= 0 ? .refs[1, cast(u64) refIdx[1]].identity : NoReferenceIdentity
         let entry0 = BlockMotion{mvX: mv0[0], mvY: mv0[1], refIdx: refIdx[0], refId: id0}
         let entry1 = BlockMotion{mvX: mv1[0], mvY: mv1[1], refIdx: refIdx[1], refId: id1}
         if x4 == 0 and y4 == 0 and w4 == 4 and h4 == 4
@@ -429,7 +429,7 @@ impl Slice
         if index == 0 do
             return &mb.firstJob
 
-        if !mb.extraJobs
+        if not mb.extraJobs
         {
             let dec = .dec!
             if dec.inlineRecon do
@@ -451,9 +451,9 @@ impl Slice
         let a     = .motionAt(mb, 0, mb.mbX * 4 - 1, mb.mbY * 4)
         let b     = .motionAt(mb, 0, mb.mbX * 4, mb.mbY * 4 - 1)
         var mv: [2] s16
-        let zeroA = a.available and !a.intra and a.refIdx == 0 and a.mvX == 0 and a.mvY == 0
-        let zeroB = b.available and !b.intra and b.refIdx == 0 and b.mvX == 0 and b.mvY == 0
-        if a.available and b.available and !zeroA and !zeroB do
+        let zeroA = a.available and not a.intra and a.refIdx == 0 and a.mvX == 0 and a.mvY == 0
+        let zeroB = b.available and not b.intra and b.refIdx == 0 and b.mvX == 0 and b.mvY == 0
+        if a.available and b.available and not zeroA and not zeroB do
             mv = .predictMv(mb, 0, 0, 0, 4, 0, 0)
 
         var zero:  [2] s16
@@ -501,15 +501,15 @@ impl Slice
             let a = .motionAt(mb, list, mb.mbX * 4 - 1, mb.mbY * 4)
             let b = .motionAt(mb, list, mb.mbX * 4, mb.mbY * 4 - 1)
             var c = .motionAt(mb, list, mb.mbX * 4 + 4, mb.mbY * 4 - 1)
-            if !c.available do
+            if not c.available do
                 c = .motionAt(mb, list, mb.mbX * 4 - 1, mb.mbY * 4 - 1)
 
             var minimum = -1's32
-            if a.available and !a.intra and a.refIdx >= 0 do
+            if a.available and not a.intra and a.refIdx >= 0 do
                 minimum = cast(s32) a.refIdx
-            if b.available and !b.intra and b.refIdx >= 0 and (minimum < 0 or cast(s32) b.refIdx < minimum) do
+            if b.available and not b.intra and b.refIdx >= 0 and (minimum < 0 or cast(s32) b.refIdx < minimum) do
                 minimum = cast(s32) b.refIdx
-            if c.available and !c.intra and c.refIdx >= 0 and (minimum < 0 or cast(s32) c.refIdx < minimum) do
+            if c.available and not c.intra and c.refIdx >= 0 and (minimum < 0 or cast(s32) c.refIdx < minimum) do
                 minimum = cast(s32) c.refIdx
             if list == 0 do
                 refL0 = minimum
@@ -540,7 +540,7 @@ impl Slice
         if quad < 0 and dec.sps!.direct8x8Inference
         {
             let dependsOnColZero = (refL0 == 0 and (mvL0[0] != 0 or mvL0[1] != 0)) or (refL1 == 0 and (mvL1[0] != 0 or mvL1[1] != 0))
-            var uniform          = !dependsOnColZero
+            var uniform          = not dependsOnColZero
             var collapseZero     = false
             if dependsOnColZero
             {
@@ -700,7 +700,7 @@ impl Slice
                 {
                     // Map the co-located reference into the current list 0 by picture.
                     let wantedPoc = motion.poc
-                    longTerm = !motion.isShort
+                    longTerm = not motion.isShort
                     var found = false
                     for index in .refCount[0] where .refs[0, index].poc == wantedPoc
                     {
@@ -710,7 +710,7 @@ impl Slice
                         break
                     }
 
-                    if !found
+                    if not found
                     {
                         refL0 = 0
                         poc0  = .refs[0, 0].poc
@@ -772,7 +772,7 @@ impl Slice
             if .mbAddr >= mbCount do
                 fail InvalidFormatError{"H.264 slice data runs past the end of the picture"}
 
-            if inter and !.isCabac
+            if inter and not .isCabac
             {
                 var skipRun = .bits.ue()
                 while skipRun > 0
@@ -783,7 +783,7 @@ impl Slice
                     skipRun -= 1
                 }
 
-                if !.bits.moreData() do
+                if not .bits.moreData() do
                     break
                 if .mbAddr >= mbCount do
                     fail InvalidFormatError{"H.264 slice data runs past the end of the picture"}
@@ -815,13 +815,13 @@ impl Slice
                 if .cabac.hasOverrun() do
                     fail InvalidFormatError{"H.264 slice data is truncated"}
             }
-            elif !.bits.moreData()
+            elif not .bits.moreData()
             {
                 break
             }
         }
 
-        if !.isCabac and .bits.overran do
+        if not .isCabac and .bits.overran do
             fail InvalidFormatError{"H.264 slice data is truncated"}
         if dec.inlineRecon and .mbAddr >= mbCount do
             dec.completeInlinePicture()
@@ -992,7 +992,7 @@ impl Slice
         // Coded block pattern for everything but Intra_16x16.
         if mb.class != MbClassIntra16x16
         {
-            let code   = .bits.ue()
+            let code    = .bits.ue()
             let isIntra = mb.class == MbClassIntra4x4 or mb.class == MbClassIntra8x8
 
             // A pattern that names no chroma block is a shorter code with a mapping of its own,
@@ -1014,7 +1014,7 @@ impl Slice
             }
 
             // The inter 8x8 transform flag sits after the pattern.
-            if mb.cbpLuma != 0 and pps.transform8x8 and mb.class == MbClassInter and !mb.skipped and .allowsTransform8x8(mb) do
+            if mb.cbpLuma != 0 and pps.transform8x8 and mb.class == MbClassInter and not mb.skipped and .allowsTransform8x8(mb) do
                 mb.transform8x8 = .bits.bit() != 0
         }
 
@@ -1041,7 +1041,7 @@ impl Slice
         {
             if mb.subDirect[quad]
             {
-                if !.dec!.sps!.direct8x8Inference do
+                if not .dec!.sps!.direct8x8Inference do
                     return false
             }
             elif mb.subShape[quad] != Sub8x8
@@ -1397,11 +1397,11 @@ impl Slice
             job.refIdx[list] = cast(s8) refIdx
             job.mv[list, 0]  = mv[0]
             job.mv[list, 1]  = mv[1]
-            found            = true
+            found = true
             break
         }
 
-        if !found
+        if not found
         {
             var refs: [2] s8 = [-1, -1]
             refs[list] = cast(s8) refIdx
@@ -1465,7 +1465,7 @@ impl Slice
         for quad in 4'u64
         {
             refs[quad] = 0
-            if !refZero do
+            if not refZero do
                 refs[quad] = .parseSubRefIdx(mb, 0, cast(s32) quad)
             mb.ctxRef[0, quad] = cast(s8) refs[quad]
         }
@@ -1565,7 +1565,7 @@ impl Slice
                     break
                 }
 
-                if !found do
+                if not found do
                     .addJob(mb, x4, y4, w4, h4, refs, zero, mv)
             }
         }
@@ -1633,7 +1633,7 @@ impl Slice
                 let use = (BSubListUsage[sub] >> list) & 1
                 if use != 0
                 {
-                    refs[list, quad]                = .parseSubRefIdx(mb, list, quad)
+                    refs[list, quad] = .parseSubRefIdx(mb, list, quad)
                     mb.ctxRef[list, cast(u64) quad] = cast(s8) refs[list, quad]
                 }
             }
@@ -1828,7 +1828,7 @@ impl Slice
                 frame.colMv[index * 2]     = motion1.mvX
                 frame.colMv[index * 2 + 1] = motion1.mvY
                 frame.colPoc[index]        = ref1 >= 0 ? .refs[1, ref1].poc : 0
-                frame.colShort[index]      = ref1 >= 0 and !.refs[1, ref1].isLong ? 1 : 0
+                frame.colShort[index]      = ref1 >= 0 and not .refs[1, ref1].isLong ? 1 : 0
             }
         }
     }
@@ -1855,7 +1855,7 @@ impl Slice
         frame.colMbMv[compactIndex * 2 + 1] = job.mv[0, 1]
         frame.colMbRef[compactIndex]        = ref
         frame.colMbPoc[compactIndex]        = poc
-        frame.colMbShort[compactIndex]      = ref >= 0 and !.refs[0, cast(u64) ref].isLong ? 1 : 0
+        frame.colMbShort[compactIndex]      = ref >= 0 and not .refs[0, cast(u64) ref].isLong ? 1 : 0
     }
 
     // Parses every residual block of the macroblock with CAVLC coding, section 7.3.5.3.

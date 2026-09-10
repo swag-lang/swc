@@ -155,10 +155,10 @@ internal impl RenderFontCache
     {
         if index >= .embedded.count do
             return null
-        if !.embeddedResolved[index]
+        if not .embeddedResolved[index]
         {
             .embeddedResolved[index] = true
-            if !resource.bytes.isEmpty()
+            if not resource.bytes.isEmpty()
             {
                 let result = catch createTypeface(resource.programKey.toString(), resource.bytes.toSlice()) as loadError
                 if loadError == null do
@@ -172,9 +172,9 @@ internal impl RenderFontCache
     // Returns the face standing in for a font whose program cannot be drawn.
     mtd substituteFace(fallbackFontFile: string, index: u32, resource: const *FontResource?)->*TypeFace fail
     {
-        if !resource or index >= .substitute.count
+        if not resource or index >= .substitute.count
         {
-            if !.fallbackResolved
+            if not .fallbackResolved
             {
                 .fallback         = try substituteTypeface(fallbackFontFile, null)
                 .fallbackResolved = true
@@ -183,7 +183,7 @@ internal impl RenderFontCache
             return .fallback!
         }
 
-        if !.substituteResolved[index]
+        if not .substituteResolved[index]
         {
             .substitute[index]         = try substituteTypeface(fallbackFontFile, resource)
             .substituteResolved[index] = true
@@ -234,7 +234,7 @@ private func drawEmbeddedRun(painter: *Painter, item: const *Item, resource: con
     for code, index in item.textCodes
     {
         let mapped = resource.glyphFor(info.drawFont, code)
-        if !mapped.found do
+        if not mapped.found do
             return false
         var glyph: ShapedGlyph
         glyph.desc       = info.drawFont.getGlyphDescByIndex(mapped.index)
@@ -259,7 +259,7 @@ private func drawEmbeddedRun(painter: *Painter, item: const *Item, resource: con
 private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Transform2, resource: const *FontResource?, font: *Font)
 {
     let info = Painter.computeTextDrawInfo(font, 1, painter.textTransformScale())
-    if !resource or item.textCodes.isEmpty() or item.textCodes.count != item.textAdvances.count
+    if not resource or item.textCodes.isEmpty() or item.textCodes.count != item.textAdvances.count
     {
         painter.drawString(0, baselineOffset(item, font), item.text.toString(), font, item.fillColor)
         return
@@ -506,7 +506,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             mapped.y      = local.y * pageToSurface.m22 + pageToSurface.ty
             mapped.width  = local.width * pageToSurface.m11
             mapped.height = local.height * pageToSurface.m22
-            if !mapped.intersects(repainted)
+            if not mapped.intersects(repainted)
             {
                 if item.kind == .Image or item.hasMask do
                     textureIndex += 1
@@ -553,13 +553,13 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             clip.height = item.clip.height * pageToSurface.m22
         }
 
-        if hasActiveClip and (!item.hasClip or clip != activeClip)
+        if hasActiveClip and (not item.hasClip or clip != activeClip)
         {
             painter.popClippingRect()
             hasActiveClip = false
         }
 
-        if item.hasClip and !hasActiveClip
+        if item.hasClip and not hasActiveClip
         {
             painter.pushClippingSurfaceRect(clip)
             activeClip    = clip
@@ -619,7 +619,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             }
 
         case .Image:
-            if !textures[textureIndex].isValid() do
+            if not textures[textureIndex].isValid() do
                 break
             if item.clipPath == InvalidClipPath
             {
@@ -647,22 +647,22 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
 
 internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 {
-    if options.scale <= 0 or !Math.isFinite(options.scale) do
+    if options.scale <= 0 or not Math.isFinite(options.scale) do
         fail Errors.BadParameterError{}
-    if options.maxDimension <= 0 or !options.maxPixels do
+    if options.maxDimension <= 0 or not options.maxPixels do
         fail Errors.BadParameterError{}
 
     var region = Math.Rectangle{0, 0, page.width, page.height}
     if options.sourceRect.width > 0 and options.sourceRect.height > 0
     {
-        if !Math.isFinite(options.sourceRect.x) or !Math.isFinite(options.sourceRect.y) or !Math.isFinite(options.sourceRect.width) or !Math.isFinite(options.sourceRect.height) do
+        if not Math.isFinite(options.sourceRect.x) or not Math.isFinite(options.sourceRect.y) or not Math.isFinite(options.sourceRect.width) or not Math.isFinite(options.sourceRect.height) do
             fail Errors.BadParameterError{}
         region = options.sourceRect
     }
 
     let scaledWidth  = Math.ceil(region.width * options.scale)
     let scaledHeight = Math.ceil(region.height * options.scale)
-    if !Math.isFinite(scaledWidth) or !Math.isFinite(scaledHeight) or scaledWidth > cast(f32) options.maxDimension or scaledHeight > cast(f32) options.maxDimension do
+    if not Math.isFinite(scaledWidth) or not Math.isFinite(scaledHeight) or scaledWidth > cast(f32) options.maxDimension or scaledHeight > cast(f32) options.maxDimension do
         fail Errors.UnsupportedFormatError{"rendered PDF page exceeds the configured dimension limit"}
     let width  = cast(s32) Math.max(1, scaledWidth)
     let height = cast(s32) Math.max(1, scaledHeight)
@@ -671,7 +671,7 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 
     var cpu:      RenderCpu
     let renderer: IRenderer = &cpu
-    var context             = #move try renderer.createContext(null, width, height)
+    var context = #move try renderer.createContext(null, width, height)
     defer renderer.deleteContext(&context)
 
     renderer.begin(context)
@@ -705,11 +705,11 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 
             bounds = {minX, minY, maxX - minX, maxY - minY}
         }
-        elif !item.hasMask do
+        elif not item.hasMask do
             continue
 
         // A region render leaves the textures it cannot show on the CPU side.
-        if !bounds.intersects(region)
+        if not bounds.intersects(region)
         {
             textures.add(Texture{})
             continue

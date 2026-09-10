@@ -77,7 +77,7 @@ impl BitReader
                 return -1
 
             let next = tree[slot]
-            if !next do
+            if not next do
                 return -1
             if next < 0 do
                 return cast(s32) (-next - 1)
@@ -138,7 +138,7 @@ impl Layer
         while index < 64
         {
             let value = reader.read(8)
-            if !value do
+            if not value do
                 break
             last  = value
             target[][cast(u64) ScanZigzag[index]] = cast(u8) value
@@ -197,7 +197,7 @@ impl Layer
         reader.marker()
         .timeResolution = reader.read(16)
         reader.marker()
-        if !.timeResolution do
+        if not .timeResolution do
             fail InvalidFormatError{"MPEG-4 layer states a zero time resolution"}
 
         // The plane header spends as many bits on its time as the resolution needs.
@@ -213,7 +213,7 @@ impl Layer
         reader.marker()
         .height = reader.read(13)
         reader.marker()
-        if !.width or !.height do
+        if not .width or not .height do
             fail InvalidFormatError{"MPEG-4 layer states an empty picture"}
         if .width > 4096 or .height > 4096 do
             fail UnsupportedFormatError{"MPEG-4 picture exceeds the supported size"}
@@ -223,7 +223,7 @@ impl Layer
             fail UnsupportedFormatError{"video decoder does not read interlaced MPEG-4 Part 2"}
 
         .obmcDisabled = reader.bit() != 0
-        if !.obmcDisabled do
+        if not .obmcDisabled do
             fail UnsupportedFormatError{"video decoder does not read overlapped block motion compensation"}
 
         .spriteEnable = .versionId == 1 ? reader.read(1) : reader.read(2)
@@ -252,7 +252,7 @@ impl Layer
             fail UnsupportedFormatError{"video decoder does not read quarter-sample MPEG-4 Part 2"}
 
         .complexityDisabled = reader.bit() != 0
-        if !.complexityDisabled do
+        if not .complexityDisabled do
             fail UnsupportedFormatError{"video decoder does not read MPEG-4 complexity estimation"}
 
         .resyncDisabled  = reader.bit() != 0
@@ -285,7 +285,7 @@ struct PlaneHeader
 // Reads a video object plane header, clause 6.2.5.
 func readPlaneHeader(layer: const *Layer, reader: *BitReader, header: *PlaneHeader) fail
 {
-    header[]          = PlaneHeader{}
+    header[] = PlaneHeader{}
     header.codingType = reader.read(2)
 
     // The time base advances by one for every set bit before the zero that closes it.
@@ -293,7 +293,7 @@ func readPlaneHeader(layer: const *Layer, reader: *BitReader, header: *PlaneHead
     while reader.bit() != 0
     {
         header.moduloTime += 1
-        guard             += 1
+        guard += 1
         if guard > 64 do
             fail InvalidFormatError{"MPEG-4 plane header states an unbounded time base"}
     }
@@ -303,28 +303,28 @@ func readPlaneHeader(layer: const *Layer, reader: *BitReader, header: *PlaneHead
     reader.marker()
 
     header.coded = reader.bit() != 0
-    if !header.coded do
+    if not header.coded do
         return
 
     if header.codingType == VopPredicted do
         header.rounding = reader.bit()
 
     header.intraDcThreshold = reader.read(3)
-    header.quant            = reader.read(layer.quantPrecision)
-    if !header.quant do
+    header.quant = reader.read(layer.quantPrecision)
+    if not header.quant do
         fail InvalidFormatError{"MPEG-4 plane states a zero quantiser"}
 
     if header.codingType != VopIntra
     {
         header.fcodeForward = reader.read(3)
-        if !header.fcodeForward do
+        if not header.fcodeForward do
             fail InvalidFormatError{"MPEG-4 plane states a zero forward code"}
     }
 
     if header.codingType == VopBidirectional
     {
         header.fcodeBackward = reader.read(3)
-        if !header.fcodeBackward do
+        if not header.fcodeBackward do
             fail InvalidFormatError{"MPEG-4 plane states a zero backward code"}
     }
 

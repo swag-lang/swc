@@ -127,7 +127,7 @@ internal func clearLeftoverDefaultRoot(root: string) fail
                         break
                 }
 
-                if !adopted
+                if not adopted
                 {
                     Swag.print("[swag.sandbox] cannot clear the leftover sandbox root at '", root.toString(), "', nor adopt a sibling\n")
                     abortUnsandboxed()
@@ -176,7 +176,7 @@ internal func clearLeftoverDefaultRoot(root: string) fail
 // its drop hooks keeps its root, which is what makes a failure findable afterwards.
 #drop
 {
-    if !g_Sandboxed or !g_DefaultRoot or (Swag.runtimeFlags() & .FromCompiler) do
+    if not g_Sandboxed or not g_DefaultRoot or (Swag.runtimeFlags() & .FromCompiler) do
         return
     discard catch Directory.delete(g_SandboxRoot.toString(), recurse: true)
 }
@@ -254,7 +254,7 @@ func grantCorpus(root: string) fail
 
     let normalized = absolutePath(root)
 
-    if !g_CorpusRoot.isEmpty()
+    if not g_CorpusRoot.isEmpty()
     {
         if normalized == g_CorpusRoot do
             return
@@ -263,7 +263,7 @@ func grantCorpus(root: string) fail
 
     // Never created, unlike the sandbox root: a corpus is an existing source tree, and a missing
     // one means the launcher named the wrong place rather than a place still to make.
-    if !Directory.exists(normalized) do
+    if not Directory.exists(normalized) do
         fail FileNotFoundError{"the corpus root does not exist", fileName: normalized.toString()}
 
     g_CorpusRoot = normalized
@@ -286,7 +286,7 @@ func isSmokeRun()->bool => smokeFrames() != 0
 func smokeFrames()->u32
 {
     let request = findRunArgument(SmokeArg)
-    if !request.found do
+    if not request.found do
         return 0
 
     // A marker with no usable count still means a bounded run, so fall back rather than
@@ -315,7 +315,7 @@ func deniedSystemMutations()->u64 => g_DeniedCount
 internal func denySystemMutation(mutation: SystemMutation)->bool
 {
     discard mutation
-    if !g_Sandboxed do
+    if not g_Sandboxed do
         return false
     g_DeniedCount += 1
     return true
@@ -349,7 +349,7 @@ func isInsideDirectory(root: string, path: string)->bool
 // Reports whether `path` is inside the sandbox. Answers true when nothing is armed.
 func isInsideSandbox(path: string)->bool
 {
-    if !g_Sandboxed do
+    if not g_Sandboxed do
         return true
     return isInsideDirectory(g_SandboxRoot.toString(), path)
 }
@@ -368,7 +368,7 @@ internal func sandboxSpecialDirectory(what: SpecialDirectory)->String
     var result = Path.combine(g_SandboxRoot.toString(), name.toString())
 
     Path.normalize(&result)
-    if !Directory.exists(result) do
+    if not Directory.exists(result) do
         discard catch Directory.create(result)
     return result
 }
@@ -379,7 +379,7 @@ internal func sandboxSpecialDirectory(what: SpecialDirectory)->String
 // something calls this first. Outside a sandbox it is a single boolean test.
 internal func guardWrite(path: string) fail
 {
-    if !g_Sandboxed do
+    if not g_Sandboxed do
         return
     if isInsideSandbox(path) or isInsideCorpus(path) do
         return

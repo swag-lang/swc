@@ -43,7 +43,7 @@ impl GizmoRect
 {
     mtd mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
     {
-        let prop = (evt.modifiers & .Shift) and !(evt.modifiers & .Control)
+        let prop = (evt.modifiers & .Shift) and not (evt.modifiers & .Control)
 
         switch evt.kind
         {
@@ -65,8 +65,8 @@ impl GizmoRect
             if .hotAnchor == Swag.U32.Max do
                 break
             .moving, .firstMoving = true
-            .gizmoRad             = .gizmoAngleRad()
-            .gizmoCenter          = {.rect.horzCenter(), .rect.vertCenter()}
+            .gizmoRad    = .gizmoAngleRad()
+            .gizmoCenter = {.rect.horzCenter(), .rect.vertCenter()}
             if .gizmoRad != 0
             {
                 // Work in a frame centered on the box and aligned to its axes
@@ -95,7 +95,7 @@ impl GizmoRect
                     view.releaseMouse()
 
                     // Only commit if a rotation actually happened (mouse moved)
-                    if !.firstRotating
+                    if not .firstRotating
                     {
                         if .sigRotate do
                             .sigRotate(me, false, true, .rotateValue)
@@ -112,9 +112,9 @@ impl GizmoRect
                 if evt.button == .Left
                 {
                     .moving, .firstMoving = false
-                    .hotAnchor            = Swag.U32.Max
+                    .hotAnchor = Swag.U32.Max
                     view.releaseMouse()
-                    if !.trackChange and .sigChanged do
+                    if not .trackChange and .sigChanged do
                         .sigChanged(me, false, 0)
                     if .sigHasChanged do
                         .sigHasChanged()
@@ -210,7 +210,7 @@ impl GizmoRect
 
                 case 4:
                     .movingRect.width = Math.max(.movingRect.width + diff.x, .minSizeX)
-                    hitMove           = 4
+                    hitMove = 4
 
                 case 5:
                     if prop
@@ -228,7 +228,7 @@ impl GizmoRect
 
                 case 6:
                     .movingRect.height = Math.max(.movingRect.height + diff.y, .minSizeY)
-                    hitMove            = 8
+                    hitMove = 8
 
                 case 7:
                     if prop
@@ -241,7 +241,7 @@ impl GizmoRect
 
                     .movingRect.width  = Math.max(.movingRect.width + diff.x, .minSizeX)
                     .movingRect.height = Math.max(.movingRect.height + diff.y, .minSizeY)
-                    hitMove            = 4 | 8
+                    hitMove = 4 | 8
                 }
 
                 if .trackChange and .sigChanged do
@@ -296,7 +296,7 @@ impl GizmoRect
     // Current gizmo rotation in radians (0 when the form is not rotated)
     mtd gizmoAngleRad()->f32
     {
-        if !.rotateEnabled or Math.isZeroEpsilon(.rotateValue) do
+        if not .rotateEnabled or Math.isZeroEpsilon(.rotateValue) do
             return 0
         return Math.toRadians(.rotateValue)
     }
@@ -340,10 +340,10 @@ impl GizmoRect
             painter.rotateTransform(ang, sc.x, sc.y)
         }
 
-        if .moving and !.trackChange do
+        if .moving and not .trackChange do
             painter.drawRect(.movingRect, Pen.createDash(.Dot, color, 2))
 
-        if !hot
+        if not hot
         {
             if .paintSimpleBorder
             {
@@ -388,7 +388,7 @@ impl GizmoRect
         }
 
         // Rotation handle: sticks to the top edge (the transform rotates it with the box)
-        if .rotateEnabled and !hot
+        if .rotateEnabled and not hot
         {
             let cx      = .rect.horzCenter()
             let topY    = .rect.y
@@ -418,7 +418,7 @@ impl GizmoRect
         let capture = form.capture!
         let oldRect = iform.boundRect()
         capture.interactiveMove = true
-        if !first do
+        if not first do
             capture.undo()
         let undo = capture.newUndo(.MoveBaseForm)
         undo.baseForm = iform
@@ -502,7 +502,7 @@ impl GizmoRect
     {
         let form    = cast(*BaseForm) iform.buffer
         let capture = form.capture!
-        if !first do
+        if not first do
             capture.undo()
 
         let undo = capture.newUndo(.SetTypedValue)

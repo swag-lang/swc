@@ -79,7 +79,7 @@ func dxgiFormat(dxgi: u32, pixelFormat: *PixelFormat, blocks: *TextureBlocks.For
 #[Swag.Inline]
 func maskToByte(value, mask: u32, fallback: u8)->u8
 {
-    if !mask do
+    if not mask do
         return fallback
     let shift  = Math.trailingZeros(mask)
     let bits   = Math.countOnes(mask)
@@ -177,7 +177,7 @@ impl Decoder
         {
             for face in 6'u32 where caps2 & (0x400'u32 << face) do
                 faces.add(face)
-            if !faces.count do
+            if not faces.count do
                 fail InvalidFormatError{"DDS cubemap declares no faces"}
         }
         else do
@@ -210,7 +210,7 @@ impl Decoder
                 }
                 else do
                     faces.add(0)
-                if !dxgiFormat(dxgi, &format, &blocks) do
+                if not dxgiFormat(dxgi, &format, &blocks) do
                     fail UnsupportedFormatError{"DDS DXGI pixel format is not supported"}
                 let mode = readU32(buffer.buffer + 144) & 7
                 if mode == 2 do
@@ -245,7 +245,7 @@ impl Decoder
 
         if blocks != .None do
             format = .RGBA8
-        if !depth or (depth > 1 and faces.count != 1) do
+        if not depth or (depth > 1 and faces.count != 1) do
             fail InvalidFormatError{"DDS volume depth is invalid"}
         let levels = Math.max(readU32(buffer.buffer + 28), 1'u32)
         if levels > 32 do
@@ -304,7 +304,7 @@ impl Decoder
             fail InvalidFormatError{"DDS image index is out of range"}
         var result: retval
         result.init(cast(s32) width, cast(s32) height, format, alphaMode)
-        if !options.decodePixels do
+        if not options.decodePixels do
             return result
         result.allocPixels()
 

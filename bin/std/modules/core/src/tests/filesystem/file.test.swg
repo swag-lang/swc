@@ -33,7 +33,7 @@ using Swag
     Swag.assert(missing != null and stream.isOpen())
     stream.close()
     stream.close()
-    Swag.assert(!stream.isOpen())
+    Swag.assert(not stream.isOpen())
 }
 
 func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
@@ -90,7 +90,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     Swag.assert(expect stream.position() == 16)
 
     var beyond: [17] u8
-    Swag.assert(!(expect stream.readExactAt(16, beyond)))
+    Swag.assert(not (expect stream.readExactAt(16, beyond)))
 
     expect stream.seek(.Begin, 8)
     expect stream.resize(12)
@@ -195,7 +195,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     discard expect File.writeAllBytes(source.toString(), Swag.makeSlice(cast(const [*] u8) ("moved").buffer, 5))
     expect File.move(target.toString(), source.toString())
 
-    Swag.assert(!File.exists(source.toString()))
+    Swag.assert(not File.exists(source.toString()))
     Swag.assert(File.exists(target.toString()))
     Swag.assert((expect File.readAllText(target.toString())) == "moved")
 

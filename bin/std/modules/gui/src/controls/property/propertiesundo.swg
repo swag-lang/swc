@@ -40,7 +40,7 @@ internal impl PropFieldValue
     // any POD value (native/enum/bool/color/vector/POD struct/static array of POD).
     func canSnapshot(type: typeinfo?)->bool
     {
-        if !type do
+        if not type do
             return false
         if type == Core.String do
             return true
@@ -59,9 +59,9 @@ internal impl PropFieldValue
         .bytes.clear()
         .strings.clear()
 
-        if !item.data or !item.type do
+        if not item.data or not item.type do
             return
-        if !canSnapshot(item.type) do
+        if not canSnapshot(item.type) do
             return
 
         // Rows inside a dynamic array live in a heap buffer that array add/remove/resize can
@@ -100,7 +100,7 @@ internal impl PropFieldValue
     // edited instances need to be alive.
     mtd restore()
     {
-        if !.valid do
+        if not .valid do
             return
 
         if .isString
@@ -200,15 +200,15 @@ internal impl Properties
     // folded into the command recorded at the first move, so the whole drag is one undo step.
     mtd recordUndo(item: *PropertiesItem)
     {
-        if !.undoEnabled do
+        if not .undoEnabled do
             return
 
         var cur: PropFieldValue
         cur.capture(me, item)
-        if !cur.valid do
+        if not cur.valid do
             return
 
-        if item.undoValue.valid and !item.undoValue.isEqual(&cur)
+        if item.undoValue.valid and not item.undoValue.isEqual(&cur)
         {
             if .dragItem == item and .dragCmd
             {

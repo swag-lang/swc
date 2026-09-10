@@ -30,6 +30,6 @@ using Core, Pixel, Gui
         session.sidePanelButton!.sigCheckedChanged.call(session.sidePanelButton!)
         Swag.assert(Utf8.contains(view.information.text(), Format.toString("%", movie.frameCount).toString()))
         view.information.closeButton.sigPressed.call(view.information.closeButton)
-        Swag.assert(!session.sidePanelHost!.isLocallyVisible())
+        Swag.assert(not session.sidePanelHost!.isLocallyVisible())
     }
 }

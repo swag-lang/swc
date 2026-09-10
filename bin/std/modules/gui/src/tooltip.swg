@@ -48,7 +48,7 @@ impl State
     mtd update(dt: f32)
     {
         let pending = .pending
-        if !pending do
+        if not pending do
             return
 
         pending.delay -= dt
@@ -91,7 +91,7 @@ impl State
     public mtd contains(wnd: *Wnd?)->bool
     {
         let current = .current
-        if !current or !wnd do
+        if not current or not wnd do
             return false
         return current == wnd or current.isAncestorOf(wnd)
     }
@@ -100,7 +100,7 @@ impl State
     private mtd isInteractive()->bool
     {
         let current = .current
-        if !current or !(current.view != null) do
+        if not current or not (current.view != null) do
             return false
         let label = cast(*Label) current.view
         return label.name.hasUrl
@@ -164,9 +164,9 @@ impl State
         if str == null or str.count == 0 do
             return
 
-        if !.current and delay.seconds > 0
+        if not .current and delay.seconds > 0
         {
-            if !.pending do
+            if not .pending do
                 .pending = Memory.new'Request()
             let pending = .pending!
             pending.owner      = owner

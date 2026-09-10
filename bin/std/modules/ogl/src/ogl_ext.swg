@@ -329,7 +329,7 @@ const GL_SHADING_RATE_4X1_PIXELS_EXT                                            
 const GL_SHADING_RATE_4X2_PIXELS_EXT                                             = 0x96AC
 const GL_SHADING_RATE_2X4_PIXELS_EXT                                             = 0x96AD
 const GL_SHADING_RATE_4X4_PIXELS_EXT                                             = 0x96AE
-const GL_SHADING_RATE_EXT                                                        = 0x96D0
+const GL_SHADING_RATE_EXT = 0x96D0
 const GL_SHADING_RATE_ATTACHMENT_EXT                                             = 0x96D1
 const GL_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_EXT                              = 0x96D2
 const GL_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_EXT                           = 0x96D3
@@ -478,7 +478,7 @@ const GL_EFFECTIVE_RASTER_SAMPLES_EXT          = 0x932C
 /* -------------------- GL_EXT_separate_shader_objects --------------------- */
 
 const GL_EXT_separate_shader_objects = 1
-const GL_ACTIVE_PROGRAM_EXT          = 0x8B8D
+const GL_ACTIVE_PROGRAM_EXT = 0x8B8D
 
 #[Extension, Swag.PlaceHolder]
 {
@@ -536,12 +536,12 @@ const GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT = 0x8C4F
 /* ------------------------ GL_EXT_texture_sRGB_R8 ------------------------- */
 
 const GL_EXT_texture_sRGB_R8 = 1
-const GL_SR8_EXT             = 0x8FBD
+const GL_SR8_EXT = 0x8FBD
 
 /* ------------------------ GL_EXT_texture_sRGB_RG8 ------------------------ */
 
 const GL_EXT_texture_sRGB_RG8 = 1
-const GL_SRG8_EXT             = 0x8FBE
+const GL_SRG8_EXT = 0x8FBE
 
 /* ---------------------- GL_EXT_texture_sRGB_decode ----------------------- */
 

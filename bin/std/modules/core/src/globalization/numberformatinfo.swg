@@ -20,7 +20,7 @@ public impl NumberFormatInfo
 {
     internal mtd const groupSize(index: u64)->u64
     {
-        if !.groupSizeCount do
+        if not .groupSizeCount do
             return 0
         let safeCount = Math.min(cast(u64) .groupSizeCount, (.groupSizes).count)
         let safeIndex = Math.min(index, safeCount - 1)
@@ -29,7 +29,7 @@ public impl NumberFormatInfo
 
     internal mtd const isGroupBoundary(remainingDigits: u64)->bool
     {
-        if !.groupSizeCount or !.groupSeparator do
+        if not .groupSizeCount or not .groupSeparator do
             return false
 
         var boundary = .groupSize(0)
@@ -39,7 +39,7 @@ public impl NumberFormatInfo
             if remainingDigits == boundary do
                 return true
             let next = .groupSize(index)
-            if !next do
+            if not next do
                 return false
             boundary += next
             index    += 1
@@ -58,7 +58,7 @@ public impl NumberFormatInfo
             digits[count] = cast(u8) ('0'u8 + current % 10)
             count         += 1
             current       /= 10
-            if !current do
+            if not current do
                 break
         }
 

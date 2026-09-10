@@ -29,7 +29,7 @@ impl IWnd for ImageRect
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if !.movie.isValid() do
+        if not .movie.isValid() do
             return
 
         // Advance playback and upload a newly decoded GIF frame when necessary.
@@ -59,7 +59,7 @@ impl IWnd for ImageRect
             painter.drawTexture(rect, .uploadedTexture, color)
         }
 
-        if .movie.frameCount > 1 and !.movie.isPaused do
+        if .movie.frameCount > 1 and not .movie.isPaused do
             .invalidate()
     }
 }
@@ -69,7 +69,7 @@ impl ImageRect
     internal mtd updateUploadedFrame()
     {
         let frame = &.movie.frame
-        if !.uploadedTexture.isValid() or .uploadedTexture.width != frame.width or .uploadedTexture.height != frame.height or .uploadedTexture.pixelFormat != frame.pixelFormat
+        if not .uploadedTexture.isValid() or .uploadedTexture.width != frame.width or .uploadedTexture.height != frame.height or .uploadedTexture.pixelFormat != frame.pixelFormat
         {
             if .uploadedTexture.isValid() do
                 .app().renderer.removeTexture(&.uploadedTexture)
@@ -90,6 +90,7 @@ impl ImageRect
             result.sigFrameChanged.call(result)
             result.invalidate()
         }
+
         return result
     }
 

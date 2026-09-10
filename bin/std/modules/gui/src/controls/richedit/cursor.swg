@@ -27,7 +27,7 @@ impl RichEditCtrl
     mtd lineHeight()->f32
     {
         let fontR = .font().getFont(.styles[0].fontMode)
-        if !fontR do
+        if not fontR do
             return 0
 
         let font = nnFont(fontR)
@@ -37,7 +37,7 @@ impl RichEditCtrl
     // Advances the cached horizontal position by one rune.
     mtd advanceRuneX(line: *RichEditLine?, i: u64, x: f32)->f32
     {
-        if !line do
+        if not line do
             return x
         if line.chars[i] == '\t' do
             return x + .tabAdvance(cast(s32) x)
@@ -57,7 +57,7 @@ impl RichEditCtrl
             offsetX = drawFont.kerning(prevGlyphIndex, glyphIndex)
         }
 
-        let step = Painter.advanceTextX(x, offsetX, desc.advanceX, info, !hasPrevRune)
+        let step = Painter.advanceTextX(x, offsetX, desc.advanceX, info, not hasPrevRune)
         return step.rightX
     }
 
@@ -89,7 +89,7 @@ impl RichEditCtrl
 
         var index    = Swag.U64.Max
         var authored = 0'u64
-        for i in .lines.count where !.lines[i]!.wordWrap
+        for i in .lines.count where not .lines[i]!.wordWrap
         {
             if authored == lineIndex
             {
@@ -162,7 +162,7 @@ impl RichEditCtrl
     mtd xGlyphSize()->Math.Point
     {
         let fontR = .font().getFont(.styles[0].fontMode)
-        if !fontR do
+        if not fontR do
             return {}
 
         let font   = nnFont(fontR)
@@ -263,7 +263,7 @@ impl RichEditCtrl
                 var rect  = line.drawingRect
 
                 // Before the first character
-                if pt.y >= rect.y and pt.y < rect.bottom() and (pt.x < rect.x or !count)
+                if pt.y >= rect.y and pt.y < rect.bottom() and (pt.x < rect.x or not count)
                 {
                     found            = true
                     cp.lineIndex     = i
@@ -309,16 +309,16 @@ impl RichEditCtrl
         }
 
         // At the end of file
-        if !found
+        if not found
         {
             cp.lineIndex     = .lines.count - 1
             cp.charPosInLine = .lines[cp.lineIndex]!.length()
         }
 
         // Check visibility
-        if !.lines[cp.lineIndex]!.isVisible() do
+        if not .lines[cp.lineIndex]!.isVisible() do
             .moveCursorDown(&cp)
-        if !.lines[cp.lineIndex]!.isVisible() do
+        if not .lines[cp.lineIndex]!.isVisible() do
             .moveCursorUp(&cp)
 
         return cp
@@ -464,17 +464,17 @@ impl RichEditCtrl
         var i    = cast(s32) cp.charPosInLine
 
         var firstBlank: bool
-        if !i
+        if not i
         {
             firstBlank = true
         }
         else
         {
             firstBlank = false
-            i          -= 1
+            i -= 1
             while i >= 0
             {
-                if !Unicode.isSpace(line.chars[i])
+                if not Unicode.isSpace(line.chars[i])
                 {
                     firstBlank = true
                     break
@@ -558,17 +558,17 @@ impl RichEditCtrl
 
         if Unicode.isSpace(line.chars[cp.charPosInLine - 1])
         {
-            if !.moveCursorLeft(cp) do
+            if not .moveCursorLeft(cp) do
                 return
             line = .lines[cp.lineIndex]!
             while cp.charPosInLine != 0 and Unicode.isSpace(line.chars[cp.charPosInLine - 1])
             {
-                if !.moveCursorLeft(cp) do
+                if not .moveCursorLeft(cp) do
                     return
                 line = .lines[cp.lineIndex]!
             }
 
-            if !cp.charPosInLine do
+            if not cp.charPosInLine do
                 return
         }
 
@@ -576,7 +576,7 @@ impl RichEditCtrl
         {
             while cp.charPosInLine != 0 and isWord(line.chars[cp.charPosInLine - 1])
             {
-                if !.moveCursorLeft(cp) do
+                if not .moveCursorLeft(cp) do
                     return
                 line = .lines[cp.lineIndex]!
             }
@@ -585,7 +585,7 @@ impl RichEditCtrl
         {
             while cp.charPosInLine != 0 and zapWordChar(line.chars[cp.charPosInLine - 1])
             {
-                if !.moveCursorLeft(cp) do
+                if not .moveCursorLeft(cp) do
                     return
                 line = .lines[cp.lineIndex]!
             }
@@ -602,12 +602,12 @@ impl RichEditCtrl
         var line = .lines[cp.lineIndex]!
         if cp.charPosInLine == line.length() or Unicode.isSpace(line.chars[cp.charPosInLine])
         {
-            if !.moveCursorRight(cp) do
+            if not .moveCursorRight(cp) do
                 return
             line = .lines[cp.lineIndex]!
             while cp.charPosInLine != line.length() and Unicode.isSpace(line.chars[cp.charPosInLine])
             {
-                if !.moveCursorRight(cp) do
+                if not .moveCursorRight(cp) do
                     return
                 line = .lines[cp.lineIndex]!
             }
@@ -616,7 +616,7 @@ impl RichEditCtrl
         {
             while cp.charPosInLine != line.length() and isWord(line.chars[cp.charPosInLine])
             {
-                if !.moveCursorRight(cp) do
+                if not .moveCursorRight(cp) do
                     return
                 line = .lines[cp.lineIndex]!
             }
@@ -625,7 +625,7 @@ impl RichEditCtrl
             {
                 while cp.charPosInLine != line.length() and Unicode.isSpace(line.chars[cp.charPosInLine])
                 {
-                    if !.moveCursorRight(cp) do
+                    if not .moveCursorRight(cp) do
                         return
                     line = .lines[cp.lineIndex]!
                 }
@@ -635,14 +635,14 @@ impl RichEditCtrl
         {
             while cp.charPosInLine != line.length() and zapWordChar(line.chars[cp.charPosInLine])
             {
-                if !.moveCursorRight(cp) do
+                if not .moveCursorRight(cp) do
                     return
                 line = .lines[cp.lineIndex]!
             }
 
             while cp.charPosInLine != line.length() and Unicode.isSpace(line.chars[cp.charPosInLine])
             {
-                if !.moveCursorRight(cp) do
+                if not .moveCursorRight(cp) do
                     return
                 line = .lines[cp.lineIndex]!
             }

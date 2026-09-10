@@ -89,7 +89,7 @@ internal impl Properties
 
         // The column boundary is visible only while it is being targeted. Extend that live rule
         // through the layout margins so adjacent row segments meet without clipped ends.
-        if .isGridLike() and !item.flags.has(.NoSeparator) and (.cursorSet or .resizingColumn)
+        if .isGridLike() and not item.flags.has(.NoSeparator) and (.cursorSet or .resizingColumn)
         {
             let top  = r.y - wndItem.margin.y
             let bot  = valueCellBottom + wndItem.margin.w
@@ -101,7 +101,7 @@ internal impl Properties
         // List rows: a field whose value differs from its declared default gets a small neutral
         // square in the reserved edge lane. Selection and hover own their ground, as they do in
         // a list; the marker therefore stays neutral. Grid keeps its revert-arrow column.
-        if !.isGridLike() and item.isModified and .revertButtonsVisible
+        if not .isGridLike() and item.isModified and .revertButtonsVisible
         {
             const MarkerSize = 4'f32
             let marker = Math.Rectangle{rowRect.x + 4, Math.round(rowRect.vertCenter() - MarkerSize * 0.5), MarkerSize, MarkerSize}

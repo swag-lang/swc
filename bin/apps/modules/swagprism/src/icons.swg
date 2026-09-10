@@ -9,7 +9,7 @@ private var g_PrismIconsParsed: bool
 // Shares the toolbar glyphs' vector document and rasters across application windows.
 func prismIcons()->*IconAtlas
 {
-    if !g_PrismIconsParsed
+    if not g_PrismIconsParsed
     {
         expect g_PrismIcons.setup(cast(string) IconsSvg)
         g_PrismIconsParsed = true

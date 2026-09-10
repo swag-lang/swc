@@ -82,7 +82,7 @@ impl Serializer
 
     // Returns whether reading.
     #[Swag.Inline]
-    mtd isReading() => !.isWrite
+    mtd isReading() => not .isWrite
 
     // Start encoding
     mtd startWrite(encoder: IEncoder, output: *ConcatBuffer) fail
@@ -179,7 +179,7 @@ impl Serializer
         else
         {
             let decode = .decode!
-            if !decode.beginField(value) do
+            if not decode.beginField(value) do
                 return
             defer #nofail decode.endField(value)
 

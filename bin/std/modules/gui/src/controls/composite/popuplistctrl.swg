@@ -44,9 +44,9 @@ struct PopupListCtrl
 
         readonly
         {
-            items:          ArrayPtr'PopupListCtrlItem     // Entries in display order.
-            selectedIndex = Swag.U32.Max                   // Initially highlighted item, or U32.Max.
-            late scrollWnd: *ScrollWnd                     // Scrollable viewport owned by the popup.
+            items: ArrayPtr'PopupListCtrlItem     // Entries in display order.
+            selectedIndex = Swag.U32.Max          // Initially highlighted item, or U32.Max.
+            late scrollWnd: *ScrollWnd            // Scrollable viewport owned by the popup.
         }
     }
 
@@ -72,7 +72,7 @@ internal impl IWnd for PopupListView
 
             // The focus left the popup (clicked elsewhere, another window, ...):
             // dismiss it.
-            if !.closing and evt.other != .parent do
+            if not .closing and evt.other != .parent do
                 .close(Swag.U32.Max)
         }
     }
@@ -126,7 +126,7 @@ internal impl IWnd for PopupListView
                 return
             }
 
-            if !.parent!.surfaceRect().contains(evt.surfacePos)
+            if not .parent!.surfaceRect().contains(evt.surfacePos)
             {
                 .close(Swag.U32.Max)
                 return
@@ -196,8 +196,8 @@ internal impl IWnd for PopupListView
 
             // Back selection
             var colorSel:   Color
-            var colorCheck                 = colors.popupList_CheckMark
-            let isHot                      = .hotIdx == idx
+            var colorCheck = colors.popupList_CheckMark
+            let isHot      = .hotIdx == idx
             var paintFlags: PaintItemFlags = .None
             if idx == .list.selectedIndex do
                 paintFlags.add(.Checked)
@@ -312,7 +312,7 @@ private impl PopupListView
             idx += dir
             if idx < 0 or idx >= cast(s64) .list.items.count do
                 return
-            if !.list.items[cast(u64) idx]!.isSeparator do
+            if not .list.items[cast(u64) idx]!.isSeparator do
                 break
         }
 
@@ -326,7 +326,7 @@ private impl PopupListView
         {
             for v, idx in .list.items
             {
-                if !v!.isSeparator
+                if not v!.isSeparator
                 {
                     .hotIdx = cast(u32) idx
                     .invalidate()
@@ -338,7 +338,7 @@ private impl PopupListView
         {
             for var i = cast(s64) .list.items.count - 1; i >= 0; i -= 1
             {
-                if !.list.items[cast(u64) i]!.isSeparator
+                if not .list.items[cast(u64) i]!.isSeparator
                 {
                     .hotIdx = cast(u32) i
                     .invalidate()
@@ -360,7 +360,7 @@ impl PopupListCtrl
         {
             .setFrameFlags(.SmallShadow)
             .setFrameForm(.Square)
-            .scrollWnd           = .createView'ScrollWnd()
+            .scrollWnd = .createView'ScrollWnd()
             .scrollWnd.dockStyle = .Center
             .scrollWnd.updateFlags(.CompactBars)
             let popupView = .scrollWnd.createView'PopupListView()
@@ -469,7 +469,7 @@ impl PopupListCtrl
     // Sets the item highlighted when the popup opens, or clears it with U32.Max.
     mtd setSelectedIndex(index: u32)
     {
-        Swag.assert(index == Swag.U32.Max or index < .items.count and !.items[index]!.isSeparator)
+        Swag.assert(index == Swag.U32.Max or index < .items.count and not .items[index]!.isSeparator)
         .selectedIndex = index
     }
 }

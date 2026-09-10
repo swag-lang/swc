@@ -60,7 +60,7 @@ impl Decoder
             }
         }
 
-        if !merged and ry > 0
+        if not merged and ry > 0
         {
             let upInSlice = .ctbAddrRs >= .sliceAddrRs + sps.widthInCtbs
             let upInTile  = .tileId[.ctbAddrTs] == .tileId[.ctbRsToTs[.ctbAddrRs - sps.widthInCtbs]]
@@ -80,7 +80,7 @@ impl Decoder
 
         for component in 3'u32
         {
-            if (component == 0 and !header.saoLuma) or (component > 0 and !header.saoChroma) do
+            if (component == 0 and not header.saoLuma) or (component > 0 and not header.saoChroma) do
                 continue
 
             // The two chroma components share one type and one class, stated with the first.
@@ -96,7 +96,7 @@ impl Decoder
             }
 
             parameters.typeIdx[component] = cast(u8) kind
-            if !kind do
+            if not kind do
                 continue
 
             var magnitude: [4] u32
@@ -148,7 +148,7 @@ impl Decoder
     mtd applySampleAdaptiveOffset()
     {
         let sps = .activeSps!
-        if !sps.saoEnabled or !.saoUsed do
+        if not sps.saoEnabled or not .saoUsed do
             return
 
         let frame = .current!
@@ -192,7 +192,7 @@ impl Decoder
         var source:      const [*] u16
         var destination: [*] u16
         var stride:      u64
-        if !component
+        if not component
         {
             source      = .saoSource.buffer!
             destination = frame.luma.buffer!
@@ -208,7 +208,7 @@ impl Decoder
         let origin = cast(u64) FramePadding * stride + cast(u64) FramePadding
         let kind   = parameters.typeIdx[component]
 
-        if !kind
+        if not kind
         {
             for row in height
             {

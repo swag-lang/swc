@@ -143,7 +143,7 @@ var g_DarkTheme:   bool
 var g_StatusText:  String
 
 var g_Cards:       [NumCards] SceneCard
-var g_CardCount:   s32            = 2
+var g_CardCount:   s32 = 2
 var g_DisplayMode: PropertiesKind = .Grid
 var g_Filter:      String
 
@@ -189,7 +189,7 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
 func updateThemeButton()
 {
     let btn = g_ThemeButton
-    if !btn do
+    if not btn do
         return
     btn.name = g_DarkTheme ? "White theme" : "Black theme"
     btn.invalidate()
@@ -207,7 +207,7 @@ func applyTheme()
 
 func toggleTheme(_btn: *Button)
 {
-    g_DarkTheme = !g_DarkTheme
+    g_DarkTheme = not g_DarkTheme
     applyTheme()
 }
 
@@ -271,7 +271,7 @@ func displayModeFromIndex(idx: u32)->PropertiesKind
 func rebuildInspector()
 {
     let objHost = g_ObjHost
-    if !objHost do
+    if not objHost do
         return
 
     let oldCtrl = g_PropCtrl
@@ -292,7 +292,7 @@ func rebuildInspector()
         bases.add(cast(*u8) &g_Cards[i])
     props.addStructMulti(SceneCard, bases.toSlice(), Format.toString("Editing % card%", g_CardCount, g_CardCount > 1 ? "s" : ""))
 
-    if !g_Filter.isEmpty() do
+    if not g_Filter.isEmpty() do
         ctrl.search.setText(g_Filter.toString())
 
     ctrl.search.sigTextChanged += func(fil) { g_Filter = fil.text(); }
@@ -365,7 +365,7 @@ func createInspectorPage(parent: *Wnd)
     let frame = createPanel(parent, "Live preview", "Each card is one edited instance; the highlighted ones are bound to the grid, so editing a field writes them all.", {})
     frame.dockStyle = .Center
     let preview = frame.view!
-    g_Preview           = preview
+    g_Preview = preview
     preview.hookOnEvent = &onPreviewEvent
 }
 
@@ -504,6 +504,7 @@ impl IPropertyEditor for RatingEditor
                     rat.value = rat.value == idx + 1 ? idx : idx + 1
                     prop.commitItemChange(item)
                 }
+
                 .iconPainter = func|rating, idx|(b, bc, pos, paintFlags)
                 {
                     bc.painter.setParams(.Antialiased)
@@ -563,7 +564,7 @@ func updateHeader()
 
 func layoutRootView()
 {
-    if !g_View or !g_PageView do
+    if not g_View or not g_PageView do
         return
 
     let view     = g_View!
@@ -616,7 +617,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 func createRootView()
 {
     let view = g_Surface!.view()
-    g_View               = view
+    g_View = view
     view.backgroundStyle = .View
 
     let title = Label.create(view, "", {})
@@ -635,7 +636,7 @@ func createRootView()
     themeButton.sigPressed += &toggleTheme
 
     let pageView = Wnd.create'Wnd(view, {})
-    g_PageView               = pageView
+    g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 
     let footer = Label.create(view, "", {})
@@ -651,7 +652,7 @@ func createRootView()
 // real rebuild path), then quit after a fixed number of frames.
 func updateTestMode()
 {
-    if !Env.isSmokeRun() or !g_Surface do
+    if not Env.isSmokeRun() or not g_Surface do
         return
 
     g_TestFrame += 1

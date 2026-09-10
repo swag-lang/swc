@@ -53,8 +53,8 @@ func VirtualFree(address: *void?, bytes: u64, freeType: u32)->bool
 #test
 {
     const MEM_RELEASE = 0x8000'u32
-    const F           = #run VirtualFree(null, 0'u64, MEM_RELEASE)
-    #assert(!F)
+    const F = #run VirtualFree(null, 0'u64, MEM_RELEASE)
+    #assert(not F)
 }
 
 #[Swag.Foreign("kernel32", "GetCurrentProcessId", callconv: Swag.CallConv.C)]

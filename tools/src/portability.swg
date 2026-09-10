@@ -158,7 +158,7 @@ private struct PortabilityParseState
 // Runs the source-only portability boundary audit.
 public func runPortability(context: *Context, options: *Options)->s32 fail
 {
-    if !options.module.isEmpty() or !options.command.isEmpty()
+    if not options.module.isEmpty() or not options.command.isEmpty()
     {
         Console.println("portability.swgs checks the whole bin boundary and takes no name or command")
         return 1
@@ -238,25 +238,25 @@ private func auditPortabilityFile(context: *Context, path: string)->u32 fail
 
         if Utf8.startsWith(cast(const [..] u8) rawTrimmed, "#import(")
         {
-            if hasNativeImport(rawTrimmed) and !importPoint
+            if hasNativeImport(rawTrimmed) and not importPoint
             {
                 reportPortability(path, lineNumber, "platform-neutral source cannot import a native module")
                 errors += 1
             }
-            elif interop and !hasNativeImport(rawTrimmed)
+            elif interop and not hasNativeImport(rawTrimmed)
             {
                 reportPortability(path, lineNumber, "native interoperability cannot import a platform-neutral module")
                 errors += 1
             }
         }
 
-        if containsText(trimmed, "#os ==") and !osDispatch
+        if containsText(trimmed, "#os ==") and not osDispatch
         {
             reportPortability(path, lineNumber, "platform-neutral source cannot branch on '#os'")
             errors += 1
         }
 
-        if (containsText(trimmed, "#foreignlib(") or containsText(trimmed, "Swag.Foreign(")) and !native
+        if (containsText(trimmed, "#foreignlib(") or containsText(trimmed, "Swag.Foreign(")) and not native
         {
             reportPortability(path, lineNumber, "platform-neutral source cannot declare a native foreign operation")
             errors += 1
@@ -265,7 +265,7 @@ private func auditPortabilityFile(context: *Context, path: string)->u32 fail
         let nativeNamespace = nativeNamespaceOnLine(trimmed)
         let nativeType      = nativeIdentifierOnLine(trimmed)
         let approvedLine    = isApprovedDeclaration(path, trimmed)
-        if !native and !approvedLine and (nativeNamespace.count != 0 or nativeType.count != 0)
+        if not native and not approvedLine and (nativeNamespace.count != 0 or nativeType.count != 0)
         {
             let marker = nativeNamespace.count != 0 ? nativeNamespace : nativeType
             reportPortability(path, lineNumber, Format.toString("platform-neutral source cannot name native identifier '%'", marker).toString())
@@ -288,13 +288,13 @@ private func auditPublicNativeDeclaration(path: string, line: string, lineNumber
     let privateLine = startsWithAccess(line, "private") or startsWithAccess(line, "internal")
     if state.publicDepth == 1
     {
-        if state.publicStruct and !state.publicOpaque
+        if state.publicStruct and not state.publicOpaque
         {
             reportPortability(path, lineNumber, Format.toString("portable public field cannot name native type '%'", nativeType).toString())
             return 1
         }
 
-        if !state.publicStruct and !privateLine and isCallableDeclaration(line)
+        if not state.publicStruct and not privateLine and isCallableDeclaration(line)
         {
             reportPortability(path, lineNumber, Format.toString("portable public operation cannot name native type '%'", nativeType).toString())
             return 1
@@ -307,7 +307,7 @@ private func auditPublicNativeDeclaration(path: string, line: string, lineNumber
         return 1
     }
 
-    if state.globalPublic and !privateLine and isDeclaration(line)
+    if state.globalPublic and not privateLine and isDeclaration(line)
     {
         reportPortability(path, lineNumber, Format.toString("portable public declaration cannot name native type '%'", nativeType).toString())
         return 1
@@ -382,7 +382,7 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
         return
     }
 
-    let publicLine = startsWithAccess(line, "public") or state.globalPublic and !privateLine
+    let publicLine = startsWithAccess(line, "public") or state.globalPublic and not privateLine
     let isStruct   = declarationStartsWith(line, "struct")
     let isImpl     = declarationStartsWith(line, "impl")
     if (publicLine or privateLine) and isImpl
@@ -411,7 +411,7 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
         state.publicOpaque = state.pendingOpaque
     }
 
-    if !Utf8.startsWith(cast(const [..] u8) line, "#[") do
+    if not Utf8.startsWith(cast(const [..] u8) line, "#[") do
         state.pendingOpaque = false
 }
 
@@ -448,16 +448,16 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
             continue
         }
 
-        if !quoted and index + 1 < line.count and line[index] == '/' and line[index + 1] == '/' do
+        if not quoted and index + 1 < line.count and line[index] == '/' and line[index + 1] == '/' do
             break
-        if !quoted and index + 1 < line.count and line[index] == '/' and line[index + 1] == '*'
+        if not quoted and index + 1 < line.count and line[index] == '/' and line[index + 1] == '*'
         {
             state.blockComment = true
             index              += 2
             continue
         }
 
-        if !quoted and index + 2 < line.count and line[index] == '"' and line[index + 1] == '"' and line[index + 2] == '"'
+        if not quoted and index + 2 < line.count and line[index] == '"' and line[index + 1] == '"' and line[index + 2] == '"'
         {
             state.multilineText = true
             result              += ' '
@@ -553,8 +553,8 @@ private func containsIdentifier(text: string, identifier: string)->bool
 
         let start  = offset + found
         let end    = start + identifier.count
-        let before = start == 0 or !Latin1.isWord(text[start - 1])
-        let after  = end == text.count or !Latin1.isWord(text[end])
+        let before = start == 0 or not Latin1.isWord(text[start - 1])
+        let after  = end == text.count or not Latin1.isWord(text[end])
         if before and after do
             return true
         offset = start + 1
@@ -573,7 +573,7 @@ private func containsIdentifierPrefix(text: string, prefix: string)->bool
             return false
 
         let start = offset + found
-        if start == 0 or !Latin1.isWord(text[start - 1]) do
+        if start == 0 or not Latin1.isWord(text[start - 1]) do
             return true
         offset = start + 1
     }

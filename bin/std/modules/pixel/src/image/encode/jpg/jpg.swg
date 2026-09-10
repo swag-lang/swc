@@ -239,7 +239,7 @@ impl Encoder
                     line[column].b = pref[0]
                     line[column].g = pref[1]
                     line[column].r = pref[2]
-                    pref           += 3
+                    pref += 3
                 }
 
             case .RGB8:
@@ -248,7 +248,7 @@ impl Encoder
                     line[column].b = pref[2]
                     line[column].g = pref[1]
                     line[column].r = pref[0]
-                    pref           += 3
+                    pref += 3
                 }
 
             case .BGRA8:
@@ -257,7 +257,7 @@ impl Encoder
                     line[column].b = pref[0]
                     line[column].g = pref[1]
                     line[column].r = pref[2]
-                    pref           += 4
+                    pref += 4
                 }
 
             case .RGBA8:
@@ -266,7 +266,7 @@ impl Encoder
                     line[column].b = pref[2]
                     line[column].g = pref[1]
                     line[column].r = pref[0]
-                    pref           += 4
+                    pref += 4
                 }
             }
 

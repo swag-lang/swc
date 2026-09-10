@@ -269,7 +269,7 @@ const SwitchPointerValues = [11, 22, 33]
     }
 
     const TN: typeinfo = NullString
-    const VN           = #run switchNullableTypeInfo(TN)
+    const VN = #run switchNullableTypeInfo(TN)
     #assert(VN == 1)
 }
 

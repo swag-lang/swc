@@ -81,7 +81,7 @@ func day7A0()
     func contains(id: *HashTable'(string, Array'(string)), what: string)->bool
     {
         let it = id.tryFind(what)
-        if !it do
+        if not it do
             return false
 
         for v in it.value
@@ -126,7 +126,7 @@ func day7A1()
     func contains(id: *HashTable'(string, Array'(string)), what: string)->bool
     {
         let it = id.tryFind(what)
-        if !it do
+        if not it do
             return false
 
         for v in it.value

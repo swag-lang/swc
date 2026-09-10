@@ -273,12 +273,12 @@ private func mathLiteralClass(c: rune)->MathAtomClass
 {
     switch c
     {
-    case '+', '-', '*', '/', '\u00D7'rune, '\u00F7'rune:          return .Bin
+    case '+', '-', '*', '/', '\u00D7'rune, '\u00F7'rune: return .Bin
     case '=', '<', '>', '\u2260'rune, '\u2264'rune, '\u2265'rune: return .Rel
-    case '(', '[', '{':                                           return .Open
-    case ')', ']', '}':                                           return .Close
-    case ',', ';', ':':                                           return .Punct
-    case '|':                                                     return .Rel
+    case '(', '[', '{': return .Open
+    case ')', ']', '}': return .Close
+    case ',', ';', ':': return .Punct
+    case '|': return .Rel
     }
 
     return .Ord
@@ -593,7 +593,7 @@ private impl MathParser
 
     mtd skipMathSpaces()
     {
-        while !.eof()
+        while not .eof()
         {
             let c = .peek()
             if c != ' ' and c != '\t' and c != '\r' and c != '\n' do
@@ -675,7 +675,7 @@ private impl MathParser
 
     mtd consumeControlWord(word: string)->bool fail
     {
-        if !.atControlWord(word) do
+        if not .atControlWord(word) do
             return false
         discard .readCommand()
         .skipMathSpaces()
@@ -692,13 +692,13 @@ private impl MathParser
 
         let start = .pos
         var depth = 1'u32
-        while !.eof()
+        while not .eof()
         {
             let c = .peek()
             if c == '\\'
             {
                 .pos += 1
-                if !.eof() do
+                if not .eof() do
                     .pos += 1
                 continue
             }
@@ -816,7 +816,7 @@ private impl MathParser
             let at      = .pos
             let command = .readCommand()
             let spec    = mathCommandSymbol(command)
-            if !spec.found do
+            if not spec.found do
                 mathFail(Format.toString("% has no delimiter for command '\\%'", label, command), at)
             return spec.text
         }
@@ -829,7 +829,7 @@ private impl MathParser
     {
         let left = .parseDelimiter("'\\left'")
         let body = .parseRow(.Right)
-        if !.consumeControlWord("right") do
+        if not .consumeControlWord("right") do
             mathFail("'\\left' has no matching '\\right'", .pos)
         let right = .parseDelimiter("'\\right'")
 
@@ -1176,10 +1176,10 @@ private impl MathParser
             }
         }
 
-        if !sub and !sup and limitsMode == .Automatic do
+        if not sub and not sup and limitsMode == .Automatic do
             return base
 
-        if !sub and !sup
+        if not sub and not sup
         {
             base.limitsMode = limitsMode
             return base
@@ -1257,7 +1257,7 @@ impl MathExpression
         parser.pos        = 0
         result.root       = parser.parseRow()
         parser.skipMathSpaces()
-        if !parser.eof() do
+        if not parser.eof() do
             mathFail("math parser stopped before the end of the expression", parser.pos)
         return result
     }

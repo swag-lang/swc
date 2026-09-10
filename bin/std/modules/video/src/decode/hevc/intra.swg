@@ -65,7 +65,7 @@ impl Decoder
         {
         case mode == IntraPlanar: .predictPlanar(&reference, size, log2Size)
         case mode == IntraDc:     .predictDc(&reference, size, log2Size, component)
-        default:                  .predictAngular(&reference, size, component, mode, bitDepth)
+        default: .predictAngular(&reference, size, component, mode, bitDepth)
         }
     }
 
@@ -138,7 +138,7 @@ impl Decoder
     // Reports whether a neighbouring sample may be used for intra prediction, clause 8.4.4.2.1.
     private mtd const isIntraNeighbourAvailable(xCurr, yCurr, xNb, yNb: s32, constrained: bool)->bool
     {
-        if !.isAvailable(xCurr, yCurr, xNb, yNb) do
+        if not .isAvailable(xCurr, yCurr, xNb, yNb) do
             return false
 
         // Constrained intra prediction refuses everything an inter block reconstructed, so a
@@ -176,7 +176,7 @@ impl Decoder
             reference.samples[index] = reference.samples[firstAvailable]
         for index in firstAvailable + 1 until count
         {
-            if !reference.available[index] do
+            if not reference.available[index] do
                 reference.samples[index] = reference.samples[index - 1]
         }
     }

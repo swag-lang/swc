@@ -123,7 +123,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 {
     Swag.assert(Image.canLoad("photo.jpg"))
     Swag.assert(Image.canLoad("photo.jpeg"))
-    Swag.assert(!Image.canLoad("photo.jxl"))
+    Swag.assert(not Image.canLoad("photo.jxl"))
     Swag.assert(Image.canSave("photo.jpg"))
     Swag.assert(Image.canSave("photo.jpeg"))
 }
@@ -202,7 +202,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.assert(img.width == 1024)
     Swag.assert(img.height == 768)
     Swag.assert(img.pixelFormat == .BGR8)
-    Swag.assert(!img.isValid())
+    Swag.assert(not img.isValid())
 }
 
 // JPEG metadata collection is independent of pixel decoding, including header-only probes.
@@ -231,7 +231,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
             }
 
             Swag.assert(found == metadata)
-            if !metadata do
+            if not metadata do
                 Swag.assert(decoded.metadata.isEmpty())
         }
     }

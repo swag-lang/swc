@@ -90,7 +90,7 @@ func assertHadamard4x4Case(seed: u64)
     }
 
     var expected: [16] s16 = [Swag.S16.Min, Swag.S16.Max, Swag.S16.Min, Swag.S16.Max, Swag.S16.Max, Swag.S16.Min, Swag.S16.Max, Swag.S16.Min, Swag.S16.Min, Swag.S16.Min, Swag.S16.Max, Swag.S16.Max, Swag.S16.Max, Swag.S16.Max, Swag.S16.Min, Swag.S16.Min]
-    var actual             = expected
+    var actual = expected
     H264.hadamard4x4Scalar(expected.buffer)
     H264.hadamard4x4(actual.buffer)
     Swag.assert(Memory.compare(expected.buffer, actual.buffer, #sizeof(actual)) == 0)

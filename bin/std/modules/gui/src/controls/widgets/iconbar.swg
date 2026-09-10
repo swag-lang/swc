@@ -164,7 +164,7 @@ impl IconBar
     mtd buttonById(id: WndId)->*IconButton?
     {
         let button = .childById(id)
-        if !button do
+        if not button do
             return null
         return cast(*IconButton?) button
     }

@@ -97,10 +97,10 @@ impl Decoder
 
     mtd getChar(paddingFlag: *bool)->u32
     {
-        if !.inBufLeft
+        if not .inBufLeft
         {
             .prepareInBuffer()
-            if !.inBufLeft
+            if not .inBufLeft
             {
                 paddingFlag[] = true
                 let t = .temFlag
@@ -121,10 +121,10 @@ impl Decoder
 
     mtd getChar()->u32
     {
-        if !.inBufLeft
+        if not .inBufLeft
         {
             .prepareInBuffer()
-            if !.inBufLeft
+            if not .inBufLeft
             {
                 let t = .temFlag
                 .temFlag ^= 1
@@ -146,7 +146,7 @@ impl Decoder
         var c: u32
 
         var bytes = 0
-        while !c
+        while not c
         {
             while c != 0xFF
             {
@@ -207,7 +207,7 @@ impl Decoder
             fail InvalidFormatError{"bad variable marker"}
         left -= 2
 
-        Swag.assert(!.acceptMetadata)
+        Swag.assert(not .acceptMetadata)
         while left
         {
             .getBits1(8)
@@ -358,7 +358,7 @@ impl Decoder
 
             if .decOptions.decodeMetadata
             {
-                if !inValue and c == 0 do
+                if not inValue and c == 0 do
                     inValue = true
                 elif inValue do
                     meta.value.add(c)
@@ -419,7 +419,7 @@ impl Decoder
         .successiveHigh = .getBits1(4)
         .successiveLow  = .getBits1(4)
 
-        if !.progressiveFlag
+        if not .progressiveFlag
         {
             .spectralStart = 0
             .spectralEnd   = 63

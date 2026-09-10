@@ -116,7 +116,7 @@ impl SheetView
     {
         if .rows.count and .rows.back().group and .rows.back().name == family do
             return
-        if .rows.count and !.rows.back().group and familyOf(.rows.back().name.toString()) == family do
+        if .rows.count and not .rows.back().group and familyOf(.rows.back().name.toString()) == family do
             return
 
         with var row: SheetRow
@@ -136,7 +136,7 @@ impl SheetView
         for field in type.fields
         {
             let name = field.name!
-            if !.keeps(name) do
+            if not .keeps(name) do
                 continue
             .openFamily(familyOf(name))
 
@@ -166,7 +166,7 @@ impl SheetView
         for field in type.fields
         {
             let name = field.name!
-            if !.keeps(name) do
+            if not .keeps(name) do
                 continue
 
             var row: SheetRow
@@ -187,7 +187,7 @@ impl SheetView
         for field in type.fields
         {
             let name = field.name!
-            if !.keeps(name) do
+            if not .keeps(name) do
                 continue
             .openFamily(familyOf(name))
 
@@ -233,7 +233,7 @@ impl SheetView
     mtd drawSwatch(painter: *Painter, rect: Math.Rectangle, color: Color, ground: Color)
     {
         painter.fillRect(rect, ground)
-        if !color.isOpaque()
+        if not color.isOpaque()
         {
             var checker = rect
             checker.width *= 0.5

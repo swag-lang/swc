@@ -154,7 +154,7 @@ internal struct ImageViewer
     details:   String
     facts:     ImageViewerFacts
 
-        late
+    late
     {
         actions:         *Wnd
         info:            *Wnd
@@ -214,7 +214,7 @@ internal impl ImageViewer
 
         // Back on the first frame from the last one while running: one complete cycle is what
         // an animated picture has instead of an end.
-        let wrapped = movie.frameIndex == 0 and .lastFrameIndex == movie.frameCount - 1 and !movie.isPaused
+        let wrapped = movie.frameIndex == 0 and .lastFrameIndex == movie.frameCount - 1 and not movie.isPaused
         .lastFrameIndex = movie.frameIndex
         if wrapped do
             .finishCycle()
@@ -225,7 +225,7 @@ internal impl ImageViewer
     // further cycle would ask it for one more.
     mtd finishCycle()
     {
-        if .handedOff or !.reportFinished do
+        if .handedOff or not .reportFinished do
             return
         if .reportFinished!(me) == .Next do
             .handedOff = true
@@ -335,7 +335,7 @@ private impl IWnd for ImageViewer
             .playButton.toolTip      = imageStrings().ui_TipPlay
             .zoomLabel.toolTip       = imageStrings().ui_ZoomMenu
             .refreshZoom()
-            if !.facts.width.isEmpty()
+            if not .facts.width.isEmpty()
             {
                 .details = .facts.text()
                 if .reportDetails do
@@ -354,14 +354,14 @@ private impl IWnd for ImageViewer
             return
         }
 
-        if !.load.isDone() do
+        if not .load.isDone() do
             return
 
         .removeTimer(evt.timer)
         .loadTimer = null
         var content: ImageViewerContent
         .failureReason = .load.finish(&content)
-        if !.failureReason.isEmpty()
+        if not .failureReason.isEmpty()
         {
             if .reportFailure do
                 .reportFailure!(me, .failureReason.toString())
@@ -391,7 +391,7 @@ private impl IWnd for ImageViewer
             .reportLoadingChanged!(me)
 
         // A still picture has no end of its own; the host's slideshow gives it one.
-        let still = !.imageView.movie.isValid() or .imageView.movie.frameCount <= 1
+        let still = not .imageView.movie.isValid() or .imageView.movie.frameCount <= 1
         if still and .reportShown do
             .reportShown!(me)
     }
@@ -446,7 +446,7 @@ private impl IWnd for ImageViewer
             .mirrorVertically()
 
         case .Space where .imageView.movie.isAnimated() and .imageView.movie.frameCount > 1:
-            .imageView.setPaused(!.imageView.movie.isPaused)
+            .imageView.setPaused(not .imageView.movie.isPaused)
             .refreshFrame()
 
         default:
@@ -459,7 +459,7 @@ private impl ImageViewer
 {
     mtd retire()->bool
     {
-        if !.load.retire() do
+        if not .load.retire() do
             return false
         if .loadTimer
         {
@@ -525,7 +525,7 @@ private impl ImageViewer
             }
         }
 
-        result.playModeButton           = Viewer.PlaybackButton.create(result.actions, result, services.playback, showSlideDuration: true)
+        result.playModeButton = Viewer.PlaybackButton.create(result.actions, result, services.playback, showSlideDuration: true)
         result.playModeButton.dockStyle = .Left
         result.playModeButton.margin.x  = 8
 
@@ -538,7 +538,7 @@ private impl ImageViewer
             .sigPressed += func|view = result|(button)
             {
                 discard button
-                view.imageView.setPaused(!view.imageView.movie.isPaused)
+                view.imageView.setPaused(not view.imageView.movie.isPaused)
                 view.refreshFrame()
             }
         }
@@ -577,18 +577,20 @@ private impl ImageViewer
             }
         }
 
-        result.imageView                = ImageView.create(result)
+        result.imageView = ImageView.create(result)
         result.imageView.dockStyle      = .Center
         result.imageView.sigZoomChanged += func|view = result|(imageView)
         {
             discard imageView
             view.refreshZoom()
         }
+
         result.imageView.sigFrameChanged += func|view = result|(imageView)
         {
             discard imageView
             view.refreshFrame()
         }
+
         result.imageView.sigDecodeFailed += func|view = result|(imageView)
         {
             if view.reportFailure do

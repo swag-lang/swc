@@ -92,7 +92,7 @@ impl BitReader
     mtd ue()->u32
     {
         var zeros = 0'u32
-        while !.bit()
+        while not .bit()
         {
             zeros += 1
             if zeros > 31 or .overran
@@ -102,7 +102,7 @@ impl BitReader
             }
         }
 
-        if !zeros do
+        if not zeros do
             return 0
         return (1'u32 << zeros) - 1 + .read(zeros)
     }
@@ -144,19 +144,19 @@ func unescapeRbsp(destination: *Array'u8, data: const [..] u8)
 {
     let count = data.count
     destination.clear()
-    if !count do
+    if not count do
         return
     destination.resize(count)
-    let output             = destination.buffer!
+    let output = destination.buffer!
     var index, outputIndex = 0'u64
-    var zeros              = 0'u32
-    let threes             = Math.Simd.splat(3'u8)
+    var zeros  = 0'u32
+    let threes = Math.Simd.splat(3'u8)
     while index < count
     {
         if count - index >= 16
         {
             let bytes = Math.Simd.load(data.buffer + index)
-            if !Math.Simd.anyTrue(bytes == threes)
+            if not Math.Simd.anyTrue(bytes == threes)
             {
                 Math.Simd.store(output + outputIndex, bytes)
                 outputIndex += 16

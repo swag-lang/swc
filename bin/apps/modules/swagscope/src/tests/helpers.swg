@@ -46,7 +46,7 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
 func collectViewerMatches(collect: Viewer.CollectSearchMatches, view: *Wnd, text: string, matches: *Array'Viewer.SearchMatch)
 {
     var progress = 0'u64
-    while !collect(view, text, {}, &progress, matches) do
+    while not collect(view, text, {}, &progress, matches) do
         Threading.Thread.sleep(1'ms)
 }
 
@@ -71,7 +71,7 @@ func expireViewerLoadingDelay(window: *ViewerWindow)
 // A wait that ended before the mark could linger has nothing to age; the call is then harmless.
 func expireViewerLoadingLinger(window: *ViewerWindow)
 {
-    if !window.loadingShownSince do
+    if not window.loadingShownSince do
         return
     window.loadingShownSince = 1
     window.updateLoadingIndicator()
@@ -81,7 +81,7 @@ func expireViewerLoadingLinger(window: *ViewerWindow)
 func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
     var steps = 0'u32
-    while !window.pendingFile.isEmpty() and steps < 4_096
+    while not window.pendingFile.isEmpty() and steps < 4_096
     {
         // Classification can also be waiting for the previous viewer to retire.
         // Complete worker jobs before advancing that transition; the new viewer
@@ -103,7 +103,7 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
     while window.activeChoiceIndex < window.instances.count and steps < 4_096
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if !instance.view or !instance.isLoading or !instance.isLoading!(instance.view!) do
+        if not instance.view or not instance.isLoading or not instance.isLoading!(instance.view!) do
             break
         Threading.Thread.sleep(1'ms)
         host.fireTimers()

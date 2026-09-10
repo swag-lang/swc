@@ -74,7 +74,7 @@ func dirName(d: Dir)->string
 func isDigit(ch: u8)->bool   => ch >= '0'u8 and ch <= '9'u8
 func isDot(ch: u8)->bool     => ch == '.'u8
 func isNewline(ch: u8)->bool => ch == '\n'u8 or ch == '\r'u8
-func isSymbol(ch: u8)->bool  => !isDigit(ch) and !isDot(ch) and !isNewline(ch) and ch != 0
+func isSymbol(ch: u8)->bool  => not isDigit(ch) and not isDot(ch) and not isNewline(ch) and ch != 0
 func isGear(ch: u8)->bool    => ch == '*'u8
 
 // ---------------------------------------------------------------------------
@@ -110,7 +110,7 @@ func parseGrid(bytes: const [..] u8)->Grid
                     result.width = col
                 Swag.assert(col == result.width)
                 result.height += 1
-                col           = 0
+                col = 0
             }
             continue
         }
@@ -152,7 +152,7 @@ impl NumberList
     {
         Swag.assert(.count < MaxNumbers)
         .entries[.count] = entry
-        .count           += 1
+        .count += 1
     }
 }
 
@@ -181,7 +181,7 @@ impl GearList
     {
         Swag.assert(.count < MaxGears)
         .entries[.count] = entry
-        .count           += 1
+        .count += 1
     }
 }
 
@@ -349,7 +349,7 @@ func solveClean(grid: Grid)->EngineResult
     {
         for col in grid.width
         {
-            if !isGear(grid.at(row, col)) do
+            if not isGear(grid.at(row, col)) do
                 continue
 
             var adjCount: u32
@@ -432,7 +432,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
                     }
                 }
 
-                if !found
+                if not found
                 {
                     var gc: GearCandidate
                     gc.row      = nr
@@ -547,17 +547,17 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     // Character classification coverage
     Swag.assert(isDigit('0'u8))
     Swag.assert(isDigit('9'u8))
-    Swag.assert(!isDigit('a'u8))
+    Swag.assert(not isDigit('a'u8))
     Swag.assert(isDot('.'u8))
-    Swag.assert(!isDot('*'u8))
+    Swag.assert(not isDot('*'u8))
     Swag.assert(isSymbol('*'u8))
     Swag.assert(isSymbol('#'u8))
     Swag.assert(isSymbol('+'u8))
     Swag.assert(isSymbol('$'u8))
-    Swag.assert(!isSymbol('.'u8))
-    Swag.assert(!isSymbol('5'u8))
+    Swag.assert(not isSymbol('.'u8))
+    Swag.assert(not isSymbol('5'u8))
     Swag.assert(isGear('*'u8))
-    Swag.assert(!isGear('#'u8))
+    Swag.assert(not isGear('#'u8))
 
     // Direction name coverage
     Swag.assert(dirName(Dir.N) == "N")
@@ -577,6 +577,6 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     entry.col1  = 3
     Swag.assert(isAdjacentToCell(entry, 1, 3))
     Swag.assert(isAdjacentToCell(entry, 2, 1))
-    Swag.assert(!isAdjacentToCell(entry, 0, 0))
-    Swag.assert(!isAdjacentToCell(entry, 4, 4))
+    Swag.assert(not isAdjacentToCell(entry, 0, 0))
+    Swag.assert(not isAdjacentToCell(entry, 4, 4))
 }

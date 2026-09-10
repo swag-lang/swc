@@ -37,7 +37,7 @@ func day8A()
     for c in lines[0].bytes()
     {
         count[c - '0'] += 1
-        x              = (x + 1) % 25
+        x = (x + 1) % 25
         if x != 0 do
             continue
         y = (y + 1) % 6

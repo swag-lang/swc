@@ -17,11 +17,11 @@ impl Library
 {
     func ensureFolder(folder: String) fail
     {
-        if !Directory.exists(folder) do
+        if not Directory.exists(folder) do
             Directory.create(folder)
 
         let trash = Path.combine(folder, ".trash")
-        if !Directory.exists(trash) do
+        if not Directory.exists(trash) do
             Directory.create(trash)
     }
 
@@ -38,11 +38,11 @@ impl Library
     // as it filters, and paying that call per item is what made a large library crawl.
     func getDefaultFolder()->String
     {
-        if !g_Library.defaultFolder.isEmpty() do
+        if not g_Library.defaultFolder.isEmpty() do
             return g_Library.defaultFolder
 
         let documents = Env.getSpecialDirectory(.UserDocuments)
-        Swag.assert(!documents.isEmpty())
+        Swag.assert(not documents.isEmpty())
 
         g_Library.defaultFolder = Path.combine(documents, ProductName)
         return g_Library.defaultFolder
@@ -54,7 +54,7 @@ impl Library
     // its own root, so a test naturally gets an empty library of its own.
     func getFolder()->String
     {
-        if !g_Library.rootFolder.isEmpty() do
+        if not g_Library.rootFolder.isEmpty() do
             return g_Library.rootFolder
         return getDefaultFolder()
     }
@@ -182,7 +182,7 @@ impl Library
         // An observer can destroy the object that supplied 'name' (the recent strip does
         // exactly that). Keep an owned path alive until every observer has returned.
         let stableName = String.from(name)
-        if !Capture.isFile(stableName) do
+        if not Capture.isFile(stableName) do
             return
 
         // A background save may still be writing this capture; if the move happened
@@ -194,7 +194,7 @@ impl Library
             if fi.fullname == stableName
             {
                 let trashed = moveFile(getTrashFolder(), stableName)
-                if !trashed.isEmpty()
+                if not trashed.isEmpty()
                 {
                     .files.removeAtOrdered(idx)
                     .revision += 1

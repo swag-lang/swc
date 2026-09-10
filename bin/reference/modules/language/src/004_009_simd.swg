@@ -41,8 +41,8 @@ like the other forms, which is what lets a vector be declared 'const'.
 #test
 {
     let lanes: #simd [4] s32 = [1, 2, 3, 4]
-    let fours                = Swag.vecsplat(4's32)
-    let sum                  = cast([4] s32) (lanes + fours)
+    let fours = Swag.vecsplat(4's32)
+    let sum   = cast([4] s32) (lanes + fours)
     Swag.assert(sum[0] == 5 and sum[3] == 8)
 
     // A broadcast of a constant is a constant.
@@ -122,7 +122,7 @@ integer, and 'Swag.vecany'/'Swag.vecall' reduce a mask to a bool.
     Swag.assert(clamped[0] == 1 and clamped[1] == 20 and clamped[2] == 3 and clamped[3] == 40)
 
     Swag.assert(Swag.vecmask(mask) == 0b1010)
-    Swag.assert(Swag.vecany(mask) and !Swag.vecall(mask))
+    Swag.assert(Swag.vecany(mask) and not Swag.vecall(mask))
 }
 
 /**
@@ -197,7 +197,7 @@ readable table element and be at most 's32.Max'.
     Swag.assert(ints[0] == 1 and ints[1] == -1 and ints[2] == 32767 and ints[3] == -32768)
 
     var lookup: [5] s32 = [10, 20, 30, 40, 50]
-    let found           = cast([4] s32) Swag.vecgather(lookup.buffer, cast(#simd [4] u32) [4, 0, 3, 1])
+    let found = cast([4] s32) Swag.vecgather(lookup.buffer, cast(#simd [4] u32) [4, 0, 3, 1])
     Swag.assert(found[0] == 50 and found[1] == 10 and found[2] == 40 and found[3] == 20)
 }
 

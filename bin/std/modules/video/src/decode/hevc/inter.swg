@@ -55,7 +55,7 @@ impl Decoder
     {
         let td = Math.clamp(referenceDiff, -128, 127)
         let tb = Math.clamp(currentDiff, -128, 127)
-        if !td do
+        if not td do
             return value
 
         let tx     = (16384 + (Math.abs(td) >> 1)) / td
@@ -127,7 +127,7 @@ impl Decoder
             if available and count < header.maxNumMergeCand
             {
                 candidates[count] = temporal
-                count             += 1
+                count += 1
             }
         }
 
@@ -179,7 +179,7 @@ impl Decoder
             availableB1 = false
         if partIdx == 1 and (partMode == Part2NxN or partMode == Part2NxnU or partMode == Part2NxnD) do
             availableB1 = false
-        if availableB1 and !(found[0] and .sameMotion(&motion[0], .motionAt(xB1, yB1)))
+        if availableB1 and not (found[0] and .sameMotion(&motion[0], .motionAt(xB1, yB1)))
         {
             found[1]  = true
             motion[1] = .motionAt(xB1, yB1)[]
@@ -191,7 +191,7 @@ impl Decoder
         var availableB0 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xB0, yB0)
         if .sameMergeRegion(xPb, yPb, xB0, yB0, level) do
             availableB0 = false
-        if availableB0 and !(availableB1 and .sameMotion(.motionAt(xB1, yB1), .motionAt(xB0, yB0)))
+        if availableB0 and not (availableB1 and .sameMotion(.motionAt(xB1, yB1), .motionAt(xB0, yB0)))
         {
             found[2]  = true
             motion[2] = .motionAt(xB0, yB0)[]
@@ -203,7 +203,7 @@ impl Decoder
         var availableA0 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xA0, yA0)
         if .sameMergeRegion(xPb, yPb, xA0, yA0, level) do
             availableA0 = false
-        if availableA0 and !(availableA1 and .sameMotion(.motionAt(xA1, yA1), .motionAt(xA0, yA0)))
+        if availableA0 and not (availableA1 and .sameMotion(.motionAt(xA1, yA1), .motionAt(xA0, yA0)))
         {
             found[3]  = true
             motion[3] = .motionAt(xA0, yA0)[]
@@ -230,10 +230,10 @@ impl Decoder
         // The list order of equation 8-119.
         for slot in 5'u32
         {
-            if !found[slot] or count[] >= header.maxNumMergeCand do
+            if not found[slot] or count[] >= header.maxNumMergeCand do
                 continue
             candidates[count[]] = motion[slot]
-            count[]             += 1
+            count[] += 1
         }
     }
 
@@ -293,7 +293,7 @@ impl Decoder
             combined.refIdx[1]  = second.refIdx[1]
             combined.predFlags  = 3
             candidates[count[]] = combined
-            count[]             += 1
+            count[] += 1
         }
     }
 
@@ -318,8 +318,8 @@ impl Decoder
             }
 
             candidates[count[]] = candidate
-            count[]             += 1
-            zeroIdx             += 1
+            count[] += 1
+            zeroIdx += 1
         }
     }
 
@@ -328,7 +328,7 @@ impl Decoder
     {
         var result: retval
         let header = &.header
-        if !header.temporalMvpEnabled do
+        if not header.temporalMvpEnabled do
             return result
 
         let sps     = .activeSps!
@@ -336,7 +336,7 @@ impl Decoder
         if header.collocatedRefIdx >= .refList.count[colList] do
             return result
         let collocated = .refList.frames[colList, header.collocatedRefIdx]
-        if !collocated do
+        if not collocated do
             return result
 
         // The block below and to the right of the prediction block, when it exists and stays in
@@ -359,7 +359,7 @@ impl Decoder
     {
         var result: retval
         let column = collocated.colMotionAt(x, y)
-        if !column.predFlags do
+        if not column.predFlags do
             return result
 
         // Which of the collocated block's two vectors is used, clause 8.5.3.2.9.
@@ -412,7 +412,7 @@ impl Decoder
 
         var mvA: [2] s16
         var foundA = .neighbourPredictor(&mvA[0], xA0, yA0, availableA0, xA1, yA1, availableA1, list, refIdx, allowScaling: false)
-        if !foundA do
+        if not foundA do
             foundA = .neighbourPredictor(&mvA[0], xA0, yA0, availableA0, xA1, yA1, availableA1, list, refIdx, allowScaling: true)
 
         let xB0         = xPb + nPbW
@@ -430,7 +430,7 @@ impl Decoder
 
         // With nothing to the left, the above candidate takes the left slot and the above one is
         // derived again, this time allowed to scale, clause 8-186.
-        if !isScaled
+        if not isScaled
         {
             if foundB
             {
@@ -445,14 +445,14 @@ impl Decoder
         {
             candidates[count, 0] = mvA[0]
             candidates[count, 1] = mvA[1]
-            count                += 1
+            count += 1
         }
 
-        if foundB and !(foundA and mvA[0] == mvB[0] and mvA[1] == mvB[1])
+        if foundB and not (foundA and mvA[0] == mvB[0] and mvA[1] == mvB[1])
         {
             candidates[count, 0] = mvB[0]
             candidates[count, 1] = mvB[1]
-            count                += 1
+            count += 1
         }
 
         if count < 2 and .header.temporalMvpEnabled
@@ -462,7 +462,7 @@ impl Decoder
             {
                 candidates[count, 0] = temporal.mv[0]
                 candidates[count, 1] = temporal.mv[1]
-                count                += 1
+                count += 1
             }
         }
 
@@ -470,7 +470,7 @@ impl Decoder
         {
             candidates[count, 0] = 0
             candidates[count, 1] = 0
-            count                += 1
+            count += 1
         }
 
         let selected = Math.min(mvpFlag, 1'u32)
@@ -526,7 +526,7 @@ impl Decoder
             let neighbourPoc  = .refList.poc[candidateList, index]
             let neighbourLong = .refList.longTerm[candidateList, index]
 
-            if !allowScaling
+            if not allowScaling
             {
                 if neighbourPoc != wantedPoc do
                     continue

@@ -48,7 +48,7 @@ func systemExecutablePath(name: string)->String
 
     let process = expect Env.runProcess(targetExe.toString(), "/c exit 7")
     Swag.assert(process.exitCode() == 7)
-    Swag.assert(!process.isRunning())
+    Swag.assert(not process.isRunning())
 }
 
 #test
@@ -62,7 +62,7 @@ func systemExecutablePath(name: string)->String
     let errors = String.from(process.standardError())
     Swag.assert(output.contains("to-standard-output"))
     Swag.assert(errors.contains("to-standard-error"))
-    Swag.assert(!output.contains("to-standard-error"))
+    Swag.assert(not output.contains("to-standard-error"))
 }
 
 #test
@@ -144,12 +144,12 @@ func systemExecutablePath(name: string)->String
     Swag.assert(process.processId != 0)
 
     let exitedEarly = expect process.tryWaitForExit(50'ms)
-    Swag.assert(!exitedEarly)
+    Swag.assert(not exitedEarly)
 
     expect process.kill(9)
     let exitCode = expect process.waitForExit()
     Swag.assert(exitCode == 9)
-    Swag.assert(!process.isRunning())
+    Swag.assert(not process.isRunning())
 
     // A discarded stream is not captured, so nothing reaches this side.
     Swag.assert((process.standardOutput()).count == 0)
@@ -174,7 +174,7 @@ func systemExecutablePath(name: string)->String
 {
     // A variable the process really has, read one at a time.
     let path = Env.variable("Path")
-    Swag.assert(!path.isEmpty())
+    Swag.assert(not path.isEmpty())
     Swag.assert(Env.variable("SWAG_NO_SUCH_VARIABLE_HERE").isEmpty())
 }
 

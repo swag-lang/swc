@@ -34,7 +34,7 @@ using Core, Pixel, Gui
     session.commands!.hide()
     session.info!.hide()
     Swag.assert(session.sidePanel != null and session.sidePanelButton != null)
-    Swag.assert(!session.sidePanelHost!.isLocallyVisible())
+    Swag.assert(not session.sidePanelHost!.isLocallyVisible())
     session.sidePanelButton!.setChecked(true)
     session.sidePanelButton!.sigCheckedChanged.call(session.sidePanelButton!)
     Swag.assert(session.sidePanelHost!.isLocallyVisible())
@@ -57,7 +57,7 @@ using Core, Pixel, Gui
     Swag.assert(Utf8.contains(view.information.text(), "Author: Camera owner"))
     Testing.assertContentFits(&host.root)
     host.clickWnd(view.information.closeButton)
-    Swag.assert(!session.sidePanelHost!.isLocallyVisible() and !session.sidePanelButton!.isChecked)
+    Swag.assert(not session.sidePanelHost!.isLocallyVisible() and not session.sidePanelButton!.isChecked)
 }
 
 // JPEG EXIF is interpreted from the preserved APP1 payload, while decodeMetadata remains optional.

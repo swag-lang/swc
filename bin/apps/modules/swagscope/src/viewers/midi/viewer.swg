@@ -30,7 +30,7 @@ internal struct MidiViewer
 {
     using wnd: Wnd
 
-        late
+    late
     {
         commands:   *Wnd
         info:       *Wnd
@@ -71,22 +71,23 @@ private impl MidiViewer
 
     mtd retranslate()
     {
-        if !.loadTimer do
+        if not .loadTimer do
             .fillTracks()
         .trackCombo.toolTip = midiStrings().ui_AllTracks
         .zoomLabel.toolTip  = midiStrings().ui_ZoomMenu
-        if !.loadTimer do
+        if not .loadTimer do
             .roll.invalidate()
     }
 
     mtd publishDocument(document: *MidiDocument)
     {
-        .roll                = MidiRollView.create(me, #move document[])
+        .roll = MidiRollView.create(me, #move document[])
         .roll.sigZoomChanged += func|view = me|(roll)
         {
             discard roll
             view.refreshZoom()
         }
+
         .fillTracks()
         .trackCombo.setSelectedIndex(0, notify: false)
         .details = Format.toString(midiStrings().ui_Details, .roll.document.format, .roll.document.tracks.count, .roll.document.notes.count, Viewer.durationText(.roll.document.durationSeconds))
@@ -119,7 +120,7 @@ private impl MidiViewer
 
     mtd retire()->bool
     {
-        if !.load.retire() do
+        if not .load.retire() do
             return false
         if .loadTimer
         {
@@ -141,14 +142,14 @@ private impl IWnd for MidiViewer
             return
         }
 
-        if !.load.isDone() do
+        if not .load.isDone() do
             return
 
         .removeTimer(evt.timer)
         .loadTimer = null
         var document: MidiDocument
         .failureReason = .load.finish(&document)
-        if !.failureReason.isEmpty()
+        if not .failureReason.isEmpty()
         {
             if .reportFailure do
                 .reportFailure!(me, .failureReason.toString())

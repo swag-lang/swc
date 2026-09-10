@@ -43,7 +43,7 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     Swag.assert(narrow[8] == 2 and narrow[11] == 5 and narrow[12] == 0)
 
     var quads: [4] s32 = [1, 2, 3, 4]
-    let w              = Simd.load(quads.buffer)
+    let w = Simd.load(quads.buffer)
     Swag.assert(w[3] == 4)
 }
 
@@ -141,8 +141,8 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     let clamped = Simd.select(mask, b, a)
     Swag.assert(clamped[0] == 1 and clamped[1] == 20 and clamped[2] == 3 and clamped[3] == 40)
     Swag.assert(Simd.bitmask(mask) == 0b1010)
-    Swag.assert(Simd.anyTrue(mask) and !Simd.allTrue(mask))
-    Swag.assert(!Simd.anyTrue(a > Simd.splat(100's32)))
+    Swag.assert(Simd.anyTrue(mask) and not Simd.allTrue(mask))
+    Swag.assert(not Simd.anyTrue(a > Simd.splat(100's32)))
     Swag.assert(Simd.allTrue(a < Simd.splat(100's32)))
 }
 

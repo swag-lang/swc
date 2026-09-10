@@ -115,7 +115,7 @@ func registerSuspect(suspects: [..] string, suspectCount: *u32, name: string)
 
     Swag.assert(suspectCount[] < MaxSuspects)
     suspects[suspectCount[]] = name
-    suspectCount[]           += 1
+    suspectCount[] += 1
 }
 
 func hasConsumerOp(gates: const [..] LogicGate, wireName: string, op: GateOp)->bool
@@ -198,7 +198,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
         wireNames[wireCount]  = wire.name
         wireKnown[wireCount]  = true
         wireValues[wireCount] = wire.value
-        wireCount             += 1
+        wireCount += 1
     }
 
     Swag.assert(gates.count <= MaxGates)
@@ -218,16 +218,16 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
             let rightIndex = findWireIndex(wireNameSlice, wireCount, gate.right)
             if leftIndex == Swag.U32.Max or rightIndex == Swag.U32.Max do
                 continue
-            if !wireKnown[leftIndex] or !wireKnown[rightIndex] do
+            if not wireKnown[leftIndex] or not wireKnown[rightIndex] do
                 continue
 
             var outputIndex = findWireIndex(wireNameSlice, wireCount, gate.output)
             if outputIndex == Swag.U32.Max
             {
                 Swag.assert(wireCount < MaxWires)
-                outputIndex          = wireCount
+                outputIndex = wireCount
                 wireNames[wireCount] = gate.output
-                wireCount            += 1
+                wireCount   += 1
             }
 
             wireValues[outputIndex] = evaluateGate(wireValues[leftIndex], wireValues[rightIndex], gate.op)
@@ -256,13 +256,13 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
         if isOutputWire(gate.output) and parseWireIndex(gate.output) != highestZ and gate.op != GateOp.Xor do
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)
 
-        if !isOutputWire(gate.output) and gate.op == GateOp.Xor and !isInputWire(gate.left) and !isInputWire(gate.right) do
+        if not isOutputWire(gate.output) and gate.op == GateOp.Xor and not isInputWire(gate.left) and not isInputWire(gate.right) do
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)
 
-        if gate.op == GateOp.And and !isLeastSignificantInputPair(gate.left, gate.right) and !hasConsumerOp(gates, gate.output, GateOp.Or) do
+        if gate.op == GateOp.And and not isLeastSignificantInputPair(gate.left, gate.right) and not hasConsumerOp(gates, gate.output, GateOp.Or) do
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)
 
-        if gate.op == GateOp.Xor and isInputWire(gate.left) and isInputWire(gate.right) and !isLeastSignificantInputPair(gate.left, gate.right) and !hasConsumerOp(gates, gate.output, GateOp.Xor) do
+        if gate.op == GateOp.Xor and isInputWire(gate.left) and isInputWire(gate.right) and not isLeastSignificantInputPair(gate.left, gate.right) and not hasConsumerOp(gates, gate.output, GateOp.Xor) do
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)
     }
 

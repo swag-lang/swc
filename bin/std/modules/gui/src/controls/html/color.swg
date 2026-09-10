@@ -177,7 +177,7 @@ private func htmlColorComponent(text: string, scale: f32)->f32
 {
     let trimmed = Latin1.trim(text)
     let number  = htmlParseNumber(trimmed)
-    if !number.eat do
+    if not number.eat do
         return 0
     if Latin1.trim(trimmed[number.eat to ]) == "%" do
         return number.value * scale / 100
@@ -189,7 +189,7 @@ private func htmlColorAlpha(text: string)->f32
 {
     let trimmed = Latin1.trim(text)
     let number  = htmlParseNumber(trimmed)
-    if !number.eat do
+    if not number.eat do
         return 1
     if Latin1.trim(trimmed[number.eat to ]) == "%" do
         return Math.clamp(number.value / 100, 0, 1)
@@ -213,7 +213,7 @@ private func htmlColorHue(text: string)->f32
 {
     let trimmed = Latin1.trim(text)
     let number  = htmlParseNumber(trimmed)
-    if !number.eat do
+    if not number.eat do
         return 0
 
     switch Latin1.trim(trimmed[number.eat to])
@@ -362,7 +362,7 @@ private func htmlParseHexColor(text: string)->HtmlColorValue
     for index in count
     {
         let digit = htmlHexDigit(text[index])
-        if !digit.matched do
+        if not digit.matched do
             return result
         digits[index] = digit.value
     }
@@ -396,18 +396,18 @@ private func htmlParseHexColor(text: string)->HtmlColorValue
 private func htmlColorFunctionParts(value: string, name, alternate: string)->{ parts: Array'String, matched: bool }
 {
     var call = htmlFunctionArguments(value, name)
-    if !call.matched do
+    if not call.matched do
         call = htmlFunctionArguments(value, alternate)
 
     var result: retval
-    if !call.matched do
+    if not call.matched do
         return result
 
     result.matched = true
     var flat: String
     for &argument in call.arguments
     {
-        if !flat.isEmpty() do
+        if not flat.isEmpty() do
             flat += " "
         for character in argument.toString()
         {
@@ -430,7 +430,7 @@ private func htmlColorMixStop(value: string)->{ color: Color, weight: f32 = -1, 
         return result
 
     let color = htmlParseColor(parts[0].toString())
-    if !color.matched or color.current do
+    if not color.matched or color.current do
         return result
     result.color   = color.color
     result.matched = true
@@ -438,7 +438,7 @@ private func htmlColorMixStop(value: string)->{ color: Color, weight: f32 = -1, 
     if parts.count < 2 do
         return result
     let percent = parts[1].toString()
-    if !Utf8.endsWith(percent, "%") do
+    if not Utf8.endsWith(percent, "%") do
         return result
     let number = htmlParseNumber(percent[0 until percent.count - 1])
     if number.eat do
@@ -453,12 +453,12 @@ private func htmlParseColorMix(value: string)->HtmlColorValue
 {
     var result: retval
     let call = htmlFunctionArguments(value, "color-mix")
-    if !call.matched or call.arguments.count != 3 or Latin1.trim(call.arguments[0].toString()) != "in srgb" do
+    if not call.matched or call.arguments.count != 3 or Latin1.trim(call.arguments[0].toString()) != "in srgb" do
         return result
 
     let first  = htmlColorMixStop(call.arguments[1].toString())
     let second = htmlColorMixStop(call.arguments[2].toString())
-    if !first.matched or !second.matched do
+    if not first.matched or not second.matched do
         return result
 
     var firstWeight  = first.weight
@@ -504,7 +504,7 @@ func htmlParseColor(text: string)->HtmlColorValue
 {
     var result: retval
     let trimmed = Latin1.trim(text)
-    if !trimmed.count do
+    if not trimmed.count do
         return result
 
     if trimmed[0] == '#' do

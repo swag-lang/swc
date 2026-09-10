@@ -127,7 +127,7 @@ impl ViewerPanel
 
         .kind = kind
         let index = cast(u32) kind
-        if !.cached[index].viewer
+        if not .cached[index].viewer
         {
             .cached[index].viewer = createViewer(me, .sourceEditor, kind, cast(Swag.BuildCfgBackendOptimLevel) .optimCombo.selectedIndex)
             .cached[index].viewer!.window().dockStyle = .Center
@@ -140,7 +140,7 @@ impl ViewerPanel
 
         .viewer = .cached[index].viewer
         .viewer!.setOptimization(cast(Swag.BuildCfgBackendOptimLevel) .optimCombo.selectedIndex)
-        .viewer!.window().show(!.optionsButton.isChecked)
+        .viewer!.window().show(not .optionsButton.isChecked)
         .refreshPlayback()
         .kindCombo.setSelectedIndex(cast(u32) kind, notify: false)
         .applyLayout()
@@ -161,7 +161,7 @@ impl ViewerPanel
     {
         .optionsButton.setChecked(visible)
         .options.show(visible)
-        .viewer!.window().show(!visible)
+        .viewer!.window().show(not visible)
         .applyLayout()
     }
 

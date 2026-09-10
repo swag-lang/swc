@@ -162,7 +162,7 @@ func collectKernLookups(table: const [..] u8?, featureListOffset: u64)->Array'u1
         for idx in lookupCount
         {
             let lookupIndex = readU16(table, feature + 4 + cast(u64) idx * 2)
-            if !result.contains(lookupIndex) do
+            if not result.contains(lookupIndex) do
                 result.add(lookupIndex)
         }
     }
@@ -178,7 +178,7 @@ func collectKernLookups(table: const [..] u8?, featureListOffset: u64)->Array'u1
 func parseGpos(faceData: *FaceImpl) fail
 {
     let rec = findTable(faceData, TAG_GPOS)
-    if !rec do
+    if not rec do
         return
 
     let r     = rec!

@@ -59,7 +59,7 @@ struct ByteRegion
     public
     {
         offset: u64     // Byte offset from the start of the sequence.
-        count: u64      // Number of bytes in the region; zero denotes an empty region.
+        count:  u64     // Number of bytes in the region; zero denotes an empty region.
     }
 }
 
@@ -72,8 +72,8 @@ impl ByteRegion
 // Selects how an existing destination is handled.
 enum DestinationPolicy
 {
-    Keep       // Preserve existing contents.
-    Replace    // Replace existing contents with the new value.
+    Keep        // Preserve existing contents.
+    Replace     // Replace existing contents with the new value.
 }
 
 #test

@@ -177,9 +177,9 @@ func cornersOf(nb: Neighbors)->u32
         let a1 = nb.card[k]
         let a2 = nb.card[(k + 1) % 4]
         let dg = nb.diag[k]
-        if !a1 and !a2 do
+        if not a1 and not a2 do
             n += 1
-        if a1 and a2 and !dg do
+        if a1 and a2 and not dg do
             n += 1
     }
     return n
@@ -236,7 +236,7 @@ func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool)->Region
         {
             let nr = cast(s32) r + DR[d]
             let nc = cast(s32) c + DC[d]
-            if !g.inBounds(nr, nc) do
+            if not g.inBounds(nr, nc) do
                 continue
             let ur  = cast(u32) nr
             let uc  = cast(u32) nc
@@ -333,8 +333,8 @@ func solve(text: string)->FenceCost
     Swag.assert(g.at(3, 3) == cast(u8) 'C')
     Swag.assert(g.inBounds(0, 0))
     Swag.assert(g.inBounds(3, 3))
-    Swag.assert(!g.inBounds(-1, 0))
-    Swag.assert(!g.inBounds(0, 4))
+    Swag.assert(not g.inBounds(-1, 0))
+    Swag.assert(not g.inBounds(0, 4))
 }
 
 // Neighbor detection and derived metrics

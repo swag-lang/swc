@@ -9,7 +9,7 @@ impl Visits
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32))
-        where !ptr
+        where not ptr
     {
         for idx in (.values).count
         {

@@ -80,7 +80,7 @@ func(T) allOf(values: const [..] T, predicate: func||(T)->bool)->bool
 {
     for v in values
     {
-        if !predicate(v) do
+        if not predicate(v) do
             return false
     }
 
@@ -139,7 +139,7 @@ func(T) nextPermutation(values: [..] T)->bool
     var pivot = count - 2
     while values[pivot] >= values[pivot + 1]
     {
-        if !pivot do
+        if not pivot do
             return false
         pivot -= 1
     }

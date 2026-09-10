@@ -82,7 +82,7 @@ struct Circular
     // Animation blending for smooth color transitions
     lowerMarkerAnimation: BlendColor     // Color animation for primary marker
     upperMarkerAnimation: BlendColor     // Color animation for secondary marker
-    aniStep:              BlendColor     // Color animation for step indicators
+    aniStep: BlendColor                  // Color animation for step indicators
 }
 
 impl IWnd for Circular
@@ -170,13 +170,13 @@ impl IWnd for Circular
             .invalidate()
 
         case .Move:
-            if !.isMoving
+            if not .isMoving
             {
                 .hitTest(evt.surfacePos)
                 break
             }
 
-            let angle           = .angleAt(pos)
+            let angle = .angleAt(pos)
             let normalizedValue = .angleToValue(angle)
 
             if .isLowerPressed do
@@ -191,7 +191,7 @@ impl IWnd for Circular
                 .isMoving = true
                 .startChange()
 
-                let angle           = .angleAt(pos)
+                let angle = .angleAt(pos)
                 let normalizedValue = .angleToValue(angle)
 
                 if .isLowerHot
@@ -204,7 +204,7 @@ impl IWnd for Circular
                     .isUpperPressed = true
                     .correcMoving   = 0
                 }
-                elif !.flags.has(.Range)
+                elif not .flags.has(.Range)
                 {
                     .correcMoving   = 0
                     .isLowerPressed = true
@@ -615,7 +615,7 @@ impl Circular
         let newUpper = .clamp((upper - .min) / diff)
         Swag.assert(newLower <= newUpper)
 
-        let changed = !.hasLowerValue or !.hasUpperValue or newLower != .lowerRatio or newUpper != .upperRatio
+        let changed = not .hasLowerValue or not .hasUpperValue or newLower != .lowerRatio or newUpper != .upperRatio
         .hasLowerValue, .hasUpperValue = true
         .lowerRatio = newLower
         .upperRatio = newUpper

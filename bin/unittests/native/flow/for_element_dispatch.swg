@@ -24,7 +24,7 @@ impl CountedBag
 #test
 {
     var arr: [3] s32 = [10, 20, 30]
-    var sum          = 0
+    var sum = 0
     for v in arr do
         sum += v
     Swag.assert(sum == 60)
@@ -35,7 +35,7 @@ impl CountedBag
 {
     var arr:   [3] s32        = [10, 20, 30]
     let slice: const [..] s32 = arr
-    var sum                   = 0
+    var sum = 0
     for v in slice do
         sum += v
     Swag.assert(sum == 60)
@@ -55,7 +55,7 @@ impl CountedBag
 #test
 {
     var arr: [3] s32 = [10, 20, 30]
-    var sum          = 0
+    var sum = 0
     for v, i in arr do
         sum += v + cast(s32) i
     Swag.assert(sum == 60 + 3)
@@ -112,7 +112,7 @@ impl CountedBag
 {
     var arr:   [3] s32 = [1, 2, 3]
     var order: [3] s32
-    var slot           = 0
+    var slot = 0
     for v in (arr).reversed()
     {
         order[slot] = v
@@ -125,7 +125,7 @@ impl CountedBag
 #test
 {
     var arr: [4] s32 = [1, 2, 3, 4]
-    var sum          = 0
+    var sum = 0
     for v in arr where v % 2 == 0 do
         sum += v
     Swag.assert(sum == 6)

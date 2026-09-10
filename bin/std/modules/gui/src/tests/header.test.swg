@@ -54,10 +54,10 @@ using Swag, Core
     Swag.assert(header.hotSeparator)
 
     header.updateFlags(remove: .Separators)
-    Swag.assert(!header.flags.has(.Separators))
-    Swag.assert(!header.hotSeparator)
+    Swag.assert(not header.flags.has(.Separators))
+    Swag.assert(not header.hotSeparator)
     header.sendEvent(&evt)
-    Swag.assert(!header.hotSeparator)
+    Swag.assert(not header.hotSeparator)
     discard host.render()
 }
 

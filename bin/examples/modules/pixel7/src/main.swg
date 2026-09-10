@@ -85,7 +85,7 @@ func sourceVariant(source: Image, pixelFormat: PixelFormat, withAlphaBorder = fa
 {
     let converted = source.convertedTo(pixelFormat)
     var result    = Image.create(converted.width, converted.height, converted.pixelFormat, converted.pixels.toSlice())
-    if !withAlphaBorder do
+    if not withAlphaBorder do
         return result
 
     Swag.assert(pixelFormat.hasAlpha())
@@ -327,7 +327,7 @@ func updateShortcuts()
 
 func updateTestMode()
 {
-    if !Env.isSmokeRun() do
+    if not Env.isSmokeRun() do
         return
 
     g_TestFrame += 1

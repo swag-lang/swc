@@ -24,7 +24,7 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     var sound = expect SoundFile.load(audioGetTestDataPath(Format.toString("%.ogg", name).toString()).toString())
     Swag.assert(sound.sampleEncoding() == .Vorbis)
     Swag.assert(sound.sampleRateHz() == sampleRate and sound.numChannels() == channels)
-    Swag.assert(sound.isPacketStream() and !sound.isDataPreloaded())
+    Swag.assert(sound.isPacketStream() and not sound.isDataPreloaded())
 
     let decoded = expect vorbisDecodeAll(&sound)
     let wanted  = expect File.readAllBytes(audioGetTestDataPath(Format.toString("%.pcm", name).toString()).toString())

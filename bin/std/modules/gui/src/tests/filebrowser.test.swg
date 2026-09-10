@@ -15,7 +15,7 @@ using Swag, Core, File
     host.setup(640, 460)
     defer host.shutdown()
     var opt: FileDlgOptions
-    opt.mode              = .SelectFile
+    opt.mode = .SelectFile
     opt.showLocationsPane = false
     opt.filters.add({"Text", ".txt;.md"})
 
@@ -32,8 +32,8 @@ using Swag, Core, File
     Swag.assert((fb.statusLabel != null))
     Swag.assert(fb.comboType.items.count == 1)
     Swag.assert(fb.options.shortcuts.count == 3)
-    Swag.assert(!fb.canGoBack())
-    Swag.assert(!fb.canGoForward())
+    Swag.assert(not fb.canGoBack())
+    Swag.assert(not fb.canGoForward())
 
     // The file list is multi-column with fixed default widths.
     Swag.assert(fb.listCtrl.header.items.count == 3)
@@ -60,8 +60,8 @@ using Swag, Core, File
     let name3     = fb.selectedPath()
     let fileName3 = Path.fileName(name3.toString())!
     Swag.assert(fileName3 == "readme.md")
-    Swag.assert(!fb.setCurrentFolder("this-folder-does-not-exist"))
-    Swag.assert(!fb.createFolder("bad/name"))
+    Swag.assert(not fb.setCurrentFolder("this-folder-does-not-exist"))
+    Swag.assert(not fb.createFolder("bad/name"))
 }
 
 // SelectFolder mode offers a single "Folders" type entry.
@@ -71,7 +71,7 @@ using Swag, Core, File
     host.setup(640, 460)
     defer host.shutdown()
     var opt: FileDlgOptions
-    opt.mode              = .SelectFolder
+    opt.mode = .SelectFolder
     opt.showLocationsPane = false
     opt.shortcuts.add({Env.SpecialDirectory.Desktop, "Workspace"})
 
@@ -95,7 +95,7 @@ using Swag, Core, File
     history.push("C:/two")
     history.push("C:/three")
     Swag.assert(history.canGoBack())
-    Swag.assert(!history.canGoForward())
+    Swag.assert(not history.canGoForward())
     Swag.assert(history.goBack() == "C:/two")
     Swag.assert(history.goBack() == "C:/one")
     Swag.assert(history.canGoForward())
@@ -104,7 +104,7 @@ using Swag, Core, File
     history.push("C:/other")
     Swag.assert(history.entries.count == 3)
     Swag.assert(history.entries[2] == "C:/other")
-    Swag.assert(!history.canGoForward())
+    Swag.assert(not history.canGoForward())
 }
 
 // The reusable dialog state receives the column widths on destruction, and the
@@ -120,9 +120,9 @@ using Swag, Core, File
     host.setup(640, 460)
     defer host.shutdown()
     var opt: FileDlgOptions
-    opt.mode              = .SelectFile
+    opt.mode  = .SelectFile
     opt.showLocationsPane = false
-    opt.state             = &state
+    opt.state = &state
     opt.filters.add({"Text", ".txt"})
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
@@ -142,7 +142,7 @@ using Swag, Core, File
 
     // The name editor targets a folder only when its content names an existing one.
     fb.setFileName(temp.toString())
-    Swag.assert(!fb.typedFolderTarget().isEmpty())
+    Swag.assert(not fb.typedFolderTarget().isEmpty())
     fb.setFileName("no-such-subfolder-anywhere")
     Swag.assert(fb.typedFolderTarget().isEmpty())
 }
@@ -155,7 +155,7 @@ using Swag, Core, File
     host.setup(640, 460)
     defer host.shutdown()
     var opt: FileDlgOptions
-    opt.mode              = .CreateFile
+    opt.mode = .CreateFile
     opt.showLocationsPane = false
     opt.filters.add({"Encrypted container", ".scv"})
 

@@ -104,7 +104,7 @@ private func checkBmp16Masks(masks: Bmp.Masks)
 #test
 {
     Swag.assert(Image.canLoad("test.bmp"))
-    Swag.assert(!Image.canLoad("test.xyz"))
+    Swag.assert(not Image.canLoad("test.xyz"))
 }
 
 // Decode a BMP from pre-loaded bytes using Image.decode (same internal path as Image.load).
@@ -743,7 +743,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     Swag.assert(img.width == 4)
     Swag.assert(img.height == 4)
     Swag.assert(img.pixelFormat == .BGR8)
-    Swag.assert(!img.isValid())
+    Swag.assert(not img.isValid())
 }
 
 // Error: indexed BMP with no palette must fail.
@@ -856,7 +856,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
             }
         }
 
-        let img           = expect Image.decode("memory.bmp", bytes, {})
+        let img = expect Image.decode("memory.bmp", bytes, {})
         let bytesPerPixel = cast(u64) src.bytesPerPixel
         Swag.assert(img.pixelFormat == (bytesPerPixel == 3 ? .BGR8 : .BGRA8))
         for pixel in cast(u64) Width * Height

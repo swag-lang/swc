@@ -36,9 +36,9 @@ func writeSourceFixture(name: string, count: u64)->String
     const Bytes: [8] u8 = [1, 2, 3, 4, 5, 6, 7, 8]
     var source = ByteSource.openMemory(Bytes)
     Swag.assert(source.isOpen())
-    Swag.assert(!(source.path()).count)
+    Swag.assert(not (source.path()).count)
     Swag.assert(source.size() == 8 and source.position() == 0 and source.remaining() == 8)
-    Swag.assert(!source.isAtEnd())
+    Swag.assert(not source.isAtEnd())
 
     Swag.assert(expect source.readByte() == 1)
     expect source.skip(2)
@@ -52,7 +52,7 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.assert(source.position() == 5)
 
     expect source.seek(8)
-    Swag.assert(source.isAtEnd() and !source.remaining())
+    Swag.assert(source.isAtEnd() and not source.remaining())
 
     // At the end there is nothing to peek at, and asking for nothing is not an error.
     discard expect peekBytes(&source, 0)
@@ -71,10 +71,10 @@ func writeSourceFixture(name: string, count: u64)->String
     var tail: [8] u8
     Swag.assert(expect source.read(tail) == 2)
     Swag.assert(tail[0] == 7 and tail[1] == 8)
-    Swag.assert(!(expect source.read(tail)))
+    Swag.assert(not (expect source.read(tail)))
 
     source.close()
-    Swag.assert(!source.isOpen() and !source.size())
+    Swag.assert(not source.isOpen() and not source.size())
     source.close()
 }
 
@@ -163,7 +163,7 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.assert(sourceMatches(small[0 until 10], Count - 10))
 
     source.close()
-    Swag.assert(!source.isOpen())
+    Swag.assert(not source.isOpen())
 }
 
 // A peek on a file source answers at least what was asked for and reads ahead as far as the

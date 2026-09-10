@@ -42,7 +42,7 @@ func day9B()
         for i in cast(s64) combi.count - 1 do
             calc += dist.find(combi[i] << 32 | combi[i + 1]).value
         total = Math.max(total, calc)
-        if !Slice.nextPermutation(combi.toSlice()) do
+        if not Slice.nextPermutation(combi.toSlice()) do
             break
     }
 

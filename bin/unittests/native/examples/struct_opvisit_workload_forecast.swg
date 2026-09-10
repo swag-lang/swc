@@ -23,7 +23,7 @@ impl WorkloadPairs
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(today: s32, nextDay: s32))
-        where !ptr
+        where not ptr
     {
         #inject(stmt, today = .source.monday, nextDay = .source.tuesday)
         #inject(stmt, today = .source.tuesday, nextDay = .source.wednesday)
@@ -66,7 +66,7 @@ impl WorkloadForecast
 
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
-        where !ptr
+        where not ptr
     {
         for idx in 5
         {

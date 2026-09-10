@@ -37,8 +37,8 @@ impl IActionUI for ActionLibView
 
         switch cxt.id
         {
-        case .Ratings:     libWnd.showRatingOverlay = !libWnd.showRatingOverlay
-        case .LinkMarkers: libWnd.showLinkOverlay = !libWnd.showLinkOverlay
+        case .Ratings:     libWnd.showRatingOverlay = not libWnd.showRatingOverlay
+        case .LinkMarkers: libWnd.showLinkOverlay = not libWnd.showLinkOverlay
         }
 
         libWnd.view.invalidate()

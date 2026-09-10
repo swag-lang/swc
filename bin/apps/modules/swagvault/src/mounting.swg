@@ -38,7 +38,7 @@ impl MountedVault
 
     mtd close() fail
     {
-        if !.handle do
+        if not .handle do
             return
 
         let handle = .handle!

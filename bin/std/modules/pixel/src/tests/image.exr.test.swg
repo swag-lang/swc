@@ -79,7 +79,7 @@ using Swag, Core
     var options: DecodeOptions
     options.decodePixels = false
     let header = expect Image.decode("integer.exr", nnBytes(encoded.toSlice()), options)
-    Swag.assert(header.width == 2 and header.height == 1 and header.pixelFormat == .RGBAF16 and !header.isValid())
+    Swag.assert(header.width == 2 and header.height == 1 and header.pixelFormat == .RGBAF16 and not header.isValid())
 }
 
 // ZIP byte prediction and even/odd shuffling are exactly reversible before Deflate is involved.

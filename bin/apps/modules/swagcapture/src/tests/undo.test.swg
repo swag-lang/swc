@@ -383,7 +383,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
     while capture.selection.count < want
     {
         let idx = cast(u64) rng.nextU32(0, total)
-        if !capture.selection.contains(idx) do
+        if not capture.selection.contains(idx) do
             capture.selection.add(idx)
     }
 }
@@ -413,7 +413,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
     discard testAddPolygon(f.capture, points.toSlice())
     discard testAddDraw(f.capture, points.toSlice())
 
-    Swag.assert(!f.capture.canUndo())
+    Swag.assert(not f.capture.canUndo())
     var snapInitial = testUndoFuzzSnapshot(f.capture)
 
     var rng: Random.Generator
@@ -549,12 +549,12 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
 
     while f.capture.canUndo() do
         f.capture.undo()
-    Swag.assert(!f.capture.canUndo())
+    Swag.assert(not f.capture.canUndo())
     testUndoFuzzAssertState(f.capture, &snapInitial)
 
     while f.capture.canRedo() do
         f.capture.redo()
-    Swag.assert(!f.capture.canRedo())
+    Swag.assert(not f.capture.canRedo())
     testUndoFuzzAssertState(f.capture, &snapFinal)
 
     while f.capture.canUndo() do

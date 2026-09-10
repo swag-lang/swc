@@ -43,7 +43,7 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
     }
 
     var scan = GetCommandLineA()
-    if !scan do
+    if not scan do
         return result
 
     var cursor = scan!

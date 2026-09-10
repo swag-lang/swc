@@ -40,7 +40,7 @@ private func htmlFindNamedRef(table: const [..] HtmlNamedRef, name: string)->u64
     {
         let middle = low + (high - low) / 2
         let order  = Latin1.compare(table[middle].name, name)
-        if !order do
+        if not order do
             return middle
         if order < 0 do
             low = middle + 1
@@ -149,7 +149,7 @@ func htmlDecodeEntity(source: string, start: u64, inAttribute = false)->HtmlEnti
             return result
         let hexadecimal = name[1] == 'x' or name[1] == 'X'
         let digits      = hexadecimal ? name[2 to] : name[1 to]
-        if !digits.count do
+        if not digits.count do
             return result
 
         var number: u64
@@ -169,7 +169,7 @@ func htmlDecodeEntity(source: string, start: u64, inAttribute = false)->HtmlEnti
         }
 
         let character = htmlNumericReplacement(number)
-        if !Utf8.isValidRune(character) or !number do
+        if not Utf8.isValidRune(character) or not number do
             return result
         result.first = character
         result.eat   = close - start + 1
@@ -177,7 +177,7 @@ func htmlDecodeEntity(source: string, start: u64, inAttribute = false)->HtmlEnti
     }
 
     result = htmlNamedEntity(name)
-    if !result.first do
+    if not result.first do
         return htmlDecodeLegacyEntity(source, start, inAttribute)
 
     result.eat = close - start + 1
@@ -190,7 +190,7 @@ private func htmlDecodeLegacyEntity(source: string, start: u64, inAttribute: boo
     var result: retval
     let tail   = source[start + 1 until Math.min(start + 1 + HtmlMaxRefName, source.count)]
     let legacy = htmlLegacyEntity(tail, inAttribute)
-    if !legacy.eat do
+    if not legacy.eat do
         return result
 
     result     = legacy
@@ -221,7 +221,7 @@ func htmlDecodeInto(output: *String, source: string, inAttribute = false)
             break
 
         let entity = htmlDecodeEntity(source, next, inAttribute)
-        if !entity.eat
+        if not entity.eat
         {
             index = next + 1
             continue

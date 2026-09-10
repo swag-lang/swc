@@ -147,7 +147,7 @@ impl Vp8Partition
 
     mtd readOptionalInt(probability, count: u8)->s32
     {
-        if !.readBit(probability) do
+        if not .readBit(probability) do
             return 0
         return .readInt(probability, count)
     }
@@ -290,7 +290,7 @@ func vp8ParseSegmentHeader(decoder: *Vp8Decoder)
 {
     let part = &decoder.firstPart
     decoder.segmentHeader.useSegment = part.readBit(VP8_UNIFORM_PROB)
-    if !decoder.segmentHeader.useSegment
+    if not decoder.segmentHeader.useSegment
     {
         decoder.segmentHeader.updateMap = false
         return
@@ -299,14 +299,14 @@ func vp8ParseSegmentHeader(decoder: *Vp8Decoder)
     decoder.segmentHeader.updateMap = part.readBit(VP8_UNIFORM_PROB)
     if part.readBit(VP8_UNIFORM_PROB)
     {
-        decoder.segmentHeader.relativeDelta = !part.readBit(VP8_UNIFORM_PROB)
+        decoder.segmentHeader.relativeDelta = not part.readBit(VP8_UNIFORM_PROB)
         for i in VP8_SEGMENTS do
             decoder.segmentHeader.quantizer[i] = cast(s8) part.readOptionalInt(VP8_UNIFORM_PROB, 7)
         for i in VP8_SEGMENTS do
             decoder.segmentHeader.filterStrength[i] = cast(s8) part.readOptionalInt(VP8_UNIFORM_PROB, 6)
     }
 
-    if !decoder.segmentHeader.updateMap do
+    if not decoder.segmentHeader.updateMap do
         return
     for i in 3
     {

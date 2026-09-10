@@ -70,7 +70,7 @@ func expectSafetyEnabled()->bool
     func expectNullableFailurePanic()->bool
     {
         let value: *s32? = null
-        let ptr          = value!     // swc-expected-error {{safety_err_runtime}}
+        let ptr = value!     // swc-expected-error {{safety_err_runtime}}
         return ptr != null
     }
 

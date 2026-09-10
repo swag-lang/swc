@@ -185,7 +185,7 @@ func solve(text: string)->u64
         if nr >= 0 and nc >= 0 and cast(u32) nr < m.h and cast(u32) nc < m.w
         {
             // Nested inline: isWall uses cellAt, both inline, with char comparison
-            if !isWall(&m, cast(u32) nr, cast(u32) nc)
+            if not isWall(&m, cast(u32) nr, cast(u32) nc)
             {
                 let newCost = cur.cost + MoveCost
                 let si      = stateIdx(cast(u32) nr, cast(u32) nc, cur.dir)
@@ -244,7 +244,7 @@ func solve(text: string)->u64
 
     Swag.assert(cellAt(&m, 0, 0) == Wall)
     Swag.assert(isWall(&m, 0, 0))
-    Swag.assert(!isWall(&m, 1, 1))
+    Swag.assert(not isWall(&m, 1, 1))
     Swag.assert(isEnd(&m, 1, 3))
 }
 
@@ -256,7 +256,7 @@ func solve(text: string)->u64
 
     // Row 2 has a wall at col 2
     Swag.assert(isWall(&m, 2, 2))
-    Swag.assert(!isWall(&m, 2, 1))
+    Swag.assert(not isWall(&m, 2, 1))
 }
 
 // Parse tiny maze

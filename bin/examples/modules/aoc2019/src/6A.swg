@@ -68,7 +68,7 @@ func day6A()
     func count(m: *#decltype(map), name: string)->u32
     {
         let it = m.tryFind(name)
-        if !it do
+        if not it do
             return 0
         return 1 + count(m, it.value)
     }

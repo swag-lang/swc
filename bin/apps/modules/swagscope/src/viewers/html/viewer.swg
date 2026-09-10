@@ -32,7 +32,7 @@ internal struct HtmlViewer
 {
     using wnd: Wnd
 
-        late
+    late
     {
         view:      *HtmlView
         zoomLabel: *IconButton
@@ -87,9 +87,9 @@ func createHtmlViewer(host: Viewer.Host)
 {
     let result = Wnd.create'HtmlViewer(host.contentParent(), "scope.html")
     result.backgroundStyle = .View
-    result.view            = HtmlView.createFile(result, host.fileName())
+    result.view = HtmlView.createFile(result, host.fileName())
     result.view.dockStyle  = .Center
-    if !result.view.failureReason.isEmpty()
+    if not result.view.failureReason.isEmpty()
     {
         host.reject(result.view.failureReason.toString())
         result.destroy()

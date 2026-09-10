@@ -14,7 +14,7 @@ func createStateMenuModel(parent: *Wnd)
 func showStateMenuFrom(btn: *Button)
 {
     let stateMenu = g_StateMenu
-    if !stateMenu do
+    if not stateMenu do
         return
 
     let pos = btn.surfaceRect()

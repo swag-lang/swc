@@ -23,7 +23,7 @@ using Swag, Core
     reader.close()
 
     expect File.writeAllBytes(path, legacy.toSlice())
-    Swag.assert(!(expect Scc.hasSignature(path)))
+    Swag.assert(not (expect Scc.hasSignature(path)))
     expect app.loadState()
     expect app.saveState()
     Swag.assert(expect Scc.hasSignature(path))

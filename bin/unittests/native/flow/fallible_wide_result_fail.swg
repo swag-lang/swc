@@ -22,7 +22,7 @@ struct Big
 
 func makeSmall(ok: bool)->Small fail
 {
-    if !ok do
+    if not ok do
         fail WideError{base: Swag.BaseError{"nope"}}
     var result: retval
     result.a = 1
@@ -31,7 +31,7 @@ func makeSmall(ok: bool)->Small fail
 
 func makeBig(ok: bool)->Big fail
 {
-    if !ok do
+    if not ok do
         fail WideError{base: Swag.BaseError{"nope"}}
     var result: retval
     result.data[0]  = 1

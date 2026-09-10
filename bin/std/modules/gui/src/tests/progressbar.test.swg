@@ -28,5 +28,5 @@ using Swag, Core
     Swag.assert(bar.value == 0.25 and bar.animationPhase == 0)
 
     bar.updateFlags(remove: .Indeterminate)
-    Swag.assert(!bar.flags.has(.Indeterminate) and bar.value == 0.25)
+    Swag.assert(not bar.flags.has(.Indeterminate) and bar.value == 0.25)
 }

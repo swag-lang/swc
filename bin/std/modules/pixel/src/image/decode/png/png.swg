@@ -265,10 +265,10 @@ impl Decoder
         var frameHasData        = false
         var currentFrame:   s32 = -1
 
-        while !seenIEND
+        while not seenIEND
         {
             // Peek a chunk header only if it's not already done
-            if !chIsHere
+            if not chIsHere
             {
                 .stream.peek32Be(cast([*] u8) &ch.length)
                 .stream.peek32(cast([*] u8) &ch.type)
@@ -283,7 +283,7 @@ impl Decoder
             switch ch.type
             {
             case .IHDR:
-                if !firstChunk do
+                if not firstChunk do
                     fail InvalidFormatError{"PNG data contains more than one IHDR chunk"}
                 .readHeader(ch)
                 .animation.canvasWidth  = cast(s32) .header.width
@@ -295,13 +295,13 @@ impl Decoder
                 let chunk = .readChunk(ch)
                 let data  = Decoder.safeDatas(chunk).buffer
                 declaredFrames = Math.bigEndianToNative(data[as u32])
-                if !declaredFrames do
+                if not declaredFrames do
                     fail InvalidFormatError{"PNG animation declares no frames"}
                 .decOptions.checkFrameCount(declaredFrames)
                 .animation.loopCount = Math.bigEndianToNative((data + 4)[as u32])
 
             case .FCTL:
-                if !declaredFrames or ch.length != 26 or (currentFrame >= 0 and !frameHasData) do
+                if not declaredFrames or ch.length != 26 or (currentFrame >= 0 and not frameHasData) do
                     fail InvalidFormatError{"PNG animation frame control is invalid or misplaced"}
                 let chunk = .readChunk(ch)
                 let data  = Decoder.safeDatas(chunk).buffer
@@ -318,15 +318,15 @@ impl Decoder
                 let y           = Math.bigEndianToNative((data + 16)[as u32])
                 let numerator   = Math.bigEndianToNative((data + 20)[as u16])
                 let denominator = Math.bigEndianToNative((data + 22)[as u16])
-                if !width or !height or width > .header.width or height > .header.height or x > .header.width - width or y > .header.height - height or data[24] > 2 or data[25] > 1 do
+                if not width or not height or width > .header.width or height > .header.height or x > .header.width - width or y > .header.height - height or data[24] > 2 or data[25] > 1 do
                     fail InvalidFormatError{"PNG animation frame rectangle or operation is invalid"}
-                if !seenIDAT and (x or y or width != .header.width or height != .header.height) do
+                if not seenIDAT and (x or y or width != .header.width or height != .header.height) do
                     fail InvalidFormatError{"PNG default animation frame does not fill the canvas"}
                 let frame: ImageFrameInfo = {kind: .Animation, width: cast(s32) width, height: cast(s32) height, x: cast(s32) x, y: cast(s32) y, durationSeconds: cast(f64) numerator / (denominator ? denominator : 100), disposal: data[24] == 2 ? (currentFrame == 0 ? .Background : .Previous) : (data[24] == 1 ? .Background : .Keep), blend: data[25] ? .Over : .Replace}
                 .animation.frames.add(frame)
 
             case .FDAT:
-                if !seenIDAT or currentFrame < 0 or ch.length < 4 do
+                if not seenIDAT or currentFrame < 0 or ch.length < 4 do
                     fail InvalidFormatError{"PNG animation frame data is invalid or misplaced"}
                 let chunk = .readChunk(ch)
                 let data  = Decoder.safeDatas(chunk)
@@ -342,7 +342,7 @@ impl Decoder
                     fail InvalidFormatError{"PNG data contains more than one tRNS chunk"}
                 if seenIDAT do
                     fail InvalidFormatError{"PNG tRNS chunk appears after image data"}
-                if .header.colorType & .Paletted and !.seenPLTE do
+                if .header.colorType & .Paletted and not .seenPLTE do
                     fail InvalidFormatError{"PNG indexed-color tRNS chunk appears before PLTE"}
                 if .header.colorType & .Alpha do
                     fail InvalidFormatError{"PNG image with alpha contains a tRNS chunk"}
@@ -451,11 +451,11 @@ impl Decoder
             firstChunk = false
         }
 
-        if !seenIDAT do
+        if not seenIDAT do
             fail InvalidFormatError{"missing IDAT chunk"}
-        if .header.colorType & .Paletted and !.seenPLTE do
+        if .header.colorType & .Paletted and not .seenPLTE do
             fail InvalidFormatError{"missing PLTE chunk"}
-        if declaredFrames and (.animation.frames.count != declaredFrames or !frameHasData) do
+        if declaredFrames and (.animation.frames.count != declaredFrames or not frameHasData) do
             fail InvalidFormatError{"PNG animation frame count or data is incomplete"}
         if selected >= 0
         {
@@ -487,7 +487,7 @@ impl Decoder
             frame.pixelFormat = outputFormat
 
         // We are done if user does not want pixels
-        if !.decOptions.decodePixels do
+        if not .decOptions.decodePixels do
             return result
 
         // Allocate destination: defilter directly into result pixels when channels match
@@ -545,11 +545,11 @@ impl IImageSetDecoder for Decoder
 {
     mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
     {
-        .input                   = buffer
-        .decOptions              = options
+        .input      = buffer
+        .decOptions = options
         .decOptions.decodePixels = false
         let probe = .doIt(buffer)
-        if !.animation.frames.count do
+        if not .animation.frames.count do
             .animation.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
         return .animation
     }

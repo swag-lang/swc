@@ -129,7 +129,7 @@ var gUafOwned: *s32?
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    gUafOwned = cast(*s32) myAlloc(4)
+    gUafOwned    = cast(*s32) myAlloc(4)
     gUafOwned![] = 9
     Swag.assert(gUafOwned![] == 9)
     myFree(gUafOwned!, 4)
@@ -195,9 +195,9 @@ func opaqueStep(value: s32)->s32
 {
     let first = cast(*s32) myAlloc(4)
     let p     = cast(*s32) myAlloc(4)
-    myFree(p, 4)                   // swc-expected-note {{sanity_note_pointer_released_here}}
+    myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     discard opaqueStep(1)
-    let x = p[]                    // swc-expected-error {{sanity_err_use_after_free}}
+    let x = p[]     // swc-expected-error {{sanity_err_use_after_free}}
     discard x
     myFree(first, 4)
 }
@@ -280,8 +280,8 @@ impl UafNode
     mtd reset()
     {
         myFree(.data!, 4)
-        .data     = cast(*s32) myAlloc(4)
-        .data![]  = 1
+        .data    = cast(*s32) myAlloc(4)
+        .data![] = 1
     }
 }
 
@@ -327,7 +327,7 @@ func refillNode(n: *UafNode)
     myFree(node.data!, 4)
     Swag.assert(node.count == 4)
 
-    node.data = cast(*s32) myAlloc(4)
+    node.data    = cast(*s32) myAlloc(4)
     node.data![] = 7
     Swag.assert(node.data![] == 7)
 
@@ -464,8 +464,8 @@ func releaseOneOfTwoParameters(first: *s32, second: *s32)->s32
 #test
 {
     var table: [2] (*s32?)
-    table[0] = cast(*s32) myAlloc(4)
-    table[1] = cast(*s32) myAlloc(4)
+    table[0]    = cast(*s32) myAlloc(4)
+    table[1]    = cast(*s32) myAlloc(4)
     table[1]![] = 4
     myFree(table[0]!, 4)
     Swag.assert(table[1]![] == 4)
@@ -517,7 +517,7 @@ func useAfterConditionalFree(cond: bool)->s32
     if cond do
         myFree(p, 4)
     let x = p[]
-    if !cond do
+    if not cond do
         myFree(p, 4)
     return x
 }

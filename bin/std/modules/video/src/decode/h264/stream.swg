@@ -9,7 +9,7 @@ using Core, Core.Errors, Pixel
 
 // FFmpeg uses the same automatic ceiling for frame-threaded video decoders.
 private const AvcMaxFrameThreads = 16'u32
-private const AvcNoLane          = Swag.U32.Max
+private const AvcNoLane = Swag.U32.Max
 
 // What one picture in flight costs, and how much the stream may spend on them together.
 //
@@ -118,14 +118,14 @@ impl AvcStream
     // Configures every decoder context and builds the display-order tables.
     mtd open(config: const [..] u8, frames: Array'SampleEntry) fail
     {
-        if !config.count do
+        if not config.count do
             fail InvalidFormatError{"H.264 track has no decoder configuration"}
         for &decoder in .decoders do
             decoder.configure(config)
 
         .laneCount = Math.max(1'u32, Math.min(Swag.workerCount(), AvcMaxFrameThreads))
         let sps = .decoders[0].firstSps()
-        if !sps do
+        if not sps do
             fail InvalidFormatError{"H.264 decoder configuration has no sequence parameter set"}
         .width    = sps.width()
         .height   = sps.height()
@@ -198,14 +198,14 @@ impl AvcStream
         for index in count where .frames[index].isSync
         {
             .syncFlags[index] = 1
-            marked            = true
+            marked = true
         }
 
         // A container that marks nothing says nothing, and the first sample is then the only place
         // a decode can start. One that marks something is believed about the rest: a stream clipped
         // in the middle of a group has no clean start before its first marked sample, and assuming
         // one there decodes slices whose references were cut away with the file they came from.
-        .assumedSync = count != 0 and !marked
+        .assumedSync = count != 0 and not marked
         if .assumedSync do
             .syncFlags[0] = 1
     }
@@ -218,7 +218,7 @@ impl AvcStream
     // handed to it; only an overlap with in-flight work requires a restart from the preceding sync.
     mtd appendFrames(frames: const [..] SampleEntry) fail
     {
-        if !frames.count do
+        if not frames.count do
             return
         if frames.count > Swag.U32.Max - .frames.count do
             fail OverflowError{"H.264 video sample table is too large"}
@@ -309,7 +309,7 @@ impl AvcStream
             .rankOfSample[cast(u64) .sampleAtRank[rank]] = cast(u32) rank
 
         .reachedEnd = false
-        if !restart do
+        if not restart do
             return
 
         let nextSample = cast(u64) .sampleAtRank[.nextRank]
@@ -386,7 +386,7 @@ impl AvcStream
             break
         }
 
-        if wanted < .nextRank or (!alreadyPending and sync > .nextDecode)
+        if wanted < .nextRank or (not alreadyPending and sync > .nextDecode)
         {
             .releasePending()
             .clearFrameThreads()
@@ -492,7 +492,7 @@ impl AvcStream
             frameThread.frame = null
             .decoders[lane].discardAccessUnit()
             .laneStates[lane] = .Free
-            index             = (index + 1) % AvcMaxFrameThreads
+            index = (index + 1) % AvcMaxFrameThreads
         }
 
         .threadedHead  = 0
@@ -539,7 +539,7 @@ impl AvcStream
             .nextDecode += 1
             if rank < .skipBefore and decoder.canSkipWhileSeeking(payload.toSlice()) do
                 continue
-            if !try decoder.prepareAccessUnit(payload.toSlice()) do
+            if not try decoder.prepareAccessUnit(payload.toSlice()) do
                 fail InvalidFormatError{"H.264 access unit carries no picture"}
 
             let frameThread = &.frameThreads[lane]
@@ -549,8 +549,8 @@ impl AvcStream
             frameThread.done.reset()
 
             .threaded[.threadedTail] = {lane, rank}
-            .threadedTail            = (.threadedTail + 1) % AvcMaxFrameThreads
-            .threadedCount           += 1
+            .threadedTail  = (.threadedTail + 1) % AvcMaxFrameThreads
+            .threadedCount += 1
             if .threadedCount > .threadedHighWater do
                 .threadedHighWater = .threadedCount
             .lastSetupLane = lane
@@ -571,9 +571,9 @@ impl AvcStream
     private mtd fillFrameThreads(source: *ByteSource) fail
     {
         .ensureFrameThreads()
-        while .threadedCount < .laneCount and !.reachedEnd
+        while .threadedCount < .laneCount and not .reachedEnd
         {
-            if !try .startFrame(source) do
+            if not try .startFrame(source) do
                 break
         }
     }
@@ -593,11 +593,11 @@ impl AvcStream
         frameThread.done.wait()
         if frameThread.errorText.length do
             fail InvalidFormatError{Errors.mkString(frameThread.errorText.toString())}
-        if !frameThread.frame do
+        if not frameThread.frame do
             fail InvalidFormatError{"H.264 access unit carries no picture"}
 
         let frame = frameThread.frame!
-        frameThread.frame          = null
+        frameThread.frame = null
         .laneStates[threaded.lane] = .Free
         .fillFrameThreads(source)
         return {frame, threaded.rank}
@@ -665,7 +665,7 @@ impl AvcStream
 private func runAvcFrameThread(thread: Threading.Thread)
 {
     let frameThread = cast(*AvcFrameThread) thread.userParam!
-    while !thread.requestEnd
+    while not thread.requestEnd
     {
         frameThread.wake.wait()
         if thread.requestEnd do

@@ -292,7 +292,7 @@ impl MainWindow
         {
             Atomic.exchange(&.formatCancelled, 1)
             .formatTask.wait()
-            if .formatTimer and !.isPendingDestroy do
+            if .formatTimer and not .isPendingDestroy do
                 .removeTimer(.formatTimer!)
             .formatTimer  = null
             .formatStatus = .None
@@ -355,7 +355,7 @@ impl MainWindow
 
     mtd cancelEditTimer()
     {
-        if .editTimer and !.isPendingDestroy do
+        if .editTimer and not .isPendingDestroy do
             .removeTimer(.editTimer!)
         .editTimer = null
     }

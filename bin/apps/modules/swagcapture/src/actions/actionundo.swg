@@ -22,13 +22,13 @@ impl IActionUI for ActionUndo
         case .DoUndo:
             evt.updatedFields |= .Disabled | .Name | .Icon
             evt.name          = appStrings().act_Undo
-            evt.disabled      = !capture or !capture.canUndo()
+            evt.disabled      = not capture or not capture.canUndo()
             evt.icon          = main.theme().icon(.Undo)
 
         case .DoRedo:
             evt.updatedFields |= .Disabled | .Name | .Icon
             evt.name          = appStrings().act_Redo
-            evt.disabled      = !capture or !capture.canRedo()
+            evt.disabled      = not capture or not capture.canRedo()
             evt.icon          = main.theme().icon(.Redo)
         }
 

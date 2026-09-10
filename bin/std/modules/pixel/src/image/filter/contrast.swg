@@ -5,7 +5,7 @@ public impl Image
     // Change the contrast. 'factor' is [-1, 1]
     mtd contrast(factor: f32 = 0.5)
     {
-        if !.pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked() do
             return
 
         let level = Math.clamp(factor, -1.0, 1.0) + 1.0

@@ -84,8 +84,8 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
 
     Swag.assert(Utf8.isValidRune(0))
     Swag.assert(Utf8.isValidRune(Utf8.MaxRunes))
-    Swag.assert(!Utf8.isValidRune(0xD800'rune))
-    Swag.assert(!Utf8.isValidRune(0x110000'rune))
+    Swag.assert(not Utf8.isValidRune(0xD800'rune))
+    Swag.assert(not Utf8.isValidRune(0x110000'rune))
 }
 
 #test
@@ -351,10 +351,10 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     let overlong:     [2] u8 = [0xC0, 0xAF]
     let surrogate:    [3] u8 = [0xED, 0xA0, 0x80]
 
-    Swag.assert(!Utf8.isValid(invalidStart))
-    Swag.assert(!Utf8.isValid(truncated))
-    Swag.assert(!Utf8.isValid(overlong))
-    Swag.assert(!Utf8.isValid(surrogate))
+    Swag.assert(not Utf8.isValid(invalidStart))
+    Swag.assert(not Utf8.isValid(truncated))
+    Swag.assert(not Utf8.isValid(overlong))
+    Swag.assert(not Utf8.isValid(surrogate))
 
     var {c, eat} = Utf8.decodeRune(invalidStart)
     Swag.assert(c == Utf8.RuneError)
@@ -401,7 +401,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     Swag.assert(idx.index == 6)
 
     idx = Utf8.byteIndex(text, 4)
-    Swag.assert(!idx.success)
+    Swag.assert(not idx.success)
     Swag.assert(idx.index == text.count)
 }
 
@@ -438,7 +438,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     Swag.assert(Utf8.contains(text, cast(string) "fish"))
     Swag.assert(Utf8.contains(text, 'f'u8))
     Swag.assert(Utf8.contains(text, 'o'rune))
-    Swag.assert(!Utf8.contains(text, cast(string) "bird"))
+    Swag.assert(not Utf8.contains(text, cast(string) "bird"))
 
     Swag.assert(Utf8.lastIndexOf(text, "fish") == 13)
     Swag.assert(Utf8.lastIndexOf(text, "FISH", Utf8.ComparisonType.Latin1NoCase) == 13)
@@ -458,10 +458,10 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
 
     Swag.assert(Utf8.startsWith(text, "one"))
     Swag.assert(Utf8.startsWith(text, "ONE", Utf8.ComparisonType.Latin1NoCase))
-    Swag.assert(!Utf8.startsWith(text, "fish"))
+    Swag.assert(not Utf8.startsWith(text, "fish"))
     Swag.assert(Utf8.endsWith(text, "fish"))
     Swag.assert(Utf8.endsWith(text, "FISH", Utf8.ComparisonType.Latin1NoCase))
-    Swag.assert(!Utf8.endsWith(text, "one"))
+    Swag.assert(not Utf8.endsWith(text, "one"))
 }
 
 #test
@@ -584,5 +584,5 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     let mixed = "aaaaaaaaaaaaaaa\u00E9"
     Swag.assert(Utf8.byteIndex(mixed, 15).index == 15)
     let end = Utf8.byteIndex(mixed, 16)
-    Swag.assert(end.index == mixed.count and !end.success)
+    Swag.assert(end.index == mixed.count and not end.success)
 }

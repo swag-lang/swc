@@ -76,7 +76,7 @@ impl Layer
     // The painter and its selected renderer are borrowed until release. Dimensions must be positive.
     mtd begin(painter: *Painter, info: LayerBeginInfo)
     {
-        Swag.assert(!.active)
+        Swag.assert(not .active)
         Swag.assert(info.width > 0 and info.height > 0)
 
         .release()
@@ -134,7 +134,7 @@ impl Layer
     // Calling this more than once is harmless.
     mtd resolve()
     {
-        Swag.assert(!.active)
+        Swag.assert(not .active)
         if .resolved do
             return
 
@@ -172,7 +172,7 @@ impl Layer
     // Repeated calls compose, which lets importers preserve the declared order of blur nodes.
     internal mtd applyBlur(radius: f32)
     {
-        Swag.assert(!.active)
+        Swag.assert(not .active)
         if radius <= 0 do
             return
 
@@ -221,8 +221,8 @@ impl Layer
     // Recording must have ended. A disabled shadow leaves the layer unchanged.
     mtd buildShadow(info: LayerShadowInfo)
     {
-        Swag.assert(!.active)
-        if !info.enabled do
+        Swag.assert(not .active)
+        if not info.enabled do
             return
 
         .resolve()
@@ -295,7 +295,7 @@ impl Layer
     // The layer is released afterward when `info.releaseAfterDraw` is true.
     mtd draw(info: LayerDrawInfo)
     {
-        Swag.assert(!.active)
+        Swag.assert(not .active)
 
         // The destination is logical; the source addresses device texels.
         var dstRect = info.dstRect

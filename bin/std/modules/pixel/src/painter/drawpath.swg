@@ -147,13 +147,13 @@ impl Painter
             expandConvexRing(points, outline)
 
         let antialiased = .curState.paintParams & .Antialiased
-        let v0          = points[0]
+        let v0 = points[0]
         for i in 1 until count - 1
         {
             let v1    = points[i]
             let v2    = points[i + 1]
             let prim1 = .pushTriangle(v0, v1, v2, pen.brush.color)
-            if !antialiased do
+            if not antialiased do
                 continue
 
             // Only the edges of the outline itself carry a fringe; the fan's own spokes are
@@ -316,8 +316,8 @@ impl Painter
     private func outlineOpensRun(cxt: *Context)->bool
     {
         if cxt.pen.dashStyle == .None do
-            return !cxt.path.isClosed and cxt.pen.begCapStyle == .None
-        if cxt.firstLine and !cxt.path.isClosed do
+            return not cxt.path.isClosed and cxt.pen.begCapStyle == .None
+        if cxt.firstLine and not cxt.path.isClosed do
             return cxt.pen.begCapStyle == .None
         return cxt.pen.dashBegCapStyle == .None
     }
@@ -547,7 +547,7 @@ impl Painter
 
         // If previous and next point are too close, we will take
         // the last normal
-        if !n.isZeroEpsilon()
+        if not n.isZeroEpsilon()
         {
             n.normalize()
             cxt.dir    = n
@@ -561,8 +561,8 @@ impl Painter
             return
 
         // First line cap
-        var flatBegin = !cxt.path.isClosed or cxt.pen.dashStyle != .None
-        if cxt.pen.dashStyle != .None and (!cxt.firstLine or cxt.path.isClosed) and cxt.beginLine and cxt.pen.dashBegCapStyle != .None
+        var flatBegin = not cxt.path.isClosed or cxt.pen.dashStyle != .None
+        if cxt.pen.dashStyle != .None and (not cxt.firstLine or cxt.path.isClosed) and cxt.beginLine and cxt.pen.dashBegCapStyle != .None
         {
             flatBegin = false
             .drawDashCap(cxt, cxt.pen.dashBegCapStyle, cxt.prev, cxt.capNormal(), 1.0)
@@ -573,7 +573,7 @@ impl Painter
             .drawOutlineButt(cxt, cxt.prev, -n)
 
         // Joints
-        if !cxt.beginLine do
+        if not cxt.beginLine do
             .drawJoin(cxt, cxt.prev, cxt.normalPrev, cxt.normal)
 
         // Draw quad
@@ -624,15 +624,15 @@ impl Painter
         // If we are starting a line, and the line does not have a cap before, then
         // we must AA the corresponding edge. The measured quad carries no distance along the
         // segment, so its butt end needs the band just as the banded one does.
-        if antialiased and flatBegin and cxt.beginLine and (!cxt.firstLine or cxt.pen.begCapStyle == .None or cxt.path.isClosed) do
+        if antialiased and flatBegin and cxt.beginLine and (not cxt.firstLine or cxt.pen.begCapStyle == .None or cxt.path.isClosed) do
             .addEdgeAA(cxt.prim1, v0, v3)
 
         // To draw end joint
         if cxt.firstLine do
             cxt.normalFirst = cxt.normal
 
-        cxt.normalPrev               = cxt.normal
-        cxt.prev                     = newPos
+        cxt.normalPrev = cxt.normal
+        cxt.prev       = newPos
         cxt.beginLine, cxt.firstLine = false
     }
 
@@ -686,7 +686,7 @@ impl Painter
         cxt.patternIndex        = 0
         cxt.remainingPatternLen = Math.max(cxt.pattern[cxt.patternIndex], 0.01)
         cxt.remainingPatternLen *= cxt.pen.size
-        if !cxt.path.isClosed and cxt.pen.dashStyle != .Pattern do
+        if not cxt.path.isClosed and cxt.pen.dashStyle != .Pattern do
             cxt.remainingPatternLen *= 0.5
 
         if cxt.pen.dashOffset
@@ -701,7 +701,7 @@ impl Painter
 
             while phase >= cxt.remainingPatternLen
             {
-                phase                   -= cxt.remainingPatternLen
+                phase -= cxt.remainingPatternLen
                 cxt.patternIndex        = (cxt.patternIndex + 1) % cxt.patternCount
                 cxt.remainingPatternLen = Math.max(cxt.pattern[cxt.patternIndex], 0.01) * cxt.pen.size
             }
@@ -719,7 +719,7 @@ impl Painter
             return
         }
 
-        var v               = pos - cxt.prev
+        var v = pos - cxt.prev
         var remainingSegLen = v.length()
         v.normalizeOrZero()
 
@@ -860,7 +860,7 @@ impl Painter
                     }
 
                     accumulatedDistance += segmentLen
-                    lastPoint           = currentPoint
+                    lastPoint = currentPoint
                 }
             }
         }
@@ -889,7 +889,7 @@ impl Painter
                     }
 
                     accumulatedDistance += segmentLen
-                    lastPoint           = currentPoint
+                    lastPoint = currentPoint
                 }
             }
         }
@@ -920,13 +920,13 @@ impl Painter
         var endPointIndex    = cxt.path.polygon.points.count - 1
 
         // Apply adjustments if needed
-        if !cxt.path.isClosed and beginSkipInfo.hasAdjustment
+        if not cxt.path.isClosed and beginSkipInfo.hasAdjustment
         {
             actualStartPoint = beginSkipInfo.adjustedPoint
             startPointIndex  = beginSkipInfo.pointIndex
         }
 
-        if !cxt.path.isClosed and endSkipInfo.hasAdjustment
+        if not cxt.path.isClosed and endSkipInfo.hasAdjustment
         {
             actualEndPoint = endSkipInfo.adjustedPoint
             endPointIndex  = endSkipInfo.pointIndex
@@ -936,7 +936,7 @@ impl Painter
         cxt.prev = actualStartPoint
 
         // Draw line caps first (if not closed)
-        if !cxt.path.isClosed
+        if not cxt.path.isClosed
         {
             // Draw begin cap
             if cxt.pen.begCapStyle != .None
@@ -1010,8 +1010,8 @@ impl Painter
 
         // The path stops flat there, so a border pass closes itself across that end. A walk that
         // finished on a blank already closed its last dash and has nothing left to end.
-        let openEnd = !cxt.lastLineInvalid and !cxt.path.isClosed and cxt.pen.endCapStyle == .None
-        if openEnd and cxt.outline > 0 and !cxt.beginLine
+        let openEnd = not cxt.lastLineInvalid and not cxt.path.isClosed and cxt.pen.endCapStyle == .None
+        if openEnd and cxt.outline > 0 and not cxt.beginLine
         {
             .drawOutlineButt(cxt, cxt.prev, cxt.dir)
         }
@@ -1026,7 +1026,7 @@ impl Painter
             let q      = (prim2p + 2).pos
             .addEdgeAA(cxt.prim1, p, q)
         }
-        elif cxt.path.isClosed and !cxt.firstLine and !cxt.beginLine
+        elif cxt.path.isClosed and not cxt.firstLine and not cxt.beginLine
         {
             .drawJoin(cxt, cxt.prev, cxt.normal, cxt.normalFirst)
         }
@@ -1196,7 +1196,7 @@ public impl Painter
     // Draw a list of paths.
     mtd drawPath(pathList: *LinePathList, pen: Pen, mode: DrawPathListMode = .Separate)
     {
-        if !pathList.paths.count do
+        if not pathList.paths.count do
             return
         if mode == .Separate
         {
@@ -1271,7 +1271,7 @@ public impl Painter
 
     mtd drawPath(pathList: *LinePathList, color: Color, penSize: f32, mode: DrawPathListMode = .Separate)
     {
-        if !pathList.paths.count do
+        if not pathList.paths.count do
             return
 
         let pen = Pen.createSolid(color, penSize)

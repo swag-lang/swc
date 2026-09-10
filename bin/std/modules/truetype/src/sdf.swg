@@ -104,7 +104,7 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
         return
 
     var safeSpread = spread
-    if !safeSpread do
+    if not safeSpread do
         safeSpread = 1
     safeSpread = Math.min(safeSpread, 64)
 
@@ -116,11 +116,11 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
     let top     = Math.ceilS32(bounds.maxY / 64.0) + padding
     let width   = Math.max(0, right - left)
     let rows    = Math.max(0, top - bottom)
-    if !width or !rows do
+    if not width or not rows do
         return
 
     let edges = buildEdges(&safeSlot.outline)
-    if !edges.count do
+    if not edges.count do
         return
 
     faceData.bitmapPixels.resize(cast(u64) width * rows)
@@ -141,7 +141,7 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
             for lane in 2
             {
                 let signedDistance = inside & (1'u32 << lane) ? distances[lane] : -distances[lane]
-                let value          = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
+                let value = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
                 dst[] = cast(u8) Math.round(value)
                 dst   += 1
             }

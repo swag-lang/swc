@@ -154,7 +154,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     for
     {
         let next = expect dec.nextFrame(&frame)
-        if !next do
+        if not next do
             break
         count += 1
     }
@@ -176,7 +176,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.assert(img.width == 250)
     Swag.assert(img.height == 261)
     Swag.assert(img.pixelFormat == .RGBA8)
-    Swag.assert(!img.isValid())
+    Swag.assert(not img.isValid())
 }
 
 // Invalid and truncated buffers should fail without producing an image.

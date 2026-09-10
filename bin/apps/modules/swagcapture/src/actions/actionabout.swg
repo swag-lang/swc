@@ -18,8 +18,8 @@ impl IActionUI for ActionAbout
         {
         case .About:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = strings().appearance_About
-            evt.icon          = main.theme().icon(.About)
+            evt.name = strings().appearance_About
+            evt.icon = main.theme().icon(.About)
         }
 
         return true

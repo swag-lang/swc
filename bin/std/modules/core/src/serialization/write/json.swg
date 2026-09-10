@@ -44,14 +44,14 @@ impl Json
     // Returns the identity written for a type value: the canonical runtime crc.
     mtd typeCrcOf(type: typeinfo?)->u32
     {
-        if !type do
+        if not type do
             return 0
         return type.crc
     }
 
     internal mtd writeIndent()
     {
-        if !.options.saveBlanks do
+        if not .options.saveBlanks do
             return
         for .indent * .options.indentLevel do
             .output.addNative(' 'u8)

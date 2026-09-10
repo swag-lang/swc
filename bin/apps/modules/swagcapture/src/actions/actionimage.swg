@@ -44,7 +44,7 @@ impl IActionUI for ActionImage
         case .RestoreOrg:
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_RestoreOriginal
-            evt.disabled      = !capture or !capture.backImgOriginal.isValid()
+            evt.disabled      = not capture or not capture.backImgOriginal.isValid()
         }
 
         return true
@@ -102,7 +102,7 @@ impl MainWnd
         let capture = .getCapture()!
 
         // A real backImg mutation is about to be committed: snapshot the first original now.
-        if !capture.backImgOriginal.isValid() do
+        if not capture.backImgOriginal.isValid() do
             capture.backImgOriginal = capture.backImg
 
         let serial = capture.undoMgr.newSerial()
@@ -167,6 +167,7 @@ impl MainWnd
                 edit1.edit.setText(Format.toString("%", h), notify: false)
             }
         }
+
         edit1.edit.sigTextChanged += func|ratio, btnRatio, edit0|(edt)
         {
             if btnRatio.isChecked()
@@ -306,8 +307,8 @@ impl MainWnd
             return
 
         var l, t, r, b: s32 = 0
-        let cw              = w - cast(s32) capture.backImg.width
-        let ch              = h - cast(s32) capture.backImg.height
+        let cw = w - cast(s32) capture.backImg.width
+        let ch = h - cast(s32) capture.backImg.height
 
         switch g_ResizeMode
         {
@@ -519,7 +520,7 @@ impl MainWnd
             cropRect.height -= dh
 
             // Cropping is a real backImg mutation: snapshot the first original before it.
-            if !capture.backImgOriginal.isValid() do
+            if not capture.backImgOriginal.isValid() do
                 capture.backImgOriginal = capture.backImg
 
             let undo = capture.newUndo(.SetImage)

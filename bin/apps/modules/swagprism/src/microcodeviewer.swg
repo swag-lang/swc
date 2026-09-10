@@ -172,7 +172,7 @@ impl MicrocodeViewer
     {
         var lease = .cache.acquire(.job.request)
         .job.stopped = false
-        if !lease.wait(&.job.cancelled) do
+        if not lease.wait(&.job.cancelled) do
             return
         .job.result     = lease.artifact!.result
         .job.elapsed    = lease.artifact!.elapsedMs
@@ -221,7 +221,7 @@ impl MicrocodeViewer
             .job.task.wait()
         }
 
-        if .job.timer and !.isPendingDestroy do
+        if .job.timer and not .isPendingDestroy do
             .removeTimer(.job.timer!)
         .job.timer   = null
         .job.running = false

@@ -65,7 +65,7 @@
     {
         let captured = i
         closures[i] = func|captured|()->s32 { return captured }
-        i           += 1
+        i += 1
     }
 
     Swag.assert(closures[0]!() == 0)

@@ -30,7 +30,7 @@ internal func day4BuildInput(buffer: [..] u8, value: u64)->const [..] u8
         digits[digitCount] = cast(u8) (remaining % 10) + '0'
         digitCount         += 1
         remaining          /= 10
-        if !remaining do
+        if not remaining do
             break
     }
 

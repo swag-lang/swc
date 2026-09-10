@@ -24,13 +24,13 @@ using Swag
 
 #test
 {
-    Swag.assert(!Time.isLeapYear(1))
+    Swag.assert(not Time.isLeapYear(1))
     Swag.assert(Time.isLeapYear(4))
-    Swag.assert(!Time.isLeapYear(100))
+    Swag.assert(not Time.isLeapYear(100))
     Swag.assert(Time.isLeapYear(400))
-    Swag.assert(!Time.isLeapYear(1900))
+    Swag.assert(not Time.isLeapYear(1900))
     Swag.assert(Time.isLeapYear(2000))
-    Swag.assert(!Time.isLeapYear(2023))
+    Swag.assert(not Time.isLeapYear(2023))
     Swag.assert(Time.isLeapYear(2024))
 }
 

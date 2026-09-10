@@ -38,7 +38,7 @@ struct ColorPickerCtrl
             flags = ColorPickerFlags.All                        // Available optional channels.
             mode  = ColorPickerViewMode.SaturationLightness     // Active plane and slider arrangement.
 
-                late
+            late
             {
                 preview:   *Wnd             // Side-by-side original and selected color preview.
                 pickBox:   *ColorPicker     // Two-dimensional channel picker.
@@ -213,7 +213,7 @@ impl ColorPickerCtrl
 
             .pickBox.sigColorChanged += func|v|(cb)
             {
-                if !v.flags.has(.AllowAlpha) do
+                if not v.flags.has(.AllowAlpha) do
                     v.selectedColor.a = 255
                 switch v.mode
                 {
@@ -343,7 +343,7 @@ impl ColorPickerCtrl
             .editHex.sigCommitted += func|v|(ed)
             {
                 var res = catch StrConv.parseX64(ed.text())
-                if !v.flags.has(.AllowAlpha) do
+                if not v.flags.has(.AllowAlpha) do
                     res.value |= 0xFF000000
                 v.selectedColor.argb = cast(u32) res.value
                 v.updateAll()
@@ -357,7 +357,7 @@ impl ColorPickerCtrl
             .radioG.sigChanged += func|v|(bt) { v.setMode(.RedBlue); }
             .radioB.sigChanged += func|v|(bt) { v.setMode(.RedGreen); }
 
-            if !.flags.has(.AllowAlpha)
+            if not .flags.has(.AllowAlpha)
             {
                 .editA.enable(false)
                 .pickAlpha.hide()
@@ -427,7 +427,7 @@ impl ColorPickerCtrl
             .setItemMetrics(32, 3)
             .sigSelectionChanged += func|picker|(pal)
             {
-                if !pal.selectedColor.a or !picker.selectedColor.a do
+                if not pal.selectedColor.a or not picker.selectedColor.a do
                     picker.setColor(pal.selectedColor)
                 else do
                     picker.setColorPreservingAlpha(pal.selectedColor)
@@ -476,7 +476,7 @@ impl ColorPickerCtrl
     mtd setOriginalColor(color: Color)
     {
         var col = color
-        if !.flags.has(.AllowAlpha) do
+        if not .flags.has(.AllowAlpha) do
             col.a = 255
         if .hasOriginalColor and .originalColor == col do
             return
@@ -505,10 +505,10 @@ impl ColorPickerCtrl
     mtd setColor(color: Color, notify = true)
     {
         var col = color
-        if !.flags.has(.AllowAlpha) do
+        if not .flags.has(.AllowAlpha) do
             col.a = 255
 
-        if !.hasOriginalColor
+        if not .hasOriginalColor
         {
             .originalColor    = col
             .hasOriginalColor = true

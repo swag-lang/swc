@@ -10,7 +10,7 @@ impl RichEditCtrl
         if .lines.isEmpty() do
             return result
 
-        if !.hasSelRect
+        if not .hasSelRect
         {
             // First line
             var line  = .lines[start.lineIndex]!
@@ -96,7 +96,7 @@ impl RichEditCtrl
 
     mtd unwrap(lineIndex: u64)
     {
-        if !(.flags & .WordWrap) do
+        if not (.flags & .WordWrap) do
             return
 
         // Make one single line with current wrapped lines
@@ -105,7 +105,7 @@ impl RichEditCtrl
         while i < .lines.count
         {
             let srcLine = .lines[i]!
-            if !srcLine.wordWrap do
+            if not srcLine.wordWrap do
                 break
 
             if .cursorPos.lineIndex == i
@@ -147,11 +147,11 @@ impl RichEditCtrl
 
     mtd wrap(lineIndex: u64)
     {
-        if !(.flags & .WordWrap) do
+        if not (.flags & .WordWrap) do
             return
 
         let fontR = .font().getFont(.styles[0].fontMode)
-        if !fontR do
+        if not fontR do
             return
         let font = nnFont(fontR)
 
@@ -170,7 +170,7 @@ impl RichEditCtrl
             let ch = l.chars[i]
             str += ch
 
-            if !Unicode.isLetterOrDigit(ch) do
+            if not Unicode.isLetterOrDigit(ch) do
                 cutAti = i + 1
 
             if cutAti > 1
@@ -269,7 +269,7 @@ impl RichEditCtrl
         if .lines.isEmpty() do
             .newLine(0)
 
-        if !selRect
+        if not selRect
         {
             for i in runes.count
             {
@@ -333,7 +333,7 @@ impl RichEditCtrl
         for
         {
             let {c, eat} = Utf8.decodeRune(str)
-            if !eat do
+            if not eat do
                 break
             str = Tokenize.eatCount(str, cast(u64) eat)
             .insertRunePrivate(cp, c, txtStyle)
@@ -348,7 +348,7 @@ impl RichEditCtrl
         if posStart.lineIndex == posEnd.lineIndex and posStart.charPosInLine == posEnd.charPosInLine do
             return
 
-        if !selRect
+        if not selRect
         {
             let ps = posStart
             var pe = posEnd
@@ -501,7 +501,7 @@ public impl RichEditCtrl
     // Search starts after the current selection and wraps once at the end of the document.
     mtd findText(text: string)->bool
     {
-        if !text.count or !.lines.count do
+        if not text.count or not .lines.count do
             return false
 
         let origin = .selectionEnd()
@@ -513,7 +513,7 @@ public impl RichEditCtrl
             {
                 let utf8      = Utf8.fromUnicode(.lines[lineIndex]!.chars.toSlice())
                 var byteStart = 0'u64
-                if !pass and lineIndex == origin.lineIndex
+                if not pass and lineIndex == origin.lineIndex
                 {
                     let converted = Utf8.byteIndex(utf8.toSlice(), origin.charPosInLine)
                     if converted.success do
@@ -604,13 +604,13 @@ public impl RichEditCtrl
         // A new undo action needs to be regenerate ?
         var forceUndo = false
         var pundo     = .currentUndo ? .undoMgr[.currentUndo - 1] : null
-        if !.hasSelRect and !.isSelectionEmpty() do
+        if not .hasSelRect and not .isSelectionEmpty() do
             forceUndo = true
         elif .hasSelRect and .cursorPos.charPosInLine != .selBeg.charPosInLine do
             forceUndo = true
-        elif !.currentUndo do
+        elif not .currentUndo do
             forceUndo = true
-        elif pundo and !pundo.concatChars do
+        elif pundo and not pundo.concatChars do
             forceUndo = true
         elif pundo and pundo.cursorPos.lineIndex != .cursorPos.lineIndex do
             forceUndo = true
@@ -622,7 +622,7 @@ public impl RichEditCtrl
             .resetUndo()
 
             // Delete actual selection
-            if !.hasSelRect and !.isSelectionEmpty() do
+            if not .hasSelRect and not .isSelectionEmpty() do
                 .deleteSelection()
             elif .hasSelRect and .cursorPos.charPosInLine != .selBeg.charPosInLine do
                 .deleteSelection()
@@ -686,7 +686,7 @@ public impl RichEditCtrl
         // Get the style from the previous character
         let line = .lines[.cursorPos.lineIndex]!
         var st: u8
-        if !.cursorPos.charPosInLine and line.length() do
+        if not .cursorPos.charPosInLine and line.length() do
             st = line.styles[0]
         elif .cursorPos.charPosInLine and .cursorPos.charPosInLine - 1 < line.length() do
             st = line.styles[.cursorPos.charPosInLine - 1]
@@ -740,7 +740,7 @@ public impl RichEditCtrl
                 break
 
             .pushUndo()
-            if !first do
+            if not first do
                 .serialUndo -= 1
 
             .setCursorPos(beg)
@@ -762,7 +762,7 @@ public impl RichEditCtrl
         .setCursorPos(savepos1)
 
         // A dummy undo just to restore the selection
-        if !first
+        if not first
         {
             .pushUndo()
             .serialUndo -= 1
@@ -782,7 +782,7 @@ public impl RichEditCtrl
         var beg    = .selectionStart()
         let end    = .selectionEnd()
 
-        if !lastLine
+        if not lastLine
         {
             if beg.charPosInLine == 0 and beg.lineIndex == end.lineIndex do
                 return
@@ -831,7 +831,7 @@ public impl RichEditCtrl
                     while charPt.x > x and beg.charPosInLine and Unicode.isSpace(line.chars[beg.charPosInLine - 1])
                     {
                         beg.charPosInLine -= 1
-                        charPt            = .cursorDisplayPosition(beg)
+                        charPt = .cursorDisplayPosition(beg)
                     }
                 }
             }
@@ -840,7 +840,7 @@ public impl RichEditCtrl
             if beg1.charPosInLine != beg.charPosInLine
             {
                 .pushUndo()
-                if !first do
+                if not first do
                     .serialUndo -= 1
                 .selBeg = beg
                 .setCursorPos(beg1)
@@ -868,7 +868,7 @@ public impl RichEditCtrl
         .setCursorPos(savepos1)
 
         // A dummy undo just to restore the selection
-        if !first
+        if not first
         {
             .pushUndo()
             .serialUndo -= 1

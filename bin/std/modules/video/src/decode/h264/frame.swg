@@ -121,7 +121,7 @@ impl Frame
 
         .isShortTerm = false
         .isLongTerm  = false
-        if !.progressEvent.isValid() do
+        if not .progressEvent.isValid() do
             .progressEvent.init(manual: true)
         Atomic.exchange(&.heldByCaller, 0)
         Atomic.exchange(&.parseProgress, 0)

@@ -25,13 +25,13 @@ impl SoundFile
     // returns; returning `false` cancels the remaining work without failure.
     mtd const decodePcm16(consumer: SoundPcm16Consumer) fail
     {
-        if !.availableFields.has(.Data) or !.channelCount do
+        if not .availableFields.has(.Data) or not .channelCount do
             fail BadParameterError{"sound file has no audio data"}
 
         if .usesPacketCodec()
         {
             let desc = findPacketCodec(.encoding)
-            if !desc do
+            if not desc do
                 fail UnsupportedFormatError{"unsupported packetized encoding"}
 
             let allocator   = Swag.getContext().allocator!
@@ -73,7 +73,7 @@ impl SoundFile
                 if firstSample < sampleCount
                 {
                     let samples = cast(const [*] s16) decodedBytes.buffer!
-                    if !consumer(samples[firstSample until sampleCount]) do
+                    if not consumer(samples[firstSample until sampleCount]) do
                         return
                 }
             }
@@ -105,7 +105,7 @@ impl SoundFile
         {
             var wanted = Math.min(SoundDecodeReadSize, .dataSize - byteOffset)
             wanted -= wanted % bytesPerFrame
-            if !wanted do
+            if not wanted do
                 break
 
             let source = try .readPayload(byteOffset, wanted)
@@ -115,7 +115,7 @@ impl SoundFile
             let progress = try itf.decode(decoded.buffer!, decoded.count * #sizeof(s16), source.buffer!, source.count)
             if progress.bytesRead != source.count or progress.bytesWritten != decoded.count * #sizeof(s16) do
                 fail InvalidFormatError{"sound payload decoded to an unexpected size"}
-            if !consumer(decoded.toSlice()) do
+            if not consumer(decoded.toSlice()) do
                 return
             byteOffset += source.count
         }

@@ -15,11 +15,11 @@ struct HeaderItem
 {
     public
     {
-        name:              RichString     // Displayed column label.
-        icon:              Icon           // Optional icon drawn before the label.
-        isResizable = true                // Whether the trailing separator can resize the column.
-        isClickable = true                // Whether the column can emit click actions.
-        reservesIconSpace: bool           // Whether list rows reserve the header icon column.
+        name: RichString            // Displayed column label.
+        icon: Icon                  // Optional icon drawn before the label.
+        isResizable = true          // Whether the trailing separator can resize the column.
+        isClickable = true          // Whether the column can emit click actions.
+        reservesIconSpace: bool     // Whether list rows reserve the header icon column.
     }
 
     width:        f32     // Effective width in logical units.
@@ -106,7 +106,7 @@ impl IWnd for Header
         let metrics = .themeMetrics()
         let colors  = .themeColors()
 
-        if .hotIdx == idx and !.hotSeparator
+        if .hotIdx == idx and not .hotSeparator
         {
             var labelPosBk = labelPos
             labelPosBk.x     -= (metrics.header_Separator * 0.5)
@@ -121,7 +121,7 @@ impl IWnd for Header
         {
         case bc.isDisabled:  colorText = colors.headerItem_DisabledText
         case idx == .hotIdx: colorText = colors.headerItem_HotText
-        default:             colorText = colors.headerItem_Text
+        default: colorText = colors.headerItem_Text
         }
 
         // Sort mark
@@ -200,7 +200,7 @@ impl IWnd for Header
     {
         if evt.kind == .Released and evt.button == .Left
         {
-            if .clicked and !.sigColumnClicked.isEmpty()
+            if .clicked and not .sigColumnClicked.isEmpty()
             {
                 let {hit, ?} = .hitTest(evt.surfacePos)
                 if hit == .hotIdx do
@@ -215,7 +215,7 @@ impl IWnd for Header
             }
         }
 
-        if !.moving and !.clicked
+        if not .moving and not .clicked
         {
             let {hitr, sep} = .hitTest(evt.surfacePos)
             var hit         = hitr
@@ -223,9 +223,9 @@ impl IWnd for Header
             // Hot, if not a separator, is disabled if item is not clickable
             if hit != Swag.U32.Max
             {
-                if !.flags.has(.Clickable) and !sep do
+                if not .flags.has(.Clickable) and not sep do
                     hit = Swag.U32.Max
-                elif !.items[hit]!.isClickable do
+                elif not .items[hit]!.isClickable do
                     hit = Swag.U32.Max
             }
 
@@ -279,7 +279,7 @@ impl IWnd for Header
                 {
                     .moving = true
                     var pos = .surfaceToLocal(evt.surfacePos)
-                    pos            += .scrollPos.x
+                    pos += .scrollPos.x
                     .correctMoving = pos.x - .itemPositionAt(.hotIdx) + .padding.x
                     .correctMoving -= .itemWidthAt(.hotIdx)
                     .captureMouse()
@@ -490,7 +490,7 @@ impl Header
     {
         .flags.add(add)
         .flags.remove(remove)
-        if !.flags.has(.Separators)
+        if not .flags.has(.Separators)
         {
             if .moving
             {
@@ -502,7 +502,7 @@ impl Header
             .cursor.clear()
         }
 
-        if !.flags.has(.Clickable) and !.hotSeparator do
+        if not .flags.has(.Clickable) and not .hotSeparator do
             .hotIdx = Swag.U32.Max
         .invalidate()
     }

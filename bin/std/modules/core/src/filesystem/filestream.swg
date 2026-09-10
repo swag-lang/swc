@@ -60,7 +60,7 @@ impl FileStream
     {
         Swag.assert(.isOpen())
         Swag.assert(.canRead)
-        if !length do
+        if not length do
             return 0
 
         if .liveRead
@@ -91,7 +91,7 @@ impl FileStream
     {
         Swag.assert(.isOpen())
         Swag.assert(.canWrite)
-        if !length do
+        if not length do
             return 0
 
         var total = 0'u64
@@ -101,7 +101,7 @@ impl FileStream
             let chunk   = cast(u32) Math.min(length - total, cast(u64) Swag.U32.Max)
             let written = .writeNative(bytes + total, chunk)
             total += written
-            if !written do
+            if not written do
                 break
         }
 
@@ -113,7 +113,7 @@ impl FileStream
     {
         .liveRead     = false
         .livePosition = 0
-        if !.handle do
+        if not .handle do
             return
         .closeNative()
         .handle = null
@@ -222,15 +222,15 @@ impl FileStream
         bytes.resize(probe)
         let count = .read(bytes.toSlice())
         bytes.resize(count)
-        if !count do
+        if not count do
             return {}
 
         var accepted = Math.min(target, count)
         let shortest = accepted > 3 ? accepted - 3 : 0
-        while accepted > shortest and !Utf8.isValid(bytes.toSlice()[0 until accepted]) do
+        while accepted > shortest and not Utf8.isValid(bytes.toSlice()[0 until accepted]) do
             accepted -= 1
 
-        if !accepted or !Utf8.isValid(bytes.toSlice()[0 until accepted])
+        if not accepted or not Utf8.isValid(bytes.toSlice()[0 until accepted])
         {
             .seek(.Begin, start)
             fail Errors.InvalidFormatError{"file content is not valid UTF-8"}
@@ -268,7 +268,7 @@ impl FileStream
         let unit   = Text.unitSize(encoding)
         var target = Math.min(maxBytes, fileSize - start)
         target -= target % unit
-        if !target do
+        if not target do
             return {}
 
         var bytes: Array'u8

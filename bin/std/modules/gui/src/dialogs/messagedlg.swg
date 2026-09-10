@@ -133,7 +133,7 @@ public impl MessageDlg
         srf.setPosition(pos)
         .applyLayout()
 
-        let ext             = .extension
+        let ext = .extension
         let extensionHeight = ext ? ext.margin.y + ext.position.height + ext.margin.w : 0
         var availableHeight = maxSurfaceHeight
         if srf.app.renderer.needsNativeWindow()
@@ -151,7 +151,7 @@ public impl MessageDlg
         var needed = .label.itf.measureContent({.label.position.width, 0}).y
         if needed > limit or .messageScroll
         {
-            if !.messageScroll
+            if not .messageScroll
             {
                 let scroll = Wnd.create'ScrollWnd(.label.parent!)
                 scroll.dockStyle   = .Center
@@ -165,7 +165,7 @@ public impl MessageDlg
                 scroll.hookOnEvent = func(wnd, evt)
                 {
                     let key = evt as KeyEvent
-                    if !key or key.kind != .Pressed or key.modifiers != .None do
+                    if not key or key.kind != .Pressed or key.modifiers != .None do
                         return false
                     let scroll = cast(*ScrollWnd) wnd
                     var y      = scroll.scrollPosition().y
@@ -190,7 +190,7 @@ public impl MessageDlg
             .applyLayout()
 
             // The vertical bar takes horizontal room, which can add another wrapped line.
-            needed                 = Math.ceil(.label.itf.measureContent({.messageScroll!.view.position.width, 0}).y)
+            needed = Math.ceil(.label.itf.measureContent({.messageScroll!.view.position.width, 0}).y)
             .label.position.height = needed
             .messageScroll!.setScrollSize(0, needed)
         }
@@ -210,7 +210,7 @@ public impl MessageDlg
         Swag.assert(.contentView != null, "a message dialog needs its standard content view before adding an extension")
 
         wndExtension.setParent(.contentView)
-        .extension           = wndExtension
+        .extension = wndExtension
         .extension.dockStyle = .Bottom
         .extension.margin.y  = .themeMetrics().dialog_BtnPadding * 2
     }
@@ -225,11 +225,11 @@ public impl MessageDlg
     // Creates or replaces the large message icon; an invalid icon leaves it unchanged.
     mtd setIcon(icon: Icon, color: Color = Argb.Zero)
     {
-        if !icon.isValid() do
+        if not icon.isValid() do
             return
 
         let gap = .themeMetrics().dialog_BtnPadding * 2
-        if !(.labelIcon != null) do
+        if not (.labelIcon != null) do
             .labelIcon = Label.create(.label.parent!, "", {0, 0, icon.sizeX + gap, 0})
 
         with me.labelIcon
@@ -246,7 +246,7 @@ public impl MessageDlg
     func ok(from: *Surface, message: string, options: MessageDlgOptions = {})
     {
         var opt = options
-        if !opt.icon.isValid()
+        if not opt.icon.isValid()
         {
             opt.icon      = from.app.theme.icon(.Information, 48)
             opt.iconColor = from.app.theme.colors.dlg_InformationIcon
@@ -254,7 +254,7 @@ public impl MessageDlg
 
         // Every box names itself. Left empty the caption still takes its band, so the box opened
         // under an empty bar and read as one the application had forgotten to finish.
-        if !opt.title.count do
+        if not opt.title.count do
             opt.title = strings().dlg_InfoTitle
 
         with let dlg = create(from, message, opt)
@@ -269,13 +269,13 @@ public impl MessageDlg
     func okCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
-        if !opt.icon.isValid()
+        if not opt.icon.isValid()
         {
             opt.icon      = from.app.theme.icon(.Question, 48)
             opt.iconColor = from.app.theme.colors.dlg_InformationIcon
         }
 
-        if !opt.title.count do
+        if not opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
 
         with let dlg = create(from, message, opt)
@@ -291,13 +291,13 @@ public impl MessageDlg
     func yesNo(from: *Surface, message: string, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
-        if !opt.icon.isValid()
+        if not opt.icon.isValid()
         {
             opt.icon      = from.app.theme.icon(ThemeIcons.Question, 48)
             opt.iconColor = from.app.theme.colors.dlg_InformationIcon
         }
 
-        if !opt.title.count do
+        if not opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
 
         with let dlg = create(from, message, opt)
@@ -313,13 +313,13 @@ public impl MessageDlg
     func yesNoCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
-        if !opt.icon.isValid()
+        if not opt.icon.isValid()
         {
             opt.icon      = from.app.theme.icon(ThemeIcons.Question, 48)
             opt.iconColor = from.app.theme.colors.dlg_InformationIcon
         }
 
-        if !opt.title.count do
+        if not opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
 
         with let dlg = create(from, message, opt)
@@ -336,7 +336,7 @@ public impl MessageDlg
     func confirm(from: *Surface, message: string, question: string? = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
         var txt = String.from(message)
-        while !txt.isEmpty() and txt.back() == '\n' do
+        while not txt.isEmpty() and txt.back() == '\n' do
             txt.removeBack()
         txt += "\n\n"
         if question != null
@@ -351,7 +351,7 @@ public impl MessageDlg
         }
 
         var opt = options
-        if !opt.title.count do
+        if not opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
 
         return yesNo(from, txt.toString(), defaultId, opt)
@@ -371,7 +371,7 @@ public impl MessageDlg
             {
             case Swag.SystemError:
                 let sysErr = cast(Swag.SystemError) err
-                if !txt.isEmpty() do
+                if not txt.isEmpty() do
                     txt += "\n\n"
                 txt += sysErr.message
             }
@@ -381,13 +381,13 @@ public impl MessageDlg
         // white it was the loudest thing on the surface and said nothing the title had not
         // said already.
         var opt = options
-        if !opt.icon.isValid()
+        if not opt.icon.isValid()
         {
             opt.icon      = from.app.theme.icon(.Critical, 48)
             opt.iconColor = from.app.theme.colors.error
         }
 
-        if !opt.title.count do
+        if not opt.title.count do
             opt.title = strings().dlg_ErrorTitle
 
         with let dlg = create(from, txt.toString(), opt)

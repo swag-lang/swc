@@ -6,15 +6,15 @@ using Swag, Core
 {
     var model: SelModel
     Swag.assert(model.isEmpty())
-    Swag.assert(!model.isSelected(3))
+    Swag.assert(not model.isSelected(3))
     Swag.assert(model.rangeIndexContaining(3) == Swag.U32.Max)
 
     model.select(2)
-    Swag.assert(!model.isEmpty())
+    Swag.assert(not model.isEmpty())
     Swag.assert(model.isSelected(2))
     Swag.assert(model.rangeIndexContaining(2) == 0)
-    Swag.assert(!model.isSelected(1))
-    Swag.assert(!model.isSelected(3))
+    Swag.assert(not model.isSelected(1))
+    Swag.assert(not model.isSelected(3))
     Swag.assert(model.rangeCount() == 1)
     Swag.assert(model.selectedCount() == 1)
     Swag.assert(model.ranges()[0].start == 2)

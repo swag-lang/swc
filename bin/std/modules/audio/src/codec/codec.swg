@@ -145,7 +145,7 @@ public impl PacketDurationProbe
 
         case .Opus:
             let count = Opus.packetFrames(packet)
-            if !count do
+            if not count do
                 fail InvalidFormatError{"Opus packet has an invalid table of contents"}
             return cast(u32) count
 
@@ -188,7 +188,7 @@ private func startsWithCodecHeader(type: const *Swag.TypeInfoStruct)->bool
 {
     for field in type.fields
     {
-        if field.offset != 0 or !field.pointedType do
+        if field.offset != 0 or not field.pointedType do
             continue
         if field.pointedType!.crc == #typeof(Codec).crc do
             return true
@@ -278,7 +278,7 @@ public struct Codec
     internal
     {
         // Concrete codec type used for destruction.
-        late type:                const *Swag.TypeInfoStruct
+        late type: const *Swag.TypeInfoStruct
         late allocationAllocator: IAllocator
     }
 }
@@ -289,7 +289,7 @@ impl Codec
     {
         .sourceEncoding      = sourceEncoding
         .destinationEncoding = destinationEncoding
-        .type                = type
+        .type = type
         .allocationAllocator = allocator
     }
 }

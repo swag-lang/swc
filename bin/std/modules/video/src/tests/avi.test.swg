@@ -285,7 +285,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.assert(frame.pixels.buffer == storage)
 
     reader.close()
-    Swag.assert(!reader.isOpen())
+    Swag.assert(not reader.isOpen())
 }
 
 #test

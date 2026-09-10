@@ -4,11 +4,11 @@
 // write restriction that rides on top of any of them.
 struct Account
 {
-    public id:               s32  = 1
-    public readonly balance: s32  = 100
-    ledger:                  s32  = 7
-    private secret:          s32  = 42
-    opened:                  bool = true
+    public id:      s32          = 1
+    public readonly balance: s32 = 100
+    ledger:         s32          = 7
+    private secret: s32          = 42
+    opened:         bool         = true
 }
 
 impl Account
@@ -51,7 +51,7 @@ impl Account
     a.opened = false
     Swag.assert(a.id == 3)
     Swag.assert(a.ledger == 9)
-    Swag.assert(!a.opened)
+    Swag.assert(not a.opened)
 }
 
 #test
@@ -182,13 +182,13 @@ func split(value: s32)->{ half: s32, rest: s32 } => {value / 2, value % 2}
         switch f.name
         {
         case "id":
-            Swag.assert(!(flags & Swag.TypeValueFlags.ReadOnly))
-            Swag.assert(!(flags & Swag.TypeValueFlags.Internal))
-            Swag.assert(!(flags & Swag.TypeValueFlags.Private))
+            Swag.assert(not (flags & Swag.TypeValueFlags.ReadOnly))
+            Swag.assert(not (flags & Swag.TypeValueFlags.Internal))
+            Swag.assert(not (flags & Swag.TypeValueFlags.Private))
             seen += 1
         case "balance":
             Swag.assert(flags & Swag.TypeValueFlags.ReadOnly)
-            Swag.assert(!(flags & Swag.TypeValueFlags.Internal))
+            Swag.assert(not (flags & Swag.TypeValueFlags.Internal))
             seen += 1
         case "ledger":
             Swag.assert(flags & Swag.TypeValueFlags.Internal)
@@ -198,7 +198,7 @@ func split(value: s32)->{ half: s32, rest: s32 } => {value / 2, value % 2}
             seen += 1
         case "opened":
             Swag.assert(flags & Swag.TypeValueFlags.Internal)
-            Swag.assert(!(flags & Swag.TypeValueFlags.ReadOnly))
+            Swag.assert(not (flags & Swag.TypeValueFlags.ReadOnly))
             seen += 1
         }
     }
@@ -221,7 +221,7 @@ func split(value: s32)->{ half: s32, rest: s32 } => {value / 2, value % 2}
             seen += 1
         case "e":
             Swag.assert(f.flags & Swag.TypeValueFlags.ReadOnly)
-            Swag.assert(!(f.flags & Swag.TypeValueFlags.Internal))
+            Swag.assert(not (f.flags & Swag.TypeValueFlags.Internal))
             seen += 1
         }
     }

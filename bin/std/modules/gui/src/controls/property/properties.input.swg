@@ -15,7 +15,7 @@ internal impl Properties
     // a row through the bar.
     mtd isOverRows(target: *Wnd?)->bool
     {
-        if !target or !(.edView != null) do
+        if not target or not (.edView != null) do
             return false
         let view = cast(*Wnd) .edView!
         return target == view or view.isAncestorOf(target)
@@ -27,7 +27,7 @@ internal impl Properties
         for itemIt in .items
         {
             let item = itemIt!
-            if !item.line.isVisible() do
+            if not item.line.isVisible() do
                 continue
             if item.line.position.contains(pt) do
                 return item
@@ -50,7 +50,7 @@ internal impl Properties
             if let mouseEvt = evt as MouseEvent where mouseEvt.kind == .Wheel
             {
                 let target = mouseEvt.target
-                if !(target and (target == prop.editPopup or prop.editPopup.isAncestorOf(target))) do
+                if not (target and (target == prop.editPopup or prop.editPopup.isAncestorOf(target))) do
                     return true
             }
 
@@ -86,7 +86,7 @@ internal impl Properties
 
             // A press outside the row area (on the scroll bar, typically) must not touch the
             // selection: scrolling and selecting are separate gestures.
-            if !prop.isOverRows(mouseEvt.target) do
+            if not prop.isOverRows(mouseEvt.target) do
                 break
 
             let pt = prop.surfaceToLocal(mouseEvt.surfacePos)
@@ -118,11 +118,11 @@ internal impl Properties
             // grid in navigation mode, so the arrows work right after a click. A miss
             // (the gap between two rows) must not select-and-reveal the first row —
             // that would jump the scroll back to the top.
-            if !prop.isEditorWnd(mouseEvt.target) do
+            if not prop.isEditorWnd(mouseEvt.target) do
                 prop.focusNavigation(fallbackToFirst: false)
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .DoubleClick and mouseEvt.button == .Left:
-            if !prop.isOverRows(mouseEvt.target) do
+            if not prop.isOverRows(mouseEvt.target) do
                 break
 
             // Toggle/Expand
@@ -184,7 +184,7 @@ internal impl Properties
             if prop.isGridLike()
             {
                 let x = prop.columnPosition()
-                if pt.x >= x - 3 and pt.x <= x + 3 and hit and !hit.flags.has(.NoSeparator)
+                if pt.x >= x - 3 and pt.x <= x + 3 and hit and not hit.flags.has(.NoSeparator)
                 {
                     prop.app().setFrameCursor(Cursor.from(.ResizeHorizontal))
                     prop.cursorSet = true

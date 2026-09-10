@@ -107,7 +107,7 @@ struct Decoder
     // sixteen of the luma grid in 4:4:4, where a colour plane carries as many blocks as luma.
     nonZeroCb: Array'u8
     nonZeroCr: Array'u8
-    codedLuma:   Array'u8     // Any coefficient coded in the block, for deblocking.
+    codedLuma: Array'u8     // Any coefficient coded in the block, for deblocking.
 
     // Per-4x4-block motion state of the current picture, one array per reference list.
     motionL0:    Array'BlockMotion
@@ -128,7 +128,7 @@ struct Decoder
     parsedResiduals:    Array'MbResidual
     parsedResiduals444: Array'MbResidual444     // The colour planes of a 4:4:4 picture, if any.
     parsedExtraJobs:    Array'MbExtraJobs
-    pictureSlices:   Array'Slice
+    pictureSlices:      Array'Slice
 
     decodedMbs: u64
     sliceCount: u32
@@ -288,7 +288,7 @@ impl Decoder
     mtd decodeAccessUnit(sample: const [..] u8)->*Frame? fail
     {
         .frameThreaded = false
-        if !try .parseAccessUnit(sample, false) do
+        if not try .parseAccessUnit(sample, false) do
             return null
         return try .finishAccessUnit()
     }
@@ -300,7 +300,7 @@ impl Decoder
     {
         .frameThreaded = true
         .inlineRecon   = false
-        if !.hasSinglePictureSlice(sample) do
+        if not .hasSinglePictureSlice(sample) do
             return try .parseAccessUnit(sample, true)
 
         .current       = null
@@ -331,7 +331,7 @@ impl Decoder
             offset += size
         }
 
-        if !.current do
+        if not .current do
             return false
         .applyMarking(.current!)
         .holdPictureReferences()
@@ -381,7 +381,7 @@ impl Decoder
         .markingParsed = false
         .inlineRecon   = false
         .mmcoOps.clear()
-        .pipelineSingleSlice = !deferReconstruction and .hasSinglePictureSlice(sample)
+        .pipelineSingleSlice = not deferReconstruction and .hasSinglePictureSlice(sample)
         .pipelineBandCount   = 0
         .pipelineScheduled   = 0
         .pipelineFailed      = 0
@@ -405,7 +405,7 @@ impl Decoder
             offset += size
         }
 
-        if !.current do
+        if not .current do
             return false
         .validatePicture()
         .applyMarking(.current!)
@@ -446,7 +446,7 @@ impl Decoder
     // Pins every borrowed slice reference while later pictures may change reference marking.
     private mtd holdPictureReferences()
     {
-        Swag.assert(!.referencesHeld)
+        Swag.assert(not .referencesHeld)
         for &slice in .pictureSlices
         {
             for list in 2'u64
@@ -466,7 +466,7 @@ impl Decoder
     // Releases the slice references pinned by [[holdPictureReferences]].
     private mtd releasePictureReferences()
     {
-        if !.referencesHeld do
+        if not .referencesHeld do
             return
 
         for &slice in .pictureSlices
@@ -495,7 +495,7 @@ impl Decoder
                 for index in slice.refCount[list]
                 {
                     let frame = slice.refs[list, index].frame
-                    if !frame do
+                    if not frame do
                         continue
 
                     if decoded
@@ -564,7 +564,7 @@ impl Decoder
     mtd const canSkipWhileSeeking(sample: const [..] u8)->bool
     {
         let configured = .firstSps()
-        if !configured or configured!.pocType != 0 or .nalLengthSize == 0 do
+        if not configured or configured!.pocType != 0 or .nalLengthSize == 0 do
             return false
 
         var hasPicture = false
@@ -610,7 +610,7 @@ impl Decoder
         {
         case 1, 5:
             unescapeRbsp(&.rbsp, nal[1 until nal.count])
-            .decodeSliceNal(refIdc, nalType == 5, !prepareOnly)
+            .decodeSliceNal(refIdc, nalType == 5, not prepareOnly)
 
         case 7:
             unescapeRbsp(&.rbsp, nal[1 until nal.count])
@@ -638,13 +638,13 @@ impl Decoder
     private mtd decodeSliceNal(refIdc: u32, isIdr: bool, decodeData: bool = true) fail
     {
         var slice: Slice
-        if !slice.parseHeader(me, refIdc, isIdr) do
+        if not slice.parseHeader(me, refIdc, isIdr) do
             return
 
         if slice.header.type == SliceTypeI do
             .pipelineSingleSlice = false
 
-        if !.current
+        if not .current
         {
             .isRefPicture = refIdc != 0
             .isIdrPicture = isIdr
@@ -688,7 +688,7 @@ impl Decoder
         if probe.overran or id > 255 do
             fail InvalidFormatError{"H.264 picture parameter set is truncated"}
         let spsId = probe.ue()
-        if spsId > 31 or spsId >= .spsSet.count or !.spsSet[spsId].valid do
+        if spsId > 31 or spsId >= .spsSet.count or not .spsSet[spsId].valid do
             fail InvalidFormatError{"H.264 picture set references an unknown sequence set"}
 
         var parsed: Pps
@@ -702,13 +702,13 @@ impl Decoder
     mtd startPicture(frameNum: u32, poc: s32) fail
     {
         var found: *Frame?
-        for candidate in .pool where Atomic.get(&candidate.heldByCaller) == 0 and Atomic.get(&candidate.reconstructionHolds) == 0 and !candidate.isReference()
+        for candidate in .pool where Atomic.get(&candidate.heldByCaller) == 0 and Atomic.get(&candidate.reconstructionHolds) == 0 and not candidate.isReference()
         {
             found = candidate
             break
         }
 
-        if !found
+        if not found
         {
             if .pool.count >= 34 do
                 fail InvalidFormatError{"H.264 stream holds more frames alive than a valid stream can"}
@@ -748,7 +748,7 @@ impl Decoder
         // and extra motion regions alive until then, and their addresses have to stay put, so
         // the storage is reserved whole. A picture reconstructed row by row consumes both
         // immediately and uses the slice scratch instead.
-        if !.inlineRecon
+        if not .inlineRecon
         {
             .parsedResiduals.reserve(mbCount)
             .parsedExtraJobs.reserve(mbCount)
@@ -814,7 +814,7 @@ impl Decoder
             .shortRefs.clear()
             .longRefs.clear()
 
-            if !.isRefPicture do
+            if not .isRefPicture do
                 return
             if .idrLongTerm
             {
@@ -831,13 +831,13 @@ impl Decoder
             return
         }
 
-        if !.isRefPicture do
+        if not .isRefPicture do
             return
 
         if .adaptiveMarking do
             .applyMmco(frame)
 
-        if !frame.isLongTerm
+        if not frame.isLongTerm
         {
             // Sliding window: the oldest short-term reference leaves when the buffer is full.
             let maxRefs = Math.max(.sps!.maxRefFrames, 1)
@@ -999,7 +999,7 @@ impl Decoder
 
         case 1:
             var frameNumOffset = 0's32
-            if !header.isIdr
+            if not header.isIdr
             {
                 frameNumOffset = .prevFrameNumOffset
                 if cast(s32) .prevFrameNum > frameNum do
@@ -1010,11 +1010,11 @@ impl Decoder
             .prevFrameNum       = header.frameNum
 
             let cycleCount = cast(s32) .sps!.pocCycle.count
-            if !cycleCount do
+            if not cycleCount do
                 return 0
 
             var absFrameNum = frameNumOffset + frameNum
-            if !.isRefPicture and absFrameNum > 0 do
+            if not .isRefPicture and absFrameNum > 0 do
                 absFrameNum -= 1
 
             var expectedDelta = 0's32
@@ -1031,7 +1031,7 @@ impl Decoder
                     expected += .sps!.pocCycle[index]
             }
 
-            if !.isRefPicture do
+            if not .isRefPicture do
                 expected += sps.offsetForNonRefPic
 
             let top    = expected + header.deltaPoc0
@@ -1040,7 +1040,7 @@ impl Decoder
 
         case 2:
             var frameNumOffset = 0's32
-            if !header.isIdr
+            if not header.isIdr
             {
                 frameNumOffset = .prevFrameNumOffset
                 if cast(s32) .prevFrameNum > frameNum do

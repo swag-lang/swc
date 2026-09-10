@@ -16,7 +16,7 @@ func __tlsAlloc()->u64
     return slot
 }
 
-func __tlsGetValue(id: u64)->*void?              => __hostTlsGet(id)
+func __tlsGetValue(id: u64)->*void? => __hostTlsGet(id)
 func __tlsSetValue(id: u64, value: *void?)->bool => __hostTlsSet(id, value)
 
 // Returns the current thread's runtime context, lazily creating it on a thread the runtime has
@@ -27,10 +27,10 @@ func __tlsGetPtr(id: u64, size: u64, init: const *void)->*void?
     if ptr do
         return ptr
     ptr = __bootstrapAlloc(size)
-    if !ptr do
+    if not ptr do
         return null
     Swag.memcpy(ptr, init, size)
-    if !__tlsSetValue(id, ptr)
+    if not __tlsSetValue(id, ptr)
     {
         __bootstrapFree(cast([*] void?) ptr)
         return null
@@ -53,7 +53,7 @@ func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->*void?
     if id == 0
     {
         let slot = __hostThreadStorageAlloc(&__releaseTlsVar)
-        if !slot do
+        if not slot do
             Swag.panic("too many thread-local globals for the platform", #curlocation)
 
         let previous = Swag.atomcmpxchg(idSlot, 0, slot)
@@ -71,11 +71,11 @@ func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->*void?
         return known
 
     let created = __bootstrapAlloc(size)
-    if !created do
+    if not created do
         return null
 
     Swag.memcpy(created, init, size)
-    if !__hostThreadStorageSet(id, created)
+    if not __hostThreadStorageSet(id, created)
     {
         __bootstrapFree(cast([*] void?) created)
         return null

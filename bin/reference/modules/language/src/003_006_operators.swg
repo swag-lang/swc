@@ -101,7 +101,9 @@ the left operand, creating concise expressions.
 # Unary Operators
 
 Unary operators operate on a single operand. These include logical NOT, bitwise
-NOT, and negation.
+NOT, and negation. Logical NOT is the keyword 'not', beside 'and' and 'or'; a
+prefix '!' is rejected, which leaves '!' the single postfix meaning it carries on
+a nullable value.
 */
 #test
 {
@@ -109,9 +111,9 @@ NOT, and negation.
     var y = 0b0000_0001'u8
     var z = 1
 
-    x = !x     // Logical NOT
-    y = ~y     // Bitwise NOT
-    z = -z     // Negation
+    x = not x     // Logical NOT
+    y = ~y        // Bitwise NOT
+    z = -z        // Negation
 
     Swag.assert(z == -1)
     Swag.assert(x == false)
@@ -223,7 +225,7 @@ contiguous run of bytes. A struct member that is an array follows the same rule.
 # Logical Operators
 
 Logical operators evaluate expressions and return a boolean result. Swag uses
-'and' and 'or' instead of '&&' and '||' from C/C++.
+'and', 'or' and 'not' instead of '&&', '||' and prefix '!' from C/C++.
 
 Both short-circuit: 'and' evaluates its right operand only when the left is
 true, and 'or' evaluates it only when the left is false. This lets the first
@@ -302,7 +304,7 @@ zero one, so the result is non-null even when the operand was not.
 #test
 {
     var a: string? = "string1"
-    let b          = "string2"
+    let b = "string2"
 
     var c = a orelse b
     Swag.assert(c == "string1")
@@ -389,7 +391,7 @@ Precedence runs from tightest (top) to loosest (bottom). Operators listed on the
 same line share a level.
 
 ```swag
-! ~ - +      (prefix)
+not ~ - +    (prefix)
 * / %
 + -
 >> <<
@@ -403,8 +405,8 @@ or
 orelse  ? :
 ```
 
-The prefix operators bind tighter than every binary operator, so '!a == b' parses as
-'(!a) == b' and '-a * b' parses as '(-a) * b'.
+The prefix operators bind tighter than every binary operator, so 'not a == b' parses
+as '(not a) == b' and '-a * b' parses as '(-a) * b'.
 
 When two operators share the same precedence level, they group from left to
 right. This describes parsing, not a general promise about operand evaluation
@@ -440,7 +442,7 @@ operators '== !=', so 'a < b == c' parses as '(a < b) == c'.
     Swag.assert(1 <=> 2 == -1)
 
     // Prefix operators bind tighter than any binary operator.
-    Swag.assert((!false == true) == true)
+    Swag.assert((not false == true) == true)
     Swag.assert(-2 * 3 == -6)
     Swag.assert(~0'u8 == 255)
 

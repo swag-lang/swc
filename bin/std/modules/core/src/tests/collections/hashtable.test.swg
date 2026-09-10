@@ -40,7 +40,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 {
     var table: HashTable'(s32, s32)
     Swag.assert(table.count == 0)
-    Swag.assert(!table.contains(1))
+    Swag.assert(not table.contains(1))
     Swag.assert(table.tryFind(1) == null)
 
     table.add(1, 10)
@@ -114,7 +114,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     table.add(3, 30)
 
     table.remove(2)
-    Swag.assert(!table.contains(2))
+    Swag.assert(not table.contains(2))
     Swag.assert(table.count == 2)
 
     table.add(2, 200)
@@ -124,8 +124,8 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 
     table.clear()
     Swag.assert(table.count == 0)
-    Swag.assert(!table.contains(1))
-    Swag.assert(!table.contains(2))
+    Swag.assert(not table.contains(1))
+    Swag.assert(not table.contains(2))
 }
 
 func assertTableStringValue(table: HashTable'(string, String), key: string, expected: string)->bool
@@ -175,7 +175,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     original.add("beta", "two")
 
     var copy = original
-    copy["alpha"]                 = "uno"
+    copy["alpha"] = "uno"
     copy.findOrAdd("gamma").value = "three"
 
     Swag.assert(assertTableStringValue(original, "alpha", "one"))
@@ -213,8 +213,8 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     table.opSet([struct { k: s32, v: s32 }{k: 3, v: 30}])
 
     Swag.assert(table.count == 1)
-    Swag.assert(!table.contains(1))
-    Swag.assert(!table.contains(2))
+    Swag.assert(not table.contains(1))
+    Swag.assert(not table.contains(2))
     Swag.assert(table.contains(3))
     Swag.assert(table[3] == 30)
 }

@@ -163,14 +163,14 @@ impl MountedDrives
         for &one, index in .drives where .startupEnabled and one.atStartup do
             .list.setLineChecked(cast(u32) index, true, notify: false)
 
-        let filled = !.drives.isEmpty()
+        let filled = not .drives.isEmpty()
         .list.show(filled)
-        .empty.show(!filled)
+        .empty.show(not filled)
         .card.body.applyLayout()
 
         if filled
         {
-            if !.list.selectedLine() do
+            if not .list.selectedLine() do
                 .list.selectLine(0)
             .layoutColumns()
         }
@@ -228,7 +228,7 @@ impl MountedDrives
     mtd selectedIndex()->u64
     {
         let line = .list.selectedLine()
-        if !line do
+        if not line do
             return Swag.U64.Max
         for &one, index in .drives
         {

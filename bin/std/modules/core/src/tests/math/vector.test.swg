@@ -124,17 +124,17 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec2(vec, Math.Vector2.Zero)
 
     vec = Math.Vector2{1, -2}
-    Swag.assert(!vec.isZero())
+    Swag.assert(not vec.isZero())
     vec.setZero()
     Swag.assert(vec.isZero())
     Swag.assert(vec.isZeroEpsilon())
-    Swag.assert(!Math.Vector2{0.01, 0}.isZeroEpsilon(0.001))
+    Swag.assert(not Math.Vector2{0.01, 0}.isZeroEpsilon(0.001))
 
     vec = Math.Vector2{1, -2}
     vec.negate()
     expectVec2(vec, Math.Vector2{-1, 2})
     Swag.assert(Math.Vector2{1, 1}.isEqualEpsilon(Math.Vector2{1.00001, 0.99999}, 0.001))
-    Swag.assert(!Math.Vector2{1, 1}.isEqualEpsilon(Math.Vector2{1.01, 1}, 0.001))
+    Swag.assert(not Math.Vector2{1, 1}.isEqualEpsilon(Math.Vector2{1.01, 1}, 0.001))
 }
 
 #test
@@ -196,9 +196,9 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec2(Math.Vector2{2, -3}.reflected(Math.Vector2{0, 1}), Math.Vector2{2, 3})
     expectVec2(Math.Vector2{2, -4}.sign(), Math.Vector2{1, -1})
     Swag.assert(vec.isFinite())
-    Swag.assert(!Math.Vector2{Swag.F32.Inf, 0}.isFinite())
+    Swag.assert(not Math.Vector2{Swag.F32.Inf, 0}.isFinite())
     Swag.assert(Math.Vector2{Swag.F32.NaN, 0}.isNaN())
-    Swag.assert(!vec.isNaN())
+    Swag.assert(not vec.isNaN())
 
     var absVec = vec
     absVec.makeAbsolute()
@@ -340,17 +340,17 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec3(vec, Math.Vector3.Zero)
 
     vec = Math.Vector3{1, -2, 3}
-    Swag.assert(!vec.isZero())
+    Swag.assert(not vec.isZero())
     vec.setZero()
     Swag.assert(vec.isZero())
     Swag.assert(vec.isZeroEpsilon())
-    Swag.assert(!Math.Vector3{0.01, 0, 0}.isZeroEpsilon(0.001))
+    Swag.assert(not Math.Vector3{0.01, 0, 0}.isZeroEpsilon(0.001))
 
     vec = Math.Vector3{1, -2, 3}
     vec.negate()
     expectVec3(vec, Math.Vector3{-1, 2, -3})
     Swag.assert(Math.Vector3{1, 1, 1}.isEqualEpsilon(Math.Vector3{1.00001, 0.99999, 1.00002}, 0.001))
-    Swag.assert(!Math.Vector3{1, 1, 1}.isEqualEpsilon(Math.Vector3{1.01, 1, 1}, 0.001))
+    Swag.assert(not Math.Vector3{1, 1, 1}.isEqualEpsilon(Math.Vector3{1.01, 1, 1}, 0.001))
 }
 
 #test
@@ -403,9 +403,9 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec3(Math.Vector3{2, -3, 4}.reflected(Math.Vector3{0, 1, 0}), Math.Vector3{2, 3, 4})
     expectVec3(Math.Vector3{2, -4, 6}.sign(), Math.Vector3{1, -1, 1})
     Swag.assert(vec.isFinite())
-    Swag.assert(!Math.Vector3{Swag.F32.Inf, 0, 0}.isFinite())
+    Swag.assert(not Math.Vector3{Swag.F32.Inf, 0, 0}.isFinite())
     Swag.assert(Math.Vector3{Swag.F32.NaN, 0, 0}.isNaN())
-    Swag.assert(!vec.isNaN())
+    Swag.assert(not vec.isNaN())
 
     var absVec = vec
     absVec.makeAbsolute()
@@ -550,17 +550,17 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec4(vec, Math.Vector4.Zero)
 
     vec = Math.Vector4{1, -2, 3, -4}
-    Swag.assert(!vec.isZero())
+    Swag.assert(not vec.isZero())
     vec.setZero()
     Swag.assert(vec.isZero())
     Swag.assert(vec.isZeroEpsilon())
-    Swag.assert(!Math.Vector4{0.01, 0, 0, 0}.isZeroEpsilon(0.001))
+    Swag.assert(not Math.Vector4{0.01, 0, 0, 0}.isZeroEpsilon(0.001))
 
     vec = Math.Vector4{1, -2, 3, -4}
     vec.negate()
     expectVec4(vec, Math.Vector4{-1, 2, -3, 4})
     Swag.assert(Math.Vector4{1, 1, 1, 1}.isEqualEpsilon(Math.Vector4{1.00001, 0.99999, 1.00002, 0.99998}, 0.001))
-    Swag.assert(!Math.Vector4{1, 1, 1, 1}.isEqualEpsilon(Math.Vector4{1.01, 1, 1, 1}, 0.001))
+    Swag.assert(not Math.Vector4{1, 1, 1, 1}.isEqualEpsilon(Math.Vector4{1.01, 1, 1, 1}, 0.001))
 }
 
 #test
@@ -613,9 +613,9 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec4(Math.Vector4{2, -3, 4, -5}.reflected(Math.Vector4{0, 1, 0, 0}), Math.Vector4{2, 3, 4, -5})
     expectVec4(Math.Vector4{2, -4, 6, -8}.sign(), Math.Vector4{1, -1, 1, -1})
     Swag.assert(vec.isFinite())
-    Swag.assert(!Math.Vector4{Swag.F32.Inf, 0, 0, 0}.isFinite())
+    Swag.assert(not Math.Vector4{Swag.F32.Inf, 0, 0, 0}.isFinite())
     Swag.assert(Math.Vector4{Swag.F32.NaN, 0, 0, 0}.isNaN())
-    Swag.assert(!vec.isNaN())
+    Swag.assert(not vec.isNaN())
 
     var absVec = vec
     absVec.makeAbsolute()

@@ -26,7 +26,7 @@ func eatCount(str: string, count: u64)->string
 func eatSpaces(str: string)->string
 {
     let countof = str.count
-    if !countof do
+    if not countof do
         return str
 
     var cpt = 0'u64
@@ -42,7 +42,7 @@ func splitLines(src: string)->Array'(string)
 {
     var result: retval
     let countof = src.count
-    if !countof do
+    if not countof do
         return result
 
     var dataof = src.buffer
@@ -69,7 +69,7 @@ func splitLines(src: string)->Array'(string)
 
 private func addSplitPart(result: *Array'(string), value: string, removeEmpty: bool)
 {
-    if removeEmpty and !value.count do
+    if removeEmpty and not value.count do
         return
     result.add(value)
 }
@@ -81,13 +81,13 @@ func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->A
 {
     let countof = src.count
     var result: retval
-    if !countof do
+    if not countof do
         return result
 
     var startbyteIdx: u64
     var splitCount:   u32
 
-    while startbyteIdx != countof and (!maxSplit or splitCount != maxSplit)
+    while startbyteIdx != countof and (not maxSplit or splitCount != maxSplit)
     {
         var endbyteIdx = startbyteIdx
         while endbyteIdx != countof and src[endbyteIdx] != separator do
@@ -110,13 +110,13 @@ func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->A
 // All strings will be invalid if 'src' String is destroyed
 func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true)->Array'(string)
 {
-    let countof          = src.count
+    let countof = src.count
     let separatorCountof = separator.count
 
     var result: retval
-    if !countof do
+    if not countof do
         return result
-    if !separatorCountof
+    if not separatorCountof
     {
         addSplitPart(&result, src, removeEmpty)
         return result
@@ -125,7 +125,7 @@ func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true
     var startbyteIdx: u64
     var splitCount:   u32
 
-    while startbyteIdx != countof and (!maxSplit or splitCount != maxSplit)
+    while startbyteIdx != countof and (not maxSplit or splitCount != maxSplit)
     {
         var endbyteIdx = startbyteIdx
         while endbyteIdx != countof
@@ -163,14 +163,14 @@ func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, remov
     let countof = src.count
 
     var result: retval
-    if !countof do
+    if not countof do
         return result
 
-    var c:                 rune
+    var c: rune
     var startbyteIdx, eat: u64
     var splitCount:        u32
 
-    while startbyteIdx != countof and (!maxSplit or splitCount != maxSplit)
+    while startbyteIdx != countof and (not maxSplit or splitCount != maxSplit)
     {
         var endbyteIdx = startbyteIdx
         while endbyteIdx != countof
@@ -198,7 +198,7 @@ func prefixToWhitespace(str: string)->string
 {
     let countof = str.count
     var cpt     = 0'u64
-    while cpt < countof and !Latin1.isSpace(str[cpt]) do
+    while cpt < countof and not Latin1.isSpace(str[cpt]) do
         cpt += 1
     return Swag.makeString(str.buffer, cpt)
 }

@@ -43,14 +43,14 @@ impl Direction
     let d = Direction.North
     Swag.assert(Direction.opposite(d) == Direction.South)
     Swag.assert(Direction.isVertical(d))
-    Swag.assert(!Direction.isHorizontal(d))
+    Swag.assert(not Direction.isHorizontal(d))
 }
 
 #test
 {
     let d = Direction.East
     Swag.assert(Direction.opposite(d) == Direction.West)
-    Swag.assert(!Direction.isVertical(d))
+    Swag.assert(not Direction.isVertical(d))
     Swag.assert(Direction.isHorizontal(d))
 }
 
@@ -61,7 +61,7 @@ impl Direction
     Swag.assert(opposite(South) == North)
     Swag.assert(opposite(West) == East)
     Swag.assert(isVertical(North))
-    Swag.assert(!isVertical(East))
+    Swag.assert(not isVertical(East))
 }
 
 // Round-trip.
@@ -88,10 +88,10 @@ impl Priority
 
 #test
 {
-    Swag.assert(!Priority.isUrgent(Priority.Medium))
+    Swag.assert(not Priority.isUrgent(Priority.Medium))
     Swag.assert(Priority.isUrgent(Priority.High))
     Swag.assert(Priority.isLow(Priority.Low))
-    Swag.assert(!Priority.isLow(Priority.High))
+    Swag.assert(not Priority.isLow(Priority.High))
     let p = Priority.Low
     Swag.assert(p.isLow() == true)
 }

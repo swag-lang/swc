@@ -41,7 +41,7 @@ namespace ClosureGenericCallbackSupport
     {
         for v in values
         {
-            if !cb(v) do
+            if not cb(v) do
                 return false
         }
 

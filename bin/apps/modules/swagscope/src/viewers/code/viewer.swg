@@ -4,7 +4,7 @@ using Core, Pixel, Gui
 
 private func codePluginProbe(content: Viewer.ProbeContent)->bool
 {
-    return !content.claimed and codeShebang(cast(string) content.head).found
+    return not content.claimed and codeShebang(cast(string) content.head).found
 }
 
 // Describes the source-code viewer to the host.
@@ -69,7 +69,7 @@ internal impl CodeViewer
 
     mtd needsMore()->bool
     {
-        if !.hasMore() do
+        if not .hasMore() do
             return false
         if .pauseStreaming do
             return false
@@ -83,9 +83,9 @@ internal impl CodeViewer
     mtd updateEstimatedHeight()
     {
         let consumed = .bytesRead - .residentStart
-        if !consumed do
+        if not consumed do
             return
-        if .bytesRead >= .fileSize and !.residentStart
+        if .bytesRead >= .fileSize and not .residentStart
         {
             .editor.setEstimatedDocumentHeight(0)
             return
@@ -94,7 +94,7 @@ internal impl CodeViewer
         let loadedHeight = .editor.loadedDocumentHeight()
         if loadedHeight <= 0
         {
-            if .repositioning or !.residentStart do
+            if .repositioning or not .residentStart do
                 .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
             if .virtualHeight > 0 do
                 .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
@@ -102,14 +102,14 @@ internal impl CodeViewer
         }
 
         .virtualHeight = Math.max(.virtualHeight, loadedHeight * cast(f32) .fileSize / cast(f32) consumed, loadedHeight)
-        if .repositioning or !.residentStart do
+        if .repositioning or not .residentStart do
             .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
         .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
     }
 
     mtd scheduleMore()
     {
-        if .loadTimer or (!.pendingSeek and !.needsMore()) do
+        if .loadTimer or (not .pendingSeek and not .needsMore()) do
             return
         .loadTimer = .addTimer(8'ms)
     }
@@ -129,7 +129,7 @@ internal impl CodeViewer
     {
         .stream.close()
         .bytesRead = .fileSize
-        if !.residentStart do
+        if not .residentStart do
             .editor.setEstimatedDocumentHeight(0)
     }
 
@@ -148,7 +148,7 @@ internal impl CodeViewer
     {
         if .bytesRead - .residentStart >= CodeResidentWindowSize do
             return
-        if !.hasMore() do
+        if not .hasMore() do
             return
 
         let oldPosition = .editor.scrollPosition()
@@ -178,7 +178,7 @@ internal impl CodeViewer
         .hasText = true
         .updateEstimatedHeight()
         .editor.setScrollPosition(oldPosition)
-        if !.hasMore() do
+        if not .hasMore() do
             .finishLoading()
     }
 
@@ -209,7 +209,7 @@ internal impl CodeViewer
             .editor.setText(chunk.toString())
             let position = catch .stream.position() as positionError
             .bytesRead     = positionError == null ? position : actual + chunk.length
-            .hasText       = !chunk.isEmpty()
+            .hasText       = not chunk.isEmpty()
             .virtualHeight = previousHeight
             .updateEstimatedHeight()
             if text.count do
@@ -234,7 +234,7 @@ internal impl CodeViewer
 
     mtd showZoomMenu()
     {
-        if !.zoomLabel do
+        if not .zoomLabel do
             return
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem("75%", "scope.code.zoom75")
@@ -324,7 +324,7 @@ internal impl CodeViewer
                 // the timer was delayed. Ordinary prefetch still runs on the short timer.
                 if outside and Math.abs(newPosition.y - oldPosition.y) <= viewport.height
                 {
-                    if !before and !after and view.needsMore()
+                    if not before and not after and view.needsMore()
                     {
                         view.pendingSeek = false
                         view.loadNextChunk()
@@ -413,7 +413,7 @@ internal impl CodeViewer
             else
             {
                 result.fileSize = size
-                if !size do
+                if not size do
                     result.finishLoading()
                 else do
                     result.loadNextChunk()
@@ -471,7 +471,7 @@ internal impl IWnd for CodeViewer
 func createCodeViewer(host: Viewer.Host)
 {
     let view = CodeViewer.create(host.contentParent(), host.fileName(), host.services().reportFailure, host.createInfoGroup(ViewerZoomSlotWidth))
-    if !view.failureReason.isEmpty()
+    if not view.failureReason.isEmpty()
     {
         host.reject(view.failureReason.toString())
         view.destroy()

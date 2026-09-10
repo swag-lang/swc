@@ -4,7 +4,7 @@
 #foreignlib("opengl32")
 using Swag, Core, Win32, Gdi32
 
-alias HGLRC               = const *void?
+alias HGLRC = const *void?
 alias getExtensionAddress = wglGetProcAddress
 
 #[Foreign("opengl32", callconv: Swag.CallConv.C)]
@@ -29,14 +29,14 @@ internal namespace PrivOgl
     func wglCreateContext(hDc: HDC)->HGLRC fail
     {
         let res = PrivOgl.wglCreateContext(hDc)
-        if !res do
+        if not res do
             failWinError(GetLastError())
         return res
     }
 
     func wglDeleteContext(hRc: HGLRC) fail
     {
-        if !PrivOgl.wglDeleteContext(hRc) do
+        if not PrivOgl.wglDeleteContext(hRc) do
             failWinError(GetLastError())
     }
 
@@ -44,13 +44,13 @@ internal namespace PrivOgl
 
     func wglMakeCurrent(hDc: HDC, hRc: HGLRC) fail
     {
-        if !PrivOgl.wglMakeCurrent(hDc, hRc) do
+        if not PrivOgl.wglMakeCurrent(hDc, hRc) do
             failWinError(GetLastError())
     }
 
     func wglShareLists(hRc0, hRc1: HGLRC) fail
     {
-        if !PrivOgl.wglShareLists(hRc0, hRc1) do
+        if not PrivOgl.wglShareLists(hRc0, hRc1) do
             failWinError(GetLastError())
     }
 }

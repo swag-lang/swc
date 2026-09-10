@@ -38,7 +38,7 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
     let formats:    [6] PixelFormat      = [.RGB8, .RGBA8, .BGRA8, .Gray8, .RGBA16, .RGBAF32]
     let modes:      [7] Image.ResizeMode = [.Bilinear, .Bicubic, .Gaussian, .Quadratic, .Hermite, .Hamming, .CatmullRom]
     let dimensions: [6] [2] s32          = [[31, 33], [32, 32], [33, 33], [1, 1031], [1031, 1], [97, 71]]
-    var pattern                          = Image.create(67, 69, .RGBA8)
+    var pattern = Image.create(67, 69, .RGBA8)
     for index in pattern.byteCount do
         pattern.pixels[index] = cast(u8) ((index * 47 + index / 13 + 29) & 0xFF)
     for format in formats

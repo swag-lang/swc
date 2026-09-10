@@ -111,7 +111,7 @@ struct PtrWrap
     var h: Holder = {count: 5, flags: {a: true, b: false}}
     Swag.assert(h.count == 5)
     Swag.assert(h.flags.a)
-    Swag.assert(!h.flags.b)
+    Swag.assert(not h.flags.b)
 }
 
 #test
@@ -132,12 +132,12 @@ struct PtrWrap
     ph[] = {count: 9, flags: {a: true, b: false}}
     Swag.assert(h.count == 9)
     Swag.assert(h.flags.a)
-    Swag.assert(!h.flags.b)
+    Swag.assert(not h.flags.b)
 }
 
 #test
 {
-    var v             = 123's32
+    var v = 123's32
     var wrap: PtrWrap = {value: &v}
     Swag.assert(wrap.value[] == 123)
     wrap.value[] = 321

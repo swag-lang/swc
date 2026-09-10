@@ -162,9 +162,9 @@ using Swag, Core
 
     Swag.assert(expect hasVariationSequence(&faceData, 0x41, 0xFE0E))
     Swag.assert(expect hasVariationSequence(&faceData, 0x43, 0xFE0E))
-    Swag.assert(!expect hasVariationSequence(&faceData, 0x44, 0xFE0E))
+    Swag.assert(not expect hasVariationSequence(&faceData, 0x44, 0xFE0E))
     Swag.assert(expect hasVariationSequence(&faceData, 0x42, 0xFE0F))
-    Swag.assert(!expect hasVariationSequence(&faceData, 0x41, 0xFF01))
+    Swag.assert(not expect hasVariationSequence(&faceData, 0x41, 0xFF01))
 }
 
 // A face declaring no variation sequence ignores the selector rather than losing
@@ -175,7 +175,7 @@ using Swag, Core
     scope.init("arial.ttf")
     let face = scope.face!
 
-    Swag.assert(!face.hasVariant('A', 0xFE0F))
+    Swag.assert(not face.hasVariant('A', 0xFE0F))
     Swag.assert(face.glyphIndexVariant('A', 0xFE0F) == face.glyphIndex('A'))
     Swag.assert(face.glyphIndexVariant('A', 0xFE0F) > 0)
 }

@@ -24,7 +24,7 @@ impl MyStruct
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, doubled: s32, index: u64))
-        where !ptr
+        where not ptr
     {
         for index in 3
         {
@@ -75,7 +75,7 @@ impl ReversedMyStruct
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
-        where !ptr
+        where not ptr
     {
         #inject(stmt, item = me.source.z, index = 2'u64)
         #inject(stmt, item = me.source.y, index = 1'u64)

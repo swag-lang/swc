@@ -231,7 +231,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     var comboPoint = combo.surfaceRect().center()
     combo.surface!.surfaceToScreen(&comboPoint)
     host.mouseDown(comboPoint)
-    Swag.assert(combo.hasFocus() and !combo.hasVisibleFocus())
+    Swag.assert(combo.hasFocus() and not combo.hasVisibleFocus())
     Swag.assert(combo.popup != null)
 
     host.keyPress(Input.Key.Escape)

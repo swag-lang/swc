@@ -194,12 +194,12 @@ func freeOne(itf: IAllocator, address: *void?)
     let address = allocOne(itf, 64)!
     let page    = allocatorPageOf(cast(u64) address)!
     Swag.assert(page.isBlockAddress(cast(u64) address))
-    Swag.assert(!page.isBlockAddress(cast(u64) address + 1))
-    Swag.assert(!page.isBlockAddress(cast(u64) address + 8))
-    Swag.assert(!page.isBlockAddress(cast(u64) address + page.blockSize - 8))
+    Swag.assert(not page.isBlockAddress(cast(u64) address + 1))
+    Swag.assert(not page.isBlockAddress(cast(u64) address + 8))
+    Swag.assert(not page.isBlockAddress(cast(u64) address + page.blockSize - 8))
     Swag.assert(page.isBlockAddress(cast(u64) address + page.blockSize))
-    Swag.assert(!page.isBlockAddress(page.areaStart - 8))
-    Swag.assert(!page.isBlockAddress(page.areaEnd))
+    Swag.assert(not page.isBlockAddress(page.areaStart - 8))
+    Swag.assert(not page.isBlockAddress(page.areaEnd))
 
     freeOne(itf, address)
     alloc.releaseAll()
@@ -218,18 +218,18 @@ func freeOne(itf: IAllocator, address: *void?)
     let gone = allocOne(itf, 96)!
     let page = allocatorPageOf(cast(u64) live)!
 
-    Swag.assert(!page.holdsFreeBlock(cast(u64) live))
-    Swag.assert(!page.holdsFreeBlock(cast(u64) gone))
+    Swag.assert(not page.holdsFreeBlock(cast(u64) live))
+    Swag.assert(not page.holdsFreeBlock(cast(u64) gone))
 
     freeOne(itf, gone)
     Swag.assert(page.holdsFreeBlock(cast(u64) gone))
-    Swag.assert(!page.holdsFreeBlock(cast(u64) live))
+    Swag.assert(not page.holdsFreeBlock(cast(u64) live))
     Swag.assert(page.isBlockAddress(cast(u64) gone))
 
     // Handing it back out takes it off the list again.
     let again = allocOne(itf, 96)!
     Swag.assert(again == gone)
-    Swag.assert(!page.holdsFreeBlock(cast(u64) again))
+    Swag.assert(not page.holdsFreeBlock(cast(u64) again))
 
     freeOne(itf, live)
     freeOne(itf, again)
@@ -471,9 +471,9 @@ func freeOne(itf: IAllocator, address: *void?)
 {
     namespace Th
     {
-        alias HANDLE                 = *void
-        alias DWORD                  = u32
-        alias SIZE_T                 = u64
+        alias HANDLE = *void
+        alias DWORD  = u32
+        alias SIZE_T = u64
         alias LPTHREAD_START_ROUTINE = func(*void)->DWORD
 
         const INFINITE = 0xFFFF_FFFF'u32

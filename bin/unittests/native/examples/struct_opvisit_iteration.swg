@@ -21,7 +21,7 @@ impl ReversedShelfBins
 {
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
-        where !ptr
+        where not ptr
     {
         #inject(stmt, item = .source.evening, index = 3'u64)
         #inject(stmt, item = .source.afternoon, index = 2'u64)
@@ -69,7 +69,7 @@ impl ShelfBins
 
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
-        where !ptr
+        where not ptr
     {
 
         for idx in 4

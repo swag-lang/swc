@@ -43,7 +43,7 @@ impl ManagedResult
 #[Swag.NoInline]
 func makeManagedResult(succeed: bool)->ManagedResult fail
 {
-    if !succeed do
+    if not succeed do
         fail Swag.BaseError{"expected failure"}
 
     var result: retval

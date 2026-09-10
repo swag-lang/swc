@@ -7,7 +7,7 @@ using Swag
 #[ConstExpr]
 func isNamedStruct(type: typeinfo?, name: string?)->bool
 {
-    if !isStruct(type) do
+    if not isStruct(type) do
         return false
 
     let typeStruct = cast(const *TypeInfoStruct) type!
@@ -19,7 +19,7 @@ func isNamedStruct(type: typeinfo?, name: string?)->bool
 #[ConstExpr]
 func findMethod(type: typeinfo?, name: string?)->const *TypeValue?
 {
-    if !isStruct(type) do
+    if not isStruct(type) do
         return null
 
     let typeStruct = cast(const *TypeInfoStruct) type!
@@ -33,7 +33,7 @@ func findMethod(type: typeinfo?, name: string?)->const *TypeValue?
 #[ConstExpr]
 func findField(type: typeinfo?, name: string?)->const *TypeValue?
 {
-    if !isStruct(type) do
+    if not isStruct(type) do
         return null
 
     let typeStruct = cast(const *TypeInfoStruct) type!
@@ -56,11 +56,11 @@ func fieldCrc(type: typeinfo, name: string)->u32
 #[ConstExpr]
 func readFieldValue(destination: *void?, field: const *TypeValue?, source: *void?)
 {
-    if !destination or !field or !source do
+    if not destination or not field or not source do
         return
 
     let fieldType = field.pointedType
-    if !fieldType do
+    if not fieldType do
         return
     Reflection.assign(destination, cast([*] u8) source + field.offset, fieldType)
 }
@@ -69,11 +69,11 @@ func readFieldValue(destination: *void?, field: const *TypeValue?, source: *void
 #[ConstExpr]
 func writeFieldValue(destination: *void?, field: const *TypeValue?, source: const *void?)
 {
-    if !destination or !field or !source do
+    if not destination or not field or not source do
         return
 
     let fieldType = field.pointedType
-    if !fieldType do
+    if not fieldType do
         return
     Reflection.assign(cast([*] u8) destination + field.offset, source, fieldType)
 }
@@ -86,7 +86,7 @@ func hasMethod(type: typeinfo?, name: string?)->bool => findMethod(type, name) !
 #[ConstExpr]
 func canCompare(type: typeinfo?)->bool
 {
-    if !type do
+    if not type do
         return false
 
     let nnType = type
@@ -136,7 +136,7 @@ func canCompare(type: typeinfo?)->bool
     // Returns whether pod.
     func isPod(type: typeinfo?)->bool
     {
-        if !type do
+        if not type do
             return false
         return type.flags & (TypeInfoFlags.HasDrop | TypeInfoFlags.HasPostMove | TypeInfoFlags.HasPostCopy) ? false : true
     }
@@ -146,7 +146,7 @@ func canCompare(type: typeinfo?)->bool
 #[ConstExpr]
 func hasInterface(type: typeinfo?, itf: typeinfo)->bool
 {
-    if !isStruct(type) do
+    if not isStruct(type) do
         return false
 
     let typeStruct = cast(const *TypeInfoStruct) type!

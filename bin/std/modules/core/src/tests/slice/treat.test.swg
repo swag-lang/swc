@@ -11,7 +11,7 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
 #test
 {
     var values: [4] s32 = [1, 2, 3, 4]
-    let bias            = 10
+    let bias = 10
 
     Slice.forEachMutable(values, func|bias|(it: *s32) { it[] += bias })
     Swag.assert(sameValues(values, [11, 12, 13, 14]))
@@ -48,19 +48,19 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
 #test
 {
     let values: [4] s32 = [2, 4, 6, 8]
-    let empty           = Swag.makeSlice(values.buffer, 0)
+    let empty = Swag.makeSlice(values.buffer, 0)
 
     Swag.assert(Slice.allOf(values, func(value: s32)->bool { return value % 2 == 0 }))
-    Swag.assert(!Slice.allOf(values, func(value: s32)->bool { return value < 8 }))
+    Swag.assert(not Slice.allOf(values, func(value: s32)->bool { return value < 8 }))
 
     Swag.assert(Slice.anyOf(values, func(value: s32)->bool { return value == 6 }))
-    Swag.assert(!Slice.anyOf(values, func(value: s32)->bool { return value == 5 }))
+    Swag.assert(not Slice.anyOf(values, func(value: s32)->bool { return value == 5 }))
 
     Swag.assert(Slice.noneOf(values, func(value: s32)->bool { return value < 0 }))
-    Swag.assert(!Slice.noneOf(values, func(value: s32)->bool { return value == 4 }))
+    Swag.assert(not Slice.noneOf(values, func(value: s32)->bool { return value == 4 }))
 
     Swag.assert(Slice.allOf(empty, func(value: s32)->bool { return false }))
-    Swag.assert(!Slice.anyOf(empty, func(value: s32)->bool { return true }))
+    Swag.assert(not Slice.anyOf(empty, func(value: s32)->bool { return true }))
     Swag.assert(Slice.noneOf(empty, func(value: s32)->bool { return true }))
 }
 
@@ -90,6 +90,6 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
     Swag.assert(sameValues(values, [3, 1, 2]))
     Swag.assert(Slice.nextPermutation(values))
     Swag.assert(sameValues(values, [3, 2, 1]))
-    Swag.assert(!Slice.nextPermutation(values))
+    Swag.assert(not Slice.nextPermutation(values))
     Swag.assert(sameValues(values, [3, 2, 1]))
 }

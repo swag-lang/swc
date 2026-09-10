@@ -42,7 +42,7 @@ impl PeLayout
     // Returns the file offset an address holds its bytes at, or `Swag.U64.Max` when nothing does.
     mtd const offsetOf(rva: u32)->u64
     {
-        if !rva do
+        if not rva do
             return Swag.U64.Max
 
         for section in .sections
@@ -204,7 +204,7 @@ func peSectionFlagsText(value: u32)->String
     let align  = (value >> 20) & 0xF
     if align
     {
-        if !result.isEmpty() do
+        if not result.isEmpty() do
             result += " | "
         let text = Format.toString("ALIGN_%_BYTES", 1'u32 << (align - 1))
         result += text.toString()
@@ -285,7 +285,7 @@ func peResourceTypeName(value: u32)->string
 // Returns whether the file begins with a DOS header that leads to a PE signature.
 func isPeImage(image: *BinaryImage)->bool
 {
-    if !image.matches(0, "MZ") do
+    if not image.matches(0, "MZ") do
         return false
     let peOffset = cast(u64) image.u32At(PeLfanewOffset)
     return image.matches(peOffset, "PE\0\0")
@@ -402,7 +402,7 @@ private func reportPeDosHeader(image: *BinaryImage, report: *BinaryReport, peOff
     // The stub is the program a DOS box would have run, and in every modern image it exists only to
     // print one sentence. That sentence is the readable part, so it is what the report shows.
     let stub = peDosStubText(image, peOffset)
-    if !stub.isEmpty() do
+    if not stub.isEmpty() do
         report.field(64, peOffset > 64 ? peOffset - 64 : 0, s.pe_DosStub, stub.toString(), s.pe_DosStubDesc)
     report.endGroup()
 }
@@ -538,7 +538,7 @@ private func reportPeFileHeader(image: *BinaryImage, report: *BinaryReport, at: 
 private func reportPeOptionalHeader(image: *BinaryImage, report: *BinaryReport, at, size: u64, layout: *PeLayout)
 {
     let s = binStrings()
-    if !size
+    if not size
     {
         report.note(s.pe_NoOptional)
         return
@@ -560,7 +560,7 @@ private func reportPeOptionalHeader(image: *BinaryImage, report: *BinaryReport, 
     report.hexField(at + 16, 4, "AddressOfEntryPoint", cast(u64) entry, entry ? "" : s.pe_NoEntry)
     report.hexField(at + 20, 4, "BaseOfCode", cast(u64) image.u32At(at + 20))
 
-    if !layout.is64
+    if not layout.is64
     {
         report.hexField(at + 24, 4, "BaseOfData", cast(u64) image.u32At(at + 24))
         layout.imageBase = cast(u64) image.u32At(at + 28)
@@ -697,7 +697,7 @@ private func peDirectory(image: *BinaryImage, layout: *PeLayout, index: u64)->{ 
 private func reportPeExports(image: *BinaryImage, report: *BinaryReport, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 0)
-    if !rva do
+    if not rva do
         return
 
     let s  = binStrings()
@@ -759,12 +759,12 @@ private func reportPeExports(image: *BinaryImage, report: *BinaryReport, layout:
     }
 
     var anonymous = 0'u64
-    for index in Math.min(funcCount, BinaryListLimit) where !named.contains(cast(u32) index)
+    for index in Math.min(funcCount, BinaryListLimit) where not named.contains(cast(u32) index)
     {
         let address = image.u32At(funcAt + index * 4)
-        if !address do
+        if not address do
             continue
-        if !anonymous do
+        if not anonymous do
             report.beginGroup(s.pe_ByOrdinal, "", s.pe_ByOrdinalDesc)
 
         anonymous += 1
@@ -783,7 +783,7 @@ private func reportPeExports(image: *BinaryImage, report: *BinaryReport, layout:
 private func peExportTarget(image: *BinaryImage, layout: *PeLayout, target, directoryRva, directorySize: u32)->String
 {
     let s = binStrings()
-    if !target do
+    if not target do
         return String.from(s.pe_NotExported)
 
     // An address inside the export directory itself is not code: it is the name of the symbol
@@ -800,7 +800,7 @@ private func peExportTarget(image: *BinaryImage, layout: *PeLayout, target, dire
 private func reportPeImports(image: *BinaryImage, report: *BinaryReport, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 1)
-    if !rva do
+    if not rva do
         return
 
     let s  = binStrings()
@@ -817,9 +817,9 @@ private func reportPeImports(image: *BinaryImage, report: *BinaryReport, layout:
     while entries.count < BinaryListLimit
     {
         let entryAt = at + entries.count * 20
-        if !image.has(entryAt, 20) do
+        if not image.has(entryAt, 20) do
             break
-        if !image.u32At(entryAt) and !image.u32At(entryAt + 12) and !image.u32At(entryAt + 16) do
+        if not image.u32At(entryAt) and not image.u32At(entryAt + 12) and not image.u32At(entryAt + 16) do
             break
         entries.add(entryAt)
     }
@@ -907,7 +907,7 @@ private func reportPeThunks(image: *BinaryImage, report: *BinaryReport, layout: 
 private func reportPeDelayImports(image: *BinaryImage, report: *BinaryReport, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 13)
-    if !rva do
+    if not rva do
         return
 
     let at = layout.offsetOf(rva)
@@ -921,7 +921,7 @@ private func reportPeDelayImports(image: *BinaryImage, report: *BinaryReport, la
     while modules < BinaryListLimit
     {
         let entryAt = at + modules * 32
-        if !image.has(entryAt, 32) or !image.u32At(entryAt + 4) do
+        if not image.has(entryAt, 32) or not image.u32At(entryAt + 4) do
             break
 
         // The first delay-load format stored virtual addresses; the current one stores addresses
@@ -948,7 +948,7 @@ private func reportPeDelayImports(image: *BinaryImage, report: *BinaryReport, la
 private func reportPeResources(image: *BinaryImage, report: *BinaryReport, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 2)
-    if !rva do
+    if not rva do
         return
 
     let s  = binStrings()
@@ -968,7 +968,7 @@ private func reportPeResources(image: *BinaryImage, report: *BinaryReport, layou
 // Walks one level of the resource tree: types, then names, then languages.
 private func reportPeResourceLevel(image: *BinaryImage, report: *BinaryReport, layout: *PeLayout, base, at: u64, depth: u32)
 {
-    if depth > 2 or !image.has(at, 16) do
+    if depth > 2 or not image.has(at, 16) do
         return
 
     let s        = binStrings()
@@ -1018,7 +1018,7 @@ private func peResourceLabel(image: *BinaryImage, base: u64, nameId: u32, depth:
         return text
     }
 
-    if !depth
+    if not depth
     {
         let standard = peResourceTypeName(nameId)
         if standard.count do
@@ -1046,7 +1046,7 @@ private func reportPeVersionResource(image: *BinaryImage, report: *BinaryReport,
     let s           = binStrings()
     let valueLength = cast(u64) image.u16At(dataAt + 2)
     let fixedAt     = peAlign4(dataAt + 6 + 32, dataAt)
-    if !valueLength or image.u32At(fixedAt) != 0xFEEF04BD
+    if not valueLength or image.u32At(fixedAt) != 0xFEEF04BD
     {
         report.note(s.pe_VersionMissing)
         return
@@ -1103,7 +1103,7 @@ private func reportPeVersionStrings(image: *BinaryImage, report: *BinaryReport, 
                     let name    = image.wideTextAt(pairAt + 6, 128)
                     let valueAt = peAlign4(pairAt + 6 + (name.length + 1) * 2, blockAt)
                     let value   = image.wideTextAt(valueAt, Math.min(cast(u64) image.u16At(pairAt + 2), 512'u64))
-                    if !name.isEmpty()
+                    if not name.isEmpty()
                     {
                         report.field(pairAt, pairLength, name.toString(), value.toString(), language.toString())
                         written += 1
@@ -1160,7 +1160,7 @@ private func peVersionFileTypeName(value: u32)->string
 // Returns the file offset of the first leaf of resource type `wanted`.
 private func peFindResourceData(image: *BinaryImage, layout: *PeLayout, base: u64, wanted: u32)->u64
 {
-    if !image.has(base, 16) do
+    if not image.has(base, 16) do
         return Swag.U64.Max
 
     let typeCount = cast(u64) image.u16At(base + 12) + cast(u64) image.u16At(base + 14)
@@ -1171,19 +1171,19 @@ private func peFindResourceData(image: *BinaryImage, layout: *PeLayout, base: u6
             continue
 
         let nameDir = image.u32At(entryAt + 4)
-        if !(nameDir & 0x80000000) do
+        if not (nameDir & 0x80000000) do
             return Swag.U64.Max
 
         let nameAt = base + cast(u64) (nameDir & 0x7FFFFFFF)
-        if !image.has(nameAt, 24) do
+        if not image.has(nameAt, 24) do
             return Swag.U64.Max
 
         let langDir = image.u32At(nameAt + 20)
-        if !(langDir & 0x80000000) do
+        if not (langDir & 0x80000000) do
             return Swag.U64.Max
 
         let langAt = base + cast(u64) (langDir & 0x7FFFFFFF)
-        if !image.has(langAt, 24) do
+        if not image.has(langAt, 24) do
             return Swag.U64.Max
 
         let leafAt = base + cast(u64) image.u32At(langAt + 20)
@@ -1196,7 +1196,7 @@ private func peFindResourceData(image: *BinaryImage, layout: *PeLayout, base: u6
 private func reportPeDebug(image: *BinaryImage, report: *BinaryReport, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 6)
-    if !rva do
+    if not rva do
         return
 
     let at = layout.offsetOf(rva)
@@ -1247,7 +1247,7 @@ private func reportPeDebug(image: *BinaryImage, report: *BinaryReport, layout: *
 private func reportPeExceptions(image: *BinaryImage, report: *BinaryReport, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 3)
-    if !rva do
+    if not rva do
         return
 
     let at = layout.offsetOf(rva)
@@ -1267,7 +1267,7 @@ private func reportPeExceptions(image: *BinaryImage, report: *BinaryReport, layo
 private func reportPeRelocations(image: *BinaryImage, report: *BinaryReport, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 5)
-    if !rva do
+    if not rva do
         return
 
     let at = layout.offsetOf(rva)
@@ -1303,7 +1303,7 @@ private func reportPeRelocations(image: *BinaryImage, report: *BinaryReport, lay
 private func reportPeTls(image: *BinaryImage, report: *BinaryReport, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 9)
-    if !rva do
+    if not rva do
         return
 
     let at = layout.offsetOf(rva)
@@ -1324,7 +1324,7 @@ private func reportPeTls(image: *BinaryImage, report: *BinaryReport, layout: *Pe
 private func reportPeLoadConfig(image: *BinaryImage, report: *BinaryReport, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 10)
-    if !rva do
+    if not rva do
         return
 
     let at = layout.offsetOf(rva)
@@ -1380,7 +1380,7 @@ private func peGuardFlagsText(value: u32)->String
 private func reportPeClr(image: *BinaryImage, report: *BinaryReport, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 14)
-    if !rva do
+    if not rva do
         return
 
     let at = layout.offsetOf(rva)
@@ -1428,7 +1428,7 @@ private func peClrFlagsText(value: u32)->String
 private func reportPeCertificates(image: *BinaryImage, report: *BinaryReport, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 4)
-    if !rva or !size do
+    if not rva or not size do
         return
 
     let s      = binStrings()
@@ -1453,7 +1453,7 @@ private func reportPeCertificates(image: *BinaryImage, report: *BinaryReport, la
         scan  += (length + 7) & ~7'u64
     }
 
-    if !count do
+    if not count do
         report.note(s.pe_CertificateNo)
     report.endGroup()
 }
@@ -1482,7 +1482,7 @@ private func peStringAt(image: *BinaryImage, layout: *PeLayout, rva: u32)->Strin
 // Adds the symbols of a COFF object, which is the only part of it a linker actually matches on.
 private func reportCoffSymbols(image: *BinaryImage, report: *BinaryReport, at, count: u64)
 {
-    if !at or !count do
+    if not at or not count do
         return
 
     // The string table sits right after the symbols and opens with its own total size, which is how
@@ -1501,7 +1501,7 @@ private func reportCoffSymbols(image: *BinaryImage, report: *BinaryReport, at, c
     {
         let entryAt = at + index * PeSymbolSize
         var name    = image.fixedTextAt(entryAt, 8)
-        if !image.u32At(entryAt) do
+        if not image.u32At(entryAt) do
             name = image.cstringAt(stringsAt + cast(u64) image.u32At(entryAt + 4))
 
         let section = cast #bit (s16) image.u16At(entryAt + 12)

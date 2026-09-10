@@ -135,7 +135,7 @@ impl ViewerReadingState
     // Wait for the initial viewport, apply the saved position once, then let streaming settle.
     mtd restore(session: *ViewerSession)->bool
     {
-        if !session.view do
+        if not session.view do
             return true
         if session.isLoading and session.isLoading!(session.view!) do
             return false
@@ -203,6 +203,6 @@ impl ViewerReadingState
             }
         }
 
-        return !session.isLoading or !session.isLoading!(session.view!)
+        return not session.isLoading or not session.isLoading!(session.view!)
     }
 }

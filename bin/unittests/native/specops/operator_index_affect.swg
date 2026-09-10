@@ -93,7 +93,7 @@ impl RuntimeMultiIndexSetBox
     #[Swag.NoInline]
     mtd opIndexSet(row: s32, col: s32, value: s32)
     {
-        .writes                += 1
+        .writes += 1
         .values[row * 2 + col] = value
     }
 }

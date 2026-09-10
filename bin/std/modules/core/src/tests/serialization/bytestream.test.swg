@@ -24,7 +24,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     var stream = ByteStream.openRead(input)
     Swag.assert(stream.length() == 4)
     Swag.assert(stream.position() == 0)
-    Swag.assert(!stream.isEof())
+    Swag.assert(not stream.isEof())
     Swag.assert(stream.peekU8() == 0x10)
     Swag.assert(stream.readU8() == 0x10)
     Swag.assert(stream.position() == 1)
@@ -34,7 +34,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
     stream.advance(2)
     Swag.assert(stream.position() == 3)
-    Swag.assert(!stream.isEof())
+    Swag.assert(not stream.isEof())
     Swag.assert(stream.readU8() == 0x40)
     Swag.assert(stream.position() == 4)
     Swag.assert(stream.isEof())
@@ -52,7 +52,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     Swag.assert(assertBytes(buffer.toSlice(), [0xAB, 0xCD, 0xEF]))
 
     stream.setPosition(0)
-    Swag.assert(!stream.isEof())
+    Swag.assert(not stream.isEof())
     Swag.assert(stream.peekU8() == 0xAB)
     Swag.assert(stream.readU8() == 0xAB)
     Swag.assert(assertBytes(stream.remainingBytes()!, [0xCD, 0xEF]))
@@ -63,7 +63,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 #test
 {
     var buffer: Array'u8
-    var writer          = ByteStream.openWrite(&buffer)
+    var writer = ByteStream.openWrite(&buffer)
     let values: [7] u64 = [0, 1, 127, 128, 300, 0xFFFFFFFF, Swag.U64.Max]
     for v in values do
         writer.writeVarint(v)

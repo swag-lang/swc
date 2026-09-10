@@ -45,7 +45,7 @@ impl Node
     // Adds one mapping while preserving the canonical coalesced representation.
     mtd appendMapping(mapping: BlockMapping)
     {
-        if !mapping.count do
+        if not mapping.count do
             return
         if .blocks.count
         {
@@ -113,19 +113,19 @@ impl Node
         if runCount > blockCount do
             failWith("An entry declares more block runs than the container holds.", .Corrupted)
 
-        var mapped          = 0'u64
+        var mapped = 0'u64
         var previousLogical = 0'u64
         for runCount
         {
             let logical  = reader.readLittleEndian'u64()
             let physical = reader.readLittleEndian'u64()
             let count    = reader.readLittleEndian'u64()
-            if !count or physical >= blockCount or count > blockCount - physical or count > blockCount - mapped or logical > Swag.U64.Max - count or (result.blocks.count and logical < previousLogical) do
+            if not count or physical >= blockCount or count > blockCount - physical or count > blockCount - mapped or logical > Swag.U64.Max - count or (result.blocks.count and logical < previousLogical) do
                 failWith("A block run falls outside the container.", .Corrupted)
 
             result.appendMapping({logical, physical, count})
             previousLogical = logical + count
-            mapped          += count
+            mapped += count
         }
 
         if reader.isEof() do

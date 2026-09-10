@@ -65,7 +65,7 @@ func inlineRectanglePickDirect(a, b, c: InlineRectangle)->f32
 
     if a.opEquals(b) do
         result += 1
-    if !a.opEquals(c) do
+    if not a.opEquals(c) do
         result += 2
     if a.opCompare(c) < 0 do
         result += 4

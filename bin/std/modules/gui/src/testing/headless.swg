@@ -162,7 +162,7 @@ impl HeadlessHost
         // meanwhile is skipped rather than sent to.
         func send(wnd: *Wnd, kind: NotifyEvent.Kind)
         {
-            if !wnd.surface do
+            if not wnd.surface do
                 return
 
             // A theme change is not only an event: a style that carries a font or a sheet keeps a
@@ -182,7 +182,7 @@ impl HeadlessHost
             for c in children do
                 send(c, kind)
 
-            if !wnd.surface do
+            if not wnd.surface do
                 return
 
             wnd.surface!.app.sendBroadcastNotifyEvent(wnd, kind)
@@ -192,7 +192,7 @@ impl HeadlessHost
         // `Surface.setView` is reparented under it and is no longer a child of the host's root.
         // The root is still walked when nothing adopted it, which is the plain-tree case.
         send(&.surfaceWnd, kind)
-        if !.root.parent do
+        if not .root.parent do
             send(&.root, kind)
     }
 
@@ -218,7 +218,7 @@ impl HeadlessHost
         .app.toolTip.hide()
         .app.unregisterSurface(&.surface)
 
-        if !.root.isPendingDestroy do
+        if not .root.isPendingDestroy do
             .root.destroy()
         .pump()
         .surface.destroyRendering()
@@ -253,15 +253,15 @@ impl HeadlessHost
         case .PopupItem:    return .clickPopupMenuItem(stage.button)
         }
 
-        if !stage.file.isEmpty()
+        if not stage.file.isEmpty()
         {
-            if !.setModalFileSelection(stage.folder.toString(), stage.file.toString()) do
+            if not .setModalFileSelection(stage.folder.toString(), stage.file.toString()) do
                 return false
         }
 
         for &edit in stage.edits
         {
-            if !.setModalEditText(edit.label.toString(), edit.text.toString()) do
+            if not .setModalEditText(edit.label.toString(), edit.text.toString()) do
                 return false
         }
 
@@ -270,7 +270,7 @@ impl HeadlessHost
 
     private mtd driveAutoStages(app: *Application)
     {
-        if !.autoArmed do
+        if not .autoArmed do
             return
 
         .autoFrames += 1
@@ -280,12 +280,12 @@ impl HeadlessHost
         {
             func collectButtons(wnd: *Wnd, ids: *Array'String)
             {
-                if !wnd.isVisible() do
+                if not wnd.isVisible() do
                     return
                 if wnd.type == PushButton and wnd.id
                 {
                     let id = String.from(wnd.id!)
-                    if !ids.contains(id) do
+                    if not ids.contains(id) do
                         ids.add(id)
                 }
 
@@ -329,7 +329,7 @@ impl HeadlessHost
 
             if stage.kind == .ModalButton
             {
-                if !.autoSawModal do
+                if not .autoSawModal do
                     .autoFailure = Format.toString("modal did not appear while waiting for button '%'", stage.button)
                 elif .autoSawButton do
                     .autoFailure = Format.toString("modal preparation did not complete for button '%'", stage.button)
@@ -511,7 +511,7 @@ impl HeadlessHost
         {
             var surfacePt = pt
             surface.screenToSurface(&surfacePt)
-            if !surface.isMaximized and surface.wnd.hitTestBorders(surfacePt) != SizingBorder.None do
+            if not surface.isMaximized and surface.wnd.hitTestBorders(surfacePt) != SizingBorder.None do
                 return surface.wnd
             return surface.wnd.windowAt(surfacePt.x, surfacePt.y, true)
         }
@@ -608,7 +608,7 @@ impl HeadlessHost
         // A preceding callback may have destroyed this timer's target and flushed the timer
         // before a test reaches it in a snapshot. Establish ownership without dereferencing the
         // possibly stale pointer, just as Application.removeTimer does.
-        if !timer or !.app.ownsTimer(timer) do
+        if not timer or not .app.ownsTimer(timer) do
             return
         if timer.isPendingRemoval do
             return
@@ -734,7 +734,7 @@ impl HeadlessHost
                 break
         }
 
-        if !wnd do
+        if not wnd do
             return false
         .clickWnd(wnd)
         return .app.endModal
@@ -767,7 +767,7 @@ impl HeadlessHost
             return false
 
         let ctrl = .findEditCtrlByLabel(.app.modalSurfaces.back().wnd.view, label)
-        if !ctrl do
+        if not ctrl do
             return false
 
         ctrl.edit.setText(text)
@@ -806,11 +806,11 @@ impl HeadlessHost
                 break
         }
 
-        if !browser or !(browser.editFile != null) do
+        if not browser or not (browser.editFile != null) do
             return false
         if folder.count
         {
-            if !Directory.exists(folder) do
+            if not Directory.exists(folder) do
                 return false
             browser.setCurrentFolder(folder)
         }
@@ -823,7 +823,7 @@ impl HeadlessHost
     // Returns captured popup menu.
     mtd capturedPopupMenu()->*MenuCtrl?
     {
-        if !.app.mouseCaptureWnd or .app.mouseCaptureWnd.type != MenuCtrl do
+        if not .app.mouseCaptureWnd or .app.mouseCaptureWnd.type != MenuCtrl do
             return null
 
         let menu = cast(*MenuCtrl?) .app.mouseCaptureWnd
@@ -837,7 +837,7 @@ impl HeadlessHost
     mtd clickPopupMenuItem(id: WndId)->bool
     {
         let menu = .capturedPopupMenu()
-        if !menu do
+        if not menu do
             return false
 
         for itemIt in menu.items
@@ -864,7 +864,7 @@ impl HeadlessHost
     mtd moveToPopupMenuItem(label: string)->bool
     {
         let menu = .capturedPopupMenu()
-        if !menu do
+        if not menu do
             return false
 
         for itemIt in menu.items
@@ -891,10 +891,10 @@ impl HeadlessHost
     mtd openPopupSubMenu(label: string)->bool
     {
         let menu = .capturedPopupMenu()
-        if !menu do
+        if not menu do
             return false
 
-        if !.moveToPopupMenuItem(label) do
+        if not .moveToPopupMenuItem(label) do
             return false
 
         .pumpTimerQueues()
@@ -910,7 +910,7 @@ impl HeadlessHost
     mtd dismissPopupMenu()->bool
     {
         let menu = .capturedPopupMenu()
-        if !menu do
+        if not menu do
             return false
 
         let rect = menu.surfaceRect()
@@ -1010,7 +1010,7 @@ impl HeadlessHost
         .moveMouse(pt, modifiers)
 
         let target = .mouseTargetAt(pt)
-        if !target do
+        if not target do
             return
 
         .setModifierKeys(modifiers, true)
@@ -1035,11 +1035,11 @@ impl HeadlessHost
     {
         // The run loop seeds the focus on the first key when nothing holds it, so a test that
         // types into a fresh tree behaves like a user typing into a fresh window.
-        if !.app.keyboardFocusWnd do
+        if not .app.keyboardFocusWnd do
             .app.seedKeyboardFocus()
 
         let target = .app.keyboardFocusWnd
-        if !target do
+        if not target do
             return
 
         .setModifierKeys(modifiers, true)
@@ -1052,7 +1052,7 @@ impl HeadlessHost
 
         // A key nobody claimed goes exactly where the run loop sends it, so a test drives the
         // real shortcut and navigation policy instead of a copy of it.
-        if !evt.accepted do
+        if not evt.accepted do
             .app.routeUnhandledKey(target, key, modifiers)
 
         .setKeyState(key, false)
@@ -1153,7 +1153,7 @@ impl HeadlessHost
             Memory.delete(evt, evt.type!)
         }
 
-        if needUpdateState and !.root.isPendingDestroy do
+        if needUpdateState and not .root.isPendingDestroy do
             .root.updateCommandState()
     }
 

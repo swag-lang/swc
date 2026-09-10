@@ -25,7 +25,7 @@ impl StringRunes
     // Visits each decoded rune with its zero-based character index and UTF-8 byte offset.
     #[Macro, Swag.CalleeReturn]
     mtd(ptr: bool) const opVisit(stmt: #code(value: rune, charIndex: u64, byteIndex: u64))
-        where !ptr
+        where not ptr
     {
         Utf8.visitRunes(.bytes, stmt)
     }
@@ -210,7 +210,7 @@ impl String
     // Completes a copied value.
     mtd opPostCopy()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         if .capacity <= StringSmallSize do
@@ -228,7 +228,7 @@ impl String
     // Releases resources owned by this value.
     mtd opDrop()
     {
-        if !.buffer do
+        if not .buffer do
             return
 
         if .buffer != cast() &.padding[0] do
@@ -281,7 +281,7 @@ impl String
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(var item, var index: u64))
     {
-        if !.length do
+        if not .length do
             return
         let buffer = .buffer!
         for index in .length
@@ -339,7 +339,7 @@ impl String
     // Replace all occurences of 'what' with 'by'
     mtd replace(what: rune, by: string)
     {
-        if !.length do
+        if not .length do
             return
         if .buffer
         {
@@ -376,7 +376,7 @@ impl String
     mtd replace(what: string, by: string?, comparisonType = Utf8.ComparisonType.Latin1)
     {
         let whatLength = what.count
-        if !whatLength or whatLength > .length do
+        if not whatLength or whatLength > .length do
             return
         if .buffer
         {
@@ -420,7 +420,7 @@ impl String
     // Get the last byte
     mtd back()->u8
     {
-        if !.length do
+        if not .length do
             return 0
         let buffer = .buffer!
         return buffer[.length - 1]
@@ -429,7 +429,7 @@ impl String
     // Remove some bytes at the given index
     mtd remove(byteIndex: u64, byteCount: u64 = 1)
     {
-        if !byteCount do
+        if not byteCount do
             return
         Debug.safetyBoundCheck(byteIndex + byteCount <= .length, "index out of range")
         let buffer = .buffer!
@@ -441,7 +441,7 @@ impl String
     // Remove some bytes at the end
     mtd removeBack(byteCount: u64 = 1)
     {
-        if !byteCount do
+        if not byteCount do
             return
         Debug.safetyBoundCheck(byteCount <= .length, "index out of range")
         let buffer = .buffer!
@@ -465,7 +465,7 @@ impl String
         let buffer = .buffer!
         Memory.copyOverlapping(buffer + byteIndex + 1, buffer + byteIndex, .length - byteIndex + 1)
         buffer[byteIndex] = value
-        .length           += 1
+        .length += 1
     }
 
     // Insert a substring at the given position
@@ -479,7 +479,7 @@ impl String
 
         Debug.safetyBoundCheck(byteIndex < .length, "index out of range")
         let countof = value.count
-        if !countof do
+        if not countof do
             return
         if .buffer
         {
@@ -620,7 +620,7 @@ impl String
         }
 
         // First allocation directly to dynamic storage
-        elif !.buffer
+        elif not .buffer
         {
             .buffer   = cast() Memory.alloc(newCapacity, .allocator)
             .capacity = newCapacity
@@ -637,7 +637,7 @@ impl String
     // Remove whitespaces at the start of the String
     mtd trimStart()
     {
-        if !.length do
+        if not .length do
             return
 
         let buffer     = .buffer!
@@ -648,7 +648,7 @@ impl String
         {
             let sl       = Swag.makeSlice(ptr, .length)
             let {c, eat} = Utf8.decodeRune(sl)
-            if !Unicode.isSpace(c) do
+            if not Unicode.isSpace(c) do
                 break
             .length -= eat
             ptr     += eat
@@ -661,7 +661,7 @@ impl String
     // Remove whitespaces at the end of the String
     mtd trimEnd()
     {
-        if !.length do
+        if not .length do
             return
 
         let buffer = .buffer!
@@ -670,7 +670,7 @@ impl String
         {
             let sl       = Swag.makeSlice(buffer, .length)
             let {c, eat} = Utf8.decodeLastRune(sl)
-            if !Unicode.isSpace(c) do
+            if not Unicode.isSpace(c) do
                 break
             .length -= eat
         }

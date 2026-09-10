@@ -227,7 +227,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
     {
         if type.name == "remapped"
         {
-            if !decoder.beginField(type) do
+            if not decoder.beginField(type) do
                 return true
             defer #nofail decoder.endField(type)
 
@@ -237,7 +237,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
 
         if type.name == "bytes"
         {
-            if !decoder.beginField(type) do
+            if not decoder.beginField(type) do
                 return true
             defer #nofail decoder.endField(type)
 
@@ -519,17 +519,17 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     var reader: Serialization.Read.TagBin
     let {raw, sizeof} = Serialization.isPodFinal(#typeof(TagBinFinalPoint))
 
-    Swag.assert(!writer.isTextual())
-    Swag.assert(!reader.isTextual())
+    Swag.assert(not writer.isTextual())
+    Swag.assert(not reader.isTextual())
     Swag.assert(raw)
     Swag.assert(sizeof == #sizeof(TagBinFinalPoint))
     Swag.assert(Reflection.hasAttribute(#typeof(TagBinFinalPoint), Serialization.Final))
-    Swag.assert(!Reflection.hasAttribute(#typeof(TagBinFinalPoint), Serialization.NoSerialize))
+    Swag.assert(not Reflection.hasAttribute(#typeof(TagBinFinalPoint), Serialization.NoSerialize))
 
     let blobField = Reflection.findField(#typeof(TagBinPayload), "blob")
     Swag.assert(blobField != null)
     Swag.assert(Reflection.hasAttribute(blobField, Serialization.Compress))
-    Swag.assert(!Reflection.hasAttribute(blobField, Serialization.NoSerialize))
+    Swag.assert(not Reflection.hasAttribute(blobField, Serialization.NoSerialize))
 }
 
 #test

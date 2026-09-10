@@ -119,7 +119,7 @@ func semaTest005()
 
 func semaTest006()
 {
-    let lhs            = CompareSpecBox{value: 8}
+    let lhs = CompareSpecBox{value: 8}
     let lt:       bool = lhs < 9
     let le:       bool = lhs <= 8
     let gt:       bool = lhs > 7

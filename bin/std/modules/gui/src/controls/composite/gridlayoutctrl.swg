@@ -113,8 +113,8 @@ private impl GridLayoutCtrl
     mtd spanH(col, row: s32, child: *Wnd)->s32
     {
         var result: retval = 0
-        var idx            = col + (row * .numColumns)
-        var c              = col
+        var idx = col + (row * .numColumns)
+        var c   = col
         while c < .numColumns
         {
             if .layout[idx] != child do
@@ -130,8 +130,8 @@ private impl GridLayoutCtrl
     mtd spanV(col, row: s32, child: *Wnd)->s32
     {
         var result: retval = 0
-        var idx            = col + (row * .numColumns)
-        var r              = row
+        var idx = col + (row * .numColumns)
+        var r   = row
         while r < .numRows
         {
             if .layout[idx] != child do
@@ -159,11 +159,11 @@ private impl GridLayoutCtrl
             {
                 let idx   = col + (row * .numColumns)
                 let child = .layout[idx]
-                if !child do
+                if not child do
                     continue
                 if done.contains(child) do
                     continue
-                if !child.isLocallyVisible() do
+                if not child.isLocallyVisible() do
                     continue
                 done.add(child)
 
@@ -191,7 +191,7 @@ private impl GridLayoutCtrl
     {
         var result: retval
         let count = tracks.count
-        if !count do
+        if not count do
             return result
 
         let spacingTotal = cast(f32) (count - 1) * spacing
@@ -317,7 +317,7 @@ impl GridLayoutCtrl
     // Recomputes track sizes and arranges every assigned child.
     mtd computeLayout()
     {
-        if !.children.count do
+        if not .children.count do
             return
         .ensureStorage()
 
@@ -335,11 +335,11 @@ impl GridLayoutCtrl
             {
                 let idx   = col + (row * .numColumns)
                 let child = .layout[idx]
-                if !child do
+                if not child do
                     continue
                 if done.contains(child) do
                     continue
-                if !child.isLocallyVisible() do
+                if not child.isLocallyVisible() do
                     continue
 
                 done.add(child)
@@ -426,7 +426,7 @@ impl GridLayoutCtrl
             for j in rowSpan
             {
                 let x1 = x + (j * .numColumns)
-                Swag.assert(!.layout[x1], "grid cell is already assigned")
+                Swag.assert(not .layout[x1], "grid cell is already assigned")
                 .layout[x1] = child
             }
         }

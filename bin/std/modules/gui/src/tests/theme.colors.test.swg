@@ -167,7 +167,7 @@ using Swag, Core
     light.setLight()
 
     Swag.assert(markReadsOn(dark.wnd_CaptionBk))
-    Swag.assert(!markReadsOn(light.wnd_CaptionBk))
+    Swag.assert(not markReadsOn(light.wnd_CaptionBk))
 
     Swag.assert(markReadsOn(dark.wnd_CaptionBkLead))
 }

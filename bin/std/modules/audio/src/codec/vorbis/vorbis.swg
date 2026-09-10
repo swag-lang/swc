@@ -65,7 +65,7 @@ private impl BitReader
     // Reads `count` bits, at most 32, as an unsigned value.
     mtd read(count: u32)->u32
     {
-        if !count do
+        if not count do
             return 0
         if .bitPos + count > .size * 8
         {
@@ -112,12 +112,12 @@ private impl Codebook
     // value list a lookup of type 1 spreads over every dimension.
     mtd const lookup1Values()->u32
     {
-        if !.entries do
+        if not .entries do
             return 0
         var count = cast(u32) Math.floor(Math.pow(cast(f64) .entries, 1.0 / cast(f64) .dimensions))
-        if !count do
+        if not count do
             count = 1
-        while count > 1 and !.powerFits(count) do
+        while count > 1 and not .powerFits(count) do
             count -= 1
         while .powerFits(count + 1) do
             count += 1
@@ -148,7 +148,7 @@ private impl Codebook
             bit -= 1
             let slot  = cast(u64) node * 2 + ((codeword >> bit) & 1)
             let child = .children[slot]
-            if !bit
+            if not bit
             {
                 if child do
                     fail InvalidFormatError{"Vorbis codebook assigns one codeword twice"}
@@ -158,13 +158,13 @@ private impl Codebook
 
             if child < 0 do
                 fail InvalidFormatError{"Vorbis codebook prefixes one codeword with another"}
-            if !child
+            if not child
             {
                 .children.add(0)
                 .children.add(0)
                 let created = cast(s32) (.children.count / 2 - 1)
                 .children[slot] = created
-                node            = cast(u32) created
+                node = cast(u32) created
             }
             else do
                 node = cast(u32) child
@@ -232,7 +232,7 @@ private impl Codebook
     // Reads one codeword and returns its entry, or -1 when the packet ends or the code is invalid.
     mtd const decode(reader: *BitReader)->s32
     {
-        if !.usedEntries do
+        if not .usedEntries do
             return -1
         var node = 0'u32
         for MaxCodewordBits
@@ -243,7 +243,7 @@ private impl Codebook
             let child = .children[cast(u64) node * 2 + bit]
             if child < 0 do
                 return -child - 1
-            if !child do
+            if not child do
                 return -1
             node = cast(u32) child
         }
@@ -257,16 +257,16 @@ private impl Codebook
             fail InvalidFormatError{"Vorbis codebook has no synchronization pattern"}
         .dimensions = reader.read(16)
         .entries    = reader.read(24)
-        if !.dimensions do
+        if not .dimensions do
             fail InvalidFormatError{"Vorbis codebook has no dimensions"}
         .lengths.resize(.entries)
 
-        if !reader.readFlag()
+        if not reader.readFlag()
         {
             let sparse = reader.readFlag()
             for index in .entries
             {
-                if sparse and !reader.readFlag() do
+                if sparse and not reader.readFlag() do
                     .lengths[index] = 0
                 else do
                     .lengths[index] = cast(u8) (reader.read(5) + 1)
@@ -284,7 +284,7 @@ private impl Codebook
                 for count
                 {
                     .lengths[index] = cast(u8) current
-                    index           += 1
+                    index += 1
                 }
 
                 current += 1
@@ -298,7 +298,7 @@ private impl Codebook
         try .buildTree()
 
         .lookupType = reader.read(4)
-        if !.lookupType do
+        if not .lookupType do
             return
         if .lookupType > 2 do
             fail InvalidFormatError{"Vorbis codebook uses a reserved lookup type"}
@@ -396,7 +396,7 @@ private impl Floor
             .books.add(book)
         }
 
-        if !.order or !.rate or !.barkMapSize do
+        if not .order or not .rate or not .barkMapSize do
             fail InvalidFormatError{"Vorbis floor 0 states an empty configuration"}
     }
 
@@ -407,7 +407,7 @@ private impl Floor
         for index in .partitions
         {
             .partitionClass[index] = reader.read(4)
-            maxClass               = Math.max(maxClass, .partitionClass[index] + 1)
+            maxClass = Math.max(maxClass, .partitionClass[index] + 1)
         }
 
         for cls in maxClass
@@ -558,7 +558,7 @@ private impl Residue
                     let book = reader.read(8)
                     if book >= codebooks.count do
                         fail InvalidFormatError{"Vorbis residue names a codebook that does not exist"}
-                    if !codebooks[book].lookupType do
+                    if not codebooks[book].lookupType do
                         fail InvalidFormatError{"Vorbis residue names a codebook that carries no vectors"}
                     .books[cls, stage] = cast(s32) book
                 }
@@ -708,11 +708,11 @@ private impl Codec
         discard reader.read(32)
         .blockSizes[0] = 1'u32 << reader.read(4)
         .blockSizes[1] = 1'u32 << reader.read(4)
-        if !reader.readFlag() do
+        if not reader.readFlag() do
             fail InvalidFormatError{"Vorbis identification header has no framing bit"}
-        if !.channels or .channels > MaxChannels do
+        if not .channels or .channels > MaxChannels do
             fail UnsupportedFormatError{"Vorbis stream needs one to eight channels"}
-        if !.sampleRate do
+        if not .sampleRate do
             fail InvalidFormatError{"Vorbis stream declares no sample rate"}
         if .blockSizes[0] < MinBlockSize or .blockSizes[1] < .blockSizes[0] or .blockSizes[1] > MaxBlockSize do
             fail InvalidFormatError{"Vorbis stream declares invalid block sizes"}
@@ -786,7 +786,7 @@ private impl Codec
         }
 
         .modeBits = ilog(modeCount - 1)
-        if !reader.readFlag() or reader.overran do
+        if not reader.readFlag() or reader.overran do
             fail InvalidFormatError{"Vorbis setup header has no framing bit"}
     }
 
@@ -806,7 +806,7 @@ private impl Codec
                 if offset + page.totalBytes() > config.count do
                     fail InvalidFormatError{"Vorbis header pages are truncated"}
                 let body = config[offset + page.headerBytes until offset + page.totalBytes()]
-                if !hasSerial
+                if not hasSerial
                 {
                     if (page.flags & Ogg.FirstPage) and body.count >= 7 and body[0] == 1 and body[1] == 'v' and body[2] == 'o' and body[3] == 'r' and body[4] == 'b' and body[5] == 'i' and body[6] == 's'
                     {
@@ -884,13 +884,13 @@ private impl Codec
     mtd decodeFloor0(floor: *Floor, reader: *BitReader, channel: u32)->bool fail
     {
         let amplitude = reader.read(floor.amplitudeBits)
-        if !amplitude or reader.overran do
+        if not amplitude or reader.overran do
             return false
         let bookNumber = reader.read(ilog(cast(u32) floor.books.count))
         if bookNumber >= floor.books.count do
             return false
         let book = &.codebooks[floor.books[bookNumber]]
-        if !book.lookupType do
+        if not book.lookupType do
             fail InvalidFormatError{"Vorbis floor 0 names a codebook that carries no vectors"}
 
         let curve = &.floorCurve[channel]
@@ -904,7 +904,7 @@ private impl Codec
             for dimension in book.dimensions where index < floor.order
             {
                 curve[][index] = book.values[cast(u64) entry * book.dimensions + dimension]
-                index          += 1
+                index += 1
             }
         }
 
@@ -916,7 +916,7 @@ private impl Codec
             for dimension in book.dimensions where index < floor.order
             {
                 curve[][index] += last
-                index          += 1
+                index += 1
             }
 
             last = curve[][index - 1]
@@ -929,7 +929,7 @@ private impl Codec
 
     mtd decodeFloor1(floor: *Floor, reader: *BitReader, channel: u32)->bool fail
     {
-        if !reader.readFlag() do
+        if not reader.readFlag() do
             return false
         const Ranges: [4] u32 = [256, 128, 86, 64]
         let range = Ranges[floor.multiplier - 1]
@@ -1071,7 +1071,7 @@ private impl Codec
             while line < half and map[line] == bin
             {
                 spectrum[line] *= value
-                line           += 1
+                line += 1
             }
         }
     }
@@ -1088,7 +1088,7 @@ private impl Codec
         for index in 1'u64 until floor.sortedPosts.count
         {
             let current = floor.sortedPosts[index]
-            if !used[current] do
+            if not used[current] do
                 continue
             highX = floor.posts[current]
             let highY = Math.clamp(posts[current] * cast(s32) floor.multiplier, 0, 255)
@@ -1115,7 +1115,7 @@ private impl Codec
             }
         }
 
-        if !used do
+        if not used do
             return
         var vectors = used
         if residue.kind == 2
@@ -1150,7 +1150,7 @@ private impl Codec
             var word      = 0'u64
             while partition < partitions
             {
-                if !pass
+                if not pass
                 {
                     for vector in vectors
                     {
@@ -1164,7 +1164,7 @@ private impl Codec
                             .classes[(vector * words + word) * wordSize + digit] = cast(u32) (value / divisor)
                             value   %= divisor
                             divisor /= residue.classifications
-                            if !divisor do
+                            if not divisor do
                                 divisor = 1
                         }
                     }
@@ -1187,7 +1187,7 @@ private impl Codec
                                 complete = .decodeSequential(codebook, reader, .spectrum[active[vector]].buffer! + offset, residue.partitionSize)
                             else do
                                 complete = .decodeAcrossChannels(codebook, reader, active, cast(u32) list.count, offset, residue.partitionSize)
-                            if !complete do
+                            if not complete do
                                 return
                         }
                     }
@@ -1366,7 +1366,7 @@ private impl Codec
         // A channel without a floor of its own contributed to the coupling only; it plays silence.
         for channel in .channels
         {
-            if !.floorPresent[channel]
+            if not .floorPresent[channel]
             {
                 Memory.set(.spectrum[channel].buffer!, 0, cast(u64) half * #sizeof(f32))
                 continue
@@ -1384,7 +1384,7 @@ private impl Codec
         var leftStart = 0'u32
         var leftEnd   = half
         var leftSlope = which
-        if mode.longBlock and !previousLong
+        if mode.longBlock and not previousLong
         {
             leftStart = n / 4 - shortHalf / 2
             leftEnd   = n / 4 + shortHalf / 2
@@ -1394,7 +1394,7 @@ private impl Codec
         var rightStart = half
         var rightEnd   = n
         var rightSlope = which
-        if mode.longBlock and !nextLong
+        if mode.longBlock and not nextLong
         {
             rightStart = n * 3 / 4 - shortHalf / 2
             rightEnd   = n * 3 / 4 + shortHalf / 2

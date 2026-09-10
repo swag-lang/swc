@@ -151,7 +151,7 @@ impl ScalingLists
     // Restores one matrix to the default of Tables 7-5 and 7-6.
     private mtd setDefaultMatrix(sizeId, matrixId: u32)
     {
-        if !sizeId
+        if not sizeId
         {
             for index in 16'u32 do
                 .lists[0, matrixId, index] = DefaultScalingList4x4[index]
@@ -211,7 +211,7 @@ struct Sps
 
     temporalMvpEnabled:   bool
     strongIntraSmoothing: bool
-    fullRange:            bool
+    fullRange: bool
     matrixCoefficients:   u8 = 2     // H.273 matrix_coefficients; 2 means unspecified.
 
     // Clause 7.4.3.2.2: the range extensions, which Main 10 leaves off.
@@ -409,7 +409,7 @@ impl Sps
     // Rejects a sequence this decoder cannot reconstruct.
     private mtd const validate() fail
     {
-        if !.width or !.height do
+        if not .width or not .height do
             fail InvalidFormatError{"HEVC sequence declares an empty picture"}
         if .width % .minCbSize or .height % .minCbSize do
             fail InvalidFormatError{"HEVC picture size is not a multiple of the minimum coding block"}
@@ -520,7 +520,7 @@ impl Pps
             if .numTileColumns > 32 or .numTileRows > 32 do
                 fail UnsupportedFormatError{"HEVC picture declares more than thirty-two tile rows or columns"}
             .uniformSpacing = reader.bit() != 0
-            if !.uniformSpacing
+            if not .uniformSpacing
             {
                 for index in .numTileColumns - 1 do
                     .columnWidth[index] = reader.ue() + 1
@@ -537,7 +537,7 @@ impl Pps
         {
             .deblockingOverrideEnabled = reader.bit() != 0
             .deblockingDisabled        = reader.bit() != 0
-            if !.deblockingDisabled
+            if not .deblockingDisabled
             {
                 .betaOffsetDiv2 = reader.se()
                 .tcOffsetDiv2   = reader.se()
@@ -545,7 +545,7 @@ impl Pps
         }
 
         .scalingListDataPresent = reader.bit() != 0
-        .scalingLists           = sps.scalingLists
+        .scalingLists = sps.scalingLists
         if .scalingListDataPresent do
             try .scalingLists.read(reader)
 
@@ -624,7 +624,7 @@ impl Pps
     // Returns the tile a coding tree block belongs to, or zero when the picture is one tile.
     mtd const tileOf(ctbX, ctbY: u32)->u32
     {
-        if !.tilesEnabled do
+        if not .tilesEnabled do
             return 0
         var column = 0'u32
         while column + 1 < .numTileColumns and ctbX >= .colBoundary[column + 1] do
@@ -692,7 +692,7 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
     if index != 0 do
         interPrediction = reader.bit() != 0
 
-    if !interPrediction
+    if not interPrediction
     {
         let negative = reader.ue()
         let positive = reader.ue()
@@ -741,7 +741,7 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
     {
         used[entry]     = reader.bit() != 0
         useDelta[entry] = true
-        if !used[entry] do
+        if not used[entry] do
             useDelta[entry] = reader.bit() != 0
     }
 
@@ -814,7 +814,7 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
 
     target.negativeCount = negativeCount
     target.positiveCount = positiveCount
-    sets[index]          = target
+    sets[index] = target
 
     if reader.overran do
         fail InvalidFormatError{"HEVC reference picture set is truncated"}
@@ -920,7 +920,7 @@ func skipHrdParameters(reader: *BitReader, maxSubLayersMinus1: u32) fail
     {
         let fixedRateGeneral = reader.bit() != 0
         var fixedRateWithin  = fixedRateGeneral
-        if !fixedRateGeneral do
+        if not fixedRateGeneral do
             fixedRateWithin = reader.bit() != 0
 
         var lowDelay = false
@@ -929,14 +929,14 @@ func skipHrdParameters(reader: *BitReader, maxSubLayersMinus1: u32) fail
             discard reader.ue()
         else do
             lowDelay = reader.bit() != 0
-        if !lowDelay do
+        if not lowDelay do
             cpbCount = reader.ue() + 1
         if cpbCount > 32 do
             fail InvalidFormatError{"HEVC hypothetical reference decoder declares too many buffers"}
 
         for pass in 2'u32
         {
-            if (pass == 0 and !nalHrd) or (pass == 1 and !vclHrd) do
+            if (pass == 0 and not nalHrd) or (pass == 1 and not vclHrd) do
                 continue
             for index in cpbCount
             {

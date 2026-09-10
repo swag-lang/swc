@@ -72,7 +72,7 @@ func inlineAnd(a: bool, b: bool)->bool => a and b
 func inlineOr(a: bool, b: bool)->bool => a or b
 
 #[Swag.Inline]
-func inlineNot(a: bool)->bool => !a
+func inlineNot(a: bool)->bool => not a
 
 #[Swag.Inline]
 func inlineDefault1(a: s32, b: s32 = 10)->s32 => a + b
@@ -164,26 +164,26 @@ func inlineTakeBool(value: bool)->bool => value
     Swag.assert(inlineSelect(false, 5, 42) == 42)
 
     Swag.assert(inlineEq(42, 42))
-    Swag.assert(!inlineEq(42, 41))
+    Swag.assert(not inlineEq(42, 41))
     Swag.assert(inlineNe(42, 41))
-    Swag.assert(!inlineNe(42, 42))
+    Swag.assert(not inlineNe(42, 42))
     Swag.assert(inlineLt(41, 42))
-    Swag.assert(!inlineLt(42, 42))
+    Swag.assert(not inlineLt(42, 42))
     Swag.assert(inlineLe(42, 42))
     Swag.assert(inlineLe(41, 42))
-    Swag.assert(!inlineLe(43, 42))
+    Swag.assert(not inlineLe(43, 42))
     Swag.assert(inlineGt(43, 42))
-    Swag.assert(!inlineGt(42, 42))
+    Swag.assert(not inlineGt(42, 42))
     Swag.assert(inlineGe(42, 42))
     Swag.assert(inlineGe(43, 42))
-    Swag.assert(!inlineGe(41, 42))
+    Swag.assert(not inlineGe(41, 42))
 
     Swag.assert(inlineAnd(true, true))
-    Swag.assert(!inlineAnd(true, false))
+    Swag.assert(not inlineAnd(true, false))
     Swag.assert(inlineOr(true, false))
-    Swag.assert(!inlineOr(false, false))
+    Swag.assert(not inlineOr(false, false))
     Swag.assert(inlineNot(false))
-    Swag.assert(!inlineNot(true))
+    Swag.assert(not inlineNot(true))
 
     Swag.assert(inlineBranch(inlineEq(1, 1), 42, 0) == 42)
     Swag.assert(inlineBranch(inlineEq(1, 2), 0, 42) == 42)
@@ -191,15 +191,15 @@ func inlineTakeBool(value: bool)->bool => value
 
     Swag.assert(inlineBetween(42, 42, 42))
     Swag.assert(inlineBetween(42, 0, 100))
-    Swag.assert(!inlineBetween(42, 43, 100))
-    Swag.assert(!inlineBetween(42, 0, 41))
+    Swag.assert(not inlineBetween(42, 43, 100))
+    Swag.assert(not inlineBetween(42, 0, 41))
 
     var u: u32 = inlineAddU32(40, 2)
     Swag.assert(u == 42)
     Swag.assert(inlineAddU32(0, 0) == 0)
     Swag.assert(inlineAddU32(1, 41) == 42)
     Swag.assert(inlineIsNonZeroU32(u))
-    Swag.assert(!inlineIsNonZeroU32(0))
+    Swag.assert(not inlineIsNonZeroU32(0))
 
     var fromBool: s32 = inlineBranch(inlineIsNonZeroU32(1), 42, 0)
     Swag.assert(fromBool == 42)

@@ -236,7 +236,7 @@ impl Vector4
     mtd normalize()
     {
         var norm = sqrt((.x * .x) + (.y * .y) + (.z * .z) + (.w * .w))
-        Swag.assert(!Math.isZeroEpsilon(norm))
+        Swag.assert(not Math.isZeroEpsilon(norm))
         norm = 1 / norm
         .x   *= norm
         .y   *= norm
@@ -249,7 +249,7 @@ impl Vector4
     mtd const normalized()->Vector4
     {
         var norm = sqrt((.x * .x) + (.y * .y) + (.z * .z) + (.w * .w))
-        Swag.assert(!Math.isZeroEpsilon(norm))
+        Swag.assert(not Math.isZeroEpsilon(norm))
         norm = 1 / norm
         return Vector4{.x * norm, .y * norm, .z * norm, .w * norm}
     }

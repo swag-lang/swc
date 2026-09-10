@@ -2,11 +2,11 @@
 func runtimeSetupWorks()->bool
 {
     let cxt = Swag.getContext()
-    if !cxt.allocator or !cxt.tempAllocator.capacity or !cxt.errorAllocator.capacity do
+    if not cxt.allocator or not cxt.tempAllocator.capacity or not cxt.errorAllocator.capacity do
         return false
 
     let ptr = cast([*] u8?) cxt.tempAllocator.alloc(2)
-    if !ptr do
+    if not ptr do
         return false
 
     ptr[0] = 7

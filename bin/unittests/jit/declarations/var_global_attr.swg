@@ -33,7 +33,7 @@
     func toggle()->bool
     {
         global var state = false
-        state = !state
+        state = not state
         return state
     }
 

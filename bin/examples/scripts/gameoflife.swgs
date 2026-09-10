@@ -63,7 +63,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         let nextGen = (g_CurGen + 1) % 2
 
         // Compute next generation, except if user is painting
-        if !leftPressed and !rightPressed
+        if not leftPressed and not rightPressed
         {
             for i in 1 until GridSize - 1
             {
@@ -82,7 +82,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                     }
 
                     // Game of life rules
-                    if !g_Grid[g_CurGen, i, j] and cpt == 3 do
+                    if not g_Grid[g_CurGen, i, j] and cpt == 3 do
                         g_Grid[nextGen, i, j] = true
                     elif g_Grid[g_CurGen, i, j] and (cpt == 2 or cpt == 3) do
                         g_Grid[nextGen, i, j] = true

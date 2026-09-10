@@ -27,7 +27,7 @@ impl BorrowInvBuffer
     // that can move or free what the receiver owns.
     mtd release()
     {
-        if !.data do
+        if not .data do
             return
 
         var req: AllocatorRequest
@@ -255,7 +255,7 @@ func borrowInvRelease()->u8
 // own summary rather than from an allocator call in the method itself.
 func borrowInvFreeBlock(block: [*] u8?, size: u64)
 {
-    if !block do
+    if not block do
         return
 
     var req: AllocatorRequest
@@ -413,7 +413,7 @@ func borrowInvDetachedAccessorFromOneOfTwoOwners(first: bool)->u8
     right.reserve(4)
 
     var view = left.view()
-    if !first
+    if not first
     {
         view = right.view()
     }
@@ -979,7 +979,7 @@ impl BorrowInvTable
 
     mtd release()
     {
-        if !.slots do
+        if not .slots do
             return
 
         var req: AllocatorRequest

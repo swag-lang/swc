@@ -13,12 +13,12 @@ func cmpF32(a: f32, b: f32)->s32 { return a <=> b }
 {
     const A = Swag.F32.NaN
     const B = Swag.F32.NaN
-    #assert(!#run eqF32(A, B))
+    #assert(not #run eqF32(A, B))
     #assert(#run neF32(A, B))
-    #assert(!#run ltF32(A, B))
-    #assert(!#run leF32(A, B))
-    #assert(!#run gtF32(A, B))
-    #assert(!#run geF32(A, B))
+    #assert(not #run ltF32(A, B))
+    #assert(not #run leF32(A, B))
+    #assert(not #run gtF32(A, B))
+    #assert(not #run geF32(A, B))
     #assert(#run cmpF32(A, B) == 0)
 }
 
@@ -34,12 +34,12 @@ func cmpF64(a: f64, b: f64)->s32 { return a <=> b }
 {
     const A = Swag.F64.NaN
     const B = Swag.F64.NaN
-    #assert(!#run eqF64(A, B))
+    #assert(not #run eqF64(A, B))
     #assert(#run neF64(A, B))
-    #assert(!#run ltF64(A, B))
-    #assert(!#run leF64(A, B))
-    #assert(!#run gtF64(A, B))
-    #assert(!#run geF64(A, B))
+    #assert(not #run ltF64(A, B))
+    #assert(not #run leF64(A, B))
+    #assert(not #run gtF64(A, B))
+    #assert(not #run geF64(A, B))
     #assert(#run cmpF64(A, B) == 0)
 }
 

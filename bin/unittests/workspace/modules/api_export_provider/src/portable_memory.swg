@@ -36,7 +36,7 @@ func depMemorySet(destination: [*] void, value: u8, size: u64)
 #[Swag.Inline]
 func depMemoryCompare(left: const [*] void, right: const [*] void, size: u64)->s32
 {
-    if !size do
+    if not size do
         return 0
     return Swag.memcmp(left, right, size)
 }

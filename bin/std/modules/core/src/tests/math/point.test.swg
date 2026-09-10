@@ -87,12 +87,12 @@ using Swag
     pt.offset(-1.25, 1.75)
     Swag.assert(pt == Math.Point{2.0, 1.0})
 
-    Swag.assert(!pt.isZero())
+    Swag.assert(not pt.isZero())
     pt.clear()
     Swag.assert(pt.isZero())
     Swag.assert(pt.isZeroEpsilon())
-    Swag.assert(!Math.Point{0.01, 0}.isZeroEpsilon(0.001))
-    Swag.assert(!Math.Point{0, -0.01}.isZeroEpsilon(0.001))
+    Swag.assert(not Math.Point{0.01, 0}.isZeroEpsilon(0.001))
+    Swag.assert(not Math.Point{0, -0.01}.isZeroEpsilon(0.001))
     Swag.assert(Math.Point{0.00001, -0.00001}.isZeroEpsilon(0.001))
 }
 
@@ -123,6 +123,6 @@ using Swag
     Swag.assert(pt == Math.Point{-1, 2})
 
     Swag.assert(Math.Point{1.0, 1.0}.isEqualEpsilon(Math.Point{1.00001, 0.99999}, 0.001))
-    Swag.assert(!Math.Point{1.0, 1.0}.isEqualEpsilon(Math.Point{1.01, 1.0}, 0.001))
-    Swag.assert(!Math.Point{1.0, 1.0}.isEqualEpsilon(Math.Point{1.0, 1.01}, 0.001))
+    Swag.assert(not Math.Point{1.0, 1.0}.isEqualEpsilon(Math.Point{1.01, 1.0}, 0.001))
+    Swag.assert(not Math.Point{1.0, 1.0}.isEqualEpsilon(Math.Point{1.0, 1.01}, 0.001))
 }

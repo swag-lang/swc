@@ -44,7 +44,7 @@ public impl Adler32
         var s2 = (.currentValue >> 16) & 0xFFFF
 
         let countof = buffer.count
-        if !countof do
+        if not countof do
             return
 
         let input = buffer.buffer

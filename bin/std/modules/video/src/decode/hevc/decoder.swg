@@ -226,14 +226,14 @@ impl Decoder
         if .referenceCount >= MaxDpbFrames do
             fail InvalidFormatError{"HEVC decoded picture buffer holds too many pictures"}
         .references[.referenceCount] = {frame, marking}
-        .referenceCount              += 1
+        .referenceCount += 1
         Atomic.add(&frame.reconstructionHolds, 1)
     }
 
     // Returns the sequence parameter set the active picture parameter set names.
     mtd const sequenceOf(pps: const *Pps)->const *Sps?
     {
-        if pps.spsId >= 16 or !.sps[pps.spsId].valid do
+        if pps.spsId >= 16 or not .sps[pps.spsId].valid do
             return null
         return &.sps[pps.spsId]
     }
@@ -269,7 +269,7 @@ impl Decoder
             if identifier >= 64 do
                 fail InvalidFormatError{"HEVC picture parameter set identifier is out of range"}
             let sequenceId = reader.ue()
-            if sequenceId >= 16 or !.sps[sequenceId].valid do
+            if sequenceId >= 16 or not .sps[sequenceId].valid do
                 fail InvalidFormatError{"HEVC picture parameter set names a sequence that was not received"}
 
             var restart: BitReader
@@ -282,7 +282,7 @@ impl Decoder
     // Rebuilds the scan and availability tables of a newly activated picture parameter set.
     mtd activate(sps: const *Sps, pps: const *Pps) fail
     {
-        if !.transformMatrixReady
+        if not .transformMatrixReady
         {
             for basis in 32'u32
             {
@@ -428,7 +428,7 @@ impl Decoder
         let sameCb = xCb <= xNb and yCb <= yNb and xCb + nCbS > xNb and yCb + nCbS > yNb
 
         var available: bool
-        if !sameCb
+        if not sameCb
         {
             available = .isAvailable(xPb, yPb, xNb, yNb)
         }
@@ -437,7 +437,7 @@ impl Decoder
             // The second partition of a two-part coding unit may not predict from the first when
             // that would make the two identical.
             let secondOfPair = (nPbW << 1) == nCbS and (nPbH << 1) == nCbS and partIdx == 1
-            available = !(secondOfPair and yCb + nPbH <= yNb and xCb + nPbW > xNb)
+            available = not (secondOfPair and yCb + nPbH <= yNb and xCb + nPbW > xNb)
         }
 
         if available and .predMode[.blockIndex(xNb, yNb)] == ModeIntra do
@@ -533,7 +533,7 @@ impl Decoder
         var stCurrBefore, stCurrAfter, stFoll: [MaxRefPics] s32
         var ltCurr, ltFoll: [MaxRefPics] s32
         var beforeCount, afterCount, follCount = 0'u32
-        var ltCurrCount, ltFollCount           = 0'u32
+        var ltCurrCount, ltFollCount = 0'u32
 
         let rps = header.activeRps(sps)
         for index in rps.negativeCount
@@ -542,7 +542,7 @@ impl Decoder
             if rps.negativeUsed[index]
             {
                 stCurrBefore[beforeCount] = poc
-                beforeCount               += 1
+                beforeCount += 1
             }
             else
             {
@@ -557,7 +557,7 @@ impl Decoder
             if rps.positiveUsed[index]
             {
                 stCurrAfter[afterCount] = poc
-                afterCount              += 1
+                afterCount += 1
             }
             else
             {
@@ -624,13 +624,13 @@ impl Decoder
         while index < .referenceCount
         {
             let frame = .references[index].frame!
-            if frame != .current and !keep[index]
+            if frame != .current and not keep[index]
             {
                 Atomic.add(&frame.reconstructionHolds, ~0'u32)
-                .referenceCount              -= 1
-                .references[index]           = .references[.referenceCount]
+                .referenceCount    -= 1
+                .references[index] = .references[.referenceCount]
                 .references[.referenceCount] = {}
-                keep[index]                  = keep[.referenceCount]
+                keep[index]        = keep[.referenceCount]
                 continue
             }
 
@@ -655,7 +655,7 @@ impl Decoder
         var tempCount: [ListCount] u32
 
         let totalCurr = cast(u32) (before.count + after.count + longTerm.count)
-        if !totalCurr do
+        if not totalCurr do
             fail InvalidFormatError{"HEVC predicted slice has no reference picture available"}
 
         for list in (header.sliceType == SliceTypeB ? 2'u32 : 1'u32)
@@ -672,7 +672,7 @@ impl Decoder
                     temp[list, tempCount[list]]     = .findByPoc(poc, shortTerm: true)
                     tempPoc[list, tempCount[list]]  = poc
                     tempLong[list, tempCount[list]] = false
-                    tempCount[list]                 += 1
+                    tempCount[list] += 1
                 }
 
                 for poc in second
@@ -682,7 +682,7 @@ impl Decoder
                     temp[list, tempCount[list]]     = .findByPoc(poc, shortTerm: true)
                     tempPoc[list, tempCount[list]]  = poc
                     tempLong[list, tempCount[list]] = false
-                    tempCount[list]                 += 1
+                    tempCount[list] += 1
                 }
 
                 for poc in longTerm
@@ -692,7 +692,7 @@ impl Decoder
                     temp[list, tempCount[list]]     = .findByPocLsb(cast(u32) poc & lsbMask, lsbMask)
                     tempPoc[list, tempCount[list]]  = poc
                     tempLong[list, tempCount[list]] = true
-                    tempCount[list]                 += 1
+                    tempCount[list] += 1
                 }
             }
 
@@ -706,9 +706,9 @@ impl Decoder
                 // nearest picture available, which keeps a stream that starts mid-sequence
                 // decodable instead of failing on its first predicted picture.
                 var frame = temp[list, source]
-                if !frame do
+                if not frame do
                     frame = .nearestReference(tempPoc[list, source])
-                if !frame do
+                if not frame do
                     fail InvalidFormatError{"HEVC slice refers to a picture that was never decoded"}
 
                 .refList.frames[list, index]   = frame

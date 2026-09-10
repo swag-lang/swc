@@ -10,13 +10,13 @@ public struct TypeFace
 {
     internal
     {
-        fullname:                 String         // Cache key or source filename, owned so a dynamic key cannot dangle.
+        fullname:     String                     // Cache key or source filename, owned so a dynamic key cannot dangle.
         late allocationAllocator: IAllocator     // Allocator that owns this cached value.
-        late face:                *Face          // Owned TrueType face and its copied font bytes.
-        faceLoaded:               bool           // Whether `face` can be destroyed during cleanup.
-        forceBoldDiv:             u32 = 11       // Em-size divisor used for synthetic bold strength.
-        forceItalic:              bool           // Whether every rasterized glyph is synthetically slanted.
-        forceBold:                bool           // Whether every rasterized glyph is synthetically emboldened.
+        late face:    *Face                      // Owned TrueType face and its copied font bytes.
+        faceLoaded:   bool                       // Whether `face` can be destroyed during cleanup.
+        forceBoldDiv: u32 = 11                   // Em-size divisor used for synthetic bold strength.
+        forceItalic:  bool                       // Whether every rasterized glyph is synthetically slanted.
+        forceBold:    bool                       // Whether every rasterized glyph is synthetically emboldened.
     }
 }
 
@@ -146,7 +146,7 @@ public impl TypeFace
         // The installed fonts belong to the machine, not to the program, so this looks past
         // any sandbox: a sandboxed run has no fonts of its own and would find nothing.
         var buffer: Array'u8
-        if !File.exists(fullname)
+        if not File.exists(fullname)
         {
             let p = Path.combine(Env.realSpecialDirectory(.Font), fullname)
             buffer = File.readAllBytes(p)

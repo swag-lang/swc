@@ -780,7 +780,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     Swag.assert(img.width == 2)
     Swag.assert(img.height == 2)
     Swag.assert(img.pixelFormat == .BGR8)
-    Swag.assert(!img.isValid())
+    Swag.assert(not img.isValid())
 }
 
 // Error: RLE packet cannot exceed the destination image.
@@ -821,8 +821,8 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         for i in src.pixels.count do
             src.pixels.buffer![i] = cast(u8) ((i * 37 + 19) & 0xFF)
 
-        let cb            = expect src.encode("memory.tga")
-        let img           = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
+        let cb  = expect src.encode("memory.tga")
+        let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
         let bytesPerPixel = cast(u64) src.bytesPerPixel
         Swag.assert(cb.count() == #sizeof(TgaH) + src.pixels.count)
         Swag.assert(img.pixelFormat == (bytesPerPixel == 3 ? .BGR8 : .BGRA8))

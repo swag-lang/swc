@@ -53,7 +53,7 @@ func reportMidiFile(image: *BinaryImage, report: *BinaryReport)
 
     while complete and tracks < cast(u64) trackCount
     {
-        if !image.has(scan, 8) or !image.matches(scan, "MTrk")
+        if not image.has(scan, 8) or not image.matches(scan, "MTrk")
         {
             complete = false
             break
@@ -93,7 +93,7 @@ func reportMidiFile(image: *BinaryImage, report: *BinaryReport)
         scan        = bodyAt + length
     }
 
-    if !complete do
+    if not complete do
         report.note(s.midi_Malformed)
     report.listCut(Math.min(tracks, BinaryListLimit), cast(u64) trackCount)
     report.endGroup()
@@ -115,7 +115,7 @@ private func reportMidiTrack(image: *BinaryImage, report: *BinaryReport, at, end
     while scan < end
     {
         let delta = midiNumber(image, scan, end)
-        if !delta.valid
+        if not delta.valid
         {
             result.complete = false
             break
@@ -155,7 +155,7 @@ private func reportMidiTrack(image: *BinaryImage, report: *BinaryReport, at, end
             running = status
             let kind  = status >> 4
             let count = kind == 0xC or kind == 0xD ? 1'u64 : 2'u64
-            if !image.has(dataAt, count) or dataAt + count > end or image.u8At(dataAt) & 0x80 or (count == 2 and image.u8At(dataAt + 1) & 0x80)
+            if not image.has(dataAt, count) or dataAt + count > end or image.u8At(dataAt) & 0x80 or (count == 2 and image.u8At(dataAt + 1) & 0x80)
             {
                 result.complete = false
                 break
@@ -177,7 +177,7 @@ private func reportMidiTrack(image: *BinaryImage, report: *BinaryReport, at, end
 
             let kind   = image.u8At(dataAt)
             let length = midiNumber(image, dataAt + 1, end)
-            if !length.valid or length.value > end - length.next
+            if not length.valid or length.value > end - length.next
             {
                 result.complete = false
                 break
@@ -196,7 +196,7 @@ private func reportMidiTrack(image: *BinaryImage, report: *BinaryReport, at, end
         {
             running = 0
             let length = midiNumber(image, dataAt, end)
-            if !length.valid or length.value > end - length.next
+            if not length.valid or length.value > end - length.next
             {
                 result.complete = false
                 break
@@ -224,7 +224,7 @@ private func reportMidiTrack(image: *BinaryImage, report: *BinaryReport, at, end
     if show
     {
         report.listCut(Math.min(result.events, BinaryListLimit), result.events)
-        if result.complete and !result.ended do
+        if result.complete and not result.ended do
             report.note(binStrings().midi_NoEnd)
     }
 
@@ -244,10 +244,10 @@ private func reportMidiChannelEvent(image: *BinaryImage, report: *BinaryReport, 
     switch kind
     {
     case 0x8, 0x9, 0xA: value = Format.toString("% · velocity %", first, second)
-    case 0xB:           value = Format.toString("% = %", first, second)
-    case 0xC:           value = Format.toString("%", first)
-    case 0xD:           value = Format.toString("%", first)
-    case 0xE:           value = Format.toString("%", first | second << 7)
+    case 0xB: value = Format.toString("% = %", first, second)
+    case 0xC: value = Format.toString("%", first)
+    case 0xD: value = Format.toString("%", first)
+    case 0xE: value = Format.toString("%", first | second << 7)
     }
 
     report.field(at, next - at, midiChannelEventName(kind), value.toString(), detail.toString())
@@ -327,7 +327,7 @@ private func midiNumber(image: *BinaryImage, at, end: u64)->MidiNumber
         let value = image.u8At(result.next)
         result.next  += 1
         result.value = (result.value << 7) | cast(u64) (value & 0x7F)
-        if !(value & 0x80)
+        if not (value & 0x80)
         {
             result.valid = true
             return result
@@ -351,7 +351,7 @@ private func midiFormatName(value: u16)->string
 
 private func midiDivisionText(value: u16)->String
 {
-    if !(value & 0x8000) do
+    if not (value & 0x8000) do
         return Format.toString(binStrings().midi_TicksQuarter, value)
 
     let frames = 256'u64 - cast(u64) (value >> 8)

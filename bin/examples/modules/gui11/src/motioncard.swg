@@ -23,9 +23,9 @@ impl MotionCard
     {
         let result = Wnd.create'MotionCard(parent, {})
         result.backgroundStyle = .Transparent
-        result.rank            = rank
-        result.title           = title
-        result.detail          = detail
+        result.rank   = rank
+        result.title  = title
+        result.detail = detail
         return result
     }
 }

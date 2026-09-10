@@ -49,7 +49,7 @@ public func hasTypedValue(type: typeinfo)->bool
 // Decodes a clipboard value into initialized storage and reports success.
 public func getTypedValue(value: *void, type: typeinfo)->bool
 {
-    if !hasTypedValue(type) do
+    if not hasTypedValue(type) do
         return false
 
     switch type

@@ -14,7 +14,7 @@ func countSame32(pixel, source: const [*] u8, pixelCount: u64)->u64
     var x       = 0'u64
     while pixelCount - x >= 4
     {
-        if !Math.Simd.allTrue(Math.Simd.load(cast(const [*] u32) source + x) == pattern) do
+        if not Math.Simd.allTrue(Math.Simd.load(cast(const [*] u32) source + x) == pattern) do
             break
         x += 4
     }
@@ -45,7 +45,7 @@ func swapRedBlue24Row(source: const [*] u8, destination: [*] u8, pixelCount: u64
         dstPixel[0] = srcPixel[2]
         dstPixel[1] = srcPixel[1]
         dstPixel[2] = srcPixel[0]
-        x           += 1
+        x += 1
     }
 }
 
@@ -66,7 +66,7 @@ func swapRedBlue32Row(source: const [*] u8, destination: [*] u8, pixelCount: u64
         dstPixel[1] = srcPixel[1]
         dstPixel[2] = srcPixel[0]
         dstPixel[3] = srcPixel[3]
-        x           += 1
+        x += 1
     }
 }
 
@@ -87,7 +87,7 @@ func fillBgr24Row(pixel: const [*] u8, destination: [*] u8, pixelCount: u64)
         dstPixel[0] = pixel[0]
         dstPixel[1] = pixel[1]
         dstPixel[2] = pixel[2]
-        x           += 1
+        x += 1
     }
 }
 
@@ -126,7 +126,7 @@ func reverseBgr24Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
         dstPixel[0] = srcPixel[0]
         dstPixel[1] = srcPixel[1]
         dstPixel[2] = srcPixel[2]
-        x           += 1
+        x += 1
     }
 }
 

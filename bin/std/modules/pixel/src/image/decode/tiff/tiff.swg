@@ -110,7 +110,7 @@ func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 fail
     var result: retval
 
     let ts = typeSize(e.type)
-    if !ts do
+    if not ts do
         fail UnsupportedFormatError{"unsupported field type"}
 
     let totalBytes      = cast(u64) e.count * ts
@@ -138,10 +138,10 @@ func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 fail
 func readScalar(base, last: const [*] u8, le: bool, ifd: *Ifd, tag: u32, defValue: u32)->u32 fail
 {
     let e = ifd.find(tag)
-    if !e do
+    if not e do
         return defValue
     let values = try readValues(base, last, le, cast(*Entry) (e))
-    if !values.count do
+    if not values.count do
         return defValue
     return values[0]
 }
@@ -287,7 +287,7 @@ impl Decoder
         result.init(cast(s32) width, cast(s32) height, pf)
         options.checkImage(result.width, result.height, pf)
 
-        if !options.decodePixels do
+        if not options.decodePixels do
             return result
 
         // Palette (for photometric=palette)
@@ -295,7 +295,7 @@ impl Decoder
         if samples == 1 and photometric == PHOTO_PALETTE
         {
             let cmEntry = ifd.find(TAG_COLOR_MAP)
-            if !cmEntry do
+            if not cmEntry do
                 fail InvalidFormatError{"missing color map"}
             let cm      = try readValues(base, last, le, cast(*Entry) (cmEntry))
             let entries = cm.count / 3
@@ -311,11 +311,11 @@ impl Decoder
         // Strips
         let stripOffEntry = ifd.find(TAG_STRIP_OFFSETS)
         let stripCntEntry = ifd.find(TAG_STRIP_BYTE_COUNTS)
-        if !stripOffEntry or !stripCntEntry do
+        if not stripOffEntry or not stripCntEntry do
             fail InvalidFormatError{"missing strip data"}
         let stripOffsets = try readValues(base, last, le, cast(*Entry) (stripOffEntry))
         let stripCounts  = try readValues(base, last, le, cast(*Entry) (stripCntEntry))
-        if stripOffsets.count != stripCounts.count or !stripOffsets.count do
+        if stripOffsets.count != stripCounts.count or not stripOffsets.count do
             fail InvalidFormatError{"invalid strip data"}
 
         let rowBytes  = cast(u64) width * samples

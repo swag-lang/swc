@@ -130,7 +130,7 @@ func runMePathCapture()->s32
 
 #test
 {
-    var seed                 = 5
+    var seed = 5
     let first: func||()->s32 = func|var seed|()->s32
     {
         seed += 1
@@ -179,7 +179,7 @@ func runMePathCapture()->s32
 
 #test
 {
-    var total              = 0
+    var total = 0
     let inc: func||()->s32 = func|&total|()->s32
     {
         total += 1
@@ -200,8 +200,8 @@ func runMePathCapture()->s32
 
 #test
 {
-    var total                = 4
-    var factor               = 3
+    var total  = 4
+    var factor = 3
     let cb: func||(s32)->s32 = func|var factor, &total|(value: s32)->s32
     {
         total  += value * factor
@@ -291,7 +291,7 @@ func runMePathCapture()->s32
 
 #test
 {
-    let factor               = 3
+    let factor = 3
     let cb: func||(s32)->s32 = func|factor|(value: s32)->s32 { return value * factor }
     Swag.assert(invokeUnary(cb, 7) == 21)
 }

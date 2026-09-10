@@ -33,11 +33,11 @@ impl TypeFace
         let previousObject = SelectObject(hdc, cast() hfont)
         defer SelectObject(hdc, previousObject)
 
-        var table            = 0'u32
+        var table  = 0'u32
         let collectionLength = catch GetFontData(hdc, TtcfTableTag, 0, null, 0) as err
-        var length           = collectionLength
+        var length = collectionLength
 
-        if err != null or !collectionLength or collectionLength == GDI_ERROR do
+        if err != null or not collectionLength or collectionLength == GDI_ERROR do
             length = try GetFontData(hdc, 0, 0, null, 0)
         else do
             table = TtcfTableTag
@@ -62,7 +62,7 @@ impl TypeFace
         try GetObjectW(cast() hfont, #sizeof(LOGFONTW), cast(LPVOID) &logFont)
 
         let length = Utf16.lengthUntilZero(logFont.lfFaceName)
-        if !length do
+        if not length do
             return ""
         return Utf8.fromUtf16(Swag.makeSlice(&logFont.lfFaceName[0], length))
     }
@@ -83,7 +83,7 @@ impl TypeFace
             for index in count
             {
                 let name = catch Face.familyNameAt(bytes, index) as err
-                if err == null and !Latin1.compare(name, family, ignoreCase: true) do
+                if err == null and not Latin1.compare(name, family, ignoreCase: true) do
                     return Face.loadAt(bytes, index, allocator)
             }
         }
@@ -113,9 +113,9 @@ impl TypeFace
 
         let tf = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator
-        tf.fullname            = fullname
-        tf.face                = face
-        tf.faceLoaded          = true
+        tf.fullname   = fullname
+        tf.face       = face
+        tf.faceLoaded = true
 
         g_HashTypeFace.add(str, tf)
         return tf

@@ -60,7 +60,7 @@ private func linkedIdmlFixturePath()->String
 {
     let document = expect loadIndesignDocument(indesignFixturePath().toString())
     Swag.assert(document.header.offset == IndesignFixtureHeaderSize)
-    Swag.assert(!document.header.bigEndian and document.header.formatVersion == 7)
+    Swag.assert(not document.header.bigEndian and document.header.formatVersion == 7)
     Swag.assert(document.header.sequence == 2)
     Swag.assert(document.declaredBytes == document.fileSize and document.declaredBytes == cast(u64) document.header.storagePages * IndesignFixtureHeaderSize)
     Swag.assert(document.xmpObjectStreams == 0)
@@ -164,7 +164,7 @@ private func linkedIdmlFixturePath()->String
     let firstPageImages = Testing.htmlImageSources(viewer.htmlView!)
     Swag.assert(viewer.previewIndex == 0 and firstPageImages.count == 1)
     Swag.assert(Path.fileName(firstPageImages[0].toString()) == "title.png")
-    Swag.assert(!viewer.goToTypedPage("0") and !viewer.goToTypedPage("5") and !viewer.goToTypedPage("page 1"))
+    Swag.assert(not viewer.goToTypedPage("0") and not viewer.goToTypedPage("5") and not viewer.goToTypedPage("page 1"))
     Swag.assert(viewer.goToTypedPage("2") and viewer.previewIndex == 1)
     Swag.assert(viewer.goToTypedPage("1") and viewer.previewIndex == 0)
     viewer.setMarkupZoom(125)
@@ -172,7 +172,7 @@ private func linkedIdmlFixturePath()->String
     viewer.fitMarkupWidth()
     Swag.assert(viewer.markupFit and viewer.markupFitWidth and viewer.zoomLabel.text() == indesignStrings().ui_FitWidth)
     viewer.fitMarkupPage()
-    Swag.assert(viewer.markupFit and !viewer.markupFitWidth and viewer.zoomLabel.text() == indesignStrings().ui_Fit)
+    Swag.assert(viewer.markupFit and not viewer.markupFitWidth and viewer.zoomLabel.text() == indesignStrings().ui_Fit)
     var qrcodePage = Swag.U64.Max
     for page, index in viewer.markupPages
     {
@@ -263,7 +263,7 @@ private func linkedIdmlFixturePath()->String
     Swag.assert(document.fileSize > 2 * 1024 * 1024)
     Swag.assert(document.header.storagePages > 0)
     Swag.assert(document.xmpObjectStreams == 1)
-    Swag.assert(!document.previews.isEmpty())
+    Swag.assert(not document.previews.isEmpty())
 }
 
 // The external IDML document reaches the visible surface as positioned, selectable page content.
@@ -294,13 +294,13 @@ private func linkedIdmlFixturePath()->String
 
     let viewer = cast(*IndesignViewer) result.view!
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
-    Swag.assert(viewer.isMarkup() and viewer.htmlView != null and !viewer.imageView.isVisible())
+    Swag.assert(viewer.isMarkup() and viewer.htmlView != null and not viewer.imageView.isVisible())
     Swag.assert(viewer.zoomLabel.isVisible() and viewer.zoomLabel.text() == indesignStrings().ui_Fit)
     Swag.assert(Utf8.contains(viewer.details.toString(), "InDesign Markup page") and Utf8.contains(viewer.details.toString(), "missing images"))
     Swag.assert(viewer.pageLabel.toolTip == "Choose page")
     var matches: Array'Viewer.SearchMatch
     viewer.collectMatches("Schriftwerke", {}, &matches)
-    Swag.assert(!matches.isEmpty())
+    Swag.assert(not matches.isEmpty())
     let revealed = viewer.revealMatch(matches[0], "Schriftwerke")
     Swag.assert(revealed)
     var searchBounds: Math.Rectangle
@@ -369,7 +369,7 @@ private func linkedIdmlFixturePath()->String
     Swag.assert(viewer.zoomLabel.text() != "")
     Swag.assert(viewer.details == "InDesign · page 1 of 2 · saved preview 320 × 460")
     Swag.assert(viewer.pageLabel.text() == "Page 1 / 2")
-    Swag.assert(!viewer.previousButton.isEnabled() and viewer.nextButton.isEnabled())
+    Swag.assert(not viewer.previousButton.isEnabled() and viewer.nextButton.isEnabled())
     Swag.assert(viewer.pageLabel.toolTip == "Choose saved preview")
     Swag.assert(viewer.imageView.isFitted and viewer.imageView.effectiveZoom() > 0)
     viewer.imageView.setZoom(1.25)
@@ -388,7 +388,7 @@ private func linkedIdmlFixturePath()->String
     completeViewerBackgroundLoad(&host, &viewer.previewLoad, viewer.previewLoadTimer)
     Swag.assert(viewer.previewIndex == 1 and viewer.details == "InDesign · page 2 of 2 · saved preview 460 × 320")
     Swag.assert(viewer.pageLabel.text() == "Page 2 / 2")
-    Swag.assert(viewer.previousButton.isEnabled() and !viewer.nextButton.isEnabled())
+    Swag.assert(viewer.previousButton.isEnabled() and not viewer.nextButton.isEnabled())
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(viewer)
@@ -426,5 +426,5 @@ private func linkedIdmlFixturePath()->String
     Swag.assert(result.view != null and result.commands != null)
     let viewer = cast(*IndesignViewer) result.view!
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
-    Swag.assert(!viewer.failureReason.isEmpty())
+    Swag.assert(not viewer.failureReason.isEmpty())
 }

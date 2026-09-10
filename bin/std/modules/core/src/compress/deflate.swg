@@ -70,14 +70,14 @@ internal
         0, 1, 6, 32, 16, 32, 128, 256, 512, 768, 1500]
 
     const MaxSupportedHuffCodeSize = 32
-    const MaxHuffTables            = 3
-    const MaxHuffSymbols0          = 288'u32
-    const MaxHuffSymbols1          = 32'u32
-    const MaxHuffSymbols2          = 19'u32
-    const LzDictSize               = 32768
-    const LzDictSizeMask           = LzDictSize - 1
-    const MinMatchLen              = 3
-    const MaxMatchLen              = 258
+    const MaxHuffTables   = 3
+    const MaxHuffSymbols0 = 288'u32
+    const MaxHuffSymbols1 = 32'u32
+    const MaxHuffSymbols2 = 19'u32
+    const LzDictSize      = 32768
+    const LzDictSizeMask  = LzDictSize - 1
+    const MinMatchLen     = 3
+    const MaxMatchLen     = 258
 
     const LzCodeBufSize = 24 * 1024
     const LzHashBits    = 15
@@ -304,7 +304,7 @@ impl Deflate
                 func probe()
                 {
                     nextProbePos = d.next[probePos]
-                    if !nextProbePos do
+                    if not nextProbePos do
                         return
                     dist = cast(u16) (laPos - nextProbePos)
                     if dist > maxDist do
@@ -319,7 +319,7 @@ impl Deflate
                 probe()
             }
 
-            if !dist do
+            if not dist do
                 break
 
             var p         = s
@@ -370,11 +370,11 @@ impl Deflate
     {
         let d    = .state!
         let head = cast(u32) d.prev3[pos]
-        if !head do
+        if not head do
             return
 
         let dist = cast(u16) (d.lookaheadPos - head)
-        if !dist or dist > d.dictSize do
+        if not dist or dist > d.dictSize do
             return
 
         let probePos = head & LzDictSizeMask
@@ -414,7 +414,7 @@ impl Deflate
         for i in numSyms
         {
             let freq = sym0[i].key
-            hist[freq & 0xFF]                += 1
+            hist[freq & 0xFF] += 1
             hist[256 + ((freq >> 8) & 0xFF)] += 1
         }
 
@@ -472,24 +472,24 @@ impl Deflate
             {
                 symFreq[next].key = symFreq[root].key
                 symFreq[root].key = cast(u16) next
-                root              += 1
+                root += 1
             }
             else
             {
                 symFreq[next].key = symFreq[leaf].key
-                leaf              += 1
+                leaf += 1
             }
 
             if leaf >= n or (root < next and symFreq[root].key < symFreq[leaf].key)
             {
                 symFreq[next].key = cast(u16) (symFreq[next].key + symFreq[root].key)
                 symFreq[root].key = cast(u16) next
-                root              += 1
+                root += 1
             }
             else
             {
                 symFreq[next].key = cast(u16) (symFreq[next].key + symFreq[leaf].key)
-                leaf              += 1
+                leaf += 1
             }
         }
 
@@ -513,8 +513,8 @@ impl Deflate
             while avbl > used
             {
                 symFreq[next].key = cast(u16) dpth
-                next              -= 1
-                avbl              -= 1
+                next -= 1
+                avbl -= 1
             }
 
             avbl = 2 * used
@@ -576,7 +576,7 @@ impl Deflate
             {
                 syms0[numUsedSyms].key      = cast(u16) d.huffCount[tableNum, i]
                 syms0[numUsedSyms].symIndex = cast(u16) i
-                numUsedSyms                 += 1
+                numUsedSyms += 1
             }
 
             let syms = radixSortSyms(numUsedSyms, syms0, syms1)
@@ -606,7 +606,7 @@ impl Deflate
         var j = 0
         for var i = 2; i <= codeSizeLimit; i += 1
         {
-            j           = (j + numCodes[i - 1]) << 1
+            j = (j + numCodes[i - 1]) << 1
             nextCode[i] = j
         }
 
@@ -706,7 +706,7 @@ impl Deflate
                 {
                     packedCodeSizes[numPackedCodeSizes] = 0
                     numPackedCodeSizes += 1
-                    rleZCount          -= 1
+                    rleZCount -= 1
                 }
             }
             elif rleZCount <= 10
@@ -770,7 +770,7 @@ impl Deflate
         for i in totalCodeSizesToPack
         {
             let codeSize = codeSizesToPack[i]
-            if !codeSize
+            if not codeSize
             {
                 .rlePrevCodeSize()
                 rleZCount += 1
@@ -785,9 +785,9 @@ impl Deflate
                 if codeSize != prevCodeSize
                 {
                     .rlePrevCodeSize()
-                    d.huffCount[2, codeSize]            = cast(u16) (d.huffCount[2, codeSize] + 1)
+                    d.huffCount[2, codeSize] = cast(u16) (d.huffCount[2, codeSize] + 1)
                     packedCodeSizes[numPackedCodeSizes] = codeSize
-                    numPackedCodeSizes                  += 1
+                    numPackedCodeSizes       += 1
                 }
                 else
                 {
@@ -871,12 +871,12 @@ impl Deflate
                 var sym, numExtraBits: u32
                 if matchDist < 512
                 {
-                    sym          = SmallDistSym[matchDist]
+                    sym = SmallDistSym[matchDist]
                     numExtraBits = SmallDistExtra[matchDist]
                 }
                 else
                 {
-                    sym          = LargeDistSym[matchDist >> 8]
+                    sym = LargeDistSym[matchDist >> 8]
                     numExtraBits = LargeDistExtra[matchDist >> 8]
                 }
 
@@ -934,7 +934,7 @@ impl Deflate
         let savedBitBuf    = d.bitBuffer
         let savedBitsIn    = d.bitsIn
 
-        if !useRawBlock do
+        if not useRawBlock do
             compBlockSucceeded = .compressBlock((d.compressFlags & ForceAllStaticBlocks) or (d.totalLzBytes < 48))
 
         if ((useRawBlock or (d.totalLzBytes and ((d.outputBufAddr - savedOutputBuf + 1) >= d.totalLzBytes))) and
@@ -960,7 +960,7 @@ impl Deflate
                 .putBits(cast(u32) d.dict[(d.lzCodeBufDictPos + i) & LzDictSizeMask], 8)
             }
         }
-        elif !compBlockSucceeded
+        elif not compBlockSucceeded
         {
             d.outputBufAddr = savedOutputBuf
             d.bitBuffer     = savedBitBuf
@@ -1027,7 +1027,7 @@ impl Deflate
                 while pSrc != pSrc_end
                 {
                     let c = pSrc![]
-                    pSrc           += 1
+                    pSrc += 1
                     d.dict[dstPos] = c
                     if dstPos < (MaxMatchLen - 1) do
                         d.dict[LzDictSize + dstPos] = c
@@ -1080,7 +1080,7 @@ impl Deflate
             let curPos: u32 = d.lookaheadPos & LzDictSizeMask
             if d.compressFlags & (RleMatches | ForceAllRawBlocks)
             {
-                if d.dictSize and !(d.compressFlags & ForceAllRawBlocks)
+                if d.dictSize and not (d.compressFlags & ForceAllRawBlocks)
                 {
                     let c = d.dict[(curPos - 1) & LzDictSizeMask]
                     curMatchLen = 0
@@ -1100,7 +1100,7 @@ impl Deflate
             else
             {
                 .findMatch(d.lookaheadPos, d.dictSize, d.lookaheadSize, &curMatchDist, &curMatchLen)
-                if !curMatchDist and d.dictSize and d.lookaheadSize >= MinMatchLen do
+                if not curMatchDist and d.dictSize and d.lookaheadSize >= MinMatchLen do
                     .findShortMatch(curPos, &curMatchDist, &curMatchLen)
             }
 
@@ -1136,7 +1136,7 @@ impl Deflate
                     d.savedMatchLen = 0
                 }
             }
-            elif !curMatchDist
+            elif not curMatchDist
             {
                 .recordLiteral(d.dict[Math.min(curPos, cast(u32) #sizeof(d.dict) - 1)])
             }
@@ -1213,7 +1213,7 @@ public impl Deflate
     // Can be called multiple times
     mtd init(level = CompressionLevel.Default, strategy = CompressionStrategy.Default, flags = CompressionFlags.Default)
     {
-        if !.state do
+        if not .state do
             .state = Memory.new'Compressor()
         else do
             Swag.init(.state, 1)
@@ -1242,7 +1242,7 @@ public impl Deflate
 
         .compress()
         .flushBlock(true)
-        Swag.assert(!d.lookaheadSize and !d.srcBufLeft)
+        Swag.assert(not d.lookaheadSize and not d.srcBufLeft)
 
         if has(.initFlags, CompressionFlags.ComputeAdler32)
         {

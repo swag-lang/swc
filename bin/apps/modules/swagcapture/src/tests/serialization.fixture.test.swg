@@ -130,7 +130,7 @@ func serializationFixturePath(name: string)->String
     Swag.assert(preview.loadIssues == 0)
     Swag.assert(preview.width == 12 and preview.height == 10)
     Swag.assert(preview.forms.count == 0)
-    Swag.assert(!preview.backImg.isValid())
+    Swag.assert(not preview.backImg.isValid())
     Swag.assert(preview.preview.isValid())
     Swag.assert(preview.title == "Été — 東京")
     Swag.assert(preview.sourceKind == .ImageFile)

@@ -45,24 +45,24 @@ func filledBytes(count: u64, value: u8)->Array'u8
 
     var moreMemory: [32] u8
     expect Crypto.argon2id("passphrase", salt.toSlice(), {memoryKib: 64, iterations: 2, parallelism: 1}, moreMemory)
-    Swag.assert(!Crypto.constantTimeEqual(baseline, moreMemory))
+    Swag.assert(not Crypto.constantTimeEqual(baseline, moreMemory))
 
     var morePasses: [32] u8
     expect Crypto.argon2id("passphrase", salt.toSlice(), {memoryKib: 32, iterations: 3, parallelism: 1}, morePasses)
-    Swag.assert(!Crypto.constantTimeEqual(baseline, morePasses))
+    Swag.assert(not Crypto.constantTimeEqual(baseline, morePasses))
 
     var moreLanes: [32] u8
     expect Crypto.argon2id("passphrase", salt.toSlice(), {memoryKib: 32, iterations: 2, parallelism: 2}, moreLanes)
-    Swag.assert(!Crypto.constantTimeEqual(baseline, moreLanes))
+    Swag.assert(not Crypto.constantTimeEqual(baseline, moreLanes))
 
     var otherPassword: [32] u8
     expect Crypto.argon2id("passphrasf", salt.toSlice(), {memoryKib: 32, iterations: 2, parallelism: 1}, otherPassword)
-    Swag.assert(!Crypto.constantTimeEqual(baseline, otherPassword))
+    Swag.assert(not Crypto.constantTimeEqual(baseline, otherPassword))
 
     let otherSalt = filledBytes(16, 0x2B)
     var otherSaltTag: [32] u8
     expect Crypto.argon2id("passphrase", otherSalt.toSlice(), {memoryKib: 32, iterations: 2, parallelism: 1}, otherSaltTag)
-    Swag.assert(!Crypto.constantTimeEqual(baseline, otherSaltTag))
+    Swag.assert(not Crypto.constantTimeEqual(baseline, otherSaltTag))
 }
 
 #test
@@ -76,7 +76,7 @@ func filledBytes(count: u64, value: u8)->Array'u8
     var long:  [100] u8
     expect Crypto.argon2id("passphrase", salt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 1}, short)
     expect Crypto.argon2id("passphrase", salt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 1}, long)
-    Swag.assert(!Crypto.constantTimeEqual(short, long[0 until 16]))
+    Swag.assert(not Crypto.constantTimeEqual(short, long[0 until 16]))
 
     var repeatedLong: [100] u8
     expect Crypto.argon2id("passphrase", salt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 1}, repeatedLong)

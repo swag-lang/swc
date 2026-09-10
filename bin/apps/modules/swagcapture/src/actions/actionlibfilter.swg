@@ -35,7 +35,7 @@ impl IActionUI for ActionLibFilter
         {
         case .Reset:
             evt.updatedFields |= .Name
-            evt.name          = appStrings().act_ResetFilters
+            evt.name = appStrings().act_ResetFilters
 
         case .AllItems, .Captures, .ScreenCaptures, .ImportedCaptures, .Images:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
@@ -161,7 +161,7 @@ impl IActionUI for ActionLibFilter
             libWnd.view.filter()
 
         case .FavoritesOnly:
-            libWnd.favoritesOnly = !libWnd.favoritesOnly
+            libWnd.favoritesOnly = not libWnd.favoritesOnly
             libWnd.view.filter()
 
         case .RatingAny:
@@ -189,19 +189,19 @@ impl IActionUI for ActionLibFilter
             libWnd.view.filter()
 
         case .UpToDateLinkedImage:
-            libWnd.showUpToDateLinkedImage = !libWnd.showUpToDateLinkedImage
+            libWnd.showUpToDateLinkedImage = not libWnd.showUpToDateLinkedImage
             libWnd.view.filter()
 
         case .UnSavedLinkedImage:
-            libWnd.showUnSavedLinkedImage = !libWnd.showUnSavedLinkedImage
+            libWnd.showUnSavedLinkedImage = not libWnd.showUnSavedLinkedImage
             libWnd.view.filter()
 
         case .LinkedImage:
-            libWnd.showLinkedImage = !libWnd.showLinkedImage
+            libWnd.showLinkedImage = not libWnd.showLinkedImage
             libWnd.view.filter()
 
         case .UnLinkedImage:
-            libWnd.showUnLinkedImage = !libWnd.showUnLinkedImage
+            libWnd.showUnLinkedImage = not libWnd.showUnLinkedImage
             libWnd.view.filter()
         }
 

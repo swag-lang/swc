@@ -133,10 +133,10 @@ private impl RichEditCtrl
     mtd computeScrollY()
     {
         let size = .xGlyphSize()
-        if !.recomputeScroll do
+        if not .recomputeScroll do
             return
 
-        var y           = .residentContentOffset
+        var y = .residentContentOffset
         var firstHidden = true
         .countVisibleLines = 0
         for i in (.lines).count
@@ -149,7 +149,7 @@ private impl RichEditCtrl
                 .countVisibleLines    += 1
                 ln.drawingRect.y      = y
                 ln.drawingRect.height = size.y
-                y                     += size.y
+                y += size.y
                 firstHidden           = true
             }
             elif firstHidden
@@ -157,7 +157,7 @@ private impl RichEditCtrl
                 .countVisibleLines    += 1
                 ln.drawingRect.y      = y
                 ln.drawingRect.height = size.y
-                y                     += size.y
+                y += size.y
                 firstHidden           = false
             }
         }
@@ -222,7 +222,7 @@ private impl RichEditCtrl
 
     mtd lastVisibleLine()->u64
     {
-        if !.lines.count do
+        if not .lines.count do
             return 0
         for var i = .lines.count - 1; i >= 0; i -= 0
         {
@@ -235,14 +235,14 @@ private impl RichEditCtrl
 
     mtd previousVisibleLine(lineIndex: u64)->u64
     {
-        if !lineIndex do
+        if not lineIndex do
             return 0
         var i = lineIndex - 1
         for
         {
             if .lines[i]!.isVisible() do
                 return i
-            if !i do
+            if not i do
                 break
             i -= 1
         }
@@ -433,7 +433,7 @@ impl RichEditCtrl
             isChar = true
 
         // If there is a corresponding command,: nothing
-        if !isChar
+        if not isChar
         {
             let cmd = .commandForShortcut(key, modifiers)
             if cmd != .None do
@@ -479,7 +479,7 @@ impl RichEditCtrl
     // Lex the full text
     mtd lexAll()
     {
-        if !.lexer do
+        if not .lexer do
             return
 
         var prev, cur, next: *RichEditLine?

@@ -110,7 +110,7 @@ alias ConstF64 = Const'f64
         // A large incoming velocity can still cross the target.
         if (target - current > 0.0) == (result > target)
         {
-            result            = target
+            result = target
             currentVelocity[] = 0
         }
 

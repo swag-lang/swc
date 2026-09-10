@@ -13,10 +13,10 @@ internal impl Properties
 
         let opaque    = Reflection.hasAttribute(value, .Opaque)
         let keepAlpha = Reflection.hasAttribute(value, .KeepAlpha)
-        let editAlpha = !opaque and !keepAlpha
+        let editAlpha = not opaque and not keepAlpha
 
         var width = cast(f32) Reflection.attributeValue(value, .EditSize, "size", .editorWidth)
-        if !.isGridLike() do
+        if not .isGridLike() do
             width = .listContentWidthFromUseful(width)
         const MarginBtn = 4
         const WidthBtn  = 60
@@ -67,7 +67,7 @@ internal impl Properties
         {
             bc.painter.setParams(.Antialiased)
             let radius = btn.themeRects().btnIcon_RoundSquareBk.radius
-            if !color.isOpaque() do
+            if not color.isOpaque() do
                 bc.painter.fillRoundRect(pos, radius, radius, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
             bc.painter.fillRoundRect(pos, radius, radius, color[])
         }

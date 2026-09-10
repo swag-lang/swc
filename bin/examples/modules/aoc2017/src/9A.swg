@@ -56,14 +56,14 @@ func day9A()
             i += 1
         elif line[i] == '>' and garbage do
             garbage -= 1
-        elif line[i] == '<' and !garbage do
+        elif line[i] == '<' and not garbage do
             garbage += 1
-        elif line[i] == '{' and !garbage
+        elif line[i] == '{' and not garbage
         {
             group += 1
             score += group
         }
-        elif line[i] == '}' and !garbage do
+        elif line[i] == '}' and not garbage do
             group -= 1
     }
 

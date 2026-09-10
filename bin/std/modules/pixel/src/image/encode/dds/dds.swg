@@ -59,7 +59,7 @@ internal impl IImageEncoder for Encoder
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {
         discard options
-        if !image.isValid() do
+        if not image.isValid() do
             fail InvalidFormatError{"invalid image"}
 
         var converted: Image

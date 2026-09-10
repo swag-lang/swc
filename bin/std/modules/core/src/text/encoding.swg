@@ -45,7 +45,7 @@ func unitSize(encoding: Encoding)->u64
     {
     case .Utf16Le, .Utf16Be: return 2
     case .Utf32Le, .Utf32Be: return 4
-    default:                 return 1
+    default: return 1
     }
 }
 
@@ -53,7 +53,7 @@ func unitSize(encoding: Encoding)->u64
 func hasBom(bytes: const [..] u8, encoding: Encoding)->bool
 {
     let length = bomLength(encoding)
-    if !length or bytes.count < length do
+    if not length or bytes.count < length do
         return false
 
     switch encoding
@@ -88,7 +88,7 @@ private func countZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 
     while index < bytes.count
     {
-        if !bytes[index]
+        if not bytes[index]
         {
             if index & 1 do
                 result.odd += 1
@@ -140,7 +140,7 @@ func detectEncoding(probe: const [..] u8)->Encoding
     // separates them is that text written in UTF-8 never spells a null character at all.
     let zeros = countZeroPositions(probe)
     let total = zeros.even + zeros.odd
-    if !total and isValidUtf8Prefix(probe) do
+    if not total and isValidUtf8Prefix(probe) do
         return .Utf8
 
     if total * 4 >= probe.count
@@ -188,7 +188,7 @@ private func decodeUtf16BeUnits(bytes: const [..] u8)->Array'u16
     while offset < result.count
     {
         destination[offset] = (cast(u16) source[2 * offset] << 8) | cast(u16) source[2 * offset + 1]
-        offset              += 1
+        offset += 1
     }
 
     return result
@@ -213,7 +213,7 @@ private func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
     while offset < result.count
     {
         destination[offset] = cast(rune) ((cast(u32) source[4 * offset] << 24) | (cast(u32) source[4 * offset + 1] << 16) | (cast(u32) source[4 * offset + 2] << 8) | cast(u32) source[4 * offset + 3])
-        offset              += 1
+        offset += 1
     }
 
     return result
@@ -231,7 +231,7 @@ private func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
 func decode(bytes: const [..] u8, encoding: Encoding)->String
 {
     var result: retval
-    if !bytes.count do
+    if not bytes.count do
         return result
 
     switch #complete encoding
@@ -277,7 +277,7 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
 // character at all.
 func looksLikeText(probe: const [..] u8, encoding: Encoding)->bool
 {
-    if !probe.count do
+    if not probe.count do
         return true
 
     let text = decode(probe, encoding)
@@ -289,7 +289,7 @@ func looksLikeText(probe: const [..] u8, encoding: Encoding)->bool
     for c in text
     {
         count += 1
-        if !c do
+        if not c do
             return false
         if c < 0x20 and c != '\t' and c != '\n' and c != '\r' and c != 0x0C do
             controls += 1

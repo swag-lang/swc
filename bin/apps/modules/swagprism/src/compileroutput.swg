@@ -86,7 +86,7 @@ impl CompilerOutput
                 break
             let command = bytes[index]
             index += 1
-            if command != 'm' or !valid do
+            if command != 'm' or not valid do
                 continue
             params.add(value)
 

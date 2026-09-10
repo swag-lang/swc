@@ -200,15 +200,17 @@ struct MainWindow
 {
     using wnd: Wnd
 
-        // Text and control of the header, kept so a language switch can say it again.
-        late
+    // Text and control of the header, kept so a language switch can say it again.
+
+    late
     {
         subtitle:         *Label
         appearanceButton: *AppearanceButton
     }
 
-        // Controls of the automatic-unmount page.
-        late
+    // Controls of the automatic-unmount page.
+
+    late
     {
         privacyModeControl: *CheckButton
         unmountOnLock:      *CheckButton
@@ -217,8 +219,9 @@ struct MainWindow
         idleTimeout:        *ComboBox
     }
 
-        // Controls of the "create a new vault" card.
-        late
+    // Controls of the "create a new vault" card.
+
+    late
     {
         createPath:      *EditBox
         createSize:      *EditBox
@@ -230,8 +233,9 @@ struct MainWindow
         browseCreate:    *PushButton
     }
 
-        // Controls of the "open an existing vault" card.
-        late
+    // Controls of the "open an existing vault" card.
+
+    late
     {
         mountPath:      *EditBox
         mountPassword:  *PasswordEdit
@@ -248,10 +252,11 @@ struct MainWindow
         browseMount:    *PushButton
     }
 
-        // The single status line displayed above the footer, the glyph whose color reports its tone,
-        // and the spinner that replaces the glyph while work runs. The text and the glyph are written
-        // only through `setStatus`, the spinner only through `showBusy`.
-        late
+    // The single status line displayed above the footer, the glyph whose color reports its tone,
+    // and the spinner that replaces the glyph while work runs. The text and the glyph are written
+    // only through `setStatus`, the spinner only through `showBusy`.
+
+    late
     {
         statusView: *Wnd
         status:     *Label
@@ -398,7 +403,7 @@ internal func caughtMessage(err: any?)->String
 // line whoever reads a report needs to tell two failures of the same kind apart.
 private func logDiagnostic(message: string?)
 {
-    if !message do
+    if not message do
         return
 
     // Built as one owned string: it carries its terminator, which is what the debugger
@@ -438,7 +443,7 @@ internal func capacityText(bytes: u64)->String
 {
     const Mebibyte = 1024'u64 * 1024
     const Gibibyte = Mebibyte * 1024
-    if bytes >= Gibibyte and !(bytes % Gibibyte) do
+    if bytes >= Gibibyte and not (bytes % Gibibyte) do
         return Format.toString("% GiB", bytes / Gibibyte)
     return Format.toString("% MiB", (bytes + Mebibyte - 1) / Mebibyte)
 }
@@ -453,7 +458,7 @@ internal func parseCapacity(text: string, unitIndex: u32)->ContainerSize
     var result: retval
 
     let parsed = catch StrConv.parseU64(text) as parseError
-    if parseError != null or parsed.ovf or parsed.eat != text.count or !parsed.value
+    if parseError != null or parsed.ovf or parsed.eat != text.count or not parsed.value
     {
         result.error = appStrings().msg_SizeInvalid
         return result
@@ -527,7 +532,7 @@ internal func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
     unit.enable(false)
     keepCapacity.sigChanged += func|capacity, unit|(button)
     {
-        let enabled = !button.isChecked()
+        let enabled = not button.isChecked()
         capacity.enable(enabled)
         unit.enable(enabled)
     }
@@ -565,17 +570,19 @@ impl MainWindow
         result.backgroundStyle = .View
         result.language        = ReferenceLanguage
 
-        result.appearanceButton                 = AppearanceButton.create(surface, "vault.appearance")
+        result.appearanceButton = AppearanceButton.create(surface, "vault.appearance")
         result.appearanceButton.sigThemeChanged += func|window = result|(button)
         {
             window.themeIndex = cast(u32) button.appearanceTheme
             catch g_App.saveState()
         }
+
         result.appearanceButton.sigLanguageChanged += func|window = result|(button)
         {
             window.language = button.language
             catch g_App.saveState()
         }
+
         result.appearanceButton.sigAboutRequested += func|window = result|(button)
         {
             discard button
@@ -672,7 +679,7 @@ impl MainWindow
         var height = 0'f32
         for child in .children
         {
-            if !child.isLocallyVisible() do
+            if not child.isLocallyVisible() do
                 continue
             let margin = child.layoutMargin()
             let room   = Math.max(0, width - margin.x - margin.z)
@@ -696,7 +703,7 @@ impl MainWindow
     // The frame supplies its own inset. Include it once, round out, and keep the saved origin.
     mtd fitToContent()
     {
-        if !.layoutReady or .fittingSize do
+        if not .layoutReady or .fittingSize do
             return
         .fittingSize = true
         defer .fittingSize = false
@@ -811,7 +818,7 @@ impl MainWindow
     // for the same reason, so Enter says exactly what the button says.
     mtd submitCreate()
     {
-        if .state != .Ready or !.canCreate() do
+        if .state != .Ready or not .canCreate() do
             return
         .createContainer()
     }
@@ -819,7 +826,7 @@ impl MainWindow
     // Mounts the drive when the open form holds everything it needs.
     mtd submitMount()
     {
-        if .state != .Ready or !.canMount() do
+        if .state != .Ready or not .canMount() do
             return
         .mountContainer()
     }
@@ -847,7 +854,7 @@ impl MainWindow
         // is set in another face.
         titleRow.resize(titleRow.position.width, Math.max(titleRow.position.height, titleFont.height))
 
-        .subtitle           = Label.create(header, appStrings().ui_Subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
+        .subtitle = Label.create(header, appStrings().ui_Subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
         .subtitle.dockStyle = .Top
         .subtitle.setTextAlignment(.Left, .Top)
         titleRow.applyLayout()
@@ -876,19 +883,19 @@ impl MainWindow
         .statusView.backgroundStyle = .Panel
         .statusView.padding         = {20, 8, 20, 8}
 
-        .statusIcon           = Label.create(.statusView, "", {0, 0, 24})
+        .statusIcon = Label.create(.statusView, "", {0, 0, 24})
         .statusIcon.dockStyle = .Left
         .statusIcon.margin.z  = 12
 
         // The spinner takes the glyph's place rather than a slot of its own: it is the same
         // 24-pixel square, and a docked window that is hidden takes no room, so the status text
         // starts at the same column whether work is running or not.
-        .statusBusy           = Spinner.create(.statusView, {0, 0, 24, 24})
+        .statusBusy = Spinner.create(.statusView, {0, 0, 24, 24})
         .statusBusy.dockStyle = .Left
         .statusBusy.margin.z  = 12
         .statusBusy.hide()
 
-        .status           = Label.create(.statusView, "")
+        .status = Label.create(.statusView, "")
         .status.dockStyle = .Center
         .status.setTextAlignment(.Left, .Center)
         .statusView.applyLayout()
@@ -956,21 +963,25 @@ impl MainWindow
             discard button
             window.readPrivacyControl()
         }
+
         .unmountOnLock.sigChanged += func|window = me|(button)
         {
             discard button
             window.readAutoUnmountControls()
         }
+
         .unmountOnSuspend.sigChanged += func|window = me|(button)
         {
             discard button
             window.readAutoUnmountControls()
         }
+
         .unmountOnIdle.sigChanged += func|window = me|(button)
         {
             discard button
             window.readAutoUnmountControls()
         }
+
         .idleTimeout.sigChanged += func|window = me|(combo, index)
         {
             discard combo
@@ -988,7 +999,7 @@ impl MainWindow
     mtd applyPrivacyControl()
     {
         .privacyModeControl.setState(.privacyMode ? .Checked : .Unchecked)
-        .mountedDrives.setStartupEnabled(!.privacyMode)
+        .mountedDrives.setStartupEnabled(not .privacyMode)
     }
 
     // Removes every persisted or pending path while retaining appearance and
@@ -1065,7 +1076,7 @@ impl MainWindow
     {
         if .statusBusy.isLocallyVisible() == busy do
             return
-        .statusIcon.show(!busy)
+        .statusIcon.show(not busy)
         .statusBusy.show(busy)
         .statusView.applyLayout()
     }
@@ -1203,7 +1214,7 @@ impl MainWindow
         .createPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: "C:\\path\\private", icon: .theme().icon(ThemeIcons.OpenFile, themeRowIconSize(.themeMetrics())))
         .createPath.updateFlags(.AcceptFileDrop)
         setMachineFont(.createPath)
-        .browseCreate            = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, themeRowIconSize(.themeMetrics())))
+        .browseCreate = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, themeRowIconSize(.themeMetrics())))
         .browseCreate.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -1260,20 +1271,21 @@ impl MainWindow
         .mountPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: appStrings().ui_ExistingContainer, icon: .theme().icon(ThemeIcons.OpenFile, themeRowIconSize(.themeMetrics())))
         .mountPath.updateFlags(.AcceptFileDrop)
         setMachineFont(.mountPath)
-        .browseMount            = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, themeRowIconSize(.themeMetrics())))
+        .browseMount = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, themeRowIconSize(.themeMetrics())))
         .browseMount.sigPressed += func|window = me|(btn)
         {
             discard btn
             window.chooseContainer(window.mountPath, false)
         }
 
-        .mountPassword           = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword)
-        .hiddenButton            = form.addRowAction(appStrings().ui_CreateHidden)
+        .mountPassword = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword)
+        .hiddenButton  = form.addRowAction(appStrings().ui_CreateHidden)
         .hiddenButton.sigPressed += func|window = me|(btn)
         {
             discard btn
             window.createHiddenContainer()
         }
+
         .mountKeyFiles = KeyFileField.create(form, canGenerate: false)
         discard form.addField(appStrings().ui_KeyFiles, .mountKeyFiles, help: appStrings().ui_KeyFilesHelp)
 
@@ -1293,7 +1305,7 @@ impl MainWindow
         .protectHidden       = CheckButton.create(mountOptions, appStrings().ui_ProtectHidden)
         .readOnly.sigChanged += func|window = me|(button)
         {
-            window.protectHidden.enable(!button.isChecked())
+            window.protectHidden.enable(not button.isChecked())
         }
 
         // The action bar stacks from its right edge, so the dominant action is created first and
@@ -1310,7 +1322,7 @@ impl MainWindow
             window.mountContainer()
         }
 
-        .resizeButton            = PushButton.create(card.actions, appStrings().ui_Resize)
+        .resizeButton = PushButton.create(card.actions, appStrings().ui_Resize)
         .resizeButton.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -1320,14 +1332,14 @@ impl MainWindow
                 window.resizeVault()
         }
 
-        .passwordButton            = PushButton.create(card.actions, appStrings().ui_ChangePassword)
+        .passwordButton = PushButton.create(card.actions, appStrings().ui_ChangePassword)
         .passwordButton.sigPressed += func|window = me|(btn)
         {
             discard btn
             window.changeVaultPassword()
         }
 
-        .keyFilesButton            = PushButton.create(card.actions, appStrings().ui_ChangeKeyFiles)
+        .keyFilesButton = PushButton.create(card.actions, appStrings().ui_ChangeKeyFiles)
         .keyFilesButton.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -1352,7 +1364,7 @@ impl MainWindow
         for &destination in .mountDestinations do
             .drive.addItem(destination.label)
 
-        if !.drive.items.count do
+        if not .drive.items.count do
             return
 
         if .selectMountPoint(previous) do
@@ -1376,9 +1388,9 @@ impl MainWindow
     // Restores the non-secret choices of the last successful mount into the form.
     mtd restoreMountSettings()
     {
-        if !.mountSettings.path.isEmpty() do
+        if not .mountSettings.path.isEmpty() do
             .mountPath.setText(.mountSettings.path)
-        if !.mountSettings.drive.isEmpty() do
+        if not .mountSettings.drive.isEmpty() do
             discard .selectMountPoint(.mountSettings.drive.toString())
         .readOnly.setState(.mountSettings.readOnly ? .Checked : .Unchecked)
     }
@@ -1408,7 +1420,7 @@ impl MainWindow
     // field, and a wrong password is reported by the container, not by the form.
     mtd canMount()->bool
     {
-        return (.mountPath.text()).count != 0 and !.selectedMountPoint().isEmpty()
+        return (.mountPath.text()).count != 0 and not .selectedMountPoint().isEmpty()
     }
 
     // Whether the open form names a container the two secondary actions can act on.
@@ -1599,7 +1611,7 @@ impl MainWindow
     // queued behind the event that is taking the session away.
     mtd handleAutoUnmount(cause: AutoUnmountCause)
     {
-        if .shuttingDown or !.autoUnmountEnabled(cause) do
+        if .shuttingDown or not .autoUnmountEnabled(cause) do
             return
 
         .securityEpoch += 1
@@ -1617,13 +1629,13 @@ impl MainWindow
         }
 
         var synchronizationStopped = interruptedMount and .statusMessage == .AutoUnmountStopped
-        var unmounted              = false
-        var index                  = .mountedDrives.drives.count
+        var unmounted = false
+        var index     = .mountedDrives.drives.count
         while index
         {
             index -= 1
             let entry = &.mountedDrives.drives[index]
-            if !entry.needsPassword do
+            if not entry.needsPassword do
                 continue
             unmounted = true
 
@@ -1640,7 +1652,7 @@ impl MainWindow
             .mountedDrives.drives.removeAtOrdered(index)
         }
 
-        if !interruptedMount and !unmounted do
+        if not interruptedMount and not unmounted do
             return
 
         .mountedDrives.refresh()
@@ -1667,7 +1679,7 @@ impl MainWindow
     mtd createContainer()
     {
         let path = .createPath.text()
-        if !path.count
+        if not path.count
         {
             .showError(appStrings().msg_ChooseCreateFile)
             return
@@ -1679,14 +1691,14 @@ impl MainWindow
             return
         }
 
-        if !Core.Crypto.constantTimeEqual(.createPassword.bytes(), .confirmPassword.bytes())
+        if not Core.Crypto.constantTimeEqual(.createPassword.bytes(), .confirmPassword.bytes())
         {
             .showError(appStrings().msg_PasswordMismatch)
             return
         }
 
         let size = parseCapacity(.createSize.text(), .createUnit.selectedIndex)
-        if !size.error.isEmpty()
+        if not size.error.isEmpty()
         {
             .showError(size.error.toString())
             return
@@ -1715,7 +1727,7 @@ impl MainWindow
     // The open card identifies the outer container; this form owns only the new hidden access.
     mtd createHiddenContainer()
     {
-        if .state != .Ready or !.canModifyVault() do
+        if .state != .Ready or not .canModifyVault() do
             return
         if .isMounted(.mountPath.text())
         {
@@ -1724,28 +1736,28 @@ impl MainWindow
         }
 
         var options: FormDlgOptions
-        options.title             = appStrings().ui_CreateHidden
+        options.title = appStrings().ui_CreateHidden
         options.confirmButtonText = appStrings().ui_CreateVault
-        options.width             = 520
+        options.width = 520
         let dialog = FormDlg.create(.surface!, options)
         let fields = buildHiddenCreateForm(dialog)
         if dialog.doModal() != Dialog.BtnOk do
             return
-        if !Core.Crypto.constantTimeEqual(fields.password.bytes(), fields.confirm.bytes())
+        if not Core.Crypto.constantTimeEqual(fields.password.bytes(), fields.confirm.bytes())
         {
             .showError(appStrings().msg_PasswordMismatch)
             return
         }
 
         let size = parseCapacity(fields.capacity.text(), fields.unit.selectedIndex)
-        if !size.error.isEmpty()
+        if not size.error.isEmpty()
         {
             .showError(size.error.toString())
             return
         }
 
         let reserve = parseCapacity(fields.reserve.text(), fields.reserveUnit.selectedIndex)
-        if !reserve.error.isEmpty()
+        if not reserve.error.isEmpty()
         {
             .showError(reserve.error.toString())
             return
@@ -1753,7 +1765,7 @@ impl MainWindow
 
         .operation.outerReserve = reserve.bytes
         .operation.hiddenAccess.setInputs(fields.password.bytes(), fields.keyFiles.paths.toSlice())
-        if !.operation.hiddenAccess.isProtected()
+        if not .operation.hiddenAccess.isProtected()
         {
             .showError(appStrings().msg_PasswordRequired)
             return
@@ -1776,15 +1788,15 @@ impl MainWindow
     mtd askHiddenProtection()->bool
     {
         var options: FormDlgOptions
-        options.title             = appStrings().ui_ProtectHidden
+        options.title = appStrings().ui_ProtectHidden
         options.confirmButtonText = appStrings().ui_MountDrive
-        options.width             = 520
+        options.width = 520
         let dialog = FormDlg.create(.surface!, options)
         let fields = buildHiddenProtectionForm(dialog)
         if dialog.doModal() != Dialog.BtnOk do
             return false
         .operation.hiddenAccess.setInputs(fields.password.bytes(), fields.keyFiles.paths.toSlice())
-        if !.operation.hiddenAccess.isProtected()
+        if not .operation.hiddenAccess.isProtected()
         {
             .showError(appStrings().msg_PasswordRequired)
             return false
@@ -1811,7 +1823,7 @@ impl MainWindow
     mtd mountContainer()
     {
         let path = .mountPath.text()
-        if !path.count
+        if not path.count
         {
             .showError(appStrings().msg_ChooseExisting)
             return
@@ -1832,9 +1844,9 @@ impl MainWindow
 
         .operation.createHidden = false
         .operation.hiddenAccess.clear()
-        .operation.protectHidden = .protectHidden.isChecked() and !.readOnly.isChecked()
+        .operation.protectHidden = .protectHidden.isChecked() and not .readOnly.isChecked()
         .protectHidden.setState(.Unchecked)
-        if .operation.protectHidden and !.askHiddenProtection() do
+        if .operation.protectHidden and not .askHiddenProtection() do
             return
         .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
         .mountPassword.clear()
@@ -1877,7 +1889,7 @@ impl MainWindow
     // card, so the box contains the new password and its confirmation alone.
     mtd changeVaultPassword()
     {
-        if .state != .Ready or !.canModifyVault() do
+        if .state != .Ready or not .canModifyVault() do
             return
 
         let path = String.from(.mountPath.text())
@@ -1888,17 +1900,17 @@ impl MainWindow
         }
 
         var options: FormDlgOptions
-        options.title             = appStrings().dlg_TitlePassword
+        options.title  = appStrings().dlg_TitlePassword
         options.confirmButtonText = appStrings().dlg_BtnApply
-        options.width             = 520
-        options.height            = 300
+        options.width  = 520
+        options.height = 300
 
         let dialog = FormDlg.create(.surface!, options)
         let fields = buildPasswordChangeForm(dialog)
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        if !Core.Crypto.constantTimeEqual(fields.replacement.bytes(), fields.confirm.bytes())
+        if not Core.Crypto.constantTimeEqual(fields.replacement.bytes(), fields.confirm.bytes())
         {
             .showError(appStrings().msg_PasswordMismatch)
             return
@@ -1909,7 +1921,7 @@ impl MainWindow
         .operation.replacement.setInputs(fields.replacement.bytes(), .mountKeyFiles.paths.toSlice())
         .mountPassword.clear()
         .operation.accessChange      = .Password
-        .operation.leavesUnprotected = !.operation.replacement.isProtected()
+        .operation.leavesUnprotected = not .operation.replacement.isProtected()
         .operation.removesPassword   = fields.replacement.isEmpty()
         .setStatus(.ChangingPassword)
         .setState(.ChangingAccess)
@@ -1920,7 +1932,7 @@ impl MainWindow
     // open card, and current access is verified before the replacement slot is published.
     mtd changeVaultKeyFiles()
     {
-        if .state != .Ready or !.canModifyVault() do
+        if .state != .Ready or not .canModifyVault() do
             return
 
         let path = String.from(.mountPath.text())
@@ -1931,7 +1943,7 @@ impl MainWindow
         }
 
         var options: FormDlgOptions
-        options.title             = appStrings().dlg_TitleChangeKeyFiles
+        options.title = appStrings().dlg_TitleChangeKeyFiles
         options.confirmButtonText = appStrings().dlg_BtnApply
 
         let dialog = FormDlg.create(.surface!, options)
@@ -1945,7 +1957,7 @@ impl MainWindow
         files.copyPaths(&.operation.resultKeyFiles)
         .mountPassword.clear()
         .operation.accessChange      = .KeyFiles
-        .operation.leavesUnprotected = !.operation.replacement.isProtected()
+        .operation.leavesUnprotected = not .operation.replacement.isProtected()
         .setStatus(.ChangingKeyFiles)
         .setState(.ChangingAccess)
         .beginOperation(.ChangeAccess)
@@ -1954,7 +1966,7 @@ impl MainWindow
     // Asks only for another capacity, then resizes with the access stated on the open card.
     mtd resizeVault()
     {
-        if .state != .Ready or !.canModifyVault() do
+        if .state != .Ready or not .canModifyVault() do
             return
 
         let path = String.from(.mountPath.text())
@@ -1964,17 +1976,17 @@ impl MainWindow
             return
         }
 
-        if !File.exists(path.toString())
+        if not File.exists(path.toString())
         {
             .showError(appStrings().msg_ChooseExisting)
             return
         }
 
         var options: FormDlgOptions
-        options.title             = appStrings().dlg_TitleResize
+        options.title  = appStrings().dlg_TitleResize
         options.confirmButtonText = appStrings().dlg_BtnApply
-        options.width             = 520
-        options.height            = 240
+        options.width  = 520
+        options.height = 240
 
         let dialog = FormDlg.create(.surface!, options)
         let fields = buildVaultResizeForm(dialog)
@@ -1983,10 +1995,10 @@ impl MainWindow
 
         var requestedSize  = 0'u64
         let camouflageOnly = fields.keepCapacity.isChecked()
-        if !camouflageOnly
+        if not camouflageOnly
         {
             let size = parseCapacity(fields.capacity.text(), fields.unit.selectedIndex)
-            if !size.error.isEmpty()
+            if not size.error.isEmpty()
             {
                 .showError(size.error.toString())
                 return
@@ -1995,8 +2007,8 @@ impl MainWindow
             requestedSize = size.bytes
         }
 
-        .operation.path           = path
-        .operation.size           = requestedSize
+        .operation.path = path
+        .operation.size = requestedSize
         .operation.camouflageOnly = camouflageOnly
         .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
         .mountPassword.clear()
@@ -2179,7 +2191,7 @@ impl MainWindow
             {
                 // A startup mount reports on the status line alone: a box per vault would meet
                 // the reader with a stack of them before the window is even readable.
-                if !.operation.fromStartup and !.operation.securityStopped do
+                if not .operation.fromStartup and not .operation.securityStopped do
                     .showError(appStrings().msg_MountFailed, .operation.error)
                 .setStatus(.operation.securityStopped ? StatusMessage.AutoUnmounted : StatusMessage.MountStopped)
             }
@@ -2282,7 +2294,7 @@ impl MainWindow
     {
         let known = .startupIndex(.operation.path.toString())
 
-        if !.privacyMode
+        if not .privacyMode
         {
             .mountSettings.path     = .operation.path
             .mountSettings.drive    = .operation.mount
@@ -2298,7 +2310,7 @@ impl MainWindow
             .needsPassword = me.operation.usedProtection
             .readOnly      = me.operation.readOnly
             .protectHidden = me.operation.protectHidden
-            .atStartup     = !me.privacyMode and known != Swag.U64.Max
+            .atStartup     = not me.privacyMode and known != Swag.U64.Max
         }
 
         if .operation.volume
@@ -2310,7 +2322,7 @@ impl MainWindow
 
         // The letter is remembered as the one actually used, so a startup vault comes back on
         // the drive it was last seen on rather than on the one it was first marked with.
-        if !.privacyMode and known != Swag.U64.Max
+        if not .privacyMode and known != Swag.U64.Max
         {
             .startupVaults[known].drive         = .operation.mount
             .startupVaults[known].protectHidden = .operation.protectHidden
@@ -2330,7 +2342,7 @@ impl MainWindow
         let index = .startupIndex(.operation.path.toString())
         if index != Swag.U64.Max
         {
-            .startupVaults[index].needsPassword = !.operation.leavesUnprotected
+            .startupVaults[index].needsPassword = not .operation.leavesUnprotected
             catch g_App.saveState()
         }
     }
@@ -2359,7 +2371,7 @@ impl MainWindow
             one.atStartup = checked
 
             let known = .startupIndex(one.path.toString())
-            if !checked
+            if not checked
             {
                 if known != Swag.U64.Max do
                     .startupVaults.removeAtOrdered(known)
@@ -2385,16 +2397,16 @@ impl MainWindow
             let entry = .startupQueue[0]
             .startupQueue.removeAtOrdered(0)
 
-            if entry.drive.isEmpty() or !File.exists(entry.path.toString()) or .isMounted(entry.path.toString()) do
+            if entry.drive.isEmpty() or not File.exists(entry.path.toString()) or .isMounted(entry.path.toString()) do
                 continue
 
             .operation.access.clear()
-            if entry.needsPassword and !.askStartupAccess(entry.path.toString()) do
+            if entry.needsPassword and not .askStartupAccess(entry.path.toString()) do
                 continue
 
-            .operation.protectHidden = entry.protectHidden and !entry.readOnly
+            .operation.protectHidden = entry.protectHidden and not entry.readOnly
             .operation.hiddenAccess.clear()
-            if .operation.protectHidden and !.askHiddenProtection()
+            if .operation.protectHidden and not .askHiddenProtection()
             {
                 .operation.access.clear()
                 .operation.protectHidden = false
@@ -2508,7 +2520,7 @@ impl IWnd for MainWindow
     mtd impl onDragDropEvent(evt: *DragDropEvent)
     {
         let path = evt.data.singleFile()
-        if !path
+        if not path
         {
             evt.accepted = false
             return
@@ -2574,7 +2586,7 @@ impl IWnd for MainWindow
 
             // The startup mounts wait for a surface a reader can see: the first one may need
             // access input, and a box on a window that is not up yet has nothing to sit on.
-            if !.privacyMode do
+            if not .privacyMode do
                 .startupQueue.add(.startupVaults.toSlice())
             if .startupQueue.count do
                 .startupTimer = .app().addTimer(200'ms, me)
@@ -2591,7 +2603,7 @@ impl IWnd for MainWindow
 
         // Privacy is the default, including for state written before this setting
         // existed. Only an explicit opt-out permits paths or browse history on disk.
-        if !.privacyMode
+        if not .privacyMode
         {
             catch evt.serializer.serialize("MainWindow.fileDlgState", &me.fileDlgState)
             catch evt.serializer.serialize("MainWindow.mountSettings", &me.mountSettings)

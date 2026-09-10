@@ -228,7 +228,7 @@ private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cl
     glyph.advanceX = isTab ? customAdvanceX : desc.advanceX + extraAdvanceX
     glyph.advanceY = desc.advanceY
     glyph.isTab    = isTab
-    if previousGlyphIndex and !isTab do
+    if previousGlyphIndex and not isTab do
         glyph.offsetX = font.cache.kerning(previousGlyphIndex, glyphIndex) + letterSpacing
 
     let glyphX = run.metrics.width + glyph.offsetX
@@ -264,7 +264,7 @@ private func appendShapedTab(run: *ShapedRun, font: *Font, cluster: u64, tabSize
     let spaceGlyphIndex  = font.glyphIndex(' ')
     let spaceDesc        = font.getGlyphDescByIndex(spaceGlyphIndex)
     var effectiveTabSize = tabSize
-    if !effectiveTabSize do
+    if not effectiveTabSize do
         effectiveTabSize = 1
 
     var spaceAdvance = spaceDesc.advanceX
@@ -298,7 +298,7 @@ private func finishShapedRun(run: *ShapedRun, font: *Font)
 
 private func snapTextPosition(value: f32, snapPixels: bool, deviceScale: f32, snapOffset = 0.0'f32)->f32
 {
-    if !snapPixels do
+    if not snapPixels do
         return value
 
     // Snapping happens on the *device* grid: at a content scale of 1.5 a value
@@ -322,7 +322,7 @@ impl Painter
     {
         var result: retval
         result.drawFont    = Font.resolveDrawFont(font, cast(f32) font.size * zoom * transformScale)
-        result.snapPixels  = !result.drawFont.cache.renderMode.isDistanceField()
+        result.snapPixels  = not result.drawFont.cache.renderMode.isDistanceField()
         result.deviceScale = transformScale
 
         // A resolved bitmap font is rasterized at its device pixel size, so it draws
@@ -494,7 +494,7 @@ impl Painter
     func measureRune(c: rune, font: *Font?)->Math.Point
     {
         var result: retval
-        if !font do
+        if not font do
             return result
         let localFont = font
         let desc      = localFont.getGlyphDesc(c)
@@ -664,7 +664,7 @@ impl Painter
             return
 
         // Nothing visible: no face fill and no outline/glow/shadow either.
-        if .isInvisible(brush) and effect.outlineColor.a == 0 and effect.glowColor.a == 0 and !effect.hasShadow() do
+        if .isInvisible(brush) and effect.outlineColor.a == 0 and effect.glowColor.a == 0 and not effect.hasShadow() do
             return
 
         var info = Painter.computeTextDrawInfo(font, zoom, .textTransformScale())
@@ -898,7 +898,7 @@ impl Painter
                     // Rewind to the first chunk of the word being accumulated when an earlier
                     // word already holds the line, so the whole word moves down together. A word
                     // that starts the line has nothing to rewind to and is cut where it runs out.
-                    if !c.isSpace and wordStart > startLine
+                    if not c.isSpace and wordStart > startLine
                     {
                         // The space the word was rewound past ends the closed line, and a line
                         // does not end on a space.
@@ -1028,7 +1028,7 @@ impl Painter
             {
                 let l      = &lines[i]
                 let wasCut = cast(s64) i == cutLine and l.end > l.start
-                if l.measure.width <= pos.width and !wasCut do
+                if l.measure.width <= pos.width and not wasCut do
                     continue
 
                 // The chunk the overflow lands in, and the width of everything before it.
@@ -1050,7 +1050,7 @@ impl Painter
                 // lands after its last chunk instead of in place of an overflow.
                 if cut < 0
                 {
-                    if !wasCut do
+                    if not wasCut do
                         continue
 
                     cut   = l.end - 1
@@ -1088,10 +1088,10 @@ impl Painter
                 // A shaped run copies the glyphs it needs and borrows nothing from its source
                 // text, so shaping a temporary is safe; the next layout re-shapes the chunk from
                 // its own slice, which this pass leaves intact.
-                c.shaped          = shapeRun(trimmed.toString(), c.font, format.tabSize, format.letterSpacing)
+                c.shaped = shapeRun(trimmed.toString(), c.font, format.tabSize, format.letterSpacing)
                 c.boundRect.width = measureStringSnapped(&c.shaped, deviceScale: deviceScale)
 
-                l.end           = cut + 1
+                l.end = cut + 1
                 l.measure.width = accum + c.boundRect.width
             }
         }
@@ -1163,7 +1163,7 @@ impl Painter
                     text.boundRect.x = Math.min(text.boundRect.x, c.pos.x)
                     boundRight       = Math.max(boundRight, c.pos.x + c.boundRect.width)
 
-                    if c.isSpace and format.horzAlignment == .Justify and idxLine != lines.count - 1 and !l.hasEol
+                    if c.isSpace and format.horzAlignment == .Justify and idxLine != lines.count - 1 and not l.hasEol
                     {
                         let spaceW = (pos.width - l.measure.width) / l.countSpaces
                         if spaceW < l.measure.height * format.justifyLimit do
@@ -1226,7 +1226,7 @@ impl Painter
         var brush = format.brush
         for &c in text.chunks
         {
-            if c.isEol or !c.visible do
+            if c.isEol or not c.visible do
                 continue
 
             if c.isHotUrl do

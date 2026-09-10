@@ -136,7 +136,7 @@ using Core, Core.Errors, Pixel
     bytes.add([145'u8, 54, 34])
 
     var reader = expect Reader.openMemory("parameters.y4m", bytes.toSlice())
-    Swag.assert(!reader.frameCount())
+    Swag.assert(not reader.frameCount())
     Swag.assert(reader.durationInSeconds() == 0)
 
     let red = expect reader.decodeFrame(0)
@@ -168,7 +168,7 @@ using Core, Core.Errors, Pixel
 
     // The truncated tail is not a frame, and the stream no longer tiles, so it is walked.
     var reader = expect Reader.openMemory("truncated.y4m", bytes.toSlice())
-    Swag.assert(!reader.frameCount())
+    Swag.assert(not reader.frameCount())
 
     let red = expect reader.decodeFrame(0)
     videoAssertColor(red.pixelColor(0, 0), 255, 0, 0)
@@ -250,7 +250,7 @@ using Core, Core.Errors, Pixel
 
     // Closing releases the file while the reader value is still alive.
     loaded.close()
-    Swag.assert(!loaded.isOpen())
+    Swag.assert(not loaded.isOpen())
 }
 
 #test
@@ -282,8 +282,8 @@ using Core, Core.Errors, Pixel
     Swag.assert(Reader.canOpen("clip.y4m") and Reader.canOpen("CLIP.Y4M"))
     Swag.assert(Reader.canOpen("clip.avi") and Reader.canOpen("CLIP.AVI"))
     Swag.assert(Reader.canOpen("clip.mp4") and Reader.canOpen("clip.m4v") and Reader.canOpen("clip.mov"))
-    Swag.assert(!Reader.canOpen("clip") and !Reader.canOpen(""))
-    Swag.assert(Writer.canCreate("clip.y4m") and Writer.canCreate("clip.avi") and Writer.canCreate("clip.mp4") and !Writer.canCreate("clip.mkv"))
+    Swag.assert(not Reader.canOpen("clip") and not Reader.canOpen(""))
+    Swag.assert(Writer.canCreate("clip.y4m") and Writer.canCreate("clip.avi") and Writer.canCreate("clip.mp4") and not Writer.canCreate("clip.mkv"))
 
     // The three writable formats are readable in the same order; Matroska is the read-only
     // container that follows them.
@@ -293,5 +293,5 @@ using Core, Core.Errors, Pixel
     for index in encodable.count do
         Swag.assert(decodable[index].name == encodable[index].name)
     Swag.assert(decodable[0].matches("a.y4m") and decodable[1].matches("a.avi") and decodable[2].matches("a.mp4") and decodable[2].matches("a.MOV"))
-    Swag.assert(decodable[3].matches("a.mkv") and !decodable[3].matches("a.webm"))
+    Swag.assert(decodable[3].matches("a.mkv") and not decodable[3].matches("a.webm"))
 }

@@ -121,7 +121,7 @@ impl WidgetWall
     // the middle of inspecting.
     mtd build()
     {
-        if .built or !(.view != null) or .view.clientRect().width < 240 do
+        if .built or not (.view != null) or .view.clientRect().width < 240 do
             return
         .built = true
 

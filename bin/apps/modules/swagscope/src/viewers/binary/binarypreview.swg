@@ -14,7 +14,7 @@ private func writePreviewU32(bytes: *Array'u8, offset: u64, value: u32)
 
 func isIconContainer(image: *BinaryImage)->bool
 {
-    if !image.has(0, 6) or image.u16At(0) != 0 or !image.u16At(4) do
+    if not image.has(0, 6) or image.u16At(0) != 0 or not image.u16At(4) do
         return false
     let kind = image.u16At(2)
     return kind == 1 or kind == 2
@@ -39,7 +39,7 @@ func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *
     for index in shown
     {
         let at = 6 + index * 16
-        if !image.has(at, 16) do
+        if not image.has(at, 16) do
             break
         let width  = image.u8At(at) ? cast(u32) image.u8At(at) : 256
         let height = image.u8At(at + 1) ? cast(u32) image.u8At(at + 1) : 256
@@ -53,7 +53,7 @@ func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *
         report.hexField(at + 12, 4, "Offset", offset)
         report.endGroup()
 
-        if !size or !image.has(offset, size) do
+        if not size or not image.has(offset, size) do
             continue
         var one: Array'u8
         one.resize(22 + size)

@@ -167,7 +167,7 @@ func spaceColor(space: const *ImageSpace, values: const [..] f32)->Color
         return Color.fromRgb(target[0], target[1], target[2])
     }
 
-    if !values.count or !space.palette.count do
+    if not values.count or not space.palette.count do
         return Color.fromArgb(Argb.Black)
     let index = cast(u64) Math.clamp(cast(s32) Math.round(operands[0]), 0, cast(s32) space.hival)
     let entry = index * cast(u64) space.baseComponents
@@ -211,7 +211,7 @@ func resolveNamedColorSpace(parser: *PdfParser, name: string, resourcesId: u32, 
     case "DeviceGray", "G", "CalGray": return deviceSpace(.Gray, 1)
     case "DeviceRGB", "RGB", "CalRGB": return deviceSpace(.Rgb, 3)
     case "DeviceCMYK", "CMYK":         return deviceSpace(.Cmyk, 4)
-    case "Pattern":                    fail UnsupportedFormatError{"PDF pattern color spaces are not supported"}
+    case "Pattern": fail UnsupportedFormatError{"PDF pattern color spaces are not supported"}
     }
 
     let named = parser.dictRaw(parser.dict(resourcesId, "ColorSpace"), name)
@@ -243,7 +243,7 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
         return #move result
     }
 
-    if parser.nodes[spaceId].kind != .Array or !parser.nodes[spaceId].values.count do
+    if parser.nodes[spaceId].kind != .Array or not parser.nodes[spaceId].values.count do
         fail UnsupportedFormatError{"PDF image color space is not supported"}
 
     let values = parser.nodes[spaceId].values
@@ -332,7 +332,7 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
 
     case "DeviceN":
         let names = values.count > 1 ? parser.resolve(values[1]) : InvalidNode
-        if names == InvalidNode or parser.nodes[names].kind != .Array or !parser.nodes[names].values.count do
+        if names == InvalidNode or parser.nodes[names].kind != .Array or not parser.nodes[names].values.count do
             fail InvalidFormatError{"PDF DeviceN color space names no colorants"}
         result.kind       = .Subtractive
         result.components = cast(u32) parser.nodes[names].values.count
@@ -668,7 +668,7 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
     // A plane is stored top-down and an image bottom-up, so the rows are reversed on the way
     // out. Building a second buffer to hand to `create` would walk every pixel one more time
     // for nothing: the rows go straight into the image's own storage.
-    if !plane.alpha.count and !fill
+    if not plane.alpha.count and not fill
     {
         var result = #move Image.create(plane.width, plane.height, .RGB8)
         let target = result.pixels.buffer!
@@ -772,7 +772,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
 
     let codec = #move parser.imageCodec(nodeId)
     var plane: SamplePlane
-    if !codec.isEmpty()
+    if not codec.isEmpty()
     {
         if codec != "DCTDecode" and codec != "DCT" do
             fail UnsupportedFormatError{"PDF image codec is not supported"}

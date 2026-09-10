@@ -10,7 +10,7 @@ private const SwagRuntimeHookDynamicUnload = 5'u64
 private func callSwagRuntimeHook(handle: *void, stage: u64)
 {
     let runtimeHook = nativeLibrarySymbol(handle, SwagRuntimeHookSymbol)
-    if !runtimeHook do
+    if not runtimeHook do
         return
 
     let hook = cast(func(u64, u64, u64, const *(string?))) runtimeHook!
@@ -44,7 +44,7 @@ impl NativeLibrary
     // The returned address is borrowed from this library and remains valid only until [[Core.NativeLibrary.close]].
     mtd const symbol(name: string)->const *void?
     {
-        if !.handle do
+        if not .handle do
             return null
         return nativeLibrarySymbol(.handle!, name)
     }
@@ -56,7 +56,7 @@ impl NativeLibrary
     // [[Core.NativeLibrary.symbol]] becomes invalid.
     mtd close()
     {
-        if !.handle do
+        if not .handle do
             return
         callSwagRuntimeHook(.handle!, SwagRuntimeHookDynamicUnload)
         closeNativeLibrary(.handle!)

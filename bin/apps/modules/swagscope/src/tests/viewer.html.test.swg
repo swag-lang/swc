@@ -18,7 +18,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
         attempts += 1
     }
 
-    Swag.assert(!result.isLoading!(result.view!))
+    Swag.assert(not result.isLoading!(result.view!))
 }
 
 // The viewer remains a thin ABI adapter around the reusable GUI control.
@@ -55,7 +55,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     let revealed = result.revealMatch!(result.view!, match, "immutable")
     Swag.assert(revealed)
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds!(result.view!, match, &bounds) and !bounds.isEmpty())
+    Swag.assert(result.searchBounds!(result.view!, match, &bounds) and not bounds.isEmpty())
 
     let oldTip = String.from(view.zoomLabel.toolTip)
     expect host.app.setLanguage("fr")
@@ -111,5 +111,5 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_scope_html_%.html", Guid64.random()).toString())
     var result   = openTestViewer(htmlViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
-    Swag.assert(!result.failureReason.isEmpty())
+    Swag.assert(not result.failureReason.isEmpty())
 }

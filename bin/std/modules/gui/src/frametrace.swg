@@ -59,7 +59,7 @@ internal impl FrameTrace
     mtd setup()
     {
         let trace = findMarker("swag.frametrace")
-        if !trace.found do
+        if not trace.found do
             return
 
         .enabled = true
@@ -112,7 +112,7 @@ internal impl FrameTrace
     // Adds one surface's recorded and executed cost, and the area it covered.
     mtd addSurface(recordUs, targetUs, presentUs, swapUs, pixels, vertices, batches: u64)
     {
-        if !.enabled do
+        if not .enabled do
             return
         .recordUs  += recordUs
         .targetUs  += targetUs
@@ -126,7 +126,7 @@ internal impl FrameTrace
     // Adds what the batch bound saved on one surface's frame.
     mtd addSavings(scratch, scratchFull: u64)
     {
-        if !.enabled do
+        if not .enabled do
             return
         .scratchPixels += scratch
         .scratchFull   += scratchFull
@@ -135,7 +135,7 @@ internal impl FrameTrace
     // Closes one frame, dropping it while the run is still warming up.
     mtd endFrame()
     {
-        if !.enabled do
+        if not .enabled do
             return
 
         let us = .watch.elapsedMicroseconds()
@@ -161,7 +161,7 @@ internal impl FrameTrace
     // Writes what the run measured, once, when the loop is over.
     mtd report()
     {
-        if !.enabled or !.frames do
+        if not .enabled or not .frames do
             return
 
         let frames = cast(f64) .frames

@@ -49,7 +49,7 @@ public impl CultureInfo
     func fromName(name: string)->CultureInfo
     {
         var result: retval
-        result.name                  = name
+        result.name = name
         result.dateTimeFormat        = CultureInfo.englishDateTime()
         result.currencyFormat.symbol = "$"
 
@@ -218,7 +218,7 @@ public impl CultureInfo
 
         if .isLanguage("cs") or .isLanguage("sk")
         {
-            if !integral do
+            if not integral do
                 return .Many
             if integer == 1 do
                 return .One
@@ -347,7 +347,7 @@ public impl CultureInfo
                 }
             }
 
-            if !handled and .isLanguage("sv")
+            if not handled and .isLanguage("sv")
             {
                 switch c
                 {
@@ -365,18 +365,18 @@ public impl CultureInfo
                 }
             }
 
-            if !handled
+            if not handled
             {
                 switch c
                 {
                 case 0x00E0, 0x00E1, 0x00E2, 0x00E3, 0x00E4, 0x00E5, 0x00C0, 0x00C1, 0x00C2, 0x00C3, 0x00C4, 0x00C5: result.append('a'u8)
-                case 0x00E7, 0x00C7:                                                                                 result.append('c'u8)
-                case 0x00E8, 0x00E9, 0x00EA, 0x00EB, 0x00C8, 0x00C9, 0x00CA, 0x00CB:                                 result.append('e'u8)
-                case 0x00EC, 0x00ED, 0x00EE, 0x00EF, 0x00CC, 0x00CD, 0x00CE, 0x00CF:                                 result.append('i'u8)
-                case 0x00F1, 0x00D1:                                                                                 result.append('n'u8)
-                case 0x00F2, 0x00F3, 0x00F4, 0x00F5, 0x00F6, 0x00D2, 0x00D3, 0x00D4, 0x00D5, 0x00D6:                 result.append('o'u8)
-                case 0x00F9, 0x00FA, 0x00FB, 0x00FC, 0x00D9, 0x00DA, 0x00DB, 0x00DC:                                 result.append('u'u8)
-                default:                                                                                             result.append(c)
+                case 0x00E7, 0x00C7:                                                 result.append('c'u8)
+                case 0x00E8, 0x00E9, 0x00EA, 0x00EB, 0x00C8, 0x00C9, 0x00CA, 0x00CB: result.append('e'u8)
+                case 0x00EC, 0x00ED, 0x00EE, 0x00EF, 0x00CC, 0x00CD, 0x00CE, 0x00CF: result.append('i'u8)
+                case 0x00F1, 0x00D1:                                                 result.append('n'u8)
+                case 0x00F2, 0x00F3, 0x00F4, 0x00F5, 0x00F6, 0x00D2, 0x00D3, 0x00D4, 0x00D5, 0x00D6: result.append('o'u8)
+                case 0x00F9, 0x00FA, 0x00FB, 0x00FC, 0x00D9, 0x00DA, 0x00DB, 0x00DC: result.append('u'u8)
+                default: result.append(c)
                 }
             }
         }
@@ -399,15 +399,15 @@ public impl CultureInfo
     }
 }
 
-var g_CultureInfo:            CultureInfo
+var g_CultureInfo: CultureInfo
 var g_CultureInfoInitialized: bool
 
 // Returns the mutable process-wide culture settings.
 public func currentCulture()->*CultureInfo
 {
-    if !g_CultureInfoInitialized
+    if not g_CultureInfoInitialized
     {
-        g_CultureInfo            = CultureInfo.fromName("en-US")
+        g_CultureInfo = CultureInfo.fromName("en-US")
         g_CultureInfoInitialized = true
     }
 

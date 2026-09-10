@@ -79,7 +79,7 @@ public impl EditDlg
         dlg.sendResizeEvent()
 
         var appliedOptions = options
-        if !appliedOptions.message.count do
+        if not appliedOptions.message.count do
             appliedOptions.message = strings().dlg_MultiLineHint
         dlg.applyOptions(appliedOptions)
         return dlg
@@ -119,7 +119,7 @@ public impl EditDlg
     {
         .applyLayout()
 
-        let edit          = .edit
+        let edit = .edit
         var contentHeight = edit ? edit.position.height : .richEdit!.position.height
         if .label != null
         {
@@ -177,7 +177,7 @@ public impl EditDlg
     mtd setMessage(message: string, height: s32 = 40)
     {
         Swag.assert(height > 0, "message height must be positive")
-        if !(.label != null)
+        if not (.label != null)
         {
             Swag.assert(.surface != null)
             .label = Label.create(.contentView!, message, {0, 0, 0, height}, flags: .WordWrap | .SecondaryText)

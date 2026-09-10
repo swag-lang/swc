@@ -74,8 +74,8 @@ runs no iteration at all.
     parallel for |&visited| index in 7 to 8 do
         visited[index] = true
 
-    Swag.assert(!visited[1] and visited[2] and visited[4] and !visited[5])
-    Swag.assert(visited[7] and visited[8] and !visited[9])
+    Swag.assert(not visited[1] and visited[2] and visited[4] and not visited[5])
+    Swag.assert(visited[7] and visited[8] and not visited[9])
 }
 
 /**

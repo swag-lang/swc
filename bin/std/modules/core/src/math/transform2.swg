@@ -123,7 +123,7 @@ impl Transform2
     // transformed shape, which is what a caller rejecting work against a viewport needs.
     //
     // ```swag
-    // if !viewport.intersects(transform.transformBounds(item.bounds)) do
+    // if not viewport.intersects(transform.transformBounds(item.bounds)) do
     //     continue
     // ```
     mtd const transformBounds(rect: Rectangle)->Rectangle

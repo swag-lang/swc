@@ -114,7 +114,7 @@ internal impl RangeDecoder
         let d   = .value
         let s   = r >> logp
         let set = d < s
-        if !set do
+        if not set do
             .value = d - s
         .range = set ? s : r - s
         .normalize()

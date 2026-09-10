@@ -129,7 +129,7 @@ struct HexAnalysisView
 {
     using wnd: Wnd
 
-        late
+    late
     {
         titleLabel:    *Label
         analyzeButton: *IconButton
@@ -181,7 +181,7 @@ private impl HexAnalysisView
 
     mtd updateByteDetail(value: u32)
     {
-        if value == Swag.U32.Max or !.result.scanned
+        if value == Swag.U32.Max or not .result.scanned
         {
             .byteLabel.setText(hexStrings().ui_AnalysisByteHint)
             return
@@ -217,7 +217,7 @@ private impl HexAnalysisView
     mtd refreshResultText()
     {
         .scopeLabel.setText(.scopeText(.result.range).toString())
-        if !.result.failureReason.isEmpty() do
+        if not .result.failureReason.isEmpty() do
             .metricsLabel.setText(.result.failureReason.toString())
         elif .result.cancelled do
             .metricsLabel.setText(Format.toString(hexStrings().ui_AnalysisCancelled, StrConv.toDisplaySize(.result.scanned)))
@@ -283,7 +283,7 @@ impl HexAnalysisView
         .stringsList.header.itemAt(1).name = hexStrings().ui_AnalysisEncoding
         .stringsList.header.itemAt(2).name = hexStrings().ui_AnalysisText
         .stringsList.header.invalidate()
-        if .result.range.length or .result.scanned or .result.cancelled or !.result.failureReason.isEmpty()
+        if .result.range.length or .result.scanned or .result.cancelled or not .result.failureReason.isEmpty()
         {
             .refreshResultText()
             .updateByteDetail(.histogram.hovered)
@@ -360,7 +360,7 @@ impl HexAnalysisView
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        result.histogram                = HexHistogramView.create(result)
+        result.histogram = HexHistogramView.create(result)
         result.histogram.sigByteChanged += func|view = result|(histogram, value)
         {
             discard histogram
@@ -382,8 +382,8 @@ impl HexAnalysisView
 
         with result.stringsList = ListCtrl.createMultiColumns(result)
         {
-            .dockStyle                = .Center
-            .backgroundStyle          = .Transparent
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
             .listView.backgroundStyle = .Transparent
             .style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
             .setSelectionMode(.Single)

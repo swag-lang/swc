@@ -87,7 +87,7 @@ impl FocusOrder
     mtd const next(from: *Wnd?, forward = true)->*Wnd?
     {
         let count = cast(s64) .stops.count
-        if !count do
+        if not count do
             return null
 
         let index = .indexOf(from)
@@ -158,7 +158,7 @@ private impl FocusOrder
     // parts of itself rather than controls of the surface.
     mtd addTree(wnd: *Wnd)
     {
-        if !FocusOrder.isReachable(wnd) do
+        if not FocusOrder.isReachable(wnd) do
             return
 
         if wnd.isFocusStop() do
@@ -256,7 +256,7 @@ private impl FocusOrder
             return null
 
         let radio = cast(*RadioButton) wnd
-        if radio.groupId.count == 0 or !radio.parent do
+        if radio.groupId.count == 0 or not radio.parent do
             return null
 
         var first: *Wnd?

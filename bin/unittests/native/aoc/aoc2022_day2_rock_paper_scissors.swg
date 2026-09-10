@@ -214,7 +214,7 @@ func parseGuide(bytes: const [..] u8)->StrategyGuide
             continue
         }
 
-        if !haveOpponent
+        if not haveOpponent
         {
             Swag.assert(isOpponentToken(ch))
             opponentToken = ch
@@ -222,7 +222,7 @@ func parseGuide(bytes: const [..] u8)->StrategyGuide
             continue
         }
 
-        if !haveCode
+        if not haveCode
         {
             Swag.assert(isCodeToken(ch))
             codeToken = ch
@@ -317,7 +317,7 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeT
             continue
         }
 
-        if !haveOpponent
+        if not haveOpponent
         {
             Swag.assert(isOpponentToken(ch))
             lineOpponentToken = ch
@@ -325,7 +325,7 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeT
             continue
         }
 
-        if !haveCode
+        if not haveCode
         {
             Swag.assert(isCodeToken(ch))
             lineCodeToken = ch

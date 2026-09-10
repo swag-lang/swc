@@ -10,7 +10,7 @@ internal func wireFieldKey(val: Swag.TypeValue)->string
     let keyType = #typeof(Serialization.Key)
     for &attribute in val.attributes
     {
-        if !attribute.type do
+        if not attribute.type do
             continue
         if attribute.type.fullname != keyType.fullname do
             continue
@@ -28,7 +28,7 @@ internal func wireFieldKey(val: Swag.TypeValue)->string
 // not opt into document identity checks.
 internal func wireSchema(type: typeinfo?)->string
 {
-    if !type do
+    if not type do
         return ""
     let schema = Reflection.attributeValue(type!, Serialization.Schema, "name")
     if schema == null do
@@ -39,7 +39,7 @@ internal func wireSchema(type: typeinfo?)->string
 // Returns the explicit stable key of a struct type.
 internal func wireTypeKey(type: typeinfo?)->string
 {
-    if !type do
+    if not type do
         return ""
     let key = Reflection.attributeValue(type!, Serialization.TypeKey, "name")
     if key == null do
@@ -49,7 +49,7 @@ internal func wireTypeKey(type: typeinfo?)->string
 
 internal func getTypeInfoCrc(type: typeinfo?)->u32
 {
-    if !type do
+    if not type do
         return 0
     if type.crc do
         return type.crc
@@ -73,14 +73,14 @@ internal func getTypeInfoCrc(type: typeinfo?)->u32
 // - Everything else keeps the canonical runtime crc of the type.
 internal func wireTypeCrc(type: typeinfo?)->u32
 {
-    if !type do
+    if not type do
         return 0
 
     let resolved = Reflection.resolveAliases(type!)
     if Reflection.isEnum(resolved) do
         return wireTypeCrc(Reflection.enumUnderlyingType(resolved))
 
-    if Reflection.isStruct(resolved) and !Reflection.isTuple(resolved)
+    if Reflection.isStruct(resolved) and not Reflection.isTuple(resolved)
     {
         if resolved.fullname != null and resolved.fullname != "" do
             return Hash.Crc32.compute(resolved.fullname)
@@ -104,7 +104,7 @@ public func isPodFinal(type: typeinfo?)->{ raw: bool, sizeof: u64 }
             return {true, type.sizeof}
         }
 
-        if !Reflection.isPod(type) do
+        if not Reflection.isPod(type) do
             return {false, 0}
 
         if Reflection.hasAttribute(type, Serialization.Final) do

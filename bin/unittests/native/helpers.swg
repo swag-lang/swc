@@ -7,13 +7,13 @@ var DropCheck: s32
 func fault(code: u32)
 {
     var ptr: [*] u8? = null
-    let p            = ptr!
+    let p = ptr!
     p[code] = cast(u8) code
 }
 
 func check(cond: bool, code: u32)
 {
-    if !cond
+    if not cond
     {
         fault(code)
     }

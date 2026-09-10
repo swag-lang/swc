@@ -15,7 +15,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
     let button = PushButton.create(&host.root, "Close", {20, 20, 90, 30}, GuiHeadlessSmoke_CloseWindow)
 
-    Swag.assert(!host.closed)
+    Swag.assert(not host.closed)
     Swag.assert(host.wndAt({40, 30}) == button)
 
     host.click({40, 30})
@@ -189,8 +189,8 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.assert(surface.isHidden)
 
     surface.setTopMost(false)
-    Swag.assert(!surface.isTopMost())
-    Swag.assert(!surface.flags.has(.TopMost))
+    Swag.assert(not surface.isTopMost())
+    Swag.assert(not surface.flags.has(.TopMost))
     surface.setTopMost()
     Swag.assert(surface.isTopMost())
     Swag.assert(surface.flags.has(.TopMost))
@@ -207,7 +207,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     button.sigPressed += func(btn) { btn.app().exitModal(btn.id orelse "") }
 
     surface.show()
-    Swag.assert(!surface.isHidden)
+    Swag.assert(not surface.isHidden)
     Swag.assert(surface.isInitialized)
     Swag.assert(host.app.surfaceAt(40, 50) == surface)
 
@@ -216,7 +216,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     let result = host.app.doModalLoop(surface, func|host = &host, button, frames = &frameCount, didClick = &didClick|(app)
     {
         frames[] += 1
-        if !didClick[]
+        if not didClick[]
         {
             host.clickWnd(button)
             didClick[] = true
@@ -226,7 +226,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.assert(result == GuiHeadlessSmoke_ModalExit)
     Swag.assert(frameCount == 1)
     Swag.assert(didClick)
-    Swag.assert(!background.isDisabled)
+    Swag.assert(not background.isDisabled)
     Swag.assert(disabledBackground.isDisabled)
     host.pump()
     Swag.assert(host.openedSurfaceCount() == 2)
@@ -247,7 +247,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.app.maxRunFrame = 2
 
     host.app.runFrame()
-    Swag.assert(!host.app.mustQuit)
+    Swag.assert(not host.app.mustQuit)
     host.app.runFrame()
 
     Swag.assert(host.app.mustQuit)
@@ -268,7 +268,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.surface.wnd.padding.y                 = host.theme.metrics.wnd_BigCaptionCY
 
     let captionChild = Wnd.create'Wnd(&host.surfaceWnd, {20, 4, 60, 24})
-    Swag.assert(!host.surfaceWnd.hitTestCaption({30, 15}))
+    Swag.assert(not host.surfaceWnd.hitTestCaption({30, 15}))
     Swag.assert(host.surfaceWnd.hitTestCaption({100, 15}))
     captionChild.destroy()
     host.pump()
@@ -279,7 +279,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
     let menuIt0   = captionMenu.items[0]!
     let menuItemX = menuIt0.pos + menuIt0.size * 0.5
-    Swag.assert(!host.surfaceWnd.hitTestCaption({menuItemX, 15}))
+    Swag.assert(not host.surfaceWnd.hitTestCaption({menuItemX, 15}))
     Swag.assert(host.surfaceWnd.hitTestCaption({180, 15}))
 
     captionMenu.destroy()

@@ -39,7 +39,7 @@ var GText:  string  = "abc"
 
     Swag.assert(GZero == 42)
     Swag.assert(GInt == 30)
-    Swag.assert(!GBool)
+    Swag.assert(not GBool)
     Swag.assert(GPair.x == -5)
     Swag.assert(GPair.y == 33)
     Swag.assert(GArray[0] == 10)

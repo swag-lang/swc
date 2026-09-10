@@ -62,7 +62,7 @@ private impl RichEditCtrl
 
     mtd computeRectangularSelection(beg, end: RichEditCursor)
     {
-        if !.hasSelRect do
+        if not .hasSelRect do
             return
 
         let size = .xGlyphSize()
@@ -363,7 +363,7 @@ impl RichEditCtrl
             .moveCursorLeft(&end)
         beg.charPosInLine = 0
         end.charPosInLine = .lines[end.lineIndex]!.length()
-        .selBeg           = beg
+        .selBeg = beg
         .setCursorPos(end)
         .moveCursorRight(&.cursorPos)
         .copyToClipboard()
@@ -376,7 +376,7 @@ impl RichEditCtrl
     {
         let line = .lines[.cursorPos.lineIndex]!
         let len  = line.length()
-        if !len do
+        if not len do
             return
 
         if .cursorPos.charPosInLine == len do
@@ -385,7 +385,7 @@ impl RichEditCtrl
         let c  = .selBeg.charPosInLine == len ? 0'rune : line.chars[.selBeg.charPosInLine]
         let cn = .cursorPos.charPosInLine != len - 1 ? line.chars[.selBeg.charPosInLine + 1] : 0'rune
 
-        if Unicode.isSpace(c) and !Unicode.isSpace(cp) and !Unicode.isSpace(cn) and .cursorPos.charPosInLine do
+        if Unicode.isSpace(c) and not Unicode.isSpace(cp) and not Unicode.isSpace(cn) and .cursorPos.charPosInLine do
             .cursorPos.charPosInLine -= 1
 
         .selBeg = .cursorPos
@@ -411,7 +411,7 @@ impl RichEditCtrl
         }
 
         // Nothing
-        if !zapWordChar(line.chars[.selBeg.charPosInLine])
+        if not zapWordChar(line.chars[.selBeg.charPosInLine])
         {
             if .selBeg.charPosInLine == len do
                 .selBeg.charPosInLine -= 1
@@ -442,7 +442,7 @@ impl RichEditCtrl
         var pos        = .caretRect(.cursorPos)
         while pos.bottom() > sy + clientRect.height
         {
-            if !.moveCursorUp(&.cursorPos) do
+            if not .moveCursorUp(&.cursorPos) do
                 break
             .clearSelection()
             pos = .caretRect(.cursorPos)
@@ -464,7 +464,7 @@ impl RichEditCtrl
         var pos = .caretRect(.cursorPos)
         while pos.y < sy
         {
-            if !.moveCursorDown(&.cursorPos) do
+            if not .moveCursorDown(&.cursorPos) do
                 break
             .clearSelection()
             pos = .caretRect(.cursorPos)

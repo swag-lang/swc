@@ -168,11 +168,11 @@ func semaTest012()
         count += 10
     case c == '>' and garbage:
         garbage -= 1
-    case c == '<' and !garbage:
+    case c == '<' and not garbage:
         garbage += 1
-    case c == '{' and !garbage:
+    case c == '{' and not garbage:
         group += 1; score += group
-    case c == '}' and !garbage:
+    case c == '}' and not garbage:
         group -= 1
     case garbage:
         count += 1

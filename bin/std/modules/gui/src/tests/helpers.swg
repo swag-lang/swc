@@ -75,9 +75,9 @@ func settlePdfView(host: *Gui.Testing.HeadlessHost, view: *Gui.PdfView)
         discard host.render()
         host.fireTimers()
 
-        var ready = !view.cache.isLoading() and !view.preparing
+        var ready = not view.cache.isLoading() and not view.preparing
         let range = view.visibleRange()
-        for index in range.first to range.last where !view.cache.isResident(index) do
+        for index in range.first to range.last where not view.cache.isResident(index) do
             ready = false
         if ready do
             return

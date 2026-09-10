@@ -37,7 +37,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     while window.activeChoiceIndex < window.instances.count and steps < 4_096
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if !instance.view or !instance.isLoading or !instance.isLoading!(instance.view!) do
+        if not instance.view or not instance.isLoading or not instance.isLoading!(instance.view!) do
             break
         Threading.Thread.sleep(1'ms)
         host.fireTimers()
@@ -136,7 +136,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(view.previousButton.icon.isValid() and view.nextButton.icon.isValid())
     Swag.assert(view.transformButton.arrowPosition == .RightUpward)
     Swag.assert(view.playModeButton.parent == view.actions and view.playModeButton.arrowPosition == .RightUpward)
-    Swag.assert(!view.playModeButton.isEnabled())
+    Swag.assert(not view.playModeButton.isEnabled())
     Swag.assert(view.transformButton.position.right() <= view.actions.clientRect().right())
     let transformMenu = view.createTransformMenu()
     defer transformMenu.destroy()
@@ -146,7 +146,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(transformMenu.itemAt(3).rightName.raw == "H")
     Swag.assert(transformMenu.itemAt(4).rightName.raw == "V")
     Swag.assert(transformMenu.itemAt(6).rightName.raw == "Ctrl+R")
-    Swag.assert(!Utf8.contains(transformMenu.itemAt(0).name.raw, "("))
+    Swag.assert(not Utf8.contains(transformMenu.itemAt(0).name.raw, "("))
     view.navigate(-1)
     view.navigate(1)
     Swag.assert(navigation == 0)
@@ -155,7 +155,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     view.mirrorHorizontally()
     Swag.assert(view.imageView.isMirrored and Utf8.contains(view.zoomLabel.text(), imageStrings().word_Mirrored))
     view.resetTransform()
-    Swag.assert(view.imageView.rotationQuarterTurns == 0 and !view.imageView.isMirrored)
+    Swag.assert(view.imageView.rotationQuarterTurns == 0 and not view.imageView.isMirrored)
     var rotate = KeyEvent{kind: .Pressed, key: .R}
     view.sendEvent(&rotate)
     Swag.assert(view.imageView.rotationQuarterTurns == 1)
@@ -164,7 +164,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(view.imageView.isMirrored)
     var reset = KeyEvent{kind: .Pressed, key: .R, modifiers: .Control}
     view.sendEvent(&reset)
-    Swag.assert(view.imageView.rotationQuarterTurns == 0 and !view.imageView.isMirrored)
+    Swag.assert(view.imageView.rotationQuarterTurns == 0 and not view.imageView.isMirrored)
     view.dockStyle         = .Center
     view.actions.dockStyle = .None
     view.info.dockStyle    = .None
@@ -192,7 +192,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(result.view != null and result.actions == null and result.info != null and result.commands != null)
     let view = cast(*ImageViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    Swag.assert(!view.failureReason.isEmpty())
+    Swag.assert(not view.failureReason.isEmpty())
 }
 
 // The application hosts image navigation in its centered viewer bar and zoom in the information
@@ -218,7 +218,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(Math.abs(window.infoStatsLabel.position.right() + ViewerInfoGroupSpacing - window.currentInfo!.position.x) < 0.01)
     Swag.assert(window.currentCommands != null and window.currentCommands!.parent == window.viewerBar)
     Swag.assert(window.viewerBar.isLocallyVisible() and window.viewerBar.position.height == ViewerBarHeight)
-    Swag.assert(!window.searchGroup.isLocallyVisible())
+    Swag.assert(not window.searchGroup.isLocallyVisible())
     Swag.assert(Math.abs(window.currentCommands!.position.horzCenter() - window.viewerBar.paddedClientRect().horzCenter()) < 0.01)
 }
 
@@ -257,7 +257,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     view.userData = &reports
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     let lastFrame = view.imageView.movie.frameCount - 1
-    Swag.assert(lastFrame > 0 and !view.imageView.movie.isPaused)
+    Swag.assert(lastFrame > 0 and not view.imageView.movie.isPaused)
     Swag.assert(reports.shown == 0 and reports.finished == 0)
 
     // A seek within the animation is not a cycle.

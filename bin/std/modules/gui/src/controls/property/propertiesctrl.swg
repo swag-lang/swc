@@ -45,7 +45,7 @@ impl PropertiesCtrl
         {
             .flags = flags
 
-            .splitter           = SplitterCtrl.create(ed, vertical: false)
+            .splitter = SplitterCtrl.create(ed, vertical: false)
             .splitter.dockStyle = .Center
 
             .list = ListCtrl.createSimple(.splitter)
@@ -53,7 +53,7 @@ impl PropertiesCtrl
             .list.sigSelectionChanged += func|ed|(list)
             {
                 let sel = list.focusedLine()
-                if !sel do
+                if not sel do
                     return
                 list.toggleExpand(sel)
                 let item = cast(*PropertiesItem) sel.userData0!
@@ -66,7 +66,7 @@ impl PropertiesCtrl
             .splitter.addPane(.list)
             .splitter.addPane(.properties)
 
-            if !flags.has(.SectionNavigation) do
+            if not flags.has(.SectionNavigation) do
                 .splitter.setPaneVisible(0, false)
         }
 
@@ -163,9 +163,9 @@ impl PropertiesCtrl
 
         let menu     = MenuCtrl.createPopup(me)
         let gridLike = .properties.isGridLike()
-        menu.addItem(strings().prop_ExpandAll, ExpandAll, .theme().icon(.ChevronDown), disabled: !gridLike)
-        menu.addItem(strings().prop_CollapseAll, CollapseAll, .theme().icon(.ChevronUp), disabled: !gridLike)
-        menu.addItem(strings().prop_ExpandModified, ExpandModified, .theme().icon(.Undo), disabled: !gridLike)
+        menu.addItem(strings().prop_ExpandAll, ExpandAll, .theme().icon(.ChevronDown), disabled: not gridLike)
+        menu.addItem(strings().prop_CollapseAll, CollapseAll, .theme().icon(.ChevronUp), disabled: not gridLike)
+        menu.addItem(strings().prop_ExpandModified, ExpandModified, .theme().icon(.Undo), disabled: not gridLike)
         menu.addSeparator()
         menu.addItem(strings().prop_ShowModifiedOnly, ModifiedOnly, .theme().icon(.Filter), checked: .properties.modifiedOnly)
 
@@ -176,7 +176,7 @@ impl PropertiesCtrl
         case ExpandAll:      .properties.expandAll()
         case CollapseAll:    .properties.collapseAll()
         case ExpandModified: .properties.expandModified()
-        case ModifiedOnly:   .properties.setModifiedOnly(!.properties.modifiedOnly)
+        case ModifiedOnly:   .properties.setModifiedOnly(not .properties.modifiedOnly)
         }
     }
 

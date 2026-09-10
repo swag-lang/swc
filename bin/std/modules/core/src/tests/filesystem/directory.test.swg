@@ -11,5 +11,5 @@ using Swag
     discard catch Directory.create(dirName) as err
     Swag.assert(err != null)
     Swag.assert(err is Errors.InvalidFileNameError)
-    Swag.assert(!Directory.exists(dirName))
+    Swag.assert(not Directory.exists(dirName))
 }

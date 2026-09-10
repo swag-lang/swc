@@ -19,7 +19,7 @@ var PostCopyCount: u32 = 0
 var PostMoveCount: u32 = 0
 var g_seed:        s32 = 0
 var g_sink:        s32 = 0
-var g_cond             = true
+var g_cond = true
 
 func resetHooks(seed: s32)
 {

@@ -307,7 +307,7 @@ impl Spring
 {
     var lo: Vec2's32 = {x: 1, y: 2}
     var hi: Vec2's32 = {x: 10, y: 20}
-    let mid          = Vec2's32.lerp(&lo, &hi, 0's32)
+    let mid = Vec2's32.lerp(&lo, &hi, 0's32)
     Swag.assert(mid.x == 1 and mid.y == 2)
 
     let end = Vec2's32.lerp(&lo, &hi, 1's32)
@@ -329,7 +329,7 @@ impl Spring
     var v:  Vec2's32 = {x: 15, y: -5}
     var lo: Vec2's32 = {x: 0, y: 0}
     var hi: Vec2's32 = {x: 10, y: 10}
-    let c            = Vec2's32.clamp(&v, &lo, &hi)
+    let c = Vec2's32.clamp(&v, &lo, &hi)
     Swag.assert(c.x == 10 and c.y == 0)
 }
 
@@ -360,7 +360,7 @@ impl Spring
     var outside: Vec2's32 = {x: 11, y: 5}
 
     Swag.assert(box.contains(&inside))
-    Swag.assert(!box.contains(&outside))
+    Swag.assert(not box.contains(&outside))
 }
 
 #test
@@ -370,7 +370,7 @@ impl Spring
     let c: AABB's32 = {lo: {x: 20, y: 20}, hi: {x: 30, y: 30}}
 
     Swag.assert(a.overlaps(&b))
-    Swag.assert(!a.overlaps(&c))
+    Swag.assert(not a.overlaps(&c))
 }
 
 #test
@@ -385,7 +385,7 @@ impl Spring
 {
     let a: AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 5, y: 5}}
     let b: AABB's32 = {lo: {x: 3, y: 3}, hi: {x: 10, y: 10}}
-    let m           = AABB's32.merge(&a, &b)
+    let m = AABB's32.merge(&a, &b)
     Swag.assert(m.lo.x == 0 and m.lo.y == 0)
     Swag.assert(m.hi.x == 10 and m.hi.y == 10)
 }
@@ -394,7 +394,7 @@ impl Spring
 {
     let box:    AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
     var offset: Vec2's32 = {x: 5, y: -3}
-    let moved            = box + offset
+    let moved = box + offset
     #assert(#typeof(moved) == AABB's32)
     Swag.assert(moved.lo.x == 5 and moved.lo.y == -3)
     Swag.assert(moved.hi.x == 15 and moved.hi.y == 7)
@@ -416,7 +416,7 @@ impl Spring
 #test
 {
     let p: Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 10, y: 0}, acc: {x: 0, y: 0}, mass: 1}
-    let p1              = p.step(1's32)
+    let p1 = p.step(1's32)
 
     Swag.assert(p1.pos.x == 10 and p1.pos.y == 0)
     Swag.assert(p1.vel.x == 10 and p1.vel.y == 0)
@@ -425,7 +425,7 @@ impl Spring
 #test
 {
     let p: Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: -10}, mass: 1}
-    let p1              = p.step(1's32)
+    let p1 = p.step(1's32)
 
     // v += a*dt = (0,-10), p += v*dt = (0,-10)
     Swag.assert(p1.vel.x == 0 and p1.vel.y == -10)
@@ -436,7 +436,7 @@ impl Spring
 {
     let p:     Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1}
     var force: Vec2's32     = {x: 10, y: 5}
-    let p1                  = p.applyForce(&force)
+    let p1 = p.applyForce(&force)
 
     // acc += force/mass = (10, 5) since mass=1
     Swag.assert(p1.acc.x == 10 and p1.acc.y == 5)
@@ -455,7 +455,7 @@ impl Spring
 #test
 {
     let p: Particle's32 = {pos: {x: 5, y: 5}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1}
-    let b               = p.bounds(2's32)
+    let b = p.bounds(2's32)
     #assert(#typeof(b) == AABB's32)
     Swag.assert(b.lo.x == 3 and b.lo.y == 3)
     Swag.assert(b.hi.x == 7 and b.hi.y == 7)
@@ -464,7 +464,7 @@ impl Spring
 #test
 {
     let p: Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 1, y: 1}, acc: {x: 5, y: -5}, mass: 1}
-    let p1              = p.resetAcceleration()
+    let p1 = p.resetAcceleration()
     Swag.assert(p1.acc.x == 0 and p1.acc.y == 0)
     Swag.assert(p1.vel.x == 1 and p1.vel.y == 1)
 }
@@ -540,7 +540,7 @@ impl Spring
 #test
 {
     let p: Particle's64 = {pos: {x: 0's64, y: 0's64}, vel: {x: 100's64, y: 0's64}, acc: {x: 0's64, y: -10's64}, mass: 5's64}
-    let p1              = p.step(2's64)
+    let p1 = p.step(2's64)
     // v = (100, -20), p = (200, -40)
     Swag.assert(p1.vel.x == 100 and p1.vel.y == -20)
     Swag.assert(p1.pos.x == 200 and p1.pos.y == -40)

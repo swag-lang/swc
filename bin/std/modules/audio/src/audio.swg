@@ -34,7 +34,7 @@ public func createNoSoundEngine() fail => createEngine(.NoSound)
 // All voices and buses must have finished or been destroyed before this call.
 public func destroyEngine()
 {
-    if !g_Driver.isCreated do
+    if not g_Driver.isCreated do
         return
     g_Driver.destroy()
 }
@@ -50,7 +50,7 @@ public func activeDriverKind()->DriverKind => g_Driver.kind
 // `volume` is a linear gain and is clamped to the range `0` through `1`.
 public func setOutputVolume(volume: f32) fail
 {
-    if !g_Driver.isCreated do
+    if not g_Driver.isCreated do
         fail BadParameterError{"audio engine is not created"}
     g_Driver.setOutputVolume(Math.clamp(volume, 0, 1))
 }
@@ -58,7 +58,7 @@ public func setOutputVolume(volume: f32) fail
 // Returns the current mastering output gain as a linear value.
 public func outputVolume()->f32 fail
 {
-    if !g_Driver.isCreated do
+    if not g_Driver.isCreated do
         fail BadParameterError{"audio engine is not created"}
     return g_Driver.outputVolume()
 }

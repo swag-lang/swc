@@ -59,14 +59,14 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
-    Swag.assert(!Time.isLeapYear(1))
+    Swag.assert(not Time.isLeapYear(1))
     Swag.assert(Time.isLeapYear(4))
-    Swag.assert(!Time.isLeapYear(100))
+    Swag.assert(not Time.isLeapYear(100))
     Swag.assert(Time.isLeapYear(400))
-    Swag.assert(!Time.isLeapYear(1900))
+    Swag.assert(not Time.isLeapYear(1900))
     Swag.assert(Time.isLeapYear(2000))
     Swag.assert(Time.isLeapYear(2024))
-    Swag.assert(!Time.isLeapYear(2025))
+    Swag.assert(not Time.isLeapYear(2025))
 
     Swag.assert(Time.daysInMonth(2023, 1) == 31)
     Swag.assert(Time.daysInMonth(2023, 2) == 28)

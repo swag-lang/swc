@@ -110,7 +110,7 @@ internal
             .maxCode[16] = 0x10000
             for v, ci in codeLengths
             {
-                if !v do
+                if not v do
                     continue
 
                 let c     = nextCode[v] - .firstCode[v] + .firstSymbol[v]
@@ -367,7 +367,7 @@ impl Inflate
 
             if count < distance do
                 fail InvalidFormatError{"bad distance"}
-            if !length do
+            if not length do
                 continue
             if count - .outputStart > .outputLimit or length > .outputLimit - (count - .outputStart) do
                 fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
@@ -410,8 +410,8 @@ impl Inflate
                 while dst < end
                 {
                     (obuf + dst)[as u64] = (obuf + from)[as u64]
-                    dst                  += 8
-                    from                 += 8
+                    dst  += 8
+                    from += 8
                 }
 
                 count = end
@@ -505,7 +505,7 @@ impl Inflate
                     if c < 16
                     {
                         lenCodes[n] = cast(u8) c
-                        n           += 1
+                        n += 1
                     }
                     else
                     {
@@ -535,7 +535,7 @@ impl Inflate
                         while n < nc
                         {
                             lenCodes[n] = fill
-                            n           += 1
+                            n += 1
                         }
                     }
                 }

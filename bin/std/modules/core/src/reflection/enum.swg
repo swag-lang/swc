@@ -7,7 +7,7 @@ using Swag
 #[ConstExpr]
 func enumUnderlyingType(type: typeinfo)->typeinfo
 {
-    if !isEnum(type) do
+    if not isEnum(type) do
         return type
 
     let enumType = cast(const *TypeInfoEnum) type
@@ -18,7 +18,7 @@ func enumUnderlyingType(type: typeinfo)->typeinfo
 #[ConstExpr]
 func enumValue(type: typeinfo?, name: string?)->const *TypeValue?
 {
-    if !isEnum(type) do
+    if not isEnum(type) do
         return null
 
     let typeEnum = cast(const *TypeInfoEnum) type!
@@ -32,7 +32,7 @@ func enumValue(type: typeinfo?, name: string?)->const *TypeValue?
 func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true)->String
 {
     var result: String
-    if !isEnum(type) or !valueAddress do
+    if not isEnum(type) or not valueAddress do
         return result
     let safeType  = type!
     let safeValue = valueAddress
@@ -57,7 +57,7 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
 
     for it in typeEnum.values
     {
-        if !it.value do
+        if not it.value do
             continue
         let safeItValue = it.value
 
@@ -74,7 +74,7 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
         }
 
         // For a normal enum, stop if this is a match
-        if !isFlags and val1 == val2 and val1s == val2s
+        if not isFlags and val1 == val2 and val1s == val2s
         {
             if fullyQualified
             {
@@ -89,7 +89,7 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
         // For a flags enum, just append the name if the bit is set
         if isFlags and (val1 & val2)
         {
-            if !result.isEmpty() do
+            if not result.isEmpty() do
                 result += " | "
 
             if fullyQualified

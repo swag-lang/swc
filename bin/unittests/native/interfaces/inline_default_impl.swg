@@ -9,5 +9,5 @@
     Swag.assert(implemented.isImplemented())
 
     let defaultOnly = cast(InlineRegressionBug16.ITest) fallback
-    Swag.assert(!defaultOnly.isImplemented())
+    Swag.assert(not defaultOnly.isImplemented())
 }

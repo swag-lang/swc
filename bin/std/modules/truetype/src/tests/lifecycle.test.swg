@@ -10,8 +10,8 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 
     Swag.assert(scope.bytes.count > 0)
     Swag.assert(face.glyphCount > 0)
-    Swag.assert(!face.familyName.isEmpty())
-    Swag.assert(!face.styleName.isEmpty())
+    Swag.assert(not face.familyName.isEmpty())
+    Swag.assert(not face.styleName.isEmpty())
     Swag.assert((face.style & (.Bold | .Italic)) == expectedStyle)
 
     let glyphA = face.glyphIndex('A')
@@ -42,8 +42,8 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 
     Swag.assert(scope.bytes.count > 0)
     Swag.assert(face.glyphCount > 0)
-    Swag.assert(!face.familyName.isEmpty())
-    Swag.assert(!face.styleName.isEmpty())
+    Swag.assert(not face.familyName.isEmpty())
+    Swag.assert(not face.styleName.isEmpty())
     Swag.assert(face.unitsPerEm > 0)
     Swag.assert(face.ascender > 0)
     Swag.assert(face.descender < 0)
@@ -67,7 +67,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     Swag.assert(err9 != null)
 
     Swag.assert(face.hasChar('A'))
-    Swag.assert(!face.hasChar(0x10FFFF))
+    Swag.assert(not face.hasChar(0x10FFFF))
 }
 
 #test
@@ -82,7 +82,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 // the thread context switches allocators must not route the pointer to the new one.
 #test
 {
-    let context           = Swag.getContext()
+    let context = Swag.getContext()
     let originalAllocator = context.allocator!
 
     var scratchA: ScratchAllocator

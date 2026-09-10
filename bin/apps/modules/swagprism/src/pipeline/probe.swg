@@ -84,18 +84,18 @@ impl Probe
     // Creates the temporary module the snippet is compiled in, unless it already exists.
     mtd open() fail
     {
-        if !.root.isEmpty() do
+        if not .root.isEmpty() do
             return
 
         // Each level is created in turn because `Directory.create` makes one directory and not the
         // path leading to it, and none of these is there on a first run.
         let owned = Path.combine(Env.getSpecialDirectory(.Temp), "swagprism")
-        if !Directory.exists(owned)
+        if not Directory.exists(owned)
         {
             catch Directory.create(owned.toString()) as createError
 
             // Another viewer may have created the shared parent since the existence check.
-            if createError != null and !Directory.exists(owned) do
+            if createError != null and not Directory.exists(owned) do
                 fail createError
         }
 
@@ -112,7 +112,7 @@ impl Probe
                 break
 
             // Creating the directory claims it. A colliding name belongs to another probe.
-            if !Directory.exists(session) do
+            if not Directory.exists(session) do
                 fail createError
         }
 
@@ -152,7 +152,7 @@ impl Probe
         defer retireProcess(&process)
         var watch: Time.Stopwatch
         watch.start()
-        while !try process.tryWaitForExit(20'ms)
+        while not try process.tryWaitForExit(20'ms)
         {
             if cancelled and Atomic.get(cancelled!) do
                 return {}
@@ -185,7 +185,7 @@ func compilerPath()->String
     const CompilerName = "swc.exe"
 
     var folder = String.from(Path.directoryName(Env.executablePath()))
-    while !folder.isEmpty()
+    while not folder.isEmpty()
     {
         let candidate = Path.combine(folder, CompilerName)
         if File.exists(candidate.toString()) do
@@ -293,7 +293,7 @@ func writeIfChanged(path: string, content: string) fail
 // Always reap an owned process before dropping its pipes or temporary files.
 func retireProcess(process: *Env.Process)
 {
-    if !(catch process.tryWaitForExit(0'ms))
+    if not (catch process.tryWaitForExit(0'ms))
     {
         discard catch process.kill()
         discard catch process.waitForExit()

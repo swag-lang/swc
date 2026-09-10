@@ -28,7 +28,7 @@ internal struct SubtitleViewer
 {
     using wnd: Wnd
 
-        late
+    late
     {
         editor:         *RichEditCtrl
         cueButton:      *IconButton
@@ -169,7 +169,7 @@ private impl SubtitleViewer
             return
 
         var seconds: f64
-        if !subtitleTimeSeconds(dialog.text().toString(), &seconds) do
+        if not subtitleTimeSeconds(dialog.text().toString(), &seconds) do
             return
         for index in .track!.cueCount() where .track!.cueEndTime(index) >= seconds
         {
@@ -216,7 +216,7 @@ private impl SubtitleViewer
             }
         }
 
-        result.editor             = RichEditCtrl.create(result)
+        result.editor = RichEditCtrl.create(result)
         result.editor.dockStyle   = .Center
         result.editor.marginLeft  = 20
         result.editor.marginRight = 20
@@ -240,17 +240,17 @@ func subtitleTimeSeconds(text: string, result: *f64)->bool
     var seconds = 0'f64
     for part, index in parts
     {
-        if !part.count do
+        if not part.count do
             return false
         let value = catch StrConv.toF64(part) as parseError
-        if parseError != null or value < 0 or !Math.isFinite(value) do
+        if parseError != null or value < 0 or not Math.isFinite(value) do
             return false
         if index and value >= 60 do
             return false
         if index + 1 < parts.count and value != Math.floor(value) do
             return false
         seconds = seconds * 60 + value
-        if !Math.isFinite(seconds) do
+        if not Math.isFinite(seconds) do
             return false
     }
 

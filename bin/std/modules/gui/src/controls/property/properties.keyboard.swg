@@ -26,14 +26,14 @@ public impl Properties
     // navigable row when none is selected yet.
     mtd focusNavigation(fallbackToFirst = true)
     {
-        if !(.edView != null) do
+        if not (.edView != null) do
             return
 
         // Keep the current selection (e.g. the row just clicked, even when it is a
         // header/value row); only fall back to the first row when nothing is set.
         // A mouse click on empty space opts out (fallbackToFirst false): selecting the
         // first row would ensure-visible it and yank the scroll back to the top.
-        if !.selItem and fallbackToFirst do
+        if not .selItem and fallbackToFirst do
             .setSelItem(.firstNavigable(forward: true))
         .edView.setFocus()
         .invalidate()
@@ -92,7 +92,7 @@ internal impl Properties
             return
         }
 
-        if !.selItem or !.isNavigable(.selItem) do
+        if not .selItem or not .isNavigable(.selItem) do
             .setSelItem(.firstNavigable(forward: true))
 
         switch evt.key
@@ -133,7 +133,7 @@ internal impl Properties
                 .selItem.sliderBox.slider.setFocus()
                 .selItem.sliderBox.slider.stepBy(1)
             }
-            elif .isGridLike() and .selItem and .selItem.numChilds > 0 and !.selItem.flags.has(.Expanded)
+            elif .isGridLike() and .selItem and .selItem.numChilds > 0 and not .selItem.flags.has(.Expanded)
             {
                 .selItem.flags.add(.Expanded)
                 .updateStates()
@@ -164,7 +164,7 @@ internal impl Properties
     // focused editor processes the key. Returns true when the key is consumed.
     mtd editKeyEvent(evt: *KeyEvent)->bool
     {
-        if !.isEditing() do
+        if not .isEditing() do
             return false
 
         let shift = cast(bool) (evt.modifiers & .Shift)
@@ -173,12 +173,12 @@ internal impl Properties
         switch evt.key
         {
         // Alt+Up/Down are left to the editor (e.g. Alt+Down opens a combo popup).
-        case .Up where !alt:
+        case .Up where not alt:
             .commitEdit()
             .moveSel(-1)
             return true
 
-        case .Down where !alt:
+        case .Down where not alt:
             .commitEdit()
             .moveSel(1)
             return true
@@ -210,8 +210,9 @@ internal impl Properties
     // popup-trigger icon buttons.
     mtd isEditorWnd(w: *Wnd?)->bool
     {
-        if !w do
+        if not w do
             return false
+
         // Asking whether the runtime type CONTAINS the editor covers a widget built by
         // composition, which an equality would miss.
         return Swag.typeIs(EditBox, w.type) or
@@ -227,7 +228,7 @@ private impl Properties
     mtd isEditing()->bool
     {
         let f = .focusedWindow()
-        if !f or f == cast(*Wnd?) .edView do
+        if not f or f == cast(*Wnd?) .edView do
             return false
         return .isEditorWnd(f)
     }
@@ -236,7 +237,7 @@ private impl Properties
     // start edition on rows whose editor is a composite/custom control.
     mtd firstEditorIn(wnd: *Wnd?)->*Wnd?
     {
-        if !wnd do
+        if not wnd do
             return null
         for c in wnd.children
         {
@@ -258,9 +259,9 @@ private impl Properties
     // section/category headers (no data, no type, no editor) are skipped.
     mtd isNavigable(item: *PropertiesItem?)->bool
     {
-        if !item or !(item.line != null) do
+        if not item or not (item.line != null) do
             return false
-        if !item.line.isVisible() do
+        if not item.line.isVisible() do
             return false
         if .itemHasEditor(item) do
             return true
@@ -268,7 +269,7 @@ private impl Properties
             return true
         if .isGridLike() and item.numChilds > 0 do
             return true
-        if !item.flags.has(.NoFocus) and .firstEditorIn(item.line) do
+        if not item.flags.has(.NoFocus) and .firstEditorIn(item.line) do
             return true
         return false
     }
@@ -302,7 +303,7 @@ private impl Properties
 
     mtd indexOfItem(item: *PropertiesItem?)->s64
     {
-        if !item do
+        if not item do
             return -1
         for it, idx in .items
         {
@@ -364,7 +365,7 @@ private impl Properties
     mtd activateSel()
     {
         let item = .selItem
-        if !item do
+        if not item do
             return
 
         if item.checkBox != null
@@ -425,7 +426,7 @@ private impl Properties
     // Scroll the grid so the given row is fully visible.
     mtd ensureItemVisible(item: *PropertiesItem?)
     {
-        if !item or !(item.line != null) do
+        if not item or not (item.line != null) do
             return
 
         let lineTop       = item.line.position.y

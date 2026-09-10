@@ -112,7 +112,7 @@ func qsort(lowIn, highIn: s64)
         let c = g_Text[i]
         if c >= 97 and c <= 122
         {
-            if !open
+            if not open
             {
                 start = i
                 open  = true

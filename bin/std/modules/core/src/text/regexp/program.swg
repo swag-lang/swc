@@ -102,13 +102,13 @@ impl Program
         result.matchPc = result.addInst({kind: .Match})
 
         var tail = result.matchPc
-        if !reverse do
+        if not reverse do
             tail = result.addInst({kind: .Save, slot: 1, next: tail})
 
         let body = result.emit(ast, entry, tail)
 
         result.start = body
-        if !reverse do
+        if not reverse do
             result.start = result.addInst({kind: .Save, slot: 0, next: body})
 
         // The unanchored entry prefers entering the pattern over consuming one more byte,
@@ -269,7 +269,7 @@ impl Program
         }
 
         var entry = NoNode
-        if !longer.isEmpty()
+        if not longer.isEmpty()
         {
             entry = .emitSequence(longer.back(), next)
             for var i = longer.count - 1; i > 0; i -= 1
@@ -411,7 +411,7 @@ impl Program
                 pc = inst.next
 
             case .Match:
-                result.complete = !sawAssert
+                result.complete = not sawAssert
                 return result
 
             default:
@@ -446,7 +446,7 @@ impl Program
             var reachesMatch = false
             seen.fill(false)
 
-            if !.closeOverKeepingMatch(roots.toSlice(), &reachable, &seen, &reachesMatch) do
+            if not .closeOverKeepingMatch(roots.toSlice(), &reachable, &seen, &reachesMatch) do
                 return false
 
             // The end of the chain: nothing left to read, and a match is what is left.
@@ -482,7 +482,7 @@ impl Program
         var stack: Array'u32
         stack.add(roots)
 
-        while !stack.isEmpty()
+        while not stack.isEmpty()
         {
             let pc = stack.popBack()
             if seen[pc] do
@@ -534,7 +534,7 @@ impl Program
         {
             var reachable: Array'u32
             seen.fill(false)
-            if !.closeOver(roots.toSlice(), &reachable, &seen) do
+            if not .closeOver(roots.toSlice(), &reachable, &seen) do
                 return
             if reachable.isEmpty() do
                 return
@@ -563,7 +563,7 @@ impl Program
         var stack: Array'u32
         stack.add(roots)
 
-        while !stack.isEmpty()
+        while not stack.isEmpty()
         {
             let pc = stack.popBack()
             if seen[pc] do
@@ -605,7 +605,7 @@ impl Program
         {
             if inst.kind == InstKind.ByteRange
             {
-                boundary[inst.lo]               = true
+                boundary[inst.lo] = true
                 boundary[cast(u32) inst.hi + 1] = true
                 continue
             }
@@ -821,7 +821,7 @@ func appendUtf8Sequences(out: *Array'ByteSequence, lowValue, highValue: rune)
         }
     }
 
-    var seq:                 ByteSequence
+    var seq: ByteSequence
     var lowBytes, highBytes: [4] u8
     seq.count = Utf8.encodeRune(lowBytes, lo)
     discard Utf8.encodeRune(highBytes, hi)

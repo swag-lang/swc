@@ -62,17 +62,17 @@ func __isTestFileSelected(path: string)->bool
         let filterCount = arg.count - prefix.count
         if filterCount > path.count do
             continue
-        if !filterCount do
+        if not filterCount do
             return true
 
         for offset in path.count - filterCount + 1
         {
-            if !Swag.memcmp(path.buffer + offset, arg.buffer + prefix.count, filterCount) do
+            if not Swag.memcmp(path.buffer + offset, arg.buffer + prefix.count, filterCount) do
                 return true
         }
     }
 
-    return !hasFilter
+    return not hasFilter
 }
 
 // Repeated tag filters form a union. An untagged test is selected only when no tag filter exists.
@@ -92,7 +92,7 @@ func __isTestTagSelected(tag: string)->bool
             return true
     }
 
-    return !hasFilter
+    return not hasFilter
 }
 
 // Optimizations stay off: recovery re-enters this function with the registers captured before the
@@ -100,13 +100,13 @@ func __isTestTagSelected(tag: string)->bool
 #[Swag.Optimize(false)]
 func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*] u8)
 {
-    if !__isTestRun() do
+    if not __isTestRun() do
         return
 
     let testName = Swag.makeString(name, (cast(const cstring) name).count)
     let testPath = Swag.makeString(path, (cast(const cstring) path).count)
     let testTag  = Swag.makeString(tag, (cast(const cstring) tag).count)
-    if !__isTestFileSelected(testPath) or !__isTestTagSelected(testTag) do
+    if not __isTestFileSelected(testPath) or not __isTestTagSelected(testTag) do
         return
 
     Swag.print("[swag.test] event=start executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, " name=", testName, "\n")
@@ -115,7 +115,7 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
     g_TestFailed    = false
     g_TestThreadId  = __hostCurrentThreadId()
 
-    let cxt            = Swag.getContext()
+    let cxt = Swag.getContext()
     let previousPanic  = cxt.panic
     let previousFilter = __hostTestInstallHardwareFilter()
     cxt.panic = cast() &__testPanicHandler
@@ -135,7 +135,7 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
 
 func __testsDone()
 {
-    if !__isTestRun() do
+    if not __isTestRun() do
         return
 
     // Marker parsed by the compiler's test command to report the native tally.

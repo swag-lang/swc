@@ -127,7 +127,7 @@ impl TextIndex
             if index != first
             {
                 let gap = seed.run.rect.x - previousRight
-                if gap > seed.run.rect.height * TextWordGap and !.text.isEmpty() and .text.back() != ' 'u8 and seed.text.toString()[0] != ' 'u8 do
+                if gap > seed.run.rect.height * TextWordGap and not .text.isEmpty() and .text.back() != ' 'u8 and seed.text.toString()[0] != ' 'u8 do
                     .text += " "
             }
 
@@ -164,7 +164,7 @@ impl TextIndex
         result.run.item = itemIndex
         result.text     = item.text
 
-        let m           = item.transform
+        let m = item.transform
         let axisAligned = Math.abs(m.m12) < 0.001 and Math.abs(m.m21) < 0.001 and m.m11 > 0 and m.m22 > 0
 
         // The local box of the run: the origin sits one em above the baseline, so the run
@@ -284,7 +284,7 @@ impl TextIndex
 
     private mtd const offsetInRun(run: const *TextRun, pageX: f32)->u64
     {
-        if !run.axisAligned or !run.codes.count or run.scaleX <= 0 do
+        if not run.axisAligned or not run.codes.count or run.scaleX <= 0 do
             return pageX < run.rect.horzCenter() ? run.textStart : run.textEnd
 
         let localX = (pageX - run.originX) / run.scaleX
@@ -340,7 +340,7 @@ impl TextIndex
     {
         var result: retval
         let source = .text.toString()
-        if !source.count do
+        if not source.count do
             return result
 
         var starts: Array'u64

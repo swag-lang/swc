@@ -130,7 +130,7 @@ impl ProgressBar
         let oldFlags = .flags
         .flags.add(add)
         .flags.remove(remove)
-        if !oldFlags.has(.Indeterminate) and .flags.has(.Indeterminate) do
+        if not oldFlags.has(.Indeterminate) and .flags.has(.Indeterminate) do
             .animationPhase = 0
         .invalidate()
     }

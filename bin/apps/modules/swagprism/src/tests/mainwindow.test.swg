@@ -25,8 +25,8 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
     Swag.assert(window.commandBar.parent == window.sourcePanel)
     Swag.assert(window.runButton.icon.isValid())
     Swag.assert(window.layoutButton.parent == window.panels[0].header)
-    Swag.assert(!window.comparisonEnabled)
-    Swag.assert(window.viewerSplit.isPaneVisible(0) and !window.viewerSplit.isPaneVisible(1))
+    Swag.assert(not window.comparisonEnabled)
+    Swag.assert(window.viewerSplit.isPaneVisible(0) and not window.viewerSplit.isPaneVisible(1))
     let left  = microcode(window, 0)
     let right = microcode(window, 1)
     Swag.assert(left != right)
@@ -36,10 +36,10 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
     Swag.assert(window.panels[0].optimCombo.selectedIndex == 0)
     Swag.assert(window.panels[1].optimCombo.selectedIndex == 2)
     Swag.assert(window.status.name == appStrings().ui_Ready)
-    Swag.assert(!window.spinner.isVisible())
+    Swag.assert(not window.spinner.isVisible())
     Swag.assert(window.panels[0].kindCombo.items.count == 3)
     Swag.assert(window.panels[0].kindCombo.selectedIndex == 0)
-    Swag.assert(!window.layoutButton.isChecked and window.layoutButton.toolTip == appStrings().ui_TwoViewers)
+    Swag.assert(not window.layoutButton.isChecked and window.layoutButton.toolTip == appStrings().ui_TwoViewers)
 }
 
 // The editor opens on the starter snippet, and that snippet is one the probe can inspect.
@@ -66,11 +66,11 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
     window.panels[0].optimCombo.setSelectedIndex(1)
     Swag.assert(left.job.running and left.job.timer != null)
     Swag.assert(left.job.request.settings.optimization == .O1)
-    Swag.assert(!right.job.running)
+    Swag.assert(not right.job.running)
     window.panels[0].optimCombo.setSelectedIndex(0)
     Swag.assert(left.job.queued and left.job.request.settings.optimization == .O1)
     window.shutdown()
-    Swag.assert(!left.job.running and left.job.timer == null)
+    Swag.assert(not left.job.running and left.job.timer == null)
 }
 
 // The global mode button changes only the layout and retains both viewers' state.
@@ -91,8 +91,8 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
     second.outputIsHint = false
     let comparisonWidth = first.position.width
     host.click(window.layoutButton.localToSurface(Math.Point{18, 18}))
-    Swag.assert(!window.comparisonEnabled and !window.viewerSplit.isPaneVisible(1))
-    Swag.assert(!window.layoutButton.isChecked)
+    Swag.assert(not window.comparisonEnabled and not window.viewerSplit.isPaneVisible(1))
+    Swag.assert(not window.layoutButton.isChecked)
     Swag.assert(first.position.width > comparisonWidth)
     host.click(window.layoutButton.localToSurface(Math.Point{18, 18}))
     Swag.assert(window.panels[1].optimCombo.selectedIndex == 1 and second.stageCombo.selectedIndex == 0)
@@ -129,9 +129,9 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
 
     for viewer in [left, right]
     {
-        Swag.assert(!viewer.job.running and viewer.job.timer == null)
-        Swag.assert(!viewer.job.stopped and !viewer.job.result.failed)
-        Swag.assert(!viewer.outputIsHint and viewer.outputText.colors.count != 0)
+        Swag.assert(not viewer.job.running and viewer.job.timer == null)
+        Swag.assert(not viewer.job.stopped and not viewer.job.result.failed)
+        Swag.assert(not viewer.outputIsHint and viewer.outputText.colors.count != 0)
         let plain    = viewer.output.text()
         let expected = Format.toString("  optimize : O%", cast(u8) viewer.job.request.settings.optimization)
         Swag.assert(Utf8.indexOf(cast(const [..] u8) plain.toString(), expected.toString()) != Swag.U64.Max)
@@ -139,7 +139,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
     }
 
     Swag.assert(window.status.name == appStrings().ui_Ready)
-    Swag.assert(!window.spinner.isVisible())
+    Swag.assert(not window.spinner.isVisible())
 }
 
 // Single-viewer compilation leaves the hidden comparison idle; hiding a running viewer is safe.
@@ -150,14 +150,14 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*Micro
     defer host.shutdown()
     window.compile()
     Swag.assert(microcode(window, 0).job.running)
-    Swag.assert(!microcode(window, 1).job.running)
+    Swag.assert(not microcode(window, 1).job.running)
     window.setComparisonEnabled(true)
     window.compile()
     let second = microcode(window, 1)
     Swag.assert(second.job.running)
     window.setComparisonEnabled(false)
     window.shutdown()
-    Swag.assert(!second.job.running and second.job.timer == null)
+    Swag.assert(not second.job.running and second.job.timer == null)
 }
 
 // Both supported layouts use the same themed structural panels.

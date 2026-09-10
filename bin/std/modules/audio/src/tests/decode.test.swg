@@ -17,13 +17,13 @@ func audioPcmPacketSound()->SoundFile fail
 {
     var file = expect audioPcmPacketSound()
     Swag.assert(file.sampleEncoding() == .Pcm16 and file.sampleFrameCount() == 2 and file.payloadSize() == 8)
-    Swag.assert(file.isPacketStream() and file.packetCount() == 2 and !file.isDataPreloaded())
+    Swag.assert(file.isPacketStream() and file.packetCount() == 2 and not file.isDataPreloaded())
 
     let payload = expect file.readPayload(0, 8)
     Swag.assert(audioAssertBytes(payload.toSlice(), [0x00'u8, 0x00, 0xFF, 0x7F, 0x00, 0x80, 0xFF, 0xFF]))
 
     var voice: Voice
-    voice.file              = &file
+    voice.file = &file
     voice.requestedEncoding = .Pcm16
     let decoded = expect voice.readBuffer()
     audioAssertBufferBytes(decoded.buffer, decoded.size, payload.toSlice())
@@ -53,7 +53,7 @@ func audioPcmPacketSound()->SoundFile fail
 {
     var file = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
     var voice: Voice
-    voice.file              = &file
+    voice.file = &file
     voice.requestedEncoding = .Pcm16
 
     let {buffer0, size0} = expect voice.readBuffer()
@@ -73,7 +73,7 @@ func audioPcmPacketSound()->SoundFile fail
 {
     var file = expect SoundFile.load(audioGetTestDataPath("pcm8_mono_odd.wav"))
     var voice: Voice
-    voice.file              = &file
+    voice.file = &file
     voice.requestedEncoding = .Pcm16
 
     var decoded: [6] u8
@@ -90,7 +90,7 @@ func audioPcmPacketSound()->SoundFile fail
 {
     var file = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false)
     var voice: Voice
-    voice.file              = &file
+    voice.file = &file
     voice.requestedEncoding = .Pcm16
 
     var buffer: [4] u8
@@ -109,5 +109,5 @@ func audioPcmPacketSound()->SoundFile fail
 
     voice.closeBuffer()
     Swag.assert(voice.streamCurSeek == 0)
-    Swag.assert(!voice.stream.isOpen())
+    Swag.assert(not voice.stream.isOpen())
 }

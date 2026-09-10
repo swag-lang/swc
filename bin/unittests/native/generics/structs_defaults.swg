@@ -39,11 +39,11 @@ struct(T) PtrHolder
 
 #test
 {
-    var x:      s32           = 42
+    var x:      s32 = 42
     let holder: PtrHolder's32 = {ptr: &x}
     Swag.assert(holder.ptr[] == 42)
 
-    var y:       f64           = 1.5
+    var y:       f64 = 1.5
     let holderF: PtrHolder'f64 = {ptr: &y}
     Swag.assert(holderF.ptr[] == 1.5)
 }

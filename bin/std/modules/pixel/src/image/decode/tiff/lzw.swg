@@ -128,7 +128,7 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
         {
             prefixes[nextCode] = cast(u16) oldCode
             suffixes[nextCode] = first
-            nextCode           += 1
+            nextCode += 1
 
             // The decoder is one dictionary entry behind the encoder. TIFF's
             // early transition therefore happens when the next free code is

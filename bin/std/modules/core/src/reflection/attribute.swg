@@ -21,7 +21,7 @@ private func sameAttributeType(left: typeinfo?, right: typeinfo?)->bool
 func attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value: string?)->any?
 {
     let attrib = Reflection.attribute(type, attribute)
-    if !attrib do
+    if not attrib do
         return null
     return attributeValue(attrib, value)
 }
@@ -31,7 +31,7 @@ func attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value: s
 func(T) attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value: string?, defaultValue: T)->T
 {
     let attrib = Reflection.attribute(type, attribute)
-    if !attrib do
+    if not attrib do
         return defaultValue
     let attribVal = attributeValue(attrib, value)
     if attribVal == null do
@@ -44,7 +44,7 @@ func(T) attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value
 func attributeValue(type: typeinfo?, attribute: typeinfo?, value: string?)->any?
 {
     let attrib = Reflection.attribute(type, attribute)
-    if !attrib do
+    if not attrib do
         return null
     return attributeValue(attrib, value)
 }
@@ -53,7 +53,7 @@ func attributeValue(type: typeinfo?, attribute: typeinfo?, value: string?)->any?
 #[ConstExpr]
 func attributeValue(attribute: const *Swag.Attribute?, value: string?)->any?
 {
-    if !attribute do
+    if not attribute do
         return null
     for p in attribute.params where p.name == value do
         return p.value
@@ -65,7 +65,7 @@ func attributeValue(attribute: const *Swag.Attribute?, value: string?)->any?
 func attributes(value: const *Swag.TypeValue?, attribute: typeinfo?)->Array'(const *Swag.Attribute)
 {
     var result: retval
-    if !value do
+    if not value do
         return result
     for &it in value.attributes where sameAttributeType(attribute, it.type) do
         result.add(it)
@@ -76,7 +76,7 @@ func attributes(value: const *Swag.TypeValue?, attribute: typeinfo?)->Array'(con
 #[ConstExpr]
 func attribute(value: const *Swag.TypeValue?, attribute: typeinfo?)->const *Swag.Attribute?
 {
-    if !value do
+    if not value do
         return null
     for &it in value.attributes where sameAttributeType(attribute, it.type) do
         return it
@@ -95,7 +95,7 @@ func hasAttribute(value: const *Swag.TypeValue?, attribute: typeinfo?)->bool
 func attributes(type: typeinfo?, attribute: typeinfo?)->Array'(const *Swag.Attribute)
 {
     var result: retval
-    if !type do
+    if not type do
         return result
 
     let safeType = type
@@ -124,7 +124,7 @@ func attributes(type: typeinfo?, attribute: typeinfo?)->Array'(const *Swag.Attri
 #[ConstExpr]
 func attribute(type: typeinfo?, attribute: typeinfo?)->const *Swag.Attribute?
 {
-    if !type do
+    if not type do
         return null
 
     let safeType = type

@@ -85,7 +85,7 @@ internal func acquireSoundEngine(kind = DriverKind.Default)->bool
             g_SoundViewerOwnsEngine = true
     }
 
-    if !isEngineCreated()
+    if not isEngineCreated()
     {
         catch createEngine(kind) as createError
         if createError != null do
@@ -99,10 +99,10 @@ internal func acquireSoundEngine(kind = DriverKind.Default)->bool
 
 internal func releaseSoundEngine()
 {
-    if !g_SoundEngineUsers do
+    if not g_SoundEngineUsers do
         return
     g_SoundEngineUsers -= 1
-    if g_SoundEngineUsers or !g_SoundViewerOwnsEngine do
+    if g_SoundEngineUsers or not g_SoundViewerOwnsEngine do
         return
     destroyEngine()
     g_SoundViewerOwnsEngine = false
@@ -140,14 +140,14 @@ internal func soundSample(bytes: const [..] u8, offset: u64, encoding: SoundFile
 internal func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: u32)->Array'WaveformPoint
 {
     var result: retval
-    if !bytes.count or !channels do
+    if not bytes.count or not channels do
         return result
 
     let bytesPerSample = encoding == .Pcm8 ? 1'u64 : (encoding == .Pcm16 ? 2 : (encoding == .Pcm24 ? 3 : 4))
     let bytesPerFrame  = bytesPerSample * channels
     let frameCount     = bytes.count / bytesPerFrame
     let pointCount     = Math.min(frameCount, WaveformPointCount)
-    if !pointCount do
+    if not pointCount do
         return result
     result.resize(pointCount)
 
@@ -220,11 +220,11 @@ internal impl WaveformReducer
             if target != .currentPoint
             {
                 .points[][.currentPoint] = {.peak, .sampleCount ? cast(f32) (.sum / cast(f64) .sampleCount) : 0}
-                .readyCount              = .currentPoint + 1
-                .currentPoint            = target
-                .peak                    = 0
-                .sum                     = 0
-                .sampleCount             = 0
+                .readyCount   = .currentPoint + 1
+                .currentPoint = target
+                .peak         = 0
+                .sum          = 0
+                .sampleCount  = 0
             }
 
             var mixed = 0'f32
@@ -240,10 +240,10 @@ internal impl WaveformReducer
 
     mtd finish()
     {
-        if !.sampleCount or .currentPoint >= .pointCount do
+        if not .sampleCount or .currentPoint >= .pointCount do
             return
         .points[][.currentPoint] = {.peak, cast(f32) (.sum / cast(f64) .sampleCount)}
-        .readyCount              = .currentPoint + 1
+        .readyCount = .currentPoint + 1
     }
 }
 
@@ -296,7 +296,7 @@ private impl SoundWaveformView
             return
 
         let resolved = .font().regular
-        if !resolved do
+        if not resolved do
             return
 
         let font    = resolved!
@@ -343,7 +343,7 @@ private impl IWnd for SoundWaveformView
 
         // The silence line is under the wave, and only shows where the wave has nothing to say.
         painter.drawLine(plot.x, center, plot.right(), center, colors.border, 1)
-        if !.samples.count do
+        if not .samples.count do
             return
 
         // The alternate theme tone gives the sound its own voice while the signature accent stays
@@ -399,7 +399,7 @@ internal struct SoundViewer
 {
     using wnd: Wnd
 
-        late
+    late
     {
         commands:       *Wnd
         playButton:     *IconButton
@@ -449,15 +449,15 @@ internal impl SoundViewer
     // Reports work whose result has not reached the waveform yet.
     mtd isLoading()->bool
     {
-        if !.openFinished do
+        if not .openFinished do
             return true
-        if !.waveformThread.isValid() do
+        if not .waveformThread.isValid() do
             return false
 
         .waveformLock.lock()
         let built = .waveformBuilt
         .waveformLock.unlock()
-        return !.waveformThread.isDone() or .waveform.readyCount < built
+        return not .waveformThread.isDone() or .waveform.readyCount < built
     }
 
     // Publishes the file opened by the worker and initializes playback on the GUI thread.
@@ -467,7 +467,7 @@ internal impl SoundViewer
             return
 
         let state = Atomic.get(&.openState)
-        if !state or (.openThread.isValid() and !.openThread.isDone()) do
+        if not state or (.openThread.isValid() and not .openThread.isDone()) do
             return
         if .openThread.isValid() do
             .openThread.wait()
@@ -476,8 +476,8 @@ internal impl SoundViewer
         if state == 2 do
             fail InvalidFormatError{Errors.mkString(.openFailure.toString())}
 
-        .sound             = #move .pendingSound
-        .duration          = .sound.durationInSeconds()
+        .sound    = #move .pendingSound
+        .duration = .sound.durationInSeconds()
         .waveform.duration = .duration
         if .duration > 0 do
             .timeline.setBounds(0, .duration, Math.min(0.01'f32, .duration / 100))
@@ -494,7 +494,7 @@ internal impl SoundViewer
         .muteButton.enable(.engineReady)
         .volumeSlider.enable(.engineReady)
         .updatePlaybackUi()
-        if !.engineReady do
+        if not .engineReady do
             .playButton.toolTip = soundStrings().ui_NoEngine
         if .reportDetails do
             .reportDetails!(me, .details.toString())
@@ -519,7 +519,7 @@ internal impl SoundViewer
     {
         if .retired do
             return true
-        if !.retireRequested
+        if not .retireRequested
         {
             .retireRequested = true
             if .timer
@@ -547,9 +547,9 @@ internal impl SoundViewer
                 .waveformThread.safeForceEnd()
         }
 
-        if .openThread.isValid() and !.openThread.isDone() do
+        if .openThread.isValid() and not .openThread.isDone() do
             return false
-        if .waveformThread.isValid() and !.waveformThread.isDone() do
+        if .waveformThread.isValid() and not .waveformThread.isDone() do
             return false
         .finishRetire()
         return true
@@ -577,7 +577,7 @@ internal impl SoundViewer
         let frameCount = .sound.sampleFrameCount()
         let pointCount = .waveform.samples.count
         let channels   = .sound.numChannels()
-        if !frameCount or !pointCount or !channels do
+        if not frameCount or not pointCount or not channels do
             return
 
         var reducer = WaveformReducer{&.waveform.samples, frameCount, pointCount, channels}
@@ -586,7 +586,7 @@ internal impl SoundViewer
             reducer.consume(samples)
             if reducer.readyCount do
                 view.publishWaveform(reducer.readyCount)
-            return !worker[].requestEnd
+            return not worker[].requestEnd
         })
         reducer.finish()
         .publishWaveform(reducer.readyCount)
@@ -595,7 +595,7 @@ internal impl SoundViewer
     mtd startWaveform()
     {
         let pointCount = Math.min(.sound.sampleFrameCount(), WaveformPointCount)
-        if !pointCount do
+        if not pointCount do
             return
         .waveform.samples.resize(pointCount)
         catch .waveformThread.init(func|view = me|(thread: Thread) { view.buildWaveformInBackground(thread); }, priority: .BelowNormal) as initError
@@ -636,7 +636,7 @@ internal impl SoundViewer
         if .voice do
             return true
         .voice = catch Voice.create(&.sound)! as createError
-        if createError != null or !.voice do
+        if createError != null or not .voice do
             return false
         catch .voice!.setVolume(.muted ? 0 : .volume)
         return true
@@ -644,7 +644,7 @@ internal impl SoundViewer
 
     mtd seekSeconds(seconds: f32)
     {
-        if !.engineReady or !.ensureVoice() do
+        if not .engineReady or not .ensureVoice() do
             return
         let target = Math.clamp(seconds, 0, .duration)
         let frame  = cast(u64) Math.round(target * cast(f32) .sound.sampleRateHz())
@@ -673,15 +673,15 @@ internal impl SoundViewer
     mtd setVolume(volume: f32)
     {
         .volume = Math.clamp(volume, 0, 1)
-        if .voice and !.muted do
+        if .voice and not .muted do
             catch .voice!.setVolume(.volume)
     }
 
     mtd togglePlayback()
     {
-        if !.engineReady do
+        if not .engineReady do
             return
-        if !.ensureVoice() do
+        if not .ensureVoice() do
             return
 
         if .playing
@@ -744,7 +744,7 @@ internal impl IWnd for SoundViewer
             .timeline.toolTip       = soundStrings().ui_TipSeek
             if .openFinished and .openState == 1
             {
-                if !.engineReady do
+                if not .engineReady do
                     .playButton.toolTip = soundStrings().ui_NoEngine
                 .details = Format.toString(soundStrings().ui_Details, .sound.sampleRateHz(), channelCountText(.sound.numChannels()), .sound.sampleStorageBits(), soundDurationText(.duration))
                 if .reportDetails do
@@ -763,7 +763,7 @@ internal impl IWnd for SoundViewer
             return
         }
 
-        if !.openFinished
+        if not .openFinished
         {
             catch .completeOpen() as openError
             if openError != null and .reportFailure do
@@ -772,7 +772,7 @@ internal impl IWnd for SoundViewer
         }
 
         .syncWaveform()
-        if !.playing or !.voice do
+        if not .playing or not .voice do
             return
         .elapsed = cast(f32) .voice!.playbackPositionSeconds()
         if .elapsed >= .duration
@@ -803,7 +803,7 @@ internal impl IWnd for SoundViewer
         case .Space, .MediaPlayPause: .togglePlayback()
         case .Left:                   .seekRelative(-SoundSeekSeconds)
         case .Right:                  .seekRelative(SoundSeekSeconds)
-        case .M, .VolumeMute:         .setMuted(!.muted)
+        case .M, .VolumeMute:         .setMuted(not .muted)
         case .MediaStop:              .stopPlayback()
         default:                      evt.accepted = false
         }
@@ -915,7 +915,7 @@ internal impl SoundViewer
             }
         }
 
-        result.waveform                 = Wnd.create'SoundWaveformView(result, "scope.sound.waveform")
+        result.waveform = Wnd.create'SoundWaveformView(result, "scope.sound.waveform")
         result.waveform.dockStyle       = .Center
         result.waveform.backgroundStyle = .View
 
@@ -978,5 +978,5 @@ func createSoundViewer(host: Viewer.Host)
     host.setLifecycle({
         retire: func(wnd)->bool { return (cast(*SoundViewer) wnd).retire() },
         isLoading: func(wnd)->bool { return (cast(*SoundViewer) wnd).isLoading() },
-        needsLoadingOverlay: func(wnd)->bool { return !(cast(*SoundViewer) wnd).openFinished }})
+        needsLoadingOverlay: func(wnd)->bool { return not (cast(*SoundViewer) wnd).openFinished }})
 }

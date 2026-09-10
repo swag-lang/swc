@@ -74,7 +74,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 #test
 {
     var sound = expect SoundFile.load(audioGetTestDataPath("flac-5.1-48000.flac").toString())
-    Swag.assert(sound.isPacketStream() and !sound.isDataPreloaded())
+    Swag.assert(sound.isPacketStream() and not sound.isDataPreloaded())
     Swag.assert(sound.packetCount() == 6)
     Swag.assert((expect sound.packet(0)).sampleFrameCount == 4608)
     Swag.assert(sound.sampleFrameCount() == 24_000)

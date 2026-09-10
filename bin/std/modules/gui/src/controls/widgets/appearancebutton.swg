@@ -129,10 +129,10 @@ impl AppearanceButton
         let languageMenu = MenuCtrl.createPopup(root, owner: me)
         languageMenu.addItem(strings().appearance_SystemLanguage, AppearanceLanguageSysId, checked: .language.isEmpty())
         for &one in languages() do
-            languageMenu.addItem(one.nativeName.toString(), one.tag.toString(), checked: !.language.isEmpty() and one.tag == .language)
+            languageMenu.addItem(one.nativeName.toString(), one.tag.toString(), checked: not .language.isEmpty() and one.tag == .language)
         root.addPopup(strings().appearance_Language, languageMenu)
 
-        if !.sigAboutRequested.isEmpty()
+        if not .sigAboutRequested.isEmpty()
         {
             root.addSeparator()
             root.addItem(strings().appearance_About, AppearanceAboutId, icon: .theme().icon(.About))

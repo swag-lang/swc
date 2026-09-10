@@ -20,7 +20,7 @@ func assertIntSlice(values: const [..] s32, expected: const [..] s32)->bool
 #test
 {
     let backing: [1] s32 = [42]
-    let empty            = Swag.makeSlice(backing.buffer, 0)
+    let empty = Swag.makeSlice(backing.buffer, 0)
 
     Swag.assert(Slice.isSorted(empty))
     Swag.assert(Slice.isSorted(empty, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
@@ -41,7 +41,7 @@ func assertIntSlice(values: const [..] s32, expected: const [..] s32)->bool
     let descending: [5] s32 = [9, 7, 4, 4, 1]
 
     Swag.assert(Slice.isSorted(sorted))
-    Swag.assert(!Slice.isSorted(unsorted))
+    Swag.assert(not Slice.isSorted(unsorted))
     Swag.assert(Slice.isSorted(descending, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
 }
 

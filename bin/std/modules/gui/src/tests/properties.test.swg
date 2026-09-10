@@ -130,17 +130,17 @@ impl IPropertyNotify for PropHeadlessRoData
 
     Swag.assert(prop.editorWidth == 280)
     Swag.assert(prop.usingFieldsLast)
-    Swag.assert(!prop.revertButtonsVisible)
+    Swag.assert(not prop.revertButtonsVisible)
     Swag.assert(prop.items.count == 4)
 
     prop.focusNavigation()
     Swag.assert(prop.selItem != null)
     prop.setFilter("no matching property")
-    Swag.assert(!prop.items[1]!.line.isVisible())
+    Swag.assert(not prop.items[1]!.line.isVisible())
 
     prop.clear()
     Swag.assert(prop.items.count == 0)
-    Swag.assert(!prop.selItem)
+    Swag.assert(not prop.selItem)
 }
 
 // A field kept for persistence can opt out of a generated editor without leaving its structure.
@@ -289,8 +289,8 @@ struct PropHeadlessCancelData
             host.keyPress(Input.Key.Escape)
             Swag.assert(prop.edView.hasFocus())
             Swag.assert(data.value == 42 and data.text == "before" and data.bounded == 10,
-                         Format.toString("kind %, item %: value %, text %, bounded %", kind, index, data.value, data.text, data.bounded).toString())
-            Swag.assert(changes == 0 and !prop.canUndo())
+                        Format.toString("kind %, item %: value %, text %, bounded %", kind, index, data.value, data.text, data.bounded).toString())
+            Swag.assert(changes == 0 and not prop.canUndo())
         }
 
         let edit = prop.items[1]!.editBox
@@ -496,7 +496,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     let popup = Wnd.create'Wnd(&host.root, {})
     prop.editPopup = popup
     host.sendMouseEvent(btn, .Leave, {0, 0}, .Left, .None)
-    Swag.assert(!btn.isHot)
+    Swag.assert(not btn.isHot)
 }
 
 // In navigation mode, Space toggles a bool row's checkbox in place.
@@ -515,7 +515,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     Swag.assert(chk.isChecked())
 
     host.keyPress(Input.Key.Space)
-    Swag.assert(!chk.isChecked())
+    Swag.assert(not chk.isChecked())
     host.keyPress(Input.Key.Space)
     Swag.assert(chk.isChecked())
 }
@@ -836,7 +836,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
 
     let countItem = findFieldItem(prop, "count")!
     Swag.assert(prop.instanceCount(countItem) == 3)
-    Swag.assert(!prop.fieldIsMixed(countItem))     // all start equal (0)
+    Swag.assert(not prop.fieldIsMixed(countItem))     // all start equal (0)
 
     // Edit the native field: all three instances change together.
     countItem.editBox.setText("9")
@@ -886,7 +886,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     countItem.editBox.setText("7")
     prop.validateNative(countItem)
     Swag.assert(t0.count == 7 and t1.count == 7)
-    Swag.assert(!prop.fieldIsMixed(countItem))
+    Swag.assert(not prop.fieldIsMixed(countItem))
     Swag.assert(countItem.editBox.text() == "7")
 }
 
@@ -906,7 +906,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
 
     let countItem = findFieldItem(prop, "count")!
     Swag.assert(prop.instanceCount(countItem) == 1)
-    Swag.assert(!prop.fieldIsMixed(countItem))
+    Swag.assert(not prop.fieldIsMixed(countItem))
     Swag.assert(countItem.editBox.text() == "3")
 
     countItem.editBox.setText("8")
@@ -946,7 +946,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
 
     // x component differs -> mixed; y component is uniform -> not mixed.
     Swag.assert(prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
-    Swag.assert(!prop.subFieldIsMixed(posItem, #sizeof(f32), #sizeof(f32)))
+    Swag.assert(not prop.subFieldIsMixed(posItem, #sizeof(f32), #sizeof(f32)))
 
     var boxes: Array'(*EditBox?)
     collectEditBoxes(posItem.line, &boxes)
@@ -958,7 +958,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     box0.sigCommitted.call(box0)
     Swag.assert(t0.pos.x == 5 and t1.pos.x == 5)
     Swag.assert(t0.pos.y == 10 and t1.pos.y == 10)     // untouched
-    Swag.assert(!prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
+    Swag.assert(not prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
 }
 
 // Enum-flags multi-edit logic: a bit that disagrees across instances is "mixed", and
@@ -985,20 +985,20 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     let lockMask = cast(u64) cast(s32) MultiBadges.Lock
     let pinMask  = cast(u64) cast(s32) MultiBadges.Pin
 
-    Swag.assert(!prop.flagBitIsMixed(&item, starMask))     // shared -> uniform
-    Swag.assert(prop.flagBitIsMixed(&item, lockMask))      // disagrees -> mixed
-    Swag.assert(!prop.flagBitIsMixed(&item, pinMask))      // neither has it -> uniform
+    Swag.assert(not prop.flagBitIsMixed(&item, starMask))     // shared -> uniform
+    Swag.assert(prop.flagBitIsMixed(&item, lockMask))         // disagrees -> mixed
+    Swag.assert(not prop.flagBitIsMixed(&item, pinMask))      // neither has it -> uniform
 
     // Set Pin on every instance: Lock stays only on b1, Star stays on both.
     prop.writeEnumBit(&item, pinMask, true)
     Swag.assert(cast(bool) (b0 & MultiBadges.Pin) and cast(bool) (b1 & MultiBadges.Pin))
-    Swag.assert(!cast(bool) (b0 & MultiBadges.Lock))
+    Swag.assert(not cast(bool) (b0 & MultiBadges.Lock))
     Swag.assert(cast(bool) (b1 & MultiBadges.Lock))
     Swag.assert(cast(bool) (b0 & MultiBadges.Star) and cast(bool) (b1 & MultiBadges.Star))
 
     // Clearing a shared bit clears it everywhere.
     prop.writeEnumBit(&item, starMask, false)
-    Swag.assert(!cast(bool) (b0 & MultiBadges.Star) and !cast(bool) (b1 & MultiBadges.Star))
+    Swag.assert(not cast(bool) (b0 & MultiBadges.Star) and not cast(bool) (b1 & MultiBadges.Star))
 }
 
 // Dynamic strings are compared and propagated by content (they own a heap buffer).
@@ -1025,12 +1025,12 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     nameItem.editBox.setText("shared")
     prop.validateDynamicString(nameItem)
     Swag.assert(t0.name == "shared" and t1.name == "shared")
-    Swag.assert(!prop.fieldIsMixed(nameItem))
+    Swag.assert(not prop.fieldIsMixed(nameItem))
 
     // Same content in distinct buffers must not read as mixed.
     t0.name = "same"
     t1.name = "same"
-    Swag.assert(!prop.fieldIsMixed(nameItem))
+    Swag.assert(not prop.fieldIsMixed(nameItem))
 }
 
 // A color (struct via the built-in ColorEditor) reports mixed and propagates as a whole value.
@@ -1056,7 +1056,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     // Make them equal and refresh: no longer mixed.
     t1.tint = Pixel.Argb.Red
     prop.refresh()
-    Swag.assert(!prop.fieldIsMixed(tintItem))
+    Swag.assert(not prop.fieldIsMixed(tintItem))
 }
 
 //
@@ -1166,20 +1166,20 @@ impl Gui.IPropertyNotify for ValData
 
     // Edit-box editors stay focusable but become read-only. The editable field is not; the
     // read-only fields (attribute + dynamic) are. They are not changeable either.
-    Swag.assert(!normalItem.editBox.flags.has(.ReadOnly))
+    Swag.assert(not normalItem.editBox.flags.has(.ReadOnly))
     Swag.assert(lockedItem.editBox.flags.has(.ReadOnly))
     Swag.assert(dynamicItem.editBox.flags.has(.ReadOnly))
     Swag.assert(prop.canChangeItem(normalItem))
-    Swag.assert(!prop.canChangeItem(lockedItem))
-    Swag.assert(!prop.canChangeItem(dynamicItem))
+    Swag.assert(not prop.canChangeItem(lockedItem))
+    Swag.assert(not prop.canChangeItem(dynamicItem))
 
     // Clearing the dynamic flag releases only that field; the attribute one stays locked.
     g_PropRoDynamic = false
     prop.setCurrentSection(Swag.U32.Max)
-    Swag.assert(!dynamicItem.editBox.flags.has(.ReadOnly))
+    Swag.assert(not dynamicItem.editBox.flags.has(.ReadOnly))
     Swag.assert(prop.canChangeItem(dynamicItem))
     Swag.assert(lockedItem.editBox.flags.has(.ReadOnly))
-    Swag.assert(!prop.canChangeItem(lockedItem))
+    Swag.assert(not prop.canChangeItem(lockedItem))
 }
 
 // Reordering array elements (static + dynamic) and removing a dynamic element by the correct
@@ -1267,8 +1267,8 @@ impl Gui.IPropertyNotify for ValData
     var st = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
     Swag.assert(st.updatedFields.has(.Disabled) and st.disabled)
     prop.menuItem = elems[1]
-    st            = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
-    Swag.assert(st.updatedFields.has(.Disabled) and !st.disabled)
+    st = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
+    Swag.assert(st.updatedFields.has(.Disabled) and not st.disabled)
 
     // execute(): Move Up on element 1 reorders the underlying array, dispatched through the real
     // CommandEvent path (sendCommandEvent updates state first, then sends the command).
@@ -1425,14 +1425,14 @@ impl IPropertyNotify for PropDefaultCustom
     Swag.assert(countItem.defaultData![as s32] == 42)
 
     // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
-    Swag.assert(!countItem.isModified)
+    Swag.assert(not countItem.isModified)
     Swag.assert(prop.canReset(countItem))
-    Swag.assert(!(countItem.revertButton != null) or !countItem.revertButton.isVisible())
+    Swag.assert(not (countItem.revertButton != null) or not countItem.revertButton.isVisible())
 
     // Static string field is read-only -> never resettable and never modified.
     let nameItem = findFieldItem(prop, #nameof(PropDefaultData.name))!
-    Swag.assert(!prop.canReset(nameItem))
-    Swag.assert(!nameItem.isModified)
+    Swag.assert(not prop.canReset(nameItem))
+    Swag.assert(not nameItem.isModified)
 
     // Bool list rows span the whole row (the side description wraps over the control
     // width). List mode has NO revert button: a modified row is marked by the painted
@@ -1442,7 +1442,7 @@ impl IPropertyNotify for PropDefaultCustom
     data.enabled = false
     prop.updateStates()
     Swag.assert(enabledItem.isModified)
-    Swag.assert(!(enabledItem.revertButton != null))
+    Swag.assert(not (enabledItem.revertButton != null))
     let contentWidth = cast(f32) prop.editorWidth - prop.leftMargin - prop.rightMargin
     Swag.assert(enabledItem.checkBox.parent!.position.width > contentWidth)
 
@@ -1451,12 +1451,12 @@ impl IPropertyNotify for PropDefaultCustom
     prop.validateNative(countItem)
     Swag.assert(data.count == 99)
     Swag.assert(countItem.isModified)
-    Swag.assert(!(countItem.revertButton != null))
+    Swag.assert(not (countItem.revertButton != null))
 
     // Reset (the context-menu action path) restores the declared default.
     prop.resetItemDefault(countItem)
     Swag.assert(data.count == 42)
-    Swag.assert(!countItem.isModified)
+    Swag.assert(not countItem.isModified)
 }
 
 // The "Reset to default" context-menu command goes through the shared action system: update()
@@ -1482,10 +1482,10 @@ impl IPropertyNotify for PropDefaultCustom
     prop.updateStates()
     Swag.assert(countItem.isModified)
     st = prop.sendComputeCommandStateEvent(ActionProperties.ResetDefault)
-    Swag.assert(st.updatedFields.has(.Disabled) and !st.disabled)
+    Swag.assert(st.updatedFields.has(.Disabled) and not st.disabled)
 
     prop.sendCommandEvent(ActionProperties.ResetDefault)
-    Swag.assert(data.count == 42 and !countItem.isModified)
+    Swag.assert(data.count == 42 and not countItem.isModified)
 }
 
 // The test and the reset are both customizable through IPropertyNotify: isItemAtDefault forces the
@@ -1515,7 +1515,7 @@ impl IPropertyNotify for PropDefaultCustom
     // Flipping the override back reports "at default".
     g_PropDefForceModified = false
     prop.updateStates()
-    Swag.assert(!valItem.isModified)
+    Swag.assert(not valItem.isModified)
 }
 
 // Grid mode: the revert column is reserved on the right of every resettable row (docked, present
@@ -1544,7 +1544,7 @@ impl IPropertyNotify for PropDefaultCustom
     // Change the value: the arrow becomes active WITHOUT resizing the editor.
     data.count = 5
     prop.updateStates()
-    Swag.assert(countItem.isModified and !btn.isDisabled())
+    Swag.assert(countItem.isModified and not btn.isDisabled())
     Swag.assert(countItem.editBox.position.width == editWidthClean)
 
     // Reset hides the arrow again; the editor width is still unchanged.
@@ -1556,13 +1556,13 @@ impl IPropertyNotify for PropDefaultCustom
     host.app.mouseEnterWnd = btn
     host.app.setMouseCaptureRaw(btn)
     prop.resetItemDefault(countItem)
-    Swag.assert(!countItem.isModified and btn.isDisabled())
+    Swag.assert(not countItem.isModified and btn.isDisabled())
     Swag.assert(countItem.editBox.position.width == editWidthClean)
-    Swag.assert(!btn.icon.isValid())
-    Swag.assert(!btn.isHot)
-    Swag.assert(!btn.isIn)
-    Swag.assert(!btn.isPressed)
-    Swag.assert(!btn.isPressing)
+    Swag.assert(not btn.icon.isValid())
+    Swag.assert(not btn.isHot)
+    Swag.assert(not btn.isIn)
+    Swag.assert(not btn.isPressed)
+    Swag.assert(not btn.isPressing)
     Swag.assert(btn.aniBk.themeCrc == Swag.U32.Max)
     Swag.assert(host.app.mouseEnterWnd == null)
     Swag.assert(host.app.mouseCaptureWnd == null)
@@ -1588,7 +1588,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     data.count = 5
     prop.updateStates()
-    Swag.assert(countItem.isModified and !btn.isDisabled())
+    Swag.assert(countItem.isModified and not btn.isDisabled())
     Swag.assert(btn.position.height == PropCondensedControlHeight)
     Swag.assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.clientRect().vertCenter(), 0.01))
 }
@@ -1615,7 +1615,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     prop.resetItemDefault(countItem)
     Swag.assert(t0.count == 42 and t1.count == 42)
-    Swag.assert(!countItem.isModified)
+    Swag.assert(not countItem.isModified)
 }
 
 // Undo/redo of a scalar field edit: each commit records one step; undo/redo walk the timeline;
@@ -1631,17 +1631,17 @@ impl IPropertyNotify for PropDefaultCustom
     prop.addStruct(data)
 
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
-    Swag.assert(!prop.canUndo() and !prop.canRedo())
+    Swag.assert(not prop.canUndo() and not prop.canRedo())
 
     // Writing the same value back records nothing.
     it.data![as s32] = 42
     prop.commitItemChange(it)
-    Swag.assert(!prop.canUndo())
+    Swag.assert(not prop.canUndo())
 
     // Two real edits.
     it.data![as s32] = 100
     prop.commitItemChange(it)
-    Swag.assert(data.count == 100 and prop.canUndo() and !prop.canRedo())
+    Swag.assert(data.count == 100 and prop.canUndo() and not prop.canRedo())
 
     it.data![as s32] = 7
     prop.commitItemChange(it)
@@ -1650,19 +1650,19 @@ impl IPropertyNotify for PropDefaultCustom
     prop.undo()
     Swag.assert(data.count == 100 and prop.canUndo() and prop.canRedo())
     prop.undo()
-    Swag.assert(data.count == 42 and !prop.canUndo())
+    Swag.assert(data.count == 42 and not prop.canUndo())
 
     prop.redo()
     Swag.assert(data.count == 100)
     prop.redo()
-    Swag.assert(data.count == 7 and !prop.canRedo())
+    Swag.assert(data.count == 7 and not prop.canRedo())
 
     // New edit after undo truncates the redo tail.
     prop.undo()     // -> 100
     prop.undo()     // -> 42
     it.data![as s32] = 55
     prop.commitItemChange(it)
-    Swag.assert(data.count == 55 and !prop.canRedo())
+    Swag.assert(data.count == 55 and not prop.canRedo())
     prop.undo()
     Swag.assert(data.count == 42)
 }
@@ -1848,7 +1848,7 @@ struct PropHeadlessPanelStringData
     let fixed       = findFieldItem(prop, #nameof(PropHeadlessPanelStringData.fixed))!
     let dynamicCtrl = cast(*EditCtrl) dynamic.line.children[1]
     let fixedCtrl   = cast(*EditCtrl) fixed.line.children[1]
-    Swag.assert(!dynamic.label.isVisible() and !fixed.label.isVisible())
+    Swag.assert(not dynamic.label.isVisible() and not fixed.label.isVisible())
     Swag.assert(dynamicCtrl.label.text() == "Dynamic text" and fixedCtrl.label.text() == "Fixed text")
     Swag.assert(dynamicCtrl.label.position.width == fixedCtrl.label.position.width)
     Swag.assert(dynamicCtrl.edit.position.x == fixedCtrl.edit.position.x)
@@ -2109,7 +2109,7 @@ struct PropAlignData
                 w = it.comboBox
             elif it.editBox != null do
                 w = it.editBox
-            if !w do
+            if not w do
                 continue
 
             let wnd = w!
@@ -2199,7 +2199,7 @@ struct PropAlignData
     for item in prop.items
     {
         let it = item!
-        if !(it.label != null) do
+        if not (it.label != null) do
             continue
         if it.label.text() == "Nombres" do
             sawCategory = true
@@ -2229,14 +2229,14 @@ struct PropAlignData
     let numbers = findFieldItem(prop, "Numbers")!
     let count   = findFieldItem(prop, #nameof(PropHeadlessGroupedData.count))!
     prop.collapseAll()
-    Swag.assert(!numbers.flags.has(.Expanded) and !count.line.isVisible())
+    Swag.assert(not numbers.flags.has(.Expanded) and not count.line.isVisible())
 
     prop.setFilter("Count")
     Swag.assert(numbers.line.isVisible() and count.line.isVisible())
-    Swag.assert(!numbers.flags.has(.Expanded))
+    Swag.assert(not numbers.flags.has(.Expanded))
 
     prop.setFilter("")
-    Swag.assert(!numbers.flags.has(.Expanded) and !count.line.isVisible())
+    Swag.assert(not numbers.flags.has(.Expanded) and not count.line.isVisible())
 }
 
 // The modified-only view composes with default tracking and updates immediately when an edit is
@@ -2258,22 +2258,22 @@ struct PropAlignData
 
     data.enabled = false
     prop.updateStates()
-    Swag.assert(enabled.isModified and !count.isModified)
+    Swag.assert(enabled.isModified and not count.isModified)
 
     prop.collapseAll()
     prop.expandModified()
-    Swag.assert(!numbers.flags.has(.Expanded) and flags.flags.has(.Expanded))
-    Swag.assert(!count.line.isVisible() and enabled.line.isVisible())
+    Swag.assert(not numbers.flags.has(.Expanded) and flags.flags.has(.Expanded))
+    Swag.assert(not count.line.isVisible() and enabled.line.isVisible())
 
     prop.expandAll()
     Swag.assert(count.line.isVisible() and enabled.line.isVisible())
 
     prop.setModifiedOnly(true)
     Swag.assert(prop.modifiedOnly)
-    Swag.assert(!count.line.isVisible() and enabled.line.isVisible())
+    Swag.assert(not count.line.isVisible() and enabled.line.isVisible())
 
     prop.resetItemDefault(enabled)
-    Swag.assert(!enabled.isModified and !enabled.line.isVisible())
+    Swag.assert(not enabled.isModified and not enabled.line.isVisible())
     prop.setModifiedOnly(false)
     Swag.assert(count.line.isVisible() and enabled.line.isVisible())
 }

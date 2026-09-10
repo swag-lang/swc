@@ -21,7 +21,7 @@ func __memoryCopyForward(target: [*] u8, source: const [*] u8, size: u64)
         targetVectors[1] = source1
         targetVectors[2] = source2
         targetVectors[3] = source3
-        offset           += 4 * MemoryVectorSize
+        offset += 4 * MemoryVectorSize
     }
 
     while size - offset >= MemoryVectorSize
@@ -84,7 +84,7 @@ func __memoryCopyBackward(target: [*] u8, source: const [*] u8, size: u64)
 
 func memset(dst: [*] void?, value: u8, size: u64)
 {
-    if !size do
+    if not size do
         return
 
     let target = cast([*] u8) dst!
@@ -99,7 +99,7 @@ func memset(dst: [*] void?, value: u8, size: u64)
         targetVectors[1] = vector
         targetVectors[2] = vector
         targetVectors[3] = vector
-        offset           += 4 * MemoryVectorSize
+        offset += 4 * MemoryVectorSize
     }
 
     while size - offset >= MemoryVectorSize
@@ -129,7 +129,7 @@ func memcpy(dst: [*] void?, src: const [*] void?, size: u64)
 
 func memmove(dst: [*] void?, src: const [*] void?, size: u64)
 {
-    if !size or dst == src do
+    if not size or dst == src do
         return
 
     let target        = cast([*] u8) dst!
@@ -144,7 +144,7 @@ func memmove(dst: [*] void?, src: const [*] void?, size: u64)
 
 func memcmp(left, right: const [*] void?, size: u64)->s32
 {
-    if !size do
+    if not size do
         return 0
 
     let leftBytes  = cast(const [*] u8) left!

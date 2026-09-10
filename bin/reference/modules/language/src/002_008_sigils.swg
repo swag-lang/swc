@@ -294,6 +294,6 @@ these forms distinct roles.
     switch value
     {
     case string as text: Swag.assert(text == "text")
-    default:             Swag.assert(false)
+    default: Swag.assert(false)
     }
 }

@@ -85,13 +85,13 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
     let itf:   ICodec = &codec
 
     Swag.assert(itf.canEncode(.Pcm16))
-    Swag.assert(!itf.canEncode(.Pcm8))
+    Swag.assert(not itf.canEncode(.Pcm8))
     Swag.assert(itf.canDecode(.Pcm8))
     Swag.assert(itf.canDecode(.Pcm16))
     Swag.assert(itf.canDecode(.Pcm24))
     Swag.assert(itf.canDecode(.Pcm32))
     Swag.assert(itf.canDecode(.Float32))
-    Swag.assert(!itf.canDecode(.Unknown))
+    Swag.assert(not itf.canDecode(.Unknown))
 }
 
 #test

@@ -10,7 +10,7 @@ using Swag
     Swag.assert(set.add(4))
     Swag.assert(set.add(1))
     Swag.assert(set.add(3))
-    Swag.assert(!set.add(3))
+    Swag.assert(not set.add(3))
     Swag.assert(set.add(2))
 
     var code = 0
@@ -27,8 +27,8 @@ using Swag
     Swag.assert(set.upperBound(2) == 2)
     let middle = set.range(2, 4)
     Swag.assert(middle.count == 2 and middle[0] == 2 and middle[1] == 3)
-    Swag.assert(set.remove(2) and !set.remove(2))
-    Swag.assert(!set.contains(2) and set.count == 3)
+    Swag.assert(set.remove(2) and not set.remove(2))
+    Swag.assert(not set.contains(2) and set.count == 3)
 }
 
 #test

@@ -28,8 +28,8 @@ struct CurveKey
         y:             f32                               // Ordinate of the key, free to leave the unit interval.
         inTangent:     f32                               // Slope of the segment arriving at the key.
         outTangent:    f32                               // Slope of the segment leaving the key.
-        inWeight:      f32                = 1 / 3.0      // Length of the arriving Bézier handle, as a fraction of the segment width.
-        outWeight:     f32                = 1 / 3.0      // Length of the leaving Bézier handle, as a fraction of the segment width.
+        inWeight:      f32 = 1 / 3.0                     // Length of the arriving Bézier handle, as a fraction of the segment width.
+        outWeight:     f32 = 1 / 3.0                     // Length of the leaving Bézier handle, as a fraction of the segment width.
         interpolation: CurveInterpolation = .Hermite     // Interpolation of the segment leaving this key.
     }
 }
@@ -102,7 +102,7 @@ private impl Curve
     // Anticipation of the classic back curves. It makes `EaseOutBack` peak about ten percent past
     // its end value, which reads as weight rather than as a mistake; the symmetric form widens it
     // so both halves keep that proportion.
-    const BackOvershoot          = 1.70158'f32
+    const BackOvershoot = 1.70158'f32
     const BackOvershootSymmetric = BackOvershoot * 1.525
 
     // Builds one key, tangents included.
@@ -477,7 +477,7 @@ impl Curve
     mtd const evaluateNormalized(x: f32)->f32
     {
         let count = .keys.count
-        if !count do
+        if not count do
             return 0'f32
 
         let first = .keys[0]

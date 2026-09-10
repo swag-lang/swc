@@ -79,7 +79,7 @@ func undoZipPredictor(data: [..] u8)
         if i & 1
         {
             reordered[i] = data[odd]
-            odd          += 1
+            odd += 1
         }
         else
         {
@@ -208,10 +208,10 @@ impl Part
             {
                 if size != 16 do
                     fail InvalidFormatError{"OpenEXR data window has an invalid size"}
-                xMin          = cast #bit(s32) readU32(payload.buffer)
-                yMin          = cast #bit(s32) readU32(payload.buffer + 4)
-                xMax          = cast #bit(s32) readU32(payload.buffer + 8)
-                yMax          = cast #bit(s32) readU32(payload.buffer + 12)
+                xMin = cast #bit(s32) readU32(payload.buffer)
+                yMin = cast #bit(s32) readU32(payload.buffer + 4)
+                xMax = cast #bit(s32) readU32(payload.buffer + 8)
+                yMax = cast #bit(s32) readU32(payload.buffer + 12)
                 hasDataWindow = true
             }
             elif name.toString() == "chunkCount" and type.toString() == "int"
@@ -231,9 +231,9 @@ impl Part
         if offset[] >= buffer.count do
             fail InvalidFormatError{"OpenEXR header is not terminated"}
         offset[] += 1
-        if !result.channels.count or !hasDataWindow or result.compression == 255 do
+        if not result.channels.count or not hasDataWindow or result.compression == 255 do
             fail InvalidFormatError{"OpenEXR required attributes are missing"}
-        if multipart and (!hasChunkCount or !result.info.name.count or partType.toString() != "scanlineimage") do
+        if multipart and (not hasChunkCount or not result.info.name.count or partType.toString() != "scanlineimage") do
             fail UnsupportedFormatError{"OpenEXR parts require a name, chunk count, and scanline image type"}
         if result.compression != 0 and result.compression != 2 and result.compression != 3 do
             fail UnsupportedFormatError{"OpenEXR compression is not NONE, ZIPS, or ZIP"}
@@ -258,9 +258,9 @@ impl Part
             result.rowBytes += cast(u64) width * (channel.pixelType == 1 ? 2 : 4)
         }
 
-        if !(hasY or (hasR and hasG and hasB)) do
+        if not (hasY or (hasR and hasG and hasB)) do
             fail UnsupportedFormatError{"OpenEXR image has neither Y nor RGB color channels"}
-        let grayscale           = hasY and !(hasR and hasG and hasB)
+        let grayscale = hasY and not (hasR and hasG and hasB)
         let format: PixelFormat = hasFloat ? (grayscale ? (hasAlpha ? .GrayAlphaF32 : .GrayF32) : (hasAlpha ? .RGBAF32 : .RGBF32)) : (grayscale ? (hasAlpha ? .GrayAlphaF16 : .GrayF16) : (hasAlpha ? .RGBAF16 : .RGBF16))
         result.info.kind        = multipart ? .Page : .Still
         result.info.width       = cast(s32) width
@@ -281,7 +281,7 @@ impl Part
     {
         var result: retval
         result.init(.info.width, .info.height, .info.pixelFormat)
-        if !options.decodePixels do
+        if not options.decodePixels do
             return result
         result.allocPixels()
         result.fill(Argb.Black)
@@ -363,11 +363,11 @@ impl IImageSetDecoder for Decoder
             var part = Part.parse(buffer, &offset, .multipart, options)
             result.frames.add(part.info)
             .parts.add(#move part)
-            if !.multipart do
+            if not .multipart do
                 break
             if offset >= buffer.count do
                 fail InvalidFormatError{"OpenEXR part headers are not terminated"}
-            if !buffer[offset]
+            if not buffer[offset]
             {
                 offset += 1
                 break
@@ -379,7 +379,7 @@ impl IImageSetDecoder for Decoder
             if part.chunkCount > (buffer.count - offset) / 8 do
                 fail InvalidFormatError{"OpenEXR chunk offset table is truncated"}
             part.tableOffset = offset
-            offset           += part.chunkCount * 8
+            offset += part.chunkCount * 8
         }
 
         return result

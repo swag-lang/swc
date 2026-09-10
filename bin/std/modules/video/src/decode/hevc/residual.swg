@@ -40,7 +40,7 @@ impl Decoder
         Memory.set(&.coefficientRows, 0, #sizeof(.coefficientRows))
         .coefficientColumns = 0
 
-        if pps.transformSkipEnabled and !bypass and log2TrafoSize <= pps.log2MaxTransformSkipSize
+        if pps.transformSkipEnabled and not bypass and log2TrafoSize <= pps.log2MaxTransformSkipSize
         {
             let context = component == 0 ? CtxTransformSkipFlagLuma : CtxTransformSkipFlagChroma
             result.transformSkip = .cabac.decision(context) != 0
@@ -102,15 +102,15 @@ impl Decoder
             let yS    = cast(u32) ScanY[subBlockLog2, scanIdx, index]
 
             var inferDcSignificant = false
-            var coded              = true
+            var coded = true
             if index < lastSubBlock and index > 0
             {
-                coded              = .cabac.decision(CtxCodedSubBlockFlag + .codedSubBlockContext(&codedSubBlock[0], xS, yS, subBlockLog2, component)) != 0
+                coded = .cabac.decision(CtxCodedSubBlockFlag + .codedSubBlockContext(&codedSubBlock[0], xS, yS, subBlockLog2, component)) != 0
                 inferDcSignificant = true
             }
 
             codedSubBlock[yS * 8 + xS] = coded
-            if !coded
+            if not coded
             {
                 subBlock -= 1
                 continue
@@ -119,7 +119,7 @@ impl Decoder
             // Significance of every coefficient of the sub-block, walked backwards.
             var significant: [16] bool
             var significantCount = 0'u32
-            var first            = index == lastSubBlock ? cast(s32) lastScanPos - 1 : 15's32
+            var first = index == lastSubBlock ? cast(s32) lastScanPos - 1 : 15's32
             if index == lastSubBlock
             {
                 significant[lastScanPos] = true
@@ -131,8 +131,8 @@ impl Decoder
             var pattern = 0'u32
             var base    = 0'u32
             let mapped  = log2TrafoSize == 2
-            let dcBlock = !xS and !yS and !mapped
-            if !mapped do
+            let dcBlock = not xS and not yS and not mapped
+            if not mapped do
                 base = .significanceContextBase(&codedSubBlock[0], xS, yS, scanIdx, log2TrafoSize, subBlockLog2, component, &pattern)
             let dcContext = component == 0 ? 0'u32 : 27'u32
 
@@ -140,11 +140,11 @@ impl Decoder
             while position >= 0
             {
                 let scanPos = cast(u32) position
-                if position > 0 or !inferDcSignificant
+                if position > 0 or not inferDcSignificant
                 {
                     let inner   = (cast(u32) ScanY[2, scanIdx, scanPos] << 2) + cast(u32) ScanX[2, scanIdx, scanPos]
                     var context = mapped ? cast(u32) SigCtxMap4x4[inner] + dcContext : cast(u32) SigCtxPattern[pattern, inner] + base
-                    if !inner and dcBlock do
+                    if not inner and dcBlock do
                         context = dcContext
                     if .cabac.decision(CtxSigCoeffFlag + context) != 0
                     {
@@ -164,7 +164,7 @@ impl Decoder
                 position -= 1
             }
 
-            if !significantCount
+            if not significantCount
             {
                 subBlock -= 1
                 continue
@@ -187,7 +187,7 @@ impl Decoder
                     lastCtx = previousGreater1Flag ? 0 : lastCtx + 1
             }
 
-            if !lastCtx do
+            if not lastCtx do
                 ctxSet += 1
             var greater1Ctx  = 1'u32
             var greater1Flag = false
@@ -232,7 +232,7 @@ impl Decoder
 
             // The sign of the first coefficient may be carried by the parity of the sub-block
             // rather than by a bin of its own, clause 7.4.9.11.
-            let signHidden = !bypass and lastSigScanPos - firstSigScanPos > 3
+            let signHidden = not bypass and lastSigScanPos - firstSigScanPos > 3
 
             if lastGreater1ScanPos >= 0
             {
@@ -248,7 +248,7 @@ impl Decoder
             while position >= 0
             {
                 let scanPos = cast(u32) position
-                if significant[scanPos] and (!pps.signDataHiding or !signHidden or position != firstSigScanPos)
+                if significant[scanPos] and (not pps.signDataHiding or not signHidden or position != firstSigScanPos)
                 {
                     signs     = (signs << 1) | .cabac.bypass()
                     signCount += 1
@@ -269,7 +269,7 @@ impl Decoder
             while position >= 0
             {
                 let scanPos = cast(u32) position
-                if !significant[scanPos]
+                if not significant[scanPos]
                 {
                     position -= 1
                     continue
@@ -285,7 +285,7 @@ impl Decoder
                 var level     = baseLevel
                 if baseLevel == threshold
                 {
-                    if !firstRemaining
+                    if not firstRemaining
                     {
                         riceParam = Math.min(riceParam + (lastAbsLevel > 3 * (1'u32 << riceParam) ? 1'u32 : 0'u32), 4)
                     }
@@ -314,12 +314,12 @@ impl Decoder
                 let yC    = (yS << 2) + cast(u32) ScanY[2, scanIdx, scanPos]
                 let value = cast(s32) Math.min(level, 32767'u32)
                 .coefficients[yC * size + xC] = cast(s16) (sign ? -value : value)
-                .coefficientRows[xC]          |= 1'u32 << yC
-                .coefficientColumns           |= 1'u32 << xC
-                maxX                          = Math.max(maxX, xC)
-                maxY                          = Math.max(maxY, yC)
-                numSigCoeff                   += 1
-                position                      -= 1
+                .coefficientRows[xC] |= 1'u32 << yC
+                .coefficientColumns  |= 1'u32 << xC
+                maxX                 = Math.max(maxX, xC)
+                maxY                 = Math.max(maxY, yC)
+                numSigCoeff          += 1
+                position             -= 1
             }
 
             subBlock -= 1
@@ -337,7 +337,7 @@ impl Decoder
     private mtd readLastPrefix(component, log2TrafoSize, contextBase: u32)->u32
     {
         var offset, shift: u32
-        if !component
+        if not component
         {
             offset = 3 * (log2TrafoSize - 2) + ((log2TrafoSize - 1) >> 2)
             shift  = (log2TrafoSize + 1) >> 2
@@ -417,7 +417,7 @@ impl Decoder
         pattern[] = previous
 
         var base = component == 0 ? 0'u32 : 27'u32
-        if !component
+        if not component
         {
             if xS + yS > 0 do
                 base += 3

@@ -65,15 +65,15 @@ func day5B()
         {
         case 1:
             op[op[ip + 3]] = param0 + param1
-            ip             += 4
+            ip += 4
 
         case 2:
             op[op[ip + 3]] = param0 * param1
-            ip             += 4
+            ip += 4
 
         case 3:
             op[op[ip + 1]] = INPUT
-            ip             += 2
+            ip += 2
 
         case 4:
             output = param0
@@ -83,15 +83,15 @@ func day5B()
             ip = param0 ? param1 : ip + 3
 
         case 6:
-            ip = !param0 ? param1 : ip + 3
+            ip = not param0 ? param1 : ip + 3
 
         case 7:
             op[op[ip + 3]] = param0 < param1 ? 1 : 0
-            ip             += 4
+            ip += 4
 
         case 8:
             op[op[ip + 3]] = param0 == param1 ? 1 : 0
-            ip             += 4
+            ip += 4
         }
     }
 

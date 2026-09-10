@@ -5,7 +5,7 @@
 func failJitFlag()->s32
 {
     Swag.assert(Swag.jit())
-    Swag.assert(!Swag.jit())     // swc-expected-error {{sema_err_assert_failed}}
+    Swag.assert(not Swag.jit())     // swc-expected-error {{sema_err_assert_failed}}
     return 1
 }
 

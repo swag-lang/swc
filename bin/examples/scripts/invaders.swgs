@@ -21,8 +21,8 @@ var g_DataPath: String
 var g_Painter:  *Painter?
 
 var g_MoveAlienDirection: f32 = 1
-var g_NumAlienLasers          = 0
-var g_Score                   = 0
+var g_NumAlienLasers = 0
+var g_Score = 0
 
 var g_ExtraImg:       Texture
 var g_GreenImg:       Texture
@@ -88,7 +88,7 @@ func updatePlayer()
 
 func updateLasers()
 {
-    for &laser in g_Lasers where !laser.dead
+    for &laser in g_Lasers where not laser.dead
     {
         // Laser shot by the player
         if laser.player
@@ -116,18 +116,18 @@ func udpateAliens()
     var moveY: f32
 
     // Change of direction
-    for alien in g_Aliens where !alien.dead
+    for alien in g_Aliens where not alien.dead
     {
         if (g_MoveAlienDirection > 0 and alien.x + alien.type.width > g_Rect.width - 40) or
            (g_MoveAlienDirection < 0 and alien.x < 40)
         {
             g_MoveAlienDirection *= -1
-            moveY                = SPEED_ALIEN_Y
+            moveY = SPEED_ALIEN_Y
         }
     }
 
     // Move all aliens
-    for &alien in g_Aliens where !alien.dead
+    for &alien in g_Aliens where not alien.dead
     {
         alien.x += SPEED_ALIEN_X * g_Dt * g_MoveAlienDirection
         alien.y += moveY
@@ -143,17 +143,17 @@ func udpateAliens()
 
 func checkCollisions()
 {
-    for &laser in g_Lasers where !laser.dead
+    for &laser in g_Lasers where not laser.dead
     {
         // Against obstacles
-        for &obs in g_Obstacles where !obs.dead
+        for &obs in g_Obstacles where not obs.dead
         {
             let r = Math.Rectangle{obs.x, obs.y, OBS_SIZE, OBS_SIZE}
             if r.contains(Math.Point{laser.x, laser.y})
             {
                 laser.dead = true
                 obs.dead   = true
-                if !laser.player do
+                if not laser.player do
                     g_NumAlienLasers -= 1
                 catch Audio.Voice.play(&g_SoundExplosion)
                 continue
@@ -163,7 +163,7 @@ func checkCollisions()
         // Player laser against aliens
         if laser.player
         {
-            for &alien in g_Aliens where !alien.dead
+            for &alien in g_Aliens where not alien.dead
             {
                 let r = Math.Rectangle{alien.x, alien.y, alien.type.width, alien.type.height}
                 if r.contains(Math.Point{laser.x, laser.y})
@@ -275,18 +275,18 @@ func display()
     let painter = g_Painter!
 
     // Aliens
-    for alien in g_Aliens where !alien.dead do
+    for alien in g_Aliens where not alien.dead do
         painter.drawTexture(alien.x, alien.y, alien.type[])
 
     // Player
     painter.drawTexture(g_Player.x, g_Player.y, g_PlayerImg)
 
     // Obstacles
-    for obs in g_Obstacles where !obs.dead do
+    for obs in g_Obstacles where not obs.dead do
         painter.fillRect(obs.x, obs.y, OBS_SIZE, OBS_SIZE, Argb.White)
 
     // Lasers
-    for laser in g_Lasers where !laser.dead
+    for laser in g_Lasers where not laser.dead
     {
         let color = laser.player ? Argb.Green : Argb.Red
         painter.drawLine(laser.x, laser.y, laser.x, laser.y + LASER_LENGTH, color, 2)

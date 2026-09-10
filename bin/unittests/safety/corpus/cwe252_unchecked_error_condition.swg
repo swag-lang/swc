@@ -24,7 +24,7 @@ struct LoadError
 
 func load(present: bool)->s32 fail
 {
-    if !present do
+    if not present do
         fail LoadError{base: Swag.BaseError{"nothing to load"}, code: 7}
     return 1
 }

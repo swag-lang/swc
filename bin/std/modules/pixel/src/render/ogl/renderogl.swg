@@ -241,7 +241,7 @@ private impl RenderOgl
     // standard draws and clears also count as touches in the extension contract.
     mtd prepareFramebufferTouch()
     {
-        if !.advancedBarrierActive do
+        if not .advancedBarrierActive do
             return
 
         switch .advancedBlending
@@ -857,11 +857,11 @@ impl RenderOgl
     internal mtd bindRenderTargetImpl(rt: *RenderTarget, vp: *Math.Rectangle? = null)
     {
         Swag.assert(rt != null)
-        if !rt.colorBuffer.isValid() do
+        if not rt.colorBuffer.isValid() do
             return
         if .curRT do
             .stackRT.add(.curRT)
-        .curRT            = rt
+        .curRT = rt
         .curRT.paintAlpha = false
 
         glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) .curRT.handle)
@@ -953,7 +953,7 @@ impl RenderOgl
     // Delete a render target
     internal mtd deleteRenderTargetImpl(rt: *RenderTarget)
     {
-        if rt.handle == InvalidRenderTargetHandle or !rt.colorBuffer.isValid() do
+        if rt.handle == InvalidRenderTargetHandle or not rt.colorBuffer.isValid() do
             return
 
         var cb: GLuint = cast() rt.colorBuffer.handle
@@ -1017,10 +1017,10 @@ impl RenderOgl
     // Replaces the planar picture held by a texture, converting nothing.
     internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)
     {
-        if !texture.isValid() or (texture.pixelFormat != .Yuv420 and texture.pixelFormat != .Yuv444) do
+        if not texture.isValid() or (texture.pixelFormat != .Yuv420 and texture.pixelFormat != .Yuv444) do
             return
         let planes = .chromaPlanes.tryFind(texture.handle)
-        if !planes do
+        if not planes do
             return
 
         .uploadPlane(cast(GLuint) texture.handle, view.luma, view.lumaStride, texture.width, texture.height)
@@ -1039,7 +1039,7 @@ impl RenderOgl
     // Register an image for rendering
     internal mtd addImageImpl(image: const *Image)->Texture
     {
-        if !image.isValid()
+        if not image.isValid()
         {
             return {}
         }
@@ -1168,7 +1168,7 @@ impl RenderOgl
     // Unregister a texture created with 'addImage'
     internal mtd removeTextureImpl(texture: *Texture)
     {
-        if !texture.isValid() do
+        if not texture.isValid() do
             return
 
         let planes = .chromaPlanes.tryFind(texture.handle)
@@ -1341,7 +1341,7 @@ impl RenderOgl
 
         case .DrawTriangles:
             let params = &cmd.drawTriangles
-            if !.overlapMode
+            if not .overlapMode
             {
                 // An advanced equation weighs the backdrop by the destination alpha. When the
                 // painter is not writing alpha, that plane is scratch — the window's is never
@@ -1349,7 +1349,7 @@ impl RenderOgl
                 // a black shadow multiplied onto a page came out as an opaque black block. The
                 // stored colour is the backdrop, opaque by definition, so its alpha is set to one
                 // where this batch can reach before the equation reads it.
-                if .blendingMode.usesAdvancedBlending() and !.colorMask.a and !.alphaReplay do
+                if .blendingMode.usesAdvancedBlending() and not .colorMask.a and not .alphaReplay do
                     .makeBackdropOpaque(params.bbMin, params.bbMax)
 
                 if .advancedBarrierActive
@@ -1461,7 +1461,7 @@ impl RenderOgl
             let fmt = bpp == 1 ? GL_RED : (bpp == 4 ? GL_RGBA : GL_RGB)
             for &atlas in cache.atlases
             {
-                if !atlas.dirty do
+                if not atlas.dirty do
                     continue
                 atlas.dirty = false
 
@@ -1521,10 +1521,10 @@ impl RenderOgl
             // A planar picture is three textures and its own program. Selecting it here, from the
             // format the texture carries, is what lets it travel through the ordinary texture
             // path: nothing above this line knows the difference.
-            let planarPlanes = params.type == .Texture and !params.texture.pixelFormat.isPacked() ? .chromaPlanes.tryFind(params.texture.handle) : null
+            let planarPlanes = params.type == .Texture and not params.texture.pixelFormat.isPacked() ? .chromaPlanes.tryFind(params.texture.handle) : null
             if planarPlanes
             {
-                if !.planarPrevShader do
+                if not .planarPrevShader do
                     .planarPrevShader = .curShader
                 glActiveTexture(GL_TEXTURE3)
                 glBindTexture(GL_TEXTURE_2D, planarPlanes!.value.chromaB)
@@ -1910,7 +1910,7 @@ impl RenderOgl
     // Uploads the region state to the active program, which holds it per program.
     private mtd uploadClipMaskState()
     {
-        if !.curShader do
+        if not .curShader do
             return
         let curShader = .curShader!
 
@@ -1964,7 +1964,7 @@ impl RenderOgl
     // Release the given render target
     internal mtd releaseRenderTargetImpl(tgt: *RenderTarget?)
     {
-        if !tgt do
+        if not tgt do
             return
         .stackReleasedRT.add(tgt)
     }

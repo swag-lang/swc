@@ -220,7 +220,7 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
     Swag.assert(updated.billingEmail == "ops@acme.test")
     Swag.assert(updated.tier == .Growth)
     Swag.assert(base.storageGb == 250)
-    Swag.assert(!base.ssoEnabled)
+    Swag.assert(not base.ssoEnabled)
     Swag.assert(base.billingEmail == "billing@acme.test")
 }
 
@@ -288,5 +288,5 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
     Swag.assert(updated.dailyDigest)
     Swag.assert(updated.weeklyReport)
     Swag.assert(updated.escalationMinutes == 15)
-    Swag.assert(!updated.smsEnabled)
+    Swag.assert(not updated.smsEnabled)
 }

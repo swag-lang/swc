@@ -230,13 +230,13 @@ public impl Poly1305
         var carry = 0'u64
         for i in 5
         {
-            d[i]            += carry
-            carry           = d[i] >> 26
+            d[i]  += carry
+            carry = d[i] >> 26
             .accumulator[i] = d[i] & LimbMask
         }
 
         .accumulator[0] += carry * 5
-        carry           = .accumulator[0] >> 26
+        carry = .accumulator[0] >> 26
         .accumulator[0] &= LimbMask
         .accumulator[1] += carry
 

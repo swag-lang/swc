@@ -182,10 +182,10 @@ func tracePath(g: *Grid)
         {
             let nr = cast(s32) cr + DR[dir]
             let nc = cast(s32) cc + DC[dir]
-            if !g.inBounds(nr, nc) do continue
+            if not g.inBounds(nr, nc) do continue
             let ur = cast(u32) nr
             let uc = cast(u32) nc
-            if !g.isOpen(ur, uc) do continue
+            if not g.isOpen(ur, uc) do continue
             if g.distAt(ur, uc) != Unvisited do continue
             d += 1
             g.setDist(ur, uc, d)
@@ -194,7 +194,7 @@ func tracePath(g: *Grid)
             moved = true
             break
         }
-        if !moved do break
+        if not moved do break
     }
 
     g.pathLen = d
@@ -301,8 +301,8 @@ func solve(text: string, minSaving: u32)->SolveResult
 {
     var g = parseGrid(SampleInput)
     defer gridFree(&g)
-    Swag.assert(!g.isOpen(0, 0))     // wall
-    Swag.assert(g.isOpen(1, 1))      // open
+    Swag.assert(not g.isOpen(0, 0))     // wall
+    Swag.assert(g.isOpen(1, 1))         // open
     Swag.assert(g.cell(0, 0) == '#')
     Swag.assert(g.cell(3, 1) == 'S')
 }
@@ -387,8 +387,8 @@ func solve(text: string, minSaving: u32)->SolveResult
     defer gridFree(&g)
     Swag.assert(g.inBounds(0, 0))
     var neg: s32 = -1
-    Swag.assert(!g.inBounds(neg, 0))
-    Swag.assert(!g.inBounds(0, neg))
+    Swag.assert(not g.inBounds(neg, 0))
+    Swag.assert(not g.inBounds(0, neg))
     Swag.assert(g.inBounds(cast(s32) g.h - 1, cast(s32) g.w - 1))
-    Swag.assert(!g.inBounds(cast(s32) g.h, 0))
+    Swag.assert(not g.inBounds(cast(s32) g.h, 0))
 }

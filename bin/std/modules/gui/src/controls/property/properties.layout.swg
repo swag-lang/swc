@@ -50,7 +50,7 @@ impl Properties
     // Sets the requested label-column width in grid layouts.
     mtd setNameColumnWidth(width: s32)
     {
-        if !.isGridLike() do
+        if not .isGridLike() do
             return
 
         .gridColumnSizeReq = width
@@ -63,7 +63,7 @@ impl Properties
     // Re-clamps the grid label column to the current control width.
     internal mtd refreshGridColumnLayout()
     {
-        if !.isGridLike() do
+        if not .isGridLike() do
             return
 
         .gridColumnSize = .clampColumnSize(.gridColumnSizeReq)
@@ -80,7 +80,7 @@ internal impl Properties
     // the texts stretch — the look of an editor's settings page.
     mtd listUsefulWidth()->f32
     {
-        Swag.assert(!.isGridLike())
+        Swag.assert(not .isGridLike())
         var width = cast(f32) .editorWidth
         if .edView.position.width > 0 do
             width = .edView.position.width
@@ -89,7 +89,7 @@ internal impl Properties
 
     mtd listContentWidthFromUseful(width: f32)->f32
     {
-        Swag.assert(!.isGridLike())
+        Swag.assert(not .isGridLike())
         return Math.max(width - .leftMargin - .rightMargin, 1.0)
     }
 
@@ -100,7 +100,7 @@ internal impl Properties
 
     mtd setListContentPadding(wnd: *Wnd?)
     {
-        if .isGridLike() or !wnd do
+        if .isGridLike() or not wnd do
             return
         wnd.padding.x = .leftMargin
         wnd.padding.z = .rightMargin
@@ -116,7 +116,7 @@ internal impl Properties
 
     mtd positionListActionButton(item: *PropertiesItem, btn: *IconButton?)
     {
-        if .isGridLike() or !btn or !(item.label != null) do
+        if .isGridLike() or not btn or not (item.label != null) do
             return
 
         btn.position.x = Math.round(.listActionRight() - btn.position.width)
@@ -158,7 +158,7 @@ internal impl Properties
 
     mtd itemIndent(item: *PropertiesItem)->f32
     {
-        if !.isGridLike() do
+        if not .isGridLike() do
             return 0
 
         // Headers (section/category/subgroup/decorator) indent by their own level: a top-level
@@ -183,7 +183,7 @@ internal impl Properties
     // group of pure-leaf fields tucks in closer under its parent instead of leaving an empty slot.
     mtd itemLabelGutter(item: *PropertiesItem)->f32
     {
-        if !.isGridLike() or .isGridHeader(item) do
+        if not .isGridLike() or .isGridHeader(item) do
             return cast(f32) .leftMargin
         return .levelReservesMark(.itemDepth(item)) ? cast(f32) .leftMargin : cast(f32) .leftMargin * 0.5
     }
@@ -194,12 +194,12 @@ internal impl Properties
     mtd computeLevelMarks()
     {
         .gridLevelHasMark.clear()
-        if !.isGridLike() do
+        if not .isGridLike() do
             return
         for itemIt in .items
         {
             let item = itemIt!
-            if .isGridHeader(item) or !item.numChilds do
+            if .isGridHeader(item) or not item.numChilds do
                 continue
             let depth = .itemDepth(item!)
             while .gridLevelHasMark.count <= depth do
@@ -210,7 +210,7 @@ internal impl Properties
 
     mtd syncColumnLabel(item: *PropertiesItem)
     {
-        if !(item.label != null) do
+        if not (item.label != null) do
             return
 
         // Note rows own their layout (a full-width info bar with custom paddings), so leave them be.

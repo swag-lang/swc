@@ -125,7 +125,7 @@ impl IForm for FormShape
             .gizmo.rotateEnabled = .canRotate()
             .gizmo.rotateValue   = .rotate
             let col = .subKind == .PixSel ? Argb.Yellow : Argb.White
-            .gizmo.paint(painter, !flags.has(.Selected), col)
+            .gizmo.paint(painter, not flags.has(.Selected), col)
         }
     }
 
@@ -160,7 +160,7 @@ impl IForm for FormShape
         if .subKind == .PixSel
         {
             {bSize, dash} = .applyPixSelStyle(painter, cxt)
-            bk.a          = 5
+            bk.a = 5
         }
 
         let z   = cxt.z

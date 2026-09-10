@@ -97,7 +97,7 @@ private func parseAc3Bsi(reader: *BitReader)->Ac3Bsi fail
     if result.fscod >= 3 or frameSizeCode >= 38 do
         fail InvalidFormatError{"AC-3 packet has a reserved sample-rate or frame-size code"}
     let bitRate = BitRates[frameSizeCode >> 1]
-    if !result.fscod do
+    if not result.fscod do
         result.frameSize = 4 * bitRate
     elif result.fscod == 1 do
         result.frameSize = 2 * ((320 * bitRate) / 147 + (frameSizeCode & 1))
@@ -123,7 +123,7 @@ private func parseAc3Bsi(reader: *BitReader)->Ac3Bsi fail
         discard reader.read(8)
     if reader.read(1) do
         reader.skip(7)
-    if !result.acmod
+    if not result.acmod
     {
         reader.skip(5)
         if reader.read(1) do
@@ -189,7 +189,7 @@ private func decodeExponents(reader: *BitReader, strategy, groups, absolute, ski
             {
                 discard repeated
                 destination[written] = previous
-                written              += 1
+                written += 1
             }
         }
     }
@@ -262,7 +262,7 @@ private impl Ac3Codec
             }
         }
 
-        if !block.coupling do
+        if not block.coupling do
             return
         for channel in bsi.nfchans where block.channelCoupled[channel]
         {
@@ -281,7 +281,7 @@ private impl Ac3Codec
             var coordBand = 0'u32
             for subband in block.couplingSubbands
             {
-                if !block.couplingBandJoin[subband]
+                if not block.couplingBandJoin[subband]
                 {
                     let exponent = block.couplingCoordExp[channel, coordBand]
                     let mantissa = block.couplingCoordMant[channel, coordBand]
@@ -313,7 +313,7 @@ private impl Ac3Codec
         if bsi.lfeon do
             block.lfeExpStrategy = reader.read(1)
 
-        for channel in bsi.nfchans where block.channelExpStrategy[channel] != 0 and !block.channelCoupled[channel] do
+        for channel in bsi.nfchans where block.channelExpStrategy[channel] != 0 and not block.channelCoupled[channel] do
             block.channelBandwidth[channel] = reader.read(6)
 
         if block.coupling
@@ -357,7 +357,7 @@ private impl Ac3Codec
             block.dbPerBitCode  = reader.read(2)
             block.floorCode     = reader.read(3)
         }
-        elif !blockIndex do
+        elif not blockIndex do
             fail InvalidFormatError{"first AC-3 block omits bit-allocation parameters"}
 
         if reader.read(1)
@@ -381,7 +381,7 @@ private impl Ac3Codec
                 block.lfeFastGain = reader.read(3)
             }
         }
-        elif !blockIndex do
+        elif not blockIndex do
             fail InvalidFormatError{"first AC-3 block omits signal-to-noise offsets"}
 
         if block.coupling and reader.read(1)
@@ -401,7 +401,7 @@ private impl Ac3Codec
             for channel in bsi.nfchans where block.channelDelta[channel].mode == 1 do
                 try readDelta(reader, &block.channelDelta[channel])
         }
-        elif !blockIndex
+        elif not blockIndex
         {
             block.couplingDelta.mode = 2
             for channel in bsi.nfchans do
@@ -437,11 +437,11 @@ private impl Ac3Codec
             for bin in cast(u64) block.channelEnd[channel]
             {
                 let exponent = block.channelExponents[channel, bin]
-                let value    = block.channelBap[channel, bin] or !block.dither[channel] ? mantissas.get(block.channelBap[channel, bin]) : .ditherValue()
+                let value    = block.channelBap[channel, bin] or not block.dither[channel] ? mantissas.get(block.channelBap[channel, bin]) : .ditherValue()
                 .coefficients[channel, bin] = value * Math.pow(2.0, -cast(f64) exponent)
             }
 
-            if block.coupling and block.channelCoupled[channel] and !couplingRead
+            if block.coupling and block.channelCoupled[channel] and not couplingRead
             {
                 for bin in block.couplingSubbands * 12 do
                     couplingMantissas[bin] = mantissas.get(block.couplingBap[bin]) * Math.pow(2.0, -cast(f64) block.couplingExponents[bin])
@@ -467,7 +467,7 @@ private impl Ac3Codec
                     {
                         let source = subband * 12 + bin
                         var value  = couplingMantissas[source]
-                        if !value and block.dither[channel] do
+                        if not value and block.dither[channel] do
                             value = .ditherValue() * Math.pow(2.0, -cast(f64) block.couplingExponents[source])
                         let destination = (subband + block.couplingBegin) * 12 + bin + 37
                         .coefficients[channel, destination] = value * block.couplingCoord[channel, subband] * 8.0
@@ -503,7 +503,7 @@ private impl Ac3Codec
             block.dither[channel] = reader.read(1) != 0
         if reader.read(1) do
             reader.skip(8)
-        if !bsi.acmod and reader.read(1) do
+        if not bsi.acmod and reader.read(1) do
             reader.skip(8)
 
         try .readCoupling(reader, bsi)
@@ -572,7 +572,7 @@ impl IPacketCodec for Ac3Codec
     mtd impl initialize(config: const [..] u8, sampleRateHz, channels: u32) fail
     {
         discard config
-        if !sampleRateHz or !channels or channels > MaxChannels do
+        if not sampleRateHz or not channels or channels > MaxChannels do
             fail BadParameterError{"AC-3 audio needs one to six channels and a non-zero sample rate"}
         .sampleRate = sampleRateHz
         .channels   = channels
@@ -624,7 +624,7 @@ internal func ac3FrameInfo(packet: const [..] u8)->FrameInfo fail
     result.frames     = 1536
 
     let bitRate = cast(u64) BitRates[cast(u64) sizeCode >> 1]
-    if !fscod do
+    if not fscod do
         result.frameBytes = 4 * bitRate
     elif fscod == 1 do
         result.frameBytes = 2 * ((320 * bitRate) / 147 + cast(u64) (sizeCode & 1))

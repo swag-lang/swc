@@ -154,7 +154,7 @@ impl Frame
             // A new branch starts at every offset until something matches, which is what makes
             // the reported match the leftmost one. It joins the list last, because every branch
             // already running started earlier and so outranks it.
-            if !matched and (!anchored or pos == start)
+            if not matched and (not anchored or pos == start)
             {
                 for var s = 0'u64; s < .slotCount; s += 1 do
                     .work[s] = NoSlot
@@ -194,7 +194,7 @@ impl Frame
                     break
                 }
 
-                if !readable or !.accepts(pc, byte) do
+                if not readable or not .accepts(pc, byte) do
                     continue
 
                 for var s = 0'u64; s < .slotCount; s += 1 do
@@ -255,7 +255,7 @@ impl Frame
                 // The lower-priority branch goes in first, so the other one comes out first.
                 .stack[.stackTop].what     = .insts[what].alt
                 .stack[.stackTop + 1].what = .insts[what].next
-                .stackTop                  += 2
+                .stackTop += 2
 
             case .Save:
                 let slot = .insts[what].slot
@@ -268,13 +268,13 @@ impl Frame
                 }
 
                 .stack[.stackTop].what = .insts[what].next
-                .stackTop              += 1
+                .stackTop += 1
 
             case .Assert:
                 if assertionHolds(.insts[what].assertion, .hay, pos)
                 {
                     .stack[.stackTop].what = .insts[what].next
-                    .stackTop              += 1
+                    .stackTop += 1
                 }
 
             default:

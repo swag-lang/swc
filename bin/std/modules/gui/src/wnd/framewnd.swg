@@ -91,7 +91,7 @@ impl IWnd for FrameWnd
         if showFocus
         {
             let focus = .focusedWindow()
-            if !focus or !.isAncestorOf(focus) do
+            if not focus or not .isAncestorOf(focus) do
                 showFocus = false
         }
 
@@ -111,7 +111,7 @@ impl IWnd for FrameWnd
     {
         if .frameForm == .Transparent do
             return
-        if !(.frameFlags & .Borders) do
+        if not (.frameFlags & .Borders) do
             return
 
         let bc      = evt.paintContext
@@ -135,7 +135,7 @@ impl IWnd for FrameWnd
         if showFocus
         {
             let focus = .focusedWindow()
-            if !focus or !.isAncestorOf(focus) do
+            if not focus or not .isAncestorOf(focus) do
                 showFocus = false
         }
 
@@ -203,7 +203,7 @@ impl IWnd for FrameWnd
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !(.view != null) do
+        if not (.view != null) do
             return
         var rect = .paddedClientRect()
         rect.applyPadding(.view.margin)
@@ -220,7 +220,7 @@ impl FrameWnd
         // The view is born at its final laid-out rectangle — the frame minus its
         // caption and border paddings — because a hook may lay out its content from
         // the client rectangle it sees in the create event.
-        .view                 = Wnd.create'T(me, "", .paddedClientRect(), hook: hook)
+        .view = Wnd.create'T(me, "", .paddedClientRect(), hook: hook)
         .view.backgroundStyle = .Transparent
         .sendResizeEvent()
         return cast(*T) .view!

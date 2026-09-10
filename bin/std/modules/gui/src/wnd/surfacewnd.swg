@@ -45,7 +45,7 @@ impl IWnd for SurfaceWnd
                 .sizingBorder = .hitTestBorders(evt.surfacePos)
             else do
                 .sizingBorder = .None
-            if .sizingBorder == .None and !.hitTestCaption(evt.surfacePos) do
+            if .sizingBorder == .None and not .hitTestCaption(evt.surfacePos) do
                 break
             .captureMouse()
             .movingSurface = true
@@ -68,7 +68,7 @@ impl IWnd for SurfaceWnd
             if .app().mouseEnterWnd != me do
                 break
 
-            if !.movingSurface and srfn.flags.has(.Resizable)
+            if not .movingSurface and srfn.flags.has(.Resizable)
             {
                 let newSizingBorder = .hitTestBorders(evt.surfacePos)
                 if newSizingBorder != .sizingBorder do
@@ -83,7 +83,7 @@ impl IWnd for SurfaceWnd
             case Right | Top, Left | Bottom: srfn.app.setFrameCursor(Cursor.from(.ResizeNortheastSouthwest))
             }
 
-            if !.movingSurface do
+            if not .movingSurface do
                 break
 
             // The event delta is logical; the surface rectangle it moves is in
@@ -234,7 +234,7 @@ impl IWnd for SurfaceWnd
                 posClip.setRight(.maximizeBtn!.position.x)
             elif srfn.flags.has(.CloseButton) do
                 posClip.setRight(.closeBtn!.position.x)
-            for button in .captionButtons where !button.isPendingDestroy do
+            for button in .captionButtons where not button.isPendingDestroy do
                 posClip.setRight(button.position.x)
             bc.painter.pushClippingRect(posClip)
             defer bc.painter.popClippingRect()
@@ -246,7 +246,7 @@ impl IWnd for SurfaceWnd
             // its own. A caption is chrome: the mark is set at the row size of the chart and
             // never grows with the bar it sits in.
             var icon = .icon
-            if !icon.isValid() do
+            if not icon.isValid() do
                 icon = srfn.app.appIconAt(theme.metrics.wnd_CaptionIconSize, colors.wnd_CaptionBk)
             if icon.isValid()
             {
@@ -287,7 +287,7 @@ impl SurfaceWnd
     private mtd captionBrush(band: Math.Rectangle)->Brush
     {
         let colors = .themeColors()
-        if !.surface!.app.isActivated do
+        if not .surface!.app.isActivated do
             return Brush.createSolid(colors.wnd_CaptionBkNotActived)
 
         let ground = colors.wnd_CaptionBk
@@ -336,7 +336,7 @@ impl SurfaceWnd
             return true
         if .minimizeBtn and .minimizeBtn.position.contains(pos.x, pos.y) do
             return true
-        for button in .captionButtons where !button.isPendingDestroy
+        for button in .captionButtons where not button.isPendingDestroy
         {
             if button.position.contains(pos.x, pos.y) do
                 return true
@@ -358,7 +358,7 @@ impl SurfaceWnd
     internal mtd unregisterCaptionButton(button: *IconButton)
     {
         .captionButtons.remove(button)
-        if !.isPendingDestroy do
+        if not .isPendingDestroy do
             .sendResizeEvent()
         .invalidate()
     }
@@ -366,7 +366,7 @@ impl SurfaceWnd
     mtd hitTestCaption(surfacePos: Math.Point)->bool
     {
         let srfn = .surface!
-        if !srfn.flags.has(.LargeCaption | .SmallCaption) do
+        if not srfn.flags.has(.LargeCaption | .SmallCaption) do
             return false
         if .hitTestCaptionButton(surfacePos) do
             return false
@@ -467,12 +467,12 @@ impl SurfaceWnd
     {
         let srfn  = .surface!
         let theme = srfn.app.theme
-        if !theme.initialized do
+        if not theme.initialized do
             return
 
         if srfn.flags.has(.MinimizeButton)
         {
-            if !.minimizeBtn
+            if not .minimizeBtn
             {
                 with me.minimizeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndMinimize, theme.metrics.wnd_CaptionButtonGlyph), {0, 0, 0, 0})
                 {
@@ -490,7 +490,7 @@ impl SurfaceWnd
 
         if srfn.flags.has(.MaximizeButton)
         {
-            if !.maximizeBtn
+            if not .maximizeBtn
             {
                 with me.maximizeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndMaximize, theme.metrics.wnd_CaptionButtonGlyph), {0, 0, 0, 0})
                 {
@@ -508,7 +508,7 @@ impl SurfaceWnd
 
         if srfn.flags.has(.CloseButton)
         {
-            if !.closeBtn
+            if not .closeBtn
             {
                 with me.closeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndClose, theme.metrics.wnd_CaptionButtonGlyph), {0, 0, 0, 0})
                 {
@@ -535,7 +535,7 @@ impl SurfaceWnd
 
         if userView
         {
-            .view             = userView
+            .view = userView
             .view.hookOnEvent = hook
             .view.setParent(me)
         }

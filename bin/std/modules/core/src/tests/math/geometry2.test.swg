@@ -20,9 +20,9 @@ func expectNear(actual, expected: f32)
     Swag.assert(Math.Geometry.ellipseContainsPoint(Math.Vector2{15, 20}, center, 5, 10))
     Swag.assert(Math.Geometry.ellipseContainsPoint(Math.Vector2{10, 30}, center, 5, 10))
     Swag.assert(Math.Geometry.ellipseContainsPoint(Math.Vector2{13, 24}, center, 5, 10))
-    Swag.assert(!Math.Geometry.ellipseContainsPoint(Math.Vector2{15.1, 20}, center, 5, 10))
-    Swag.assert(!Math.Geometry.ellipseContainsPoint(Math.Vector2{10, 30.1}, center, 5, 10))
-    Swag.assert(!Math.Geometry.ellipseContainsPoint(Math.Vector2{14, 28}, center, 5, 10))
+    Swag.assert(not Math.Geometry.ellipseContainsPoint(Math.Vector2{15.1, 20}, center, 5, 10))
+    Swag.assert(not Math.Geometry.ellipseContainsPoint(Math.Vector2{10, 30.1}, center, 5, 10))
+    Swag.assert(not Math.Geometry.ellipseContainsPoint(Math.Vector2{14, 28}, center, 5, 10))
 }
 
 #test
@@ -36,11 +36,11 @@ func expectNear(actual, expected: f32)
     Swag.assert(Math.Geometry.triangleContainsPoint(Math.Vector2{5, 0}, a, b, c))
     Swag.assert(Math.Geometry.triangleContainsPoint(Math.Vector2{0, 5}, a, b, c))
     Swag.assert(Math.Geometry.triangleContainsPoint(Math.Vector2{5, 5}, a, b, c))
-    Swag.assert(!Math.Geometry.triangleContainsPoint(Math.Vector2{6, 5}, a, b, c))
-    Swag.assert(!Math.Geometry.triangleContainsPoint(Math.Vector2{-1, 1}, a, b, c))
+    Swag.assert(not Math.Geometry.triangleContainsPoint(Math.Vector2{6, 5}, a, b, c))
+    Swag.assert(not Math.Geometry.triangleContainsPoint(Math.Vector2{-1, 1}, a, b, c))
 
     Swag.assert(Math.Geometry.triangleContainsPoint(Math.Vector2{1, 1}, a, c, b))
-    Swag.assert(!Math.Geometry.triangleContainsPoint(Math.Vector2{6, 5}, a, c, b))
+    Swag.assert(not Math.Geometry.triangleContainsPoint(Math.Vector2{6, 5}, a, c, b))
 }
 
 #test
@@ -90,10 +90,10 @@ func expectNear(actual, expected: f32)
     expectVec2(lineCross.point, Math.Vector2{5, 5})
 
     let lineParallel = Math.Geometry.intersectLines(Math.Vector2{0, 0}, Math.Vector2{10, 0}, Math.Vector2{0, 1}, Math.Vector2{10, 1})
-    Swag.assert(!lineParallel.intersects)
+    Swag.assert(not lineParallel.intersects)
 
     let lineCollinear = Math.Geometry.intersectLines(Math.Vector2{0, 0}, Math.Vector2{10, 0}, Math.Vector2{2, 0}, Math.Vector2{8, 0})
-    Swag.assert(!lineCollinear.intersects)
+    Swag.assert(not lineCollinear.intersects)
 }
 
 #test
@@ -107,15 +107,15 @@ func expectNear(actual, expected: f32)
     expectVec2(touch.point, Math.Vector2{10, 0})
 
     let outside = Math.Geometry.intersectSegments(Math.Vector2{0, 0}, Math.Vector2{1, 1}, Math.Vector2{2, 0}, Math.Vector2{2, 4})
-    Swag.assert(!outside.intersects)
+    Swag.assert(not outside.intersects)
 
     let sideBySide = Math.Geometry.intersectSegments(Math.Vector2{0, 0}, Math.Vector2{10, 0}, Math.Vector2{0, 1}, Math.Vector2{10, 1})
-    Swag.assert(!sideBySide.intersects)
+    Swag.assert(not sideBySide.intersects)
 
     let collinearOverlap = Math.Geometry.intersectSegments(Math.Vector2{0, 0}, Math.Vector2{10, 0}, Math.Vector2{4, 0}, Math.Vector2{12, 0})
     Swag.assert(collinearOverlap.intersects)
     expectVec2(collinearOverlap.point, Math.Vector2{4, 0})
 
     let collinearDisjoint = Math.Geometry.intersectSegments(Math.Vector2{0, 0}, Math.Vector2{10, 0}, Math.Vector2{12, 0}, Math.Vector2{15, 0})
-    Swag.assert(!collinearDisjoint.intersects)
+    Swag.assert(not collinearDisjoint.intersects)
 }

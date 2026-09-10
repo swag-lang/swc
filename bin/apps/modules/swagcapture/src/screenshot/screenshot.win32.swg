@@ -49,7 +49,7 @@ internal
 
     func enumProc(hWnd: HWND, _lParam: LPARAM)->BOOL
     {
-        if !IsWindowVisible(hWnd) do
+        if not IsWindowVisible(hWnd) do
             return TRUE
 
         if hWnd == g_Ignore do
@@ -89,7 +89,7 @@ internal
 func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
 {
     var result: retval
-    if !hWnd do
+    if not hWnd do
         return result
 
     var window = hWnd
@@ -109,18 +109,18 @@ func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
 
     var processId: u32
     discard CaptureNative.GetWindowThreadProcessId(window, &processId)
-    if !processId do
+    if not processId do
         return result
 
     let process = CaptureNative.OpenProcess(CaptureNative.ProcessQueryLimitedInformation, 0, processId)
-    if !process do
+    if not process do
         return result
     defer CloseHandle(process)
 
     var path: Array'u16
     path.resize(32768)
     var pathLength = cast(u32) path.count
-    if !CaptureNative.QueryFullProcessImageNameW(process, 0, (path.toSlice()).buffer, &pathLength) do
+    if not CaptureNative.QueryFullProcessImageNameW(process, 0, (path.toSlice()).buffer, &pathLength) do
         return result
 
     result.executable  = Utf8.fromUtf16(Swag.makeSlice((path.toSlice()).buffer, cast(u64) pathLength))
@@ -139,7 +139,7 @@ func findWndAtPos(srf: *Surface, x, y: f32)->HWND
     g_Hit    = null
     g_Ignore = srf.win32Handle()
     EnumWindows(cast() &enumProc, 0)
-    if !g_Hit do
+    if not g_Hit do
         return null
 
     for
@@ -149,12 +149,12 @@ func findWndAtPos(srf: *Surface, x, y: f32)->HWND
         pt1.y = g_HitTest.y
         ScreenToClient(g_Hit, &pt1)
         let child = ChildWindowFromPointEx(g_Hit, pt1, CWP_SKIPINVISIBLE | CWP_SKIPDISABLED | CWP_SKIPTRANSPARENT)
-        if !child or child == g_Hit do
+        if not child or child == g_Hit do
             break
         g_Hit = child
     }
 
-    if !g_Hit do
+    if not g_Hit do
         return null
 
     return g_Hit
@@ -164,7 +164,7 @@ func getCaptureWindowAtPos(srf: *Surface, x, y: f32)->{ rect: Math.Rectangle, in
 {
     var result: retval
     let hit = findWndAtPos(srf, x, y)
-    if !hit do
+    if not hit do
         return result
 
     var r: RECT
@@ -179,11 +179,11 @@ func getCaptureWindowAtPos(srf: *Surface, x, y: f32)->{ rect: Math.Rectangle, in
 func getCaptureWindowForRect(srf: *Surface, captureRect: Math.Rectangle)->CaptureWindowInfo
 {
     let hit = findWndAtPos(srf, captureRect.horzCenter(), captureRect.vertCenter())
-    if !hit do
+    if not hit do
         return {}
 
     var window = CaptureNative.GetAncestor(hit, CaptureNative.AncestorRoot)
-    if !window do
+    if not window do
         window = hit
 
     var r: RECT
@@ -198,7 +198,7 @@ func getBackgroundWindow()->{ rect: Math.Rectangle, info: CaptureWindowInfo }
 {
     var result: retval
     let hit = GetForegroundWindow()
-    if !hit do
+    if not hit do
         return result
 
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
@@ -217,9 +217,9 @@ func drawCursorInto(memDC: HDC, offsetX, offsetY: s32)
 {
     var ci: CURSORINFO
     ci.cbSize = #sizeof(CURSORINFO)
-    if !GetCursorInfo(&ci) do
+    if not GetCursorInfo(&ci) do
         return
-    if !(ci.flags & CURSOR_SHOWING) or !ci.hCursor do
+    if not (ci.flags & CURSOR_SHOWING) or not ci.hCursor do
         return
 
     let hIcon = cast(HICON) ci.hCursor
@@ -283,7 +283,7 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail
 
     var bits: *u8?
     let memBMP = CreateDIBSection(hDesktopDC, &bi, cast() DIB_RGB_COLORS, &bits, null, 0)
-    if !memBMP or !bits do
+    if not memBMP or not bits do
         fail Swag.SystemError{"CreateDIBSection failed"}
     defer catch DeleteObject(cast() memBMP)
 

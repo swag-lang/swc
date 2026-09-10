@@ -4,13 +4,13 @@ internal impl Properties
     // consulted on the host notify and along the item's parent chain, at build time.
     mtd isEnumValueShown(item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
     {
-        if .hostNtfy and !.hostNtfy.isEnumValueVisible(me, item, enumValue) do
+        if .hostNtfy and not .hostNtfy.isEnumValueVisible(me, item, enumValue) do
             return false
 
         var scan = cast(*PropertiesItem?) item
         while scan
         {
-            if scan.ntfyItf and !scan.ntfyItf.isEnumValueVisible(me, item, enumValue) do
+            if scan.ntfyItf and not scan.ntfyItf.isEnumValueVisible(me, item, enumValue) do
                 return false
             scan = scan.parent
         }
@@ -164,7 +164,7 @@ internal impl Properties
         for v in typeEnum.values
         {
             // The host can hide values (isEnumValueVisible): skip their row entirely
-            if !.isEnumValueShown(item, v) do
+            if not .isEnumValueShown(item, v) do
                 continue
 
             with let line = Wnd.create'Wnd(me.edView)
@@ -211,7 +211,7 @@ internal impl Properties
             itemB.filter += dispDescStr
 
             var labelWidth = me.position.width - item.line.position.height
-            if !me.isGridLike() do
+            if not me.isGridLike() do
                 labelWidth = me.listContentWidth() - me.gridLineHeight
             with let label1 = Label.create(line, "", {item.line.position.height, 0, Math.max(labelWidth, 1.0)})
             {
@@ -266,7 +266,7 @@ internal impl Properties
         else
         {
             var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
-            if !me.isGridLike() do
+            if not me.isGridLike() do
                 editWidth = me.listContentWidthFromUseful(editWidth)
             with let ed = ComboBox.create(item.line)
             {
@@ -288,7 +288,7 @@ internal impl Properties
         // value index in userData0 so refresh/validate stay index-agnostic.
         for v, idx in typeEnum.values
         {
-            if !.isEnumValueShown(item, v) do
+            if not .isEnumValueShown(item, v) do
                 continue
             let dn = Reflection.attributeValue(v, Properties.Name, "name")
             item.comboBox.addItem(dn == null ? resolveText(v.name orelse "") : attributeText(dn), userData0: cast(*void?) idx)

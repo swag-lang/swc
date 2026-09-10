@@ -13,7 +13,7 @@ impl Encoder
     mtd writeByte(b: u8)
     {
         .outBuf[.outCount] = b
-        .outCount          += 1
+        .outCount += 1
         if .outCount == OutBufSize do
             .flushStaged()
     }
@@ -37,7 +37,7 @@ impl Encoder
     // Hands the staged bytes to the output buffer. Call it once the stream is complete.
     mtd flushStaged()
     {
-        if !.outCount do
+        if not .outCount do
             return
 
         let stream = .stream!

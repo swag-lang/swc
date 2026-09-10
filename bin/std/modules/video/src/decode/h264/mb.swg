@@ -442,7 +442,7 @@ impl Slice
             }
         }
 
-        return &mb.extraJobs!.jobs[index - 1]
+        return &mb.extraJobs.jobs[index - 1]
     }
 
     // Derives the motion of a P-skip macroblock, section 8.4.1.1.
@@ -874,7 +874,7 @@ impl Slice
             }
 
             Memory.set(&mb.intraModes, cast(u8) IntraDc, #sizeof(mb.intraModes))
-            Memory.clear(mb.residual!, #sizeof(MbResidual))
+            Memory.clear(mb.residual, #sizeof(MbResidual))
 
             if dec.sps!.is444()
             {
@@ -887,7 +887,7 @@ impl Slice
                     mb.residual444 = &dec.parsedResiduals444[entry]
                 }
 
-                Memory.clear(mb.residual444!, #sizeof(MbResidual444))
+                Memory.clear(mb.residual444, #sizeof(MbResidual444))
             }
         }
     }

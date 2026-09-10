@@ -172,7 +172,7 @@ private impl FormLayoutCtrl
         var actionWidth = 0'f32
         if row.action
         {
-            let action = row.action!
+            let action = row.action
             actionWidth = action.measure({client.width, height}).preferred.x
             actionWidth = Math.max(actionWidth, action.minSize.x)
         }
@@ -211,7 +211,7 @@ private impl FormLayoutCtrl
         var actionWidth = 0'f32
         if row.action
         {
-            let action = row.action!
+            let action = row.action
             actionWidth = action.measure({availableWidth, height}).preferred.x
             actionWidth = Math.max(actionWidth, action.minSize.x)
         }
@@ -308,7 +308,7 @@ impl FormLayoutCtrl
             action: action}
         row.label.setTextAlignment(.Left, .Center)
         if .options.labelFont do
-            row.label.style.setFont(.options.labelFont!, .Regular)
+            row.label.style.setFont(.options.labelFont, .Regular)
         if help
         {
             row.help = Label.create(me, help, flags: .WordWrap | .SecondaryText | .AutoHeight)
@@ -414,7 +414,7 @@ impl FormLayoutCtrl
         Swag.assert(index < .rows.count, "no such form row")
         let row = &.rows[index]
         Swag.assert(row.help != null, "this form row carries no help text")
-        row.help!.setText(help)
+        row.help.setText(help)
         .invalidateLayout()
     }
 

@@ -122,7 +122,7 @@ func testSetupGlobalMain(main: *MainWnd)
     // standing there covers nothing; hidden, it leaves no gap, because the bar stacks only what
     // is visible.
     let bar     = f.main.libWnd.commandBar
-    let spinner = cast(*Wnd) f.main.libWnd.view.imgSpin!
+    let spinner = cast(*Wnd) f.main.libWnd.view.imgSpin
     Swag.assert(spinner.parent == cast(*Wnd) bar)
     Swag.assert(not spinner.isLocallyVisible())
 

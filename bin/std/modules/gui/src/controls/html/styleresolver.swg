@@ -576,6 +576,6 @@ impl HtmlStyleResolver
         let found = .pseudoIndex.tryFind(HtmlStyleResolver.pseudoKey(element, which))
         if not found do
             return null
-        return &.pseudos[found!.value].style
+        return &.pseudos[found.value].style
     }
 }

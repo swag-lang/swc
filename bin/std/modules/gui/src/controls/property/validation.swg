@@ -199,7 +199,7 @@ internal impl Properties
             var consume = 0'f32
             if visible
             {
-                .syncValidationTextOffset(lbl!)
+                .syncValidationTextOffset(lbl)
                 let topGap = lbl.margin.y
                 let botGap = lbl.margin.w
                 let cw     = item.line.clientRect().width
@@ -228,7 +228,7 @@ internal impl Properties
         let w = .listContentWidth()
         lbl.maxSize.x      = w
         lbl.position.width = w
-        .syncValidationTextOffset(lbl!)
+        .syncValidationTextOffset(lbl)
         lbl.updateAutomaticHeight()
         return true
     }

@@ -297,7 +297,7 @@ impl PropWnd
 
         for i in FormShapeKind.count
         {
-            let btn0 = IconButton.create(frame.view!, {}, {0, 0, PopupCellSize, PopupCellSize})
+            let btn0 = IconButton.create(frame.view, {}, {0, 0, PopupCellSize, PopupCellSize})
             btn0.userData = enumToUserData(i)
             btn0.setForm(.Rectangle)
             btn0.updateFlags(.Radio)
@@ -332,7 +332,7 @@ impl PropWnd
     {
         if .stylePopup
         {
-            .stylePopup!.cancel()
+            .stylePopup.cancel()
             return null
         }
 
@@ -576,7 +576,7 @@ impl PropWnd
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
-            var curSel = prop.getSelectedBaseForm()!
+            var curSel = prop.getSelectedBaseForm()
             var rect   = pos
             rect.x = rect.horzCenter() - StyleGlyphSize * 0.5
             rect.y = rect.vertCenter() - StyleGlyphSize * 0.5
@@ -589,7 +589,7 @@ impl PropWnd
 
         btn.sigPopupRequested += func|prop = me|(btn)
         {
-            var curSel  = prop.getSelectedBaseForm()!
+            var curSel  = prop.getSelectedBaseForm()
             var backCol = curSel.subKind == .PixSel ? g_Main!.pixSelFillCol : curSel.backColor
             var picker  = createColorPicker(btn, backCol)
             if curSel.subKind == .PixSel
@@ -810,7 +810,7 @@ impl PropWnd
         if curSel.subKind != .PixSel do
             return
 
-        let topLayout = .topLayout!
+        let topLayout = .topLayout
         discard PushButton.create(topLayout, "", id: ActionPixSel.Fill)
         discard PushButton.create(topLayout, "", id: ActionPixSel.SmartFill)
         discard PushButton.create(topLayout, "", id: ActionPixSel.Clear)
@@ -860,7 +860,7 @@ impl PropWnd
 
             // No NoFocus: the rows embed edit boxes, so they stay keyboard-navigable
             item.flags.add(.NoSeparator)
-            return StackLayoutCtrl.create(item.line!, .HorizontalFit, {0, 0, 0, 40})
+            return StackLayoutCtrl.create(item.line, .HorizontalFit, {0, 0, 0, 40})
         }
 
         // Each row names itself, so no category separator sits above them: a heading
@@ -944,7 +944,7 @@ impl PropWnd
                 let sliderBox = it.sliderBox
                 sliderBox.label.setText(appStrings().ui_Outline)
                 sliderBox.setSignedBounds(cast() MinTextBorderSize, cast() MaxTextBorderSize)
-                sliderBox.setValueWithoutGesture(.getSelectedBaseForm()!.borderSize)
+                sliderBox.setValueWithoutGesture(.getSelectedBaseForm().borderSize)
             }
         }
     }
@@ -1011,7 +1011,7 @@ impl PropWnd
     mtd selectionHasChanged()
     {
         if .stylePopup do
-            .stylePopup!.cancel()
+            .stylePopup.cancel()
 
         for it in .topLayout.children do
             it.destroy()
@@ -1020,7 +1020,7 @@ impl PropWnd
         // The cells start at the panel margin like every row under them, instead of floating
         // in the middle of the column: a group centred on its own is a third alignment on a
         // surface that already has one.
-        let stack0 = StackLayoutCtrl.create(.topLayout!, .HorizontalCenter, {0, 0, 0, StyleCellSize})
+        let stack0 = StackLayoutCtrl.create(.topLayout, .HorizontalCenter, {0, 0, 0, StyleCellSize})
         stack0.spacing = StyleCellGap
         .propBackColor(stack0)
         .propBorderColor(stack0)
@@ -1031,7 +1031,7 @@ impl PropWnd
         if stack0.children.count == 0 do
             stack0.destroyNow()
 
-        let stack1 = StackLayoutCtrl.create(.topLayout!, .HorizontalCenter, {0, 0, 0, StyleCellSize})
+        let stack1 = StackLayoutCtrl.create(.topLayout, .HorizontalCenter, {0, 0, 0, StyleCellSize})
         stack1.spacing = StyleCellGap
         .propStartCapStyle(stack1)
         .propDashStyle(stack1)

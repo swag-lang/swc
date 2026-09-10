@@ -117,8 +117,8 @@ internal func schedulerInstance()->*Scheduler
     if not created do
         Swag.panic("cannot allocate the runtime scheduler", #curlocation)
 
-    let winner = cast(*Scheduler) __hostProcessSingleton(SchedulerAnchorKey, created!)
-    if winner == created!
+    let winner = cast(*Scheduler) __hostProcessSingleton(SchedulerAnchorKey, created)
+    if winner == created
     {
         g_SchedulerOwned = true
     }
@@ -397,7 +397,7 @@ internal func runPendingWork()->bool
     if not node do
         return false
 
-    runWork(sched, node!, true)
+    runWork(sched, node, true)
     return true
 }
 
@@ -415,7 +415,7 @@ private func schedulerWorkerEntry(param: *void?)->u32
         let node = popWork(sched)
         if node
         {
-            runWork(sched, node!, true)
+            runWork(sched, node, true)
             continue
         }
 
@@ -487,7 +487,7 @@ internal func waitWork(node: *WorkNode)
             let claimed = popWork(sched, node)
             if claimed
             {
-                runWork(sched, claimed!, true)
+                runWork(sched, claimed, true)
                 return
             }
         }

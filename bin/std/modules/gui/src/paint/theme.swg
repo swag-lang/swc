@@ -397,7 +397,7 @@ impl Theme
         .res.icons.atlas = null
         if .ownedImages
         {
-            Memory.delete(.ownedImages!)
+            Memory.delete(.ownedImages)
             .ownedImages = null
             .images      = null
         }
@@ -429,7 +429,7 @@ impl Theme
 
         .ensureAtlasScale(renderer, dpiScale)
 
-        .res.icons.setup(renderer, &.images!.icons)
+        .res.icons.setup(renderer, &.images.icons)
 
         .setupDefaultFonts(resources)
     }
@@ -566,10 +566,10 @@ impl Theme
 
         switch #complete style
         {
-        case .Regular:    return .fonts.createFont(.res.cjkTypeFace!, size)
-        case .Bold:       return .fonts.createFont(.res.cjkTypeFace!, size, forceBold: true)
-        case .Italic:     return .fonts.createFont(.res.cjkTypeFace!, size, forceItalic: true)
-        case .BoldItalic: return .fonts.createFont(.res.cjkTypeFace!, size, forceBold: true, forceItalic: true)
+        case .Regular:    return .fonts.createFont(.res.cjkTypeFace, size)
+        case .Bold:       return .fonts.createFont(.res.cjkTypeFace, size, forceBold: true)
+        case .Italic:     return .fonts.createFont(.res.cjkTypeFace, size, forceItalic: true)
+        case .BoldItalic: return .fonts.createFont(.res.cjkTypeFace, size, forceBold: true, forceItalic: true)
         }
 
         unreachable

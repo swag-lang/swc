@@ -205,7 +205,7 @@ internal impl IWnd for FontDocumentView
         discard evt
         if .face
         {
-            .face!.destroy()
+            .face.destroy()
             .face = null
         }
     }

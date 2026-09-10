@@ -218,8 +218,8 @@ using Swag, Core
     var cache: HtmlImageCache
     cache.basePath = Path.directoryName(fileName.toString())!
     let entry = cache.fetch(Path.fileName(fileName.toString())!)
-    Swag.assert(entry != null and entry!.loaded)
-    Swag.assert(entry!.naturalSize == Math.Vector2{40, 20} and not entry!.image.isValid())
+    Swag.assert(entry != null and entry.loaded)
+    Swag.assert(entry.naturalSize == Math.Vector2{40, 20} and not entry.image.isValid())
     var host: Testing.HeadlessHost
     host.setup(80, 40)
     defer host.shutdown()

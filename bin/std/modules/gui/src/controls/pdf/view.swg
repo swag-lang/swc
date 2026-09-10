@@ -213,7 +213,7 @@ internal impl PdfView
     // Returns the viewport the document is scrolled inside, in logical units.
     mtd const viewportSize()->Math.Point
     {
-        let rect = .scroll.view!.clientRect()
+        let rect = .scroll.view.clientRect()
         return {Math.max(rect.width, 1), Math.max(rect.height, 1)}
     }
 
@@ -487,7 +487,7 @@ internal impl PdfView
         if expression
         {
             let sourceData = source.buffer
-            for value in expression!.grepAll(source)
+            for value in expression.grepAll(source)
             {
                 // A zero-width occurrence is meaningful to a parser, but there is no span on the
                 // page to select or outline.
@@ -609,7 +609,7 @@ internal impl PdfView
         let keepTo   = Math.min(range.last + 1, count - 1)
 
         // The page about to be evicted must not be the one the flattening worker is on.
-        if .preparing and .preparingPage and (.preparingPage!.index < keepFrom or .preparingPage!.index > keepTo) do
+        if .preparing and .preparingPage and (.preparingPage.index < keepFrom or .preparingPage.index > keepTo) do
             .stopPrepare()
 
         while true
@@ -663,10 +663,10 @@ internal impl PdfView
         if not entry do
             return
 
-        if not entry!.failure.isEmpty() and not .reportedPaintError
+        if not entry.failure.isEmpty() and not .reportedPaintError
         {
             .reportedPaintError = true
-            .sigRenderError.call(me, entry!.failure.toString())
+            .sigRenderError.call(me, entry.failure.toString())
         }
 
         // A search that revealed a hit on this page could not place it until the page arrived.
@@ -708,20 +708,20 @@ internal impl PdfView
         var preparer: Pixel.FillPreparer
         let scale = .preparingScale
 
-        for index in entry!.page.clipPaths.count
+        for index in entry.page.clipPaths.count
         {
             if Atomic.get(&.prepareCancel) != 0 do
                 return
             Sync.scopedLock(&.pageLock)
-            entry!.page.prepareClipPath(index, scale, &preparer)
+            entry.page.prepareClipPath(index, scale, &preparer)
         }
 
-        for index in entry!.page.items.count
+        for index in entry.page.items.count
         {
             if Atomic.get(&.prepareCancel) != 0 do
                 return
             Sync.scopedLock(&.pageLock)
-            entry!.page.prepareItem(index, scale, &preparer)
+            entry.page.prepareItem(index, scale, &preparer)
         }
 
         Atomic.exchange(&.prepareReady, 1)
@@ -738,8 +738,8 @@ internal impl PdfView
         {
             // A finer flattening is geometry the page did not hold, so what the cache evicts on
             // is taken again here.
-            .preparingPage!.preparedScale = .preparingScale
-            .preparingPage!.measure()
+            .preparingPage.preparedScale = .preparingScale
+            .preparingPage.measure()
         }
 
         .preparing     = false
@@ -773,7 +773,7 @@ internal impl PdfView
     {
         if .pollTimer
         {
-            .removeTimer(.pollTimer!)
+            .removeTimer(.pollTimer)
             .pollTimer = null
         }
     }
@@ -807,28 +807,28 @@ internal impl PdfView
             painter.drawRect(box, colors.border, 1)
 
             let entry = .cache.resident(index)
-            if not entry or not entry!.isDrawable() do
+            if not entry or not entry.isDrawable() do
                 continue
 
-            entry!.ensureTextures(.app().renderer)
+            entry.ensureTextures(.app().renderer)
 
             // The page's curves are flattened for the scale it is shown at. Raising that is the
             // whole page's work, so the frame asks for what the page holds and lets a worker
             // catch up; the timer publishes the result.
             var flatten = wantedFlatten
-            if entry!.preparedScale <= 0 do
-                entry!.preparedScale = wantedFlatten
-            elif entry!.preparedScale < wantedFlatten
+            if entry.preparedScale <= 0 do
+                entry.preparedScale = wantedFlatten
+            elif entry.preparedScale < wantedFlatten
             {
-                .requestPrepare(entry!, wantedFlatten)
-                flatten = entry!.preparedScale
+                .requestPrepare(entry, wantedFlatten)
+                flatten = entry.preparedScale
             }
 
             // The widget's base transform only translates, so composing the page scale under it
             // keeps item clips axis-aligned.
             let pageToSurface = Math.Transform2{scale, 0, 0, scale, base.tx + box.x, base.ty + box.y}
             .pageLock.lock()
-            catch Pdf.drawPageItems(painter, &entry!.page, pageToSurface, devicePerPoint, flatten, &entry!.fonts, "", entry!.textures.toSlice()) as pageError
+            catch Pdf.drawPageItems(painter, &entry.page, pageToSurface, devicePerPoint, flatten, &entry.fonts, "", entry.textures.toSlice()) as pageError
             .pageLock.unlock()
             painter.setTransform(base)
             if pageError != null and not .reportedPaintError
@@ -837,7 +837,7 @@ internal impl PdfView
                 .sigRenderError.call(me, Errors.message(pageError))
             }
 
-            .paintSelection(painter, index, entry!, box, scale)
+            .paintSelection(painter, index, entry, box, scale)
         }
     }
 
@@ -885,8 +885,8 @@ internal impl PdfView
         let entry = .cache.resident(index)
         if entry
         {
-            entry!.ensureTextIndex()
-            return entry!.text()
+            entry.ensureTextIndex()
+            return entry.text()
         }
 
         if .documentText.started and index < .documentText.readyCount() do
@@ -903,11 +903,11 @@ internal impl PdfView
 
         let hit   = .documentPointAt(local)
         let entry = .cache.resident(hit.pageIndex)
-        if not entry or not entry!.isDrawable() do
+        if not entry or not entry.isDrawable() do
             return result
 
-        entry!.ensureTextIndex()
-        let found = entry!.textIndex.positionAt(hit.point)
+        entry.ensureTextIndex()
+        let found = entry.textIndex.positionAt(hit.point)
         if found.offset == Swag.U64.Max do
             return result
 
@@ -927,12 +927,12 @@ internal impl PdfView
 
         let start = .selectionStart()
         let entry = .cache.resident(start.pageIndex)
-        if not entry or not entry!.isDrawable() do
+        if not entry or not entry.isDrawable() do
             return
 
-        let range = .selectionOnPage(start.pageIndex, entry!)
+        let range = .selectionOnPage(start.pageIndex, entry)
         var rects: Array'Math.Rectangle
-        entry!.textIndex.rangeRects(range.start, range.end, &rects)
+        entry.textIndex.rangeRects(range.start, range.end, &rects)
         if rects.isEmpty() do
             return
 
@@ -1580,15 +1580,15 @@ impl PdfView
             return false
 
         let entry = .cache.resident(match.pageIndex)
-        if not entry or not entry!.isDrawable() do
+        if not entry or not entry.isDrawable() do
             return false
 
-        entry!.ensureTextIndex()
-        if match.byteOffset + match.byteLength > entry!.textIndex.text.length do
+        entry.ensureTextIndex()
+        if match.byteOffset + match.byteLength > entry.textIndex.text.length do
             return false
 
         var rects: Array'Math.Rectangle
-        entry!.textIndex.rangeRects(match.byteOffset, match.byteOffset + match.byteLength, &rects)
+        entry.textIndex.rangeRects(match.byteOffset, match.byteOffset + match.byteLength, &rects)
         if rects.isEmpty() do
             return false
 
@@ -1620,15 +1620,15 @@ impl PdfView
             return
 
         let entry = .cache.resident(.pageIndex)
-        if not entry or not entry!.isDrawable() do
+        if not entry or not entry.isDrawable() do
             return
 
-        entry!.ensureTextIndex()
-        if entry!.textIndex.text.isEmpty() do
+        entry.ensureTextIndex()
+        if entry.textIndex.text.isEmpty() do
             return
 
         .selAnchor = {.pageIndex, 0}
-        .selCaret  = {.pageIndex, entry!.textIndex.text.length}
+        .selCaret  = {.pageIndex, entry.textIndex.text.length}
         .selecting = false
         .invalidate()
     }
@@ -1731,11 +1731,11 @@ impl PdfView
     internal mtd selectWordAt(position: PdfTextPosition)
     {
         let entry = .cache.resident(position.pageIndex)
-        if not entry or not entry!.isDrawable() do
+        if not entry or not entry.isDrawable() do
             return
 
-        entry!.ensureTextIndex()
-        let range = entry!.textIndex.wordRangeAt(position.offset)
+        entry.ensureTextIndex()
+        let range = entry.textIndex.wordRangeAt(position.offset)
         if range.end <= range.start do
             return
 

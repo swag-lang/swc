@@ -526,7 +526,7 @@ impl GlyphCache
     {
         let entry = .glyphRef.tryFind(glyphIndex)
         if entry do
-            return cast(const *GlyphDesc) entry.value!
+            return cast(const *GlyphDesc) entry.value
 
         // Render the glyph
         let bpp = .renderMode.bytesPerPixel()
@@ -540,7 +540,7 @@ impl GlyphCache
         var atlas = .atlases.count ? &.atlases.storage()[.atlases.count - 1] : null
         if atlas
         {
-            let a = atlas!
+            let a = atlas
             if a.curX + rowBytes > a.width
             {
                 a.curX = 0
@@ -569,7 +569,7 @@ impl GlyphCache
             atlas = &.atlases.storage()[.atlases.count - 1]
         }
 
-        let ca = atlas!
+        let ca = atlas
         let x  = ca.curX
         let y  = ca.curY
         ca.curX  += rowBytes

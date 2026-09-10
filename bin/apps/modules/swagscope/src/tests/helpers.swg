@@ -25,7 +25,7 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
 {
     var result: retval
     if plugin.attach do
-        plugin.attach!(contentParent.app())
+        plugin.attach(contentParent.app())
     var pluginHost = ViewerPluginHost{
         session: &result,
         documentParent: contentParent,
@@ -103,7 +103,7 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
     while window.activeChoiceIndex < window.instances.count and steps < 4_096
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if not instance.view or not instance.isLoading or not instance.isLoading!(instance.view!) do
+        if not instance.view or not instance.isLoading or not instance.isLoading(instance.view) do
             break
         Threading.Thread.sleep(1'ms)
         host.fireTimers()

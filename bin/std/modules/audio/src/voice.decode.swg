@@ -126,7 +126,7 @@ impl Voice
     {
         if not .codec do
             return
-        let decoder   = cast(*Codec) (.codec).buffer!
+        let decoder   = cast(*Codec) (.codec).buffer
         let allocator = decoder.allocationAllocator
         if decoder.type.opDrop do
             decoder.type.opDrop(decoder)
@@ -153,7 +153,7 @@ impl Voice
     {
         if not .packetCodec do
             return
-        let decoder   = cast(*Codec) (.packetCodec).buffer!
+        let decoder   = cast(*Codec) (.packetCodec).buffer
         let allocator = decoder.allocationAllocator
         if decoder.type.opDrop do
             decoder.type.opDrop(decoder)
@@ -360,7 +360,7 @@ impl Voice
         .seekDiscardFrames = .file ? cast(u32) .file.leadingTrim : 0
         .destroyCodec()
         if .packetCodec do
-            .packetCodec!.reset()
+            .packetCodec.reset()
     }
 
     mtd closeData()

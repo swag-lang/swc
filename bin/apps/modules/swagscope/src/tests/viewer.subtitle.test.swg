@@ -44,20 +44,20 @@ func subtitleViewerFixturePath()->String
     Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
     Swag.assert(result.details == "SubRip")
 
-    let view = cast(*SubtitleViewer) result.view!
+    let view = cast(*SubtitleViewer) result.view
     Swag.assert(view.track!.cueCount() == 2)
     Swag.assert(view.cueButton.text() == "2 cues" and (view.durationButton.text()).count)
     Swag.assert(view.transcript.indexOf("00:00:00.500") != Swag.U64.Max)
     Swag.assert(view.transcript.indexOf("A second caption\non two lines.") != Swag.U64.Max)
 
     var matches: Array'Viewer.SearchMatch
-    collectViewerMatches(result.collectMatches!, result.view!, "second", &matches)
+    collectViewerMatches(result.collectMatches, result.view, "second", &matches)
     Swag.assert(matches.count == 1 and matches[0].major == 1)
-    var revealed = result.revealMatch!(result.view!, matches[0], "second")
+    var revealed = result.revealMatch(result.view, matches[0], "second")
     Swag.assert(revealed)
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and not bounds.isEmpty())
-    result.clearSearch!(result.view!)
+    Swag.assert(result.searchBounds(result.view, matches[0], &bounds) and not bounds.isEmpty())
+    result.clearSearch(result.view)
     revealed = view.revealCue(1) and view.editor.selectedText() == "A second caption\non two lines."
     Swag.assert(revealed)
 
@@ -96,7 +96,7 @@ func subtitleViewerFixturePath()->String
     Swag.assert(result.view != null)
     infoBar.centerGroup    = result.info
     result.info!.dockStyle = .None
-    result.view!.dockStyle = .Center
+    result.view.dockStyle  = .Center
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
 

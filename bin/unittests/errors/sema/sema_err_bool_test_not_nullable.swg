@@ -57,7 +57,7 @@ func nonNullConditionPointee(flag: *bool)->s32
 // An inlined body asks the question of its own parameter, so a guard written against a '?'
 // parameter keeps typechecking whatever the call site passes.
 #[Swag.Inline]
-func nonNullConditionInlinedGuard(item: *NonNullConditionItem?)->s32 => item ? item!.value : 0
+func nonNullConditionInlinedGuard(item: *NonNullConditionItem?)->s32 => item ? item.value : 0
 
 func nonNullConditionInlinedCaller(item: *NonNullConditionItem)->s32
 {

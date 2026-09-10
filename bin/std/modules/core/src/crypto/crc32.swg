@@ -673,7 +673,7 @@ public impl Crc32
             length -= bytesAtOnce
         }
 
-        var currentChar = cast(const [*] u8) current!
+        var currentChar = cast(const [*] u8) current
         while length
         {
             cur         = (cur >> 8) ^ LookupTable[0, (cur & 0xFF) ^ currentChar[0]]

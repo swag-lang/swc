@@ -18,10 +18,10 @@ private func assertMathSyntaxError(source: string, contains: string, seek: u64)
     discard catch MathExpression.parse(source) as err
     Swag.assert(err != null)
     Swag.assert(err is Errors.SyntaxError)
-    let syntax = (err as Errors.SyntaxError)!
+    let syntax = (err as Errors.SyntaxError)
     Swag.assert(syntax.seek == seek)
     Swag.assert(syntax.message != null)
-    Swag.assert(Utf8.indexOf(syntax.message!, contains) != Swag.U64.Max)
+    Swag.assert(Utf8.indexOf(syntax.message, contains) != Swag.U64.Max)
 }
 
 private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rightKind: MathPathKind)

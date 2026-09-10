@@ -236,7 +236,7 @@ impl Reader
         if not found do
             fail UnsupportedFormatError{"no video decoder accepts this file extension"}
 
-        let selected = found!
+        let selected = found
         .format      = selected.format
         .decoderType = selected.type
 
@@ -263,7 +263,7 @@ impl Reader
         if .decoder
         {
             let type     = .decoderType!
-            let instance = (.decoder).buffer!
+            let instance = (.decoder).buffer
             if type.opDrop do
                 type.opDrop(instance)
             Memory.free(instance, cast(u64) type.sizeof)
@@ -321,7 +321,7 @@ impl Reader
     mtd requestCancel()
     {
         if .deferred do
-            .deferred!.requestCancel()
+            .deferred.requestCancel()
     }
 
     // Returns the number of decoded sound tracks carried by the opened stream.
@@ -353,7 +353,7 @@ impl Reader
     mtd const frameTimestamp(index: u64)->f64
     {
         if .timedDecoder do
-            return .timedDecoder!.frameTimestamp(index)
+            return .timedDecoder.frameTimestamp(index)
         let rate = .frameRate()
         return cast(f64) index * cast(f64) rate.denominator() / cast(f64) rate.numerator()
     }
@@ -362,7 +362,7 @@ impl Reader
     mtd const frameAtTime(seconds: f64)->u64
     {
         if .timedDecoder do
-            return .timedDecoder!.frameAtTime(seconds)
+            return .timedDecoder.frameAtTime(seconds)
         if seconds < 0 do
             return 0
         let rate = .frameRate()
@@ -372,7 +372,7 @@ impl Reader
     // Reports whether this stream can be decoded without converting its pictures to RGB.
     //
     // See [[Video.Reader.decodeFramePlanesInto]] for what that is worth.
-    mtd const hasPlanarFrames()->bool => .planarDecoder != null and .planarDecoder!.hasPlanarFrames()
+    mtd const hasPlanarFrames()->bool => .planarDecoder != null and .planarDecoder.hasPlanarFrames()
 
     // Decodes frame `index` into `target` in the codec's own planar layout.
     //
@@ -396,7 +396,7 @@ impl Reader
 
         .decoder.seekFrame(&.source, index)
         .refreshDeferredInfo()
-        .planarDecoder!.decodeFramePlanes(&.source, target)
+        .planarDecoder.decodeFramePlanes(&.source, target)
     }
 
     // Returns the first frame at or after `index` that decodes without any earlier frame.
@@ -413,7 +413,7 @@ impl Reader
     mtd const durationInSeconds()->f64
     {
         if .deferred do
-            return .deferred!.durationInSeconds()
+            return .deferred.durationInSeconds()
         let rate = .frameRate()
         if not rate.isValid() do
             return 0
@@ -455,8 +455,8 @@ impl Reader
     {
         if not .deferred do
             return
-        .info.frameCount = .deferred!.frameCount()
-        .info.frameRate  = .deferred!.frameRate()
+        .info.frameCount = .deferred.frameCount()
+        .info.frameRate  = .deferred.frameRate()
     }
 }
 

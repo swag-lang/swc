@@ -140,7 +140,7 @@ impl MountedDrives
         {
             if one.volume
             {
-                let space = one.volume!.space()
+                let space = one.volume.space()
                 one.totalBytes     = space.total
                 one.availableBytes = space.available
             }

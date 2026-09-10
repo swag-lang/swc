@@ -234,8 +234,8 @@ func releaseObjectField()->s32
 {
     let node = cast(*UafNode) myAlloc(16)
     node.data = cast(*s32) myAlloc(4)
-    myFree(node.data!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    return node.data![]       // swc-expected-error {{sanity_err_use_after_free}}
+    myFree(node.data, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return node.data[]       // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
@@ -280,8 +280,8 @@ impl UafNode
     mtd reset()
     {
         myFree(.data!, 4)
-        .data    = cast(*s32) myAlloc(4)
-        .data![] = 1
+        .data   = cast(*s32) myAlloc(4)
+        .data[] = 1
     }
 }
 
@@ -304,8 +304,8 @@ impl UafNode
     var recycled: UafNode
     recycled.data = cast(*s32) myAlloc(4)
     recycled.reset()
-    Swag.assert(recycled.data![] == 1)
-    myFree(recycled.data!, 4)
+    Swag.assert(recycled.data[] == 1)
+    myFree(recycled.data, 4)
 }
 
 // What correct code does with that shape, and what the rule may not claim: the field is
@@ -324,19 +324,19 @@ func refillNode(n: *UafNode)
     node.data  = cast(*s32) myAlloc(4)
     node.count = 4
 
-    myFree(node.data!, 4)
+    myFree(node.data, 4)
     Swag.assert(node.count == 4)
 
-    node.data    = cast(*s32) myAlloc(4)
-    node.data![] = 7
-    Swag.assert(node.data![] == 7)
+    node.data   = cast(*s32) myAlloc(4)
+    node.data[] = 7
+    Swag.assert(node.data[] == 7)
 
-    myFree(node.data!, 4)
+    myFree(node.data, 4)
     refillNode(node)
-    node.data![] = 9
-    Swag.assert(node.data![] == 9)
+    node.data[] = 9
+    Swag.assert(node.data[] == 9)
 
-    myFree(node.data!, 4)
+    myFree(node.data, 4)
     myFree(node, 16)
 }
 
@@ -484,8 +484,8 @@ struct UafOwner
 {
     var owner: UafOwner
     owner.data = cast(*s32) myAlloc(4)
-    myFree(owner.data!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    let x = owner.data![]      // swc-expected-error {{sanity_err_use_after_free}}
+    myFree(owner.data, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    let x = owner.data[]      // swc-expected-error {{sanity_err_use_after_free}}
     discard x
 }
 

@@ -206,7 +206,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         if typeFunc.returnType != null and typeFunc.returnType != void
         {
             len = appendAst(&buffer[0], len, "->")
-            len = appendAst(&buffer[0], len, (typeFunc.returnType!.name)!)
+            len = appendAst(&buffer[0], len, (typeFunc.returnType.name)!)
         }
 
         len = appendAst(&buffer[0], len, "\n{\n    ")

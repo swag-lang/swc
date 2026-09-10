@@ -299,7 +299,7 @@ private impl SoundWaveformView
         if not resolved do
             return
 
-        let font    = resolved!
+        let font    = resolved
         let colors  = .themeColors()
         let step    = waveformTickStep(.duration, plot.width)
         let baseY   = plot.bottom()
@@ -497,9 +497,9 @@ internal impl SoundViewer
         if not .engineReady do
             .playButton.toolTip = soundStrings().ui_NoEngine
         if .reportDetails do
-            .reportDetails!(me, .details.toString())
+            .reportDetails(me, .details.toString())
         if .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
     }
 
     // Finishes teardown once neither worker can touch the sound or waveform storage.
@@ -524,14 +524,14 @@ internal impl SoundViewer
             .retireRequested = true
             if .timer
             {
-                .removeTimer(.timer!)
+                .removeTimer(.timer)
                 .timer = null
             }
 
             if .voice
             {
-                catch .voice!.stop()
-                .voice!.destroy()
+                catch .voice.stop()
+                .voice.destroy()
                 .voice = null
             }
 
@@ -638,7 +638,7 @@ internal impl SoundViewer
         .voice = catch Voice.create(&.sound)! as createError
         if createError != null or not .voice do
             return false
-        catch .voice!.setVolume(.muted ? 0 : .volume)
+        catch .voice.setVolume(.muted ? 0 : .volume)
         return true
     }
 
@@ -667,14 +667,14 @@ internal impl SoundViewer
         .muteButton.setChecked(muted)
         .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, themeActionIconSize(.themeMetrics())))
         if .voice do
-            catch .voice!.setVolume(muted ? 0 : .volume)
+            catch .voice.setVolume(muted ? 0 : .volume)
     }
 
     mtd setVolume(volume: f32)
     {
         .volume = Math.clamp(volume, 0, 1)
         if .voice and not .muted do
-            catch .voice!.setVolume(.volume)
+            catch .voice.setVolume(.volume)
     }
 
     mtd togglePlayback()
@@ -706,7 +706,7 @@ internal impl SoundViewer
     {
         if .voice
         {
-            catch .voice!.stop() as stopError
+            catch .voice.stop() as stopError
             if stopError != null do
                 return
         }
@@ -748,7 +748,7 @@ internal impl IWnd for SoundViewer
                     .playButton.toolTip = soundStrings().ui_NoEngine
                 .details = Format.toString(soundStrings().ui_Details, .sound.sampleRateHz(), channelCountText(.sound.numChannels()), .sound.sampleStorageBits(), soundDurationText(.duration))
                 if .reportDetails do
-                    .reportDetails!(me, .details.toString())
+                    .reportDetails(me, .details.toString())
             }
         }
 
@@ -767,14 +767,14 @@ internal impl IWnd for SoundViewer
         {
             catch .completeOpen() as openError
             if openError != null and .reportFailure do
-                .reportFailure!(me, Errors.message(openError))
+                .reportFailure(me, Errors.message(openError))
             return
         }
 
         .syncWaveform()
         if not .playing or not .voice do
             return
-        .elapsed = cast(f32) .voice!.playbackPositionSeconds()
+        .elapsed = cast(f32) .voice.playbackPositionSeconds()
         if .elapsed >= .duration
         {
             .finishPlayback()

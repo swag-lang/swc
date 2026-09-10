@@ -57,7 +57,7 @@ internal impl Properties
         }
 
         // Both paths build the row: name it once, non-null, for everything below.
-        let line = rowWnd!
+        let line = rowWnd
 
         with line
         {

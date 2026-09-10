@@ -107,7 +107,7 @@ impl TidyOwner
     mtd opDrop()
     {
         if .pointer != null do
-            heapFree(.pointer!, 4)
+            heapFree(.pointer, 4)
         .pointer = null
     }
 }
@@ -115,9 +115,9 @@ impl TidyOwner
 func ownerReleasesOnDrop()->s32
 {
     var owner: TidyOwner
-    owner.pointer    = cast(*s32) heapAlloc(4)
-    owner.pointer![] = 5
-    return owner.pointer![]
+    owner.pointer   = cast(*s32) heapAlloc(4)
+    owner.pointer[] = 5
+    return owner.pointer[]
 }
 
 #test

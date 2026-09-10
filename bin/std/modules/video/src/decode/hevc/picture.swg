@@ -103,14 +103,14 @@ impl Decoder
 
         reader.init(.rbsp.toSlice())
         var header: SliceHeader
-        try header.read(&reader, sps!, pps, nalType, &.previousHeader)
+        try header.read(&reader, sps, pps, nalType, &.previousHeader)
         header.nalType    = nalType
         header.temporalId = temporalId
 
         var started = false
         if firstInPicture
         {
-            try .startPicture(sps!, pps, &header, nalType)
+            try .startPicture(sps, pps, &header, nalType)
             started = true
         }
         elif not .current
@@ -132,7 +132,7 @@ impl Decoder
         .header.initType     = .initTypeOf(&header)
 
         if not header.dependent do
-            try .applyReferencePictureSet(&header, sps!)
+            try .applyReferencePictureSet(&header, sps)
 
         if deferPicture
         {
@@ -144,7 +144,7 @@ impl Decoder
         }
 
         try .awaitReferencePictures()
-        try .decodeSliceData(&reader, body, sps!, pps)
+        try .decodeSliceData(&reader, body, sps, pps)
         return started
     }
 
@@ -168,7 +168,7 @@ impl Decoder
         .preparedPicture = false
         if .current
         {
-            .current!.publishProgress(FrameProgressFailed)
+            .current.publishProgress(FrameProgressFailed)
             .current = null
         }
     }
@@ -187,7 +187,7 @@ impl Decoder
                 let frame = .refList.frames[list, index]
                 if not frame do
                     continue
-                if frame!.waitProgress(frame!.progressComplete()) == FrameProgressFailed do
+                if frame.waitProgress(frame.progressComplete()) == FrameProgressFailed do
                     fail InvalidFormatError{"HEVC inter block has no decoded reference picture"}
             }
         }
@@ -235,13 +235,13 @@ impl Decoder
         if not frame do
             fail InvalidFormatError{"HEVC decoded picture buffer has no free picture"}
 
-        frame!.prepare(sps)
-        frame!.poc          = .pocValue
-        frame!.marking      = .ShortTerm
-        frame!.outputNeeded = header.picOutputFlag and not (isRaslNal(nalType) and .raslSuppressed)
-        frame!.isIrap       = isIrapNal(nalType)
-        frame!.noRaslOutput = .noRaslOutput
-        try .holdReference(frame!, .ShortTerm)
+        frame.prepare(sps)
+        frame.poc          = .pocValue
+        frame.marking      = .ShortTerm
+        frame.outputNeeded = header.picOutputFlag and not (isRaslNal(nalType) and .raslSuppressed)
+        frame.isIrap       = isIrapNal(nalType)
+        frame.noRaslOutput = .noRaslOutput
+        try .holdReference(frame, .ShortTerm)
         .current = frame
 
         .sliceParams.clear()
@@ -286,9 +286,9 @@ impl Decoder
         .applySampleAdaptiveOffset()
         .storeCollocatedMotion()
 
-        frame!.extendRows(0, frame!.height)
-        frame!.extendBorders()
-        frame!.publishProgress(frame!.progressComplete())
+        frame.extendRows(0, frame.height)
+        frame.extendBorders()
+        frame.publishProgress(frame.progressComplete())
         .current = null
         return frame
     }

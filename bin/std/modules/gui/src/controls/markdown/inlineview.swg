@@ -643,10 +643,10 @@ impl InlineView
             atom.imageLoaded = entry != null
             if entry
             {
-                let width = entry!.naturalSize.x
+                let width = entry.naturalSize.x
                 let scale = availableWidth > 0 ? Math.min(availableWidth / width, 1) : 1
                 atom.position.width  = width * scale
-                atom.position.height = entry!.naturalSize.y * scale
+                atom.position.height = entry.naturalSize.y * scale
                 atom.ascent          = atom.position.height
                 atom.descent         = 0
                 return
@@ -1396,7 +1396,7 @@ impl IWnd for InlineView
             let atom  = .atomAt(local)
             if atom and not atom.target.isEmpty()
             {
-                .owner.sigLinkActivated.call(.owner, atom!.target.toString())
+                .owner.sigLinkActivated.call(.owner, atom.target.toString())
                 return
             }
 

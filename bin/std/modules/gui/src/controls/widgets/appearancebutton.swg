@@ -154,6 +154,6 @@ impl AppearanceButton
         elif selected == AppearanceAboutId do
             .sigAboutRequested.call(me)
         elif selected and findLanguage(selected) do
-            discard catch .setAppearanceLanguage(selected!, notify: true)
+            discard catch .setAppearanceLanguage(selected, notify: true)
     }
 }

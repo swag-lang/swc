@@ -408,7 +408,7 @@ private func logDiagnostic(message: string?)
 
     // Built as one owned string: it carries its terminator, which is what the debugger
     // output expects, and a view over a longer buffer would not.
-    let line = Format.toString("Swag Vault: %\n", message!)
+    let line = Format.toString("Swag Vault: %\n", message)
     Debugger.log(line.toString())
 }
 
@@ -1646,7 +1646,7 @@ impl MainWindow
                 discard catch mounted.close() as closeError
                 if closeError != null do
                     synchronizationStopped = true
-                Memory.delete(mounted!)
+                Memory.delete(mounted)
             }
 
             .mountedDrives.drives.removeAtOrdered(index)
@@ -2085,7 +2085,7 @@ impl MainWindow
             {
                 discard catch mounted.close() as unmountError
                 .operation.error = unmountError
-                Memory.delete(mounted!)
+                Memory.delete(mounted)
                 .operation.volume = null
             }
 
@@ -2149,7 +2149,7 @@ impl MainWindow
         .operation.task.wait()
         if .operation.timer
         {
-            .removeTimer(.operation.timer!)
+            .removeTimer(.operation.timer)
             .operation.timer = null
         }
 
@@ -2203,7 +2203,7 @@ impl MainWindow
                     discard catch mounted.close() as closeError
                     if closeError != null do
                         .setStatus(.AutoUnmountStopped)
-                    Memory.delete(mounted!)
+                    Memory.delete(mounted)
                     .operation.volume = null
                 }
 
@@ -2315,7 +2315,7 @@ impl MainWindow
 
         if .operation.volume
         {
-            let space = .operation.volume!.space()
+            let space = .operation.volume.space()
             entry.totalBytes     = space.total
             entry.availableBytes = space.available
         }
@@ -2453,19 +2453,19 @@ impl MainWindow
 
         if .operation.timer
         {
-            .removeTimer(.operation.timer!)
+            .removeTimer(.operation.timer)
             .operation.timer = null
         }
 
         if .startupTimer
         {
-            .removeTimer(.startupTimer!)
+            .removeTimer(.startupTimer)
             .startupTimer = null
         }
 
         if .securityTimer
         {
-            .removeTimer(.securityTimer!)
+            .removeTimer(.securityTimer)
             .securityTimer = null
         }
 
@@ -2486,14 +2486,14 @@ impl MainWindow
         if .operation.volume
         {
             discard catch .operation.volume.close()
-            Memory.delete(.operation.volume!)
+            Memory.delete(.operation.volume)
             .operation.volume = null
         }
 
         for &one in .mountedDrives.drives where one.volume
         {
             discard catch one.volume.close()
-            Memory.delete(one.volume!)
+            Memory.delete(one.volume)
             one.volume = null
         }
 

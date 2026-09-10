@@ -122,7 +122,7 @@ private impl IWnd for PdfViewer
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure!(me, .failureReason.toString())
+                .reportFailure(me, .failureReason.toString())
             return
         }
 
@@ -132,9 +132,9 @@ private impl IWnd for PdfViewer
         .refreshNavigation()
         .setInitialFocus(.pdfView)
         if .reportDetails do
-            .reportDetails!(me, .details.toString())
+            .reportDetails(me, .details.toString())
         if .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -165,7 +165,7 @@ private impl PdfViewer
             return false
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 
@@ -227,7 +227,7 @@ private impl PdfViewer
         options.title   = pdfStrings().ui_GoToPage
         options.message = Format.toString(pdfStrings().ui_PageRange, .pdfView.pageCount()).toString()
         options.text    = Format.toString("%", .pdfView.pageIndex + 1).toString()
-        let dialog = EditDlg.createSingleLine(.surface!, options)
+        let dialog = EditDlg.createSingleLine(.surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return
         let typed = dialog.text()

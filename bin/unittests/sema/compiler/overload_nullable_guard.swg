@@ -27,7 +27,7 @@ func select(n: *Node?)->bool
 {
     if not n do
         return false
-    return select(n!)
+    return select(n)
 }
 
 func select(n: *Node)->bool
@@ -46,7 +46,7 @@ func guardedNotNull(n: *GuardedNode?)->bool
 {
     if n
     {
-        let checked = n!
+        let checked = n
         return checked.check()
     }
     return false

@@ -542,7 +542,7 @@ private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
     // Commit the page table before publishing the address range that contains it. A lookup only
     // ever reads below 'used', so no thread can reach a segment whose header is not yet mapped -
     // not even one asked to free an address that never came from here.
-    let arena = chosen!
+    let arena = chosen
     let base  = arena.used
     if not allocatorOsCommit(base, AllocatorSegmentHeaderBytes) do
         return null

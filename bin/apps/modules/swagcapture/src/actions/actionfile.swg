@@ -482,7 +482,7 @@ impl MainWnd
             .recentWnd.updateRecent()
 
         let txt = Format.toString("Image <url>%</url> has been saved", nameFile)
-        let emb = InfoBar.create(.editWnd.view!, txt, .Information, flags: .Bottom | .AutoDismiss)
+        let emb = InfoBar.create(.editWnd.view, txt, .Information, flags: .Bottom | .AutoDismiss)
         emb.label.sigLinkActivated += func(lbl, msg) { Env.showInFileExplorer(msg) }
     }
 

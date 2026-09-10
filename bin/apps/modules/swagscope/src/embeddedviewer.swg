@@ -39,7 +39,7 @@ private func embeddedViewerFor(view: *Wnd)->*EmbeddedViewer
     while parent and not parent.userData do
         parent = parent.parent
     Swag.assert(parent != null and parent.userData != null)
-    return cast(*EmbeddedViewer) parent!.userData!
+    return cast(*EmbeddedViewer) parent.userData!
 }
 
 private func reportEmbeddedFailure(view: *Wnd, reason: string)
@@ -141,7 +141,7 @@ impl Viewer.Embedded for EmbeddedViewer
         if .activeIndex >= .instances.count do
             return false
         let instance = &.instances[.activeIndex]
-        return instance.view and instance.isLoading and instance.isLoading!(instance.view)
+        return instance.view and instance.isLoading and instance.isLoading(instance.view)
     }
 }
 
@@ -169,11 +169,11 @@ private impl EmbeddedViewer
 
         var infoWidth: f32
         if instance.info do
-            infoWidth = instance.info!.preferredSize.x
+            infoWidth = instance.info.preferredSize.x
         if instance.sidePanelButton
         {
             infoWidth += themeActionButtonSize(.themeMetrics()) + 8
-            instance.sidePanelButton!.dockStyle = .Right
+            instance.sidePanelButton.dockStyle = .Right
         }
 
         .infoLane.position.width = infoWidth
@@ -185,7 +185,7 @@ private impl EmbeddedViewer
         .currentCommands?.show()
         .currentSideButton?.show()
         if .currentSideButton do
-            .currentSidePanel?.show(.currentSideButton!.isChecked)
+            .currentSidePanel?.show(.currentSideButton.isChecked)
         .commandBar.centerContent()
         .applyLayout()
         .invalidate()
@@ -240,11 +240,11 @@ private impl EmbeddedViewer
         if not next.view do
             return false
 
-        next.view!.dockStyle = .Center
+        next.view.dockStyle = .Center
         if next.actions do
-            next.actions!.dockStyle = .Left
+            next.actions.dockStyle = .Left
         if next.info do
-            next.info!.dockStyle = .Center
+            next.info.dockStyle = .Center
         next.actions?.hide()
         next.info?.hide()
         next.commands?.hide()
@@ -267,10 +267,10 @@ private impl EmbeddedViewer
             instance.sidePanelButton?.destroy()
             instance.sidePanelHost?.destroy()
             instance.view?.destroy()
-            instance[]               = {}
-            instance.failureReason   = reason
-            instance.view            = ViewerErrorView.create(.document, reason)
-            instance.view!.dockStyle = .Center
+            instance[]              = {}
+            instance.failureReason  = reason
+            instance.view           = ViewerErrorView.create(.document, reason)
+            instance.view.dockStyle = .Center
             if index == .activeIndex do
                 .showInstance(cast(u32) index)
             return

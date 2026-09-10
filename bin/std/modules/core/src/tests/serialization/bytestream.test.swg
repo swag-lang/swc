@@ -29,7 +29,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     Swag.assert(stream.readU8() == 0x10)
     Swag.assert(stream.position() == 1)
     Swag.assert(stream.peekU8() == 0x20)
-    Swag.assert(assertBytes(stream.remainingBytes()!, [0x20, 0x30, 0x40]))
+    Swag.assert(assertBytes(stream.remainingBytes(), [0x20, 0x30, 0x40]))
     Swag.assert(stream.remainingString() == "\x20\x30\x40")
 
     stream.advance(2)
@@ -55,7 +55,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     Swag.assert(not stream.isEof())
     Swag.assert(stream.peekU8() == 0xAB)
     Swag.assert(stream.readU8() == 0xAB)
-    Swag.assert(assertBytes(stream.remainingBytes()!, [0xCD, 0xEF]))
+    Swag.assert(assertBytes(stream.remainingBytes(), [0xCD, 0xEF]))
 }
 
 // LEB128 varints round-trip across the byte widths, and a truncated or over-long

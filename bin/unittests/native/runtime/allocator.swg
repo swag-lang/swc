@@ -87,7 +87,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(alloc.stats().countAlloc == beforeCount + 1)
     Swag.assert(alloc.stats().sizeAlloc == beforeSize + 80)
 
-    let ptr = cast([*] u8) req.address!
+    let ptr = cast([*] u8) req.address
     for i in 80 do
         ptr[i] = cast(u8) (i + 3)
 
@@ -98,7 +98,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(alloc.stats().countAlloc == beforeCount + 1)
     Swag.assert(alloc.stats().sizeAlloc == beforeSize + 4096)
 
-    let grown = cast([*] u8) req.address!
+    let grown = cast([*] u8) req.address
     for i in 80 do
         Swag.assert(grown[i] == cast(u8) (i + 3))
 
@@ -235,7 +235,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(alloc.stats().countAlloc == 1)
     Swag.assert(alloc.stats().sizeAlloc == 64)
 
-    let ptr = cast([*] u8) req.address!
+    let ptr = cast([*] u8) req.address
     for i in 64 do
         Swag.assert(ptr[i] == Allocator.AllocByte)
 
@@ -358,7 +358,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     let original = req.address
     Swag.assert(original != null)
 
-    let ptr = cast([*] u8) original!
+    let ptr = cast([*] u8) original
     for i in 96 do
         ptr[i] = cast(u8) (255 - i)
 
@@ -397,7 +397,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.realloc(&req)
     Swag.assert(req.address != null)
 
-    let grown = cast([*] u8) req.address!
+    let grown = cast([*] u8) req.address
     for i in 24 do
         Swag.assert(grown[i] == cast(u8) (i * 3 + 7))
 
@@ -495,7 +495,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     Swag.assert(req.address != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
     let tracking = header.tracking!
     Swag.assert(header.magic == Allocator.MagicAlloc)
     Swag.assert(tracking.stackCount <= tracking.stack.count)
@@ -517,7 +517,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     Swag.assert(req.address != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
     let tracking = header.tracking!
     Swag.assert(tracking.stackCount == 0)
     Swag.assert(alloc.firstAlloc == header)
@@ -548,7 +548,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(req.address != null)
     Swag.assert(alloc.firstAlloc != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
     let tracking = header.tracking!
     Swag.assert(header == alloc.firstAlloc)
     Swag.assert(tracking.stackCount <= tracking.stack.count)
@@ -570,11 +570,11 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     Swag.assert(req.address != null)
 
-    let ptr = cast([*] u8) req.address!
+    let ptr = cast([*] u8) req.address
     for i in 128 do
         Swag.assert(ptr[i] == Allocator.AllocByte)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
     let tracking = header.tracking!
     Swag.assert(tracking.stackCount <= tracking.stack.count)
 
@@ -594,7 +594,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(req.address != null)
     Swag.assert(alloc.firstAlloc != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
     let tracking = header.tracking!
     Swag.assert(header == alloc.firstAlloc)
     Swag.assert(tracking.stackCount <= tracking.stack.count)
@@ -621,7 +621,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(alloc.stats().countAlloc == 1)
     Swag.assert(alloc.firstAlloc != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
     let tracking = header.tracking!
     Swag.assert(header == alloc.firstAlloc)
     Swag.assert(header.magic == Allocator.MagicAlloc)
@@ -805,7 +805,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         var done:    s32 = 0
         var payload: AllocatorRemoteFreePayload
         payload.allocator = itf
-        payload.address   = first!
+        payload.address   = first
         payload.done      = &done
 
         var threadId: AllocatorThreadTest.DWORD
@@ -818,7 +818,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         // A remote free parks the block on the page's atomic list; the owner picks it up the next
         // time the page runs dry, or when the caller asks for idle memory back.
         Swag.assert(alloc.stats().countAlloc == 0)
-        let page = allocatorPageOf(cast(u64) first!)!
+        let page = allocatorPageOf(cast(u64) first)!
         Swag.assert(page.remoteCount == 1)
 
         alloc.trim()
@@ -847,7 +847,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         var done:    s32 = 0
         var payload: AllocatorRemoteFreePayload
         payload.allocator = itf
-        payload.address   = first!
+        payload.address   = first
         payload.done      = &done
 
         var threadId: AllocatorThreadTest.DWORD

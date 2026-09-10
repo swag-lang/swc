@@ -398,7 +398,7 @@ func getNativeArgs()->string
     // lines into one unparseable text.
     let handed = Swag.processInfos().args
     if handed != null and handed.count do
-        return handed!
+        return handed
 
     let ptr = GetCommandLineW()
     g_StoreArgs = Utf8.fromUtf16(Swag.makeSlice(ptr, Utf16.lengthZeroTerminated(ptr)))

@@ -65,7 +65,7 @@ impl PlaybackApi
     mtd const settings(view: *Wnd)->PlaybackSettings
     {
         if .readSettings do
-            return .readSettings!(view)
+            return .readSettings(view)
         return {}
     }
 

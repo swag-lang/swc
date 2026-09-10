@@ -387,7 +387,7 @@ private impl View
         // An unchanged layout must not cancel an animated or deferred scroll destination.
         if anchor and (anchor.position.y != anchorY or anchor.position.height != anchorHeight)
         {
-            .scroll.setScrollPos(position.x, anchor!.position.y + fraction * anchor!.position.height)
+            .scroll.setScrollPos(position.x, anchor.position.y + fraction * anchor.position.height)
         }
     }
 
@@ -418,7 +418,7 @@ private impl View
             let math = MathView.create(me, .body, block.text.toString())
             if math
             {
-                visual.wnd = math!
+                visual.wnd = math
                 if not .documentThemeColors.isEmpty() do
                     applyThemeColors(visual.wnd, .documentThemeColors.toString())
                 .blocks.add(visual)
@@ -838,7 +838,7 @@ private impl View
         .pendingImageIndex = Swag.U64.Max
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 
@@ -1015,17 +1015,17 @@ private impl View
         {
             if block.inline
             {
-                block.inline!.layoutWidth = 0
+                block.inline.layoutWidth = 0
                 if block.kind >= .Heading1 and block.kind <= .Heading6 do
-                    block.inline!.horizontalAlignment = .documentStyle.headingAlignment
+                    block.inline.horizontalAlignment = .documentStyle.headingAlignment
                 elif block.kind == .Paragraph do
-                    block.inline!.horizontalAlignment = .documentStyle.paragraphAlignment
+                    block.inline.horizontalAlignment = .documentStyle.paragraphAlignment
             }
 
             if block.table do
-                block.table!.layoutWidth = 0
+                block.table.layoutWidth = 0
             if block.html do
-                block.html!.setDocumentStyle(htmlStyle(.documentStyle))
+                block.html.setDocumentStyle(htmlStyle(.documentStyle))
         }
 
         .layoutDocument(preservePosition: true)
@@ -1283,12 +1283,12 @@ impl View
         {
             if block.inline
             {
-                let piece = .selectionInInline(block.inline!.orderIndex)
+                let piece = .selectionInInline(block.inline.orderIndex)
                 if not piece.has do
                     continue
                 if started do
                     result += "\n"
-                result  += block.inline!.textSlice(piece.start, piece.end)
+                result  += block.inline.textSlice(piece.start, piece.end)
                 started = true
                 continue
             }
@@ -1296,7 +1296,7 @@ impl View
             if block.table
             {
                 var lastRow = Swag.U32.Max
-                for &cell in block.table!.cells
+                for &cell in block.table.cells
                 {
                     let piece = .selectionInInline(cell.view.orderIndex)
                     if not piece.has do
@@ -1375,11 +1375,11 @@ impl View
         for &block in .blocks
         {
             if block.inline do
-                block.inline!.clearSearchHighlight()
+                block.inline.clearSearchHighlight()
             if block.table do
-                block.table!.clearSearchHighlight()
+                block.table.clearSearchHighlight()
             if block.html do
-                block.html!.clearSearchHighlight()
+                block.html.clearSearchHighlight()
         }
 
         let first = .searchBlockIndex == Swag.U64.Max ? 0 : (.searchBlockIndex + 1) % .blocks.count
@@ -1389,11 +1389,11 @@ impl View
             let block = &.blocks[index]
             var found: bool
             if block.inline do
-                found = block.inline!.highlightText(text)
+                found = block.inline.highlightText(text)
             elif block.table do
-                found = block.table!.highlightText(text)
+                found = block.table.highlightText(text)
             elif block.html do
-                found = block.html!.findText(text)
+                found = block.html.findText(text)
             if not found do
                 found = Utf8.indexOf(block.searchText.toString(), text, 0, .Latin1NoCase) != Swag.U64.Max
             if not found do
@@ -1419,11 +1419,11 @@ impl View
         for &block in .blocks
         {
             if block.inline do
-                block.inline!.clearSearchHighlight()
+                block.inline.clearSearchHighlight()
             if block.table do
-                block.table!.clearSearchHighlight()
+                block.table.clearSearchHighlight()
             if block.html do
-                block.html!.clearSearchHighlight()
+                block.html.clearSearchHighlight()
         }
 
         var remaining = occurrence
@@ -1597,11 +1597,11 @@ impl View
         for &block in .blocks
         {
             if block.inline do
-                block.inline!.clearSearchHighlight()
+                block.inline.clearSearchHighlight()
             if block.table do
-                block.table!.clearSearchHighlight()
+                block.table.clearSearchHighlight()
             if block.html do
-                block.html!.clearSearchHighlight()
+                block.html.clearSearchHighlight()
         }
     }
 
@@ -1615,11 +1615,11 @@ impl View
             return false
         let block = &.blocks[.searchBlockIndex]
         if block.inline do
-            return block.inline!.searchMatchRect(result)
+            return block.inline.searchMatchRect(result)
         if block.table do
-            return block.table!.searchMatchRect(result)
+            return block.table.searchMatchRect(result)
         if block.html do
-            return block.html!.searchMatchRect(result)
+            return block.html.searchMatchRect(result)
         return false
     }
 }

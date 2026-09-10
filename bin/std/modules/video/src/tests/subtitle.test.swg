@@ -28,7 +28,7 @@ private func subtitleFixturePath()->String
     Swag.assert(track != null)
     defer Subtitle.Track.destroy(track!)
     var text: String
-    track!.copyCueContent(0, &text)
+    track.copyCueContent(0, &text)
     Swag.assert(text == "First caption.")
 }
 

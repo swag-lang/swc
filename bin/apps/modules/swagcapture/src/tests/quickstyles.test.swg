@@ -256,9 +256,9 @@ using Swag, Core
             let btn = cast(*QuickButton) c
             if btn.userData or not btn.formItf do
                 continue
-            if Swag.kindOf(btn.formItf!) != FormImage do
+            if Swag.kindOf(btn.formItf) != FormImage do
                 continue
-            if (cast(*FormImage) (btn.formItf!).buffer).kind == .Blur do
+            if (cast(*FormImage) (btn.formItf).buffer).kind == .Blur do
                 return btn.toolTip
         }
 

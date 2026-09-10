@@ -254,7 +254,7 @@ impl CaptureSaveQueue
     {
         if not .pending do
             return false
-        let job = .pending!
+        let job = .pending
         return not job.task.isDone()
     }
 
@@ -272,7 +272,7 @@ impl CaptureSaveQueue
     {
         if not .pending do
             return ""
-        let job = .pending!
+        let job = .pending
         if not job.task.isDone() do
             return ""
 
@@ -291,7 +291,7 @@ impl CaptureSaveQueue
     {
         if not .pending do
             return ""
-        let job = .pending!
+        let job = .pending
         if file != null and job.file != file do
             return ""
         job.task.wait()
@@ -1281,7 +1281,7 @@ impl Capture
             found        = created
         }
 
-        let entry = found!
+        let entry = found
         let fresh = not entry.dirty and
                     entry.scale == scale and
                     entry.samples == textSuperSample and

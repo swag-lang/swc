@@ -56,7 +56,7 @@ internal impl IActionUI for ActionProperties
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = strings().prop_Paste
             evt.icon          = theme.icon(.Paste)
-            evt.disabled      = not prop.canChangeItem(item!) or not Clipboard.hasTypedValue(item.type!)
+            evt.disabled      = not prop.canChangeItem(item) or not Clipboard.hasTypedValue(item.type!)
 
         case ActionProperties.ResetDefault:
             evt.updatedFields |= .Name | .Icon | .Disabled
@@ -68,7 +68,7 @@ internal impl IActionUI for ActionProperties
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = strings().prop_MoveUp
             evt.icon          = theme.icon(.ChevronUp)
-            evt.disabled      = not arr.arrElem or not prop.canChangeItem(arr.arrItem!) or prop.arrayElementIndex(arr.arrElem!) == 0
+            evt.disabled      = not arr.arrElem or not prop.canChangeItem(arr.arrItem!) or prop.arrayElementIndex(arr.arrElem) == 0
 
         case ActionProperties.MoveDown:
             evt.updatedFields |= .Name | .Icon | .Disabled

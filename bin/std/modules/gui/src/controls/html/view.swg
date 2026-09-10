@@ -379,7 +379,7 @@ internal impl HtmlView
         // known before the first word is measured.
         let surface = .surface
         if surface do
-            .layout.deviceScale = surface!.dpiScale
+            .layout.deviceScale = surface.dpiScale
         .collectStyleSheets()
         .resolver.resolve(&.document, &.sheet, &.pool, .styleDefaults(), viewport, .darkScheme())
         .layout.build(&.document, &.resolver, .theme(), &.images)
@@ -412,7 +412,7 @@ internal impl HtmlView
             if not found do
                 continue
 
-            let box = .layout.box(found!.value)
+            let box = .layout.box(found.value)
             if not box.scrollable do
                 continue
             box.scrollTop = Math.clamp(state.top, 0, Math.max(box.scrollHeight - box.content.height, 0))
@@ -698,7 +698,7 @@ internal impl HtmlView
     {
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 
@@ -828,7 +828,7 @@ internal impl HtmlView
         {
             let found = .layout.nodeBox.tryFind(walk)
             if found do
-                return found!.value
+                return found.value
             walk = .document.constNode(walk).parent
         }
 

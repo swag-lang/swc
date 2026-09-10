@@ -118,7 +118,7 @@ value, just as for pointers and other nullable types.
 
     x = "string"
     Swag.assert(x != null)
-    Swag.assert(cast(string) x! == "string")
+    Swag.assert(cast(string) x == "string")
 
     x = null
     Swag.assert(x == null)

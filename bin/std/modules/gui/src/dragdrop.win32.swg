@@ -191,7 +191,7 @@ private func readFormat(dataObj: *IDataObject, format: u32, index: s32 = -1)->Ar
     if med.tymed == TYMED_ISTREAM
     {
         if med.pstm do
-            readStream(med.pstm!, &result)
+            readStream(med.pstm, &result)
         return result
     }
 
@@ -204,7 +204,7 @@ private func readFormat(dataObj: *IDataObject, format: u32, index: s32 = -1)->Ar
         return result
     defer discard GlobalUnlock(buf)
 
-    result.add(Swag.makeSlice(buf!, size))
+    result.add(Swag.makeSlice(buf, size))
     return result
 }
 
@@ -249,7 +249,7 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
     if not dataObj do
         return
 
-    let obj = dataObj!
+    let obj = dataObj
 
     // Files. The medium is a DROPFILES block, which is exactly what the shell drag helpers read.
     #scope(Files)
@@ -488,7 +488,7 @@ private func toGlobalBlock(bytes: const [..] u8)->HGLOBAL
         return null
     }
 
-    Memory.copy(buf!, bytes.buffer, bytes.count)
+    Memory.copy(buf, bytes.buffer, bytes.count)
     discard GlobalUnlock(buf)
     return hglob
 }
@@ -513,11 +513,11 @@ private func buildHDrop(data: *DragData)->HGLOBAL
         return null
     }
 
-    let header = cast(*DROPFILES) base!
+    let header = cast(*DROPFILES) base
     header.pFiles = #sizeof(DROPFILES)
     header.fWide  = TRUE
 
-    var cursor = cast([*] u16) (base! + #sizeof(DROPFILES))
+    var cursor = cast([*] u16) (base + #sizeof(DROPFILES))
     for &f in data.files
     {
         let wide = Utf16.fromUtf8(f.toString())
@@ -540,7 +540,7 @@ private func buildDib(data: *DragData)->HGLOBAL
     if not image do
         return null
 
-    let img   = image!
+    let img   = image
     let size  = cast(u64) #sizeof(Bmp.Header) + img.byteCount
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
     if not hglob do
@@ -553,7 +553,7 @@ private func buildDib(data: *DragData)->HGLOBAL
         return null
     }
 
-    let header = cast(*Bmp.Header) base!
+    let header = cast(*Bmp.Header) base
     header.biSize        = #sizeof(Bmp.Header)
     header.biWidth       = img.width
     header.biHeight      = img.height
@@ -561,7 +561,7 @@ private func buildDib(data: *DragData)->HGLOBAL
     header.biCompression = Bmp.BI_RGB
     header.biBitCount    = img.bitsPerPixel
 
-    Memory.copy(base! + #sizeof(Bmp.Header), img.pixels.buffer, img.byteCount)
+    Memory.copy(base + #sizeof(Bmp.Header), img.pixels.buffer, img.byteCount)
     discard GlobalUnlock(base)
     return hglob
 }
@@ -587,9 +587,9 @@ private func buildFileGroupDescriptor(data: *DragData)->HGLOBAL
         return null
     }
 
-    base![as UINT] = cast(UINT) count
+    base[as UINT] = cast(UINT) count
 
-    let descriptors = cast([*] FILEDESCRIPTORW) (base! + #sizeof(UINT))
+    let descriptors = cast([*] FILEDESCRIPTORW) (base + #sizeof(UINT))
     for i in count
     {
         let item = &data.contents[i]
@@ -626,8 +626,8 @@ private func buildUnicodeText(data: *DragData)->HGLOBAL
         return null
     }
 
-    Memory.copy(buf!, wide.buffer, wide.count * 2)
-    buf![wide.count] = 0
+    Memory.copy(buf, wide.buffer, wide.count * 2)
+    buf[wide.count] = 0
     discard GlobalUnlock(buf)
     return hglob
 }
@@ -802,7 +802,7 @@ private func srcGetStored(obj: *DragDataObject, entry: s64, med: *STGMEDIUM)->HR
         return E_OUTOFMEMORY
     defer discard GlobalUnlock(buf)
 
-    let hglob = toGlobalBlock(Swag.makeSlice(cast(const [*] u8) buf!, size))
+    let hglob = toGlobalBlock(Swag.makeSlice(cast(const [*] u8) buf, size))
     if not hglob do
         return E_OUTOFMEMORY
 
@@ -1125,7 +1125,7 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
     if err != null or not bmp or not raw do
         return result
 
-    let dest = cast([*] u8) raw!
+    let dest = cast([*] u8) raw
     for y in img.height
     {
         for x in img.width
@@ -1156,7 +1156,7 @@ private func attachDragImage(dataObj: *IDataObject, image: const *Image)
     if not found do
         return
 
-    let helper  = found!
+    let helper  = found
     let picture = buildDragBitmap(image)
     if not picture.bmp do
         return
@@ -1232,7 +1232,7 @@ impl Wnd
         let dataObj = cast(*IDataObject) cast(*void) &session.dataObj
         let shown: const *Pixel.Image? = picture orelse data.image()
         if shown do
-            attachDragImage(dataObj, shown!)
+            attachDragImage(dataObj, shown)
 
         var effect = DROPEFFECT_NONE
         let result = DoDragDrop(dataObj, cast(*IDropSource) cast(*void) &session.dropSrc, fromDropEffect(allowed), &effect)

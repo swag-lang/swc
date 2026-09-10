@@ -168,7 +168,7 @@ impl State
         {
             if not .pending do
                 .pending = Memory.new'Request()
-            let pending = .pending!
+            let pending = .pending
             pending.owner      = owner
             pending.surfacePos = surfacePos
             pending.str        = str

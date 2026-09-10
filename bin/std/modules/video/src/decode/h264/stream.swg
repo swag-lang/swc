@@ -488,7 +488,7 @@ impl AvcStream
             let lane        = .threaded[index].lane
             let frameThread = &.frameThreads[lane]
             if frameThread.frame do
-                .decoders[lane].releaseFrame(frameThread.frame!)
+                .decoders[lane].releaseFrame(frameThread.frame)
             frameThread.frame = null
             .decoders[lane].discardAccessUnit()
             .laneStates[lane] = .Free
@@ -596,7 +596,7 @@ impl AvcStream
         if not frameThread.frame do
             fail InvalidFormatError{"H.264 access unit carries no picture"}
 
-        let frame = frameThread.frame!
+        let frame = frameThread.frame
         frameThread.frame = null
         .laneStates[threaded.lane] = .Free
         .fillFrameThreads(source)

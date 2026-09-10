@@ -47,7 +47,7 @@ impl NodeIndex
             {
                 let previous = .siblings.tryFind(children.value.lastId)
                 Swag.assert(previous != null)
-                previous!.value.nextId = node.id
+                previous.value.nextId = node.id
             }
             else do
                 children.value.firstId = node.id
@@ -70,28 +70,28 @@ impl NodeIndex
         let children = .childLists.tryFind(node.parentId)
         Swag.assert(links != null and children != null)
 
-        let previousId = links!.value.previousId
-        let nextId     = links!.value.nextId
+        let previousId = links.value.previousId
+        let nextId     = links.value.nextId
         if previousId
         {
             let previous = .siblings.tryFind(previousId)
             Swag.assert(previous != null)
-            previous!.value.nextId = nextId
+            previous.value.nextId = nextId
         }
         else do
-            children!.value.firstId = nextId
+            children.value.firstId = nextId
 
         if nextId
         {
             let next = .siblings.tryFind(nextId)
             Swag.assert(next != null)
-            next!.value.previousId = previousId
+            next.value.previousId = previousId
         }
         else do
-            children!.value.lastId = previousId
+            children.value.lastId = previousId
 
         .siblings.remove(node.id)
-        if not children!.value.firstId do
+        if not children.value.firstId do
             .childLists.remove(node.parentId)
     }
 
@@ -99,7 +99,7 @@ impl NodeIndex
     {
         let entry = .byId.tryFind(nodeId)
         Swag.assert(entry != null)
-        entry!.value = index
+        entry.value = index
     }
 
     mtd nodePosition(id: u64)->u64
@@ -135,7 +135,7 @@ impl NodeIndex
     {
         let key         = childIndexKey(parentId, name)
         let destination = .byParent.tryFind(key)
-        if destination != null and destination!.value != node.id do
+        if destination != null and destination.value != node.id do
             return false
 
         if node.parentId != parentId or node.name.toString() != name

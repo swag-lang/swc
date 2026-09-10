@@ -90,6 +90,47 @@ unreachable for the same reason.
     Swag.assert(everythingOffExceptOne() == 1)
 }
 
+struct WarnNode
+{
+    value: s32
+}
+
+// The '!' this page describes is deliberately absent here: the dominating test is the proof.
+func warnCount(node: *WarnNode?)->s32
+{
+    if node == null do
+        return 0
+    return node.value
+}
+
+/**
+# An Assertion the Flow Already Proved
+
+'sema_warn_notnull_already_proven' reports a postfix '!' on a value that is already
+non-null. The assertion compiles -- it is a tolerated pass-through -- but it costs a
+runtime guard that can never fire, and it hides what really proves the value present.
+
+```swag
+func count(node: *Node?)->s32
+{
+    if node == null do
+        return 0
+    return node!.value     // warning: the test above already proved it
+}
+```
+
+A generic body is analyzed once per instantiation, and 'value!' can be dead for one
+argument and needed for another; an inlined body and a macro expansion are judged at a
+call site they did not choose. Neither is reported. This is the same line 'orelse' draws:
+what the type can be, not what the flow proves at one site.
+*/
+#test
+{
+    var node = WarnNode{value: 4}
+    Swag.assert(warnCount(&node) == 4)
+    Swag.assert(warnCount(null) == 0)
+}
+
 /**
 # Setting the Policy for a Whole Module
 

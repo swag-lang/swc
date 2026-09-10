@@ -762,7 +762,7 @@ impl LibraryWnd
         let result = menu.doModal(btn, autoDestroy: true)
         if not result do
             return
-        switch result!
+        switch result
         {
         case "capture.library.root":    .navigateFolder(Library.getFolder())
         case "capture.library.browse":  .chooseFolder(false)
@@ -783,7 +783,7 @@ impl LibraryWnd
     {
         if not result do
             return
-        let id = result!
+        let id = result
         if Utf8.startsWith(id, "capture.library.app:")
         {
             .applicationFilter = String.from(id[("capture.library.app:").count until id.count])
@@ -916,7 +916,7 @@ impl LibraryWnd
         {
             for item in .view.items where item.capture and item.fi.fullname == files[0]
             {
-                for tag in item.capture!.tags
+                for tag in item.capture.tags
                 {
                     if not text.isEmpty() do
                         text += ", "

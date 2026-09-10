@@ -133,7 +133,7 @@ func paletteVariant(source: Image, withAlpha: bool)->Image
 func nonNullBytes(bytes: [..] u8?)->const [..] u8
 {
     Swag.assert(bytes != null)
-    return Swag.makeSlice(cast([*] u8) bytes.buffer!, bytes.count)
+    return Swag.makeSlice(cast([*] u8) bytes.buffer, bytes.count)
 }
 
 func setCard(card: *DecoderCard, title, encoding: string, image: Image, encodedSize: u64)

@@ -156,7 +156,7 @@ impl Window
         if .callbacks.onResize
         {
             let {width, height} = try .clientSizeNative()
-            let onResize        = .callbacks.onResize!
+            let onResize        = .callbacks.onResize
             onResize(me, width, height)
         }
 
@@ -176,7 +176,7 @@ impl Window
         if .callbacks.onResize
         {
             let {width, height} = try .clientSizeNative()
-            let onResize        = .callbacks.onResize!
+            let onResize        = .callbacks.onResize
             onResize(me, width, height)
         }
 

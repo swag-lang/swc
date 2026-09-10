@@ -480,9 +480,9 @@ impl Slice
             if not ref0 and not ref1 do
                 fail InvalidFormatError{"H.264 inter block has no reference picture"}
             if ref0 do
-                .awaitJobReference(mb, job, 0, ref0!)
+                .awaitJobReference(mb, job, 0, ref0)
             if ref1 do
-                .awaitJobReference(mb, job, 1, ref1!)
+                .awaitJobReference(mb, job, 1, ref1)
 
             // Luma, and in 4:4:4 the two colour planes with it: a colour plane there is
             // predicted with the same motion and the same interpolation as luma, over a block
@@ -496,8 +496,8 @@ impl Slice
                 let dstStride = frame.planeStride(plane)
                 if ref0 and ref1
                 {
-                    .mcPlaneList(mb, job, 0, ref0!, plane, tempA.buffer, 16)
-                    .mcPlaneList(mb, job, 1, ref1!, plane, tempB.buffer, 16)
+                    .mcPlaneList(mb, job, 0, ref0, plane, tempA.buffer, 16)
+                    .mcPlaneList(mb, job, 1, ref1, plane, tempB.buffer, 16)
                     .combineBi(mb, job, tempA.buffer, tempB.buffer, dst, dstStride, job.width, job.height, luma: plane == 0, plane: plane == 0 ? 0 : plane - 1)
                 }
                 else
@@ -542,8 +542,8 @@ impl Slice
                 let chromaDst = frame.pixChroma(plane, chromaX, chromaY)
                 if ref0 and ref1
                 {
-                    .mcChromaList(mb, job, 0, ref0!, plane, tempA.buffer, 16)
-                    .mcChromaList(mb, job, 1, ref1!, plane, tempB.buffer, 16)
+                    .mcChromaList(mb, job, 0, ref0, plane, tempA.buffer, 16)
+                    .mcChromaList(mb, job, 1, ref1, plane, tempB.buffer, 16)
                     .combineBi(mb, job, tempA.buffer, tempB.buffer, chromaDst, frame.strideChroma, job.width / 2, job.height / 2, luma: false, plane: plane)
                 }
                 else

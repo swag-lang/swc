@@ -64,10 +64,10 @@ internal impl Properties
         // Dynamic strings own a heap buffer, so compare by content not by bytes.
         if item.type == Core.String
         {
-            let s0 = cast(*String) item.dataInstances[0]!
+            let s0 = cast(*String) item.dataInstances[0]
             for i in 1 until n
             {
-                if item.dataInstances[i]![as String] != s0[] do
+                if item.dataInstances[i][as String] != s0[] do
                     return true
             }
 
@@ -98,7 +98,7 @@ internal impl Properties
         if item.type == Core.String
         {
             for i in 1 until n do
-                item.dataInstances[i]![as String] = item.dataInstances[0]![as String]
+                item.dataInstances[i][as String] = item.dataInstances[0][as String]
             return
         }
 

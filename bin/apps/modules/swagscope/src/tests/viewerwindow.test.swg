@@ -161,26 +161,26 @@ func createSidePanelFixture(host: Viewer.Host)
     host.root.applyLayout()
 
     Swag.assert(session.view != null and session.sidePanelHost != null and session.sidePanel != null and session.sidePanelButton != null)
-    Swag.assert(session.sidePanelHost!.parent == &host.root and session.sidePanel!.parent == session.sidePanelHost)
-    Swag.assert(session.sidePanelButton!.parent == infoParent)
-    Swag.assert(session.sidePanelHost!.backgroundStyle == .ToolBar and session.sidePanel!.backgroundStyle == .Panel)
-    Swag.assert(session.sidePanelHost!.padding.x == 0 and session.sidePanelHost!.padding.z == host.root.themeMetrics().panel_GutterSize)
-    Swag.assert(session.sidePanelHost!.padding.y == 0 and session.sidePanelHost!.padding.w == 0)
-    Swag.assert(session.sidePanelHost!.position.width == 220 + host.root.themeMetrics().panel_GutterSize)
-    Swag.assert(not session.sidePanelHost!.isLocallyVisible() and not session.sidePanelButton!.isLocallyVisible())
+    Swag.assert(session.sidePanelHost.parent == &host.root and session.sidePanel.parent == session.sidePanelHost)
+    Swag.assert(session.sidePanelButton.parent == infoParent)
+    Swag.assert(session.sidePanelHost.backgroundStyle == .ToolBar and session.sidePanel.backgroundStyle == .Panel)
+    Swag.assert(session.sidePanelHost.padding.x == 0 and session.sidePanelHost.padding.z == host.root.themeMetrics().panel_GutterSize)
+    Swag.assert(session.sidePanelHost.padding.y == 0 and session.sidePanelHost.padding.w == 0)
+    Swag.assert(session.sidePanelHost.position.width == 220 + host.root.themeMetrics().panel_GutterSize)
+    Swag.assert(not session.sidePanelHost.isLocallyVisible() and not session.sidePanelButton.isLocallyVisible())
 
-    session.sidePanelButton!.show()
-    let closedWidth = session.view!.position.width
-    session.sidePanelButton!.setChecked(true)
-    session.sidePanelButton!.sigCheckedChanged.call(session.sidePanelButton!)
+    session.sidePanelButton.show()
+    let closedWidth = session.view.position.width
+    session.sidePanelButton.setChecked(true)
+    session.sidePanelButton.sigCheckedChanged.call(session.sidePanelButton)
     host.root.applyLayout()
-    Swag.assert(session.sidePanelHost!.isLocallyVisible())
-    Swag.assert(session.view!.position.width == closedWidth - session.sidePanelHost!.position.width)
+    Swag.assert(session.sidePanelHost.isLocallyVisible())
+    Swag.assert(session.view.position.width == closedWidth - session.sidePanelHost.position.width)
 
-    session.sidePanelButton!.setChecked(false)
-    session.sidePanelButton!.sigCheckedChanged.call(session.sidePanelButton!)
+    session.sidePanelButton.setChecked(false)
+    session.sidePanelButton.sigCheckedChanged.call(session.sidePanelButton)
     host.root.applyLayout()
-    Swag.assert(not session.sidePanelHost!.isLocallyVisible() and session.view!.position.width == closedWidth)
+    Swag.assert(not session.sidePanelHost.isLocallyVisible() and session.view.position.width == closedWidth)
 }
 
 #test
@@ -1633,7 +1633,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.currentCommands == null)
     Swag.assert(window.currentView != null and window.currentView != failed)
     Swag.assert(window.instances[0].failureReason == "payload ends before its declared length")
-    let errorView = cast(*ViewerErrorView) window.currentView!
+    let errorView = cast(*ViewerErrorView) window.currentView
     Swag.assert(errorView.reasonLabel.text() == window.instances[0].failureReason.toString())
 }
 

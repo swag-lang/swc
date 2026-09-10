@@ -99,7 +99,7 @@ impl TypeFace
         let str  = String.from(fullname)
         let here = g_HashTypeFace.tryFind(str)
         if here do
-            return here.value!
+            return here.value
 
         let allocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
 

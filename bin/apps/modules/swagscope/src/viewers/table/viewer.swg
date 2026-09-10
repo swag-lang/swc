@@ -313,13 +313,13 @@ private impl IWnd for TableViewer
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure!(me, .failureReason.toString())
+                .reportFailure(me, .failureReason.toString())
             return
         }
 
         .publishDocument()
         if .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
     }
 }
 
@@ -363,7 +363,7 @@ private impl TableViewer
         let columns = tableCountText(.document.columns.count, tableStrings().ui_OneColumn, tableStrings().ui_Columns)
         let kind    = .document.delimiter == '\t' ? "TSV" : "CSV"
         if .reportDetails do
-            .reportDetails!(me, Format.toString(tableStrings().ui_Details, kind, rows.toString(), columns.toString()).toString())
+            .reportDetails(me, Format.toString(tableStrings().ui_Details, kind, rows.toString(), columns.toString()).toString())
     }
 
     mtd retire()->bool
@@ -372,7 +372,7 @@ private impl TableViewer
             return false
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 
@@ -527,7 +527,7 @@ private func fillTableVirtualLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
     if line == null do
         return
-    (cast(*TableViewer) list.parent!).fillLine(line!, index)
+    (cast(*TableViewer) list.parent!).fillLine(line, index)
 }
 
 // Creates the integrated CSV/TSV table view.

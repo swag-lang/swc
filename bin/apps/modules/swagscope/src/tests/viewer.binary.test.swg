@@ -30,7 +30,7 @@ func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWind
     while window.activeChoiceIndex < window.instances.count and steps < 10_000
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if not instance.view or not instance.isLoading or not instance.isLoading!(instance.view!) do
+        if not instance.view or not instance.isLoading or not instance.isLoading(instance.view) do
             break
         Threading.Thread.sleep(1'ms)
         host.fireTimers()
@@ -286,8 +286,8 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     view.applyLayout()
     view.layoutPreviews()
     Swag.assert(view.previewBand != null)
-    Swag.assert(view.previewBand!.children.count == view.doc.previews.count)
-    Swag.assert(view.list.position.y >= view.previewBand!.position.bottom())
+    Swag.assert(view.previewBand.children.count == view.doc.previews.count)
+    Swag.assert(view.list.position.y >= view.previewBand.position.bottom())
     Testing.assertContentFits(view)
 }
 
@@ -781,7 +781,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     defer host.shutdown()
     var result = openTestViewer(binaryViewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
     Swag.assert(result.view != null and result.actions == null and result.commands != null and result.collectMatches != null and result.isLoading != null)
-    let view = cast(*BinaryViewer) result.view!
+    let view = cast(*BinaryViewer) result.view
     finishBinaryViewer(&host, view)
     Swag.assert(not view.failureReason.isEmpty())
 }

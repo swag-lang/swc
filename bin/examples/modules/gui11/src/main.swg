@@ -295,7 +295,7 @@ func playEntrance()
     var group = AnimationGroup.concurrent()
     for card, index in g_Cards
     {
-        let wnd   = card!
+        let wnd   = card
         let delay = Time.Duration.fromSeconds(stagger * cast(f64) index)
 
         var motion: AnimationOptions
@@ -327,8 +327,8 @@ func onEntranceEnded(result: AnimationResult)
     // nothing: no layer, no resample, no per-frame composition.
     for card in g_Cards
     {
-        if not card!.isPendingDestroy do
-            card!.resetPresentation()
+        if not card.isPendingDestroy do
+            card.resetPresentation()
     }
 }
 
@@ -352,7 +352,7 @@ func layoutStagePage()
     var x       = inner.x
     for caption, index in g_StageCaptions
     {
-        caption!.setPosition({x, inner.y, columns[index], 20})
+        caption.setPosition({x, inner.y, columns[index], 20})
         x += columns[index] + 16
     }
 
@@ -370,7 +370,7 @@ func layoutStagePage()
     let cardW  = (width - cast(f32) (StageCardCount - 1) * RowGap) / cast(f32) StageCardCount
 
     for card, index in g_Cards do
-        card!.setPosition({PagePad + cast(f32) index * (cardW + RowGap), stripY, cardW, cardH})
+        card.setPosition({PagePad + cast(f32) index * (cardW + RowGap), stripY, cardW, cardH})
     g_StageHint!.setPosition({PagePad, stripY + cardH + 10, width, 22})
 }
 

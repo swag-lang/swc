@@ -14,7 +14,7 @@ func firstByteOfArg(args: ...)->u8
 {
     let arg  = args[0]
     let data = cast(const [*] u8) arg.buffer
-    let str  = data![as string]
+    let str  = data[as string]
     return str.count ? str[0] : 0
 }
 
@@ -22,7 +22,7 @@ func argCount(args: ...)->u64
 {
     let arg  = args[0]
     let data = cast(const [*] u8) arg.buffer
-    let str  = data![as string]
+    let str  = data[as string]
     return str.count
 }
 

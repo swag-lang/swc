@@ -263,7 +263,7 @@ private impl IWnd for VideoSeekOverlay
     {
         discard evt
         if .timer do
-            .removeTimer(.timer!)
+            .removeTimer(.timer)
     }
 }
 
@@ -292,7 +292,7 @@ internal impl VideoSeekOverlay
         if animator.isActive(.opacityAni) do
             animator.cancel(.opacityAni)
         if .timer do
-            .removeTimer(.timer!)
+            .removeTimer(.timer)
 
         .direction = seconds < 0 ? -1 : 1
         .text      = Format.toString(seconds < 0 ? "-%" : "+%", cast(u64) Math.round(Math.abs(seconds)))
@@ -494,10 +494,10 @@ private func loadVideoSidecars(fileName: string, result: *Array'*Subtitle.Track)
     for file in files where not file.isDirectory() and videoSubtitleExtension(file.fullname.toString())
     {
         let candidate = Path.fileNameWithoutExtension(file.fullname.toString())
-        if not candidate or not Utf8.startsWith(candidate!, stem!, .Latin1NoCase) do
+        if not candidate or not Utf8.startsWith(candidate, stem, .Latin1NoCase) do
             continue
-        let exactName = Latin1.compare(candidate!, stem!, ignoreCase: true) == 0
-        if not exactName and ((candidate!).count <= (stem!).count or candidate![(stem!).count] != '.') do
+        let exactName = Latin1.compare(candidate, stem, ignoreCase: true) == 0
+        if not exactName and ((candidate).count <= (stem).count or candidate[(stem).count] != '.') do
             continue
 
         candidates.add(String.from(file.fullname.toString()))
@@ -670,8 +670,8 @@ private impl VideoViewer
 
         if .voice
         {
-            catch .voice!.stop()
-            .voice!.destroy()
+            catch .voice.stop()
+            .voice.destroy()
             .voice = null
         }
 
@@ -696,7 +696,7 @@ private impl VideoViewer
             .retireRequested = true
             if .timer
             {
-                .removeTimer(.timer!)
+                .removeTimer(.timer)
                 .timer = null
             }
 
@@ -704,8 +704,8 @@ private impl VideoViewer
             // thread closes that reader in the background.
             if .voice
             {
-                catch .voice!.stop()
-                .voice!.destroy()
+                catch .voice.stop()
+                .voice.destroy()
                 .voice = null
                 .audio = null
             }
@@ -788,7 +788,7 @@ internal impl VideoViewer
         // A backend that refuses the ratio keeps playing at 1x, and the audio clock then simply
         // keeps correcting the picture back onto the sound.
         if .voice do
-            catch .voice!.setFrequencyRatio(cast(f32) rate)
+            catch .voice.setFrequencyRatio(cast(f32) rate)
         .refreshDetails()
     }
 
@@ -806,7 +806,7 @@ internal impl VideoViewer
         if not .playing or not .voice or .audioRangePending or .resumeAudioAfterSeek do
             return
 
-        let position = .audio!.timelineStartSeconds() + .voice!.playbackPositionSeconds()
+        let position = .audio!.timelineStartSeconds() + .voice.playbackPositionSeconds()
         if position == .audioClockLast do
             return
 
@@ -826,7 +826,7 @@ internal impl VideoViewer
             return
         }
 
-        if not videoSoundCovers(.audio!, .currentSeconds())
+        if not videoSoundCovers(.audio, .currentSeconds())
         {
             .audioRangePending = true
             return
@@ -834,33 +834,33 @@ internal impl VideoViewer
 
         if .resumeAudioAfterSeek
         {
-            let sample = videoSoundSample(.audio!, .currentSeconds())
-            catch .voice!.seekSampleFrame(sample) as seekError
+            let sample = videoSoundSample(.audio, .currentSeconds())
+            catch .voice.seekSampleFrame(sample) as seekError
             if seekError != null
             {
                 .resumeAudioAfterSeek = false
                 .playing = false
                 .audioRangePending    = false
-                catch .voice!.pause()
+                catch .voice.pause()
                 if .reportFailure do
-                    .reportFailure!(me, Errors.message(seekError))
+                    .reportFailure(me, Errors.message(seekError))
                 return
             }
         }
 
         .resumeAudioAfterSeek = false
         .audioRangePending    = false
-        catch .voice!.play() as playError
+        catch .voice.play() as playError
         if playError != null
         {
             .playing = false
             .refreshTransport()
             if .reportFailure do
-                .reportFailure!(me, Errors.message(playError))
+                .reportFailure(me, Errors.message(playError))
             return
         }
 
-        .audioClockLast = .audio!.timelineStartSeconds() + .voice!.playbackPositionSeconds()
+        .audioClockLast = .audio.timelineStartSeconds() + .voice.playbackPositionSeconds()
         .elapsed        = .audioClockLast
         .clock.restart()
     }
@@ -923,7 +923,7 @@ internal impl VideoViewer
     {
         if not .seekOverlay do
             .seekOverlay = VideoSeekOverlay.create(me)
-        .seekOverlay!.showSeek(seconds)
+        .seekOverlay.showSeek(seconds)
     }
 
     mtd setMuted(muted: bool)
@@ -932,14 +932,14 @@ internal impl VideoViewer
         .muteButton.setChecked(muted)
         .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, themeActionIconSize(.themeMetrics())))
         if .voice do
-            catch .voice!.setVolume(muted ? 0 : .volume)
+            catch .voice.setVolume(muted ? 0 : .volume)
     }
 
     mtd setVolume(volume: f32)
     {
         .volume = Math.clamp(volume, 0, 1)
         if .voice and not .muted do
-            catch .voice!.setVolume(.volume)
+            catch .voice.setVolume(.volume)
     }
 
     // Replaces the active sound track without disturbing picture transport state.
@@ -975,15 +975,15 @@ internal impl VideoViewer
         if coversRange do
             newVoice.seekSampleFrame(videoSoundSample(sound, position))
         if oldVoice do
-            oldVoice!.pause()
+            oldVoice.pause()
         if shouldPlay do
             newVoice.play()
 
         restoreNeeded = false
         if oldVoice
         {
-            catch oldVoice!.stop()
-            oldVoice!.destroy()
+            catch oldVoice.stop()
+            oldVoice.destroy()
         }
 
         .audio             = sound
@@ -1019,11 +1019,11 @@ internal impl VideoViewer
         if not chosen do
             return
 
-        for index in .video.audioTrackCount() where chosen! == commands[index].toString()
+        for index in .video.audioTrackCount() where chosen == commands[index].toString()
         {
             catch .selectAudioTrack(index) as trackError
             if trackError != null and .reportFailure do
-                .reportFailure!(me, Errors.message(trackError))
+                .reportFailure(me, Errors.message(trackError))
             return
         }
     }
@@ -1044,7 +1044,7 @@ internal impl VideoViewer
         let chosen = menu.doModal(.speedButton, autoDestroy: true)
         if not chosen do
             return
-        for rate, index in VideoPlaybackRates where chosen! == commands[index].toString()
+        for rate, index in VideoPlaybackRates where chosen == commands[index].toString()
         {
             .setPlaybackRate(rate)
             return
@@ -1084,7 +1084,7 @@ internal impl VideoViewer
             return
         var text: String
         .subtitleLastSeconds = seconds
-        .subtitleNextChange  = videoSubtitlePresentationAt(track!, seconds, &text)
+        .subtitleNextChange  = videoSubtitlePresentationAt(track, seconds, &text)
         .subtitleOverlay.setSubtitle(text.toString())
     }
 
@@ -1196,21 +1196,21 @@ internal impl VideoViewer
         let chosen = menu.doModal(.subtitleButton, autoDestroy: true)
         if not chosen do
             return
-        if chosen! == "scope.video.subtitle.off"
+        if chosen == "scope.video.subtitle.off"
         {
             .selectSubtitle(.Off)
             return
         }
 
-        if .handleSubtitleSetting(chosen!) do
+        if .handleSubtitleSetting(chosen) do
             return
-        for index in embeddedCount where chosen! == embeddedCommands[index].toString()
+        for index in embeddedCount where chosen == embeddedCommands[index].toString()
         {
             .selectSubtitle(.Embedded, index)
             return
         }
 
-        for index in .subtitleOverlay.sidecars.count where chosen! == sidecarCommands[index].toString()
+        for index in .subtitleOverlay.sidecars.count where chosen == sidecarCommands[index].toString()
         {
             .selectSubtitle(.Sidecar, cast(u32) index)
             return
@@ -1262,7 +1262,7 @@ internal impl VideoViewer
         }
 
         if notify and .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
     }
 
     // Gives up every picture between here and `index`, and moves playback there.
@@ -1276,7 +1276,7 @@ internal impl VideoViewer
     {
         if .playing and .voice
         {
-            catch .voice!.pause()
+            catch .voice.pause()
             .resumeAudioAfterSeek = true
         }
 
@@ -1284,7 +1284,7 @@ internal impl VideoViewer
         .clock.reset()
         .audioClockLast = -1
         if .voice and .audio do
-            .audioRangePending = not videoSoundCovers(.audio!, .elapsed)
+            .audioRangePending = not videoSoundCovers(.audio, .elapsed)
 
         .repositionTo(index)
         .decodeWake.signal()
@@ -1403,15 +1403,15 @@ internal impl VideoViewer
             .resumeAudioAfterSeek = false
             if .voice
             {
-                .elapsed = .audio!.timelineStartSeconds() + .voice!.playbackPositionSeconds()
-                catch .voice!.pause()
+                .elapsed = .audio!.timelineStartSeconds() + .voice.playbackPositionSeconds()
+                catch .voice.pause()
             }
 
             .playing       = false
             .awaitingFrame = false
             .clock.reset()
             if .reportFailure do
-                .reportFailure!(me, failure.toString())
+                .reportFailure(me, failure.toString())
             return false
         }
 
@@ -1425,7 +1425,7 @@ internal impl VideoViewer
         catch .finishMetadata() as metadataError
         if metadataError != null and .reportFailure
         {
-            .reportFailure!(me, Errors.message(metadataError))
+            .reportFailure(me, Errors.message(metadataError))
             return false
         }
 
@@ -1468,7 +1468,7 @@ internal impl VideoViewer
         .decodeWake.signal()
         .refreshTransport()
         if notifyLoading and .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
 
         // A transport seek holds the audio clock until its target picture is on screen. This
         // avoids showing the previous picture while sound has already jumped to the new time.
@@ -1507,22 +1507,22 @@ internal impl VideoViewer
 
         if .voice and .audio
         {
-            let coversRange = videoSoundCovers(.audio!, .elapsed)
+            let coversRange = videoSoundCovers(.audio, .elapsed)
             .audioRangePending = not coversRange
 
             // A paused transport has no later resume point at which to position the sound.
             // Playing seeks wait for the requested picture and are handled by `resumeAudio`.
             if coversRange and not resumeAudio
             {
-                let sample = videoSoundSample(.audio!, .elapsed)
-                catch .voice!.seekSampleFrame(sample) as seekError
+                let sample = videoSoundSample(.audio, .elapsed)
+                catch .voice.seekSampleFrame(sample) as seekError
                 if seekError != null
                 {
                     .playing = false
                     .audioRangePending = false
-                    catch .voice!.pause()
+                    catch .voice.pause()
                     if .reportFailure do
-                        .reportFailure!(me, Errors.message(seekError))
+                        .reportFailure(me, Errors.message(seekError))
                     return
                 }
             }
@@ -1551,21 +1551,21 @@ internal impl VideoViewer
 
         if .voice and .audio
         {
-            .audioRangePending = not videoSoundCovers(.audio!, 0)
+            .audioRangePending = not videoSoundCovers(.audio, 0)
             if not .audioRangePending
             {
-                catch .voice!.seekSampleFrame(videoSoundSample(.audio!, 0)) as seekError
+                catch .voice.seekSampleFrame(videoSoundSample(.audio, 0)) as seekError
                 if seekError != null
                 {
                     .playing = false
-                    catch .voice!.pause()
+                    catch .voice.pause()
                     .refreshTransport()
                     if .reportFailure do
-                        .reportFailure!(me, Errors.message(seekError))
+                        .reportFailure(me, Errors.message(seekError))
                     return
                 }
 
-                catch .voice!.play()
+                catch .voice.play()
             }
         }
 
@@ -1582,7 +1582,7 @@ internal impl VideoViewer
             .resumeAudioAfterSeek = false
             .elapsed = .currentSeconds()
             if .voice do
-                catch .voice!.pause()
+                catch .voice.pause()
             .clock.reset()
             .playing = false
         }
@@ -1594,7 +1594,7 @@ internal impl VideoViewer
                 .elapsed = 0
                 discard .showFrame(0)
                 if .voice do
-                    catch .voice!.seekSampleFrame(0)
+                    catch .voice.seekSampleFrame(0)
             }
 
             .audioClockLast = -1
@@ -1619,7 +1619,7 @@ internal impl VideoViewer
         .elapsed              = 0
         .clock.reset()
         if .voice do
-            catch .voice!.stop()
+            catch .voice.stop()
         discard .showFrame(0)
         .refreshTransport()
     }
@@ -1643,7 +1643,7 @@ internal impl VideoViewer
         {
             catch .completeOpen() as openError
             if openError != null and .reportFailure do
-                .reportFailure!(me, Errors.message(openError))
+                .reportFailure(me, Errors.message(openError))
             return
         }
 
@@ -1653,7 +1653,7 @@ internal impl VideoViewer
         catch .finishMetadata() as metadataError
         if metadataError != null and .reportFailure
         {
-            .reportFailure!(me, Errors.message(metadataError))
+            .reportFailure(me, Errors.message(metadataError))
             return
         }
 
@@ -1683,7 +1683,7 @@ internal impl VideoViewer
         }
 
         .followAudioClock()
-        if .audioRangePending and .audio and videoSoundCovers(.audio!, .currentSeconds()) do
+        if .audioRangePending and .audio and videoSoundCovers(.audio, .currentSeconds()) do
             .resumeAudio()
 
         var head  = 0'u64
@@ -1726,7 +1726,7 @@ internal impl VideoViewer
             .elapsed              = .video.durationInSeconds()
             .clock.reset()
             if .voice do
-                catch .voice!.pause()
+                catch .voice.pause()
             .refreshTransport()
             return
         }
@@ -1843,7 +1843,7 @@ private impl VideoViewer
             let candidate = .video.audioTrack(index)
             if not candidate do
                 continue
-            let track = candidate!
+            let track = candidate
             data.add(.Audio, Format.toString("%", index + 1).toString(), group: true)
             if track.displayName().count do
                 data.add(.Name, track.displayName())
@@ -1859,7 +1859,7 @@ private impl VideoViewer
             let candidate = .video.subtitleTrack(index)
             if not candidate do
                 continue
-            let track = candidate!
+            let track = candidate
             data.add(.Subtitles, Format.toString("%", index + 1).toString(), group: true)
             if not track.name.isEmpty() do
                 data.add(.Name, track.name.toString())
@@ -1876,13 +1876,13 @@ private impl VideoViewer
         let duration = .video.durationInSeconds()
         .details = Format.toString(videoStrings().ui_Details, .video.width(), .video.height(), videoFrameCountText(.video.frameCount()), .video.frameRate().framesPerSecond(), Viewer.durationText(duration))
         if .audio do
-            .details = Format.toString("% · %", .details.toString(), videoAudioDetailsText(.audio!).toString())
+            .details = Format.toString("% · %", .details.toString(), videoAudioDetailsText(.audio).toString())
 
         // An adjusted rate is part of what the reader is watching, so the summary declares it.
         if .playbackRate != 1 do
             .details = Format.toString("% · %", .details.toString(), videoPlaybackRateText(.playbackRate).toString())
         if .reportDetails do
-            .reportDetails!(me, .details.toString())
+            .reportDetails(me, .details.toString())
     }
 
     // Publishes the reader opened by the background worker and starts picture production. This
@@ -1923,7 +1923,7 @@ private impl VideoViewer
         .refreshDetails()
         discard .showFrame(0)
         if .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
     }
 
     mtd finishMetadata() fail
@@ -1995,8 +1995,8 @@ private impl VideoViewer
         {
             if result.voice
             {
-                catch result.voice!.stop()
-                result.voice!.destroy()
+                catch result.voice.stop()
+                result.voice.destroy()
                 result.voice = null
             }
 

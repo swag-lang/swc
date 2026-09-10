@@ -319,13 +319,13 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     settlePdfView(&host, view)
 
     let first = view.cache.resident(0)
-    Swag.assert(first != null and first!.hasTextures and first!.textures.count == 1)
-    Swag.assert(first!.textures[0].isValid())
+    Swag.assert(first != null and first.hasTextures and first.textures.count == 1)
+    Swag.assert(first.textures[0].isValid())
 
     // A second frame reuses the uploaded texture instead of building a new one.
-    let handle = first!.textures[0].handle
+    let handle = first.textures[0].handle
     discard host.render()
-    Swag.assert(first!.textures.count == 1 and first!.textures[0].handle == handle)
+    Swag.assert(first.textures.count == 1 and first.textures[0].handle == handle)
 
     // Closing the document releases every texture with the pages that owned them.
     view.close()
@@ -620,7 +620,7 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     // the frame that first shows it neither decodes nor tessellates.
     let entry = view.cache.resident(0)
     Swag.assert(entry != null)
-    let fitted = entry!.preparedScale
+    let fitted = entry.preparedScale
     Swag.assert(fitted > 0 and not view.preparing)
 
     // Four times the zoom is two buckets up, so the page does not hold the flattening the frame

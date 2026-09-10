@@ -47,7 +47,7 @@ func popupListContentPainter(item: *PopupListCtrlItem, cxt: *PaintContext, rect:
     Swag.assert(combo.popup != null)
 
     // Selecting item 1 via the popup routes back to the combobox.
-    let popup = combo.popup!
+    let popup = combo.popup
     popup.sigClosed!(popup, 1)
     host.pump()
     Swag.assert(combo.popup == null)
@@ -72,7 +72,7 @@ func popupListContentPainter(item: *PopupListCtrlItem, cxt: *PaintContext, rect:
     Swag.assert(combo.popup != null)
 
     // The open popup captured the mouse; closing it via its own dismiss path.
-    let popup = combo.popup!
+    let popup = combo.popup
     popup.sigClosed!(popup, Swag.U32.Max)
     host.pump()
     Swag.assert(combo.popup == null)
@@ -126,7 +126,7 @@ func popupListContentPainter(item: *PopupListCtrlItem, cxt: *PaintContext, rect:
     popup.setSelectedIndex(1)
     popup.show(20, 20, 100)
 
-    let view = cast(*PopupListView) popup.scrollWnd.view!
+    let view = cast(*PopupListView) popup.scrollWnd.view
     Swag.assert(view.hotIdx == 1)
     host.app.setMouseCaptureRaw(null)
     popup.destroy()
@@ -139,7 +139,7 @@ func popupListContentPainter(item: *PopupListCtrlItem, cxt: *PaintContext, rect:
     marked.setSelectedIndex(1)
     marked.show(20, 20, 100)
 
-    let markedView = cast(*PopupListView) marked.scrollWnd.view!
+    let markedView = cast(*PopupListView) marked.scrollWnd.view
     Swag.assert(markedView.hotIdx == Swag.U32.Max)
 
     // The keyboard still starts from the selection, so the first step up lands before it.

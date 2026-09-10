@@ -235,9 +235,9 @@ private func idmlFindEntry(archive: const *ZipArchive, path: string)->const *Zip
 private func idmlReadEntry(fileName: string, archive: const *ZipArchive, path: string)->String fail
 {
     let entry = idmlFindEntry(archive, path)
-    if not entry or entry!.isDirectory do
+    if not entry or entry.isDirectory do
         fail InvalidFormatError{Errors.mkString(Format.toString("IDML package is missing '%'", path).toString())}
-    let bytes = try loadZipEntry(fileName, entry!)
+    let bytes = try loadZipEntry(fileName, entry)
     if not Utf8.isValid(bytes.toSlice()) do
         fail InvalidFormatError{Errors.mkString(Format.toString("IDML entry '%' is not UTF-8 XML", path).toString())}
     return String.from(Swag.makeString(bytes.storage(), bytes.count))
@@ -794,7 +794,7 @@ private func idmlLinkedGraphicSource(documentFileName, item: string, loaded: *u6
 
     let folder = Path.directoryName(documentFileName)
     let name   = Path.fileName(linkedPath.toString())
-    return folder != null and name != null ? idmlLocalGraphicSource(Path.combine(folder!, name).toString(), loaded) : String{}
+    return folder != null and name != null ? idmlLocalGraphicSource(Path.combine(folder, name).toString(), loaded) : String{}
 }
 
 private func idmlEntity(text: string)->rune
@@ -1041,7 +1041,7 @@ private func idmlStoryHtml(source: string, styles: const *HashTable'(String, Idm
         let style    = styles.tryFind(styleKey)
         result += "<div style=\"margin:0;"
         if style do
-            result += idmlTextStyleCss(&style!.value)
+            result += idmlTextStyleCss(&style.value)
         if idmlContainsCjk(content) do
             result += "font-family:cjk;"
         result += "\">"
@@ -1111,7 +1111,7 @@ private func idmlLoadColors(fileName: string, archive: const *ZipArchive)->HashT
     let entry = idmlFindEntry(archive, "Resources/Graphic.xml")
     if not entry do
         return result
-    let source = catch idmlReadEntry(fileName, archive, entry!.path.toString()) as readError
+    let source = catch idmlReadEntry(fileName, archive, entry.path.toString()) as readError
     if readError != null do
         return result
 
@@ -1182,7 +1182,7 @@ private func idmlLoadTextStyles(fileName: string, archive: const *ZipArchive, co
     let entry = idmlFindEntry(archive, "Resources/Styles.xml")
     if not entry do
         return result
-    let source = catch idmlReadEntry(fileName, archive, entry!.path.toString()) as readError
+    let source = catch idmlReadEntry(fileName, archive, entry.path.toString()) as readError
     if readError != null do
         return result
 
@@ -1475,7 +1475,7 @@ private func idmlFlowStory(source: string, frames: const *Array'*IdmlItem)
 
     var totalCapacity: f32
     for frame in frames do
-        totalCapacity += idmlTextFrameCapacity(frame!)
+        totalCapacity += idmlTextFrameCapacity(frame)
 
     cursor = 0
     var allocatedBlocks:  u64
@@ -1484,7 +1484,7 @@ private func idmlFlowStory(source: string, frames: const *Array'*IdmlItem)
     for frame, index in frames
     {
         let remainingFrames = frames.count - index
-        consumedCapacity += idmlTextFrameCapacity(frame!)
+        consumedCapacity += idmlTextFrameCapacity(frame)
         let target  = cast(u64) Math.round(cast(f32) blockCount * consumedCapacity / totalCapacity)
         let minimum = remainingBlocks >= remainingFrames ? 1 : 0
         let maximum = remainingBlocks - (remainingBlocks >= remainingFrames ? remainingFrames - 1 : 0)
@@ -1500,7 +1500,7 @@ private func idmlFlowStory(source: string, frames: const *Array'*IdmlItem)
 
         allocatedBlocks += take
         remainingBlocks -= take
-        frame!.text     = #move text
+        frame.text      = #move text
     }
 }
 
@@ -1535,13 +1535,13 @@ private func idmlFlowTextStories(pages: *Array'IdmlPage, stories: const *HashTab
 
                 if repeated do
                     break
-                frames.add(frame!)
-                if frame!.nextFrame.isEmpty() or frame!.nextFrame == "n" do
+                frames.add(frame)
+                if frame.nextFrame.isEmpty() or frame.nextFrame == "n" do
                     break
-                frame = idmlFindTextFrame(pages, frame!.nextFrame.toString())
+                frame = idmlFindTextFrame(pages, frame.nextFrame.toString())
             }
 
-            idmlFlowStory(story!.value.toString(), &frames)
+            idmlFlowStory(story.value.toString(), &frames)
         }
     }
 }

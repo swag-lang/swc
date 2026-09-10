@@ -186,13 +186,13 @@ public impl MessageDlg
                 }
             }
 
-            .messageScroll!.setScrollSize(0, needed)
+            .messageScroll.setScrollSize(0, needed)
             .applyLayout()
 
             // The vertical bar takes horizontal room, which can add another wrapped line.
-            needed = Math.ceil(.label.itf.measureContent({.messageScroll!.view.position.width, 0}).y)
+            needed = Math.ceil(.label.itf.measureContent({.messageScroll.view.position.width, 0}).y)
             .label.position.height = needed
-            .messageScroll!.setScrollSize(0, needed)
+            .messageScroll.setScrollSize(0, needed)
         }
 
         var contentHeight = Math.min(limit, needed)

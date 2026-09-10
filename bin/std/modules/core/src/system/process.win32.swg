@@ -42,7 +42,7 @@ func currentEnvironment()->ProcessEnvironment
     // The block is a run of zero-terminated 'name=value' strings closed by an empty one. An
     // entry whose name is empty records a per-drive current directory instead of a variable,
     // and the system rebuilds those for a child on its own.
-    let entries = block!
+    let entries = block
     var offset  = 0'u64
     while entries[offset] != 0
     {

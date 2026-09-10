@@ -175,7 +175,7 @@ private impl Application
             return
 
         evt.accepted = true
-        evt.target!.processEvent(&evt)
+        evt.target.processEvent(&evt)
     }
 
     // Send and process an event
@@ -1373,7 +1373,7 @@ impl Application
         // Remove from parent
         if wnd.parent and not wnd.parent.isPendingDestroy
         {
-            let oldParent = wnd.parent!
+            let oldParent = wnd.parent
             let detached  = oldParent.detachChild(wnd)
             Swag.assert(detached)
             oldParent.invalidate()
@@ -1381,7 +1381,7 @@ impl Application
 
         if wnd.isAllocated
         {
-            .toDelete.add({wnd, wnd.type!})
+            .toDelete.add({wnd, wnd.type})
         }
     }
 

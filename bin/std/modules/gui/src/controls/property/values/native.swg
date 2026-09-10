@@ -233,7 +233,7 @@ internal impl Properties
             }
 
             me.adaptCondensedControl(slider)
-            me.flattenCondensedEdit(slider.edit!)
+            me.flattenCondensedEdit(slider.edit)
             item.assignSliderBox(slider)
 
             let unit = Reflection.attributeValue(value, .Unit, "value")

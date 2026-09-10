@@ -97,7 +97,7 @@ internal impl Properties
             let itemP = .addItem(value, data, parentItem)
             if itemP.label != null do
                 itemP.label.hide()
-            with let ed = CheckButton.create(itemP.line!, itemDisplayName(value).toString())
+            with let ed = CheckButton.create(itemP.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right
             }

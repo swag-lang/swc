@@ -186,7 +186,7 @@ private impl RenderOgl
     func oglContext(rc: RenderContext)->*OglContext
     {
         Swag.assert(rc.data != null, "OpenGL render context has no backend state")
-        return cast(*OglContext) rc.data!
+        return cast(*OglContext) rc.data
     }
 
     func hasExtension(name: string)->bool
@@ -1024,9 +1024,9 @@ impl RenderOgl
             return
 
         .uploadPlane(cast(GLuint) texture.handle, view.luma, view.lumaStride, texture.width, texture.height)
-        .uploadPlane(planes!.value.chromaB, view.chromaB, view.chromaStride, view.chromaWidth(), view.chromaHeight())
-        .uploadPlane(planes!.value.chromaR, view.chromaR, view.chromaStride, view.chromaWidth(), view.chromaHeight())
-        planes!.value.factors = view.conversionFactors()
+        .uploadPlane(planes.value.chromaB, view.chromaB, view.chromaStride, view.chromaWidth(), view.chromaHeight())
+        .uploadPlane(planes.value.chromaR, view.chromaR, view.chromaStride, view.chromaWidth(), view.chromaHeight())
+        planes.value.factors = view.conversionFactors()
     }
 
     // Load and register an image for rendering
@@ -1174,8 +1174,8 @@ impl RenderOgl
         let planes = .chromaPlanes.tryFind(texture.handle)
         if planes
         {
-            var chromaB = planes!.value.chromaB
-            var chromaR = planes!.value.chromaR
+            var chromaB = planes.value.chromaB
+            var chromaR = planes.value.chromaR
             glDeleteTextures(1, &chromaB)
             glDeleteTextures(1, &chromaR)
             .chromaPlanes.remove(texture.handle)
@@ -1527,11 +1527,11 @@ impl RenderOgl
                 if not .planarPrevShader do
                     .planarPrevShader = .curShader
                 glActiveTexture(GL_TEXTURE3)
-                glBindTexture(GL_TEXTURE_2D, planarPlanes!.value.chromaB)
+                glBindTexture(GL_TEXTURE_2D, planarPlanes.value.chromaB)
                 glActiveTexture(GL_TEXTURE4)
-                glBindTexture(GL_TEXTURE_2D, planarPlanes!.value.chromaR)
+                glBindTexture(GL_TEXTURE_2D, planarPlanes.value.chromaR)
                 .setShader(&.shaderYuv)
-                let factors = &planarPlanes!.value.factors
+                let factors = &planarPlanes.value.factors
                 glUniform4f(cast(GLint) .shaderYuv.lumaRed,
                             cast(GLfloat) factors.lumaOffset,
                             cast(GLfloat) factors.lumaScale,
@@ -1680,7 +1680,7 @@ impl RenderOgl
         case .UnbindRenderTarget:
             Swag.assert(.curRT != null)
 
-            let curRT = .curRT!
+            let curRT = .curRT
             if curRT.paintAlpha
             {
                 glEnable(GL_BLEND)
@@ -1878,7 +1878,7 @@ impl RenderOgl
     {
         if .curRT
         {
-            let curRT = .curRT!
+            let curRT = .curRT
             glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) curRT.handle)
             glViewport(0, 0, curRT.colorBuffer.width, curRT.colorBuffer.height)
             return
@@ -1912,7 +1912,7 @@ impl RenderOgl
     {
         if not .curShader do
             return
-        let curShader = .curShader!
+        let curShader = .curShader
 
         var mode = 0
         if .clipMaskWriting do

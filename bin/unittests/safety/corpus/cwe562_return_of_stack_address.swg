@@ -131,7 +131,7 @@ impl ViewBag
     mtd opDrop()
     {
         if .slots != null do
-            heapFree(cast(*void) .slots!, 4 * 8)
+            heapFree(cast(*void) .slots, 4 * 8)
         .slots = null
     }
 
@@ -139,8 +139,8 @@ impl ViewBag
     {
         if .slots == null do
             .slots = cast([*] (*s32?)) heapAlloc(4 * 8)
-        .slots![.count] = pointer
-        .count += 1
+        .slots[.count] = pointer
+        .count         += 1
     }
 }
 

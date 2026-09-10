@@ -210,7 +210,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
         var library = expect NativeLibrary.load(artifact.binary.toString())
         let symbol  = library.symbol("prism_shade")
         Swag.assert(symbol != null)
-        let shade = cast(func(f32, f32, f32)->u32) symbol!
+        let shade = cast(func(f32, f32, f32)->u32) symbol
         let color = shade(0, 0, 0)
         Swag.assert((color & 0xFF000000) == 0xFF000000)
     }

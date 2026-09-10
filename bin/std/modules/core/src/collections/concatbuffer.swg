@@ -475,7 +475,7 @@ impl ConcatBuffer
         {
             if not .firstBucket do
                 return
-            let firstBucket = .firstBucket!
+            let firstBucket = .firstBucket
             .curBucket = firstBucket
             .currentSP = firstBucket.data
         }
@@ -516,7 +516,7 @@ impl ConcatBuffer
             return null
         if .lastBucket == .firstBucket
         {
-            let firstBucket = .firstBucket!
+            let firstBucket = .firstBucket
             return Swag.makeSlice(firstBucket.data, firstBucket.count)
         }
 
@@ -528,7 +528,7 @@ impl ConcatBuffer
     {
         if not .firstBucket or .lastBucket != .firstBucket do
             return null
-        let firstBucket = .firstBucket!
+        let firstBucket = .firstBucket
         return Swag.makeSlice(cast(const [*] u8?) firstBucket.data, firstBucket.count)
     }
 

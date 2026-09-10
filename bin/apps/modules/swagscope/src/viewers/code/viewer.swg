@@ -118,7 +118,7 @@ internal impl CodeViewer
     {
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 
@@ -141,7 +141,7 @@ internal impl CodeViewer
             .failureReason = "source stream could not be read"
         .editor.setEstimatedDocumentHeight(0)
         if .hasText and .reportFailure do
-            .reportFailure!(me, .failureReason.toString())
+            .reportFailure(me, .failureReason.toString())
     }
 
     mtd loadNextChunk()
@@ -242,7 +242,7 @@ internal impl CodeViewer
         menu.addItem("125%", "scope.code.zoom125")
         menu.addItem("150%", "scope.code.zoom150")
         menu.addItem("200%", "scope.code.zoom200")
-        switch menu.doModal(.zoomLabel!, autoDestroy: true) orelse ""
+        switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.code.zoom75":  .setZoom(75)
         case "scope.code.zoom100": .setZoom(100)
@@ -268,7 +268,7 @@ internal impl CodeViewer
         result.editor.setFlags(.ReadOnly)
         if info
         {
-            with result.zoomLabel = IconButton.create(info!, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.code.zoom", .CenterContent)
+            with result.zoomLabel = IconButton.create(info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.code.zoom", .CenterContent)
             {
                 .dockStyle = .Center
                 .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
@@ -433,7 +433,7 @@ internal impl IWnd for CodeViewer
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged and .zoomLabel do
-            .zoomLabel!.toolTip = codeStrings().ui_ZoomMenu
+            .zoomLabel.toolTip = codeStrings().ui_ZoomMenu
         .wnd.IWnd.onNotifyEvent(evt)
     }
 

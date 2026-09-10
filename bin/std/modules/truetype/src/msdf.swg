@@ -768,7 +768,7 @@ const MsdfParallelMinSamples: u64 = 2000
 func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
 {
     let faceData = getSlotImpl(slot)
-    let safeSlot = slot!
+    let safeSlot = slot
     clearBitmap(safeSlot)
 
     if safeSlot.format != .Outline do

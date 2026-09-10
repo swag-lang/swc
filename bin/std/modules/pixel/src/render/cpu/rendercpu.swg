@@ -1585,7 +1585,7 @@ private impl RenderCpu
         let white = Color.fromArgb(Argb.White).argb
         if fastAlpha and not batch.solidPaint and not stencilTest and batch.paintImage != null and v0.color == white and v1.color == white and v2.color == white and paint.type == .Texture and paint.uvMode == .FillSubRect and paint.interpolationMode == .Pixel and .contentScale == 1 and (.program == CpuProgram_Simple or (.program == CpuProgram_Default and v0.cov == v1.cov and v1.cov == v2.cov and v0.cov > 0.51))
         {
-            let source       = batch.paintImage!
+            let source       = batch.paintImage
             let directFormat = source.pixelFormat == .BGR8 or source.pixelFormat == .BGRA8 or source.pixelFormat == .RGB8 or source.pixelFormat == .RGBA8
             if directFormat and source.alphaMode == .Straight
             {
@@ -2457,7 +2457,7 @@ impl RenderCpu
         Swag.assert(rt != null and width > 0 and height > 0, "readRenderTarget needs a target and positive dimensions")
         let storage = .findTexture(rt.colorBuffer.handle)
         Swag.assert(storage != null, "render target is not owned by this renderer")
-        let source = storage!
+        let source = storage
 
         // Cropping a copy allocates and walks the whole target a second time, and the read that
         // matters — a page, a thumbnail, a captured frame — asks for the whole of it.
@@ -2558,7 +2558,7 @@ impl RenderCpu
             return
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
-        view.convertToRgb(&storage!.image)
+        view.convertToRgb(&storage.image)
     }
 
     internal mtd addImageImpl(image: const *Image)->Texture
@@ -2587,7 +2587,7 @@ impl RenderCpu
     {
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
-        let target = storage!
+        let target = storage
         Memory.copy(target.image.pixels.buffer, pixels, target.image.byteCount)
     }
 
@@ -2599,7 +2599,7 @@ impl RenderCpu
             return result
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
-        let source = storage!
+        let source = storage
         let image  = source.image.convertedTo(pixelFormat)
         result = image.pixels
         return result

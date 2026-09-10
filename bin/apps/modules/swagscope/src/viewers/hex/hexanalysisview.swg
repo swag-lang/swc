@@ -407,5 +407,5 @@ impl HexAnalysisView
 private func fillHexAnalysisStringLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
     if line do
-        (cast(*HexAnalysisView) list.parent!).fillStringLine(line!, index)
+        (cast(*HexAnalysisView) list.parent!).fillStringLine(line, index)
 }

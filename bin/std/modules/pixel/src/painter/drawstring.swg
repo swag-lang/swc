@@ -850,7 +850,7 @@ impl Painter
         var wordStart = 0
 
         var startLine         = 0
-        let defaultLineHeight = format.font.regular!.height
+        let defaultLineHeight = format.font.regular.height
         for &resetChunk in text.chunks do
             resetChunk.visible = false
 
@@ -1129,7 +1129,7 @@ impl Painter
         // Centered on the capitals rather than on the line box, so the placement stops following
         // the internal leading of the face. See [[Pixel.Font.opticalLineTop]].
         case .OpticalCenter:
-            y = pos.vertCenter() - (totalHeight * 0.5) - format.font.regular!.opticalOffset()
+            y = pos.vertCenter() - (totalHeight * 0.5) - format.font.regular.opticalOffset()
         }
 
         text.boundRect.x      = Swag.F32.Max

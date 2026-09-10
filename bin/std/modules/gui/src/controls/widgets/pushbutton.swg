@@ -312,7 +312,7 @@ impl PushButton
         if not srf or not srf.defaultButton do
             return .form
 
-        var dominant = srf.defaultButton!
+        var dominant = srf.defaultButton
         let focus    = srf.app.keyboardFocusWnd
         if focus and focus != dominant and focus.surface == srf and focus.type == PushButton
         {

@@ -239,7 +239,7 @@ public impl Voice
         defer .dataMutex.unlock()
         if not .handle or not .file do
             fail BadParameterError{"voice is not valid"}
-        let file       = .file!
+        let file       = .file
         let target     = Math.min(frame, file.frameCount)
         let wasPlaying = .hasState(.Playing)
         if wasPlaying do
@@ -306,15 +306,15 @@ public impl Voice
             return 0
         let native   = .playedFramesNative()
         let advanced = native >= .nativeFrameOrigin ? native - .nativeFrameOrigin : 0
-        return Math.min(.playbackBaseFrame + advanced, .file!.frameCount)
+        return Math.min(.playbackBaseFrame + advanced, .file.frameCount)
     }
 
     // Returns the output-device playback position in seconds.
     mtd playbackPositionSeconds()->f64
     {
-        if not .file or not .file!.sampleRate do
+        if not .file or not .file.sampleRate do
             return 0
-        return cast(f64) .playbackSampleFrame() / cast(f64) .file!.sampleRate
+        return cast(f64) .playbackSampleFrame() / cast(f64) .file.sampleRate
     }
 
     // Schedules this voice and its native resources for destruction.

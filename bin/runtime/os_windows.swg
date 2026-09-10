@@ -252,11 +252,11 @@ func __hostProcessSingleton(key: u32, candidate: *void)->*void
 
     // The section stays mapped and its handle stays open for the life of the process: it holds
     // the identity every later artifact resolves against.
-    let view = __Win32RT.MapViewOfFile(mapping!, __Win32RT.FILE_MAP_ALL_ACCESS, 0, 0, 8)
+    let view = __Win32RT.MapViewOfFile(mapping, __Win32RT.FILE_MAP_ALL_ACCESS, 0, 0, 8)
     if not view do
         return candidate
 
-    let slot     = cast(*u64) view!
+    let slot     = cast(*u64) view
     let previous = Swag.atomcmpxchg(slot, 0, cast(u64) candidate)
     return previous == 0 ? candidate : cast(*void) previous
 }
@@ -431,19 +431,19 @@ func __osCommandLine()->string?
     let wide = GetCommandLineW()
     if wide
     {
-        let bytes = WideCharToMultiByte(CP_UTF8, 0, wide!, -1, null, 0, null, null)
+        let bytes = WideCharToMultiByte(CP_UTF8, 0, wide, -1, null, 0, null, null)
         if bytes > 1
         {
             let buffer = cast([*] u8?) VirtualAlloc(null, cast(u64) bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
-            if buffer and WideCharToMultiByte(CP_UTF8, 0, wide!, -1, buffer, bytes, null, null) == bytes do
-                return Swag.makeString(buffer!, cast(u64) (bytes - 1))
+            if buffer and WideCharToMultiByte(CP_UTF8, 0, wide, -1, buffer, bytes, null, null) == bytes do
+                return Swag.makeString(buffer, cast(u64) (bytes - 1))
         }
     }
 
     let cmdLine = GetCommandLineA()
     if not cmdLine do
         return null
-    return Swag.makeString(cmdLine!, (cast(const cstring) cmdLine!).count)
+    return Swag.makeString(cmdLine, (cast(const cstring) cmdLine).count)
 }
 
 // Windows answers this only once the operating system has enabled YMM state, which is exactly
@@ -655,14 +655,14 @@ func __hostDecodeDebugSection(section: [*] u8)->[*] u8?
     let decompressAddress = __Win32RT.GetProcAddress(ntdll, ("RtlDecompressBuffer").buffer)
     if not decompressAddress do
         return null
-    let decompress = cast(__Win32RT.RtlDecompressBufferFn) decompressAddress!
+    let decompress = cast(__Win32RT.RtlDecompressBufferFn) decompressAddress
 
     let decoded = cast([*] u8?) __Win32RT.VirtualAlloc(null, decodedSize, __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
     if not decoded do
         return null
 
     var finalSize: u32
-    let status = decompress(2, decoded!, decodedSize, &section[16], packedSize, &finalSize)
+    let status = decompress(2, decoded, decodedSize, &section[16], packedSize, &finalSize)
     if status < 0 or finalSize != decodedSize
     {
         discard __Win32RT.VirtualFree(decoded, 0, __Win32RT.MEM_RELEASE)

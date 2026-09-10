@@ -213,7 +213,7 @@ impl Decoder
                     let reference1 = .refList.frames[1, cast(u32) motion.refIdx[1]]
                     if reference0 and reference1
                     {
-                        .averageIntegerPrediction(reference0!, reference1!, component, x + mv0X / unit, y + mv0Y / unit, x + mv1X / unit, y + mv1Y / unit, x, y, width, height)
+                        .averageIntegerPrediction(reference0, reference1, component, x + mv0X / unit, y + mv0Y / unit, x + mv1X / unit, y + mv1Y / unit, x, y, width, height)
                         continue
                     }
                 }
@@ -233,7 +233,7 @@ impl Decoder
                     let reference = .refList.frames[list, cast(u32) motion.refIdx[list]]
                     if reference
                     {
-                        .copyIntegerPrediction(reference!, component, x + mvX / unit, y + mvY / unit, x, y, width, height)
+                        .copyIntegerPrediction(reference, component, x + mvX / unit, y + mvY / unit, x, y, width, height)
                         continue
                     }
                 }
@@ -250,9 +250,9 @@ impl Decoder
                     continue
 
                 if not component do
-                    .interpolateLuma(frame!, x, y, width, height, motion.mv[list, 0], motion.mv[list, 1], list)
+                    .interpolateLuma(frame, x, y, width, height, motion.mv[list, 0], motion.mv[list, 1], list)
                 else do
-                    .interpolateChroma(frame!, component, x, y, width, height, motion.mv[list, 0], motion.mv[list, 1], list)
+                    .interpolateChroma(frame, component, x, y, width, height, motion.mv[list, 0], motion.mv[list, 1], list)
             }
 
             .combinePrediction(component, x, y, width, height, motion, sps, identityWeights)

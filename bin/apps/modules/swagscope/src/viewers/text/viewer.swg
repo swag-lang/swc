@@ -190,7 +190,7 @@ impl TextView
     mtd reportStatistics()
     {
         if .reportDetails do
-            .reportDetails!(me, .detailsText().toString())
+            .reportDetails(me, .detailsText().toString())
     }
 
     mtd retranslate()
@@ -220,7 +220,7 @@ impl TextView
         .stopLoading()
         if .statisticsTimer
         {
-            .removeTimer(.statisticsTimer!)
+            .removeTimer(.statisticsTimer)
             .statisticsTimer = null
         }
 
@@ -338,7 +338,7 @@ impl TextView
     {
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 

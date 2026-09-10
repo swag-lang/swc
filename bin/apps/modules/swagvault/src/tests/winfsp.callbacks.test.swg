@@ -264,7 +264,7 @@ func statusForError(kind: ErrorKind)->s32
     {
         let destination = Format.toString("\\vid1\\clip (%).mp4", i + 2)
         let node        = reopened.resolve(destination)
-        Swag.assert(node != null and node!.id == ids[i])
+        Swag.assert(node != null and node.id == ids[i])
         var bytes: [1] u8
         let bytesRead = expect reopened.readNode(ids[i], 0, bytes)
         Swag.assert(bytesRead == 1 and bytes[0] == i + 1)

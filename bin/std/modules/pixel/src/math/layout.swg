@@ -235,8 +235,8 @@ private func mathLayoutRadical(node: *MathNode, font: *Font, style: MathStyle, v
     if node.flag
     {
         index = node.children[1]
-        mathLayoutNode(index!, font, .ScriptScript, variant, options)
-        contentX = Math.max(contentX, index!.metrics.width * 0.72 + 0.08 * em)
+        mathLayoutNode(index, font, .ScriptScript, variant, options)
+        contentX = Math.max(contentX, index.metrics.width * 0.72 + 0.08 * em)
     }
 
     let rootTop    = -radicand.metrics.ascent - gap - rule * 0.5
@@ -254,7 +254,7 @@ private func mathLayoutRadical(node: *MathNode, font: *Font, style: MathStyle, v
 
     if index
     {
-        let value  = index!
+        let value  = index
         let target = rootBottom - rootTop
         let indexY = rootTop + value.metrics.ascent + 0.16 * target
         node.offsets[1]     = {0, indexY}
@@ -276,14 +276,14 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
         sub        = node.children[childIndex]
         subIndex   = childIndex
         childIndex += 1
-        mathLayoutNode(sub!, font, scriptStyle, variant, options)
+        mathLayoutNode(sub, font, scriptStyle, variant, options)
     }
 
     if node.flag2
     {
         sup      = node.children[childIndex]
         supIndex = childIndex
-        mathLayoutNode(sup!, font, scriptStyle, variant, options)
+        mathLayoutNode(sup, font, scriptStyle, variant, options)
     }
 
     let scale      = mathStyleScale(style, options)
@@ -298,9 +298,9 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
         let gap = 0.14'f32 * em
         node.metrics.width = base.metrics.width
         if sub do
-            node.metrics.width = Math.max(node.metrics.width, sub!.metrics.width)
+            node.metrics.width = Math.max(node.metrics.width, sub.metrics.width)
         if sup do
-            node.metrics.width = Math.max(node.metrics.width, sup!.metrics.width)
+            node.metrics.width = Math.max(node.metrics.width, sup.metrics.width)
 
         node.offsets[0]      = {(node.metrics.width - base.metrics.width) * 0.5, 0}
         node.metrics.ascent  = base.metrics.ascent
@@ -308,7 +308,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
 
         if sup
         {
-            let value     = sup!
+            let value     = sup
             let baselineY = -base.metrics.ascent - gap - value.metrics.descent
             node.offsets[supIndex] = {(node.metrics.width - value.metrics.width) * 0.5, baselineY}
             node.metrics.ascent    = Math.max(node.metrics.ascent, -(baselineY - value.metrics.ascent))
@@ -316,7 +316,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
 
         if sub
         {
-            let value     = sub!
+            let value     = sub
             let baselineY = base.metrics.descent + gap + value.metrics.ascent
             node.offsets[subIndex] = {(node.metrics.width - value.metrics.width) * 0.5, baselineY}
             node.metrics.descent   = Math.max(node.metrics.descent, baselineY + value.metrics.descent)
@@ -330,20 +330,20 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
 
         if sup
         {
-            let value = sup!
+            let value = sup
             supY = -Math.max(0.48 * em, base.metrics.ascent * 0.72) + value.metrics.descent
         }
 
         if sub
         {
-            let value = sub!
+            let value = sub
             subY = Math.max(0.24 * em, base.metrics.descent + 0.10 * em) + value.metrics.ascent
         }
 
         if sub and sup
         {
-            let upperBottom = supY + sup!.metrics.descent
-            let lowerTop    = subY - sub!.metrics.ascent
+            let upperBottom = supY + sup.metrics.descent
+            let lowerTop    = subY - sub.metrics.ascent
             let wantedGap   = 0.16 * em
             if lowerTop - upperBottom < wantedGap
             {
@@ -359,7 +359,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
         node.metrics.descent = base.metrics.descent
         if sup
         {
-            let value = sup!
+            let value = sup
             node.offsets[supIndex] = {scriptX, supY}
             node.metrics.width     = Math.max(node.metrics.width, scriptX + value.metrics.width)
             node.metrics.ascent    = Math.max(node.metrics.ascent, -(supY - value.metrics.ascent))
@@ -367,7 +367,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
 
         if sub
         {
-            let value = sub!
+            let value = sub
             node.offsets[subIndex] = {scriptX, subY}
             node.metrics.width     = Math.max(node.metrics.width, scriptX + value.metrics.width)
             node.metrics.descent   = Math.max(node.metrics.descent, subY + value.metrics.descent)

@@ -345,13 +345,13 @@ impl Decoder
         let yColBr = yPb + nPbH
         if (yPb >> sps.ctbLog2Size) == (yColBr >> sps.ctbLog2Size) and yColBr < cast(s32) sps.height and xColBr < cast(s32) sps.width
         {
-            result = .collocatedMotion(collocated!, (xColBr >> 4) << 4, (yColBr >> 4) << 4, list, refIdx)
+            result = .collocatedMotion(collocated, (xColBr >> 4) << 4, (yColBr >> 4) << 4, list, refIdx)
             if result.available do
                 return result
         }
 
         // Otherwise the centre of the prediction block.
-        return .collocatedMotion(collocated!, ((xPb + (nPbW >> 1)) >> 4) << 4, ((yPb + (nPbH >> 1)) >> 4) << 4, list, refIdx)
+        return .collocatedMotion(collocated, ((xPb + (nPbW >> 1)) >> 4) << 4, ((yPb + (nPbH >> 1)) >> 4) << 4, list, refIdx)
     }
 
     // Reads and scales the motion of one region of the collocated picture, clause 8.5.3.2.9.

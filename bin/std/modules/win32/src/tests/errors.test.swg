@@ -17,5 +17,5 @@ using Swag
     Swag.assert(invalidHandle is SystemError)
     let invalid = cast(SystemError) invalidHandle
     Swag.assert(invalid.errorID == InvalidHandleError)
-    Swag.assert(invalid.message != null and invalid.message!.count != 0)
+    Swag.assert(invalid.message != null and invalid.message.count != 0)
 }

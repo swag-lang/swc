@@ -45,7 +45,7 @@ impl Decoder
         else do
             .palette = &.gct
 
-        if not .palette!.size do
+        if not .palette.size do
             fail InvalidFormatError{"GIF frame has no color table"}
         if decodePixels do
             .readImageData(interlace)

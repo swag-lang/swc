@@ -209,7 +209,7 @@ private impl TagBin
 
         output.addNative(TagBinSignature.Fat)
         if plan do
-            output.addNative(.shapeIdFor(plan!))
+            output.addNative(.shapeIdFor(plan))
         else do
             output.addNative(TagBinAdHocShape)
 
@@ -456,7 +456,7 @@ impl TagBin
             return false
         }
 
-        let plan = planFor(cast(const *Swag.TypeInfoStruct) structType!)
+        let plan = planFor(cast(const *Swag.TypeInfoStruct) structType)
         if plan.podFinal
         {
             output.addNative(TagBinSignature.Raw)
@@ -497,7 +497,7 @@ impl TagBin
             // Shaped section: fields arrive in plan order, so the element carries no
             // inline metadata at all. Its offset goes to the fat, everything else is in
             // the shape.
-            let plan = sec.plan!
+            let plan = sec.plan
             Swag.assert(sec.fieldIndex < plan.fields.count)
             let pf = plan.fields.storage() + sec.fieldIndex
             Swag.assert(pf.key == wireFieldKey(val))

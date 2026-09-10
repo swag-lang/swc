@@ -104,7 +104,7 @@ impl ViewerReadingState
         }
 
         if key == "markdown" and session.info do
-            .zoom = (cast(*MarkdownZoomButton) session.info!.children[0]).zoomPercent
+            .zoom = (cast(*MarkdownZoomButton) session.info.children[0]).zoomPercent
     }
 
     mtd applySettings(session: *ViewerSession)
@@ -127,7 +127,7 @@ impl ViewerReadingState
         }
 
         if .viewer == "markdown" and session.info do
-            (cast(*MarkdownZoomButton) session.info!.children[0]).applyZoom(.zoom)
+            (cast(*MarkdownZoomButton) session.info.children[0]).applyZoom(.zoom)
         .restoring = true
         .contentSettingsApplied = false
     }
@@ -137,7 +137,7 @@ impl ViewerReadingState
     {
         if not session.view do
             return true
-        if session.isLoading and session.isLoading(session.view!) do
+        if session.isLoading and session.isLoading(session.view) do
             return false
         if .contentSettingsApplied do
             return true
@@ -145,7 +145,7 @@ impl ViewerReadingState
         // Reapplying an unreachable position interrupts the viewer's own seek and scroll
         // animation on every watch tick, so a shorter replacement can never finish loading.
         .contentSettingsApplied = true
-        switch session.view!.itf
+        switch session.view.itf
         {
         case PdfViewer as view:
             view.pdfView.setPageLayout(.pdfLayout)
@@ -185,7 +185,7 @@ impl ViewerReadingState
             var wnd = session.view
             for index in saved.path
             {
-                if index >= wnd!.children.count
+                if index >= wnd.children.count
                 {
                     wnd = null
                     break
@@ -196,13 +196,13 @@ impl ViewerReadingState
 
             if wnd
             {
-                switch wnd!.itf
+                switch wnd.itf
                 {
                 case ScrollWnd as scroll: scroll.setScrollPos(saved.position)
                 }
             }
         }
 
-        return not session.isLoading or not session.isLoading!(session.view!)
+        return not session.isLoading or not session.isLoading(session.view)
     }
 }

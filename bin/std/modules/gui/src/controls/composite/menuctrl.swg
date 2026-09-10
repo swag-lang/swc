@@ -404,7 +404,7 @@ public impl IWnd for MenuCtrl
             {
                 if not .timer do
                     .timer = .surface!.app.addTimer(300'ms, me)
-                let timer = .timer!
+                let timer = .timer
                 timer.restart()
             }
 
@@ -708,7 +708,7 @@ impl MenuCtrl
 
         if .popupAnchorButton
         {
-            .popupAnchorButton!.paintMenuAnchorContent(painter, anchorRect, colors.menuBar_SelectedText)
+            .popupAnchorButton.paintMenuAnchorContent(painter, anchorRect, colors.menuBar_SelectedText)
             return
         }
 
@@ -776,7 +776,7 @@ impl MenuCtrl
         }
 
         if result != null do
-            .sigCommandSelected.call(me, result!)
+            .sigCommandSelected.call(me, result)
 
         if .bar
         {
@@ -958,7 +958,7 @@ impl MenuCtrl
             if i.separator do
                 continue
 
-            if .getBarItemRect(i!).contains(pos) do
+            if .getBarItemRect(i).contains(pos) do
                 return cast(u32) idx
         }
 
@@ -1268,7 +1268,7 @@ public impl MenuCtrl
     mtd addItems(ids: const [..] WndId)
     {
         for id in ids do
-            .addItem(null, id!)
+            .addItem(null, id)
     }
 
     // Adds a command group followed by a separator.
@@ -1404,7 +1404,7 @@ public impl MenuCtrl
 
         .clearPopupBarAnchor()
         if button do
-            .setPopupButtonAnchor(button!)
+            .setPopupButtonAnchor(button)
         .updateState()
 
         if button
@@ -1437,7 +1437,7 @@ public impl MenuCtrl
 
         if button
         {
-            let anchor = button!.surfaceRect()
+            let anchor = button.surfaceRect()
             let sdw    = .themeMetrics().menuPopup_ShadowSize
 
             var y = anchor.y - sdw

@@ -81,7 +81,7 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
     expect voice.seekSampleFrame(Target)
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.buffer != null and decoded.size >= 512 * 2 * #sizeof(s16))
-    let samples = cast(const [*] s16) decoded.buffer!
+    let samples = cast(const [*] s16) decoded.buffer
     for index in 512 * 2 do
         Swag.assert(samples[index] == wanted[Target * 2 + index])
 }

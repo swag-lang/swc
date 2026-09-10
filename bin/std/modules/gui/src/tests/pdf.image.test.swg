@@ -261,18 +261,18 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     }
 
     Swag.assert(fax != null and photo != null)
-    Swag.assert(fax!.width == 64 and fax!.height == 48)
-    Swag.assert(fax!.pixelColor(0, 0).r == 255)
-    Swag.assert(fax!.pixelColor(20, 10).r == 0)
+    Swag.assert(fax.width == 64 and fax.height == 48)
+    Swag.assert(fax.pixelColor(0, 0).r == 255)
+    Swag.assert(fax.pixelColor(20, 10).r == 0)
 
     // The three bands are the colours the fixture was made from, so the ink complement and the
     // ink-to-screen conversion are both checked here rather than only inside the decoder.
-    Swag.assert(photo!.width == 48 and photo!.height == 32)
-    let red = photo!.pixelColor(8, 16)
+    Swag.assert(photo.width == 48 and photo.height == 32)
+    let red = photo.pixelColor(8, 16)
     Swag.assert(red.r > 200 and red.g < 60 and red.b < 60)
-    let green = photo!.pixelColor(24, 16)
+    let green = photo.pixelColor(24, 16)
     Swag.assert(green.g > 200 and green.r < 60 and green.b < 60)
-    let blue = photo!.pixelColor(40, 16)
+    let blue = photo.pixelColor(40, 16)
     Swag.assert(blue.b > 200 and blue.r < 60 and blue.g < 60)
 
     let rendered = expect page.render({scale: 1})

@@ -190,7 +190,7 @@ impl TweakFile
             }
 
             // Parse and assign value to field
-            let parsedOne: string? = catch StrConv.parseValue(cast([*] u8) currentFolder.data + path.offset, path.type!, one) as valueErr
+            let parsedOne: string? = catch StrConv.parseValue(cast([*] u8) currentFolder.data + path.offset, path.type, one) as valueErr
             if valueErr != null do
                 fail SyntaxError{"invalid value", line: idx + 1}
             one = parsedOne orelse ""

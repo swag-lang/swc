@@ -48,7 +48,7 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
             continue
 
         result.drawn += 1
-        let font  = cache.createFont(face!, 16)
+        let font  = cache.createFont(face, 16)
         var whole = not item.textCodes.isEmpty()
         for code in item.textCodes where not page.fonts[item.fontIndex].glyphFor(font, code).found do
             whole = false

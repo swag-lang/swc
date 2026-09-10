@@ -62,7 +62,7 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
     itf.alloc(&req)
     Swag.assert(req.address != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
     let tracking = header.tracking!
     Swag.assert(header.magic == Allocator.MagicAlloc)
     Swag.assert(tracking.stackCount <= tracking.stack.count)

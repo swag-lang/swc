@@ -276,7 +276,7 @@ impl IWnd for Tab
             var ringCorner = 0'f32
             if subRect
             {
-                ringCorner = subRect!.radius
+                ringCorner = subRect.radius
                 ringGround = v.aniImg.cur()
             }
 
@@ -594,13 +594,13 @@ private impl Tab
             }
 
             let size = metrics.tabBar_PopupButtonSize
-            let bp   = .buttonPopup!
+            let bp   = .buttonPopup
             bp.setPosition({barRect.right() - size - metrics.tabBar_PopupButtonMargin, (.barHeight - size) * 0.5, size, size})
         }
         elif .buttonPopup
         {
             .firstVisibleIndex = 0
-            let bp = .buttonPopup!
+            let bp = .buttonPopup
             bp.destroy()
             .buttonPopup = null
             .computeTabLayout()
@@ -712,7 +712,7 @@ impl Tab
             let view = .items[.selectedIndex]!.view
             if view
             {
-                .app().animator.cancel(view!, AnimationChannel.from("Gui.Page.Opacity"))
+                .app().animator.cancel(view, AnimationChannel.from("Gui.Page.Opacity"))
                 view.resetPresentation()
             }
         }
@@ -831,7 +831,7 @@ impl Tab
         if .pageTransitions and newView
         {
             let direction = oldIndex < index ? 1'f32 : -1'f32
-            discard .app().animator.transitionPage(oldView, newView!, direction)
+            discard .app().animator.transitionPage(oldView, newView, direction)
         }
         else
         {
@@ -886,7 +886,7 @@ private impl Tab
             .hidePopup()
         if .buttonPopup
         {
-            let button = .buttonPopup!
+            let button = .buttonPopup
             button.destroy()
             .buttonPopup = null
         }

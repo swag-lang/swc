@@ -112,7 +112,7 @@ func message(err: any?)->string
     {
         if type == Swag.BaseError
         {
-            let base = cast(const *Swag.BaseError) err.buffer!
+            let base = cast(const *Swag.BaseError) err.buffer
             let text = base.message orelse ""
             return text.count ? text : name
         }

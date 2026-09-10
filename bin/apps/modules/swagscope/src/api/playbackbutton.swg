@@ -71,7 +71,7 @@ impl PlaybackButton
         let menu   = .createMenu()
         let chosen = menu.doModal(me, autoDestroy: true)
         if chosen do
-            discard .playback.applyMenuChoice(.view, chosen!, .showSlideDuration)
+            discard .playback.applyMenuChoice(.view, chosen, .showSlideDuration)
         .refreshIcon()
     }
 

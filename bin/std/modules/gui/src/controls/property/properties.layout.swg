@@ -201,7 +201,7 @@ internal impl Properties
             let item = itemIt!
             if .isGridHeader(item) or not item.numChilds do
                 continue
-            let depth = .itemDepth(item!)
+            let depth = .itemDepth(item)
             while .gridLevelHasMark.count <= depth do
                 .gridLevelHasMark.add(false)
             .gridLevelHasMark[depth] = true

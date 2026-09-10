@@ -37,7 +37,7 @@ impl HexDocument
             .failureReason = "file stream could not be read"
         .readFailed = true
         if .reportFailure do
-            .reportFailure!(.failureReason.toString())
+            .reportFailure(.failureReason.toString())
     }
 
     // Opens `fileName` for reading and reports whether its size could be established.

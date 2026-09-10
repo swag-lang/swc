@@ -382,10 +382,10 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
     // The strings a dynamic entry names live in the section it links to, which is `.dynstr`.
     let s         = binStrings()
     let wide      = is64 ? 8'u64 : 4
-    let at        = dynamic!.offset
+    let at        = dynamic.offset
     var stringsAt = 0'u64
-    if cast(u64) dynamic!.link < sections.count do
-        stringsAt = sections[dynamic!.link].offset
+    if cast(u64) dynamic.link < sections.count do
+        stringsAt = sections[dynamic.link].offset
 
     var entries: Array'u64
     var needed:  Array'String
@@ -400,7 +400,7 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
     }
 
     let total = countText(entries.count, s.word_Entry, s.word_Entries)
-    report.beginGroup(s.elf_Dynamic, total.toString(), s.elf_DynamicDesc, offset: at, length: dynamic!.size, open: true)
+    report.beginGroup(s.elf_Dynamic, total.toString(), s.elf_DynamicDesc, offset: at, length: dynamic.size, open: true)
 
     for entryAt in entries
     {

@@ -99,7 +99,7 @@ alias ReflectedMyStructMethod = func(*MyStruct)->s32
     }
 
     Swag.assert(returnX != null)
-    let method = returnX!
+    let method = returnX
     Swag.assert(method.pointedType!.kind == .Func)
 
     let call = cast(ReflectedMyStructMethod) method.value!

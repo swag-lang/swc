@@ -239,7 +239,7 @@ using Swag, Core, Pixel
     dlg.adaptSizeToMessage(400)
     Swag.assert(dlg.surface!.size().y <= 400)
     Swag.assert(dlg.messageScroll != null)
-    let scroll = dlg.messageScroll!
+    let scroll = dlg.messageScroll
     let needed = dlg.label.itf.measureContent({dlg.label.position.width, 0}).y
     Swag.assert(dlg.label.position.height >= needed)
     Swag.assert(scroll.scrollSize.y > scroll.view.position.height)
@@ -288,7 +288,7 @@ using Swag, Core, Pixel
         long += "extension, "
     dlg.addSection("Everything", long.toString())
 
-    let scroll = dlg.sectionsScroll!
+    let scroll = dlg.sectionsScroll
     Swag.assert(scroll.position.height <= AboutDlg.MaxSectionsHeight)
     Swag.assert(scroll.scrollSize.y > scroll.position.height)
     Swag.assert(dlg.surface!.position.height > oneHeight)

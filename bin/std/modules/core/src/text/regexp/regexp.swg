@@ -515,7 +515,7 @@ private impl RegExp
             return
 
         let destination = .slots.storage()
-        let filled      = source!
+        let filled      = source
         for var s = 0'u64; s < count; s += 1 do
             destination[s] = filled[s]
 

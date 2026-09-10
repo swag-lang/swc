@@ -176,7 +176,10 @@ func narrowIfLet(o: *NarrowOwner)->s32
     return -1
 }
 
-// `!` on an already non-null value is a tolerated no-op.
+// `!` on an already non-null value is a tolerated no-op. It is also reported, because a
+// caller writing one is asserting what the flow already proved; the test keeps the form and
+// silences the report, since proving the form is tolerated is exactly what it is for.
+#[Swag.Warning("sema_warn_notnull_already_proven", .Disable)]
 func narrowNotNullTolerant()->s32
 {
     var node = NarrowNode{value: 9}

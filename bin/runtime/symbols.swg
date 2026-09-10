@@ -33,14 +33,14 @@ func __dbgFindSection(base: *void?)
     if not encoded do
         return
 
-    let section = __hostDecodeDebugSection(encoded!)
+    let section = __hostDecodeDebugSection(encoded)
     if not section do
         return
 
     __dbgCacheSection = section
     if section != encoded do
         __dbgCacheDecoded = section
-    __dbgCacheCount = __dbgU32(section!, 8)
+    __dbgCacheCount = __dbgU32(section, 8)
     __dbgCacheValid = true
 }
 

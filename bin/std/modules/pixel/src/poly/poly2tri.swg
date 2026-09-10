@@ -862,7 +862,7 @@ impl Tessellate
         if not entry do
             return
 
-        var link = entry!.value
+        var link = entry.value
         while link
         {
             if .dupPoint[link - 1] == p
@@ -891,7 +891,7 @@ impl Tessellate
                 if not entry do
                     continue
 
-                var link = entry!.value
+                var link = entry.value
                 while link
                 {
                     let other = .dupPoint[link - 1]

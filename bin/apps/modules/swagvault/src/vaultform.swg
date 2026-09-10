@@ -26,7 +26,7 @@ impl VaultForm
     func finish(form: *FormLayoutCtrl)
     {
         for row in form.rows where row.help != null do
-            row.help!.setLineGap(cast(s32) (form.themeMetrics().dialog_BtnPadding / 2))
+            row.help.setLineGap(cast(s32) (form.themeMetrics().dialog_BtnPadding / 2))
         form.computeLayout()
         form.invalidateLayout()
     }

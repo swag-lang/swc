@@ -17,7 +17,7 @@ internal impl Properties
     {
         if not target or not (.edView != null) do
             return false
-        let view = cast(*Wnd) .edView!
+        let view = cast(*Wnd) .edView
         return target == view or view.isAncestorOf(target)
     }
 
@@ -128,9 +128,9 @@ internal impl Properties
             // Toggle/Expand
             if prop.isGridLike() and
                prop.selItem and
-               prop.selItem!.numChilds
+               prop.selItem.numChilds
             {
-                let selItem = prop.selItem!
+                let selItem = prop.selItem
                 selItem.flags.toggle(.Expanded)
                 prop.updateStates()
             }
@@ -147,7 +147,7 @@ internal impl Properties
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .Leave:
             if prop.hotItem and prop.isGridLike() do
-                ToolTip.hide(prop.hotItem.line!)
+                ToolTip.hide(prop.hotItem.line)
             prop.hotItem = null
 
         case MouseEvent as mouseEvt where (mouseEvt.kind == .Move or mouseEvt.kind == .SetCursor):
@@ -167,14 +167,14 @@ internal impl Properties
             {
                 // Leaving a row: drop its tooltip so it does not linger over the next row.
                 if prop.hotItem do
-                    ToolTip.hide(prop.hotItem.line!)
+                    ToolTip.hide(prop.hotItem.line)
                 prop.hotItem = hit
 
                 if hit and (hit.label != null) and prop.isGridLike()
                 {
                     pt = hit.label.surfaceToLocal(mouseEvt.surfacePos)
                     if hit.label.clientRect().contains(pt) do
-                        ToolTip.show(hit.line!, mouseEvt.surfacePos, hit.description)
+                        ToolTip.show(hit.line, mouseEvt.surfacePos, hit.description)
                 }
 
                 wnd.invalidate()

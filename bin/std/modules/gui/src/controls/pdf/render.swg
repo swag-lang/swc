@@ -60,11 +60,11 @@ private func substituteTypeface(fallbackFontFile: string, resource: const *FontR
     var style      = 0'u64
     if resource
     {
-        serif      = resource!.serif
-        fixedPitch = resource!.fixedPitch
-        if resource!.bold do
+        serif      = resource.serif
+        fixedPitch = resource.fixedPitch
+        if resource.bold do
             style |= 1
-        if resource!.italic do
+        if resource.italic do
             style |= 2
     }
 
@@ -276,7 +276,7 @@ private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Tran
     var naturalTotal  = 0.0'f32
     for code, index in item.textCodes
     {
-        let text = resource!.codeText(code)
+        let text = resource.codeText(code)
         var group: SubstitutedGroup
         group.first    = shaped.glyphs.count
         group.declared = item.textAdvances[index] / info.scale
@@ -351,11 +351,11 @@ private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *Fo
 
     if resource
     {
-        let embedded = fonts.embeddedFace(item.fontIndex, resource!)
+        let embedded = fonts.embeddedFace(item.fontIndex, resource)
         if embedded
         {
-            let font = cache.createFont(embedded!, fontSize)
-            if drawEmbeddedRun(painter, item, resource!, font) do
+            let font = cache.createFont(embedded, fontSize)
+            if drawEmbeddedRun(painter, item, resource, font) do
                 return
         }
     }

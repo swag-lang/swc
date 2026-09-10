@@ -68,12 +68,12 @@ internal impl IWnd for PropertiesView
             // Line list-mode row action buttons up with the right edge of the value column
             // now that the row label has its final size (grid docks them, so this is a no-op).
             if item.arrayAddButton != null do
-                .ed.positionListActionButton(item!, item.arrayAddButton)
+                .ed.positionListActionButton(item, item.arrayAddButton)
 
             // The validation bar is sized to the editor column (and, in grid mode, grows the
             // row) only once the value widgets are positioned, so do it after the first pass
             // and lay the row out again when it changed the sizing.
-            if (item.validationLabel != null) and .ed.syncValidationBar(item!) do
+            if (item.validationLabel != null) and .ed.syncValidationBar(item) do
                 item.line.applyLayout()
 
             item.line.sendResizeEvent()
@@ -85,7 +85,7 @@ internal impl IWnd for PropertiesView
 
         // Vertical size is the bottom position of the last line
         if lastItem do
-            .ed.scrollWnd.setScrollSize(0, lastItem!.line.position.bottom() + 10)
+            .ed.scrollWnd.setScrollSize(0, lastItem.line.position.bottom() + 10)
         else do
             .ed.scrollWnd.setScrollSize(0, 0)
     }

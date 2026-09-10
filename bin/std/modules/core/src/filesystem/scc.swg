@@ -665,7 +665,7 @@ impl Reader
             fail BadParameterError{"SCC has no chunk with this identifier"}
 
         var stored = try .readStoredChunk(id)
-        let result = try decodePayload(.codecs, info!, stored.toSlice())
+        let result = try decodePayload(.codecs, info, stored.toSlice())
         if result.count != info.decodedSize do
             fail InvalidFormatError{"SCC codec returned a different decoded size"}
         if Hash.Crc32.compute(result.toSlice()) != info.decodedChecksum do

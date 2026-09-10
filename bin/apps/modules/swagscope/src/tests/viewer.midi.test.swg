@@ -77,7 +77,7 @@ func midiTestFixture()->String
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let viewer = cast(*MidiViewer) result.view!
+    let viewer = cast(*MidiViewer) result.view
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     assertViewerInfoButton(viewer.zoomLabel)
     Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
@@ -121,7 +121,7 @@ func midiTestFixture()->String
     defer host.shutdown()
     var result = openTestViewer(midiViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let viewer = cast(*MidiViewer) result.view!
+    let viewer = cast(*MidiViewer) result.view
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(not viewer.failureReason.isEmpty())
 }

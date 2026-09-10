@@ -13,7 +13,7 @@ private func callSwagRuntimeHook(handle: *void, stage: u64)
     if not runtimeHook do
         return
 
-    let hook = cast(func(u64, u64, u64, const *(string?))) runtimeHook!
+    let hook = cast(func(u64, u64, u64, const *(string?))) runtimeHook
     hook(stage, Swag.getContext().runtimeTlsIdPlusOne, cast(u64) Swag.getContext().runtimeFlags, &Swag.processInfos().args)
 }
 
@@ -46,7 +46,7 @@ impl NativeLibrary
     {
         if not .handle do
             return null
-        return nativeLibrarySymbol(.handle!, name)
+        return nativeLibrarySymbol(.handle, name)
     }
 
     // Releases the loaded library. Repeated calls have no effect.
@@ -58,8 +58,8 @@ impl NativeLibrary
     {
         if not .handle do
             return
-        callSwagRuntimeHook(.handle!, SwagRuntimeHookDynamicUnload)
-        closeNativeLibrary(.handle!)
+        callSwagRuntimeHook(.handle, SwagRuntimeHookDynamicUnload)
+        closeNativeLibrary(.handle)
         .handle = null
     }
 
@@ -74,8 +74,8 @@ impl NativeLibrary
         var result: retval
         result.handle = try loadNativeLibrary(path)
 
-        callSwagRuntimeHook(result.handle!, SwagRuntimeHookSync)
-        callSwagRuntimeHook(result.handle!, SwagRuntimeHookDynamicLoad)
+        callSwagRuntimeHook(result.handle, SwagRuntimeHookSync)
+        callSwagRuntimeHook(result.handle, SwagRuntimeHookDynamicLoad)
 
         return result
     }

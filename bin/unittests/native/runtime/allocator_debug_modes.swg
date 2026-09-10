@@ -50,7 +50,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     Swag.assert(alloc.stats().countAlloc == 1)
     Swag.assert(alloc.firstAlloc != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
     let tracking = header.tracking!
     Swag.assert(header == alloc.firstAlloc)
     Swag.assert(tracking.stackCount == 0)
@@ -138,7 +138,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     itf.alloc(&req)
     Swag.assert(req.address != null)
 
-    let ptr = cast([*] u8) req.address!
+    let ptr = cast([*] u8) req.address
     for i in 96 do
         Swag.assert(ptr[i] == Allocator.AllocByte)
 
@@ -166,7 +166,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     itf.alloc(&tracked)
     Swag.assert(tracked.address != null)
 
-    let trackedHeader = cast(*AllocatorHeader) (cast([*] u8) tracked.address! - #sizeof(AllocatorHeader))
+    let trackedHeader = cast(*AllocatorHeader) (cast([*] u8) tracked.address - #sizeof(AllocatorHeader))
     Swag.assert(alloc.firstAlloc == trackedHeader)
     alloc.checkAllMemory()
 
@@ -196,12 +196,12 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
 
         // A diagnostic block is its own operating-system region, which is what lets its tracking
         // record sit in front of it and its bounds be checked exactly.
-        let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+        let header = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
         Swag.assert(header.allocAddr != null)
         Swag.assert(header.allocSize % 4096 == 0)
         Swag.assert(cast(u64) header.allocAddr % 4096 == 0)
         Swag.assert(header.tracking == cast(*AllocatorTracking) header.allocAddr)
-        Swag.assert(allocatorPageOf(cast(u64) req.address!) == null)
+        Swag.assert(allocatorPageOf(cast(u64) req.address) == null)
 
         itf.free(&req)
         Swag.assert(req.address == null)

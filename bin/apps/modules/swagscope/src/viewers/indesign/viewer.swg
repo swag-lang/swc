@@ -689,13 +689,13 @@ private impl IndesignViewer
         {
             .zoomLabel.setText(.markupFit ? (.markupFitWidth ? indesignStrings().ui_FitWidth : indesignStrings().ui_Fit) : Format.toString("% %", cast(u32) Math.round(.markupPageScale(.previewIndex) * 100), "%"))
             if .reportChromeChanged do
-                .reportChromeChanged!(me)
+                .reportChromeChanged(me)
             return
         }
 
         .zoomLabel.setText(Format.toString("% %", cast(u32) Math.round(.imageView.effectiveZoom() * 100), "%"))
         if .reportChromeChanged do
-            .reportChromeChanged!(me)
+            .reportChromeChanged(me)
     }
 
     mtd markupFitScale(index: u64)->f32
@@ -777,7 +777,7 @@ private impl IndesignViewer
     mtd reportCurrentDetails()
     {
         if .reportDetails do
-            .reportDetails!(me, .details.toString())
+            .reportDetails(me, .details.toString())
     }
 
     mtd showCachedPreview(index: u64)->bool
@@ -844,7 +844,7 @@ private impl IndesignViewer
         .previewLoadPending = true
         .previewLoadTimer   = .addTimer(Viewer.BackgroundPollInterval)
         if .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
     }
 
     mtd selectPreview(index: u64)
@@ -875,10 +875,10 @@ private impl IndesignViewer
         Swag.assert(index < .markupPages.count)
         .previewIndex = index
         .htmlView?.destroy()
-        .markupRenderedScale       = .markupPageScale(index)
+        .markupRenderedScale      = .markupPageScale(index)
         .htmlView = HtmlView.createText(me, .markupPages[index].html(.markupRenderedScale).toString())
-        .htmlView!.dockStyle       = .Center
-        .htmlView!.backgroundStyle = .View
+        .htmlView.dockStyle       = .Center
+        .htmlView.backgroundStyle = .View
         .imageView.hide()
         .hasPreviewContent = true
         .details = .markupDetails(index)
@@ -886,7 +886,7 @@ private impl IndesignViewer
         .refreshZoom()
         .reportCurrentDetails()
         .applyLayout()
-        .setInitialFocus(.htmlView!)
+        .setInitialFocus(.htmlView)
     }
 
     mtd publishDocument(document: *IndesignViewerDocument)
@@ -955,7 +955,7 @@ private impl IndesignViewer
         options.title   = indesignStrings().ui_GoToPage
         options.message = Format.toString(indesignStrings().ui_PageRange, .pageCount()).toString()
         options.text    = Format.toString("%", .previewIndex + 1).toString()
-        let dialog = EditDlg.createSingleLine(.surface!, options)
+        let dialog = EditDlg.createSingleLine(.surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return
         discard .goToTypedPage(dialog.text().toString())
@@ -978,13 +978,13 @@ private impl IndesignViewer
         let chosen = menu.doModal(.pageLabel, autoDestroy: true)
         if not chosen do
             return
-        if chosen! == "scope.indesign.goToPage"
+        if chosen == "scope.indesign.goToPage"
         {
             .promptGoToPage()
             return
         }
 
-        for command, index in commands where chosen! == command.toString()
+        for command, index in commands where chosen == command.toString()
         {
             .selectPreview(index)
             return
@@ -1017,7 +1017,7 @@ private impl IndesignViewer
     mtd clearSearch()
     {
         if .isMarkup() and .htmlView do
-            .htmlView!.clearSearch()
+            .htmlView.clearSearch()
     }
 
     mtd retire()->bool
@@ -1028,13 +1028,13 @@ private impl IndesignViewer
             return false
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 
         if .previewLoadTimer
         {
-            .removeTimer(.previewLoadTimer!)
+            .removeTimer(.previewLoadTimer)
             .previewLoadTimer = null
         }
 
@@ -1069,13 +1069,13 @@ private impl IWnd for IndesignViewer
             if not .failureReason.isEmpty()
             {
                 if .reportFailure do
-                    .reportFailure!(me, .failureReason.toString())
+                    .reportFailure(me, .failureReason.toString())
                 return
             }
 
             .publishDocument(&document)
             if .reportLoadingChanged do
-                .reportLoadingChanged!(me)
+                .reportLoadingChanged(me)
             return
         }
 
@@ -1108,13 +1108,13 @@ private impl IWnd for IndesignViewer
         {
             .failureReason = failure
             if .reportFailure do
-                .reportFailure!(me, .failureReason.toString())
+                .reportFailure(me, .failureReason.toString())
         }
 
         .startRequestedPreview()
 
         if .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)

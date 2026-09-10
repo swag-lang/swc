@@ -282,7 +282,7 @@ impl IWnd for Properties
         var scan = cast(*PropertiesItem?) item
         while scan
         {
-            if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, item!, evt.id!)
+            if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, item, evt.id)
             {
                 .refreshItem(item)
                 .commitItemChange(item)
@@ -588,7 +588,7 @@ impl Properties
         let typeStruct = cast(const *Swag.TypeInfoStruct) typeof
         .addStructInternal(typeStruct, cast([*] u8) bases[0], item)
 
-        let itemn = item!
+        let itemn = item
         itemn.numChilds = cast(u32) (.items.count - numItemsBefore)
 
         .assignInstances(firstItemIdx, bases)
@@ -621,7 +621,7 @@ impl Properties
             if not it.data do
                 continue
 
-            if .isUnderDynamicArray(it!)
+            if .isUnderDynamicArray(it)
             {
                 it.dataInstances.add(it.data)
                 continue

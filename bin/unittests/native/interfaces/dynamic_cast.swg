@@ -103,7 +103,7 @@ func runIntrinsicDynamicTypeInfo()->bool
     Swag.assert(not itf is PointerWrapper)
     Swag.assert(itf.buffer != null)
     Swag.assert(itfBase != null)
-    Swag.assert(itfBase!.value == 10)
+    Swag.assert(itfBase.value == 10)
 
     let dyn: any = derived
     let dynBase  = dyn as Base
@@ -111,7 +111,7 @@ func runIntrinsicDynamicTypeInfo()->bool
     Swag.assert(dyn is Base)
     Swag.assert(not dyn is PointerWrapper)
     Swag.assert(dynBase != null)
-    Swag.assert(dynBase!.value == 10)
+    Swag.assert(dynBase.value == 10)
 
     let notStruct: any = 33
     Swag.assert(not notStruct is Base)

@@ -1135,11 +1135,11 @@ internal impl CeltDecoder
 
             target[0] = sign ? -1.0'f32 : 1.0
             if y do
-                target = y!
+                target = y
         }
 
         if lowbandOut do
-            lowbandOut![0] = x[0]
+            lowbandOut[0] = x[0]
         return 1
     }
 
@@ -1177,7 +1177,7 @@ internal impl CeltDecoder
             ctx.remainingBits -= sctx.qalloc
             var nextLowband: [*] f32?
             if lowband do
-                nextLowband = lowband! + half
+                nextLowband = lowband + half
             var rebalance = ctx.remainingBits
             if mbits >= sbits
             {
@@ -1241,7 +1241,7 @@ internal impl CeltDecoder
             {
                 ctx.seed = lcgRand(ctx.seed)
                 let tmp = ctx.seed & 0x8000 ? 1.0 / 256.0 : -1.0 / 256.0
-                x[j] = lowband![j] + cast(f32) tmp
+                x[j] = lowband[j] + cast(f32) tmp
             }
 
             cm = fillMask
@@ -1272,14 +1272,14 @@ internal impl CeltDecoder
         {
             let scratch = .scratch.storage()
             for j in n do
-                scratch[j] = lowband![j]
+                scratch[j] = lowband[j]
             lowband = scratch
         }
 
         for k in recombine
         {
             if lowband do
-                .haar1(lowband!, n >> k, 1'u32 << k)
+                .haar1(lowband, n >> k, 1'u32 << k)
             fill = BitInterleave[fill & 0xF] | (BitInterleave[fill >> 4] << 2)
         }
 
@@ -1288,7 +1288,7 @@ internal impl CeltDecoder
         while (nb & 1) == 0 and tfChange < 0
         {
             if lowband do
-                .haar1(lowband!, nb, blocks)
+                .haar1(lowband, nb, blocks)
             fill       |= fill << blocks
             blocks     <<= 1
             nb         >>= 1
@@ -1299,7 +1299,7 @@ internal impl CeltDecoder
         let b0  = blocks
         let nb0 = nb
         if b0 > 1 and lowband do
-            .deinterleaveHadamard(lowband!, nb >> recombine, b0 << recombine, longBlocks)
+            .deinterleaveHadamard(lowband, nb >> recombine, b0 << recombine, longBlocks)
 
         var cm = .quantPartition(ctx, x, n, bBits, blocks, lowband, cast(s32) lm, gain, fill, dec)
 
@@ -1326,7 +1326,7 @@ internal impl CeltDecoder
         {
             let scale = cast(f32) Math.sqrt(cast(f64) n0)
             for j in n0 do
-                lowbandOut![j] = scale * x[j]
+                lowbandOut[j] = scale * x[j]
         }
 
         return cm & ((1'u32 << blocks) - 1)
@@ -1576,7 +1576,7 @@ internal impl CeltDecoder
             else
             {
                 if y do
-                    xcm = .quantBandStereo(&ctx, x, y!, n, b, B, lowband, lm, lowbandOut, useScratch, xcm | ycm, dec)
+                    xcm = .quantBandStereo(&ctx, x, y, n, b, B, lowband, lm, lowbandOut, useScratch, xcm | ycm, dec)
                 else do
                     xcm = .quantBand(&ctx, x, n, b, B, lowband, lm, lowbandOut, 1.0, useScratch, xcm | ycm, dec)
                 ycm = xcm

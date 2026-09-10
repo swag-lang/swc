@@ -319,19 +319,19 @@ impl HtmlStyleSheet
         {
             let found = .idIndex.tryFind(id)
             if found do
-                output.add(found!.value.toSlice())
+                output.add(found.value.toSlice())
         }
 
         for value in document.classes(element)
         {
             let found = .classIndex.tryFind(document.text(value[]))
             if found do
-                output.add(found!.value.toSlice())
+                output.add(found.value.toSlice())
         }
 
         let byTag = .tagIndex.tryFind(document.name(element))
         if byTag do
-            output.add(byTag!.value.toSlice())
+            output.add(byTag.value.toSlice())
         output.add(.universal.toSlice())
         output.sort()
     }

@@ -132,7 +132,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
         return false
 
     var probe: ReflectionProbe = {x: seed}
-    let ping   = cast(ReflectionProbePingFn) method.value!
+    let ping   = cast(ReflectionProbePingFn) method.value
     let result = ping(&probe)
     ReflectionRuntimePointerCalls += 1
     return result == seed + 1
@@ -311,7 +311,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     Swag.assert(Reflection.enumUnderlyingType(enumType) == u32)
     Swag.assert(enumValue.name == "Busy")
     Swag.assert(cast(const *u32?) enumValue.value != null)
-    Swag.assert(enumValue.value![as u32] == 1)
+    Swag.assert(enumValue.value[as u32] == 1)
     Swag.assert(Reflection.enumName(enumType, &state) == "ProbeState.Busy")
     Swag.assert(Reflection.enumName(enumType, &state, fullyQualified: false) == "Busy")
     Swag.assert(not Reflection.isFlagsEnum(enumType))

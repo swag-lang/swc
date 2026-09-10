@@ -170,7 +170,7 @@ private impl Type2State
         .x = x
         .y = y
         if .builder do
-            .builder!.moveTo(x, y)
+            .builder.moveTo(x, y)
     }
 
     mtd lineTo(x, y: f64)
@@ -178,7 +178,7 @@ private impl Type2State
         .x = x
         .y = y
         if .builder do
-            .builder!.lineTo(x, y)
+            .builder.lineTo(x, y)
     }
 
     mtd curveTo(c1x, c1y, c2x, c2y, x, y: f64)
@@ -186,7 +186,7 @@ private impl Type2State
         .x = x
         .y = y
         if .builder do
-            .builder!.curveTo(c1x, c1y, c2x, c2y, x, y)
+            .builder.curveTo(c1x, c1y, c2x, c2y, x, y)
     }
 }
 
@@ -643,7 +643,7 @@ func runType2Charstring(font: *CffFont, gid: u32, builder: *OutlineBuilder?)->f6
 
     execType2(&state, font.charStrings.item(font.block, gid), 0)
     if builder do
-        builder!.closeContour()
+        builder.closeContour()
 
     // A composed glyph is drawn as its base plus its accent, placed by the offsets the
     // charstring ended with. Both parts are named through StandardEncoding, never by index.
@@ -654,7 +654,7 @@ func runType2Charstring(font: *CffFont, gid: u32, builder: *OutlineBuilder?)->f6
         if baseGid do
             discard runType2Charstring(font, baseGid, builder)
         if accentGid do
-            runComposedAccent(font, accentGid, builder!, state.seacAdx, state.seacAdy)
+            runComposedAccent(font, accentGid, builder, state.seacAdx, state.seacAdy)
     }
 
     return state.width
@@ -756,7 +756,7 @@ private impl Type1State
         }
 
         if .builder do
-            .builder!.moveTo(x, y)
+            .builder.moveTo(x, y)
     }
 
     mtd lineTo(x, y: f64)
@@ -764,7 +764,7 @@ private impl Type1State
         .x = x
         .y = y
         if .builder do
-            .builder!.lineTo(x, y)
+            .builder.lineTo(x, y)
     }
 
     mtd curveTo(c1x, c1y, c2x, c2y, x, y: f64)
@@ -772,7 +772,7 @@ private impl Type1State
         .x = x
         .y = y
         if .builder do
-            .builder!.curveTo(c1x, c1y, c2x, c2y, x, y)
+            .builder.curveTo(c1x, c1y, c2x, c2y, x, y)
     }
 
     // Replays a collected flex as the two curves it stands for.
@@ -785,8 +785,8 @@ private impl Type1State
         .flexing = false
         if .flexCount < 7 or not .builder do
             return
-        .builder!.curveTo(.flexX[1], .flexY[1], .flexX[2], .flexY[2], .flexX[3], .flexY[3])
-        .builder!.curveTo(.flexX[4], .flexY[4], .flexX[5], .flexY[5], .flexX[6], .flexY[6])
+        .builder.curveTo(.flexX[1], .flexY[1], .flexX[2], .flexY[2], .flexX[3], .flexY[3])
+        .builder.curveTo(.flexX[4], .flexY[4], .flexX[5], .flexY[5], .flexX[6], .flexY[6])
         .x = .flexX[6]
         .y = .flexY[6]
     }
@@ -850,7 +850,7 @@ private func execType1(state: *Type1State, code: const [..] u8?, depth: u32) fai
 
         case 9:
             if state.builder do
-                state.builder!.closeContour()
+                state.builder.closeContour()
             state.depth = 0
 
         case 21:
@@ -1079,7 +1079,7 @@ func runType1Charstring(font: *Type1Font, gid: u32, builder: *OutlineBuilder?)->
 
     execType1(&state, font.charstrings[gid].toSlice(), 0)
     if builder do
-        builder!.closeContour()
+        builder.closeContour()
 
     if builder and state.seacBase >= 0 and state.seacBase < 256 and state.seacAccent >= 0 and state.seacAccent < 256
     {
@@ -1091,7 +1091,7 @@ func runType1Charstring(font: *Type1Font, gid: u32, builder: *OutlineBuilder?)->
         // The accent is placed relative to the base glyph's own sidebearing, which is what
         // keeps a composed glyph aligned when the two parts were drawn with different ones.
         if accentGid do
-            runType1ComposedAccent(font, accentGid, builder!, state.seacAdx - state.seacAsb + state.sideBearingX, state.seacAdy)
+            runType1ComposedAccent(font, accentGid, builder, state.seacAdx - state.seacAsb + state.sideBearingX, state.seacAdy)
     }
 
     return state.width

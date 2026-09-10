@@ -466,7 +466,7 @@ impl FileBrowserCtrl
         if not .options.state do
             return
 
-        let state = me .options.state!
+        let state = me .options.state
         state.currentFolder       = me.currentFolder
         state.nameColumnWidth     = cast() me.listCtrl.header.itemWidthForColumn(0)
         state.modifiedColumnWidth = cast() me.listCtrl.header.itemWidthForColumn(1)
@@ -679,7 +679,7 @@ impl FileBrowserCtrl
         // Default to the first real location when nothing else selected a folder.
         if fileBrowser.currentFolder.isEmpty() and fileBrowser.treeCtrl
         {
-            let tree = fileBrowser.treeCtrl!
+            let tree = fileBrowser.treeCtrl
             for line, idx in tree.lines where line and not line.separator
             {
                 tree.selectLine(cast(u32) idx)

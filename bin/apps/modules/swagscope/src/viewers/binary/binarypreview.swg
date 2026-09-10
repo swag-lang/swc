@@ -93,7 +93,7 @@ private func addTagBinImage(bytes: const [..] u8, label: string, previews: *Arra
     if decodeError != null or image == null do
         return
     var preview: BinaryPreview
-    preview.image = #move image![]
+    preview.image = #move image[]
     preview.label = label
     Memory.delete(image)
     previews.add(#move preview)

@@ -81,7 +81,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
         pollFileWatch(&host, window)
     completeQueuedViewerFile(&host, window)
     host.fireTimer(window.fileWatchTimer)
-    Swag.assert((cast(*ScrollWnd) window.currentView!.children[0]).scrollPosition().y == 0)
+    Swag.assert((cast(*ScrollWnd) window.currentView.children[0]).scrollPosition().y == 0)
 }
 
 // Idle document streams permit exclusive saves before all their content has been consumed.

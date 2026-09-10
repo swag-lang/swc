@@ -701,7 +701,7 @@ impl Wnd
 
         if .parent
         {
-            let oldParent = .parent!
+            let oldParent = .parent
             let detached  = oldParent.detachChild(me)
             Swag.assert(detached)
         }
@@ -1446,7 +1446,7 @@ impl Wnd
     {
         if not .surface do
             return 1
-        return .surface!.dpiScale
+        return .surface.dpiScale
     }
 
     // Convert a surface coordinate to a local coordinate (relative to me)
@@ -1990,7 +1990,7 @@ impl Wnd
     {
         var result = me
         while result.focusDelegate do
-            result = result.focusDelegate!
+            result = result.focusDelegate
         return result
     }
 
@@ -2171,7 +2171,7 @@ impl Wnd
     {
         var result = me
         while result.parent do
-            result = result.parent!
+            result = result.parent
         return result
     }
 

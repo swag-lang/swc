@@ -39,7 +39,7 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
-        let validNode = node!
+        let validNode = node
         with output
         {
             // Windows reports the space a file occupies, so a file always
@@ -93,7 +93,7 @@ namespace WinFsp
         let node = volume.resolve(cString(path))
         if not node do
             return StatusObjectNameNotFound
-        nodeId[] = node!.id
+        nodeId[] = node.id
         return fillInfo(volume, nodeId[], info)
     }
 
@@ -197,7 +197,7 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
-        if node!.isDirectory() do
+        if node.isDirectory() do
             return StatusFileIsDirectory
         let count = catch volume.readNode(nodeId, offset, Swag.makeSlice(cast([*] u8) buffer!, length)) as err
         if err != null do
@@ -220,7 +220,7 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
-        let validNode = node!
+        let validNode = node
         if validNode.isDirectory() do
             return StatusFileIsDirectory
         var writeOffset = writeToEnd ? validNode.size : offset
@@ -282,7 +282,7 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
-        let validNode = node!
+        let validNode = node
         if attributes != Swag.U32.Max
         {
             validNode.attributes = attributes ? attributes : FileAttributeNormal
@@ -312,7 +312,7 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
-        let validNode = node!
+        let validNode = node
         if validNode.isDirectory() do
             return StatusFileIsDirectory
 
@@ -336,7 +336,7 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if nodeId == 1 do
             return StatusAccessDenied
-        let validNode = node!
+        let validNode = node
         if (validNode.attributes & FileAttributeReadOnly) != 0 do
             return StatusAccessDenied
         if validNode.isDirectory() and volume.hasChildren(nodeId) do
@@ -362,14 +362,14 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
-        let stored    = node!.security.toSlice()
+        let stored    = node.security.toSlice()
         let available = securitySize[]
         securitySize[] = cast(u32) stored.count
         if not stored.count do
             return StatusSuccess
         if not security or available < stored.count do
             return security ? StatusBufferOverflow : StatusSuccess
-        Swag.memcpy(security!, stored.buffer, stored.count)
+        Swag.memcpy(security, stored.buffer, stored.count)
         return StatusSuccess
     }
 
@@ -381,7 +381,7 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
-        let validNode = node!
+        let validNode = node
         validNode.security.resize(securitySize)
         if securitySize do
             Swag.memcpy(validNode.security.buffer, security!, securitySize)
@@ -403,7 +403,7 @@ namespace WinFsp
         let directory = volume.nodeById(nodeId)
         if not directory do
             return StatusObjectNameNotFound
-        if not directory!.isDirectory() do
+        if not directory.isDirectory() do
             return StatusNotADirectory
 
         let markerName = cString(marker)
@@ -417,7 +417,7 @@ namespace WinFsp
                 if not emit(emitContext, (".").buffer, &info) do
                     return StatusSuccess
 
-                let parentId = directory!.parentId
+                let parentId = directory.parentId
                 discard fillInfo(volume, parentId, &info)
                 if not emit(emitContext, ("..").buffer, &info) do
                     return StatusSuccess
@@ -427,7 +427,7 @@ namespace WinFsp
         }
         elif nodeId != 1 and sameName(markerName, ".")
         {
-            let parentId = directory!.parentId
+            let parentId = directory.parentId
             discard fillInfo(volume, parentId, &info)
             if not emit(emitContext, ("..").buffer, &info) do
                 return StatusSuccess
@@ -439,12 +439,12 @@ namespace WinFsp
         {
             let markerNode = volume.findChild(nodeId, markerName)
             if markerNode do
-                child = volume.nextSibling(markerNode!.id)
+                child = volume.nextSibling(markerNode.id)
         }
 
         while child
         {
-            let current = child!
+            let current = child
             discard fillInfo(volume, current.id, &info)
             if not emit(emitContext, current.name.buffer, &info) do
                 return StatusSuccess
@@ -467,7 +467,7 @@ namespace WinFsp
         if value == "." do
             return fillInfo(volume, directoryId, info)
         if value == ".." do
-            return fillInfo(volume, directory!.parentId, info)
+            return fillInfo(volume, directory.parentId, info)
         let child = volume.findChild(directoryId, value)
         return child ? fillInfo(volume, child.id, info) : StatusObjectNameNotFound
     }

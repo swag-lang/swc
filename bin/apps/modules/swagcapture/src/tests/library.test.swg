@@ -22,7 +22,7 @@ impl IAllocator for LibraryRejectAllocator
     f.setup(registerHeadlessCommands: true)
     defer f.shutdown()
     discard f.setupLibraryWnd()
-    let libWnd = cast(*Wnd) f.main.libWnd!
+    let libWnd = cast(*Wnd) f.main.libWnd
 
     var sizeEvt = Gui.Testing.commandState(ActionRecentSize.LibBig)
     Swag.assert(Gui.Testing.actionUpdate'ActionRecentSize(f.main, ActionRecentSize.LibBig, &sizeEvt))
@@ -122,7 +122,7 @@ impl IAllocator for LibraryRejectAllocator
     f.setup()
     defer f.shutdown()
     let lib  = f.setupLibraryWnd()
-    let view = lib.view!
+    let view = lib.view
     let wnd  = cast(*Wnd) lib
 
     let old   = testAddLibraryItem(view, "old.scc", 10, 1)
@@ -242,7 +242,7 @@ impl IAllocator for LibraryRejectAllocator
     g_Library.onDeleteFile.clear()
 
     let lib  = f.setupLibraryWnd()
-    let view = lib.view!
+    let view = lib.view
 
     // Mirror the handler LibraryWnd.fill() installs: drop the matching view item.
     g_Library.onDeleteFile += func|libWnd = lib|(file)
@@ -318,7 +318,7 @@ impl IAllocator for LibraryRejectAllocator
     f.setup()
     defer f.shutdown()
     let lib  = f.setupLibraryWnd()
-    let view = lib.view!
+    let view = lib.view
 
     discard testAddLibraryItem(view, "alpha.scc", 10, 1, title: "Login screen")
     discard testAddLibraryItem(view, "beta.scc", 10, 2, "report.png", title: "Sales chart")
@@ -329,11 +329,11 @@ impl IAllocator for LibraryRejectAllocator
 
     lib.setSearch("REPORT")
     Swag.assert(view.items.count == 1)
-    Swag.assert(view.items[0]!.fi.fullname == "beta.scc")
+    Swag.assert(view.items[0].fi.fullname == "beta.scc")
 
     lib.setSearch("gamma")
     Swag.assert(view.items.count == 1)
-    Swag.assert(view.items[0]!.fi.fullname == "gamma.scc")
+    Swag.assert(view.items[0].fi.fullname == "gamma.scc")
 
     lib.setSearch("nomatch")
     Swag.assert(view.items.count == 0)
@@ -352,7 +352,7 @@ impl IAllocator for LibraryRejectAllocator
     f.setup()
     defer f.shutdown()
     f.main.libWnd = LibraryWnd.create(f.main)
-    let libWnd = f.main.libWnd!
+    let libWnd = f.main.libWnd
 
     let oldLibraryLoaded = g_Library.loaded
     defer
@@ -583,7 +583,7 @@ impl IAllocator for LibraryRejectAllocator
     let generatedFile      = Library.newFileName()
     let generatedDirectory = Path.directoryName(generatedFile)
     Swag.assert(generatedDirectory != null)
-    Swag.assert(Path.equals(generatedDirectory!, root))
+    Swag.assert(Path.equals(generatedDirectory, root))
     Swag.assert(Path.lowercaseExtension(generatedFile) == CaptureFileExtension)
 }
 
@@ -599,7 +599,7 @@ impl IAllocator for LibraryRejectAllocator
     g_Library.loaded = true
     g_Library.files.clear()
     f.main.libWnd = LibraryWnd.create(f.main)
-    let lib = f.main.libWnd!
+    let lib = f.main.libWnd
     lib.setPosition({0, 0, 1100, 700})
     lib.applyLayout()
     lib.layoutSidebarColumns()

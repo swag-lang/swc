@@ -19,14 +19,14 @@ func boolTestAbsenceNullableTypeInfo(type: typeinfo?)->bool
 func boolTestAbsenceNullableFunc(fn: (func()->s32)?)->s32
 {
     if fn do
-        return fn!()
+        return fn()
     return 0
 }
 
 func boolTestAbsenceNullableItf(itf: IBoolTestAbsence?)->s32
 {
     if itf do
-        return itf!.get()
+        return itf.get()
     return 0
 }
 

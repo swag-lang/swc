@@ -77,7 +77,7 @@ internal impl Properties
 
             // Items under a dynamic array live in a heap buffer, not at a fixed offset from the
             // struct base — no meaningful declared default to compare against.
-            if .isUnderDynamicArray(it!) do
+            if .isUnderDynamicArray(it) do
                 continue
 
             if not canHaveDefault(it.type) do

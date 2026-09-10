@@ -520,7 +520,7 @@ impl Painter
     mtd renderer()->IRenderer
     {
         Swag.assert(.rendererItf != null, "painter has no renderer")
-        return .rendererItf!
+        return .rendererItf
     }
 
     // Queues a transient texture for release after every preceding command has consumed it.
@@ -1559,7 +1559,7 @@ impl Painter
     {
         if not tgt do
             return
-        .transientTargets.add(tgt!)
+        .transientTargets.add(tgt)
     }
 
     // Set the current shader

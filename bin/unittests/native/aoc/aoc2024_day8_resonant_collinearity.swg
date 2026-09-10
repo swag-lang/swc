@@ -109,7 +109,7 @@ func initAntinodeGrid(width, height: u32)->AntinodeGrid
     let size = cast(u64) width * cast(u64) height
     result.cells = cast([*] u8?) testAlloc(size)
     Swag.assert(result.cells != null)
-    let cells = result.cells!
+    let cells = result.cells
     for index in width * height
     {
         cells[cast(u32) index] = 0'u8

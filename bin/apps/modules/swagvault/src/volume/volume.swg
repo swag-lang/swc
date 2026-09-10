@@ -229,7 +229,7 @@ impl Volume
             .file.writeAllAt(offset, randomChunk[0 until count])
             offset += count
             if progress do
-                progress!.publish(progressBase + offset - first)
+                progress.publish(progressBase + offset - first)
         }
     }
 
@@ -324,7 +324,7 @@ impl Volume
         // 5.5 GiB/s while `Core.Crypto.chacha20Xor` runs at about 50 MiB/s, and the disk
         // bounds this loop long before either of them does.
         if progress do
-            progress!.setTotal(result.physicalSize)
+            progress.setTotal(result.physicalSize)
         try result.randomizeRange(0, result.physicalSize, progress, 0, "Container creation was canceled.")
         if (try File.attributes(path)).has(.SparseFile) do
             failWith("Sparse container files are not supported.", .SparseContainer)
@@ -539,7 +539,7 @@ impl Volume
         }
 
         if progress do
-            progress!.setTotal(requestedSize)
+            progress.setTotal(requestedSize)
 
         // Clearing old journal records is essential when this free extent held an older volume.
         try result.randomizeRange(0, requestedSize, progress, 0, "Container creation was canceled.")
@@ -840,7 +840,7 @@ impl Volume
 
         let addedPhysical = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
         if progress do
-            progress!.setTotal(addedPhysical)
+            progress.setTotal(addedPhysical)
         if targetPhysical > previousPhysical
         {
             .file.resize(targetPhysical)
@@ -876,7 +876,7 @@ impl Volume
         let targetPhysical   = try camouflageSize(.containerSize, previousPhysical)
         let addedPhysical    = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
         if progress do
-            progress!.setTotal(addedPhysical)
+            progress.setTotal(addedPhysical)
 
         var committed = false
         defer
@@ -995,7 +995,7 @@ impl Volume
 
         let addedPhysical = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
         if progress do
-            progress!.setTotal(addedPhysical + blocksToMove * BlockSize)
+            progress.setTotal(addedPhysical + blocksToMove * BlockSize)
         if targetPhysical > previousPhysical
         {
             .file.resize(targetPhysical)
@@ -1043,7 +1043,7 @@ impl Volume
                     count    -= destination.count
                     moved    += bytes
                     if progress do
-                        progress!.publish(moved)
+                        progress.publish(moved)
                 }
             }
 
@@ -1558,7 +1558,7 @@ impl Volume
         {
             let node = .nodeById(id)
             if node do
-                upserted.add(node!)
+                upserted.add(node)
         }
 
         var metadata: Array'(*Node)
@@ -1567,7 +1567,7 @@ impl Volume
         {
             let node = .nodeById(id)
             if node do
-                metadata.add(node!)
+                metadata.add(node)
         }
 
         var plain = JournalRecord.encode(.sequence + 1, .nextNodeId, .label, .removed.toSlice(), upserted.toSlice(), metadata.toSlice())
@@ -1657,7 +1657,7 @@ impl Volume
             if patch.id != RootNodeId
             {
                 let parent = .nodeById(patch.parentId)
-                if not parent or not parent!.isDirectory() or not .nodeLookup.changeParent(validNode, patch.parentId, patch.name) do
+                if not parent or not parent.isDirectory() or not .nodeLookup.changeParent(validNode, patch.parentId, patch.name) do
                     failWith("A journal metadata change has an invalid destination.", .Corrupted)
             }
 
@@ -1704,7 +1704,7 @@ impl Volume
             return null
         for part in parts
         {
-            current = .findChild(current!.id, part)
+            current = .findChild(current.id, part)
             if not current do
                 return null
         }
@@ -1722,8 +1722,8 @@ impl Volume
             return {null, parts[parts.count - 1]}
         for i in 0 until parts.count - 1
         {
-            parent = .findChild(parent!.id, parts[i])
-            if not parent or not parent!.isDirectory() do
+            parent = .findChild(parent.id, parts[i])
+            if not parent or not parent.isDirectory() do
                 return {null, parts[parts.count - 1]}
         }
 
@@ -1789,7 +1789,7 @@ impl Volume
         }
 
         if batch.error != null do
-            fail batch.error!
+            fail batch.error
         if batch.invalidTags do
             failWith("An encrypted data block is damaged.", .Corrupted)
     }
@@ -1820,7 +1820,7 @@ impl Volume
         }
 
         if batch.error != null do
-            fail batch.error!
+            fail batch.error
 
         Sync.scopedLock(&.ioLock)
         .file.writeAllAt(DataOffset + physical * BlockRecordSize, records.toSlice())
@@ -2133,7 +2133,7 @@ impl Volume
     {
         try .requireWritable()
         let {parent, name} = .resolveParent(path)
-        if parent == null or not parent!.isDirectory() do
+        if parent == null or not parent.isDirectory() do
             failWith("Parent directory does not exist.", .NotFound)
         let validParent = parent!
         if not name.count or name == "." or name == ".." do
@@ -2218,7 +2218,7 @@ impl Volume
         if id == 1 do
             failWith("Cannot rename the root directory.", .AccessDenied)
         let {parent, name} = .resolveParent(newPath)
-        if parent == null or not parent!.isDirectory() or not name.count do
+        if parent == null or not parent.isDirectory() or not name.count do
             failWith("The destination directory does not exist.", .NotFound)
         let validParent         = parent!
         let destinationParentId = validParent.id

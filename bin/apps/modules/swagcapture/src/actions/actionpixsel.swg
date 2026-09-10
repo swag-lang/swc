@@ -212,8 +212,8 @@ impl MainWnd
                             if xx < pmask.width and yy < pmask.height
                             {
                                 var pix1 = pmask.pixels.storage() + xx * pmask.bytesPerPixel
-                                pix1 += yy * pmask.width * pmask.bytesPerPixel
-                                pix1![as u32] = 0xFFFFFFFF
+                                pix1         += yy * pmask.width * pmask.bytesPerPixel
+                                pix1[as u32] = 0xFFFFFFFF
                             }
                         }
 

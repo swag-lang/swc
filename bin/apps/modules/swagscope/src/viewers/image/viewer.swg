@@ -200,7 +200,7 @@ internal impl ImageViewer
         else do
             .zoomLabel.setText(Format.toString("% %", zoom, "%"))
         if .reportChromeChanged do
-            .reportChromeChanged!(me)
+            .reportChromeChanged(me)
     }
 
     mtd refreshFrame()
@@ -227,7 +227,7 @@ internal impl ImageViewer
     {
         if .handedOff or not .reportFinished do
             return
-        if .reportFinished!(me) == .Next do
+        if .reportFinished(me) == .Next do
             .handedOff = true
     }
 
@@ -242,13 +242,13 @@ internal impl ImageViewer
         .timeline.setBounds(0, cast(f32) .imageView.movie.frameCount - 1, 1)
         .refreshFrame()
         if .reportChromeChanged do
-            .reportChromeChanged!(me)
+            .reportChromeChanged(me)
     }
 
     mtd navigate(delta: s32)
     {
         if .navigateFile do
-            .navigateFile!(me, delta)
+            .navigateFile(me, delta)
     }
 
     mtd rotateClockwise()
@@ -339,7 +339,7 @@ private impl IWnd for ImageViewer
             {
                 .details = .facts.text()
                 if .reportDetails do
-                    .reportDetails!(me, .details.toString())
+                    .reportDetails(me, .details.toString())
             }
         }
 
@@ -364,7 +364,7 @@ private impl IWnd for ImageViewer
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure!(me, .failureReason.toString())
+                .reportFailure(me, .failureReason.toString())
             return
         }
 
@@ -386,14 +386,14 @@ private impl IWnd for ImageViewer
         .applyLayout()
         .setInitialFocus(.imageView)
         if .reportDetails do
-            .reportDetails!(me, .details.toString())
+            .reportDetails(me, .details.toString())
         if .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
 
         // A still picture has no end of its own; the host's slideshow gives it one.
         let still = not .imageView.movie.isValid() or .imageView.movie.frameCount <= 1
         if still and .reportShown do
-            .reportShown!(me)
+            .reportShown(me)
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -463,7 +463,7 @@ private impl ImageViewer
             return false
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 

@@ -136,9 +136,9 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     var result = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: &host.root, services: {reportFailure: &markSoundOpenFailure})
     Swag.assert(result.view != null and result.commands != null)
     Swag.assert(result.isLoading != null and result.needsLoadingOverlay != null)
-    let view = cast(*SoundViewer) result.view!
+    let view = cast(*SoundViewer) result.view
     view.userData = &failed
-    Swag.assert(result.isLoading!(view) and result.needsLoadingOverlay!(view))
+    Swag.assert(result.isLoading(view) and result.needsLoadingOverlay(view))
     waitForSoundOpen(&host, view)
     Swag.assert(failed and not view.openFailure.isEmpty())
 }
@@ -165,17 +165,17 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     var result   = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null)
     Swag.assert(result.commands != null and result.isLoading != null and result.needsLoadingOverlay != null)
-    let view = cast(*SoundViewer) result.view!
-    Swag.assert(result.isLoading!(view) and result.needsLoadingOverlay!(view))
+    let view = cast(*SoundViewer) result.view
+    Swag.assert(result.isLoading(view) and result.needsLoadingOverlay(view))
     waitForSoundOpen(&host, view)
-    Swag.assert(not result.needsLoadingOverlay!(view))
+    Swag.assert(not result.needsLoadingOverlay(view))
     Swag.assert(view.engineReady and view.playButton.isEnabled())
     Swag.assert(view.backwardButton.icon.isValid() and view.forwardButton.icon.isValid())
     Swag.assert(view.muteButton.icon.isValid() and view.muteButton.flags.has(.Toggle))
     Swag.assert(not view.sound.isDataPreloaded())
     Swag.assert(view.waveform.samples.count == 4)
     finishWaveform(view)
-    Swag.assert(not result.isLoading!(view))
+    Swag.assert(not result.isLoading(view))
     Swag.assert(view.waveform.readyCount == 4)
     Swag.assert(view.timeline.isEnabled() and view.timeLabel.text() == "0:00 / 0:01")
 
@@ -185,7 +185,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     let replacementCommands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var replacementResult   = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: replacementCommands)
     Swag.assert(replacementResult.view != null)
-    let replacement = cast(*SoundViewer) replacementResult.view!
+    let replacement = cast(*SoundViewer) replacementResult.view
     waitForSoundOpen(&host, replacement)
     finishWaveform(replacement)
     Swag.assert(replacement.engineReady and replacement.playButton.isEnabled())
@@ -209,14 +209,14 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     host.notify(.LanguageChanged)
     Swag.assert(view.playButton.toolTip == oldTip and view.playing and view.voice == voice)
     view.seekSeconds(view.duration * 0.5)
-    Swag.assert(view.voice!.playbackSampleFrame() == 2)
+    Swag.assert(view.voice.playbackSampleFrame() == 2)
     view.setVolume(0.4)
-    Swag.assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.4, 0.001))
+    Swag.assert(Math.isEqualEpsilon(expect view.voice.volume(), 0.4, 0.001))
     view.setMuted(true)
     Swag.assert(view.muted and view.muteButton.isChecked)
-    Swag.assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0, 0.001))
+    Swag.assert(Math.isEqualEpsilon(expect view.voice.volume(), 0, 0.001))
     view.setMuted(false)
-    Swag.assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.4, 0.001))
+    Swag.assert(Math.isEqualEpsilon(expect view.voice.volume(), 0.4, 0.001))
     view.togglePlayback()
     Swag.assert(not view.playing)
     var reading: ViewerReadingState
@@ -256,7 +256,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     commandBar.padding         = {16, 8, 16, 8}
     var result = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: commandBar)
     Swag.assert(result.view != null)
-    let view = cast(*SoundViewer) result.view!
+    let view = cast(*SoundViewer) result.view
     waitForSoundOpen(&host, view)
     finishWaveform(view)
     view.dockStyle = .Center
@@ -346,7 +346,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var result   = openTestViewer(soundViewerPlugin(), &host.root, pacmanWav.toString(), commandParent: commands)
     Swag.assert(result.view != null)
-    let view = cast(*SoundViewer) result.view!
+    let view = cast(*SoundViewer) result.view
     waitForSoundOpen(&host, view)
     Swag.assert(not view.sound.isDataPreloaded())
     finishWaveform(view)
@@ -384,7 +384,7 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
     var result   = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: commands, services: {reportFinished: &answerSoundEnd})
     Swag.assert(result.view != null)
-    let view   = cast(*SoundViewer) result.view!
+    let view   = cast(*SoundViewer) result.view
     var answer = Viewer.Continuation.Replay
     view.userData = &answer
     waitForSoundOpen(&host, view)
@@ -393,9 +393,9 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     Swag.assert(view.playing and view.voice != null)
 
     view.finishPlayback()
-    Swag.assert(view.playing and view.voice!.isPlaying() and view.elapsed == 0)
+    Swag.assert(view.playing and view.voice.isPlaying() and view.elapsed == 0)
 
     answer = .Next
     view.finishPlayback()
-    Swag.assert(not view.playing and not view.voice!.isPlaying())
+    Swag.assert(not view.playing and not view.voice.isPlaying())
 }

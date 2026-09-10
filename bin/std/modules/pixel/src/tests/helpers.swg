@@ -31,7 +31,7 @@ func makeTempIcoPath()->String  => makeTempImagePath(".ico")
 func nnBytes(bytes: const [..] u8?)->const [..] u8
 {
     Swag.assert(bytes != null)
-    return Swag.makeSlice(cast(const [*] u8) bytes.buffer!, bytes.count)
+    return Swag.makeSlice(cast(const [*] u8) bytes.buffer, bytes.count)
 }
 
 func loadTestTypeFace(fullname: string)->*TypeFace? fail

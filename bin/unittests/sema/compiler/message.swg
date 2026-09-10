@@ -170,7 +170,7 @@ var MessageUnknownCountArrayCount = 0
         Swag.assert(msgType.name == "MessageStrictHandle")
 
         let aliasType = cast(const *TypeInfoAlias) msgType
-        let rawType   = aliasType.rawType!
+        let rawType   = aliasType.rawType
         Swag.assert(rawType.name == "const *void")
     }
 }
@@ -195,8 +195,8 @@ var MessageUnknownCountArrayCount = 0
         Swag.assert(msgType.kind == TypeInfoKind.Array)
 
         let typeArray = cast(const *TypeInfoArray) msgType
-        Swag.assert(typeArray.pointedType!.name == "s32")
-        Swag.assert(typeArray.finalType!.name == "s32")
+        Swag.assert(typeArray.pointedType.name == "s32")
+        Swag.assert(typeArray.finalType.name == "s32")
         Swag.assert(typeArray.count == 0)
         Swag.assert(typeArray.totalCount == 0)
     }

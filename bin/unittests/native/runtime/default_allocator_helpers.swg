@@ -37,7 +37,7 @@ internal func testRealloc(ptr: [*] void?, size: u64)->[*] void?
     if size > Swag.U64.Max - TestAllocationHeaderSize do
         return null
 
-    let header = cast(*TestAllocationHeader) (cast([*] u8) ptr! - TestAllocationHeaderSize)
+    let header = cast(*TestAllocationHeader) (cast([*] u8) ptr - TestAllocationHeaderSize)
     var request: Swag.AllocatorRequest
     request.address   = header
     request.oldSize   = header.totalSize
@@ -59,7 +59,7 @@ internal func testFree(ptr: [*] void?)
     if not ptr do
         return
 
-    let header = cast(*TestAllocationHeader) (cast([*] u8) ptr! - TestAllocationHeaderSize)
+    let header = cast(*TestAllocationHeader) (cast([*] u8) ptr - TestAllocationHeaderSize)
     var request: Swag.AllocatorRequest
     request.address = header
     request.size    = header.totalSize

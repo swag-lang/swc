@@ -1507,29 +1507,29 @@ private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
         fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_MimeType)}
     if content == null do
         fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_Content)}
-    if content!.uncompressedSize > OpenDocumentContentLimit do
+    if content.uncompressedSize > OpenDocumentContentLimit do
         fail UnsupportedFormatError{Errors.mkString(openDocumentStrings().err_TooLarge)}
 
-    let mimeBytes = try loadZipEntry(fileName, mime!)
+    let mimeBytes = try loadZipEntry(fileName, mime)
     let kind      = try openDocumentKindFromMime(cast(string) mimeBytes.toSlice())
-    let bytes     = try loadZipEntry(fileName, content!)
+    let bytes     = try loadZipEntry(fileName, content)
     if not Utf8.isValid(bytes.toSlice()) do
         fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_Encoding)}
     var images: Array'OpenDocumentImage
     if kind != .Spreadsheet do
         images = loadOpenDocumentImages(fileName, &archive)
     var styleSource: String
-    if styles != null and styles!.uncompressedSize <= OpenDocumentContentLimit
+    if styles != null and styles.uncompressedSize <= OpenDocumentContentLimit
     {
-        let styleBytes = catch loadZipEntry(fileName, styles!) as stylesError
+        let styleBytes = catch loadZipEntry(fileName, styles) as stylesError
         if stylesError == null and Utf8.isValid(styleBytes.toSlice()) do
             styleSource = String.from(cast(string) styleBytes.toSlice())
     }
 
     var metadata: OpenDocumentMetadata
-    if meta != null and meta!.uncompressedSize <= OpenDocumentMetadataLimit
+    if meta != null and meta.uncompressedSize <= OpenDocumentMetadataLimit
     {
-        let metadataBytes = catch loadZipEntry(fileName, meta!) as metadataError
+        let metadataBytes = catch loadZipEntry(fileName, meta) as metadataError
         if metadataError == null and Utf8.isValid(metadataBytes.toSlice()) do
             metadata = catch parseOpenDocumentMetadata(cast(string) metadataBytes.toSlice()) as metadataParseError
     }
@@ -1584,14 +1584,14 @@ private impl IWnd for OpenDocumentViewer
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure!(me, .failureReason.toString())
+                .reportFailure(me, .failureReason.toString())
             return
         }
 
         .publishDocument()
         .reportDocumentDetails()
         if .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -1678,7 +1678,7 @@ private impl OpenDocumentViewer
         if visible do
             .setZoom(.zoomPercent)
         if .reportChromeChanged do
-            .reportChromeChanged!(me)
+            .reportChromeChanged(me)
     }
 
     mtd kindName()->string
@@ -1705,18 +1705,18 @@ private impl OpenDocumentViewer
             return
         if .document.kind == .Spreadsheet and .sheetIndex < .document.sheets.count
         {
-            .reportDetails!(me, .documentDetails(Format.toString(openDocumentStrings().ui_DetailsSheet, .sheetName(.sheetIndex)).toString()))
+            .reportDetails(me, .documentDetails(Format.toString(openDocumentStrings().ui_DetailsSheet, .sheetName(.sheetIndex)).toString()))
             return
         }
 
         if (.document.kind == .Presentation or .document.kind == .Drawing) and .slideIndex < .document.slides.count
         {
             let details = .document.kind == .Presentation ? openDocumentStrings().ui_DetailsSlide : openDocumentStrings().ui_DetailsPage
-            .reportDetails!(me, .documentDetails(Format.toString(details, .slideName(.slideIndex)).toString()))
+            .reportDetails(me, .documentDetails(Format.toString(details, .slideName(.slideIndex)).toString()))
             return
         }
 
-        .reportDetails!(me, .documentDetails(Format.toString(openDocumentStrings().ui_Details, .kindName()).toString()))
+        .reportDetails(me, .documentDetails(Format.toString(openDocumentStrings().ui_Details, .kindName()).toString()))
     }
 
     mtd sheetName(index: u64)->String
@@ -1786,7 +1786,7 @@ private impl OpenDocumentViewer
         .pageCombo.show(hasChoices)
         .commands.show(hasChoices)
         if .reportChromeChanged do
-            .reportChromeChanged!(me)
+            .reportChromeChanged(me)
     }
 
     mtd showSheet(index: u64, clearSearch: bool)->bool
@@ -2008,7 +2008,7 @@ private impl OpenDocumentViewer
             return false
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 

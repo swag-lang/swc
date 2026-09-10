@@ -255,7 +255,7 @@ impl Writer
             return
 
         let type     = .encoderType!
-        let instance = (.encoder).buffer!
+        let instance = (.encoder).buffer
         if type.opDrop do
             type.opDrop(instance)
         Memory.free(instance, cast(u64) type.sizeof)

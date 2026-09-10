@@ -461,7 +461,7 @@ impl Header
     {
         Swag.assert(column < .items.count)
 
-        let item = .itemForColumn(column)!
+        let item = .itemForColumn(column)
         var move = Math.max(width, item.minimumWidth)
         if item.maximumWidth > 0 do
             move = Math.min(move, item.maximumWidth)

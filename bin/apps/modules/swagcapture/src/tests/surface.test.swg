@@ -53,7 +53,7 @@ func testAssertLibraryMenuGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd
         let menu = host.capturedPopupMenu()
         Swag.assert(menu != null)
         Swag.assert(button.icon.sizeX == themeActionIconSize(main.themeMetrics()) and button.icon.sizeY == themeActionIconSize(main.themeMetrics()))
-        Swag.assert(menu!.themeMetrics().menuPopup_IconSize == themeRowIconSize(main.themeMetrics()))
+        Swag.assert(menu.themeMetrics().menuPopup_IconSize == themeRowIconSize(main.themeMetrics()))
         var image = host.render(main)
         Pixel.Testing.assertImageGolden(&image, golden)
         let menuDismissed = host.dismissPopupMenu()
@@ -104,7 +104,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     let popup = host.capturedPopupMenu()
     Swag.assert(popup != null)
     Swag.assert(popup == item.popup)
-    Swag.assert(popup!.themeMetrics().menuPopup_IconSize == 16)
+    Swag.assert(popup.themeMetrics().menuPopup_IconSize == 16)
 
     // Keep the complete shipped surface. Cropping at an arbitrary content coordinate used to
     // bisect the right tool panel, which made the fixture itself look broken and hid regressions

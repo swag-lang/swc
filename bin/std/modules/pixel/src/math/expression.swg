@@ -288,7 +288,7 @@ private func mathIsAsciiVariable(text: string)->bool
 {
     if text.count != 1 do
         return false
-    return mathIsAsciiLetter(text.buffer![0])
+    return mathIsAsciiLetter(text.buffer[0])
 }
 
 private func mathSymbol(text: string, atomClass = MathAtomClass.Ord, large = false, limitsMode = MathLimitsMode.Automatic)->MathSymbolSpec
@@ -580,7 +580,7 @@ private impl MathParser
     {
         if .eof() do
             return 0
-        return (.source).buffer![.pos]
+        return (.source).buffer[.pos]
     }
 
     mtd peekAt(offset: u64)->u8
@@ -588,7 +588,7 @@ private impl MathParser
         let at = .pos + offset
         if at >= .count() do
             return 0
-        return (.source).buffer![at]
+        return (.source).buffer[at]
     }
 
     mtd skipMathSpaces()
@@ -647,7 +647,7 @@ private impl MathParser
         let got = Swag.makeString((.source).buffer + .pos + 1, size)
         if got != word do
             return false
-        if .pos + 1 + size < .count() and mathIsAsciiLetter((.source).buffer![.pos + 1 + size]) do
+        if .pos + 1 + size < .count() and mathIsAsciiLetter((.source).buffer[.pos + 1 + size]) do
             return false
         return true
     }
@@ -864,7 +864,7 @@ private impl MathParser
         node.children.add(radicand)
         if index
         {
-            node.children.add(index!)
+            node.children.add(index)
             node.flag = true
         }
 
@@ -1190,13 +1190,13 @@ private impl MathParser
         scripts.children.add(base)
         if sub
         {
-            scripts.children.add(sub!)
+            scripts.children.add(sub)
             scripts.flag = true
         }
 
         if sup
         {
-            scripts.children.add(sup!)
+            scripts.children.add(sup)
             scripts.flag2 = true
         }
 

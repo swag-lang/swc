@@ -45,7 +45,7 @@ impl ThemeStyle
         if not .refr do
             return
 
-        let refr = .refr!
+        let refr = .refr
         .refr      = null
         refr.count -= 1
         if refr.count == 0

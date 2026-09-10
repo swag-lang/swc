@@ -137,10 +137,10 @@ func freeOne(itf: IAllocator, address: *void?)
         Swag.assert(address != null)
         Swag.assert(cast(u64) address % 16 == 0 or i == 0)
 
-        let page = allocatorPageOf(cast(u64) address!)!
+        let page = allocatorPageOf(cast(u64) address)!
         Swag.assert(page.classIndex == cast(u32) i)
         Swag.assert(page.blockSize == expected)
-        Swag.assert(page.isBlockAddress(cast(u64) address!))
+        Swag.assert(page.isBlockAddress(cast(u64) address))
         Swag.assert(page.state == AllocatorPageState.Owned)
 
         // Medium classes take a page eight units wide so that they still hold several blocks.
@@ -166,9 +166,9 @@ func freeOne(itf: IAllocator, address: *void?)
     let big     = AllocatorMaxClassSize + 4096
     let address = allocOne(itf, big)
     Swag.assert(address != null)
-    Swag.assert(allocatorPageOf(cast(u64) address!) == null)
+    Swag.assert(allocatorPageOf(cast(u64) address) == null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) address! - #sizeof(AllocatorHeader))
+    let header = cast(*AllocatorHeader) (cast([*] u8) address - #sizeof(AllocatorHeader))
     Swag.assert(header.blockSize == big)
     Swag.assert(header.magic == Allocator.MagicAlloc)
     Swag.assert(alloc.stats().countAlloc == 1)
@@ -362,7 +362,7 @@ func freeOne(itf: IAllocator, address: *void?)
     itf.realloc(&req)
     Swag.assert(req.address != null)
 
-    let p = cast([*] u8) req.address!
+    let p = cast([*] u8) req.address
     for i in 64 do
         p[i] = cast(u8) (i + 1)
 
@@ -378,7 +378,7 @@ func freeOne(itf: IAllocator, address: *void?)
     Swag.assert(req.address != null)
     Swag.assert(cast(u64) req.address % 128 == 0)
 
-    let moved = cast([*] u8) req.address!
+    let moved = cast([*] u8) req.address
     for i in 60 do
         Swag.assert(moved[i] == cast(u8) (i + 1))
 
@@ -399,7 +399,7 @@ func freeOne(itf: IAllocator, address: *void?)
     itf.alloc(&req)
     Swag.assert(req.address != null)
 
-    let seed = cast([*] u8) req.address!
+    let seed = cast([*] u8) req.address
     for i in 24 do
         seed[i] = cast(u8) (i * 3 + 7)
 
@@ -411,7 +411,7 @@ func freeOne(itf: IAllocator, address: *void?)
         itf.realloc(&req)
         Swag.assert(req.address != null)
 
-        let grown = cast([*] u8) req.address!
+        let grown = cast([*] u8) req.address
         for i in 24 do
             Swag.assert(grown[i] == cast(u8) (i * 3 + 7))
     }
@@ -557,7 +557,7 @@ func freeOne(itf: IAllocator, address: *void?)
         Swag.assert(alloc.stats().countAlloc == 1)
         Swag.assert(alloc.firstAbandoned != null)
 
-        let page = allocatorPageOf(cast(u64) blockAddr!)!
+        let page = allocatorPageOf(cast(u64) blockAddr)!
         Swag.assert(page.state == AllocatorPageState.Abandoned)
         Swag.assert(page.ownerHeap == null)
 
@@ -594,7 +594,7 @@ func freeOne(itf: IAllocator, address: *void?)
         Swag.assert(blockAddr != null)
         Swag.assert(alloc.firstAbandoned != null)
 
-        let abandoned = allocatorPageOf(cast(u64) blockAddr!)!
+        let abandoned = allocatorPageOf(cast(u64) blockAddr)!
         let adopted   = allocOne(itf, 64)!
         Swag.assert(allocatorPageOf(cast(u64) adopted) == abandoned)
         Swag.assert(abandoned.state == AllocatorPageState.Owned)

@@ -174,7 +174,7 @@ impl MainWnd
             }
         }
 
-        let validCapture = capture!
+        let validCapture = capture
         with validCapture
         {
             .changed     = true

@@ -190,7 +190,7 @@ private func startsWithCodecHeader(type: const *Swag.TypeInfoStruct)->bool
     {
         if field.offset != 0 or not field.pointedType do
             continue
-        if field.pointedType!.crc == #typeof(Codec).crc do
+        if field.pointedType.crc == #typeof(Codec).crc do
             return true
     }
 

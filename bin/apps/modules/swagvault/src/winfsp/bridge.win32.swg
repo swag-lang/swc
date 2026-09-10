@@ -30,7 +30,7 @@ namespace WinFsp
     {
         if not value do
             return ""
-        let validValue = value!
+        let validValue = value
         return Utf8.fromUtf16(Swag.makeSlice(validValue, Utf16.lengthZeroTerminated(validValue)))
     }
 
@@ -44,14 +44,14 @@ namespace WinFsp
             return StatusObjectNameNotFound
 
         let available = securitySize[]
-        let stored    = node!.security.toSlice()
+        let stored    = node.security.toSlice()
         if stored.count
         {
             securitySize[] = stored.count
             if security and available < stored.count do
                 return StatusBufferOverflow
             if security do
-                Swag.memcpy(security!, stored.buffer, stored.count)
+                Swag.memcpy(security, stored.buffer, stored.count)
             return StatusSuccess
         }
 
@@ -60,7 +60,7 @@ namespace WinFsp
         if security and available < required do
             return StatusBufferOverflow
         if security and required do
-            Swag.memcpy(security!, context.defaultSecurity!, required)
+            Swag.memcpy(security, context.defaultSecurity!, required)
         return StatusSuccess
     }
 
@@ -194,7 +194,7 @@ namespace WinFsp
             let node = context.volume.nodeById(nodeId)
             if not node do
                 return StatusObjectNameNotFound
-            stored.add(node!.security.toSlice())
+            stored.add(node.security.toSlice())
         }
 
         let input  = stored.count ? cast(const *void?) stored.buffer : context.defaultSecurity

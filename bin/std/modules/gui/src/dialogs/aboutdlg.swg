@@ -254,7 +254,7 @@ public impl AboutDlg
     // Gives the sections column the room it asks for, up to the measure, then fits the box.
     private mtd fitToContent()
     {
-        let stack = .contentStack!
+        let stack = .contentStack
         .applyLayout()
 
         let scroll = .sectionsScroll
@@ -293,6 +293,6 @@ public impl AboutDlg
         let contentHeight  = stack.measure({availableWidth, 0}).preferred.y
         .fitHeightToContent(contentHeight)
         if .parentSurface do
-            .surface!.center(.parentSurface!)
+            .surface!.center(.parentSurface)
     }
 }

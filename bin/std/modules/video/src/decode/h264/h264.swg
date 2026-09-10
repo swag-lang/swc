@@ -333,7 +333,7 @@ impl Decoder
 
         if not .current do
             return false
-        .applyMarking(.current!)
+        .applyMarking(.current)
         .holdPictureReferences()
         .preparedData = true
         return true
@@ -361,8 +361,8 @@ impl Decoder
     {
         if .current
         {
-            .current!.publishParse(2)
-            .current!.publishProgress(FrameProgressFailed)
+            .current.publishParse(2)
+            .current.publishProgress(FrameProgressFailed)
         }
 
         .preparedData = false
@@ -408,9 +408,9 @@ impl Decoder
         if not .current do
             return false
         .validatePicture()
-        .applyMarking(.current!)
+        .applyMarking(.current)
         .holdPictureReferences()
-        .current!.publishParse(1)
+        .current.publishParse(1)
         return true
     }
 
@@ -423,7 +423,7 @@ impl Decoder
         {
             // Reconstruction, filtering and padding already ran row by row beside the entropy
             // decoder, and the last row was published by [[completeInlinePicture]].
-            let published = .current!
+            let published = .current
             .inlineRecon = false
             Atomic.exchange(&published.heldByCaller, 1)
             .current = null
@@ -455,7 +455,7 @@ impl Decoder
                 {
                     let frame = slice.refs[list, index].frame
                     if frame do
-                        Atomic.add(&frame!.reconstructionHolds, 1)
+                        Atomic.add(&frame.reconstructionHolds, 1)
                 }
             }
         }
@@ -477,7 +477,7 @@ impl Decoder
                 {
                     let frame = slice.refs[list, index].frame
                     if frame do
-                        Atomic.add(&frame!.reconstructionHolds, ~0'u32)
+                        Atomic.add(&frame.reconstructionHolds, ~0'u32)
                 }
             }
         }
@@ -502,14 +502,14 @@ impl Decoder
                     {
                         // The whole picture is waited for here, so reconstruction never has to
                         // consult the shared counter again for this entry.
-                        let complete = frame!.progressComplete()
-                        if frame!.awaitProgress(complete) == FrameProgressFailed do
+                        let complete = frame.progressComplete()
+                        if frame.awaitProgress(complete) == FrameProgressFailed do
                             fail InvalidFormatError{"H.264 inter block has no reference picture"}
                         slice.refs[list, index].readyRows = complete
                         continue
                     }
 
-                    if frame!.awaitParse() == 2 do
+                    if frame.awaitParse() == 2 do
                         fail InvalidFormatError{"H.264 inter block has no reference picture"}
                 }
             }
@@ -564,7 +564,7 @@ impl Decoder
     mtd const canSkipWhileSeeking(sample: const [..] u8)->bool
     {
         let configured = .firstSps()
-        if not configured or configured!.pocType != 0 or .nalLengthSize == 0 do
+        if not configured or configured.pocType != 0 or .nalLengthSize == 0 do
             return false
 
         var hasPicture = false
@@ -718,7 +718,7 @@ impl Decoder
         }
 
         let sps   = .sps!
-        let frame = found!
+        let frame = found
         frame.prepare(sps.mbWidth, sps.mbHeight, sps.chromaShift())
         frame.frameNum = frameNum
         frame.poc      = poc

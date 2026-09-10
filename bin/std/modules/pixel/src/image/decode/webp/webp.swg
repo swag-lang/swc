@@ -279,7 +279,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
     if container.alpha.size == 0 do
         fail InvalidFormatError{"WebP ALPH chunk does not contain a control byte"}
 
-    let source  = cast(const [*] u8) container.alpha.data!
+    let source  = cast(const [*] u8) container.alpha.data
     let control = source[0]
     if control & 0xC0 do
         fail InvalidFormatError{"WebP ALPH chunk sets reserved bits"}

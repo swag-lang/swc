@@ -247,7 +247,7 @@ impl Driver
                 buffer.allocator = .allocationAllocator
         }
 
-        return back!
+        return back
     }
 
     mtd setOutputVolume(volume: f32) fail => .native.setOutputVolumeNative(volume)

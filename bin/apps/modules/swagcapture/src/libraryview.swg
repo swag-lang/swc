@@ -215,7 +215,7 @@ impl IWnd for LibraryView
             let result = menu.doModal(evt.surfacePos, autoDestroy: true)
             if not result do
                 return
-            switch result!
+            switch result
             {
             case "capture.library.open":     .openItem(focused)
             case "capture.library.reveal":   discard Env.showInFileExplorer(focused.fi.fullname)

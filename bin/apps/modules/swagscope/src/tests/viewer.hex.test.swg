@@ -91,7 +91,7 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
     while window.activeChoiceIndex < window.instances.count and steps < 4_096
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if not instance.view or not instance.isLoading or not instance.isLoading!(instance.view!) do
+        if not instance.view or not instance.isLoading or not instance.isLoading(instance.view) do
             break
         Threading.Thread.sleep(1'ms)
         host.fireTimers()
@@ -121,7 +121,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     var result = openTestViewer(hexViewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let view = cast(*HexViewer) result.view!
+    let view = cast(*HexViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -362,11 +362,11 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(window.searchCountLabel.toolTip == hexStrings().ui_SearchPatternError and not window.searchBox.isValid())
 
     view.grid.moveCaret(first, false)
-    Swag.assert(view.inspectorLabel != null and Utf8.contains(view.inspectorLabel!.text(), "@0003FFFE"))
-    Swag.assert(Utf8.contains(view.inspectorLabel!.text(), "%"))
-    Swag.assert(Utf8.contains(view.inspectorLabel!.toolTip.toSlice(), "u32 4022250974"))
-    Swag.assert(Utf8.contains(view.inspectorLabel!.toolTip.toSlice(), "b8 0b11011110"))
-    Swag.assert(Utf8.contains(view.inspectorLabel!.toolTip.toSlice(), "o8 0o336 · bool true"))
+    Swag.assert(view.inspectorLabel != null and Utf8.contains(view.inspectorLabel.text(), "@0003FFFE"))
+    Swag.assert(Utf8.contains(view.inspectorLabel.text(), "%"))
+    Swag.assert(Utf8.contains(view.inspectorLabel.toolTip.toSlice(), "u32 4022250974"))
+    Swag.assert(Utf8.contains(view.inspectorLabel.toolTip.toSlice(), "b8 0b11011110"))
+    Swag.assert(Utf8.contains(view.inspectorLabel.toolTip.toSlice(), "o8 0o336 · bool true"))
 }
 
 // The analysis panel turns an unfamiliar file into exact byte evidence, and every inferred string
@@ -401,7 +401,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     completeHexViewerOpen(&host, window)
     let view = cast(*HexViewer) window.currentView!
     Swag.assert(window.currentInfo != null)
-    Swag.assert(view.analysisButton.position.x - window.currentInfo!.position.right() == ViewerInfoSideButtonSpacing)
+    Swag.assert(view.analysisButton.position.x - window.currentInfo.position.right() == ViewerInfoSideButtonSpacing)
 
     view.analysisButton.setChecked(true)
     view.analysisButton.sigCheckedChanged.call(view.analysisButton)

@@ -203,7 +203,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(scratch.totalLeak >= 256)
 
     // Write to it to verify usability
-    let ptr = cast([*] u8) req2.address!
+    let ptr = cast([*] u8) req2.address
     ptr[0]   = 0xAA
     ptr[255] = 0xBB
     Swag.assert(ptr[0] == 0xAA)
@@ -341,7 +341,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.realloc(&req)
     Swag.assert(req.address != null)
 
-    let newPtr = cast([*] u8) req.address!
+    let newPtr = cast([*] u8) req.address
     for i in 32 do
         Swag.assert(newPtr[i] == cast(u8) (i + 1))
 
@@ -385,7 +385,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     Swag.assert(req.address != null)
 
-    let ptr = cast([*] u8) req.address!
+    let ptr = cast([*] u8) req.address
     ptr[0] = 0xFF
     Swag.assert(ptr[0] == 0xFF)
 
@@ -532,7 +532,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(req.address != null)
     Swag.assert(req.address != oldAddress)
     Swag.assert(scratch.totalLeak == 32)
-    let resized = cast([*] u8) req.address!
+    let resized = cast([*] u8) req.address
     for i in 32 do
         Swag.assert(resized[i] == cast(u8) i)
 
@@ -593,7 +593,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.realloc(&req)
     Swag.assert(req.address != null)
 
-    let ptr = cast([*] u8) req.address!
+    let ptr = cast([*] u8) req.address
     ptr[0]   = 1
     ptr[199] = 2
     Swag.assert(ptr[0] == 1)
@@ -618,7 +618,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.realloc(&req)
     Swag.assert(req.address != null)
 
-    let ptr = cast([*] u8) req.address!
+    let ptr = cast([*] u8) req.address
     ptr[0]   = 1
     ptr[199] = 2
     Swag.assert(ptr[0] == 1)

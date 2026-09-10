@@ -96,7 +96,7 @@ private impl MidiViewer
         .refreshZoom()
         .setInitialFocus(.roll)
         if .reportDetails do
-            .reportDetails!(me, .details.toString())
+            .reportDetails(me, .details.toString())
     }
 
     mtd showZoomMenu()
@@ -124,7 +124,7 @@ private impl MidiViewer
             return false
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 
@@ -152,13 +152,13 @@ private impl IWnd for MidiViewer
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure!(me, .failureReason.toString())
+                .reportFailure(me, .failureReason.toString())
             return
         }
 
         .publishDocument(&document)
         if .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)

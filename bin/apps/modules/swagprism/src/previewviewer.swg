@@ -82,13 +82,13 @@ impl PreviewViewer
     mtd compileRequest(request: Pipeline.BuildRequest)
     {
         // Editing another panel need not restart an unchanged live preview.
-        if .running and not Atomic.get(&.probe.cancelled) and (not .preparing or not Atomic.get(&.preparing!.cancelled)) and .generation == .cache.generation and .request.kind == request.kind and .request.sameProgram(request) do
+        if .running and not Atomic.get(&.probe.cancelled) and (not .preparing or not Atomic.get(&.preparing.cancelled)) and .generation == .cache.generation and .request.kind == request.kind and .request.sameProgram(request) do
             return
         .pending = request
         if .preparing
         {
             .queued = true
-            Atomic.exchange(&.preparing!.cancelled, 1)
+            Atomic.exchange(&.preparing.cancelled, 1)
             return
         }
 
@@ -115,7 +115,7 @@ impl PreviewViewer
         .generation = .cache.generation
         .queued     = true
         .preparing  = Memory.new'Pipeline.PreviewProbe()
-        .preparing!.start(.request, .cache)
+        .preparing.start(.request, .cache)
         .sigChanged.call(me)
     }
 
@@ -158,7 +158,7 @@ impl PreviewViewer
         .collectRetired()
         if .preparing
         {
-            let candidate = .preparing!
+            let candidate = .preparing
             if candidate.task.isDone()
             {
                 .preparing = null
@@ -197,7 +197,7 @@ impl PreviewViewer
             if .preparing do
                 return
             if .timer do
-                .removeTimer(.timer!)
+                .removeTimer(.timer)
             .timer   = null
             .running = false
             if .queued
@@ -250,8 +250,8 @@ impl PreviewViewer
         Atomic.exchange(&.probe.cancelled, 1)
         if .preparing
         {
-            Atomic.exchange(&.preparing!.cancelled, 1)
-            .retired.add(.preparing!)
+            Atomic.exchange(&.preparing.cancelled, 1)
+            .retired.add(.preparing)
             .preparing = null
         }
 
@@ -267,7 +267,7 @@ impl PreviewViewer
         .retired.clear()
 
         if .timer and not .isPendingDestroy do
-            .removeTimer(.timer!)
+            .removeTimer(.timer)
         .timer   = null
         .running = false
         .queued  = false

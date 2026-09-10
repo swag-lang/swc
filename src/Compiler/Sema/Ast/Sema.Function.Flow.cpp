@@ -467,6 +467,31 @@ namespace
         return Result::Continue;
     }
 
+    // A '!' on an operand that is already non-null buys nothing: it costs a runtime guard
+    // that can never fire, and it hides whatever really proves the value present. Say so --
+    // but only where the source itself is redundant.
+    //
+    // A generic body is written once and analyzed per instantiation: 'value!' is dead for
+    // 'T = *Node' and needed for 'T = *Node?', and the author cannot write both. An inlined
+    // clone and a macro expansion have the same property, judged at a call site the body did
+    // not choose. This is the distinction 'orelse' already draws, on what the type can be
+    // rather than on what the flow proves at one site.
+    void reportNotNullAlreadyProven(Sema& sema, AstNodeRef operandRef, const SemaNodeView& operandView)
+    {
+        if (SemaHelpers::effectiveInlinePayload(sema))
+            return;
+
+        const SymbolFunction* fn = sema.currentFunction();
+        if (fn && (fn->isGenericInstance() || fn->isGenericRoot()))
+            return;
+        if (fn && fn->ownerStruct() && (fn->ownerStruct()->isGenericInstance() || fn->ownerStruct()->isGenericRoot()))
+            return;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_warn_notnull_already_proven, operandRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, operandView.typeRef());
+        diag.report(sema.ctx());
+    }
+
     Result semaErrorManagementPostNodeCommon(Sema& sema, AstNodeRef managedChildRef)
     {
         auto&         payload = ensureErrorManagementPayload(sema, sema.curNodeRef());
@@ -483,7 +508,21 @@ namespace
         if (tokenId == TokenId::SymBang)
         {
             if (notNullUnwrappedTypeRef(sema, managedChildRef).isValid())
+            {
+                // The DECLARED type is nullable, which is what makes the unwrap real. The live
+                // view applies the facts in scope on top of it: when those already relabelled
+                // the value non-null, the assertion adds a guard that cannot fire, on a value
+                // the compiler would let through without it.
+                const AstNodeRef narrowedRef = sema.viewZero(managedChildRef).nodeRef();
+                if (narrowedRef.isValid())
+                {
+                    const SemaNodeView liveView = sema.viewType(narrowedRef);
+                    const TypeRef      liveRef  = liveView.typeRef().isValid() ? sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), liveView.typeRef()) : TypeRef::invalid();
+                    if (liveRef.isValid() && !sema.typeMgr().get(liveRef).isNullable())
+                        reportNotNullAlreadyProven(sema, narrowedRef, liveView);
+                }
                 return setupNotNullUnwrap(sema, managedChildRef);
+            }
 
             const AstNodeRef resolvedChildRef = sema.viewZero(managedChildRef).nodeRef();
             if (resolvedChildRef.isValid())
@@ -492,6 +531,7 @@ namespace
                 if (childView.typeRef().isValid())
                 {
                     SWC_RESULT(SemaCheck::isValue(sema, resolvedChildRef));
+                    reportNotNullAlreadyProven(sema, resolvedChildRef, childView);
                     SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).notNullUnwrap = true;
                     return Result::Continue;
                 }

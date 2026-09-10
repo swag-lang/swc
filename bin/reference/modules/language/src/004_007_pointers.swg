@@ -147,8 +147,8 @@ region is dead, not wrong.
     Swag.assert(p.count == 2)
 
     // '!' asserts instead of skipping, so the member keeps its plain type.
-    Swag.assert(p!.count == 2)
-    Swag.assert(p!.next!.count == 7)
+    Swag.assert(p.count == 2)
+    Swag.assert(p.next!.count == 7)
 
     // '?.' skips the access when null; 'orelse' provides the scalar fallback.
     // 'orelse' binds loosely, so the comparison needs the parentheses.

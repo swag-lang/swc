@@ -200,7 +200,7 @@ func clearPage()
     let pageView = g_PageView!
     for child in pageView.children
     {
-        let c = child!
+        let c = child
         c.destroy()
     }
 }
@@ -315,7 +315,7 @@ func canUsePageArrows()->bool
     if not focus or focus == g_View do
         return true
 
-    return not pageView.isAncestorOf(focus!)
+    return not pageView.isAncestorOf(focus)
 }
 
 func onFrame(app: *Application)

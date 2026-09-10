@@ -102,5 +102,5 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     Swag.assert(face != null)
 
     context.allocator = allocatorB
-    face!.destroy()
+    face.destroy()
 }

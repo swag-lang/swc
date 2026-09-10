@@ -37,7 +37,7 @@ impl InlineBug11List
         if not head do
             return false
 
-        let node = head!
+        let node = head
         outNode[] = node
         .unlink(node)
         return true

@@ -51,7 +51,7 @@ internal func fillRegions(pathList: *LinePathList, contours: *Array'(*LinePath),
         if (p.polygon.isClockwise or serial != p.serial) and flush
         {
             serial = p.serial
-            regions.add({flush!, first, contours.count - first})
+            regions.add({flush, first, contours.count - first})
             first = contours.count
             flush = null
         }
@@ -64,7 +64,7 @@ internal func fillRegions(pathList: *LinePathList, contours: *Array'(*LinePath),
     }
 
     if flush do
-        regions.add({flush!, first, contours.count - first})
+        regions.add({flush, first, contours.count - first})
 }
 
 // Returns the sign that turns a region's contour directions outward.
@@ -110,7 +110,7 @@ private func buildTriangleOffsets(directions: *HashTable'(u64, Vector2), p: *Lin
     {
         let found = directions.tryFind(contourPointKey(p.triangles.vertices[i]))
         if found do
-            p.triangleOffsets[i] = found!.value
+            p.triangleOffsets[i] = found.value
     }
 }
 

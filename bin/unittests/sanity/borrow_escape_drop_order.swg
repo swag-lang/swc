@@ -23,7 +23,7 @@ impl Reader
     mtd opDrop()
     {
         if .pointer do
-            observed = .pointer![]
+            observed = .pointer[]
     }
 
     #[Swag.NoInline]
@@ -163,7 +163,7 @@ func trivialCarrierBeforeValue()->s32
     var pointer: *s32?
     var value:   Value
     pointer = &value.value
-    return pointer![]
+    return pointer[]
 }
 
 func readerBorrowsSelf()

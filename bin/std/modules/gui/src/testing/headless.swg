@@ -185,7 +185,7 @@ impl HeadlessHost
             if not wnd.surface do
                 return
 
-            wnd.surface!.app.sendBroadcastNotifyEvent(wnd, kind)
+            wnd.surface.app.sendBroadcastNotifyEvent(wnd, kind)
         }
 
         // Walk the surface, the way the application's own broadcast does: a view installed with
@@ -284,7 +284,7 @@ impl HeadlessHost
                     return
                 if wnd.type == PushButton and wnd.id
                 {
-                    let id = String.from(wnd.id!)
+                    let id = String.from(wnd.id)
                     if not ids.contains(id) do
                         ids.add(id)
                 }
@@ -729,7 +729,7 @@ impl HeadlessHost
         for surface in .app.modalSurfaces.reversed()
         {
             let view = surface.view()
-            wnd = view.childById(id!)
+            wnd = view.childById(id)
             if wnd do
                 break
         }

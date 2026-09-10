@@ -119,7 +119,7 @@ impl ViewerPluginRegistry
     mtd attachTo(app: *Application)
     {
         for plugin in .plugins where plugin.attach do
-            plugin.attach!(app)
+            plugin.attach(app)
     }
 
     // Returns the plugin that stands for `fileName`, from its name alone.

@@ -490,13 +490,13 @@ impl MainWnd
             return edMode
 
         case .Favorites:
-            return formToEditMode(.mdlFavorite!)
+            return formToEditMode(.mdlFavorite)
 
         case .Highlight:
-            return formToEditMode(.mdlHighlight!)
+            return formToEditMode(.mdlHighlight)
 
         case .PixSel:
-            return formToEditMode(.mdlPixSel!)
+            return formToEditMode(.mdlPixSel)
         }
 
         return .editMode
@@ -518,7 +518,7 @@ impl MainWnd
             if not capture do
                 return
 
-            .embInfoFreeze = InfoBar.create(.editWnd.view!, appStrings().ui_Frozen, .Message, flags: .Bottom)
+            .embInfoFreeze = InfoBar.create(.editWnd.view, appStrings().ui_Frozen, .Message, flags: .Bottom)
             .embInfoFreeze.sigDismissed += func|main = me|(ctrl)
             {
                 main.freezeSel     = false
@@ -874,7 +874,7 @@ impl MainWnd
 
         for id in toolButtons
         {
-            with let b = IconButton.create(me .toolRail!, {}, position: {0, 0, cellSize, cellSize})
+            with let b = IconButton.create(me .toolRail, {}, position: {0, 0, cellSize, cellSize})
             {
                 .id = id
 
@@ -912,7 +912,7 @@ impl MainWnd
     {
         let metrics    = .themeMetrics()
         let cellSize   = themeActionButtonSize(metrics)
-        with let verbs = StackLayoutCtrl.create(me .topBar!, .Left, {0, 0, VerbsWidth, cellSize})
+        with let verbs = StackLayoutCtrl.create(me .topBar, .Left, {0, 0, VerbsWidth, cellSize})
         {
             .dockStyle = .Left
             .spacing   = metrics.iconBar_ButtonsPadding
@@ -928,7 +928,7 @@ impl MainWnd
             .setIcon(me .icon(.Library))
         }
 
-        with .commandReadouts = StackLayoutCtrl.create(me .topBar!, .Right, {0, 0, ReadoutsWidth, cellSize})
+        with .commandReadouts = StackLayoutCtrl.create(me .topBar, .Right, {0, 0, ReadoutsWidth, cellSize})
         {
             .dockStyle = .Right
             .spacing   = metrics.iconBar_ButtonsPadding

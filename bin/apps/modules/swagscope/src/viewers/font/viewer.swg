@@ -47,7 +47,7 @@ impl FontViewerContent
     mtd opDrop()
     {
         if .face do
-            .face!.destroy()
+            .face.destroy()
     }
 }
 
@@ -60,11 +60,11 @@ private func loadFontViewerContent(fileName: string)->FontViewerContent fail
 
     let cacheKey = Format.toString("%|scope-font|%{X08}", fileName, Hash.Crc32.compute(result.bytes.toSlice()))
     result.typeFace = try TypeFace.create(cacheKey.toString(), result.bytes.toSlice())
-    let style = result.face!.styleName.isEmpty() ? fontStrings().ui_Regular : result.face!.styleName.toString()
+    let style = result.face.styleName.isEmpty() ? fontStrings().ui_Regular : result.face.styleName.toString()
     if faceCount == 1 do
-        result.details = Format.toString(fontStrings().ui_DetailsSingle, result.face!.familyName, style, result.face!.glyphCount, result.face!.unitsPerEm)
+        result.details = Format.toString(fontStrings().ui_DetailsSingle, result.face.familyName, style, result.face.glyphCount, result.face.unitsPerEm)
     else do
-        result.details = Format.toString(fontStrings().ui_DetailsCollection, result.face!.familyName, style, result.face!.glyphCount, result.face!.unitsPerEm, faceCount)
+        result.details = Format.toString(fontStrings().ui_DetailsCollection, result.face.familyName, style, result.face.glyphCount, result.face.unitsPerEm, faceCount)
     return #move result
 }
 
@@ -157,7 +157,7 @@ private impl IWnd for FontViewer
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure!(me, .failureReason.toString())
+                .reportFailure(me, .failureReason.toString())
             return
         }
 
@@ -168,9 +168,9 @@ private impl IWnd for FontViewer
         .applyLayout()
         .setInitialFocus(.document)
         if .reportDetails do
-            .reportDetails!(me, .details.toString())
+            .reportDetails(me, .details.toString())
         if .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -190,7 +190,7 @@ internal impl FontViewer
             return false
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 

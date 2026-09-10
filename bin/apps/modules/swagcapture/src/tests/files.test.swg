@@ -810,7 +810,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(not g_Library.loaded)
     while f.main.recentWnd.loadTimer
     {
-        let timer = f.main.recentWnd.loadTimer!
+        let timer = f.main.recentWnd.loadTimer
         f.gui.fireTimer(timer)
     }
 

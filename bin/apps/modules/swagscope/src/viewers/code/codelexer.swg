@@ -625,6 +625,6 @@ internal impl IRichEditLexer for GenericCodeLexer
         }
 
         if line.setLexerState(cast(s32) state) and lineNext do
-            lineNext!.markStyleDirty()
+            lineNext.markStyleDirty()
     }
 }

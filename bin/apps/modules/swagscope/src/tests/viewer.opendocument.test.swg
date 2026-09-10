@@ -342,7 +342,7 @@ private func drawingOpenDocumentXml()->String
     let flatView   = cast(*OpenDocumentViewer) flatResult.view!
     completeViewerBackgroundLoad(&flatHost, &flatView.load, flatView.loadTimer)
     Swag.assert((flatView.html != null) and not (flatView.table != null) and flatView.document.kind == .Drawing and flatView.document.slides.count == 2)
-    Swag.assert(flatResult.info != null and flatResult.info!.isVisible() and flatView.pageCombo.items.count == 2 and flatView.pageCombo.toolTip == openDocumentStrings().ui_TipPage)
+    Swag.assert(flatResult.info != null and flatResult.info.isVisible() and flatView.pageCombo.items.count == 2 and flatView.pageCombo.toolTip == openDocumentStrings().ui_TipPage)
 
     flatView.pageCombo.setSelectedIndex(1)
     Swag.assert(flatView.slideIndex == 1 and Utf8.contains(flatView.document.slides[flatView.slideIndex].html.toString(), "Drawing handoff is ready"))
@@ -383,14 +383,14 @@ private func drawingOpenDocumentXml()->String
     var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName.toString(), services: {reportDetails: &reportOpenDocumentTestDetails})
     Swag.assert(result.view != null and result.isLoading != null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null)
 
-    let view = cast(*OpenDocumentViewer) result.view!
+    let view = cast(*OpenDocumentViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert((view.html != null) and not (view.table != null))
     let navigated = view.html.elementById("odf-bookmark-1") != HtmlNoNode and view.html.navigateToFragment("#odf-bookmark-1")
     Swag.assert(navigated)
     Swag.assert(result.info != null)
     assertViewerInfoButton(view.zoomLabel)
-    Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
+    Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
     Swag.assert(view.document.metadata.title == "Quarterly & review" and view.document.metadata.subject == "Reader regression" and view.document.metadata.creator == "Swag Scope tests")
     Swag.assert(Utf8.contains(openDocumentReportedDetails.toString(), "OpenDocument") and Utf8.contains(openDocumentReportedDetails.toString(), "Quarterly & review"))
     Swag.assert(Utf8.contains(view.document.html.toString(), "data:image/png;base64,") and Utf8.contains(view.document.html.toString(), "width=\"") and Utf8.contains(view.document.html.toString(), "height=\"") and Utf8.contains(view.document.html.toString(), "<p align=\"center\"><strong>Style from styles.xml</strong></p>") and not Utf8.contains(view.document.html.toString(), "example.com"))
@@ -403,12 +403,12 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(resetZoom.accepted and view.zoomPercent == 100 and view.html.documentStyle.bodyFontSize == 16)
 
     var matches: Array'Viewer.SearchMatch
-    collectViewerMatches(result.collectMatches!, result.view!, "Berlin", &matches)
-    let revealed = matches.count == 1 and result.revealMatch!(result.view!, matches[0], "Berlin")
+    collectViewerMatches(result.collectMatches, result.view, "Berlin", &matches)
+    let revealed = matches.count == 1 and result.revealMatch(result.view, matches[0], "Berlin")
     Swag.assert(revealed)
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and not bounds.isEmpty())
-    result.clearSearch!(result.view!)
+    Swag.assert(result.searchBounds(result.view, matches[0], &bounds) and not bounds.isEmpty())
+    result.clearSearch!(result.view)
 }
 
 // ODS exposes every sheet through one compact control while keeping one virtual table active.
@@ -433,7 +433,7 @@ private func drawingOpenDocumentXml()->String
     host.root.applyLayout()
     discard host.render(&host.root)
     Swag.assert((view.table != null) and view.document.sheets.count == 2 and view.table.document.columns.count == 2 and view.table.document.rows.count == 2)
-    Swag.assert(result.info != null and result.info!.isHidden())
+    Swag.assert(result.info != null and result.info.isHidden())
     Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == openDocumentStrings().ui_TipSheet)
 
     view.pageCombo.setSelectedIndex(1)
@@ -553,7 +553,7 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(result.view != null and result.commands != null)
     commandBar.centerGroup = result.commands
 
-    let view = cast(*OpenDocumentViewer) result.view!
+    let view = cast(*OpenDocumentViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle = .Center
     view.commands.dockStyle = .None
@@ -607,11 +607,11 @@ private func drawingOpenDocumentXml()->String
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let view = cast(*OpenDocumentViewer) result.view!
+    let view = cast(*OpenDocumentViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle          = .Center
     view.commands.dockStyle = .None
-    result.info!.dockStyle  = .None
+    result.info.dockStyle   = .None
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(view.commands)
@@ -651,8 +651,8 @@ private func drawingOpenDocumentXml()->String
     infoBar.centerGroup = result.info
     let view = cast(*OpenDocumentViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    view.dockStyle         = .Center
-    result.info!.dockStyle = .None
+    view.dockStyle        = .Center
+    result.info.dockStyle = .None
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(&host.root)

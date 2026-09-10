@@ -60,7 +60,7 @@ namespace WinFsp
         var stream = catch File.open(winFspStageLogPath(), .Append, .Write, .Read) as openError
         if openError != null do
             return
-        discard catch stream.write(message.buffer!, message.count)
+        discard catch stream.write(message.buffer, message.count)
         discard catch stream.write(("\n").buffer, 1)
         stream.close()
     }

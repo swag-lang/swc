@@ -1026,7 +1026,7 @@ impl Deflate
                 Swag.assert(pSrc != null)
                 while pSrc != pSrc_end
                 {
-                    let c = pSrc![]
+                    let c = pSrc[]
                     pSrc += 1
                     d.dict[dstPos] = c
                     if dstPos < (MaxMatchLen - 1) do
@@ -1233,7 +1233,7 @@ public impl Deflate
 
         Swag.assert(.state != null, "'init' not called")
 
-        let d = .state!
+        let d = .state
         d.result     = result
         d.inBuf      = src.buffer
         d.inSrc      = src.buffer

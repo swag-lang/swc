@@ -373,35 +373,35 @@ impl PopupListCtrl
     // Moves the highlighted item by a signed distance, skipping separators.
     mtd moveHighlight(direction: s32)
     {
-        let view = cast(*PopupListView) .scrollWnd.view!
+        let view = cast(*PopupListView) .scrollWnd.view
         view.moveHot(direction)
     }
 
     // Highlights the first selectable item.
     mtd highlightFirst()
     {
-        let view = cast(*PopupListView) .scrollWnd.view!
+        let view = cast(*PopupListView) .scrollWnd.view
         view.moveHotEdge(forward: true)
     }
 
     // Highlights the last selectable item.
     mtd highlightLast()
     {
-        let view = cast(*PopupListView) .scrollWnd.view!
+        let view = cast(*PopupListView) .scrollWnd.view
         view.moveHotEdge(forward: false)
     }
 
     // Closes the popup and reports cancellation.
     mtd cancel()
     {
-        let view = cast(*PopupListView) .scrollWnd.view!
+        let view = cast(*PopupListView) .scrollWnd.view
         view.close(Swag.U32.Max)
     }
 
     // Closes the popup and commits the highlighted item, if any.
     mtd commitHighlighted()
     {
-        let view = cast(*PopupListView) .scrollWnd.view!
+        let view = cast(*PopupListView) .scrollWnd.view
         view.close(view.hotIdx)
     }
 
@@ -418,7 +418,7 @@ impl PopupListCtrl
         // row as well turns the sample into a bar of accent, which is the one thing a sample of a
         // stroke must not become. The keyboard still starts from the selection, which `moveHot`
         // reads on its own while nothing is highlighted.
-        let startView = cast(*PopupListView) .scrollWnd.view!
+        let startView = cast(*PopupListView) .scrollWnd.view
         startView.hotIdx = .markSelectionOnly ? Swag.U32.Max : .selectedIndex
 
         let pt  = .parent!.surfaceToLocal({x, y})

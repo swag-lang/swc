@@ -159,7 +159,7 @@ public impl Image
             fail UnsupportedFormatError{"no matching image decoder"}
 
         // Both the metadata probe and decoding may register more codec types.
-        return try decode(found.type, bytes!, options)
+        return try decode(found.type, bytes, options)
     }
 
     // Load the given image file

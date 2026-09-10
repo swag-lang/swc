@@ -210,7 +210,7 @@ func registerStrings(type: typeinfo, table: *void, file: string)
     // reference wording — the same outcome [[Gui.applyLanguage]] gives an untranslated table.
     if state.language.isEmpty() or not state.resources do
         return
-    discard catch applyTableLanguage(state.tables.backPtr(), state.resources!, state.language.toString())
+    discard catch applyTableLanguage(state.tables.backPtr(), state.resources, state.language.toString())
 }
 
 // Returns the active language tag, `"en"` by default. The value is borrowed and

@@ -89,7 +89,7 @@ public impl ByteStream
         if not count do
             return
 
-        let wb = .writeBuffer!
+        let wb = .writeBuffer
         if .seek + count > wb.count do
             wb.grow(.seek + count)
         let buffer = wb.storage()

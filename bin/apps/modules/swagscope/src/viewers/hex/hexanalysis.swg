@@ -224,7 +224,7 @@ func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32?
         }
 
         if processed do
-            Atomic.exchange(processed!, result.scanned)
+            Atomic.exchange(processed, result.scanned)
         remaining -= count
     }
 

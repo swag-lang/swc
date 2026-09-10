@@ -71,7 +71,7 @@ func allocBytes(size: u32)->[*] u8
 {
     let ptr = cast([*] u8?) testAlloc(cast(u64) size)
     Swag.assert(ptr != null)
-    return ptr!
+    return ptr
 }
 
 func zeroBytes(ptr: [*] u8, count: u32)

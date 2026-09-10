@@ -110,7 +110,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     expect voice.seekSampleFrame(Target)
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.buffer != null and decoded.size >= 32 * 2 * #sizeof(s16))
-    let samples = cast(const [*] s16) decoded.buffer!
+    let samples = cast(const [*] s16) decoded.buffer
     for index in 32 * 2 do
         Swag.assert(samples[index] == wanted[Target * 2 + index])
 }

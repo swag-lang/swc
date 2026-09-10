@@ -51,7 +51,7 @@ impl DetachedTable
         .table    = cast([*] u64) myAlloc(newCapacity * #sizeof(u64))
         .capacity = newCapacity
         if old != null do
-            myFree(cast(*void) old!, oldBytes)
+            myFree(cast(*void) old, oldBytes)
     }
 
     #[Swag.Sanity(.Lifecycle, true)]
@@ -78,7 +78,7 @@ impl DetachedTable
     mtd opDrop()
     {
         if .table != null do
-            myFree(cast(*void) .table!, .capacity * #sizeof(u64))
+            myFree(cast(*void) .table, .capacity * #sizeof(u64))
     }
 }
 

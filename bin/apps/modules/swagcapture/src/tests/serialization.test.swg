@@ -221,8 +221,8 @@ using Swag, Core
     libraryView.loadOne(&libraryItem)
     Swag.assert(libraryItem.loaded)
     Swag.assert(libraryItem.capture != null)
-    Swag.assert(not libraryItem.capture!.preview.isValid())
-    Swag.assert(not libraryItem.capture!.previewBytes.isEmpty())
+    Swag.assert(not libraryItem.capture.preview.isValid())
+    Swag.assert(not libraryItem.capture.previewBytes.isEmpty())
     Swag.assert(libraryItem.haar.size != 0)
 }
 

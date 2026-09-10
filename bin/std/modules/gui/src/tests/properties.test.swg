@@ -601,7 +601,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     Swag.assert(combo.popup != null)
     Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) prop.edView)
 
-    let pview = cast(*PopupListView) combo.popup!.scrollWnd.view!
+    let pview = cast(*PopupListView) combo.popup.scrollWnd.view
     Swag.assert(pview.hotIdx == 1)     // highlight starts on the current value
 
     // Down moves the highlight only; the committed value stays until Enter.
@@ -611,7 +611,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     Swag.assert(data.choice == .Mid)
 
     // A per-frame mouse-move outside the popup must not wipe the keyboard highlight.
-    host.sendMouseEvent(cast(*Wnd) pview!, MouseEvent.Kind.Move, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.None)
+    host.sendMouseEvent(cast(*Wnd) pview, MouseEvent.Kind.Move, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.None)
     Swag.assert(pview.hotIdx == 2)
 
     // Enter commits the highlighted item (writes the data) and closes the edit.
@@ -1422,7 +1422,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     // The default value comes from a real default-constructed instance of the struct.
     Swag.assert(countItem.defaultData != null)
-    Swag.assert(countItem.defaultData![as s32] == 42)
+    Swag.assert(countItem.defaultData[as s32] == 42)
 
     // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
     Swag.assert(not countItem.isModified)
@@ -2112,7 +2112,7 @@ struct PropAlignData
             if not w do
                 continue
 
-            let wnd = w!
+            let wnd = w
             if right < 0 do
                 right = wnd.position.right()
             Swag.assert(Math.isEqualEpsilon(wnd.position.right(), right, 0.01))

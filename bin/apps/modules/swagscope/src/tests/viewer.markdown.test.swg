@@ -146,7 +146,7 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
     var result   = openTestViewer(markdownViewerPlugin(), &host.root, fileName.toString())
     Swag.assert(result.view != null and result.failureReason.isEmpty())
-    let view = cast(*Markdown.View) result.view!
+    let view = cast(*Markdown.View) result.view
     applyMarkdownViewerStyle(view, themeIndex, 1)
     view.resize(960, 680)
     view.applyLayout()
@@ -264,22 +264,22 @@ private func markdownWhiteyFixturePath()->String
     Swag.assert(wnd != null)
     Swag.assert(result.commands != null)
     Swag.assert(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
-    Swag.assert(result.isLoading != null and result.isLoading!(wnd!))
+    Swag.assert(result.isLoading != null and result.isLoading(wnd))
     Swag.assert(Utf8.contains(result.details.toString(), "Markdown"))
     let commands = result.commands
-    commands!.applyLayout()
+    commands.applyLayout()
 
     // Pointer use of either document command must return focus to the Markdown canvas after the
     // popup closes, leaving navigation keys attached to the document.
-    let widthCombo = cast(*ComboBox) commands!.children[0]
-    let themeCombo = cast(*ComboBox) commands!.children[1]
-    Swag.assert((cast(*Markdown.View) wnd!).hasFocus())
+    let widthCombo = cast(*ComboBox) commands.children[0]
+    let themeCombo = cast(*ComboBox) commands.children[1]
+    Swag.assert((cast(*Markdown.View) wnd).hasFocus())
     var comboPoint = widthCombo.surfaceRect().center()
     widthCombo.surface!.surfaceToScreen(&comboPoint)
     host.mouseDown(comboPoint)
     Swag.assert(widthCombo.hasFocus() and not widthCombo.hasVisibleFocus())
     host.keyPress(Input.Key.Escape)
-    Swag.assert((cast(*Markdown.View) wnd!).hasFocus())
+    Swag.assert((cast(*Markdown.View) wnd).hasFocus())
     host.mouseUp(comboPoint)
 
     comboPoint = themeCombo.surfaceRect().center()
@@ -287,14 +287,14 @@ private func markdownWhiteyFixturePath()->String
     host.mouseDown(comboPoint)
     Swag.assert(themeCombo.hasFocus() and not themeCombo.hasVisibleFocus())
     host.keyPress(Input.Key.Escape)
-    Swag.assert((cast(*Markdown.View) wnd!).hasFocus())
+    Swag.assert((cast(*Markdown.View) wnd).hasFocus())
     host.mouseUp(comboPoint)
 
     // The application spinner follows scheduled work, not lazy source left on disk.
-    for 64 where result.isLoading!(wnd!) do
+    for 64 where result.isLoading(wnd) do
         host.fireTimers()
-    Swag.assert(not result.isLoading!(wnd!))
-    Swag.assert((cast(*Markdown.View) wnd!).hasUnloadedSource())
+    Swag.assert(not result.isLoading(wnd))
+    Swag.assert((cast(*Markdown.View) wnd).hasUnloadedSource())
 }
 
 // Reveals a marker beyond the initial resident window of a multi-megabyte Markdown document while

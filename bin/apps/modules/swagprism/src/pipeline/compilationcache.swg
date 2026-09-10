@@ -17,7 +17,7 @@ impl BuildLease
     mtd opDrop()
     {
         if .artifact do
-            .cache!.release(.artifact!)
+            .cache!.release(.artifact)
     }
 
     mtd wait(cancelled: *u32)->bool

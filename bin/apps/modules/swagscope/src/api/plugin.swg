@@ -123,7 +123,7 @@ impl Plugin
     mtd const displayName()->string
     {
         if .resolveName do
-            return .resolveName!()
+            return .resolveName()
         return .staticName.toString()
     }
 

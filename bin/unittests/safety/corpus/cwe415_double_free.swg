@@ -83,7 +83,7 @@ impl Owner
     {
         if .pointer != null
         {
-            heapFree(.pointer!, 4)
+            heapFree(.pointer, 4)
             .pointer = null
         }
     }

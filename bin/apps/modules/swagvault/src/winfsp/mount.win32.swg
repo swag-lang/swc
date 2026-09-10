@@ -138,7 +138,7 @@ namespace WinFsp
             {
                 if .context.defaultSecurity do
                     discard LocalFree(.context.defaultSecurity)
-                Memory.delete(.context!)
+                Memory.delete(.context)
                 .context = null
             }
 

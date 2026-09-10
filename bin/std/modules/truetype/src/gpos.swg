@@ -181,7 +181,7 @@ func parseGpos(faceData: *FaceImpl) fail
     if not rec do
         return
 
-    let r     = rec!
+    let r     = rec
     let table = getSlice(faceData.fontData.toSlice(), r.offset, r.length)
     if table.count < 10 do
         return

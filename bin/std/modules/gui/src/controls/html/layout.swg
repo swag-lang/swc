@@ -151,7 +151,7 @@ impl HtmlLayout
         let key     = Hash.murmur3(Hash.hash64(text), salt)
         let found   = .widthCache.tryFind(key)
         if found do
-            return found!.value
+            return found.value
 
         // CSS puts the tracking after every character, the shaper only between two of them, so
         // one more gap closes the run. Without it every word of a tracked line is a gap short and
@@ -1113,10 +1113,10 @@ impl HtmlLayout
         var natural = Math.Point{0, 0}
         if .images and node != HtmlNoNode
         {
-            let entry = .images!.fetch(.document.attribute(node, "src"))
+            let entry = .images.fetch(.document.attribute(node, "src"))
             if entry
             {
-                natural = entry!.naturalSize
+                natural = entry.naturalSize
             }
         }
 
@@ -1148,7 +1148,7 @@ impl HtmlLayout
             result.y = natural.y * result.x / natural.x
 
         if .images and node != HtmlNoNode do
-            .images!.requestSize(.document.attribute(node, "src"), result.x * .deviceScale, result.y * .deviceScale)
+            .images.requestSize(.document.attribute(node, "src"), result.x * .deviceScale, result.y * .deviceScale)
 
         return result
     }

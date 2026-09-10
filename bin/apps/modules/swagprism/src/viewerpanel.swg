@@ -121,8 +121,8 @@ impl ViewerPanel
             return
         if .viewer
         {
-            .viewer!.shutdown()
-            .viewer!.window().hide()
+            .viewer.shutdown()
+            .viewer.window().hide()
         }
 
         .kind = kind

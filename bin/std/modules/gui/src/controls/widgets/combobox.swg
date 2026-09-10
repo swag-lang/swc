@@ -115,7 +115,7 @@ impl IWnd for ComboBox
         subRectBk     = &rects.edit_SquareBk
         subRectBorder = &rects.edit_SquareBorder
 
-        .focusRingRadius = subRectBk!.radius
+        .focusRingRadius = subRectBk.radius
 
         switch
         {
@@ -406,7 +406,7 @@ private impl ComboBox
         // Pointer-opened command lists are temporary overlays. Once dismissed they return the
         // keyboard to its previous owner instead of leaving an invisible focus on the field.
         if restoreFocus and not restoreFocus.isPendingDestroy and restoreFocus.surface == .surface and restoreFocus.isEnabled() do
-            restoreFocus!.setFocus()
+            restoreFocus.setFocus()
     }
 }
 

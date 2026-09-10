@@ -487,7 +487,7 @@ impl RichEditCtrl
         {
             cur  = .lines[i]!
             next = i == .lines.count - 1 ? null : .lines[i + 1]
-            .lexer.compute(prev, cur!, next)
+            .lexer.compute(prev, cur, next)
             prev = cur
         }
     }

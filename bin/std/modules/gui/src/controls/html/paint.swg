@@ -838,7 +838,7 @@ impl HtmlPainter
 
         if .images and .renderer and node != HtmlNoNode
         {
-            let texture = .images!.texture(.renderer!, .layout.document.attribute(node, "src"), frame.width * .layout.deviceScale, frame.height * .layout.deviceScale)
+            let texture = .images.texture(.renderer, .layout.document.attribute(node, "src"), frame.width * .layout.deviceScale, frame.height * .layout.deviceScale)
             if texture
             {
                 let interpolation = .painter.interpolationMode()
@@ -893,12 +893,12 @@ impl HtmlPainter
         if not box do
             return result
 
-        let style = .layout.constStyle(.layout.constBox(box!.value).style)
+        let style = .layout.constStyle(.layout.constBox(box.value).style)
         if not style.background.a or style.masked do
             return result
 
         result.color = style.background
-        result.box   = box!.value
+        result.box   = box.value
         return result
     }
 

@@ -49,7 +49,7 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
     var seen = false
     if value do seen = true
     Swag.assert(seen)
-    Swag.assert(value!.answer() == 42)
+    Swag.assert(value.answer() == 42)
     Swag.assert((value?.answer() orelse 0) == 42)
     let fallback = Swag.makeInterface(null, Fallback, IMetadata)
     let selected = value orelse fallback

@@ -44,21 +44,21 @@ using Core, Pixel, Gui
 
     var result = openTestViewer(tableViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands == null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
-    let view = cast(*TableViewer) result.view!
+    let view = cast(*TableViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(view.list.isVirtual and view.list.lineCount() == 3 and view.list.header.items.count == 3)
     var line: ListLine
     view.fillLine(&line, 1)
     Swag.assert(line.itemAt(0).name.raw == "Reykjavik" and line.itemAt(2).name.raw == "rain")
     var matches: Array'Viewer.SearchMatch
-    collectViewerMatches(result.collectMatches!, result.view!, "humid", &matches)
-    let revealed = matches.count == 1 and result.revealMatch!(result.view!, matches[0], "humid")
+    collectViewerMatches(result.collectMatches, result.view, "humid", &matches)
+    let revealed = matches.count == 1 and result.revealMatch(result.view, matches[0], "humid")
     Swag.assert(revealed)
     Swag.assert(view.searchRow == 2 and view.searchColumn == 2 and view.searchOffset == 0 and view.searchLength == 5)
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and not bounds.isEmpty())
-    result.clearSearch!(result.view!)
-    Swag.assert(not result.searchBounds!(result.view!, matches[0], &bounds))
+    Swag.assert(result.searchBounds(result.view, matches[0], &bounds) and not bounds.isEmpty())
+    result.clearSearch(result.view)
+    Swag.assert(not result.searchBounds(result.view, matches[0], &bounds))
 }
 
 #test
@@ -146,7 +146,7 @@ using Core, Pixel, Gui
 
     var result = openTestViewer(tableViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null)
-    let view = cast(*TableViewer) result.view!
+    let view = cast(*TableViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle = .Center
 

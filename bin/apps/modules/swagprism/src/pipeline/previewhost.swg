@@ -20,7 +20,7 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
     {
         let symbol = library.symbol("prism_build")
         Swag.assert(symbol != null)
-        let build = cast(func(*Wnd)) symbol!
+        let build = cast(func(*Wnd)) symbol
         host.setup(FrameChannel.Width, FrameChannel.Height)
         host.setReducedMotion(false)
         host.theme.setSwagDark()
@@ -32,7 +32,7 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
     {
         let symbol = library.symbol("prism_shade")
         Swag.assert(symbol != null)
-        shade = cast(func(f32, f32, f32)->u32) symbol!
+        shade = cast(func(f32, f32, f32)->u32) symbol
     }
 
     var clock: Time.Stopwatch

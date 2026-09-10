@@ -222,7 +222,7 @@ impl MicrocodeViewer
         }
 
         if .job.timer and not .isPendingDestroy do
-            .removeTimer(.job.timer!)
+            .removeTimer(.job.timer)
         .job.timer   = null
         .job.running = false
         .job.queued  = false

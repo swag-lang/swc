@@ -33,9 +33,9 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextView)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
     Swag.assert(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null and result.retire != null)
 
-    let view = cast(*TextView) result.view!
+    let view = cast(*TextView) result.view
     assertViewerInfoButton(view.zoomLabel)
-    Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
+    Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
     finishTextStatistics(&host, view)
     let lineDetails = Format.toString(textStrings().ui_Lines, view.statistics.lines)
     Swag.assert(Utf8.contains(view.detailsText().toSlice(), lineDetails.toSlice()))
@@ -84,7 +84,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextView)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
-    let view = cast(*TextView) result.view!
+    let view = cast(*TextView) result.view
     finishTextStatistics(&host, view)
     view.dockStyle          = .Center
     view.commands.dockStyle = .None

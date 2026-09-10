@@ -87,7 +87,7 @@ internal impl IWnd for SubtitleViewer
     {
         discard evt
         if .track do
-            Subtitle.Track.destroy(.track!)
+            Subtitle.Track.destroy(.track)
         .track = null
     }
 }

@@ -95,7 +95,7 @@ impl HtmlImageCache
 
         let found = .index.tryFind(String.from(source))
         if found do
-            return .entries[found!.value].loaded ? &.entries[found!.value] : null
+            return .entries[found.value].loaded ? &.entries[found.value] : null
 
         let slot = cast(u32) .entries.count
         var entry: HtmlImageEntry
@@ -147,10 +147,10 @@ impl HtmlImageCache
     mtd requestSize(source: string, pixelWidth, pixelHeight: f32)
     {
         let entry = .fetch(source)
-        if not entry or not entry!.isVector do
+        if not entry or not entry.isVector do
             return
-        entry!.rasterSize.x = Math.max(entry!.rasterSize.x, pixelWidth)
-        entry!.rasterSize.y = Math.max(entry!.rasterSize.y, pixelHeight)
+        entry.rasterSize.x = Math.max(entry.rasterSize.x, pixelWidth)
+        entry.rasterSize.y = Math.max(entry.rasterSize.y, pixelHeight)
     }
 
     // Rasterizes vectors at their displayed pixel size, retaining the largest requested raster.
@@ -160,35 +160,35 @@ impl HtmlImageCache
         let entry = .fetch(source)
         if not entry do
             return null
-        if entry!.isVector
+        if entry.isVector
         {
             // Keep the source aspect ratio: CSS may stretch the uploaded texture independently.
-            let size           = entry!.naturalSize
-            let requestedScale = Math.max(Math.max(pixelWidth, entry!.rasterSize.x) / size.x, Math.max(pixelHeight, entry!.rasterSize.y) / size.y)
+            let size           = entry.naturalSize
+            let requestedScale = Math.max(Math.max(pixelWidth, entry.rasterSize.x) / size.x, Math.max(pixelHeight, entry.rasterSize.y) / size.y)
             let scale          = Math.min(requestedScale, HtmlSvgRasterLimit / Math.max(size.x, size.y), Math.sqrt(cast(f32) HtmlSvgRasterPixels / size.x / size.y))
             let capped         = scale < requestedScale
             let width          = cast(s32) Math.max(capped ? Math.floor(size.x * scale) : Math.ceil(size.x * scale), 1)
             let height         = cast(s32) Math.max(capped ? Math.floor(size.y * scale) : Math.ceil(size.y * scale), 1)
-            if entry!.image.width < width or entry!.image.height < height
+            if entry.image.width < width or entry.image.height < height
             {
-                if entry!.uploaded
+                if entry.uploaded
                 {
-                    .renderer!.removeTexture(&entry!.texture)
-                    entry!.uploaded = false
+                    .renderer!.removeTexture(&entry.texture)
+                    entry.uploaded = false
                 }
 
                 // The surface renderer is ready during paint. Reuse its backend for the
                 // offscreen raster instead of blocking the frame with a software render.
-                entry!.image = entry!.drawing.rasterize(renderer, width, height)
+                entry.image = entry.drawing.rasterize(renderer, width, height)
             }
         }
 
-        if entry!.uploaded do
-            return &entry!.texture
+        if entry.uploaded do
+            return &entry.texture
 
-        .renderer       = renderer
-        entry!.texture  = renderer.addImage(entry!.image)
-        entry!.uploaded = true
-        return &entry!.texture
+        .renderer      = renderer
+        entry.texture  = renderer.addImage(entry.image)
+        entry.uploaded = true
+        return &entry.texture
     }
 }

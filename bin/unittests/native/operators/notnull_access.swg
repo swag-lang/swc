@@ -80,7 +80,7 @@ func notNullRedundant(node: *NotNullNode?)->s32
 {
     if node == null do
         return -1
-    return node!.value
+    return node.value
 }
 
 // A bare unwrap binds the proven value; nothing needs to follow the '!'.

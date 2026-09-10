@@ -213,7 +213,7 @@ private func registerStableTypeKeyNoLock(type: typeinfo)
     if key == null do
         return
 
-    let stableKey = cast(string) key!
+    let stableKey = cast(string) key
     let existing  = g_HashKeyToType.tryFind(stableKey)
     if not existing
     {

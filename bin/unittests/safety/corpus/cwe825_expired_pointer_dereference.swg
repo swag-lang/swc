@@ -31,7 +31,7 @@ impl Bag
     mtd opDrop()
     {
         if .buffer != null do
-            heapFree(cast(*void) .buffer!, .capacity * 4)
+            heapFree(cast(*void) .buffer, .capacity * 4)
         .buffer = null
     }
 
@@ -44,7 +44,7 @@ impl Bag
         for index in .count do
             block[index] = .buffer![index]
         if .buffer != null do
-            heapFree(cast(*void) .buffer!, .capacity * 4)
+            heapFree(cast(*void) .buffer, .capacity * 4)
         .buffer   = block
         .capacity = capacity
     }

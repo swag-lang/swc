@@ -659,7 +659,7 @@ impl Track
     {
         let allocator = track.allocationAllocator
         if allocator do
-            Memory.delete(track, allocator!)
+            Memory.delete(track, allocator)
         else do
             Memory.delete(track)
     }

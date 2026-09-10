@@ -86,12 +86,12 @@ impl ImageCanvas
         canvas.renderer = Memory.new'RenderCpu()
         canvas.target   = Memory.new'RenderTarget()
 
-        let renderer = canvas.renderer!
+        let renderer = canvas.renderer
         canvas.isOpen = true
         renderer.begin(width, height)
         let rendererItf: IRenderer = renderer
         rendererItf.init()
-        canvas.target![] = rendererItf.createRenderTarget(width, height)
+        canvas.target[] = rendererItf.createRenderTarget(width, height)
         rendererItf.end()
 
         canvas.painter = Painter.create(renderer)

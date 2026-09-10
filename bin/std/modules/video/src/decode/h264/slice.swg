@@ -513,7 +513,7 @@ impl Slice
                 fail InvalidFormatError{"H.264 slice reorders a reference picture that does not exist"}
 
             // Insert at the running position, then drop the duplicate further down.
-            let frame = target!
+            let frame = target
             list.insertAt(insertPos, frame)
             insertPos += 1
             var scan = insertPos

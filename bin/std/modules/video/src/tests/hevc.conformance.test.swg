@@ -73,14 +73,14 @@ impl ConformanceRun
             let started = try .decoder.readNalUnit(unit)
             if started and .decoder.finishedFrame
             {
-                .recordPicture(.decoder.finishedFrame!)
+                .recordPicture(.decoder.finishedFrame)
                 .decoder.finishedFrame = null
             }
         }
 
         let last = try .decoder.finishPicture()
         if last do
-            .recordPicture(last!)
+            .recordPicture(last)
     }
 
     // Reads the decoded picture digests out of one supplemental enhancement information unit.
@@ -154,9 +154,9 @@ impl ConformanceRun
         var text: String
         for component in 3'u32
         {
-            let bitDepth = component == 0 ? sps!.bitDepthLuma : sps!.bitDepthChroma
-            let width    = component == 0 ? sps!.width : sps!.width / sps!.subWidthC
-            let height   = component == 0 ? sps!.height : sps!.height / sps!.subHeightC
+            let bitDepth = component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
+            let width    = component == 0 ? sps.width : sps.width / sps.subWidthC
+            let height   = component == 0 ? sps.height : sps.height / sps.subHeightC
             let stride   = component == 0 ? frame.strideLuma : frame.strideChroma
             let plane    = component == 0 ? frame.luma.storage() : (component == 1 ? frame.chromaB.storage() : frame.chromaR.storage())
             let origin   = cast(u64) Hevc.FramePadding * stride + cast(u64) Hevc.FramePadding

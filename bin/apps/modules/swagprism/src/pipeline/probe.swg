@@ -192,7 +192,7 @@ func compilerPath()->String
             return candidate
 
         let parent = Path.directoryName(folder.toString())
-        if parent == null or Path.equals(parent!, folder.toString()) do
+        if parent == null or Path.equals(parent, folder.toString()) do
             break
         folder = String.from(parent)
     }

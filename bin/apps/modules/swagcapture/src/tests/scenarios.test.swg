@@ -106,7 +106,7 @@ func scenarioDeleteCaptureFiles(path: String)
     Swag.assert(f.main.libraryMode)
     Swag.assert(f.main.libWnd.view.allItems.count == 1)
     Swag.assert(f.main.libWnd.view.items.count == 1)
-    Swag.assert(f.main.libWnd.view.items[0]!.loaded)
+    Swag.assert(f.main.libWnd.view.items[0].loaded)
     Swag.assert(f.main.libWnd.sidebarApplications.count == 1)
     Swag.assert(f.main.libWnd.sidebarApplications[0].name == "Scenario Editor")
 
@@ -146,7 +146,7 @@ func scenarioDeleteCaptureFiles(path: String)
     Memory.delete(saved)
 
     f.toggleLibrary()
-    let item = f.main.libWnd.view.items[0]!
+    let item = f.main.libWnd.view.items[0]
     f.main.libWnd.view.openItem(item)
     f.gui.pump()
 
@@ -223,7 +223,7 @@ func scenarioDeleteCaptureFiles(path: String)
     f.main.libWnd.setTrashMode(false)
     f.settleLibrary()
     Swag.assert(f.main.libWnd.view.items.count == 1)
-    f.main.libWnd.view.openItem(f.main.libWnd.view.items[0]!)
+    f.main.libWnd.view.openItem(f.main.libWnd.view.items[0])
     f.gui.pump()
 
     Swag.assert(not f.main.libraryMode)

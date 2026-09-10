@@ -530,7 +530,7 @@ impl HexGridView
         // here is placed by multiplying that advance. Measuring the unsnapped one instead drifts a
         // fraction of a pixel per column, which by the last column of a row is a whole cell: the
         // caret lands beside its byte and the text column starts inside the hexadecimal one.
-        let font = resolved!
+        let font = resolved
         .charWidth    = Math.max(Painter.measureStringSnapped("0", font, deviceScale: .deviceScale()), 1)
         .rowHeight    = Math.max(Math.ceil(font.height), 1)
         .offsetDigits = .doc.fileSize > 0xFFFF_FFFF ? 16 : 8
@@ -771,7 +771,7 @@ impl HexGridView
     {
         if not .searchHits do
             return 0
-        let hits  = .searchHits!
+        let hits  = .searchHits
         var first = 0'u64
         var count = hits.count
         while count
@@ -817,7 +817,7 @@ impl HexGridView
         .selecting = false
         if .selectionTimer
         {
-            .removeTimer(.selectionTimer!)
+            .removeTimer(.selectionTimer)
             .selectionTimer = null
         }
 
@@ -852,7 +852,7 @@ impl HexGridView
             .selectionTimer = .addTimer(HexDragScrollRate)
         elif not above and not below and .selectionTimer
         {
-            .removeTimer(.selectionTimer!)
+            .removeTimer(.selectionTimer)
             .selectionTimer = null
         }
     }
@@ -918,7 +918,7 @@ impl HexGridView
         options.message = hexStrings().ui_GoToMessage
         options.text    = Swag.makeString(current.storage(), current.count)
 
-        let dialog = EditDlg.createSingleLine(surface!, options)
+        let dialog = EditDlg.createSingleLine(surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return
 
@@ -1295,7 +1295,7 @@ impl IWnd for HexGridView
         if not resolved or .rowHeight <= 0 do
             return
 
-        let font    = resolved!
+        let font    = resolved
         let colors  = .themeColors()
         let client  = .clientRect()
         let originX = -.scrollPos.x
@@ -1351,7 +1351,7 @@ impl IWnd for HexGridView
             var hitIndex = .firstSearchHitAt(rowOffset)
             while hits and hitIndex < hits.count and hits[hitIndex].offset <= rowLast
             {
-                let hit     = &hits![hitIndex]
+                let hit     = &hits[hitIndex]
                 let hitLast = hit.offset + Math.min(hit.length - 1, Swag.U64.Max - hit.offset)
                 .fillRange(painter, Math.max(hit.offset, rowOffset), Math.min(hitLast, rowLast), originX, y, searchHitBk)
                 hitIndex += 1

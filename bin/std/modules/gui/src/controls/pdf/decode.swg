@@ -1171,7 +1171,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             if current and ops.count >= 2
             {
                 let p = transformPoint(&state, page, operandNumber(&content, ops, ops.count - 2), operandNumber(&content, ops, ops.count - 1))
-                current!.lineTo(p.x, p.y)
+                current.lineTo(p.x, p.y)
             }
 
         case "c":
@@ -1181,7 +1181,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 let c1 = transformPoint(&state, page, operandNumber(&content, ops, n), operandNumber(&content, ops, n + 1))
                 let c2 = transformPoint(&state, page, operandNumber(&content, ops, n + 2), operandNumber(&content, ops, n + 3))
                 let p  = transformPoint(&state, page, operandNumber(&content, ops, n + 4), operandNumber(&content, ops, n + 5))
-                current!.bezierTo(p.x, p.y, c1.x, c1.y, c2.x, c2.y)
+                current.bezierTo(p.x, p.y, c1.x, c1.y, c2.x, c2.y)
             }
 
         case "v":
@@ -1190,10 +1190,10 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             if current and ops.count >= 4
             {
                 let n  = ops.count - 4
-                let c1 = current!.endPoint
+                let c1 = current.endPoint
                 let c2 = transformPoint(&state, page, operandNumber(&content, ops, n), operandNumber(&content, ops, n + 1))
                 let p  = transformPoint(&state, page, operandNumber(&content, ops, n + 2), operandNumber(&content, ops, n + 3))
-                current!.bezierTo(p.x, p.y, c1.x, c1.y, c2.x, c2.y)
+                current.bezierTo(p.x, p.y, c1.x, c1.y, c2.x, c2.y)
             }
 
         case "y":
@@ -1204,12 +1204,12 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 let n  = ops.count - 4
                 let c1 = transformPoint(&state, page, operandNumber(&content, ops, n), operandNumber(&content, ops, n + 1))
                 let p  = transformPoint(&state, page, operandNumber(&content, ops, n + 2), operandNumber(&content, ops, n + 3))
-                current!.bezierTo(p.x, p.y, c1.x, c1.y, p.x, p.y)
+                current.bezierTo(p.x, p.y, c1.x, c1.y, p.x, p.y)
             }
 
         case "h":
             if current do
-                current!.close()
+                current.close()
 
         case "re":
             if ops.count >= 4

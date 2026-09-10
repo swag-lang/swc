@@ -329,8 +329,8 @@ internal impl BinaryViewer
         if not line do
             return false
 
-        .expandTo(line!)
-        let visible = .visibleIndexOf(line!)
+        .expandTo(line)
+        let visible = .visibleIndexOf(line)
         if visible == Swag.U32.Max do
             return false
 
@@ -528,7 +528,7 @@ internal impl BinaryViewer
         .rebuildFilterIndex()
         if .filterTimer
         {
-            .removeTimer(.filterTimer!)
+            .removeTimer(.filterTimer)
             .filterTimer = null
         }
 
@@ -549,8 +549,8 @@ internal impl BinaryViewer
         var walk = line.parent
         while walk
         {
-            chain.add(walk!)
-            walk = walk!.parent
+            chain.add(walk)
+            walk = walk.parent
         }
 
         for index in chain.count do
@@ -580,7 +580,7 @@ internal impl BinaryViewer
         var text: String
         for column in 4
         {
-            let item = line!.itemAt(cast(u32) column)
+            let item = line.itemAt(cast(u32) column)
             if item.name.raw.isEmpty() do
                 continue
             if not text.isEmpty() do
@@ -621,7 +621,7 @@ internal impl BinaryViewer
         options.title   = binStrings().ui_MenuGoTo
         options.message = binStrings().ui_GoToMessage
         options.text    = currentText.toString()
-        let dialog = EditDlg.createSingleLine(surface!, options)
+        let dialog = EditDlg.createSingleLine(surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return
         let typed = dialog.text()
@@ -712,7 +712,7 @@ internal impl BinaryViewer
     {
         if not .previewBand do
             return
-        let band  = .previewBand!
+        let band  = .previewBand
         let count = band.children.count
         if not count do
             return
@@ -829,7 +829,7 @@ internal impl IWnd for BinaryViewer
         elif evt.kind == .ThemeChanged
         {
             for line, index in .rowLines where line do
-                .styleLine(index, line!)
+                .styleLine(index, line)
             .list.invalidate()
         }
         else do
@@ -877,13 +877,13 @@ internal impl IWnd for BinaryViewer
                 .finishLoadTimer()
                 .failureReason = #move .pendingDoc.image.failureReason
                 if .reportFailure do
-                    .reportFailure!(me, .failureReason.toString())
+                    .reportFailure(me, .failureReason.toString())
                 return
             }
 
             if .previewBand
             {
-                .previewBand!.destroy()
+                .previewBand.destroy()
                 .previewBand = null
             }
 
@@ -896,7 +896,7 @@ internal impl IWnd for BinaryViewer
             .rebuildFilterIndex()
             .beginFillList()
             if .reportDetails do
-                .reportDetails!(me, .details.toString())
+                .reportDetails(me, .details.toString())
         }
 
         if not .fillListStep() do
@@ -963,7 +963,7 @@ internal impl BinaryViewer
         .restoreExpanded.clear()
         .restoreExpanded.resize(.rowLines.count)
         for line, index in .rowLines where line do
-            .restoreExpanded[index] = line!.expanded
+            .restoreExpanded[index] = line.expanded
         .restoreSelected = .selectedReportIndex()
     }
 
@@ -994,7 +994,7 @@ internal impl BinaryViewer
         if not .loadTimer do
             .loadTimer = .addTimer(1'ms)
         if notify and .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
     }
 
     private mtd publishLoadFailure(reason: string)
@@ -1002,25 +1002,25 @@ internal impl BinaryViewer
         .failureReason = String.from(reason)
         .finishLoadTimer()
         if .reportFailure do
-            .reportFailure!(me, .failureReason.toString())
+            .reportFailure(me, .failureReason.toString())
     }
 
     private mtd finishLoadTimer()
     {
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 
         if .filterTimer
         {
-            .removeTimer(.filterTimer!)
+            .removeTimer(.filterTimer)
             .filterTimer = null
         }
 
         if .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
     }
 
     mtd retire()->bool
@@ -1032,7 +1032,7 @@ internal impl BinaryViewer
             .retireRequested = true
             if .loadTimer
             {
-                .removeTimer(.loadTimer!)
+                .removeTimer(.loadTimer)
                 .loadTimer = null
             }
 

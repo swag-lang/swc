@@ -46,7 +46,7 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
     if not scan do
         return result
 
-    var cursor = scan!
+    var cursor = scan
     while cursor[]
     {
         while cursor[] == ' ' do

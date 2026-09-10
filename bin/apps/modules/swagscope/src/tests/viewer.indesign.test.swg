@@ -161,7 +161,7 @@ private func linkedIdmlFixturePath()->String
     let viewer = cast(*IndesignViewer) result.view!
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null)
-    let firstPageImages = Testing.htmlImageSources(viewer.htmlView!)
+    let firstPageImages = Testing.htmlImageSources(viewer.htmlView)
     Swag.assert(viewer.previewIndex == 0 and firstPageImages.count == 1)
     Swag.assert(Path.fileName(firstPageImages[0].toString()) == "title.png")
     Swag.assert(not viewer.goToTypedPage("0") and not viewer.goToTypedPage("5") and not viewer.goToTypedPage("page 1"))
@@ -182,7 +182,7 @@ private func linkedIdmlFixturePath()->String
 
     Swag.assert(qrcodePage != Swag.U64.Max)
     viewer.selectMarkupPage(qrcodePage)
-    let selectedPageImages = Testing.htmlImageSources(viewer.htmlView!)
+    let selectedPageImages = Testing.htmlImageSources(viewer.htmlView)
     Swag.assert(selectedPageImages.count == 1)
     Swag.assert(Path.fileName(selectedPageImages[0].toString()) == "qrcode.png")
     host.root.applyLayout()
@@ -190,7 +190,7 @@ private func linkedIdmlFixturePath()->String
     Testing.assertContentFits(viewer)
     let image = host.render(&host.root)
     Swag.assert(image.isValid())
-    let paintedImages = Testing.htmlImageSources(viewer.htmlView!)
+    let paintedImages = Testing.htmlImageSources(viewer.htmlView)
     Swag.assert(paintedImages.count == selectedPageImages.count)
     for index in paintedImages.count do
         Swag.assert(paintedImages[index] == selectedPageImages[index])
@@ -292,7 +292,7 @@ private func linkedIdmlFixturePath()->String
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let viewer = cast(*IndesignViewer) result.view!
+    let viewer = cast(*IndesignViewer) result.view
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null and not viewer.imageView.isVisible())
     Swag.assert(viewer.zoomLabel.isVisible() and viewer.zoomLabel.text() == indesignStrings().ui_Fit)
@@ -306,10 +306,10 @@ private func linkedIdmlFixturePath()->String
     var searchBounds: Math.Rectangle
     Swag.assert(viewer.searchBounds(&searchBounds))
     viewer.clearSearch()
-    viewer.htmlView!.selectAll()
-    Swag.assert(viewer.htmlView!.hasSelection() and Utf8.contains(viewer.htmlView!.selectedText().toString(), "Schriftwerke"))
-    viewer.htmlView!.clearSelection()
-    viewer.htmlView!.setFocus()
+    viewer.htmlView.selectAll()
+    Swag.assert(viewer.htmlView.hasSelection() and Utf8.contains(viewer.htmlView.selectedText().toString(), "Schriftwerke"))
+    viewer.htmlView.clearSelection()
+    viewer.htmlView.setFocus()
     host.keyPress(.Home)
     viewer.dockStyle          = .Center
     viewer.commands.dockStyle = .None
@@ -325,7 +325,7 @@ private func linkedIdmlFixturePath()->String
     {
         host.clickWnd(viewer.nextButton)
         Swag.assert(viewer.previewIndex == 1)
-        viewer.htmlView!.setFocus()
+        viewer.htmlView.setFocus()
         host.keyPress(.Home)
         Swag.assert(viewer.previewIndex == 0)
     }
@@ -359,7 +359,7 @@ private func linkedIdmlFixturePath()->String
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let viewer = cast(*IndesignViewer) result.view!
+    let viewer = cast(*IndesignViewer) result.view
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     completeViewerBackgroundLoad(&host, &viewer.previewLoad, viewer.previewLoadTimer)
     viewer.dockStyle          = .Center
@@ -424,7 +424,7 @@ private func linkedIdmlFixturePath()->String
     defer host.shutdown()
     var result = openTestViewer(indesignViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let viewer = cast(*IndesignViewer) result.view!
+    let viewer = cast(*IndesignViewer) result.view
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(not viewer.failureReason.isEmpty())
 }

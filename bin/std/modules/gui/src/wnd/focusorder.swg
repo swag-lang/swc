@@ -66,7 +66,7 @@ impl FocusOrder
 
             // A grouped radio button is not a stop unless it is the checked one, so what it
             // answers for is its own group, not the container the whole group sits in.
-            let group = FocusOrder.groupRepresentative(scan!)
+            let group = FocusOrder.groupRepresentative(scan)
             if group
             {
                 let rank = .rank(group)

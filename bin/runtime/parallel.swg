@@ -123,7 +123,7 @@ impl ParallelFailure
         Swag.memcpy(data, error.buffer, cast(u64) type.sizeof)
         if type.opPostCopy do
             type.opPostCopy(data)
-        .value = Swag.makeAny(data!, type)
+        .value = Swag.makeAny(data, type)
     }
 
     mtd opDrop()
@@ -148,13 +148,13 @@ internal func __parallelRangeFallible(begin, end: u64, body: func||(u64, u64) fa
     {
         catch body(first, last) as error
         if error != null do
-            failure.record(error!)
+            failure.record(error)
     }
 
     parallelRange(begin, end, partition, entry)
 
     if failure.value != null do
-        fail failure.value!
+        fail failure.value
 }
 
 private func parallelRange(begin, end: u64, body: func||(u64, u64), entry: u64)

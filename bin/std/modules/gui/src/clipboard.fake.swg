@@ -78,7 +78,7 @@ func fakeAddTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
         entry = g_Fake.typed.backPtr()
     }
 
-    let e = entry!
+    let e = entry
     e.crc = type ? type.crc : 0
     e.data.clear()
     e.data.add(data)

@@ -1052,11 +1052,11 @@ impl PdfParser
         if .objectDepth >= 32 do
             return InvalidNode
         let stream = .objectStream(container)
-        if not stream or index >= stream!.offsets.count do
+        if not stream or index >= stream.offsets.count do
             return InvalidNode
 
-        let position = stream!.first + stream!.offsets[index]
-        if position >= stream!.data.count do
+        let position = stream.first + stream.offsets[index]
+        if position >= stream.data.count do
             return InvalidNode
 
         let savedBytes = .bytes
@@ -1069,7 +1069,7 @@ impl PdfParser
             .pos         = savedPos
         }
 
-        .bytes = stream!.data.toSlice()
+        .bytes = stream.data.toSlice()
         .pos   = position
         let nodeId = catch .parseValue() as parseError
         return parseError == null ? nodeId : InvalidNode

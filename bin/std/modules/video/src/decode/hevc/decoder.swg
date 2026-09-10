@@ -213,7 +213,7 @@ impl Decoder
         {
             let frame = .references[index].frame
             if frame do
-                Atomic.add(&frame!.reconstructionHolds, ~0'u32)
+                Atomic.add(&frame.reconstructionHolds, ~0'u32)
             .references[index] = {}
         }
 

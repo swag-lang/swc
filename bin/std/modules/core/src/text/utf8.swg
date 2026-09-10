@@ -1220,7 +1220,7 @@ func firstRune(src: const [..] u8)->rune
     let countof = src.count
     if not countof do
         return 0
-    let dataof = src.buffer!
+    let dataof = src.buffer
     if Latin1.isAscii(dataof[0]) do
         return cast(rune) dataof[0]
     let {c, ?} = Utf8.decodeRune(Swag.makeSlice(dataof, countof))
@@ -1233,7 +1233,7 @@ func lastRune(src: const [..] u8)->rune
     let countof = src.count
     if not countof do
         return 0
-    let dataof = src.buffer!
+    let dataof = src.buffer
     if Latin1.isAscii(dataof[countof - 1]) do
         return cast(rune) dataof[countof - 1]
     let {c, ?} = Utf8.decodeLastRune(Swag.makeSlice(dataof, countof))

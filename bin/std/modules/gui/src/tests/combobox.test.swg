@@ -147,7 +147,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 
     combo.setSelectedIndex(1)
     host.pump()
-    Swag.assert(combo.editBox!.text() == "Beta")
+    Swag.assert(combo.editBox.text() == "Beta")
 }
 
 // Keyboard control: arrows move the selection (clamped at the ends, skipping
@@ -241,8 +241,8 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 
     host.mouseDown(comboPoint)
     Swag.assert(combo.popup != null)
-    combo.popup!.highlightLast()
-    combo.popup!.commitHighlighted()
+    combo.popup.highlightLast()
+    combo.popup.commitHighlighted()
     Swag.assert(combo.selectedIndex == 1)
     Swag.assert(document.hasFocus())
     host.mouseUp(comboPoint)

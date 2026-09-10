@@ -139,12 +139,12 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     var reopened = expect Volume.open(path, testPassword())
     let node     = reopened.resolve("\\renamed.bin")
-    Swag.assert(node != null and node!.blocks.count == 1)
+    Swag.assert(node != null and node.blocks.count == 1)
     var first: [BlockSize] u8
     var last:  [BlockSize] u8
-    let bytesRead = expect reopened.readNode(node!.id, 0, first)
+    let bytesRead = expect reopened.readNode(node.id, 0, first)
     Swag.assert(bytesRead == BlockSize)
-    let bytesRead2 = expect reopened.readNode(node!.id, (DataBlockCount - 1) * BlockSize, last)
+    let bytesRead2 = expect reopened.readNode(node.id, (DataBlockCount - 1) * BlockSize, last)
     Swag.assert(bytesRead2 == BlockSize)
     Swag.assert(sameTestBytes(first, source[until BlockSize]))
     Swag.assert(sameTestBytes(last, source[(DataBlockCount - 1) * BlockSize until DataBlockCount * BlockSize]))
@@ -188,9 +188,9 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     var recovered = expect Volume.open(salvaged, testPassword())
     let moved     = recovered.resolve("\\destination\\moved.bin")
-    Swag.assert(moved != null and moved!.blocks.count == RunCount)
+    Swag.assert(moved != null and moved.blocks.count == RunCount)
     var readBack: [BlockSize] u8
-    let bytesRead = expect recovered.readNode(moved!.id, (RunCount - 1) * 2 * BlockSize, readBack)
+    let bytesRead = expect recovered.readNode(moved.id, (RunCount - 1) * 2 * BlockSize, readBack)
     Swag.assert(bytesRead == BlockSize)
     Swag.assert(sameTestBytes(block, readBack))
     recovered.close()
@@ -1113,7 +1113,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     // Reading is untouched: a read-only mount is a mount, not a refusal to open.
     let node = volume.resolve("\\note.txt")
     Swag.assert(node != null)
-    let nodeId    = node!.id
+    let nodeId    = node.id
     var readBack: [4] u8
     let bytesRead = expect volume.readNode(nodeId, 0, readBack)
     Swag.assert(bytesRead == 4)

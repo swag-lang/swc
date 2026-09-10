@@ -152,13 +152,13 @@ private impl IWnd for ArchiveViewer
             if not .failureReason.isEmpty()
             {
                 if .reportFailure do
-                    .reportFailure!(me, .failureReason.toString())
+                    .reportFailure(me, .failureReason.toString())
                 return
             }
 
             .publishArchive()
             if .reportLoadingChanged do
-                .reportLoadingChanged!(me)
+                .reportLoadingChanged(me)
             return
         }
 
@@ -196,7 +196,7 @@ private impl ArchiveViewer
                                    .archive.entries.count,
                                    StrConv.toDisplaySize(.archive.uncompressedSize),
                                    StrConv.toDisplaySize(.archive.compressedSize))
-        .reportDetails!(me, text.toString())
+        .reportDetails(me, text.toString())
     }
 
     mtd fileIcon(entry: const *ZipEntry)->Icon
@@ -337,7 +337,7 @@ private impl ArchiveViewer
         {
             if .previewTimer
             {
-                .removeTimer(.previewTimer!)
+                .removeTimer(.previewTimer)
                 .previewTimer = null
             }
 
@@ -378,7 +378,7 @@ private impl ArchiveViewer
             return false
 
         var chain: Array'(*ListLine)
-        var parent = line!.parent
+        var parent = line.parent
         while parent
         {
             chain.add(parent)
@@ -409,9 +409,9 @@ private impl ArchiveViewer
         if .list.focusIndex >= .list.lineCount() do
             return false
         let line = .list.lineAt(.list.focusIndex)
-        if not line or line!.items.isEmpty() do
+        if not line or line.items.isEmpty() do
             return false
-        let name = Pixel.RichString.plainText(line!.items[0]!.name.raw.toString())
+        let name = Pixel.RichString.plainText(line.items[0]!.name.raw.toString())
         return Viewer.listCellMatchBounds(.list, .list.focusIndex, 0, name.toString(), 0, name.length, result)
     }
 
@@ -448,13 +448,13 @@ private impl ArchiveViewer
             return false
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 
         if .previewTimer
         {
-            .removeTimer(.previewTimer!)
+            .removeTimer(.previewTimer)
             .previewTimer = null
         }
 

@@ -1,5 +1,6 @@
 SWC_DIAG_DEF(sema_warn_compiler_warning, Warning, "compile-time warning: {because}")
 SWC_DIAG_DEF(sema_warn_unreachable_code, Warning, "unreachable code; [help] remove it, or move it before the statement that stops the flow")
+SWC_DIAG_DEF(sema_warn_notnull_already_proven, Warning, "'!' asserts a value of type '{type}' that cannot be null here; [help] remove the '!'")
 
 SWC_DIAG_DEF(sema_err_unknown_warning, Error, "'#[Swag.Warning]' does not accept value '{value}'; it accepts a warning identifier, or 'all' for every warning")
 

@@ -94,7 +94,7 @@ func insideMask(edges: const [..] Edge, x: Math.Simd.F64x2, y: f64)->u32
 func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
 {
     let faceData = getSlotImpl(slot)
-    let safeSlot = slot!
+    let safeSlot = slot
     clearBitmap(safeSlot)
 
     if safeSlot.format != .Outline do

@@ -141,8 +141,8 @@ internal impl Properties
 
         Reflection.removeDynamicArrayElement(parentItem.data, valueType, removeIdx)
 
-        .refreshArray(parentItem!)
-        .commitItemChange(parentItem!)
+        .refreshArray(parentItem)
+        .commitItemChange(parentItem)
     }
 
     mtd appendArrayValue(item: *PropertiesItem)

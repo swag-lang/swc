@@ -774,7 +774,7 @@ impl Animator
         .animations.add(run)
 
         let handle  = AnimationHandle{run.id}
-        let reduced = .app!.isReducedMotion()
+        let reduced = .app.isReducedMotion()
         if reduced
         {
             for trackIt in run.tracks

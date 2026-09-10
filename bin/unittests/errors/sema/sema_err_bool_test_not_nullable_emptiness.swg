@@ -8,7 +8,7 @@
 func boolTestEmptinessNullableString(text: string?)->s32
 {
     if text do
-        return cast(s32) (text!).count
+        return cast(s32) (text).count
     return 0
 }
 
@@ -16,7 +16,7 @@ func boolTestEmptinessNullableSlice(values: const [..] s32?)->s32
 {
     while values
     {
-        return values![0]
+        return values[0]
     }
 
     return 0

@@ -196,8 +196,8 @@ impl HevcStream
 
         if not sequence do
             fail InvalidFormatError{"H.265 decoder configuration has no sequence parameter set"}
-        .width  = cast(s32) sequence!.visibleWidth()
-        .height = cast(s32) sequence!.visibleHeight()
+        .width  = cast(s32) sequence.visibleWidth()
+        .height = cast(s32) sequence.visibleHeight()
     }
 
     // Builds the display order of the installed samples from their presentation times.
@@ -492,7 +492,7 @@ impl HevcStream
             let lane        = .threaded[index].lane
             let frameThread = &.frameThreads[lane]
             if frameThread.frame do
-                .release(frameThread.frame!)
+                .release(frameThread.frame)
             frameThread.frame = null
             .laneStates[lane] = .Free
             index = (index + 1) % HevcMaxFrameThreads
@@ -573,7 +573,7 @@ impl HevcStream
             let frame = try .decodeAccessUnit(decoder, payload.toSlice())
             if not frame do
                 fail InvalidFormatError{"H.265 access unit carries no picture"}
-            Atomic.exchange(&frame!.heldByCaller, 1)
+            Atomic.exchange(&frame.heldByCaller, 1)
             frameThread.frame = frame
             frameThread.done.signal()
         }
@@ -614,7 +614,7 @@ impl HevcStream
         if not frameThread.frame do
             fail InvalidFormatError{"H.265 access unit carries no picture"}
 
-        let frame = frameThread.frame!
+        let frame = frameThread.frame
         frameThread.frame = null
         .laneStates[threaded.lane] = .Free
         try .fillFrameThreads(source)
@@ -750,7 +750,7 @@ private func runHevcFrameThread(thread: Threading.Thread)
         }
         elif frame
         {
-            Atomic.exchange(&frame!.heldByCaller, 1)
+            Atomic.exchange(&frame.heldByCaller, 1)
             frameThread.frame = frame
         }
 

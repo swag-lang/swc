@@ -46,7 +46,7 @@ internal func __bootstrapFree(ptr: [*] void?)
     if not ptr do
         return
 
-    let base   = cast([*] u8) ptr! - BootstrapAllocationHeaderSize
+    let base   = cast([*] u8) ptr - BootstrapAllocationHeaderSize
     let header = cast(*BootstrapAllocationHeader) base
     __hostPageRelease(base, header.reservedSize)
 }

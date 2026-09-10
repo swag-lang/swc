@@ -748,7 +748,7 @@ impl Allocator
         // pointer kept past its free can never reach a different, live allocation.
         while not .electricMode and .firstQuarantine and .quarantineBytes > .maxQuarantineBytes
         {
-            let oldest = .firstQuarantine!
+            let oldest = .firstQuarantine
             .checkFree(oldest)
             .firstQuarantine = oldest.next
             if .firstQuarantine do
@@ -1012,7 +1012,7 @@ impl Allocator
             return
         }
 
-        let oldAddress = cast(u64) request.address!
+        let oldAddress = cast(u64) request.address
         let oldPage    = allocatorPageOf(oldAddress)
 
         var oldBlockSize: u64
@@ -1083,7 +1083,7 @@ impl Allocator
         if not request.address do
             return
 
-        let address = cast(u64) request.address!
+        let address = cast(u64) request.address
         request.address = null
 
         let page = allocatorPageOf(address)
@@ -1119,7 +1119,7 @@ impl Allocator
         if not addr do
             return
 
-        let address = cast(u64) addr!
+        let address = cast(u64) addr
         let page    = allocatorPageOf(address)
         if page
         {
@@ -1269,7 +1269,7 @@ impl Allocator
         // Any heap still registered belongs to a thread that never came back. Its pages go with it.
         while .firstHeap
         {
-            let other = .firstHeap!
+            let other = .firstHeap
             .unlinkHeap(other)
             .osFree(other, #sizeof(AllocatorThreadHeap))
         }
@@ -1298,7 +1298,7 @@ impl Allocator
 
         while .firstQuarantine
         {
-            let header = .firstQuarantine!
+            let header = .firstQuarantine
             .firstQuarantine = header.next
             .osFree(header.allocAddr, header.allocSize)
         }
@@ -1309,7 +1309,7 @@ impl Allocator
 
         while .firstAlloc
         {
-            let header = .firstAlloc!
+            let header = .firstAlloc
             .unlinkAllocated(header)
             .osFree(header.allocAddr, header.allocSize)
         }

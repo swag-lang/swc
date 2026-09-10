@@ -164,7 +164,7 @@ private impl TagBin
             ptr = .sections.addNew()
         }
 
-        let sec = ptr!
+        let sec = ptr
         sec.version       = 0
         sec.consumedCount = 0
         sec.posIndex      = 0
@@ -231,8 +231,8 @@ private impl TagBin
 
         // An enum travels as its underlying type, so conversions consider that type: a
         // changed underlying width then reads as an ordinary native conversion.
-        var dstType = toType!
-        var srcType = fromType!
+        var dstType = toType
+        var srcType = fromType
         if Reflection.isEnum(dstType) do
             dstType = Reflection.enumUnderlyingType(dstType)
         if Reflection.isEnum(srcType) do
@@ -847,7 +847,7 @@ impl TagBin
 
         var plan: const *Plan?
         if structType and Reflection.isStruct(structType) do
-            plan = planFor(cast(const *Swag.TypeInfoStruct) structType!)
+            plan = planFor(cast(const *Swag.TypeInfoStruct) structType)
 
         // Deal with version
         if plan and plan.hasVersion

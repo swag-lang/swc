@@ -1609,7 +1609,7 @@ private impl FileIndex
         for sound in .seekSounds do
             Memory.delete(sound)
         if .progressive do
-            Memory.delete(.progressive!)
+            Memory.delete(.progressive)
     }
 }
 
@@ -1771,8 +1771,8 @@ private impl Decoder
             let sps = probe.firstSps()
             if not sps do
                 fail InvalidFormatError{"H.264 decoder configuration has no sequence parameter set"}
-            .info.width  = sps!.width()
-            .info.height = sps!.height()
+            .info.width  = sps.width()
+            .info.height = sps.height()
         }
 
         let display = video.displaySize(.info.width, .info.height)
@@ -1848,17 +1848,17 @@ private impl Decoder
     mtd startSoundIndex() fail
     {
         let fileIndex = .fileIndex
-        if not fileIndex or Atomic.get(&fileIndex!.soundStatus) != SoundIndexIdle do
+        if not fileIndex or Atomic.get(&fileIndex.soundStatus) != SoundIndexIdle do
             return
-        if not fileIndex!.progressive!.audioTracks.count and not fileIndex!.progressive!.subtitleTracks.count
+        if not fileIndex.progressive!.audioTracks.count and not fileIndex.progressive!.subtitleTracks.count
         {
-            Atomic.exchange(&fileIndex!.soundStatus, SoundIndexReady)
+            Atomic.exchange(&fileIndex.soundStatus, SoundIndexReady)
             return
         }
 
-        Atomic.exchange(&fileIndex!.soundStatus, SoundIndexRunning)
-        fileIndex!.soundThread.init(&runMatroskaSoundIndex, fileIndex!, priority: .BelowNormal)
-        fileIndex!.soundThread.start()
+        Atomic.exchange(&fileIndex.soundStatus, SoundIndexRunning)
+        fileIndex.soundThread.init(&runMatroskaSoundIndex, fileIndex, priority: .BelowNormal)
+        fileIndex.soundThread.start()
     }
 
     // Restarts the single demux cursor on the key cluster advertised by Cues.
@@ -1882,7 +1882,7 @@ private impl Decoder
 
         let cue = target >= 0 ? layout.cueAtOrBefore(cast(u64) target) : null
         if cue do
-            layout.resetMediaAt(cue!.clusterOffset)
+            layout.resetMediaAt(cue.clusterOffset)
         else do
             layout.resetMediaAt(layout.segment.data)
 
@@ -2042,21 +2042,21 @@ private impl Decoder
     mtd extendSoundWindow(index: u64)
     {
         let fileIndex = .fileIndex
-        if not fileIndex or (not fileIndex!.progressive!.audioTracks.count and not fileIndex!.progressive!.subtitleTracks.count) do
+        if not fileIndex or (not fileIndex.progressive!.audioTracks.count and not fileIndex.progressive!.subtitleTracks.count) do
             return
-        if not Atomic.get(&fileIndex!.currentSeekSound) do
+        if not Atomic.get(&fileIndex.currentSeekSound) do
             return
 
         let target = .targetTimestamp(index)
         if target < 0 or target < .soundWindowAttempt do
             return
-        if target + SoundWindowRefreshNanoseconds < Atomic.get(&fileIndex!.seekSoundEnd) do
+        if target + SoundWindowRefreshNanoseconds < Atomic.get(&fileIndex.seekSoundEnd) do
             return
 
         // A window that cannot be built is not retried on the next picture: the walk that would
         // fix it is already running, and asking again every frame would stall every one of them.
         .soundWindowAttempt = target + SoundWindowRetryNanoseconds
-        .requestSoundWindow(fileIndex!, cast(u64) target)
+        .requestSoundWindow(fileIndex, cast(u64) target)
     }
 
     // Asks the worker for a window covering `target`, and returns without waiting for it.
@@ -2103,7 +2103,7 @@ private impl Decoder
     {
         if .fileIndex
         {
-            Memory.delete(.fileIndex!)
+            Memory.delete(.fileIndex)
             .fileIndex = null
         }
     }
@@ -2152,20 +2152,20 @@ impl IDecoder for Decoder
         if path.count
         {
             var mapped = File.MappedFile.open(path)
-            .fileIndex              = Memory.new'FileIndex()
-            .fileIndex!.region      = mapped.mapAll()
-            .fileIndex!.progressive = Memory.new'Layout()
-            .fileIndex!.progressive!.parseMetadata(.fileIndex!.region.bytes())
-            .fileIndex!.path = path
-            .configureMetadata(.fileIndex!.progressive!)
+            .fileIndex             = Memory.new'FileIndex()
+            .fileIndex.region      = mapped.mapAll()
+            .fileIndex.progressive = Memory.new'Layout()
+            .fileIndex.progressive!.parseMetadata(.fileIndex.region.bytes())
+            .fileIndex.path = path
+            .configureMetadata(.fileIndex.progressive!)
 
             // The opening sound window is built beside the picture rather than before it. It
             // reads a minute of interleaved clusters, which is a second on a film read across a
             // network share, and a player has nothing to show for that second: it can present
             // its first picture as soon as the video is ready and let the sound join it, which
             // is what it already does after every seek.
-            if .fileIndex!.progressive!.audioTracks.count or .fileIndex!.progressive!.subtitleTracks.count do
-                .requestSoundWindow(.fileIndex!, 0)
+            if .fileIndex.progressive!.audioTracks.count or .fileIndex.progressive!.subtitleTracks.count do
+                .requestSoundWindow(.fileIndex, 0)
             .startSoundIndex()
             return .info
         }
@@ -2188,7 +2188,7 @@ impl IDecoder for Decoder
         if index >= .windowBaseRank and index - .windowBaseRank < .streamSampleCount
         {
             let local = .video.syncRankAt(index - .windowBaseRank)
-            if local < .streamSampleCount or not fileIndex or fileIndex!.progressive!.indexComplete do
+            if local < .streamSampleCount or not fileIndex or fileIndex.progressive!.indexComplete do
                 return .windowBaseRank + local
         }
 
@@ -2197,11 +2197,11 @@ impl IDecoder for Decoder
         let timestamp = .targetTimestamp(index)
         if timestamp < 0 do
             return index
-        let layout = fileIndex!.progressive!
+        let layout = fileIndex.progressive!
         let cue    = layout.cueAtOrAfter(cast(u64) timestamp)
         if cue
         {
-            let cueNanoseconds = cast(f64) cue!.timestamp * cast(f64) layout.timestampScale
+            let cueNanoseconds = cast(f64) cue.timestamp * cast(f64) layout.timestampScale
             return Math.max(index, .frameAtTimestamp(cueNanoseconds))
         }
 
@@ -2257,7 +2257,7 @@ impl IDecoder for Decoder
             // Video reconstruction has the foreground deadline. The complete audio packet scan
             // can use every idle gap, but must not compete for a core or mapped pages while one
             // picture is being sought and decoded; the bounded sound window remains available.
-            Atomic.exchange(&.fileIndex!.soundPause, 1)
+            Atomic.exchange(&.fileIndex.soundPause, 1)
             .resumeSoundIndexAfterDecode = true
         }
 
@@ -2276,7 +2276,7 @@ impl IDecoder for Decoder
         // video packet separated by another track into a small seek on the original file handle.
         if .fileIndex
         {
-            var media = ByteSource.openMemory(.fileIndex!.region.bytes())
+            var media = ByteSource.openMemory(.fileIndex.region.bytes())
             try .video.decodeNext(&media, target)
             return
         }
@@ -2294,7 +2294,7 @@ impl IPlanarDecoder for Decoder
         defer .resumeSoundIndex()
         if .fileIndex
         {
-            var media = ByteSource.openMemory(.fileIndex!.region.bytes())
+            var media = ByteSource.openMemory(.fileIndex.region.bytes())
             try .video.decodeNextPlanes(&media, target)
             return
         }
@@ -2310,10 +2310,10 @@ impl IAudioDecoder for Decoder
         let fileIndex = .fileIndex
         if not fileIndex do
             return 0
-        let seekSound = Atomic.get(&fileIndex!.currentSeekSound)
+        let seekSound = Atomic.get(&fileIndex.currentSeekSound)
         if seekSound do
             return cast(u32) (cast(*PublishedSound) seekSound).tracks.count
-        return Atomic.get(&fileIndex!.soundStage) ? cast(u32) fileIndex!.soundTracks.count : 0
+        return Atomic.get(&fileIndex.soundStage) ? cast(u32) fileIndex.soundTracks.count : 0
     }
 
     mtd impl audioTrack(index: u32)->const *SoundFile?
@@ -2321,16 +2321,16 @@ impl IAudioDecoder for Decoder
         let fileIndex = .fileIndex
         if not fileIndex do
             return null
-        let seekSound = Atomic.get(&fileIndex!.currentSeekSound)
+        let seekSound = Atomic.get(&fileIndex.currentSeekSound)
         if seekSound
         {
             let tracks = &(cast(*PublishedSound) seekSound).tracks
             return index < tracks.count ? &tracks[index] : null
         }
 
-        if not Atomic.get(&fileIndex!.soundStage) do
+        if not Atomic.get(&fileIndex.soundStage) do
             return null
-        return index < fileIndex!.soundTracks.count ? &fileIndex!.soundTracks[index] : null
+        return index < fileIndex.soundTracks.count ? &fileIndex.soundTracks[index] : null
     }
 }
 
@@ -2341,10 +2341,10 @@ impl ISubtitleDecoder for Decoder
         let fileIndex = .fileIndex
         if not fileIndex do
             return cast(u32) .memorySubtitleTracks.count
-        let seekSound = Atomic.get(&fileIndex!.currentSeekSound)
+        let seekSound = Atomic.get(&fileIndex.currentSeekSound)
         if seekSound do
             return cast(u32) (cast(*PublishedSound) seekSound).subtitles.count
-        return Atomic.get(&fileIndex!.soundStage) ? cast(u32) fileIndex!.subtitleTracks.count : 0
+        return Atomic.get(&fileIndex.soundStage) ? cast(u32) fileIndex.subtitleTracks.count : 0
     }
 
     mtd const impl subtitleTrack(index: u32)->const *Subtitle.Track?
@@ -2352,16 +2352,16 @@ impl ISubtitleDecoder for Decoder
         let fileIndex = .fileIndex
         if not fileIndex do
             return index < .memorySubtitleTracks.count ? &.memorySubtitleTracks[index] : null
-        let seekSound = Atomic.get(&fileIndex!.currentSeekSound)
+        let seekSound = Atomic.get(&fileIndex.currentSeekSound)
         if seekSound
         {
             let tracks = &(cast(*PublishedSound) seekSound).subtitles
             return index < tracks.count ? &tracks[index] : null
         }
 
-        if not Atomic.get(&fileIndex!.soundStage) do
+        if not Atomic.get(&fileIndex.soundStage) do
             return null
-        return index < fileIndex!.subtitleTracks.count ? &fileIndex!.subtitleTracks[index] : null
+        return index < fileIndex.subtitleTracks.count ? &fileIndex.subtitleTracks[index] : null
     }
 }
 
@@ -2401,6 +2401,6 @@ impl IDeferredDecoder for Decoder
     mtd impl requestCancel()
     {
         if .fileIndex do
-            Atomic.exchange(&.fileIndex!.cancel, 1)
+            Atomic.exchange(&.fileIndex.cancel, 1)
     }
 }

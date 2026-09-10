@@ -153,7 +153,7 @@ func collectTextMatches(source, query: string, options: SearchOptions, major, mi
         }
 
         let sourceData = source.buffer
-        for value in expression!.grepAll(source)
+        for value in expression.grepAll(source)
         {
             // Zero-width expressions are meaningful to a parser, but there is no document span
             // for a viewer to outline or select.

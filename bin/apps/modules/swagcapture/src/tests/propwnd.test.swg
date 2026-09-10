@@ -191,7 +191,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     Swag.assert(popup.markSelectionOnly)
     Swag.assert(popup.items[popup.selectedIndex]!.contentPainter != null)
 
-    let view  = popup.scrollWnd.view!
+    let view  = popup.scrollWnd.view
     let local = Math.Point{12, cast(f32) LineCapStyle.ArrowAnchor * popup.itemHeight + popup.itemHeight * 0.5}
     var pt    = view.localToSurface(local)
     view.surface!.surfaceToScreen(&pt)
@@ -229,7 +229,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     Swag.assert(enumFromUserData'DashStyle(popup.items[popup.selectedIndex]!.userData0) == .DashDot)
 
     // `Pattern` is not listed, so the rows are None, Dot, Dash, DashDot: the second one is Dot.
-    let view  = popup.scrollWnd.view!
+    let view  = popup.scrollWnd.view
     let local = Math.Point{12, popup.itemHeight * 1.5}
     var pt    = view.localToSurface(local)
     view.surface!.surfaceToScreen(&pt)
@@ -329,7 +329,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
 
     let posItemX = testFindItem(prop, appStrings().ui_PropPosition)!
     let stackX   = posItemX.line.children[0]
-    f.gui.clickWnd(((cast(*EditCtrl) stackX.children[0]).edit)!)
+    f.gui.clickWnd(((cast(*EditCtrl) stackX.children[0]).edit))
     f.gui.pump()
     Swag.assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
@@ -337,13 +337,13 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     // every pump instead of retaining pointers into the previous window tree.
     let posItemY = testFindItem(prop, appStrings().ui_PropPosition)!
     let stackY   = posItemY.line.children[0]
-    let editY    = ((cast(*EditCtrl) stackY.children[1]).edit)!
+    let editY    = ((cast(*EditCtrl) stackY.children[1]).edit)
     f.gui.clickWnd(editY)
     f.gui.pump()
     Swag.assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
     let posItemLine = testFindItem(prop, appStrings().ui_PropPosition)!
-    f.gui.clickWnd(posItemLine.line!)
+    f.gui.clickWnd(posItemLine.line)
     f.gui.pump()
     Swag.assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
@@ -379,7 +379,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     prop.grid.scrollWnd.setScrollPos(0, 10000)
     f.gui.pump()
 
-    f.gui.clickWnd(posItem.line!)
+    f.gui.clickWnd(posItem.line)
     f.gui.pump()
     Swag.assert(prop.grid.selItem == posItem)
 

@@ -41,7 +41,7 @@ impl MountedVault
         if not .handle do
             return
 
-        let handle = .handle!
+        let handle = .handle
         .handle = null
         unmountVaultNative(handle)
     }
@@ -49,7 +49,7 @@ impl MountedVault
     mtd space()->MountedVaultSpace
     {
         Swag.assert(.handle != null)
-        return mountedVaultSpaceNative(.handle!)
+        return mountedVaultSpaceNative(.handle)
     }
 
     mtd opDrop() { discard catch .close() }

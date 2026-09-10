@@ -364,7 +364,7 @@ func createInspectorPage(parent: *Wnd)
 
     let frame = createPanel(parent, "Live preview", "Each card is one edited instance; the highlighted ones are bound to the grid, so editing a field writes them all.", {})
     frame.dockStyle = .Center
-    let preview = frame.view!
+    let preview = frame.view
     g_Preview = preview
     preview.hookOnEvent = &onPreviewEvent
 }

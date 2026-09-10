@@ -98,7 +98,7 @@ impl LinePathList
             result += path.memoryUsage()
         result += .fillCacheStamps.capacity * #sizeof(u64)
         if .fillCache do
-            result += .fillCache!.memoryUsage()
+            result += .fillCache.memoryUsage()
         return result
     }
 
@@ -141,7 +141,7 @@ impl LinePathList
     {
         if .fillCache
         {
-            Memory.delete(.fillCache!)
+            Memory.delete(.fillCache)
             .fillCache = null
         }
 

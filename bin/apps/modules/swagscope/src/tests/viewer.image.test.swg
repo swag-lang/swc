@@ -37,7 +37,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     while window.activeChoiceIndex < window.instances.count and steps < 4_096
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if not instance.view or not instance.isLoading or not instance.isLoading!(instance.view!) do
+        if not instance.view or not instance.isLoading or not instance.isLoading(instance.view) do
             break
         Threading.Thread.sleep(1'ms)
         host.fireTimers()
@@ -71,7 +71,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
         var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName)
         Swag.assert(session.view != null)
-        let view = cast(*ImageViewer) session.view!
+        let view = cast(*ImageViewer) session.view
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         view.imageView.setPaused(true)
         if view.imageView.movie.frameCount > 1 do
@@ -127,9 +127,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     actionBar.centerGroup = result.commands
     infoBar.centerGroup   = result.info
 
-    let view = cast(*ImageViewer) result.view!
+    let view = cast(*ImageViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    assertViewerInfoButton(view.zoomLabel, result.info!.preferredSize.x - 2 * ViewerInfoControlInset)
+    assertViewerInfoButton(view.zoomLabel, result.info.preferredSize.x - 2 * ViewerInfoControlInset)
     var navigation: s32
     view.userData = &navigation
     Swag.assert(view.previousButton.isEnabled() and view.nextButton.isEnabled())
@@ -190,7 +190,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
     var result = openTestViewer(imageViewerPlugin(), &host.root, fileName, commandParent: &host.root, actionParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.actions == null and result.info != null and result.commands != null)
-    let view = cast(*ImageViewer) result.view!
+    let view = cast(*ImageViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -211,15 +211,15 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     completeImageViewerWindow(&host, window)
 
     Swag.assert(window.currentActions == null)
-    Swag.assert(window.currentInfo != null and window.currentInfo!.parent == window.infoContentGroup)
+    Swag.assert(window.currentInfo != null and window.currentInfo.parent == window.infoContentGroup)
     Swag.assert(window.currentSidePanelButton != null)
-    Swag.assert(window.currentInfo!.position.right() + ViewerInfoSideButtonSpacing == window.currentSidePanelButton!.position.x)
-    Swag.assert(window.currentInfo!.themeColors().label_TextLight == window.themeColors().label_TextFaint)
-    Swag.assert(Math.abs(window.infoStatsLabel.position.right() + ViewerInfoGroupSpacing - window.currentInfo!.position.x) < 0.01)
-    Swag.assert(window.currentCommands != null and window.currentCommands!.parent == window.viewerBar)
+    Swag.assert(window.currentInfo.position.right() + ViewerInfoSideButtonSpacing == window.currentSidePanelButton.position.x)
+    Swag.assert(window.currentInfo.themeColors().label_TextLight == window.themeColors().label_TextFaint)
+    Swag.assert(Math.abs(window.infoStatsLabel.position.right() + ViewerInfoGroupSpacing - window.currentInfo.position.x) < 0.01)
+    Swag.assert(window.currentCommands != null and window.currentCommands.parent == window.viewerBar)
     Swag.assert(window.viewerBar.isLocallyVisible() and window.viewerBar.position.height == ViewerBarHeight)
     Swag.assert(not window.searchGroup.isLocallyVisible())
-    Swag.assert(Math.abs(window.currentCommands!.position.horzCenter() - window.viewerBar.paddedClientRect().horzCenter()) < 0.01)
+    Swag.assert(Math.abs(window.currentCommands.position.horzCenter() - window.viewerBar.paddedClientRect().horzCenter()) < 0.01)
 }
 
 // A still picture reports that it is on screen, once, so the host can time a slideshow on it;
@@ -233,7 +233,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg")
     var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
     Swag.assert(session.view != null)
-    let view = cast(*ImageViewer) session.view!
+    let view = cast(*ImageViewer) session.view
     var reports: ImageReports
     view.userData = &reports
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -252,7 +252,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/imageset-animation.gif")
     var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
     Swag.assert(session.view != null)
-    let view = cast(*ImageViewer) session.view!
+    let view = cast(*ImageViewer) session.view
     var reports: ImageReports
     view.userData = &reports
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)

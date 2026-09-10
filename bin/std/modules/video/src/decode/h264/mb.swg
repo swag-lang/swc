@@ -491,6 +491,9 @@ impl Slice
         return cast(u64) ((mb.mbY * 4 + y4) * gw + mb.mbX * 4 + x4)
     }
 
+    // Returns the macroblock's index in the picture, which the co-located records are kept by.
+    mtd const colMbIndex(mb: *Mb)->u64 => cast(u64) (mb.mbY * .dec!.sps!.mbWidth + mb.mbX)
+
     // Spatial direct prediction, section 8.4.1.2.2.
     mtd deriveDirectSpatial(mb: *Mb, quad: s32)
     {
@@ -552,7 +555,7 @@ impl Slice
                 for q in 4's32
                 {
                     let colIndex = .colBlockIndex(mb, (q & 1) * 3, (q >> 1) * 3)
-                    let motion   = col.colMotion(colIndex)
+                    let motion   = col.colMotion(.colMbIndex(mb), colIndex)
                     if motion.ref == 0 and motion.isShort
                     {
                         let cx = cast(s32) motion.mv[0]
@@ -617,7 +620,7 @@ impl Slice
                 else
                 {
                     let colIndex = .colBlockIndex(mb, colX, colY)
-                    let motion   = col.colMotion(colIndex)
+                    let motion   = col.colMotion(.colMbIndex(mb), colIndex)
                     if motion.ref == 0 and motion.isShort
                     {
                         let cx = cast(s32) motion.mv[0]
@@ -689,7 +692,7 @@ impl Slice
                 }
 
                 let colIndex = .colBlockIndex(mb, colX, colY)
-                let motion   = col.colMotion(colIndex)
+                let motion   = col.colMotion(.colMbIndex(mb), colIndex)
                 var colMvX   = cast(s32) motion.mv[0]
                 var colMvY   = cast(s32) motion.mv[1]
                 var refL0    = 0's32
@@ -1699,13 +1702,21 @@ impl Slice
 
         let gw    = dec.sps!.mbWidth * 4
         let mbIdx = cast(u64) (mb.mbY * dec.sps!.mbWidth + mb.mbX)
-        dec.current!.colUniform[mbIdx] = 0
-        for block in 16's32
+
+        // The per-block state the next macroblocks' contexts and the filter read. A grid row of
+        // four blocks is one 32-bit word, and the macroblock's own arrays are laid out the same
+        // way, so a row moves as a word instead of four bytes.
+        let perBlockModes = mb.class == MbClassIntra4x4 or mb.class == MbClassIntra8x8
+        let dcModes       = IntraDc * 0x01010101
+        let modeWords     = cast(const [*] u32) &mb.intraModes[0]
+        let nzWords       = cast(const [*] u32) &mb.nzLuma[0]
+        let codedWords    = cast(const [*] u32) &mb.codedBlocks[0]
+        for row in 4'u64
         {
-            let index = cast(u64) ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3))
-            dec.intraModes[index]  = mb.class == MbClassIntra4x4 or mb.class == MbClassIntra8x8 ? mb.intraModes[cast(u64) block] : cast(u8) IntraDc
-            dec.nonZeroLuma[index] = mb.nzLuma[cast(u64) block]
-            dec.codedLuma[index]   = mb.codedBlocks[cast(u64) block]
+            let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
+            (cast([*] u32) (dec.intraModes.storage() + index))[0]  = perBlockModes ? modeWords[row] : dcModes
+            (cast([*] u32) (dec.nonZeroLuma.storage() + index))[0] = nzWords[row]
+            (cast([*] u32) (dec.codedLuma.storage() + index))[0]   = codedWords[row]
         }
 
         // A 4:4:4 colour plane has one block per luma block, and its counts go out on the
@@ -1758,8 +1769,13 @@ impl Slice
             }
         }
 
-        // Export the motion the co-located prediction of later pictures reads.
+        // Export the motion the co-located prediction of later pictures reads. Only a reference
+        // picture is ever read as a co-located one, so a picture nothing references — every
+        // non-reference B picture of a pyramid — publishes none of it.
+        if not dec.isRefPicture do
+            return
         let frame = dec.current!
+        frame.colUniform[mbIdx] = 0
         if mb.class == MbClassInter and mb.jobCount == 1
         {
             let job = &mb.firstJob
@@ -1788,14 +1804,19 @@ impl Slice
                 }
             }
 
-            for block in 16's32
+            // One motion for the whole macroblock: every row of the four arrays is the same
+            // word or vector, so a row goes out in one store each.
+            let refWord   = cast(u32) (cast #bit(u8) ref) * 0x01010101
+            let shortWord = cast(u32) short * 0x01010101
+            let mvRow     = cast(Simd.S16x8) [mvX, mvY, mvX, mvY, mvX, mvY, mvX, mvY]
+            let pocRow    = Simd.splat(poc)
+            for row in 4'u64
             {
-                let index = cast(u64) ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3))
-                frame.colRef[index]        = ref
-                frame.colMv[index * 2]     = mvX
-                frame.colMv[index * 2 + 1] = mvY
-                frame.colPoc[index]        = poc
-                frame.colShort[index]      = short
+                let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
+                (cast([*] u32) (frame.colRef.storage() + index))[0]   = refWord
+                (cast([*] u32) (frame.colShort.storage() + index))[0] = shortWord
+                Simd.store(frame.colMv.storage() + index * 2, mvRow)
+                Simd.store(frame.colPoc.storage() + index, pocRow)
             }
 
             return
@@ -1852,6 +1873,9 @@ impl Slice
             Simd.storeLow4(dec.codedLuma.storage() + index, zeros)
         }
 
+        // Only a reference picture is read as a co-located one.
+        if not dec.isRefPicture do
+            return
         let frame        = dec.current!
         let compactIndex = cast(u64) (mb.mbY * dec.sps!.mbWidth + mb.mbX)
         frame.colUniform[compactIndex]      = 1

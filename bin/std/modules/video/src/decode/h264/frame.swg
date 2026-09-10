@@ -255,14 +255,12 @@ impl Frame
     // Reports whether the frame is referenced by upcoming pictures.
     mtd const isReference()->bool => .isShortTerm or .isLongTerm
 
-    // Returns co-located motion for one raster 4x4 block.
-    mtd const colMotion(blockIndex: u64)->ColMotion
+    // Returns co-located motion for the raster 4x4 block `blockIndex` of macroblock `mbIndex`.
+    //
+    // Both indices come from the caller, which walks a macroblock and knows them; recovering the
+    // macroblock from the block took an integer division and a modulo on every direct block.
+    mtd const colMotion(mbIndex, blockIndex: u64)->ColMotion
     {
-        let blocksWide = .mbWidth * 4
-        let x4         = cast(s32) (blockIndex % cast(u64) blocksWide)
-        let y4         = cast(s32) (blockIndex / cast(u64) blocksWide)
-        let mbIndex    = cast(u64) ((y4 >> 2) * .mbWidth + (x4 >> 2))
-
         if .colUniform[mbIndex] != 0
         {
             return {

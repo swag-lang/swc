@@ -18,7 +18,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.001 — H.264 decoding costs several times what FFmpeg does per picture
 
 - Recorded: 2026-08-19 13:23
-- Updated: 2026-09-10 23:47 — Count the bins of one picture, rebuild the residual decoder around a call-free engine in FFmpeg's layout, and trace the remaining spills to how the allocator treats a cold call
+- Updated: 2026-09-11 00:08 — Publish the per-block bookkeeping as row words and only export co-located motion from reference pictures
 - Intent: the decoder is byte-exact against FFmpeg on Baseline, Main, and High streams and decodes
   well above real time, but one picture still costs several times what FFmpeg spends on it. That
   margin is what a machine smaller than this one, or a stream larger than 4K, would need.
@@ -154,8 +154,18 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   ninety-four — and this settles it in the code rather than in an estimate. What the rewrite did
   find is a compiler defect that costs every hot loop with a cold call in it:
   compiler.optimization.035.
-- Next: the layer that publishes and reads per-block state is now the largest identifiable item,
-  about a fifth of the picture: `motionAt` 4.4 percent, `bookkeepMb` 5.3, `predictMv` 1.7,
+- **The bookkeeping writes were a real cost (2026-09-11).** `bookkeepMb` published about 150
+  scalar byte stores per macroblock — 4.8 million a picture — and exported the co-located motion
+  of every macroblock of every picture in five per-block arrays. Now a grid row of four blocks
+  goes out as one 32-bit word (the macroblock's own arrays are laid out the same way), a
+  one-motion macroblock exports its co-located records as one word or one vector per row, and
+  only a reference picture exports them at all: a non-reference picture is never read as a
+  co-located one, and in a B pyramid that is half the pictures. `Frame.colMotion` also takes the
+  macroblock index its callers already hold instead of recovering it with a division and a
+  modulo per direct block. Eight paired rounds against the merged engine build, byte-exact:
+  −4.7 percent on the median, −14.4 percent on the minimum.
+- Next: the layer that publishes and reads per-block state is still the largest identifiable
+  item, about a fifth of the picture before this change: `motionAt` 4.4 percent, `bookkeepMb` 5.3, `predictMv` 1.7,
   `deriveDirectSpatial` 1.5, `Frame.colMotion` 1.4 (an integer division and a modulo per call to
   recover coordinates every caller already holds), `assignMotion` 1.5, `assignSkipMotion` 1.1,
   `blockNz` 1.0, `mbAvailable` 0.9. FFmpeg's `fill_decode_caches` reads the left and top

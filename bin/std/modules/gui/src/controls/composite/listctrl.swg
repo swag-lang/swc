@@ -620,7 +620,7 @@ impl IWnd for ListView
             for i in firstIdx to lastIdx
             {
                 var line: ListLine
-                fillVirtualLine(.list!, &line, i)
+                fillVirtualLine(.list, &line, i)
                 .paintLine(bc, i, &line, rect, line.canCheck)
                 rect.y = rect.bottom()
 
@@ -1342,7 +1342,7 @@ impl ListCtrl
     {
         let result = .idxLineToIdxList.tryFind(line.index)
         Swag.assert(result != null, "the list row is not visible in this control")
-        .setLineChecked(result!.value, checked, notify)
+        .setLineChecked(result.value, checked, notify)
     }
 
     // Clears all checked rows and emits [[Gui.ListCtrl.sigCheckedChanged]] when needed.
@@ -1400,7 +1400,7 @@ impl ListCtrl
         {
             if not .onFillVirtualLine do
                 return result
-            .onFillVirtualLine!(me, &scratch, index)
+            .onFillVirtualLine(me, &scratch, index)
             line = &scratch
         }
         else do
@@ -1413,9 +1413,9 @@ impl ListCtrl
         row.height = .lineHeight()
         row.y      = cast(f32) index * .lineHeight() - .listView.scrollPos.y
 
-        let reserveCheckMargin = .isVirtual ? line!.canCheck : .hasVisibleCheckBoxes()
-        for itemIt, itemIndex in line!.items where itemIt!.column == column do
-            return .listView.cellLayout(line!, itemIt!, itemIndex, row, reserveCheckMargin).text
+        let reserveCheckMargin = .isVirtual ? line.canCheck : .hasVisibleCheckBoxes()
+        for itemIt, itemIndex in line.items where itemIt!.column == column do
+            return .listView.cellLayout(line, itemIt!, itemIndex, row, reserveCheckMargin).text
 
         return result
     }
@@ -1700,13 +1700,13 @@ impl ListCtrl
 
             if a.parent != b.parent
             {
-                if a.isParentOf(b!) do
+                if a.isParentOf(b) do
                     return -1
-                if b.isParentOf(a!) do
+                if b.isParentOf(a) do
                     return 1
 
-                var a1 = a!
-                var b1 = b!
+                var a1: *ListLine = a
+                var b1: *ListLine = b
                 while a1.level > b1.level do
                     a1 = a1.parent!
                 while b1.level > a1.level do

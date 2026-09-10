@@ -373,7 +373,7 @@ impl Transform
         var eLoopStop: *Edge = eStart
         for
         {
-            let ec = e!
+            let ec = e
             if ec.curr == nnEdge(ec.next).curr
             {
                 if ec == ec.next do
@@ -404,7 +404,7 @@ impl Transform
                 break
         }
 
-        let eh = e!
+        let eh = e
         if eh.prev == eh.next do
             return
 
@@ -412,7 +412,7 @@ impl Transform
         e = eStart
         for
         {
-            let ec = e!
+            let ec = e
             initEdge2(ec, polyType)
             e = nnEdge(ec.next)
             if isFlat and e.curr.y != eStart.curr.y do
@@ -425,7 +425,7 @@ impl Transform
         if isFlat do
             return
 
-        let ef = e!
+        let ef = e
         if nnEdge(ef.prev).bot == nnEdge(ef.prev).top do
             e = nnEdge(ef.next)
 
@@ -433,7 +433,7 @@ impl Transform
         var eMin: *Edge?
         for
         {
-            e = findNextLocMin(e!)
+            e = findNextLocMin(e)
             if e == eMin do
                 break
             elif not eMin do
@@ -1260,7 +1260,7 @@ impl Transform
             if not op or outrec.isOpen do
                 continue
 
-            var opn = op!
+            var opn: *OutPt = op
             for
             {
                 var op2 = nnOutPt(opn.next)
@@ -2417,7 +2417,7 @@ impl Transform
         }
         elif edge.windDelta == 0 and .clipType != .Union
         {
-            let en = e!
+            let en = e
             edge.windCnt  = 1
             edge.windCnt2 = en.windCnt2
             e = en.nextInAEL
@@ -3242,7 +3242,7 @@ impl Transform
                 let e = lb.nextInAEL
                 if e
                 {
-                    var en = e!
+                    var en: *Edge = e
                     while en != rb
                     {
                         .intersectEdges(nnEdge(rb), en, nnEdge(lb).curr)
@@ -3258,8 +3258,8 @@ impl Transform
         if not pts do
             return 0
 
-        var result = 0
-        var p      = pts!
+        var result    = 0
+        var p: *OutPt = pts
         for
         {
             result += 1

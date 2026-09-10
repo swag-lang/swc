@@ -89,7 +89,7 @@ internal impl Properties
             me.adaptCondensedControl(combo)
         }
 
-        let combon = combo!
+        let combon: *ComboBox = combo
         item.assignComboBox(combon)
         combon.addItem(.theme().res.defaultTypeFaceR.familyName())
         combon.addSeparator()
@@ -128,7 +128,7 @@ internal impl Properties
         else do
             ed = EditBox.create(item.line, data![as String])
 
-        let edit = ed!
+        let edit: *EditBox = ed
         with edit
         {
             if me.isGridLike() do
@@ -195,7 +195,7 @@ internal impl Properties
         else do
             ed = EditBox.create(item.line, data![as string])
 
-        let edit = ed!
+        let edit: *EditBox = ed
         with edit
         {
             if me.kind != .Panel do

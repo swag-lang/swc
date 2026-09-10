@@ -2155,16 +2155,16 @@ impl IDecoder for Decoder
             .fileIndex             = Memory.new'FileIndex()
             .fileIndex.region      = mapped.mapAll()
             .fileIndex.progressive = Memory.new'Layout()
-            .fileIndex.progressive!.parseMetadata(.fileIndex.region.bytes())
+            .fileIndex.progressive.parseMetadata(.fileIndex.region.bytes())
             .fileIndex.path = path
-            .configureMetadata(.fileIndex.progressive!)
+            .configureMetadata(.fileIndex.progressive)
 
             // The opening sound window is built beside the picture rather than before it. It
             // reads a minute of interleaved clusters, which is a second on a film read across a
             // network share, and a player has nothing to show for that second: it can present
             // its first picture as soon as the video is ready and let the sound join it, which
             // is what it already does after every seek.
-            if .fileIndex.progressive!.audioTracks.count or .fileIndex.progressive!.subtitleTracks.count do
+            if .fileIndex.progressive.audioTracks.count or .fileIndex.progressive.subtitleTracks.count do
                 .requestSoundWindow(.fileIndex, 0)
             .startSoundIndex()
             return .info

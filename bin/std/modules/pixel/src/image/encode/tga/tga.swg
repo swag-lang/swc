@@ -138,6 +138,8 @@ internal impl IImageEncoder for Encoder
 
         if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
             fail InvalidFormatError{"invalid image"}
+        if image.pixelFormat != .BGR8 and image.pixelFormat != .BGRA8 and image.pixelFormat != .RGB8 and image.pixelFormat != .RGBA8 do
+            fail UnsupportedFormatError{"TGA encoding accepts only 8-bit RGB and BGR pixels"}
         if image.width > Swag.U16.Max do
             fail UnsupportedFormatError{"width is too big"}
         if image.height > Swag.U16.Max do

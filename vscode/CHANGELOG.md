@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.167
+
+- Color `not` as a control keyword and `Swag.vecclmul` as an intrinsic.
+- Recognize `.count` and `.buffer`, and require complete intrinsic member and directive names.
+- Check the grammar and language reference against the compiler token catalog with TextMate tests.
+
 ## 0.0.164
 
 - Color `late`, `tls` and `global` as declaration keywords, in a destructuring binding too.

@@ -7,6 +7,13 @@
 
 using Core, Core.Errors
 
+// Configures the BMP container around the encoded pixels.
+public struct EncodeOptions
+{
+    // Includes the BMP file header by default. Disable it for a packed DIB, such as CF_DIB.
+    public fileHeader = true
+}
+
 // Encodes 24-bit or 32-bit uncompressed Windows BMP images.
 internal struct Encoder {}
 
@@ -16,6 +23,13 @@ internal impl IImageEncoder for Encoder
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {
+        var userOptions: EncodeOptions
+        if options.buffer != null
+        {
+            Swag.assert(Swag.kindOf(options) == EncodeOptions)
+            userOptions = options.buffer![as EncodeOptions]
+        }
+
         if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
             fail InvalidFormatError{"invalid image"}
         if image.width > Swag.S32.Max / image.bytesPerPixel or image.height > Swag.S32.Max / image.width do
@@ -24,15 +38,18 @@ internal impl IImageEncoder for Encoder
         let rowBytes  = cast(u64) image.width * image.bytesPerPixel
         let stride    = rowStride(image.width, image.bitsPerPixel)
         let imageSize = stride * cast(u64) image.height
-        let fileSize  = cast(u64) #sizeof(FileHeader) + #sizeof(Header) + imageSize
+        let fileSize  = (userOptions.fileHeader ? cast(u64) #sizeof(FileHeader) : 0) + #sizeof(Header) + imageSize
         if fileSize > Swag.U32.Max do
             fail UnsupportedFormatError{"image is too big"}
 
-        var fileHeader: FileHeader
-        fileHeader.bfType    = 0x4D42
-        fileHeader.bfSize    = cast(u32) fileSize
-        fileHeader.bfOffBits = #sizeof(FileHeader) + #sizeof(Header)
-        result.addStruct(fileHeader)
+        if userOptions.fileHeader
+        {
+            var fileHeader: FileHeader
+            fileHeader.bfType    = 0x4D42
+            fileHeader.bfSize    = cast(u32) fileSize
+            fileHeader.bfOffBits = #sizeof(FileHeader) + #sizeof(Header)
+            result.addStruct(fileHeader)
+        }
 
         var header: Header
         header.biSize        = #sizeof(Header)

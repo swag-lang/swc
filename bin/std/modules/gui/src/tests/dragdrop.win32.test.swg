@@ -823,3 +823,42 @@ impl IWnd for PlatformCatcher
 
     Swag.assert(checked >= 6)
 }
+
+// DIB consumers need aligned BGR rows even when the original image uses RGB storage.
+#test
+{
+    let pixelFormats = [Pixel.PixelFormat.RGB8, .BGR8, .RGBA8, .BGRA8]
+    for pixelFormat in pixelFormats
+    {
+        var image = Pixel.Image.create(3, 2, pixelFormat)
+        for i in image.pixels.count do
+            image.pixels[i] = cast(u8) (17 + i * 3)
+        if image.bytesPerPixel == 4
+        {
+            for i in 6 do
+                image.pixels[i * 4 + 3] = 255
+        }
+
+        var data: DragData
+        data.setImage(image)
+        var session: DragSession
+        let source = testDragSource(&session, &data)
+        var fmt:     FORMATETC
+        fmt.cfFormat = CF_DIB
+        fmt.dwAspect = DVASPECT_CONTENT
+        fmt.lindex   = -1
+        fmt.tymed    = TYMED_HGLOBAL
+        var medium: STGMEDIUM
+        Swag.assert(source.lpVtbl.GetData(source, &fmt, &medium) == S_OK)
+        defer ReleaseStgMedium(&medium)
+        let bytes = cast([*] u8) GlobalLock(medium.hGlobal)!
+        defer discard GlobalUnlock(medium.hGlobal)
+        let decoded = expect Pixel.Image.decode("drag.bmp", Swag.makeSlice(bytes, GlobalSize(medium.hGlobal)))
+        Swag.assert(decoded.width == image.width and decoded.height == image.height)
+        for y in image.height
+        {
+            for x in image.width do
+                Swag.assert(decoded.pixelColor(x, y) == image.pixelColor(x, y))
+        }
+    }
+}

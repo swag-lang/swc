@@ -540,30 +540,10 @@ private func buildDib(data: *DragData)->HGLOBAL
     if not image do
         return null
 
-    let img   = image
-    let size  = cast(u64) #sizeof(Bmp.Header) + img.byteCount
-    let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
-    if not hglob do
+    let bytes = catch image.encodeToBytes("drag.bmp", Bmp.EncodeOptions{fileHeader: false}) as encodeError
+    if encodeError != null do
         return null
-
-    let base = cast([*] u8?) GlobalLock(hglob)
-    if not base
-    {
-        discard GlobalFree(hglob)
-        return null
-    }
-
-    let header = cast(*Bmp.Header) base
-    header.biSize        = #sizeof(Bmp.Header)
-    header.biWidth       = img.width
-    header.biHeight      = img.height
-    header.biPlanes      = 1
-    header.biCompression = Bmp.BI_RGB
-    header.biBitCount    = img.bitsPerPixel
-
-    Memory.copy(base + #sizeof(Bmp.Header), img.pixels.buffer, img.byteCount)
-    discard GlobalUnlock(hglob)
-    return hglob
+    return toGlobalBlock(bytes.toSlice())
 }
 
 // Builds the block naming every file the payload carries itself: a count, then one fixed-size

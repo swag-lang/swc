@@ -32,15 +32,26 @@
 
 #test
 {
+    // A left shift truncates the bits it pushes out; the amount stays below the width.
     #[Swag.Safety(.Overflow, true)]
     func shiftLeftTruncates(a: u8, b: u64)->u8 { return a << b }
 
     const V0 = #run shiftLeftTruncates(0x80'u8, 1'u64)
-    const V1 = #run shiftLeftTruncates(1'u8, 8'u64)
-    const V2 = #run shiftLeftTruncates(1'u8, 256'u64)
+    const V1 = #run shiftLeftTruncates(0x81'u8, 7'u64)
     #assert(V0 == 0'u8)
-    #assert(V1 == 0'u8)
-    #assert(V2 == 0'u8)
+    #assert(V1 == 0x80'u8)
+}
+
+#test
+{
+    // An amount at or above the width is a fault under overflow safety.
+    #[Swag.Safety(.Overflow, true)]
+    func shiftLeftLargeAmount(a: u8, b: u64)->u8
+    {
+        return a << b     // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const V = #run shiftLeftLargeAmount(1'u8, 8'u64)
 }
 
 #test
@@ -55,7 +66,7 @@
 // JPEG idct fixed-point math).
 #test
 {
-    let n = 18'u32
+    let n = 12'u32
     // The shift keeps the LEFT operand's type; the unsigned amount must not
     // widen it or flip a signed value to unsigned.
     #assert(#typeof(1's32 << n) == s32)

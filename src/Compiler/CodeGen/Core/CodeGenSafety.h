@@ -51,7 +51,7 @@ namespace CodeGenSafety
     Result emitDivOrModIntLike(CodeGen& codeGen, const AstNode& node, MicroReg leftReg, MicroReg rightReg, MicroOp op, MicroOpBits opBits, bool isSigned, bool zeroOnOverflow);
     Result emitIntLikeCastOverflowCheck(CodeGen& codeGen, const AstNode& node, MicroReg srcReg, const TypeInfo& srcType, const TypeInfo& dstType);
     Result emitFloatToIntCastOverflowCheck(CodeGen& codeGen, const AstNode& node, MicroReg srcReg, const TypeInfo& srcType, const TypeInfo& dstType);
-    Result emitNegativeShiftCheck(CodeGen& codeGen, const AstNode& node);
+    Result emitShiftAmountCheck(CodeGen& codeGen, const AstNode& node);
     Result emitMathCheck(CodeGen& codeGen, const AstNode& node);
     Result emitNotNullCheck(CodeGen& codeGen, const AstNode& node);
     Result emitNotNullGuard(CodeGen& codeGen, AstNodeRef ownerRef, AstNodeRef valueRef, std::string_view what);

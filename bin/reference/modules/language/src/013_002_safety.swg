@@ -65,12 +65,13 @@ Example:
 #[Swag.Safety(.Overflow, true)]
 ```
 
-When enabled, Swag panics on arithmetic overflow, on a runtime negative shift
-count, or when bits are lost during integer conversions.
+When enabled, Swag panics on arithmetic overflow, on a runtime shift amount that
+is negative or not below the bit width of the shifted value, or when bits are
+lost during integer conversions.
 
-Operators that can overflow include '+ - *' and compound forms '+= -= *='.
-Shifts have defined truncating and large-count behavior; overflow safety only
-guards their negative signed counts.
+Operators that can overflow include '+ - *' and compound forms '+= -= *='. A
+left shift truncates the bits it discards, which is not an overflow; overflow
+safety guards a shift's amount only.
 */
 #test
 {

@@ -47,6 +47,7 @@ SWC_DIAG_DEF(sema_note_pointer_operand_has_type, Note, "pointer operand has type
 SWC_DIAG_DEF(sema_note_enum_operand_has_type, Note, "enum operand has type '{type}'")
 SWC_DIAG_DEF(sema_note_zero_divisor_here, Note, "zero divisor is here")
 SWC_DIAG_DEF(sema_note_negative_shift_amount_here, Note, "negative shift amount is here")
+SWC_DIAG_DEF(sema_note_large_shift_amount_here, Note, "shift amount is here")
 SWC_DIAG_DEF(sema_note_invalid_argument_value_here, Note, "argument outside the accepted domain originates here")
 SWC_DIAG_DEF(sema_note_overflowing_value_here, Note, "overflowing value is here")
 SWC_DIAG_DEF(sema_note_safety_value_here, Note, "value that triggers the safety check is here")

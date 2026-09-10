@@ -14,6 +14,7 @@ namespace Math
         DivisionByZero,
         Overflow,
         NegativeShift,
+        LargeShift,
         InvalidArgument,
     };
 
@@ -76,9 +77,8 @@ namespace Math
 
     struct FoldBinaryIntOptions
     {
-        bool     clampShiftCount     = false;
         bool     ignoreShiftOverflow = false;
-        uint32_t shiftBitWidth       = 0;
+        uint32_t shiftBitWidth       = 0; // Width of the shifted value; zero for an unsized constant, which any amount may shift.
     };
 
     DiagnosticId foldStatusDiagnosticId(FoldStatus status);

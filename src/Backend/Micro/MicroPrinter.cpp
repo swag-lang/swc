@@ -152,6 +152,8 @@ namespace
                 return "fsub";
             case MicroOp::FloatXor:
                 return "fxor";
+            case MicroOp::LeadingZeroCount:
+                return "lzcnt";
             case MicroOp::LoadEffectiveAddress:
                 return "lea";
             case MicroOp::ModuloSigned:
@@ -194,6 +196,8 @@ namespace
                 return "sub";
             case MicroOp::Test:
                 return "test";
+            case MicroOp::TrailingZeroCount:
+                return "tzcnt";
             case MicroOp::Xor:
                 return "xor";
             case MicroOp::VecAdd32:

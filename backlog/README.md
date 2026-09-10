@@ -35,10 +35,10 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-10 22:36 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-10 21:32 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-10 21:00 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-10 21:00 |
-| [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-10 20:58 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-10 20:44 |
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` | 2026-09-10 20:42 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-10 20:28 |

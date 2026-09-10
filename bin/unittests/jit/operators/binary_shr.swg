@@ -32,15 +32,28 @@
 
 #test
 {
+    // The amount keeps its own width; the value keeps its own type and sign.
     func shiftRightMixedUnsigned(a: u8, b: u64)->u8 { return a >> b }
     func shiftRightMixedSigned(a: s8, b: u64)->s8 { return a >> b }
 
-    const V0 = #run shiftRightMixedUnsigned(0x80'u8, 256'u64)
-    const V1 = #run shiftRightMixedSigned(-128's8, 256'u64)
-    const V2 = #run shiftRightMixedUnsigned(0x80'u8, 0x1_0000_0000'u64)
-    #assert(V0 == 0'u8)
+    const V0 = #run shiftRightMixedUnsigned(0x80'u8, 7'u64)
+    const V1 = #run shiftRightMixedSigned(-128's8, 7'u64)
+    const V2 = #run shiftRightMixedSigned(-128's8, 3'u64)
+    #assert(V0 == 1'u8)
     #assert(V1 == -1's8)
-    #assert(V2 == 0'u8)
+    #assert(V2 == -16's8)
+}
+
+#test
+{
+    // An amount at or above the width is a fault under overflow safety.
+    #[Swag.Safety(.Overflow, true)]
+    func shiftRightLargeAmount(a: s8, b: u64)->s8
+    {
+        return a >> b     // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const V = #run shiftRightLargeAmount(-128's8, 0x1_0000_0000'u64)
 }
 
 #test

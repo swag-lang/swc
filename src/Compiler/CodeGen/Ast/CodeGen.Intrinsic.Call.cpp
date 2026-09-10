@@ -1537,41 +1537,38 @@ namespace
             return Result::Continue;
         }
 
-        // A bit scan answers the whole intrinsic except at zero, where the language
-        // defines the result as the operand width and the instruction defines nothing.
-        // Selecting that case with a conditional move instead of branching around the
-        // scan keeps the sequence one basic block. The branch form put an allocation
-        // boundary in the middle of every caller, which flushed the live set for a case
-        // that never happens on a hot path. The compare is kept rather than read from
-        // the scan flags: it is the shape every other conditional move in the backend
-        // has, and it is what keeps a spill or a rematerialized constant inserted
-        // between the two from silently changing the answer.
-        const MicroReg bitPosReg = codeGen.nextVirtualIntRegister();
-
-        if (kind == BitCountKind::Tz)
+        // The target has the counts as single instructions, defined at zero as the operand
+        // width, which is what the language specifies; the scan-and-select sequence they
+        // replace was six instructions on every leading-zero count of every hot loop. The
+        // destination is cleared first, because the binary form reads it and because the
+        // count instructions carry a false dependency on it.
+        //
+        // A byte has no count instruction of its own. Widened to 32 bits, its leading zeros
+        // are the 32-bit count less the 24 bits added above it, at zero included; its trailing
+        // zeros are those of the widened value with bit 8 set, which stops the count at the
+        // byte's width when the byte is zero and changes nothing otherwise.
+        const MicroOp countOp = kind == BitCountKind::Tz ? MicroOp::TrailingZeroCount : MicroOp::LeadingZeroCount;
+        if (resultBits == MicroOpBits::B8)
         {
-            builder.emitLoadRegImm(resultPayload.reg, ApInt(logicalBitWidth, 64), resultBits);
-            builder.emitClearReg(bitPosReg, resultBits);
-            builder.emitOpBinaryRegReg(bitPosReg, materializedValue, MicroOp::BitScanForward, resultBits);
-            builder.emitCmpRegImm(materializedValue, ApInt(0, 64), resultBits);
-            builder.emitLoadCondRegReg(resultPayload.reg, bitPosReg, MicroCond::NotEqual, resultBits);
+            const MicroReg wideReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadZeroExtendRegReg(wideReg, materializedValue, MicroOpBits::B32, MicroOpBits::B8);
+            builder.emitClearReg(resultPayload.reg, MicroOpBits::B32);
+            if (kind == BitCountKind::Tz)
+            {
+                builder.emitOpBinaryRegImm(wideReg, ApInt(0x100, 64), MicroOp::Or, MicroOpBits::B32);
+                builder.emitOpBinaryRegReg(resultPayload.reg, wideReg, countOp, MicroOpBits::B32);
+            }
+            else
+            {
+                builder.emitOpBinaryRegReg(resultPayload.reg, wideReg, countOp, MicroOpBits::B32);
+                builder.emitOpBinaryRegImm(resultPayload.reg, ApInt(24, 64), MicroOp::Subtract, MicroOpBits::B32);
+            }
+
             return Result::Continue;
         }
 
-        SWC_ASSERT(kind == BitCountKind::Lz);
-
-        // `width - 1 - bitScanReverse(value)` is the leading-zero count of every
-        // non-zero operand. The zero operand takes the same subtraction by forcing
-        // the scan position to all-ones, which reads as -1 at every width.
-        const MicroReg zeroCaseReg  = codeGen.nextVirtualIntRegister();
-        const uint64_t allOnesValue = logicalBitWidth >= 64 ? std::numeric_limits<uint64_t>::max() : (1ull << logicalBitWidth) - 1ull;
-        builder.emitLoadRegImm(zeroCaseReg, ApInt(allOnesValue, 64), resultBits);
-        builder.emitClearReg(bitPosReg, resultBits);
-        builder.emitOpBinaryRegReg(bitPosReg, materializedValue, MicroOp::BitScanReverse, resultBits);
-        builder.emitCmpRegImm(materializedValue, ApInt(0, 64), resultBits);
-        builder.emitLoadCondRegReg(bitPosReg, zeroCaseReg, MicroCond::Equal, resultBits);
-        builder.emitLoadRegImm(resultPayload.reg, ApInt(logicalBitWidth - 1, 64), resultBits);
-        builder.emitOpBinaryRegReg(resultPayload.reg, bitPosReg, MicroOp::Subtract, resultBits);
+        builder.emitClearReg(resultPayload.reg, resultBits);
+        builder.emitOpBinaryRegReg(resultPayload.reg, materializedValue, countOp, resultBits);
         return Result::Continue;
     }
 

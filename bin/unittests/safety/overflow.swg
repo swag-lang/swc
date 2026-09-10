@@ -653,30 +653,53 @@ func opaqueS64(v: s64)->s64
     Swag.assert(value == 0'u64)
 }
 
-// Shift left with count >= bit width
+// Shift left with an amount equal to the bit width
 #test
 {
     #[Swag.Safety(.Overflow, true)]
     func shlLargeCountS8(a, count: s8)->s8
     {
-        return a << count
+        return a << count     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run shlLargeCountS8(1's8, 8's8)
-    Swag.assert(value == 0's8)
 }
 
-// Shift left with count >= bit width and zero value
+// The amount is checked whatever the value, a zero included
 #test
 {
     #[Swag.Safety(.Overflow, true)]
     func shlLargeCountZero(a, count: u8)->u8
     {
-        return a << count
+        return a << count     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run shlLargeCountZero(0'u8, 8'u8)
-    Swag.assert(value == 0'u8)
+}
+
+// Right shift with an amount above the bit width
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
+    func shrLargeCountU32(a: u32, count: u64)->u32
+    {
+        return a >> count     // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run shrLargeCountU32(1'u32, 40'u64)
+}
+
+// An amount just below the bit width is valid
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
+    func shlMaxCountU32(a: u32, count: u32)->u32
+    {
+        return a << count
+    }
+
+    const value = #run shlMaxCountU32(1'u32, 31'u32)
+    Swag.assert(value == 0x80000000'u32)
 }
 
 // =============================================
@@ -803,11 +826,10 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func shrSignedValueWideCount(a: s8, count: u64)->s8
     {
-        return a >> count
+        return a >> count     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run shrSignedValueWideCount(-128's8, 0xFFFF_FFFF_FFFF_FFFF'u64)
-    Swag.assert(value == -1's8)
 }
 
 #test
@@ -817,12 +839,11 @@ func opaqueS64(v: s64)->s64
     {
         var value: u8  = 1
         let count: u64 = 256
-        value <<= count
+        value <<= count     // swc-expected-error {{safety_err_large_shift}}
         return value
     }
 
     const value = #run shlAssignWideCount()
-    Swag.assert(value == 0'u8)
 }
 
 #test
@@ -832,7 +853,7 @@ func opaqueS64(v: s64)->s64
     {
         var value: u8  = 1
         let count: s64 = -1
-        value >>= count     // swc-expected-error {{safety_err_runtime}}
+        value >>= count     // swc-expected-error {{safety_err_negative_shift}}
         return value
     }
 
@@ -981,7 +1002,7 @@ func opaqueS64(v: s64)->s64
     func shrAssignNegCountS32()->s32
     {
         var v: s32 = 42
-        v >>= -1     // swc-expected-error {{safety_err_runtime}}
+        v >>= -1     // swc-expected-error {{safety_err_negative_shift}}
         return v
     }
 
@@ -994,7 +1015,7 @@ func opaqueS64(v: s64)->s64
     func shlAssignNegCountS32()->s32
     {
         var v: s32 = 1
-        v <<= -1     // swc-expected-error {{safety_err_runtime}}
+        v <<= -1     // swc-expected-error {{safety_err_negative_shift}}
         return v
     }
 
@@ -1418,8 +1439,8 @@ func opaqueS64(v: s64)->s64
         return a << #wrap count
     }
 
-    const value = #run shlWrapU8(1'u8, 8'u8)
-    Swag.assert(value == 0'u8)
+    const value = #run shlWrapU8(0x81'u8, 7'u8)
+    Swag.assert(value == 0x80'u8)
 }
 
 // #wrap is redundant on << and a negative count still errors.

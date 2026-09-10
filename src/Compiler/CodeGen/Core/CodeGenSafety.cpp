@@ -185,26 +185,6 @@ namespace
         return ApInt(value, 64);
     }
 
-    void emitLargeShiftCountSelect(CodeGen& codeGen, const MicroReg valueReg, const MicroReg countReg64, const MicroReg originalReg, const MicroOpBits opBits, const uint64_t bitWidth, const bool signedRightShift)
-    {
-        MicroBuilder&     builder     = codeGen.builder();
-        const MicroOpBits moveBits    = std::max(opBits, MicroOpBits::B32);
-        const MicroReg    fallbackReg = codeGen.nextVirtualIntRegister();
-        builder.emitClearReg(fallbackReg, moveBits);
-
-        if (signedRightShift)
-        {
-            SWC_ASSERT(originalReg.isValid());
-            const MicroReg allOnesReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegImm(allOnesReg, ApInt(std::numeric_limits<uint64_t>::max(), 64), moveBits);
-            builder.emitCmpRegImm(originalReg, ApInt(0, 64), opBits);
-            builder.emitLoadCondRegReg(fallbackReg, allOnesReg, MicroCond::Less, moveBits);
-        }
-
-        builder.emitCmpRegImm(countReg64, ApInt(bitWidth, 64), MicroOpBits::B64);
-        builder.emitLoadCondRegReg(valueReg, fallbackReg, MicroCond::AboveOrEqual, moveBits);
-    }
-
     uint64_t maxUnsignedValue(const uint32_t bits)
     {
         if (bits >= 64)
@@ -668,14 +648,17 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
 
     const bool     isLeftShift = shiftCtx.op == TokenId::SymLowerLower;
     const bool     valueSigned = shiftCtx.valueType->isIntLike() && !shiftCtx.valueType->isIntLikeUnsigned();
-    const bool     countSigned = shiftCtx.countType->isIntLike() && !shiftCtx.countType->isIntLikeUnsigned();
-    const bool     hasSafety   = hasOverflowRuntimeSafety(codeGen);
     MicroBuilder&  builder     = codeGen.builder();
     const MicroOp  shiftOp     = isLeftShift ? MicroOp::ShiftLeft : (valueSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight);
     const uint64_t bitWidth    = getNumBits(shiftCtx.valueBits);
 
-    // A constant non-negative count below the value width needs neither the
-    // negative-count guard nor the language-level large-count selection.
+    // A shift amount is valid below the value's width and nowhere else, and the shift itself is
+    // the bare instruction. A constant amount was checked when it folded. A runtime amount out
+    // of range is a fault that overflow safety reports; without safety the result is unspecified
+    // — the processor masks the amount — which is where C leaves it. The selection of zero that
+    // used to follow every variable shift cost a compare and a conditional move on every shift
+    // of every hot loop, for a value no program asked for.
+    bool constantBelowWidth = false;
     if (shiftCtx.countOperandRef.isValid())
     {
         const SemaNodeView rightConstView = codeGen.viewConstant(shiftCtx.countOperandRef);
@@ -685,48 +668,24 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
             if (rightConst.isInt())
             {
                 const ApsInt& amount = rightConst.getInt();
-                if (!amount.isNegative() && amount.fits64() && amount.as64() < bitWidth)
-                {
-                    builder.emitOpBinaryRegReg(shiftCtx.valueReg, shiftCtx.countReg, shiftOp, shiftCtx.valueBits);
-                    return Result::Continue;
-                }
+                constantBelowWidth   = !amount.isNegative() && amount.fits64() && amount.as64() < bitWidth;
             }
         }
     }
 
-    const MicroReg countReg64  = widenIntRegTo64(codeGen, shiftCtx.countReg, *shiftCtx.countType, shiftCtx.countBits);
-    MicroReg       originalReg = MicroReg::invalid();
-    if (!isLeftShift && valueSigned)
+    if (!constantBelowWidth && hasOverflowRuntimeSafety(codeGen))
     {
-        originalReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegReg(originalReg, shiftCtx.valueReg, shiftCtx.valueBits);
-    }
-
-    MicroReg stableCountReg64 = countReg64;
-    if (stableCountReg64 == shiftCtx.valueReg)
-    {
-        stableCountReg64 = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegReg(stableCountReg64, countReg64, MicroOpBits::B64);
-    }
-
-    MicroLabelRef doneLabel = MicroLabelRef::invalid();
-    if (countSigned)
-    {
-        const MicroLabelRef nonNegative = builder.createLabel();
-        doneLabel                       = builder.createLabel();
-        builder.emitCmpRegImm(shiftCtx.countReg, ApInt(0, 64), shiftCtx.countBits);
-        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, nonNegative);
-        if (hasSafety)
-            SWC_RESULT(emitNegativeShiftCheck(codeGen, node));
-        builder.emitOpBinaryRegReg(shiftCtx.valueReg, shiftCtx.countReg, shiftOp, shiftCtx.valueBits);
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-        builder.placeLabel(nonNegative);
+        // One unsigned compare of the widened amount covers the negative case too: a negative
+        // signed amount widens to a value far above any width.
+        const MicroReg      amount64 = widenIntRegTo64(codeGen, shiftCtx.countReg, *shiftCtx.countType, shiftCtx.countBits);
+        const MicroLabelRef inRange  = builder.createLabel();
+        builder.emitCmpRegImm(amount64, ApInt(bitWidth, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, inRange);
+        SWC_RESULT(emitShiftAmountCheck(codeGen, node));
+        builder.placeLabel(inRange);
     }
 
     builder.emitOpBinaryRegReg(shiftCtx.valueReg, shiftCtx.countReg, shiftOp, shiftCtx.valueBits);
-    emitLargeShiftCountSelect(codeGen, shiftCtx.valueReg, stableCountReg64, originalReg, shiftCtx.valueBits, bitWidth, !isLeftShift && valueSigned);
-    if (doneLabel.isValid())
-        builder.placeLabel(doneLabel);
     return Result::Continue;
 }
 
@@ -787,14 +746,14 @@ Result CodeGenSafety::emitDivOrModIntLike(CodeGen& codeGen, const AstNode& node,
     return Result::Continue;
 }
 
-Result CodeGenSafety::emitNegativeShiftCheck(CodeGen& codeGen, const AstNode& node)
+Result CodeGenSafety::emitShiftAmountCheck(CodeGen& codeGen, const AstNode& node)
 {
     if (!hasOverflowRuntimeSafety(codeGen))
         return Result::Continue;
 
     SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen);
     SWC_ASSERT(panicFunction != nullptr);
-    return emitRuntimeDiagnosticCall(codeGen, *panicFunction, node, DiagnosticId::safety_err_negative_shift);
+    return emitRuntimeDiagnosticCall(codeGen, *panicFunction, node, DiagnosticId::safety_err_shift_amount);
 }
 
 Result CodeGenSafety::emitUnaryMathDomainCheck(CodeGen& codeGen, const MicroReg valueReg, const TypeInfo& floatType, Math::FoldIntrinsicUnaryFloatOp op, const MicroLabelRef failLabel)

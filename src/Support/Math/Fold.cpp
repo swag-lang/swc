@@ -16,6 +16,8 @@ namespace Math
                 return DiagnosticId::safety_err_integer_overflow;
             case FoldStatus::NegativeShift:
                 return DiagnosticId::safety_err_negative_shift;
+            case FoldStatus::LargeShift:
+                return DiagnosticId::safety_err_large_shift;
             case FoldStatus::InvalidArgument:
                 return DiagnosticId::safety_err_invalid_argument;
             default:
@@ -93,18 +95,19 @@ namespace Math
             if (right.isNegative())
                 return FoldStatus::NegativeShift;
 
+            // A sized value takes an amount below its width and nothing else; an unsized
+            // constant has no width to exceed and shifts by any amount.
             if (!right.fits64())
             {
-                if (options.clampShiftCount && options.shiftBitWidth != 0)
-                    outAmount = options.shiftBitWidth - 1;
-                else
-                    outAmount = std::numeric_limits<uint64_t>::max();
+                if (options.shiftBitWidth != 0)
+                    return FoldStatus::LargeShift;
+                outAmount = std::numeric_limits<uint64_t>::max();
                 return FoldStatus::Ok;
             }
 
             outAmount = static_cast<uint64_t>(right.asI64());
-            if (options.clampShiftCount && options.shiftBitWidth != 0)
-                outAmount = std::min<uint64_t>(outAmount, options.shiftBitWidth - 1);
+            if (options.shiftBitWidth != 0 && outAmount >= options.shiftBitWidth)
+                return FoldStatus::LargeShift;
             return FoldStatus::Ok;
         }
     }

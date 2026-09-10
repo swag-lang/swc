@@ -253,6 +253,10 @@ namespace
         ENCODE_CASE("op_binary_reg_reg_bsf_b8", "66 45 0F B6 C1 66 45 0F BC C0", b.emitOpBinaryRegReg(R8, R9, MicroOp::BitScanForward, MicroOpBits::B8););
         ENCODE_CASE("op_binary_reg_reg_bsr_b8", "66 45 0F B6 C1 66 45 0F BD C0", b.emitOpBinaryRegReg(R8, R9, MicroOp::BitScanReverse, MicroOpBits::B8););
         ENCODE_CASE("op_binary_reg_reg_popcnt_b8", "66 45 0F B6 C1 F3 66 45 0F B8 C0", b.emitOpBinaryRegReg(R8, R9, MicroOp::PopCount, MicroOpBits::B8););
+        ENCODE_CASE("op_binary_reg_reg_lzcnt", "F3 4D 0F BD C1", b.emitOpBinaryRegReg(R8, R9, MicroOp::LeadingZeroCount, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_tzcnt", "F3 4D 0F BC C1", b.emitOpBinaryRegReg(R8, R9, MicroOp::TrailingZeroCount, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_lzcnt_b32", "F3 45 0F BD C1", b.emitOpBinaryRegReg(R8, R9, MicroOp::LeadingZeroCount, MicroOpBits::B32););
+        ENCODE_CASE("op_binary_reg_reg_tzcnt_b16", "F3 66 45 0F BC C1", b.emitOpBinaryRegReg(R8, R9, MicroOp::TrailingZeroCount, MicroOpBits::B16););
         ENCODE_CASE("op_binary_reg_reg_mul_signed", "4D 0F AF C1", b.emitOpBinaryRegReg(R8, R9, MicroOp::MultiplySigned, MicroOpBits::B64););
 
         // 128-bit packed integer forms (SSE2).

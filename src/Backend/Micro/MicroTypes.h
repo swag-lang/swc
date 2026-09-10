@@ -101,6 +101,7 @@ enum class MicroOp : uint8_t
     FloatSqrt,
     FloatSubtract,
     FloatXor,
+    LeadingZeroCount,
     LoadEffectiveAddress,
     ModuloSigned,
     ModuloUnsigned,
@@ -122,6 +123,7 @@ enum class MicroOp : uint8_t
     ShiftRight,
     Subtract,
     Test,
+    TrailingZeroCount,
     Xor,
 
     // 128-bit packed operations on the float register file. Everything from

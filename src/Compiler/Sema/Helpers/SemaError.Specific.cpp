@@ -70,6 +70,9 @@ namespace
             case DiagnosticId::safety_err_negative_shift:
                 return DiagnosticId::sema_note_negative_shift_amount_here;
 
+            case DiagnosticId::safety_err_large_shift:
+                return DiagnosticId::sema_note_large_shift_amount_here;
+
             case DiagnosticId::safety_err_invalid_argument:
                 return DiagnosticId::sema_note_invalid_argument_value_here;
 

@@ -136,30 +136,32 @@ func binaryPromotedFloatCallMul(v: f32)->f64
     Swag.assert(d == 0x0000_0000_0010_0000'u64)
 }
 
+// The largest valid amount is one below the width, whatever the width of the amount itself.
 #[Swag.Optimize(false)]
-func largeWrappedShiftLeftU32(value: u32, count: u32)->u32
+func wrappedShiftLeftU32(value: u32, count: u32)->u32
 {
     return value << #wrap count
 }
 
 #[Swag.Optimize(false)]
-func largeShiftRightU32(value: u32, count: u32)->u32
+func shiftRightU32(value: u32, count: u64)->u32
 {
     return value >> count
 }
 
 #[Swag.Optimize(false)]
-func largeShiftRightS32(value: s32, count: s32)->s32
+func shiftRightS32(value: s32, count: s8)->s32
 {
     return value >> count
 }
 
 #test
 {
-    Swag.assert(largeWrappedShiftLeftU32(1'u32, 32'u32) == 0'u32)
-    Swag.assert(largeShiftRightU32(0x8000_0000'u32, 32'u32) == 0'u32)
-    Swag.assert(largeShiftRightS32(-16, 32) == -1)
-    Swag.assert(largeShiftRightS32(16, 32) == 0)
+    Swag.assert(wrappedShiftLeftU32(1'u32, 31'u32) == 0x8000_0000'u32)
+    Swag.assert(wrappedShiftLeftU32(3'u32, 31'u32) == 0x8000_0000'u32)
+    Swag.assert(shiftRightU32(0x8000_0000'u32, 31'u64) == 1'u32)
+    Swag.assert(shiftRightS32(-16, 31's8) == -1)
+    Swag.assert(shiftRightS32(16, 4's8) == 1)
 }
 
 // Operator precedence and parentheses

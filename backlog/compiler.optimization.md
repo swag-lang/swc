@@ -15,7 +15,7 @@ the executable Micro instruction stream has no explicit phi instruction.
 ### compiler.optimization.010 — A short branching function spills with the whole register file free
 
 - Recorded: 2026-08-23 22:36
-- Updated: 2026-09-10 20:58 — Record a current Release dump of the CABAC significance loop and the measured cost of register residency there
+- Updated: 2026-09-10 22:36 — The leading-zero count is one instruction and the shift width guard is gone with the language rule, measured on the decoder; the branch-crossing spill is what remains
 - Area: compiler/backend
 - Found while: std.video.001, closing the distance between the H.264 entropy parse and FFmpeg's, starting
   from the emitted code of one bin as that entry says to.
@@ -58,10 +58,22 @@ the executable Micro instruction stream has no explicit phi instruction.
   register residency alone does not pay while those spills and the longer count sequence stay on
   the bin's serial chain. The branch-crossing spill gap therefore remains under the split
   allocator.
-- Next: reduce the renormalization branch of that mixin form (std.video.001 describes it) to a
-  standalone case and attribute its branch-crossing spills to the split allocator, then adopt
-  `lzcnt`/`tzcnt` on the x86-64-v3 target with encoder and zero-operand tests. Retry the
-  register-resident significance loop only after both.
+- **Two of the three costs of that dump are gone (2026-09-10 22:15).** `Swag.bitCountLz` and
+  `bitCountTz` are `lzcnt` and `tzcnt` (`MicroOp::LeadingZeroCount`, `TrailingZeroCount`, x86-64-v3
+  has both), defined at zero as the operand width exactly as the language is; a byte operand is
+  widened to 32 bits and adjusted (`- 24` for leading zeros, `| 0x100` before trailing zeros). And
+  the shift width guard no longer exists: a shift amount is valid below the value's width and
+  nowhere else, a constant outside that range is a compile-time error, a runtime one panics under
+  overflow safety, and release emits the bare instruction. `CabacReader.decision` went from 112 to
+  94 instructions and six conditional moves to one; `Slice.residualCabac` from 921 to 834 and 23
+  conditional moves to none. Measured on the serial decode of the one-slice 4K clip, the same
+  decoder source built by the two compilers and interleaved for six paired rounds, byte-exact:
+  1.4 percent fewer cycles on the median and 2.6 on the minimum. Eighteen instructions off a bin
+  that is latency-bound buy about that much; the shape is what changed, and it changes for every
+  shift and every count in the code base.
+- Next: reduce the renormalization branch of the mixin form (std.video.001 describes it) to a
+  standalone case and attribute its branch-crossing spills to the split allocator. Retry the
+  register-resident significance loop after that.
 - Complete when: the current dump decides whether the branch-spill gap remains and any remaining
   allocation defect has a reduced test.
 - Related: compiler.optimization.006, compiler.optimization.024.
@@ -568,8 +580,9 @@ the executable Micro instruction stream has no explicit phi instruction.
     a mask by one, looking through casts and parentheses), verified to fire — 14 conditional
     moves down to 8 in the block loop — and measured at **zero**, twice, on a quiet machine.
     The loop is latency-bound on the serial bit-cursor chain and its stack round-trips, so
-    removing twelve independent instructions changes nothing. Reverted. Worth revisiting only
-    *after* the register half lands, when the loop may become instruction-bound.
+    removing twelve independent instructions changes nothing. Reverted. Since 2026-09-10 the
+    guard no longer exists at all: a shift amount must be below the value's width, and release
+    emits the bare instruction — so this workload should be re-timed without it.
   - **Two symbols per refill, and pre-tabulated masks and packed base+extra words.** Zero each.
   - **A shuffle-based fill for matches closer than eight bytes**, which libdeflate carries and
     this loop still copies one byte at a time. Counted rather than timed, over the IDAT of the

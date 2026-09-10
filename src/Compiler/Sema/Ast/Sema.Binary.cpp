@@ -40,8 +40,10 @@ namespace
             return false;
         if (!SemaHelpers::aliasType(sema, nodeLeftView).isIntLike() || !SemaHelpers::aliasType(sema, nodeRightView).isIntLike())
             return false;
+        // A shift amount has to stay below the value's width whatever its sign; a constant one
+        // is checked when it folds, so only a runtime amount needs the guard.
         if (op == TokenId::SymLowerLower || op == TokenId::SymGreaterGreater)
-            return !SemaHelpers::aliasType(sema, nodeRightView).isIntLikeUnsigned();
+            return !nodeRightView.hasConstant();
         return SemaHelpers::binaryOpNeedsOverflowSafety(op, node.modifierFlags);
     }
 
@@ -241,6 +243,11 @@ namespace
             if (op == TokenId::SymLowerLower)
                 foldOptions.ignoreShiftOverflow = true;
 
+            // A sized value shifts by an amount below its width only; an unsized constant has
+            // no width to exceed.
+            if (isShift && storageType.isInt() && !storageType.isIntUnsized())
+                foldOptions.shiftBitWidth = storageType.payloadIntLikeBits();
+
             ApsInt           foldedValue;
             Math::FoldStatus foldStatus = Math::foldBinaryInt(foldedValue, val1, val2, foldOp, foldOptions);
             if (foldStatus == Math::FoldStatus::Overflow && (wrap || storageType.payloadIntLikeBits() == 0))
@@ -262,12 +269,17 @@ namespace
 
                 if (Math::isSafetyError(foldStatus))
                 {
-                    auto diag = SemaError::reportFoldSafety(sema, foldStatus, sema.curNodeRef(), SemaError::ReportLocation::Token);
-                    if (foldStatus == Math::FoldStatus::NegativeShift)
+                    auto       diag         = SemaError::reportFoldSafety(sema, foldStatus, sema.curNodeRef(), SemaError::ReportLocation::Token);
+                    const bool isShiftFault = foldStatus == Math::FoldStatus::NegativeShift || foldStatus == Math::FoldStatus::LargeShift;
+                    if (isShiftFault)
                         diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
-                    if (foldStatus == Math::FoldStatus::DivisionByZero || foldStatus == Math::FoldStatus::NegativeShift)
+                    if (foldStatus == Math::FoldStatus::DivisionByZero || isShiftFault)
                     {
-                        const DiagnosticId labelId = foldStatus == Math::FoldStatus::NegativeShift ? DiagnosticId::sema_note_negative_shift_amount_here : DiagnosticId::sema_note_zero_divisor_here;
+                        DiagnosticId labelId = DiagnosticId::sema_note_zero_divisor_here;
+                        if (foldStatus == Math::FoldStatus::NegativeShift)
+                            labelId = DiagnosticId::sema_note_negative_shift_amount_here;
+                        else if (foldStatus == Math::FoldStatus::LargeShift)
+                            labelId = DiagnosticId::sema_note_large_shift_amount_here;
                         diag.last().addSpan(sema.node(node.nodeRightRef).codeRangeWithChildren(sema.ctx(), sema.ast()), labelId, DiagnosticSeverity::Note);
                     }
                     diag.report(sema.ctx());
@@ -535,6 +547,8 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     SWC_RESULT(promote(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     SWC_RESULT(check(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     SWC_RESULT(castAndResultType(sema, op, *this, nodeLeftView, nodeRightView));
+    if ((op == TokenId::SymLowerLower || op == TokenId::SymGreaterGreater) && !nodeLeftView.hasConstant() && nodeLeftView.type())
+        SWC_RESULT(SemaHelpers::checkConstantShiftAmount(sema, sema.curNodeRef(), SemaHelpers::aliasType(sema, nodeLeftView), nodeRightView, nodeRightRef));
     if (needsBinaryOverflowRuntimeSafety(sema, *this, op, nodeLeftView, nodeRightView))
         SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
     if (needsBinaryDivideRuntimeSafety(sema, op, nodeLeftView, nodeRightView))

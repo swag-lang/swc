@@ -12,6 +12,7 @@
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Math/Fold.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -167,6 +168,41 @@ bool SemaHelpers::binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFl
         default:
             return false;
     }
+}
+
+// A constant shift amount is checked here whatever the value operand is: negative, or at or
+// above the value's width, it is the same error the fold of a whole constant shift reports,
+// and it is what lets the runtime guard stay off every shift by a constant.
+Result SemaHelpers::checkConstantShiftAmount(Sema& sema, AstNodeRef nodeRef, const TypeInfo& valueType, const SemaNodeView& amountView, AstNodeRef amountNodeRef)
+{
+    if (!amountView.hasConstant() || !valueType.isInt() || valueType.isIntUnsized())
+        return Result::Continue;
+
+    const ConstantValue& amountCst = sema.cstMgr().get(amountView.cstRef());
+    if (!amountCst.isInt())
+        return Result::Continue;
+
+    const ApsInt&    amount = amountCst.getInt();
+    const uint32_t   width  = valueType.payloadIntLikeBits();
+    Math::FoldStatus status = Math::FoldStatus::Ok;
+    if (amount.isNegative())
+        status = Math::FoldStatus::NegativeShift;
+    else if (!amount.fits64() || amount.as64() >= width)
+        status = Math::FoldStatus::LargeShift;
+    if (status == Math::FoldStatus::Ok)
+        return Result::Continue;
+
+    // Inside an inline expansion the shift may be dead for these arguments; the runtime guard
+    // then answers, as it does for a whole constant shift whose fold is declined there.
+    if (!sema.isConstExprRequired() && sema.frame().currentInlinePayload() != nullptr)
+        return Result::Continue;
+
+    auto diag = SemaError::reportFoldSafety(sema, status, nodeRef, SemaError::ReportLocation::Token);
+    diag.addArgument(Diagnostic::ARG_RIGHT, amountView.cstRef());
+    const DiagnosticId labelId = status == Math::FoldStatus::NegativeShift ? DiagnosticId::sema_note_negative_shift_amount_here : DiagnosticId::sema_note_large_shift_amount_here;
+    diag.last().addSpan(sema.node(amountNodeRef).codeRangeWithChildren(sema.ctx(), sema.ast()), labelId, DiagnosticSeverity::Note);
+    diag.report(sema.ctx());
+    return Result::Error;
 }
 
 // A binding type targets the expression it was pushed for, and the frame copies that carry

@@ -902,8 +902,10 @@ namespace
             case MicroOp::PopCount:
                 return 0xB8;
             case MicroOp::BitScanForward:
+            case MicroOp::TrailingZeroCount:
                 return 0xBC;
             case MicroOp::BitScanReverse:
+            case MicroOp::LeadingZeroCount:
                 return 0xBD;
             case MicroOp::MultiplyUnsigned:
                 return 0xC0;
@@ -2923,6 +2925,21 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
             emitCpuOp(store_, op);
             emitModRm(store_, regDst, regSrc);
         }
+    }
+
+    ///////////////////////////////////////////
+
+    else if (op == MicroOp::LeadingZeroCount || op == MicroOp::TrailingZeroCount)
+    {
+        // The bit scans with the count prefix: defined at zero as the operand width. They exist
+        // at 16, 32 and 64 bits; a byte operand is widened by the caller, since the 16-bit count
+        // of a widened byte answers 16 at zero where the byte's width is 8.
+        SWC_ASSERT(opBits != MicroOpBits::B8);
+        emitCpuOp(store_, 0xF3);
+        emitRex(store_, opBits, regDst, regSrc);
+        emitCpuOp(store_, 0x0F);
+        emitCpuOp(store_, op);
+        emitModRm(store_, regDst, regSrc);
     }
 
     ///////////////////////////////////////////

@@ -82,6 +82,8 @@ namespace InstructionCombine
                 case MicroOp::BitwiseNot:
                 case MicroOp::ByteSwap:
                 case MicroOp::PopCount:
+                case MicroOp::LeadingZeroCount:
+                case MicroOp::TrailingZeroCount:
                     return true;
                 default:
                     return false;

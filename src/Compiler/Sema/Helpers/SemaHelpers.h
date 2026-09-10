@@ -97,6 +97,7 @@ namespace SemaHelpers
     bool                    isLateInitAccess(Sema& sema, AstNodeRef nodeRef);
     void                    clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef);
     bool                    binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFlags modifierFlags);
+    Result                  checkConstantShiftAmount(Sema& sema, AstNodeRef nodeRef, const TypeInfo& valueType, const SemaNodeView& amountView, AstNodeRef amountNodeRef);
     bool                    canUseContextualBinding(Sema& sema, AstNodeRef nodeRef);
     void                    scopeBindingsForStatement(Sema& sema);
     // Whether a bare identifier carrying this symbol resolves at codegen inside the

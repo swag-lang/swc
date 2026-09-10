@@ -55,22 +55,21 @@ ordinary meaning of '<<' and is not an overflow, even when overflow safety is
 enabled. A right shift fills with zero for an unsigned value and copies the sign
 bit for a signed value.
 
-Counts greater than or equal to the value's bit width are defined. Both left
-shift and unsigned right shift produce zero. Signed right shift produces zero
-for a non-negative value and '-1' for a negative value.
-
-A negative count is invalid. A constant negative count is diagnosed at compile
-time; a runtime signed count panics when overflow safety is enabled. '#wrap' is
-accepted on a shift for source compatibility, but it does not change these
-rules because ordinary left shift already truncates discarded bits.
+A shift amount is valid when it is not negative and below the value's bit width.
+A constant amount outside that range is an error at compile time. A runtime
+amount outside it panics when overflow safety is enabled, and produces an
+unspecified value otherwise: the shift is then the processor's own instruction,
+which is what makes it as cheap as in C. '#wrap' is accepted on a shift for
+source compatibility, but it changes nothing, because ordinary left shift
+already truncates discarded bits.
 */
 #test
 {
-    let count: u64 = 256
+    let count: u64 = 7
 
     Swag.assert(0x81'u8 << 1 == 0x02'u8)
-    Swag.assert(0x81'u8 << count == 0'u8)
-    Swag.assert(0x81'u8 >> count == 0'u8)
+    Swag.assert(0x81'u8 << count == 0x80'u8)
+    Swag.assert(0x81'u8 >> count == 0x01'u8)
     Swag.assert(-128's8 >> count == -1's8)
     #assert(#typeof(1'u8 << count) == u8)
 }

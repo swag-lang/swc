@@ -168,7 +168,7 @@ impl Encoder
                 let itf = cast(const *Swag.Interface) data
                 if not itf.itable and type.flags & .Nullable == 0 do
                     fail SerializationError{"non-null interface value is missing"}
-                let objType = itf.itable ? cast(const *Swag.TypeInfoStruct?) itf.itable![] : null
+                let objType = itf.itable ? cast(const *Swag.TypeInfoStruct?) itf.itable[] : null
                 discard .serializer.interfaceTypeKey(objType)
             }
         }

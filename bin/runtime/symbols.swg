@@ -98,7 +98,7 @@ func __symbolize(addr: *void)->__SwagSym
 // says only that symbolization was unavailable, so the panic report leaves the whole section out.
 func __hasStackTraceSymbols(wh: const [..] (*void?))->bool
 {
-    for address in wh where address and __symbolize(address!).found do
+    for address in wh where address and __symbolize(address).found do
         return true
     return false
 }

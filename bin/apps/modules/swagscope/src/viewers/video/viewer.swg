@@ -434,7 +434,7 @@ private func videoSubtitleTrackCommand(sidecar: bool, index: u32)->String
 
 internal func videoSubtitleText(data: const [*] u8?, length: u64)->string
 {
-    return data and length ? cast(string) Swag.makeSlice(data!, length) : ""
+    return data and length ? cast(string) Swag.makeSlice(data, length) : ""
 }
 
 private func videoSubtitlePresentationAt(track: const *Subtitle.Track, seconds: f64, result: *String)->f64
@@ -1713,7 +1713,7 @@ internal impl VideoViewer
         let count = .video.frameCount()
         if count and clock >= count and .frameIndex + 1 >= count
         {
-            let continuation = .reportFinished ? .reportFinished!(me) : Viewer.Continuation.Stop
+            let continuation = .reportFinished ? .reportFinished(me) : Viewer.Continuation.Stop
             if continuation == .Replay
             {
                 .restartForLoop()

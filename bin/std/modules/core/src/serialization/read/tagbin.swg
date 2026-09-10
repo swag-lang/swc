@@ -469,7 +469,7 @@ private impl TagBin
         // sits exactly where the decode expects it: read positionally and never touch
         // the fat. Ignored elements and custom 'ISerialize' fields break that pairing,
         // so they force the indexed path.
-        if plan and not plan.hasCustom and .ignoreElements.isEmpty() and .shapeMatchesPlan(shape, plan!)
+        if plan and not plan.hasCustom and .ignoreElements.isEmpty() and .shapeMatchesPlan(shape, plan)
         {
             sec.positional = true
             return

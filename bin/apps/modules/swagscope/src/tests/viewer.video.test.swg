@@ -134,7 +134,7 @@ func waitForVideoAudio(view: *VideoViewer, count: u32)
 func waitForVideoVoicePlaying(view: *VideoViewer)
 {
     var attempts: u32
-    while view.voice and not view.voice!.isPlaying() and attempts < 5_000
+    while view.voice and not view.voice.isPlaying() and attempts < 5_000
     {
         Threading.Thread.sleep(1'ms)
         view.updatePlayback()

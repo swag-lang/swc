@@ -154,7 +154,7 @@ impl Probe
         watch.start()
         while not try process.tryWaitForExit(20'ms)
         {
-            if cancelled and Atomic.get(cancelled!) do
+            if cancelled and Atomic.get(cancelled) do
                 return {}
             if watch.elapsedMilliseconds() > 60000 do
                 return {text: String.from("Compilation exceeded 60 seconds."), failed: true}

@@ -1349,7 +1349,7 @@ impl IWnd for HexGridView
 
             let hits     = .searchHits
             var hitIndex = .firstSearchHitAt(rowOffset)
-            while hits and hitIndex < hits!.count and hits![hitIndex].offset <= rowLast
+            while hits and hitIndex < hits.count and hits[hitIndex].offset <= rowLast
             {
                 let hit     = &hits![hitIndex]
                 let hitLast = hit.offset + Math.min(hit.length - 1, Swag.U64.Max - hit.offset)

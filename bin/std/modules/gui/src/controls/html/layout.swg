@@ -447,7 +447,7 @@ impl HtmlLayout
     {
         let key   = HtmlStyleResolver.pseudoKey(node, which)
         let found = .pseudoStyles.tryFind(key)
-        return found ? found!.value : HtmlNoNode
+        return found ? found.value : HtmlNoNode
     }
 
     // Builds one box and everything it contains.

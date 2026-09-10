@@ -731,6 +731,7 @@ struct AstConditionalExpr : AstNodeT<AstNodeId::ConditionalExpr>
     static Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
     static Result codeGenPostNode(CodeGen& codeGen);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNode(Sema& sema);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

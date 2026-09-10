@@ -390,7 +390,7 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
         current       += 1
     }
 
-    if delta and (delta!.mode == 0 or delta!.mode == 1)
+    if delta and (delta.mode == 0 or delta.mode == 1)
     {
         band = 0
         for segment in cast(u64) delta!.count

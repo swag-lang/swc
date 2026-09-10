@@ -184,7 +184,7 @@ impl ViewerInfoLayout
         .fileGroup.computeLayout()
 
         var right = client.right()
-        if .sideButton and .sideButton!.isLocallyVisible()
+        if .sideButton and .sideButton.isLocallyVisible()
         {
             let button = .sideButton!
             right -= button.position.width
@@ -201,7 +201,7 @@ impl ViewerInfoLayout
         var viewers: Array'(*Wnd)
         for child in .children
         {
-            if child == cast(*Wnd) .filesButton or child == cast(*Wnd) .fileGroup or child == cast(*Wnd) .generalLabel or (.sideButton and child == cast(*Wnd) .sideButton!) or not child.isLocallyVisible() do
+            if child == cast(*Wnd) .filesButton or child == cast(*Wnd) .fileGroup or child == cast(*Wnd) .generalLabel or (.sideButton and child == cast(*Wnd) .sideButton) or not child.isLocallyVisible() do
                 continue
             viewers.add(child)
         }
@@ -2031,7 +2031,7 @@ impl ViewerWindow
             return
         }
 
-        let loading  = instance.view and instance.isLoading and instance.isLoading!(instance.view!)
+        let loading  = instance.view and instance.isLoading and instance.isLoading!(instance.view)
         let blocking = loading and instance.needsLoadingOverlay and instance.needsLoadingOverlay!(instance.view!)
 
         // Streaming text already has a presentable first chunk while it continues reading. Keep
@@ -2229,7 +2229,7 @@ impl ViewerWindow
         let instance = &.instances[.activeChoiceIndex]
         if not instance.view or (expected and instance.view != expected) do
             return
-        if instance.needsLoadingOverlay and instance.needsLoadingOverlay!(instance.view!) do
+        if instance.needsLoadingOverlay and instance.needsLoadingOverlay(instance.view!) do
             return
 
         .discardOutgoingViewer()
@@ -2403,7 +2403,7 @@ impl ViewerWindow
         if not loading and .activeChoiceIndex < .instances.count
         {
             let instance = &.instances[.activeChoiceIndex]
-            loading     = instance.view and instance.isLoading and instance.isLoading!(instance.view!)
+            loading     = instance.view and instance.isLoading and instance.isLoading!(instance.view)
             wantOverlay = loading and instance.needsLoadingOverlay and instance.needsLoadingOverlay!(instance.view!)
         }
 
@@ -3075,7 +3075,7 @@ impl ViewerWindow
 
         let pageKey         = evt.modifiers == .None and (evt.key == .PageUp or evt.key == .PageDown)
         let focused         = .focusedWindow()
-        let inSearchField   = focused and (focused! == .searchBox or .searchBox.isOwnerOf(focused!))
+        let inSearchField   = focused and (focused == .searchBox or .searchBox.isOwnerOf(focused))
         let fieldNavigation = inSearchField and ((evt.modifiers == .None and (evt.key == .Up or evt.key == .Down)) or (evt.modifiers == .Control and (evt.key == .Home or evt.key == .End)))
         if not pageKey and not fieldNavigation do
             return false
@@ -3150,13 +3150,13 @@ impl ViewerWindow
         let active         = .activeChoiceIndex < .instances.count
         let available      = active and .instances[.activeChoiceIndex].revealMatch != null
         let focused        = .focusedWindow()
-        let searchHadFocus = focused and (focused! == .searchGroup or .searchGroup.isOwnerOf(focused!))
+        let searchHadFocus = focused and (focused == .searchGroup or .searchGroup.isOwnerOf(focused))
 
         .refreshSearchPresentation()
         .searchBox.enable(available)
         .searchOptionsButton.enable(available)
         .searchGroup.show(available)
-        let actionsBesideSearch = .currentActions and .currentActions!.dockStyle != .None
+        let actionsBesideSearch = .currentActions and .currentActions.dockStyle != .None
         .currentActions?.show(not available or actionsBesideSearch)
         .commandBar.centerGroup = available ? .searchGroup : (actionsBesideSearch ? null : .currentActions)
         .commandBar.centerContent()

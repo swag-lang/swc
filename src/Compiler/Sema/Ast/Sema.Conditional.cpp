@@ -263,6 +263,28 @@ Result AstConditionalExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
     return Result::Continue;
 }
 
+Result AstConditionalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    // A branch only evaluates on its side of the condition, so the facts pushed for it in
+    // 'semaPreNodeChild' still hold here -- and this is the last point where they do, because
+    // the frame is popped immediately after. Pin the proven type on the branch node: the join
+    // and the conversions in 'semaPostNode' run without those facts, so 'c ? p : q!' would
+    // join a still-nullable 'p' with a non-null 'q!' and hand back a nullable result the
+    // caller has to assert a second time.
+    if (childRef != nodeTrueRef && childRef != nodeFalseRef)
+        return Result::Continue;
+    if (!sema.frame().hasNarrowFacts())
+        return Result::Continue;
+
+    const SemaNodeView branchView     = sema.viewNodeType(childRef);
+    const TypeRef      narrowedTypeRef = branchView.typeRef();
+    if (!narrowedTypeRef.isValid() || narrowedTypeRef == sema.viewStored(childRef, SemaNodeViewPartE::Type).typeRef())
+        return Result::Continue;
+
+    sema.setType(branchView.nodeRef(), narrowedTypeRef);
+    return Result::Continue;
+}
+
 Result AstConditionalExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView nodeCondView  = sema.viewNodeTypeConstant(nodeCondRef);

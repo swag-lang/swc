@@ -221,7 +221,7 @@ impl Volume
         var offset = first
         while offset < last
         {
-            if progress and progress!.isCanceled() do
+            if progress and progress.isCanceled() do
                 failWith(canceledMessage, .Canceled)
 
             let count = Math.min(last - offset, randomChunk.count)
@@ -515,7 +515,7 @@ impl Volume
         region.first += region.count - requestedSize
         region.count = requestedSize
         try outer.validateHiddenRegion(region)
-        if progress and progress!.isCanceled() do
+        if progress and progress.isCanceled() do
             failWith("Container creation was canceled.", .Canceled)
 
         var result: retval
@@ -806,7 +806,7 @@ impl Volume
         try .requireWritable()
         if .file.base or .file.protectedEnd do
             failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
-        if progress and progress!.isCanceled() do
+        if progress and progress.isCanceled() do
             failWith("Growing the container was canceled.", .Canceled)
         if requestedSize <= .containerSize do
             failWith("A container can only grow.", .InvalidInput)
@@ -894,7 +894,7 @@ impl Volume
             try .randomizeRange(previousPhysical, targetPhysical, progress, 0, "Camouflage refresh was canceled.")
             .file.flush()
         }
-        elif progress and progress!.isCanceled() do
+        elif progress and progress.isCanceled() do
             failWith("Camouflage refresh was canceled.", .Canceled)
 
         .physicalSize = targetPhysical
@@ -931,7 +931,7 @@ impl Volume
         try .requireWritable()
         if .file.base or .file.protectedEnd do
             failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
-        if progress and progress!.isCanceled() do
+        if progress and progress.isCanceled() do
             failWith("Resizing the container was canceled.", .Canceled)
         if requestedSize < MinimumSize do
             failWith(Format.toString("The container must be at least % bytes.", MinimumSize), .SizeTooSmall)
@@ -1029,7 +1029,7 @@ impl Volume
 
                 while count
                 {
-                    if progress and progress!.isCanceled() do
+                    if progress and progress.isCanceled() do
                         failWith("Resizing the container was canceled.", .Canceled)
 
                     let destination = try .blocks.allocateRunBelow(newBlockCount, Math.min(count, MaximumIoBatchBlocks))

@@ -657,7 +657,7 @@ internal impl SoundViewer
 
     mtd seekRelative(seconds: f32)
     {
-        let current = .voice ? cast(f32) .voice!.playbackPositionSeconds() : .elapsed
+        let current = .voice ? cast(f32) .voice.playbackPositionSeconds() : .elapsed
         .seekSeconds(current + seconds)
     }
 
@@ -722,7 +722,7 @@ internal impl SoundViewer
     // one that is to be replayed starts again from its first sample.
     mtd finishPlayback()
     {
-        let continuation = .reportFinished ? .reportFinished!(me) : Viewer.Continuation.Stop
+        let continuation = .reportFinished ? .reportFinished(me) : Viewer.Continuation.Stop
         .stopPlayback()
         if continuation == .Replay do
             .togglePlayback()

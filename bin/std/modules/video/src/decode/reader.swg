@@ -308,10 +308,10 @@ impl Reader
     mtd const displayHeight()->s32 => .info.displayHeight ? .info.displayHeight : .info.height
 
     // Returns the exact frame rate.
-    mtd const frameRate()->FrameRate => .deferred ? .deferred!.frameRate() : .info.frameRate
+    mtd const frameRate()->FrameRate => .deferred ? .deferred.frameRate() : .info.frameRate
 
     // Returns the number of frames, or zero when the format cannot report it.
-    mtd const frameCount()->u64 => .deferred ? .deferred!.frameCount() : .info.frameCount
+    mtd const frameCount()->u64 => .deferred ? .deferred.frameCount() : .info.frameCount
 
     // Requests cancellation of deferred container indexing.
     //
@@ -325,18 +325,18 @@ impl Reader
     }
 
     // Returns the number of decoded sound tracks carried by the opened stream.
-    mtd const audioTrackCount()->u32 => .audioDecoder ? .audioDecoder!.audioTrackCount() : 0
+    mtd const audioTrackCount()->u32 => .audioDecoder ? .audioDecoder.audioTrackCount() : 0
 
     // Returns sound track `index`, owned by this reader, or `null` past the end.
     //
     // The track streams from its own file cursor and remains valid until the reader is closed.
     mtd const audioTrack(index: u32)->const *SoundFile?
     {
-        return .audioDecoder ? .audioDecoder!.audioTrack(index) : null
+        return .audioDecoder ? .audioDecoder.audioTrack(index) : null
     }
 
     // Returns the number of decoded subtitle tracks carried by the opened stream.
-    mtd const subtitleTrackCount()->u32 => .subtitleDecoder ? .subtitleDecoder!.subtitleTrackCount() : 0
+    mtd const subtitleTrackCount()->u32 => .subtitleDecoder ? .subtitleDecoder.subtitleTrackCount() : 0
 
     // Returns subtitle track `index`, owned by this reader, or `null` past the end.
     //
@@ -344,7 +344,7 @@ impl Reader
     // timeline as [[Video.Reader.frameTimestamp]].
     mtd const subtitleTrack(index: u32)->const *Subtitle.Track?
     {
-        return .subtitleDecoder ? .subtitleDecoder!.subtitleTrack(index) : null
+        return .subtitleDecoder ? .subtitleDecoder.subtitleTrack(index) : null
     }
 
     // Returns the exact presentation time of frame `index` in seconds.

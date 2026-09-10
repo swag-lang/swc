@@ -224,7 +224,7 @@ private func registerStableTypeKeyNoLock(type: typeinfo)
     // Reflection can expose the same logical type through distinct module-local
     // descriptors. Prefer the descriptor registered most recently so an interface's
     // runtime itable and the serialization registry agree by pointer identity.
-    if existing.value and existing.value!.fullname == type.fullname
+    if existing.value and existing.value.fullname == type.fullname
     {
         g_HashKeyToType.add(stableKey, type)
         return

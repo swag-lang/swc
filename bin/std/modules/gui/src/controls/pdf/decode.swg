@@ -921,7 +921,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 {
     var content = PdfParser{bytes: bytes}
     var operands: Array'ContentOperand
-    var state   = initialState ? initialState![] : GraphicsState{}
+    var state   = initialState ? initialState[] : GraphicsState{}
     var stack:    Array'GraphicsState
     var path:     LinePathList
     var current:  *LinePath?

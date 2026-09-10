@@ -451,7 +451,7 @@ internal impl IRichEditLexer for GenericCodeLexer
     {
         let length = line.length()
         codePaint(line, 0, length, .Default)
-        var state = linePrev ? cast(GenericCodeState) linePrev!.lexerState() : GenericCodeState.Default
+        var state = linePrev ? cast(GenericCodeState) linePrev.lexerState() : GenericCodeState.Default
         var seek  = 0'u64
 
         if .language == .Xml or .language == .Html

@@ -96,7 +96,7 @@ namespace WinFsp
             return status
         if attributes do
             attributes[] = info.fileAttributes
-        return securitySize ? copySecurity(fileSystem, nodeId, security, securitySize!) : StatusSuccess
+        return securitySize ? copySecurity(fileSystem, nodeId, security, securitySize) : StatusSuccess
     }
 
     func fspCreate(fileSystem: *FspFileSystem, path: [*] u16?, createOptions, grantedAccess, attributes: u32, security: *void?, allocationSize: u64, fileContext: *(*void?), info: *FileInfo)->s32
@@ -153,7 +153,7 @@ namespace WinFsp
     func fspFlush(fileSystem: *FspFileSystem, fileContext: *void?, info: *FileInfo?)->s32
     {
         var scratch: FileInfo
-        return callbackFlush(mountedVolume(fileSystem), idFromContext(fileContext), info ? info! : &scratch)
+        return callbackFlush(mountedVolume(fileSystem), idFromContext(fileContext), info ? info : &scratch)
     }
 
     func fspGetFileInfo(fileSystem: *FspFileSystem, fileContext: *void?, info: *FileInfo)->s32

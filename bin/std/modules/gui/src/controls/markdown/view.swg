@@ -385,7 +385,7 @@ private impl View
         .updateDocumentSize()
 
         // An unchanged layout must not cancel an animated or deferred scroll destination.
-        if anchor and (anchor!.position.y != anchorY or anchor!.position.height != anchorHeight)
+        if anchor and (anchor.position.y != anchorY or anchor.position.height != anchorHeight)
         {
             .scroll.setScrollPos(position.x, anchor!.position.y + fraction * anchor!.position.height)
         }
@@ -1430,18 +1430,18 @@ impl View
         for index in .blocks.count
         {
             let block = &.blocks[index]
-            let count = block.inline ? block.inline!.searchMatchCount(text) :
-                        block.table ? block.table!.searchMatchCount(text) :
-                        block.html ? block.html!.searchMatchCount(text) : 0
+            let count = block.inline ? block.inline.searchMatchCount(text) :
+                        block.table ? block.table.searchMatchCount(text) :
+                        block.html ? block.html.searchMatchCount(text) : 0
             if remaining >= count
             {
                 remaining -= count
                 continue
             }
 
-            let found = block.inline ? block.inline!.highlightText(text, remaining) :
-                        block.table ? block.table!.highlightText(text, remaining) :
-                        block.html ? block.html!.findTextOccurrence(text, remaining) : false
+            let found = block.inline ? block.inline.highlightText(text, remaining) :
+                        block.table ? block.table.highlightText(text, remaining) :
+                        block.html ? block.html.findTextOccurrence(text, remaining) : false
             if not found do
                 return false
             if not .retainedBlocks.isEmpty() and .hasUnloadedSource() and block.wnd.position.y + .scroll.paddedClientRect().height > .contentHeight do

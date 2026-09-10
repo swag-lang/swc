@@ -153,7 +153,7 @@ impl AppearanceButton
             discard catch .setAppearanceLanguage("", notify: true)
         elif selected == AppearanceAboutId do
             .sigAboutRequested.call(me)
-        elif selected and findLanguage(selected!) do
+        elif selected and findLanguage(selected) do
             discard catch .setAppearanceLanguage(selected!, notify: true)
     }
 }

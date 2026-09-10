@@ -1011,7 +1011,7 @@ private impl IndesignViewer
 
     mtd searchBounds(result: *Math.Rectangle)->bool
     {
-        return .isMarkup() and .htmlView and .htmlView!.searchMatchRect(result)
+        return .isMarkup() and .htmlView and .htmlView.searchMatchRect(result)
     }
 
     mtd clearSearch()

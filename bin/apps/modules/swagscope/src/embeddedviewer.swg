@@ -141,7 +141,7 @@ impl Viewer.Embedded for EmbeddedViewer
         if .activeIndex >= .instances.count do
             return false
         let instance = &.instances[.activeIndex]
-        return instance.view and instance.isLoading and instance.isLoading!(instance.view!)
+        return instance.view and instance.isLoading and instance.isLoading!(instance.view)
     }
 }
 

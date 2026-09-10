@@ -90,7 +90,7 @@ impl ViewerReadingState
             .imageMirrored = view.imageView.isMirrored
 
         case SoundViewer as view:
-            .seconds = view.voice ? view.voice!.playbackPositionSeconds() : cast(f64) view.elapsed
+            .seconds = view.voice ? view.voice.playbackPositionSeconds() : cast(f64) view.elapsed
             .playing = view.playing
             .volume  = view.volume
             .muted   = view.muted
@@ -137,7 +137,7 @@ impl ViewerReadingState
     {
         if not session.view do
             return true
-        if session.isLoading and session.isLoading!(session.view!) do
+        if session.isLoading and session.isLoading(session.view!) do
             return false
         if .contentSettingsApplied do
             return true

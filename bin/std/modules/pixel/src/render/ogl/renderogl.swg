@@ -196,7 +196,7 @@ private impl RenderOgl
         for idx in count
         {
             let value = glGetStringi(GL_EXTENSIONS, cast(GLuint) idx)
-            if value and cast(string) (cast(const cstring) value!) == name do
+            if value and cast(string) (cast(const cstring) value) == name do
                 return true
         }
 

@@ -1307,7 +1307,7 @@ impl IWnd for InlineView
 
             if atom.imageLoaded
             {
-                let scale   = .surface != null ? .surface!.dpiScale : 1
+                let scale   = .surface != null ? .surface.dpiScale : 1
                 let texture = .images.texture(evt.paintContext.renderer, atom.imageSource.toString(), atom.position.width * scale, atom.position.height * scale)
                 if texture
                 {
@@ -1394,7 +1394,7 @@ impl IWnd for InlineView
         case .Pressed where evt.button == .Left:
             let local = .surfaceToLocal(evt.surfacePos)
             let atom  = .atomAt(local)
-            if atom and not atom!.target.isEmpty()
+            if atom and not atom.target.isEmpty()
             {
                 .owner.sigLinkActivated.call(.owner, atom!.target.toString())
                 return

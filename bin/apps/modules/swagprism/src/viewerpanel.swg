@@ -150,7 +150,7 @@ impl ViewerPanel
     mtd refreshPlayback()
     {
         .pauseButton.show(.viewer != null and .kind != .Microcode)
-        let paused = .viewer ? .viewer!.isPaused() : false
+        let paused = .viewer ? .viewer.isPaused() : false
         .pauseButton.setChecked(paused)
         .pauseButton.setIcon(.theme().icon(paused ? .Play : .Pause, 18))
         .pauseButton.toolTip = paused ? appStrings().ui_Resume : appStrings().ui_Pause

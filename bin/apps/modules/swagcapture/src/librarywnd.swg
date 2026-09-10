@@ -957,7 +957,7 @@ impl LibraryWnd
         var favorite = false
         for item, i in .view.items
         {
-            if item.capture and .view.selModel.isSelected(cast() i) and not item.capture!.favorite do
+            if item.capture and .view.selModel.isSelected(cast() i) and not item.capture.favorite do
                 favorite = true
         }
 

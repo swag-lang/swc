@@ -154,7 +154,7 @@ func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32?
     result.range = range
     if not range.length do
         return result
-    if cancelled and Atomic.get(cancelled!)
+    if cancelled and Atomic.get(cancelled)
     {
         result.cancelled = true
         return result
@@ -185,7 +185,7 @@ func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32?
     var remaining = range.length
     while remaining
     {
-        if cancelled and Atomic.get(cancelled!)
+        if cancelled and Atomic.get(cancelled)
         {
             result.cancelled = true
             break

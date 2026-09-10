@@ -90,6 +90,30 @@ func narrowTernary(p: *NarrowNode?)->s32
     return p ? takesPtr(p) : -1
 }
 
+// The VALUE a branch produces keeps the proof too, so the join of the two branches is
+// non-null and needs no second assertion. The branch frames are popped before the join
+// runs, which is what used to hand back a nullable result here.
+func narrowTernaryJoin(a, b: *NarrowNode?)->s32
+{
+    let chosen = a ? a : b!
+    return takesPtr(chosen)
+}
+
+// The same on the false side: 'a == null' proves 'a' non-null where the test fails.
+func narrowTernaryJoinFalseSide(a, b: *NarrowNode?)->s32
+{
+    let chosen = a == null ? b! : a
+    return takesPtr(chosen)
+}
+
+// A branch the condition says nothing about keeps its nullable type, so the join stays
+// nullable and the caller still has to prove it.
+func narrowTernaryJoinStillNullable(a, b: *NarrowNode?)->s32
+{
+    let chosen = a ? a : b
+    return chosen ? takesPtr(chosen) : -1
+}
+
 // Field access paths narrow too.
 func narrowField(o: *NarrowOwner)->s32
 {
@@ -267,4 +291,11 @@ func narrowAssertScoped(p: *NarrowNode?)->s32
     Swag.assert(narrowAssertField(&owner) == 42)
     Swag.assert(narrowAssertKill(&node, &node2) == 50)
     Swag.assert(narrowAssertScoped(&node) == 42)
+
+    Swag.assert(narrowTernaryJoin(&node, &node2) == 42)
+    Swag.assert(narrowTernaryJoin(null, &node2) == 8)
+    Swag.assert(narrowTernaryJoinFalseSide(&node, &node2) == 42)
+    Swag.assert(narrowTernaryJoinFalseSide(null, &node2) == 8)
+    Swag.assert(narrowTernaryJoinStillNullable(&node, &node2) == 42)
+    Swag.assert(narrowTernaryJoinStillNullable(null, null) == -1)
 }

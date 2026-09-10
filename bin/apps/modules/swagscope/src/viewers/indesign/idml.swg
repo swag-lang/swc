@@ -794,7 +794,7 @@ private func idmlLinkedGraphicSource(documentFileName, item: string, loaded: *u6
 
     let folder = Path.directoryName(documentFileName)
     let name   = Path.fileName(linkedPath.toString())
-    return folder != null and name != null ? idmlLocalGraphicSource(Path.combine(folder!, name!).toString(), loaded) : String{}
+    return folder != null and name != null ? idmlLocalGraphicSource(Path.combine(folder!, name).toString(), loaded) : String{}
 }
 
 private func idmlEntity(text: string)->rune
@@ -1045,7 +1045,7 @@ private func idmlStoryHtml(source: string, styles: const *HashTable'(String, Idm
         if idmlContainsCjk(content) do
             result += "font-family:cjk;"
         result += "\">"
-        if style and style!.value.bullet do
+        if style and style.value.bullet do
             result += "&#x2022;&nbsp;"
         result += idmlCharacterRangeHtml(content, colors)
         result += "</div>"
@@ -1173,7 +1173,7 @@ private func idmlColor(colors: const *HashTable'(String, String), name: string, 
     if name == "Swatch/None" or not name.count do
         return ""
     let found = colors.tryFind(name)
-    return found ? idmlTintedColor(found!.value.toString(), tint) : ""
+    return found ? idmlTintedColor(found.value.toString(), tint) : ""
 }
 
 private func idmlLoadTextStyles(fileName: string, archive: const *ZipArchive, colors: const *HashTable'(String, String))->HashTable'(String, IdmlTextStyle)

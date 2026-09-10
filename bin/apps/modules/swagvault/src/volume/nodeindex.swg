@@ -105,13 +105,13 @@ impl NodeIndex
     mtd nodePosition(id: u64)->u64
     {
         let entry = .byId.tryFind(id)
-        return entry ? entry!.value : Swag.U64.Max
+        return entry ? entry.value : Swag.U64.Max
     }
 
     mtd childId(parentId: u64, name: string)->u64
     {
         let entry = .byParent.tryFind(childIndexKey(parentId, name))
-        return entry ? entry!.value : Swag.U64.Max
+        return entry ? entry.value : Swag.U64.Max
     }
 
     mtd hasChildren(id: u64)->bool
@@ -122,13 +122,13 @@ impl NodeIndex
     mtd firstChildId(parentId: u64)->u64
     {
         let entry = .childLists.tryFind(parentId)
-        return entry ? entry!.value.firstId : 0
+        return entry ? entry.value.firstId : 0
     }
 
     mtd nextSiblingId(id: u64)->u64
     {
         let entry = .siblings.tryFind(id)
-        return entry ? entry!.value.nextId : 0
+        return entry ? entry.value.nextId : 0
     }
 
     mtd changeParent(node: *Node, parentId: u64, name: string)->bool

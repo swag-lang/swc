@@ -178,7 +178,7 @@ impl ViewerPluginRegistry
             content.claimedText = content.claimedText and plugin.textual
         }
 
-        for plugin, index in .plugins where not matched[index] and plugin.probe and plugin.probe!(content)
+        for plugin, index in .plugins where not matched[index] and plugin.probe and plugin.probe(content)
         {
             result.add({index, plugin.key})
             matched[index]      = true

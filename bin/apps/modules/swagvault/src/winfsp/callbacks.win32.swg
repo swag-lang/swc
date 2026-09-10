@@ -469,6 +469,6 @@ namespace WinFsp
         if value == ".." do
             return fillInfo(volume, directory!.parentId, info)
         let child = volume.findChild(directoryId, value)
-        return child ? fillInfo(volume, child!.id, info) : StatusObjectNameNotFound
+        return child ? fillInfo(volume, child.id, info) : StatusObjectNameNotFound
     }
 }

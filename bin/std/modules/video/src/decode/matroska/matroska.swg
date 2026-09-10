@@ -382,7 +382,7 @@ private impl Layout
             return false
         for cluster in .clusters
         {
-            if cancelled and Atomic.get(cancelled!) do
+            if cancelled and Atomic.get(cancelled) do
                 return false
             if not .parseCluster(&container.cursor, cluster, cancelled) do
                 return false
@@ -484,14 +484,14 @@ private impl Layout
         cursor.seek(.scanPosition)
         while not cursor.atEnd(.segment.end) and .tracks[.selectedVideo].videoSamples.count < sampleCount
         {
-            while paused and Atomic.get(paused!)
+            while paused and Atomic.get(paused)
             {
-                if cancelled and Atomic.get(cancelled!) do
+                if cancelled and Atomic.get(cancelled) do
                     return false
                 Threading.Thread.sleep(1'ms)
             }
 
-            if cancelled and Atomic.get(cancelled!) do
+            if cancelled and Atomic.get(cancelled) do
                 return false
             let element = cursor.readElement(.segment.end)
             if element.id == ClusterId and not .parseCluster(&cursor, element, cancelled, paused) do
@@ -557,14 +557,14 @@ private impl Layout
         cursor.seek(.scanPosition)
         while not cursor.atEnd(.segment.end) and not .hasMediaThrough(timestampNanoseconds)
         {
-            while paused and Atomic.get(paused!)
+            while paused and Atomic.get(paused)
             {
-                if cancelled and Atomic.get(cancelled!) do
+                if cancelled and Atomic.get(cancelled) do
                     return false
                 Threading.Thread.sleep(1'ms)
             }
 
-            if cancelled and Atomic.get(cancelled!) do
+            if cancelled and Atomic.get(cancelled) do
                 return false
             let element = cursor.readElement(.segment.end)
             if element.id == ClusterId and not .parseCluster(&cursor, element, cancelled, paused) do
@@ -805,7 +805,7 @@ private impl Layout
         cursor.seek(segment.data)
         while not cursor.atEnd(segment.end)
         {
-            if cancelled and Atomic.get(cancelled!) do
+            if cancelled and Atomic.get(cancelled) do
                 return false
             let element = cursor.readElement(segment.end)
             switch element.id
@@ -1154,14 +1154,14 @@ private impl Layout
         cursor.seek(cluster.data)
         while cursor.position < cluster.end
         {
-            while paused and Atomic.get(paused!)
+            while paused and Atomic.get(paused)
             {
-                if cancelled and Atomic.get(cancelled!) do
+                if cancelled and Atomic.get(cancelled) do
                     return false
                 Threading.Thread.sleep(1'ms)
             }
 
-            if cancelled and Atomic.get(cancelled!) do
+            if cancelled and Atomic.get(cancelled) do
                 return false
             let element = cursor.readElement(cluster.end)
             if element.id == ClusterTimestampId
@@ -1170,7 +1170,7 @@ private impl Layout
                 hasTimestamp     = true
                 for queued in pending
                 {
-                    if cancelled and Atomic.get(cancelled!) do
+                    if cancelled and Atomic.get(cancelled) do
                         return false
                     if queued.id == SimpleBlockId do
                         .indexBlock(cursor, queued, clusterTimestamp, true, 0)
@@ -1197,7 +1197,7 @@ private impl Layout
         // schema's mandatory Timestamp element.
         for queued in pending
         {
-            if cancelled and Atomic.get(cancelled!) do
+            if cancelled and Atomic.get(cancelled) do
                 return false
             if queued.id == SimpleBlockId do
                 .indexBlock(cursor, queued, clusterTimestamp, true, 0)
@@ -1662,7 +1662,7 @@ private func buildSoundWindow(index: *FileIndex, timestampNanoseconds: u64) fail
 
     let cueTimestamp = timestampNanoseconds > SoundSeekPreRollNanoseconds ? timestampNanoseconds - SoundSeekPreRollNanoseconds : 0
     let cue = layout.cueAtOrBefore(cueTimestamp)
-    try layout.resetMediaAt(cue ? cue!.clusterOffset : layout.segment.data)
+    try layout.resetMediaAt(cue ? cue.clusterOffset : layout.segment.data)
 
     // The run-ahead applies at the start of the file too: a window built without it holds only
     // whatever one cluster happened to carry, which is about two seconds of sound.
@@ -2252,7 +2252,7 @@ impl IDecoder for Decoder
     mtd impl seekFrame(source: *ByteSource, index: u64) fail
     {
         discard source
-        if .fileIndex and Atomic.get(&.fileIndex!.soundStatus) == SoundIndexRunning
+        if .fileIndex and Atomic.get(&.fileIndex.soundStatus) == SoundIndexRunning
         {
             // Video reconstruction has the foreground deadline. The complete audio packet scan
             // can use every idle gap, but must not compete for a core or mapped pages while one

@@ -503,7 +503,7 @@ impl Slice
                 else
                 {
                     let list      = ref0 ? 0'u32 : 1'u32
-                    let reference = ref0 ? ref0! : ref1!
+                    let reference = ref0 ? ref0 : ref1!
                     if .useWeights
                     {
                         .mcPlaneList(mb, job, list, reference, plane, tempA.buffer, 16)
@@ -549,7 +549,7 @@ impl Slice
                 else
                 {
                     let list      = ref0 ? 0'u32 : 1'u32
-                    let reference = ref0 ? ref0! : ref1!
+                    let reference = ref0 ? ref0 : ref1!
                     if .useWeights
                     {
                         .mcChromaList(mb, job, list, reference, plane, tempA.buffer, 16)

@@ -521,7 +521,7 @@ impl HeadlessHost
         // `SurfaceWnd.create` parents the view it is given, so that tree lives outside `root`:
         // search the surface window first, and let `root` answer for a tree the test built there.
         let hosted = .surfaceWnd.windowAt(pt.x, pt.y, true)
-        if hosted and hosted! != cast(*Wnd) &.surfaceWnd do
+        if hosted and hosted != cast(*Wnd) &.surfaceWnd do
             return hosted
 
         return .root.windowAt(pt.x, pt.y, true)

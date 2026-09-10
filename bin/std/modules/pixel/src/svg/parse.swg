@@ -688,7 +688,7 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
     let type = #typeof(Argb)
     for it in type.values
     {
-        if it.name and not Latin1.compare(it.name!, text, ignoreCase: true)
+        if it.name and not Latin1.compare(it.name, text, ignoreCase: true)
         {
             result.color = Color.fromArgb(it.value![as Argb])
             return result

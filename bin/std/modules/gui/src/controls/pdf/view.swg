@@ -1313,8 +1313,10 @@ impl PdfView
         .invalidate()
     }
 
-    // Releases the document, its decoded pages, their textures, their typefaces, and the text
-    // extracted for search, while keeping the widget alive.
+    // Releases the document, its decoded pages, their textures, and the text extracted for search,
+    // while keeping the widget alive.
+    //
+    // Cached typefaces remain owned by Pixel until module shutdown.
     mtd close()
     {
         .stopPrepare()

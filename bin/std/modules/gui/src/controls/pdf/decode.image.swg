@@ -726,9 +726,6 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
     return #move result
 }
 
-// Decodes one image XObject or inline image into an owned Pixel image.
-//
-// `fillColor` paints a stencil mask, whose samples carry coverage rather than color.
 // Remembers a decoded image against the object it came from, for as long as the document is open.
 private func cacheDecodedImage(parser: *PdfParser, key: u64, image: const *Image)
 {
@@ -738,6 +735,9 @@ private func cacheDecodedImage(parser: *PdfParser, key: u64, image: const *Image
     parser.imageCache[key] = image[]
 }
 
+// Decodes one image XObject or inline image into an owned Pixel image.
+//
+// `fillColor` paints a stencil mask, whose samples carry coverage rather than color.
 internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColor: Color)->Image fail
 {
     if parser.boolean(parser.dict(nodeId, "ImageMask"))

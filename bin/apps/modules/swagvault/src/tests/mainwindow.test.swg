@@ -952,6 +952,14 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     host.notify(.ThemeChanged)
     window.showTab(1)
     window.mountPath.setText("C:\\vault.bin")
+
+    // The snapshot owns its mount destination; occupied host drives must not change the image.
+    window.mountDestinations.clear()
+    window.mountDestinations.add({String.from("D:"), String.from("D:")})
+    window.drive.clear()
+    window.drive.addItem("D:")
+    window.drive.setSelectedIndex(0, notify: false)
+
     window.hiddenButton.enable(true)
     window.refreshStatus()
     host.settleAnimations(window, 6)

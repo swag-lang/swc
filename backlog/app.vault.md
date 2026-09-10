@@ -18,22 +18,6 @@ must not be reimplemented locally. The roadmap keeps the product adoption and it
 security result together, while a standalone standard-library optimization belongs to the owning
 module's roadmap.
 
-### app.vault.013 — The open-page golden bakes the host's first free drive letter
-
-- Recorded: 2026-09-10 08:42
-- Owner: Swag Vault
-- `bin/apps/modules/swagvault/src/tests/goldens/surface.open.png` records the drive-letter
-  combo showing `D:`. The page fills that combo with the first free letter the host reports, so
-  a machine that already has a `D:` volume renders `E:` and the golden fails with a single-word
-  pixel difference. Reproduced 2026-09-10 on a host with C, D and Z mounted: 191 maximum channel
-  difference, first at (72, 595), everything else identical. Promoting the produced image only
-  moves the failure to the next machine.
-- Next: give the headless host a fixed drive-letter source for the test — an injected free-letter
-  provider, or a value the test sets before rendering — so the golden stops describing the
-  machine it was recorded on.
-- Complete when: `mainwindow.test.swg` renders the same open page on a host whatever set of
-  volumes it has mounted.
-
 ### app.vault.002 — Unmounting has no explicit busy-versus-force contract
 
 - Recorded: 2026-08-06 08:32

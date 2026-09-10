@@ -29,13 +29,13 @@ The table is ordered from the most recently updated domain down. The `Updated` c
 the latest stamp any entry in that file holds — its `Updated` stamp when it has one, its
 `Recorded` stamp otherwise — so the top rows are where the last work happened. Whoever changes a
 domain file refreshes its row and moves it to its new place in the same change. Removing an entry
-does not move a row: the backlog holds only what remains, and the removal itself lives in Git.
+does not create a new stamp: recompute the row from the remaining entries and reorder it if
+the latest entry was removed. The removal itself lives in Git.
 [repo.prompts.md](repo.prompts.md) has no entries; its row is set by hand when a prompt changes.
 
 | File | Area | Updated |
 | --- | --- | --- |
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-10 09:41 |
-| [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-10 08:42 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-09 19:33 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-09 17:44 |
 | [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers | 2026-09-09 13:55 |
@@ -61,6 +61,7 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-06 17:42 |
 | [app.scope.midi.md](app.scope.midi.md) | The Swag Scope MIDI viewer | 2026-09-06 17:42 |
 | [std.gui.markdown.md](std.gui.markdown.md) | The Markdown engine behind `Gui.Markdown.View` | 2026-09-06 17:42 |
+| [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-06 07:51 |
 | [app.scope.audio.md](app.scope.audio.md) | The Swag Scope sound viewer | 2026-09-06 07:51 |
 | [app.scope.binary.md](app.scope.binary.md) | The Swag Scope structured-binary and container viewer | 2026-09-06 07:51 |
 | [app.scope.font.md](app.scope.font.md) | The Swag Scope font viewer | 2026-09-06 07:51 |

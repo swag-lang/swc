@@ -551,6 +551,12 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
 {
     func VirtualUnlock(lpAddress: LPVOID, dwSize: SIZE_T)->BOOL
     func GetLastError()->DWORD
+
+    // Converts a bounded code-page byte sequence to UTF-16; a zero output size queries capacity.
+    func MultiByteToWideChar(CodePage: UINT, dwFlags: DWORD, lpMultiByteStr: LPCSTR, cbMultiByte: INT, lpWideCharStr: LPWSTR, cchWideChar: INT)->INT
+
+    // Converts bounded UTF-16 to code-page bytes; default-character pointers may be null.
+    func WideCharToMultiByte(CodePage: UINT, dwFlags: DWORD, lpWideCharStr: LPCWSTR, cchWideChar: INT, lpMultiByteStr: LPSTR, cbMultiByte: INT, lpDefaultChar: LPCSTR, lpUsedDefaultChar: *BOOL?)->INT
     func FormatMessageA(dwFlags: DWORD, lpSource: LPCVOID, dwMessageId: DWORD, dwLanguageId: DWORD, lpBuffer: LPCSTR, nSize: DWORD, Arguments: *va_list?)->DWORD
     func IsDebuggerPresent()->BOOL
     func DebugBreak()

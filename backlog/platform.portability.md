@@ -36,6 +36,166 @@ new platform implements capabilities rather than copies policy.
 The following entries implement the target backends and remove the Windows-bound behavior exposed
 by portable modules and products. The earlier entries prepare and enforce the same boundaries.
 
+### platform.portability.021 — Application-message payloads have no ownership contract
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-10 20:28 — Describe the actual opaque integer message parameter.
+
+Application-message identifiers are platform-neutral, but `SysUserEvent.param` carries
+one opaque `u64` by value. It supplies no ownership or lifetime contract for any data the
+caller encodes through that integer. Give messages an owned payload and document its dispatch
+lifetime independently of tray interaction.
+
+- Related: platform.portability.022
+
+### platform.portability.066 — Renderer backend choice has no target matrix
+
+- Recorded: 2026-08-30 12:27
+- Updated: 2026-09-10 20:28 — Separate the existing renderer inventory from an unmeasured platform ranking.
+- `render/` has `cpu` and `ogl`. There is no Vulkan, Direct3D, Metal or WebGPU path.
+- No measured OS/GPU capability matrix currently establishes which backend can present on each
+  intended target; the CPU renderer is an existing fallback, not a substitute for that matrix.
+- This also intersects platform.portability.050. Choose the next renderer from the operating systems and hardware the
+  project intends to ship, rather than adding a backend independently of the port plan.
+- The backend boundary is already two implementations deep, so a third is additive.
+- Complete when: the supported OS/GPU matrix names the default and fallback renderer for each
+  target, and the next required backend presents through the portable surface contract.
+
+### platform.portability.067 — Collection-face selection depends on one localized family name
+
+- Recorded: 2026-08-08 06:23
+- Updated: 2026-09-10 20:28 — State the untested localized-name dependency without claiming every localized host fails.
+
+`TypeFace.createFromHfont` now asks GDI for the `ttcf` table, and picks the face out of the
+collection by matching the family GDI enumerated against `Face.familyNameAt`. That match is between
+the name Windows reports for the current locale and the best-scoring `name` record in the face,
+which this module scores towards English. Where they disagree the match fails and face zero is
+taken, which is a wrong family rather than a refusal.
+
+The recorded French Windows 11 check found: all twelve collection-backed families — `MS Gothic`, `MS PGothic`,
+`MS UI Gothic`, `Cambria`, `Cambria Math`, `SimSun`, `NSimSun`, `Yu Gothic`, `Nirmala UI`,
+`Nirmala Text`, `Microsoft JhengHei`, `Microsoft YaHei` — resolve to their own face and render.
+A Japanese or Chinese Windows enumerates `ＭＳ ゴシック` and `宋体` instead, and has not been tried.
+
+The bounded fix is to match against every `name` record a face declares rather than only the
+best-scoring one, which needs `truetype` to answer "does this face call itself X" rather than
+"what is this face called". Weigh that against reading the face index out of the offset tables
+instead, which is locale-proof but needs the synthesized single-face file as well as the
+collection, and so reads the font twice.
+
+- Complete when: the Windows adapter returns the portable file-and-face-index descriptor from
+  platform.portability.016/platform.portability.019 without locale-dependent matching, and the same descriptor accepts platform.portability.020's source.
+
+### platform.portability.078 — No Linux FUSE backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-10 20:28 — Make the Linux mount-contract work explicit instead of claiming no design risk.
+- Owner: Swag Vault
+- The boundary is already where it needs to be: system backends for `Core.Crypto`, `Core.Time` and
+  `Core.File`, plus the WinFsp layer and the mount-point selector. Everything above them — the
+  container format, the logical filesystem, the password widget — is platform-independent already.
+- Next: map the logical filesystem to the chosen FUSE interface, specifying mount ownership,
+  permission translation, cancellation, and callback shutdown before packaging the backend.
+- Complete when: a Linux mount passes the common filesystem behavior and lifetime tests,
+  including failed mounting and shutdown while requests are active.
+- Related: platform.portability.079
+
+### platform.portability.019 — A system face cannot load directly from file and face index
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-10 20:26 — Distinguish existing byte/file loading from missing indexed system-font loading.
+
+`TypeFace.create(fullname, bytes)` already constructs a face from portable bytes, and
+`TypeFace.load(fullname)` already reads a file, falling back to the system font directory.
+Neither accepts a collection face index. Installed-family selection separately uses
+`createFromHfont`; `TrueType.Face.loadAt` already supplies the lower-level indexed parser.
+
+- Next: connect a portable installed-font descriptor's file and face index to `TypeFace`
+  creation, keeping `createFromHfont` as an optional Windows adapter.
+- Complete when: a system-family selection loads the requested collection face from its
+  descriptor without manufacturing a GDI font handle.
+- Related: platform.portability.067, platform.portability.016, platform.portability.017
+
+### platform.portability.025 — Drag-preview premultiplication still lives in the Windows adapter
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-10 20:22 — Narrow conversion work to the drag preview after shared BMP/DIB encoding shipped.
+
+- Evidence: clipboard and OLE DIB payloads now use `Pixel.Bmp.EncodeOptions{fileHeader: false}`;
+  the shared encoder owns row alignment, channel ordering, and straight-alpha conversion.
+  `buildDragBitmap` still walks pixels, premultiplies channels, and writes a top-down native
+  bitmap for the shell drag preview.
+- Next: use the existing Pixel pixel-format and alpha-conversion operations for that preview,
+  keeping only native bitmap creation, row transfer, and handle ownership in the Windows leaf.
+- Complete when: the preview path has no private color-conversion loop and native tests protect
+  orientation, transparency, and bitmap lifetime across success and failed attachment.
+- Related: platform.portability.014, platform.portability.062
+
+### platform.portability.029 — Periodic timer scheduling still depends on the Windows timer queue
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-10 20:22 — Account for common timer ownership, validation, and callback context dispatch.
+
+`time/timer.swg` already owns `Timer.create`, delay validation, callback/context dispatch,
+`release`, and scope-bound cleanup. The native leaf only adapts the callback and creates or
+joins deletion of a Windows timer-queue timer, but periodic scheduling and cancellation/wake
+semantics are still delegated to that platform service.
+
+- Next: settle a common periodic scheduling and cancellation contract over a monotonic wait/wake
+  primitive or scheduler before adding another backend. Preserve callback context and the rule
+  that release waits for an active callback.
+- Complete when: the same timer lifecycle and periodic/cancellation tests run over Windows and
+  the chosen second backend without duplicating scheduling policy.
+- Related: platform.portability.036
+
+### platform.portability.004 — Linux page-allocation primitives do not exist
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-10 20:20 — Remove the obsolete allocator fallback and counter claims.
+
+The allocator now calls `__hostPageReserve`, `__hostPageCommit`, `__hostPageDecommit`, and
+`__hostPageRelease`; the old `Swag.alloc` reserve/commit fallback and `allocatorOsCommit`
+entry point are gone. Only the Windows leaf supplies the current hooks.
+
+- Next: implement Linux reserve, commit/protection, decommit, release, and thread-exit cleanup
+  with the same lifetime and failure contracts before enabling the allocator on Linux.
+- Complete when: Linux tests cover reserved-but-inaccessible memory, committed pages,
+  decommit/recommit, guard-page protection, release, and thread-storage cleanup without
+  reporting counters for work the host did not perform.
+- Related: runtime.allocator.008, platform.portability.003
+
+### platform.portability.003 — Finish the runtime host ABI boundary
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-10 20:20 — Account for existing thread, synchronization, page, and debug host hooks.
+
+`bin/runtime/os_windows.swg` already provides named `__hostTls*`, thread-storage,
+`__hostThread*`, lock/condition, page-allocation, and image/debug-section hooks. The remaining
+boundary is not a missing host API from scratch: the leaf still combines those mechanisms with
+command-line conversion, test exception recovery, and debug-section decoding policy.
+
+- Next: specify the existing host operations and their ownership/failure contracts, then move
+  target-independent policy out of the Windows leaf. Keep native context capture, image lookup,
+  byte output, library loading, and process termination as explicit host mechanisms.
+- Complete when: another host can implement the same documented operations without copying
+  command-line or debug-data parsing policy, and Windows runtime tests retain their behavior.
+- Related: platform.portability.004, platform.portability.005
+
+### platform.portability.010 — Early argument lookup retains a Windows command-line fallback
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-10 20:20 — Account for the existing runtime-vector lookup before the native fallback.
+
+`Env.findRunArgument` already searches `Swag.args()` first, including compile-time test
+execution. Native sandbox initialization can precede argument-vector population, so it then
+parses `GetCommandLineA` in `sandbox.win32.swg`.
+
+- Next: make the runtime argument vector available before native module initialization, then
+  share the name/value matching code and remove the early Windows command-line fallback.
+- Complete when: native and compile-time early argument lookup use the same populated vector
+  and preserve sandbox, smoke, and corpus argument behavior.
+- Related: platform.portability.005, platform.portability.008
+
 ### platform.portability.035 — Synchronization primitives have no second-platform backend
 
 - Recorded: 2026-08-09 11:30
@@ -154,19 +314,6 @@ reporting and the receiving application's ownership of queued document opens.
   geometry needed for placement already exists in `EditBox`.
 - Complete when: Chinese, Japanese, Korean, and Vietnamese composition works on Windows, headless
   tests cover the common model, and platform.portability.061 can add another OS without changing editor APIs.
-
-### platform.portability.004 — Linux page-allocation primitives do not exist
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-06 07:51 — git: prompt 6
-
-The present non-Windows allocator fallbacks are not equivalent: `Swag.alloc` cannot model reserved
-  address space, decommitment, or a guard page, while the counters pretend commit/decommit occurred.
-  Implement `mmap`/protection/release semantics and thread-exit cleanup before enabling the page
-  path on Linux. Cover `allocatorOsCommit`, `allocatorOsDecommit`, protection, and release behind
-  the runtime host boundary.
-
-- Related: runtime.allocator.008
 
 ### platform.portability.006 — `Crypto.secureClear` has no portable no-elide primitive
 
@@ -371,17 +518,6 @@ Track both native source lines and, more importantly, native capabilities a new 
 
 - Related: platform.portability.001
 
-### platform.portability.003 — Define a minimal runtime host ABI
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-`bin/runtime/os_windows.swg` combines raw calls with portable policy. Define a minimal host ABI for
-thread storage, context/address capture, image/debug-section access, byte output, library loading,
-and process termination; keep only those irreducible operations in the Windows leaf.
-
-- Related: platform.portability.004, platform.portability.005
-
 ### platform.portability.005 — Runtime startup cannot accept an argument vector
 
 - Recorded: 2026-08-09 11:06
@@ -412,17 +548,6 @@ Record a target matrix for hosted builds: Windows UCRT, Linux libc plus libm whe
   public contract. Make an argument slice the normal API. Windows alone serializes it with the
   backslash-before-quote rules; Unix passes the vector unchanged. Keep a clearly named raw native
   command-line escape hatch only if an actual caller needs it.
-
-### platform.portability.010 — Early argument lookup reparses the Windows command line
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Make `Env.findRunArgument` search the runtime argument vector even during early initialization.
-  Its portable name/value matching is currently trapped in `sandbox.win32.swg` only because it
-  reparses `GetCommandLineA` before `Swag.args()` is populated.
-
-- Related: platform.portability.005, platform.portability.008
 
 ### platform.portability.011 — Process-tree resource accounting has no portable capability contract
 
@@ -486,16 +611,6 @@ catalog independently of platform enumeration.
 
 - Related: platform.portability.016, platform.portability.017
 
-### platform.portability.019 — A system face cannot load directly from file and face index
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Load `TypeFace` from bytes or a file plus face index. Keep the GDI handle path only as a Windows
-  compatibility adapter; it must no longer be the only route from a system family to a face.
-
-- Related: platform.portability.067, platform.portability.016, platform.portability.017
-
 ### platform.portability.020 — Linux has no installed-font source
 
 - Recorded: 2026-08-09 11:06
@@ -507,17 +622,6 @@ A first Linux backend may provide conventional directories. Fontconfig can be ad
 
 - Related: platform.portability.017
 
-### platform.portability.021 — Application-message payloads have no ownership contract
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Application-message identifiers are platform-neutral, but the event still carries one borrowed
-integer parameter. Give messages an owned payload and document its dispatch lifetime independently
-of tray interaction.
-
-- Related: platform.portability.022
-
 ### platform.portability.023 — System-icon retrieval and caching are coupled in native GUI code
 
 - Recorded: 2026-08-09 11:06
@@ -526,25 +630,6 @@ of tray interaction.
 Split `Application`'s system-icon code into a native operation that obtains one image and common
   Swag that caches it, resizes it, appends it to an atlas, and returns a GUI `Icon`. Do the same for
   each cache consumer without making unrelated shell behavior part of this entry.
-
-### platform.portability.024 — Clipboard image conversion can grow backend-specific codecs
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Keep native clipboard files limited to ownership protocols and platform formats; use Pixel codecs
-for image conversion rather than growing a decoder in each backend.
-
-- Related: platform.portability.014, platform.portability.055, platform.portability.025
-
-### platform.portability.025 — Drag image conversion can grow backend-specific codecs
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Route drag/drop image conversion through Pixel independently of clipboard ownership and formats.
-
-- Related: platform.portability.014, platform.portability.024
 
 ### platform.portability.026 — Portable surface policy remains in native leaves
 
@@ -568,17 +653,6 @@ Replace the repeated `#os == Windows` dispatch in `driver/backend.swg` with a ba
   gain conversion, state transitions, and codec work stay common; XAudio2 is one implementation.
 
 - Related: platform.portability.065
-
-### platform.portability.029 — Timer scheduling policy remains in the native backend
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement lifecycle, periodic rescheduling, callback/context dispatch, and cancellation
-  races once in Swag over a small monotonic-wait/wake primitive or a common scheduler. Do not clone
-  Windows timer-queue policy into every backend.
-
-- Related: platform.portability.036
 
 ### platform.portability.031 — Decide deliberately whether Swag should ship its own libm
 
@@ -765,7 +839,7 @@ composition.
 Implement clipboard ownership and platform-format conversion behind the portable typed-value
 contract.
 
-- Related: platform.portability.050, platform.portability.024
+- Related: platform.portability.050
 
 ### platform.portability.057 — No second-platform GUI packaging
 
@@ -839,44 +913,6 @@ platform.portability.049.
 - Complete when: no public filter contract names XAudio2, Windows uses its native filters, and a
   second backend can implement or reject the same operation explicitly.
 - Related: std.audio.008, std.audio.009, std.audio.014
-
-### platform.portability.066 — Renderer backend choice has no target matrix
-
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- `render/` has `cpu` and `ogl`. There is no Vulkan, Direct3D, Metal or WebGPU path.
-- On Windows this is the weakest choice available: OpenGL driver quality varies widely, and some
-  ARM devices have no usable implementation at all. Skia ships GL, Vulkan, Metal and D3D.
-- This also intersects platform.portability.050. Choose the next renderer from the operating systems and hardware the
-  project intends to ship, rather than adding a backend independently of the port plan.
-- The backend boundary is already two implementations deep, so a third is additive.
-- Complete when: the supported OS/GPU matrix names the default and fallback renderer for each
-  target, and the next required backend presents through the portable surface contract.
-
-### platform.portability.067 — A collection face is selected by name, and a localized Windows will miss
-
-- Recorded: 2026-08-08 06:23
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-`TypeFace.createFromHfont` now asks GDI for the `ttcf` table, and picks the face out of the
-collection by matching the family GDI enumerated against `Face.familyNameAt`. That match is between
-the name Windows reports for the current locale and the best-scoring `name` record in the face,
-which this module scores towards English. Where they disagree the match fails and face zero is
-taken, which is a wrong family rather than a refusal.
-
-Verified on a French Windows 11: all twelve collection-backed families — `MS Gothic`, `MS PGothic`,
-`MS UI Gothic`, `Cambria`, `Cambria Math`, `SimSun`, `NSimSun`, `Yu Gothic`, `Nirmala UI`,
-`Nirmala Text`, `Microsoft JhengHei`, `Microsoft YaHei` — resolve to their own face and render.
-A Japanese or Chinese Windows enumerates `ＭＳ ゴシック` and `宋体` instead, and has not been tried.
-
-The bounded fix is to match against every `name` record a face declares rather than only the
-best-scoring one, which needs `truetype` to answer "does this face call itself X" rather than
-"what is this face called". Weigh that against reading the face index out of the offset tables
-instead, which is locale-proof but needs the synthesized single-face file as well as the
-collection, and so reads the font twice.
-
-- Complete when: the Windows adapter returns the portable file-and-face-index descriptor from
-  platform.portability.016/platform.portability.019 without locale-dependent matching, and the same descriptor accepts platform.portability.020's source.
 
 ### platform.portability.068 — Capture clipboard files are specified as OLE data
 
@@ -990,17 +1026,6 @@ capture side. The editor, the forms, the library, and the serialization are alre
   guardian process. A system-wide WinFsp installation makes `loadWinFsp` take the installed runtime
   and skip the guardian entirely, which is also what allows an automated end-to-end test loop
   without a consent dialog on every run.
-
-### platform.portability.078 — No Linux FUSE backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Owner: Swag Vault
-- The boundary is already where it needs to be: system backends for `Core.Crypto`, `Core.Time` and
-  `Core.File`, plus the WinFsp layer and the mount-point selector. Everything above them — the
-  container format, the logical filesystem, the password widget — is platform-independent already.
-  Real work, no design risk.
-- Related: platform.portability.079
 
 ### platform.portability.079 — No macOS filesystem backend
 

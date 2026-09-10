@@ -30,6 +30,33 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
+### language.parallelism.009 — Cancellation stops at one group and has no deadline
+
+- Recorded: 2026-09-08 20:14
+- Updated: 2026-09-10 20:06 — Distinguish cancellable blocking waits from async suspension.
+- Evidence: `Swag.TaskGroup.cancel` raises one flag that only the children of that group can read,
+  and only through a captured reference to the group. A child that opens a group of its own gets
+  a fresh flag, so the outer request never reaches the grandchildren. `Swag.Task` carries no
+  cancellation state at all, `parallel for` carries none, and no task, group or loop carries a
+  deadline: a program that wants to stop after a duration polls a clock it wrote itself. The
+  request is also invisible to every wait. `Swag.Condition.waitFor` expires on its own timeout
+  without consulting it, and `Swag.Semaphore.acquire` and `Swag.Barrier.arrive` cannot be woken
+  by it.
+- Next: decide where the state lives before adding to it -- ambient state the runtime propagates
+  into every child, or a value each spawn is handed explicitly. Then propagate it through nested
+  groups, give `parallel for` and `Swag.Task` a way to read it, and make a deadline one more
+  source of the same request rather than a second mechanism. State the boundary at the waiting
+  primitives instead of implying it: today `acquire` has no cancellation input or wake path.
+  A cancellation-aware blocking wait can return early without async suspension; define its
+  wake registration, permit-consumption race, and cleanup independently of .002.
+- Complete when: cancelling an outer group is observed by a grandchild, a deadline produces the
+  same observable request, and a cancelled tree joins with every borrowed resource still valid.
+- Elsewhere: Swift propagates cancellation to every child task and exposes it as task-local
+  state; Kotlin cancels a `Job` together with its children; Java's `StructuredTaskScope` and
+  .NET's linked `CancellationTokenSource` both build the tree explicitly. All four are
+  cooperative, and none of them stops at one level.
+- Related: language.parallelism.001, language.parallelism.002, language.parallelism.003
+
 ### language.parallelism.011 — No channel abstraction
 
 - Recorded: 2026-08-09 11:30
@@ -293,31 +320,6 @@ of simplicity when every useful helper needs an unchecked contract.
   without a dynamic detector claims it only as far as its static analysis reaches.
 - Related: language.parallelism.005, language.parallelism.007, compiler.safety.007,
   compiler.safety.014
-
-### language.parallelism.009 — Cancellation stops at one group and has no deadline
-
-- Recorded: 2026-09-08 20:14
-- Evidence: `Swag.TaskGroup.cancel` raises one flag that only the children of that group can read,
-  and only through a captured reference to the group. A child that opens a group of its own gets
-  a fresh flag, so the outer request never reaches the grandchildren. `Swag.Task` carries no
-  cancellation state at all, `parallel for` carries none, and no task, group or loop carries a
-  deadline: a program that wants to stop after a duration polls a clock it wrote itself. The
-  request is also invisible to every wait. `Swag.Condition.waitFor` expires on its own timeout
-  without consulting it, and `Swag.Semaphore.acquire` and `Swag.Barrier.arrive` cannot be woken
-  by it.
-- Next: decide where the state lives before adding to it -- ambient state the runtime propagates
-  into every child, or a value each spawn is handed explicitly. Then propagate it through nested
-  groups, give `parallel for` and `Swag.Task` a way to read it, and make a deadline one more
-  source of the same request rather than a second mechanism. State the boundary at the waiting
-  primitives instead of implying it: with no suspension (.002) a cancelled `acquire` cannot
-  return early, and saying so is part of the contract.
-- Complete when: cancelling an outer group is observed by a grandchild, a deadline produces the
-  same observable request, and a cancelled tree joins with every borrowed resource still valid.
-- Elsewhere: Swift propagates cancellation to every child task and exposes it as task-local
-  state; Kotlin cancels a `Job` together with its children; Java's `StructuredTaskScope` and
-  .NET's linked `CancellationTokenSource` both build the tree explicitly. All four are
-  cooperative, and none of them stops at one level.
-- Related: language.parallelism.001, language.parallelism.002, language.parallelism.003
 
 ### language.parallelism.008 — A parallel loop cannot combine per-partition results
 

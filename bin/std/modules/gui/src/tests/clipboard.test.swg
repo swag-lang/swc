@@ -3,6 +3,24 @@
 
 using Swag, Core, Pixel
 
+// Copying premultiplied samples preserves their logical color and owns the copied storage.
+#test
+{
+    Swag.assert(Clipboard.isFake())
+    expect Clipboard.resetFake()
+    defer Clipboard.clear()
+
+    const Bytes: [4] u8 = [64, 32, 16, 128]
+    var source        = Image.create(1, 1, .RGBA8, Bytes, .Premultiplied)
+    let expectedColor = source.pixelColor(0, 0)
+    Clipboard.addImage(source)
+    source.clear()
+
+    let copied = Clipboard.getImage()
+    Swag.assert(copied.isValid())
+    Swag.assert(copied.pixelColor(0, 0) == expectedColor)
+}
+
 // The fake clipboard (armed by the sandbox) mirrors the OS semantics: a string or a typed
 // payload replaces only its own format, adding an image empties everything.
 #test
@@ -44,4 +62,31 @@ using Swag, Core, Pixel
     Swag.assert(not Clipboard.hasString())
     Swag.assert(not Clipboard.hasImage())
     Swag.assert(not Clipboard.hasTypedValue(s32))
+}
+
+// A standalone text copy replaces rich payloads, while adding text preserves them.
+#test
+{
+    Swag.assert(Clipboard.isFake())
+    expect Clipboard.resetFake()
+    defer Clipboard.clear()
+
+    var img = Image.create(3, 2, .BGRA8)
+    img.clear()
+    Clipboard.addImage(img)
+    var value = 42's32
+    Clipboard.addTypedValue(&value, s32)
+    Clipboard.addString("old text")
+    Swag.assert(Clipboard.hasImage() and Clipboard.hasTypedValue(s32))
+
+    Clipboard.setString("C:\\données\\été.txt")
+    Swag.assert(Clipboard.hasString())
+    Swag.assert(Clipboard.getString() == "C:\\données\\été.txt")
+    Swag.assert(not Clipboard.hasImage() and not Clipboard.hasTypedValue(s32))
+
+    Clipboard.setString("été.txt")
+    Swag.assert(Clipboard.getString() == "été.txt")
+
+    Clipboard.setString("")
+    Swag.assert(Clipboard.hasString() and Clipboard.getString().isEmpty())
 }

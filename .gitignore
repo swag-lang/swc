@@ -10,3 +10,4 @@ riderModule.iml
 /_ReSharper.Caches/
 *.user
 __pycache__/
+/vscode/node_modules/

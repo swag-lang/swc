@@ -129,7 +129,7 @@ Swag.memcmp  Swag.memcpy  Swag.memmove  Swag.memset
 Packed vector intrinsics:
 
 ```swag
-Swag.vecalign  Swag.vecall  Swag.vecany  Swag.vecavgr  Swag.vecgather  Swag.vecinterleavehi
+Swag.vecalign  Swag.vecall  Swag.vecany  Swag.vecavgr  Swag.vecclmul  Swag.vecgather  Swag.vecinterleavehi
 Swag.vecinterleavelo  Swag.vecmadd  Swag.vecmaddubs  Swag.vecmask  Swag.vecmulhi  Swag.vecpackss
 Swag.vecpackus  Swag.vecperm  Swag.vecreduceadd  Swag.vecreduceand  Swag.vecreducemax
 Swag.vecreducemin  Swag.vecreduceor  Swag.vecreducexor  Swag.vecsad  Swag.vecsatadd  Swag.vecsatsub

@@ -269,9 +269,10 @@ public func runHelp(context: *Context, options: *Options)->s32 fail
 public func runVsix(context: *Context, _options: *Options)->s32 fail
 {
     let vscodeDir = Path.combine(context.root.toString(), "vscode")
+    for command in ["/d /c npm.cmd ci", "/d /c npm.cmd test"]
     {
         // The command processor resolves a PATH batch launcher before its directory-relative loads.
-        var info    = Env.StartInfo{fileName: "cmd.exe", arguments: "/d /c npm.cmd test", workingDirectory: vscodeDir.toString(), environment: &context.childEnv}
+        var info    = Env.StartInfo{fileName: "cmd.exe", arguments: command, workingDirectory: vscodeDir.toString(), environment: &context.childEnv}
         var process = try Env.startProcess(info)
         let code    = try process.waitForExit()
         if code != 0 do

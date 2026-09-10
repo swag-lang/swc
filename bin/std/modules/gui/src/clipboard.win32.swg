@@ -9,6 +9,28 @@ alias ValueFormat = u64
 
 private var g_PngFormat: UINT
 
+// The clipboard takes ownership only when publication succeeds. A failed transfer keeps
+// ownership here, and the movable block is unlocked before either transfer or destruction.
+private func addNativeData(fmt: UINT, bytes: const [..] u8)
+{
+    let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, bytes.count)
+    if not hglob do
+        return
+    var transferred = false
+    defer
+    {
+        if not transferred do
+            discard GlobalFree(hglob)
+    }
+
+    let buffer = cast([*] u8?) GlobalLock(hglob)
+    if not buffer do
+        return
+    Memory.copy(buffer, bytes.buffer, bytes.count)
+    discard GlobalUnlock(hglob)
+    transferred = SetClipboardData(fmt, hglob) != null
+}
+
 // Registers a named native clipboard format.
 func registerFormat(name: string)->ValueFormat fail
 {
@@ -49,9 +71,17 @@ func hasTypedData(fmt: ValueFormat, type: typeinfo?)->bool
         return true
 
     let hglob = GetClipboardData(cast(UINT) fmt)
-    let pz    = cast(*u32) GlobalLock(hglob)!
+    let data  = cast([*] u8?) GlobalLock(hglob)
+    if not data do
+        return false
     defer discard GlobalUnlock(hglob)
-    return pz[] == type.crc
+    catch
+    {
+        let payload = TypedPayload.decode(Swag.makeSlice(data, GlobalSize(hglob)))
+        return payload.matches(type)
+    }
+    else {}
+    return false
 }
 
 // Adds or replaces a raw payload and optional type fingerprint without clearing other formats.
@@ -63,23 +93,9 @@ func addTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
     if not OpenClipboard(GetDesktopWindow()) do
         return
     defer discard CloseClipboard()
-    let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, data.count + #sizeof(u32) + #sizeof(u64))
-    let pz    = cast([*] u8) GlobalLock(hglob)!
-    defer discard GlobalUnlock(hglob)
-
-    // Store type CRC
-    var pzi = cast([*] u32) pz
-    pzi[] = type ? type.crc : 0
-    pzi   += 1
-
-    // Store data size
-    var pzu = cast([*] u64) pzi
-    pzu[] = data.count
-    pzu   += 1
-
-    // Store data
-    Memory.copy(pzu, data.buffer, data.count)
-    discard SetClipboardData(cast(UINT) fmt, hglob)
+    let payload = TypedPayload{crc: type ? type.crc : 0, data: data}
+    let bytes   = payload.encode()
+    addNativeData(cast(UINT) fmt, bytes.toSlice())
 }
 
 // Returns a copy of the raw payload stored under `fmt`, when its optional type matches.
@@ -94,29 +110,20 @@ func getTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
         return result
     defer discard CloseClipboard()
 
-    if IsClipboardFormatAvailable(cast(UINT) fmt)
+    if not IsClipboardFormatAvailable(cast(UINT) fmt) do
+        return result
+    let hglob = GetClipboardData(cast(UINT) fmt)
+    let data  = cast([*] u8?) GlobalLock(hglob)
+    if not data do
+        return result
+    defer discard GlobalUnlock(hglob)
+    catch
     {
-        let hglob = GetClipboardData(cast(UINT) fmt)
-        if hglob
-        {
-            let pz = cast([*] u8) GlobalLock(hglob)!
-            defer discard GlobalUnlock(hglob)
-
-            // Get type CRC, check this is correct
-            var pzi = cast([*] u32) pz
-            if type and pzi[] != type.crc do
-                return result
-            pzi += 1
-
-            // Get data count
-            var pzu   = cast([*] u64) pzi
-            let count = pzu[]
-            pzu += 1
-
-            result.add(Swag.makeSlice(cast([*] u8) pzu, count))
-            return result
-        }
+        let payload = TypedPayload.decode(Swag.makeSlice(data, GlobalSize(hglob)))
+        if payload.matches(type) and payload.data do
+            result.add(payload.data)
     }
+    else {}
 
     return result
 }
@@ -149,7 +156,7 @@ func addImage(image: Image)
         if not image.isValid() do
             return
         g_Fake.hasImg = true
-        g_Fake.img    = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice())
+        g_Fake.img    = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice(), image.alphaMode)
         return
     }
 
@@ -158,51 +165,14 @@ func addImage(image: Image)
     defer discard CloseClipboard()
     discard EmptyClipboard()
 
-    // BITMAP
-    #scope
-    {
-        let size  = #sizeof(Bmp.Header) + image.byteCount
-        let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
-        let buf   = cast([*] u8) GlobalLock(hglob)!
+    // Pixel owns DIB channel ordering, row padding, and straight-alpha conversion.
+    let dib = catch image.encodeToBytes("clipboard.bmp", Bmp.EncodeOptions{fileHeader: false}) as dibError
+    if dibError == null do
+        addNativeData(CF_DIB, dib.toSlice())
 
-        let header = cast(*Bmp.Header) buf
-        header.biSize        = #sizeof(Bmp.Header)
-        header.biWidth       = image.width
-        header.biHeight      = image.height
-        header.biPlanes      = 1
-        header.biCompression = Bmp.BI_RGB
-        header.biBitCount    = image.bitsPerPixel
-
-        let datas = buf + #sizeof(Bmp.Header)
-        Memory.copy(datas, image.pixels.buffer, image.byteCount)
-
-        discard GlobalUnlock(hglob)
-        discard SetClipboardData(CF_DIB, hglob)
-    }
-
-    // PNG
-    #scope(Png)
-    {
-        var opt: Png.EncodeOptions
-
-        opt.compressionLevel = .NoCompression     // We want best speed
-        var buffer = catch image.encode("clipboard.png", opt) as encodeError
-        if encodeError != null do
-            break to Png
-
-        let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, buffer.count())
-        let buf   = cast([*] u8) GlobalLock(hglob)!
-
-        var bufCur = buf
-        for b in buffer
-        {
-            Memory.copy(bufCur, b.data, b.count)
-            bufCur += b.count
-        }
-
-        discard GlobalUnlock(hglob)
-        discard SetClipboardData(g_PngFormat, hglob)
-    }
+    let png = catch image.encodeToBytes("clipboard.png", Png.EncodeOptions{compressionLevel: .NoCompression}) as pngError
+    if pngError == null do
+        addNativeData(g_PngFormat, png.toSlice())
 }
 
 // Returns a decoded copy of the clipboard image, or an invalid image when unavailable.
@@ -228,7 +198,9 @@ func getImage()->Image
         if hglob
         {
             let size = GlobalSize(hglob)
-            let pz   = cast([*] u8) GlobalLock(hglob)!
+            let pz   = cast([*] u8?) GlobalLock(hglob)
+            if not pz do
+                return result
             defer discard GlobalUnlock(hglob)
             return catch Image.decode("clipboard.png", Swag.makeSlice(pz, size), {})
         }
@@ -241,7 +213,9 @@ func getImage()->Image
         if hglob
         {
             let size = GlobalSize(hglob)
-            let pz   = cast([*] u8) GlobalLock(hglob)!
+            let pz   = cast([*] u8?) GlobalLock(hglob)
+            if not pz do
+                return result
             defer discard GlobalUnlock(hglob)
             return catch Image.decode("clipboard.bmp", Swag.makeSlice(pz, size), {})
         }
@@ -271,8 +245,24 @@ func hasString()->bool
 // Adds or replaces UTF-8 text in UTF-16 and legacy formats without clearing other formats.
 func addString(str: string)
 {
+    writeString(str, false)
+}
+
+// Replaces every clipboard format with UTF-8 text in UTF-16 and legacy formats.
+//
+// Use this for a standalone copy action. Use [[Clipboard.addString]] to attach text to
+// an existing clipboard value while preserving its other formats.
+func setString(str: string)
+{
+    writeString(str, true)
+}
+
+private func writeString(str: string, replace: bool)
+{
     if g_Fake.enabled
     {
+        if replace do
+            fakeClear()
         g_Fake.hasStr = true
         g_Fake.str    = str
         return
@@ -282,26 +272,15 @@ func addString(str: string)
         return
     defer discard CloseClipboard()
 
-    // Ansi/utf8
-    {
-        let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, str.count + 1)
-        let pz    = cast([*] u8) GlobalLock(hglob)!
-        Memory.copy(pz, str.buffer, str.count)
-        pz[str.count] = 0
-        discard GlobalUnlock(hglob)
-        discard SetClipboardData(CF_TEXT, hglob)
-    }
+    // Claim ownership before publishing a new copy, so older rich formats cannot win on paste.
+    if replace and not EmptyClipboard() do
+        return
 
-    // Utf16
-    {
-        let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, str.count * 2 + 2)
-        let pz    = cast([*] u16) GlobalLock(hglob)!
-        let u     = Utf16.fromUtf8(str)
-        Memory.copy(pz, u.buffer, u.count * 2)
-        pz[u.count] = 0
-        discard GlobalUnlock(hglob)
-        discard SetClipboardData(CF_UNICODETEXT, hglob)
-    }
+    let ansi = NativeText.encodeAnsi(str)
+    if ansi.count do
+        addNativeData(CF_TEXT, ansi.toSlice())
+    let wide = Utf16.toZeroTerminated(str)
+    addNativeData(CF_UNICODETEXT, Swag.makeSlice(cast(const [*] u8) wide.storage(), wide.count * 2))
 }
 
 // Returns clipboard text converted to UTF-8, or an empty string when unavailable.
@@ -320,30 +299,18 @@ func getString()->String
         return result
     defer discard CloseClipboard()
 
-    // Unicode (Utf-16) text
-    if IsClipboardFormatAvailable(CF_UNICODETEXT)
+    let formats = [CF_UNICODETEXT, CF_TEXT]
+    for format in formats
     {
-        let hglob = GetClipboardData(CF_UNICODETEXT)
-        if hglob
-        {
-            let pz = cast([*] u16) GlobalLock(hglob)!
-            result = Utf8.fromUtf16(Swag.makeSlice(pz, Utf16.lengthZeroTerminated(pz)))
-            discard GlobalUnlock(hglob)
-            return result
-        }
-    }
-
-    // Normal text
-    if IsClipboardFormatAvailable(CF_TEXT)
-    {
-        let hglob = GetClipboardData(CF_TEXT)
-        if hglob
-        {
-            let pz = cast([*] u8) GlobalLock(hglob)!
-            result = Swag.makeString(pz, (cast(cstring) pz).count)
-            discard GlobalUnlock(hglob)
-            return result
-        }
+        if not IsClipboardFormatAvailable(format) do
+            continue
+        let hglob = GetClipboardData(format)
+        let data  = cast([*] u8?) GlobalLock(hglob)
+        if not data do
+            continue
+        defer discard GlobalUnlock(hglob)
+        let bytes = Swag.makeSlice(data, GlobalSize(hglob))
+        return format == CF_UNICODETEXT ? NativeText.decodeUnicode(bytes) : NativeText.decodeAnsi(bytes)
     }
 
     return result

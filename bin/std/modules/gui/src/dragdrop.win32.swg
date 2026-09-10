@@ -235,7 +235,7 @@ private func readFileContents(obj: *IDataObject, data: *DragData, withContents: 
         if withContents do
             bytes = readFormat(obj, g_FileContentsFormat, cast(s32) i)
 
-        data.addContent(Utf8.fromUtf16(Swag.makeSlice(name, Utf16.lengthZeroTerminated(name))), bytes.toSlice())
+        data.addContent(Utf8.fromUtf16(Swag.makeSlice(name, Utf16.lengthUntilZero(descriptors[i].cFileName))), bytes.toSlice())
     }
 }
 
@@ -288,14 +288,13 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
         let utf16 = readFormat(obj, CF_UNICODETEXT)
         if utf16.count >= 2
         {
-            let pz = cast(const [*] u16) utf16.storage()
-            data.setText(Utf8.fromUtf16(Swag.makeSlice(pz, Utf16.lengthZeroTerminated(pz))))
+            data.setText(NativeText.decodeUnicode(utf16.toSlice()))
             break to Text
         }
 
         let ansi = readFormat(obj, CF_TEXT)
         if ansi.count do
-            data.setText(Swag.makeString(ansi.storage(), (cast(cstring) ansi.storage()).count))
+            data.setText(NativeText.decodeAnsi(ansi.toSlice()))
     }
 
     // Image. A browser drags PNG bytes and the desktop drags a DIB; both decode from the name.
@@ -540,30 +539,10 @@ private func buildDib(data: *DragData)->HGLOBAL
     if not image do
         return null
 
-    let img   = image
-    let size  = cast(u64) #sizeof(Bmp.Header) + img.byteCount
-    let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
-    if not hglob do
+    let bytes = catch image.encodeToBytes("drag.bmp", Bmp.EncodeOptions{fileHeader: false}) as encodeError
+    if encodeError != null do
         return null
-
-    let base = cast([*] u8?) GlobalLock(hglob)
-    if not base
-    {
-        discard GlobalFree(hglob)
-        return null
-    }
-
-    let header = cast(*Bmp.Header) base
-    header.biSize        = #sizeof(Bmp.Header)
-    header.biWidth       = img.width
-    header.biHeight      = img.height
-    header.biPlanes      = 1
-    header.biCompression = Bmp.BI_RGB
-    header.biBitCount    = img.bitsPerPixel
-
-    Memory.copy(base + #sizeof(Bmp.Header), img.pixels.buffer, img.byteCount)
-    discard GlobalUnlock(hglob)
-    return hglob
+    return toGlobalBlock(bytes.toSlice())
 }
 
 // Builds the block naming every file the payload carries itself: a count, then one fixed-size
@@ -833,8 +812,12 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
         hglob = buildDib(data)
     elif format == CF_UNICODETEXT do
         hglob = buildUnicodeText(data)
-    elif format == CF_TEXT do
-        hglob = toGlobalBlock(Swag.makeSlice(cast(const [*] u8) (data.text.toString()).buffer, cast(u64) data.text.count + 1))
+    elif format == CF_TEXT
+    {
+        let ansi = NativeText.encodeAnsi(data.text.toString())
+        if ansi.count do
+            hglob = toGlobalBlock(ansi.toSlice())
+    }
     elif g_PngDragFormat and format == g_PngDragFormat do
         hglob = toGlobalBlock(data.encodedImage())
     elif g_FileDescriptorFormat and format == g_FileDescriptorFormat do

@@ -57,6 +57,7 @@ private const NativeSourceFiles = [
     "bin/std/modules/gui/src/application.win32.swg",
     "bin/std/modules/gui/src/clipboard.win32.swg",
     "bin/std/modules/gui/src/dragdrop.win32.swg",
+    "bin/std/modules/gui/src/nativetext.win32.swg",
     "bin/std/modules/gui/src/paint/cursor.win32.swg",
     "bin/std/modules/gui/src/surface.win32.swg",
     "bin/std/modules/gui/src/tests/dragdrop.win32.test.swg",

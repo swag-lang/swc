@@ -1067,3 +1067,32 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     Swag.assert(img.pixels.buffer[2] == 99'u8)
     Swag.assert(img.pixels.buffer[72] == 42'u8)
 }
+
+// Packed DIB output shares the file encoder's channel conversion and odd-width row padding.
+#test
+{
+    let formats = [PixelFormat.RGB8, .BGR8, .RGBA8, .BGRA8]
+    for format in formats
+    {
+        var source = Image.create(3, 2, format)
+        for i in source.pixels.count do
+            source.pixels[i] = cast(u8) (17 + i * 3)
+        if source.bytesPerPixel == 4
+        {
+            for i in 6 do
+                source.pixels[i * 4 + 3] = 255
+        }
+
+        let bmp = expect source.encodeToBytes("image.bmp")
+        let dib = expect source.encodeToBytes("image.bmp", Bmp.EncodeOptions{fileHeader: false})
+        Swag.assert(bmp.count == dib.count + #sizeof(Bmp.FileHeader))
+        Swag.assert(Memory.compare(bmp.buffer + #sizeof(Bmp.FileHeader), dib.buffer, dib.count) == 0)
+        Swag.assert(dib.count == #sizeof(Bmp.Header) + 24)
+        let decoded = expect Image.decode("image.bmp", dib.toSlice())
+        for y in source.height
+        {
+            for x in source.width do
+                Swag.assert(decoded.pixelColor(x, y) == source.pixelColor(x, y))
+        }
+    }
+}

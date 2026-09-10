@@ -64,7 +64,7 @@ struct Brush
         hasPaintRect: bool     // Whether [[Pixel.Brush.paintRect]] replaces the painted shape's bounds; false by default.
 
         gradientStart:   Math.Vector2               // Linear start point or radial/sweep center.
-        gradientEnd:     Math.Vector2               // Linear end point or secondary radial center.
+        gradientEnd:     Math.Vector2               // Linear end point; unused by radial and sweep sampling.
         gradientRadius0: f32                        // Inner radial radius, in pixels.
         gradientRadius1: f32                        // Outer radial radius, in pixels.
         gradientAngle0:  f32                        // Sweep start angle, in radians.

@@ -11,6 +11,8 @@ first; the consuming optimization names it through `Related:`. Portable semantic
 available where the operation can be lowered efficiently on every supported target, while
 target-specific forms require compile-time gating or safe runtime dispatch.
 
+The supported machine baseline is x86-64-v3, as stated in the repository README; scalar or
+narrower kernels below are algorithmic alternatives, not a promise to run on an older ISA.
 Every optimized consumer keeps a scalar or narrower fallback, proves byte-for-byte or numerically
 specified parity at boundaries and tails, and records a release benchmark against that fallback.
 Every capability entry also owns its declarations in `bin/runtime/api.swg`, the public
@@ -45,6 +47,101 @@ understates the packed side, and where it does not — PNG Paeth scoring, cpu.si
 instead. It applies to the accepted kernels as much as to the discarded ones: every number dated
 inside that window has to be re-baselined before it is trusted, and the entries below name their
 own. Work dated before the window used the raw `Swag.vec*` intrinsics directly and is unaffected.
+
+### cpu.simd.014 — Loop vectorization cannot form reductions or masked tails
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-10 20:49 — distinguished the existing SLP pass from the proposed loop vectorizer
+- Evidence: the registered pass is basic-block SLP (`Pass.SlpVectorize`), with no general
+  loop-reduction vectorizer or runtime-versioned alias/tail pipeline.
+- Intent: add loop vectorization that recognizes associative reductions, versions alias/alignment
+  checks, and generate masked or peeled tails using the explicit SIMD operation set.
+- Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the
+  supported target policy with scalar-equivalent results and profitable cost decisions.
+- Related: cpu.simd.006, cpu.simd.015.
+
+### cpu.simd.013 — Unrolling does not expose constant-index SIMD packs
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-10 20:49 — removed the already explicit-packed ChaCha path as the outstanding reproducer
+- Evidence: ChaCha already uses explicit packed XOR in `chacha20XorFour`; it is no longer
+  evidence that automatic packing must still be added there. `Pass.LoopUnroll` and
+  `Pass.SlpVectorize` remain separate passes, and the remaining lead needs a scalar-source fixture.
+- Intent: fold induction-derived addresses to constant offsets after unrolling and rerun the
+  combining needed for SLP to recognize adjacent loads and stores.
+- Complete when: reduced scalar-source array and codec kernels become packed after unrolling
+  because induction-derived addresses are combined, with no code-size-only unroll when vectorization
+  does not follow.
+- Related: compiler.optimization.002.
+
+### cpu.simd.007 — Gather supports one shape; scatter, compress and expand are absent
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-10 20:47 — distinguished current direct gather lowering from the historical fallback
+- Intent: add indexed lane loads/stores and mask-based compaction/expansion, with target gating and
+  a cost model that is allowed to choose scalar lane operations when hardware gather is slower.
+  The JPEG-driven `s32x4` gather is now available with an AVX2 `vpgatherdd` lowering; the current code generator emits it
+  directly. The historical four-load fallback is not a selectable current target. Over 64 million
+  hot-LUT reads, that fallback measured 9,952 to 13,646 us
+  (1.37x slower than scalar) and AVX2 measured 11,804 to 15,360 us (1.30x slower), so consumers
+  still need an end-to-end win from the vector work surrounding the lookup.
+  Both of those numbers were taken inside the call window described in the introduction, with the
+  gather itself lowered as a call, so the cost of the operation is not established. Re-measure it
+  before concluding anything about gather, and before reading the gather-driven rejections of
+  cpu.simd.029 and cpu.simd.023 as evidence against it.
+- Complete when: bounds and aliasing semantics are explicit, AVX2 gather and AVX-512 scatter/
+  compress/expand are encoded, and the fallback never performs an invalid masked access.
+- Related: cpu.simd.003, cpu.simd.028, cpu.simd.031, cpu.simd.034.
+
+### cpu.simd.006 — Vector tails require scalar cleanup
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-10 20:47 — kept partial access independent of an unsupported SSE2 target
+- Intent: add masked load/store and partial load/store operations with an explicit valid-lane mask,
+  defined non-faulting behavior, and efficient baseline lowering when native masks are unavailable.
+  `Core.Math.Simd` also ships `storeLow4` and `storeLow8` with no load counterpart, so 4x4 and 8x8 block kernels need padded storage for a full load or explicit scalar partial
+  loads. A masked or partial API must make those preconditions explicit.
+- Complete when: arbitrary byte counts can be processed without reading or writing outside the
+  slice, sanitizer-style guard-page tests cover both ends, and AVX-512 uses native masks.
+- Related: cpu.simd.003, cpu.simd.015, cpu.simd.024, cpu.simd.025.
+
+### cpu.simd.003 — 512-bit vectors and AVX-512 masks have no representation
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-10 20:47 — removed the obsolete lower-ISA fallback assumption
+- Intent: add 64-byte `#simd` shapes, ZMM register allocation, and explicit predicate-mask values
+  for AVX-512 targets without making AVX-512 a baseline requirement.
+- Complete when: arithmetic, comparison, masked load/store, calls, spills, constants, reflection,
+  and cross-module use work behind feature gating, with the x86-64-v3 baseline selected on
+  supported machines that lack the optional feature.
+- Related: cpu.simd.001, cpu.simd.002, cpu.simd.006, cpu.simd.007.
+
+### cpu.simd.001 — Optional SIMD beyond the baseline has no shared dispatch contract
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-10 20:47 — aligned optional-feature dispatch with the current x86-64-v3 minimum
+- Evidence: the supported compiler/runtime baseline is x86-64-v3 and startup rejects older
+  hosts; there is no lower-ISA build mode. Standard modules still have no common contract for
+  optional features beyond that baseline.
+- Intent: add authoritative optional-feature queries and function multiversioning so a module can
+  select a baseline or richer implementation without duplicating dispatch. A lower-ISA product
+  target would require a separate explicit baseline decision.
+- Complete when: dispatch is cached, testable with a forced feature ceiling, works in JIT and native
+  builds, and one runtime or codec kernel selects a measured optional-feature variant while retaining its
+  baseline implementation.
+- Related: cpu.simd.002, cpu.simd.003.
+
+### cpu.simd.009 — AES round and key instructions have no typed surface
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-10 20:47 — removed the shipped carry-less multiplication surface from the remaining AES work
+- Evidence: `Swag.vecclmul` and the four `Math.Simd.clmul...` wrappers already expose
+  carry-less multiplication; `Hash.Crc32.foldClmul` consumes them and the x64 encoder has a byte
+  test. AES round/key instructions have no equivalent typed API.
+- Intent: expose AES round/key operations with explicit availability and known-answer tests.
+- Complete when: feature gating prevents illegal instructions, known-answer tests cover operands
+  and lane ordering, and portable fallbacks or explicit availability checks are part of the API.
+- Related: cpu.simd.001.
 
 ### cpu.simd.024 — H.264 dequantization and irregular directional intra prediction remain scalar
 
@@ -100,36 +197,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   [lane-scaling benchmark](../bench/argon2/README.md) holds the scalar compression kernel fixed
   and compares one with four workers at 64 and 256 MiB. Keep that worker count fixed when
   measuring a future packed kernel.
-
-### cpu.simd.006 — Vector tails require scalar cleanup
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Intent: add masked load/store and partial load/store operations with an explicit valid-lane mask,
-  defined non-faulting behavior, and efficient SSE2/AVX2 fallback lowering.
-  `Core.Math.Simd` also ships `storeLow4` and `storeLow8` with no load counterpart, so 4x4 and 8x8 block kernels need padded storage for a full load or explicit scalar partial
-  loads. A masked or partial API must make those preconditions explicit.
-- Complete when: arbitrary byte counts can be processed without reading or writing outside the
-  slice, sanitizer-style guard-page tests cover both ends, and AVX-512 uses native masks.
-- Related: cpu.simd.003, cpu.simd.015, cpu.simd.024, cpu.simd.025.
-
-### cpu.simd.007 — Gather supports one shape; scatter, compress and expand are absent
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Intent: add indexed lane loads/stores and mask-based compaction/expansion, with target gating and
-  a cost model that is allowed to choose scalar lane operations when hardware gather is slower.
-  The JPEG-driven `s32x4` gather is now available with an AVX2 `vpgatherdd` lowering and a portable
-  four-load fallback. Over 64 million hot-LUT reads, the fallback measured 9,952 to 13,646 us
-  (1.37x slower than scalar) and AVX2 measured 11,804 to 15,360 us (1.30x slower), so consumers
-  still need an end-to-end win from the vector work surrounding the lookup.
-  Both of those numbers were taken inside the call window described in the introduction, with the
-  gather itself lowered as a call, so the cost of the operation is not established. Re-measure it
-  before concluding anything about gather, and before reading the gather-driven rejections of
-  cpu.simd.029 and cpu.simd.023 as evidence against it.
-- Complete when: bounds and aliasing semantics are explicit, AVX2 gather and AVX-512 scatter/
-  compress/expand are encoded, and the fallback never performs an invalid masked access.
-- Related: cpu.simd.003, cpu.simd.028, cpu.simd.031, cpu.simd.034.
 
 ### cpu.simd.011 — Vector rounding and transcendental families remain incomplete
 
@@ -298,17 +365,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   retained or ruled out with an end-to-end profile, and the 1080p profile confirms the other gains.
 - Related: cpu.simd.010, std.video.001 in [std.video.md](std.video.md).
 
-### cpu.simd.001 — Standard modules cannot dispatch SIMD by host capability
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Intent: add one authoritative CPU-feature query and function-multiversioning mechanism so a
-  distributed standard module can select scalar/SSE2, AVX2, and later AVX-512 implementations
-  without executing an unsupported instruction or duplicating ad-hoc dispatch in every module.
-- Complete when: dispatch is cached, testable with a forced feature ceiling, works in JIT and native
-  builds, and one runtime or codec kernel ships scalar, 128-bit, and 256-bit variants through it.
-- Related: cpu.simd.002, cpu.simd.003.
-
 ### cpu.simd.002 — 256-bit vectors are not expressible
 
 - Recorded: 2026-08-19 19:26
@@ -319,17 +375,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 - Complete when: every supported 32-byte shape compiles and runs, crosses a module boundary, and
   128-bit code generation remains byte-identical when the wider path is not selected.
 - Related: cpu.simd.001, cpu.simd.012.
-
-### cpu.simd.003 — 512-bit vectors and AVX-512 masks have no representation
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Intent: add 64-byte `#simd` shapes, ZMM register allocation, and explicit predicate-mask values
-  for AVX-512 targets without making AVX-512 a baseline requirement.
-- Complete when: arithmetic, comparison, masked load/store, calls, spills, constants, reflection,
-  and cross-module use work behind feature gating, with AVX2 and SSE2 fallbacks still selected on
-  machines that lack the feature.
-- Related: cpu.simd.001, cpu.simd.002, cpu.simd.006, cpu.simd.007.
 
 ### cpu.simd.004 — Packed numeric lane conversion is incomplete
 
@@ -369,16 +414,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   remains the default portable operation.
 - Related: cpu.simd.001, cpu.simd.025, cpu.simd.032.
 
-### cpu.simd.009 — Polynomial and cryptographic instructions have no typed surface
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Intent: expose carry-less multiplication and, separately gated, AES round/key instructions as
-  typed packed operations rather than opaque inline machine code.
-- Complete when: feature gating prevents illegal instructions, known-answer tests cover operands
-  and lane ordering, and portable fallbacks or explicit availability checks are part of the API.
-- Related: cpu.simd.022.
-
 ### cpu.simd.010 — Dot products have no VNNI form
 
 - Recorded: 2026-08-20 08:56
@@ -389,26 +424,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 - Complete when: a VNNI accumulation is chosen on a host that reports the feature, the baseline
   sequence still runs everywhere else, and both answer the same on the differential tests.
 - Related: cpu.simd.001, cpu.simd.012, cpu.simd.019, cpu.simd.026, cpu.simd.029, cpu.simd.030.
-
-### cpu.simd.013 — Unrolling does not expose constant-index SIMD packs
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Intent: fold induction-derived addresses to constant offsets after unrolling and rerun the
-  combining needed for SLP to recognize adjacent loads and stores.
-- Complete when: the ChaCha key-stream XOR and a neutral array kernel become packed after unrolling,
-  with no code-size-only unroll when vectorization does not follow.
-- Related: compiler.optimization.002.
-
-### cpu.simd.014 — Loop vectorization cannot form reductions or masked tails
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Intent: teach the loop vectorizer to recognize associative reductions, version alias/alignment
-  checks, and generate masked or peeled tails using the explicit SIMD operation set.
-- Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the
-  configured feature ceiling with scalar-equivalent results and profitable cost decisions.
-- Related: cpu.simd.006, cpu.simd.015.
 
 ### cpu.simd.016 — Vector4 and Pixel.Color do not use their native packed shape
 
@@ -449,16 +464,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   instead of attempting to vectorize one recurrence-dependent stream.
 - Complete when: one- through lane-width batches preserve streaming/finalization semantics, fall
   back for a single stream, and improve aggregate hashing throughput.
-
-### cpu.simd.022 — CRC32 cannot use polynomial folding
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Intent: add a carry-less-multiply folding implementation with feature dispatch and retain the
-  table implementation as the portable fallback.
-- Complete when: incremental CRC values match for every alignment and tail and large-buffer
-  throughput improves on supported machines without illegal-instruction risk.
-- Related: cpu.simd.001, cpu.simd.009.
 
 ### cpu.simd.026 — Convolution, resize, smart-crop, and Haar kernels remain scalar
 

@@ -3680,8 +3680,8 @@ impl ViewerWindow
         case "scope.file.locate":      Env.showInFileExplorer(fileName)
         case "scope.file.openDefault": Env.openFile(fileName)
         case "scope.file.openWith":    Env.openFileWith(fileName)
-        case "scope.file.copyPath":    Clipboard.addString(fileName)
-        case "scope.file.copyName":    Clipboard.addString(Path.fileName(fileName) orelse fileName)
+        case "scope.file.copyPath":    Clipboard.setString(fileName)
+        case "scope.file.copyName":    Clipboard.setString(Path.fileName(fileName) orelse fileName)
         case "scope.file.forget":      .forgetRecent(fileName)
         }
     }

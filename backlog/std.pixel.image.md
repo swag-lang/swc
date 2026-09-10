@@ -26,6 +26,34 @@ complete texture delivery, and format breadth and fidelity.
 
 ## Entries
 
+### std.pixel.image.008 — Radial gradients lose their focus and elliptical space
+
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-10 20:42 — distinguished stored endpoints from the radial sampler contract
+- Evidence: the parser reads `fx`, `fy`, and `fr`, but resolves radial paints with equal
+  `gradientStart` and `gradientEnd`. The radial sampler uses only `gradientStart` and scalar radii. Object-bounding-box gradients over non-square bounds are consequently sampled as circles.
+- Next: define distinct focus/center semantics for the existing gradient endpoints and add a
+  gradient-space transform, then implement the two-point
+  conical equation in both samplers.
+- Complete when: focal and focal-radius fixtures match browser rendering, a wide
+  object-bounding-box radial is elliptical, and CPU/OpenGL parity covers inside, edge, and
+  out-of-circle focal points.
+- Related: std.pixel.image.010, std.pixel.001
+
+### std.pixel.image.042 — GPU-compressed texture data cannot reach the GPU compressed
+
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-10 20:42 — corrected the current planar YUV upload contract
+- Evidence: BC1 through BC5 are decoded to RGBA8; KTX2 BasisLZ, Zstandard, ETC, ASTC, BC6H, and BC7
+  are unsupported; `IRenderer.addImage` accepts decoded `Image` or a planar `YuvPlanarView` (4:2:0 or 4:4:4). KTX2 is designed for
+  per-level streaming and Basis Universal transcoding to a GPU-native block format.
+- Next: add compressed-format capability queries and texture upload from std.pixel.image.041, then
+  choose native block families and a Basis Universal transcoder from the target matrix.
+- Complete when: a KTX2 Basis or supported native-block fixture uploads without an RGBA expansion,
+  chooses a supported target deterministically, preserves mip levels, and has an explicit CPU
+  fallback.
+- Related: std.pixel.image.041, std.pixel.004, platform.portability.066
+
 ### std.pixel.image.036 — Decoding has no cumulative resource budget
 
 - Recorded: 2026-09-01 08:37
@@ -182,19 +210,6 @@ complete texture delivery, and format breadth and fidelity.
   random access state that requirement explicitly.
 - Related: std.pixel.image.037, std.pixel.image.039, std.pixel.019
 
-### std.pixel.image.008 — Radial gradients lose their focus and elliptical space
-
-- Recorded: 2026-09-01 08:20
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: the parser reads `fx`, `fy`, and `fr`, but `Brush` carries only one center and scalar
-  radii. Object-bounding-box gradients over non-square bounds are consequently sampled as circles.
-- Next: give the brush a focus point and gradient-space transform, then implement the two-point
-  conical equation in both samplers.
-- Complete when: focal and focal-radius fixtures match browser rendering, a wide
-  object-bounding-box radial is elliptical, and CPU/OpenGL parity covers inside, edge, and
-  out-of-circle focal points.
-- Related: std.pixel.image.010, std.pixel.001
-
 ### std.pixel.image.010 — SVG masks are not parsed
 
 - Recorded: 2026-08-09 11:30
@@ -221,20 +236,6 @@ complete texture delivery, and format breadth and fidelity.
   declared destination with reference tolerances, while unsupported profiles are reported without
   discarding their bytes.
 - Related: std.pixel.001, std.pixel.002, std.pixel.image.044
-
-### std.pixel.image.042 — GPU-compressed texture data cannot reach the GPU compressed
-
-- Recorded: 2026-09-01 08:20
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: BC1 through BC5 are decoded to RGBA8; KTX2 BasisLZ, Zstandard, ETC, ASTC, BC6H, and BC7
-  are unsupported; `IRenderer.addImage` accepts only decoded `Image` or YUV420. KTX2 is designed for
-  per-level streaming and Basis Universal transcoding to a GPU-native block format.
-- Next: add compressed-format capability queries and texture upload from std.pixel.image.041, then
-  choose native block families and a Basis Universal transcoder from the target matrix.
-- Complete when: a KTX2 Basis or supported native-block fixture uploads without an RGBA expansion,
-  chooses a supported target deterministically, preserves mip levels, and has an explicit CPU
-  fallback.
-- Related: std.pixel.image.041, std.pixel.004, platform.portability.066
 
 ### std.pixel.image.048 — JPEG encoding cannot produce progressive output
 
@@ -264,5 +265,5 @@ shaping, variable fonts, and color-glyph formats are tracked in
 flat `Image`. The read-only `ImageReader` index does not supply editable layer or deep-sample
 semantics; add those only when a named application needs them.
 
-**Video decoding.** WebP VP8 exists because WebP needs it, and YUV420 exists to hand decoded planes
+**Video decoding.** WebP VP8 exists because WebP needs it, and planar YUV views hand decoded 4:2:0 and 4:4:4 planes
 to a renderer. A timed media pipeline belongs in `std/video`.

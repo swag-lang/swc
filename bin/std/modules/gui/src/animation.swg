@@ -903,16 +903,26 @@ impl Animator
         while .animations.count
         {
             let run = .animations[0]!
+
+            // Endpoint callbacks can cancel or replace their own animation. Keep its storage
+            // alive until the callback and its paint invalidation have returned.
+            let wasAdvancing = .duringAdvance
+            .duringAdvance = true
             for track in run.tracks
             {
+                if run.cancelRequested do
+                    break
                 let value = track!
                 if value.finished do
                     continue
                 .applyTrack(value, restProgress(value))
+                if run.cancelRequested do
+                    break
                 .completeTrack(value, .Completed)
             }
 
-            .finishAt(0, .Completed)
+            .duringAdvance = wasAdvancing
+            .finishAt(0, run.cancelRequested ? .Cancelled : .Completed)
         }
     }
 

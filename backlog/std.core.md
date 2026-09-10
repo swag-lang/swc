@@ -39,11 +39,10 @@ language.parallelism.001. The concurrency entries own Core integration, algorith
 migration against that native surface; they do not introduce Core-owned task or synchronization
 types.
 
-### std.core.032 — The recovered inflate rewrite decodes a real document wrongly
+### std.core.032 — The recovered inflate rewrite fails a real-document golden
 
 - Recorded: 2026-09-08 22:17
-- Updated: 2026-09-09 06:50 — the crash is understood and fixed, and the rewrite still decodes the
-  same document to a different image
+- Updated: 2026-09-10 19:39 — Distinguish the observed rendering failure from the pending decoded-byte comparison.
 - Evidence: the block decoder refills once per outer iteration, and the fast loop then drains the
   bit buffer to wherever its last symbol ended. The careful path that takes over decodes a length
   code and then a distance code with nothing between them to reload, so it subtracts a width the
@@ -53,9 +52,10 @@ types.
   was near and the fast loop had bailed mid-stream on a code longer than its table covers.
 - Evidence: `643900899` gives that group a refill of its own and fails a truncated tail instead of
   wrapping around. The crash goes away and the same document then decodes to an image the golden
-  rejects, so the rewrite is wrong beyond the missing refill. That is why `bin/std` keeps master's
-  inflate: a decoder that crashes is a defect, and a decoder that quietly returns different bytes
-  is worse.
+  rejects, so the recovered branch still has a correctness failure beyond the fixed crash. The
+  mismatch has not yet been attributed to specific decoded bytes. `bin/std` keeps master's
+  inflate until that failure is explained and fixed; a rendering mismatch is not acceptable
+  evidence for adopting the rewrite.
 - Evidence: the crash has no synthetic reduction. The fast loop hands a match to the careful path
   only when a literal or length code exceeds the twelve bits of its table, and the repository's
   own deflate did not emit one for any of four shapes: a drifting four-kilobyte block, text from a
@@ -72,7 +72,50 @@ types.
   ever measured here.
 - Complete when: the rewrite decodes every stream byte-for-byte as master's inflate does, a `core`
   test fails without the careful path's refill, and a measurement says what the rewrite buys.
-- Related: std.pixel.image.md
+- Related area: [image decoding](std.pixel.image.md).
+
+### std.core.018 — Rebaseline and reduce Deflate match-search cost
+
+- Recorded: 2026-08-23 22:36
+- Updated: 2026-09-10 19:32 — Separate the historical compression profile from the next baseline.
+- Intent: close the rest of the gap between `Compress.Deflate` and the compressors it competes
+  with. The 2026-08-23 profile attributed 97% of PNG encoding to Deflate; it is also what
+  `TagBin` and every future container pay.
+- Historical measurement (2026-08-23): the match finder used to hash the three bytes miniz hashes, and on filtered
+  image data one three-byte sequence repeats about twenty-six times inside a window, so the chain
+  was a list of genuine duplicates walked to the end. It now hashes four bytes multiplicatively
+  with a one-slot three-byte table beside it for the matches four bytes cannot hold. Search work
+  per byte fell 1.6-1.8x, level 6 measured 1.27-1.67x faster on image data with the compressed
+  size unchanged, and PNG encoding 1.31-1.52x faster with files 2-11% smaller.
+- Remaining lead: search accounted for about 85% of that profile. Level 6 walks up to 132 candidates per
+  position and comes back with a match three to six bytes long on filtered data, and level 1
+  compresses the same input 4x faster for 5% more bytes, which is the size of the prize.
+  The two untried levers are zlib's `nice_match` — stop the chain once a match is long enough,
+  128 at level 6 — and tuning the lazy-match rule miniz inherited. Both change which matches are
+  chosen, so each has to report compressed size beside time.
+- The other half is not in this file: the block loop spends its time in stack slots rather than
+  registers, which [compiler.optimization.006](compiler.optimization.md) measured at 1.6x against clang for the
+  matching Inflate loop and is a backend problem, not a library one.
+- Next: remeasure the current compiler and match finder on the same PNG and `.scc` corpus, then compare each search-policy change against that recorded baseline.
+- Complete when: level 6 on the PNG and `.scc` fixtures is at least 1.5x faster than that
+  baseline with no more than 1% growth in compressed size, and every `core` compression test still
+  round-trips.
+- Related: std.core.021, std.core.022
+
+### std.core.022 — No reusable ZIP reader and writer
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-10 19:32 — Account for the bounded ZIP reader already shipped in Swag Scope.
+
+- Evidence: Core exposes no ZIP container API. Swag Scope already owns a bounded reader in
+  `src/viewers/archive/ziparchive.swg`, including ZIP64 directory metadata, stored/Deflate
+  extraction, CRC checks, and a 250,000-entry limit.
+- Next: review and extract that reader into a reusable container boundary, migrate Scope to it,
+  and add the missing writer with explicit supported formats and resource limits.
+- Complete when: owning round-trip and malformed-container tests cover the shared reader/writer
+  and Scope uses that contract without a private ZIP parser.
+
+- Related: std.core.021
 
 ### std.core.031 — Two atomic families, one of them Core's
 
@@ -115,23 +158,7 @@ types.
   second scheduler.
 - Complete when: the operations preserve result and error ownership, join losing work before
   releasing its borrows, and the manual fan-outs in `std/video` are written with them instead.
-- Related: language.parallelism.002, std.core.026, std.core.028
-
-### std.core.026 — No channel abstraction
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-07 15:56 — the runtime now owns locks, conditions and tasks, so a channel has
-  somewhere to live; the type itself is still missing
-- Evidence: no typed channel defines transfer, capacity, close, cancellation, and selection
-  together. A producer and a consumer that need one build it from `Swag.Mutex` and
-  `Swag.Condition` by hand, which is what the Swag Scope video queue does.
-- Next: define the bounded, rendezvous, and one-shot forms in `bin/runtime`, with their endpoint,
-  selection, and rejected-message types. Settle endpoint clone and drop behavior, draining after
-  close, ownership of a moved message rejected before acceptance, and the single commit point of a
-  selection before adding any Core convenience function.
-- Complete when: focused channel and selection tests cover backpressure, closure, cancellation,
-  simultaneous readiness, and withdrawal without a lost message or a duplicate consumption.
-- Related: language.parallelism.002, std.core.025
+- Related: language.parallelism.002, language.parallelism.011, std.core.028
 
 ### std.core.028 — No asynchronous I/O contract
 
@@ -356,33 +383,6 @@ unsafe legacy modes excluded from the default surface.
 
 - Related: std.core.005
 
-### std.core.018 — Deflate is still four-fifths match search
-
-- Recorded: 2026-08-23 22:36
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Intent: close the rest of the gap between `Compress.Deflate` and the compressors it competes
-  with. It is the whole cost of writing a PNG — 97% of an encode is Deflate — and it is also what
-  `TagBin` and every future container pay.
-- Where it stands: the match finder used to hash the three bytes miniz hashes, and on filtered
-  image data one three-byte sequence repeats about twenty-six times inside a window, so the chain
-  was a list of genuine duplicates walked to the end. It now hashes four bytes multiplicatively
-  with a one-slot three-byte table beside it for the matches four bytes cannot hold. Search work
-  per byte fell 1.6-1.8x, level 6 measured 1.27-1.67x faster on image data with the compressed
-  size unchanged, and PNG encoding 1.31-1.52x faster with files 2-11% smaller.
-- What is left: search is still about 85% of the time. Level 6 walks up to 132 candidates per
-  position and comes back with a match three to six bytes long on filtered data, and level 1
-  compresses the same input 4x faster for 5% more bytes, which is the size of the prize.
-  The two untried levers are zlib's `nice_match` — stop the chain once a match is long enough,
-  128 at level 6 — and tuning the lazy-match rule miniz inherited. Both change which matches are
-  chosen, so each has to report compressed size beside time.
-- The other half is not in this file: the block loop spends its time in stack slots rather than
-  registers, which [compiler.optimization.006](compiler.optimization.md) measured at 1.6x against clang for the
-  matching Inflate loop and is a backend problem, not a library one.
-- Complete when: level 6 on the PNG and `.scc` fixtures is at least 1.5x faster than it is
-  now with no more than 1% growth in compressed size, and every `core` compression test still
-  round-trips.
-- Related: std.core.021, std.core.022
-
 ### std.core.021 — No gzip container support
 
 - Recorded: 2026-08-05 07:43
@@ -392,15 +392,6 @@ Add the gzip container over the existing deflate/inflate and zlib support, inclu
 trailers, checksums, and concatenated members.
 
 - Related: std.core.022, std.core.023
-
-### std.core.022 — No ZIP container support
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add bounded ZIP reading and writing with central-directory validation and explicit support limits.
-
-- Related: std.core.021
 
 ### std.core.023 — No TAR container support
 

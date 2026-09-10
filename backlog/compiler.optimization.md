@@ -3,7 +3,7 @@
 Backend optimization passes, register allocation, and the performance of the code `swc` generates.
 Frontend and lowering defects are [compiler.core.md](compiler.core.md).
 
-Entries are grouped by the optimization capability they advance. [README.md](README.md) defines
+Entries are ordered from the most recently updated down. [README.md](README.md) defines
 the shared backlog conventions.
 
 Several entries address register residency, loop-entry shape, spill traffic, aliasing and
@@ -11,6 +11,74 @@ inline argument materialization. Earlier measurements used the whole-hull alloca
 builds now use interval splitting, so those measurements identify workloads to recheck rather than
 current performance guarantees. `MicroSsaState` reconstructs SSA and phi values for analysis, while
 the executable Micro instruction stream has no explicit phi instruction.
+
+### compiler.optimization.012 — The shipped broadcast hoist still needs a current mcChroma dump
+
+- Recorded: 2026-08-24 14:55
+- Updated: 2026-09-10 19:41 — Track the current materialization predicate while retaining the missing codec dump.
+- Area: compiler/backend
+- Found while: std.video.001, reading the chroma interpolation loop of the H.264 decoder after the
+  vector temporaries stopped round-tripping through the frame.
+- Observation: the loop rebuilt the same four lane broadcasts on every row, each a `movd` from an
+  integer register followed by `pshufd`, while the replication feeding them (`zero_extend` then
+  `imul 0x10001`) already sat in the preheader. The opcode filter was only half of the refusal:
+  `VecShuffleRegRegImm`, `VecUnaryRegReg`, `OpBinaryRegRegImm`, `OpBinaryRegRegReg` and
+  `LoadVecRegMem` were ineligible, but making them eligible changed nothing because the profit
+  filter behind it keeps a hoist only when the instruction reads memory or feeds more than one
+  consumer, and each broadcast feeds exactly one multiply. Since 2026-09-03 the filter also keeps
+  a vector materialization (`isCostlyMaterialization`, `Pass.LoopInvariantCodeMotion`): the
+  `movd` of an integer into a float register, a shuffle, or a three-operand vector op whose
+  inputs are invariant. A vector built from a scalar is cheap to keep live, and rebuilding it is
+  an integer-to-float move on every trip.
+- Evidence: `#[Swag.PrintMicro("post-licm")]` in release on an eight-lane `u16` row scaling:
+  the `zero_extend`, `imul 0x10001`, `movd` and `pshufd` all sit between the loop guard and the
+  header label, and the body multiplies straight from the hoisted register
+  (`LICM_HoistsSingleUseLaneBroadcast`).
+- Next: read `Video.H264.mcChroma` again in release and confirm its four broadcasts left the row
+  loop.
+- Complete when: the chroma interpolation loop shows no `movd` or `pshufd` in its body.
+
+### compiler.optimization.026 — Folding a constant address into a RIP-relative load miscompiles library images
+
+- Recorded: 2026-09-02 14:39
+- Updated: 2026-09-10 19:39 — Replace the retired OpenGL parity test with a current library-consumer regression boundary.
+- Area: compiler/backend
+- Historical reproducer: a repository health reset chased the `render.parity.stroke.cpu-ogl` golden that
+  compares the CPU and OpenGL painter backends. The OpenGL image came back entirely zero (all
+  24 576 pixels differ, `(0,0)` produced 0 against the expected clear colour), and the CPU image
+  was correct.
+- Observation: `tryFoldRelocatedAddressIntoAccess` (added by "Fold constant addresses into direct
+  loads") rewrites `LoadRegPtrReloc %base, <const K>` + `LoadRegMem %d, [%base + off]` into a
+  single `LoadRegMem %d, [rip]` whose relocation carries `K + off`. Disabling only the constant
+  case of that fold turns the golden green; re-enabling it turns it red again. The fold is the
+  cause, and it is confirmed with nothing else changed.
+- What was ruled out by inspection and by measurement, so the next attempt does not re-walk them:
+  the fold is value-equivalent (the folded `[rip]` load reads the exact bytes the base-plus-offset
+  load read — verified on `__utoa`'s `conv.buffer` load via `PrintMicro`); the merged-rdata REL32
+  addend and the internal linker's REL32 resolution (`PEWriter.cpp`) are correct; reachability of
+  the referenced constant and its transitive relocations is unchanged. The full `native` suite
+  (2 983 cases, an executable artifact) passes with the fold on, including non-zero-offset folds.
+  The break appears only when the folded function lands in a shared- or static-library image: the
+  folds that actually fire in the failing build are all in library modules (`__utoa`, `__itoa`,
+  `Argb.fromName`, `Pixel.Svg.parseColor`), none on the render path, so a library-image emission or
+  register-allocation cascade the fold triggers — not a wrong value in the folded function —
+  corrupts the module. `partitionArchiveObjects` is dead code, so the split-rdata archive path is
+  not the difference; executable and library targets share `partitionObjects`.
+- Mitigation in place: the constant case is gated to artifacts that do not emit a library image
+  (`backendKind` neither `SharedLibrary` nor `StaticLibrary`) in
+  `Pass.InstructionCombine.ConstProp.cpp`. Globals still fold everywhere, and executables and JIT
+  still fold constants. The `InstCombine_ConstantAddressLoad_FoldsToRip` C++ unit test still
+  exercises the fold.
+- Current validation boundary: the OpenGL painter parity fixture has since been retired; its
+  recorded failure remains attribution evidence, not an available acceptance command. The
+  artifact-kind gate is still present in the current source.
+- Next: reproduce the miscompile in a `workspace` suite case that builds a library module holding a
+  pointer-carrying constant and reads it from a consumer, then bisect the library-image path
+  (base-relocation emission, export handling, and the register allocation that changes when the
+  address materialization is dropped) to the actual defect.
+- Complete when: the constant fold is sound for shared- and static-library images, the gate in
+  `Pass.InstructionCombine.ConstProp.cpp` is removed, a suite test guards the reduced repro, and
+  the reduced shared/static-library consumers plus the current Pixel and SVG CPU goldens pass.
 
 ### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
 
@@ -278,32 +346,6 @@ the executable Micro instruction stream has no explicit phi instruction.
   on both large kernels and identify a specific next change or retire this lead.
 - Related: compiler.optimization.006, compiler.optimization.024.
 
-### compiler.optimization.012 — The shipped broadcast hoist still needs a current mcChroma dump
-
-- Recorded: 2026-08-24 14:55
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: compiler/backend
-- Found while: std.video.001, reading the chroma interpolation loop of the H.264 decoder after the
-  vector temporaries stopped round-tripping through the frame.
-- Observation: the loop rebuilt the same four lane broadcasts on every row, each a `movd` from an
-  integer register followed by `pshufd`, while the replication feeding them (`zero_extend` then
-  `imul 0x10001`) already sat in the preheader. The opcode filter was only half of the refusal:
-  `VecShuffleRegRegImm`, `VecUnaryRegReg`, `OpBinaryRegRegImm`, `OpBinaryRegRegReg` and
-  `LoadVecRegMem` were ineligible, but making them eligible changed nothing because the profit
-  filter behind it keeps a hoist only when the instruction reads memory or feeds more than one
-  consumer, and each broadcast feeds exactly one multiply. Since 2026-09-03 the filter also keeps
-  a vector materialization (`isVectorMaterialization`, `Pass.LoopInvariantCodeMotion`): the
-  `movd` of an integer into a float register, a shuffle, or a three-operand vector op whose
-  inputs are invariant. A vector built from a scalar is cheap to keep live, and rebuilding it is
-  an integer-to-float move on every trip.
-- Evidence: `#[Swag.PrintMicro("post-licm")]` in release on an eight-lane `u16` row scaling:
-  the `zero_extend`, `imul 0x10001`, `movd` and `pshufd` all sit between the loop guard and the
-  header label, and the body multiplies straight from the hoisted register
-  (`LICM_HoistsSingleUseLaneBroadcast`).
-- Next: read `Video.H264.mcChroma` again in release and confirm its four broadcasts left the row
-  loop.
-- Complete when: the chroma interpolation loop shows no `movd` or `pshufd` in its body.
-
 ### compiler.optimization.015 — Carried-slot promotion still rejects multiple accesses or distinct exits
 
 - Recorded: 2026-08-27 07:57
@@ -431,45 +473,6 @@ the executable Micro instruction stream has no explicit phi instruction.
 - Complete when: a proven stable, side-effect-free by-value aggregate parameter costs no copy
   after inlining, written or indirectly mutable storage still preserves value semantics, and the value-returning shape of a block transform is as cheap as the in-place
   one on the video corpus.
-
-### compiler.optimization.026 — Folding a constant address into a RIP-relative load miscompiles library images
-
-- Recorded: 2026-09-02 14:39
-- Updated: 2026-09-05 22:13 — git: Take the fixed costs a profile named out of every short command
-- Area: compiler/backend
-- Found while: a repository health reset, chasing the `render.parity.stroke.cpu-ogl` golden that
-  compares the CPU and OpenGL painter backends. The OpenGL image came back entirely zero (all
-  24 576 pixels differ, `(0,0)` produced 0 against the expected clear colour), and the CPU image
-  was correct.
-- Observation: `tryFoldRelocatedAddressIntoAccess` (added by "Fold constant addresses into direct
-  loads") rewrites `LoadRegPtrReloc %base, <const K>` + `LoadRegMem %d, [%base + off]` into a
-  single `LoadRegMem %d, [rip]` whose relocation carries `K + off`. Disabling only the constant
-  case of that fold turns the golden green; re-enabling it turns it red again. The fold is the
-  cause, and it is confirmed with nothing else changed.
-- What was ruled out by inspection and by measurement, so the next attempt does not re-walk them:
-  the fold is value-equivalent (the folded `[rip]` load reads the exact bytes the base-plus-offset
-  load read — verified on `__utoa`'s `conv.buffer` load via `PrintMicro`); the merged-rdata REL32
-  addend and the internal linker's REL32 resolution (`PEWriter.cpp`) are correct; reachability of
-  the referenced constant and its transitive relocations is unchanged. The full `native` suite
-  (2 983 cases, an executable artifact) passes with the fold on, including non-zero-offset folds.
-  The break appears only when the folded function lands in a shared- or static-library image: the
-  folds that actually fire in the failing build are all in library modules (`__utoa`, `__itoa`,
-  `Argb.fromName`, `Pixel.Svg.parseColor`), none on the render path, so a library-image emission or
-  register-allocation cascade the fold triggers — not a wrong value in the folded function —
-  corrupts the module. `partitionArchiveObjects` is dead code, so the split-rdata archive path is
-  not the difference; executable and library targets share `partitionObjects`.
-- Mitigation in place: the constant case is gated to artifacts that do not emit a library image
-  (`backendKind` neither `SharedLibrary` nor `StaticLibrary`) in
-  `Pass.InstructionCombine.ConstProp.cpp`. Globals still fold everywhere, and executables and JIT
-  still fold constants. The `InstCombine_ConstantAddressLoad_FoldsToRip` C++ unit test still
-  exercises the fold.
-- Next: reproduce the miscompile in a `workspace` suite case that builds a library module holding a
-  pointer-carrying constant and reads it from a consumer, then bisect the library-image path
-  (base-relocation emission, export handling, and the register allocation that changes when the
-  address materialization is dropped) to the actual defect.
-- Complete when: the constant fold is sound for shared- and static-library images, the gate in
-  `Pass.InstructionCombine.ConstProp.cpp` is removed, a suite test guards the reduced repro, and
-  the `render.parity.stroke.cpu-ogl` golden stays green.
 
 ### compiler.optimization.006 — A hot loop's loop-carried locals all live in stack slots
 

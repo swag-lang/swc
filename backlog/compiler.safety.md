@@ -34,64 +34,19 @@ release proven on only one path, storage whose address the function does hand ov
 reached through a field of a receiver, and the operations that forge a pointer out of nothing being
 spelled like ordinary code. The entries below are ordered from the most recently updated down.
 
-Every entry below is backed by a compilable case in
-[bin/unittests/safety/corpus](../bin/unittests/safety/corpus): one file per CWE, a fault half
-that names the diagnostic it expects and a sound half that must stay silent, with each gap
-commented out and tagged with the entry that owns it. `rg "GAP " bin/unittests/safety/corpus`
+The fault-class entries use [bin/unittests/safety/corpus](../bin/unittests/safety/corpus):
+one file per CWE, a fault half that names the diagnostic it expects and a sound half that must
+stay silent. Unsafe gap examples are commented out and tagged with their owning entry; safe
+wrong-value probes may remain executable. Analysis, API, performance, and documentation entries
+also name their own evidence below; they do not all have a CWE reproducer. `rg "GAP " bin/unittests/safety/corpus`
 is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
-### compiler.safety.023 — Opaque results lose borrow provenance in nested calls and pointer-field reads
-
-- Recorded: 2026-09-08 20:48
-- Area: compiler/sema, `SemaEscape`
-- Evidence: while reducing the GUI timer release false positive, two additional diagnostic
-  coverage limits were confirmed with `swc.dm` 0.1.417 in `release`. With an opaque identity
-  helper, `let p = identity(&local); release(p)` raises `sanity_err_free_borrowed`, but
-  `release(identity(&local))` does not. With an opaque factory returning a heap carrier whose
-  `target` field holds `&local`, `release(carrier.target)` also stays silent. These were
-  semantic-only helper bodies, not executed invalid frees. The supported neighboring forms
-  are protected by `bin/unittests/sanity/borrow_free_carrier.swg`.
-- Cause: `callResultEscapeInfo` returns no immediate provenance; deferred snapshots are bound
-  at selected uses, including local initialization, but not composed for a nested call argument.
-  The member-access walker deliberately drops a copied pointer field's enclosing borrow: that
-  field need not alias the container. A factory's return-borrow mask says which parameters the
-  result can reach, but cannot identify the field carrying each parameter.
-- Next: compose deferred snapshots for nested arguments with bounded expression traversal, and
-  design returned-field provenance before extending pointer-field diagnostics. Preserve the
-  distinction between freeing a separate carrier and freeing the borrowed target; test a carrier
-  with both a borrowed field and an independently allocated field, through generated module APIs.
-- Complete when: both forms above are rejected without diagnosing releases of independently
-  allocated fields, and the focused sanity and workspace regressions pass with measured cost.
-
-### compiler.safety.022 — A COM object's ABI header is held first by a comment, not by the language
-
-- Recorded: 2026-09-08 18:59
-- Area: `std/gui`, language
-- Evidence: the four OLE objects in `gui/dragdrop.win32.swg` each open with the interface header
-  OLE calls through, and each says so in a comment - `lpVtbl: *IDropTargetVtbl?  // Interface
-  header OLE calls through; must stay first.` Recovering the Swag object is then C's `container_of`:
-  `cast(*SurfaceDropTarget) itf`. Nothing checks the invariant the comment states, so inserting a
-  field above `lpVtbl` silently breaks every callback OLE makes.
-- The fix the language already offers, and why it did not land with compiler.safety.006: writing
-  `using base: IDropTarget` instead of the copied field makes the composition real, the recovery a
-  checked descent, and the offset computed rather than assumed. It was built and reverted the same
-  day: `IDropTarget.lpVtbl` is non-nullable, so composing it leaves `SurfaceDropTarget` with no
-  valid implicit default, and `Memory.new'DragFormatEnum()` and `Memory.new'Surface()` stop
-  compiling. The blocker is a zero-initialized struct owning a non-nullable pointer, not the
-  composition itself.
-- Next: decide how a composed ABI header reaches its vtable pointer under zero-initialization -
-  a nullable `lpVtbl` in the four `ole32.swg` interface structs, a `late` field, or an explicit
-  constructor at each creation site - then compose the four objects and delete their `cast(*void)`.
-- Complete when: the four OLE objects compose their interface, the recovery is a checked descent,
-  and no comment in the file asks a field to stay first.
-- Related: compiler.safety.006 counts these among its 32 residual reinterpretation sites.
-
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
 - Recorded: 2026-09-04 17:05
-- Updated: 2026-09-08 18:59 — the unrelated-struct-pointer cast is now rejected, and the residual reinterpretation surface is 32 sites in 3 files
+- Updated: 2026-09-10 19:35 — Preserve the dated reinterpretation census without presenting it as a current inventory.
 - Area: language
 - Evidence: a short list of operations can produce a pointer to anything, and none of them is
   subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
@@ -110,12 +65,13 @@ is the current scorecard.
   - any call to a `#[Swag.Foreign]` function (compiler.safety.007).
   Each was verified to compile and to read out of bounds with no diagnostic, except the struct-pointer
   one, now closed.
-- What closing it measured, which is the number this entry was waiting for: across shipped `bin/`
-  the rule rejects **32 sites in 3 files**, and every one of them is a Win32/COM binding -
+- Historical census (2026-09-08): the rule rejected **32 sites in 3 files** in the
+  `bin/` build exercised then, and every one of them is a Win32/COM binding -
   `audio/driver/xaudio2.swg` (10, a COM voice handed to a base-voice entry point),
   `gui/dragdrop.win32.swg` (7) and its test (15), which recover a Swag object from the OLE
-  interface pointer it starts with. Zero sites in the three applications, the examples, the
-  reference or `bin/runtime`. The reinterpretation surface is therefore not spread through the
+  interface pointer it starts with. That run reported none in its application, example, reference, or runtime selections.
+  This is historical evidence, not a census of all four current applications and tagged tests;
+  the health reset subsequently corrected a cast in Vault's explicitly tagged COM integration test. The reinterpretation surface is therefore not spread through the
   codebase: it is a binding-layer boundary, small enough that the marker this entry wants can be
   written for it, and `*void` already makes each one visible to `grep`.
 - Consequence: Swag cannot state what its safe subset guarantees, because it has no safe subset —
@@ -182,7 +138,8 @@ is the current scorecard.
   `bin/std/modules/gui/src/tests/scroll.test.swg`; `isEditorWnd` in `properties.keyboard.swg` had
   the same shape and was made robust. Hand-rolling the tag makes the exact-versus-ancestor mistake
   the default one.
-- Next: give the 32 remaining reinterpretations their marker. They are one population - a binding
+- Next: recount the current reinterpretation boundary, including tagged native integration
+  tests, then give the remaining operations their marker. They are one population - a binding
   recovering its own object from an ABI header - so a file-level opt-in on the two binding files
   costs application code nothing and states the boundary in two places instead of thirty-two.
   Decide between that and a per-expression `#unsafe`, then apply it and delete the `*void` hops.
@@ -194,6 +151,78 @@ is the current scorecard.
   bindings that must stay byte-compatible, and one deliberate bit view. The untagged form therefore
   survives at the interop and bit-punning boundary, which is where the marker belongs and where it
   joins compiler.safety.007. Also compiler.safety.014.
+
+### compiler.safety.011 — `!` and `late` stop asserting in release
+
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-09-10 19:35 — Use the current late-field spelling and qualify the unchecked-null outcome.
+- Area: language, runtime guards
+- Evidence: `p!` is guarded by `.Expect` and an unset `late` read by `.Null` — two different
+  assertions under two different flags, both off in `release` by default. A violated invariant gets a located panic in `devmode`; in unguarded `release`,
+  the assertion itself does not diagnose the null. A later dereference can fault or reach an
+  unrelated mapped address, depending on the address and offset. Naming either flag in `#[Swag.Safety]` restores its guard in `release`, so the gap is the
+  default rather than the mechanism.
+- Consequence: the located invariant diagnostic disappears exactly
+  where it is hardest to reproduce. `!` is the spelling the language recommends for "an invariant
+  makes this present, and a null here is a bug worth stopping on"; in `release` it stops on nothing
+  it can name.
+- Elsewhere: Rust's `unwrap` panics with a message in every profile. Zig makes it the difference
+  between `ReleaseSafe` and `ReleaseFast`, which is the shape Swag already has — except that Swag
+  has no named configuration for it, so every project that wants the guards has to discover
+  `buildCfg.safetyGuards` and assemble one.
+- Next: this is a packaging gap, not a default to flip. A guarded release — optimized code with
+  `safetyGuards` on — should be a configuration the compiler registers and the reference names, so
+  "ship it with the checks" is one flag rather than a build file nobody writes. Then measure it
+  once, on an application, so the trade is a number and not a guess.
+- Complete when: a guarded release configuration exists and is documented, and its cost on one
+  application workload is recorded.
+- Related: compiler.safety.008 is what makes that configuration affordable.
+
+### compiler.safety.023 — Opaque results lose borrow provenance in nested calls and pointer-field reads
+
+- Recorded: 2026-09-08 20:48
+- Area: compiler/sema, `SemaEscape`
+- Evidence: while reducing the GUI timer release false positive, two additional diagnostic
+  coverage limits were confirmed with `swc.dm` 0.1.417 in `release`. With an opaque identity
+  helper, `let p = identity(&local); release(p)` raises `sanity_err_free_borrowed`, but
+  `release(identity(&local))` does not. With an opaque factory returning a heap carrier whose
+  `target` field holds `&local`, `release(carrier.target)` also stays silent. These were
+  semantic-only helper bodies, not executed invalid frees. The supported neighboring forms
+  are protected by `bin/unittests/sanity/borrow_free_carrier.swg`.
+- Cause: `callResultEscapeInfo` returns no immediate provenance; deferred snapshots are bound
+  at selected uses, including local initialization, but not composed for a nested call argument.
+  The member-access walker deliberately drops a copied pointer field's enclosing borrow: that
+  field need not alias the container. A factory's return-borrow mask says which parameters the
+  result can reach, but cannot identify the field carrying each parameter.
+- Next: compose deferred snapshots for nested arguments with bounded expression traversal, and
+  design returned-field provenance before extending pointer-field diagnostics. Preserve the
+  distinction between freeing a separate carrier and freeing the borrowed target; test a carrier
+  with both a borrowed field and an independently allocated field, through generated module APIs.
+- Complete when: both forms above are rejected without diagnosing releases of independently
+  allocated fields, and the focused sanity and workspace regressions pass with measured cost.
+
+### compiler.safety.022 — A COM object's ABI header is held first by a comment, not by the language
+
+- Recorded: 2026-09-08 18:59
+- Area: `std/gui`, language
+- Evidence: the four OLE objects in `gui/dragdrop.win32.swg` each open with the interface header
+  OLE calls through, and each says so in a comment - `lpVtbl: *IDropTargetVtbl?  // Interface
+  header OLE calls through; must stay first.` Recovering the Swag object is then C's `container_of`:
+  `cast(*SurfaceDropTarget) itf`. Nothing checks the invariant the comment states, so inserting a
+  field above `lpVtbl` silently breaks every callback OLE makes.
+- The fix the language already offers, and why it did not land with compiler.safety.006: writing
+  `using base: IDropTarget` instead of the copied field makes the composition real, the recovery a
+  checked descent, and the offset computed rather than assumed. It was built and reverted the same
+  day: `IDropTarget.lpVtbl` is non-nullable, so composing it leaves `SurfaceDropTarget` with no
+  valid implicit default, and `Memory.new'DragFormatEnum()` and `Memory.new'Surface()` stop
+  compiling. The blocker is a zero-initialized struct owning a non-nullable pointer, not the
+  composition itself.
+- Next: decide how a composed ABI header reaches its vtable pointer under zero-initialization -
+  a nullable `lpVtbl` in the four `ole32.swg` interface structs, a `late` field, or an explicit
+  constructor at each creation site - then compose the four objects and delete their `cast(*void)`.
+- Complete when: the four OLE objects compose their interface, the recovery is a checked descent,
+  and no comment in the file asks a field to stay first.
+- Related: compiler.safety.006 counts these among its 32 residual reinterpretation sites.
 
 ### compiler.safety.020 — A release through storage a callee could re-establish is not judged
 
@@ -414,33 +443,6 @@ is the current scorecard.
 - Complete when: converting an integer to an enum has one documented rule, the flags case is
   specified separately, and `bin/unittests` covers a valid value, an out-of-range value, and a flags
   combination.
-
-### compiler.safety.011 — `!` and `Swag.Late` stop asserting in release
-
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: language, runtime guards
-- Evidence: `p!` is guarded by `.Expect` and an unset `late` read by `.Null` — two different
-  assertions under two different flags, both off in `release` by default. Each panics with a
-  located message in `devmode` and, in `release`, dereferences null: a hardware fault at a low
-  address for a small offset, and an unmapped-in-practice-but-not-guaranteed address for a large
-  one. Naming either flag in `#[Swag.Safety]` restores its guard in `release`, so the gap is the
-  default rather than the mechanism.
-- Consequence: the fault is not silent, which is what matters, but the diagnostic disappears exactly
-  where it is hardest to reproduce. `!` is the spelling the language recommends for "an invariant
-  makes this present, and a null here is a bug worth stopping on"; in `release` it stops on nothing
-  it can name.
-- Elsewhere: Rust's `unwrap` panics with a message in every profile. Zig makes it the difference
-  between `ReleaseSafe` and `ReleaseFast`, which is the shape Swag already has — except that Swag
-  has no named configuration for it, so every project that wants the guards has to discover
-  `buildCfg.safetyGuards` and assemble one.
-- Next: this is a packaging gap, not a default to flip. A guarded release — optimized code with
-  `safetyGuards` on — should be a configuration the compiler registers and the reference names, so
-  "ship it with the checks" is one flag rather than a build file nobody writes. Then measure it
-  once, on an application, so the trade is a number and not a guess.
-- Complete when: a guarded release configuration exists and is documented, and its cost on one
-  application workload is recorded.
-- Related: compiler.safety.008 is what makes that configuration affordable.
 
 ### compiler.safety.014 — Nothing states what the safe subset guarantees
 

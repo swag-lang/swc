@@ -30,6 +30,22 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
+### language.parallelism.011 — No channel abstraction
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-10 19:32 — Move the runtime channel contract from the Core integration domain.
+- Historical provenance: moved from retired std.core.026.
+- Evidence: no typed channel defines transfer, capacity, close, cancellation, and selection
+  together. A producer and a consumer that need one build it from `Swag.Mutex` and
+  `Swag.Condition` by hand, which is what the Swag Scope video queue does.
+- Next: define the bounded, rendezvous, and one-shot forms in `bin/runtime`, with their endpoint,
+  selection, and rejected-message types. Settle endpoint clone and drop behavior, draining after
+  close, ownership of a moved message rejected before acceptance, and the single commit point of a
+  selection before adding any Core convenience function.
+- Complete when: focused channel and selection tests cover backpressure, closure, cancellation,
+  simultaneous readiness, and withdrawal without a lost message or a duplicate consumption.
+- Related: language.parallelism.002, std.core.025
+
 ### language.parallelism.001 — The shipped model, and the promises it does not yet make
 
 - Recorded: 2026-09-06 07:51
@@ -52,7 +68,7 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
   Do not advertise race freedom in the reference or in the runtime documentation until .005 holds.
 - Complete when: those four foundational entries are closed and the language reference states one contract for
   ownership, suspension, cancellation, failure and memory access that the compiler enforces.
-- Related: std.core.025, std.core.026, std.core.028, compiler.safety.005, compiler.safety.006,
+- Related: std.core.025, language.parallelism.011, std.core.028, compiler.safety.005, compiler.safety.006,
   compiler.safety.007, compiler.safety.014, runtime.allocator.004, platform.portability.035.
 
 #### Progress and memory-model boundaries that already apply

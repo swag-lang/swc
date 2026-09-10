@@ -39,14 +39,43 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.035 — Synchronization primitives have no second-platform backend
 
 - Recorded: 2026-08-09 11:30
-- Updated: 2026-09-07 18:27 — names the runtime host functions a port supplies
+- Updated: 2026-09-10 19:53 — Include Core named interprocess events beside the runtime synchronization hooks.
 
 Implement mutexes, read-write locks, conditions, and events for the chosen second platform behind
 the existing portable contracts. `bin/runtime` reaches them through its `__hostLock*`,
-`__hostCondition*` and `__hostThread*` functions, so a port supplies those and nothing above them
-changes.
+`__hostCondition*` and `__hostThread*` functions. Core also retains Windows-only
+`Sync.Event`, including the named interprocess event used by Prism through `initNamed`; that
+contract is not supplied by the runtime lock/condition hooks alone. A second backend must
+match its shared-name scope, reset mode, signal-before-wait behavior, and independent handle
+lifetimes without exposing Windows handles or the `Local\` namespace to common callers.
 
 - Related: platform.portability.034, language.parallelism.003
+
+### platform.portability.014 — The Windows virtual-key alias remains in portable input declarations
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-10 19:53 — Narrow the remaining work to the virtual-key alias; image and surface adapters are already separated.
+
+- Evidence: image handle conversions and `Surface.win32Handle` already live in Windows
+  adapter files. Their native signatures are intentional optional interoperability.
+  `Input.VirtualKey`, however, is still declared in neutral `key.swg` and exercised in
+  neutral `key.test.swg`; the conversion functions themselves live in `keyboard.win32.swg`.
+- Next: keep that alias and its tests with the optional keyboard adapter. Common declarations
+  and consumers should need only `Input.Key` and normalized events.
+- Complete when: a neutral input compilation contains no virtual-key declaration or native
+  adapter dependency, while Windows keyboard conversion tests still cover the mapping.
+
+### platform.portability.065 — Audio has no real non-Windows backend
+
+- Recorded: 2026-08-30 12:27
+- Updated: 2026-09-10 19:53 — Account for the completed silent fallback and the remaining repeated-dispatch boundary.
+- `DriverKind` is `Default`, `NoSound`, `XAudio2`. Off Windows, `Default` resolves to silence.
+- The backend dispatcher already supports explicit `NoSound`, uses it as the non-Windows
+  default, and rejects unavailable `XAudio2`. Its repeated compile-time branches still need the
+  interface work in platform.portability.027 before another backend is added. CoreAudio and ALSA or PulseAudio are the obvious
+  targets; WASAPI directly would also remove the XAudio2 dependency on Windows.
+- Complete when: one chosen non-Windows target opens a real output device and passes the common
+  engine, voice, bus, streaming, and device-lifecycle contract while `NoSound` remains explicit.
 
 ### platform.portability.062 — Drag and drop has no second-platform integration
 
@@ -416,15 +445,6 @@ and recursive traversal.
 
 - Related: platform.portability.033, platform.portability.013
 
-### platform.portability.014 — Optional Windows interop is mixed into portable types
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Keep `Pixel.Image` conversions to `HICON`/`HBITMAP`, `Gui.Surface.win32Handle`, and keyboard
-  virtual-key conversion as optional Windows interop, not methods required of every target.
-  Portable callers should use images, opaque render handles, `Input.Key`, and normalized events.
-
 ### platform.portability.015 — Desktop actions and application registration share one environment API
 
 - Recorded: 2026-08-09 11:06
@@ -547,18 +567,7 @@ Replace the repeated `#os == Windows` dispatch in `driver/backend.swg` with a ba
   operation table. Driver selection, validation, voice/bus lifecycle, streaming-buffer rotation,
   gain conversion, state transitions, and codec work stay common; XAudio2 is one implementation.
 
-- Related: platform.portability.065, platform.portability.028
-
-### platform.portability.028 — The no-sound backend is not the explicit portable fallback contract
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Keep the no-sound backend available on every target and add the Linux backend under platform.portability.065 without
-  changing `SoundFile`, `Voice`, or `Bus`. A build that explicitly selects XAudio2 on Linux should
-  fail as an unavailable optional backend, not make the Audio module itself Windows-dependent.
-
-- Related: platform.portability.065, platform.portability.027
+- Related: platform.portability.065
 
 ### platform.portability.029 — Timer scheduling policy remains in the native backend
 
@@ -831,17 +840,6 @@ platform.portability.049.
   second backend can implement or reject the same operation explicitly.
 - Related: std.audio.008, std.audio.009, std.audio.014
 
-### platform.portability.065 — Audio has no real non-Windows backend
-
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- `DriverKind` is `Default`, `NoSound`, `XAudio2`. Off Windows, `Default` resolves to silence.
-- The backend boundary in `src/driver/backend.swg` is clean and already has two implementations, so
-  a third is additive rather than structural. CoreAudio and ALSA or PulseAudio are the obvious
-  targets; WASAPI directly would also remove the XAudio2 dependency on Windows.
-- Complete when: one chosen non-Windows target opens a real output device and passes the common
-  engine, voice, bus, streaming, and device-lifecycle contract while `NoSound` remains explicit.
-
 ### platform.portability.066 — Renderer backend choice has no target matrix
 
 - Recorded: 2026-08-30 12:27
@@ -849,7 +847,7 @@ platform.portability.049.
 - `render/` has `cpu` and `ogl`. There is no Vulkan, Direct3D, Metal or WebGPU path.
 - On Windows this is the weakest choice available: OpenGL driver quality varies widely, and some
   ARM devices have no usable implementation at all. Skia ships GL, Vulkan, Metal and D3D.
-- This also intersects platform.portability.032. Choose the next renderer from the operating systems and hardware the
+- This also intersects platform.portability.050. Choose the next renderer from the operating systems and hardware the
   project intends to ship, rather than adding a backend independently of the port plan.
 - The backend boundary is already two implementations deep, so a third is additive.
 - Complete when: the supported OS/GPU matrix names the default and fallback renderer for each

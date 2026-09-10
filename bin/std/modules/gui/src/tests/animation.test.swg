@@ -62,6 +62,33 @@ func linearSecond()->AnimationOptions
     return result
 }
 
+// A scroll endpoint can cancel its own glide while clamping to a streamed viewport. Finishing
+// animations must retain the callback's track until its update and invalidation have returned.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+    let target  = Wnd.create'Wnd(&host.root)
+    let channel = AnimationChannel.from("test.cancel.endpoint")
+    AnimationTestCompleted = 0
+    let handle = host.app.animator.animateF32(target,
+                                              channel,
+                                              0,
+                                              1,
+                                              func(wnd, value)
+                                              {
+                                                  if value == 1 do
+                                                      wnd.app().animator.cancel(wnd, AnimationChannel.from("test.cancel.endpoint"))
+                                              },
+                                              linearSecond(),
+                                              &animationCompleted)
+    host.finishAnimations()
+    Swag.assert(not host.app.animator.isActive(handle) and host.app.animator.activeCount() == 0)
+    Swag.assert(AnimationTestCompleted == 1 and AnimationTestResult == .Cancelled)
+}
+
 // Typed parallel tracks sample deterministically at 0, 50, and 100 percent.
 #test
 {

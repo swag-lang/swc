@@ -305,7 +305,7 @@ private impl View
         // otherwise make the scrollbar start much too short and grow during every seek.
         let renderedEnd = .pendingIndex < .pendingBlocks.count ? .pendingBlocks[.pendingIndex].sourceOffset : .bytesRead - Math.min(.bytesRead, .sourceCarry.length)
         let consumed    = renderedEnd > .residentStart ? renderedEnd - .residentStart : 0
-        if consumed and (.bytesRead < .fileSize or .residentStart)
+        if consumed and (renderedEnd < .fileSize or .residentStart)
         {
             let residentHeight = Math.max(loadedHeight - .virtualOrigin, 1)
             .virtualHeight  = Math.max(residentHeight * cast(f32) .fileSize / cast(f32) consumed, .virtualHeight)
@@ -698,8 +698,9 @@ private impl View
 
         var stopwatch: Time.Stopwatch
         stopwatch.start()
-        let blockBudget = .prioritizeViewport ? SeekBlockBudget : StreamBlockBudget
-        let frameBudget = .prioritizeViewport ? SeekFrameBudget : StreamFrameBudget
+        let visibleWork = .prioritizeViewport or .waitingScroll
+        let blockBudget = visibleWork ? SeekBlockBudget : StreamBlockBudget
+        let frameBudget = visibleWork ? SeekFrameBudget : StreamFrameBudget
         var blockCount  = 0'u32
         while .needsMore() and blockCount < blockBudget
         {
@@ -727,7 +728,10 @@ private impl View
 
             .pendingIndex += 1
             blockCount    += 1
-            if .prioritizeViewport and not .jumpToEnd and .contentHeight >= .pendingTarget + .scroll.paddedClientRect().height do
+            var target = .replacementAnchored ? .scroll.scrollPosition().y : .pendingTarget
+            if .waitingScroll do
+                target = Math.max(target, .waitingScrollTarget.y)
+            if visibleWork and not .jumpToEnd and (.replacementAnchorOffset == Swag.U64.Max or .replacementAnchored) and .contentHeight >= target + .scroll.paddedClientRect().height do
                 break
             if not .app().deterministicStreaming and stopwatch.elapsedMicroseconds() >= frameBudget do
                 break
@@ -755,7 +759,9 @@ private impl View
         let targetHeight = .scroll.paddedClientRect().height * (.prioritizeViewport ? 1 : 2)
         if anchorReady and .hasPendingTarget and .pendingSearch.isEmpty() and (.pendingTarget + targetHeight <= .contentHeight or not .hasUnloadedSource())
         {
-            let keepPosition = .replacementAnchored
+            let keepPosition   = .replacementAnchored
+            let animating      = .app().animator.isActive(.scroll.scrollAnimation)
+            let animatedTarget = .scroll.scrollTarget()
             .hasPendingTarget    = false
             .pendingTargetOffset = Swag.U64.Max
             .prioritizeViewport  = false
@@ -767,6 +773,8 @@ private impl View
             {
                 .repositioning = true
                 .scroll.setScrollPos(position.x, .pendingTarget)
+                if animating do
+                    .scroll.smoothScrollTo(animatedTarget)
                 .repositioning = false
             }
         }
@@ -887,74 +895,22 @@ private impl View
         let position = .scroll.scrollPosition()
         let viewport = .scroll.paddedClientRect()
         let page     = Math.max(viewport.height - .scroll.verticalScrollStep, .scroll.verticalScrollStep)
-        var target   = .hasPendingTarget ? .pendingTarget : position.y
-        var forward: bool
+        var target   = .waitingScroll ? .waitingScrollTarget.y : .hasPendingTarget ? .pendingTarget : .scroll.scrollTarget().y
         switch evt.key
         {
-        case .Up where evt.modifiers == .None:
-            target -= .scroll.verticalScrollStep
-
-        case .Down where evt.modifiers == .None:
-            target  += .scroll.verticalScrollStep
-            forward = true
-
-        case .PageUp where evt.modifiers == .None:
-            target -= page
-
-        case .PageDown where evt.modifiers == .None:
-            target  += page
-            forward = true
-
-        case .Home where evt.modifiers == .None or evt.modifiers == .Control:
-            .jumpToEnd           = false
-            .hasPendingTarget    = false
-            .pendingTargetOffset = Swag.U64.Max
-            if .residentStart do
-                discard .revealFileOffset(0, "")
-            .scroll.setScrollPos(position.x, 0)
-            return true
-
-        case .End where evt.modifiers == .None or evt.modifiers == .Control:
-            .hasPendingTarget = false
-            if .fileSize and (.residentStart + (.bytesRead - .residentStart) < .fileSize)
-            {
-                let start = .fileSize > StreamCarryLimit ? .fileSize - StreamCarryLimit : 0
-                .jumpToEnd = true
-                discard .revealFileOffset(start, "")
-            }
-            else do
-                .scroll.setScrollPos(position.x, .contentHeight)
-            return true
-
-        case .Space where evt.modifiers == .None:
-            target  += page
-            forward = true
-
-        case .Space where evt.modifiers == .Shift:
-            target -= page
-
-        default:
-            return false
+        case .Up where evt.modifiers == .None:                                target -= .scroll.verticalScrollStep
+        case .Down where evt.modifiers == .None:                              target += .scroll.verticalScrollStep
+        case .PageUp where evt.modifiers == .None:                            target -= page
+        case .PageDown where evt.modifiers == .None:                          target += page
+        case .Home where evt.modifiers == .None or evt.modifiers == .Control: target = 0
+        case .End where evt.modifiers == .None or evt.modifiers == .Control:  target = .scroll.scrollableClientRect().height
+        case .Space where evt.modifiers == .None:                             target += page
+        case .Space where evt.modifiers == .Shift:                            target -= page
+        default: return false
         }
 
-        .jumpToEnd = false
-        if forward and .hasUnloadedSource() and target + viewport.height > .contentHeight
-        {
-            if .bytesRead - .residentStart >= ResidentSourceSize and .virtualHeight > 0 and .fileSize
-            {
-                let offset = cast(u64) (Math.clamp(target / .virtualHeight, 0, 1) * cast(f32) .fileSize)
-                discard .revealFileOffset(offset, "")
-                return true
-            }
-
-            .hasPendingTarget    = true
-            .pendingTarget       = target
-            .pendingTargetOffset = Swag.U64.Max
-            .scheduleMore()
-            return true
-        }
-
-        .hasPendingTarget = false
+        // The same position notification owns loading, cancellation and viewport protection for
+        // keyboard steps, wheel glides and scrollbar gestures.
         .scroll.setScrollPos(position.x, target)
         return true
     }
@@ -1080,8 +1036,12 @@ impl View
 
             // Keep an in-flight overlap alive while the wheel moves inside its visible window.
             // A distant scrollbar gesture can still supersede it immediately.
-            let viewport   = view.scroll.paddedClientRect()
-            let continuous = view.wheelScrolling or view.app().animator.isActive(view.scroll.scrollAnimation) or Math.abs(newPosition.y - oldPosition.y) <= viewport.height
+            let viewport = view.scroll.paddedClientRect()
+
+            // Until a direct jump is published, the old resident range cannot clamp a following
+            // wheel or key step: that step belongs to the requested destination.
+            let directSeek = (view.pendingSeek and not view.pendingSeekPreservesPosition) or (view.prioritizeViewport and view.replacementAnchorOffset == Swag.U64.Max)
+            let continuous = not directSeek and (view.wheelScrolling or view.app().animator.isActive(view.scroll.scrollAnimation) or Math.abs(newPosition.y - oldPosition.y) <= viewport.height)
             if continuous
             {
                 view.waitingScroll = false
@@ -1494,7 +1454,7 @@ impl View
         .repositioning = true
         defer .repositioning = wasRepositioning
         .stopLoading()
-        .prioritizeViewport = viewportFirst
+        .prioritizeViewport = viewportFirst or preservePosition
 
         // Only an overlapping prefetch belongs to the held gesture. A search or explicit
         // jump owns a new destination and must not resume the wheel's older request.
@@ -1579,7 +1539,10 @@ impl View
             }
             elif actual
             {
-                let probeEnd = localTarget > ReverseContextSize ? localTarget - ReverseContextSize : Math.min(localTarget, StreamChunkSize)
+                // Overlap only a few screens when continuing a gesture. Parsing a fixed 32 KiB
+                // prefix can take hundreds of blocks before the wheel's first line is ready.
+                let context  = preservePosition ? Math.min(ReverseContextSize, Math.max(viewportBytes * 2, 1024'u64)) : ReverseContextSize
+                let probeEnd = localTarget > context ? localTarget - context : Math.min(localTarget, StreamChunkSize)
                 boundary = streamBoundary(chunk.toString()[0 until probeEnd])
                 if not boundary and localTarget > probeEnd do
                     boundary = streamBoundary(chunk.toString()[0 until localTarget])
@@ -1771,16 +1734,17 @@ internal impl IWnd for View
     mtd impl onPaint(evt: *PaintEvent)
     {
         discard evt
-        if .pendingSeek and not .pendingSeekPreservesPosition
+        if .pendingSeek
         {
             let offset = .pendingSeekOffset
-            discard .beginReveal(offset, "", viewportFirst: true)
+            let preservePosition = .pendingSeekPreservesPosition
+            discard .beginReveal(offset, "", preservePosition, viewportFirst: not preservePosition)
         }
 
-        if not .prioritizeViewport do
+        if not .prioritizeViewport and not .waitingScroll do
             return
         .streamStep()
-        if (.hasPendingTarget or .jumpToEnd) and not .retainedBlocks.isEmpty()
+        if (.hasPendingTarget or .jumpToEnd) and .replacementAnchorOffset == Swag.U64.Max and not .retainedBlocks.isEmpty()
         {
             // Slow image decoding may outlive this frame. Keep the previous reading surface
             // intact until the complete destination can replace it.

@@ -6,6 +6,87 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.030 — Every executable lowers the runtime's functions again
+
+- Recorded: 2026-09-05 22:13
+- Updated: 2026-09-10 19:43 — Keep the remaining outcome focused on cached runtime code after the JIT attribution was rejected.
+
+**Evidence.** Profiled on 2026-09-05 (Release 0.1.367 with a PDB, six worker cores, a user-mode sampling profiler): a hello world build spends 38 % of its thread samples in `CodeGenJob::exec`, 31 % of them in `MicroPassManager::run`, against 8 to 11 % in semantic analysis. The stage log says why — `tuned 172 functions`, `forged 320 functions`, for a four-line program: the runtime's own functions are lowered and optimized again for every executable, at the `release` preset's `O2`. `swc sema` on an empty file shows the same shape at 19 %: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` (bin/runtime/core.swg) JIT-lowers about a hundred runtime functions so that the build configuration, which the compiler already holds in C++, can be read back through compile-time execution. On a quiet machine the same run measured `swc help` at 34 ms, the prelude's syntax at 35 ms, its sema at 165 ms and the hello world build at 197 ms (0.1.369, six cores); the campaign's `hello_build` target is 50 ms.
+
+**Evidence (2026-09-09, Release 0.1.422, twelve workers, minimum of ten interleaved runs).** The JIT half of this entry no longer costs a native build anything: replacing `const __buildCfg = #run …` with a plain variable in the prelude leaves a snippet build at 91 ms either way, with the same 448 tuned and 441 forged functions, because a native artifact lowers the runtime regardless. The lowering half is what remains, and it is now the largest term of a Swag Prism snippet compilation: the same probe takes 116 ms as a static library and 68 ms with `--artifact-kind export`, so lowering and linking the runtime is 48 ms of it, against 52 ms for the prelude's own semantic pass (compiler.core.006) and 16 ms of process start.
+
+**Intent.** Keep the runtime's lowered code between builds — per compiler build, configuration and architecture, like the module setup cache keeps a setup. Prelude-state reuse belongs to compiler.core.006; this entry owns lowered runtime artifacts.
+
+**Complete when.**
+
+- A build whose sources contain no compile-time execution lowers nothing of the runtime and runs no JIT code.
+- The cached runtime code is invalidated by the compiler build, the runtime sources, the configuration and the target, and a workspace test proves a fresh and a reused runtime produce identical executables.
+- `hello_build` in the compiler.core.004 campaign reads under 50 ms on the campaign host.
+
+**Related:** compiler.core.001, compiler.core.004, compiler.core.006, compiler.optimization.029.
+
+### compiler.core.032 — Repeated module builds publish different borrow summaries
+
+- Recorded: 2026-09-07 10:43
+- Updated: 2026-09-10 19:43 — Use an intentionally invalid reduced consumer after the original Core lifetime sites were repaired.
+- Found while: checking public-export equivalence during the standard-module compilation campaign.
+- Evidence: four complete `core` rebuilds with the same frozen Release 0.1.390 binary, identical
+  tracked sources, `devmode`, and six workers alternated between publishing and omitting
+  `BorrowSummary(0, 0, 0, 0, 1, 0)` on both `Core.Math.Curve.addKey` overloads. The foreign symbol
+  names stayed identical. Both A and B in the recorded control refer to the same executable and
+  SHA-256; one of four warm rebuild snapshots omitted the attributes. This predates the campaign's
+  compiler changes. [Raw control data](../bench/results/compilation/20260907/api-baseline-repeats.json)
+  includes the full foreign-attribute lines and commands.
+- Evidence (2026-09-09, six workers, devmode, `swc tools/std.swgs dm test core --rebuild`): the
+  same tracked sources and the same compiler binary produced seven
+  `borrowed data from local variable 'buffer' escapes through a stored call argument` errors in
+  one rebuild and none in the three that followed it, with no edit in between. The sites were
+  `core`'s own tests, `tests/serialization/tagbin_itfarray.test.swg:142` among them, on a
+  `ConcatBuffer` passed to `encoder.writeAll`. `fdf901acc` then outlived those encoders by the
+  buffers they borrow, in exactly those three files, which settles what the runs disagreed about:
+  the diagnostics were right and three rebuilds out of four failed to produce them. So the
+  instability is not a cosmetic difference in an exported attribute. It decides whether a real
+  escape is reported at all, and a suite that passes says nothing about the run that follows.
+- Observation: `ModuleApiExport.Generate.cpp::collectMissingFunctionAttributes` serializes the
+  summary masks. `Symbol.Function.h` says body sema and the final summary fixpoint grow those
+  masks. The ordering or publication defect has not yet been isolated.
+- Next: preserve a reduced semantic-only consumer with the original invalid buffer lifetime
+  from before `fdf901acc`, then repeat parallel provider builds and compare both its diagnostic
+  and the exported summaries. The repaired Core tests now keep buffers alive and must not be
+  expected to reproduce that former lifetime error. Trace summary completion and API emission through the final
+  `SemaEscape::reportDeferredChecks` fixpoint from that difference, and reduce it to a
+  provider/consumer regression.
+- Complete when: repeated parallel provider rebuilds publish identical summaries, a consumer
+  consistently observes the corresponding invalidation contract, and a hundred consecutive `core`
+  rebuilds compile.
+### compiler.core.004 — The benchmark campaign has no regression threshold on the edit-build loop
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-10 19:43 — Account for the September 6 campaign that already records edit-build workloads.
+
+**Evidence.** Since 2026-09-05 the campaign measures the edit-build loop beside the seven tasks: `core_rebuild`, `core_noop`, `core_touch`, `hello_build`, `doc_std` and `format_tree` (`bench/toolchains.py`, `make_compiler_workloads` and `make_hello_builds`), each recorded with wall time, every sample and peak memory, corrected by the campaign's compilation context and indexed against the first clean campaign that measured it (`history.py`, `index_loop`). `bench/compile.py` answers the round-by-round A/B between two compilers. On 2026-09-05, Release 0.1.366, six worker cores, medians of five on a quiet machine: `core_rebuild` 3 485 ms, `core_noop` 334 ms, `core_touch` 3 214 ms, `format_tree` 5.6 s at one busy core, `doc_std` 142 s and 3.3 GiB peak, the standard-library publish pass included. The four August protocol-2 records predate these workloads. The later
+[20260906-143159 record](../bench/results/20260906-143159.json) contains all five `loop`
+workloads and the separate hello-world build result. One such record does not establish the
+five-campaign baseline band required below.
+
+**Intent.** Record enough clean campaigns to know the resolution of each workload, then make the campaign report a regression instead of only plotting it.
+
+**Measurement caveat (2026-09-06).** The original benchmark memory field is process-tree peak
+committed memory. The instrument now records the timed process's peak working set separately;
+older samples have no resident-memory value and must not be used to set that threshold. Memory
+is not normalized by timing context. Formatter source mirrors now preserve `.swc-format` and
+the maintenance tool's complete input selection; the remaining input-opening bias is tracked
+in repo.tooling.007. Establish the baseline band using these corrected inputs and explicit
+compiler-worker counts.
+
+**Complete when.**
+
+- At least five clean baseline campaigns establish the resolution band of every edit-build workload, as the null indices already do for the tasks.
+- The campaign reports a workload that moved past its band without silently rewriting the baseline.
+- Release and DevMode are measured where their behavior differs, and the report says which one a number belongs to.
+
+**Related:** compiler.core.002, compiler.core.005, compiler.core.007.
+
 ### compiler.core.039 — One module analysis resolves four and a half million substitutions
 
 - Recorded: 2026-09-09 17:44
@@ -32,25 +113,6 @@ The reason is that a frame is trivially copyable in the parts that dominate its 
 **Next.** Count what a push still constructs non-trivially — the remaining `SmallVector`s of `SemaFrame` and `AttributeList` — and remove the ones a scope almost never fills, as `printMicroPassOptions` was removed. Do not spend effort on the copy count or on `frames_.reserve`: the stack never exceeds 13 frames for a file and 36 for a module build, so growth is not a cost either.
 
 **Related:** compiler.core.001, compiler.core.005, compiler.core.006.
-
-### compiler.core.030 — Every executable lowers the runtime's functions again
-
-- Recorded: 2026-09-05 22:13
-- Updated: 2026-09-09 12:34 — remeasured on 0.1.422: the JIT half costs a native build nothing
-
-**Evidence.** Profiled on 2026-09-05 (Release 0.1.367 with a PDB, six worker cores, a user-mode sampling profiler): a hello world build spends 38 % of its thread samples in `CodeGenJob::exec`, 31 % of them in `MicroPassManager::run`, against 8 to 11 % in semantic analysis. The stage log says why — `tuned 172 functions`, `forged 320 functions`, for a four-line program: the runtime's own functions are lowered and optimized again for every executable, at the `release` preset's `O2`. `swc sema` on an empty file shows the same shape at 19 %: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` (bin/runtime/core.swg) JIT-lowers about a hundred runtime functions so that the build configuration, which the compiler already holds in C++, can be read back through compile-time execution. On a quiet machine the same run measured `swc help` at 34 ms, the prelude's syntax at 35 ms, its sema at 165 ms and the hello world build at 197 ms (0.1.369, six cores); the campaign's `hello_build` target is 50 ms.
-
-**Evidence (2026-09-09, Release 0.1.422, twelve workers, minimum of ten interleaved runs).** The JIT half of this entry no longer costs a native build anything: replacing `const __buildCfg = #run …` with a plain variable in the prelude leaves a snippet build at 91 ms either way, with the same 448 tuned and 441 forged functions, because a native artifact lowers the runtime regardless. The lowering half is what remains, and it is now the largest term of a Swag Prism snippet compilation: the same probe takes 116 ms as a static library and 68 ms with `--artifact-kind export`, so lowering and linking the runtime is 48 ms of it, against 52 ms for the prelude's own semantic pass (compiler.core.006) and 16 ms of process start.
-
-**Intent.** Keep the runtime's lowered code between builds — per compiler build, configuration and architecture, like the module setup cache keeps a setup — and give the prelude its build configuration as a compiler-materialized constant instead of a JIT run.
-
-**Complete when.**
-
-- A build whose sources contain no compile-time execution lowers nothing of the runtime and runs no JIT code.
-- The cached runtime code is invalidated by the compiler build, the runtime sources, the configuration and the target, and a workspace test proves a fresh and a reused runtime produce identical executables.
-- `hello_build` in the compiler.core.004 campaign reads under 50 ms on the campaign host.
-
-**Related:** compiler.core.001, compiler.core.004, compiler.core.006, compiler.optimization.029.
 
 ### compiler.core.006 — Every process rebuilds the prelude state
 
@@ -106,40 +168,6 @@ The reason is that a frame is trivially copyable in the parts that dominate its 
 - Complete when: the next invocation after either overlap uses the latest source, with a
   deterministic workspace regression test for any confirmed invalidation or publication bug.
 
-### compiler.core.032 — Repeated module builds publish different borrow summaries
-
-- Recorded: 2026-09-07 10:43
-- Updated: 2026-09-09 07:06 — the instability decides whether a real borrow escape is reported:
-  three rebuilds out of four missed one
-- Found while: checking public-export equivalence during the standard-module compilation campaign.
-- Evidence: four complete `core` rebuilds with the same frozen Release 0.1.390 binary, identical
-  tracked sources, `devmode`, and six workers alternated between publishing and omitting
-  `BorrowSummary(0, 0, 0, 0, 1, 0)` on both `Core.Math.Curve.addKey` overloads. The foreign symbol
-  names stayed identical. Both A and B in the recorded control refer to the same executable and
-  SHA-256; one of four warm rebuild snapshots omitted the attributes. This predates the campaign's
-  compiler changes. [Raw control data](../bench/results/compilation/20260907/api-baseline-repeats.json)
-  includes the full foreign-attribute lines and commands.
-- Evidence (2026-09-09, six workers, devmode, `swc tools/std.swgs dm test core --rebuild`): the
-  same tracked sources and the same compiler binary produced seven
-  `borrowed data from local variable 'buffer' escapes through a stored call argument` errors in
-  one rebuild and none in the three that followed it, with no edit in between. The sites were
-  `core`'s own tests, `tests/serialization/tagbin_itfarray.test.swg:142` among them, on a
-  `ConcatBuffer` passed to `encoder.writeAll`. `fdf901acc` then outlived those encoders by the
-  buffers they borrow, in exactly those three files, which settles what the runs disagreed about:
-  the diagnostics were right and three rebuilds out of four failed to produce them. So the
-  instability is not a cosmetic difference in an exported attribute. It decides whether a real
-  escape is reported at all, and a suite that passes says nothing about the run that follows.
-- Observation: `ModuleApiExport.Generate.cpp::collectMissingFunctionAttributes` serializes the
-  summary masks. `Symbol.Function.h` says body sema and the final summary fixpoint grow those
-  masks. The ordering or publication defect has not yet been isolated.
-- Next: reproduce from the failing side rather than the exported one, because it is cheaper: loop
-  a `core` rebuild until the borrow errors appear, then compare that run's published summaries
-  against a passing run's. Trace summary completion and API emission through the final
-  `SemaEscape::reportDeferredChecks` fixpoint from that difference, and reduce it to a
-  provider/consumer regression.
-- Complete when: repeated parallel provider rebuilds publish identical summaries, a consumer
-  consistently observes the corresponding invalidation contract, and a hundred consecutive `core`
-  rebuilds compile.
 ### compiler.core.036 — A misplaced 'mtd impl' is accepted and silently overrides nothing
 
 - Recorded: 2026-09-08 22:35
@@ -303,31 +331,6 @@ The reason is that a frame is trivially copyable in the parts that dominate its 
 - External profiling attributes the remaining peak well enough that a regression report names the responsible subsystem.
 
 **Related:** compiler.core.004, compiler.core.007.
-
-### compiler.core.004 — The benchmark campaign has no regression threshold on the edit-build loop
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 15:21 — git: Refresh module compilation profiles and measurement caveats
-
-**Evidence.** Since 2026-09-05 the campaign measures the edit-build loop beside the seven tasks: `core_rebuild`, `core_noop`, `core_touch`, `hello_build`, `doc_std` and `format_tree` (`bench/toolchains.py`, `make_compiler_workloads`), each recorded with wall time, every sample and peak memory, corrected by the campaign's compilation context and indexed against the first clean campaign that measured it (`history.py`, `index_loop`). `bench/compile.py` answers the round-by-round A/B between two compilers. On 2026-09-05, Release 0.1.366, six worker cores, medians of five on a quiet machine: `core_rebuild` 3 485 ms, `core_noop` 334 ms, `core_touch` 3 214 ms, `format_tree` 5.6 s at one busy core, `doc_std` 142 s and 3.3 GiB peak, the standard-library publish pass included. No recorded campaign carries these workloads yet: the four records of protocol 2 predate them.
-
-**Intent.** Record enough clean campaigns to know the resolution of each workload, then make the campaign report a regression instead of only plotting it.
-
-**Measurement caveat (2026-09-06).** The original benchmark memory field is process-tree peak
-committed memory. The instrument now records the timed process's peak working set separately;
-older samples have no resident-memory value and must not be used to set that threshold. Memory
-is not normalized by timing context. Formatter source mirrors now preserve `.swc-format` and
-the maintenance tool's complete input selection; the remaining input-opening bias is tracked
-in repo.tooling.007. Establish the baseline band using these corrected inputs and explicit
-compiler-worker counts.
-
-**Complete when.**
-
-- At least five clean baseline campaigns establish the resolution band of every edit-build workload, as the null indices already do for the tasks.
-- The campaign reports a workload that moved past its band without silently rewriting the baseline.
-- Release and DevMode are measured where their behavior differs, and the report says which one a number belongs to.
-
-**Related:** compiler.core.002, compiler.core.005, compiler.core.007.
 
 ### compiler.core.011 — The editor has no semantic definition navigation
 

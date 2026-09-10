@@ -1280,7 +1280,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 }
 
 // A multi-megabyte streamed document moves by one rendered line, one viewport page, or a document
-// boundary through the real focused keyboard path; End still waits for the real EOF.
+// boundary through the real focused keyboard path; End reaches the real EOF on its next paint.
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -1309,26 +1309,14 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let expectedLine = view.theme().createDefaultFont(view.documentStyle.bodyFontSize).height * view.documentStyle.lineHeight
     Swag.assert(view.scroll.verticalScrollStep == expectedLine)
     host.keyPress(Input.Key.Down)
-    var navigationSteps = 0'u32
-    while view.hasPendingTarget and navigationSteps < 64
-    {
-        host.fireTimers()
-        navigationSteps += 1
-    }
-
-    Swag.assert(not view.hasPendingTarget)
+    discard host.render(view)
+    Swag.assert(not view.hasPendingTarget and not view.waitingScroll)
     Swag.assert(Math.abs(view.scroll.scrollPosition().y - expectedLine) <= 1)
     host.keyPress(Input.Key.Up)
     Swag.assert(view.scroll.scrollPosition().y == 0)
     host.keyPress(Input.Key.PageDown)
-    navigationSteps = 0
-    while view.hasPendingTarget and navigationSteps < 64
-    {
-        host.fireTimers()
-        navigationSteps += 1
-    }
-
-    Swag.assert(not view.hasPendingTarget)
+    discard host.render(view)
+    Swag.assert(not view.hasPendingTarget and not view.waitingScroll)
     let pagePosition = view.scroll.scrollPosition().y
     Swag.assert(pagePosition > expectedLine)
     host.keyPress(Input.Key.PageUp)
@@ -1336,20 +1324,12 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     let before = view.scroll.scrollPosition()
     host.keyPress(Input.Key.End)
-    Swag.assert(view.jumpToEnd)
-    Swag.assert(view.scroll.scrollPosition() == before)
-
-    var steps = 0'u32
-    while view.hasUnloadedSource() and steps < 4_000
-    {
-        view.streamStep()
-        steps += 1
-    }
-
+    discard host.render(view)
     Swag.assert(not view.hasUnloadedSource())
     Swag.assert(not view.jumpToEnd)
     Swag.assert(view.scroll.scrollPosition().y > before.y)
     host.keyPress(Input.Key.Home)
+    discard host.render(view)
     Swag.assert(view.residentStart == 0)
     Swag.assert(view.scroll.scrollPosition().y == 0)
 }

@@ -35,13 +35,13 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [std.video.md](std.video.md) | `std/video` | 2026-09-10 20:51 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-10 19:53 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-10 19:43 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-10 19:41 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-10 19:39 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-10 19:35 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-10 19:32 |
-| [std.video.md](std.video.md) | `std/video` | 2026-09-10 19:12 |
 | [std.audio.md](std.audio.md) | `std/audio` | 2026-09-10 19:12 |
 | [app.scope.binary.md](app.scope.binary.md) | The Swag Scope structured-binary and container viewer | 2026-09-10 19:10 |
 | [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-10 19:06 |

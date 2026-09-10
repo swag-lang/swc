@@ -18,7 +18,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.001 — H.264 decoding costs several times what FFmpeg does per picture
 
 - Recorded: 2026-08-19 13:23
-- Updated: 2026-09-10 19:12 — Verify shipped optimization boundaries and correct the four-change inventory
+- Updated: 2026-09-10 20:51 — Fuse dequantization into the entropy decoders, profile again, and record four rejected leads including register-resident CABAC loops
 - Intent: the decoder is byte-exact against FFmpeg on Baseline, Main, and High streams and decodes
   well above real time, but one picture still costs several times what FFmpeg spends on it. That
   margin is what a machine smaller than this one, or a stream larger than 4K, would need.
@@ -76,14 +76,33 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
     average.
   - The loop filter also recovered block coordinates from a block index with an integer division
     and a modulo, twice for every edge segment, when every caller already knows the macroblock.
-- Next: the entropy parse is half the picture and `Slice.residualCabac` alone is a fifth of it, so
-  that is where the remaining factor lives. Before another source rearrangement of the arithmetic
-  loop, note that the bin is latency-bound on its serial chain and that removing a third of
-  `CabacReader.decision`'s instructions previously bought one percent. The untried directions are
-  the per-macroblock neighbor cache FFmpeg keeps, a packed derivation of a whole macroblock edge's
-  boundary strengths rather than one call per segment, and writing residual coefficients straight
-  into raster positions in the entropy decoder so dequantization becomes an elementwise multiply
-  instead of a scatter through the zigzag.
+- **Dequantization now happens in the entropy decoders (2026-09-10), as FFmpeg's
+  `decode_cabac_residual` does it.** Each level is written at its raster position already scaled by
+  its factor, so the inverse transform reads the macroblock's residual record in place: the two
+  dequantization passes, their per-block clears and their zigzag scatter are gone. A DC block keeps
+  its raw levels, since it goes through its own transform first. Interleaved against the previous
+  build on the same clip, byte-exact: minimum −5.4 percent, median of paired rounds −4.3 percent.
+- Profile after that change (2026-09-10, same clip and method): `Slice.residualCabac` 25.3 percent,
+  `CabacReader.decision` 8.5, `Slice.bookkeepMb` 4.2, `Video.H264.mcChroma` 4.0,
+  `Video.H264.deblockMb` 3.8, `Slice.motionAt` 3.5. The neighbor queries together —
+  `motionAt`, `predictMv`, `blockNz`, `mbAvailable`, `chromaBlockNz`, `neighborIntraMode` — are
+  about 8 percent.
+- **The significance map keeps its arithmetic registers on the stack, and moving them to registers
+  did not pay.** They live in a small local structure passed by address to an inlined decision,
+  and with no memory-to-register promotion in the backend a structure whose address is taken stays
+  on the stack: the emitted loop loads and stores `range` and `low` at every step of every bin,
+  where FFmpeg's hand-written loop keeps them in registers. Plain locals driven through mixins do
+  put them in registers — the whole bin computes in `eax` and `edx` — yet the build measured
+  3.4 percent slower on the median and 3.6 percent on the minimum, byte-exact. One spill of each
+  remains at the renormalization branch, and the leading-zero count is emitted as `bsr` plus
+  `cmove` rather than `lzcnt`. Retry only once the allocator stops spilling at branch boundaries
+  and the count is a single instruction, both of which are compiler.optimization matters.
+- Next: the structural difference left with FFmpeg is its per-macroblock neighbor caches
+  (`fill_decode_caches`): every context — coded-block flag, motion vector difference, reference
+  index, and the loop filter's strengths through `check_mv` — is a fixed-offset read in a small
+  array filled once per macroblock, where this decoder makes a call with availability and slice
+  checks for every neighbor of every block. A non-zero-count cache for the coded-block-flag
+  contexts is the smallest first step; the motion cache and the strengths follow from it.
 - A second stream shape is worth its own measurement: a multi-slice picture takes the banded path
   and ping-pongs between two threads that each spend about half their time waiting. FFmpeg turns
   the same slices into parallelism. That is a real class of stream — every low-latency encoder
@@ -94,7 +113,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   publishing co-located motion in a parallel pass instead of on the entropy thread; a 16-bit SWAR
   six-tap (expanding byte inputs costs more than the packed arithmetic saves on this backend); and
   recasting the RGB conversion as `pmaddwd` pair sums — that last verdict predates `Core.Math.Simd`
-  becoming inlinable across modules and should be re-measured before it is trusted.
+  becoming inlinable across modules and should be re-measured before it is trusted. Also rejected
+  on 2026-09-10: porting FFmpeg's CABAC engine representation, where `low` carries the bits loaded
+  ahead and a marker so renormalization is a plain shift, costs 8.7 percent more on the minimum as
+  written here; keeping the level loop's registers in the same address-taken structure as the
+  significance map is neutral; and answering strength zero early when both blocks of an inner edge
+  hold identical motion records lost every measured round.
 - Current boundary: `decode/h264/deblock.swg` already packs weak filtering in both directions,
   strong horizontal luma/chroma, and strong vertical luma through a transposed tile. The remaining
   strong vertical chroma path is scalar and is tracked by cpu.simd.023. Do not implement those

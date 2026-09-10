@@ -54,13 +54,17 @@ struct MbExtraJobs
 
 // Coefficients live outside the hot macroblock record. Inter skip macroblocks never touch this
 // storage, while coded macroblocks index the matching entry in Decoder.parsedResiduals.
+//
+// A DC block keeps its levels in scan order, as they go through a transform of their own
+// first. Every other block holds its coefficients dequantized and in raster order, so the
+// inverse transform reads it in place.
 struct MbResidual
 {
     lumaDc:   [16] s16
     lumaAc:   [256] s16     // Sixteen coefficients per raster 4x4 block.
     luma8:    [256] s16     // Sixty-four coefficients per 8x8 quadrant.
     chromaDc: [8] s16       // Four per plane.
-    chromaAc: [128] s16     // Sixteen per chroma block, scan positions 1..15.
+    chromaAc: [128] s16     // Sixteen per chroma block; the DC joins at reconstruction.
 }
 
 // The coefficients of the two colour planes of a 4:4:4 macroblock.
@@ -1884,10 +1888,13 @@ impl Slice
         {
             for plane in 2'u64
             {
+                let scale = .dequantRow4(mb, cast(u32) plane + 1)
                 for block in 4's32
                 {
-                    let nC    = .chromaNc(mb, cast(u32) plane, block & 1, block >> 1)
-                    let count = residualCavlc(&.bits, nC, 15, (mb.residual!.chromaAc).buffer + plane * 64 + cast(u64) block * 16 + 1)
+                    let nC = .chromaNc(mb, cast(u32) plane, block & 1, block >> 1)
+                    var levels: [16] s16
+                    let count = residualCavlc(&.bits, nC, 15, levels.buffer)
+                    storeLevels(levels.buffer, 15, (mb.residual!.chromaAc).buffer + plane * 64 + cast(u64) block * 16, ResidualOrderAc, scale, 4)
                     if plane == 0 do
                         mb.nzCb[cast(u64) block] = cast(u8) count
                     else do
@@ -1920,6 +1927,8 @@ impl Slice
         }
 
         // Plane 4x4 or interleaved 8x8 blocks, one quadrant at a time.
+        let scale4 = .dequantRow4(mb, plane)
+        let scale8 = .dequantRow8(mb, plane)
         for quad in 4's32
         {
             if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
@@ -1931,22 +1940,32 @@ impl Slice
                 let bx     = raster & 3
                 let by     = raster >> 2
                 let nC     = .planeNc(mb, plane, bx, by)
+                var levels: [16] s16
                 var count: u32
                 if isIntra16
                 {
-                    count = residualCavlc(&.bits, nC, 15, storage.ac + cast(u64) raster * 16 + 1)
+                    count = residualCavlc(&.bits, nC, 15, levels.buffer)
+                    storeLevels(levels.buffer, 15, storage.ac + cast(u64) raster * 16, ResidualOrderAc, scale4, 4)
                 }
                 elif mb.transform8x8
                 {
-                    // CAVLC codes an 8x8 block as four interleaved 4x4 blocks.
-                    var cell16: [16] s16
-                    count = residualCavlc(&.bits, nC, 16, cell16.buffer)
-                    for coefficient in 16'u64 do
-                        storage.t8[cast(u64) quad * 64 + coefficient * 4 + cast(u64) cell] = cell16[coefficient]
+                    // CAVLC codes an 8x8 block as four interleaved 4x4 blocks: the levels of
+                    // this cell sit at every fourth position of the 8x8 scan.
+                    count = residualCavlc(&.bits, nC, 16, levels.buffer)
+                    let block = storage.t8 + cast(u64) quad * 64
+                    for coefficient in 16'u64
+                    {
+                        let level = cast(s32) levels[coefficient]
+                        if level == 0 do
+                            continue
+                        let position = cast(u64) ResidualOrder[ResidualOrder8x8 + coefficient * 4 + cast(u64) cell]
+                        block[position] = dequantLevel(level, scale8[position], 6)
+                    }
                 }
                 else
                 {
-                    count = residualCavlc(&.bits, nC, 16, storage.ac + cast(u64) raster * 16)
+                    count = residualCavlc(&.bits, nC, 16, levels.buffer)
+                    storeLevels(levels.buffer, 16, storage.ac + cast(u64) raster * 16, ResidualOrder4x4, scale4, 4)
                 }
 
                 storage.nz[cast(u64) raster] = cast(u8) count
@@ -1969,6 +1988,30 @@ impl Slice
                 }
             }
         }
+    }
+
+    // Returns the quantizer of one colour plane of `mb`: luma is 0, and the two chroma planes
+    // (or the two 4:4:4 colour planes) are 1 and 2.
+    mtd planeQp(mb: *Mb, plane: u32)->s32
+    {
+        if plane == 0 do
+            return mb.qp
+        return cast(s32) ChromaQp[cast(u64) Math.clamp(mb.qp + .pps!.chromaQpOffset[cast(u64) plane - 1], 0, 51)]
+    }
+
+    // Returns the 4x4 dequantization factors of one colour plane of `mb`, in raster order.
+    mtd dequantRow4(mb: *Mb, plane: u32)->[*] u32
+    {
+        let list = cast(u64) plane + (mb.class == MbClassInter ? 3'u64 : 0'u64)
+        return cast([*] u32) &.pps!.dequant4[list, cast(u64) .planeQp(mb, plane), 0]
+    }
+
+    // Returns the 8x8 dequantization factors of one colour plane of `mb`, in raster order;
+    // the list is the plane's intra one of Table 7-2, or the inter one beside it.
+    mtd dequantRow8(mb: *Mb, plane: u32)->[*] u32
+    {
+        let list = cast(u64) plane * 2 + (mb.class == MbClassInter ? 1'u64 : 0'u64)
+        return cast([*] u32) &.pps!.dequant8[list, cast(u64) .planeQp(mb, plane), 0]
     }
 
     // Returns where one colour plane of `mb` keeps its coefficients and nonzero counts.

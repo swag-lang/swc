@@ -690,10 +690,12 @@ impl Slice
 
     // Decodes one residual block, sections 9.3.3.1.1.9 and 9.3.3.1.3.
     //
-    // `cat` is the block category, `coeffs` the scan-ordered destination, `maxCoeffs` its
-    // length. A block first decodes a coded-block flag against the neighbor flags `nzA` and
-    // `nzB` (-1 for an unavailable neighbor). Returns the coefficient count.
-    mtd residualCabac(mb: *Mb, cat: u32, coeffs: [*] s16, maxCoeffs: u32, nzA, nzB: s32)->u32 fail
+    // `cat` is the block category and `maxCoeffs` the number of coefficients it codes. A block
+    // first decodes a coded-block flag against the neighbor flags `nzA` and `nzB` (-1 for an
+    // unavailable neighbor). Each level lands in `coeffs` at the raster position `order` gives
+    // it, dequantized by the matching entry of `scale` unless the block is a DC one, which has
+    // no `scale` and keeps its levels. Returns the coefficient count.
+    mtd residualCabac(mb: *Mb, cat: u32, coeffs: [*] s16, maxCoeffs: u32, nzA, nzB: s32, order: u64, scale: [*] u32?, shift: u32)->u32 fail
     {
         // A block of sixty-four coefficients states nothing of its own, the coded block pattern
         // having said whether it is coded — except in 4:4:4, where every block codes a flag,
@@ -809,8 +811,12 @@ impl Slice
                 }
             }
 
-            magnitude        = .cabac.bypassSign(magnitude)
-            coeffs[position] = cast(s16) clampS32(magnitude, -32768, 32767)
+            let level  = clampS32(.cabac.bypassSign(magnitude), -32768, 32767)
+            let raster = cast(u64) ResidualOrder[order + cast(u64) position]
+            if scale == null do
+                coeffs[raster] = cast(s16) level
+            else do
+                coeffs[raster] = dequantLevel(level, scale[raster], shift)
         }
 
         if .cabac.hasOverrun() do
@@ -837,7 +843,7 @@ impl Slice
             {
                 let nzA   = .dcFlagNeighbor(mb, -1, 0, 1 + plane)
                 let nzB   = .dcFlagNeighbor(mb, 0, -1, 1 + plane)
-                let count = .residualCabac(mb, 3, (mb.residual!.chromaDc).buffer + cast(u64) plane * 4, 4, nzA, nzB)
+                let count = .residualCabac(mb, 3, (mb.residual!.chromaDc).buffer + cast(u64) plane * 4, 4, nzA, nzB, ResidualOrderDc, null, 0)
                 mb.dcFlags[cast(u64) (1 + plane)] = count > 0 ? 1 : 0
             }
         }
@@ -846,11 +852,12 @@ impl Slice
         {
             for plane in 2's32
             {
+                let scale = .dequantRow4(mb, cast(u32) plane + 1)
                 for block in 4's32
                 {
                     let nzA   = .chromaBlockNz(mb, cast(u32) plane, mb.mbX * 2 + (block & 1) - 1, mb.mbY * 2 + (block >> 1))
                     let nzB   = .chromaBlockNz(mb, cast(u32) plane, mb.mbX * 2 + (block & 1), mb.mbY * 2 + (block >> 1) - 1)
-                    let count = .residualCabac(mb, 4, (mb.residual!.chromaAc).buffer + cast(u64) plane * 64 + cast(u64) block * 16 + 1, 15, nzA, nzB)
+                    let count = .residualCabac(mb, 4, (mb.residual!.chromaAc).buffer + cast(u64) plane * 64 + cast(u64) block * 16, 15, nzA, nzB, ResidualOrderAc, scale, 4)
                     if plane == 0 do
                         mb.nzCb[cast(u64) block] = cast(u8) count
                     else do
@@ -874,7 +881,7 @@ impl Slice
         {
             let nzA   = .dcFlagNeighbor(mb, -1, 0, cast(s32) plane)
             let nzB   = .dcFlagNeighbor(mb, 0, -1, cast(s32) plane)
-            let count = .residualCabac(mb, CatPlaneDc[cast(u64) plane], storage.dc, 16, nzA, nzB)
+            let count = .residualCabac(mb, CatPlaneDc[cast(u64) plane], storage.dc, 16, nzA, nzB, ResidualOrderDc, null, 0)
             mb.dcFlags[cast(u64) plane] = count > 0 ? 1 : 0
             if count > 0 and isLuma
             {
@@ -894,7 +901,7 @@ impl Slice
                 let first = (quad >> 1) * 8 + (quad & 1) * 2
                 let nzA   = .blockNz8x8(mb, plane, mb.mbX * 4 + (first & 3) - 1, mb.mbY * 4 + (first >> 2))
                 let nzB   = .blockNz8x8(mb, plane, mb.mbX * 4 + (first & 3), mb.mbY * 4 + (first >> 2) - 1)
-                let count = .residualCabac(mb, CatPlane8x8[cast(u64) plane], storage.t8 + cast(u64) quad * 64, 64, nzA, nzB)
+                let count = .residualCabac(mb, CatPlane8x8[cast(u64) plane], storage.t8 + cast(u64) quad * 64, 64, nzA, nzB, ResidualOrder8x8, .dequantRow8(mb, plane), 6)
 
                 // In 4:4:4 the block states a coded flag of its own, so a quadrant the pattern
                 // named can still hold nothing.
@@ -918,9 +925,9 @@ impl Slice
                 let nzB    = .blockNz(mb, plane, mb.mbX * 4 + bx, mb.mbY * 4 + by - 1)
                 var count: u32
                 if mb.class == MbClassIntra16x16 do
-                    count = .residualCabac(mb, CatPlaneI16Ac[cast(u64) plane], storage.ac + cast(u64) raster * 16 + 1, 15, nzA, nzB)
+                    count = .residualCabac(mb, CatPlaneI16Ac[cast(u64) plane], storage.ac + cast(u64) raster * 16, 15, nzA, nzB, ResidualOrderAc, .dequantRow4(mb, plane), 4)
                 else do
-                    count = .residualCabac(mb, CatPlane4x4[cast(u64) plane], storage.ac + cast(u64) raster * 16, 16, nzA, nzB)
+                    count = .residualCabac(mb, CatPlane4x4[cast(u64) plane], storage.ac + cast(u64) raster * 16, 16, nzA, nzB, ResidualOrder4x4, .dequantRow4(mb, plane), 4)
                 storage.nz[cast(u64) raster] = cast(u8) count
                 if isLuma do
                     mb.codedBlocks[cast(u64) raster] = count > 0 ? 1 : 0

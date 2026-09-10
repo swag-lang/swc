@@ -20,6 +20,48 @@ const Zigzag8: [64] u8 = [
     44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47,
     55, 62, 63]
 
+// Where each coefficient a residual block codes lands in its block, by the shape of the block.
+//
+// The entropy decoders store every level at its raster position, already dequantized, so the
+// inverse transform reads the block as it is. A DC block keeps its own order, since it goes
+// through a transform of its own before it is scaled. An AC block codes the zigzag scan from
+// its second position, the first being the DC that reconstruction adds.
+const ResidualOrderDc  = 0'u64
+const ResidualOrder4x4 = 16'u64
+const ResidualOrderAc  = 32'u64
+const ResidualOrder8x8 = 48'u64
+const ResidualOrder: [112] u8 = [
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15,
+    1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15, 0,
+    0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5,
+    12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21,
+    28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37,
+    44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47,
+    55, 62, 63]
+
+// Scales one coefficient level by its factor, sections 8.5.12.1 and 8.5.13.1: `shift` is 4
+// for a 4x4 block and 6 for an 8x8 one.
+#[Swag.Inline]
+func dequantLevel(level: s32, scale: u32, shift: u32)->s16
+{
+    return cast(s16) clampS32((level * cast(s32) scale + (1's32 << (shift - 1))) >> shift, -32768, 32767)
+}
+
+// Stores the levels of one block, decoded in scan order, at their raster positions, dequantized
+// with one row of the scaling table.
+func storeLevels(levels: const [*] s16, count: u32, coeffs: [*] s16, order: u64, scale: [*] u32, shift: u32)
+{
+    for index in cast(u64) count
+    {
+        let level = cast(s32) levels[index]
+        if level == 0 do
+            continue
+        let raster = cast(u64) ResidualOrder[order + index]
+        coeffs[raster] = dequantLevel(level, scale[raster], shift)
+    }
+}
+
 // One sequence parameter set, reduced to what a progressive 8-bit decoder uses.
 struct Sps
 {

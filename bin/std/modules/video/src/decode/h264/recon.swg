@@ -134,7 +134,7 @@ impl Slice
         if mb.class == MbClassIntra16x16 or mb.class == MbClassIntra4x4 or mb.class == MbClassIntra8x8
         {
             for plane in planes do
-                .predictIntraPlane(mb, frame, plane, plane == 0 ? mb.qp : (plane == 1 ? qpCb : qpCr))
+                .predictIntraPlane(mb, frame, plane)
         }
         else
         {
@@ -177,9 +177,8 @@ impl Slice
 
     // Runs the intra prediction of one colour plane, interleaved with the residual for the
     // 4x4 and 8x8 classes whose later blocks predict from earlier reconstructed ones.
-    mtd predictIntraPlane(mb: *Mb, frame: *Frame, plane: u32, qp: s32)
+    mtd predictIntraPlane(mb: *Mb, frame: *Frame, plane: u32)
     {
-        let dec           = .dec!
         let stride        = frame.planeStride(plane)
         let hasLeftMb     = .intraMbAvailable(mb.mbX - 1, mb.mbY)
         let hasTopMb      = .intraMbAvailable(mb.mbX, mb.mbY - 1)
@@ -195,7 +194,6 @@ impl Slice
         let storage = .planeResidual(mb, plane)
         if mb.class == MbClassIntra8x8
         {
-            let list = cast(u64) plane * 2
             for quad in 4's32
             {
                 let qx         = quad & 1
@@ -222,12 +220,8 @@ impl Slice
                 // CAVLC codes an 8x8 block as four interleaved 4x4 ones, so the quadrant
                 // holds coefficients when any of its four cells counted one.
                 let anchor = cast(u64) (qy * 2 * 4 + qx * 2)
-                if (storage.nz[anchor] | storage.nz[anchor + 1] | storage.nz[anchor + 4] | storage.nz[anchor + 5]) != 0
-                {
-                    var block: [64] s16
-                    .dequant8x8(storage, quad, list, qp, block.buffer)
-                    addIdct8x8(dst, stride, block.buffer)
-                }
+                if (storage.nz[anchor] | storage.nz[anchor + 1] | storage.nz[anchor + 4] | storage.nz[anchor + 5]) != 0 do
+                    addIdct8x8(dst, stride, storage.t8 + cast(u64) quad * 64)
             }
 
             return
@@ -261,76 +255,10 @@ impl Slice
             intraPredict4x4(mode, dst, stride, hasLeft, hasTop, hasTopLeft, hasTopRight)
 
             if storage.nz[cast(u64) raster] != 0 do
-                .addPlane4x4Residual(mb, storage, plane, raster, qp, dst, stride)
+                addPlane4x4Residual(storage, raster, dst, stride)
 
             mb.decodedMask |= 1'u32 << cast(u32) raster
         }
-    }
-
-    // Dequantizes one 4x4 block of a colour plane into raster order; `dcValue` replaces
-    // position zero for the Intra_16x16 class.
-    mtd dequant4x4(mb: *Mb, storage: PlaneResidual, plane: u32, raster: s32, qp, dcValue: s32, hasDc: bool, block: [*] s16)
-    {
-        let pps  = .pps!
-        let list = cast(u64) plane + (mb.class == MbClassInter ? 3'u64 : 0'u64)
-        Memory.clear(block, 16 * #sizeof(s16))
-
-        // The scaling factors of one quantizer are one row of the table; addressing them through
-        // all three dimensions costs two multiplies at every coefficient of every block.
-        let table = cast([*] u32) &pps.dequant4[list, cast(u64) qp, 0]
-        let base  = cast(u64) raster * 16
-        let start = hasDc ? 1'u64 : 0'u64
-        for scan in start until 16
-        {
-            let coeff = cast(s32) storage.ac[base + scan]
-            if coeff == 0 do
-                continue
-            let position = cast(u64) Zigzag4[scan]
-            block[position] = cast(s16) clampS32((coeff * cast(s32) table[position] + 8) >> 4, -32768, 32767)
-        }
-
-        if hasDc do
-            block[0] = cast(s16) clampS32(dcValue, -32768, 32767)
-    }
-
-    // Dequantizes one 8x8 block of a colour plane into raster order.
-    //
-    // `list` is the 8x8 weight list of Table 7-2: the plane's intra list, or the inter one
-    // beside it.
-    mtd dequant8x8(storage: PlaneResidual, quad: s32, list: u64, qp: s32, block: [*] s16)
-    {
-        let pps = .pps!
-        Memory.clear(block, 64 * #sizeof(s16))
-
-        let table = cast([*] u32) &pps.dequant8[list, cast(u64) qp, 0]
-        let base  = cast(u64) quad * 64
-        for scan in 64'u64
-        {
-            let coeff = cast(s32) storage.t8[base + scan]
-            if coeff == 0 do
-                continue
-            let position = cast(u64) Zigzag8[scan]
-            block[position] = cast(s16) clampS32((coeff * cast(s32) table[position] + 32) >> 6, -32768, 32767)
-        }
-    }
-
-    // Adds one dequantized 4x4 block of a colour plane to its prediction.
-    #[Swag.Inline]
-    mtd addPlane4x4Residual(mb: *Mb, storage: PlaneResidual, plane: u32, raster: s32, qp: s32, destination: [*] u8, stride: u64)
-    {
-        let base = cast(u64) raster * 16
-        if storage.nz[cast(u64) raster] == 1 and storage.ac[base] != 0
-        {
-            let list  = cast(u64) plane + (mb.class == MbClassInter ? 3'u64 : 0'u64)
-            let coeff = cast(s32) storage.ac[base]
-            let dc    = clampS32((coeff * cast(s32) .pps!.dequant4[list, cast(u64) qp, 0] + 8) >> 4, -32768, 32767)
-            addDc4x4(destination, stride, dc)
-            return
-        }
-
-        var block: [16] s16
-        .dequant4x4(mb, storage, plane, raster, qp, 0, false, block.buffer)
-        addIdct4x4(destination, stride, block.buffer)
     }
 
     // Adds the residual of one colour plane of a macroblock whose prediction is already in place.
@@ -349,15 +277,16 @@ impl Slice
                 dcBlock[cast(u64) Zigzag4[scan]] = storage.dc[scan]
             hadamard4x4(dcBlock.buffer)
 
+            // The AC levels are already in place, so the DC completes each block.
             let dcList = cast(u64) plane
             for raster in 16's32
             {
-                let bx = raster & 3
-                let by = raster >> 2
-                let dc = (cast(s32) dcBlock[cast(u64) (by * 4 + bx)] * cast(s32) pps.dequant4[dcList, cast(u64) qp, 0] + 32) >> 6
-                var block: [16] s16
-                .dequant4x4(mb, storage, plane, raster, qp, dc, true, block.buffer)
-                addIdct4x4(frame.pixPlane(plane, mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride, block.buffer)
+                let bx    = raster & 3
+                let by    = raster >> 2
+                let dc    = (cast(s32) dcBlock[cast(u64) (by * 4 + bx)] * cast(s32) pps.dequant4[dcList, cast(u64) qp, 0] + 32) >> 6
+                let block = storage.ac + cast(u64) raster * 16
+                block[0] = cast(s16) clampS32(dc, -32768, 32767)
+                addIdct4x4(frame.pixPlane(plane, mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride, block)
             }
 
             return
@@ -365,14 +294,11 @@ impl Slice
 
         if mb.transform8x8
         {
-            let list = cast(u64) plane * 2 + (mb.class == MbClassInter ? 1'u64 : 0'u64)
             for quad in 4's32
             {
                 if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
                     continue
-                var block: [64] s16
-                .dequant8x8(storage, quad, list, qp, block.buffer)
-                addIdct8x8(frame.pixPlane(plane, mb.mbX * 16 + (quad & 1) * 8, mb.mbY * 16 + (quad >> 1) * 8), stride, block.buffer)
+                addIdct8x8(frame.pixPlane(plane, mb.mbX * 16 + (quad & 1) * 8, mb.mbY * 16 + (quad >> 1) * 8), stride, storage.t8 + cast(u64) quad * 64)
             }
 
             return
@@ -384,7 +310,7 @@ impl Slice
                 continue
             let bx = raster & 3
             let by = raster >> 2
-            .addPlane4x4Residual(mb, storage, plane, raster, qp, frame.pixPlane(plane, mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride)
+            addPlane4x4Residual(storage, raster, frame.pixPlane(plane, mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride)
         }
     }
 
@@ -410,31 +336,19 @@ impl Slice
         // One row of the scaling table serves every block of this plane.
         let table = cast([*] u32) &pps.dequant4[listDc, cast(u64) qpc, 0]
 
+        // The AC levels are already dequantized in place, so the DC completes each block.
+        let counts = plane == 0 ? (mb.nzCb).buffer : (mb.nzCr).buffer
         for block in 4's32
         {
             let bx      = block & 1
             let by      = block >> 1
             let dcValue = (cast(s32) dc[cast(u64) (by * 2 + bx)] * cast(s32) table[0]) >> 5
+            if dcValue == 0 and counts[cast(u64) block] == 0 do
+                continue
 
-            var coeffs: [16] s16
+            let coeffs = (mb.residual!.chromaAc).buffer + cast(u64) plane * 64 + cast(u64) block * 16
             coeffs[0] = cast(s16) clampS32(dcValue, -32768, 32767)
-            var hasAny = dcValue != 0
-            if mb.cbpChroma == 2
-            {
-                let base = cast(u64) plane * 64 + cast(u64) block * 16
-                for scan in 1'u64 until 16
-                {
-                    let coeff = cast(s32) mb.residual!.chromaAc[base + scan]
-                    if coeff == 0 do
-                        continue
-                    let position = cast(u64) Zigzag4[scan]
-                    coeffs[position] = cast(s16) clampS32((coeff * cast(s32) table[position] + 8) >> 4, -32768, 32767)
-                    hasAny = true
-                }
-            }
-
-            if hasAny do
-                addIdct4x4(frame.pixChroma(plane, mb.mbX * 8 + bx * 4, mb.mbY * 8 + by * 4), stride, coeffs.buffer)
+            addIdct4x4(frame.pixChroma(plane, mb.mbX * 8 + bx * 4, mb.mbY * 8 + by * 4), stride, coeffs)
         }
     }
 
@@ -673,4 +587,19 @@ private func reconstructBand(decoder: *Decoder, first, end: u32)
         if reconstructionError != null do
             Atomic.exchange(&decoder.pipelineFailed, 1)
     }
+}
+
+// Adds one 4x4 block of a colour plane, already dequantized in raster order, to its prediction.
+#[Swag.Inline]
+private func addPlane4x4Residual(storage: PlaneResidual, raster: s32, destination: [*] u8, stride: u64)
+{
+    // A lone coefficient at the first position is a flat block, which skips the transform.
+    let block = storage.ac + cast(u64) raster * 16
+    if storage.nz[cast(u64) raster] == 1 and block[0] != 0
+    {
+        addDc4x4(destination, stride, cast(s32) block[0])
+        return
+    }
+
+    addIdct4x4(destination, stride, block)
 }

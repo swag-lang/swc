@@ -75,3 +75,50 @@ func waitManyThreads(threads: [..] Threading.Thread)
 
     Swag.assert(completedAfterWait == WaitManyExpectedDoneCount)
 }
+
+// Independent owners share an auto-reset event, including a signal sent before opening.
+#test
+{
+    let name = Format.toString("Swag.Event.é.事.%", Guid128.random().toString())
+    var first, second, distinct: Sync.Event
+    expect first.initNamed(name, initState: true)
+    expect second.initNamed(name, manual: true)
+    expect distinct.initNamed(Format.toString("%.other", name))
+    Swag.assert(first.isValid() and second.isValid())
+    Swag.assert((expect WaitForSingleObject(second.handle, 0)) == WAIT_OBJECT_0)
+    Swag.assert((expect WaitForSingleObject(first.handle, 0)) == WAIT_TIMEOUT)
+    first.signal()
+    Swag.assert((expect WaitForSingleObject(distinct.handle, 0)) == WAIT_TIMEOUT)
+    Swag.assert((expect WaitForSingleObject(second.handle, 0)) == WAIT_OBJECT_0)
+    first.release()
+    first.release()
+    Swag.assert(not first.isValid())
+    second.signal()
+    Swag.assert((expect WaitForSingleObject(second.handle, 0)) == WAIT_OBJECT_0)
+}
+
+#test
+{
+    var event: Sync.Event
+    for name in ["", "invalid\\name", "invalid\0name"]
+    {
+        var rejected = false
+        catch event.initNamed(name)
+        {
+            rejected = true
+        }
+
+        Swag.assert(rejected and not event.isValid())
+    }
+
+    let name = Format.toString("Swag.Event.Manual.%", Guid128.random().toString())
+    expect event.initNamed(name, manual: true)
+    var second: Sync.Event
+    expect second.initNamed(name, initState: true)
+    Swag.assert((expect WaitForSingleObject(event.handle, 0)) == WAIT_TIMEOUT)
+    event.signal()
+    Swag.assert((expect WaitForSingleObject(second.handle, 0)) == WAIT_OBJECT_0)
+    Swag.assert((expect WaitForSingleObject(event.handle, 0)) == WAIT_OBJECT_0)
+    second.reset()
+    Swag.assert((expect WaitForSingleObject(event.handle, 0)) == WAIT_TIMEOUT)
+}

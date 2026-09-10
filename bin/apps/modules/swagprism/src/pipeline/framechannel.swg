@@ -41,8 +41,8 @@ impl FrameChannel
         .region = try file.map(0, #sizeof(FrameHeader) + ByteCount)
         if create do
             Memory.set(.region.writableBytes().buffer, 0, .region.length)
-        let name = Format.toString("Local\\SwagPrism.%", Path.fileName(Path.directoryName(path)))
-        .consumedEvent.handle = try Win32.CreateEventA(null, Win32.FALSE, Win32.FALSE, name.buffer)
+        let name = Format.toString("SwagPrism.%", Path.fileName(Path.directoryName(path)))
+        try .consumedEvent.initNamed(name)
     }
 
     mtd header()->*FrameHeader => cast(*FrameHeader) .region.writableBytes().buffer

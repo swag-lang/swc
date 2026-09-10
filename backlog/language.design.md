@@ -10,6 +10,36 @@ surprising but specified rules, their comparative evidence, and their next decis
 Entries are ordered from the most recently updated down. An entry disappears when it
 ships; history lives in git, not here.
 
+### language.design.011 — The apostrophe carries three unrelated roles
+
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-10 21:00 — recorded the fixed generic-argument coloring regression without claiming a syntax redesign
+- Area: language
+- Found while: the same pass
+- Observation: `'` opens a character literal, introduces a literal suffix, and introduces a generic
+  argument list. Which one applies depends on the token *before* it
+  ([003_003_string.swg](../bin/reference/modules/language/src/003_003_string.swg)),
+  so `5's32`, `genericTwice's64(12)`, `floatWindow.at'1()`, `Duration = 500'ms` and `'a'` all use
+  the same character across those three roles — and a user-defined literal suffix
+  ([006_010_custom_literals.swg](../bin/reference/modules/language/src/006_010_custom_literals.swg))
+  makes the suffix set open, so `x'foo` cannot be read without knowing what `x` is. Blanks do not
+  disambiguate: `5 's32` is the suffixed literal, not `5` followed by a character.
+- Evidence: `let spaced = 5 's32` yields 5 as an `s32`; `idOf's32(7)` is a generic call and reads
+  like a suffixed identifier; `' 'u32` is a space literal followed by a suffix.
+- Elsewhere: Rust also overloads the apostrophe, distinguishing character literals from lifetime tokens
+  ([Rust tokens](https://doc.rust-lang.org/reference/tokens.html)). This is a lexer comparison,
+  not evidence that Swag must change its generic delimiter.
+- Current editor evidence: `vscode/tests/grammar.test.js` now exercises generic type arguments
+  beside a call, including whitespace before the apostrophe. It reproduced and protects the
+  corrected builtin-type scope; the broader comparison of lexical roles remains to be measured.
+- Next: changing a sigil is expensive. What is worth measuring is
+  the cost paid elsewhere: check how the syntax highlighter, the formatter's classifier, and the
+  language reference each disambiguate, and whether any of the three gets it wrong. If they all
+  carry a copy of the same lookbehind rule, that is the argument for a distinct generic-argument
+  spelling.
+- Complete when: the lexer, formatter, editor grammar, and reference share one tested
+  disambiguation rule, or generic arguments have a distinct spelling migrated across all four.
+
 ### language.design.021 — The base a number is written in decides its signedness
 
 - Recorded: 2026-08-10 07:44
@@ -341,33 +371,6 @@ ships; history lives in git, not here.
   the same.
 - Complete when: intentional error discard is either explicit or deliberately retained as implicit,
   and the reference and compiler tests distinguish discard, fallback, capture, and propagation.
-
-### language.design.011 — The apostrophe carries three unrelated roles
-
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: language
-- Found while: the same pass
-- Observation: `'` opens a character literal, introduces a literal suffix, and introduces a generic
-  argument list. Which one applies depends on the token *before* it
-  ([003_003_string.swg](../bin/reference/modules/language/src/003_003_string.swg)),
-  so `5's32`, `genericTwice's64(12)`, `floatWindow.at'1()`, `Duration = 500'ms` and `'a'` all use
-  the same character across those three roles — and a user-defined literal suffix
-  ([006_010_custom_literals.swg](../bin/reference/modules/language/src/006_010_custom_literals.swg))
-  makes the suffix set open, so `x'foo` cannot be read without knowing what `x` is. Blanks do not
-  disambiguate: `5 's32` is the suffixed literal, not `5` followed by a character.
-- Evidence: `let spaced = 5 's32` yields 5 as an `s32`; `idOf's32(7)` is a generic call and reads
-  like a suffixed identifier; `' 'u32` is a space literal followed by a suffix.
-- Elsewhere: Rust also overloads the apostrophe, distinguishing character literals from lifetime tokens
-  ([Rust tokens](https://doc.rust-lang.org/reference/tokens.html)). This is a lexer comparison,
-  not evidence that Swag must change its generic delimiter.
-- Next: nothing here is broken, and changing a sigil is expensive. What is worth measuring is
-  the cost paid elsewhere: check how the syntax highlighter, the formatter's classifier, and the
-  language reference each disambiguate, and whether any of the three gets it wrong. If they all
-  carry a copy of the same lookbehind rule, that is the argument for a distinct generic-argument
-  spelling.
-- Complete when: the lexer, formatter, editor grammar, and reference share one tested
-  disambiguation rule, or generic arguments have a distinct spelling migrated across all four.
 
 ### language.design.013 — A `switch` accepts several `default` clauses
 

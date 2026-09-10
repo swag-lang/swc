@@ -48,6 +48,24 @@ instead. It applies to the accepted kernels as much as to the discarded ones: ev
 inside that window has to be re-baselined before it is trusted, and the entries below name their
 own. Work dated before the window used the raw `Swag.vec*` intrinsics directly and is unaffected.
 
+### cpu.simd.024 — Irregular H.264 directional intra prediction still needs a measured packed strategy
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-10 21:00 — removed reconstruction dequantization after its entropy-decoder fusion
+- Evidence: `intra.swg` already packs the 16x16 simple stores and plane predictor, selected
+  8x8 directional rows, and several chroma stores. Irregular 4x4/8x8 predictors and chroma-plane
+  arithmetic retain scalar paths; earlier gather/table and narrow-store prototypes were neutral
+  or slower and must be remeasured against the current inlined wrappers.
+- Evidence: `cb35b2db8` moved AC scaling and raster placement into the CABAC/CAVLC residual
+  decoders. The reconstruction `dequant4x4`/`dequant8x8` passes and their clears no longer exist;
+  their former zero-store experiment is not an outstanding optimization.
+- Next: profile the remaining directional modes, reduce representative edge layouts, and retain
+  packing only when it improves their share of complete decoding.
+- Complete when: conformance streams remain byte-exact and the remaining directional modes each
+  have a measured decision, with a retained packed kernel improving the staged reconstruction
+  profile.
+- Related: cpu.simd.006, std.video.001.
+
 ### cpu.simd.014 — Loop vectorization cannot form reductions or masked tails
 
 - Recorded: 2026-08-20 08:56
@@ -142,39 +160,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 - Complete when: feature gating prevents illegal instructions, known-answer tests cover operands
   and lane ordering, and portable fallbacks or explicit availability checks are part of the API.
 - Related: cpu.simd.001.
-
-### cpu.simd.024 — H.264 dequantization and irregular directional intra prediction remain scalar
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-09-10 17:47 — replace the obsolete scalar-clear baseline with the shipped Memory.clear path
-- Intent: profile dequantization and the remaining gather- or shuffle-heavy directional modes.
-  Residual addition is already part of the packed inverse transforms. The 16x16 vertical,
-  horizontal, and DC stores now run 2.12x to 3.20x faster, and the filtered 8x8 vertical
-  store runs 1.43x faster; narrower dynamic-splat attempts regressed and were discarded. Replacing
-  the 4x4 and 8x8 dequantization zero loops with two and eight vector stores regressed 30,000 High
-  Profile decodes from 7,877,846 to 8,032,948 us (1.02x slower) in the historical call window.
-  Those scalar zero loops are now gone: `dequant4x4` and `dequant8x8` in `decode/h264/recon.swg`
-  clear through `Memory.clear`, shipped by `046e2f74b` on 2026-09-09 and recorded in std.video.001.
-  Re-measure the remaining dequantization arithmetic and directional predictors against this
-  implementation; the rejected zero-store prototype is not the current baseline. The narrower
-  dynamic splats and flat-add four-pixel rows also need fresh measurements outside that call window.
-  The 16x16 plane predictor now forms four S32x4 column groups per row and improves 2 million
-  Release calls from 516,278 to 435,013 us (1.19x). Chroma DC writes its four quadrants as packed
-  rows (53,978 to 39,165 us, 1.38x), while horizontal and vertical broadcast or copy eight samples
-  per row (27,627 to 12,637 us, 2.19x; 27,228 to 12,983 us, 2.10x). The analogous eight-wide
-  chroma plane arithmetic regressed from 101,197 to 142,369 us (1.41x slower) and remains scalar.
-  Three contiguous 8x8 directional modes now reuse packed rows: down-left evaluates two S32x4
-  filter groups per row (200,071 to 140,476 us, 1.42x), vertical-left selects its two-tap or
-  three-tap packed filter (175,817 to 145,094 us, 1.21x), and horizontal-up computes its 22-value
-  edge sequence once before copying eight windows (307,700 to 110,525 us, 2.78x). Two million
-  native Release calls were used. Equivalent 4x4 packing was neutral for down-left and 1.14x to
-  1.41x slower for the other two modes. Packing only the simple 4x4/8x8 stores also regressed or
-  stayed within 1%, while 8x8 down-right and horizontal-down lookup tables were 2.24x and 2.69x
-  slower; those paths remain scalar.
-- Complete when: conformance streams remain byte-exact and each retained kernel improves the staged
-  reconstruction profile.
-- Related: cpu.simd.006.
-
 
 ### cpu.simd.018 — The Argon2 permutation remains scalar
 

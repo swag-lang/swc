@@ -5,6 +5,35 @@ supported codecs, audio-clock synchronization, track selection, sidecar and embe
 seeking, full-screen hosting, mute, and volume. This backlog owns professional playback and
 inspection around `std/video`; codec implementation work remains in [std.video.md](std.video.md).
 
+### app.scope.video.012 — Playback position and track choices are not resumed safely
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-10 19:06 — Distinguish live reload state from reopening and persisted resume
+- Evidence: subtitle font, size, effect, position, color and delay already persist as global
+  settings. Automatic reload already restores time, rate, volume and mute through
+  `ViewerReadingState`. Closing the document or opening another file loses that state, selected
+  tracks are not restored, and there is no persisted file-specific resume state. Blindly restoring by path would apply stale time to a
+  replaced file or resume near credits without consent.
+- Next: specify media state fields, stable stream matching, identity checks, completion threshold,
+  and privacy controls on top of app.scope.viewers.003.
+- Complete when: opted-in resume restores a compatible position and tracks, completed media restarts
+  according to policy, replacement identity clears stale state, and one action forgets history.
+- Related: app.scope.viewers.003
+
+### app.scope.video.006 — Video geometry has no explicit transform controls
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-10 18:56 — Account for existing ImageView wheel zoom, drag pan, and fit/actual-size toggle
+- Evidence: frames honor the decoded display size through `ImageView.setDisplaySize`. The embedded
+  ImageView already supports wheel zoom, drag pan, and double-click fit/actual size. The viewer has
+  no explicit geometry inspector or controls for sample/display aspect overrides, rotation, clean
+  aperture, crop, mirroring, or stretch policy.
+- Next: separate coded size, clean aperture, display transform, and temporary view transform, then
+  expose Fit, Fill, Actual Pixels, and declared-aspect modes.
+- Complete when: source and effective geometry are visible, rotation/mirror/aspect overrides are
+  reversible, pan/zoom is bounded, subtitle placement follows display geometry, and screenshots
+  use the chosen explicit transform.
+
 ### app.scope.video.001 — Playback rate has no keyboard stepping or pitch-preserving mode
 
 - Recorded: 2026-08-29 08:36
@@ -34,20 +63,6 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   visible, track flags/language/title are preserved, downmix policy is inspectable, and reset returns
   to container timing.
 - Related: app.scope.video.016, app.scope.audio.005
-
-### app.scope.video.012 — Playback position and track choices are not resumed safely
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: subtitle font, size, effect, position, color and delay already persist as global
-  settings. Closing or replacing a video loses its time, rate, volume/mute and selected tracks;
-  there is no file-specific resume state. Blindly restoring by path would apply stale time to a
-  replaced file or resume near credits without consent.
-- Next: specify media state fields, stable stream matching, identity checks, completion threshold,
-  and privacy controls on top of app.scope.viewers.003.
-- Complete when: opted-in resume restores a compatible position and tracks, completed media restarts
-  according to policy, replacement identity clears stale state, and one action forgets history.
-- Related: app.scope.viewers.003
 
 ### app.scope.video.013 — Video decode and presentation have no selectable performance path
 
@@ -153,19 +168,6 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 - Complete when: hover and keyboard scrubbing preview nearby frames, obsolete requests cancel,
   exact versus approximate results are labelled, sparse indexes remain usable, and playback has
   priority over thumbnail work.
-
-### app.scope.video.006 — Aspect ratio, crop, rotation, mirroring, and zoom cannot be corrected
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: frames fit the available view using decoded geometry. The reader cannot inspect or
-  override sample/display aspect ratio, rotation metadata, clean aperture, crop, zoom, pan, mirror,
-  or stretch policy.
-- Next: separate coded size, clean aperture, display transform, and temporary view transform, then
-  expose Fit, Fill, Actual Pixels, and declared-aspect modes.
-- Complete when: source and effective geometry are visible, rotation/mirror/aspect overrides are
-  reversible, pan/zoom is bounded, subtitle placement follows display geometry, and screenshots
-  use the chosen explicit transform.
 
 ### app.scope.video.007 — Color, HDR, range, chroma, and deinterlace decisions are invisible
 

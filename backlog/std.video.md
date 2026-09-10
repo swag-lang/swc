@@ -15,31 +15,10 @@ bounded sound windows.
 The picture codec of an AVI stream is the Pixel one. Its generic minimum-coded-unit walker accepts
 the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
 
-### std.video.012 — 4:2:2 is the chroma format H.264 still refuses
-
-- Recorded: 2026-09-09 19:33
-- Intent: the decoder reads 4:2:0 and, since this change, 4:4:4, which is what a screen recorder,
-  a colourist's intermediate, and x264 at `profile=high444` produce. `chroma_format_idc` equal to
-  2 is what remains, and a file carrying it is refused at the sequence set rather than decoded.
-- Evidence: `decode/h264/sets.swg` fails a sequence set whose `chroma_format_idc` is neither 1 nor
-  3, with "video decoder only supports 4:2:0 and 4:4:4 H.264 streams". `Sps.chromaShift` states one
-  halving or none, so it has no way to say "half the width and all of the height".
-- Why it is not the same work as 4:4:4: a 4:4:4 colour plane is coded exactly as luma, so the
-  4:4:4 path is the luma path with a plane index. 4:2:2 is a third geometry of its own — eight
-  chroma blocks per plane, a 2x4 chroma DC transform with its own scan, a chroma quantizer offset
-  of `+3`, and its own CABAC categories — and none of that is reached by the plane index.
-- Also unresolved for both formats: separate colour planes
-  (`separate_colour_plane_flag`), which codes each plane as its own monochrome picture with slice
-  headers of its own, is refused with a message of its own.
-- Next: decide whether a real file is asking for it. If one is, start from `Sps` carrying a
-  horizontal and a vertical chroma shift rather than one, then the chroma DC transform.
-- Complete when: a 4:2:2 fixture encoded by x264 decodes byte-exact against FFmpeg, beside the
-  4:2:0 and 4:4:4 ones in `video/src/tests/datas`.
-
 ### std.video.001 — H.264 decoding costs several times what FFmpeg does per picture
 
 - Recorded: 2026-08-19 13:23
-- Updated: 2026-09-09 18:10 — Rebaselined against FFmpeg in processor cycles on a one-slice 4K clip, corrected the profile, and retired the generic-indexing lead
+- Updated: 2026-09-10 19:12 — Verify shipped optimization boundaries and correct the four-change inventory
 - Intent: the decoder is byte-exact against FFmpeg on Baseline, Main, and High streams and decodes
   well above real time, but one picture still costs several times what FFmpeg spends on it. That
   margin is what a machine smaller than this one, or a stream larger than 4K, would need.
@@ -81,7 +60,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   neighbours. Scanning the emitted code settles it — `Slice.bookkeepMb` is 2161 bytes and makes
   exactly two direct calls, neither of them an accessor. Every `Array` index on the hot paths is
   inlined. Do not spend anything on this again.
-- Three changes landed on 2026-09-09, each byte-exact against every reference fixture:
+- Four changes landed on 2026-09-09, each byte-exact against every reference fixture:
   - The per-4x4-block motion state was six picture-wide arrays — two vector components, a
     reference index, a 32-bit picture order count, and a direct flag, per list. It is now one
     eight-byte `BlockMotion` record per list, and the order count is a one-byte identity
@@ -125,6 +104,27 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   residual record must stay cleared (see `prepareMb`).
 - Complete when: the serial cost of one 3840x2160 picture is within a third of FFmpeg's on the same
   machine, measured in decoding-thread cycles on a one-slice clip.
+
+### std.video.012 — 4:2:2 is the chroma format H.264 still refuses
+
+- Recorded: 2026-09-09 19:33
+- Intent: the decoder reads 4:2:0 and, since this change, 4:4:4, which is what a screen recorder,
+  a colourist's intermediate, and x264 at `profile=high444` produce. `chroma_format_idc` equal to
+  2 is what remains, and a file carrying it is refused at the sequence set rather than decoded.
+- Evidence: `decode/h264/sets.swg` fails a sequence set whose `chroma_format_idc` is neither 1 nor
+  3, with "video decoder only supports 4:2:0 and 4:4:4 H.264 streams". `Sps.chromaShift` states one
+  halving or none, so it has no way to say "half the width and all of the height".
+- Why it is not the same work as 4:4:4: a 4:4:4 colour plane is coded exactly as luma, so the
+  4:4:4 path is the luma path with a plane index. 4:2:2 is a third geometry of its own — eight
+  chroma blocks per plane, a 2x4 chroma DC transform with its own scan, a chroma quantizer offset
+  of `+3`, and its own CABAC categories — and none of that is reached by the plane index.
+- Also unresolved for both formats: separate colour planes
+  (`separate_colour_plane_flag`), which codes each plane as its own monochrome picture with slice
+  headers of its own, is refused with a message of its own.
+- Next: decide whether a real file is asking for it. If one is, start from `Sps` carrying a
+  horizontal and a vertical chroma shift rather than one, then the chroma DC transform.
+- Complete when: a 4:2:2 fixture encoded by x264 decodes byte-exact against FFmpeg, beside the
+  4:2:0 and 4:4:4 ones in `video/src/tests/datas`.
 
 ### std.video.010 — Decode VP9 pictures in Matroska and WebM
 

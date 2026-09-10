@@ -30,6 +30,56 @@ Measured against the previous design on the same machine, alternating both binar
 
 The remaining work below is what turns that into a measured allocator contract.
 
+### runtime.allocator.003 — Return idle memory without being asked
+
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-09-10 18:44 — Include the header-block cache in the idle-memory policy.
+- `trim()` decommits empty pages of the calling heap except the current page of each size class,
+  collects empty abandoned pages, and releases segments left without a page. Nothing calls it on
+  its own. A program that allocates in bursts retains committed pages until it exits or trims by hand.
+- Decide the policy: a bounded amount of idle committed memory per heap, a purge delay after which
+  an untouched page is decommitted, or an explicit contract that trimming is the caller's job.
+  Whichever it is, write it down — "give memory back eventually" with no rule is how an allocator
+  ends up with an unbounded case that only shows on someone else's machine.
+- An abandoned page whose class nobody allocates again is only collected by `trim()`. Bound that
+  too, or state that a thread exiting mid-workload can retain its pages until the next trim.
+- The newer header-block cache is separately bounded by 96 MiB/twelve entries and is drained by
+  allocator teardown. `trim()` currently walks pages and segments, not this cache. Include its
+  explicit-trim and idle-purge behavior in the same policy.
+
+### runtime.allocator.002 — Close the remaining distance to mimalloc on the hot path
+
+- Recorded: 2026-08-06 06:22
+- Updated: 2026-09-10 18:44 — Mark the hot-path probe numbers as historical until a shared benchmark exists.
+- The historical probe above measured about 77 ns per allocate/free pair; its comparison put
+  mimalloc in the 10-20 ns range. These are not current measurements. The shared benchmark in
+  runtime.allocator.001 must establish the present gap before another optimization is selected.
+- What the path still pays, in the order worth attacking: one `FlsGetValue` per operation to find
+  the thread heap (measured at 4 ns per call, against 2 ns for `TlsGetValue` and 1 ns for a plain
+  global read); the `IAllocator` interface dispatch and the `AllocatorRequest` the caller fills;
+  the block-address validation on free; the diagnostic-mode test at every entry point.
+- Real thread-local storage would remove most of the first item. `tls` now lowers to a
+  per-thread copy, so the mechanism is there; what it cannot hold is a value with a drop, which
+  the compiler now refuses at the declaration: the per-thread block is released by the
+  thread-exit destructor, which frees the bytes without running `opDrop`. Whatever the heap
+  keeps in thread-local storage has to be a plain value.
+- Measure with runtime.allocator.001 before and after, not with a probe written for the occasion.
+
+### runtime.allocator.005 — Add a medium-allocation tier above 64 KiB
+
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-09-10 18:44 — Rebase medium allocations on the shipped bounded header-block cache.
+- Requests above 64 KiB still use the header path. That path now reuses exact-size freed OS
+  blocks of at least 512 KiB, bounded by 96 MiB and twelve blocks. `popCachedBlock` takes a matching
+  block; `cacheFreedBlock` evicts the oldest retained blocks when either budget would be exceeded.
+  Smaller header allocations and cache misses still take the OS allocation path.
+- Measure the size/lifetime distribution on compiler, standard-library, GUI and Swag Vault
+  traces against this implementation. Determine whether a segment-backed medium size-class tier
+  improves allocation latency or retained memory beyond the existing bounded cache. Keep the
+  cache's current behavior as the comparison baseline rather than assuming one OS call per request.
+
+- Related: runtime.allocator.006
+
 ### runtime.allocator.011 — Audit error storage ownership and reclamation
 
 - Recorded: 2026-09-06 21:01
@@ -46,20 +96,6 @@ The remaining work below is what turns that into a measured allocator contract.
   foreign-thread exit cleanup and nested catch/rethrow behavior.
 - Complete when: repeated handled errors reclaim their storage and simultaneous threads cannot
   overwrite one another's errors, with native regression coverage.
-
-### runtime.allocator.003 — Return idle memory without being asked
-
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- `trim()` decommits empty pages of the calling heap except the current page of each size class,
-  collects empty abandoned pages, and releases segments left without a page. Nothing calls it on
-  its own. A program that allocates in bursts retains committed pages until it exits or trims by hand.
-- Decide the policy: a bounded amount of idle committed memory per heap, a purge delay after which
-  an untouched page is decommitted, or an explicit contract that trimming is the caller's job.
-  Whichever it is, write it down — "give memory back eventually" with no rule is how an allocator
-  ends up with an unbounded case that only shows on someone else's machine.
-- An abandoned page whose class nobody allocates again is only collected by `trim()`. Bound that
-  too, or state that a thread exiting mid-workload can retain its pages until the next trim.
 
 ### runtime.allocator.004 — Make remote frees batched rather than one atomic each
 
@@ -85,23 +121,6 @@ The remaining work below is what turns that into a measured allocator contract.
   half-built page.
 - Related: runtime.allocator.009, platform.portability.004
 
-### runtime.allocator.002 — Close the remaining distance to mimalloc on the hot path
-
-- Recorded: 2026-08-06 06:22
-- Updated: 2026-09-04 18:30 — git: Rationalize nullable and deferred initialization syntax
-- An allocate/free pair on a cached block costs about 77 ns. mimalloc is in the 10-20 ns range,
-  so the structural work is done and what is left is the constant factor.
-- What the path still pays, in the order worth attacking: one `FlsGetValue` per operation to find
-  the thread heap (measured at 4 ns per call, against 2 ns for `TlsGetValue` and 1 ns for a plain
-  global read); the `IAllocator` interface dispatch and the `AllocatorRequest` the caller fills;
-  the block-address validation on free; the diagnostic-mode test at every entry point.
-- Real thread-local storage would remove most of the first item. `tls` now lowers to a
-  per-thread copy, so the mechanism is there; what it cannot hold is a value with a drop, which
-  the compiler now refuses at the declaration: the per-thread block is released by the
-  thread-exit destructor, which frees the bytes without running `opDrop`. Whatever the heap
-  keeps in thread-local storage has to be a plain value.
-- Measure with runtime.allocator.001 before and after, not with a probe written for the occasion.
-
 ### runtime.allocator.001 — Add a reproducible allocator benchmark suite
 
 - Recorded: 2026-08-05 10:27
@@ -119,19 +138,6 @@ The remaining work below is what turns that into a measured allocator contract.
   otherwise idle machine, and only alternating the two binaries made the comparison readable.
 - Define the parity gate before tuning: a geometric-mean throughput within 10% of mimalloc, no
   representative workload more than 25% slower, and no unbounded retained-memory case.
-
-### runtime.allocator.005 — Add a medium-allocation tier above 64 KiB
-
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Requests above 64 KiB take the header path: one `VirtualAlloc` reservation each, released on
-  free. That is correct and wastes almost nothing, but a buffer that doubles across the boundary
-  pays a kernel round trip per growth.
-- Measure the real distribution first, on compiler, standard-library, GUI, and Swag Vault traces. If
-  the boundary is hot, the answer is a size-class tier above 64 KiB carved from whole segments, not
-  a cache of arbitrary blocks.
-
-- Related: runtime.allocator.006
 
 ### runtime.allocator.006 — Huge allocations have no separately measured policy
 

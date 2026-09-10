@@ -5,6 +5,20 @@ editable specimen at several pixel sizes, and pages through mapped Unicode chara
 backlog owns professional font inspection; shaping, font-format, hinting, and color-glyph engine work
 remains in [std.truetype.md](std.truetype.md).
 
+### app.scope.font.001 — Font collections expose only their first face
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-10 18:30 — Indexed face loading already exists; retain viewer selection and identity.
+- Evidence: `Face.countFaces` appears in the summary, but `Face.load(bytes)` selects one face and
+  the viewer has no collection face list, family/style grouping, preview, or stable face identity.
+- The engine already exposes `Face.loadAt(bytes, faceIndex)` and per-face names. The viewer still
+  calls `Face.load` and creates one Pixel typeface for the file.
+- Next: carry the selected face index through the viewer and Pixel typeface cache identity, then
+  add a searchable face selector that replaces the specimen without reopening bytes.
+- Complete when: every TTC/OTC face is named and selectable, duplicate/localized names remain
+  distinguishable, switching releases old resources, selected face persists safely, and malformed
+  faces do not hide valid siblings.
+
 ### app.scope.font.007 — OpenType shaping features, script, and language cannot be inspected
 
 - Recorded: 2026-08-29 08:36
@@ -20,17 +34,6 @@ remains in [std.truetype.md](std.truetype.md).
   original text-to-glyph mapping remains inspectable.
 - Related: std.truetype.003, std.truetype.009, std.truetype.008
 
-### app.scope.font.001 — Font collections expose only their first face
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: `Face.countFaces` appears in the summary, but `Face.load(bytes)` selects one face and
-  the viewer has no collection face list, family/style grouping, preview, or stable face identity.
-- Next: extend the font loader/viewer boundary with indexed face loading and add a searchable face
-  selector that replaces the specimen without reopening bytes.
-- Complete when: every TTC/OTC face is named and selectable, duplicate/localized names remain
-  distinguishable, switching releases old resources, selected face persists safely, and malformed
-  faces do not hide valid siblings.
 
 ### app.scope.font.002 — The character map cannot search or jump to a glyph
 

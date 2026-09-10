@@ -16,6 +16,22 @@ accepts hexadecimal byte/nibble wildcards, exact UTF-8, and the active scalar, m
 occurrences, and the information band inspects common scalar readings at the exact caret. The entries below
 are what separate that capable grid from a professional binary-analysis viewer.
 
+### app.scope.hexa.008 — External file changes can make offsets and search results stale
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-10 19:06 — Account for host reload while retaining per-operation version checks
+- Evidence: `HexDocument` records size at open, display and search use separate streams, and a
+  later short read permanently fails that document instance. The host now detects stable metadata
+  changes and reloads while retiring searches, but display, copy, search and analysis do not
+  validate a shared file-version token around each operation. A read can therefore fail before
+  the asynchronous watcher confirms a change, without distinguishing that race from a read error.
+- Next: connect the host identity/version contract to bounded checks around display, copy,
+  search and analysis, with retryable-change status distinct from permanent read failure.
+- Complete when: external change is detected, stale matches and interpretations are invalidated,
+  reload can preserve a still-valid offset, truncation never presents old bytes as current, and the
+  user can distinguish retryable change from a genuine read failure.
+- Related: app.scope.viewers.005
+
 ### app.scope.hexa.006 — Whole-file search cannot yield early, cancel visibly, or bound its matches
 
 - Recorded: 2026-08-29 08:36
@@ -114,20 +130,6 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Complete when: painting never waits for file I/O, sequential scrolling normally hits prefetched
   data, distant jumps retire obsolete reads, progress/error presentation is shared with the host,
   and resident memory remains explicitly bounded.
-
-### app.scope.hexa.008 — External file changes can make offsets and search results stale
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: `HexDocument` records size at open, display and search use separate streams, and a
-  later short read permanently fails the document. Growth, truncation, replacement, and writes by
-  another process are not detected as file-version changes.
-- Next: define a read-only file identity/version snapshot and poll or observe it at bounded points
-  around display, copy, and search.
-- Complete when: external change is detected, stale matches and interpretations are invalidated,
-  reload can preserve a still-valid offset, truncation never presents old bytes as current, and the
-  user can distinguish retryable change from a genuine read failure.
-- Related: app.scope.viewers.005
 
 ### app.scope.hexa.009 — Navigation address expressions remain partial
 

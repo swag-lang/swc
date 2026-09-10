@@ -7,6 +7,20 @@ PSD layers, texture subresources, and OpenEXR parts. This backlog owns professio
 missing codec and pixel-format work remains in [std.pixel.image.md](std.pixel.image.md), while
 render primitives remain in [std.pixel.md](std.pixel.md).
 
+### app.scope.image.007 — Animated images have no frame-step, speed, or disposal inspection
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-10 19:05 — Retain frame inspection and speed controls after shared cycle continuation was fixed
+- Evidence: GIF, APNG, and WebP playback share play/pause, a frame slider, and frame count. The
+  shared playback mode now stops after a cycle, repeats, or continues through the folder, with
+  manual seeking kept separate from cycle completion. Previous/next-frame commands, exact frame
+  delay, playback speed, disposal/blend metadata, composited-versus-raw frame view, and dropped-frame
+  indicators remain absent.
+- Next: expose animation frame metadata and complete the transport around the existing cached movie.
+- Complete when: frame stepping is exact, delay and timestamp are visible, 0.25x–4x rates
+  are covered together with the existing loop policy, raw and composited frames can be compared,
+  and invalid timing/disposal warns.
+
 ### app.scope.image.003 — Color management and HDR state are invisible to the reader
 
 - Recorded: 2026-08-29 08:36
@@ -35,17 +49,6 @@ render primitives remain in [std.pixel.md](std.pixel.md).
   rendered export declares the applied orientation.
 - Related: app.scope.image.011
 
-### app.scope.image.007 — Animated images have no frame-step, speed, loop, or disposal inspection
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: GIF, APNG, and WebP playback share play/pause, a frame slider, and frame count. There are no previous/
-  next-frame commands, exact frame delay, playback speed, loop override, disposal/blend metadata,
-  composited-versus-raw frame view, or dropped-frame indicator.
-- Next: expose animation frame metadata and complete the transport around the existing cached movie.
-- Complete when: frame stepping is exact, delay and timestamp are visible, 0.25x–4x and loop policy
-  are selectable, raw and composited frames can be compared, and invalid timing/disposal warns.
-
 ### app.scope.image.008 — The image-set selector has no item descriptions or thumbnails
 
 - Recorded: 2026-08-29 08:36
@@ -73,11 +76,6 @@ render primitives remain in [std.pixel.md](std.pixel.md).
   tiles have priority, animation cache has an explicit budget, cancellation is prompt, and partial
   damage is marked without discarding valid regions.
 - Related: app.scope.viewers.004, std.pixel.image.038, std.pixel.image.039
-
-This backlog covers image-viewer behavior owned by Swag Scope. Decoder, SVG, and pixel-format work
-remains in [std.pixel.image.md](std.pixel.image.md), while the general color contract remains in
-[std.pixel.md](std.pixel.md); this file owns the metadata and format composition presented by the
-application.
 
 ### app.scope.image.012 — Camera RAW files show nothing
 

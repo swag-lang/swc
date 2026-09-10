@@ -5,6 +5,22 @@ Parser, layout, and renderer defects remain with their engines in [std.gui.markd
 [std.gui.html.md](std.gui.html.md), and [std.gui.pdf.md](std.gui.pdf.md); entries here own navigation, inspection, and application
 integration around those engines.
 
+### app.scope.document.016 — PDF text selection, copy, and reading order are not a complete workflow
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-10 17:54 — narrow selection work to keyboard and copy semantics after verifying cross-page pointer selection
+- Evidence: `PdfView` already selects across page boundaries and joins copied page text with line
+  feeds. `pdfview.test.swg` drags from page zero to page one and checks `PDF viewer\nSecond page`.
+  Double-click word selection, document search, `Ctrl+A`, and `Ctrl+C` are also implemented.
+  Arrow keys scroll rather than extending a text selection; there is no keyboard caret selection,
+  no choice between logical and visual copy order, no reflow reading, and an image-only page says
+  nothing about why a search finds nothing in it.
+- Next: add keyboard caret and selection movement on the existing cross-page text positions,
+  preserving glyph/source coordinates for exact and logical copy forms. Keep the pointer drag
+  and copy regression as the working baseline.
+- Complete when: keyboard selection reaches across lines and pages, copy exposes logical and
+  visual order, reflow has a defined reading order, and image-only pages state that OCR is absent.
+
 ### app.scope.document.014 — PDF viewing has no facing-page layout
 
 - Recorded: 2026-08-29 08:36
@@ -132,20 +148,6 @@ integration around those engines.
 - Complete when: Office Open XML documents open through readable document and table surfaces rather
   than only their ZIP hierarchy.
 - Related: app.scope.text.015, app.scope.binary.010
-
-### app.scope.document.016 — PDF text selection, copy, and reading order are not a complete workflow
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-03 13:14 — git: Search a PDF's text on a worker instead of decoding every page on the GUI thread
-- Evidence: a page's text is indexed in reading order, a drag selects across the lines of the
-  displayed page, a double click takes a word, and the search finds and selects on any page. The
-  selection still stops at the page, there is no keyboard selection, no choice between logical and
-  visual copy order, no reflow reading, and an image-only page says nothing about why a search
-  finds nothing in it.
-- Next: design selection and copy across page boundaries on the ordered text model, preserving
-  glyph/source coordinates for exact and logical forms.
-- Complete when: text can be selected by pointer and keyboard across lines and pages, copied as
-  logical or visual order, search and selection agree, and image-only pages state that OCR is absent.
 
 ### app.scope.document.021 — EPUB stops at the ZIP structure
 

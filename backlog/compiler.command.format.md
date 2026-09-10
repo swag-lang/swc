@@ -19,8 +19,8 @@ an explicit opt-out (`--style preserve`) and a `style` key that rebases a config
 ([FormatStyle.cpp](../src/Format/FormatStyle.cpp)); a cascading `.swc-format` resolved from the
 file's directory upward with parent inheritance
 ([FormatOptionsLoader.cpp](../src/Format/FormatOptionsLoader.cpp)); `--dump-config`;
-`swc-format off`/`on` regions; thirteen passes over a token-and-AST model; and C++ tests over 241
-cases (source inventory checked on 2026-09-06).
+`swc-format off`/`on` regions; thirteen passes over a token-and-AST model; and C++ tests over 243
+cases (source inventory checked on 2026-09-10).
 
 The wrapping contract is settled and written down at the top of
 [Pass.Wrap.cpp](../src/Format/Pass.Wrap.cpp): layout is decided locally, one construct and one
@@ -30,19 +30,6 @@ continuation lines keep their distance to the statement because that is what car
 data table. Reopen that decision only for a wrapping shape that cannot be stated as one local rule.
 
 ## Entries
-
-### compiler.command.format.006 — A storage keyword before a visibility keyword indents the declaration
-
-- Recorded: 2026-09-10 09:41
-- The parser accepts a storage keyword on either side of a visibility keyword, but the
-  formatter only recognizes one order. `private late var g_A: *Thing` formats in place;
-  `late private var g_B: *Thing` is indented four spaces, and so is the comment block above it,
-  as if the declaration opened a nested scope. Reproduced 2026-09-10 with both spellings in one
-  file: sema is clean on both, `swc format -f` moves only the second.
-- Next: find where the declaration's indent level is decided — the classifier reads the
-  leading keyword to recognize a declaration, and `late` there is not the keyword it expects.
-  Either accept every accepted order, or reject the ones the language does not intend.
-- Complete when: the two spellings format identically, with a test over both.
 
 ### compiler.command.format.002 — Format stdin to stdout
 

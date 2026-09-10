@@ -44,7 +44,7 @@ that proves it.
 | Markdown | [tests](../bin/apps/modules/swagscope/src/tests/viewer.markdown.test.swg) | rendered themes, reading measures, progressive layout, search | outline, synchronized source, resource security diagnostics; [app.scope.document.md](app.scope.document.md) |
 | MIDI | [tests](../bin/apps/modules/swagscope/src/tests/viewer.midi.test.swg) | parsed tracks, notes, tempo/meter/key and piano roll | playback, mixer/event lanes, scalable timeline; [app.scope.midi.md](app.scope.midi.md) |
 | OpenDocument | [tests](../bin/apps/modules/swagscope/src/tests/viewer.opendocument.test.swg) | safe ODT/ODS/ODP/ODG text, sheets, slides, and pages | complete ODF semantics, layout, accessibility, and conformance; [OpenDocument roadmap](app.scope.opendocument.md) |
-| PDF | [tests](../bin/apps/modules/swagscope/src/tests/viewer.pdf.test.swg) | page rendering, search, page jump, fit and zoom | thumbnails, bookmarks, continuous/facing layouts, components; [app.scope.document.md](app.scope.document.md) |
+| PDF | [tests](../bin/apps/modules/swagscope/src/tests/viewer.pdf.test.swg) | continuous page rendering, cross-page selection/copy, search, page jump, fit and zoom | thumbnails, bookmarks, facing layouts, components; [app.scope.document.md](app.scope.document.md) |
 | Sound | [tests](../bin/apps/modules/swagscope/src/tests/viewer.sound.test.swg) | streamed playback, seek, volume/mute and bounded waveform | ranges, loop/scrub, spectrogram, meters and analysis; [app.scope.audio.md](app.scope.audio.md) |
 | Subtitle | [tests](../bin/apps/modules/swagscope/src/tests/viewer.subtitle.test.swg) | timed searchable transcript with validated cue/time jumps | current-cue timeline, waveform/media check, source/styled modes; [app.scope.text.md](app.scope.text.md) |
 | Table | [tests](../bin/apps/modules/swagscope/src/tests/viewer.table.test.swg) | parsed CSV/TSV grid and cell search | dialect control, typed columns, sort/filter, fixed-width input, bounded rows; [app.scope.text.md](app.scope.text.md) |
@@ -52,6 +52,39 @@ that proves it.
 | Video | [tests](../bin/apps/modules/swagscope/src/tests/viewer.video.test.swg) | progressive A/V playback, seek, tracks and subtitles | chapters, bookmarks, direct frame/time addressing, inspection; [app.scope.video.md](app.scope.video.md) |
 
 ## Entries
+
+### app.scope.viewers.003 — Viewer state is forgotten when a file or application closes
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-10 19:06 — Distinguish existing reload restoration from persistent per-file state
+- Evidence: Markdown theme and reading width and Video subtitle presentation already persist as
+  global preferences in `ViewerWindow.serialize`. `ViewerReadingState` also restores supported
+  settings during an in-place reload. Per-file zoom, fit mode, wrapping, encoding,
+  selected track, playback position/volume, page and scroll position have no identity-keyed restore
+  contract and are reconstructed on reopening.
+- Next: define versioned global defaults plus per-file state keyed by stable file identity, with an
+  explicit list of safe fields each viewer may persist.
+- Complete when: every registered viewer restores its useful reading state, stale identity never
+  applies state to a replacement file, and one command resets either the current viewer or all
+  viewer preferences.
+
+### app.scope.viewers.005 — Automatic reload does not classify changes or offer a snapshot policy
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-10 19:06 — Narrow to event classification and snapshot policy after automatic reload shipped
+- Evidence: `ViewerFileWatch` already polls size, creation time and last-write time off-thread,
+  waits for two stable observations, and asks the host to reload. `ViewerReadingState` restores
+  supported reading settings and scroll positions, and old searches are retired. Reload tests
+  cover edits, truncation, atomic replacement, temporary deletion and PDF/Markdown state. The
+  watcher still collapses successful changes to one Boolean and suppresses metadata errors; it
+  exposes neither stable file identity, append/replace/delete/permission-loss classification, nor
+  a user choice to retain a labelled snapshot.
+- Next: extend the existing watcher with typed change observations and stable identity, then
+  let viewers declare reload, append-following, or labelled-snapshot behavior.
+- Complete when: atomic replacement, append, truncation, deletion, and permission loss are
+  distinguished; stale search results are retired; reload can preserve a valid logical position;
+  and each viewer states whether live following is supported.
+- Related: app.scope.hexa.008, app.scope.text.023
 
 ### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
 
@@ -68,20 +101,6 @@ that proves it.
 - Complete when: the application smoke validates every registered viewer in light and dark themes,
   the matrix names unsupported variants honestly, corpus licences are recorded, and regressions in
   format choice, cancellation, accessibility, resource bounds, or preview latency fail a focused suite.
-
-### app.scope.viewers.003 — Viewer state is forgotten when a file or application closes
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: Markdown theme and reading width and Video subtitle presentation already persist as
-  global preferences in `ViewerWindow.serialize`. Per-file zoom, fit mode, wrapping, encoding,
-  selected track, playback position/volume, page and scroll position have no identity-keyed restore
-  contract and are reconstructed on reopening.
-- Next: define versioned global defaults plus per-file state keyed by stable file identity, with an
-  explicit list of safe fields each viewer may persist.
-- Complete when: every registered viewer restores its useful reading state, stale identity never
-  applies state to a replacement file, and one command resets either the current viewer or all
-  viewer preferences.
 
 ### app.scope.viewers.006 — File facts have no common host-wide inspection contract
 
@@ -190,20 +209,6 @@ that proves it.
   Markdown without making a multi-gigabyte copy resident.
 - Complete when: select-all reaches the whole file or the copy command says exactly which bounded
   part will leave, before the user pastes it.
-
-### app.scope.viewers.005 — External file replacement and growth have no viewer-wide reload policy
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: each viewer snapshots different combinations of path, size, decoded content, and open
-  streams. A file changed by a build, download, logger, or editor can leave rendered content,
-  offsets, matches, and metadata disagreeing without a shared notification.
-- Next: add a host-owned file identity/version watcher and a viewer callback that can reload,
-  follow append-only growth, or keep a labelled snapshot.
-- Complete when: atomic replacement, append, truncation, deletion, and permission loss are
-  distinguished; stale search results are retired; reload can preserve a valid logical position;
-  and each viewer states whether live following is supported.
-- Related: app.scope.hexa.008, app.scope.text.023
 
 ### app.scope.viewers.007 — Custom-painted viewers cannot expose a professional accessibility model
 

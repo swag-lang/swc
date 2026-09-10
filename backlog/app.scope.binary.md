@@ -5,6 +5,21 @@ This backlog covers the structured, read-only report under
 hierarchical Field / Value / Offset / Meaning report with previews; the entries below turn that
 report into a professional inspection workflow.
 
+### app.scope.binary.001 — Structured reports cannot be filtered by field semantics
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-10 19:10 — Narrow to typed column predicates after hierarchical text filtering shipped
+- Evidence: shared search indexes Field, Value, Offset and Meaning, and the host filter mode
+  already retains matching report rows with their ancestors. `applyFilter` supports text and
+  regular expressions; clearing it restores saved expansion and selection, with focused tests and
+  a filter-bar golden. Explicit column scope, numeric/offset-range predicates, warning/row-kind
+  predicates and an independent result list remain absent.
+- Next: extend the existing hierarchical filter with typed column, numeric, offset-range,
+  warning and row-kind predicates, retaining its bounded report representation.
+- Complete when: filters preserve the ancestor path, result counts and scopes are explicit,
+  previous/next works independently from host document search, and clearing restores expansion and
+  selection.
+
 ### app.scope.binary.005 — Two structured files cannot be compared semantically
 
 - Recorded: 2026-08-29 08:36
@@ -57,19 +72,6 @@ report into a professional inspection workflow.
   it belongs to would help inspect this compiler's own output.
 - Complete when: the MSF superblock, the stream directory, the named streams and the GUID/age that
   must match the image's CodeView record are reported by the `Binary` viewer.
-
-### app.scope.binary.001 — Structured reports cannot be filtered by field semantics
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: shared search now indexes Field, Value, Offset, and Meaning cells, counts occurrences,
-  highlights the exact cell, and opens its ancestor path. The viewer still has no persistent
-  filter, explicit column scope, numeric predicate, warning/row-kind predicate, or result list.
-- Next: index report columns and hierarchy into a bounded query model with text, exact, numeric,
-  offset-range, warning, and row-kind predicates.
-- Complete when: filters preserve the ancestor path, result counts and scopes are explicit,
-  previous/next works independently from host document search, and clearing restores expansion and
-  selection.
 
 ### app.scope.binary.002 — Report navigation has no address spaces or landmarks
 
@@ -148,10 +150,6 @@ report into a professional inspection workflow.
 - Complete when: all previews can be focused and compared, Open as Viewer preserves provenance,
   copy/save distinguishes raw from decoded output, dimensions/format are visible, and malformed
   previews cannot fail the parent report.
-
-This backlog covers the application-owned `Binary` viewer: structured reports, container browsing,
-and new format readers that produce the common field/value/offset/meaning tree. Generic parsing,
-compression, cryptography, or codec work stays with the standard module that implements it.
 
 ### app.scope.binary.011 — MP4 and Matroska containers are only identified
 

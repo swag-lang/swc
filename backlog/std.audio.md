@@ -14,7 +14,8 @@ ships; history lives in git, not here.
 
 A process-wide engine with an explicit lifecycle, a bus tree with parent routing and per-bus gain,
 voices with linear and decibel gain, pitch through a frequency ratio, looping, fire-and-forget
-lifetime, and streaming through three rotating 64 KiB decoded buffers. A codec registry
+lifetime, and streaming through three rotating decoded buffers, each at least 64 KiB and large
+enough for the source's largest decoded packet. A codec registry
 (`ICodec`, `registerCodec`) that makes decoding extensible from outside the module, with AAC-LC,
 AC-3, independent E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, Opus, and WAVE ADPCM decoders in
 the box. DTS, FLAC, MP3, and Ogg also have their own file readers, so a `.dts`, `.flac`, `.mp3`,
@@ -31,6 +32,22 @@ and capture. Operating-system backend work lives in
 ## Entries
 
 The native backend has channel-routing facilities, but the module has no portable pan contract.
+
+### std.audio.001 — DTS Core advanced coding tools remain unsupported
+
+- Recorded: 2026-08-27 07:58
+- Updated: 2026-09-10 19:12 — Distinguish unsupported extension decoding from accepted DTS-HD core payloads
+- Evidence: the decoder accepts scalar-coded 14- and 16-bit Core streams, reconstructs four-tap
+  ADPCM prediction across frame boundaries, and consumes VQ-bearing frames while omitting those
+  high-frequency bands. It still explicitly rejects Huffman-coded side information or audio,
+  and joint intensity. DTS-HD packets are accepted through their backward-compatible Core prefix;
+  extension substreams are not decoded. Prediction and VQ omission are validated against
+  DTS-HD Core packets from a real-world Matroska stream; the reproducible `dcaenc` fixture
+  exercises none of the remaining tools.
+- Next: obtain a permissively redistributable stream that exercises the common Core tool set, or
+  a reproducible encoder for one, then implement and validate each tool against that corpus.
+- Complete when: representative Core streams using those tools decode with validated channel order
+  and bounded reference error, while unsupported extension substreams remain explicit.
 
 ### std.audio.002 — MP3 synthesis has not been measured or factored
 
@@ -63,21 +80,6 @@ The native backend has channel-routing facilities, but the module has no portabl
   interpolated over a frame count rather than applied at once.
 - Next: define the ramp's interaction with batches, pause, seek, and bus routing, then verify its
   samples with the no-sound backend before judging playback on a device.
-
-### std.audio.001 — DTS Core advanced coding tools remain unsupported
-
-- Recorded: 2026-08-27 07:58
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Evidence: the decoder accepts scalar-coded 14- and 16-bit Core streams, reconstructs four-tap
-  ADPCM prediction across frame boundaries, and consumes VQ-bearing frames while omitting those
-  high-frequency bands. It still explicitly rejects Huffman-coded side information or audio,
-  joint intensity, and extension substreams. Prediction and VQ omission are validated against
-  DTS-HD Core packets from a real-world Matroska stream; the reproducible `dcaenc` fixture
-  exercises none of the remaining tools.
-- Next: obtain a permissively redistributable stream that exercises the common Core tool set, or
-  a reproducible encoder for one, then implement and validate each tool against that corpus.
-- Complete when: representative Core streams using those tools decode with validated channel order
-  and bounded reference error, while unsupported extension substreams remain explicit.
 
 ### std.audio.004 — No output-device enumeration
 

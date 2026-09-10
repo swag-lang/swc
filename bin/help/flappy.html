@@ -120,7 +120,7 @@
 <span class="SKwd">var</span> g_SoundHit:   <span class="SCst">Audio</span>.<span class="SCst">SoundFile</span>
 <span class="SKwd">var</span> g_SoundFlap:  <span class="SCst">Audio</span>.<span class="SCst">SoundFile</span></span></div>
 <p><span class="code-inline">g_Font</span> is a nullable pointer because font creation can return no font. Call sites use <span class="code-inline">!</span> only after successful asset loading establishes the invariant.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">var</span> g_Font: *<span class="SCst">Font</span>?</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">late</span> <span class="SKwd">var</span> g_Font: *<span class="SCst">Font</span></span></div>
 <h4 id="Types">Types</h4>
 <div class="code-block"><span class="SCde"><span class="SCmt">// State for the player sprite.</span>
 <span class="SKwd">struct</span> <span class="SCst">Bird</span>
@@ -184,7 +184,7 @@
     painter.<span class="SFct">drawTexture</span>(<span class="SNum">0</span>, <span class="SNum">0</span>, g_BackTexture)
 
     <span class="SCmt">// Bird</span>
-    <span class="SLgc">if</span> !g_FirstStart
+    <span class="SLgc">if</span> <span class="SLgc">not</span> g_FirstStart
     {
         <span class="SCmt">// Save the painter state and restore it automatically when this scope leaves.</span>
         painter.<span class="SFct">pushState</span>()
@@ -208,7 +208,7 @@
         pt.y = -g_BirdTexture[frame].height * <span class="SNum">0.5</span>
 
         <span class="SCmt">// Add a small idle wave before the first flap.</span>
-        <span class="SLgc">if</span> !g_Start
+        <span class="SLgc">if</span> <span class="SLgc">not</span> g_Start
         {
             pt.y   += <span class="SNum">5</span> * <span class="SCst">Math</span>.<span class="SFct">sin</span>(g_Time)
             g_Time += <span class="SNum">5</span> * g_Dt
@@ -227,7 +227,7 @@
     <span class="SCmt">// Scroll two ground copies to form a seamless strip.</span>
     painter.<span class="SFct">drawTexture</span>(-g_BasePos, g_Rect.<span class="SFct">bottom</span>() - <span class="SCst">GroundHeight</span>, <span class="SKwd">cast</span>(<span class="STpe">f32</span>) g_BaseTexture.width, <span class="SCst">GroundHeight</span>, g_BaseTexture)
     painter.<span class="SFct">drawTexture</span>(-g_BasePos + g_BaseTexture.width, g_Rect.<span class="SFct">bottom</span>() - <span class="SCst">GroundHeight</span>, <span class="SKwd">cast</span>(<span class="STpe">f32</span>) g_BaseTexture.width, <span class="SCst">GroundHeight</span>, g_BaseTexture)
-    <span class="SLgc">if</span> !g_GameOver <span class="SLgc">do</span>
+    <span class="SLgc">if</span> <span class="SLgc">not</span> g_GameOver <span class="SLgc">do</span>
         g_BasePos += <span class="SCst">SpeedHorz</span> * g_Dt
     <span class="SLgc">if</span> g_BasePos &gt;= g_BaseTexture.width <span class="SLgc">do</span>
         g_BasePos = <span class="SNum">0</span>
@@ -242,9 +242,9 @@
     }
 
     <span class="SCmt">// Draw the score using the loaded game font.</span>
-    <span class="SLgc">if</span> !g_FirstStart
+    <span class="SLgc">if</span> <span class="SLgc">not</span> g_FirstStart
     {
-        painter.<span class="SFct">drawStringCenter</span>(g_Rect.<span class="SFct">horzCenter</span>(), <span class="SNum">50</span>, <span class="SCst">Format</span>.<span class="SFct">toString</span>(<span class="SStr">"%"</span>, g_Score), g_Font!, <span class="SCst">Argb</span>.<span class="SCst">White</span>)
+        painter.<span class="SFct">drawStringCenter</span>(g_Rect.<span class="SFct">horzCenter</span>(), <span class="SNum">50</span>, <span class="SCst">Format</span>.<span class="SFct">toString</span>(<span class="SStr">"%"</span>, g_Score), g_Font, <span class="SCst">Argb</span>.<span class="SCst">White</span>)
     }
 
     <span class="SCmt">// Show the start prompt before the first round.</span>
@@ -322,7 +322,7 @@
             }
 
             <span class="SCmt">// Award one point when the bird passes a pipe for the first time.</span>
-            <span class="SLgc">if</span> g_Bird.pos.x &gt; pipe.rectUp.<span class="SFct">right</span>() <span class="SLgc">and</span> !pipe.scored
+            <span class="SLgc">if</span> g_Bird.pos.x &gt; pipe.rectUp.<span class="SFct">right</span>() <span class="SLgc">and</span> <span class="SLgc">not</span> pipe.scored
             {
                 <span class="SKwd">expect</span> <span class="SCst">Audio</span>.<span class="SCst">Voice</span>.<span class="SFct">play</span>(&amp;g_SoundScore)
                 pipe.scored = <span class="SKwd">true</span>
@@ -421,7 +421,7 @@
 }</span></div>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.419</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.436</div>
 </footer>
 </section>
 </main>

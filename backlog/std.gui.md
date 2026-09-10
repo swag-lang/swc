@@ -292,17 +292,6 @@ making clipboard completion depend on drag interaction.
 
 - Related: platform.portability.068
 
-### std.gui.009 — Focused controls are not scrolled into view
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Tab can focus a descendant of `ScrollWnd` without revealing it. Add `Wnd.ensureVisible`, walking
-every scroll ancestor and shifting only the amount missing from each viewport; test nested scrolls
-and the module's paint/hit-test offset convention.
-
-- Related: std.gui.010
-
 ### std.gui.010 — No keyboard access keys
 
 - Recorded: 2026-08-09 11:30
@@ -311,7 +300,7 @@ and the module's paint/hit-test offset convention.
 Add caption mnemonics, surface-level `Alt` handling, menu activation, and underline visibility as
 one keyboard access-key contract.
 
-- Related: std.gui.009, platform.portability.048
+- Related: platform.portability.048
 
 ### std.gui.013 — Gesture recognizers have no claim arbitration
 

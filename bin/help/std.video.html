@@ -283,33 +283,33 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <h3 id="file_src_decode_cabactables_swg"><code>src/decode/cabactables.swg</code></h3>
 <p>Format: Format-neutral context-adaptive binary arithmetic coding tables. Supported: The range, transition, and renormalization tables H.264 and H.265 specify identically. Not supported: This file does not decode or encode a concrete picture format. Role: This file owns the one copy of the arithmetic engine tables both coded picture formats read.</p>
 <h3 id="file_src_decode_h264_cabac_swg"><code>src/decode/h264/cabac.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns CABAC arithmetic contexts and syntax decoding.</p>
+<p>Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns CABAC arithmetic contexts and syntax decoding.</p>
 <h3 id="file_src_decode_h264_cavlc_swg"><code>src/decode/h264/cavlc.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns CAVLC residual decoding.</p>
+<p>Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns CAVLC residual decoding.</p>
 <h3 id="file_src_decode_h264_deblock_swg"><code>src/decode/h264/deblock.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns normative in-loop edge filtering.</p>
+<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns normative in-loop edge filtering.</p>
 <h3 id="file_src_decode_h264_frame_swg"><code>src/decode/h264/frame.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns reference-picture storage, cropping, planar export, and display conversion.</p>
+<p>Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns reference-picture storage, cropping, planar export, and display conversion.</p>
 <h3 id="file_src_decode_h264_h264_swg"><code>src/decode/h264/h264.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns decoder state, access units, parameter-set dispatch, and picture ordering.</p>
+<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns decoder state, access units, parameter-set dispatch, and picture ordering.</p>
 <h3 id="file_src_decode_h264_inter_swg"><code>src/decode/h264/inter.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns motion compensation, interpolation, and weighted prediction.</p>
+<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns motion compensation, interpolation, and weighted prediction.</p>
 <h3 id="file_src_decode_h264_intra_swg"><code>src/decode/h264/intra.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns intra luma and chroma prediction.</p>
+<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns intra luma and chroma prediction.</p>
 <h3 id="file_src_decode_h264_mb_swg"><code>src/decode/h264/mb.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns macroblock syntax, residuals, motion data, and reconstruction scheduling.</p>
+<p>Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns macroblock syntax, residuals, motion data, and reconstruction scheduling.</p>
 <h3 id="file_src_decode_h264_recon_swg"><code>src/decode/h264/recon.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns prediction/residual combination and macroblock reconstruction.</p>
+<p>Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns prediction/residual combination and macroblock reconstruction.</p>
 <h3 id="file_src_decode_h264_sets_swg"><code>src/decode/h264/sets.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns sequence and picture parameter-set parsing and capability checks.</p>
+<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns sequence and picture parameter-set parsing and capability checks.</p>
 <h3 id="file_src_decode_h264_slice_swg"><code>src/decode/h264/slice.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns slice headers, reference lists, and prediction weights.</p>
+<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns slice headers, reference lists, and prediction weights.</p>
 <h3 id="file_src_decode_h264_stream_swg"><code>src/decode/h264/stream.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns NAL-unit traversal and emulation-prevention removal.</p>
+<p>Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns NAL-unit traversal and emulation-prevention removal.</p>
 <h3 id="file_src_decode_h264_tables_swg"><code>src/decode/h264/tables.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns normative entropy, scan, quantization, and filter tables.</p>
+<p>Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns normative entropy, scan, quantization, and filter tables.</p>
 <h3 id="file_src_decode_h264_transform_swg"><code>src/decode/h264/transform.swg</code></h3>
-<p>Format: H.264/AVC decoder component. Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns inverse transforms and coefficient scaling.</p>
+<p>Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking. Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass. Role: This file owns inverse transforms and coefficient scaling.</p>
 <h3 id="file_src_decode_hevc_cabac_swg"><code>src/decode/hevc/cabac.swg</code></h3>
 <p>Format: H.265/HEVC decoder component. Supported: Progressive Main and Main 10 streams: 8- and 10-bit 4:2:0, I/P/B slices, tiles, wavefront parallel processing, dependent slice segments, sample adaptive offset, and in-loop deblocking. Not supported: 4:2:2 and 4:4:4 chroma, bit depths above 10, pulse code modulation blocks, separate colour planes, and the range, multilayer, 3D, and screen content extensions. Role: This file owns the CABAC arithmetic engine, its contexts, and their saved states.</p>
 <h3 id="file_src_decode_hevc_ctu_swg"><code>src/decode/hevc/ctu.swg</code></h3>
@@ -371,7 +371,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <h3 id="file_src_decode_picturestream_swg"><code>src/decode/picturestream.swg</code></h3>
 <p>Format: Format-neutral coded picture track. Supported: Opening, extending, replacing, seeking, and decoding an indexed H.264 or H.265 track through one surface. Not supported: This file does not decode or encode a concrete picture format. Role: This file owns which of the two coded picture formats a container opened, so no reader has to ask.</p>
 <h3 id="file_src_decode_reader_swg"><code>src/decode/reader.swg</code></h3>
-<p>Format: Format-neutral video decoder registry and reader. Supported: Extension-based decoder selection, streamed frame decoding, metadata, seeking, and optional audio and subtitle tracks. Not supported: This file does not parse a concrete video or container format. Role: This file owns decoder registration and the public reader that delegates to concrete format subfolders.</p>
+<p>Supported: Extension-based decoder selection, streamed frame decoding, metadata, seeking, and optional audio and subtitle tracks. Not supported: This file does not parse a concrete video or container format. Role: This file owns decoder registration and the public reader that delegates to concrete format subfolders.</p>
 <h3 id="file_src_decode_sampleentry_swg"><code>src/decode/sampleentry.swg</code></h3>
 <p>Format: Format-neutral description of one coded access unit. Supported: Where an access unit lives in its source, how long it is, when it is shown, and whether it starts a clean decode. Not supported: This file does not decode or encode a concrete picture format. Role: This file owns the container's view of one sample, which every coded picture format shares.</p>
 <h3 id="file_src_decode_videoforwindows_swg"><code>src/decode/videoforwindows.swg</code></h3>
@@ -434,7 +434,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_ITimedDecoder">Video.ITimedDecoder</a></td><td><span class="kind-chip kind-interface">interface</span></td><td><p>Optional decoder capability exposing exact presentation timestamps.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Video_PlanarFrame">Video.PlanarFrame</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One decoded picture in planar 4:2:0, the layout every modern video codec produces.</p>
+<tr><td class="code-type"><a href="#Video_PlanarFrame">Video.PlanarFrame</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One decoded picture in planar YUV, the layout every modern video codec produces.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Reader">Video.Reader</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Decodes the frames of a video stream without holding the stream in memory.</p>
 </td></tr>
@@ -530,11 +530,11 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_ITimedDecoder_frameTimestamp">ITimedDecoder.frameTimestamp</a></td><td><p>Returns the presentation time of frame <span class="code-inline">index</span>, in seconds.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Video_PlanarFrame_chromaHeight">PlanarFrame.chromaHeight</a></td><td><p>Returns the number of chroma rows, which is half the luma rows rounded up.</p>
+<tr><td class="code-type"><a href="#Video_PlanarFrame_chromaHeight">PlanarFrame.chromaHeight</a></td><td><p>Returns the number of chroma rows: the luma rows shifted down and rounded up.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_PlanarFrame_isValid">PlanarFrame.isValid</a></td><td><p>Reports whether the picture holds samples.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Video_PlanarFrame_resize">PlanarFrame.resize</a></td><td><p>Resizes the planes for a picture of <span class="code-inline">width</span> by <span class="code-inline">height</span>, keeping the storage it can.</p>
+<tr><td class="code-type"><a href="#Video_PlanarFrame_resize">PlanarFrame.resize</a></td><td><p>Resizes the planes for a picture of <span class="code-inline">width</span> by <span class="code-inline">height</span> whose chroma planes are</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_PlanarFrame_view">PlanarFrame.view</a></td><td><p>Describes the picture as a borrowed planar view.</p>
 </td></tr>
@@ -556,7 +556,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Reader_decodeFrameInto">Reader.decodeFrameInto</a></td><td><p>Decodes frame <span class="code-inline">index</span> into <span class="code-inline">target</span>, reusing its pixel storage when it already matches</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Video_Reader_decodeFramePlanesInto">Reader.decodeFramePlanesInto</a></td><td><p>Decodes frame <span class="code-inline">index</span> into <span class="code-inline">target</span> in the codec's own planar 4:2:0 layout.</p>
+<tr><td class="code-type"><a href="#Video_Reader_decodeFramePlanesInto">Reader.decodeFramePlanesInto</a></td><td><p>Decodes frame <span class="code-inline">index</span> into <span class="code-inline">target</span> in the codec's own planar layout.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Reader_displayHeight">Reader.displayHeight</a></td><td><p>Returns the height the frames are meant to be shown at, or the stored height.</p>
 </td></tr>
@@ -723,7 +723,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_ITimedDecoder">Video.ITimedDecoder</a></td><td><span class="kind-chip kind-interface">interface</span></td><td><p>Optional decoder capability exposing exact presentation timestamps.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Video_PlanarFrame">Video.PlanarFrame</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One decoded picture in planar 4:2:0, the layout every modern video codec produces.</p>
+<tr><td class="code-type"><a href="#Video_PlanarFrame">Video.PlanarFrame</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One decoded picture in planar YUV, the layout every modern video codec produces.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Reader">Video.Reader</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Decodes the frames of a video stream without holding the stream in memory.</p>
 </td></tr>
@@ -1082,7 +1082,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-interface"><span id="Video_IPlanarDecoder" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Video.IPlanarDecoder</span> <a class="api-item-permalink" href="#Video_IPlanarDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L101">src</a></div>
 <p>Optional decoder capability handing pictures over without converting them to RGB.</p>
-<p>A codec that reconstructs planar 4:2:0 implements this so a consumer drawing through a renderer never pays for a conversion on the processor: at 4K that conversion costs more than the entropy decode, the reconstruction and the loop filter together.</p>
+<p>A codec that reconstructs planar YCbCr implements this so a consumer drawing through a renderer never pays for a conversion on the processor: at 4K that conversion costs more than the entropy decode, the reconstruction and the loop filter together.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Video_IPlanarDecoder">IPlanarDecoder</a></span></span></div>
 </section>
 <h3 id="Video_IPlanarDecoder_methods">Methods</h3>
@@ -1126,10 +1126,10 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Video_PlanarFrame" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.PlanarFrame</span> <a class="api-item-permalink" href="#Video_PlanarFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L29">src</a></div>
-<p>One decoded picture in planar 4:2:0, the layout every modern video codec produces.</p>
-<p>A codec reconstructs luma and two half-resolution chroma planes; turning them into packed RGB costs more than every other stage of a 4K decode put together, and a consumer that draws the picture through a renderer does not need it done on the processor at all. A reader hands the planes over as they are through <a href="std.pixel.html#Pixel_IRenderer_addImage">Pixel.IRenderer.addImage</a>. The resulting texture is drawn with <a href="std.pixel.html#Pixel_Painter_drawTexture">Pixel.Painter.drawTexture</a>; a shader backend converts it while sampling.</p>
-<p>Rows are tightly packed: <span class="code-inline">strideLuma</span> is <span class="code-inline">width</span> and <span class="code-inline">strideChroma</span> is <span class="code-inline">(width + 1) / 2</span>. The chroma planes carry <span class="code-inline">(height + 1) / 2</span> rows. Storage is reused across frames, so a caller decoding a whole stream allocates one picture in total.</p>
+<div class="api-item api-item-struct"><span id="Video_PlanarFrame" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.PlanarFrame</span> <a class="api-item-permalink" href="#Video_PlanarFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L30">src</a></div>
+<p>One decoded picture in planar YUV, the layout every modern video codec produces.</p>
+<p>A codec reconstructs luma and two chroma planes; turning them into packed RGB costs more than every other stage of a 4K decode put together, and a consumer that draws the picture through a renderer does not need it done on the processor at all. A reader hands the planes over as they are through <a href="std.pixel.html#Pixel_IRenderer_addImage">Pixel.IRenderer.addImage</a>. The resulting texture is drawn with <a href="std.pixel.html#Pixel_Painter_drawTexture">Pixel.Painter.drawTexture</a>; a shader backend converts it while sampling.</p>
+<p>Rows are tightly packed: <span class="code-inline">strideLuma</span> is <span class="code-inline">width</span>, and <span class="code-inline">strideChroma</span> and the chroma row count are the picture size shifted right by <span class="code-inline">chromaShift</span>, rounded up. That shift is one for a 4:2:0 picture and none for a 4:4:4 one. Storage is reused across frames, so a caller decoding a whole stream allocates one picture in total.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> picture: <span class="SCst"><a href="#Video_PlanarFrame">PlanarFrame</a></span>
 <span class="SKwd">try</span> reader.<span class="SFct">decodeFramePlanesInto</span>(&amp;picture, index)
 <span class="SKwd">let</span> planes = picture.<span class="SFct">view</span>()
@@ -1142,9 +1142,11 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Video_PlanarFrame_chromaB" class="code-type">chromaB</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(u8)</td><td><p>Blue-difference chroma at half resolution.</p>
+<tr><td id="Video_PlanarFrame_chromaB" class="code-type">chromaB</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(u8)</td><td><p>Blue-difference chroma.</p>
 </td></tr>
-<tr><td id="Video_PlanarFrame_chromaR" class="code-type">chromaR</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(u8)</td><td><p>Red-difference chroma at half resolution.</p>
+<tr><td id="Video_PlanarFrame_chromaR" class="code-type">chromaR</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(u8)</td><td><p>Red-difference chroma.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_PlanarFrame_chromaShift">chromaShift</a></td><td class="code-type">s32</td><td><p>How far a pixel coordinate shifts right to address the chroma planes: one for 4:2:0,</p>
 </td></tr>
 <tr><td id="Video_PlanarFrame_height" class="code-type">height</td><td class="code-type">s32</td><td><p>Visible picture height in luma samples.</p>
 </td></tr>
@@ -1152,7 +1154,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 </td></tr>
 <tr><td id="Video_PlanarFrame_matrix" class="code-type">matrix</td><td class="code-type"><a href="std.pixel.html#Pixel_YuvMatrix">Pixel.YuvMatrix</a></td><td><p>Matrix the renderer uses to convert these planes to RGB.</p>
 </td></tr>
-<tr><td id="Video_PlanarFrame_strideChroma" class="code-type">strideChroma</td><td class="code-type">u32</td><td><p>Bytes between chroma rows, equal to <span class="code-inline">(width + 1) / 2</span>.</p>
+<tr><td id="Video_PlanarFrame_strideChroma" class="code-type">strideChroma</td><td class="code-type">u32</td><td><p>Bytes between chroma rows.</p>
 </td></tr>
 <tr><td id="Video_PlanarFrame_strideLuma" class="code-type">strideLuma</td><td class="code-type">u32</td><td><p>Bytes between luma rows, equal to <span class="code-inline">width</span>.</p>
 </td></tr>
@@ -1164,6 +1166,9 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 </table>
 <h3 id="Video_PlanarFrame_member-details">Field details</h3>
 <div class="api-member-details">
+<section class="api-member-detail"><h4 id="Video_PlanarFrame_chromaShift"><span class="api-member-name">chromaShift</span><a class="api-member-permalink" href="#Video_PlanarFrame_chromaShift" aria-label="Permalink">#</a></h4>
+<p>How far a pixel coordinate shifts right to address the chroma planes: one for 4:2:0, none for 4:4:4.</p>
+</section>
 <section class="api-member-detail"><h4 id="Video_PlanarFrame_studioRange"><span class="api-member-name">studioRange</span><a class="api-member-permalink" href="#Video_PlanarFrame_studioRange" aria-label="Permalink">#</a></h4>
 <p>Whether the samples use the studio range of 16 to 235, which is what a camera or a screen recorder writes, rather than the full range of 0 to 255.</p>
 </section>
@@ -1172,11 +1177,11 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Video_PlanarFrame_chromaHeight">chromaHeight</a></td><td><p>Returns the number of chroma rows, which is half the luma rows rounded up.</p>
+<tr><td class="code-type"><a href="#Video_PlanarFrame_chromaHeight">chromaHeight</a></td><td><p>Returns the number of chroma rows: the luma rows shifted down and rounded up.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_PlanarFrame_isValid">isValid</a></td><td><p>Reports whether the picture holds samples.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Video_PlanarFrame_resize">resize</a></td><td><p>Resizes the planes for a picture of <span class="code-inline">width</span> by <span class="code-inline">height</span>, keeping the storage it can.</p>
+<tr><td class="code-type"><a href="#Video_PlanarFrame_resize">resize</a></td><td><p>Resizes the planes for a picture of <span class="code-inline">width</span> by <span class="code-inline">height</span> whose chroma planes are</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_PlanarFrame_view">view</a></td><td><p>Describes the picture as a borrowed planar view.</p>
 </td></tr>
@@ -1208,7 +1213,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Reader_decodeFrameInto">decodeFrameInto</a></td><td><p>Decodes frame <span class="code-inline">index</span> into <span class="code-inline">target</span>, reusing its pixel storage when it already matches</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Video_Reader_decodeFramePlanesInto">decodeFramePlanesInto</a></td><td><p>Decodes frame <span class="code-inline">index</span> into <span class="code-inline">target</span> in the codec's own planar 4:2:0 layout.</p>
+<tr><td class="code-type"><a href="#Video_Reader_decodeFramePlanesInto">decodeFramePlanesInto</a></td><td><p>Decodes frame <span class="code-inline">index</span> into <span class="code-inline">target</span> in the codec's own planar layout.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Reader_displayHeight">displayHeight</a></td><td><p>Returns the height the frames are meant to be shown at, or the stored height.</p>
 </td></tr>
@@ -1588,25 +1593,25 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">frameTimestamp</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_PlanarFrame_chromaHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.chromaHeight</span> <a class="api-item-permalink" href="#Video_PlanarFrame_chromaHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L58">src</a></div>
-<p>Returns the number of chroma rows, which is half the luma rows rounded up.</p>
+<div class="api-item api-item-func"><span id="Video_PlanarFrame_chromaHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.chromaHeight</span> <a class="api-item-permalink" href="#Video_PlanarFrame_chromaHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L63">src</a></div>
+<p>Returns the number of chroma rows: the luma rows shifted down and rounded up.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">chromaHeight</span>()-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_PlanarFrame_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.isValid</span> <a class="api-item-permalink" href="#Video_PlanarFrame_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L55">src</a></div>
+<div class="api-item api-item-func"><span id="Video_PlanarFrame_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.isValid</span> <a class="api-item-permalink" href="#Video_PlanarFrame_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L60">src</a></div>
 <p>Reports whether the picture holds samples.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_PlanarFrame_resize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.resize</span> <a class="api-item-permalink" href="#Video_PlanarFrame_resize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L79">src</a></div>
-<p>Resizes the planes for a picture of <span class="code-inline">width</span> by <span class="code-inline">height</span>, keeping the storage it can.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resize</span>(width, height: <span class="STpe">s32</span>)</span></div>
+<div class="api-item api-item-func"><span id="Video_PlanarFrame_resize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.resize</span> <a class="api-item-permalink" href="#Video_PlanarFrame_resize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L86">src</a></div>
+<p>Resizes the planes for a picture of <span class="code-inline">width</span> by <span class="code-inline">height</span> whose chroma planes are <span class="code-inline">chromaShift</span> halvings smaller, keeping the storage it can.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resize</span>(width, height: <span class="STpe">s32</span>, chromaShift = <span class="SNum">1</span>'<span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_PlanarFrame_view" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.view</span> <a class="api-item-permalink" href="#Video_PlanarFrame_view" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L64">src</a></div>
+<div class="api-item api-item-func"><span id="Video_PlanarFrame_view" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.view</span> <a class="api-item-permalink" href="#Video_PlanarFrame_view" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L69">src</a></div>
 <p>Describes the picture as a borrowed planar view.</p>
 <p>Hand it to <a href="std.pixel.html#Pixel_IRenderer_addImage">Pixel.IRenderer.addImage</a> or <a href="std.pixel.html#Pixel_IRenderer_updateTexture">Pixel.IRenderer.updateTexture</a> and the renderer converts where it draws, which is the whole reason a decoder produces planes.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">view</span>()-&gt;<span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Yuv420View">Yuv420View</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">view</span>()-&gt;<span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_YuvPlanarView">YuvPlanarView</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Presentation_content" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Presentation.content</span> <a class="api-item-permalink" href="#Video_Subtitle_Presentation_content" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L54">src</a></div>
@@ -1660,7 +1665,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_decodeFramePlanesInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.decodeFramePlanesInto</span> <a class="api-item-permalink" href="#Video_Reader_decodeFramePlanesInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L388">src</a></div>
-<p>Decodes frame <span class="code-inline">index</span> into <span class="code-inline">target</span> in the codec's own planar 4:2:0 layout.</p>
+<p>Decodes frame <span class="code-inline">index</span> into <span class="code-inline">target</span> in the codec's own planar layout.</p>
 <p>Converting a picture to packed RGB is, at high resolutions, the most expensive stage of decoding it, and a consumer that draws through a renderer does not need it: hand the view from <a href="#Video_PlanarFrame_view">Video.PlanarFrame.view</a> to <a href="std.pixel.html#Pixel_IRenderer_addImage">Pixel.IRenderer.addImage</a> or <a href="std.pixel.html#Pixel_IRenderer_updateTexture">Pixel.IRenderer.updateTexture</a>. <span class="code-inline">target</span> keeps its storage across calls, so decoding a whole stream allocates one picture.</p>
 <p>Fails on a stream whose codec does not produce planar pictures; ask <a href="#Video_Reader_hasPlanarFrames">Video.Reader.hasPlanarFrames</a> first.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decodeFramePlanesInto</span>(target: *<span class="SCst"><a href="#Video_PlanarFrame">PlanarFrame</a></span>, index: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
@@ -2045,7 +2050,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.418</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.436</div>
 </footer>
 </section>
 </main>
@@ -2307,13 +2312,14 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 "n|Video.Subtitle|namespace_Video_Subtitle|",
 "s|Video.Clip|Video_Clip|Owns a silent sequence of equal-sized image frames held in memory.",
 "s|Video.FrameRate|Video_FrameRate|Describes an exact number of video frames per second.",
-"s|Video.PlanarFrame|Video_PlanarFrame|One decoded picture in planar 4:2:0, the layout every modern video codec produces.",
-"v|Video.PlanarFrame.chromaB|Video_PlanarFrame_chromaB|Blue-difference chroma at half resolution.",
-"v|Video.PlanarFrame.chromaR|Video_PlanarFrame_chromaR|Red-difference chroma at half resolution.",
+"s|Video.PlanarFrame|Video_PlanarFrame|One decoded picture in planar YUV, the layout every modern video codec produces.",
+"v|Video.PlanarFrame.chromaB|Video_PlanarFrame_chromaB|Blue-difference chroma.",
+"v|Video.PlanarFrame.chromaR|Video_PlanarFrame_chromaR|Red-difference chroma.",
+"v|Video.PlanarFrame.chromaShift|Video_PlanarFrame_chromaShift|How far a pixel coordinate shifts right to address the chroma planes: one for 4:2:0,",
 "v|Video.PlanarFrame.height|Video_PlanarFrame_height|Visible picture height in luma samples.",
 "v|Video.PlanarFrame.luma|Video_PlanarFrame_luma|Full-resolution luma, height rows of strideLuma.",
 "v|Video.PlanarFrame.matrix|Video_PlanarFrame_matrix|Matrix the renderer uses to convert these planes to RGB.",
-"v|Video.PlanarFrame.strideChroma|Video_PlanarFrame_strideChroma|Bytes between chroma rows, equal to (width + 1) / 2.",
+"v|Video.PlanarFrame.strideChroma|Video_PlanarFrame_strideChroma|Bytes between chroma rows.",
 "v|Video.PlanarFrame.strideLuma|Video_PlanarFrame_strideLuma|Bytes between luma rows, equal to width.",
 "v|Video.PlanarFrame.studioRange|Video_PlanarFrame_studioRange|Whether the samples use the studio range of 16 to 235, which is what a camera or a",
 "v|Video.PlanarFrame.width|Video_PlanarFrame_width|Visible picture width in luma samples.",
@@ -2374,9 +2380,9 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 "f|Video.FrameRate.framesPerSecond|Video_FrameRate_framesPerSecond|Returns the approximate number of frames per second.",
 "f|Video.FrameRate.isValid|Video_FrameRate_isValid|Reports whether both parts are positive.",
 "f|Video.FrameRate.numerator|Video_FrameRate_numerator|Returns the rate numerator, in frames.",
-"f|Video.PlanarFrame.chromaHeight|Video_PlanarFrame_chromaHeight|Returns the number of chroma rows, which is half the luma rows rounded up.",
+"f|Video.PlanarFrame.chromaHeight|Video_PlanarFrame_chromaHeight|Returns the number of chroma rows: the luma rows shifted down and rounded up.",
 "f|Video.PlanarFrame.isValid|Video_PlanarFrame_isValid|Reports whether the picture holds samples.",
-"f|Video.PlanarFrame.resize|Video_PlanarFrame_resize|Resizes the planes for a picture of width by height, keeping the storage it can.",
+"f|Video.PlanarFrame.resize|Video_PlanarFrame_resize|Resizes the planes for a picture of width by height whose chroma planes are",
 "f|Video.PlanarFrame.view|Video_PlanarFrame_view|Describes the picture as a borrowed planar view.",
 "f|Video.StreamFormat.matches|Video_StreamFormat_matches|Reports whether this format claims fileName, by its extension alone.",
 "f|Video.IAudioDecoder.audioTrack|Video_IAudioDecoder_audioTrack|Returns a sound track owned by the decoder, or null past the end.",
@@ -2399,7 +2405,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 "f|Video.Reader.decodableFormats|Video_Reader_decodableFormats|Returns the format read by each registered decoder, in registration order.",
 "f|Video.Reader.decodeFrame|Video_Reader_decodeFrame|Decodes frame index into an owned RGB8 image.",
 "f|Video.Reader.decodeFrameInto|Video_Reader_decodeFrameInto|Decodes frame index into target, reusing its pixel storage when it already matches",
-"f|Video.Reader.decodeFramePlanesInto|Video_Reader_decodeFramePlanesInto|Decodes frame index into target in the codec's own planar 4:2:0 layout.",
+"f|Video.Reader.decodeFramePlanesInto|Video_Reader_decodeFramePlanesInto|Decodes frame index into target in the codec's own planar layout.",
 "f|Video.Reader.displayHeight|Video_Reader_displayHeight|Returns the height the frames are meant to be shown at, or the stored height.",
 "f|Video.Reader.displayWidth|Video_Reader_displayWidth|Returns the width the frames are meant to be shown at, or the stored width.",
 "f|Video.Reader.durationInSeconds|Video_Reader_durationInSeconds|Returns the stream duration in seconds, or zero when the format cannot report it.",

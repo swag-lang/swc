@@ -26,6 +26,76 @@ effects that makes a capture look produced, and output.
 Scrolling and recorded capture require a timed acquisition and export subsystem; those outcomes come after the
 still-image editing and output work.
 
+### app.capture.023 — Property painters have no regression for stale selections
+
+- Recorded: 2026-09-01 17:55
+- Updated: 2026-09-10 18:29 — Name the remaining painter-test gap rather than the fixed crash.
+- The bug is fixed; what remains is that the headless panel does not reproduce it, so nothing
+  guards the painters themselves.
+- What happened: `PropWnd.propShape` checks the selected kind when it creates its button, but the
+  `iconPainter` it installs runs on every frame and cast whatever was selected *then* to
+  `*FormShape`. Selecting a text form put a `String`'s first bytes where `kind` lives, and
+  `drawShapeGlyph` switches over a three-value enum with `#complete`. Release has the guard off and
+  drew a wrong glyph; devmode panicked. Six other painters and popup handlers had the same shape.
+  All of them now ask `getSelectedForm'T()`, which answers null when the selection is not a `T`.
+- Why there is no test for the painter: a headless fixture that builds the panel, moves the
+  selection to a text form and renders each style button does not fault, with or without the fix —
+  the buttons are laid out and painted and the value read still comes back inside the enum. The
+  running application faults reliably. `propwnd.test.swg` therefore pins the accessor's contract,
+  which is the mechanism, and not the painters that depend on it.
+- Next: find what the headless render does differently — most likely which paint context the icon
+  slot gets — and pin one painter against a deliberately mismatched selection.
+- Complete when: reverting the guard in `propShape` makes a test fail.
+
+### app.capture.015 — Assembling complete captures has no layout command
+
+- Recorded: 2026-08-05 07:22
+- Updated: 2026-09-10 18:29 — Distinguish existing image/form paste from complete-capture assembly.
+
+`Capture.paste` already inserts clipboard images or typed form groups into the active canvas,
+remaps group identities, and records undo. A user can therefore combine images manually. There is
+no command to choose several saved captures, retain each background and its editable annotations,
+and place the results on a canvas sized for the composition.
+
+Add complete-capture assembly with explicit ordering, spacing and canvas bounds, using the
+existing form model and one undoable operation. Named reusable layouts remain app.capture.016.
+
+- Related: app.capture.016
+
+### app.capture.019 — Swag Capture dies when its window is moved and resized in one call
+
+- Recorded: 2026-08-27 07:08
+- Updated: 2026-09-10 18:29 — Rebase the unconfirmed DPI lead on the current surface handlers.
+- Area: apps/swagcapture, std/gui
+- Found while: driving the shipped window from a script to photograph its pages. The window opens
+  maximized across a two-monitor desktop, so a capture has to bring it back onto one screen first.
+- Observation: `SetWindowPos(hwnd, HWND_TOPMOST, 40, 40, 2400, 1500, 0)` — one call that moves,
+  resizes and raises — kills the process three times out of four. The same call with `SWP_NOSIZE`
+  (move only) has never killed it. Dragging the window by hand does not either, which is why the
+  application looks healthy in normal use.
+- Evidence: reproduced from a plain PowerShell driver against the packaged build, four attempts,
+  three deaths, no window left behind. `GetWindowRect` on the survivor returns the requested
+  rectangle, so the call itself succeeds before the process goes.
+- Did NOT reproduce on 2026-08-06: four fresh runs of the identical call, four survivals, the
+  window landing exactly on the requested 40,40 2400x1500 each time. The window opened at
+  268,73 2821x1563 — on one monitor and not maximized — so the DPI boundary this entry suspects
+  was never crossed. That is a negative result about the driver, not about the defect: the
+  reproduction has to start from the maximized two-monitor state the original run had, or the
+  call never does the thing that kills it.
+- Suspicion, not conclusion: the two monitors of this desktop are at different scales, so that one
+  call crosses a DPI boundary *and* changes the client size in the same message. The surface
+  rebuilds its render target on a size change and re-reads its scale on a DPI change; doing both
+  from one message is the path a hand-drag never takes.
+- Current source: `Surface` now distinguishes application placement from an interactive
+  `WM_DPICHANGED`, retains the requested physical rectangle during application placement, and
+  skips minimized `WM_SIZE` events. `surface.resize.test.swg` covers backing-allocation reuse;
+  it does not recreate the original maximized mixed-DPI native-window transition. The old crash
+  is an unconfirmed lead on this implementation, not a newly reproduced failure.
+- Next step: reproduce with a minimal `gui2`-sized example under the same two-monitor arrangement,
+  then bisect: move-only across the boundary, resize-only on one screen, then both. If it is the
+  DPI crossing, `Surface` is where the ordering of the two rebuilds is decided. Move this entry to
+  [std.gui.md](std.gui.md) once that bisection puts the defect in `Surface`.
+
 ### app.capture.021 — Loading a capture blocks the interface during decode
 
 - Recorded: 2026-09-06 17:42
@@ -85,26 +155,6 @@ still-image editing and output work.
   information bar naming the unavailable shortcut.
 - A shortcut can already be owned by another application; rebinding provides a recovery path.
 - Related: app.capture.010
-
-### app.capture.023 — A property painter reading a stale selection is only caught in devmode
-
-- Recorded: 2026-09-01 17:55
-- The bug is fixed; what remains is that the headless panel does not reproduce it, so nothing
-  guards the painters themselves.
-- What happened: `PropWnd.propShape` checks the selected kind when it creates its button, but the
-  `iconPainter` it installs runs on every frame and cast whatever was selected *then* to
-  `*FormShape`. Selecting a text form put a `String`'s first bytes where `kind` lives, and
-  `drawShapeGlyph` switches over a three-value enum with `#complete`. Release has the guard off and
-  drew a wrong glyph; devmode panicked. Six other painters and popup handlers had the same shape.
-  All of them now ask `getSelectedForm'T()`, which answers null when the selection is not a `T`.
-- Why there is no test for the painter: a headless fixture that builds the panel, moves the
-  selection to a text form and renders each style button does not fault, with or without the fix —
-  the buttons are laid out and painted and the value read still comes back inside the enum. The
-  running application faults reliably. `propwnd.test.swg` therefore pins the accessor's contract,
-  which is the mechanism, and not the painters that depend on it.
-- Next: find what the headless render does differently — most likely which paint context the icon
-  slot gets — and pin one painter against a deliberately mismatched selection.
-- Complete when: reverting the guard in `propShape` makes a test fail.
 
 ### app.capture.001 — Print the current capture
 
@@ -221,15 +271,6 @@ produce a playable artifact.
 
 - Related: app.capture.011, app.capture.012
 
-### app.capture.015 — Captures cannot be combined on one canvas
-
-- Recorded: 2026-08-05 07:22
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Compose several captures into one editable, laid-out image using the existing form model.
-
-- Related: app.capture.016
-
 ### app.capture.016 — No reusable capture layout templates
 
 - Recorded: 2026-08-05 07:22
@@ -247,35 +288,6 @@ Persist and apply named layout descriptions independently of combining captures 
 A reusable graphics set placed as `FormImage` instances. Small, and it fits the existing model
 exactly. Must follow the identity rules in `design-swag-identity` rather than shipping generic
 clip art.
-
-### app.capture.019 — Swag Capture dies when its window is moved and resized in one call
-
-- Recorded: 2026-08-27 07:08
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Area: apps/swagcapture, std/gui
-- Found while: driving the shipped window from a script to photograph its pages. The window opens
-  maximized across a two-monitor desktop, so a capture has to bring it back onto one screen first.
-- Observation: `SetWindowPos(hwnd, HWND_TOPMOST, 40, 40, 2400, 1500, 0)` — one call that moves,
-  resizes and raises — kills the process three times out of four. The same call with `SWP_NOSIZE`
-  (move only) has never killed it. Dragging the window by hand does not either, which is why the
-  application looks healthy in normal use.
-- Evidence: reproduced from a plain PowerShell driver against the packaged build, four attempts,
-  three deaths, no window left behind. `GetWindowRect` on the survivor returns the requested
-  rectangle, so the call itself succeeds before the process goes.
-- Did NOT reproduce on 2026-08-06: four fresh runs of the identical call, four survivals, the
-  window landing exactly on the requested 40,40 2400x1500 each time. The window opened at
-  268,73 2821x1563 — on one monitor and not maximized — so the DPI boundary this entry suspects
-  was never crossed. That is a negative result about the driver, not about the defect: the
-  reproduction has to start from the maximized two-monitor state the original run had, or the
-  call never does the thing that kills it.
-- Suspicion, not conclusion: the two monitors of this desktop are at different scales, so that one
-  call crosses a DPI boundary *and* changes the client size in the same message. The surface
-  rebuilds its render target on a size change and re-reads its scale on a DPI change; doing both
-  from one message is the path a hand-drag never takes.
-- Next step: reproduce with a minimal `gui2`-sized example under the same two-monitor arrangement,
-  then bisect: move-only across the boundary, resize-only on one screen, then both. If it is the
-  DPI crossing, `Surface` is where the ordering of the two rebuilds is decided. Move this entry to
-  [std.gui.md](std.gui.md) once that bisection puts the defect in `Surface`.
 
 ---
 

@@ -142,7 +142,7 @@
 <li><a href="#Pixel_TextureHandle">Pixel.TextureHandle</a></li>
 <li><a href="#Pixel_TypeFace">Pixel.TypeFace</a></li>
 <li><a href="#Pixel_VertexLayout">Pixel.VertexLayout</a></li>
-<li><a href="#Pixel_Yuv420View">Pixel.Yuv420View</a></li>
+<li><a href="#Pixel_YuvPlanarView">Pixel.YuvPlanarView</a></li>
 <li><a href="#Pixel_Png_EncodeOptions">Png.EncodeOptions</a></li>
 <li><a href="#Pixel_Poly2Tri_Result">Poly2Tri.Result</a></li>
 <li><a href="#Pixel_Poly2Tri_Tessellate">Poly2Tri.Tessellate</a></li>
@@ -233,7 +233,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">464</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">466</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Pixel_Argb_fromName">Argb.fromName</a></li>
@@ -698,8 +698,10 @@
 <li><a href="#Pixel_TypeFace_renderGlyphByIndex">TypeFace.renderGlyphByIndex</a></li>
 <li><a href="#Pixel_TypeFace_renderGlyphMsdf">TypeFace.renderGlyphMsdf</a></li>
 <li><a href="#Pixel_TypeFace_renderGlyphMsdfByIndex">TypeFace.renderGlyphMsdfByIndex</a></li>
-<li><a href="#Pixel_Yuv420View_convertRowsToRgb">Yuv420View.convertRowsToRgb</a></li>
-<li><a href="#Pixel_Yuv420View_convertToRgb">Yuv420View.convertToRgb</a></li>
+<li><a href="#Pixel_YuvPlanarView_chromaHeight">YuvPlanarView.chromaHeight</a></li>
+<li><a href="#Pixel_YuvPlanarView_chromaWidth">YuvPlanarView.chromaWidth</a></li>
+<li><a href="#Pixel_YuvPlanarView_convertRowsToRgb">YuvPlanarView.convertRowsToRgb</a></li>
+<li><a href="#Pixel_YuvPlanarView_convertToRgb">YuvPlanarView.convertToRgb</a></li>
 </ul>
 </details>
 </nav></aside>
@@ -1065,7 +1067,7 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 <h3 id="file_src_image_encode_bmp_bmp_swg"><code>src/image/encode/bmp/bmp.swg</code></h3>
 <p>Format: Windows Bitmap (BMP) encoder component. Supported: Uncompressed 24- and 32-bit RGB/BGR source images with four-byte row alignment. Not supported: Paletted, RLE, bitfield, and embedded-compression output. Role: This file owns container header emission, validation, encoder registration, and top-level pixel dispatch.</p>
 <h3 id="file_src_image_encode_dds_dds_swg"><code>src/image/encode/dds/dds.swg</code></h3>
-<p>Format: DirectDraw Surface encoder. Supported: One uncompressed 2D surface in grayscale or RGB(A), as 8/16-bit normalized, half, or full float. Not supported: Block compression, mipmap generation, texture arrays, cubemaps, or volumes. Role: This file serializes Pixel images using legacy DDS masks or explicit DX10 formats.</p>
+<p>Supported: One uncompressed 2D surface in grayscale or RGB(A), as 8/16-bit normalized, half, or full float. Not supported: Block compression, mipmap generation, texture arrays, cubemaps, or volumes. Role: This file serializes Pixel images using legacy DDS masks or explicit DX10 formats.</p>
 <h3 id="file_src_image_encode_encode_swg"><code>src/image/encode/encode.swg</code></h3>
 <p>Format: Image encoder registry. Supported: Extension-selected registration and dispatch for every built-in and user-registered image encoder. Not supported: This file does not write a concrete image format. Role: This file owns format-neutral encoder registration and dispatch.</p>
 <h3 id="file_src_image_encode_exr_exr_swg"><code>src/image/encode/exr/exr.swg</code></h3>
@@ -1089,7 +1091,7 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 <h3 id="file_src_image_encode_jpg_writer_swg"><code>src/image/encode/jpg/writer.swg</code></h3>
 <p>Format: Joint Photographic Experts Group (JPEG) encoder component. Supported: Baseline Huffman-coded lossy output from 8-bit RGB/BGR images with configurable quality. Not supported: Progressive, arithmetic, lossless, CMYK/YCCK, and alpha output. Role: This file owns JPEG bitstream and marker emission.</p>
 <h3 id="file_src_image_encode_ktx2_ktx2_swg"><code>src/image/encode/ktx2/ktx2.swg</code></h3>
-<p>Format: Khronos Texture 2 encoder. Supported: One uncompressed 2D level in every packed PixelFormat integer or float layout. Not supported: Supercompression, block compression, mipmap generation, arrays, or cubemaps. Role: This file writes a Vulkan-format KTX2 texture and its matching basic DFD.</p>
+<p>Supported: One uncompressed 2D level in every packed PixelFormat integer or float layout. Not supported: Supercompression, block compression, mipmap generation, arrays, or cubemaps. Role: This file writes a Vulkan-format KTX2 texture and its matching basic DFD.</p>
 <h3 id="file_src_image_encode_png_filter_swg"><code>src/image/encode/png/filter.swg</code></h3>
 <p>Format: Portable Network Graphics (PNG) encoder component. Supported: 8-bit grayscale and RGB/BGR images with optional alpha, PNG filters, Deflate compression, and optional Adam7 interlacing. Not supported: APNG animation, palette generation, and non-8-bit output. Role: This file owns PNG encoder filter selection.</p>
 <h3 id="file_src_image_encode_png_png_swg"><code>src/image/encode/png/png.swg</code></h3>
@@ -1290,7 +1292,7 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_VertexLayout">Pixel.VertexLayout</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Defines the packed vertex format consumed by <a href="#Pixel_RenderOgl">Pixel.RenderOgl</a> and <a href="#Pixel_RenderCpu">Pixel.RenderCpu</a>.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_Yuv420View">Pixel.Yuv420View</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One picture in planar 4:2:0, borrowed from whatever produced it.</p>
+<tr><td class="code-type"><a href="#Pixel_YuvPlanarView">Pixel.YuvPlanarView</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One picture in planar YUV, borrowed from whatever produced it.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Png_EncodeOptions">Png.EncodeOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures PNG filtering, Deflate behavior, and Adam7 interlacing.</p>
 </td></tr>
@@ -2384,9 +2386,13 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_TypeFace_renderGlyphMsdfByIndex">TypeFace.renderGlyphMsdfByIndex</a></td><td><p>Render one glyph by glyph index as a multi-channel signed distance field</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_Yuv420View_convertRowsToRgb">Yuv420View.convertRowsToRgb</a></td><td><p>Converts rows <span class="code-inline">firstY</span> until <span class="code-inline">endY</span> into an RGB8 <span class="code-inline">target</span> of the same geometry.</p>
+<tr><td class="code-type"><a href="#Pixel_YuvPlanarView_chromaHeight">YuvPlanarView.chromaHeight</a></td><td><p>Returns the number of rows of one chroma plane.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_Yuv420View_convertToRgb">Yuv420View.convertToRgb</a></td><td><p>Converts the picture into <span class="code-inline">target</span>, which is created or reused as RGB8.</p>
+<tr><td class="code-type"><a href="#Pixel_YuvPlanarView_chromaWidth">YuvPlanarView.chromaWidth</a></td><td><p>Returns the width of one chroma plane, in samples.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_YuvPlanarView_convertRowsToRgb">YuvPlanarView.convertRowsToRgb</a></td><td><p>Converts rows <span class="code-inline">firstY</span> until <span class="code-inline">endY</span> into an RGB8 <span class="code-inline">target</span> of the same geometry.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_YuvPlanarView_convertToRgb">YuvPlanarView.convertToRgb</a></td><td><p>Converts the picture into <span class="code-inline">target</span>, which is created or reused as RGB8.</p>
 </td></tr>
 </tbody>
 </table>
@@ -2557,7 +2563,7 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_VertexLayout">Pixel.VertexLayout</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Defines the packed vertex format consumed by <a href="#Pixel_RenderOgl">Pixel.RenderOgl</a> and <a href="#Pixel_RenderCpu">Pixel.RenderCpu</a>.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_Yuv420View">Pixel.Yuv420View</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One picture in planar 4:2:0, borrowed from whatever produced it.</p>
+<tr><td class="code-type"><a href="#Pixel_YuvPlanarView">Pixel.YuvPlanarView</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One picture in planar YUV, borrowed from whatever produced it.</p>
 </td></tr>
 </tbody>
 </table>
@@ -5706,44 +5712,56 @@ label.<span class="SFct">compute</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_Yuv420View" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pixel.Yuv420View</span> <a class="api-item-permalink" href="#Pixel_Yuv420View" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/yuv420.swg#L28">src</a></div>
-<p>One picture in planar 4:2:0, borrowed from whatever produced it.</p>
-<p>Every video codec reconstructs this layout: full-resolution luma and two chroma planes at half resolution on both axes, so one chroma sample serves a two-by-two block of pixels. A view owns nothing and stays valid only while the planes behind it do.</p>
-<p>The offsets are already applied, so a cropped picture is described by pointing the planes at its visible corner. A 4:2:0 crop is always an even number of luma samples — the format states it in chroma units — which is what lets the chroma plane be addressed at half the coordinates.</p>
+<div class="api-item api-item-struct"><span id="Pixel_YuvPlanarView" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pixel.YuvPlanarView</span> <a class="api-item-permalink" href="#Pixel_YuvPlanarView" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/yuvplanar.swg#L30">src</a></div>
+<p>One picture in planar YUV, borrowed from whatever produced it.</p>
+<p>Every video codec reconstructs this layout: a full-resolution luma plane and two chroma planes, either at half resolution on both axes, where one chroma sample serves a two-by-two block of pixels, or at the resolution of luma. <span class="code-inline">chromaShift</span> says which, and it is the only difference between the two: one for 4:2:0, none for 4:4:4. A view owns nothing and stays valid only while the planes behind it do.</p>
+<p>The offsets are already applied, so a cropped picture is described by pointing the planes at its visible corner. A crop is stated in chroma units — a 4:2:0 one is therefore an even number of luma samples — which is what lets a chroma plane be addressed at the shifted coordinates.</p>
 <p>Rows run top-down: the plane pointers address the top-left visible sample, which is the order every codec reconstructs a picture in. <a href="#Pixel_Image">Pixel.Image</a> stores its rows the other way round, so a conversion into one writes them in reverse, and a renderer that samples the planes directly accounts for the difference itself.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_Yuv420View">Yuv420View</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_YuvPlanarView">YuvPlanarView</a></span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Pixel_Yuv420View_chromaB" class="code-type">chromaB</td><td class="code-type">const [*] u8</td><td><p>Blue-difference chroma at half resolution.</p>
+<tr><td id="Pixel_YuvPlanarView_chromaB" class="code-type">chromaB</td><td class="code-type">const [*] u8</td><td><p>Blue-difference chroma.</p>
 </td></tr>
-<tr><td id="Pixel_Yuv420View_chromaR" class="code-type">chromaR</td><td class="code-type">const [*] u8</td><td><p>Red-difference chroma at half resolution.</p>
+<tr><td id="Pixel_YuvPlanarView_chromaR" class="code-type">chromaR</td><td class="code-type">const [*] u8</td><td><p>Red-difference chroma.</p>
 </td></tr>
-<tr><td id="Pixel_Yuv420View_chromaStride" class="code-type">chromaStride</td><td class="code-type">u64</td><td><p>Bytes between chroma rows.</p>
+<tr><td class="code-type"><a href="#Pixel_YuvPlanarView_chromaShift">chromaShift</a></td><td class="code-type">s32</td><td><p>How far a pixel coordinate shifts right to address the chroma planes: one for 4:2:0,</p>
 </td></tr>
-<tr><td id="Pixel_Yuv420View_height" class="code-type">height</td><td class="code-type">s32</td><td><p>Visible height in luma samples.</p>
+<tr><td id="Pixel_YuvPlanarView_chromaStride" class="code-type">chromaStride</td><td class="code-type">u64</td><td><p>Bytes between chroma rows.</p>
 </td></tr>
-<tr><td id="Pixel_Yuv420View_luma" class="code-type">luma</td><td class="code-type">const [*] u8</td><td><p>Full-resolution luma of the visible corner.</p>
+<tr><td id="Pixel_YuvPlanarView_height" class="code-type">height</td><td class="code-type">s32</td><td><p>Visible height in luma samples.</p>
 </td></tr>
-<tr><td id="Pixel_Yuv420View_lumaStride" class="code-type">lumaStride</td><td class="code-type">u64</td><td><p>Bytes between luma rows.</p>
+<tr><td id="Pixel_YuvPlanarView_luma" class="code-type">luma</td><td class="code-type">const [*] u8</td><td><p>Full-resolution luma of the visible corner.</p>
 </td></tr>
-<tr><td id="Pixel_Yuv420View_matrix" class="code-type">matrix</td><td class="code-type"><a href="#Pixel_YuvMatrix">Pixel.YuvMatrix</a></td><td><p>Matrix used when the planes are converted to RGB.</p>
+<tr><td id="Pixel_YuvPlanarView_lumaStride" class="code-type">lumaStride</td><td class="code-type">u64</td><td><p>Bytes between luma rows.</p>
 </td></tr>
-<tr><td id="Pixel_Yuv420View_studioRange" class="code-type">studioRange</td><td class="code-type">bool</td><td><p>Whether luma uses 16..235 rather than the full 0..255 range.</p>
+<tr><td id="Pixel_YuvPlanarView_matrix" class="code-type">matrix</td><td class="code-type"><a href="#Pixel_YuvMatrix">Pixel.YuvMatrix</a></td><td><p>Matrix used when the planes are converted to RGB.</p>
 </td></tr>
-<tr><td id="Pixel_Yuv420View_width" class="code-type">width</td><td class="code-type">s32</td><td><p>Visible width in luma samples.</p>
+<tr><td id="Pixel_YuvPlanarView_studioRange" class="code-type">studioRange</td><td class="code-type">bool</td><td><p>Whether luma uses 16..235 rather than the full 0..255 range.</p>
+</td></tr>
+<tr><td id="Pixel_YuvPlanarView_width" class="code-type">width</td><td class="code-type">s32</td><td><p>Visible width in luma samples.</p>
 </td></tr>
 </tbody>
 </table>
-<h3 id="Pixel_Yuv420View_methods">Methods</h3>
+<h3 id="Pixel_YuvPlanarView_member-details">Field details</h3>
+<div class="api-member-details">
+<section class="api-member-detail"><h4 id="Pixel_YuvPlanarView_chromaShift"><span class="api-member-name">chromaShift</span><a class="api-member-permalink" href="#Pixel_YuvPlanarView_chromaShift" aria-label="Permalink">#</a></h4>
+<p>How far a pixel coordinate shifts right to address the chroma planes: one for 4:2:0, none for 4:4:4.</p>
+</section>
+</div>
+<h3 id="Pixel_YuvPlanarView_methods">Methods</h3>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Pixel_Yuv420View_convertRowsToRgb">convertRowsToRgb</a></td><td><p>Converts rows <span class="code-inline">firstY</span> until <span class="code-inline">endY</span> into an RGB8 <span class="code-inline">target</span> of the same geometry.</p>
+<tr><td class="code-type"><a href="#Pixel_YuvPlanarView_chromaHeight">chromaHeight</a></td><td><p>Returns the number of rows of one chroma plane.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_Yuv420View_convertToRgb">convertToRgb</a></td><td><p>Converts the picture into <span class="code-inline">target</span>, which is created or reused as RGB8.</p>
+<tr><td class="code-type"><a href="#Pixel_YuvPlanarView_chromaWidth">chromaWidth</a></td><td><p>Returns the width of one chroma plane, in samples.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_YuvPlanarView_convertRowsToRgb">convertRowsToRgb</a></td><td><p>Converts rows <span class="code-inline">firstY</span> until <span class="code-inline">endY</span> into an RGB8 <span class="code-inline">target</span> of the same geometry.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_YuvPlanarView_convertToRgb">convertToRgb</a></td><td><p>Converts the picture into <span class="code-inline">target</span>, which is created or reused as RGB8.</p>
 </td></tr>
 </tbody>
 </table>
@@ -6318,7 +6336,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Pixel_AlphaMode" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pixel.AlphaMode</span> <a class="api-item-permalink" href="#Pixel_AlphaMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L38">src</a></div>
+<div class="api-item api-item-enum"><span id="Pixel_AlphaMode" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pixel.AlphaMode</span> <a class="api-item-permalink" href="#Pixel_AlphaMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L40">src</a></div>
 <p>States how RGB samples relate to alpha in formats that store alpha.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pixel_AlphaMode">AlphaMode</a></span>: <span class="STpe">u8</span></span></div>
 </section>
@@ -7114,9 +7132,9 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Pixel_PixelFormat" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pixel.PixelFormat</span> <a class="api-item-permalink" href="#Pixel_PixelFormat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L13">src</a></div>
+<div class="api-item api-item-enum"><span id="Pixel_PixelFormat" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pixel.PixelFormat</span> <a class="api-item-permalink" href="#Pixel_PixelFormat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L14">src</a></div>
 <p>Describes the channel set, sample representation, byte order, and storage class of a picture.</p>
-<p>Every format but one packs its channels into consecutive bytes of one row. <span class="code-inline">Yuv420</span> does not: it is what a video codec reconstructs, and it stores luma at full resolution beside two chroma planes at half resolution on both axes, so one chroma sample serves a two-by-two block. Ask <a href="#Pixel_PixelFormat_isPacked">Pixel.PixelFormat.isPacked</a> before treating a format as bytes per pixel; <a href="#Pixel_Image">Pixel.Image</a> holds packed formats only, and a planar picture is described by <a href="#Pixel_Yuv420View">Pixel.Yuv420View</a>.</p>
+<p>Every format but two packs its channels into consecutive bytes of one row. <span class="code-inline">Yuv420</span> and <span class="code-inline">Yuv444</span> do not: they are what a video codec reconstructs, and they store luma at full resolution beside two chroma planes, at half resolution on both axes for the first, so one chroma sample serves a two-by-two block, and at full resolution for the second. Ask <a href="#Pixel_PixelFormat_isPacked">Pixel.PixelFormat.isPacked</a> before treating a format as bytes per pixel; <a href="#Pixel_Image">Pixel.Image</a> holds packed formats only, and a planar picture is described by <a href="#Pixel_YuvPlanarView">Pixel.YuvPlanarView</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pixel_PixelFormat">PixelFormat</a></span>: <span class="STpe">u8</span></span></div>
 </section>
 <h3>Cases</h3>
@@ -7160,6 +7178,8 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <tr><td id="Pixel_PixelFormat_RGBF32" class="code-type">RGBF32</td><td><p>Red, green, then blue as native-endian IEEE 754 binary32 samples.</p>
 </td></tr>
 <tr><td id="Pixel_PixelFormat_Yuv420" class="code-type">Yuv420</td><td><p>Planar 4:2:0 luma and chroma; twelve bits per pixel on average.</p>
+</td></tr>
+<tr><td id="Pixel_PixelFormat_Yuv444" class="code-type">Yuv444</td><td><p>Planar 4:4:4 luma and chroma; twenty-four bits per pixel.</p>
 </td></tr>
 </tbody>
 </table>
@@ -7278,7 +7298,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Pixel_YuvMatrix" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pixel.YuvMatrix</span> <a class="api-item-permalink" href="#Pixel_YuvMatrix" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/yuv420.swg#L7">src</a></div>
+<div class="api-item api-item-enum"><span id="Pixel_YuvMatrix" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pixel.YuvMatrix</span> <a class="api-item-permalink" href="#Pixel_YuvMatrix" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/yuvplanar.swg#L7">src</a></div>
 <p>Selects the matrix that converts luma and chroma samples to RGB.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pixel_YuvMatrix">YuvMatrix</a></span></span></div>
 </section>
@@ -7881,19 +7901,19 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_naturalSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.naturalSize</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_naturalSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3439">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_naturalSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.naturalSize</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_naturalSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3485">src</a></div>
 <p>Returns the preferred image dimensions in CSS pixels.</p>
 <p>Absolute root <span class="code-inline">width</span> and <span class="code-inline">height</span> attributes determine this size. A missing or relative dimension is inferred from the other dimension and the view-box aspect ratio; if neither dimension is absolute, the view-box size is returned. Nonpositive dimensions are treated as unspecified. This query does not change the user-space coordinates used by <a href="#Pixel_Svg_Drawing_paint">Pixel.Svg.Drawing.paint</a> and <a href="#Pixel_Svg_Drawing_rasterize">Pixel.Svg.Drawing.rasterize</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">naturalSize</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_Math_Vector2">Vector2</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_paint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.paint</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_paint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3542">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_paint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.paint</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_paint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3588">src</a></div>
 <p>Paints the drawing with its origin at <span class="code-inline">(x, y)</span> of the current path space, its content multiplied by <span class="code-inline">scale</span>.</p>
 <p>Fills honor the winding of their contours (a counter-clockwise contour is a hole), strokes honor width, caps, and joins scaled by <span class="code-inline">scale</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">paint</span>(painter: *<span class="SCst"><a href="#Pixel_Painter">Painter</a></span>, x, y: <span class="STpe">f32</span>, scale = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.parse</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3466">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.parse</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3512">src</a></div>
 <p>Parses an SVG document authored in the supported subset.</p>
 <p>The result owns its shapes and decoded images. Text supports one-level <span class="code-inline">tspan</span> runs with <span class="code-inline">x</span>, <span class="code-inline">y</span>, <span class="code-inline">dx</span>, <span class="code-inline">dy</span>, size, family class, anchor, weight, style, letter and word spacing, solid fill, and opacity, and runs along the direction its element is turned by. Images stretch into their declared rectangle. Patterns repeat vector shape tiles in user or object-bounding-box units. Filters support either a Gaussian blur followed by offsets, or a standalone <span class="code-inline">feDropShadow</span>.</p>
 <p>A <span class="code-inline">clip-path</span> is instantiated in the space of the element that names it, a <span class="code-inline">use</span> fits a referenced <span class="code-inline">symbol</span>'s view box into the size it asks for, and markers are placed on authored vertices with the tangent orientation <span class="code-inline">orient="auto"</span> states. A reference to an identifier the document does not define leaves its element alone.</p>
@@ -7901,7 +7921,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parse</span>(text: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_Svg_ParseOptions">ParseOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Svg_Drawing">Drawing</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_rasterize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.rasterize</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_rasterize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3951">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_rasterize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.rasterize</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_rasterize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3981">src</a></div>
 <p>Rasterizes the drawing into an owned image of exactly <span class="code-inline">width</span> by <span class="code-inline">height</span> pixels.</p>
 <p>The drawing is scaled uniformly from its view box to <span class="code-inline">width</span>, antialiased, on a transparent ground. Rasterization is done in software: no window, no GPU.</p>
 <p><span class="code-inline">supersample</span> renders that many samples per axis and box-filters them down, replacing the renderer's screen-space edge feather with near-exact coverage. The default doubles sampling, a good balance for icon and atlas work.</p>
@@ -7913,7 +7933,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">rasterize</span>(renderer: <span class="SCst"><a href="#Pixel_IRenderer">IRenderer</a></span>, width, height: <span class="STpe">s32</span>, supersample: <span class="STpe">u8</span> = <span class="SNum">2</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_shapeCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.shapeCount</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_shapeCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3430">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_shapeCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.shapeCount</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_shapeCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3476">src</a></div>
 <p>Returns the number of parsed shapes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">shapeCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
@@ -8625,7 +8645,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addImage</span>(image: <span class="SCst"><a href="#Pixel_Image">Image</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Texture">Texture</a></span></span></div>
 <p>Copies a planar 4:2:0 picture into a texture owned by this renderer.</p>
 <p>The result carries <a href="#Pixel_PixelFormat_Yuv420">Pixel.PixelFormat.Yuv420</a> and draws like any other texture. A backend with shaders keeps the planes and converts while it samples, which is why a decoder is allowed to hand its picture over unconverted; one without converts here, once per upload.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addImage</span>(view: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_Yuv420View">Yuv420View</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Texture">Texture</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addImage</span>(view: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_YuvPlanarView">YuvPlanarView</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Texture">Texture</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_IRenderer_begin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.begin</span> <a class="api-item-permalink" href="#Pixel_IRenderer_begin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L60">src</a></div>
@@ -8771,7 +8791,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <p>Replaces all bytes of a texture owned by this renderer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateTexture</span>(texture: <span class="SCst"><a href="#Pixel_Texture">Texture</a></span>, pixels: <span class="SKwd">const</span> *<span class="STpe">u8</span>)</span></div>
 <p>Replaces the planar picture held by a texture created from a view.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateTexture</span>(texture: <span class="SCst"><a href="#Pixel_Texture">Texture</a></span>, view: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_Yuv420View">Yuv420View</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateTexture</span>(texture: <span class="SCst"><a href="#Pixel_Texture">Texture</a></span>, view: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_YuvPlanarView">YuvPlanarView</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Layer_begin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.begin</span> <a class="api-item-permalink" href="#Pixel_Layer_begin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L78">src</a></div>
@@ -8844,7 +8864,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.close</span> <a class="api-item-permalink" href="#Pixel_LinePath_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L330">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.close</span> <a class="api-item-permalink" href="#Pixel_LinePath_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L335">src</a></div>
 <p>Close the figure Will add a line or a curve to the first point if necessary</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
@@ -8852,7 +8872,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="api-item api-item-func"><span id="Pixel_LinePath_controlBounds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.controlBounds</span> <a class="api-item-permalink" href="#Pixel_LinePath_controlBounds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L293">src</a></div>
 <p>Returns the rectangle enclosing every point that defines this path.</p>
 <p>A Bézier is contained by its control polygon and an arc by its centre and radii, so this answers without flattening anything: it works on a path still being built, and costs one pass over the segments. The result can be wider than the ink the path finally lays down, and is never narrower — which is what makes it safe to reject work against, and unsuitable for measuring a drawing.</p>
-<div class="code-block"><span class="SCde"><span class="SLgc">if</span> !path.<span class="SFct">controlBounds</span>().<span class="SFct">intersects</span>(dirtyRect) <span class="SLgc">do</span>
+<div class="code-block"><span class="SCde"><span class="SLgc">if</span> <span class="SLgc">not</span> path.<span class="SFct">controlBounds</span>().<span class="SFct">intersects</span>(dirtyRect) <span class="SLgc">do</span>
     <span class="SLgc">return</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">controlBounds</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span></span></div>
 </section>
@@ -8862,13 +8882,13 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">curveTo</span>(x, y: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_flatten" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.flatten</span> <a class="api-item-permalink" href="#Pixel_LinePath_flatten" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L572">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_flatten" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.flatten</span> <a class="api-item-permalink" href="#Pixel_LinePath_flatten" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L577">src</a></div>
 <p>Convert the path to a list of points</p>
 <p><span class="code-inline">scale</span> is the number of device pixels one path unit covers when the result is drawn: the flattening tolerance is expressed in path units, so a curve zoomed by a transform needs proportionally more segments to look as smooth on screen as it does at scale one. The cache keeps the finest flattening produced so far, whichever combination of quality and scale asked for it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flatten</span>(quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>, scale = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_flattenedPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.flattenedPolygon</span> <a class="api-item-permalink" href="#Pixel_LinePath_flattenedPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L548">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_flattenedPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.flattenedPolygon</span> <a class="api-item-permalink" href="#Pixel_LinePath_flattenedPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L553">src</a></div>
 <p>Flattens the path as needed and returns its mutable cached contour.</p>
 <p>Mutating the returned points changes only the cache. Call <a href="#Pixel_LinePath_recomputeFlattenedPolygon">Pixel.LinePath.recomputeFlattenedPolygon</a> after geometric edits; a later path edit may replace the contour completely.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flattenedPolygon</span>(quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>)-&gt;*<span class="SCst"><a href="#Pixel_Polygon">Polygon</a></span></span></div>
@@ -8895,49 +8915,49 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostCopy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_recomputeFlattenedPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.recomputeFlattenedPolygon</span> <a class="api-item-permalink" href="#Pixel_LinePath_recomputeFlattenedPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L555">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_recomputeFlattenedPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.recomputeFlattenedPolygon</span> <a class="api-item-permalink" href="#Pixel_LinePath_recomputeFlattenedPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L560">src</a></div>
 <p>Refreshes bounds and polygon properties after editing the flattened contour.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">recomputeFlattenedPolygon</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setArc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setArc</span> <a class="api-item-permalink" href="#Pixel_LinePath_setArc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L500">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setArc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setArc</span> <a class="api-item-permalink" href="#Pixel_LinePath_setArc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L505">src</a></div>
 <p>Initialize the path with an arc</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setArc</span>(centerX, centerY: <span class="STpe">f32</span>, radius: <span class="STpe">f32</span>, startAngle, endAngle: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Angle">Angle</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setCircle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setCircle</span> <a class="api-item-permalink" href="#Pixel_LinePath_setCircle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L485">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setCircle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setCircle</span> <a class="api-item-permalink" href="#Pixel_LinePath_setCircle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L490">src</a></div>
 <p>Initialize the path with a circle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setCircle</span>(centerX, centerY: <span class="STpe">f32</span>, radius: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setEllipse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setEllipse</span> <a class="api-item-permalink" href="#Pixel_LinePath_setEllipse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L474">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setEllipse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setEllipse</span> <a class="api-item-permalink" href="#Pixel_LinePath_setEllipse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L479">src</a></div>
 <p>Initialize the path with an ellipse</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setEllipse</span>(centerX, centerY: <span class="STpe">f32</span>, radiusX, radiusY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setEllipseRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setEllipseRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setEllipseRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L463">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setEllipseRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setEllipseRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setEllipseRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L468">src</a></div>
 <p>Initialize the path with an ellipse at exact coordinates.</p>
 <p>Unlike <a href="#Pixel_LinePath_setEllipse">setEllipse</a>, the center and radii are not snapped to the pixel grid.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setEllipseRaw</span>(cX, cY: <span class="STpe">f32</span>, rX, rY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRect</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L417">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRect</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L422">src</a></div>
 <p>Initialize the path with a rectangle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRect</span>(left, top, width, height: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setRectRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRectRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRectRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L403">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setRectRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRectRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRectRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L408">src</a></div>
 <p>Initialize the path with a rectangle at exact coordinates.</p>
 <p>Unlike <a href="#Pixel_LinePath_setRect">setRect</a>, nothing is snapped to the pixel grid: authored fractional geometry, such as a parsed vector document, stays untouched.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRectRaw</span>(l, t, w, h: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setRoundRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRoundRect</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRoundRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L450">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setRoundRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRoundRect</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRoundRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L455">src</a></div>
 <p>Initialize the path with a round rectangle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRoundRect</span>(left, top, width, height: <span class="STpe">f32</span>, radiusX, radiusY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setRoundRectRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRoundRectRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRoundRectRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L431">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setRoundRectRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRoundRectRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRoundRectRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L436">src</a></div>
 <p>Initialize the path with a round rectangle at exact coordinates.</p>
 <p>Unlike <a href="#Pixel_LinePath_setRoundRect">setRoundRect</a>, nothing is snapped to the pixel grid; the radii are clamped to half the dimensions, so a full radius produces a capsule.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRoundRectRaw</span>(l, t, w, h: <span class="STpe">f32</span>, radiusX, radiusY: <span class="STpe">f32</span>)</span></div>
@@ -9712,52 +9732,52 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createSolid</span>(color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, size: <span class="STpe">f32</span> = <span class="SNum">1</span>)-&gt;<span class="SCst"><a href="#Pixel_Pen">Pen</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_PixelFormat_bitDepth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.bitDepth</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_bitDepth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L145">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_PixelFormat_bitDepth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.bitDepth</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_bitDepth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L148">src</a></div>
 <p>Returns the bit depth of each channel.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">bitDepth</span>(<span class="STpe">me</span>)-&gt;<span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_PixelFormat_bitsPerPixel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.bitsPerPixel</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_bitsPerPixel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L85">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_PixelFormat_bitsPerPixel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.bitsPerPixel</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_bitsPerPixel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L87">src</a></div>
 <p>Returns the number of bits one pixel occupies on average.</p>
 <p>A planar format answers its average, which is not the size of anything addressable: twelve bits is what 4:2:0 costs per pixel over a whole picture.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">bitsPerPixel</span>(<span class="STpe">me</span>)-&gt;<span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_PixelFormat_channels" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.channels</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_channels" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L115">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_PixelFormat_channels" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.channels</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_channels" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L118">src</a></div>
 <p>Returns the number of stored color channels.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">channels</span>(<span class="STpe">me</span>)-&gt;<span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_PixelFormat_hasAlpha" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.hasAlpha</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_hasAlpha" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L175">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_PixelFormat_hasAlpha" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.hasAlpha</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_hasAlpha" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L178">src</a></div>
 <p>Reports whether the format stores an alpha channel.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">hasAlpha</span>(<span class="STpe">me</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_PixelFormat_isFloat" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.isFloat</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_isFloat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L205">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_PixelFormat_isFloat" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.isFloat</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_isFloat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L208">src</a></div>
 <p>Reports whether channels use an IEEE floating-point representation.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">isFloat</span>(<span class="STpe">me</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_PixelFormat_isGrayscale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.isGrayscale</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_isGrayscale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L216">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_PixelFormat_isGrayscale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.isGrayscale</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_isGrayscale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L219">src</a></div>
 <p>Reports whether the format stores one luminance channel instead of separate RGB channels.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">isGrayscale</span>(<span class="STpe">me</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_PixelFormat_isNormalizedInteger" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.isNormalizedInteger</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_isNormalizedInteger" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L212">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_PixelFormat_isNormalizedInteger" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.isNormalizedInteger</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_isNormalizedInteger" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L215">src</a></div>
 <p>Reports whether channels use one unsigned normalized integer representation.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">isNormalizedInteger</span>(<span class="STpe">me</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_PixelFormat_isPacked" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.isPacked</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_isPacked" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L52">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_PixelFormat_isPacked" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelFormat.isPacked</span> <a class="api-item-permalink" href="#Pixel_PixelFormat_isPacked" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/pixelformat.swg#L54">src</a></div>
 <p>Reports whether one pixel occupies a whole number of consecutive bytes.</p>
-<p>Everything that walks a picture by <a href="#Pixel_Image_bytesPerPixel">Pixel.Image.bytesPerPixel</a> and <a href="#Pixel_Image_rowStride">Pixel.Image.rowStride</a> needs this to hold. A planar format is carried by a texture and by <a href="#Pixel_Yuv420View">Pixel.Yuv420View</a>, never by an image.</p>
+<p>Everything that walks a picture by <a href="#Pixel_Image_bytesPerPixel">Pixel.Image.bytesPerPixel</a> and <a href="#Pixel_Image_rowStride">Pixel.Image.rowStride</a> needs this to hold. A planar format is carried by a texture and by <a href="#Pixel_YuvPlanarView">Pixel.YuvPlanarView</a>, never by an image.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">isPacked</span>(<span class="STpe">me</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -9852,22 +9872,22 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">surfaceImage</span>()-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L547">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L559">src</a></div>
 <p>Releases queued and currently bound render-target descriptors, and the glyph atlases.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_resetScratchCounters" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.resetScratchCounters</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_resetScratchCounters" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L534">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_resetScratchCounters" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.resetScratchCounters</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_resetScratchCounters" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L546">src</a></div>
 <p>Resets the scratch-clear counters, so a caller measures a frame rather than a session.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetScratchCounters</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_setShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.setShader</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_setShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1831">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_setShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.setShader</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_setShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1839">src</a></div>
 <p>Set the current shader</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setShader</span>(shader: *<span class="SCst"><a href="#Pixel_ShaderBase">ShaderBase</a></span>? = <span class="SKwd">null</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_supportsAdvancedBlending" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.supportsAdvancedBlending</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_supportsAdvancedBlending" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L544">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_supportsAdvancedBlending" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.supportsAdvancedBlending</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_supportsAdvancedBlending" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L556">src</a></div>
 <p>Reports whether the current context provides advanced blend equations.</p>
 <p>Call this after <a href="#Pixel_IRenderer_init">Pixel.IRenderer.init</a>. A <span class="code-inline">false</span> result means <a href="#Pixel_RenderCpu">Pixel.RenderCpu</a> remains available for the artistic blend modes, while this OpenGL context can use the traditional modes only.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">supportsAdvancedBlending</span>()-&gt;<span class="STpe">bool</span></span></div>
@@ -10172,20 +10192,32 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyphMsdfByIndex</span>(glyphIndex: <span class="STpe">u32</span>, size, spread: <span class="STpe">u32</span>, forceBold, forceItalic = <span class="SKwd">false</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_FontRenderMode_Bitmap">Bitmap</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Yuv420View_convertRowsToRgb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Yuv420View.convertRowsToRgb</span> <a class="api-item-permalink" href="#Pixel_Yuv420View_convertRowsToRgb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/yuv420.swg#L72">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_YuvPlanarView_chromaHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">YuvPlanarView.chromaHeight</span> <a class="api-item-permalink" href="#Pixel_YuvPlanarView_chromaHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/yuvplanar.swg#L61">src</a></div>
+<p>Returns the number of rows of one chroma plane.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">chromaHeight</span>()-&gt;<span class="STpe">s32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_YuvPlanarView_chromaWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">YuvPlanarView.chromaWidth</span> <a class="api-item-permalink" href="#Pixel_YuvPlanarView_chromaWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/yuvplanar.swg#L57">src</a></div>
+<p>Returns the width of one chroma plane, in samples.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">chromaWidth</span>()-&gt;<span class="STpe">s32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_YuvPlanarView_convertRowsToRgb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">YuvPlanarView.convertRowsToRgb</span> <a class="api-item-permalink" href="#Pixel_YuvPlanarView_convertRowsToRgb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/yuvplanar.swg#L89">src</a></div>
 <p>Converts rows <span class="code-inline">firstY</span> until <span class="code-inline">endY</span> into an RGB8 <span class="code-inline">target</span> of the same geometry.</p>
 <p>Bands write disjoint destination rows, so they run concurrently on one target.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">convertRowsToRgb</span>(target: *<span class="SCst"><a href="#Pixel_Image">Image</a></span>, firstY, endY: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Yuv420View_convertToRgb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Yuv420View.convertToRgb</span> <a class="api-item-permalink" href="#Pixel_Yuv420View_convertToRgb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/yuv420.swg#L54">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_YuvPlanarView_convertToRgb" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">YuvPlanarView.convertToRgb</span> <a class="api-item-permalink" href="#Pixel_YuvPlanarView_convertToRgb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/yuvplanar.swg#L68">src</a></div>
 <p>Converts the picture into <span class="code-inline">target</span>, which is created or reused as RGB8.</p>
 <p>Bands of rows are independent, so the work fans through the scheduler when one is running. A caller drawing through a renderer should not need this at all: converting a large picture costs more processor time than decoding it, and a renderer converts where it draws.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">convertToRgb</span>(target: *<span class="SCst"><a href="#Pixel_Image">Image</a></span>)</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.418</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.436</div>
 </footer>
 </section>
 </main>
@@ -10514,16 +10546,17 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "v|Pixel.Texture.height|Pixel_Texture_height|Height, in texels.",
 "v|Pixel.Texture.pixelFormat|Pixel_Texture_pixelFormat|Pixel encoding; alpha formats use straight samples.",
 "v|Pixel.Texture.width|Pixel_Texture_width|Width, in texels.",
-"s|Pixel.Yuv420View|Pixel_Yuv420View|One picture in planar 4:2:0, borrowed from whatever produced it.",
-"v|Pixel.Yuv420View.chromaB|Pixel_Yuv420View_chromaB|Blue-difference chroma at half resolution.",
-"v|Pixel.Yuv420View.chromaR|Pixel_Yuv420View_chromaR|Red-difference chroma at half resolution.",
-"v|Pixel.Yuv420View.chromaStride|Pixel_Yuv420View_chromaStride|Bytes between chroma rows.",
-"v|Pixel.Yuv420View.height|Pixel_Yuv420View_height|Visible height in luma samples.",
-"v|Pixel.Yuv420View.luma|Pixel_Yuv420View_luma|Full-resolution luma of the visible corner.",
-"v|Pixel.Yuv420View.lumaStride|Pixel_Yuv420View_lumaStride|Bytes between luma rows.",
-"v|Pixel.Yuv420View.matrix|Pixel_Yuv420View_matrix|Matrix used when the planes are converted to RGB.",
-"v|Pixel.Yuv420View.studioRange|Pixel_Yuv420View_studioRange|Whether luma uses 16..235 rather than the full 0..255 range.",
-"v|Pixel.Yuv420View.width|Pixel_Yuv420View_width|Visible width in luma samples.",
+"s|Pixel.YuvPlanarView|Pixel_YuvPlanarView|One picture in planar YUV, borrowed from whatever produced it.",
+"v|Pixel.YuvPlanarView.chromaB|Pixel_YuvPlanarView_chromaB|Blue-difference chroma.",
+"v|Pixel.YuvPlanarView.chromaR|Pixel_YuvPlanarView_chromaR|Red-difference chroma.",
+"v|Pixel.YuvPlanarView.chromaShift|Pixel_YuvPlanarView_chromaShift|How far a pixel coordinate shifts right to address the chroma planes: one for 4:2:0,",
+"v|Pixel.YuvPlanarView.chromaStride|Pixel_YuvPlanarView_chromaStride|Bytes between chroma rows.",
+"v|Pixel.YuvPlanarView.height|Pixel_YuvPlanarView_height|Visible height in luma samples.",
+"v|Pixel.YuvPlanarView.luma|Pixel_YuvPlanarView_luma|Full-resolution luma of the visible corner.",
+"v|Pixel.YuvPlanarView.lumaStride|Pixel_YuvPlanarView_lumaStride|Bytes between luma rows.",
+"v|Pixel.YuvPlanarView.matrix|Pixel_YuvPlanarView_matrix|Matrix used when the planes are converted to RGB.",
+"v|Pixel.YuvPlanarView.studioRange|Pixel_YuvPlanarView_studioRange|Whether luma uses 16..235 rather than the full 0..255 range.",
+"v|Pixel.YuvPlanarView.width|Pixel_YuvPlanarView_width|Visible width in luma samples.",
 "s|Pixel.DecodeOptions|Pixel_DecodeOptions|Controls which parts of an encoded image are materialized.",
 "v|Pixel.DecodeOptions.decodeMetadata|Pixel_DecodeOptions_decodeMetadata|Preserve supported format metadata in Image.metadata.",
 "v|Pixel.DecodeOptions.decodePixels|Pixel_DecodeOptions_decodePixels|Decode pixel storage; disable for metadata and geometry probing.",
@@ -11028,6 +11061,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "k|Pixel.PixelFormat.RGBF16|Pixel_PixelFormat_RGBF16|Red, green, then blue as native-endian IEEE 754 binary16 samples.",
 "k|Pixel.PixelFormat.RGBF32|Pixel_PixelFormat_RGBF32|Red, green, then blue as native-endian IEEE 754 binary32 samples.",
 "k|Pixel.PixelFormat.Yuv420|Pixel_PixelFormat_Yuv420|Planar 4:2:0 luma and chroma; twelve bits per pixel on average.",
+"k|Pixel.PixelFormat.Yuv444|Pixel_PixelFormat_Yuv444|Planar 4:4:4 luma and chroma; twenty-four bits per pixel.",
 "e|Pixel.UVMode|Pixel_UVMode|Selects how source texture coordinates cover a destination shape.",
 "k|Pixel.UVMode.Fill|Pixel_UVMode_Fill|Stretch the complete texture over the destination.",
 "k|Pixel.UVMode.FillSubRect|Pixel_UVMode_FillSubRect|Stretch the configured texture sub-rectangle over the destination.",
@@ -11495,8 +11529,10 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "f|Pixel.PixelFormat.isPacked|Pixel_PixelFormat_isPacked|Reports whether one pixel occupies a whole number of consecutive bytes.",
 "f|Pixel.Texture.byteCount|Pixel_Texture_byteCount|Returns the tightly packed texture storage size, in bytes.",
 "f|Pixel.Texture.isValid|Pixel_Texture_isValid|Reports whether the texture contains a non-invalid renderer handle.",
-"f|Pixel.Yuv420View.convertRowsToRgb|Pixel_Yuv420View_convertRowsToRgb|Converts rows firstY until endY into an RGB8 target of the same geometry.",
-"f|Pixel.Yuv420View.convertToRgb|Pixel_Yuv420View_convertToRgb|Converts the picture into target, which is created or reused as RGB8.",
+"f|Pixel.YuvPlanarView.chromaHeight|Pixel_YuvPlanarView_chromaHeight|Returns the number of rows of one chroma plane.",
+"f|Pixel.YuvPlanarView.chromaWidth|Pixel_YuvPlanarView_chromaWidth|Returns the width of one chroma plane, in samples.",
+"f|Pixel.YuvPlanarView.convertRowsToRgb|Pixel_YuvPlanarView_convertRowsToRgb|Converts rows firstY until endY into an RGB8 target of the same geometry.",
+"f|Pixel.YuvPlanarView.convertToRgb|Pixel_YuvPlanarView_convertToRgb|Converts the picture into target, which is created or reused as RGB8.",
 "f|Pixel.IImageDecoder.decode|Pixel_IImageDecoder_decode|Decodes one complete encoded buffer according to opt.",
 "f|Pixel.IImageDecoder.format|Pixel_IImageDecoder_format|Describes the format this decoder reads.",
 "f|Pixel.Image.canLoad|Pixel_Image_canLoad|Returns 'true' if the given filename has a corresponding decoder",

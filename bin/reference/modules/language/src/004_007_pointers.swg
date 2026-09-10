@@ -146,7 +146,7 @@ region is dead, not wrong.
     Swag.assert(p != null)
     Swag.assert(p.count == 2)
 
-    // '!' asserts instead of skipping, so the member keeps its plain type.
+    // p is already proven; '!' asserts the nullable next member instead of skipping it.
     Swag.assert(p.count == 2)
     Swag.assert(p.next!.count == 7)
 

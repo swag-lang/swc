@@ -158,9 +158,8 @@ var g_SoundHit:   Audio.SoundFile
 var g_SoundFlap:  Audio.SoundFile
 
 /**
-'g_Font' is a nullable pointer because font creation can return no font. Call
-sites use '!' only after successful asset loading establishes the
-invariant.
+'g_Font' uses 'late' because asset loading assigns the non-null font before the
+first frame. Rendering then uses that initialized pointer directly.
 */
 
 late var g_Font: *Font

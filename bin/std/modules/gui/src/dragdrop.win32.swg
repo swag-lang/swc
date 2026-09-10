@@ -202,7 +202,7 @@ private func readFormat(dataObj: *IDataObject, format: u32, index: s32 = -1)->Ar
     let buf = cast([*] u8?) GlobalLock(med.hGlobal)
     if not buf do
         return result
-    defer discard GlobalUnlock(buf)
+    defer discard GlobalUnlock(med.hGlobal)
 
     result.add(Swag.makeSlice(buf, size))
     return result
@@ -489,7 +489,7 @@ private func toGlobalBlock(bytes: const [..] u8)->HGLOBAL
     }
 
     Memory.copy(buf, bytes.buffer, bytes.count)
-    discard GlobalUnlock(buf)
+    discard GlobalUnlock(hglob)
     return hglob
 }
 
@@ -528,7 +528,7 @@ private func buildHDrop(data: *DragData)->HGLOBAL
     }
 
     cursor[] = 0
-    discard GlobalUnlock(base)
+    discard GlobalUnlock(hglob)
     return hglob
 }
 
@@ -562,7 +562,7 @@ private func buildDib(data: *DragData)->HGLOBAL
     header.biBitCount    = img.bitsPerPixel
 
     Memory.copy(base + #sizeof(Bmp.Header), img.pixels.buffer, img.byteCount)
-    discard GlobalUnlock(base)
+    discard GlobalUnlock(hglob)
     return hglob
 }
 
@@ -608,7 +608,7 @@ private func buildFileGroupDescriptor(data: *DragData)->HGLOBAL
         }
     }
 
-    discard GlobalUnlock(base)
+    discard GlobalUnlock(hglob)
     return hglob
 }
 
@@ -628,7 +628,7 @@ private func buildUnicodeText(data: *DragData)->HGLOBAL
 
     Memory.copy(buf, wide.buffer, wide.count * 2)
     buf[wide.count] = 0
-    discard GlobalUnlock(buf)
+    discard GlobalUnlock(hglob)
     return hglob
 }
 
@@ -800,7 +800,7 @@ private func srcGetStored(obj: *DragDataObject, entry: s64, med: *STGMEDIUM)->HR
     let buf  = cast([*] u8?) GlobalLock(source.hGlobal)
     if not buf do
         return E_OUTOFMEMORY
-    defer discard GlobalUnlock(buf)
+    defer discard GlobalUnlock(source.hGlobal)
 
     let hglob = toGlobalBlock(Swag.makeSlice(cast(const [*] u8) buf, size))
     if not hglob do

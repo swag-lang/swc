@@ -58,7 +58,7 @@ internal func testGlobalBlock(text: string)->HGLOBAL
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
     let buf   = cast([*] u8) GlobalLock(hglob)!
     Memory.copy(buf, text.buffer, size)
-    discard GlobalUnlock(buf)
+    discard GlobalUnlock(hglob)
     return hglob
 }
 
@@ -757,10 +757,13 @@ impl IWnd for PlatformCatcher
     Swag.assert(getDataResult == S_OK)
     Swag.assert(out.tymed == TYMED_HGLOBAL)
     defer ReleaseStgMedium(&out)
+    let alreadyUnlocked = GlobalUnlock(out.hGlobal)
+    let unlockError     = GetLastError()
+    Swag.assert(not alreadyUnlocked and unlockError == 158)
 
     let buf = cast([*] u8) GlobalLock(out.hGlobal)!
     Swag.assert(Swag.makeString(buf, 12) == "private bits")
-    discard GlobalUnlock(buf)
+    discard GlobalUnlock(out.hGlobal)
 
     // And it is part of what the object enumerates, beside what it produces itself.
     var raw: LPVOID
@@ -778,4 +781,45 @@ impl IWnd for PlatformCatcher
     // Lending a medium instead of handing it over is refused rather than half-supported.
     setDataResult = source.lpVtbl.SetData(source, &fmt, &med, FALSE)
     Swag.assert(setDataResult == E_NOTIMPL)
+}
+
+// OLE receives movable blocks with no outstanding lock, for every generated format.
+#test
+{
+    var data: DragData
+    data.setText("movable text")
+    data.addFile("c:/tmp/movable.txt")
+    var img = Pixel.Image.create(3, 2, .BGRA8)
+    img.clear()
+    data.setImage(img)
+    data.addContent("memory.txt", Testing.textBytes("content").toSlice())
+
+    var session: DragSession
+    let source = testDragSource(&session, &data)
+    var raw:     LPVOID
+    Swag.assert(source.lpVtbl.EnumFormatEtc(source, 1, &raw) == S_OK)
+    let formats = cast(*IEnumFORMATETC) raw!
+    defer discard formats.lpVtbl.Release(formats)
+
+    var fmt:     FORMATETC
+    var fetched: ULONG
+    var checked = 0'u32
+    while formats.lpVtbl.Next(formats, 1, &fmt, &fetched) == S_OK
+    {
+        fmt.tymed = TYMED_HGLOBAL
+        if fmt.cfFormat == cast(CLIPFORMAT) catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer) do
+            fmt.lindex = 0
+        var medium: STGMEDIUM
+        Swag.assert(source.lpVtbl.GetData(source, &fmt, &medium) == S_OK)
+        defer ReleaseStgMedium(&medium)
+        Swag.assert(medium.tymed == TYMED_HGLOBAL)
+
+        // ERROR_NOT_LOCKED proves the producer balanced its GlobalLock before transfer.
+        let unlocked = GlobalUnlock(medium.hGlobal)
+        let error    = GetLastError()
+        Swag.assert(not unlocked and error == 158)
+        checked += 1
+    }
+
+    Swag.assert(checked >= 6)
 }

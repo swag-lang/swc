@@ -50,7 +50,7 @@ func hasTypedData(fmt: ValueFormat, type: typeinfo?)->bool
 
     let hglob = GetClipboardData(cast(UINT) fmt)
     let pz    = cast(*u32) GlobalLock(hglob)!
-    defer discard GlobalUnlock(pz)
+    defer discard GlobalUnlock(hglob)
     return pz[] == type.crc
 }
 
@@ -65,7 +65,7 @@ func addTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
     defer discard CloseClipboard()
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, data.count + #sizeof(u32) + #sizeof(u64))
     let pz    = cast([*] u8) GlobalLock(hglob)!
-    defer discard GlobalUnlock(pz)
+    defer discard GlobalUnlock(hglob)
 
     // Store type CRC
     var pzi = cast([*] u32) pz
@@ -100,7 +100,7 @@ func getTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
         if hglob
         {
             let pz = cast([*] u8) GlobalLock(hglob)!
-            defer discard GlobalUnlock(pz)
+            defer discard GlobalUnlock(hglob)
 
             // Get type CRC, check this is correct
             var pzi = cast([*] u32) pz
@@ -176,7 +176,7 @@ func addImage(image: Image)
         let datas = buf + #sizeof(Bmp.Header)
         Memory.copy(datas, image.pixels.buffer, image.byteCount)
 
-        discard GlobalUnlock(buf)
+        discard GlobalUnlock(hglob)
         discard SetClipboardData(CF_DIB, hglob)
     }
 
@@ -200,7 +200,7 @@ func addImage(image: Image)
             bufCur += b.count
         }
 
-        discard GlobalUnlock(buf)
+        discard GlobalUnlock(hglob)
         discard SetClipboardData(g_PngFormat, hglob)
     }
 }
@@ -229,7 +229,7 @@ func getImage()->Image
         {
             let size = GlobalSize(hglob)
             let pz   = cast([*] u8) GlobalLock(hglob)!
-            defer discard GlobalUnlock(pz)
+            defer discard GlobalUnlock(hglob)
             return catch Image.decode("clipboard.png", Swag.makeSlice(pz, size), {})
         }
     }
@@ -242,7 +242,7 @@ func getImage()->Image
         {
             let size = GlobalSize(hglob)
             let pz   = cast([*] u8) GlobalLock(hglob)!
-            defer discard GlobalUnlock(pz)
+            defer discard GlobalUnlock(hglob)
             return catch Image.decode("clipboard.bmp", Swag.makeSlice(pz, size), {})
         }
     }
@@ -288,7 +288,7 @@ func addString(str: string)
         let pz    = cast([*] u8) GlobalLock(hglob)!
         Memory.copy(pz, str.buffer, str.count)
         pz[str.count] = 0
-        discard GlobalUnlock(pz)
+        discard GlobalUnlock(hglob)
         discard SetClipboardData(CF_TEXT, hglob)
     }
 
@@ -299,7 +299,7 @@ func addString(str: string)
         let u     = Utf16.fromUtf8(str)
         Memory.copy(pz, u.buffer, u.count * 2)
         pz[u.count] = 0
-        discard GlobalUnlock(pz)
+        discard GlobalUnlock(hglob)
         discard SetClipboardData(CF_UNICODETEXT, hglob)
     }
 }
@@ -328,7 +328,7 @@ func getString()->String
         {
             let pz = cast([*] u16) GlobalLock(hglob)!
             result = Utf8.fromUtf16(Swag.makeSlice(pz, Utf16.lengthZeroTerminated(pz)))
-            discard GlobalUnlock(pz)
+            discard GlobalUnlock(hglob)
             return result
         }
     }
@@ -341,7 +341,7 @@ func getString()->String
         {
             let pz = cast([*] u8) GlobalLock(hglob)!
             result = Swag.makeString(pz, (cast(cstring) pz).count)
-            discard GlobalUnlock(pz)
+            discard GlobalUnlock(hglob)
             return result
         }
     }

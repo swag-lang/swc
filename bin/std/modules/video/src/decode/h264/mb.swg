@@ -814,7 +814,7 @@ impl Slice
 
             if .isCabac
             {
-                if .cabac.terminate() != 0 do
+                if .terminate() != 0 do
                     break
                 if .cabac.hasOverrun() do
                     fail InvalidFormatError{"H.264 slice data is truncated"}
@@ -1891,7 +1891,7 @@ impl Slice
                 let scale = .dequantRow4(mb, cast(u32) plane + 1)
                 for block in 4's32
                 {
-                    let nC = .chromaNc(mb, cast(u32) plane, block & 1, block >> 1)
+                    let nC    = .chromaNc(mb, cast(u32) plane, block & 1, block >> 1)
                     var levels: [16] s16
                     let count = residualCavlc(&.bits, nC, 15, levels.buffer)
                     storeLevels(levels.buffer, 15, (mb.residual!.chromaAc).buffer + plane * 64 + cast(u64) block * 16, ResidualOrderAc, scale, 4)
@@ -1941,7 +1941,7 @@ impl Slice
                 let by     = raster >> 2
                 let nC     = .planeNc(mb, plane, bx, by)
                 var levels: [16] s16
-                var count: u32
+                var count:  u32
                 if isIntra16
                 {
                     count = residualCavlc(&.bits, nC, 15, levels.buffer)

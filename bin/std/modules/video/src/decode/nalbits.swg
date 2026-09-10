@@ -136,16 +136,22 @@ impl BitReader
     }
 }
 
+// Zero bytes kept past the end of an unescaped payload, beyond its count.
+//
+// A reader that tops its bit buffer up with one whole-word load can then do so right up to the
+// last payload byte without a bound, and what it loads past the end is the zeros a read past
+// the end yields anyway.
+const RbspPadding = 8'u64
+
 // Appends the raw byte sequence payload of one NAL unit, removing emulation-prevention bytes.
 //
 // `data` is the NAL payload after its header byte. The destination is reset first and reused
-// across NAL units, so a decoder unescapes a whole stream with one allocation.
+// across NAL units, so a decoder unescapes a whole stream with one allocation. The payload is
+// followed by [[RbspPadding]] zero bytes in the destination's storage, past its count.
 func unescapeRbsp(destination: *Array'u8, data: const [..] u8)
 {
     let count = data.count
     destination.clear()
-    if not count do
-        return
     destination.resize(count)
     let output = destination.storage()
     var index, outputIndex = 0'u64
@@ -189,6 +195,8 @@ func unescapeRbsp(destination: *Array'u8, data: const [..] u8)
     }
 
     destination.resize(outputIndex)
+    destination.reserve(outputIndex + RbspPadding)
+    Memory.clear(destination.storage() + outputIndex, RbspPadding)
 }
 
 // Returns the position in `data` of the byte that unescapes to output byte `unescapedCount`.

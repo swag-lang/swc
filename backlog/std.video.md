@@ -18,7 +18,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.001 — H.264 decoding costs several times what FFmpeg does per picture
 
 - Recorded: 2026-08-19 13:23
-- Updated: 2026-09-10 21:32 — Settle where the factor is not: the compiler decodes a bin within 7 to 18 percent of clang, and clearing scratch arrays costs under three percent
+- Updated: 2026-09-10 23:47 — Count the bins of one picture, rebuild the residual decoder around a call-free engine in FFmpeg's layout, and trace the remaining spills to how the allocator treats a cold call
 - Intent: the decoder is byte-exact against FFmpeg on Baseline, Main, and High streams and decodes
   well above real time, but one picture still costs several times what FFmpeg spends on it. That
   margin is what a machine smaller than this one, or a stream larger than 4K, would need.
@@ -127,17 +127,47 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   compensation, filter, transforms, about 45 million cycles — is written against `Core.Math.Simd`
   where FFmpeg's is hand-written assembly, and its gap is of the same order. Neither half holds a
   single 3x item.
-- Next: (1) count the bins of one 4K picture once, so the per-bin figures above stop being
-  estimates; (2) build FFmpeg's per-macroblock neighbor caches (`fill_decode_caches`: nonzero
-  counts, motion, motion vector differences, reference indices and direct flags at fixed `scan8`
-  offsets, filled once per macroblock) so every context and strength derivation becomes a table
-  read — the largest identifiable item; (3) only then re-port the FFmpeg engine into a
-  `residualCabac` whose frame no longer dominates, with `cabacbench` as the yardstick. A smaller
-  lead carries a trap: `Slice.residualCabac` tests for an overrun after every block, where FFmpeg
-  tests once per slice and the macroblock loop here already tests after each macroblock — but that
-  loop leaves on `terminate()` returning 1 before its test, so a truncated slice whose padding ends
-  the slice would pass silently. Dropping the per-block test first needs a test after the loop,
-  shown harmless on every valid fixture.
+- **The bins of one picture, counted (2026-09-10, counting build on the same clip, pictures 20 to
+  119).** 32,062 macroblocks, 72 percent of them skipped; 27,241 residual blocks decoded, 12,980 of
+  them ending at a zero coded-block flag; about 212,000 context-coded decisions, 79,000 significance
+  and last flags and 28,000 bypass bins — some 320,000 bins for 193 kilobits. The clip carries 191
+  kilobits a picture in that window, not the 732 the first, front-loaded group of pictures
+  suggested, so the earlier per-bin figures were four times too low: the parse costs roughly 140
+  cycles a bin all in, and `residualCabac` about 1,100 cycles a coded block.
+- **The residual decoder rebuilt in FFmpeg's shape (2026-09-10 evening).** Sampling every
+  instruction of `residualCabac` showed a flat histogram with 70 percent of it in the two
+  significance loops and a fifth of those samples on stack round trips: the arithmetic registers
+  lived in an address-taken structure, the loop counters in spill slots. Three changes, each
+  byte-exact on the clip and on every fixture: (a) the bins are decoded by mixins on the caller's
+  own `range` and `low`, with `#uniq` temporaries, and the block decoder is generic over the block
+  size and the DC distinction, so the four block shapes each get a body with its bounds and tables
+  folded; (b) the unescaped payload carries `RbspPadding` zero bytes past its end, so the bit
+  refill is one unbounded load and a function decoding bins contains no call — the shape FFmpeg
+  gets from `AV_INPUT_BUFFER_PADDING_SIZE`; (c) the engine is FFmpeg's: `low` scaled by 2^17 with
+  sixteen look-ahead bits and a marker, one `CabacNextState` table for both outcomes, a
+  `CabacNormShift` table instead of a leading-zero count, a two-byte inline reload. `residualCabac`
+  went from 834 to 756 instructions and 114 to 61 frame accesses, `decision` from 94 instructions
+  with five callee-saved pushes and a spill slot to 77 with two pushes and no call. Measured on a
+  machine shared with another agent (nine paired rounds, three binaries interleaved): −2.2 percent
+  on the median, minimums equal; the mixins alone and the padded refill alone were within the
+  noise. The bin engine was never the factor — 320,000 bins at twenty cycles is six million of the
+  ninety-four — and this settles it in the code rather than in an estimate. What the rewrite did
+  find is a compiler defect that costs every hot loop with a cold call in it:
+  compiler.optimization.035.
+- Next: the layer that publishes and reads per-block state is now the largest identifiable item,
+  about a fifth of the picture: `motionAt` 4.4 percent, `bookkeepMb` 5.3, `predictMv` 1.7,
+  `deriveDirectSpatial` 1.5, `Frame.colMotion` 1.4 (an integer division and a modulo per call to
+  recover coordinates every caller already holds), `assignMotion` 1.5, `assignSkipMotion` 1.1,
+  `blockNz` 1.0, `mbAvailable` 0.9. FFmpeg's `fill_decode_caches` reads the left and top
+  macroblocks once into `scan8`-indexed caches and `write_back_motion` publishes the macroblock in
+  row stores; every context and prediction is then a fixed-offset read. Build that. After it, the
+  compensation kernels: 8.3 million luma samples a picture cost 6.8 million cycles in the six-tap
+  kernels, 0.8 cycles a sample against roughly 0.2 for FFmpeg's assembly. A smaller lead carries a
+  trap: `Slice.residualCabac` tests for an overrun after every block, where FFmpeg tests once per
+  slice and the macroblock loop here already tests after each macroblock — but that loop leaves on
+  `terminate()` returning 1 before its test, so a truncated slice whose padding ends the slice
+  would pass silently. Dropping the per-block test first needs a test after the loop, shown
+  harmless on every valid fixture.
 - A second stream shape is worth its own measurement: a multi-slice picture takes the banded path
   and ping-pongs between two threads that each spend about half their time waiting. FFmpeg turns
   the same slices into parallelism. That is a real class of stream — every low-latency encoder
@@ -149,11 +179,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   six-tap (expanding byte inputs costs more than the packed arithmetic saves on this backend); and
   recasting the RGB conversion as `pmaddwd` pair sums — that last verdict predates `Core.Math.Simd`
   becoming inlinable across modules and should be re-measured before it is trusted. Also rejected
-  on 2026-09-10: porting FFmpeg's CABAC engine representation, where `low` carries the bits loaded
-  ahead and a marker so renormalization is a plain shift, costs 8.7 percent more on the minimum as
-  written here; keeping the level loop's registers in the same address-taken structure as the
+  on 2026-09-10: keeping the level loop's registers in the same address-taken structure as the
   significance map is neutral; and answering strength zero early when both blocks of an inner edge
-  hold identical motion records lost every measured round. Inlining the generic
+  hold identical motion records lost every measured round. The first port of FFmpeg's engine
+  representation measured 8.7 percent worse that afternoon; the loss was the allocator spilling
+  around the cold refill call (compiler.optimization.035), and with the payload padded and the
+  reload inline the same engine is what ships. Inlining the generic
   `CabacReader.decision`, rejected on 2026-08-19 at a ten percent parse loss, was re-measured on
   2026-09-10 under the live-range-splitting allocator: neutral (median of paired rounds −1.1
   percent, minimum +2.2 percent, byte-exact), so it stays a call.

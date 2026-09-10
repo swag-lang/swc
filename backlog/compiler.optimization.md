@@ -12,6 +12,45 @@ builds now use interval splitting, so those measurements identify workloads to r
 current performance guarantees. `MicroSsaState` reconstructs SSA and phi values for analysis, while
 the executable Micro instruction stream has no explicit phi instruction.
 
+### compiler.optimization.035 — The split allocator spills the hot path around a call it never takes
+
+- Recorded: 2026-09-10 23:17
+- Updated: 2026-09-10 23:47 — Add the counts of the call-free build with the smaller engine
+- Area: compiler/backend
+- Found while: std.video.001, tracing which allocator took every function of the H.264 decoder and
+  how many splits and spills each walk decided. A temporary `SWC_RA_TRACE` print in
+  `Pass.RegisterAllocation.Interval.cpp` produced the figures; it is not committed.
+- Evidence: every hot function of the decoder takes the interval path (31,096 functions against
+  90 refused and 39 failed walks in the video module), so the fallback scan is not where the
+  spills come from. `Slice.residualCabac` decodes every bin of a block through an inlined engine
+  whose bit-buffer refill was a call sitting in the renormalization branch — a branch taken on
+  about half the bins, a call taken once per fifty. With that call present the five
+  specializations of the function walked with 140 to 164 splits and 81 to 96 spills each; with
+  the refill inlined and the call gone, and no other change to the body, 105 to 118 splits and 58
+  to 67 spills. `CabacReader.decision`, one bin with the same cold call, went from five
+  callee-saved pushes, `sub rsp, 0x80` and a spill slot written on both arms of its branch to
+  three pushes and no frame access at all. The mechanism is in the walk: the clobber of a call is
+  a fixed interval on every volatile register, so a value that spans the call has its
+  `freeUntilPos` capped there and is either handed a callee-saved register or split at the call;
+  the split child is spilled, and the edge resolution then stores the value on the edge that
+  jumps *over* the call block — the hot edge — because the label after the block sees the value in
+  memory. The straight-line path pays a store and a reload for a call it never makes. This is the
+  branch-crossing spill compiler.optimization.010 measured in `decision` and could not explain.
+  With FFmpeg's smaller bin engine in the same call-free function the walk still decides 56 to 70
+  splits and 32 to 40 spills for about twenty live values, and the emitted body keeps 61 frame
+  accesses in 756 instructions — the parameters read only after the loops and the loop counters
+  are what remains in memory, which is ordinary pressure rather than this defect.
+- Next: treat a call inside a forward-jumped-over block — one no path from the function entry
+  reaches without taking a conditional jump around its fall-through — as parkable, the way the
+  scan allocator's `saveRestorePinnedAcrossCall` already does for pinned values: leave its clobbers
+  out of the fixed intervals in `buildFixedIntervals`, and have `applyIntervalAllocation` save and
+  restore, inside that block, every register the walk left live across the call. The
+  `computeGuardedCallPositions` analysis exists for the scan and can feed both places.
+- Complete when: `CabacReader.decision` and the significance loop of `Slice.residualCabac`, built
+  from a source whose refill is a call again, show no store or reload on the path that skips the
+  refill, and the split and spill counts of the trace match the call-free build's.
+- Related: compiler.optimization.010, compiler.optimization.006, compiler.optimization.024.
+
 ### compiler.optimization.010 — A short branching function spills with the whole register file free
 
 - Recorded: 2026-08-23 22:36

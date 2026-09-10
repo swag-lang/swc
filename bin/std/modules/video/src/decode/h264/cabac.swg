@@ -8,28 +8,83 @@
 
 using Core, Core.Errors
 
-// The CABAC arithmetic decoding engine of section 9.3.
+// The CABAC arithmetic decoding engine of section 9.3, in the register layout of FFmpeg's
+// `cabac_functions.h`.
 //
-// Raw slice bits stream through a 64-bit buffer refilled whole words at a time, and
-// renormalization shifts in one step, so the per-bin cost stays flat whatever the bin rate.
+// `low` holds codIOffset scaled by 2^17, the next sixteen stream bits below it and a marker bit
+// under those; `range` is codIRange. A bin subtracts the LPS range, selects its outcome with one
+// mask, steps the context through one table that serves both outcomes, and renormalizes both
+// registers by a table-driven shift, reloading two bytes when the marker crosses the sixteen-bit
+// line. That is about twenty instructions with no branch but the reload, half of what the direct
+// transcription of the standard took. The reload has no slow path: the payload carries
+// [[RbspPadding]] zero bytes past its end, so a function decoding bins contains no call — which is
+// what lets the allocator keep its values in registers.
+//
+// The bins themselves are decoded by the mixins of `Slice` below, on the caller's own locals.
 struct CabacReader
 {
-    data:      const [*] u8?     // Slice data, still carrying emulation prevention removed upstream.
-    size:      u64
-    position:  u64           // Next data byte to load into the bit buffer.
-    padBytes:  u64           // Synthetic zero bytes loaded past the end of the data.
-    bitBuffer: u64           // Raw slice bits, most significant first.
-    bitCount:  s32           // Valid bits at the top of `bitBuffer`.
-    low:       u32           // codIOffset.
-    range:     u32           // codIRange.
-    contexts:  [1024] u8     // Packed state: `(pStateIdx << 1) | valMPS`.
+    data:     const [*] u8?     // Slice data, free of emulation prevention, padded past `size`.
+    size:     u64
+    position: u64           // Next data byte to load.
+    low:      u32           // codIOffset << 17, then sixteen look-ahead bits, then the marker.
+    range:    u32           // codIRange.
+    contexts: [1024] u8     // Packed state: `(pStateIdx << 1) | valMPS`.
 }
 
-// Arithmetic registers kept local across a complete significance-map run.
-private struct CabacArithmetic
+// Table 9-44 laid out for one lookup from the packed state and the two range bits that select
+// its column: index `2 * (range & 0xC0) + state`.
+const CabacLpsRange: [512] u8 = #run buildCabacLpsRange()
+
+// The state after a bin, one table for both outcomes: `128 + state` on the MPS path and
+// `128 + (state ^ -1)` on the LPS path, which flips valMPS at pStateIdx 0 as Table 9-45 says.
+const CabacNextState: [256] u8 = #run buildCabacNextState()
+
+// The renormalization shift bringing a range below 256 back to the interval; zero above.
+const CabacNormShift: [512] u8 = #run buildCabacNormShift()
+
+func buildCabacLpsRange()->[512] u8
 {
-    low:   u32
-    range: u32
+    var result: retval
+    for column in 4'u64
+    {
+        for state in 128'u64 do
+            result[column * 128 + state] = CabacRangeLps[(state >> 1) * 4 + column]
+    }
+
+    return result
+}
+
+func buildCabacNextState()->[256] u8
+{
+    var result: retval
+    for state in 128'u64
+    {
+        let mps  = cast(u32) (state & 1)
+        let flip = (state >> 1) == 0 ? 1'u32 : 0'u32
+        result[128 + state] = cast(u8) ((cast(u32) CabacTransMps[state >> 1] << 1) | mps)
+        result[127 - state] = cast(u8) ((cast(u32) CabacTransLps[state >> 1] << 1) | (mps ^ flip))
+    }
+
+    return result
+}
+
+func buildCabacNormShift()->[512] u8
+{
+    var result: retval
+    for range in 512'u64
+    {
+        var shift = 0'u8
+        var value = range
+        while value < 256 and shift < 9
+        {
+            value <<= 1
+            shift += 1
+        }
+
+        result[range] = shift
+    }
+
+    return result
 }
 
 impl CabacReader
@@ -60,188 +115,39 @@ impl CabacReader
         }
     }
 
-    // Starts the arithmetic engine on the byte-aligned slice data, section 9.3.1.2.
+    // Starts the arithmetic engine on the byte-aligned slice data, section 9.3.1.2: nine bits of
+    // offset, fifteen bits of look-ahead, and the marker under them.
+    //
+    // `data` must be followed by [[RbspPadding]] readable zero bytes past `size`, which is how
+    // `unescapeRbsp` leaves a payload.
     mtd start(data: const [*] u8, size: u64)
     {
-        .data      = data
-        .size      = size
-        .position  = 0
-        .padBytes  = 0
-        .bitBuffer = 0
-        .bitCount  = 0
-        .range     = 510
-        .low       = .takeBits(9)
+        .data     = data
+        .size     = size
+        .position = 3
+        .low      = (cast(u32) data[0] << 18) | (cast(u32) data[1] << 10) | (cast(u32) data[2] << 2) | 2
+        .range    = 0x1FE
     }
 
     // Reports whether decoding consumed bits past the end of the slice data.
-    mtd const hasOverrun()->bool => (.position + .padBytes) * 8 - cast(u64) .bitCount > .size * 8
-
-    // Refills the top of the bit buffer, padding with zero bytes past the end of the data.
-    private mtd refill()
-    {
-        // An empty buffer with a whole word of data left loads it in one swapped read.
-        if .bitCount <= 0 and .position + 8 <= .size
-        {
-            .bitBuffer = Swag.byteSwap((cast(const [*] u64) (.data! + .position))[0])
-            .bitCount  = 64
-            .position  += 8
-            return
-        }
-
-        while .bitCount <= 56
-        {
-            var value = 0'u8
-            if .position < .size
-            {
-                value     = .data![.position]
-                .position += 1
-            }
-            else
-            {
-                .padBytes += 1
-            }
-
-            .bitBuffer |= cast(u64) value << cast(u32) (56 - .bitCount)
-            .bitCount  += 8
-        }
-    }
-
-    // Takes `count` raw bits, most significant first; `count` is 1 to 9.
-    #[Swag.Inline]
-    private mtd takeBits(count: u32)->u32
-    {
-        if .bitCount < cast(s32) count do
-            .refill()
-        let bits = cast(u32) (.bitBuffer >> cast(u32) (64 - count))
-        .bitBuffer <<= count
-        .bitCount  -= cast(s32) count
-        return bits
-    }
-
-    // Decodes one bin with the context at `contextIndex`, section 9.3.3.2.1.
     //
-    // The two arithmetic registers are held in locals for the whole bin. They are read and written
-    // several times each, and the context update in between writes into this same structure, so
-    // left in place they are reloaded after every step: the emitted code read `range` five times
-    // and wrote it three for one bin. Renormalization is shared by the two outcomes for the same
-    // reason, since it is the same code on a value the branches only have to agree on.
-    mtd decision(contextIndex: u32)->u32
-    {
-        var range  = .range
-        var low    = .low
-        let state  = cast(u32) .contexts[contextIndex]
-        let pState = cast(u64) (state >> 1)
-        let mps    = state & 1
-        let lps    = cast(u32) CabacRangeLps[pState * 4 + cast(u64) ((range >> 6) & 3)]
+    // The bits loaded and not yet consumed sit between the marker and the offset, so the marker's
+    // position says how many of the loaded bits are still ahead.
+    mtd const hasOverrun()->bool => .position * 8 + cast(u64) Swag.bitCountTz(.low) > .size * 8 + 16
 
-        range -= lps
-        var result: u32
-        if low < range
-        {
-            .contexts[contextIndex] = cast(u8) ((cast(u32) CabacTransMps[pState] << 1) | mps)
-            result = mps
-        }
-        else
-        {
-            low   -= range
-            range = lps
-            let lpsMps = mps ^ cast(u32) ((pState - #wrap 1) >> 63)
-            .contexts[contextIndex] = cast(u8) ((cast(u32) CabacTransLps[pState] << 1) | lpsMps)
-            result = mps ^ 1
-        }
-
-        let shift = max0S32(cast(s32) Swag.bitCountLz(range) - 23)
-        if shift != 0
-        {
-            range <<= cast(u32) shift
-            low   = (low << cast(u32) shift) | .takeBits(cast(u32) shift)
-        }
-
-        .range = range
-        .low   = low
-        return result
-    }
-
-    // Kept separate from the generic decision so only the significance-map loop pays the code
-    // growth needed to keep the arithmetic state in registers.
+    // Loads the two bytes due once the marker has crossed the sixteen-bit line, as FFmpeg's
+    // `refill2`: the marker moves down sixteen bits and the new bits land above it. Past the end
+    // of the data the bytes read as zeros, which is what reading past the end yields, and the
+    // position keeps advancing so the overrun stays measurable.
     #[Swag.Inline]
-    private mtd significanceDecision(contextIndex: u32, arithmetic: *CabacArithmetic)->u32
+    private mtd reload(low: u32)->u32
     {
-        let state  = cast(u32) .contexts[contextIndex]
-        let pState = cast(u64) (state >> 1)
-        let mps    = state & 1
-        let lps    = cast(u32) CabacRangeLps[pState * 4 + cast(u64) ((arithmetic.range >> 6) & 3)]
-
-        arithmetic.range -= lps
-        let diff = cast(s32) arithmetic.low - cast(s32) arithmetic.range
-        let mask = cast #wrap (u32) (diff >> 31)
-        arithmetic.low   = (arithmetic.low & mask) | ((cast #wrap (u32) diff) & ~mask)
-        arithmetic.range = (arithmetic.range & mask) | (lps & ~mask)
-        let lpsMps   = mps ^ cast(u32) ((pState - #wrap 1) >> 63)
-        let mpsState = (cast(u32) CabacTransMps[pState] << 1) | mps
-        let lpsState = (cast(u32) CabacTransLps[pState] << 1) | lpsMps
-        .contexts[contextIndex] = cast(u8) ((mpsState & mask) | (lpsState & ~mask))
-
-        let shift = max0S32(cast(s32) Swag.bitCountLz(arithmetic.range) - 23)
-        if shift != 0
-        {
-            arithmetic.range <<= cast(u32) shift
-            arithmetic.low   = (arithmetic.low << cast(u32) shift) | .takeBits(cast(u32) shift)
-        }
-
-        return mps ^ (1 & ~mask)
-    }
-
-    // Decodes one bypass bin, section 9.3.3.2.3.
-    mtd bypass()->u32
-    {
-        .low = (.low << 1) | .takeBits(1)
-        if .low >= .range
-        {
-            .low -= .range
-            return 1
-        }
-
-        return 0
-    }
-
-    // Decodes a bypass sign and applies it without branching.
-    #[Swag.Inline]
-    private mtd bypassSign(magnitude: s32)->s32
-    {
-        let low  = (.low << 1) | .takeBits(1)
-        let diff = cast(s32) low - cast(s32) .range
-        let keep = cast #wrap (u32) (diff >> 31)
-        .low = (low & keep) | ((cast #wrap (u32) diff) & ~keep)
-
-        let sign = cast #bit(s32) ~keep
-        return (magnitude ^ sign) - sign
-    }
-
-    // Decodes the end-of-slice bin, section 9.3.3.2.4.
-    mtd terminate()->u32
-    {
-        .range -= 2
-        if .low >= .range do
-            return 1
-
-        let shift = max0S32(cast(s32) Swag.bitCountLz(.range) - 23)
-        if shift != 0
-        {
-            .range <<= cast(u32) shift
-            .low   = (.low << cast(u32) shift) | .takeBits(cast(u32) shift)
-        }
-
-        return 0
-    }
-
-    // Decodes `count` bypass bins as an unsigned value.
-    mtd bypassBits(count: u32)->u32
-    {
-        var result = 0'u32
-        for count do
-            result = (result << 1) | .bypass()
-        return result
+        let extra = cast(u32) Swag.bitCountTz(low) - 16
+        var bits  = 0'u32
+        if .position <= .size do
+            bits = (cast(u32) .data![.position] << 9) | (cast(u32) .data![.position + 1] << 1)
+        .position += 2
+        return low - #wrap (0xFFFF'u32 << extra) + #wrap (bits << extra)
     }
 }
 
@@ -289,7 +195,7 @@ impl Slice
 
         if .header.type == SliceTypeB do
             ctx += 13
-        return .cabac.decision(11 + ctx) != 0
+        return .decision(11 + ctx) != 0
     }
 
     // Parses one full macroblock with CABAC entropy coding.
@@ -307,18 +213,18 @@ impl Slice
         }
         elif .header.type == SliceTypeP
         {
-            if .cabac.decision(14) != 0
+            if .decision(14) != 0
             {
                 isIntra = true
                 mbType  = .intraMbTypeCabac(mb, 17, intraSlice: false)
             }
-            elif .cabac.decision(15) == 0
+            elif .decision(15) == 0
             {
-                mbType = 3 * .cabac.decision(16)
+                mbType = 3 * .decision(16)
             }
             else
             {
-                mbType = 2 - .cabac.decision(17)
+                mbType = 2 - .decision(17)
             }
         }
         else
@@ -329,20 +235,20 @@ impl Slice
             if .mbAvailable(mb.mbX, mb.mbY - 1) and not .mbInfoAt(mb.mbX, mb.mbY - 1).direct do
                 ctx += 1
 
-            if .cabac.decision(27 + ctx) == 0
+            if .decision(27 + ctx) == 0
             {
                 mbType = 0
             }
-            elif .cabac.decision(30) == 0
+            elif .decision(30) == 0
             {
-                mbType = 1 + .cabac.decision(32)
+                mbType = 1 + .decision(32)
             }
             else
             {
-                var bits = .cabac.decision(31) << 3
-                bits += .cabac.decision(32) << 2
-                bits += .cabac.decision(32) << 1
-                bits += .cabac.decision(32)
+                var bits = .decision(31) << 3
+                bits += .decision(32) << 2
+                bits += .decision(32) << 1
+                bits += .decision(32)
                 if bits < 8
                 {
                     mbType = bits + 3
@@ -362,7 +268,7 @@ impl Slice
                 }
                 else
                 {
-                    bits   = (bits << 1) + .cabac.decision(32)
+                    bits   = (bits << 1) + .decision(32)
                     mbType = bits - 4
                 }
             }
@@ -415,35 +321,35 @@ impl Slice
                 ctx += 1
             if .mbAvailable(mb.mbX, mb.mbY - 1) and .mbInfoAt(mb.mbX, mb.mbY - 1).class == MbClassIntra16x16 do
                 ctx += 1
-            if .cabac.decision(base + ctx) == 0 do
+            if .decision(base + ctx) == 0 do
                 return 0
             base += 2
         }
-        elif .cabac.decision(base) == 0
+        elif .decision(base) == 0
         {
             return 0
         }
 
-        if .cabac.terminate() != 0 do
+        if .terminate() != 0 do
             return 25
 
         var mbType = 1'u32
-        mbType += 12 * .cabac.decision(base + 1)
-        if .cabac.decision(base + 2) != 0 do
-            mbType += 4 + 4 * .cabac.decision(base + (intraSlice ? 3 : 2))
-        mbType += 2 * .cabac.decision(base + (intraSlice ? 4 : 3))
-        mbType += .cabac.decision(base + (intraSlice ? 5 : 3))
+        mbType += 12 * .decision(base + 1)
+        if .decision(base + 2) != 0 do
+            mbType += 4 + 4 * .decision(base + (intraSlice ? 3 : 2))
+        mbType += 2 * .decision(base + (intraSlice ? 4 : 3))
+        mbType += .decision(base + (intraSlice ? 5 : 3))
         return mbType
     }
 
     // Decodes one P sub-macroblock type.
     mtd subMbTypePCabac()->u32
     {
-        if .cabac.decision(21) != 0 do
+        if .decision(21) != 0 do
             return 0
-        if .cabac.decision(22) == 0 do
+        if .decision(22) == 0 do
             return 1
-        if .cabac.decision(23) != 0 do
+        if .decision(23) != 0 do
             return 2
         return 3
     }
@@ -451,31 +357,31 @@ impl Slice
     // Decodes one B sub-macroblock type.
     mtd subMbTypeBCabac()->u32
     {
-        if .cabac.decision(36) == 0 do
+        if .decision(36) == 0 do
             return 0
-        if .cabac.decision(37) == 0 do
-            return 1 + .cabac.decision(39)
+        if .decision(37) == 0 do
+            return 1 + .decision(39)
         var result = 3'u32
-        if .cabac.decision(38) != 0
+        if .decision(38) != 0
         {
-            if .cabac.decision(39) != 0 do
-                return 11 + .cabac.decision(39)
+            if .decision(39) != 0 do
+                return 11 + .decision(39)
             result += 4
         }
 
-        result += 2 * .cabac.decision(39)
-        result += .cabac.decision(39)
+        result += 2 * .decision(39)
+        result += .decision(39)
         return result
     }
 
     // Decodes one intra 4x4 or 8x8 prediction mode against its neighbor prediction.
     mtd intraModeCabac(predicted: u32)->u32
     {
-        if .cabac.decision(68) != 0 do
+        if .decision(68) != 0 do
             return predicted
-        var mode = .cabac.decision(69)
-        mode += 2 * .cabac.decision(69)
-        mode += 4 * .cabac.decision(69)
+        var mode = .decision(69)
+        mode += 2 * .decision(69)
+        mode += 4 * .decision(69)
         return mode >= predicted ? mode + 1 : mode
     }
 
@@ -487,11 +393,11 @@ impl Slice
             ctx += 1
         if .mbAvailable(mb.mbX, mb.mbY - 1) and .mbInfoAt(mb.mbX, mb.mbY - 1).chromaMode != 0 do
             ctx += 1
-        if .cabac.decision(64 + ctx) == 0 do
+        if .decision(64 + ctx) == 0 do
             return 0
-        if .cabac.decision(67) == 0 do
+        if .decision(67) == 0 do
             return 1
-        if .cabac.decision(67) == 0 do
+        if .decision(67) == 0 do
             return 2
         return 3
     }
@@ -504,7 +410,7 @@ impl Slice
             ctx += 1
         if .mbAvailable(mb.mbX, mb.mbY - 1) and .mbInfoAt(mb.mbX, mb.mbY - 1).transform8x8 do
             ctx += 1
-        return .cabac.decision(399 + ctx)
+        return .decision(399 + ctx)
     }
 
     // Decodes the luma coded block pattern, four bins with spatial contexts.
@@ -520,13 +426,13 @@ impl Slice
 
         var cbp = 0'u32
         var ctx = (leftCbp & 0x02 ? 0'u32 : 1) + 2 * (topCbp & 0x04 ? 0'u32 : 1)
-        cbp += .cabac.decision(73 + ctx)
+        cbp += .decision(73 + ctx)
         ctx = (cbp & 0x01 ? 0'u32 : 1) + 2 * (topCbp & 0x08 ? 0'u32 : 1)
-        cbp += .cabac.decision(73 + ctx) << 1
+        cbp += .decision(73 + ctx) << 1
         ctx = (leftCbp & 0x08 ? 0'u32 : 1) + 2 * (cbp & 0x01 ? 0'u32 : 1)
-        cbp += .cabac.decision(73 + ctx) << 2
+        cbp += .decision(73 + ctx) << 2
         ctx = (cbp & 0x04 ? 0'u32 : 1) + 2 * (cbp & 0x02 ? 0'u32 : 1)
-        cbp += .cabac.decision(73 + ctx) << 3
+        cbp += .decision(73 + ctx) << 3
         return cbp
     }
 
@@ -545,7 +451,7 @@ impl Slice
             ctx += 1
         if topCbp > 0 do
             ctx += 2
-        if .cabac.decision(77 + ctx) == 0 do
+        if .decision(77 + ctx) == 0 do
             return 0
 
         ctx = 4
@@ -553,7 +459,7 @@ impl Slice
             ctx += 1
         if topCbp == 2 do
             ctx += 2
-        return 1 + .cabac.decision(77 + ctx)
+        return 1 + .decision(77 + ctx)
     }
 
     // Decodes the macroblock QP delta.
@@ -561,7 +467,7 @@ impl Slice
     {
         var ctx   = .lastQpDelta != 0 ? 1'u32 : 0'u32
         var count = 0's32
-        while .cabac.decision(60 + ctx) != 0
+        while .decision(60 + ctx) != 0
         {
             ctx   = ctx < 2 ? 2 : 3
             count += 1
@@ -582,7 +488,7 @@ impl Slice
             ctx += 2
 
         var ref = 0'u32
-        while .cabac.decision(54 + ctx) != 0
+        while .decision(54 + ctx) != 0
         {
             ref += 1
             ctx = (ctx >> 2) + 4
@@ -646,7 +552,7 @@ impl Slice
             if amvd > 32 do
                 ctx += 1
 
-            if .cabac.decision(ctxBase + ctx) == 0
+            if .decision(ctxBase + ctx) == 0
             {
                 result[component] = 0
                 continue
@@ -654,7 +560,7 @@ impl Slice
 
             var value    = 1'u32
             var unaryCtx = ctxBase + 3
-            while value < 9 and .cabac.decision(unaryCtx) != 0
+            while value < 9 and .decision(unaryCtx) != 0
             {
                 if value < 4 do
                     unaryCtx += 1
@@ -665,7 +571,7 @@ impl Slice
             {
                 // Exp-Golomb suffix of order three, in bypass bins.
                 var k = 3'u32
-                while .cabac.bypass() != 0
+                while .bypass() != 0
                 {
                     value += 1'u32 << k
                     k     += 1
@@ -676,11 +582,11 @@ impl Slice
                 while k > 0
                 {
                     k     -= 1
-                    value += .cabac.bypass() << k
+                    value += .bypass() << k
                 }
             }
 
-            let sign      = .cabac.bypass()
+            let sign      = .bypass()
             let magnitude = cast(s32) value
             result[component] = cast(s16) clampS32(sign != 0 ? -magnitude : magnitude, -32768, 32767)
         }
@@ -688,19 +594,133 @@ impl Slice
         return result
     }
 
-    // Decodes one residual block, sections 9.3.3.1.1.9 and 9.3.3.1.3.
+    // Decodes one bin against the caller's arithmetic registers, section 9.3.3.2.1.
     //
-    // `cat` is the block category and `maxCoeffs` the number of coefficients it codes. A block
-    // first decodes a coded-block flag against the neighbor flags `nzA` and `nzB` (-1 for an
-    // unavailable neighbor). Each level lands in `coeffs` at the raster position `order` gives
-    // it, dequantized by the matching entry of `scale` unless the block is a DC one, which has
-    // no `scale` and keeps its levels. Returns the coefficient count.
-    mtd residualCabac(mb: *Mb, cat: u32, coeffs: [*] s16, maxCoeffs: u32, nzA, nzB: s32, order: u64, scale: [*] u32?, shift: u32)->u32 fail
+    // A mixin rather than a call: `range` and `low` are locals of the function decoding a whole
+    // residual block, so every bin of the block computes in two registers and the reader is
+    // written back once at the end. Through a call, or through a structure whose address an
+    // inlined function takes, both registers went through memory at every step of every bin, and
+    // the significance loops spent a fifth of their time on those round trips. The two outcomes
+    // are selected without a branch, since a bin's value is close to unpredictable by design.
+    // The decoded bin lands in `bin`.
+    #[Swag.Mixin]
+    private mtd binDecision(binCtx: u32)
     {
+        var #uniq0 = cast(s32) .cabac.contexts[binCtx]
+        let #uniq1 = cast(u32) CabacLpsRange[cast(u64) (2 * (range & 0xC0)) + cast(u64) #uniq0]
+        range -= #uniq1
+
+        // All ones on the less probable path.
+        let #uniq2 = cast #wrap (u32) ((cast(s32) (range << 17) - cast(s32) low) >> 31)
+        low    = low - #wrap ((range << 17) & #uniq2)
+        range  = range + #wrap ((#uniq1 - #wrap range) & #uniq2)
+        #uniq0 ^= cast #bit(s32) #uniq2
+        .cabac.contexts[binCtx] = CabacNextState[cast(u64) (128 + #uniq0)]
+        bin    = cast(u32) (#uniq0 & 1)
+
+        let #uniq3 = cast(u32) CabacNormShift[cast(u64) range]
+        range <<= #uniq3
+        low   <<= #uniq3
+        if (low & 0xFFFF) == 0 do
+            low = .cabac.reload(low)
+    }
+
+    // Decodes one bypass bin against the caller's arithmetic registers, section 9.3.3.2.3, into
+    // `bin`.
+    #[Swag.Mixin]
+    private mtd binBypass()
+    {
+        low <<= 1
+        if (low & 0xFFFF) == 0 do
+            low = .cabac.reload(low)
+
+        // All ones when the offset stays below the range, which is a zero bin.
+        let #uniq0 = range << 17
+        low = low - #wrap #uniq0
+        let #uniq1 = cast #wrap (u32) (cast #bit(s32) low >> 31)
+        low = low + #wrap (#uniq0 & #uniq1)
+        bin = 1 + #wrap #uniq1
+    }
+
+    // Decodes a bypass sign and applies it to `magnitude` without branching, into `level`.
+    #[Swag.Mixin]
+    private mtd binSign(magnitude: s32)
+    {
+        low <<= 1
+        if (low & 0xFFFF) == 0 do
+            low = .cabac.reload(low)
+
+        let #uniq0 = range << 17
+        low = low - #wrap #uniq0
+        let #uniq1 = cast #wrap (u32) (cast #bit(s32) low >> 31)
+        low = low + #wrap (#uniq0 & #uniq1)
+        let #uniq2 = cast #bit(s32) ~#uniq1
+        level = (magnitude ^ #uniq2) - #uniq2
+    }
+
+    // Decodes one bin with the context at `contextIndex`, section 9.3.3.2.1, for the syntax
+    // elements decoded one bin at a time.
+    mtd decision(contextIndex: u32)->u32
+    {
+        var range = .cabac.range
+        var low   = .cabac.low
+        var bin: u32
+        .binDecision(contextIndex)
+        .cabac.range = range
+        .cabac.low   = low
+        return bin
+    }
+
+    // Decodes one bypass bin, section 9.3.3.2.3.
+    mtd bypass()->u32
+    {
+        var range = .cabac.range
+        var low   = .cabac.low
+        var bin: u32
+        .binBypass()
+        .cabac.low = low
+        return bin
+    }
+
+    // Decodes the end-of-slice bin, section 9.3.3.2.4.
+    mtd terminate()->u32
+    {
+        var range = .cabac.range - 2
+        var low   = .cabac.low
+        if low >= range << 17 do
+            return 1
+
+        // One renormalization step at most: a range below 256 shifts by one.
+        let shift = (range - #wrap 256) >> 31
+        range <<= shift
+        low   <<= shift
+        if (low & 0xFFFF) == 0 do
+            low = .cabac.reload(low)
+        .cabac.range = range
+        .cabac.low   = low
+        return 0
+    }
+
+    // Decodes one residual block of `MaxCoeffs` coefficients, sections 9.3.3.1.1.9 and 9.3.3.1.3.
+    //
+    // `cat` is the block category. A block first decodes a coded-block flag against the neighbor
+    // flags `nzA` and `nzB` (-1 for an unavailable neighbor). Each level lands in `coeffs` at the
+    // raster position `order` gives it, dequantized by the matching entry of `scale`; a DC block
+    // has no `scale` and keeps its levels. Returns the coefficient count.
+    //
+    // The block size and the DC distinction are compile-time parameters: the four block shapes a
+    // stream carries each get a body whose bounds, table choice and store are folded, and only
+    // the values the loops read stay live across them.
+    func(const MaxCoeffs: u32, const IsDc: bool) residualCabac(me, mb: *Mb, cat: u32, coeffs: [*] s16, nzA, nzB: s32, order: u64, scale: [*] u32?, shift: u32)->u32 fail
+    {
+        var range = .cabac.range
+        var low   = .cabac.low
+        var bin: u32
+
         // A block of sixty-four coefficients states nothing of its own, the coded block pattern
         // having said whether it is coded — except in 4:4:4, where every block codes a flag,
         // which is what the three context bases at 1012 exist for.
-        if maxCoeffs != 64 or .dec!.sps!.is444()
+        if MaxCoeffs != 64 or .dec!.sps!.is444()
         {
             var ctx   = CabacCbfBase[cat]
             let intra = mb.class != MbClassInter
@@ -708,81 +728,63 @@ impl Slice
                 ctx += 1
             if nzB > 0 or (nzB < 0 and intra) do
                 ctx += 2
-            if .cabac.decision(ctx) == 0 do
+            .binDecision(ctx)
+            if bin == 0
+            {
+                .cabac.range = range
+                .cabac.low   = low
                 return 0
-        }
-
-        // Significance map.
-        var indices: [64] u32
-        var count      = 0'u32
-        let sigBase    = CabacSigBase[cat]
-        let lastBase   = CabacLastBase[cat]
-        var scan       = 0'u32
-        var foundLast  = false
-        var arithmetic = CabacArithmetic{.cabac.low, .cabac.range}
-
-        // The 8x8 categories map every scan position through a table while every other category
-        // uses the position itself. Choosing once instead of per coefficient keeps the two
-        // decisions of the inner loop back to back.
-        if cat == 5 or cat == 9 or cat == 13
-        {
-            while scan < maxCoeffs - 1
-            {
-                if .cabac.significanceDecision(sigBase + cast(u32) SigCoeffCtx8x8[scan], &arithmetic) != 0
-                {
-                    indices[count] = scan
-                    count += 1
-                    if .cabac.significanceDecision(lastBase + cast(u32) LastCoeffCtx8x8[scan], &arithmetic) != 0
-                    {
-                        foundLast = true
-                        break
-                    }
-                }
-
-                scan += 1
-            }
-        }
-        else
-        {
-            while scan < maxCoeffs - 1
-            {
-                if .cabac.significanceDecision(sigBase + scan, &arithmetic) != 0
-                {
-                    indices[count] = scan
-                    count += 1
-                    if .cabac.significanceDecision(lastBase + scan, &arithmetic) != 0
-                    {
-                        foundLast = true
-                        break
-                    }
-                }
-
-                scan += 1
             }
         }
 
-        .cabac.low   = arithmetic.low
-        .cabac.range = arithmetic.range
-
-        if not foundLast and scan == maxCoeffs - 1
+        // Significance map: the scan positions of the coefficients, in scan order. The 8x8
+        // categories map every scan position through a table while every other category uses
+        // the position itself.
+        var indices: [64] u8
+        var count     = 0'u32
+        let sigBase   = CabacSigBase[cat]
+        let lastBase  = CabacLastBase[cat]
+        var scan      = 0'u32
+        var foundLast = false
+        while scan < MaxCoeffs - 1
         {
-            indices[count] = scan
+            let sigCtx = MaxCoeffs == 64 ? sigBase + cast(u32) SigCoeffCtx8x8[scan] : sigBase + scan
+            .binDecision(sigCtx)
+            if bin != 0
+            {
+                indices[count] = cast(u8) scan
+                count += 1
+                let lastCtx = MaxCoeffs == 64 ? lastBase + cast(u32) LastCoeffCtx8x8[scan] : lastBase + scan
+                .binDecision(lastCtx)
+                if bin != 0
+                {
+                    foundLast = true
+                    break
+                }
+            }
+
+            scan += 1
+        }
+
+        // The last position is significant when no earlier one closed the block.
+        if not foundLast
+        {
+            indices[count] = cast(u8) (MaxCoeffs - 1)
             count += 1
         }
-
-        if count == 0 do
-            return 0
 
         // Levels, last significant coefficient first.
         let absBase   = CabacAbsBase[cat]
         var node      = 0'u32
         var remaining = count
+        var level: s32
         while remaining > 0
         {
             remaining -= 1
-            let position  = indices[remaining]
+            let position  = cast(u64) indices[remaining]
             var magnitude = 1's32
-            if .cabac.decision(absBase + cast(u32) CoeffAbsLevel1Ctx[node]) == 0
+            .binDecision(absBase + cast(u32) CoeffAbsLevel1Ctx[node])
+            if bin == 0
             {
                 node = cast(u32) CoeffAbsLevelTransition[node]
             }
@@ -791,34 +793,48 @@ impl Slice
                 magnitude = 2
                 let gt1Ctx = absBase + cast(u32) CoeffAbsLevelGt1Ctx[node]
                 node = cast(u32) CoeffAbsLevelTransition[8 + node]
-                while magnitude < 15 and .cabac.decision(gt1Ctx) != 0 do
+                while magnitude < 15
+                {
+                    .binDecision(gt1Ctx)
+                    if bin == 0 do
+                        break
                     magnitude += 1
+                }
 
                 if magnitude >= 15
                 {
                     // Exp-Golomb order zero suffix in bypass bins.
                     var zeros = 0'u32
-                    while .cabac.bypass() != 0 and zeros < 23 do
+                    while true
+                    {
+                        .binBypass()
+                        if bin == 0 or zeros >= 23 do
+                            break
                         zeros += 1
+                    }
+
                     var value = 1'u32
                     while zeros > 0
                     {
                         zeros -= 1
-                        value = (value << 1) + .cabac.bypass()
+                        .binBypass()
+                        value = (value << 1) + bin
                     }
 
                     magnitude = cast(s32) value + 14
                 }
             }
 
-            let level  = clampS32(.cabac.bypassSign(magnitude), -32768, 32767)
-            let raster = cast(u64) ResidualOrder[order + cast(u64) position]
-            if scale == null do
-                coeffs[raster] = cast(s16) level
+            .binSign(magnitude)
+            let raster = cast(u64) ResidualOrder[order + position]
+            if IsDc do
+                coeffs[raster] = cast(s16) clampS32(level, -32768, 32767)
             else do
-                coeffs[raster] = dequantLevel(level, scale[raster], shift)
+                coeffs[raster] = dequantLevel(clampS32(level, -32768, 32767), scale![raster], shift)
         }
 
+        .cabac.range = range
+        .cabac.low   = low
         if .cabac.hasOverrun() do
             fail InvalidFormatError{"H.264 residual block is truncated"}
         return count
@@ -843,7 +859,7 @@ impl Slice
             {
                 let nzA   = .dcFlagNeighbor(mb, -1, 0, 1 + plane)
                 let nzB   = .dcFlagNeighbor(mb, 0, -1, 1 + plane)
-                let count = .residualCabac(mb, 3, (mb.residual!.chromaDc).buffer + cast(u64) plane * 4, 4, nzA, nzB, ResidualOrderDc, null, 0)
+                let count = .residualCabac'(4, true)(mb, 3, (mb.residual!.chromaDc).buffer + cast(u64) plane * 4, nzA, nzB, ResidualOrderDc, null, 0)
                 mb.dcFlags[cast(u64) (1 + plane)] = count > 0 ? 1 : 0
             }
         }
@@ -857,7 +873,7 @@ impl Slice
                 {
                     let nzA   = .chromaBlockNz(mb, cast(u32) plane, mb.mbX * 2 + (block & 1) - 1, mb.mbY * 2 + (block >> 1))
                     let nzB   = .chromaBlockNz(mb, cast(u32) plane, mb.mbX * 2 + (block & 1), mb.mbY * 2 + (block >> 1) - 1)
-                    let count = .residualCabac(mb, 4, (mb.residual!.chromaAc).buffer + cast(u64) plane * 64 + cast(u64) block * 16, 15, nzA, nzB, ResidualOrderAc, scale, 4)
+                    let count = .residualCabac'(15, false)(mb, 4, (mb.residual!.chromaAc).buffer + cast(u64) plane * 64 + cast(u64) block * 16, nzA, nzB, ResidualOrderAc, scale, 4)
                     if plane == 0 do
                         mb.nzCb[cast(u64) block] = cast(u8) count
                     else do
@@ -881,7 +897,7 @@ impl Slice
         {
             let nzA   = .dcFlagNeighbor(mb, -1, 0, cast(s32) plane)
             let nzB   = .dcFlagNeighbor(mb, 0, -1, cast(s32) plane)
-            let count = .residualCabac(mb, CatPlaneDc[cast(u64) plane], storage.dc, 16, nzA, nzB, ResidualOrderDc, null, 0)
+            let count = .residualCabac'(16, true)(mb, CatPlaneDc[cast(u64) plane], storage.dc, nzA, nzB, ResidualOrderDc, null, 0)
             mb.dcFlags[cast(u64) plane] = count > 0 ? 1 : 0
             if count > 0 and isLuma
             {
@@ -901,7 +917,7 @@ impl Slice
                 let first = (quad >> 1) * 8 + (quad & 1) * 2
                 let nzA   = .blockNz8x8(mb, plane, mb.mbX * 4 + (first & 3) - 1, mb.mbY * 4 + (first >> 2))
                 let nzB   = .blockNz8x8(mb, plane, mb.mbX * 4 + (first & 3), mb.mbY * 4 + (first >> 2) - 1)
-                let count = .residualCabac(mb, CatPlane8x8[cast(u64) plane], storage.t8 + cast(u64) quad * 64, 64, nzA, nzB, ResidualOrder8x8, .dequantRow8(mb, plane), 6)
+                let count = .residualCabac'(64, false)(mb, CatPlane8x8[cast(u64) plane], storage.t8 + cast(u64) quad * 64, nzA, nzB, ResidualOrder8x8, .dequantRow8(mb, plane), 6)
 
                 // In 4:4:4 the block states a coded flag of its own, so a quadrant the pattern
                 // named can still hold nothing.
@@ -925,9 +941,9 @@ impl Slice
                 let nzB    = .blockNz(mb, plane, mb.mbX * 4 + bx, mb.mbY * 4 + by - 1)
                 var count: u32
                 if mb.class == MbClassIntra16x16 do
-                    count = .residualCabac(mb, CatPlaneI16Ac[cast(u64) plane], storage.ac + cast(u64) raster * 16, 15, nzA, nzB, ResidualOrderAc, .dequantRow4(mb, plane), 4)
+                    count = .residualCabac'(15, false)(mb, CatPlaneI16Ac[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, ResidualOrderAc, .dequantRow4(mb, plane), 4)
                 else do
-                    count = .residualCabac(mb, CatPlane4x4[cast(u64) plane], storage.ac + cast(u64) raster * 16, 16, nzA, nzB, ResidualOrder4x4, .dequantRow4(mb, plane), 4)
+                    count = .residualCabac'(16, false)(mb, CatPlane4x4[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, ResidualOrder4x4, .dequantRow4(mb, plane), 4)
                 storage.nz[cast(u64) raster] = cast(u8) count
                 if isLuma do
                     mb.codedBlocks[cast(u64) raster] = count > 0 ? 1 : 0

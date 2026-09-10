@@ -38,6 +38,13 @@ test('keyword spellings inside identifiers, strings and comments keep their cont
     }
 });
 
+test('a generic type argument keeps its type scope beside a call', () => {
+    for (const line of ["idOf's32(7)", "Core.Array'u8()", "idOf 's64(7)"]) {
+        const position = line.indexOf("'") + 1;
+        assert.ok(scopesAt(line, position).includes('storage.type'), line);
+    }
+});
+
 const tokenDefinitions = fs.readFileSync(path.join(__dirname, '../../src/Compiler/Lexer/Tokens.Def.inc'), 'utf8');
 const tokens = [...tokenDefinitions.matchAll(/^SWC_TOKEN_DEF\(\w+, "([^"\n]+)", ([^)]+)\)/gm)]
     .map(([, spelling, flags]) => ({ spelling, flags }));

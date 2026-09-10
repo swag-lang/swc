@@ -28,6 +28,34 @@ output, path measurement and effects, and the modern renderer choice tracked by
 
 ## Entries
 
+### std.pixel.019 — Image pipelines always materialize full intermediates
+
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-10 20:44 — grounded the remaining contract in the current eager and painter APIs
+- Evidence: image operations mutate a complete owned buffer and use a complete working image.
+  `Image.workingBuffer` and the eager crop/resize/filter implementations have no region producer
+  or streaming sink, so even a local operation requires whole-image storage.
+- Next: measure real large-image consumers, then design a read-only region producer and streaming
+  sink for the subset of local operations that can be tiled; keep global analyses such as
+  `smartcrop` explicitly separate.
+- Complete when: a crop/resize/color pipeline over an image larger than RAM has bounded measured
+  peak memory, deterministic edge halos, parallel tile execution, and the same output as the eager
+  path within stated tolerance.
+- Related: std.pixel.image.038, std.pixel.image.039
+
+### std.pixel.014 — No composable transform effect node
+
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-10 20:44 — grounded the remaining contract in the current eager and painter APIs
+- Evidence: painter transforms affect drawing state and eager image transforms materialize pixels;
+  neither provides an affine node that consumes another effect result with explicit sampling,
+  cropping, and tiling.
+- Next: make translation the first case of an affine transform node, with crop and tile policy in
+  options rather than separate hard-wired evaluation paths.
+- Complete when: an input can be translated, scaled, rotated, cropped, and tiled while bounds and
+  sampling remain deterministic on both renderers.
+- Related: std.pixel.012, std.pixel.004, app.capture.004
+
 ### std.pixel.025 — GPU parity needs an explicit desktop integration boundary
 
 - Recorded: 2026-09-07 11:24
@@ -228,19 +256,6 @@ output, path measurement and effects, and the modern renderer choice tracked by
   CPU/OpenGL parity covers transparent edges and large radii.
 - Related: std.pixel.012, app.capture.004
 
-### std.pixel.014 — No composable transform effect node
-
-- Recorded: 2026-09-01 08:20
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: the current planned offset-only node would not cover the ordinary image-filter need to
-  transform, crop, and tile an input with explicit sampling. Direct2D and Skia both expose general
-  transform nodes.
-- Next: make translation the first case of an affine transform node, with crop and tile policy in
-  options rather than separate hard-wired evaluation paths.
-- Complete when: an input can be translated, scaled, rotated, cropped, and tiled while bounds and
-  sampling remain deterministic on both renderers.
-- Related: std.pixel.012, std.pixel.004, app.capture.004
-
 ### std.pixel.015 — No composable color-matrix effect node
 
 - Recorded: 2026-08-09 11:49
@@ -289,21 +304,6 @@ output, path measurement and effects, and the modern renderer choice tracked by
 - Complete when: the v1 node matrix records support, fallback, bounds, and color behavior for CPU
   and GPU, and SVG no longer maintains a separate effect execution model.
 - Related: std.pixel.012, std.pixel.image.010, std.pixel.001
-
-### std.pixel.019 — Image pipelines always materialize full intermediates
-
-- Recorded: 2026-09-01 08:20
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: image operations mutate a complete owned buffer and use at most one complete working
-  image. In contrast, libvips joins demand-driven region producers, keeps only active tiles in RAM,
-  and streams the sink; image size and pipeline length do not multiply peak memory.
-- Next: measure real large-image consumers, then design a read-only region producer and streaming
-  sink for the subset of local operations that can be tiled; keep global analyses such as
-  `smartcrop` explicitly separate.
-- Complete when: a crop/resize/color pipeline over an image larger than RAM has bounded measured
-  peak memory, deterministic edge halos, parallel tile execution, and the same output as the eager
-  path within stated tolerance.
-- Related: std.pixel.image.038, std.pixel.image.039
 
 ### std.pixel.005 — No painter-native PDF output
 

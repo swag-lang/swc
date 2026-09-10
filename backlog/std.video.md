@@ -18,7 +18,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.001 — H.264 decoding costs several times what FFmpeg does per picture
 
 - Recorded: 2026-08-19 13:23
-- Updated: 2026-09-10 21:07 — Re-measure the gap against FFmpeg after fusing dequantization into the entropy decoders, record five rejected leads, and note the overrun trap
+- Updated: 2026-09-10 21:32 — Settle where the factor is not: the compiler decodes a bin within 7 to 18 percent of clang, and clearing scratch arrays costs under three percent
 - Intent: the decoder is byte-exact against FFmpeg on Baseline, Main, and High streams and decodes
   well above real time, but one picture still costs several times what FFmpeg spends on it. That
   margin is what a machine smaller than this one, or a stream larger than 4K, would need.
@@ -99,17 +99,45 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   remains at the renormalization branch, and the leading-zero count is emitted as `bsr` plus
   `cmove` rather than `lzcnt`. Retry only once the allocator stops spilling at branch boundaries
   and the count is a single instruction, both of which are compiler.optimization matters.
-- Next: the structural difference left with FFmpeg is its per-macroblock neighbor caches
-  (`fill_decode_caches`): every context — coded-block flag, motion vector difference, reference
-  index, and the loop filter's strengths through `check_mv` — is a fixed-offset read in a small
-  array filled once per macroblock, where this decoder makes a call with availability and slice
-  checks for every neighbor of every block. A non-zero-count cache for the coded-block-flag
-  contexts is the smallest first step; the motion cache and the strengths follow from it. A
-  smaller lead carries a trap: `Slice.residualCabac` tests for an overrun after every block, where
-  FFmpeg tests once per slice and the macroblock loop here already tests after each macroblock —
-  but that loop leaves on `terminate()` returning 1 before its test, so a truncated slice whose
-  padding ends the slice would pass silently. Dropping the per-block test first needs a test after
-  the loop, shown harmless on every valid fixture.
+- **The compiler is not where the factor lives (2026-09-10).** The same two bin decoders — this
+  decoder's and FFmpeg's `cabac_functions.h` engine — transcribed once in C and once in Swag, fed
+  the same 8 MB of pseudo-random bytes and the same context sequence, twenty million bins, pinned,
+  best of three, with identical sums: clang-cl `/O2` at x86-64-v3 decodes this decoder's bin in
+  19.4 cycles (17.4 with the function inlined) and FFmpeg's in 13.3; swc release decodes them in
+  20.8 (20.5) and 15.7. Seven to eighteen percent, on the hottest code in the decoder. The engine
+  design is worth 25 to 30 percent in either language; at roughly a million bins per 4K picture
+  that is at most 6 million of the 60 million cycles separating this decoder from FFmpeg, which is
+  why porting that engine into `residualCabac` measured as a loss earlier tonight — that function's
+  surroundings, not the bin, decide the outcome. The probe (`cabacbench`: a `.swg` with no standard
+  import, `cabac_bench.c`, a pinned driver) is the yardstick for any engine change.
+- **Clearing the scratch arrays is not it either.** Every local aggregate is cleared on entry, and
+  the initialization-flow pass keeps that clear when the address escapes to a callee or the array
+  is filled through a loop (`SemaInitFlow.cpp`, `markEscaped`): `residualCabac` zero-fills its
+  64-entry index array with sixteen stores on every call, the interpolation kernels their
+  1344-byte sum buffers. Hoisting nine of them to module storage in a measurement build removed the
+  clears and bought 2.7 percent on the median of six paired rounds and nothing on the minimum,
+  byte-exact: those functions run latency-bound chains, and independent stores into hot lines ride
+  along nearly free. A per-lane scratch record handed down `compensate` → `mcLuma` → the kernels
+  would ship the same gain safely; it is worth three percent, not more.
+- So the factor is distributed, and the arithmetic says where. The parse costs about 45 cycles per
+  bin all in, of which 21 are the engine; the other 24 — some 25 million cycles a picture — are the
+  syntax layer around it: context derivation through `mbAvailable`/`blockNz`/`motionAt` calls with
+  availability and slice checks, block prologues with kilobyte frames, `hasOverrun` per block,
+  bookkeeping, where FFmpeg reads fixed offsets in per-macroblock caches. The pixel half —
+  compensation, filter, transforms, about 45 million cycles — is written against `Core.Math.Simd`
+  where FFmpeg's is hand-written assembly, and its gap is of the same order. Neither half holds a
+  single 3x item.
+- Next: (1) count the bins of one 4K picture once, so the per-bin figures above stop being
+  estimates; (2) build FFmpeg's per-macroblock neighbor caches (`fill_decode_caches`: nonzero
+  counts, motion, motion vector differences, reference indices and direct flags at fixed `scan8`
+  offsets, filled once per macroblock) so every context and strength derivation becomes a table
+  read — the largest identifiable item; (3) only then re-port the FFmpeg engine into a
+  `residualCabac` whose frame no longer dominates, with `cabacbench` as the yardstick. A smaller
+  lead carries a trap: `Slice.residualCabac` tests for an overrun after every block, where FFmpeg
+  tests once per slice and the macroblock loop here already tests after each macroblock — but that
+  loop leaves on `terminate()` returning 1 before its test, so a truncated slice whose padding ends
+  the slice would pass silently. Dropping the per-block test first needs a test after the loop,
+  shown harmless on every valid fixture.
 - A second stream shape is worth its own measurement: a multi-slice picture takes the banded path
   and ping-pongs between two threads that each spend about half their time waiting. FFmpeg turns
   the same slices into parallelism. That is a real class of stream — every low-latency encoder

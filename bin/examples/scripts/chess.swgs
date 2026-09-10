@@ -413,7 +413,7 @@ func paintBoard(paintEvt: *PaintEvent)
 
     var rect        = Math.Rectangle{b, b + s, CellSize, b}
     var str: String = "A"
-    let buf         = str.buffer!
+    let buf         = str.storage()
 
     for column in 8
     {

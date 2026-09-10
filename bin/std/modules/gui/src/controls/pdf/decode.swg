@@ -790,7 +790,7 @@ private func meanCoverage(coverage: const *Image)->f32
     var total = 0'u64
     for y in cast(u64) coverage.height
     {
-        var source = coverage.pixels.buffer! + y * cast(u64) coverage.rowStride
+        var source = coverage.pixels.storage() + y * cast(u64) coverage.rowStride
         for cast(u64) coverage.width
         {
             total  += source[3]
@@ -826,7 +826,7 @@ private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.R
     {
         // An image stores its rows bottom-up while its unit square runs top-down.
         let v      = (cast(f32) (height - row - 1) + 0.5) / cast(f32) height
-        var pixels = item.image.pixels.buffer! + row * cast(u64) item.image.rowStride
+        var pixels = item.image.pixels.storage() + row * cast(u64) item.image.rowStride
         for column in width
         {
             let u     = (cast(f32) column + 0.5) / cast(f32) width

@@ -27,7 +27,7 @@ impl Encoder
     mtd loadFromRGB(xpos: u16, ypos: u16)
     {
         var location = cast(s32) ypos * .imageX + xpos
-        let pixels   = cast(const [*] u8) .bufferRGB.buffer!
+        let pixels   = cast(const [*] u8) .bufferRGB.storage()
         let luma     = cast([*] s16) &.duY[0]
         let blue     = cast([*] s16) &.duCb[0]
         let red      = cast([*] s16) &.duCr[0]

@@ -682,7 +682,7 @@ func markdownFixturePath()->String
     image.fill(Pixel.Color.fromArgb(0xFF285078))
     expect image.save(imagePath)
     let source = Format.toString("<p><img src=\"%\" width=\"80%%\" alt=\"Local\"></p>", Path.fileName(imagePath) orelse "")
-    discard expect File.writeAllBytes(markdownPath, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(markdownPath, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(320, 240)
@@ -1197,7 +1197,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     for index in 256 do
         source += Format.toString("## README section %\n\nA paragraph remains available for progressive wheel navigation.\n\n", index)
     Swag.assert(source.length > 8 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(720, 360)
@@ -1239,7 +1239,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     for index in 16_000 do
         source += Format.toString("## Bounded section %\n\nA paragraph is evicted after the resident source budget.\n\n", index)
     Swag.assert(source.length > 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(720, 360)
@@ -1291,7 +1291,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     for 40_000 do
         source += "## Streamed heading\n\nA paragraph stays on disk until navigation requests it.\n\n"
     Swag.assert(source.length >= 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(720, 360)
@@ -1419,7 +1419,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         source += Format.toString("## Section %\n\nThe resident window keeps useful context on both sides.\n\n", index)
     const RevealContextSize = 64 * 1024'u64
     Swag.assert(source.length > RevealContextSize * 8)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(720, 360)
@@ -1486,7 +1486,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     for index in 16_000 do
         source += Format.toString("## Direction %\n\nA distinct paragraph makes every resident window observable.\n\n", index)
     Swag.assert(source.length > 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(720, 360)

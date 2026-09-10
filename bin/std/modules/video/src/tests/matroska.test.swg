@@ -241,7 +241,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     #assert(AvcId.count == UnknownId.count)
     let codecOffset = Utf8.indexOf(bytes.toSlice(), AvcId)
     Swag.assert(codecOffset != Swag.U64.Max)
-    Memory.copy(bytes.buffer! + codecOffset, UnknownId.buffer, UnknownId.count)
+    Memory.copy(bytes.storage() + codecOffset, UnknownId.buffer, UnknownId.count)
 
     const ClusterId: [4] u8 = [0x1F, 0x43, 0xB6, 0x75]
     let clusterOffset = Slice.findSubslice(bytes.toSlice(), ClusterId)
@@ -320,7 +320,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         expect reader.decodeFrameInto(&cut, index)
         expect whole.decodeFrameInto(&entire, index)
         Swag.assert(cut.width == entire.width and cut.height == entire.height)
-        Swag.assert(Memory.compare(cut.pixels.buffer!, entire.pixels.buffer!, cut.pixels.count) == 0)
+        Swag.assert(Memory.compare(cut.pixels.storage(), entire.pixels.storage(), cut.pixels.count) == 0)
     }
 }
 
@@ -339,7 +339,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     {
         expect stripped.decodeFrameInto(&cut, index)
         expect whole.decodeFrameInto(&entire, index)
-        Swag.assert(Memory.compare(cut.pixels.buffer!, entire.pixels.buffer!, cut.pixels.count) == 0)
+        Swag.assert(Memory.compare(cut.pixels.storage(), entire.pixels.storage(), cut.pixels.count) == 0)
     }
 }
 
@@ -381,7 +381,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         })
 
         let wanted   = expect File.readAllBytes(videoFixturePath(Pcm[fileIndex]))
-        let wantedAt = cast(const [*] s16) wanted.buffer!
+        let wantedAt = cast(const [*] s16) wanted.storage()
         let compared = Math.min(decoded.count, wanted.count / #sizeof(s16))
         Swag.assert(decoded.count == sound.sampleFrameCount() * 2)
         Swag.assert(compared >= 44_000 * 2 and decoded.count <= wanted.count / #sizeof(s16) + 2 * 1_024)

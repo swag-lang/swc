@@ -226,13 +226,13 @@ impl Frame
 
     // Returns the address of the luma sample at `x`, `y` of the coded picture.
     #[Swag.Inline]
-    mtd pixLuma(x, y: s32)->[*] u8 => .luma.buffer! + cast(u64) (y + FramePadding) * .strideLuma + cast(u64) (x + FramePadding)
+    mtd pixLuma(x, y: s32)->[*] u8 => .luma.storage() + cast(u64) (y + FramePadding) * .strideLuma + cast(u64) (x + FramePadding)
 
     // Returns the address of one chroma sample; `plane` selects Cb or Cr.
     #[Swag.Inline]
     mtd pixChroma(plane: u32, x, y: s32)->[*] u8
     {
-        let base: [*] u8 = plane == 0 ? .cb.buffer! : .cr.buffer!
+        let base: [*] u8 = plane == 0 ? .cb.storage() : .cr.storage()
         return base + cast(u64) (y + FramePadding) * .strideChroma + cast(u64) (x + FramePadding)
     }
 
@@ -312,7 +312,7 @@ impl Frame
     {
         target.resize(width, height, .chromaShift)
 
-        var destination = target.luma.buffer!
+        var destination = target.luma.storage()
         for y in height
         {
             Memory.copy(destination, .pixLuma(cropLeft, cropTop + y), cast(u64) width)
@@ -323,8 +323,8 @@ impl Frame
         let chromaRows   = target.chromaHeight()
         let chromaLeft   = cropLeft >> .chromaShift
         let chromaTop    = cropTop >> .chromaShift
-        var destinationB = target.chromaB.buffer!
-        var destinationR = target.chromaR.buffer!
+        var destinationB = target.chromaB.storage()
+        var destinationR = target.chromaR.storage()
         for y in chromaRows
         {
             Memory.copy(destinationB, .pixChroma(0, chromaLeft, chromaTop + y), chromaWidth)
@@ -338,9 +338,9 @@ impl Frame
     mtd extendEdges()
     {
         let chromaMb = 16 >> .chromaShift
-        extendPlane(.luma.buffer!, .strideLuma, .mbWidth * 16, .mbHeight * 16)
-        extendPlane(.cb.buffer!, .strideChroma, .mbWidth * chromaMb, .mbHeight * chromaMb)
-        extendPlane(.cr.buffer!, .strideChroma, .mbWidth * chromaMb, .mbHeight * chromaMb)
+        extendPlane(.luma.storage(), .strideLuma, .mbWidth * 16, .mbHeight * 16)
+        extendPlane(.cb.storage(), .strideChroma, .mbWidth * chromaMb, .mbHeight * chromaMb)
+        extendPlane(.cr.storage(), .strideChroma, .mbWidth * chromaMb, .mbHeight * chromaMb)
     }
 
     // Replicates the left and right edges of one macroblock row, and the top padding with it
@@ -349,14 +349,14 @@ impl Frame
     mtd extendRowEdges(mbRow: s32)
     {
         let chromaMb = 16 >> .chromaShift
-        extendPlaneRows(.luma.buffer!, .strideLuma, .mbWidth * 16, mbRow * 16, 16)
-        extendPlaneRows(.cb.buffer!, .strideChroma, .mbWidth * chromaMb, mbRow * chromaMb, chromaMb)
-        extendPlaneRows(.cr.buffer!, .strideChroma, .mbWidth * chromaMb, mbRow * chromaMb, chromaMb)
+        extendPlaneRows(.luma.storage(), .strideLuma, .mbWidth * 16, mbRow * 16, 16)
+        extendPlaneRows(.cb.storage(), .strideChroma, .mbWidth * chromaMb, mbRow * chromaMb, chromaMb)
+        extendPlaneRows(.cr.storage(), .strideChroma, .mbWidth * chromaMb, mbRow * chromaMb, chromaMb)
         if mbRow == 0
         {
-            extendPlaneTop(.luma.buffer!, .strideLuma)
-            extendPlaneTop(.cb.buffer!, .strideChroma)
-            extendPlaneTop(.cr.buffer!, .strideChroma)
+            extendPlaneTop(.luma.storage(), .strideLuma)
+            extendPlaneTop(.cb.storage(), .strideChroma)
+            extendPlaneTop(.cr.storage(), .strideChroma)
         }
     }
 
@@ -364,9 +364,9 @@ impl Frame
     mtd extendBottomEdge()
     {
         let chromaMb = 16 >> .chromaShift
-        extendPlaneBottom(.luma.buffer!, .strideLuma, .mbHeight * 16)
-        extendPlaneBottom(.cb.buffer!, .strideChroma, .mbHeight * chromaMb)
-        extendPlaneBottom(.cr.buffer!, .strideChroma, .mbHeight * chromaMb)
+        extendPlaneBottom(.luma.storage(), .strideLuma, .mbHeight * 16)
+        extendPlaneBottom(.cb.storage(), .strideChroma, .mbHeight * chromaMb)
+        extendPlaneBottom(.cr.storage(), .strideChroma, .mbHeight * chromaMb)
     }
 }
 

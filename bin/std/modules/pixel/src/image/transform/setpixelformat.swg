@@ -20,8 +20,8 @@ impl Image
                 let params = &genericContext
                 let src    = cast(const *Image) params.src
                 let dst    = cast(*Image) params.dst
-                let srcRow = src.pixels.buffer! + cast(u64) row * src.rowStride
-                let dstRow = dst.pixels.buffer! + cast(u64) row * dst.rowStride
+                let srcRow = src.pixels.storage() + cast(u64) row * src.rowStride
+                let dstRow = dst.pixels.storage() + cast(u64) row * dst.rowStride
                 for x in src.width
                 {
                     let source = srcRow + cast(u64) x * src.bytesPerPixel
@@ -40,8 +40,8 @@ impl Image
             let params       = &context
             let src          = cast(const *Image) params.src
             let dst          = cast(*Image) params.dst
-            let srcRow       = src.pixels.buffer! + cast(u64) row * src.rowStride
-            let dstRow       = dst.pixels.buffer! + cast(u64) row * dst.rowStride
+            let srcRow       = src.pixels.storage() + cast(u64) row * src.rowStride
+            let dstRow       = dst.pixels.storage() + cast(u64) row * dst.rowStride
             let srcBlueFirst = src.pixelFormat == .BGR8 or src.pixelFormat == .BGRA8
             let dstBlueFirst = dst.pixelFormat == .BGR8 or dst.pixelFormat == .BGRA8
             let swapColors   = srcBlueFirst != dstBlueFirst

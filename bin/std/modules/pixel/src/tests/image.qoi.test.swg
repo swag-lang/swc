@@ -44,7 +44,7 @@ using Swag, Core
             for x in source.width
             {
                 let offset = cast(u64) y * source.rowStride + cast(u64) x * source.bytesPerPixel
-                let pixel  = source.pixels.buffer! + offset
+                let pixel  = source.pixels.storage() + offset
                 if pixelFormat == .RGB8 or pixelFormat == .RGBA8
                 {
                     pixel[0] = cast(u8) ((x * 13 + y * 3) & 0xFF)

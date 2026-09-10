@@ -325,7 +325,7 @@ private impl Codec
 
         let paramBits = method ? 5'u32 : 4'u32
         let escape    = method ? Rice2Escape : RiceEscape
-        let output    = .residual.buffer!
+        let output    = .residual.storage()
 
         var index = predictorOrder
         for partition in partitions
@@ -435,7 +435,7 @@ private impl Codec
     // Restores the samples of a fixed-predictor subframe from its residual.
     mtd predictFixed(target: [*] s32, order, blockSize: u32)
     {
-        let source = .residual.buffer!
+        let source = .residual.storage()
         for index in order do
             target[index] = source[index]
 
@@ -470,7 +470,7 @@ private impl Codec
     // the shift brings it back into range.
     mtd predictLinear(target: [*] s32, coefficients: const [*] s32, order, blockSize, shift: u32)
     {
-        let source = .residual.buffer!
+        let source = .residual.storage()
         for index in order do
             target[index] = source[index]
 
@@ -489,8 +489,8 @@ private impl Codec
         if assignment < 8 do
             return
 
-        let first  = .channels[0].buffer!
-        let second = .channels[1].buffer!
+        let first  = .channels[0].storage()
+        let second = .channels[1].storage()
 
         switch assignment
         {
@@ -540,7 +540,7 @@ private impl Codec
                 depth += 1
             elif header.channelAssignment == 9 and not channel do
                 depth += 1
-            try .readSubframe(&reader, .channels[channel].buffer!, header.blockSize, depth)
+            try .readSubframe(&reader, .channels[channel].storage(), header.blockSize, depth)
         }
 
         .undecorrelate(header.channelAssignment, header.blockSize)

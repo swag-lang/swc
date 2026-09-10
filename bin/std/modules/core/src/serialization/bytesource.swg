@@ -136,7 +136,7 @@ impl ByteSource
             if .cursor >= .windowStart and .cursor < .windowStart + .windowCount
             {
                 let available = Math.min(missing, .windowStart + .windowCount - .cursor)
-                Memory.copy(buffer.buffer + done, .window.buffer! + (.cursor - .windowStart), available)
+                Memory.copy(buffer.buffer + done, .window.storage() + (.cursor - .windowStart), available)
                 done    += available
                 .cursor += available
                 continue

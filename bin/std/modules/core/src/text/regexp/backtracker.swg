@@ -94,7 +94,7 @@ impl Backtracker
         // The program and the capture slots are read once per instruction, so they are read
         // through pointers: an indexed container access is a call, and this loop turns once per
         // instruction of the pattern for every byte of the span.
-        let insts     = program.insts.buffer!
+        let insts     = program.insts.storage()
         let byteSets  = program.byteSets.buffer
         let slots     = .slots.buffer
         let slotCount = .slots.count
@@ -141,7 +141,7 @@ impl Backtracker
                     if .trailTop >= .trail.count do
                         me.growTrail()
 
-                    let entry = .trail.buffer! + .trailTop
+                    let entry = .trail.storage() + .trailTop
                     entry.slot   = slot
                     entry.value  = slots![slot]
                     .trailTop    += 1
@@ -160,7 +160,7 @@ impl Backtracker
                 if .choicesTop >= .choices.count do
                     me.growChoices()
 
-                let choice = .choices.buffer! + .choicesTop
+                let choice = .choices.storage() + .choicesTop
                 choice.pc   = insts[pc].alt
                 choice.pos  = pos
                 choice.mark = .trailTop
@@ -203,7 +203,7 @@ impl Backtracker
                     return false
 
                 .choicesTop -= 1
-                let choice = .choices.buffer! + .choicesTop
+                let choice = .choices.storage() + .choicesTop
                 .unwind(choice.mark)
                 pc  = choice.pc
                 pos = choice.pos
@@ -230,7 +230,7 @@ impl Backtracker
         while .trailTop > mark
         {
             .trailTop -= 1
-            let entry = .trail.buffer! + .trailTop
+            let entry = .trail.storage() + .trailTop
             .slots[entry.slot] = entry.value
         }
     }

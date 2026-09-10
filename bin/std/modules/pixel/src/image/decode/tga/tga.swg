@@ -191,7 +191,7 @@ func dstPixel(result: *Image, header: Header, pixelIndex: u64)->[*] u8
     let srcY = cast(s32) (pixelIndex / header.width)
     let dstX = header.descriptorByte & DESC_ORIGIN_RIGHT ? result.width - srcX - 1 : srcX
     let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - srcY - 1 : srcY
-    return cast([*] u8) result.pixels.buffer! + cast(u64) dstY * result.rowStride + cast(u64) dstX * result.bytesPerPixel
+    return cast([*] u8) result.pixels.storage() + cast(u64) dstY * result.rowStride + cast(u64) dstX * result.bytesPerPixel
 }
 
 func paletteIndex(src: const [*] u8, bpp: u8)->u32
@@ -256,7 +256,7 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
         for y in result.height
         {
             let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - y - 1 : y
-            let dst  = cast([*] u8) result.pixels.buffer! + cast(u64) dstY * result.rowStride
+            let dst  = cast([*] u8) result.pixels.storage() + cast(u64) dstY * result.rowStride
             if header.bitsPerPixel == 15
             {
                 if rightOrigin do
@@ -286,7 +286,7 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
         for y in result.height
         {
             let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - y - 1 : y
-            let dst  = cast([*] u8) result.pixels.buffer! + cast(u64) dstY * result.rowStride
+            let dst  = cast([*] u8) result.pixels.storage() + cast(u64) dstY * result.rowStride
             if rightOrigin
             {
                 if header.bitsPerPixel == 24 do

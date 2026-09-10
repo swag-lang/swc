@@ -68,9 +68,9 @@ impl PlanarFrame
     mtd const view()->Pixel.YuvPlanarView
     {
         return {
-            luma: .luma.buffer!,
-            chromaB: .chromaB.buffer!,
-            chromaR: .chromaR.buffer!,
+            luma: .luma.storage(),
+            chromaB: .chromaB.storage(),
+            chromaR: .chromaR.storage(),
             lumaStride: cast(u64) .strideLuma,
             chromaStride: cast(u64) .strideChroma,
             width: .width,

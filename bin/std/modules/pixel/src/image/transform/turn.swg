@@ -34,7 +34,7 @@ impl Image
                 ny = srcImage.height - x - 1
             }
 
-            let pixSrc = srcImage.pixels.buffer! + cast(u64) nx * srcImage.bytesPerPixel + cast(u64) ny * srcImage.rowStride
+            let pixSrc = srcImage.pixels.storage() + cast(u64) nx * srcImage.bytesPerPixel + cast(u64) ny * srcImage.rowStride
             if srcImage.bytesPerPixel == 4 do
                 pix[as u32] = pixSrc[as u32]
             elif srcImage.bytesPerPixel == 3

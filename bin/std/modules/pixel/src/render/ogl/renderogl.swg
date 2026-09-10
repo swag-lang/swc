@@ -881,7 +881,7 @@ impl RenderOgl
         var result: retval = Image.create(w, h, .BGRA8)
         glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) rt.handle)
         glReadBuffer(GL_COLOR_ATTACHMENT0)
-        glReadPixels(x, rt.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) result.pixels.buffer!)
+        glReadPixels(x, rt.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) result.pixels.storage())
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
         return result
     }
@@ -899,7 +899,7 @@ impl RenderOgl
         // which is the whole-image mismatch the parity tests were retrying around.
         glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) curRT.handle)
         glReadBuffer(GL_COLOR_ATTACHMENT0)
-        glReadPixels(x, curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) result.pixels.buffer!)
+        glReadPixels(x, curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) result.pixels.storage())
         .unbindRenderTargetImpl()
         return result
     }
@@ -1067,7 +1067,7 @@ impl RenderOgl
         glGenTextures(1, &textureID)
         glBindTexture(GL_TEXTURE_2D, textureID)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32) source.width, cast(s32) source.height, 0, fmt, dataType, cast([*] u8) source.pixels.buffer!)
+        glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32) source.width, cast(s32) source.height, 0, fmt, dataType, cast([*] u8) source.pixels.storage())
 
         var result: retval
         result.attach(cast(TextureHandle) textureID, source.pixelFormat, source.width, source.height)

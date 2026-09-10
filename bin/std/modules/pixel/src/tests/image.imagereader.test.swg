@@ -11,7 +11,7 @@ using Swag, Core
     for index in [0'u32, 1, 2, 3, 1, 3]
     {
         let image = expect reader.read(index)
-        Swag.assert(Memory.compare(image.pixels.buffer, pixels.buffer! + cast(u64) index * 64, 64) == 0)
+        Swag.assert(Memory.compare(image.pixels.buffer, pixels.storage() + cast(u64) index * 64, 64) == 0)
     }
 
     var poster = expect ImageReader.load(getTestDataPath("imageset-poster.apng"))
@@ -43,7 +43,7 @@ using Swag, Core
     webp.add("EXIF")
     webp.add([26'u8, 0, 0, 0])
     webp.add(ExifBytes)
-    (webp.buffer! + 4)[as u32] = cast(u32) webp.count - 8
+    (webp.storage() + 4)[as u32] = cast(u32) webp.count - 8
     for enabled in [false, true]
     {
         var reader = expect ImageReader.decode("metadata.webp", webp.toSlice(), {decodeMetadata: enabled})
@@ -58,13 +58,13 @@ using Swag, Core
 #test
 {
     var tiff    = expect File.readAllBytes(getTestDataPath("imageset-pages-raw.tiff"))
-    let first   = (tiff.buffer! + 4)[as u32]
-    let entries = (tiff.buffer! + first)[as u16]
-    (tiff.buffer! + first + 2 + cast(u64) entries * 12)[as u32] = first
+    let first   = (tiff.storage() + 4)[as u32]
+    let entries = (tiff.storage() + first)[as u16]
+    (tiff.storage() + first + 2 + cast(u64) entries * 12)[as u32] = first
     var reader = catch ImageReader.decode("cycle.tiff", tiff.toSlice()) as cycleError
     Swag.assert(cycleError != null)
     var dds = expect File.readAllBytes(getTestDataPath("imageset-array.dds"))
-    (dds.buffer! + 140)[as u32] = Swag.U32.Max
+    (dds.storage() + 140)[as u32] = Swag.U32.Max
     reader = catch ImageReader.decode("oversized.dds", dds.toSlice()) as arrayError
     Swag.assert(arrayError != null)
 }
@@ -87,7 +87,7 @@ using Swag, Core
         {
             let frame = expect reader.read(index)
             Swag.assert(frame.width == 4 and frame.height == 4 and frame.pixelFormat == .RGBA8)
-            Swag.assert(Memory.compare(frame.pixels.buffer, expected.buffer! + cast(u64) index * 64, 64) == 0)
+            Swag.assert(Memory.compare(frame.pixels.buffer, expected.storage() + cast(u64) index * 64, 64) == 0)
         }
 
         let retained = expect reader.read(2)
@@ -160,7 +160,7 @@ using Swag, Core
     {
         let image = expect reader.read(index)
         Swag.assert(image.width == (index ? 3 : 2) and image.pixelFormat == .RGBF32)
-        let samples = cast(const [*] f32) image.pixels.buffer!
+        let samples = cast(const [*] f32) image.pixels.storage()
         Swag.assert(samples[0] == 1.0 + index and samples[1] == 0.5 and samples[2] == 0.25)
     }
 }
@@ -208,7 +208,7 @@ using Swag, Core
         let bytes = expect File.readAllBytes(getTestDataPath(name))
         for length in [0'u64, 4, 12]
         {
-            limited = catch ImageReader.decode(name, Swag.makeSlice(bytes.buffer!, length)) as truncatedError
+            limited = catch ImageReader.decode(name, Swag.makeSlice(bytes.storage(), length)) as truncatedError
             Swag.assert(truncatedError != null)
         }
     }

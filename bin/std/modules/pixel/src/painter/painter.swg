@@ -735,7 +735,7 @@ impl Painter
     {
         if .commandBuffer.count
         {
-            let last = .commandBuffer.buffer! + .commandBuffer.count - 1
+            let last = .commandBuffer.storage() + .commandBuffer.count - 1
             if last.id == CommandId.DrawTriangles do
                 return last
         }
@@ -960,7 +960,7 @@ impl Painter
     #[Swag.Safety(.All, false)]
     private mtd addEdgeAA(tri: u64, startx, starty, endx, endy: f32)
     {
-        let v0 = .vertexBuffer.buffer! + tri
+        let v0 = .vertexBuffer.storage() + tri
         let p  = Vector2{startx, starty}
         let q  = Vector2{endx, endy}
 
@@ -1014,7 +1014,7 @@ impl Painter
         // Take the previous command if it's the same
         if replaceLast and .commandBuffer.count
         {
-            let cmdBuf = .commandBuffer.buffer!
+            let cmdBuf = .commandBuffer.storage()
             if cmdBuf[.commandBuffer.count - 1].id == cmd do
                 return cmdBuf + .commandBuffer.count - 1
         }

@@ -1024,7 +1024,7 @@ impl IDecoder for Decoder
         decoded.convertTo(.RGB8)
         if target.width != .info.width or target.height != .info.height or target.pixelFormat != .RGB8 do
             target[] = Image.create(.info.width, .info.height, .RGB8)
-        Memory.copy(target.pixels.buffer!, decoded.pixels.buffer!, target.byteCount)
+        Memory.copy(target.pixels.storage(), decoded.pixels.storage(), target.byteCount)
         .nextIndex = current + 1
     }
 }

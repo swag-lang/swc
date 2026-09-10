@@ -181,7 +181,7 @@ private func themeDrawing(resources: const *Resources.Bundle, name: string, embe
         let bytes = catch resources.load(name) as loadErr
         if loadErr == null and bytes.count > 0
         {
-            let drawing = catch Svg.Drawing.parse(Swag.makeString(bytes.buffer!, bytes.count)) as parseErr
+            let drawing = catch Svg.Drawing.parse(Swag.makeString(bytes.storage(), bytes.count)) as parseErr
             if parseErr == null do
                 return drawing
         }

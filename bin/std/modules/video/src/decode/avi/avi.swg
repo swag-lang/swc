@@ -744,7 +744,7 @@ private impl Decoder
 
         decoded.convertTo(.RGB8)
         .prepareTarget(target)
-        Memory.copy(target.pixels.buffer!, decoded.pixels.buffer!, target.byteCount)
+        Memory.copy(target.pixels.storage(), decoded.pixels.storage(), target.byteCount)
     }
 
     // Decodes one uncompressed frame, whose rows are bitmap rows.
@@ -754,7 +754,7 @@ private impl Decoder
             fail InvalidFormatError{"AVI frame payload is smaller than the picture it declares"}
 
         .prepareTarget(target)
-        let payload = .payload.buffer!
+        let payload = .payload.storage()
         for y in .info.height
         {
             // Pixel storage is bottom-up and so is a bitmap frame of positive height, so only a
@@ -764,7 +764,7 @@ private impl Decoder
             for x in .info.width
             {
                 let source      = payload + sourceRow + cast(u64) x * .bytesPerPixel
-                let destination = target.pixels.buffer! + targetRow + cast(u64) x * 3
+                let destination = target.pixels.storage() + targetRow + cast(u64) x * 3
                 destination[0] = source[2]
                 destination[1] = source[1]
                 destination[2] = source[0]

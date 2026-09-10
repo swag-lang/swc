@@ -65,7 +65,7 @@ impl Offset
             return
 
         var highI   = path.count - 1
-        let pathBuf = path.buffer!
+        let pathBuf = path.storage()
         while highI > 0 and pathBuf[0].x == pathBuf[highI].x and pathBuf[0].y == pathBuf[highI].y do
             highI -= 1
 
@@ -79,7 +79,7 @@ impl Offset
         for i in 1 to highI
         {
             let pt      = pathBuf[i]
-            let contour = newNode.contour.buffer!
+            let contour = newNode.contour.storage()
             if contour[uniqueCount].x == pt.x and contour[uniqueCount].y == pt.y do
                 continue
 

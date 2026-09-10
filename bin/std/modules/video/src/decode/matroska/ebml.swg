@@ -248,7 +248,7 @@ impl Cursor
         let size = element.end - element.data
         result.resize(size)
         if size do
-            Memory.copy(result.buffer!, (.bytes).buffer + element.data, size)
+            Memory.copy(result.storage(), (.bytes).buffer + element.data, size)
         .seek(element.end)
         return result
     }

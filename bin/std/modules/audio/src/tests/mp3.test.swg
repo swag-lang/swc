@@ -22,8 +22,8 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
     for index in sound.packetCount()
     {
         let packet  = try sound.packet(index)
-        let written = try itf.decodePacket(block.buffer!, block.count, bytes[packet.sourceOffset until packet.sourceOffset + packet.byteSize])
-        let samples = cast(const [*] s16) block.buffer!
+        let written = try itf.decodePacket(block.storage(), block.count, bytes[packet.sourceOffset until packet.sourceOffset + packet.byteSize])
+        let samples = cast(const [*] s16) block.storage()
         for sample in written / #sizeof(s16) do
             result.add(samples[sample])
     }
@@ -86,7 +86,7 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
 
     // The reader states the priming the encoder added; what a player hears starts after it.
     let skip     = sound.leadingTrim * cast(u64) channels
-    let wantedAt = cast(const [*] s16) wanted.buffer!
+    let wantedAt = cast(const [*] s16) wanted.storage()
     Swag.assert(decoded.count > skip)
     let count = Math.min(decoded.count - skip, wanted.count / #sizeof(s16))
     Swag.assert(count > cast(u64) sampleRate / 8)

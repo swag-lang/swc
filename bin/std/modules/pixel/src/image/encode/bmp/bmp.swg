@@ -48,11 +48,11 @@ internal impl IImageEncoder for Encoder
         {
             var converted: Array'u8
             converted.resize(imageSize)
-            let src = image.pixels.buffer!
+            let src = image.pixels.storage()
             for y in image.height
             {
                 let srcRow = src + cast(u64) y * rowBytes
-                let dstRow = converted.buffer! + cast(u64) y * stride
+                let dstRow = converted.storage() + cast(u64) y * stride
                 if image.pixelFormat == .RGB8 do
                     PackedPixel.swapRedBlue24Row(srcRow, dstRow, image.width)
                 else do

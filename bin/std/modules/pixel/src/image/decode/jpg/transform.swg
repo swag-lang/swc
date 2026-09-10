@@ -308,7 +308,7 @@ impl Decoder
     mtd convertGrayscale()
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d   = .scanLine0.buffer!
+        var d   = .scanLine0.storage()
         var s   = .safeSampleBuf() + row * 8
         for i in rangeTo(1, .maxMcusPerRow).reversed()
         {
@@ -322,7 +322,7 @@ impl Decoder
     mtd convertH1V1()
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d   = .scanLine0.buffer!
+        var d   = .scanLine0.storage()
         var s   = .safeSampleBuf() + row * 8
         for i in rangeTo(1, .maxMcusPerRow).reversed()
         {
@@ -336,7 +336,7 @@ impl Decoder
     mtd convertRgbH1V1()
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d   = .scanLine0.buffer!
+        var d   = .scanLine0.storage()
         var s   = .safeSampleBuf() + row * 8
         for i in rangeTo(1, .maxMcusPerRow).reversed()
         {
@@ -366,7 +366,7 @@ impl Decoder
         let row       = .maxMcuSizeY - .mcuLinesLeft
         let chromatic = .adobeTransform == 2
         let inverse   = .hasAdobeMarker and not chromatic
-        var d         = .scanLine0.buffer!
+        var d         = .scanLine0.storage()
         var s         = .safeSampleBuf() + row * 8
         for i in rangeTo(1, .maxMcusPerRow).reversed()
         {
@@ -407,8 +407,8 @@ impl Decoder
     mtd convertH1V2()
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d0  = .scanLine0.buffer!
-        var d1  = .scanLine1.buffer!
+        var d0  = .scanLine0.storage()
+        var d1  = .scanLine1.storage()
 
         var y: [*] u8
         if row < 8 do
@@ -434,7 +434,7 @@ impl Decoder
     mtd convertH2V1()
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d0  = .scanLine0.buffer!
+        var d0  = .scanLine0.storage()
         var y   = .safeSampleBuf() + row * 8
         var c   = .safeSampleBuf() + 2 * 64 + row * 8
 
@@ -458,8 +458,8 @@ impl Decoder
     mtd convertH2V2()
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d0  = .scanLine0.buffer!
-        var d1  = .scanLine1.buffer!
+        var d0  = .scanLine0.storage()
+        var d1  = .scanLine1.storage()
 
         var y: [*] u8
         if row < 8 do
@@ -507,7 +507,7 @@ impl Decoder
         let maxSamplingV = .maxMcuSizeY / 8
         let cbBase       = .compSampH[0] * .compSampV[0]
         let crBase       = cbBase + .compSampH[1] * .compSampV[1]
-        var destination  = .scanLine0.buffer!
+        var destination  = .scanLine0.storage()
         var mcu          = cast(const [*] u8) .safeSampleBuf()
         for .maxMcusPerRow
         {

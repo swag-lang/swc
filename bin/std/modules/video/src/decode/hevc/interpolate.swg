@@ -270,8 +270,8 @@ impl Decoder
         var destinationStride:            u64
         if not component
         {
-            source0           = reference0.luma.buffer!
-            source1           = reference1.luma.buffer!
+            source0           = reference0.luma.storage()
+            source1           = reference1.luma.storage()
             source0Stride     = reference0.strideLuma
             source1Stride     = reference1.strideLuma
             source0Width      = cast(s32) reference0.width
@@ -283,8 +283,8 @@ impl Decoder
         }
         else
         {
-            source0           = component == 1 ? reference0.chromaB.buffer! : reference0.chromaR.buffer!
-            source1           = component == 1 ? reference1.chromaB.buffer! : reference1.chromaR.buffer!
+            source0           = component == 1 ? reference0.chromaB.storage() : reference0.chromaR.storage()
+            source1           = component == 1 ? reference1.chromaB.storage() : reference1.chromaR.storage()
             source0Stride     = reference0.strideChroma
             source1Stride     = reference1.strideChroma
             source0Width      = cast(s32) reference0.chromaWidth
@@ -356,7 +356,7 @@ impl Decoder
         var destinationStride:         u64
         if not component
         {
-            source            = reference.luma.buffer!
+            source            = reference.luma.storage()
             sourceStride      = reference.strideLuma
             sourceWidth       = cast(s32) reference.width
             sourceHeight      = cast(s32) reference.height
@@ -365,7 +365,7 @@ impl Decoder
         }
         else
         {
-            source            = component == 1 ? reference.chromaB.buffer! : reference.chromaR.buffer!
+            source            = component == 1 ? reference.chromaB.storage() : reference.chromaR.storage()
             sourceStride      = reference.strideChroma
             sourceWidth       = cast(s32) reference.chromaWidth
             sourceHeight      = cast(s32) reference.chromaHeight
@@ -407,14 +407,14 @@ impl Decoder
         var planeWidth, planeHeight: s32
         if not component
         {
-            plane       = frame.luma.buffer!
+            plane       = frame.luma.storage()
             stride      = frame.strideLuma
             planeWidth  = cast(s32) frame.width
             planeHeight = cast(s32) frame.height
         }
         else
         {
-            plane       = component == 1 ? frame.chromaB.buffer! : frame.chromaR.buffer!
+            plane       = component == 1 ? frame.chromaB.storage() : frame.chromaR.storage()
             stride      = frame.strideChroma
             planeWidth  = cast(s32) frame.chromaWidth
             planeHeight = cast(s32) frame.chromaHeight
@@ -636,7 +636,7 @@ impl Decoder
         let pad    = cast(s32) FramePadding
         if firstX >= -pad and firstY >= -pad and firstX + cast(s32) width + 3 <= cast(s32) frame.chromaWidth + pad and firstY + cast(s32) height + 3 <= cast(s32) frame.chromaHeight + pad
         {
-            let plane = component == 1 ? frame.chromaB.buffer! : frame.chromaR.buffer!
+            let plane = component == 1 ? frame.chromaB.storage() : frame.chromaR.storage()
             reference       = plane + cast(u64) (firstY + cast(s32) FramePadding) * frame.strideChroma + cast(u64) (firstX + cast(s32) FramePadding)
             referenceStride = frame.strideChroma
         }

@@ -272,7 +272,7 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
         return
 
     faceData.bitmapPixels.resize(cast(u64) width * rows)
-    let bitmapBuffer = faceData.bitmapPixels.buffer!
+    let bitmapBuffer = faceData.bitmapPixels.storage()
     var dst = bitmapBuffer
 
     // Per-row signed-area accumulation buffers (analytic anti-aliasing).
@@ -280,8 +280,8 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
     var cover: Array'f64
     area.resize(cast(u64) width)
     cover.resize(cast(u64) width)
-    let areaBuffer  = area.buffer!
-    let coverBuffer = cover.buffer!
+    let areaBuffer  = area.storage()
+    let coverBuffer = cover.storage()
 
     let leftF = cast(f64) left
     let topF  = cast(f64) top

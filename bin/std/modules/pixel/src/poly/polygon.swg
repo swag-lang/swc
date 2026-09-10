@@ -52,7 +52,7 @@ impl Polygon
     mtd pointAt(i: u64)->*Vector2
     {
         Swag.assert(i < .points.count)
-        let points = .points.buffer!
+        let points = .points.storage()
         return points + i
     }
 
@@ -61,7 +61,7 @@ impl Polygon
     mtd const pointAt(i: u64)->const *Vector2
     {
         Swag.assert(i < .points.count)
-        let points = .points.buffer!
+        let points = .points.storage()
         return points + i
     }
 
@@ -98,7 +98,7 @@ impl Polygon
     mtd const offsetPointAt(i: u64, offset: f32)->Vector2
     {
         Swag.assert(.points.count)
-        let points = .points.buffer!
+        let points = .points.storage()
         if Math.isZeroEpsilon(offset)
         {
             Swag.assert(i < .points.count)
@@ -155,7 +155,7 @@ impl Polygon
         if not .points.count do
             return
 
-        let points = .points.buffer!
+        let points = .points.storage()
         var count  = .points.count
         if count > 1 and points[0].distanceSquaredTo(points[count - 1]) < 0.5 * 0.5 do
             count -= 1
@@ -177,7 +177,7 @@ impl Polygon
             normals.add(Vector2.normalizedOrZero(points[next] - points[i]).cross(1))
         }
 
-        let edgeNormals = normals.buffer!
+        let edgeNormals = normals.storage()
         for i in .points.count
         {
             let pointIndex = i % count
@@ -628,7 +628,7 @@ impl Polygon
         // The ring is walked with rolling indices rather than by taking `i + 1` and `i + 2`
         // modulo the count: two integer divisions per point cost more than everything else
         // this loop does, and a contour is walked on every flatten of every widget.
-        let points          = .points.buffer!
+        let points          = .points.storage()
         var signedTwiceArea = 0'f32
         var firstTurnSign   = 0'f32
         var next            = 1'u64

@@ -110,7 +110,7 @@ internal impl IImageEncoder for Encoder
             let sourceY  = cast(s32) (sourceIndex / cast(u64) image.width)
             let sourceX  = cast(s32) (sourceIndex % cast(u64) image.width)
             let storageY = image.height - sourceY - 1
-            let source   = image.pixels.buffer! + cast(u64) storageY * image.rowStride + cast(u64) sourceX * image.bytesPerPixel
+            let source   = image.pixels.storage() + cast(u64) storageY * image.rowStride + cast(u64) sourceX * image.bytesPerPixel
             let pixel    = readPixel(image, source)
             if pixelsEqual(pixel, previous)
             {

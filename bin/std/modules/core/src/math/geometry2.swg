@@ -393,7 +393,7 @@ func polygonContainsPoint(polygon: Array'Math.Vector2, point: Math.Vector2)->boo
     var contains = false
     if not polygon.count do
         return contains
-    let buffer = polygon.buffer!
+    let buffer = polygon.storage()
     var verti  = buffer
     var vertj  = buffer + cast(s32) polygon.count - 1
     for polygon.count

@@ -90,8 +90,8 @@ impl Encoder
     {
         .categoryAlloc.resize(65535)
         .bitcodeAlloc.resize(65535)
-        .category = cast([*] u8) .categoryAlloc.buffer! + 32767
-        .bitcode  = cast([*] BitString) .bitcodeAlloc.buffer! + 32767
+        .category = cast([*] u8) .categoryAlloc.storage() + 32767
+        .bitcode  = cast([*] BitString) .bitcodeAlloc.storage() + 32767
 
         var nrlower = 1
         var nrupper = 2

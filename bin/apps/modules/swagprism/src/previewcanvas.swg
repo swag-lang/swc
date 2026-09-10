@@ -26,7 +26,7 @@ impl PreviewCanvas
         if not .texture.isValid() do
             .texture = .app().renderer.addImage(image[])
         else do
-            .app().renderer.updateTexture(.texture, image.pixels.buffer!)
+            .app().renderer.updateTexture(.texture, image.pixels.storage())
         .invalidate()
     }
 }

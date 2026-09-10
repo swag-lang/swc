@@ -350,7 +350,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     var text  = buffer.moveToString()
     var moved = #move text
     Swag.assert(moved == "tiny")
-    Swag.assert(moved.buffer![moved.count] == 0)
+    Swag.assert(moved.storage()[moved.count] == 0)
     Swag.assert(buffer.count() == 0)
     moved.append(" again")
     Swag.assert(moved == "tiny again")
@@ -364,7 +364,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     let text = buffer.moveToString()
     Swag.assert(text == "0123456789abcdef0123456789abcdef")
     Swag.assert(text.capacity > text.count)
-    Swag.assert(text.buffer![text.count] == 0)
+    Swag.assert(text.storage()[text.count] == 0)
 }
 
 #test

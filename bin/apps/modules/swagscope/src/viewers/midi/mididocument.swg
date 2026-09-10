@@ -124,10 +124,10 @@ private func midiText(bytes: const [..] u8, at, length: u64)->String
     }
 
     if Utf8.isValid(text.toSlice()) do
-        return String.from(Swag.makeString(text.buffer!, text.count))
+        return String.from(Swag.makeString(text.storage(), text.count))
     for &value in text where value[] >= 128 do
         value[] = '.'u8
-    return String.from(Swag.makeString(text.buffer!, text.count))
+    return String.from(Swag.makeString(text.storage(), text.count))
 }
 
 private func closeMidiNote(document: *MidiDocument, active: *u64, tick: u64)

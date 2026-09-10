@@ -179,7 +179,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     let crossThreshold = 0.05233595624294383'f64
 
     var corners: Array'u32
-    let ebuf = elements.buffer!
+    let ebuf = elements.storage()
     var pdx  = ebuf[first + count - 1].edx1
     var pdy  = ebuf[first + count - 1].edy1
     for i in count
@@ -378,7 +378,7 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
 
     if not segs.count do
         return
-    let sbuf = segs.buffer!
+    let sbuf = segs.storage()
 
     // Propagate element colors down to their segments.
     for el in elements
@@ -814,14 +814,14 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
     var crossings: Array'MsdfCrossing
     crossings.resize(cast(u64) rows * crossingStride)
 
-    let channelsBuffer = channels.buffer!
-    let rowVotesBuffer = rowVotes.buffer!
+    let channelsBuffer = channels.storage()
+    let rowVotesBuffer = rowVotes.storage()
 
     var ctx = MsdfRowCtx{
         segs: &segs,
         channels: channelsBuffer,
         rowVotes: rowVotesBuffer,
-        crossings: crossings.buffer!,
+        crossings: crossings.storage(),
         crossingStride: crossingStride,
         width: width,
         left: left,
@@ -847,7 +847,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
 
     let count = cast(u64) width * rows
     faceData.bitmapPixels.resize(count * 4)
-    var dst = faceData.bitmapPixels.buffer!
+    var dst = faceData.bitmapPixels.storage()
     for i in count
     {
         let src = i * 4

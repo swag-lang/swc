@@ -67,7 +67,7 @@ func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const
     {
         let dstY   = topDown ? result.height - y - 1 : y
         let srcRow = src + stride * cast(u64) y
-        var dst    = cast([*] u8) result.pixels.buffer! + cast(u64) dstY * result.rowStride
+        var dst    = cast([*] u8) result.pixels.storage() + cast(u64) dstY * result.rowStride
         for x in result.width
         {
             writePalettePixel(dst, palette, paletteEntrySize, packedIndex(srcRow, bitCount, x), paletteCount)
@@ -85,7 +85,7 @@ func decodeUncompressedDirect(result: *Image, src, last: const [*] u8, bitCount:
     for y in result.height
     {
         let dstY = topDown ? result.height - y - 1 : y
-        Memory.copy(cast([*] u8) result.pixels.buffer! + cast(u64) dstY * rowBytes, src + stride * cast(u64) y, rowBytes)
+        Memory.copy(cast([*] u8) result.pixels.storage() + cast(u64) dstY * rowBytes, src + stride * cast(u64) y, rowBytes)
     }
 }
 
@@ -131,7 +131,7 @@ func decode16(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bo
     {
         let dstY   = topDown ? result.height - y - 1 : y
         let srcPix = src + stride * cast(u64) y
-        let dst    = cast([*] u8) result.pixels.buffer! + cast(u64) dstY * result.rowStride
+        let dst    = cast([*] u8) result.pixels.storage() + cast(u64) dstY * result.rowStride
         decode16Row(srcPix, dst, result.width, masks)
     }
 }

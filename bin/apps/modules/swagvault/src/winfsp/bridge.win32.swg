@@ -220,7 +220,7 @@ namespace WinFsp
         var storage: Array'u8
         storage.resize(bytes)
         Swag.memset(storage.buffer, 0, bytes)
-        let dirInfo = cast(*FspDirInfo) storage.buffer!
+        let dirInfo = cast(*FspDirInfo) storage.storage()
         dirInfo.size     = cast(u16) bytes
         dirInfo.fileInfo = info[]
         if name16.count > 1 do

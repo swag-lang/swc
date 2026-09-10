@@ -93,8 +93,8 @@ impl Decoder
             skip = .cabac.decision(CtxCuSkipFlag + context) != 0
         }
 
-        .fillBlocks(.ctDepth.buffer!, x0, y0, nCbS, cast(u8) depth)
-        .fillBlocks(.skipFlag.buffer!, x0, y0, nCbS, skip ? 1'u8 : 0'u8)
+        .fillBlocks(.ctDepth.storage(), x0, y0, nCbS, cast(u8) depth)
+        .fillBlocks(.skipFlag.storage(), x0, y0, nCbS, skip ? 1'u8 : 0'u8)
 
         // A coding block boundary is a transform block boundary and a prediction block boundary
         // whatever the unit turns out to hold, clauses 8.7.2.2 and 8.7.2.3. A unit that codes no
@@ -103,8 +103,8 @@ impl Decoder
 
         if skip
         {
-            .fillBlocks(.predMode.buffer!, x0, y0, nCbS, ModeSkip)
-            .fillBlocks(.intraModeY.buffer!, x0, y0, nCbS, IntraDc)
+            .fillBlocks(.predMode.storage(), x0, y0, nCbS, ModeSkip)
+            .fillBlocks(.intraModeY.storage(), x0, y0, nCbS, IntraDc)
             var mergeIdx = 0'u32
             if header.maxNumMergeCand > 1 do
                 mergeIdx = .readMergeIdx()
@@ -123,7 +123,7 @@ impl Decoder
         if not isIntra or log2CbSize == sps.minCbLog2Size do
             partMode = .readPartMode(isIntra, log2CbSize, sps)
 
-        .fillBlocks(.predMode.buffer!, x0, y0, nCbS, isIntra ? ModeIntra : ModeInter)
+        .fillBlocks(.predMode.storage(), x0, y0, nCbS, isIntra ? ModeIntra : ModeInter)
 
         if isIntra
         {
@@ -189,7 +189,7 @@ impl Decoder
                 let x    = x0 + cast(s32) i * pbSize
                 let y    = y0 + cast(s32) j * pbSize
                 modes[slot] = .deriveIntraLumaMode(x, y, candidate[slot])
-                .fillBlocks(.intraModeY.buffer!, x, y, pbSize, modes[slot])
+                .fillBlocks(.intraModeY.storage(), x, y, pbSize, modes[slot])
             }
         }
 
@@ -295,7 +295,7 @@ impl Decoder
         let half    = nCbS >> 1
         let quarter = nCbS >> 2
 
-        .fillBlocks(.intraModeY.buffer!, x0, y0, nCbS, IntraDc)
+        .fillBlocks(.intraModeY.storage(), x0, y0, nCbS, IntraDc)
 
         var merge2Nx2N = false
         switch partMode
@@ -713,7 +713,7 @@ impl Decoder
     // Records whether one transform block held luma coefficients, which the loop filter reads.
     private mtd cbfLumaAt(x0, y0, size: s32, coded: bool)
     {
-        .fillBlocks(.cbfLuma.buffer!, x0, y0, size, coded ? 1'u8 : 0'u8)
+        .fillBlocks(.cbfLuma.storage(), x0, y0, size, coded ? 1'u8 : 0'u8)
     }
 
     // Writes one value over every four-sample block a square region covers.

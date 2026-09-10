@@ -34,7 +34,7 @@ func readStoredFrame(source: *ByteSource, entry: SampleEntry, prefix: const [..]
     }
 
     if count do
-        Memory.copy(payload.buffer!, prefix.buffer, count)
+        Memory.copy(payload.storage(), prefix.buffer, count)
     try source.seek(entry.offset)
     try source.readExact(payload.toSlice()[count until payload.count])
 }

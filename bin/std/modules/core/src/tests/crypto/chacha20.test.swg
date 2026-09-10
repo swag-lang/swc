@@ -147,8 +147,8 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     let lengths: [8] u64 = [65535, 65536, 65537, 65599, 65600, 65791, 65792, Capacity - 2]
     for length in lengths
     {
-        Memory.set(actual.buffer!, 0xA5, actual.count)
-        Memory.set(expected.buffer!, 0xA5, expected.count)
+        Memory.set(actual.storage(), 0xA5, actual.count)
+        Memory.set(expected.storage(), 0xA5, expected.count)
         let input     = source.toSlice()[1 until length + 1]
         let output    = actual.toSlice()[1 until length + 1]
         let reference = expected.toSlice()[1 until length + 1]
@@ -158,7 +158,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
         expect Crypto.chacha20Xor(key, nonce, input, output, first)
         Swag.assert(sameChaChaBytes(actual.toSlice(), expected.toSlice()))
 
-        Memory.copy(actual.buffer!, source.buffer!, source.count)
+        Memory.copy(actual.storage(), source.storage(), source.count)
         expect Crypto.chacha20Xor(key, nonce, output, output, first)
         Swag.assert(sameChaChaBytes(output, reference))
         Swag.assert(actual[0] == source[0])
@@ -167,7 +167,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     }
 
     // Reject the whole request before submitting work when the last block would wrap.
-    Memory.set(actual.buffer!, 0xA5, actual.count)
+    Memory.set(actual.storage(), 0xA5, actual.count)
     let tooLong = actual.toSlice()[until 65537]
     discard catch Crypto.chacha20Xor(key, nonce, source.toSlice()[until 65537], tooLong, Swag.U32.Max - 1023) as overflowError
     Swag.assert(overflowError is Errors.OverflowError)

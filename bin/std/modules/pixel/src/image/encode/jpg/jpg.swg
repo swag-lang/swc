@@ -223,8 +223,8 @@ impl Encoder
         // The conversion reads whole vectors, so the last pixels of the source are followed by
         // enough slack for a sixteen-byte read that starts on them.
         .bufferRGB.resize(cast(u64) xDiv8 * yDiv8 + 8)
-        let pdst = .bufferRGB.buffer!
-        var pref = image.pixels.buffer!
+        let pdst = .bufferRGB.storage()
+        var pref = image.pixels.storage()
 
         // The image rows are stored bottom up and a scan is coded top down, so each row is
         // written straight to its mirrored position instead of being copied and then swapped.

@@ -6,7 +6,7 @@ using Swag, Core
 #test
 {
     var source  = Image.create(3, 2, .RGBF16)
-    let samples = cast([*] u16) source.pixels.buffer!
+    let samples = cast([*] u16) source.pixels.storage()
     const Values: [6] u16 = [0x0000, 0x3C00, 0x4000, 0x3800, 0xC000, 0x7BFF]
     for i in 18 do
         samples[i] = Values[i % Values.count]
@@ -24,14 +24,14 @@ using Swag, Core
         var source = Image.create(3, 2, format)
         if format.bitDepth() == 16
         {
-            let samples = cast([*] u16) source.pixels.buffer!
+            let samples = cast([*] u16) source.pixels.storage()
             const Values: [6] u16 = [0x0000, 0x3400, 0x3800, 0x3C00, 0x4000, 0xC000]
             for i in source.byteCount / 2 do
                 samples[i] = Values[i % Values.count]
         }
         else
         {
-            let samples = cast([*] f32) source.pixels.buffer!
+            let samples = cast([*] f32) source.pixels.storage()
             const Values: [6] f32 = [-2.0, -0.25, 0.0, 0.5, 1.0, 8.0]
             for i in source.byteCount / 4 do
                 samples[i] = Values[i % Values.count]
@@ -47,7 +47,7 @@ using Swag, Core
 #test
 {
     var source  = Image.create(2, 2, .RGBAF32)
-    let samples = cast([*] f32) source.pixels.buffer!
+    let samples = cast([*] f32) source.pixels.storage()
     const Values: [8] f32 = [-2.0, -0.25, 0.0, 0.125, 0.5, 1.0, 4.0, 65504.0]
     for i in 16 do
         samples[i] = Values[i % Values.count]
@@ -61,7 +61,7 @@ using Swag, Core
 #test
 {
     var source = Image.create(2, 1, .RGBA8)
-    let bytes  = source.pixels.buffer!
+    let bytes  = source.pixels.storage()
     bytes[0] = 17
     bytes[1] = 34
     bytes[2] = 51

@@ -25,7 +25,7 @@ private func flacDecodeAll(sound: const *SoundFile)->Array'u8 fail
     for index in sound.packetCount()
     {
         let packet   = try sound.packet(index)
-        let produced = try itf.decodePacket(block.buffer!, block.count, bytes[packet.sourceOffset until packet.sourceOffset + packet.byteSize])
+        let produced = try itf.decodePacket(block.storage(), block.count, bytes[packet.sourceOffset until packet.sourceOffset + packet.byteSize])
         result.add(block.toSlice()[0 until produced])
     }
 

@@ -1013,13 +1013,13 @@ private impl EditBox
         if s == sel do
             return sel
 
-        let test = not Latin1.isSpace(.textStorage.buffer![s])
+        let test = not Latin1.isSpace(.textStorage.storage()[s])
         for
         {
             let ns = .moveCaretLeft(s)
             if ns == s do
                 break
-            if Latin1.isSpace(.textStorage.buffer![ns]) == test do
+            if Latin1.isSpace(.textStorage.storage()[ns]) == test do
                 return s
             s = ns
         }
@@ -1033,12 +1033,12 @@ private impl EditBox
         if sel == .textStorage.length do
             return sel
 
-        let test = not Latin1.isSpace(.textStorage.buffer![sel])
+        let test = not Latin1.isSpace(.textStorage.storage()[sel])
         var s    = sel
         while s != .textStorage.length
         {
             s = .moveCaretRight(s)
-            if Latin1.isSpace(.textStorage.buffer![s]) == test do
+            if Latin1.isSpace(.textStorage.storage()[s]) == test do
                 return s
         }
 

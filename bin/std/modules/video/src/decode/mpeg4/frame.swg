@@ -46,9 +46,9 @@ impl Frame
             .luma.resize(strideLuma * rowsLuma)
             .chromaB.resize(strideChroma * rowsChroma)
             .chromaR.resize(strideChroma * rowsChroma)
-            Memory.set(.luma.buffer!, 0, .luma.count)
-            Memory.set(.chromaB.buffer!, 128, .chromaB.count)
-            Memory.set(.chromaR.buffer!, 128, .chromaR.count)
+            Memory.set(.luma.storage(), 0, .luma.count)
+            Memory.set(.chromaB.storage(), 128, .chromaB.count)
+            Memory.set(.chromaR.storage(), 128, .chromaR.count)
         }
 
         .strideLuma    = strideLuma
@@ -69,9 +69,9 @@ impl Frame
     // padding has to hold what a clamp would have produced.
     mtd extendEdges()
     {
-        .extendPlane(.luma.buffer!, .strideLuma, .width, .height)
-        .extendPlane(.chromaB.buffer!, .strideChroma, .width / 2, .height / 2)
-        .extendPlane(.chromaR.buffer!, .strideChroma, .width / 2, .height / 2)
+        .extendPlane(.luma.storage(), .strideLuma, .width, .height)
+        .extendPlane(.chromaB.storage(), .strideChroma, .width / 2, .height / 2)
+        .extendPlane(.chromaR.storage(), .strideChroma, .width / 2, .height / 2)
     }
 
     private mtd extendPlane(plane: [*] u8, stride: u64, width, height: u32)
@@ -118,13 +118,13 @@ impl Frame
 
         let lumaAt = .lumaOrigin()
         for y in cast(u64) height do
-            Memory.copy(target.luma.buffer! + y * cast(u64) width, .luma.buffer! + lumaAt + y * .strideLuma, cast(u64) width)
+            Memory.copy(target.luma.storage() + y * cast(u64) width, .luma.storage() + lumaAt + y * .strideLuma, cast(u64) width)
 
         let chromaAt = .chromaOrigin()
         for y in chromaHeight
         {
-            Memory.copy(target.chromaB.buffer! + y * chromaWidth, .chromaB.buffer! + chromaAt + y * .strideChroma, chromaWidth)
-            Memory.copy(target.chromaR.buffer! + y * chromaWidth, .chromaR.buffer! + chromaAt + y * .strideChroma, chromaWidth)
+            Memory.copy(target.chromaB.storage() + y * chromaWidth, .chromaB.storage() + chromaAt + y * .strideChroma, chromaWidth)
+            Memory.copy(target.chromaR.storage() + y * chromaWidth, .chromaR.storage() + chromaAt + y * .strideChroma, chromaWidth)
         }
     }
 }

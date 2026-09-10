@@ -4086,10 +4086,10 @@ impl Drawing
 
                 for row in copyHeight
                 {
-                    let black       = mattes[0].pixels.buffer! + cast(u64) row * cast(u64) mattes[0].rowStride
-                    let white       = mattes[1].pixels.buffer! + cast(u64) row * cast(u64) mattes[1].rowStride
+                    let black       = mattes[0].pixels.storage() + cast(u64) row * cast(u64) mattes[0].rowStride
+                    let white       = mattes[1].pixels.storage() + cast(u64) row * cast(u64) mattes[1].rowStride
                     let resultRow   = result.height - tileY - copyHeight + row
-                    let destination = result.pixels.buffer! + cast(u64) resultRow * cast(u64) result.rowStride + cast(u64) tileX * result.bytesPerPixel
+                    let destination = result.pixels.storage() + cast(u64) resultRow * cast(u64) result.rowStride + cast(u64) tileX * result.bytesPerPixel
                     for column in copyWidth
                     {
                         let offset = cast(u64) column * 4

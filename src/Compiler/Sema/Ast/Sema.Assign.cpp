@@ -237,6 +237,19 @@ namespace
             symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
     }
 
+    // 'slot = null' on a 'late' slot releases it. The slot is filled by an assignment and
+    // asked about with '== null', so writing null back completes the pair -- without it a
+    // container could never hand its storage away, and the null a container writes is what
+    // stops a second release from running.
+    bool isLateSlotRelease(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    {
+        if (op != TokenId::SymEqual)
+            return false;
+        if (!nodeRightView.type() || !nodeRightView.type()->isNull())
+            return false;
+        return SemaHelpers::isLateInitAccess(sema, nodeLeftView.nodeRef());
+    }
+
     Result castAndResultType(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         const TokenId binOp          = op == TokenId::SymEqual ? op : Token::assignToBinary(op);
@@ -254,6 +267,9 @@ namespace
                 return Result::Continue;
             }
         }
+
+        if (isLateSlotRelease(sema, op, nodeLeftView, nodeRightView))
+            return Cast::cast(sema, nodeRightView, targetLeftView.typeRef(), CastKind::Assignment, CastFlagsE::LateRelease);
 
         const TypeRef pointerResultTypeRef = compoundPointerArithmeticResultTypeRef(sema, binOp, targetLeftView, nodeRightView);
         if (pointerResultTypeRef.isValid())

@@ -114,7 +114,7 @@ public impl Image
             }
 
         case .HueHorz:
-            var pix = .pixels.buffer!
+            var pix = .pixels.storage()
             for x in .width
             {
                 let factor0 = x / cast(f32) .width
@@ -139,7 +139,7 @@ public impl Image
 
             .visitPixels(stride: .width)
             {
-                Memory.copy(pix, cast([*] u8) image.pixels.buffer!, cast(u64) image.width * image.bytesPerPixel)
+                Memory.copy(pix, cast([*] u8) image.pixels.storage(), cast(u64) image.width * image.bytesPerPixel)
             }
 
         case .SaturationVert:
@@ -168,7 +168,7 @@ public impl Image
             }
 
         case .SaturationHorz:
-            var pix = .pixels.buffer!
+            var pix = .pixels.storage()
             for x in .width
             {
                 let factor0 = x / cast(f32) .width
@@ -193,7 +193,7 @@ public impl Image
 
             .visitPixels(stride: .width)
             {
-                Memory.copy(pix, cast([*] u8) image.pixels.buffer!, cast(u64) image.width * image.bytesPerPixel)
+                Memory.copy(pix, cast([*] u8) image.pixels.storage(), cast(u64) image.width * image.bytesPerPixel)
             }
 
         case .LightnessVert:
@@ -222,7 +222,7 @@ public impl Image
             }
 
         case .LightnessHorz:
-            var pix = .pixels.buffer!
+            var pix = .pixels.storage()
             for x in .width
             {
                 let factor0 = x / cast(f32) .width
@@ -247,7 +247,7 @@ public impl Image
 
             .visitPixels(stride: .width)
             {
-                Memory.copy(pix, cast([*] u8) image.pixels.buffer!, cast(u64) image.width * image.bytesPerPixel)
+                Memory.copy(pix, cast([*] u8) image.pixels.storage(), cast(u64) image.width * image.bytesPerPixel)
             }
 
         case .HueSaturation:

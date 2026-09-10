@@ -305,7 +305,7 @@ impl Decoder
             return
 
         let stride    = cast(s64) frame.strideLuma
-        let origin    = frame.luma.buffer! + cast(u64) (y + cast(s32) FramePadding) * frame.strideLuma + cast(u64) (x + cast(s32) FramePadding)
+        let origin    = frame.luma.storage() + cast(u64) (y + cast(s32) FramePadding) * frame.strideLuma + cast(u64) (x + cast(s32) FramePadding)
         let lineStep  = vertical ? stride : 1's64
         let crossStep = vertical ? 1's64 : stride
 
@@ -510,7 +510,7 @@ impl Decoder
         if not tc do
             return
 
-        let plane  = component == 1 ? frame.chromaB.buffer! : frame.chromaR.buffer!
+        let plane  = component == 1 ? frame.chromaB.storage() : frame.chromaR.storage()
         let stride = cast(s64) frame.strideChroma
         let cx     = x / cast(s32) sps.subWidthC
         let cy     = y / cast(s32) sps.subHeightC

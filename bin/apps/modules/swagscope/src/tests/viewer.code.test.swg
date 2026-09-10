@@ -91,7 +91,7 @@ struct CodeLanguageSample
     let source   = swagSampleSource()
     let fileName = Gui.Testing.tempFilePath("scope-code-", ".swg")
     defer discard catch File.delete(fileName)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -135,7 +135,7 @@ struct CodeLanguageSample
     var source: String
     for 2_000 do
         source += "func streamedValue()->u32 => 42\n"
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -162,7 +162,7 @@ struct CodeLanguageSample
     for 90_000 do
         source += "func streamedValue()->u32 => 42\n"
     Swag.assert(source.length >= 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)

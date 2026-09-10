@@ -14,9 +14,9 @@ impl Image
                 let src        = cast(const *Image) context.src
                 let dst        = cast(*Image) context.dst
                 let y0         = cast(s32) row * 2
-                let sourceRow0 = src.pixels.buffer! + cast(u64) y0 * src.rowStride
+                let sourceRow0 = src.pixels.storage() + cast(u64) y0 * src.rowStride
                 let sourceRow1 = sourceRow0 + src.rowStride
-                let targetRow  = dst.pixels.buffer! + cast(u64) row * dst.rowStride
+                let targetRow  = dst.pixels.storage() + cast(u64) row * dst.rowStride
                 for x in dst.width
                 {
                     let x0      = cast(u64) x * 2 * src.bytesPerPixel
@@ -43,7 +43,7 @@ impl Image
             let srcImage   = cast(const *Image) data.img
             let b8         = srcImage.bytesPerPixel
             let w8         = srcImage.width * b8
-            let pixSrc     = srcImage.pixels.buffer! + (x * 2 * b8) + (y * 2 * w8)
+            let pixSrc     = srcImage.pixels.storage() + (x * 2 * b8) + (y * 2 * w8)
             let pixSrcb8   = pixSrc + b8
             let pixSrcw8   = pixSrc + w8
             let pixSrcw8b8 = pixSrcw8 + b8

@@ -45,7 +45,7 @@ public impl Plan
         let e = .keyToIndex.tryFind(key)
         if not e do
             return null
-        return .fields.buffer! + e.value
+        return .fields.storage() + e.value
     }
 }
 

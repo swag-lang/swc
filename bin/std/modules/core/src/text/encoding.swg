@@ -176,7 +176,7 @@ private func decodeUtf16BeUnits(bytes: const [..] u8)->Array'u16
     var result: retval
     result.resize(bytes.count / 2)
     let source      = bytes.buffer
-    let destination = result.buffer!
+    let destination = result.storage()
     var offset      = 0'u64
 
     while offset + 8 <= result.count
@@ -201,7 +201,7 @@ private func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
     var result: retval
     result.resize(bytes.count / 4)
     let source      = bytes.buffer
-    let destination = result.buffer!
+    let destination = result.storage()
     var offset      = 0'u64
 
     while offset + 4 <= result.count

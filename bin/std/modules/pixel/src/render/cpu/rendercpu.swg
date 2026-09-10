@@ -237,7 +237,7 @@ private impl RenderCpu
         if stencil.count == count do
             return
         stencil.resize(count)
-        Memory.clear(stencil.buffer!, count)
+        Memory.clear(stencil.storage(), count)
     }
 
     // Returns the transform mapping painter-stream positions to device pixels.
@@ -409,7 +409,7 @@ private impl RenderCpu
     {
         let cx  = Math.clamp(x, 0, image.width - 1)
         let cy  = image.height - Math.clamp(y, 0, image.height - 1) - 1
-        let pix = image.pixels.buffer! + cast(u64) (cx * 4) + cast(u64) cy * cast(u64) image.width * 4
+        let pix = image.pixels.storage() + cast(u64) (cx * 4) + cast(u64) cy * cast(u64) image.width * 4
 
         var result: Color
         result.b = pix[0]
@@ -422,7 +422,7 @@ private impl RenderCpu
     func writePixel(image: *Image, x, y: s32, color: Color)
     {
         let storageY = image.height - y - 1
-        let pixel    = image.pixels.buffer! + cast(u64) (storageY * image.rowStride + x * image.bytesPerPixel)
+        let pixel    = image.pixels.storage() + cast(u64) (storageY * image.rowStride + x * image.bytesPerPixel)
 
         switch #complete image.pixelFormat
         {
@@ -1087,7 +1087,7 @@ private impl RenderCpu
         let xx         = Math.clamp(x, 0, pixelWidth - 1)
         let yy         = Math.clamp(y, 0, cast(s32) atlas.height - 1)
         let row        = cast(s32) atlas.height - yy - 1
-        let ptr        = atlas.data.buffer! + cast(u64) row * atlas.width + cast(u64) xx * atlas.bytesPerPixel
+        let ptr        = atlas.data.storage() + cast(u64) row * atlas.width + cast(u64) xx * atlas.bytesPerPixel
 
         if atlas.bytesPerPixel == 1
         {
@@ -1130,7 +1130,7 @@ private impl RenderCpu
                 let xx  = Math.clamp(x, 0, width - 1)
                 let yy  = Math.clamp(y, 0, height - 1)
                 let row = height - yy - 1
-                let ptr = atlas.data.buffer! + cast(u64) row * atlas.width + cast(u64) xx * atlas.bytesPerPixel
+                let ptr = atlas.data.storage() + cast(u64) row * atlas.width + cast(u64) xx * atlas.bytesPerPixel
                 return {cast(f32) ptr[0] / 255.0,
                         cast(f32) ptr[1] / 255.0,
                         cast(f32) ptr[2] / 255.0,
@@ -1336,7 +1336,7 @@ private impl RenderCpu
             let x      = Math.clamp(cast(s32) Math.floor(fontUv.x * width), 0, width - 1)
             let y      = Math.clamp(cast(s32) Math.floor(fontUv.y * height), 0, height - 1)
             let row    = cast(s32) atlas.height - y - 1
-            let value  = atlas.data.buffer![cast(u64) row * atlas.width + cast(u64) x * atlas.bytesPerPixel]
+            let value  = atlas.data.storage()[cast(u64) row * atlas.width + cast(u64) x * atlas.bytesPerPixel]
             result.a = cast(u8) Math.clamp(Math.round(cast(f32) result.a * g_FontGammaLut[value]), 0.0, 255.0)
         }
         elif .program == CpuProgram_Msdf
@@ -1606,7 +1606,7 @@ private impl RenderCpu
                 let swapRedBlue = source.pixelFormat == .RGBA8 or source.pixelFormat == .RGB8
                 let texelBytes  = cast(u64) (hasAlpha ? 4 : 3)
                 let texelRow    = texelBytes * cast(u64) source.width
-                let texels      = source.pixels.buffer!
+                let texels      = source.pixels.storage()
                 let lastTexelX  = source.width - 1
                 let lastTexelY  = source.height - 1
 
@@ -1757,7 +1757,7 @@ private impl RenderCpu
 
     mtd drawTriangleRange(batch: *RasterBatch, bandMinY, bandMaxY: s32)
     {
-        let vertices = batch.painter!.vertexBuffer.buffer!
+        let vertices = batch.painter!.vertexBuffer.storage()
         var i        = batch.start
         let end      = batch.start + batch.count
         while i + 2 < end
@@ -1802,7 +1802,7 @@ private impl RenderCpu
         batch.start     = start
         batch.count     = count
         batch.transform = .deviceTransform()
-        batch.pixels    = image.pixels.buffer!
+        batch.pixels    = image.pixels.storage()
         batch.rowStride = image.rowStride
         batch.width     = image.width
         batch.height    = image.height
@@ -1821,7 +1821,7 @@ private impl RenderCpu
             batch.clipMaxY = Math.min(batch.clipMaxY, cast(s32) Math.ceil(.scissorRect.bottom()) - 1)
         }
 
-        batch.stencil = .currentStencil().buffer!
+        batch.stencil = .currentStencil().storage()
 
         batch.solidPaint      = not .paintOn or .paintCommand.texture0.type == .SolidColor
         batch.paintImage      = null
@@ -1863,7 +1863,7 @@ private impl RenderCpu
         if params.type != .Texture or params.uvMode != .FillSubRect or params.interpolationMode != .Pixel do
             return false
 
-        let vertices    = batch.painter!.vertexBuffer.buffer! + batch.start
+        let vertices    = batch.painter!.vertexBuffer.storage() + batch.start
         let topLeft     = Vector2{params.boundRect.x, params.boundRect.y}
         let topRight    = Vector2{params.boundRect.z, params.boundRect.y}
         let bottomRight = Vector2{params.boundRect.z, params.boundRect.w}
@@ -1905,8 +1905,8 @@ private impl RenderCpu
         let rowBytes = cast(u64) width * 4
         for row in height
         {
-            let sourceRow = source.pixels.buffer! + cast(u64) (source.height - srcY - row - 1) * cast(u64) source.rowStride + cast(u64) srcX * 4
-            let targetRow = target.pixels.buffer! + cast(u64) (target.height - dstY - row - 1) * cast(u64) target.rowStride + cast(u64) dstX * 4
+            let sourceRow = source.pixels.storage() + cast(u64) (source.height - srcY - row - 1) * cast(u64) source.rowStride + cast(u64) srcX * 4
+            let targetRow = target.pixels.storage() + cast(u64) (target.height - dstY - row - 1) * cast(u64) target.rowStride + cast(u64) dstX * 4
             Memory.copy(targetRow, sourceRow, rowBytes)
         }
 
@@ -1945,7 +1945,7 @@ private impl RenderCpu
                     offset += 1.0
                 }
 
-                batch.blurWeights     = blurWeights.buffer!
+                batch.blurWeights     = blurWeights.storage()
                 batch.blurWeightCount = blurWeights.count
             }
         }
@@ -1963,8 +1963,8 @@ private impl RenderCpu
             .overlapAlpha.resize(pixelCount)
         if .overlapWritten.count != pixelCount do
             .overlapWritten.resize(pixelCount)
-        clearScratchRows(.overlapAlpha.buffer!, image.width, bounds)
-        clearScratchRows(.overlapWritten.buffer!, image.width, bounds)
+        clearScratchRows(.overlapAlpha.storage(), image.width, bounds)
+        clearScratchRows(.overlapWritten.storage(), image.width, bounds)
 
         // Destination alpha is the scratch channel in the OpenGL overlap path.
         .clearAlpha(image, bounds)
@@ -2010,7 +2010,7 @@ private impl RenderCpu
         let maxY = Math.clamp(bounds.maxY + 1, 0, image.height)
 
         // Every format carrying alpha stores it in the fourth byte, and rows are stored bottom-up.
-        let pixels = image.pixels.buffer!
+        let pixels = image.pixels.storage()
         let stride = cast(u64) image.bytesPerPixel
         let zero   = Math.Simd.splat(0'u8)
         for var y = minY; y < maxY; y += 1
@@ -2050,7 +2050,7 @@ private impl RenderCpu
 
         // The stencil plane is row-contiguous, so the reset runs per row instead of per pixel.
         let stencil    = .currentStencil()
-        let stencilBuf = stencil.buffer!
+        let stencilBuf = stencil.storage()
         let runWidth   = cast(u64) (maxX - minX)
         for var y = minY; y < maxY; y += 1 do
             Memory.clear(stencilBuf + cast(u64) y * cast(u64) image.width + cast(u64) minX, runWidth)
@@ -2062,7 +2062,7 @@ private impl RenderCpu
         let writeRgb = not writeAll and .colorMask.r and .colorMask.g and .colorMask.b and not .colorMask.a
         if image.pixelFormat == .BGRA8 and (writeAll or writeRgb)
         {
-            let pixels = image.pixels.buffer!
+            let pixels = image.pixels.storage()
 
             // Transparent target clears are the common layer setup. Clear each contiguous
             // BGRA row in one operation instead of issuing four stores per pixel.
@@ -2174,7 +2174,7 @@ private impl RenderCpu
         // empties the stencil, so the replay starts from an empty one too.
         let stencil = .currentStencil()
         if stencil.count do
-            Memory.clear(stencil.buffer!, stencil.count)
+            Memory.clear(stencil.storage(), stencil.count)
         .stencilOn    = false
         .stencilWrite = false
         .stencilMode  = .Set
@@ -2218,7 +2218,7 @@ private impl RenderCpu
             // can extend past the clip in force now.
             let stencil = .currentStencil()
             if stencil.count do
-                Memory.clear(stencil.buffer!, stencil.count)
+                Memory.clear(stencil.storage(), stencil.count)
             .stencilOn    = true
             .stencilWrite = true
             .stencilMode  = cmd.clippingRegion.mode

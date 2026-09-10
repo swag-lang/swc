@@ -3232,7 +3232,7 @@ impl ViewerWindow
         }
 
         bytes.resize(count)
-        .searchCarry += Swag.makeString(bytes.buffer!, bytes.count)
+        .searchCarry += Swag.makeString(bytes.storage(), bytes.count)
         let eof      = count == 0
         let instance = &.instances[.activeChoiceIndex]
 

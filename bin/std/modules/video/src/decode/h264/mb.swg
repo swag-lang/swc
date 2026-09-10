@@ -321,8 +321,8 @@ impl Slice
         let gw    = dec.sps!.mbWidth * 4
         let refId = refIdx >= 0 ? .refs[list, refIdx].identity : NoReferenceIdentity
         let entry = BlockMotion{mvX: mv[0], mvY: mv[1], refIdx: cast(s8) refIdx, refId: refId}
-        let grid  = list == 0 ? dec.motionL0.buffer! : dec.motionL1.buffer!
-        let diffs = list == 0 ? dec.mvdL0.buffer! : dec.mvdL1.buffer!
+        let grid  = list == 0 ? dec.motionL0.storage() : dec.motionL1.storage()
+        let diffs = list == 0 ? dec.mvdL0.storage() : dec.mvdL1.storage()
         for row in cast(u64) h4
         {
             for column in cast(u64) w4
@@ -367,15 +367,15 @@ impl Slice
             for row in 4'u64
             {
                 let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
-                let grid0 = cast([*] s16) (dec.motionL0.buffer! + index)
-                let grid1 = cast([*] s16) (dec.motionL1.buffer! + index)
+                let grid0 = cast([*] s16) (dec.motionL0.storage() + index)
+                let grid1 = cast([*] s16) (dec.motionL1.storage() + index)
                 Simd.store(grid0, pair0)
                 Simd.store(grid0 + 8, pair0)
                 Simd.store(grid1, pair1)
                 Simd.store(grid1 + 8, pair1)
-                Simd.store(dec.mvdL0.buffer! + index * 2, zeros16)
-                Simd.store(dec.mvdL1.buffer! + index * 2, zeros16)
-                Simd.storeLow4(dec.directFlags.buffer! + index, direct)
+                Simd.store(dec.mvdL0.storage() + index * 2, zeros16)
+                Simd.store(dec.mvdL1.storage() + index * 2, zeros16)
+                Simd.storeLow4(dec.directFlags.storage() + index, direct)
             }
 
             mb.motionMask[0] |= 0xFFFF
@@ -1742,15 +1742,15 @@ impl Slice
             for row in 4's32
             {
                 let index = cast(u64) ((mb.mbY * 4 + row) * gw + mb.mbX * 4)
-                let grid0 = cast([*] s16) (dec.motionL0.buffer! + index)
-                let grid1 = cast([*] s16) (dec.motionL1.buffer! + index)
+                let grid0 = cast([*] s16) (dec.motionL0.storage() + index)
+                let grid1 = cast([*] s16) (dec.motionL1.storage() + index)
                 Simd.store(grid0, clean)
                 Simd.store(grid0 + 8, clean)
                 Simd.store(grid1, clean)
                 Simd.store(grid1 + 8, clean)
-                Simd.store(dec.mvdL0.buffer! + index * 2, zeros16)
-                Simd.store(dec.mvdL1.buffer! + index * 2, zeros16)
-                Simd.storeLow4(dec.directFlags.buffer! + index, zeros8)
+                Simd.store(dec.mvdL0.storage() + index * 2, zeros16)
+                Simd.store(dec.mvdL1.storage() + index * 2, zeros16)
+                Simd.storeLow4(dec.directFlags.storage() + index, zeros8)
             }
         }
 
@@ -1845,7 +1845,7 @@ impl Slice
         for row in 4'u64
         {
             let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
-            Simd.storeLow4(dec.codedLuma.buffer! + index, zeros)
+            Simd.storeLow4(dec.codedLuma.storage() + index, zeros)
         }
 
         let frame        = dec.current!

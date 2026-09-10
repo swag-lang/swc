@@ -53,9 +53,31 @@ func nativeLateLiteral()->bool
     return box.count == 4 and not (box.item != null) and not (box.name != null)
 }
 
+// A slot is released by writing null back, which is the inverse of the store that filled
+// it. A container needs that store to hand its storage away, and the null it leaves is what
+// stops a second release from running.
+func nativeLateRelease()->bool
+{
+    var first = NativeLateItem{value: 3}
+    var box: NativeLateBox
+
+    box.item = &first
+    if box.item == null do
+        return false
+
+    box.item = null
+    if box.item != null do
+        return false
+
+    // Refilling after a release works like the first fill.
+    box.item = &first
+    return box.item != null and box.item.value == 3
+}
+
 #test
 {
     Swag.assert(nativeLateLifecycle())
+    Swag.assert(nativeLateRelease())
     Swag.assert(nativeLateAddressOf())
     Swag.assert(nativeLateLiteral())
 }

@@ -154,7 +154,7 @@ func toZeroTerminated(src: string)->Array'u16
 {
     var result: retval
     result.reserve(2 * src.count + 1)
-    let buffer = result.buffer!
+    let buffer = result.storage()
     result.count = Utf16.fromUtf8(Swag.makeSlice(buffer, result.capacity), src) + 1
     result[result.count - 1] = 0
     return result

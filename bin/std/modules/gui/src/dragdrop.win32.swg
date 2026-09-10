@@ -222,11 +222,11 @@ private func readFileContents(obj: *IDataObject, data: *DragData, withContents: 
     if block.count < #sizeof(UINT) do
         return
 
-    let count = cast(u64) block.buffer![as UINT]
+    let count = cast(u64) block.storage()[as UINT]
     if not count or #sizeof(UINT) + count * #sizeof(FILEDESCRIPTORW) > block.count do
         return
 
-    let descriptors = cast(const [*] FILEDESCRIPTORW) (block.buffer! + #sizeof(UINT))
+    let descriptors = cast(const [*] FILEDESCRIPTORW) (block.storage() + #sizeof(UINT))
     for i in count
     {
         let name = cast(const [*] u16) &descriptors[i].cFileName[0]
@@ -270,7 +270,7 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
                 continue
             buf.resize(len + 1)
             discard DragQueryFileW(hDrop, i, buf.buffer, len + 1)
-            data.addFile(Utf8.fromUtf16(Swag.makeSlice(buf.buffer!, cast(u64) len)))
+            data.addFile(Utf8.fromUtf16(Swag.makeSlice(buf.storage(), cast(u64) len)))
         }
     }
 
@@ -288,14 +288,14 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
         let utf16 = readFormat(obj, CF_UNICODETEXT)
         if utf16.count >= 2
         {
-            let pz = cast(const [*] u16) utf16.buffer!
+            let pz = cast(const [*] u16) utf16.storage()
             data.setText(Utf8.fromUtf16(Swag.makeSlice(pz, Utf16.lengthZeroTerminated(pz))))
             break to Text
         }
 
         let ansi = readFormat(obj, CF_TEXT)
         if ansi.count do
-            data.setText(Swag.makeString(ansi.buffer!, (cast(cstring) ansi.buffer!).count))
+            data.setText(Swag.makeString(ansi.storage(), (cast(cstring) ansi.storage()).count))
     }
 
     // Image. A browser drags PNG bytes and the desktop drags a DIB; both decode from the name.

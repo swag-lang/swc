@@ -51,7 +51,7 @@ public impl Image
         }
 
         let alphaWord = cast(u32) value << 24
-        let pixels    = cast([*] u32) .pixels.buffer!
+        let pixels    = cast([*] u32) .pixels.storage()
         let count     = .byteCount / 4
         var offset    = (.byteCount - .byteCount % 16) / 4
         while offset < count
@@ -136,7 +136,7 @@ public impl Image
                 Math.Simd.store(cast([*] u32) block, (pixels & ~channelMask) | (replacement & channelMask))
             }
 
-            let pixels = cast([*] u32) .pixels.buffer!
+            let pixels = cast([*] u32) .pixels.storage()
             let count  = .byteCount / 4
             let word   = cast(u32) color * 0x0101_0101
             var offset = (.byteCount - .byteCount % 16) / 4
@@ -155,7 +155,7 @@ public impl Image
             let row    = cast(u32) parIndex
             let params = &context
             let image  = cast(*Image) params.image
-            let pixels = image.pixels.buffer! + cast(u64) row * image.rowStride
+            let pixels = image.pixels.storage() + cast(u64) row * image.rowStride
             for x in image.width
             {
                 let pix  = pixels + cast(u64) x * image.bytesPerPixel

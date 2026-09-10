@@ -499,7 +499,7 @@ impl TagBin
             // the shape.
             let plan = sec.plan!
             Swag.assert(sec.fieldIndex < plan.fields.count)
-            let pf = plan.fields.buffer! + sec.fieldIndex
+            let pf = plan.fields.storage() + sec.fieldIndex
             Swag.assert(pf.key == wireFieldKey(val))
             sec.fieldIndex += 1
 

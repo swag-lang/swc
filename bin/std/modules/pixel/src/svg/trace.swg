@@ -54,7 +54,7 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
             return result
 
         let idx = (cast(u64) y * cast(u64) image.width + cast(u64) x) * cast(u64) bpp
-        let ptr = image.pixels.buffer! + idx
+        let ptr = image.pixels.storage() + idx
         let a   = bpp == 4 ? ptr[3] : 255'u8
         result.color = Color.fromArgb(255, ptr[rOffset], ptr[1], ptr[bOffset])
         result.alpha = a
@@ -125,7 +125,7 @@ private func coverage(image: const *Image, bpp, rOffset, bOffset: s32, key: u32,
         return 0
 
     let idx = (cast(u64) y * cast(u64) image.width + cast(u64) x) * cast(u64) bpp
-    let ptr = image.pixels.buffer! + idx
+    let ptr = image.pixels.storage() + idx
     let a   = bpp == 4 ? ptr[3] : 255'u8
     if a == 0 do
         return 0

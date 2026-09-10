@@ -433,7 +433,7 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, fr
 {
     let planeWidth  = reference.mbWidth * 16
     let planeHeight = reference.mbHeight * 16
-    let planeBase   = plane == 0 ? reference.luma.buffer! : (plane == 1 ? reference.cb.buffer! : reference.cr.buffer!)
+    let planeBase   = plane == 0 ? reference.luma.storage() : (plane == 1 ? reference.cb.storage() : reference.cr.storage())
     let planePitch  = reference.planeStride(plane)
 
     // A window outside the replicated padding goes through a clamped copy first. The
@@ -559,7 +559,7 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
 {
     let planeWidth  = reference.mbWidth * 8
     let planeHeight = reference.mbHeight * 8
-    let base        = plane == 0 ? reference.cb.buffer! : reference.cr.buffer!
+    let base        = plane == 0 ? reference.cb.storage() : reference.cr.storage()
 
     // The right bound uses the sixteen-byte span of the packed row loads whatever the
     // block width, so the narrow blends may read wide.

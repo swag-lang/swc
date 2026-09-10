@@ -194,7 +194,7 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
             line.add(isHexPrintable(value) ? value : '.'u8)
         }
 
-        result += Swag.makeString(line.buffer!, line.count)
+        result += Swag.makeString(line.storage(), line.count)
         result += "\n"
         row    += bytesPerRow
     }
@@ -892,14 +892,14 @@ impl HexGridView
                 appendHexDigits(&text, value, 2)
             }
 
-            Clipboard.addString(Swag.makeString(text.buffer!, text.count))
+            Clipboard.addString(Swag.makeString(text.storage(), text.count))
 
         case .Text:
             var text: Array'u8
             text.reserve(bytes.count)
             for value in bytes do
                 text.add(isHexPrintable(value) ? value : '.'u8)
-            Clipboard.addString(Swag.makeString(text.buffer!, text.count))
+            Clipboard.addString(Swag.makeString(text.storage(), text.count))
         }
     }
 
@@ -916,7 +916,7 @@ impl HexGridView
         var options: EditDlgOptions
         options.title   = hexStrings().ui_GoTo
         options.message = hexStrings().ui_GoToMessage
-        options.text    = Swag.makeString(current.buffer!, current.count)
+        options.text    = Swag.makeString(current.storage(), current.count)
 
         let dialog = EditDlg.createSingleLine(surface!, options)
         if dialog.doModal() != Dialog.BtnOk do
@@ -1033,7 +1033,7 @@ impl HexGridView
     {
         if not buffer.count do
             return
-        painter.drawString(x, y, Swag.makeString(buffer.buffer!, buffer.count), font, color)
+        painter.drawString(x, y, Swag.makeString(buffer.storage(), buffer.count), font, color)
     }
 
     // Fills the cells of `[first, last]` in both columns.
@@ -1331,7 +1331,7 @@ impl IWnd for HexGridView
         // takes to separate it from the rows.
         let headerY = client.y + 4
         if .headerText.count do
-            painter.drawString(originX + HexViewInset + .gutterWidth(), headerY, Swag.makeString(.headerText.buffer!, .headerText.count), font, headerInk)
+            painter.drawString(originX + HexViewInset + .gutterWidth(), headerY, Swag.makeString(.headerText.storage(), .headerText.count), font, headerInk)
         painter.drawString(originX + .textColumnLeft(), headerY, hexStrings().ui_TextColumn, font, headerInk)
         painter.drawLine(client.x, client.y + .headerHeight() - 2, client.right(), client.y + .headerHeight() - 2, colors.border, 1)
 
@@ -1382,7 +1382,7 @@ impl IWnd for HexGridView
                     .caretText.add(text[index])
 
                 painter.fillRect(originX + .hexCellX(column) - 1, y, cast(f32) .valueCellChars() * .charWidth + 2, .rowHeight, caretBk)
-                painter.drawString(originX + .hexCellX(column), y, Swag.makeString(.caretText.buffer!, .caretText.count), font, caretInk)
+                painter.drawString(originX + .hexCellX(column), y, Swag.makeString(.caretText.storage(), .caretText.count), font, caretInk)
                 painter.drawRect(originX + .textCellX(.caret % .bytesPerRow), y, .charWidth, .rowHeight, caretBk, 1)
             }
         }

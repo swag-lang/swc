@@ -260,9 +260,9 @@ private impl CeltMdct
         let n      = CeltMdctSize >> shift
         let n2     = n / 2
         let n4     = n / 4
-        let t      = .trig[shift].buffer!
-        let fftIn  = .input.buffer!
-        let fftOut = .output.buffer!
+        let t      = .trig[shift].storage()
+        let fftIn  = .input.storage()
+        let fftOut = .output.storage()
 
         for i in n4
         {
@@ -398,7 +398,7 @@ internal impl CeltDecoder
         .preemphasisMemory[0] = 0
         .preemphasisMemory[1] = 0
         for c in 2 do
-            Memory.set(.decodeMemory[c].buffer!, 0, .decodeMemory[c].count * #sizeof(f32))
+            Memory.set(.decodeMemory[c].storage(), 0, .decodeMemory[c].count * #sizeof(f32))
         for i in 2 * CeltBandCount
         {
             .oldBandE[i]       = 0
@@ -1270,7 +1270,7 @@ internal impl CeltDecoder
 
         if useScratch and lowband and (recombine or ((nb & 1) == 0 and tfChange < 0) or b > 1)
         {
-            let scratch = .scratch.buffer!
+            let scratch = .scratch.storage()
             for j in n do
                 scratch[j] = lowband![j]
             lowband = scratch
@@ -1446,9 +1446,9 @@ internal impl CeltDecoder
         let B             = shortBlocks ? M : 1
         let normOffset    = M * cast(u32) CeltBands[.startBand]
         let normSpan      = M * cast(u32) CeltBands[CeltBandCount - 1] - normOffset
-        let norm          = .norm.buffer!
+        let norm          = .norm.storage()
         let norm2         = norm + normSpan
-        let spectrum      = .spectrum.buffer!
+        let spectrum      = .spectrum.storage()
         let N             = M * CeltShortSize
         var dualStereo    = dualStereoIn
         var balance       = balanceIn
@@ -1617,7 +1617,7 @@ internal impl CeltDecoder
                 if lm == 3 do
                     r *= 1.41421356'f32
                 r = Math.min(thresh, r) * sqrt1
-                let x = .spectrum.buffer! + c * size + (cast(u32) CeltBands[i] << lm)
+                let x = .spectrum.storage() + c * size + (cast(u32) CeltBands[i] << lm)
                 var renormalize = false
                 for k in 1'u32 << lm
                 {
@@ -1641,7 +1641,7 @@ internal impl CeltDecoder
 
     mtd denormaliseBands(x: const [*] f32, bandLogE: const [*] f32, effEnd, M: u32, silence: bool)
     {
-        let freq  = .frequency.buffer!
+        let freq  = .frequency.storage()
         let N     = M * CeltShortSize
         var bound = M * cast(u32) CeltBands[effEnd]
         var start = .startBand
@@ -1855,13 +1855,13 @@ internal impl CeltDecoder
         var balance    = 0's32
         var fineQuant:    [CeltBandCount] s32
         var finePriority: [CeltBandCount] s32
-        let pulses     = .pulses.buffer!
+        let pulses     = .pulses.storage()
         let codedBands = .computeAllocation(&offsets[0], &cap[0], allocTrim, &intensity, &dualStereo, bits, &balance, pulses, &fineQuant[0], &finePriority[0], lm, dec)
         .unquantFineEnergy(&fineQuant[0], dec)
 
         for c in CC
         {
-            let memory = .decodeMemory[c].buffer!
+            let memory = .decodeMemory[c].storage()
             for j in CeltDecodeBuffer - N + CeltOverlap do
                 memory[j] = memory[j + N]
         }
@@ -1885,10 +1885,10 @@ internal impl CeltDecoder
         let blocks    = shortBlocks ? M : 1
         let blockSize = shortBlocks ? CeltShortSize : N
         let shift     = shortBlocks ? CeltMaxLM : CeltMaxLM - lm
-        let spectrum  = .spectrum.buffer!
+        let spectrum  = .spectrum.storage()
         for c in CC
         {
-            let outSyn = .decodeMemory[c].buffer! + CeltDecodeBuffer - N
+            let outSyn = .decodeMemory[c].storage() + CeltDecodeBuffer - N
             var source = spectrum + Math.min(c, C - 1) * N
             var energy = &.oldBandE[Math.min(c, C - 1) * CeltBandCount]
             if CC == 1 and C == 2
@@ -1898,21 +1898,21 @@ internal impl CeltDecoder
                 var mono: Array'f32
                 mono.add(.frequency.toSlice())
                 .denormaliseBands(spectrum + N, &.oldBandE[CeltBandCount], effEnd, M, silence)
-                let freq = .frequency.buffer!
+                let freq = .frequency.storage()
                 for i in N do
                     freq[i] = 0.5 * (mono[i] + freq[i])
             }
             else do
                 .denormaliseBands(source, energy, effEnd, M, silence)
 
-            let freq = .frequency.buffer!
+            let freq = .frequency.storage()
             for b in blocks do
                 .mdct.backward(freq + b, blocks, outSyn + blockSize * b, shift)
         }
 
         for c in CC
         {
-            let outSyn = .decodeMemory[c].buffer! + CeltDecodeBuffer - N
+            let outSyn = .decodeMemory[c].storage() + CeltDecodeBuffer - N
             .postfilterPeriod    = Math.max(.postfilterPeriod, CombMinPeriod)
             .postfilterPeriodOld = Math.max(.postfilterPeriodOld, CombMinPeriod)
             .combFilter(outSyn, outSyn, .postfilterPeriodOld, .postfilterPeriod, CeltShortSize, .postfilterGainOld, .postfilterGain, .postfilterTapsetOld, .postfilterTapset, CeltOverlap)
@@ -1978,7 +1978,7 @@ internal impl CeltDecoder
         // De-emphasis, and the output scale of one unit per full-scale sample.
         for c in CC
         {
-            let outSyn = .decodeMemory[c].buffer! + CeltDecodeBuffer - N
+            let outSyn = .decodeMemory[c].storage() + CeltDecodeBuffer - N
             var m      = .preemphasisMemory[c]
             for j in N
             {

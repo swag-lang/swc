@@ -10,7 +10,7 @@ func measure(width, height: s32, repeats: u32)
     storage.resize(lumaSize + chromaSize * 2 + 16)
     for index in storage.count do
         storage[index] = cast(u8) ((index * 37 + index / 97) & 255)
-    let view     = Yuv420View{luma: storage.buffer!, chromaB: storage.buffer! + lumaSize, chromaR: storage.buffer! + lumaSize + chromaSize, lumaStride: cast(u64) width, chromaStride: chromaWidth, width: width, height: height}
+    let view     = Yuv420View{luma: storage.storage(), chromaB: storage.storage() + lumaSize, chromaR: storage.storage() + lumaSize + chromaSize, lumaStride: cast(u64) width, chromaStride: chromaWidth, width: width, height: height}
     var expected = Image.create(width, height, .RGB8)
     view.convertRowsToRgb(&expected, 0, height)
     var image = Image.create(width, height, .RGB8)

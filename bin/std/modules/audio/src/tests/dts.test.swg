@@ -247,7 +247,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let extendedOffset = bytes.count
     bytes.add(source.toSlice()[0 until info.frameBytes])
     bytes.resize(bytes.count + 60)
-    Memory.set(bytes.buffer! + bytes.count - 60, 0xA5, 60)
+    Memory.set(bytes.storage() + bytes.count - 60, 0xA5, 60)
 
     let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("audio-dts-extension-%.bin", Guid64.random()).toString())
     defer discard catch File.delete(path)

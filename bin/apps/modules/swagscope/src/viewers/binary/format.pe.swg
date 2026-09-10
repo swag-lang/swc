@@ -439,7 +439,7 @@ private func peDosStubText(image: *BinaryImage, peOffset: u64)->String
         text.add(value >= 32 and value < 127 ? value : ' 'u8)
     }
 
-    return String.from(Latin1.trim(Swag.makeString(text.buffer!, text.count)))
+    return String.from(Latin1.trim(Swag.makeString(text.storage(), text.count)))
 }
 
 // Adds the toolchain fingerprint Microsoft linkers leave between the DOS stub and the PE signature.

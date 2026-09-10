@@ -465,6 +465,6 @@ private func reportElfNotes(image: *BinaryImage, report: *BinaryReport, sections
 
         if text.isEmpty() do
             continue
-        report.field(payloadAt, payloadSize, s.shr_BuildId, Swag.makeString(text.buffer!, text.count))
+        report.field(payloadAt, payloadSize, s.shr_BuildId, Swag.makeString(text.storage(), text.count))
     }
 }

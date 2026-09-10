@@ -342,7 +342,7 @@ impl Transform
         var highI = cast(s64) pg.count - 1
         if highI < 2 do
             return
-        let pgBuf = pg.buffer!
+        let pgBuf = pg.storage()
         while highI > 0 and (pgBuf[highI] == pgBuf[0]) do
             highI -= 1
         while highI > 0 and (pgBuf[highI] == pgBuf[highI - 1]) do
@@ -918,7 +918,7 @@ impl Transform
         var maxIt, maxRit: u64
         if not .maximaList.isEmpty()
         {
-            let maximaBuf = .maximaList.buffer!
+            let maximaBuf = .maximaList.storage()
             if dir == .LeftToRight
             {
                 maxIt = 0
@@ -946,7 +946,7 @@ impl Transform
             {
                 if not .maximaList.isEmpty()
                 {
-                    let maximaBuf = .maximaList.buffer!
+                    let maximaBuf = .maximaList.storage()
                     if dir == .LeftToRight
                     {
                         while maxIt != .maximaList.count and maximaBuf[maxIt] < e.curr.x

@@ -207,11 +207,11 @@ impl MainWnd
                             let masks = p.masks!
                             let xx    = cast(s32) (pt.x - infos[idx].boundRect.x)
                             var yy    = cast(s32) (pt.y - infos[idx].boundRect.y)
-                            let pmask = masks.buffer! + idx
+                            let pmask = masks.storage() + idx
                             yy = pmask.height - yy
                             if xx < pmask.width and yy < pmask.height
                             {
-                                var pix1 = pmask.pixels.buffer! + xx * pmask.bytesPerPixel
+                                var pix1 = pmask.pixels.storage() + xx * pmask.bytesPerPixel
                                 pix1 += yy * pmask.width * pmask.bytesPerPixel
                                 pix1![as u32] = 0xFFFFFFFF
                             }

@@ -515,7 +515,7 @@ impl Track
     {
         if index >= .cues.count do
             return null
-        return cast(const [*] u8) .textStorage.buffer! + .cues[index].textOffset
+        return cast(const [*] u8) .textStorage.storage() + .cues[index].textOffset
     }
 
     // Returns the UTF-8 byte count for one cue, or zero outside the track.

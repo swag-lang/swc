@@ -39,7 +39,7 @@ public impl Image
             }
         }
 
-        let pixels = .pixels.buffer!
+        let pixels = .pixels.storage()
         var offset = .byteCount & ~15'u64
         while offset < .byteCount
         {

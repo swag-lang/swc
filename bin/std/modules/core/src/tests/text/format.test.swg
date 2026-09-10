@@ -51,7 +51,7 @@ func formatReferencedString(value: String)->String
     var dest: String
     Format.replaceString(&dest, "fresh %", "value")
     Swag.assert(assertFormatString(dest, "fresh value"))
-    Swag.assert(dest.buffer![dest.count] == 0)
+    Swag.assert(dest.storage()[dest.count] == 0)
 }
 
 #test
@@ -59,7 +59,7 @@ func formatReferencedString(value: String)->String
     var dest: String = "small"
     Format.replaceString(&dest, "a replacement larger than inline storage: %", 42)
     Swag.assert(assertFormatString(dest, "a replacement larger than inline storage: 42"))
-    Swag.assert(dest.buffer![dest.count] == 0)
+    Swag.assert(dest.storage()[dest.count] == 0)
 }
 
 #test
@@ -77,11 +77,11 @@ func formatReferencedString(value: String)->String
     Format.replaceString(&dest, "%", "short")
     Swag.assert(assertFormatString(dest, "short"))
     Swag.assert(dest.buffer == storage)
-    Swag.assert(dest.buffer![dest.count] == 0)
+    Swag.assert(dest.storage()[dest.count] == 0)
     Format.replaceString(&dest, "")
     Swag.assert(dest.isEmpty())
     Swag.assert(dest.buffer == storage)
-    Swag.assert(dest.buffer![0] == 0)
+    Swag.assert(dest.storage()[0] == 0)
 }
 
 #test

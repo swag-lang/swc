@@ -18,7 +18,7 @@ func ktx2Roundtrip(source: Image)->Image
     {
         var source = Image.create(5, 3, format)
         for i in source.byteCount do
-            source.pixels.buffer![i] = cast(u8) ((i * 37 + 11) & 0xFF)
+            source.pixels.storage()[i] = cast(u8) ((i * 37 + 11) & 0xFF)
         let decoded = ktx2Roundtrip(source)
         assertImage(decoded, source.width, source.height, format)
         Swag.assert(Memory.compare(source.pixels.buffer, decoded.pixels.buffer, source.byteCount) == 0)

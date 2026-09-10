@@ -278,6 +278,29 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     Swag.assert(assertIntArray(values, expected))
 }
 
+// An empty array owns no block, and 'storage' still answers an address the caller can hold.
+// Nothing reads through it: the walk is bounded by 'count', which is zero. That is what lets
+// a caller take the storage without asserting anything.
+#test
+{
+    var empty: Array's32
+    Swag.assert(empty.isEmpty())
+    Swag.assert(empty.buffer == null)
+
+    let raw = empty.storage()
+    Swag.assert(raw != null)
+
+    var walked = 0
+    for index in empty.count do
+        walked += raw[index]
+    Swag.assert(walked == 0)
+
+    // Once the array owns a block, 'storage' answers that block.
+    empty.add(7)
+    Swag.assert(empty.storage() == empty.buffer)
+    Swag.assert(empty.storage()[0] == 7)
+}
+
 #test
 {
     var values: Array's32
@@ -288,7 +311,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values.add(seed)
 
     Swag.assert(values.count == 4)
-    let raw = cast(const [*] s32) values.buffer!
+    let raw = cast(const [*] s32) values.storage()
     Swag.assert(raw[0] == 5)
     Swag.assert(raw[3] == 3)
 

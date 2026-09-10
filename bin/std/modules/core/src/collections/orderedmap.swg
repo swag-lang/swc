@@ -163,7 +163,7 @@ impl OrderedMap
         let last  = .lowerBound(upper)
         if last <= first do
             return Swag.makeSlice(cast(const [*] OrderedMapEntry'(K, V)) 1'u64, 0)
-        return Swag.makeSlice(.entries.buffer! + first, last - first)
+        return Swag.makeSlice(.entries.storage() + first, last - first)
     }
 
     // Returns whether the map contains `key`.
@@ -179,7 +179,7 @@ impl OrderedMap
         let index = .lowerBound(key)
         if index == .count or .compareKeys(.entries[index].key, key) != 0 do
             return null
-        return .entries.buffer! + index
+        return .entries.storage() + index
     }
 
     // Returns the entry for `key`, or `null` when the key is absent.
@@ -189,7 +189,7 @@ impl OrderedMap
         let index = .lowerBound(key)
         if index == .count or .compareKeys(.entries[index].key, key) != 0 do
             return null
-        return .entries.buffer! + index
+        return .entries.storage() + index
     }
 
     // Returns the entry for `key` and asserts if the key is absent.
@@ -223,12 +223,12 @@ impl OrderedMap
         if index < .count and .compareKeys(.entries[index].key, key) == 0
         {
             .entries[index].value = #fwd value
-            return .entries.buffer! + index
+            return .entries.storage() + index
         }
 
         .entries.insertAt(index, OrderedMapEntry'(K, V){key: #fwd key, value: #fwd value})
         .count += 1
-        return .entries.buffer! + index
+        return .entries.storage() + index
     }
 
     // Assigns `value` to `key`, inserting the key when necessary.

@@ -227,7 +227,7 @@ private impl Decoder
         let mode      = info.mode
         let base      = .output.count
         .output.resize(base + cast(u64) frameSize * CC)
-        let pcm = .pcm.buffer!
+        let pcm = .pcm.storage()
         for i in frameSize * CC do
             pcm[i] = 0
 
@@ -258,7 +258,7 @@ private impl Decoder
             }
 
             var decoded = 0'u32
-            let silkOut = .silkPcm.buffer!
+            let silkOut = .silkPcm.storage()
             while decoded < frameSize
             {
                 let produced = try .silk.decode(&dec, decoded == 0, payloadMs, internalRate, info.streamChannels, silkOut + decoded * CC)
@@ -305,7 +305,7 @@ private impl Decoder
         .celt.streamChannels = info.streamChannels
         .celt.endBand        = endBand
         let usable    = cast(u64) len
-        let redundant = .redundant.buffer!
+        let redundant = .redundant.storage()
         if redundancy and celtToSilk
         {
             .celt.startBand = 0
@@ -332,7 +332,7 @@ private impl Decoder
 
         if mode != ModeCelt
         {
-            let silkOut = .silkPcm.buffer!
+            let silkOut = .silkPcm.storage()
             for i in frameSize * CC do
                 pcm[i] += cast(f32) silkOut[i] * (1.0 / 32768.0)
         }
@@ -561,7 +561,7 @@ impl IPacketCodec for Decoder
         // a Matroska block declares shortens the last packet below what its table of contents says.
         let produced = Math.min(frames * .channels * #sizeof(s16), destinationSize)
         if produced do
-            Memory.copy(destination, .output.buffer!, produced)
+            Memory.copy(destination, .output.storage(), produced)
         return produced
     }
 }

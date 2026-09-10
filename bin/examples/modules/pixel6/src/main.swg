@@ -97,7 +97,7 @@ func unpremultiplyChannel(value, alpha: u8)->u8
 
 func unpremultiplyImage(image: *Image)
 {
-    var ptr = image.pixels.buffer!
+    var ptr = image.pixels.storage()
     for image.width * image.height
     {
         let alpha = ptr[3]
@@ -148,7 +148,7 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
     Swag.assert(format != null)
     Swag.assert(family != null)
     Swag.assert(measurePath != null)
-    addGdiPathText(measurePath, text16.buffer!, count16, family, format, emSize, 0, 0)
+    addGdiPathText(measurePath, text16.storage(), count16, family, format, emSize, 0, 0)
     gdipCheck(GdipGetPathWorldBounds(measurePath, &bounds, null, null))
     gdipCheck(GdipDeletePath(measurePath))
 
@@ -173,7 +173,7 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
     var path: *GpPath?
     gdipCheck(GdipCreatePath(GdipFillModeAlternate, &path))
     Swag.assert(path != null)
-    addGdiPathText(path, text16.buffer!, count16, family, format, emSize, margin + border - bounds.x, margin + border - bounds.y)
+    addGdiPathText(path, text16.storage(), count16, family, format, emSize, margin + border - bounds.x, margin + border - bounds.y)
 
     var pen:   *GpPen?
     var brush: *GpSolidFill?

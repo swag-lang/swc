@@ -47,7 +47,7 @@ public impl Image
             Math.Simd.store(cast([*] u32) block, result)
         }
 
-        let pixels = cast([*] u32) .pixels.buffer!
+        let pixels = cast([*] u32) .pixels.storage()
         let count  = .byteCount / 4
         var offset = (.byteCount - .byteCount % 16) / 4
         while offset < count

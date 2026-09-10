@@ -27,7 +27,7 @@ func day6B()
     day6EnsureInstructions()
     var lights: Array's32
     lights.resize(DAY6_GRID_SIZE * DAY6_GRID_SIZE)
-    let lightsBuf = lights.buffer!
+    let lightsBuf = lights.storage()
 
     for instruction in day6Instructions
     {

@@ -454,7 +454,7 @@ impl Decoder
         // sixteen-byte load whose tail is ignored.
         var tmpRow: Array'u8
         tmpRow.resize(rowStrideOut + 16)
-        let tmpRowBuffer = tmpRow.buffer!
+        let tmpRowBuffer = tmpRow.storage()
         Memory.clear(tmpRowBuffer, rowStrideOut + 16)
         var up = tmpRowBuffer
 
@@ -507,7 +507,7 @@ impl Decoder
     mtd adam7()
     {
         var tmpArr: Array'u8
-        var input = .dcmpBuf.buffer!
+        var input = .dcmpBuf.storage()
         for p in 7
         {
             let x = (.header.width - Adam7OrigX[p] + Adam7SpacingX[p] - 1) / Adam7SpacingX[p]
@@ -517,7 +517,7 @@ impl Decoder
 
             let pixelBytes = cast(u64) .inChannels * (.header.bitDepth == 16 ? 2 : 1)
             tmpArr.resize(cast(u64) (x * y) * pixelBytes + 16)
-            let tmpBuffer = tmpArr.buffer!
+            let tmpBuffer = tmpArr.storage()
             Memory.clear(tmpBuffer, tmpArr.count)
 
             .defilter(cast(u32) x, cast(u32) y, input, tmpBuffer)
@@ -548,7 +548,7 @@ impl Decoder
         if .header.interlaceMethod != .Adam7
         {
             .orderDefilter = false
-            let input = .dcmpBuf.buffer!
+            let input = .dcmpBuf.storage()
             .defilter(.header.width, .header.height, input, .safeDstPixels())
         }
         else

@@ -59,7 +59,7 @@ internal func day10RunStep(input: string, output: *String)
 
     let inputLen = input.count
     var i        = 0'u64
-    var write    = output.buffer!
+    var write    = output.storage()
     while i < inputLen
     {
         let digit = input[i]
@@ -77,7 +77,7 @@ internal func day10RunStep(input: string, output: *String)
     }
 
     output.length = cast(u64) (write - output.buffer)
-    let outBuf = output.buffer!
+    let outBuf = output.storage()
     outBuf[output.length] = 0
 }
 

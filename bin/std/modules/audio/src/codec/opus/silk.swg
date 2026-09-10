@@ -334,7 +334,7 @@ private impl Resampler
     // Upsamples `inLen` input samples, batch by batch, and returns the output count.
     mtd iirFir(out: [*] s16, input: const [*] s16, inLen: u32)->u32
     {
-        let buffer = .buffer.buffer!
+        let buffer = .buffer.storage()
         for i in ResamplerOrderFir12 do
             buffer[i] = .fir[i]
         var written   = 0'u32
@@ -1518,7 +1518,7 @@ internal impl SilkDecoder
         let hasSide     = not decodeOnlyMiddle
         for n in internalChannels
         {
-            let target = .scratch[n].buffer! + 2
+            let target = .scratch[n].storage() + 2
             if n == 0 or hasSide
             {
                 var condCoding = CodeConditionally
@@ -1538,8 +1538,8 @@ internal impl SilkDecoder
             .channels[n].nFramesDecoded += 1
         }
 
-        let left  = .scratch[0].buffer!
-        let right = .scratch[1].buffer!
+        let left  = .scratch[0].storage()
+        let right = .scratch[1].storage()
         if .apiChannels == 2 and internalChannels == 2 do
             .stereoToLeftRight(left, right, &predQ13[0], .channels[0].fsKHz, frameLength)
         else
@@ -1553,10 +1553,10 @@ internal impl SilkDecoder
         // Every channel goes through its own resampler to 48 kHz; a mono stream on a stereo
         // output plays on both sides.
         let outSamples = frameLength * OutputRate / (.channels[0].fsKHz * 1000)
-        let resampled  = .resampled.buffer!
+        let resampled  = .resampled.storage()
         for n in Math.min(.apiChannels, internalChannels)
         {
-            let source = .scratch[n].buffer! + 1
+            let source = .scratch[n].storage() + 1
             let count  = .channels[n].resampler.process(resampled, source, frameLength)
             if count != outSamples do
                 fail InvalidFormatError{"Opus SILK resampler produced an unexpected sample count"}

@@ -17,8 +17,8 @@ impl RichEditCtrl
             var count = line.length()
             if count
             {
-                let pchar  = line.chars.buffer!
-                let pstyle = line.styles.buffer!
+                let pchar  = line.chars.storage()
+                let pstyle = line.styles.storage()
                 if start.lineIndex == end.lineIndex do
                     count = end.charPosInLine
                 for var i = start.charPosInLine; i < count; i += 1
@@ -60,8 +60,8 @@ impl RichEditCtrl
                 count = line.length()
                 if count
                 {
-                    let pchar  = line.chars.buffer!
-                    let pstyle = line.styles.buffer!
+                    let pchar  = line.chars.storage()
+                    let pstyle = line.styles.storage()
                     for var i = 0; i < end.charPosInLine; i += 1
                     {
                         result.text.add(pchar[i])

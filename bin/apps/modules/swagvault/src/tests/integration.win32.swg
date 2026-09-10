@@ -107,20 +107,20 @@ namespace Integration
             shellPath.replace('/', "\\")
             let path16 = Utf16.toZeroTerminated(shellPath)
             var idList: *void?
-            let status = SHParseDisplayName(path16.buffer!, null, &idList, 0, null)
+            let status = SHParseDisplayName(path16.storage(), null, &idList, 0, null)
             try verify(status >= 0, Format.toString("the Shell cannot resolve [[%]] (HRESULT 0x%{X})", shellPath, cast #bit (u32) status))
             idLists.add(idList)
         }
 
         var items: *Win32.IUnknown?
-        try verify(SHCreateShellItemArrayFromIDLists(cast(u32) idLists.count, idLists.buffer!, &items) >= 0, "the Shell must collect the batch rename sources")
+        try verify(SHCreateShellItemArrayFromIDLists(cast(u32) idLists.count, idLists.storage(), &items) >= 0, "the Shell must collect the batch rename sources")
         defer discard (items!.lpVtbl.Release)(items!)
 
         // Suppress UI, stop on errors, and let Windows choose numbered names while keeping extensions.
         const Flags = 0x0004'u32 | 0x0008 | 0x0010 | 0x0400 | 0x00100000 | 0x00200000
         try verify((operation.lpVtbl.SetOperationFlags)(operation, Flags) >= 0, "the Shell must accept the batch rename options")
         let name16 = Utf16.toZeroTerminated(name)
-        try verify((operation.lpVtbl.RenameItems)(operation, items!, name16.buffer!) >= 0, "the Shell must queue every file under the same requested name")
+        try verify((operation.lpVtbl.RenameItems)(operation, items!, name16.storage()) >= 0, "the Shell must queue every file under the same requested name")
         try verify((operation.lpVtbl.PerformOperations)(operation) >= 0, "the Shell must complete the batch rename")
         var aborted: s32
         try verify((operation.lpVtbl.GetAnyOperationsAborted)(operation, &aborted) >= 0 and not aborted, "the Shell must not skip any batch rename")
@@ -226,7 +226,7 @@ namespace Integration
         var stream = catch File.open(resultPath(), .Append, .Write, .Read) as openError
         if openError != null do
             return
-        discard catch stream.write(message.buffer!, message.count)
+        discard catch stream.write(message.storage(), message.count)
         discard catch stream.write(("\n").buffer, 1)
         stream.close()
     }

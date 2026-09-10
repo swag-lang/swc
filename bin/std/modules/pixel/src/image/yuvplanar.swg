@@ -90,7 +90,7 @@ impl YuvPlanarView
         let factors = .conversionFactors()
         for y in firstY until endY
         {
-            var destination = target.pixels.buffer! + cast(u64) (.height - y - 1) * cast(u64) target.rowStride
+            var destination = target.pixels.storage() + cast(u64) (.height - y - 1) * cast(u64) target.rowStride
             let luma        = .luma + cast(u64) y * .lumaStride
             let chromaRow   = cast(u64) (y >> .chromaShift) * .chromaStride
             let cbRow       = .chromaB + chromaRow

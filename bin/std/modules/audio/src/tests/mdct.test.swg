@@ -32,12 +32,12 @@ private func mdctAssertMatchesDefinition(n: u32)
 
     var direct: Array'f64
     direct.resize(n)
-    mdctDirect(spectrum.toSlice(), direct.buffer!)
+    mdctDirect(spectrum.toSlice(), direct.storage())
 
     var fast: Array'f32
     fast.resize(n)
     var transform = Mdct.create(n)
-    transform.inverse(spectrum.buffer!, fast.buffer!)
+    transform.inverse(spectrum.storage(), fast.storage())
 
     var worst = 0.0'f64
     var scale = 0.0'f64

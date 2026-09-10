@@ -64,7 +64,7 @@ impl IEncoder for Encoder
         if .payload.count != planeSize * 3 do
             .payload.resize(planeSize * 3)
 
-        let yPlane = .payload.buffer!
+        let yPlane = .payload.storage()
         let uPlane = yPlane + planeSize
         let vPlane = uPlane + planeSize
         for y in image.height
@@ -72,7 +72,7 @@ impl IEncoder for Encoder
             let sourceRow = cast(u64) (image.height - y - 1) * cast(u64) image.rowStride
             for x in image.width
             {
-                let source    = image.pixels.buffer! + sourceRow + cast(u64) x * image.bytesPerPixel
+                let source    = image.pixels.storage() + sourceRow + cast(u64) x * image.bytesPerPixel
                 let {r, g, b} = readRgb(image, source)
                 let target    = cast(u64) y * cast(u64) image.width + cast(u64) x
                 yPlane[target] = clampByte(((66 * r + 129 * g + 25 * b + 128) >> 8) + 16)

@@ -86,7 +86,7 @@ func makeLegacyImage()->LegacyImage
     Swag.assert(decoded.isValid())
 
     for i in decoded.byteCount do
-        Swag.assert(decoded.pixels.buffer![i] == cast(u8) (i * 7))
+        Swag.assert(decoded.pixels.storage()[i] == cast(u8) (i * 7))
 
     Swag.assert(decoded.metadata.count == 1)
     Swag.assert(decoded.metadata[0].signature == 0xCAFE)

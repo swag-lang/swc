@@ -284,7 +284,7 @@ impl IImageSetDecoder for SetDecoder
                 if value >= palette.size do
                     fail InvalidFormatError{"GIF palette index is out of range"}
                 let color  = &palette.colors[cast(u32) value * 3]
-                let target = result.pixels.buffer! + cast(u64) (result.height - y - 1) * result.rowStride + cast(u64) x * result.bytesPerPixel
+                let target = result.pixels.storage() + cast(u64) (result.height - y - 1) * result.rowStride + cast(u64) x * result.bytesPerPixel
                 Memory.copy(target, color, 3)
                 if result.bytesPerPixel == 4 do
                     target[3] = value == .decoder.gce.tindex ? 0'u8 : 255'u8

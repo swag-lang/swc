@@ -611,7 +611,7 @@ impl HtmlDocument
     {
         let result = .intern(text)
         let start  = result.start ^ HtmlBuiltText
-        let buffer = .builtText.buffer!
+        let buffer = .builtText.storage()
         for index in result.count do
             buffer[start + index] = Latin1.toLower(buffer[start + index])
         return result

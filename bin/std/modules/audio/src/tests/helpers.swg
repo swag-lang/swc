@@ -54,7 +54,7 @@ func audioDecodePcmToPcm16(sourceEncoding: SoundFileEncoding, source: [..] u8, d
     var result: retval
     result.destination.resize(destinationCapacity)
     let itf: ICodec       = &codec
-    let destinationBuffer = result.destination.buffer!
+    let destinationBuffer = result.destination.storage()
     result.progress = itf.decode(destinationBuffer, result.destination.count, source.buffer, source.count)
     return result
 }

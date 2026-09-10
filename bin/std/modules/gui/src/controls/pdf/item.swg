@@ -206,8 +206,8 @@ internal impl Item
 
         for y in cast(u64) .maskImage.height
         {
-            var target = .maskImage.pixels.buffer! + y * cast(u64) .maskImage.rowStride
-            var source = coverage.pixels.buffer! + y * cast(u64) coverage.rowStride
+            var target = .maskImage.pixels.storage() + y * cast(u64) .maskImage.rowStride
+            var source = coverage.pixels.storage() + y * cast(u64) coverage.rowStride
             for cast(u64) .maskImage.width
             {
                 target[3] = cast(u8) ((cast(u32) target[3] * source[3]) / 255)

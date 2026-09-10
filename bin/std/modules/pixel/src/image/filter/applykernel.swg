@@ -51,7 +51,7 @@ impl Image
                 for var dy = -radius; dy <= radius; dy += 1
                 {
                     let sourceY   = Math.clamp(y + dy, 0, image.height - 1)
-                    let sourceRow = image.pixels.buffer! + cast(u64) sourceY * image.rowStride
+                    let sourceRow = image.pixels.storage() + cast(u64) sourceY * image.rowStride
                     for var dx = -radius; dx <= radius; dx += 1
                     {
                         let sourceX     = Math.clamp(x + dx, 0, image.width - 1)
@@ -76,7 +76,7 @@ impl Image
 
                 let current = readLogicalPixelValue(pix, image.pixelFormat, image.alphaMode)
                 sum.a = current.a
-                let destination = params.dstImage.pixels.buffer! + cast(u64) y * params.dstImage.rowStride + cast(u64) x * params.dstImage.bytesPerPixel
+                let destination = params.dstImage.pixels.storage() + cast(u64) y * params.dstImage.rowStride + cast(u64) x * params.dstImage.bytesPerPixel
                 writeLogicalPixelValue(destination, params.dstImage.pixelFormat, params.dstImage.alphaMode, sum)
             }
 
@@ -92,7 +92,7 @@ impl Image
             let w8         = image.rowStride
             let w          = image.width
             let h          = image.height
-            let px         = cast([*] u8) image.pixels.buffer!
+            let px         = cast([*] u8) image.pixels.storage()
             var ks         = params.kernel.buffer + 2
 
             var bs, gs, rs: s32
@@ -142,7 +142,7 @@ impl Image
             if ksum > 1 do
                 bs, gs, rs /= ksum
 
-            var dpix = params.dstImage.pixels.buffer! + (x * b8) + (y * w8)
+            var dpix = params.dstImage.pixels.storage() + (x * b8) + (y * w8)
             dpix[0] = cast(u8) Math.clamp(bs, 0, 255)
             dpix[1] = cast(u8) Math.clamp(gs, 0, 255)
             dpix[2] = cast(u8) Math.clamp(rs, 0, 255)

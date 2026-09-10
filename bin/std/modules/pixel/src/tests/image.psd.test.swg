@@ -73,7 +73,7 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
 
     let image = expect Image.decode("deep.psd", nnBytes(bytes.toSlice()))
     assertImage(image, 1, 1, .RGBA16)
-    let raw = cast(const [*] u16) image.pixels.buffer!
+    let raw = cast(const [*] u16) image.pixels.storage()
     Swag.assert(raw[0] == 0x1234 and raw[1] == 0x5678 and raw[2] == 0x9ABC and raw[3] == 0xDEF0)
 
     var options: DecodeOptions
@@ -91,7 +91,7 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
     psdAddU16(&bytes, 0xBEEF)
     let image = expect Image.decode("gray16.psd", nnBytes(bytes.toSlice()))
     assertImage(image, 1, 1, .GrayAlpha16)
-    let raw = cast(const [*] u16) image.pixels.buffer!
+    let raw = cast(const [*] u16) image.pixels.storage()
     Swag.assert(raw[0] == 0x2468 and raw[1] == 0xBEEF)
 }
 

@@ -238,7 +238,7 @@ impl FileStream
 
         if accepted != count do
             .seek(.Begin, start + accepted)
-        return String.from(Swag.makeString(bytes.buffer!, accepted))
+        return String.from(Swag.makeString(bytes.storage(), accepted))
     }
 
     // Reads the next bounded segment of text and returns it as UTF-8, whatever `encoding` the file

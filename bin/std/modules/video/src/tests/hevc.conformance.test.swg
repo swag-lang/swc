@@ -158,7 +158,7 @@ impl ConformanceRun
             let width    = component == 0 ? sps!.width : sps!.width / sps!.subWidthC
             let height   = component == 0 ? sps!.height : sps!.height / sps!.subHeightC
             let stride   = component == 0 ? frame.strideLuma : frame.strideChroma
-            let plane    = component == 0 ? frame.luma.buffer! : (component == 1 ? frame.chromaB.buffer! : frame.chromaR.buffer!)
+            let plane    = component == 0 ? frame.luma.storage() : (component == 1 ? frame.chromaB.storage() : frame.chromaR.storage())
             let origin   = cast(u64) Hevc.FramePadding * stride + cast(u64) Hevc.FramePadding
 
             var digest: Hash.Md5
@@ -167,7 +167,7 @@ impl ConformanceRun
             // A sample wider than eight bits contributes two bytes, least significant first.
             var row: Array'u8
             row.resize(cast(u64) width * (bitDepth > 8 ? 2 : 1))
-            let output = row.buffer!
+            let output = row.storage()
 
             for y in height
             {

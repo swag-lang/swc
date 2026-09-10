@@ -177,7 +177,7 @@ impl Image
             let params = cast(*#decltype(f)) userData!
 
             // linear luminance
-            let lumBuf = params.lum.buffer!
+            let lumBuf = params.lum.storage()
             lumBuf[index] = p.relativeLuminance()
 
             // saturation in sRGB
@@ -187,7 +187,7 @@ impl Image
             let maxC   = Math.max(Math.max(rs, gs), bs)
             let minC   = Math.min(Math.min(rs, gs), bs)
             let eps    = 1e-6'f32
-            let satBuf = params.sat.buffer!
+            let satBuf = params.sat.storage()
             satBuf[index] = (maxC > 0.0) ? ((maxC - minC) / (maxC + eps)) : 0.0
         }
     }

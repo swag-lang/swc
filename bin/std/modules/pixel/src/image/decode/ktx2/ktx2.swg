@@ -64,7 +64,7 @@ func copyRows(image: *Image, source: const [..] u8, sourceTopDown: bool) fail
     for y in image.height
     {
         let targetY = sourceTopDown ? image.height - y - 1 : y
-        Memory.copy(image.pixels.buffer! + cast(u64) targetY * image.rowStride,
+        Memory.copy(image.pixels.storage() + cast(u64) targetY * image.rowStride,
                     source.buffer + cast(u64) y * image.rowStride,
                     cast(u64) image.rowStride)
     }

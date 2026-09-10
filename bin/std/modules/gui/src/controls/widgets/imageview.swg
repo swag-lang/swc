@@ -433,7 +433,7 @@ impl ImageView
             return
         }
 
-        Memory.copy(.image.pixels.buffer!, image.pixels.buffer!, .image.byteCount)
+        Memory.copy(.image.pixels.storage(), image.pixels.storage(), .image.byteCount)
         .app().renderer.updateTexture(.uploadedTexture, nnPixels(.image.pixels.buffer))
         .invalidate()
     }

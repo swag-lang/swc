@@ -333,9 +333,9 @@ func vp8PrepareYbr(decoder: *Vp8Decoder, mbX, mbY: s32)
     }
     else
     {
-        let yData   = cast([*] u8) decoder.y.buffer!
-        let cbData  = cast([*] u8) decoder.cb.buffer!
-        let crData  = cast([*] u8) decoder.cr.buffer!
+        let yData   = cast([*] u8) decoder.y.storage()
+        let cbData  = cast([*] u8) decoder.cb.storage()
+        let crData  = cast([*] u8) decoder.cr.storage()
         let yOffset = (16 * mbY - 1) * decoder.yStride + 16 * mbX
         let cOffset = (8 * mbY - 1) * decoder.cStride + 8 * mbX
         for i in 16 do
@@ -454,9 +454,9 @@ func vp8Reconstruct(decoder: *Vp8Decoder, mbX, mbY: s32)->bool
     }
 
     vp8ReconstructMacroblock(decoder, mbX, mbY)
-    let yData   = cast([*] u8) decoder.y.buffer!
-    let cbData  = cast([*] u8) decoder.cb.buffer!
-    let crData  = cast([*] u8) decoder.cr.buffer!
+    let yData   = cast([*] u8) decoder.y.storage()
+    let cbData  = cast([*] u8) decoder.cb.storage()
+    let crData  = cast([*] u8) decoder.cr.storage()
     var yOffset = (mbY * decoder.yStride + mbX) * 16
     for row in 16
     {

@@ -153,7 +153,7 @@ impl BinaryDocument
                 text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
         }
 
-        return String.from(Swag.makeString(text.buffer!, text.count))
+        return String.from(Swag.makeString(text.storage(), text.count))
     }
 
     // Returns the same leading bytes as the letters a reader recognizes them by.
@@ -171,7 +171,7 @@ impl BinaryDocument
             text.add(value >= 32 and value < 127 ? value : '.'u8)
         }
 
-        return String.from(Swag.makeString(text.buffer!, text.count))
+        return String.from(Swag.makeString(text.storage(), text.count))
     }
 
     // Returns the Shannon entropy of the beginning of the file, in bits per byte.

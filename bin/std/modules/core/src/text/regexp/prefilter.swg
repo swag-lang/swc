@@ -547,7 +547,7 @@ impl Prefilter
 
             // The sets are read through a pointer: this runs once per offset of the shape for
             // every hit, and an indexed container access is a call.
-            let shape   = .sequence.buffer!
+            let shape   = .sequence.storage()
             var matched = true
             for var i = 0'u64; i < length; i += 1
             {
@@ -707,7 +707,7 @@ impl Prefilter
         if wanted == 0 or count < wanted do
             return count
 
-        let needle = cast(const [*] u8) (.literal).buffer!
+        let needle = cast(const [*] u8) (.literal).storage()
 
         // One byte is looked for by the plain byte scan; there is no second byte to pair it
         // with, and comparing the same byte twice would only halve the throughput.

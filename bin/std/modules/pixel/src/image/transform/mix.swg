@@ -37,8 +37,8 @@ impl Image
             let row    = cast(u32) parIndex
             let dst    = cast(*Image) context.dst
             let src    = cast(const *Image) context.src
-            let dstRow = dst.pixels.buffer! + cast(u64) (context.dstY + row) * dst.rowStride + cast(u64) context.dstX * dst.bytesPerPixel
-            let srcRow = src.pixels.buffer! + cast(u64) (context.srcY + row) * src.rowStride + cast(u64) context.srcX * src.bytesPerPixel
+            let dstRow = dst.pixels.storage() + cast(u64) (context.dstY + row) * dst.rowStride + cast(u64) context.dstX * dst.bytesPerPixel
+            let srcRow = src.pixels.storage() + cast(u64) (context.srcY + row) * src.rowStride + cast(u64) context.srcX * src.bytesPerPixel
 
             if context.mode == .Copy and dst.pixelFormat == src.pixelFormat and dst.alphaMode == src.alphaMode
             {

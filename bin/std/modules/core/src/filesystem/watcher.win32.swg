@@ -136,7 +136,7 @@ impl Watcher
         var offset = 0'u32
         for
         {
-            let info     = cast(const *FILE_NOTIFY_INFORMATION) (state.buffer.buffer! + offset)
+            let info     = cast(const *FILE_NOTIFY_INFORMATION) (state.buffer.storage() + offset)
             let nameData = cast(const [*] u16) &info.FileName[0]
             var name     = Utf8.fromUtf16(Swag.makeSlice(nameData, cast(u64) info.FileNameLength / #sizeof(u16)))
             let relative = name.toString()

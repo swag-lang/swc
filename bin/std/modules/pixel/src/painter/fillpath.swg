@@ -98,7 +98,7 @@ private func buildTriangleOffsets(directions: *HashTable'(u64, Vector2), p: *Lin
     for contour in contours
     {
         let dirs   = contour.offsetDirections()
-        let points = contour.polygon.points.buffer!
+        let points = contour.polygon.points.storage()
 
         // The first direction filed under a position is the one that stands, which is what
         // asking the table before writing used to express in two probes instead of one.

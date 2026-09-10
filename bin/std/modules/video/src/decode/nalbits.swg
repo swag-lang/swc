@@ -147,7 +147,7 @@ func unescapeRbsp(destination: *Array'u8, data: const [..] u8)
     if not count do
         return
     destination.resize(count)
-    let output = destination.buffer!
+    let output = destination.storage()
     var index, outputIndex = 0'u64
     var zeros  = 0'u32
     let threes = Math.Simd.splat(3'u8)
@@ -231,7 +231,7 @@ func unescapeRbspWithBounds(destination: *Array'u8, data: const [..] u8, escaped
     destination.resize(count)
     unescapedBounds.clear()
 
-    let output   = destination.buffer!
+    let output   = destination.storage()
     var index    = 0'u64
     var produced = 0'u64
     var zeros    = 0'u32

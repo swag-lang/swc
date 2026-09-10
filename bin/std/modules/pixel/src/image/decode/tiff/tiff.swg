@@ -341,7 +341,7 @@ impl Decoder
             let srcPtr     = base + srcOff
             checkBuffer(srcPtr, last, srcCount)
 
-            let dstPtr = decoded.buffer! + cast(u64) rowStart * rowBytes
+            let dstPtr = decoded.storage() + cast(u64) rowStart * rowBytes
 
             if compression == COMPRESSION_LZW
             {
@@ -368,7 +368,7 @@ impl Decoder
         {
             for y in totalRows
             {
-                let row = decoded.buffer! + cast(u64) y * rowBytes
+                let row = decoded.storage() + cast(u64) y * rowBytes
                 for i in rowBytes - samples
                 {
                     let offset = cast(u64) samples + i
@@ -382,9 +382,9 @@ impl Decoder
         // Convert top-down 'decoded' into the bottom-up result buffer
         for y in cast(s32) height
         {
-            let srcRow = decoded.buffer! + cast(u64) y * rowBytes
+            let srcRow = decoded.storage() + cast(u64) y * rowBytes
             let dstY   = result.height - y - 1
-            var dst    = cast([*] u8) result.pixels.buffer! + cast(u64) dstY * result.rowStride
+            var dst    = cast([*] u8) result.pixels.storage() + cast(u64) dstY * result.rowStride
 
             for x in cast(s32) width
             {

@@ -342,7 +342,7 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     var memory: Array'u64
     memory.resize(blockCount * Argon2Words)
     defer secureClear(memory.toSlice())
-    let blocks = memory.buffer!
+    let blocks = memory.storage()
 
     // The first two blocks of every lane come straight from the seed; everything
     // else is produced by the compression function.

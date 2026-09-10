@@ -61,7 +61,7 @@ impl Encoder
         if not image.pixelFormat.hasAlpha() do
             return false
 
-        var pix = cast([*] u8) image.pixels.buffer!
+        var pix = cast([*] u8) image.pixels.storage()
         for image.width * image.height
         {
             let col = readPixelColor(image, pix)
@@ -236,7 +236,7 @@ impl Encoder
         var dstIndex = 0'u64
         for y in image.height
         {
-            var pix = cast([*] u8) image.pixels.buffer! + cast(u64) (image.height - y - 1) * image.rowStride
+            var pix = cast([*] u8) image.pixels.storage() + cast(u64) (image.height - y - 1) * image.rowStride
             for image.width
             {
                 let col = readPixelColor(image, pix)
@@ -289,12 +289,12 @@ impl Encoder
         var dstIndex = 0'u64
         for y in image.height
         {
-            var pix = cast([*] u8) image.pixels.buffer! + cast(u64) (image.height - y - 1) * image.rowStride
+            var pix = cast([*] u8) image.pixels.storage() + cast(u64) (image.height - y - 1) * image.rowStride
             var x   = 0
             if image.bytesPerPixel == 4
             {
                 let vectorWidth = cast(u32) image.width & ~3'u32
-                let destination = data.indexes.buffer! + dstIndex
+                let destination = data.indexes.storage() + dstIndex
                 let blueFirst   = image.pixelFormat == .BGRA8
                 if blueFirst
                 {
@@ -318,7 +318,7 @@ impl Encoder
             elif image.bytesPerPixel == 3
             {
                 let vectorWidth = image.width >= 6 ? (cast(u32) image.width - 2) & ~3'u32 : 0'u32
-                let destination = data.indexes.buffer! + dstIndex
+                let destination = data.indexes.storage() + dstIndex
                 if image.pixelFormat == .BGR8 do
                     quantizeRow3'(true)(pix, destination, vectorWidth)
                 else do

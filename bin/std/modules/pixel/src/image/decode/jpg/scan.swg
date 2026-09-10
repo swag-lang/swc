@@ -13,7 +13,7 @@ impl Decoder
     {
         Swag.assert(blkX < cb.blockNumX)
         Swag.assert(blkY < cb.blockNumY)
-        return cast([*] s16) (cast([*] u8) cb.pdata.buffer! + blkX * cb.blockSize + blkY * (cb.blockSize * cb.blockNumX))
+        return cast([*] s16) (cast([*] u8) cb.pdata.storage() + blkX * cb.blockSize + blkY * (cb.blockSize * cb.blockNumX))
     }
 
     mtd loadNextRow() fail
@@ -30,7 +30,7 @@ impl Decoder
                 let componentId = .mcuOrg[mcuBlock]
 
                 var p   = .blockSeg[rowBlock]!
-                let q   = .quant[.compQuant[componentId]].buffer!
+                let q   = .quant[.compQuant[componentId]].storage()
                 var pAC = coeffBufGetp(.acCoeffs[componentId], blockMcuX[componentId] + blockMcuOfsX, .blockMcuY[componentId] + blockMcuOfsY)
                 let pDC = coeffBufGetp(.dcCoeffs[componentId], blockMcuX[componentId] + blockMcuOfsX, .blockMcuY[componentId] + blockMcuOfsY)
 
@@ -156,7 +156,7 @@ impl Decoder
             {
                 let componentId = .mcuOrg[mcuBlock]
                 var p = .blockSeg[rowBlock]!
-                let q = .quant[.compQuant[componentId]].buffer!
+                let q = .quant[.compQuant[componentId]].storage()
 
                 var s = .huffDecode(&.h[.compDcTab[componentId]])
                 if s != 0
@@ -391,11 +391,11 @@ impl Decoder
         .realDestBytesPerScanLine = (.imageSizeX * .destBytesPerPixel)
 
         .scanLine0.resize(cast(u64) .destBytesPerScanLine + 8)
-        let scanLine0 = .scanLine0.buffer!
+        let scanLine0 = .scanLine0.storage()
         Memory.clear(scanLine0, cast(u64) .destBytesPerScanLine)
 
         .scanLine1.resize(cast(u64) .destBytesPerScanLine + 8)
-        let scanLine1 = .scanLine1.buffer!
+        let scanLine1 = .scanLine1.storage()
         Memory.clear(scanLine1, cast(u64) .destBytesPerScanLine)
 
         .maxBlocksPerRow = .maxMcusPerRow * .maxBlocksPerMcu
@@ -403,10 +403,10 @@ impl Decoder
             fail InvalidFormatError{"assertion error"}
 
         .quantBuf.resize(cast(u64) .maxBlocksPerRow * 64 * #sizeof(s16) + 8)
-        Memory.clear(.quantBuf.buffer!, .quantBuf.count)
+        Memory.clear(.quantBuf.storage(), .quantBuf.count)
         for i in .maxBlocksPerRow
         {
-            .blockSeg[i] = cast([*] s16) (cast([*] u8) .quantBuf.buffer! + i * 64 * #sizeof(s16))
+            .blockSeg[i] = cast([*] s16) (cast([*] u8) .quantBuf.storage() + i * 64 * #sizeof(s16))
         }
 
         // The conversions read whole vectors, so the last sample of a row is followed by enough
@@ -479,7 +479,7 @@ impl Decoder
         var huffCode: [257] u32
 
         var p = 0
-        let huffNumBuf = .huffNum[idx].buffer!
+        let huffNumBuf = .huffNum[idx].storage()
         for l in 1 to 16
         {
             for var i = 1; i <= huffNumBuf[l]; i += 1
@@ -515,7 +515,7 @@ impl Decoder
             hs.lookUp[i] = 1 << 8
 
         var nextFreeEntry = -1
-        let huffValBuf    = .huffVal[idx].buffer!
+        let huffValBuf    = .huffVal[idx].storage()
         p = 0
         while p < lastp
         {

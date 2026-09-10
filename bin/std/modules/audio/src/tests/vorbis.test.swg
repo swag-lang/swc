@@ -31,7 +31,7 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     Swag.assert(decoded.count == sound.sampleFrameCount() * channels)
     Swag.assert(decoded.count * #sizeof(s16) == wanted.count)
 
-    let wantedAt = cast(const [*] s16) wanted.buffer!
+    let wantedAt = cast(const [*] s16) wanted.storage()
     var energy   = 0.0'f64
     var worst    = 0.0'f64
     for index in decoded.count

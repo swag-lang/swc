@@ -248,7 +248,7 @@ private func markdownWhiteyFixturePath()->String
     var source = expect File.readAllText(markdownFixturePath())
     for 160 do
         source += "A README paragraph remains available for progressive wheel navigation.\n\n"
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -317,7 +317,7 @@ private func markdownWhiteyFixturePath()->String
     for 8_000 do
         source += "A trailing paragraph keeps the document large.\n\n"
     Swag.assert(source.length >= 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)

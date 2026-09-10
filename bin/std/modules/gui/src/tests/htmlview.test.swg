@@ -870,7 +870,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
         source += "<p>A trailing paragraph keeps the document large.</p>"
     source += "</body></html>"
     Swag.assert(source.length >= 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -916,7 +916,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
         source += "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ repeated source line\n"
     source += "</pre>"
     Swag.assert(source.length > 192 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -1077,7 +1077,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
         source += Format.toString("<p id='row-%'>Paragraph % carries enough ordinary HTML to exercise a generic resident window.</p>\n", index, index)
     source += "</body></html>"
     Swag.assert(source.length > 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
@@ -1121,7 +1121,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     }
 
     source += "</body></html>"
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
@@ -1175,7 +1175,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
         source += Format.toString("<h2>Scrub section %</h2><p>Unique paragraph % keeps a virtual seek visible and deterministic.</p>\n", index, index)
     source += "</body></html>"
     Swag.assert(source.length > 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
@@ -1768,14 +1768,14 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     declared += "<p>caf"
     declared.append(0xE9'u8)
     declared += "</p></body></html>"
-    let declaredText = loadTemporaryDocument(&host, Swag.makeSlice(cast(const [*] u8) declared.buffer!, declared.length), "declared")
+    let declaredText = loadTemporaryDocument(&host, Swag.makeSlice(cast(const [*] u8) declared.storage(), declared.length), "declared")
     Swag.assert(Utf8.contains(declaredText.toString(), "café"))
 
     // No declaration: the byte pattern itself says code page 1252.
     var plain: String = "<html><body><p>tr"
     plain.append(0xE8'u8)
     plain += "s vite</p></body></html>"
-    let plainText = loadTemporaryDocument(&host, Swag.makeSlice(cast(const [*] u8) plain.buffer!, plain.length), "plain")
+    let plainText = loadTemporaryDocument(&host, Swag.makeSlice(cast(const [*] u8) plain.storage(), plain.length), "plain")
     Swag.assert(Utf8.contains(plainText.toString(), "très vite"))
 
     // UTF-16 LE behind its byte-order mark, which is content in no encoding.

@@ -49,7 +49,7 @@ func writePixel(image: *Image, sourceIndex: u64, pixel: Pixel)
     let sourceY = cast(s32) (sourceIndex / cast(u64) image.width)
     let sourceX = cast(s32) (sourceIndex % cast(u64) image.width)
     let targetY = image.height - sourceY - 1
-    let target  = image.pixels.buffer! + cast(u64) targetY * image.rowStride + cast(u64) sourceX * image.bytesPerPixel
+    let target  = image.pixels.storage() + cast(u64) targetY * image.rowStride + cast(u64) sourceX * image.bytesPerPixel
     target[0] = pixel.r
     target[1] = pixel.g
     target[2] = pixel.b

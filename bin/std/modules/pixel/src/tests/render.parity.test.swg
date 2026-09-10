@@ -59,7 +59,7 @@ private func makeRenderParityTexture(renderer: IRenderer)->Texture
         {
             let color = colors[cast(u64) ((x + y) & 3)]
             let row   = image.height - y - 1
-            let pixel = image.pixels.buffer! + cast(u64) (row * image.rowStride + x * image.bytesPerPixel)
+            let pixel = image.pixels.storage() + cast(u64) (row * image.rowStride + x * image.bytesPerPixel)
             pixel[0] = color.b
             pixel[1] = color.g
             pixel[2] = color.r
@@ -374,7 +374,7 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
     expected.clear()
     var actual = expected
 
-    let pixels = actual.pixels.buffer!
+    let pixels = actual.pixels.storage()
     pixels[2] = 4
     Testing.assertImagesNear(&expected, &actual, "render.parity.tolerance.delta", {maxChannelDelta: 4})
 
@@ -426,7 +426,7 @@ private func makeRenderPlanarPicture(storage: *Array'u8)->YuvPlanarView
     const ChromaHeight = (Height + 1) / 2
 
     storage.resize(Width * Height + ChromaWidth * ChromaHeight * 2)
-    let luma    = storage.buffer!
+    let luma    = storage.storage()
     let chromaB = luma + Width * Height
     let chromaR = chromaB + ChromaWidth * ChromaHeight
 

@@ -251,13 +251,13 @@ namespace ResizeTools
     func scaleRow(imgDst: *Image, imgSrc: const *Image, row: s64, contrib: const *LineContrib)
     {
         let bpp8   = imgDst.bytesPerPixel
-        var dstRow = imgDst.pixels.buffer! + row * bpp8 * imgDst.width
-        let srcRow = imgSrc.pixels.buffer! + row * bpp8 * imgSrc.width
+        var dstRow = imgDst.pixels.storage() + row * bpp8 * imgDst.width
+        let srcRow = imgSrc.pixels.storage() + row * bpp8 * imgSrc.width
 
         #[Swag.Mixin]
         func(BPP: u8) doIt()
         {
-            let crow0 = contrib.row.buffer!
+            let crow0 = contrib.row.storage()
             for x in imgDst.width
             {
                 let crow  = crow0 + x
@@ -267,7 +267,7 @@ namespace ResizeTools
                 #static if BPP == 32 do
                     var da: f64
                 var dr, dg, db: f64
-                var pw  = crow.weights.buffer!
+                var pw  = crow.weights.storage()
                 var ptr = srcRow + left * bpp8
                 for (right - left) + 1
                 {
@@ -302,15 +302,15 @@ namespace ResizeTools
     func scaleCol(imgDst: *Image, imgSrc: const *Image, col: s64, contrib: const *LineContrib)
     {
         let bpp8   = imgDst.bytesPerPixel
-        var dstCol = imgDst.pixels.buffer! + col * bpp8
-        let srcCol = imgSrc.pixels.buffer! + col * bpp8
+        var dstCol = imgDst.pixels.storage() + col * bpp8
+        let srcCol = imgSrc.pixels.storage() + col * bpp8
         let w8Dst  = imgDst.width * bpp8
         let w8Src  = imgSrc.width * bpp8
 
         #[Swag.Mixin]
         func(BPP: u8) doIt()
         {
-            let crow0 = contrib.row.buffer!
+            let crow0 = contrib.row.storage()
             for y in imgDst.height
             {
                 let crow  = crow0 + y
@@ -320,7 +320,7 @@ namespace ResizeTools
                 #static if BPP == 32 do
                     var da: f64
                 var dr, dg, db: f64
-                var pw  = crow.weights.buffer!
+                var pw  = crow.weights.storage()
                 var ptr = srcCol + left * w8Src
                 for (right - left) + 1
                 {
@@ -354,13 +354,13 @@ namespace ResizeTools
     #[Swag.Safety(.All, false)]
     func scaleRowGeneric(imgDst: *Image, imgSrc: const *Image, row: s64, contrib: const *LineContrib)
     {
-        let srcRow = imgSrc.pixels.buffer! + cast(u64) row * imgSrc.rowStride
-        let dstRow = imgDst.pixels.buffer! + cast(u64) row * imgDst.rowStride
+        let srcRow = imgSrc.pixels.storage() + cast(u64) row * imgSrc.rowStride
+        let dstRow = imgDst.pixels.storage() + cast(u64) row * imgDst.rowStride
         for x in imgDst.width
         {
             let contribution = contrib.row[x]
             var sum          = PixelValue{0, 0, 0, 0}
-            var weight       = contribution.weights.buffer!
+            var weight       = contribution.weights.storage()
             for var sourceX = contribution.left; sourceX <= contribution.right; sourceX += 1
             {
                 let value  = readPixelValue(srcRow + cast(u64) sourceX * imgSrc.bytesPerPixel, imgSrc.pixelFormat)
@@ -379,13 +379,13 @@ namespace ResizeTools
     #[Swag.Safety(.All, false)]
     func scaleColGeneric(imgDst: *Image, imgSrc: const *Image, col: s64, contrib: const *LineContrib)
     {
-        let srcCol = imgSrc.pixels.buffer! + cast(u64) col * imgSrc.bytesPerPixel
-        let dstCol = imgDst.pixels.buffer! + cast(u64) col * imgDst.bytesPerPixel
+        let srcCol = imgSrc.pixels.storage() + cast(u64) col * imgSrc.bytesPerPixel
+        let dstCol = imgDst.pixels.storage() + cast(u64) col * imgDst.bytesPerPixel
         for y in imgDst.height
         {
             let contribution = contrib.row[y]
             var sum          = PixelValue{0, 0, 0, 0}
-            var weight       = contribution.weights.buffer!
+            var weight       = contribution.weights.storage()
             for var sourceY = contribution.left; sourceY <= contribution.right; sourceY += 1
             {
                 let value  = readPixelValue(srcCol + cast(u64) sourceY * imgSrc.rowStride, imgSrc.pixelFormat)
@@ -479,7 +479,7 @@ namespace ResizeTools
                 let params = cast(*#decltype(f)) userData!
                 let fx     = cast(u32) (x * params.xscale)
                 let fy     = cast(u32) (y * params.yscale)
-                let pixSrc = params.srcImage.pixels.buffer! + cast(u64) fx * image.bytesPerPixel + cast(u64) fy * params.srcImage.rowStride
+                let pixSrc = params.srcImage.pixels.storage() + cast(u64) fx * image.bytesPerPixel + cast(u64) fy * params.srcImage.rowStride
                 Memory.copy(pix, pixSrc, image.bytesPerPixel)
             }
         }

@@ -165,8 +165,8 @@ private func coverageImage(rendered: const *Image, kind: SoftMaskKind)->Image
     let width  = cast(u64) rendered.width
     for y in cast(u64) rendered.height
     {
-        var out    = result.pixels.buffer! + y * cast(u64) result.rowStride
-        var source = rendered.pixels.buffer! + y * cast(u64) rendered.rowStride
+        var out    = result.pixels.storage() + y * cast(u64) result.rowStride
+        var source = rendered.pixels.storage() + y * cast(u64) rendered.rowStride
         let step   = cast(u64) rendered.bytesPerPixel
         for width
         {

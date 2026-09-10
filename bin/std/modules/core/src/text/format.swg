@@ -47,7 +47,7 @@ func replaceString(dest: *String, fmt: string, values: ...)
     dest.grow(buf.count() + 1)
     for bucket in buf do
         dest.append(Swag.makeString(bucket.data, bucket.count))
-    dest.buffer![dest.length] = 0
+    dest.storage()[dest.length] = 0
 }
 
 // Format a string and returns the result as a String.

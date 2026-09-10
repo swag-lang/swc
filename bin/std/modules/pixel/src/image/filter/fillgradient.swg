@@ -62,7 +62,7 @@ public impl Image
 
         .visitPixels(stride: .width)
         {
-            Memory.copy(pix, cast([*] u8) image.pixels.buffer!, cast(u64) image.width * image.bytesPerPixel)
+            Memory.copy(pix, cast([*] u8) image.pixels.storage(), cast(u64) image.width * image.bytesPerPixel)
         }
     }
 

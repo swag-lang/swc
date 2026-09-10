@@ -63,7 +63,7 @@ func addAdobeRgbMarker(encoded: const [..] u8)->Array'u8
 
 func fillSolidImage(img: *Image, b, g, r, a: u8)
 {
-    var pix = img.pixels.buffer!
+    var pix = img.pixels.storage()
     for img.width * img.height
     {
         switch img.pixelFormat
@@ -144,8 +144,8 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     for pixel in cast(u64) gray.width * gray.height
     {
         let offset = pixel * 3
-        Swag.assert(gray.pixels.buffer![offset] == gray.pixels.buffer![offset + 1])
-        Swag.assert(gray.pixels.buffer![offset] == gray.pixels.buffer![offset + 2])
+        Swag.assert(gray.pixels.storage()[offset] == gray.pixels.storage()[offset + 1])
+        Swag.assert(gray.pixels.storage()[offset] == gray.pixels.storage()[offset + 2])
     }
 
     assertLoadedJpg("progh1v1.jpg", 660, 441, 202'u8, 206'u8, 195'u8)
@@ -164,17 +164,17 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.assert(img.pixelFormat == .BGR8)
 
     let row = cast(u64) (img.height - 1 - 16) * cast(u64) img.width * 3
-    let red = img.pixels.buffer! + row + 8 * 3
+    let red = img.pixels.storage() + row + 8 * 3
     assertNearByte(red[0], 0'u8, 8'u8)
     assertNearByte(red[1], 0'u8, 8'u8)
     assertNearByte(red[2], 255'u8, 8'u8)
 
-    let green = img.pixels.buffer! + row + 24 * 3
+    let green = img.pixels.storage() + row + 24 * 3
     assertNearByte(green[0], 0'u8, 8'u8)
     assertNearByte(green[1], 255'u8, 8'u8)
     assertNearByte(green[2], 0'u8, 8'u8)
 
-    let blue = img.pixels.buffer! + row + 40 * 3
+    let blue = img.pixels.storage() + row + 40 * 3
     assertNearByte(blue[0], 255'u8, 8'u8)
     assertNearByte(blue[1], 0'u8, 8'u8)
     assertNearByte(blue[2], 0'u8, 8'u8)

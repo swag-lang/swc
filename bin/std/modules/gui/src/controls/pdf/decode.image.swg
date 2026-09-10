@@ -476,7 +476,7 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
     result.rgb.resize(pixelCount * 3)
     if depth == 8 and decodeId == InvalidNode and space.kind == .Gray and space.components == 1
     {
-        expandGray8(result.rgb.buffer!, bytes.buffer!, pixelCount)
+        expandGray8(result.rgb.storage(), bytes.storage(), pixelCount)
         try applyColorKeyMask(parser, nodeId, &result, bytes.toSlice(), space, depth, rowBytes)
         return result
     }
@@ -490,7 +490,7 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
 
     if depth == 8 and decodeId == InvalidNode and space.kind == .Cmyk and space.components == 4
     {
-        expandCmyk8(result.rgb.buffer!, bytes.buffer!, pixelCount)
+        expandCmyk8(result.rgb.storage(), bytes.storage(), pixelCount)
         try applyColorKeyMask(parser, nodeId, &result, bytes.toSlice(), space, depth, rowBytes)
         return result
     }
@@ -671,8 +671,8 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
     if not plane.alpha.count and not fill
     {
         var result = #move Image.create(plane.width, plane.height, .RGB8)
-        let target = result.pixels.buffer!
-        let source = plane.rgb.buffer!
+        let target = result.pixels.storage()
+        let source = plane.rgb.storage()
         let stride = width * 3
         for row in height do
             Memory.copy(target + row * cast(u64) result.rowStride, source + (height - row - 1) * stride, stride)
@@ -680,8 +680,8 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
     }
 
     var result = #move Image.create(plane.width, plane.height, .RGBA8)
-    let pixels = result.pixels.buffer!
-    let alpha  = plane.alpha.buffer!
+    let pixels = result.pixels.storage()
+    let alpha  = plane.alpha.storage()
 
     // A stencil carries coverage and nothing else: its colour is the fill in force, so there
     // are no samples to read.
@@ -705,7 +705,7 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
         return #move result
     }
 
-    let source = plane.rgb.buffer!
+    let source = plane.rgb.storage()
     for y in height
     {
         var out       = pixels + (height - y - 1) * cast(u64) result.rowStride
@@ -803,8 +803,8 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         let step        = cast(u64) decoded.bytesPerPixel
         for y in cast(u64) decoded.height
         {
-            var out    = plane.rgb.buffer! + y * cast(u64) decoded.width * 3
-            var sample = decoded.pixels.buffer! + (cast(u64) decoded.height - y - 1) * cast(u64) decoded.width * step
+            var out    = plane.rgb.storage() + y * cast(u64) decoded.width * 3
+            var sample = decoded.pixels.storage() + (cast(u64) decoded.height - y - 1) * cast(u64) decoded.width * step
             for cast(u64) decoded.width
             {
                 out[0] = sample[swapRedBlue ? 2 : 0]

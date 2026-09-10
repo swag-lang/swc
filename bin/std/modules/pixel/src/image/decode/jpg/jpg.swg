@@ -342,7 +342,7 @@ internal impl IImageDecoder for Decoder
 
         result.allocPixels()
 
-        .doit(cast([*] u8) result.pixels.buffer!)
+        .doit(cast([*] u8) result.pixels.storage())
         result.metadata = #move .metadata
 
         return result

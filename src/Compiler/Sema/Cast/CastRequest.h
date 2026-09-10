@@ -35,6 +35,7 @@ enum class CastFlagsE : uint32_t
     ForceConstEval       = 1 << 8,
     AllowCopyToMoveRef   = 1 << 9,  // call argument: a plain value may bind a '#move' parameter via a temporary copy
     DeducedDestination   = 1 << 10, // 'cast()': explicit, but the destination comes from the context instead of the source
+    LateRelease          = 1 << 11, // 'slot = null' on a 'late' slot: the store that returns it to unset
 };
 using CastFlags = EnumFlags<CastFlagsE>;
 

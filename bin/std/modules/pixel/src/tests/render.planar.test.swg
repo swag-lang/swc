@@ -11,14 +11,14 @@ func flatPlanarPicture(storage: *Array'u8, width, height: s32, luma, chromaB, ch
     let chromaSize   = chromaWidth * chromaHeight
 
     storage.resize(lumaSize + chromaSize * 2)
-    Memory.set(storage.buffer!, luma, lumaSize)
-    Memory.set(storage.buffer! + lumaSize, chromaB, chromaSize)
-    Memory.set(storage.buffer! + lumaSize + chromaSize, chromaR, chromaSize)
+    Memory.set(storage.storage(), luma, lumaSize)
+    Memory.set(storage.storage() + lumaSize, chromaB, chromaSize)
+    Memory.set(storage.storage() + lumaSize + chromaSize, chromaR, chromaSize)
 
     return {
-        luma: storage.buffer!,
-        chromaB: storage.buffer! + lumaSize,
-        chromaR: storage.buffer! + lumaSize + chromaSize,
+        luma: storage.storage(),
+        chromaB: storage.storage() + lumaSize,
+        chromaR: storage.storage() + lumaSize + chromaSize,
         lumaStride: cast(u64) width,
         chromaStride: chromaWidth,
         width: width,
@@ -195,9 +195,9 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
         chroma[index] = 128
 
     let view = YuvPlanarView{
-        luma: luma.buffer!,
-        chromaB: chroma.buffer!,
-        chromaR: chroma.buffer!,
+        luma: luma.storage(),
+        chromaB: chroma.storage(),
+        chromaR: chroma.storage(),
         lumaStride: 8,
         chromaStride: 2,
         width: 4,

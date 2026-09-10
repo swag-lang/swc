@@ -164,7 +164,7 @@ func day6A1()
     day6EnsureInstructions()
     var lights: Array'bool
     lights.resize(DAY6_GRID_SIZE * DAY6_GRID_SIZE)
-    let lightsBuf = lights.buffer!
+    let lightsBuf = lights.storage()
 
     for instruction in day6Instructions
     {

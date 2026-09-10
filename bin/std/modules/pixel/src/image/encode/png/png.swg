@@ -324,7 +324,7 @@ internal impl IImageEncoder for Encoder
         if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression do
             .encodeFlags.filterChoice = .All
 
-        let srcPixels = cast([*] u8) image.pixels.buffer!
+        let srcPixels = cast([*] u8) image.pixels.storage()
         for
         {
             let ioffset = (image.height - .rowInfo.rowNum - 1) * image.width * image.bytesPerPixel

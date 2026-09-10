@@ -26,7 +26,7 @@ func videoTestImage(width, height: s32, pixels: const [..] u8)->Image
 func videoGrayImage(width, height: s32, value: u8)->Image
 {
     var result: retval = Image.create(width, height, .RGB8)
-    Memory.set(result.pixels.buffer!, value, result.pixels.count)
+    Memory.set(result.pixels.storage(), value, result.pixels.count)
     return result
 }
 
@@ -37,8 +37,8 @@ func videoFlatPayload(width, height: s32, luma: u8)->Array'u8
 
     var result: retval
     result.resize(lumaSize + lumaSize / 2)
-    Memory.set(result.buffer!, luma, lumaSize)
-    Memory.set(result.buffer! + lumaSize, 128, lumaSize / 2)
+    Memory.set(result.storage(), luma, lumaSize)
+    Memory.set(result.storage() + lumaSize, 128, lumaSize / 2)
     return result
 }
 
@@ -151,7 +151,7 @@ func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32, c
             let d            = cast(s32) bytes[base + lumaSize + chromaSource] - 128
             let e            = cast(s32) bytes[base + lumaSize + chromaSize + chromaSource] - 128
             let c            = Math.max(luma - 16, 0)
-            let destination  = result.pixels.buffer! + destinationRow + cast(u64) x * 3
+            let destination  = result.pixels.storage() + destinationRow + cast(u64) x * 3
             destination[0] = cast(u8) Math.clamp((298 * c + 409 * e + 128) >> 8, 0, 255)
             destination[1] = cast(u8) Math.clamp((298 * c - 100 * d - 208 * e + 128) >> 8, 0, 255)
             destination[2] = cast(u8) Math.clamp((298 * c + 516 * d + 128) >> 8, 0, 255)
@@ -167,7 +167,7 @@ func videoAssertReferenceFrame(frame: Image, reference: const [..] u8, index: u6
     Swag.assert(frame.width == width and frame.height == height and frame.pixelFormat == .RGB8)
     let expected   = videoReferenceFrame(reference, index, width, height, chromaShift)
     var mismatches = 0'u64
-    for position in frame.pixels.count where frame.pixels.buffer![position] != expected.pixels.buffer![position] do
+    for position in frame.pixels.count where frame.pixels.storage()[position] != expected.pixels.storage()[position] do
         mismatches += 1
     if mismatches > 0 do
         Swag.print("frame ", index, ": ", mismatches, " of ", frame.pixels.count, " bytes differ\n")

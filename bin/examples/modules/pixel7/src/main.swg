@@ -89,7 +89,7 @@ func sourceVariant(source: Image, pixelFormat: PixelFormat, withAlphaBorder = fa
         return result
 
     Swag.assert(pixelFormat.hasAlpha())
-    var pixel = result.pixels.buffer!
+    var pixel = result.pixels.storage()
     for y in result.height
     {
         for x in result.width
@@ -107,7 +107,7 @@ func sourceVariant(source: Image, pixelFormat: PixelFormat, withAlphaBorder = fa
 func paletteVariant(source: Image, withAlpha: bool)->Image
 {
     var result      = sourceVariant(source, withAlpha ? .RGBA8 : .RGB8)
-    var pixel       = result.pixels.buffer!
+    var pixel       = result.pixels.storage()
     let borderWidth = Math.max(Math.min(result.width, result.height) / 12, 1)
     for y in result.height
     {

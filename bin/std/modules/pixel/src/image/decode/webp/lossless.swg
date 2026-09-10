@@ -221,7 +221,7 @@ impl LosslessHuffmanTree
 
         .nodes.resize(2 * symbolCount - 1)
         .nodeCount = 1
-        Memory.clear(cast([*] void) .nodes.buffer!, .nodes.count * #sizeof(LosslessHuffmanNode))
+        Memory.clear(cast([*] void) .nodes.storage(), .nodes.count * #sizeof(LosslessHuffmanNode))
         Memory.clear(&.lut[0], #sizeof(.lut))
 
         if symbolCount == 1
@@ -259,7 +259,7 @@ impl LosslessHuffmanTree
     {
         .nodes.resize(2 * symbolCount - 1)
         .nodeCount = 1
-        Memory.clear(cast([*] void) .nodes.buffer!, .nodes.count * #sizeof(LosslessHuffmanNode))
+        Memory.clear(cast([*] void) .nodes.storage(), .nodes.count * #sizeof(LosslessHuffmanNode))
         Memory.clear(&.lut[0], #sizeof(.lut))
 
         for i in symbolCount
@@ -492,7 +492,7 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
         let tileHeight = losslessTileCount(height, huffmanBits[])
         let tileCount  = tileWidth * tileHeight
         losslessDecodePixels(reader, huffmanPixels, tileWidth, tileHeight, 0, false)
-        let huffmanData = cast([*] u8) huffmanPixels.buffer!
+        let huffmanData = cast([*] u8) huffmanPixels.storage()
 
         var offset: u64
         while offset < huffmanPixels.count
@@ -534,7 +534,7 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
     }
 
     groups.resize(groupCount)
-    let groupData = groups.buffer!
+    let groupData = groups.storage()
     for realIndex in maxGroupIndex + 1
     {
         var group: *LosslessHuffmanGroup?
@@ -591,9 +591,9 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
 
     result.resize(Math.max(cast(u64) minimumCapacity, byteCount))
     result.count = byteCount
-    let output      = cast([*] u8) result.buffer!
-    let groupData   = groups.buffer!
-    let huffmanData = huffmanBits ? cast([*] u8) huffmanPixels.buffer! : null
+    let output      = cast([*] u8) result.storage()
+    let groupData   = groups.storage()
+    let huffmanData = huffmanBits ? cast([*] u8) huffmanPixels.storage() : null
 
     var offset:       u64
     var cachedOffset: u64
@@ -717,7 +717,7 @@ func losslessClampAddSubtractHalf(a, b: u8)->u8
 
 func losslessAddAt(pixels: *Array'u8, offset: u64, value: u8)
 {
-    let data = cast([*] u8) pixels.buffer!
+    let data = cast([*] u8) pixels.storage()
     data[offset] += #wrap value
 }
 
@@ -727,7 +727,7 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, 
         return
 
     losslessAddAt(pixels, 3, 0xFF)
-    let data   = cast([*] u8) pixels.buffer!
+    let data   = cast([*] u8) pixels.storage()
     var offset = 4'u64
     let mask   = cast(s32) (1 << transform.bits) - 1
     for transform.oldWidth - 1
@@ -875,7 +875,7 @@ func losslessInverseCrossColor(transform: *LosslessTransform, pixels: *Array'u8,
     var offset:      u64
     let mask        = cast(s32) (1 << transform.bits) - 1
     let tilesPerRow = losslessTileCount(transform.oldWidth, transform.bits)
-    let data        = cast([*] u8) pixels.buffer!
+    let data        = cast([*] u8) pixels.storage()
 
     for y in height
     {
@@ -902,7 +902,7 @@ func losslessInverseCrossColor(transform: *LosslessTransform, pixels: *Array'u8,
 
 func losslessInverseSubtractGreen(pixels: *Array'u8)
 {
-    let data = cast([*] u8) pixels.buffer!
+    let data = cast([*] u8) pixels.storage()
     var offset: u64
     while offset < pixels.count
     {
@@ -915,7 +915,7 @@ func losslessInverseSubtractGreen(pixels: *Array'u8)
 
 func losslessInverseColorIndexing(transform: *LosslessTransform, pixels: *Array'u8, height: s32)
 {
-    let data = cast([*] u8) pixels.buffer!
+    let data = cast([*] u8) pixels.storage()
     if transform.bits == 0
     {
         var offset: u64

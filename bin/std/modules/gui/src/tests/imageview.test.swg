@@ -238,13 +238,13 @@ private func edgeSpread(image: *Image, row: s32)->s32
 
     var planes: Array'u8
     planes.resize(100 * 50 + 50 * 25 * 2)
-    Memory.set(planes.buffer!, 235, 100 * 50)
-    Memory.set(planes.buffer! + 100 * 50, 128, 50 * 25 * 2)
+    Memory.set(planes.storage(), 235, 100 * 50)
+    Memory.set(planes.storage() + 100 * 50, 128, 50 * 25 * 2)
 
     let picture = YuvPlanarView{
-        luma: planes.buffer!,
-        chromaB: planes.buffer! + 100 * 50,
-        chromaR: planes.buffer! + 100 * 50 + 50 * 25,
+        luma: planes.storage(),
+        chromaB: planes.storage() + 100 * 50,
+        chromaR: planes.storage() + 100 * 50 + 50 * 25,
         lumaStride: 100,
         chromaStride: 50,
         width: 100,
@@ -265,9 +265,9 @@ private func edgeSpread(image: *Image, row: s32)->s32
 
     // A stream that changes size, or a view that is cleared, starts over.
     let smaller = YuvPlanarView{
-        luma: planes.buffer!,
-        chromaB: planes.buffer! + 100 * 50,
-        chromaR: planes.buffer! + 100 * 50 + 50 * 25,
+        luma: planes.storage(),
+        chromaB: planes.storage() + 100 * 50,
+        chromaR: planes.storage() + 100 * 50 + 50 * 25,
         lumaStride: 100,
         chromaStride: 50,
         width: 60,

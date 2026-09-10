@@ -251,13 +251,13 @@ impl Decoder
         .firstPicture = false
 
         let blocks = cast(u64) .gridWidth * cast(u64) .gridHeight
-        Memory.set(.predMode.buffer!, ModeInter, blocks)
-        Memory.set(.intraModeY.buffer!, IntraDc, blocks)
-        Memory.set(.ctDepth.buffer!, 0, blocks)
-        Memory.set(.skipFlag.buffer!, 0, blocks)
-        Memory.set(.cbfLuma.buffer!, 0, blocks)
-        Memory.set(.edgeFlags.buffer!, 0, blocks)
-        Memory.set(.qpY.buffer!, 0, blocks)
+        Memory.set(.predMode.storage(), ModeInter, blocks)
+        Memory.set(.intraModeY.storage(), IntraDc, blocks)
+        Memory.set(.ctDepth.storage(), 0, blocks)
+        Memory.set(.skipFlag.storage(), 0, blocks)
+        Memory.set(.cbfLuma.storage(), 0, blocks)
+        Memory.set(.edgeFlags.storage(), 0, blocks)
+        Memory.set(.qpY.storage(), 0, blocks)
         for index in blocks do
             .motion[index] = PuMotion{}
 
@@ -269,8 +269,8 @@ impl Decoder
         }
 
         .ctbSliceIndex.resize(cast(u64) sps.sizeInCtbs)
-        Memory.set(.ctbSliceAddr.buffer!, 0, cast(u64) sps.sizeInCtbs * #sizeof(u32))
-        Memory.set(.ctbSliceIndex.buffer!, 0, cast(u64) sps.sizeInCtbs * #sizeof(u16))
+        Memory.set(.ctbSliceAddr.storage(), 0, cast(u64) sps.sizeInCtbs * #sizeof(u32))
+        Memory.set(.ctbSliceIndex.storage(), 0, cast(u64) sps.sizeInCtbs * #sizeof(u16))
     }
 
     // Finishes the open picture: loop filters, edge extension, and publication.
@@ -487,7 +487,7 @@ impl Decoder
         let last  = bounds[index + 1]
         if last <= first do
             fail InvalidFormatError{"HEVC slice segment substream is empty"}
-        .cabac.start(.rbsp.buffer! + first, last - first)
+        .cabac.start(.rbsp.storage() + first, last - first)
     }
 
     // Decodes a full-picture wavefront slice using one private scratch decoder per row.
@@ -652,7 +652,7 @@ impl Decoder
         .isCuQpDeltaCoded = false
         let first = job.bounds![row]
         let last  = job.bounds![row + 1]
-        .cabac.start(job.owner!.rbsp.buffer! + first, last - first)
+        .cabac.start(job.owner!.rbsp.storage() + first, last - first)
 
         if row
         {

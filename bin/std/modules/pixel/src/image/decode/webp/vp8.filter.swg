@@ -152,7 +152,7 @@ func vp8ComputeFilterParams(decoder: *Vp8Decoder)
 
 func vp8SimpleFilter(decoder: *Vp8Decoder)
 {
-    let yData = cast([*] u8) decoder.y.buffer!
+    let yData = cast([*] u8) decoder.y.storage()
     for mbY in decoder.mbHeight
     {
         for mbX in decoder.mbWidth
@@ -185,9 +185,9 @@ func vp8SimpleFilter(decoder: *Vp8Decoder)
 
 func vp8NormalFilter(decoder: *Vp8Decoder)
 {
-    let yData  = cast([*] u8) decoder.y.buffer!
-    let cbData = cast([*] u8) decoder.cb.buffer!
-    let crData = cast([*] u8) decoder.cr.buffer!
+    let yData  = cast([*] u8) decoder.y.storage()
+    let cbData = cast([*] u8) decoder.cb.storage()
+    let crData = cast([*] u8) decoder.cr.storage()
     for mbY in decoder.mbHeight
     {
         for mbX in decoder.mbWidth

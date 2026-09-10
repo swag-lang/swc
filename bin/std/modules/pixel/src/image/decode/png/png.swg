@@ -504,7 +504,7 @@ impl Decoder
         if .header.bitDepth == 8 and .inChannels == .outChannels
         {
             result.allocPixels()
-            .dstPixels = cast([*] u8) result.pixels.buffer!
+            .dstPixels = cast([*] u8) result.pixels.storage()
         }
         else
         {

@@ -192,7 +192,7 @@ const WrittenFrameCount = 300'u64
     var source = videoGrayImage(WrittenWidth, WrittenHeight, 0)
     for index in WrittenFrameCount
     {
-        Memory.set(source.pixels.buffer!, cast(u8) (16 + index % 200), source.pixels.count)
+        Memory.set(source.pixels.storage(), cast(u8) (16 + index % 200), source.pixels.count)
         expect writer.addFrame(source)
     }
 

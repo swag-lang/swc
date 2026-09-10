@@ -514,7 +514,7 @@ private impl RegExp
         if count < 2 or source == null do
             return
 
-        let destination = .slots.buffer!
+        let destination = .slots.storage()
         let filled      = source!
         for var s = 0'u64; s < count; s += 1 do
             destination[s] = filled[s]

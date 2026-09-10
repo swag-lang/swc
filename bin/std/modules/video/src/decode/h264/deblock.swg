@@ -44,7 +44,7 @@ func deblockPicture(dec: *Decoder)
     // edge being filtered here. Rows with the same lane are far enough apart to run in one job.
     var rowProgress: Array'u32
     rowProgress.resize(cast(u64) sps.mbHeight)
-    var context = DeblockContext{dec, rowProgress.buffer!, laneCount}
+    var context = DeblockContext{dec, rowProgress.storage(), laneCount}
     parallel for |&context| parIndex in cast(u64) laneCount
     {
         let index  = cast(u32) parIndex

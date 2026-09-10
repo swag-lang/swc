@@ -73,8 +73,8 @@ impl Mdct
     {
         let m    = .n / 4
         let half = .n / 2
-        let re   = .real.buffer!
-        let im   = .imaginary.buffer!
+        let re   = .real.storage()
+        let im   = .imaginary.storage()
 
         // Pair the coefficients from both ends of the spectrum into complex points, rotate them
         // by an eighth-bin twiddle, and store them bit-reversed for the in-place FFT.

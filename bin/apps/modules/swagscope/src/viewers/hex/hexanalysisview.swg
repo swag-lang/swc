@@ -159,7 +159,7 @@ private impl HexAnalysisView
     {
         var bytes: Array'u8
         appendHexDigits(&bytes, offset, .offsetDigits)
-        return String.from(Swag.makeString(bytes.buffer!, bytes.count))
+        return String.from(Swag.makeString(bytes.storage(), bytes.count))
     }
 
     mtd scopeText(range: HexAnalysisRange)->String

@@ -49,7 +49,7 @@ const PackedFormats: [18] PixelFormat = [
 #test
 {
     var source = Image.create(2, 1, .RGBA8)
-    let pixels = source.pixels.buffer!
+    let pixels = source.pixels.storage()
     pixels[0] = 12
     pixels[1] = 91
     pixels[2] = 203
@@ -101,9 +101,9 @@ const PackedFormats: [18] PixelFormat = [
     let premultiplied = straight.convertedAlphaTo(.Premultiplied)
     Swag.assert(straight.alphaMode == .Straight)
     Swag.assert(premultiplied.alphaMode == .Premultiplied)
-    Swag.assert(Math.abs(cast(s32) premultiplied.pixels.buffer![0] - 100) <= 1)
-    Swag.assert(Math.abs(cast(s32) premultiplied.pixels.buffer![1] - 50) <= 1)
-    Swag.assert(Math.abs(cast(s32) premultiplied.pixels.buffer![2] - 25) <= 1)
+    Swag.assert(Math.abs(cast(s32) premultiplied.pixels.storage()[0] - 100) <= 1)
+    Swag.assert(Math.abs(cast(s32) premultiplied.pixels.storage()[1] - 50) <= 1)
+    Swag.assert(Math.abs(cast(s32) premultiplied.pixels.storage()[2] - 25) <= 1)
     let logical = premultiplied.pixelColor(0, 0)
     Swag.assert(Math.abs(cast(s32) logical.r - 200) <= 1)
     Swag.assert(Math.abs(cast(s32) logical.g - 100) <= 1)
@@ -112,10 +112,10 @@ const PackedFormats: [18] PixelFormat = [
 
     let restored = premultiplied.convertedAlphaTo(.Straight)
     Swag.assert(restored.alphaMode == .Straight)
-    Swag.assert(Math.abs(cast(s32) restored.pixels.buffer![0] - 200) <= 1)
-    Swag.assert(Math.abs(cast(s32) restored.pixels.buffer![1] - 100) <= 1)
-    Swag.assert(Math.abs(cast(s32) restored.pixels.buffer![2] - 50) <= 1)
-    Swag.assert(restored.pixels.buffer![3] == 128)
+    Swag.assert(Math.abs(cast(s32) restored.pixels.storage()[0] - 200) <= 1)
+    Swag.assert(Math.abs(cast(s32) restored.pixels.storage()[1] - 100) <= 1)
+    Swag.assert(Math.abs(cast(s32) restored.pixels.storage()[2] - 50) <= 1)
+    Swag.assert(restored.pixels.storage()[3] == 128)
 }
 
 // Every registered encoder and decoder declares a usable format, and the declared
@@ -173,7 +173,7 @@ const PackedFormats: [18] PixelFormat = [
     {
         var source = Image.create(4, 4, format)
         for i in source.byteCount do
-            source.pixels.buffer![i] = cast(u8) ((i * 29 + 7) & 0xFF)
+            source.pixels.storage()[i] = cast(u8) ((i * 29 + 7) & 0xFF)
 
         let mirrored = source.mirrored().mirrored()
         let flipped  = source.flipped().flipped()

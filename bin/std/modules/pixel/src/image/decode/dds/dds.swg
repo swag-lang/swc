@@ -99,7 +99,7 @@ func decodeMasked(image: *Image, buffer: const [..] u8, offset: u64, pitch: u64,
     {
         let source  = buffer.buffer + offset + cast(u64) y * pitch
         let targetY = image.height - y - 1
-        var target  = image.pixels.buffer! + cast(u64) targetY * image.rowStride
+        var target  = image.pixels.storage() + cast(u64) targetY * image.rowStride
         for x in image.width
         {
             var value = 0'u32
@@ -132,7 +132,7 @@ func copyRows(image: *Image, buffer: const [..] u8, offset, pitch: u64, forceOpa
     for y in image.height
     {
         let targetY = image.height - y - 1
-        let target  = image.pixels.buffer! + cast(u64) targetY * image.rowStride
+        let target  = image.pixels.storage() + cast(u64) targetY * image.rowStride
         Memory.copy(target, buffer.buffer + offset + cast(u64) y * pitch, rowBytes)
         if forceOpaqueAlpha
         {

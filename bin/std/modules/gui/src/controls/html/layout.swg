@@ -683,7 +683,7 @@ private impl HtmlLayout
         result.count = cast(u32) text.count
         .textPool    += text
 
-        let buffer = .textPool.buffer!
+        let buffer = .textPool.storage()
         switch kind
         {
         case .Uppercase:

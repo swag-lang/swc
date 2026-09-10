@@ -146,7 +146,7 @@ impl Decoder
                 keySize += 1
             if key >= .table.nentries do
                 fail InvalidFormatError{"GIF LZW code is outside its dictionary"}
-            entry  = .table.entries.buffer![key]
+            entry  = .table.entries.storage()[key]
             strLen = entry.length
             if not strLen or strLen > frmSize - frmOff do
                 fail InvalidFormatError{"GIF LZW string exceeds its frame"}
@@ -162,7 +162,7 @@ impl Decoder
                     break
                 if entry.prefix >= .table.nentries do
                     fail InvalidFormatError{"GIF LZW prefix is outside its dictionary"}
-                entry = .table.entries.buffer![entry.prefix]
+                entry = .table.entries.storage()[entry.prefix]
             }
 
             frmOff += strLen

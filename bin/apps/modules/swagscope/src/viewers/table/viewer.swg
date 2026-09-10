@@ -73,7 +73,7 @@ internal func tableCellPreviewRange(value: string, focus = Swag.U64.Max)->{ star
 
 private func finishTableCell(row: *TableRow, cell: *Array'u8)
 {
-    row.cells.add(String.from(cell.isEmpty() ? "" : Swag.makeString(cell.buffer!, cell.count)))
+    row.cells.add(String.from(cell.isEmpty() ? "" : Swag.makeString(cell.storage(), cell.count)))
     cell.clear()
 }
 

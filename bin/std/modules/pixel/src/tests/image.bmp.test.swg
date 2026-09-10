@@ -29,7 +29,7 @@ private func checkBmp16Masks(masks: Bmp.Masks)
         expected[3 + 3 * i + 2] = Bmp.maskToByte(value, masks.r)
     }
 
-    Bmp.decode16Row(source.buffer! + 1, actual.buffer! + 3, Pixels, masks)
+    Bmp.decode16Row(source.storage() + 1, actual.storage() + 3, Pixels, masks)
     for i in actual.count do
         Swag.assert(actual[i] == expected[i])
 }
@@ -839,7 +839,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     {
         var src = Image.create(Width, Height, pixelFormat)
         for i in src.pixels.count do
-            src.pixels.buffer![i] = cast(u8) ((i * 37 + 19) & 0xFF)
+            src.pixels.storage()[i] = cast(u8) ((i * 37 + 19) & 0xFF)
 
         var cb       = expect src.encode("memory.bmp")
         let rowBytes = cast(u64) Width * src.bytesPerPixel
@@ -862,11 +862,11 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         for pixel in cast(u64) Width * Height
         {
             let offset = pixel * bytesPerPixel
-            Swag.assert(img.pixels.buffer![offset] == src.pixels.buffer![offset + 2])
-            Swag.assert(img.pixels.buffer![offset + 1] == src.pixels.buffer![offset + 1])
-            Swag.assert(img.pixels.buffer![offset + 2] == src.pixels.buffer![offset])
+            Swag.assert(img.pixels.storage()[offset] == src.pixels.storage()[offset + 2])
+            Swag.assert(img.pixels.storage()[offset + 1] == src.pixels.storage()[offset + 1])
+            Swag.assert(img.pixels.storage()[offset + 2] == src.pixels.storage()[offset])
             if bytesPerPixel == 4 do
-                Swag.assert(img.pixels.buffer![offset + 3] == src.pixels.buffer![offset + 3])
+                Swag.assert(img.pixels.storage()[offset + 3] == src.pixels.storage()[offset + 3])
         }
     }
 }
@@ -915,7 +915,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     defer discard catch File.delete(path.toString())
     var src = Image.create(4, 4, .BGR8)
     src.clear()
-    let srcBuf = src.pixels.buffer!
+    let srcBuf = src.pixels.storage()
     srcBuf[0]  = 200'u8     // pixel(0,0) B
     srcBuf[1]  = 128'u8     //             G
     srcBuf[2]  = 64'u8      //             R
@@ -957,7 +957,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     defer discard catch File.delete(path.toString())
     var src = Image.create(2, 2, .BGRA8)
     src.clear()
-    let srcBuf = src.pixels.buffer!
+    let srcBuf = src.pixels.storage()
     srcBuf[0] = 10'u8      // pixel(0,0) B
     srcBuf[1] = 20'u8      //             G
     srcBuf[2] = 30'u8      //             R
@@ -985,7 +985,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     defer discard catch File.delete(path.toString())
     var src = Image.create(4, 4, .RGB8)
     src.clear()
-    let srcBuf = src.pixels.buffer!
+    let srcBuf = src.pixels.storage()
     srcBuf[0] = 100'u8     // pixel(0,0) R
     srcBuf[1] = 150'u8     //             G
     srcBuf[2] = 200'u8     //             B
@@ -1011,7 +1011,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     defer discard catch File.delete(path.toString())
     var src = Image.create(2, 2, .RGBA8)
     src.clear()
-    let srcBuf = src.pixels.buffer!
+    let srcBuf = src.pixels.storage()
     srcBuf[0] = 10'u8      // pixel(0,0) R
     srcBuf[1] = 20'u8      //             G
     srcBuf[2] = 30'u8      //             B
@@ -1039,7 +1039,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     defer discard catch File.delete(path.toString())
     var src = Image.create(5, 5, .BGR8)
     src.clear()
-    let srcBuf = src.pixels.buffer!
+    let srcBuf = src.pixels.storage()
     srcBuf[0]  = 77'u8     // pixel(0,0) B
     srcBuf[1]  = 88'u8     //             G
     srcBuf[2]  = 99'u8     //             R

@@ -448,7 +448,7 @@ private impl TagBin
 
         if shapeId >= .shapes.count do
             fail SerializationError{"invalid shape identifier"}
-        let shape = .shapes.buffer! + shapeId
+        let shape = .shapes.storage() + shapeId
 
         let fatSeek      = .stream.readNative'u64()
         let payloadStart = .stream.position()
@@ -899,7 +899,7 @@ impl TagBin
         {
             let shape = sec.shape!
             Swag.assert(sec.posIndex < shape.fields.count)
-            let sf = shape.fields.buffer! + sec.posIndex
+            let sf = shape.fields.storage() + sec.posIndex
             Swag.assert(sf.key == wireFieldKey(val))
             sec.posIndex += 1
 
@@ -931,7 +931,7 @@ impl TagBin
                 fail SerializationError{"field offset runs past the end of the stream", field: val}
 
             .stream.setPosition(ent.seek)
-            let sf = sec.shape.fields.buffer! + ent.shapeIndex
+            let sf = sec.shape.fields.storage() + ent.shapeIndex
 
             .enterElementPayload(sf.flags.has(.Compressed), val)
             defer #fail catch .endElement(val)

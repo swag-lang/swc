@@ -278,7 +278,7 @@ impl Decoder
                 fail InvalidFormatError{"bad dqt table"}
 
             .quant[n].resize(64)
-            let qbuf = .quant[n].buffer!
+            let qbuf = .quant[n].storage()
             for i in 64
             {
                 var temp = .getBits1(8)

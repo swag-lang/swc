@@ -90,7 +90,7 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
     faceData.allocationAllocator = allocationAllocator
     defer #fail Memory.delete(faceData, allocationAllocator)
     faceData.fontData.resize(bytes.count)
-    let fontData = faceData.fontData.buffer!
+    let fontData = faceData.fontData.storage()
     Memory.copy(fontData, bytes.buffer, bytes.count)
 
     let detected = detectProgramSource(bytes)

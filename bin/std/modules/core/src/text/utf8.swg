@@ -776,7 +776,7 @@ func fromUtf16(src: const [..] u16)->String
     result.reserve(4 * src.count)
     result.length = fromUtf16(Swag.makeSlice(result.buffer, result.capacity), src)
     Swag.assert(result.length + 1 < result.capacity)
-    let buffer = result.buffer!
+    let buffer = result.storage()
     buffer[result.length] = 0
     return result
 }

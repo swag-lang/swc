@@ -97,7 +97,7 @@ func storeChannel(image: *Image, channel: u16, sourceY: s32, source: const [..] 
         return
 
     let targetY = image.height - sourceY - 1
-    var target  = image.pixels.buffer! + cast(u64) targetY * image.rowStride
+    var target  = image.pixels.storage() + cast(u64) targetY * image.rowStride
     if depth == 8
     {
         for x in image.width
@@ -222,7 +222,7 @@ internal impl IImageDecoder for Decoder
                     let encodedSize = cast(u64) rowLengths[cast(u64) channel * height + cast(u64) y]
                     if encodedSize > buffer.count - offset do
                         fail InvalidFormatError{"PSD PackBits row is truncated"}
-                    try decodePackBits(row.buffer!, rowBytes, Swag.makeSlice(source + offset, encodedSize))
+                    try decodePackBits(row.storage(), rowBytes, Swag.makeSlice(source + offset, encodedSize))
                     offset += encodedSize
                 }
 
@@ -347,7 +347,7 @@ impl Layer
                     let length = cast(u64) readU16(bytes.buffer + 2 + cast(u64) y * 2)
                     if length > bytes.count - offset do
                         fail InvalidFormatError{"PSD compressed layer row is truncated"}
-                    decodePackBits(pixels.buffer! + cast(u64) y * rowBytes, rowBytes, bytes[offset until offset + length])
+                    decodePackBits(pixels.storage() + cast(u64) y * rowBytes, rowBytes, bytes[offset until offset + length])
                     offset += length
                 }
 
@@ -364,7 +364,7 @@ impl Layer
                 {
                     for y in result.height
                     {
-                        let row = pixels.buffer! + cast(u64) y * rowBytes
+                        let row = pixels.storage() + cast(u64) y * rowBytes
                         for x in range(1, result.width)
                         {
                             if depth == 8 do
@@ -382,7 +382,7 @@ impl Layer
             else do
                 fail UnsupportedFormatError{"PSD layer compression is not supported"}
             for y in result.height do
-                storeChannel(&result, component, y, Swag.makeSlice(pixels.buffer! + cast(u64) y * rowBytes, rowBytes), depth)
+                storeChannel(&result, component, y, Swag.makeSlice(pixels.storage() + cast(u64) y * rowBytes, rowBytes), depth)
         }
 
         return result

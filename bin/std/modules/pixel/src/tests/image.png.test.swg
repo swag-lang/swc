@@ -75,7 +75,7 @@ func assertEncodedPngRoundtrip(src: Image, expectedPf: PixelFormat, options: any
 
 func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 {
-    var pix = img.pixels.buffer!
+    var pix = img.pixels.storage()
     for img.width * img.height
     {
         switch img.pixelFormat
@@ -578,7 +578,7 @@ func assertPackedPngExpansion(bitDepth, multiplier: u8, sampleCount: u64)
         expected[3 + channel]       = cast(u8) ((cast(u32) value + 128) / 257)
     }
 
-    Png.reduce16Samples(source.buffer! + 1, actual.buffer! + 3, Pixels * 4)
+    Png.reduce16Samples(source.storage() + 1, actual.storage() + 3, Pixels * 4)
     for i in actual.count do
         Swag.assert(actual[i] == expected[i])
 }
@@ -1050,7 +1050,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let rgbaImg = expect Image.decode("rgba16.png", nnBytes(rgbaPng.toSlice()), {})
     Swag.assert(rgbaImg.pixelFormat == .RGBA16)
     assertPngPixelAt(rgbaImg, 0, 0, 18'u8, 128'u8, 255'u8, 1'u8)
-    let rgbaRaw = cast(const [*] u16) rgbaImg.pixels.buffer!
+    let rgbaRaw = cast(const [*] u16) rgbaImg.pixels.storage()
     Swag.assert(rgbaRaw[0] == 0x1234 and rgbaRaw[1] == 0x8080 and rgbaRaw[2] == 0xFFFF and rgbaRaw[3] == 0x0101)
 }
 
@@ -1074,7 +1074,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let img = expect Image.decode("rgb16-trns.png", nnBytes(png.toSlice()), {})
     Swag.assert(img.pixelFormat == .RGBA16)
     Swag.assert(img.pixels.buffer != null)
-    let raw = cast(const [*] u16) img.pixels.buffer!
+    let raw = cast(const [*] u16) img.pixels.storage()
     Swag.assert(raw[3] == 0'u16)
     Swag.assert(raw[7] == 0xFFFF'u16)
 }
@@ -1216,27 +1216,27 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 {
     var gray = Image.create(3, 2, .Gray8)
     for i in gray.byteCount do
-        gray.pixels.buffer![i] = cast(u8) (i * 41)
+        gray.pixels.storage()[i] = cast(u8) (i * 41)
     assertEncodedPngRoundtrip(gray, .Gray8)
 
     var grayAlpha = Image.create(3, 2, .GrayAlpha8)
     for i in grayAlpha.byteCount do
-        grayAlpha.pixels.buffer![i] = cast(u8) (i * 19)
+        grayAlpha.pixels.storage()[i] = cast(u8) (i * 19)
     assertEncodedPngRoundtrip(grayAlpha, .GrayAlpha8)
 
     var gray16 = Image.create(3, 2, .Gray16)
     for i in gray16.byteCount do
-        gray16.pixels.buffer![i] = cast(u8) (i * 23)
+        gray16.pixels.storage()[i] = cast(u8) (i * 23)
     assertEncodedPngRoundtrip(gray16, .Gray16)
 
     var grayAlpha16 = Image.create(3, 2, .GrayAlpha16)
     for i in grayAlpha16.byteCount do
-        grayAlpha16.pixels.buffer![i] = cast(u8) (i * 11)
+        grayAlpha16.pixels.storage()[i] = cast(u8) (i * 11)
     assertEncodedPngRoundtrip(grayAlpha16, .GrayAlpha16)
 
     var rgb = Image.create(2, 2, .RGB8)
     rgb.clear()
-    let rgbBuf = rgb.pixels.buffer!
+    let rgbBuf = rgb.pixels.storage()
     rgbBuf[0]  = 10'u8
     rgbBuf[1]  = 20'u8
     rgbBuf[2]  = 30'u8
@@ -1247,7 +1247,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     var rgba = Image.create(2, 2, .RGBA8)
     rgba.clear()
-    let rgbaBuf = rgba.pixels.buffer!
+    let rgbaBuf = rgba.pixels.storage()
     rgbaBuf[0]  = 1'u8
     rgbaBuf[1]  = 2'u8
     rgbaBuf[2]  = 3'u8
@@ -1259,13 +1259,13 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertEncodedPngRoundtrip(rgba, .RGBA8)
 
     var rgb16    = Image.create(2, 2, .RGB16)
-    let rgb16Buf = cast([*] u16) rgb16.pixels.buffer!
+    let rgb16Buf = cast([*] u16) rgb16.pixels.storage()
     for i in 12 do
         rgb16Buf[i] = cast(u16) (i * 5003)
     assertEncodedPngRoundtrip(rgb16, .RGB16)
 
     var rgba16    = Image.create(2, 2, .RGBA16)
-    let rgba16Buf = cast([*] u16) rgba16.pixels.buffer!
+    let rgba16Buf = cast([*] u16) rgba16.pixels.storage()
     for i in 16 do
         rgba16Buf[i] = cast(u16) (i * 4001)
     assertEncodedPngRoundtrip(rgba16, .RGBA16)
@@ -1275,7 +1275,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 #test
 {
     var bgr    = Image.create(1, 1, .BGR8)
-    let bgrBuf = bgr.pixels.buffer!
+    let bgrBuf = bgr.pixels.storage()
     bgrBuf[0] = 30'u8
     bgrBuf[1] = 20'u8
     bgrBuf[2] = 10'u8
@@ -1286,7 +1286,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertPngPixelAt(bgrDecoded, 0, 0, 10'u8, 20'u8, 30'u8, 255'u8)
 
     var bgra    = Image.create(1, 1, .BGRA8)
-    let bgraBuf = bgra.pixels.buffer!
+    let bgraBuf = bgra.pixels.storage()
     bgraBuf[0] = 7'u8
     bgraBuf[1] = 8'u8
     bgraBuf[2] = 9'u8
@@ -1345,7 +1345,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     options.interlace = true
 
     var rgb    = Image.create(9, 7, .RGB8)
-    let rgbBuf = rgb.pixels.buffer!
+    let rgbBuf = rgb.pixels.storage()
     for y in rgb.height
     {
         for x in rgb.width
@@ -1366,7 +1366,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     Swag.assert(Memory.compare(rgb.pixels.buffer, decoded.pixels.buffer, rgb.pixels.count) == 0)
 
     var bgra    = Image.create(9, 7, .BGRA8)
-    let bgraBuf = bgra.pixels.buffer!
+    let bgraBuf = bgra.pixels.storage()
     for y in bgra.height
     {
         for x in bgra.width
@@ -1385,7 +1385,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     let bgraDecoded = expect Image.decode("adam7-bgra.png", bgraBytes, {})
     Swag.assert(bgraDecoded.pixelFormat == .RGBA8)
-    let decodedBuf = bgraDecoded.pixels.buffer!
+    let decodedBuf = bgraDecoded.pixels.storage()
     for i in cast(u64) bgra.width * cast(u64) bgra.height
     {
         let offset = i * 4

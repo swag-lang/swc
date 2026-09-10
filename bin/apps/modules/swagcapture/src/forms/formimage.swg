@@ -64,7 +64,7 @@ impl FormImage
         .image.visitPixels(mask)
         {
             var maskImg = cast(*Image) userData!
-            var pix1    = maskImg.pixels.buffer! + x * 4
+            var pix1    = maskImg.pixels.storage() + x * 4
             pix1 += maskImg.width * y * 4
             if not pix1[0] do
                 pix[as u32] = 0

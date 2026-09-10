@@ -679,12 +679,12 @@ impl Decoder
             let target = .current.lumaOrigin() + cast(u64) cast(s64) (cast(s64) by * cast(s64) .current.strideLuma + cast(s64) bx)
             if average
             {
-                compensate(&.blend[0], 8, anchor.luma.buffer!, lumaAt, anchor.strideLuma, bx, by, vectors[block], 8, 8, rounding, anchor.width, anchor.height)
-                blendInto(.current.luma.buffer! + target, .current.strideLuma, &.blend[0], 8, 8, 8)
+                compensate(&.blend[0], 8, anchor.luma.storage(), lumaAt, anchor.strideLuma, bx, by, vectors[block], 8, 8, rounding, anchor.width, anchor.height)
+                blendInto(.current.luma.storage() + target, .current.strideLuma, &.blend[0], 8, 8, 8)
             }
             else
             {
-                compensate(.current.luma.buffer! + target, .current.strideLuma, anchor.luma.buffer!, lumaAt, anchor.strideLuma, bx, by, vectors[block], 8, 8, rounding, anchor.width, anchor.height)
+                compensate(.current.luma.storage() + target, .current.strideLuma, anchor.luma.storage(), lumaAt, anchor.strideLuma, bx, by, vectors[block], 8, 8, rounding, anchor.width, anchor.height)
             }
         }
 
@@ -694,8 +694,8 @@ impl Decoder
         let target = .current.chromaOrigin() + cast(u64) cast(s64) (cast(s64) cy * cast(s64) .current.strideChroma + cast(s64) cx)
         for plane in 2'u32
         {
-            let from = plane == 0 ? anchor.chromaB.buffer! : anchor.chromaR.buffer!
-            let into = plane == 0 ? .current.chromaB.buffer! : .current.chromaR.buffer!
+            let from = plane == 0 ? anchor.chromaB.storage() : anchor.chromaR.storage()
+            let into = plane == 0 ? .current.chromaB.storage() : .current.chromaR.storage()
             if average
             {
                 compensate(&.blend[0], 8, from, chromaAt, anchor.strideChroma, cx, cy, chroma, 8, 8, rounding, anchor.width / 2, anchor.height / 2)
@@ -860,7 +860,7 @@ impl Decoder
             let bx     = x + cast(s32) (block & 1) * 8
             let by     = y + cast(s32) (block >> 1) * 8
             let target = .current.lumaOrigin() + cast(u64) cast(s64) (cast(s64) by * cast(s64) .current.strideLuma + cast(s64) bx)
-            compensate(.current.luma.buffer! + target, .current.strideLuma, .anchorNew.luma.buffer!, lumaAt, .anchorNew.strideLuma, bx, by, state.vectors[block], 8, 8, rounding, .anchorNew.width, .anchorNew.height)
+            compensate(.current.luma.storage() + target, .current.strideLuma, .anchorNew.luma.storage(), lumaAt, .anchorNew.strideLuma, bx, by, state.vectors[block], 8, 8, rounding, .anchorNew.width, .anchorNew.height)
         }
 
         var vectors: [4] Vector = state.vectors
@@ -868,8 +868,8 @@ impl Decoder
         let cx     = mbX * 8
         let cy     = mbY * 8
         let target = .current.chromaOrigin() + cast(u64) cast(s64) (cast(s64) cy * cast(s64) .current.strideChroma + cast(s64) cx)
-        compensate(.current.chromaB.buffer! + target, .current.strideChroma, .anchorNew.chromaB.buffer!, chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
-        compensate(.current.chromaR.buffer! + target, .current.strideChroma, .anchorNew.chromaR.buffer!, chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
+        compensate(.current.chromaB.storage() + target, .current.strideChroma, .anchorNew.chromaB.storage(), chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
+        compensate(.current.chromaR.storage() + target, .current.strideChroma, .anchorNew.chromaR.storage(), chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
     }
 
     // Decodes one block and writes its samples, clause 6.3.7.3.
@@ -1025,7 +1025,7 @@ impl Decoder
     // Writes one reconstructed block, either outright or on top of what motion left.
     mtd writeBlock(mbX, mbY: s32, block: u64, samples: const *[64] s16, intra: bool)
     {
-        var plane  = .current.luma.buffer!
+        var plane  = .current.luma.storage()
         var stride = .current.strideLuma
         var at     = .current.lumaOrigin()
         var x      = mbX * 16 + cast(s32) (block & 1) * 8
@@ -1033,7 +1033,7 @@ impl Decoder
 
         if block >= 4
         {
-            plane  = block == 4 ? .current.chromaB.buffer! : .current.chromaR.buffer!
+            plane  = block == 4 ? .current.chromaB.storage() : .current.chromaR.storage()
             stride = .current.strideChroma
             at     = .current.chromaOrigin()
             x      = mbX * 8

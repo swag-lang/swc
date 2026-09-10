@@ -146,15 +146,15 @@ impl Frame
 
     // Returns a pointer to luma sample `(x, y)`, which may sit in the padding.
     #[Swag.Inline]
-    mtd const lumaAt(x, y: s32)->const [*] u16? => .luma.buffer! + (cast(u64) (y + cast(s32) FramePadding)) * .strideLuma + cast(u64) (x + cast(s32) FramePadding)
+    mtd const lumaAt(x, y: s32)->const [*] u16? => .luma.storage() + (cast(u64) (y + cast(s32) FramePadding)) * .strideLuma + cast(u64) (x + cast(s32) FramePadding)
 
     #[Swag.Inline]
-    mtd lumaAtMutable(x, y: s32)->[*] u16 => .luma.buffer! + (cast(u64) (y + cast(s32) FramePadding)) * .strideLuma + cast(u64) (x + cast(s32) FramePadding)
+    mtd lumaAtMutable(x, y: s32)->[*] u16 => .luma.storage() + (cast(u64) (y + cast(s32) FramePadding)) * .strideLuma + cast(u64) (x + cast(s32) FramePadding)
 
     #[Swag.Inline]
     mtd chromaAtMutable(plane: u32, x, y: s32)->[*] u16
     {
-        let base = plane == 0 ? .chromaB.buffer! : .chromaR.buffer!
+        let base = plane == 0 ? .chromaB.storage() : .chromaR.storage()
         return base + (cast(u64) (y + cast(s32) FramePadding)) * .strideChroma + cast(u64) (x + cast(s32) FramePadding)
     }
 
@@ -215,11 +215,11 @@ impl Frame
     // row a prediction may reach before that row is published.
     mtd extendRows(firstRow, lastRow: u32)
     {
-        .extendPlaneRows(.luma.buffer!, .strideLuma, .width, .height, firstRow, lastRow)
+        .extendPlaneRows(.luma.storage(), .strideLuma, .width, .height, firstRow, lastRow)
         let chromaFirst = firstRow / 2
         let chromaLast  = (lastRow + 1) / 2
-        .extendPlaneRows(.chromaB.buffer!, .strideChroma, .chromaWidth, .chromaHeight, chromaFirst, chromaLast)
-        .extendPlaneRows(.chromaR.buffer!, .strideChroma, .chromaWidth, .chromaHeight, chromaFirst, chromaLast)
+        .extendPlaneRows(.chromaB.storage(), .strideChroma, .chromaWidth, .chromaHeight, chromaFirst, chromaLast)
+        .extendPlaneRows(.chromaR.storage(), .strideChroma, .chromaWidth, .chromaHeight, chromaFirst, chromaLast)
     }
 
     // Replicates the top and bottom edges of a plane into its padding.
@@ -228,9 +228,9 @@ impl Frame
     // finishes the picture by copying the first and last rows upward and downward.
     mtd extendBorders()
     {
-        .extendPlaneBorders(.luma.buffer!, .strideLuma, .height)
-        .extendPlaneBorders(.chromaB.buffer!, .strideChroma, .chromaHeight)
-        .extendPlaneBorders(.chromaR.buffer!, .strideChroma, .chromaHeight)
+        .extendPlaneBorders(.luma.storage(), .strideLuma, .height)
+        .extendPlaneBorders(.chromaB.storage(), .strideChroma, .chromaHeight)
+        .extendPlaneBorders(.chromaR.storage(), .strideChroma, .chromaHeight)
     }
 
     private mtd const extendPlaneRows(plane: [*] u16, stride: u64, width, height, firstRow, lastRow: u32)
@@ -284,14 +284,14 @@ impl Frame
         let top   = cast(s32) (.cropTop * .subHeightC)
         let shift = .bitDepth - 8
 
-        .reducePlane(target.luma.buffer!, cast(u64) target.strideLuma, .luma.buffer!, .strideLuma, left, top, visibleWidth, visibleHeight, shift)
+        .reducePlane(target.luma.storage(), cast(u64) target.strideLuma, .luma.storage(), .strideLuma, left, top, visibleWidth, visibleHeight, shift)
 
         let chromaLeft   = left / cast(s32) .subWidthC
         let chromaTop    = top / cast(s32) .subHeightC
         let chromaWidth  = (visibleWidth + 1) / 2
         let chromaHeight = (visibleHeight + 1) / 2
-        .reducePlane(target.chromaB.buffer!, cast(u64) target.strideChroma, .chromaB.buffer!, .strideChroma, chromaLeft, chromaTop, chromaWidth, chromaHeight, shift)
-        .reducePlane(target.chromaR.buffer!, cast(u64) target.strideChroma, .chromaR.buffer!, .strideChroma, chromaLeft, chromaTop, chromaWidth, chromaHeight, shift)
+        .reducePlane(target.chromaB.storage(), cast(u64) target.strideChroma, .chromaB.storage(), .strideChroma, chromaLeft, chromaTop, chromaWidth, chromaHeight, shift)
+        .reducePlane(target.chromaR.storage(), cast(u64) target.strideChroma, .chromaR.storage(), .strideChroma, chromaLeft, chromaTop, chromaWidth, chromaHeight, shift)
     }
 
     private mtd const reducePlane(destination: [*] u8, destinationStride: u64, source: const [*] u16, sourceStride: u64, left, top, width, height: s32, shift: u32)

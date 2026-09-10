@@ -519,7 +519,7 @@ impl Dfa
         let classes      = cast(const [*] u8) &program.byteClass[0]
         let data         = hay.buffer
         let quitHigh     = .quitHigh
-        var transitions  = .trans.buffer!
+        var transitions  = .trans.storage()
         var lastMatch    = NoOffset
         var pos          = start
 
@@ -543,7 +543,7 @@ impl Dfa
                     return result
                 }
 
-                transitions       = .trans.buffer!
+                transitions       = .trans.storage()
                 transitions[slot] = next
             }
 
@@ -570,7 +570,7 @@ impl Dfa
 
                     pos         = jump.at
                     stateId     = jump.state
-                    transitions = .trans.buffer!
+                    transitions = .trans.storage()
                     continue
                 }
             }
@@ -633,7 +633,7 @@ impl Dfa
         let classes     = cast(const [*] u8) &program.byteClass[0]
         let data        = hay.buffer
         let quitHigh    = .quitHigh
-        var transitions = .trans.buffer!
+        var transitions = .trans.storage()
         var lastMatch   = NoOffset
         var pos         = start
 
@@ -651,7 +651,7 @@ impl Dfa
                 if next == QuitState do
                     return QuitOffset
 
-                transitions       = .trans.buffer!
+                transitions       = .trans.storage()
                 transitions[slot] = next
             }
 
@@ -700,7 +700,7 @@ impl Dfa
         let classes     = cast(const [*] u8) &program.byteClass[0]
         let data        = hay.buffer
         let quitHigh    = .quitHigh
-        var transitions = .trans.buffer!
+        var transitions = .trans.storage()
         var lastMatch   = NoOffset
         var alive       = true
         var pos         = end
@@ -729,7 +729,7 @@ impl Dfa
                     return result
                 }
 
-                transitions       = .trans.buffer!
+                transitions       = .trans.storage()
                 transitions[slot] = next
             }
 

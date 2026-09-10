@@ -111,8 +111,8 @@ impl Encoder
     {
         let pixelCount = cast(u64) image.width * image.height
         pixels.resize(pixelCount)
-        let destination = cast([*] u32) pixels.buffer!
-        let source      = cast(const [*] u8) image.pixels.buffer!
+        let destination = cast([*] u32) pixels.storage()
+        let source      = cast(const [*] u8) image.pixels.storage()
         var hasAlpha    = false
         var output: u64
 
@@ -279,7 +279,7 @@ impl Encoder
 
     func writePixels(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels)
     {
-        let data = cast(const [*] u32) pixels.buffer!
+        let data = cast(const [*] u32) pixels.storage()
         var index: u64
         while index < pixels.count
         {

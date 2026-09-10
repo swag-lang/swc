@@ -108,7 +108,7 @@ func storePixel(image: *Image, x, sourceY: s32, color: Color, sourceTopDown: boo
     if x >= image.width or sourceY >= image.height do
         return
     let targetY = sourceTopDown ? image.height - sourceY - 1 : sourceY
-    let target  = image.pixels.buffer! + cast(u64) targetY * image.rowStride + cast(u64) x * 4
+    let target  = image.pixels.storage() + cast(u64) targetY * image.rowStride + cast(u64) x * 4
     target[0] = color.r
     target[1] = color.g
     target[2] = color.b

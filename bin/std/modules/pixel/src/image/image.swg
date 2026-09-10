@@ -321,7 +321,7 @@ impl Image
         if buffer
         {
             Swag.assert(buffer.count == result.byteCount, "pixel buffer size does not match image geometry")
-            Memory.copy(cast([*] u8) result.pixels.buffer!, buffer.buffer, buffer.count)
+            Memory.copy(cast([*] u8) result.pixels.storage(), buffer.buffer, buffer.count)
         }
 
         return result
@@ -441,7 +441,7 @@ impl Image
     internal mtd visitVectorBytes(contextData: *void? = null, stmt: #code(var block, data))
     {
         const VectorSize = #sizeof(Math.Simd.U8x16)
-        let bytes  = cast([*] u8) .pixels.buffer!
+        let bytes  = cast([*] u8) .pixels.storage()
         let blocks = (.byteCount - .byteCount % VectorSize) / VectorSize
         let opaque = contextData
         parallel for |bytes, opaque| parIndex in blocks
@@ -485,13 +485,13 @@ impl Image
 
         let self: const *Image = me
         let step   = cast(u64) (.bytesPerPixel * stride)
-        let base   = cast([*] u8) self.pixels.buffer!
+        let base   = cast([*] u8) self.pixels.storage()
         let visit  = self.pixels.count / step
         let opaque = pixelUserData
         parallel for |self, base, step, opaque| parIndex in visit
         {
             let pixPtr   = base + parIndex * step
-            let pixIndex = cast(u64) (pixPtr - cast([*] u8) self.pixels.buffer!) / self.bytesPerPixel
+            let pixIndex = cast(u64) (pixPtr - cast([*] u8) self.pixels.storage()) / self.bytesPerPixel
 
             #inject(stmt,
                     pix = pixPtr,
@@ -516,7 +516,7 @@ impl Image
             let row    = cast(u32) parIndex
             let params = &context
             let image  = cast(*Image) params.image
-            var pixel  = image.pixels.buffer! + cast(u64) row * image.rowStride
+            var pixel  = image.pixels.storage() + cast(u64) row * image.rowStride
             for column in image.width
             {
                 var logical = readLogicalPixelValue(pixel, image.pixelFormat, image.alphaMode)
@@ -538,7 +538,7 @@ impl Image
     mtd clear()
     {
         Swag.assert(.isValid(), "image is invalid")
-        let pixels = .pixels.buffer!
+        let pixels = .pixels.storage()
         Memory.clear(pixels, .byteCount)
     }
 
@@ -577,7 +577,7 @@ impl Image
             let row    = cast(u32) parIndex
             let params = &context
             let image  = cast(*Image) params.image
-            let pixels = image.pixels.buffer! + cast(u64) row * image.rowStride
+            let pixels = image.pixels.storage() + cast(u64) row * image.rowStride
             for x in image.width
             {
                 let pixel = pixels + cast(u64) x * image.bytesPerPixel
@@ -634,28 +634,28 @@ impl Image
         #static switch PF
         {
         case .RGBA8:
-            let pix = .pixels.buffer! + (x * 4) + (y * .width * 4)
+            let pix = .pixels.storage() + (x * 4) + (y * .width * 4)
             result.r = pix[0]
             result.g = pix[1]
             result.b = pix[2]
             result.a = pix[3]
 
         case .RGB8:
-            let pix = .pixels.buffer! + (x * 3) + (y * .width * 3)
+            let pix = .pixels.storage() + (x * 3) + (y * .width * 3)
             result.r = pix[0]
             result.g = pix[1]
             result.b = pix[2]
             result.a = 255
 
         case .BGRA8:
-            let pix = .pixels.buffer! + (x * 4) + (y * .width * 4)
+            let pix = .pixels.storage() + (x * 4) + (y * .width * 4)
             result.b = pix[0]
             result.g = pix[1]
             result.r = pix[2]
             result.a = pix[3]
 
         case .BGR8:
-            let pix = .pixels.buffer! + (x * 3) + (y * .width * 3)
+            let pix = .pixels.storage() + (x * 3) + (y * .width * 3)
             result.b = pix[0]
             result.g = pix[1]
             result.r = pix[2]
@@ -673,7 +673,7 @@ impl Image
         {
             let x      = Math.clamp(pixX, 0, .width - 1)
             let y      = .height - Math.clamp(pixY, 0, .height - 1) - 1
-            let source = .pixels.buffer! + cast(u64) y * .rowStride + cast(u64) x * .bytesPerPixel
+            let source = .pixels.storage() + cast(u64) y * .rowStride + cast(u64) x * .bytesPerPixel
             let value  = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
             var result: Color
             result.r = normalizedToU8(value.r)
@@ -689,7 +689,7 @@ impl Image
              .RGB16, .RGBA16, .RGBF16, .RGBAF16, .RGBF32, .RGBAF32:
             let x      = Math.clamp(pixX, 0, .width - 1)
             let y      = .height - Math.clamp(pixY, 0, .height - 1) - 1
-            let source = .pixels.buffer! + cast(u64) y * .rowStride + cast(u64) x * .bytesPerPixel
+            let source = .pixels.storage() + cast(u64) y * .rowStride + cast(u64) x * .bytesPerPixel
             let value  = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
             var result: Color
             result.r = normalizedToU8(value.r)

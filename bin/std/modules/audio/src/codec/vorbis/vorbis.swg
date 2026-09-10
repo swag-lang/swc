@@ -687,7 +687,7 @@ private impl Codec
     mtd resetState()
     {
         for channel in MaxChannels do
-            Memory.set(.saved[channel].buffer!, 0, .saved[channel].count * #sizeof(f32))
+            Memory.set(.saved[channel].storage(), 0, .saved[channel].count * #sizeof(f32))
         .previousSize = 0
         .granuleKnown = false
         .packet.clear()
@@ -1017,9 +1017,9 @@ private impl Codec
     {
         if floor.barkMap[which].count != cast(u64) half + 1 do
             floor.buildBarkMap(which, half)
-        let map       = floor.barkMap[which].buffer!
-        let curve     = .floorCurve[channel].buffer!
-        let spectrum  = .spectrum[channel].buffer!
+        let map       = floor.barkMap[which].storage()
+        let curve     = .floorCurve[channel].storage()
+        let spectrum  = .spectrum[channel].storage()
         let order     = floor.order
         let amplitude = cast(f64) curve[order]
         let offset    = cast(f64) floor.amplitudeOffset
@@ -1079,9 +1079,9 @@ private impl Codec
     // Multiplies the spectrum of a channel by the piecewise curve its floor 1 posts describe.
     mtd applyFloor1(floor: *Floor, channel: u32, half: u32)
     {
-        let posts    = .floorPosts[channel].buffer!
-        let used     = .floorUsed[channel].buffer!
-        let spectrum = .spectrum[channel].buffer!
+        let posts    = .floorPosts[channel].storage()
+        let used     = .floorUsed[channel].storage()
+        let spectrum = .spectrum[channel].storage()
         var lowX     = 0'u32
         var highX    = 0'u32
         var lowY     = Math.clamp(posts[0] * cast(s32) floor.multiplier, 0, 255)
@@ -1182,9 +1182,9 @@ private impl Codec
                             let codebook = &.codebooks[cast(u32) book]
                             var complete: bool
                             if residue.kind == 0 do
-                                complete = .decodeInterleaved(codebook, reader, .spectrum[active[vector]].buffer! + offset, residue.partitionSize)
+                                complete = .decodeInterleaved(codebook, reader, .spectrum[active[vector]].storage() + offset, residue.partitionSize)
                             elif residue.kind == 1 do
-                                complete = .decodeSequential(codebook, reader, .spectrum[active[vector]].buffer! + offset, residue.partitionSize)
+                                complete = .decodeSequential(codebook, reader, .spectrum[active[vector]].storage() + offset, residue.partitionSize)
                             else do
                                 complete = .decodeAcrossChannels(codebook, reader, active, cast(u32) list.count, offset, residue.partitionSize)
                             if not complete do
@@ -1299,7 +1299,7 @@ private impl Codec
 
         for channel in .channels
         {
-            Memory.set(.spectrum[channel].buffer!, 0, cast(u64) half * #sizeof(f32))
+            Memory.set(.spectrum[channel].storage(), 0, cast(u64) half * #sizeof(f32))
             let floor = &.floors[mapping.submapFloor[mapping.mux[channel]]]
             .floorPresent[channel] = try .decodeFloor(floor, &reader, channel)
             .nonzero[channel]      = .floorPresent[channel]
@@ -1331,8 +1331,8 @@ private impl Codec
         while step
         {
             step -= 1
-            let magnitudes = .spectrum[mapping.magnitude[step]].buffer!
-            let angles     = .spectrum[mapping.angle[step]].buffer!
+            let magnitudes = .spectrum[mapping.magnitude[step]].storage()
+            let angles     = .spectrum[mapping.angle[step]].storage()
             for line in half
             {
                 let magnitude = magnitudes[line]
@@ -1368,7 +1368,7 @@ private impl Codec
         {
             if not .floorPresent[channel]
             {
-                Memory.set(.spectrum[channel].buffer!, 0, cast(u64) half * #sizeof(f32))
+                Memory.set(.spectrum[channel].storage(), 0, cast(u64) half * #sizeof(f32))
                 continue
             }
 
@@ -1404,10 +1404,10 @@ private impl Codec
         let outputFrames = .previousSize ? cast(u64) .previousSize / 4 + n / 4 : 0
         let base         = .output.count / .channels
         .output.resize((base + outputFrames) * .channels)
-        let time = .timeDomain.buffer!
+        let time = .timeDomain.storage()
         for channel in .channels
         {
-            .transforms[which].inverse(.spectrum[channel].buffer!, time)
+            .transforms[which].inverse(.spectrum[channel].storage(), time)
             for index in leftStart do
                 time[index] = 0
             for index in leftStart until leftEnd do
@@ -1420,7 +1420,7 @@ private impl Codec
 
             if outputFrames
             {
-                let saved    = .saved[channel].buffer!
+                let saved    = .saved[channel].storage()
                 let slot     = ChannelSlots[.channels, channel]
                 let previous = cast(u64) .previousSize
                 let shift    = cast(s64) n / 4 - cast(s64) previous / 4
@@ -1437,7 +1437,7 @@ private impl Codec
                 }
             }
 
-            Memory.copy(.saved[channel].buffer!, time + half, cast(u64) half * #sizeof(f32))
+            Memory.copy(.saved[channel].storage(), time + half, cast(u64) half * #sizeof(f32))
         }
 
         .previousSize = n
@@ -1635,7 +1635,7 @@ impl IPacketCodec for Codec
         // padding it declares, or a rounding of its own clock, shortens what the packet decodes to.
         let produced = Math.min(frames * .channels * #sizeof(s16), destinationSize)
         if produced do
-            Memory.copy(destination, .output.buffer!, produced)
+            Memory.copy(destination, .output.storage(), produced)
         return produced
     }
 }

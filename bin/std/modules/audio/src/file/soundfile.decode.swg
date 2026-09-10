@@ -62,7 +62,7 @@ impl SoundFile
                 let decodedSize = cast(u64) packet.sampleFrameCount * .channelCount * #sizeof(s16)
                 if decodedBytes.count != decodedSize do
                     decodedBytes.resize(decodedSize)
-                let produced = try packetCodec!.decodePacket(decodedBytes.buffer!, decodedSize, packetBytes.toSlice())
+                let produced = try packetCodec!.decodePacket(decodedBytes.storage(), decodedSize, packetBytes.toSlice())
                 if produced != decodedSize do
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
 
@@ -72,7 +72,7 @@ impl SoundFile
                 let sampleCount = produced / #sizeof(s16)
                 if firstSample < sampleCount
                 {
-                    let samples = cast(const [*] s16) decodedBytes.buffer!
+                    let samples = cast(const [*] s16) decodedBytes.storage()
                     if not consumer(samples[firstSample until sampleCount]) do
                         return
                 }
@@ -112,7 +112,7 @@ impl SoundFile
             if source.count != wanted do
                 fail InvalidFormatError{"sound payload is truncated"}
             decoded.resize(source.count / bytesPerSample)
-            let progress = try itf.decode(decoded.buffer!, decoded.count * #sizeof(s16), source.buffer!, source.count)
+            let progress = try itf.decode(decoded.storage(), decoded.count * #sizeof(s16), source.storage(), source.count)
             if progress.bytesRead != source.count or progress.bytesWritten != decoded.count * #sizeof(s16) do
                 fail InvalidFormatError{"sound payload decoded to an unexpected size"}
             if not consumer(decoded.toSlice()) do

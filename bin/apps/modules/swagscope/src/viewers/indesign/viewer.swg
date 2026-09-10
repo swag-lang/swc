@@ -222,7 +222,7 @@ private func indesignPreviewBase64(bytes: const [..] u8, start, end: u64)->Strin
         index += 1
     }
 
-    return result.isEmpty() ? {} : String.from(Swag.makeString(result.buffer!, result.count))
+    return result.isEmpty() ? {} : String.from(Swag.makeString(result.storage(), result.count))
 }
 
 private func indesignPreviewPageNumber(bytes: const [..] u8, start, end: u64)->u32

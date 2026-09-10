@@ -143,7 +143,7 @@ internal impl IImageEncoder for Encoder
                 let component = channelOffset(name, grayscale)
                 for x in source.width
                 {
-                    let pixel  = source.pixels.buffer! + cast(u64) storageY * source.rowStride + cast(u64) x * source.bytesPerPixel
+                    let pixel  = source.pixels.storage() + cast(u64) storageY * source.rowStride + cast(u64) x * source.bytesPerPixel
                     let sample = pixel + component * sampleBytes
                     result.addBytes(Swag.makeSlice(sample, sampleBytes))
                 }

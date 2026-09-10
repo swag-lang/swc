@@ -76,12 +76,12 @@ func encode(bytes: const [..] u8)->String
     var outIndex = 0'u64
     while count - index >= 16
     {
-        Math.Simd.store(result.buffer! + outIndex, encodeBlock(bytes.buffer + index))
+        Math.Simd.store(result.storage() + outIndex, encodeBlock(bytes.buffer + index))
         index    += 12
         outIndex += 16
     }
 
-    let output = result.buffer!
+    let output = result.storage()
     while index + 3 <= count
     {
         let group = (cast(u32) bytes[index] << 16) | (cast(u32) bytes[index + 1] << 8) | cast(u32) bytes[index + 2]
@@ -137,7 +137,7 @@ func decode(text: string)->Array'u8 fail
             let block = decodeBlock(text.buffer + index)
             if block.valid
             {
-                Math.Simd.store(result.buffer! + result.count, block.decoded)
+                Math.Simd.store(result.storage() + result.count, block.decoded)
                 result.count += 12
                 index        += 16
                 continue

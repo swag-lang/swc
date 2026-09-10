@@ -76,7 +76,7 @@ impl Decoder
         if pixelCount < PackedPaletteThreshold
         {
             var src = .safeDstPixels()
-            var dst = cast([*] u8) result.pixels.buffer!
+            var dst = cast([*] u8) result.pixels.storage()
             for pixelCount
             {
                 let color = .palette[src[0]]
@@ -98,7 +98,7 @@ impl Decoder
         }
 
         var src       = .safeDstPixels()
-        var dst       = cast([*] u8) result.pixels.buffer!
+        var dst       = cast([*] u8) result.pixels.storage()
         var remaining = pixelCount
 
         // The fourth byte lands on the next pixel and is overwritten there; four
@@ -135,7 +135,7 @@ impl Decoder
         if pixelCount < PackedPaletteThreshold
         {
             var src = .safeDstPixels()
-            var dst = cast([*] u8) result.pixels.buffer!
+            var dst = cast([*] u8) result.pixels.storage()
             for pixelCount
             {
                 let index = src[0]
@@ -161,7 +161,7 @@ impl Decoder
         }
 
         var src       = .safeDstPixels()
-        var dst       = cast([*] u32) result.pixels.buffer!
+        var dst       = cast([*] u32) result.pixels.storage()
         var remaining = pixelCount
         while remaining >= 4
         {
@@ -203,7 +203,7 @@ impl Decoder
         if pixelCount < PackedGrayscaleTransparencyThreshold
         {
             var src = .safeDstPixels()
-            var dst = cast([*] u8) result.pixels.buffer!
+            var dst = cast([*] u8) result.pixels.storage()
             for pixelCount
             {
                 let gray = src[0]
@@ -225,7 +225,7 @@ impl Decoder
         }
 
         var src = .safeDstPixels()
-        var dst = cast([*] u16) result.pixels.buffer!
+        var dst = cast([*] u16) result.pixels.storage()
         for pixelCount
         {
             dst[0] = packed[src[0]]
@@ -240,7 +240,7 @@ impl Decoder
         if pixelCount < PackedGrayscaleAlphaThreshold
         {
             var src = .safeDstPixels()
-            var dst = cast([*] u8) result.pixels.buffer!
+            var dst = cast([*] u8) result.pixels.storage()
             for pixelCount
             {
                 dst[0] = src[0]
@@ -262,7 +262,7 @@ impl Decoder
         let colorMask = Math.Simd.splat(0x00FFFFFF'u32)
         let alphaMask = Math.Simd.splat(0xFF000000'u32)
         var src       = .safeDstPixels()
-        var dst       = cast([*] u8) result.pixels.buffer!
+        var dst       = cast([*] u8) result.pixels.storage()
         var remaining = cast(u64) result.width * result.height
         if remaining >= SimdRgbTransparencyThreshold
         {
@@ -292,7 +292,7 @@ impl Decoder
     mtd convert16(result: *Image)
     {
         var src = cast(const [*] u8) .safeDstPixels()
-        var dst = cast([*] u8) result.pixels.buffer!
+        var dst = cast([*] u8) result.pixels.storage()
 
         switch cast(u8) .header.colorType
         {

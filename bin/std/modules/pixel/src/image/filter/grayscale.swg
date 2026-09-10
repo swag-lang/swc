@@ -43,7 +43,7 @@ public impl Image
             {
                 let row       = cast(u32) parIndex
                 let image     = cast(*Image) context.image
-                let rowPixels = image.pixels.buffer! + cast(u64) row * image.rowStride
+                let rowPixels = image.pixels.storage() + cast(u64) row * image.rowStride
                 let blueFirst = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
                 let weight0   = blueFirst ? 19'u16 : 54'u16
                 let weight2   = blueFirst ? 54'u16 : 19'u16

@@ -19,7 +19,7 @@ impl Image
         {
             let row    = cast(u32) parIndex
             let image  = cast(*Image) context.image
-            let pixels = image.pixels.buffer! + cast(u64) row * image.rowStride
+            let pixels = image.pixels.storage() + cast(u64) row * image.rowStride
             for x in image.width
             {
                 let pixel = pixels + cast(u64) x * image.bytesPerPixel

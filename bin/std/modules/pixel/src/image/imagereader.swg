@@ -124,7 +124,7 @@ impl ImageReader
             let row = .canvas.height - frame.y - y - 1
             for x in frame.width
             {
-                let target = .canvas.pixels.buffer! + cast(u64) row * .canvas.rowStride + cast(u64) (frame.x + x) * .canvas.bytesPerPixel
+                let target = .canvas.pixels.storage() + cast(u64) row * .canvas.rowStride + cast(u64) (frame.x + x) * .canvas.bytesPerPixel
                 writePixelValue(target, .canvas.pixelFormat, value)
             }
         }
@@ -140,8 +140,8 @@ impl ImageReader
             let targetRow = .canvas.height - frame.y - y - 1
             for x in frame.width
             {
-                let source = image.pixels.buffer! + cast(u64) sourceRow * image.rowStride + cast(u64) x * image.bytesPerPixel
-                let target = .canvas.pixels.buffer! + cast(u64) targetRow * .canvas.rowStride + cast(u64) (frame.x + x) * .canvas.bytesPerPixel
+                let source = image.pixels.storage() + cast(u64) sourceRow * image.rowStride + cast(u64) x * image.bytesPerPixel
+                let target = .canvas.pixels.storage() + cast(u64) targetRow * .canvas.rowStride + cast(u64) (frame.x + x) * .canvas.bytesPerPixel
                 var value  = readLogicalPixelValue(source, image.pixelFormat, image.alphaMode)
                 if frame.blend == .Over and value.a < 1
                 {

@@ -245,9 +245,9 @@ impl Deque
         {
             var itemPtr: const [*] T
             if itemIndex < .frontItems.count do
-                itemPtr = .frontItems.buffer! + .frontItems.count - itemIndex - 1
+                itemPtr = .frontItems.storage() + .frontItems.count - itemIndex - 1
             else do
-                itemPtr = .backItems.buffer! + itemIndex - .frontItems.count
+                itemPtr = .backItems.storage() + itemIndex - .frontItems.count
 
             #scope(Down)
             {

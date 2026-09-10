@@ -31,7 +31,7 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
     Swag.assert(decoded.count == sound.sampleFrameCount() * channels)
     Swag.assert(decoded.count * #sizeof(s16) == wanted.count)
 
-    let wantedAt   = cast(const [*] s16) wanted.buffer!
+    let wantedAt   = cast(const [*] s16) wanted.storage()
     var mismatches = 0'u64
     for index in decoded.count where decoded[index] != wantedAt[index] do
         mismatches += 1

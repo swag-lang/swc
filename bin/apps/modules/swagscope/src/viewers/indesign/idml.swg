@@ -240,7 +240,7 @@ private func idmlReadEntry(fileName: string, archive: const *ZipArchive, path: s
     let bytes = try loadZipEntry(fileName, entry!)
     if not Utf8.isValid(bytes.toSlice()) do
         fail InvalidFormatError{Errors.mkString(Format.toString("IDML entry '%' is not UTF-8 XML", path).toString())}
-    return String.from(Swag.makeString(bytes.buffer!, bytes.count))
+    return String.from(Swag.makeString(bytes.storage(), bytes.count))
 }
 
 private func idmlAttribute(tag: string, name: string)->string

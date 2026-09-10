@@ -537,7 +537,7 @@ impl GlyphCache
         let rowBytes = bmpRef.width * bpp
 
         // Creates a new atlas if this is the first time, or if the last atlas is full
-        var atlas = .atlases.count ? &.atlases.buffer![.atlases.count - 1] : null
+        var atlas = .atlases.count ? &.atlases.storage()[.atlases.count - 1] : null
         if atlas
         {
             let a = atlas!
@@ -563,10 +563,10 @@ impl GlyphCache
             newAtlas.width  = atlasSide * newAtlas.bytesPerPixel
             newAtlas.height = atlasSide
             newAtlas.data.resize(cast(u64) newAtlas.width * newAtlas.height)
-            let data = newAtlas.data.buffer!
+            let data = newAtlas.data.storage()
             Memory.clear(data, newAtlas.data.count)
             .atlases.add(newAtlas)
-            atlas = &.atlases.buffer![.atlases.count - 1]
+            atlas = &.atlases.storage()[.atlases.count - 1]
         }
 
         let ca = atlas!
@@ -576,7 +576,7 @@ impl GlyphCache
         ca.nextY = Math.max(ca.nextY, ca.curY + bmpRef.rows)
 
         // Copy the rendered glyph to the atlas datas
-        var buffer = ca.data.buffer! + x + (ca.width * (ca.height - 1))
+        var buffer = ca.data.storage() + x + (ca.width * (ca.height - 1))
         buffer -= (y * ca.width)
         var src = bmpRef.buffer
         for j in bmpRef.rows

@@ -192,7 +192,7 @@ internal impl IImageEncoder for Encoder
         for y in image.height
         {
             let storageY = image.height - y - 1
-            result.addBytes(Swag.makeSlice(image.pixels.buffer! + cast(u64) storageY * image.rowStride, cast(u64) image.rowStride))
+            result.addBytes(Swag.makeSlice(image.pixels.storage() + cast(u64) storageY * image.rowStride, cast(u64) image.rowStride))
         }
     }
 }

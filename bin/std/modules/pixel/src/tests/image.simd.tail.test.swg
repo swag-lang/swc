@@ -25,9 +25,9 @@ private func simdTailAssertBytes(image: const *Image, expected: const *Array'u8,
     {
         for index in expected.count
         {
-            if image.pixels.buffer![index] != expected[index]
+            if image.pixels.storage()[index] != expected[index]
             {
-                Console.printf("SIMD tail mismatch: stage=%, format=%, width=%, byte=%, actual=%, expected=%\n", stage, cast(u32) pf, width, index, image.pixels.buffer![index], expected[index])
+                Console.printf("SIMD tail mismatch: stage=%, format=%, width=%, byte=%, actual=%, expected=%\n", stage, cast(u32) pf, width, index, image.pixels.storage()[index], expected[index])
                 break
             }
         }
@@ -170,8 +170,8 @@ private func simdTailCheckConversion(srcPf, dstPf: PixelFormat, width: s32)
     expected.resize(cast(u64) (width * Height) * dstBpp)
     for pixel in cast(u64) (width * Height)
     {
-        let source = sourceBytes.buffer! + pixel * srcBpp
-        let target = expected.buffer! + pixel * dstBpp
+        let source = sourceBytes.storage() + pixel * srcBpp
+        let target = expected.storage() + pixel * dstBpp
         let red    = srcBlue ? source[2] : source[0]
         let blue   = srcBlue ? source[0] : source[2]
         target[0] = dstBlue ? blue : red
@@ -218,9 +218,9 @@ private func simdTailCheckConversion(srcPf, dstPf: PixelFormat, width: s32)
             }
 
             if bytesPerPixel == 3 do
-                PackedPixel.swapRedBlue24Row(source.buffer! + 1, actual.buffer! + 3, pixelCount)
+                PackedPixel.swapRedBlue24Row(source.storage() + 1, actual.storage() + 3, pixelCount)
             else do
-                PackedPixel.swapRedBlue32Row(source.buffer! + 1, actual.buffer! + 3, pixelCount)
+                PackedPixel.swapRedBlue32Row(source.storage() + 1, actual.storage() + 3, pixelCount)
             for i in actual.count do
                 Swag.assert(actual[i] == expected[i])
         }

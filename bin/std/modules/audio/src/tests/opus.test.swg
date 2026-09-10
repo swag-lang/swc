@@ -31,7 +31,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     Swag.assert(decoded.count == sound.sampleFrameCount() * channels)
     Swag.assert(decoded.count * #sizeof(s16) == wanted.count)
 
-    let wantedAt = cast(const [*] s16) wanted.buffer!
+    let wantedAt = cast(const [*] s16) wanted.storage()
     var energy   = 0.0'f64
     var worst    = 0.0'f64
     var worstAt  = 0'u64

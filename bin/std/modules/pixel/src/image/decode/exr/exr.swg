@@ -129,7 +129,7 @@ func writeChunk(image: *Image, channels: const [..] Channel, source: const [..] 
                 {
                     let input  = source.buffer + offset + cast(u64) x * bytes
                     let value  = channel.pixelType == 1 ? halfToFloat(input[as u16]) : input[as f32]
-                    let target = image.pixels.buffer! + cast(u64) targetY * image.rowStride + cast(u64) x * image.bytesPerPixel
+                    let target = image.pixels.storage() + cast(u64) targetY * image.rowStride + cast(u64) x * image.bytesPerPixel
                     var pixel  = readPixelValue(target, image.pixelFormat)
                     switch component
                     {

@@ -415,8 +415,8 @@ impl RichEditView
         var pStyle     = cast([*] u8) &dummyStyle
         if count
         {
-            pChar  = line.chars.buffer!
-            pStyle = line.styles.buffer!
+            pChar  = line.chars.storage()
+            pStyle = line.styles.storage()
         }
         else do
             count = 1

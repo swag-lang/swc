@@ -383,3 +383,15 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.assert(accumulator.startsWith("fragment-0-padded"))
     Swag.assert(accumulator.endsWith("fragment-31-padded-beyond-the-small-string-size;"))
 }
+
+// A String that holds nothing answers an address for its storage too, on the same terms as
+// an empty array: the walk is bounded by 'length', which is zero.
+#test
+{
+    var empty: String
+    Swag.assert(empty.isNull())
+    Swag.assert(empty.storage() != null)
+
+    empty = "abc"
+    Swag.assert(empty.storage()[0] == 'a')
+}

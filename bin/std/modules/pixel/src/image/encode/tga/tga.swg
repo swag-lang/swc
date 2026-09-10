@@ -78,7 +78,7 @@ func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
 
 func writeTgaRle(result: *ConcatBuffer, image: Image)
 {
-    let src           = cast(const [*] u8) image.pixels.buffer!
+    let src           = cast(const [*] u8) image.pixels.storage()
     let bytesPerPixel = cast(u64) image.bytesPerPixel
     let pixelCount    = cast(u64) image.width * cast(u64) image.height
     var converted: [512] u8
@@ -157,7 +157,7 @@ internal impl IImageEncoder for Encoder
             return
         }
 
-        let src           = cast(const [*] u8) image.pixels.buffer!
+        let src           = cast(const [*] u8) image.pixels.storage()
         let bytesPerPixel = cast(u64) image.bytesPerPixel
         let pixelCount    = cast(u64) image.width * cast(u64) image.height
 
@@ -170,9 +170,9 @@ internal impl IImageEncoder for Encoder
         var converted: Array'u8
         converted.resize(pixelCount * bytesPerPixel)
         if image.pixelFormat == .RGB8 do
-            PackedPixel.swapRedBlue24Row(src, converted.buffer!, pixelCount)
+            PackedPixel.swapRedBlue24Row(src, converted.storage(), pixelCount)
         else do
-            PackedPixel.swapRedBlue32Row(src, converted.buffer!, pixelCount)
+            PackedPixel.swapRedBlue32Row(src, converted.storage(), pixelCount)
         result.addBytes(converted.toSlice())
     }
 }

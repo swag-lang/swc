@@ -225,7 +225,7 @@ func createSidePanelFixture(host: Viewer.Host)
     var source  = expect File.readAllText(fixture)
     for 2_000 do
         source += "A source line that stays readable while the rest remains on disk.\n"
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
@@ -856,7 +856,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     for 70_000 do
         source += "A large source line keeps the virtual scrollbar stable between frames.\n"
     Swag.assert(source.length >= 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
@@ -927,7 +927,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     for index in 70_000 do
         source += Format.toString("Distinct streamed line % keeps scrollbar seeks observable.\n", index)
     Swag.assert(source.length >= 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
@@ -1097,7 +1097,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     for 32_000 do
         source += "\nThe rest of the large document stays searchable."
     Swag.assert(source.length >= 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
@@ -1846,7 +1846,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var source: String
     for 2_000 do
         source += "A streamed document keeps loading while another file is selected.\n"
-    let bytes = Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length)
+    let bytes = Swag.makeSlice(cast(const [*] u8) source.storage(), source.length)
     discard expect File.writeAllBytes(firstFile, bytes)
     discard expect File.writeAllBytes(secondFile, bytes)
 
@@ -2086,7 +2086,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     discard expect File.writeAllBytes(Path.combine(folder.toString(), "t1.txt").toString(), cast(const [..] u8) "a readable line\n")
     discard expect File.writeAllBytes(Path.combine(folder.toString(), "t2.txt").toString(), cast(const [..] u8) "a readable line\n")
     let imageSource = expect File.readAllText(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg"))
-    let imageBytes  = Swag.makeSlice(cast(const [*] u8) imageSource.buffer!, imageSource.length)
+    let imageBytes  = Swag.makeSlice(cast(const [*] u8) imageSource.storage(), imageSource.length)
     discard expect File.writeAllBytes(Path.combine(folder.toString(), "pic1.svg").toString(), imageBytes)
     discard expect File.writeAllBytes(Path.combine(folder.toString(), "pic2.svg").toString(), imageBytes)
 
@@ -2125,7 +2125,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("%_%", stem, Guid64.random()).toString())
     expect Directory.create(folder.toString())
     let imageSource = expect File.readAllText(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg"))
-    let imageBytes  = Swag.makeSlice(cast(const [*] u8) imageSource.buffer!, imageSource.length)
+    let imageBytes  = Swag.makeSlice(cast(const [*] u8) imageSource.storage(), imageSource.length)
     for name in names do
         discard expect File.writeAllBytes(Path.combine(folder.toString(), name).toString(), imageBytes)
     return folder

@@ -5,11 +5,11 @@ using Swag, Core
 func assertGifPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
 {
     let idx = cast(u64) (yFromBottom * img.width + x) * img.bytesPerPixel
-    Swag.assert(img.pixels.buffer![idx] == r)
-    Swag.assert(img.pixels.buffer![idx + 1] == g)
-    Swag.assert(img.pixels.buffer![idx + 2] == b)
+    Swag.assert(img.pixels.storage()[idx] == r)
+    Swag.assert(img.pixels.storage()[idx + 1] == g)
+    Swag.assert(img.pixels.storage()[idx + 2] == b)
     if img.bytesPerPixel == 4 do
-        Swag.assert(img.pixels.buffer![idx + 3] == a)
+        Swag.assert(img.pixels.storage()[idx + 3] == a)
 }
 
 func quantizedGifChannel(value: u8, maxLevel: u32)->u8
@@ -22,7 +22,7 @@ func assertQuantizedGif24(pixelFormat: PixelFormat) fail
 {
     const Width = 523
     var source    = Image.create(Width, 1, pixelFormat)
-    var pix       = source.pixels.buffer!
+    var pix       = source.pixels.storage()
     let blueFirst = pixelFormat == .BGR8
     for i in Width
     {
@@ -52,7 +52,7 @@ func assertQuantizedGif32(pixelFormat: PixelFormat, withTransparency: bool) fail
 {
     const Width = 523
     var source    = Image.create(Width, 1, pixelFormat)
-    var pix       = source.pixels.buffer!
+    var pix       = source.pixels.storage()
     let blueFirst = pixelFormat == .BGRA8
     for i in Width
     {
@@ -196,7 +196,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 #test
 {
     var src    = Image.create(2, 2, .RGB8)
-    let srcBuf = src.pixels.buffer!
+    let srcBuf = src.pixels.storage()
     srcBuf[0]  = 10'u8
     srcBuf[1]  = 20'u8
     srcBuf[2]  = 30'u8
@@ -220,7 +220,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 #test
 {
     var src    = Image.create(2, 1, .RGBA8)
-    let srcBuf = src.pixels.buffer!
+    let srcBuf = src.pixels.storage()
     srcBuf[0] = 1'u8
     srcBuf[1] = 2'u8
     srcBuf[2] = 3'u8
@@ -242,7 +242,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 #test
 {
     var bgr    = Image.create(1, 1, .BGR8)
-    let bgrBuf = bgr.pixels.buffer!
+    let bgrBuf = bgr.pixels.storage()
     bgrBuf[0] = 30'u8
     bgrBuf[1] = 20'u8
     bgrBuf[2] = 10'u8
@@ -252,7 +252,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     assertGifPixelAt(bgrDecoded, 0, 0, 10'u8, 20'u8, 30'u8, 255'u8)
 
     var bgra    = Image.create(1, 1, .BGRA8)
-    let bgraBuf = bgra.pixels.buffer!
+    let bgraBuf = bgra.pixels.storage()
     bgraBuf[0] = 7'u8
     bgraBuf[1] = 8'u8
     bgraBuf[2] = 9'u8
@@ -267,7 +267,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 #test
 {
     var src = Image.create(17, 17, .RGB8)
-    var pix = src.pixels.buffer!
+    var pix = src.pixels.storage()
     for i in src.width * src.height
     {
         let x = i % src.width
@@ -303,7 +303,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     let path = makeTempGifPath()
     defer discard catch File.delete(path.toString())
     var src    = Image.create(1, 1, .RGB8)
-    let srcBuf = src.pixels.buffer!
+    let srcBuf = src.pixels.storage()
     srcBuf[0] = 12'u8
     srcBuf[1] = 34'u8
     srcBuf[2] = 56'u8

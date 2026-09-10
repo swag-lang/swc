@@ -196,6 +196,6 @@ impl BinaryImage
             text.add(value >= 32 and value < 127 ? value : '.'u8)
         }
 
-        return String.from(Swag.makeString(text.buffer!, text.count))
+        return String.from(Swag.makeString(text.storage(), text.count))
     }
 }

@@ -65,7 +65,7 @@ impl Voice
 
             if .decodedBuffers[.decodedBufferIdx].count < .decodedBufferCapacity() do
                 .decodedBuffers[.decodedBufferIdx].resize(.decodedBufferCapacity())
-            let destBuffer = .decodedBuffers[.decodedBufferIdx].buffer!
+            let destBuffer = .decodedBuffers[.decodedBufferIdx].storage()
             let destSize   = .decodePacketData(destBuffer, .decodedFillSize())
             .decodedBufferIdx = (.decodedBufferIdx + 1) % NumDecodedBuffers
             return {destBuffer, destSize}
@@ -87,7 +87,7 @@ impl Voice
             let orgSeek  = .streamCurSeek
             let readSize = (file.data.count - .streamCurSeek)
             .streamCurSeek = file.data.count
-            let dataBuffer = file.data.buffer!
+            let dataBuffer = file.data.storage()
             return {dataBuffer + orgSeek, readSize}
         }
 
@@ -95,7 +95,7 @@ impl Voice
         if not .decodedBuffers[.decodedBufferIdx].buffer do
             .decodedBuffers[.decodedBufferIdx].resize(DecodedBufferSize)
 
-        let destBuffer = .decodedBuffers[.decodedBufferIdx].buffer!
+        let destBuffer = .decodedBuffers[.decodedBufferIdx].storage()
         let destSize   = .decodeData(destBuffer, .decodedFillSize())
 
         .decodedBufferIdx = (.decodedBufferIdx + 1) % NumDecodedBuffers
@@ -194,7 +194,7 @@ impl Voice
                 // A codec restarted by a seek may lack the history the first packets of the run need
                 // and produce fewer frames than the index states. Those frames are the leading ones,
                 // and the seek discards that region anyway, so the shortfall counts as discarded.
-                let produced = .packetCodec!.decodePacket(.packetScratch.buffer!, decodedSize, .packetBuffer.toSlice())
+                let produced = .packetCodec!.decodePacket(.packetScratch.storage(), decodedSize, .packetBuffer.toSlice())
                 if produced > decodedSize do
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
                 let missing       = decodedSize - produced
@@ -205,7 +205,7 @@ impl Voice
                 let kept = produced - (discardBytes - missing)
                 if kept
                 {
-                    Memory.copy(cast([*] u8) destination + written, .packetScratch.buffer! + (discardBytes - missing), kept)
+                    Memory.copy(cast([*] u8) destination + written, .packetScratch.storage() + (discardBytes - missing), kept)
                     written += kept
                 }
 
@@ -246,14 +246,14 @@ impl Voice
             expect .createCodec()
             .streamBuffer.reserve(StreamBufferSize)
             let readStart    = .streamCurSeek
-            let streamBuffer = .streamBuffer.buffer!
+            let streamBuffer = .streamBuffer.storage()
             let codec        = .codec!
             .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
             .streamCurSeek      = readStart + codec.initialize(streamBuffer, .streamBuffer.count)
         }
 
         let readStart    = .streamCurSeek
-        let streamBuffer = .streamBuffer.buffer!
+        let streamBuffer = .streamBuffer.storage()
         let codec        = .codec!
         .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
         let used = codec.decode(destBuffer, length, streamBuffer, .streamBuffer.count)
@@ -279,7 +279,7 @@ impl Voice
         if .streamCurSeek < file.data.count
         {
             let remain     = Math.min(file.data.count - .streamCurSeek, length)
-            let dataBuffer = file.data.buffer!
+            let dataBuffer = file.data.storage()
             Memory.copy(destBuffer, dataBuffer + .streamCurSeek, remain)
             .streamCurSeek += remain
             if .streamCurSeek >= file.dataSize do

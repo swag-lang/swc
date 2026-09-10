@@ -631,7 +631,7 @@ impl ConcatBuffer
 
             // String identifies inline storage by capacity and requires a trailing zero.
             .grow(Math.max(eat.size + 1, StringSmallSize + 1))
-            .buffer![.length] = 0
+            .storage()[.length] = 0
         }
 
         return result

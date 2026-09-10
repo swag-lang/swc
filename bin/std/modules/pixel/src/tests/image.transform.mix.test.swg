@@ -50,7 +50,7 @@ using Swag, Core
     Memory.copy(expected.buffer, dstPixels.buffer, expected.count)
     for row in 2
     {
-        let target = expected.buffer! + cast(u64) (row + 1) * 16
+        let target = expected.storage() + cast(u64) (row + 1) * 16
         let source = srcPixels.buffer + cast(u64) row * 12 + 4
         Memory.copy(target, source, 8)
     }

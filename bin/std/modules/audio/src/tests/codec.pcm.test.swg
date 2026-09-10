@@ -39,7 +39,7 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
 
     if encoding == .Float32
     {
-        let values = cast([*] f32) source.buffer!
+        let values = cast([*] f32) source.storage()
         for index in MaxSamples + 4
         {
             values[index] = cast(f32) (cast(s64) (index % 23) - 11) / 7.0
@@ -62,15 +62,15 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
             for index in destination.count do
                 destination[index] = Sentinel
 
-            let progress      = try decoder.decode(destination.buffer!, destinationBytes, source.buffer!, sourceSamples * sampleSize)
+            let progress      = try decoder.decode(destination.storage(), destinationBytes, source.storage(), sourceSamples * sampleSize)
             let expectedCount = Math.min(sourceSamples, destinationBytes / #sizeof(s16))
             Swag.assert(progress.bytesWritten == expectedCount * #sizeof(s16))
             Swag.assert(progress.bytesRead == expectedCount * sampleSize)
 
             for index in expectedCount
             {
-                let expected = audioPcmReferenceSample(encoding, source.buffer! + index * sampleSize)
-                Swag.assert((cast([*] s16) destination.buffer!)[index] == expected)
+                let expected = audioPcmReferenceSample(encoding, source.storage() + index * sampleSize)
+                Swag.assert((cast([*] s16) destination.storage())[index] == expected)
             }
 
             for index in expectedCount * #sizeof(s16) until destination.count do

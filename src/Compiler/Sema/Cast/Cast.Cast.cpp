@@ -101,6 +101,9 @@ namespace
     {
         if (cstRef.isInvalid() || !sema.typeMgr().get(dstTypeRef).isNonNullable())
             return Result::Continue;
+        // The release store of a 'late' slot carries the one null a non-null destination accepts.
+        if (castRequest.flags.has(CastFlagsE::LateRelease))
+            return Result::Continue;
         if (!isProvablyNullConstant(sema, constantTypeRef, sema.cstMgr().get(cstRef)))
             return Result::Continue;
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
@@ -1370,6 +1373,14 @@ Result Cast::castFromNull(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
 {
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
     if (dstType.isPointerLike() && !dstType.isNonNullable())
+        return Result::Continue;
+
+    // A 'late' slot publishes a non-null type over storage that starts at zero, and it is
+    // asked whether it holds a value with '== null'. Writing null back is the inverse of
+    // the store that filled it: the slot returns to unset, and a read after the release
+    // reports itself through the same guard as a read before the first fill. A container
+    // needs that store to hand its storage away.
+    if (dstType.isPointerLike() && castRequest.flags.has(CastFlagsE::LateRelease))
         return Result::Continue;
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

@@ -194,14 +194,14 @@ impl Decoder
         var stride:      u64
         if not component
         {
-            source      = .saoSource.buffer!
-            destination = frame.luma.buffer!
+            source      = .saoSource.storage()
+            destination = frame.luma.storage()
             stride      = frame.strideLuma
         }
         else
         {
-            source      = component == 1 ? .saoSourceChromaB.buffer! : .saoSourceChromaR.buffer!
-            destination = component == 1 ? frame.chromaB.buffer! : frame.chromaR.buffer!
+            source      = component == 1 ? .saoSourceChromaB.storage() : .saoSourceChromaR.storage()
+            destination = component == 1 ? frame.chromaB.storage() : frame.chromaR.storage()
             stride      = frame.strideChroma
         }
 

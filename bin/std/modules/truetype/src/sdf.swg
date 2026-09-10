@@ -124,7 +124,7 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
         return
 
     faceData.bitmapPixels.resize(cast(u64) width * rows)
-    let bitmapBuffer = faceData.bitmapPixels.buffer!
+    let bitmapBuffer = faceData.bitmapPixels.storage()
     var dst          = bitmapBuffer
     let scale        = 127.0 / cast(f64) safeSpread
 

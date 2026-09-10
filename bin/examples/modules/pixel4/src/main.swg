@@ -52,7 +52,7 @@ func buildFillBrushImage()->Image
     var img = Image.create(96, 96, .RGBA8)
     for y in img.height
     {
-        var pix = img.pixels.buffer! + y * img.rowStride
+        var pix = img.pixels.storage() + y * img.rowStride
         for x in img.width
         {
             if ((x / 12 + y / 12) & 1) == 0
@@ -89,7 +89,7 @@ func buildTileBrushImage()->Image
     var img = Image.create(48, 48, .RGBA8)
     for y in img.height
     {
-        var pix = img.pixels.buffer! + y * img.rowStride
+        var pix = img.pixels.storage() + y * img.rowStride
         for x in img.width
         {
             if ((x / 8 + y / 8) & 1) == 0

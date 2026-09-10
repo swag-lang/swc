@@ -275,7 +275,7 @@ impl HeadlessHost
 
         .autoFrames += 1
 
-        let stage = .autoStages.buffer! + .autoStage
+        let stage = .autoStages.storage() + .autoStage
         if stage.kind == .ModalButton
         {
             func collectButtons(wnd: *Wnd, ids: *Array'String)
@@ -450,7 +450,7 @@ impl HeadlessHost
     mtd withModalEdit(label, text: string)
     {
         Swag.assert(.autoArmed and .autoStages.count > 0)
-        let stage = .autoStages.buffer! + .autoStages.count - 1
+        let stage = .autoStages.storage() + .autoStages.count - 1
         let edit  = cast(*AutoEdit) stage.edits.emplaceInitAddress()
         edit.label = label
         edit.text  = text

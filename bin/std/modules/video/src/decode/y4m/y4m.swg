@@ -186,7 +186,7 @@ private func decodePayload(target: *Image, payload: const [..] u8, header: const
             let luma         = cast(s32) payload[source]
             let d            = chromaMode == .Mono ? 0 : cast(s32) payload[lumaSize + chromaSource] - 128
             let e            = chromaMode == .Mono ? 0 : cast(s32) payload[lumaSize + chromaSize + chromaSource] - 128
-            let destination  = target.pixels.buffer! + destinationRow + cast(u64) x * 3
+            let destination  = target.pixels.storage() + destinationRow + cast(u64) x * 3
             if header.colorRange == .Full
             {
                 destination[0] = clampByte(luma + ((359 * e + 128) >> 8))

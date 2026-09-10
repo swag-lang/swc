@@ -158,9 +158,9 @@ SWC_TOKEN_DEF(KwdAttr, "attr", TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdVar, "var", TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdLet, "let", TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdConst, "const", TokenIdKindE::Keyword)
-SWC_TOKEN_DEF(KwdLate, "late", TokenIdKindE::Keyword)
-SWC_TOKEN_DEF(KwdTls, "tls", TokenIdKindE::Keyword)
-SWC_TOKEN_DEF(KwdGlobal, "global", TokenIdKindE::Keyword)
+SWC_TOKEN_DEF(KwdLate, "late", TokenIdKindE::Keyword | TokenIdKindE::StorageModifier)
+SWC_TOKEN_DEF(KwdTls, "tls", TokenIdKindE::Keyword | TokenIdKindE::StorageModifier)
+SWC_TOKEN_DEF(KwdGlobal, "global", TokenIdKindE::Keyword | TokenIdKindE::StorageModifier)
 
 // COMPILER FUNC
 

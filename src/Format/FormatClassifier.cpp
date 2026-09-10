@@ -46,8 +46,7 @@ namespace
                 for (uint32_t p = prevCode(first); p != INVALID_PIECE; p = prevCode(p))
                 {
                     const FormatPiece& piece = model_->piece(p);
-                    if (!piece.hasRole(FormatRoleE::AccessModifier) &&
-                        piece.isNot(TokenId::KwdLate) && piece.isNot(TokenId::KwdTls) && piece.isNot(TokenId::KwdGlobal))
+                    if (!piece.hasRole(FormatRoleE::AccessModifier) && !Token::isStorageModifier(piece.id))
                         break;
                     first = p;
                 }
@@ -204,6 +203,13 @@ namespace
                 {
                     const uint32_t prev = prevCode(span.minPiece);
                     if (prev != INVALID_PIECE && (model_->piece(prev).is(TokenId::KwdFunc) || model_->piece(prev).is(TokenId::KwdMtd)))
+                        span.minPiece = prev;
+                }
+                else if (node.is(AstNodeId::AccessModifier))
+                {
+                    // Storage before visibility lives in parser state, outside this
+                    // node. Include it in the statement, along with its leading comments.
+                    for (uint32_t prev = prevCode(span.minPiece); prev != INVALID_PIECE && Token::isStorageModifier(model_->piece(prev).id); prev = prevCode(prev))
                         span.minPiece = prev;
                 }
                 else if (node.is(AstNodeId::AttrDecl))
@@ -1398,11 +1404,12 @@ namespace
 
                 case AstNodeId::AccessModifier:
                 {
-                    addRole(span.minPiece, FormatRoleE::AccessModifier);
+                    const uint32_t modifier = pieceOfNodeToken(node);
+                    addRole(modifier, FormatRoleE::AccessModifier);
                     const auto& access = node.cast<AstAccessModifier>();
                     if (access.hasFlag(AstAccessModifierFlagsE::ReadOnly) &&
-                        model_->piece(span.minPiece).isNot(TokenId::KwdReadOnly))
-                        addRole(nextCodeIf(span.minPiece, TokenId::KwdReadOnly), FormatRoleE::AccessModifier);
+                        model_->piece(modifier).isNot(TokenId::KwdReadOnly))
+                        addRole(nextCodeIf(modifier, TokenId::KwdReadOnly), FormatRoleE::AccessModifier);
                     break;
                 }
 

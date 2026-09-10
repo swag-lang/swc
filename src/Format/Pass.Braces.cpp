@@ -785,11 +785,6 @@ namespace
         }
     }
 
-    bool isStorageModifier(const FormatPiece& piece)
-    {
-        return piece.is(TokenId::KwdLate) || piece.is(TokenId::KwdTls) || piece.is(TokenId::KwdGlobal);
-    }
-
     // Storage modifiers govern the declaration that follows them. Keep that relationship
     // visible on one line (`late field: T`, `tls private var value`) while preserving a
     // braced group as its own section.
@@ -798,7 +793,7 @@ namespace
         for (uint32_t i = 0; i < model.numPieces(); ++i)
         {
             const FormatPiece& modifier = model.piece(i);
-            if (modifier.removed || modifier.frozen || !isStorageModifier(modifier))
+            if (modifier.removed || modifier.frozen || !Token::isStorageModifier(modifier.id))
                 continue;
 
             const uint32_t next = model.nextPiece(i);

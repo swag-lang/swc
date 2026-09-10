@@ -31,12 +31,13 @@ enum class TokenIdKindE : uint32_t
 
     // Operator families. '++' is deliberately absent: concatenation shares no operand rule
     // with the numeric operators, and every site that accepts it handles it on its own.
-    OpArithmetic = 1 << 14, // + - * / %
-    OpBitwise    = 1 << 15, // & | ^ << >>
-    OpEquality   = 1 << 16, // == !=
-    OpOrdering   = 1 << 17, // < <= > >= <=>
-    OpLogical    = 1 << 18, // and or && ||
-    OpAssign     = 1 << 19, // = and every compound assignment
+    OpArithmetic    = 1 << 14, // + - * / %
+    OpBitwise       = 1 << 15, // & | ^ << >>
+    OpEquality      = 1 << 16, // == !=
+    OpOrdering      = 1 << 17, // < <= > >= <=>
+    OpLogical       = 1 << 18, // and or && ||
+    OpAssign        = 1 << 19, // = and every compound assignment
+    StorageModifier = 1 << 20, // late tls global
 };
 using TokenIdKind = EnumFlags<TokenIdKindE>;
 
@@ -129,6 +130,7 @@ struct Token
     static bool isPortableIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic | TokenIdKindE::Portable); }
     static bool isType(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Type); }
     static bool isModifier(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Modifier); }
+    static bool isStorageModifier(TokenId id) { return toKind(id).hasAll(TokenIdKindE::StorageModifier); }
     static bool isSpecialWord(TokenId id) { return isKeyword(id) || isCompiler(id) || isIntrinsic(id) || isType(id) || isModifier(id); }
     static bool isReserved(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Reserved); }
     // The compiler function blocks that turn into a symbol in the native artifact, as opposed

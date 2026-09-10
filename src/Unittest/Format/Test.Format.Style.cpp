@@ -147,6 +147,48 @@ SWC_TEST_BEGIN(FormatStyle_SwagKeepsAccessModifiersWithTheirDeclarations)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatStyle_SwagKeepsStorageAndAccessModifierOrders)
+{
+    static constexpr std::string_view SOURCE =
+        "var first: s32\n"
+        "\n"
+        "// The declaration starts before either modifier.\n"
+        "{} var value: s32\n"
+        "\n"
+        "namespace Nested\n"
+        "{{\n"
+        "    var first: s32\n"
+        "\n"
+        "    // Keep the same order inside a namespace.\n"
+        "    {} var value: s32\n"
+        "}}\n";
+
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+
+    for (const std::string_view storage : {"late", "tls", "global"})
+    {
+        for (const std::string_view access : {"private", "public", "internal"})
+        {
+            for (const bool storageFirst : {false, true})
+            {
+                const std::string_view first     = storageFirst ? storage : access;
+                const std::string_view second    = storageFirst ? access : storage;
+                const std::string      modifiers = std::format("{} {}", first, second);
+                const std::string      source    = std::format(SOURCE, modifiers, modifiers);
+                SWC_RESULT(checkStyleRewrite(ctx, source, source, options));
+
+                const std::string splitModifiers = std::format("{}\n{}", first, second);
+                const std::string splitSource    = std::format(SOURCE, splitModifiers, splitModifiers);
+                SWC_RESULT(checkStyleRewrite(ctx, splitSource, source, options));
+            }
+        }
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatStyle_SwagSeparatesAccessBlocks)
 {
     static constexpr std::string_view SOURCE =

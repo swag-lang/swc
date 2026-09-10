@@ -19,12 +19,12 @@ const BoardHeight = 345.0
 // whatever is left, so this only has to be generous, not exact.
 const CaptionRoom = 48
 
-var g_Wnd:      *Wnd?
-var g_DataPath: String
-var g_Painter:  *Painter?
+late var g_Wnd:     *Wnd
+var g_DataPath:     String
+late var g_Painter: *Painter
 
-func thePainter()->*Painter => g_Painter!
-func theWnd()->*Wnd         => g_Wnd!
+func thePainter()->*Painter => g_Painter
+func theWnd()->*Wnd         => g_Wnd
 
 var g_MapTex:      Texture
 var g_PillTex:     Texture

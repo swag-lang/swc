@@ -41,13 +41,13 @@ var g_Painter:     Pixel.Painter
 var g_RC:          Pixel.RenderContext
 var g_Keyboard:    Input.Keyboard
 
-var g_FontPath:     String
-var g_FontBytes:    Array'u8
-var g_TypeFace:     *Pixel.TypeFace?
-var g_TitleFont:    *Pixel.Font?
-var g_SubTitleFont: *Pixel.Font?
-var g_LabelFont:    *Pixel.Font?
-var g_HelpFont:     *Pixel.Font?
+var g_FontPath:          String
+var g_FontBytes:         Array'u8
+late var g_TypeFace:     *Pixel.TypeFace
+late var g_TitleFont:    *Pixel.Font
+late var g_SubTitleFont: *Pixel.Font
+late var g_LabelFont:    *Pixel.Font
+late var g_HelpFont:     *Pixel.Font
 
 var g_Page:      s32
 var g_TestFrame: s32
@@ -71,10 +71,10 @@ func loadFonts() fail
     let path = g_FontPath.toString()
     g_FontBytes    = File.readAllBytes(path)
     g_TypeFace     = TypeFace.create(path, g_FontBytes.toSlice())
-    g_TitleFont    = g_Renderer.fonts.createFont(g_TypeFace!, 34)
-    g_SubTitleFont = g_Renderer.fonts.createFont(g_TypeFace!, 18)
-    g_LabelFont    = g_Renderer.fonts.createFont(g_TypeFace!, 15)
-    g_HelpFont     = g_Renderer.fonts.createFont(g_TypeFace!, 13)
+    g_TitleFont    = g_Renderer.fonts.createFont(g_TypeFace, 34)
+    g_SubTitleFont = g_Renderer.fonts.createFont(g_TypeFace, 18)
+    g_LabelFont    = g_Renderer.fonts.createFont(g_TypeFace, 15)
+    g_HelpFont     = g_Renderer.fonts.createFont(g_TypeFace, 13)
 }
 
 func cloneImage(image: Image)->Image
@@ -151,14 +151,14 @@ func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string
 
 func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 {
-    painter.drawString(28, 22, title, g_TitleFont!, Argb.MidnightBlue)
-    drawWrappedText(painter, {30, 62, W - 60, 36}, subtitle, g_SubTitleFont!, Argb.DimGray)
+    painter.drawString(28, 22, title, g_TitleFont, Argb.MidnightBlue)
+    drawWrappedText(painter, {30, 62, W - 60, 36}, subtitle, g_SubTitleFont, Argb.DimGray)
 }
 
 func drawFooter(painter: *Pixel.Painter)
 {
     let pageText = Format.toString("F1 : next page (%/%). Pages : tonal filters, kernels and grading, image transforms, painter transforms.", g_Page + 1, MaxPages)
-    painter.drawString(28, H - 24, pageText, g_HelpFont!, Argb.DimGray)
+    painter.drawString(28, H - 24, pageText, g_HelpFont, Argb.DimGray)
 }
 
 func computeSceneLayout(width, height: s32)->SceneLayout
@@ -258,8 +258,8 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: TextureCard)
     painter.fillRoundRect(previewRect, 16, 16, Color.fromArgb(255, 246, 248, 250))
     painter.drawRoundRect(previewRect, 16, 16, Color.fromArgb(36, Argb.SlateGray), 1)
 
-    painter.drawString(rect.x + 14, rect.y + 12, card.title, g_LabelFont!, Argb.DarkSlateBlue)
-    drawWrappedText(painter, subtitleRect, card.subtitle, g_HelpFont!, Argb.DimGray)
+    painter.drawString(rect.x + 14, rect.y + 12, card.title, g_LabelFont, Argb.DarkSlateBlue)
+    drawWrappedText(painter, subtitleRect, card.subtitle, g_HelpFont, Argb.DimGray)
     drawCardTexture(painter, previewRect, card)
 }
 

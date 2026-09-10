@@ -34,6 +34,7 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-10 09:41 |
 | [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-10 08:42 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-09 19:33 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-09 17:44 |
@@ -71,7 +72,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [compiler.distribution.md](compiler.distribution.md) | Release delivery, first use, local learning, and agent-grade command discovery | 2026-09-06 07:51 |
 | [std.audio.md](std.audio.md) | `std/audio` | 2026-09-06 07:51 |
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` | 2026-09-06 07:51 |
-| [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-05 16:27 |
 | [std.truetype.md](std.truetype.md) | `std/truetype` | 2026-09-01 08:37 |
 
 Put an entry in the domain where it will be investigated or fixed, not where it happened to be

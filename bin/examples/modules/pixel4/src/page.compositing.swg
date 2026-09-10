@@ -62,8 +62,8 @@ func drawPathModeCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     painter.fillRoundRect(leftBox, 16, 16, Color.fromArgb(255, 247, 249, 251))
     painter.fillRoundRect(rightBox, 16, 16, Color.fromArgb(255, 247, 249, 251))
-    painter.drawString(leftBox.x + 14, leftBox.y + 12, "Separate", g_HelpFont!, Argb.DarkSlateGray)
-    painter.drawString(rightBox.x + 14, rightBox.y + 12, "Merge + textured pen", g_HelpFont!, Argb.DarkSlateGray)
+    painter.drawString(leftBox.x + 14, leftBox.y + 12, "Separate", g_HelpFont, Argb.DarkSlateGray)
+    painter.drawString(rightBox.x + 14, rightBox.y + 12, "Merge + textured pen", g_HelpFont, Argb.DarkSlateGray)
 
     var penL = Pen.createSolid(Color.fromArgb(146, Argb.SeaGreen), 28)
     penL.joinStyle = .Round

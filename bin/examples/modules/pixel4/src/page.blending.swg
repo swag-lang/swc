@@ -30,7 +30,7 @@ func drawBlendModeSample(painter: *Pixel.Painter, rect: Math.Rectangle, sample: 
 {
     painter.fillRoundRect(rect, 16, 16, Argb.White)
     painter.drawRoundRect(rect, 16, 16, Color.fromArgb(42, Argb.SlateGray), 1)
-    painter.drawString(rect.x + 14, rect.y + 11, sample.label, g_LabelFont!, Argb.DarkSlateBlue)
+    painter.drawString(rect.x + 14, rect.y + 11, sample.label, g_LabelFont, Argb.DarkSlateBlue)
 
     let preview = insetRect(rect, 14, 42, 14, 14)
 

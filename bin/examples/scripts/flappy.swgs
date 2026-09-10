@@ -163,7 +163,7 @@ sites use '!' only after successful asset loading establishes the
 invariant.
 */
 
-var g_Font: *Font?
+late var g_Font: *Font
 
 /**
 ## Types
@@ -301,7 +301,7 @@ func paint(painter: *Painter)
     // Draw the score using the loaded game font.
     if not g_FirstStart
     {
-        painter.drawStringCenter(g_Rect.horzCenter(), 50, Format.toString("%", g_Score), g_Font!, Argb.White)
+        painter.drawStringCenter(g_Rect.horzCenter(), 50, Format.toString("%", g_Score), g_Font, Argb.White)
     }
 
     // Show the start prompt before the first round.

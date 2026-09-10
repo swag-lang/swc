@@ -18,9 +18,9 @@ struct C
     lastYI: s32
 }
 
-var g_RD:   [MaxColumns] C
-var g_Font: *Font?
-var g_Rng:  Random.Generator
+var g_RD:        [MaxColumns] C
+late var g_Font: *Font
+var g_Rng:       Random.Generator
 
 func initC(i: s32)
 {
@@ -88,7 +88,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
                 str.clear()
                 str += c
-                painter.drawString(x, y, str, g_Font!, color)
+                painter.drawString(x, y, str, g_Font, color)
             }
 
             g_RD[i].y += g_RD[i].speed * wnd.app().deltaSeconds()

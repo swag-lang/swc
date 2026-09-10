@@ -20,9 +20,9 @@ struct Paddle
     pos: Vector2
 }
 
-var g_Rng:  Random.Generator
-var g_Rect: Math.Rectangle
-var g_Font: *Font?
+var g_Rng:       Random.Generator
+var g_Rect:      Math.Rectangle
+late var g_Font: *Font
 
 var g_ScoreLeft:  s32
 var g_ScoreRight: s32
@@ -144,7 +144,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         painter.fillRect(g_PaddleRight.pos.x - PaddleWidth, g_PaddleRight.pos.y - PaddleHeight, 2 * PaddleWidth, 2 * PaddleHeight, Argb.White)
 
         var sp: StringPainter
-        sp.font(g_Font!)
+        sp.font(g_Font)
         sp.color(Argb.White)
         sp.horzAlign(.Center)
         sp.vertAlign(.Center)

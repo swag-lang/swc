@@ -40,10 +40,10 @@ var g_Painter:     Pixel.Painter
 var g_RC:          Pixel.RenderContext
 var g_Keyboard:    Input.Keyboard
 
-var g_TypeFace:  *Pixel.TypeFace?
-var g_TitleFont: *Pixel.Font?
-var g_LabelFont: *Pixel.Font?
-var g_HelpFont:  *Pixel.Font?
+late var g_TypeFace:  *Pixel.TypeFace
+late var g_TitleFont: *Pixel.Font
+late var g_LabelFont: *Pixel.Font
+late var g_HelpFont:  *Pixel.Font
 
 var g_Page:      s32
 var g_TestFrame: s32
@@ -58,9 +58,9 @@ func dataPath(fileName: string, loc = #callerlocation)->String
 func loadFonts() fail
 {
     g_TypeFace  = TypeFace.load("segoeui.ttf")
-    g_TitleFont = g_Renderer.fonts.createFont(g_TypeFace!, 34)
-    g_LabelFont = g_Renderer.fonts.createFont(g_TypeFace!, 18)
-    g_HelpFont  = g_Renderer.fonts.createFont(g_TypeFace!, 14)
+    g_TitleFont = g_Renderer.fonts.createFont(g_TypeFace, 34)
+    g_LabelFont = g_Renderer.fonts.createFont(g_TypeFace, 18)
+    g_HelpFont  = g_Renderer.fonts.createFont(g_TypeFace, 14)
 }
 
 func normalizeSource(image: Image)->Image
@@ -261,8 +261,8 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: DecoderCard)
     painter.fillRoundRect(headerRect, 18, 18, Color.fromArgb(22, Argb.MidnightBlue))
     painter.fillRoundRect(previewRect, 14, 14, Color.fromArgb(255, 239, 242, 247))
 
-    painter.drawString(rect.x + 14, rect.y + 11, card.title, g_LabelFont!, Argb.DarkSlateBlue)
-    drawWrappedText(painter, detailsRect, card.details, g_HelpFont!, Argb.DimGray)
+    painter.drawString(rect.x + 14, rect.y + 11, card.title, g_LabelFont, Argb.DarkSlateBlue)
+    drawWrappedText(painter, detailsRect, card.details, g_HelpFont, Argb.DimGray)
 
     painter.pushClippingRect(previewRect)
     painter.drawTexture(fitTextureRect(previewRect, card.texture), card.texture)
@@ -275,14 +275,14 @@ func drawScene(painter: *Pixel.Painter)
     painter.clear(Color.fromArgb(255, 245, 246, 249))
     painter.setColorMaskColor()
     painter.setParams(.Antialiased)
-    painter.drawString(28, 22, pageTitle(g_Page), g_TitleFont!, Argb.MidnightBlue)
-    drawWrappedText(painter, {30, 64, W - 60, 42}, pageDescription(g_Page), g_HelpFont!, Argb.DimGray)
+    painter.drawString(28, 22, pageTitle(g_Page), g_TitleFont, Argb.MidnightBlue)
+    drawWrappedText(painter, {30, 64, W - 60, 42}, pageDescription(g_Page), g_HelpFont, Argb.DimGray)
 
     for i in CardsPerPage do
         drawCard(painter, getCardRect(i), g_Cards[g_Page][i])
 
     let footer = Format.toString("F1 : next codec (%/%). BMP, TGA, JPEG, PNG, GIF, TIFF, ICO and WebP.", g_Page + 1, PageCount)
-    painter.drawString(28, H - 22, footer, g_HelpFont!, Argb.DimGray)
+    painter.drawString(28, H - 22, footer, g_HelpFont, Argb.DimGray)
 }
 
 func display()

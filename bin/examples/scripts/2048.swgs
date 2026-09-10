@@ -77,14 +77,14 @@ struct Cell
     remove:   bool
 }
 
-var g_Cells:     Array'Cell
-var g_Font:      *Font?
-var g_LabelFont: *Font?
-var g_MoveDirX:  s32
-var g_MoveDirY:  s32
-var g_IsMoving:  bool
-var g_GameOver:  bool
-var g_Score:     s32
+var g_Cells:          Array'Cell
+late var g_Font:      *Font
+late var g_LabelFont: *Font
+var g_MoveDirX:       s32
+var g_MoveDirY:       s32
+var g_IsMoving:       bool
+var g_GameOver:       bool
+var g_Score:          s32
 
 func paintGrid(wnd: *Wnd, painter: *Painter)
 {
@@ -135,7 +135,7 @@ func paintGrid(wnd: *Wnd, painter: *Painter)
         let str  = Format.toString("%", c.val)
         var zoom = c.z
         zoom -= (cast(f32) str.length * 0.08)
-        painter.drawStringCenter(xi + (cellW * 0.5), yi + (cellW * 0.5), str, g_Font!, Argb.Black, zoom: zoom * layout.zoom)
+        painter.drawStringCenter(xi + (cellW * 0.5), yi + (cellW * 0.5), str, g_Font, Argb.Black, zoom: zoom * layout.zoom)
     }
 }
 
@@ -325,9 +325,9 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         painter.fillRect(rect, Color.fromRgb(43, 43, 43))
 
         let layout = boardLayout(rect)
-        painter.drawStringCenter(rect.horzCenter(), layout.labelY, "score", g_LabelFont!, Argb.White, zoom: layout.zoom)
+        painter.drawStringCenter(rect.horzCenter(), layout.labelY, "score", g_LabelFont, Argb.White, zoom: layout.zoom)
         let str = Format.toString("%", g_Score)
-        painter.drawStringCenter(rect.horzCenter(), layout.scoreY, str, g_Font!, Argb.White, zoom: layout.zoom)
+        painter.drawStringCenter(rect.horzCenter(), layout.scoreY, str, g_Font, Argb.White, zoom: layout.zoom)
 
         keyboard(wnd)
         paintGrid(wnd, painter)

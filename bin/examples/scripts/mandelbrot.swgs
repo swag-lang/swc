@@ -5,15 +5,15 @@
 
 using Core, Gui, Pixel
 
-var g_Image:   Image
-var g_Texture: Texture
-var g_Slider:  *Slider?
+var g_Image:       Image
+var g_Texture:     Texture
+late var g_Slider: *Slider
 
 func compute()
 {
     using Math
 
-    let slider = g_Slider!
+    let slider = g_Slider
     var data   = {minS: slider.lowerValue(), maxS: slider.upperValue()}
     g_Image.visitPixels(&data)
     {

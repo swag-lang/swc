@@ -15,7 +15,7 @@ func drawRenderTargetContent(painter: *Pixel.Painter, width, height: s32)
 
     painter.fillRoundRect(backRect.right() - 150, backRect.y + 26, 110, 74, 18, 18, Color.fromArgb(180, Argb.DeepSkyBlue))
     painter.fillRoundRect(backRect.right() - 120, backRect.y + 54, 110, 74, 18, 18, Color.fromArgb(160, Argb.Tomato))
-    painter.drawString(backRect.x + 164, backRect.y + 92, "RT", g_TitleFont!, Argb.MidnightBlue)
+    painter.drawString(backRect.x + 164, backRect.y + 92, "RT", g_TitleFont, Argb.MidnightBlue)
 
     var star = makeStarPolygon(backRect.right() - 106, backRect.bottom() - 70, 48, 20, 5)
     painter.fillPolygon(star[to], Brush.createTiled(g_TileTexture))
@@ -35,18 +35,18 @@ func drawRenderTargetPreviewCard(painter: *Pixel.Painter, rect: Math.Rectangle, 
     painter.fillRoundRect(midRect, 16, 16, Color.fromArgb(255, 247, 249, 251))
     painter.fillRoundRect(rightRect, 16, 16, Color.fromArgb(255, 247, 249, 251))
 
-    painter.drawString(leftRect.x + 14, leftRect.y + 12, "Raw target", g_HelpFont!, Argb.DarkSlateGray)
+    painter.drawString(leftRect.x + 14, leftRect.y + 12, "Raw target", g_HelpFont, Argb.DarkSlateGray)
     painter.drawTexture(insetRect(leftRect, 14, 34, 14, 14), texture)
 
     let midDst = insetRect(midRect, 18, 38, 18, 18)
-    painter.drawString(midRect.x + 14, midRect.y + 12, "Rotated drawTexture", g_HelpFont!, Argb.DarkSlateGray)
+    painter.drawString(midRect.x + 14, midRect.y + 12, "Rotated drawTexture", g_HelpFont, Argb.DarkSlateGray)
     painter.pushTransform()
     painter.rotateTransform(8.0'deg, midDst.horzCenter(), midDst.vertCenter())
     painter.drawTexture(midDst, texture)
     painter.popTransform()
 
     let srcRect = Math.Rectangle{cast(f32) texture.width * 0.50, cast(f32) texture.height * 0.10, cast(f32) texture.width * 0.36, cast(f32) texture.height * 0.52}
-    painter.drawString(rightRect.x + 14, rightRect.y + 12, "Source-rect zoom", g_HelpFont!, Argb.DarkSlateGray)
+    painter.drawString(rightRect.x + 14, rightRect.y + 12, "Source-rect zoom", g_HelpFont, Argb.DarkSlateGray)
     painter.drawTexture(insetRect(rightRect, 14, 34, 14, 14), srcRect, texture)
 }
 
@@ -65,7 +65,7 @@ func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, te
         painter.drawRoundRect(leftRect, 22, 22, pen)
         let labelRect = Math.Rectangle{leftRect.x + 12, leftRect.bottom() - 34, leftRect.width - 24, 25}
         painter.fillRoundRect(labelRect, 7, 7, Color.fromArgb(205, Argb.MidnightBlue))
-        drawWrappedText(painter, insetRect(labelRect, 8, 3, 8, 2), "Brush.createTexture(target.colorBuffer)", g_HelpFont!, Argb.White)
+        drawWrappedText(painter, insetRect(labelRect, 8, 3, 8, 2), "Brush.createTexture(target.colorBuffer)", g_HelpFont, Argb.White)
     }
 
     {
@@ -78,7 +78,7 @@ func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, te
 
         painter.fillPolygon(flower[to], Brush.createTiled(g_TileTexture))
         drawClosedOutline(painter, flower[to], pen)
-        drawWrappedText(painter, {rightRect.x + 10, rightRect.bottom() - 24, rightRect.width - 20, 22}, "Textured outline from the same target", g_HelpFont!, Argb.DarkSlateGray)
+        drawWrappedText(painter, {rightRect.x + 10, rightRect.bottom() - 24, rightRect.width - 20, 22}, "Textured outline from the same target", g_HelpFont, Argb.DarkSlateGray)
     }
 }
 

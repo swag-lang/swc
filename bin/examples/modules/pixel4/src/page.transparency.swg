@@ -19,7 +19,7 @@ func drawBlobSurface(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawAlphaRow(painter: *Pixel.Painter, rect: Math.Rectangle, alpha: u8, label: string)
 {
-    painter.drawString(rect.x, rect.y + 4, label, g_LabelFont!, Argb.DarkSlateGray)
+    painter.drawString(rect.x, rect.y + 4, label, g_LabelFont, Argb.DarkSlateGray)
 
     let left      = rect.x + 150
     let right     = rect.right() - 18

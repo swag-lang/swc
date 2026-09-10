@@ -43,24 +43,24 @@ late var g_Render: Pixel.IRenderer
 var g_Painter:     Pixel.Painter
 var g_RC:          Pixel.RenderContext
 
-var g_TypeFace:     *Pixel.TypeFace?
-var g_BoldTypeFace: *Pixel.TypeFace?
-var g_TitleFont:    *Pixel.Font?
-var g_SubtitleFont: *Pixel.Font?
-var g_LabelFont:    *Pixel.Font?
-var g_SourceFont:   *Pixel.Font?
-var g_MathFont:     *Pixel.Font?
-var g_Formulas:     [FormulaCount] MathExpression
+late var g_TypeFace:     *Pixel.TypeFace
+late var g_BoldTypeFace: *Pixel.TypeFace
+late var g_TitleFont:    *Pixel.Font
+late var g_SubtitleFont: *Pixel.Font
+late var g_LabelFont:    *Pixel.Font
+late var g_SourceFont:   *Pixel.Font
+late var g_MathFont:     *Pixel.Font
+var g_Formulas:          [FormulaCount] MathExpression
 
 func initContent() fail
 {
     g_TypeFace     = TypeFace.load("segoeui.ttf")
     g_BoldTypeFace = TypeFace.load("segoeuib.ttf")
-    g_TitleFont    = g_Renderer.fonts.createFont(g_BoldTypeFace!, 32, .Auto)
-    g_SubtitleFont = g_Renderer.fonts.createFont(g_TypeFace!, 15, .Auto)
-    g_LabelFont    = g_Renderer.fonts.createFont(g_BoldTypeFace!, 15, .Auto)
-    g_SourceFont   = g_Renderer.fonts.createFont(g_TypeFace!, 12, .Auto)
-    g_MathFont     = g_Renderer.fonts.createFont(g_TypeFace!, 34, .Auto)
+    g_TitleFont    = g_Renderer.fonts.createFont(g_BoldTypeFace, 32, .Auto)
+    g_SubtitleFont = g_Renderer.fonts.createFont(g_TypeFace, 15, .Auto)
+    g_LabelFont    = g_Renderer.fonts.createFont(g_BoldTypeFace, 15, .Auto)
+    g_SourceFont   = g_Renderer.fonts.createFont(g_TypeFace, 12, .Auto)
+    g_MathFont     = g_Renderer.fonts.createFont(g_TypeFace, 34, .Auto)
 
     for source, idx in Sources do
         g_Formulas[idx] = try MathExpression.parse(source)
@@ -91,11 +91,11 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, index: u64)
     painter.drawRoundRect(rect, 12, 12, Color.fromArgb(38, Argb.SlateGray), 1)
     painter.fillRoundRect({rect.x, rect.y, 6, rect.height}, 3, 3, accent)
 
-    painter.drawString(rect.x + 22, rect.y + 16, Titles[index], g_LabelFont!, accent)
-    painter.drawString(rect.x + 22, rect.bottom() - 31, Sources[index], g_SourceFont!, Argb.DimGray)
+    painter.drawString(rect.x + 22, rect.y + 16, Titles[index], g_LabelFont, accent)
+    painter.drawString(rect.x + 22, rect.bottom() - 31, Sources[index], g_SourceFont, Argb.DimGray)
 
     let formulaArea = Math.Rectangle{rect.x + 22, rect.y + 48, rect.width - 44, rect.height - 91}
-    let metrics     = g_Formulas[index].measure(g_MathFont!)
+    let metrics     = g_Formulas[index].measure(g_MathFont)
     var zoom        = 1.0'f32
     if metrics.width > formulaArea.width do
         zoom = formulaArea.width / metrics.width
@@ -103,7 +103,7 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, index: u64)
     painter.pushTransform()
     painter.translateTransform(formulaArea.horzCenter(), formulaArea.vertCenter())
     painter.scaleTransform(zoom)
-    painter.drawMathCenter(0, 0, &g_Formulas[index], g_MathFont!, Argb.MidnightBlue)
+    painter.drawMathCenter(0, 0, &g_Formulas[index], g_MathFont, Argb.MidnightBlue)
     painter.popTransform()
 }
 
@@ -114,8 +114,8 @@ func drawScene(painter: *Pixel.Painter)
     painter.setColorMaskColor()
     painter.setParams(.Antialiased)
 
-    painter.drawString(Margin, 24, "Pixel mathematical typesetting", g_TitleFont!, Argb.MidnightBlue)
-    painter.drawString(Margin + 2, 67, Subtitle, g_SubtitleFont!, Argb.DimGray)
+    painter.drawString(Margin, 24, "Pixel mathematical typesetting", g_TitleFont, Argb.MidnightBlue)
+    painter.drawString(Margin + 2, 67, Subtitle, g_SubtitleFont, Argb.DimGray)
 
     let top   = 104.0
     let gap   = 18.0

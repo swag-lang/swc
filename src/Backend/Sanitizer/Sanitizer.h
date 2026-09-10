@@ -50,9 +50,9 @@ public:
     // The place an access names when the frame does not hold it: the object is named by
     // where its POINTER lives, so two accesses through two registers reloaded from the
     // same variable answer the same location.
-    bool resolveAccessLocation(SanitizerLocation& outLocation, const SanitizerState& state, MicroReg base, int64_t offset) const;
-    TaskContext&                   ctx() const;
-    const MicroPassContext&        passContext() const { return context_; }
+    bool                    resolveAccessLocation(SanitizerLocation& outLocation, const SanitizerState& state, MicroReg base, int64_t offset) const;
+    TaskContext&            ctx() const;
+    const MicroPassContext& passContext() const { return context_; }
 
     // Extents of the declared variable (local or spilled parameter) whose storage
     // contains 'offset' (relative to the debug stack base). False for compiler
@@ -115,10 +115,10 @@ private:
 
     // Lifecycle facts (released pointers and proven slot copies) invalidated by one
     // store, and by anything that can reach the objects whose address escaped.
-    void forgetWrittenLifecycleFacts(SanitizerState& state, int64_t slot) const;
-    void forgetReachableLifecycleFacts(SanitizerState& state) const;
-    bool writeMayReachFrame(const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const;
-    void recordSlotCopy(SanitizerState& state, int64_t slot, MicroReg valueReg, MicroOpBits opBits) const;
+    void        forgetWrittenLifecycleFacts(SanitizerState& state, int64_t slot) const;
+    void        forgetReachableLifecycleFacts(SanitizerState& state) const;
+    bool        writeMayReachFrame(const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const;
+    void        recordSlotCopy(SanitizerState& state, int64_t slot, MicroReg valueReg, MicroOpBits opBits) const;
     static void appendAliasClass(SmallVector<int64_t>& out, const SanitizerState& state, int64_t slot);
 
     // Register / slot access.
@@ -181,7 +181,7 @@ private:
 
     MicroPassContext&            context_;
     MicroReg                     stackBaseReg_;
-    std::unordered_set<uint32_t>  singleDefinitionRegs_;
+    std::unordered_set<uint32_t> singleDefinitionRegs_;
     std::vector<LocalSlotExtent> localSlots_;
     bool                         stackBaseStable_ = true;
     // Call target of the instruction currently going through the transfer function

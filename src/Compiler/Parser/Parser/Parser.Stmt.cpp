@@ -548,8 +548,8 @@ AstNodeRef Parser::parseParallelFor(bool fallible)
     auto [blockRef, blockPtr] = ast_->makeNode<AstNodeId::EmbeddedBlock>(tokFor);
     blockPtr->spanChildrenRef = ast_->pushSpan(statements.span());
 
-    auto [closureRef, closurePtr]  = ast_->makeNode<AstNodeId::ClosureExpr>(tokParallel);
-    closurePtr->flags()            = AstFunctionFlagsE::Closure;
+    auto [closureRef, closurePtr] = ast_->makeNode<AstNodeId::ClosureExpr>(tokParallel);
+    closurePtr->flags()           = AstFunctionFlagsE::Closure;
     if (fallible)
         closurePtr->addFlag(AstFunctionFlagsE::Fallible);
     closurePtr->parallelBody       = true;

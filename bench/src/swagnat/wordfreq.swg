@@ -72,8 +72,8 @@ func qsort(lowIn, highIn: s64)
         for k in l
         {
             vocabBytes[vp] = cast(u8) (97 + (nn % 26))
-            vp             += 1
-            nn             = nn / 26 + 7 * k
+            vp += 1
+            nn = nn / 26 + 7 * k
         }
     }
 

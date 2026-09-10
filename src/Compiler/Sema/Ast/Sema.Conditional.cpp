@@ -276,7 +276,7 @@ Result AstConditionalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& child
     if (!sema.frame().hasNarrowFacts())
         return Result::Continue;
 
-    const SemaNodeView branchView     = sema.viewNodeType(childRef);
+    const SemaNodeView branchView      = sema.viewNodeType(childRef);
     const TypeRef      narrowedTypeRef = branchView.typeRef();
     if (!narrowedTypeRef.isValid() || narrowedTypeRef == sema.viewStored(childRef, SemaNodeViewPartE::Type).typeRef())
         return Result::Continue;

@@ -1751,9 +1751,9 @@ enum class AstParallelForStmtFlagsE : AstNode::ParserFlags
 // statement itself lowers to one call into the runtime's partitioning entry point.
 struct AstParallelForStmt : AstNodeT<AstNodeId::ParallelForStmt, AstParallelForStmtFlagsE>
 {
-    AstNodeRef nodeBeginRef;       // Lower bound, invalid for a counted range starting at zero.
-    AstNodeRef nodeEndRef;         // Upper bound, or the iteration count.
-    AstNodeRef nodeClosureRef;     // The partition body.
+    AstNodeRef nodeBeginRef;   // Lower bound, invalid for a counted range starting at zero.
+    AstNodeRef nodeEndRef;     // Upper bound, or the iteration count.
+    AstNodeRef nodeClosureRef; // The partition body.
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBeginRef, nodeEndRef, nodeClosureRef}); }
     Result     semaPostNode(Sema& sema) const;

@@ -62,13 +62,13 @@ public:
         return *shards_[refShard(g)].store.ptr<AstNode>(refLocal(g));
     }
 
-    bool           hasNode(AstNodeRef nodeRef) const;
-    bool           hasSpan(SpanRef spanRef) const;
-    void           appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const;
-    size_t         spanSize(SpanRef spanRef) const;
-    AstNodeRef     nthNode(SpanRef spanRef, size_t index) const;
-    AstNodeRef     oneNode(SpanRef spanRef) const;
-    void           appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const;
+    bool       hasNode(AstNodeRef nodeRef) const;
+    bool       hasSpan(SpanRef spanRef) const;
+    void       appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const;
+    size_t     spanSize(SpanRef spanRef) const;
+    AstNodeRef nthNode(SpanRef spanRef, size_t index) const;
+    AstNodeRef oneNode(SpanRef spanRef) const;
+    void       appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const;
     template<AstNodeId ID>
     AstTypeOf<ID>::type* node(AstNodeRef nodeRef)
     {
@@ -162,7 +162,7 @@ public:
 private:
     static uint32_t chooseShard() { return JobManager::threadIndex() % SHARD_COUNT; }
 
-    void           recordParsedNodeBoundary(AstNodeRef nodeRef);
+    void recordParsedNodeBoundary(AstNodeRef nodeRef);
 
     struct Shard
     {

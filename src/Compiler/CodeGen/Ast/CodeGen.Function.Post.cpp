@@ -1015,7 +1015,6 @@ namespace
                 copyLifecycleKind = CodeGen::LifecycleKind::PostMove;
         }
 
-
         const SymbolVariable* previousMoveOutVar = codeGen.returnMoveOutVar();
         if (normalizedRet.isIndirect)
         {

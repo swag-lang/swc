@@ -476,9 +476,9 @@ public:
     // that transports several borrows at once - an allocator request carries the block to
     // release and the hint the report names - needs the borrow of the field the operation
     // actually reads, not the merge of all of them.
-    SemaEscapeInfo                                                   variableFieldEscapeInfo(const SymbolVariable& symVar, std::string_view fieldName) const;
-    void                                                             setProjectionEscapeInfo(const SemaEscapeProjection& projection, const SemaEscapeInfo& info);
-    void                                                             clearProjectionEscapeInfo(const SemaEscapeProjection& projection);
+    SemaEscapeInfo variableFieldEscapeInfo(const SymbolVariable& symVar, std::string_view fieldName) const;
+    void           setProjectionEscapeInfo(const SemaEscapeProjection& projection, const SemaEscapeInfo& info);
+    void           clearProjectionEscapeInfo(const SemaEscapeProjection& projection);
 
     // Structural changes of storage a local view was reading, judged once the body they
     // sit in is fully resolved (SemaEscape::reportBorrowInvalidations).

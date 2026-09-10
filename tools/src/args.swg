@@ -157,7 +157,7 @@ public func parseOptions(acceptedCommands: const [..] string, tokens: const [..]
     if index < parsed.positionals.count and parsed.positionals[index] == "dm"
     {
         result.devMode = true
-        index          += 1
+        index += 1
     }
 
     if index < parsed.positionals.count
@@ -167,7 +167,7 @@ public func parseOptions(acceptedCommands: const [..] string, tokens: const [..]
             if isCommand(parsed.positionals[index].toString(), accepted)
             {
                 result.command = parsed.positionals[index]
-                index          += 1
+                index += 1
                 break
             }
         }

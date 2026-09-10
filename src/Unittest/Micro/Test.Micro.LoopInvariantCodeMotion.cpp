@@ -18,7 +18,7 @@ namespace
 {
     std::vector<uint8_t> reachableWithoutInstruction(const MicroControlFlowGraph& cfg, const uint32_t excluded)
     {
-        std::vector<uint8_t> reachable(cfg.instructionCount(), 0);
+        std::vector<uint8_t>  reachable(cfg.instructionCount(), 0);
         std::vector<uint32_t> pending;
         if (excluded != 0 && !reachable.empty())
         {
@@ -96,8 +96,8 @@ namespace
 
 SWC_TEST_BEGIN(MicroDominators_MatchReachabilityWithANodeRemoved)
 {
-    constexpr MicroReg value = MicroReg::virtualIntReg(1);
-    MicroBuilder       builder(ctx);
+    constexpr MicroReg  value = MicroReg::virtualIntReg(1);
+    MicroBuilder        builder(ctx);
     const MicroLabelRef left  = builder.createLabel();
     const MicroLabelRef right = builder.createLabel();
     const MicroLabelRef join  = builder.createLabel();

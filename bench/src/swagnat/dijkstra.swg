@@ -27,7 +27,7 @@ func push(d, node: u64)
         let tn = g_HeapN[p]
         g_HeapN[p] = g_HeapN[i]
         g_HeapN[i] = tn
-        i          = p
+        i = p
     }
 }
 
@@ -57,7 +57,7 @@ func pop()
         let tn = g_HeapN[m]
         g_HeapN[m] = g_HeapN[i]
         g_HeapN[i] = tn
-        i          = m
+        i = m
     }
 }
 

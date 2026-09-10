@@ -787,7 +787,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         // every such fact.
         if (!state.freedPtrLocations.empty())
         {
-            uint8_t baseIndex = 0;
+            uint8_t           baseIndex = 0;
             SanitizerLocation written;
             if (def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
                 MicroPassHelpers::dereferenceBaseOperandIndex(baseIndex, inst.op, def) &&
@@ -1157,11 +1157,11 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         // A callee with a FREES summary invalidates what its marked arguments point
         // to: remember the slots those pointers were loaded from, BEFORE the clobber
         // wipe erases the argument registers.
-        SmallVector<int64_t>                       newlyFreed;
-        SmallVector<MicroReg>                      newlyFreedRegs;
-        SmallVector<SanitizerLocation>             newlyFreedLocations;
-        const auto*           calleeFn  = transferCallTarget_ ? transferCallTarget_->safeCast<SymbolFunction>() : nullptr;
-        const uint64_t       freesMask = calleeFn ? calleeFn->freesParamsMask() : 0;
+        SmallVector<int64_t>           newlyFreed;
+        SmallVector<MicroReg>          newlyFreedRegs;
+        SmallVector<SanitizerLocation> newlyFreedLocations;
+        const auto*                    calleeFn  = transferCallTarget_ ? transferCallTarget_->safeCast<SymbolFunction>() : nullptr;
+        const uint64_t                 freesMask = calleeFn ? calleeFn->freesParamsMask() : 0;
         if (freesMask && ops)
         {
             for (size_t i = 0; i < 64; i++)
@@ -1192,8 +1192,8 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 if (!argInfo->hasOriginLocation)
                     continue;
 
-                bool objectHandedOver = false;
-                const CallConv& handedConv = CallConv::get(ops[def.callConvIndex].callConv);
+                bool            objectHandedOver = false;
+                const CallConv& handedConv       = CallConv::get(ops[def.callConvIndex].callConv);
                 for (const MicroReg handedReg : handedConv.intArgRegs)
                 {
                     const SanitizerRegInfo* handed = findReg(state, handedReg);

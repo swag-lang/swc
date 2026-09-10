@@ -345,7 +345,7 @@ private:
     uint32_t                                  numComputedLocals_                         = 0;
     uint32_t                                  localStackOffset_                          = 0;
     uint64_t                                  returnBorrowsParamsMask_                   = 0;
-    uint64_t                                  returnsStorageParamsMask_                 = 0;
+    uint64_t                                  returnsStorageParamsMask_                  = 0;
     uint64_t                                  storesParamsMask_                          = 0;
     uint64_t                                  storesIntoParamPairs_                      = 0;
     std::atomic<uint64_t>                     freesParamsMask_                           = 0;

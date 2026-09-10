@@ -85,17 +85,17 @@ struct AttributeList
     // on at most one function. Inline storage for four strings each would put 320 bytes of an
     // attribute list — a third of it — at the service of two debugging attributes, and every scope
     // push of the semantic pass copies that list.
-    std::vector<Utf8>                   printMicroPassOptions;
-    std::vector<Utf8>                   printAstStageOptions;
-    WarningPolicy                       warnings;
-    std::optional<bool>                 backendOptimize;
-    bool                                hasForeign = false;
-    Utf8                                foreignModuleName;
-    Utf8                                foreignFunctionName;
-    Utf8                                foreignLinkModuleName;
-    std::optional<CallConvKind>         foreignCallConvKind;
-    GeneratedOperatorFlags              generatedOperators = GeneratedOperatorFlagsE::Zero;
-    SourceCodeRef                       generatedOperatorsCodeRef;
+    std::vector<Utf8>           printMicroPassOptions;
+    std::vector<Utf8>           printAstStageOptions;
+    WarningPolicy               warnings;
+    std::optional<bool>         backendOptimize;
+    bool                        hasForeign = false;
+    Utf8                        foreignModuleName;
+    Utf8                        foreignFunctionName;
+    Utf8                        foreignLinkModuleName;
+    std::optional<CallConvKind> foreignCallConvKind;
+    GeneratedOperatorFlags      generatedOperators = GeneratedOperatorFlagsE::Zero;
+    SourceCodeRef               generatedOperatorsCodeRef;
 
     bool empty() const
     {

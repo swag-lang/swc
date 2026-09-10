@@ -27,8 +27,8 @@ late var g_QLen:   [*] u64
         for k in l
         {
             g_Bytes[wp] = cast(u8) (97 + (n % 26))
-            wp          += 1
-            n           = n / 26 + 7 * k
+            wp += 1
+            n  = n / 26 + 7 * k
         }
     }
 
@@ -87,7 +87,7 @@ late var g_QLen:   [*] u64
         for i in nw
         {
             g_QBytes[qp] = tmp[i]
-            qp           += 1
+            qp += 1
         }
     }
 

@@ -429,7 +429,7 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
             if index + 2 < line.count and line[index] == '"' and line[index + 1] == '"' and line[index + 2] == '"'
             {
                 state.multilineText = false
-                index               += 3
+                index += 3
             }
             else do
                 index += 1
@@ -441,7 +441,7 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
             if index + 1 < line.count and line[index] == '*' and line[index + 1] == '/'
             {
                 state.blockComment = false
-                index              += 2
+                index += 2
             }
             else do
                 index += 1
@@ -453,15 +453,15 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
         if not quoted and index + 1 < line.count and line[index] == '/' and line[index + 1] == '*'
         {
             state.blockComment = true
-            index              += 2
+            index += 2
             continue
         }
 
         if not quoted and index + 2 < line.count and line[index] == '"' and line[index + 1] == '"' and line[index + 2] == '"'
         {
             state.multilineText = true
-            result              += ' '
-            index               += 3
+            result += ' '
+            index  += 3
             continue
         }
 

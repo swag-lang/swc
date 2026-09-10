@@ -812,9 +812,9 @@ Result AstBreakStmt::semaPreNode(Sema& sema)
         const SemaFrame::BreakContext& breakContext = sema.frame().currentBreakContext();
         if (breakContext.kind == SemaFrame::BreakContextKind::Loop && breakContext.nodeRef.isValid())
         {
-            const AstNode& loopNode = sema.node(breakContext.nodeRef);
+            const AstNode& loopNode  = sema.node(breakContext.nodeRef);
             const bool     partition = (loopNode.is(AstNodeId::ForStmt) && loopNode.cast<AstForStmt>().hasFlag(AstForeachStmtFlagsE::ParallelPartition)) ||
-                                       (loopNode.is(AstNodeId::ForeachStmt) && loopNode.cast<AstForeachStmt>().hasFlag(AstForeachStmtFlagsE::ParallelPartition));
+                                   (loopNode.is(AstNodeId::ForeachStmt) && loopNode.cast<AstForeachStmt>().hasFlag(AstForeachStmtFlagsE::ParallelPartition));
             if (partition)
                 return SemaError::raise(sema, DiagnosticId::sema_err_break_leaves_parallel_for, sema.curNodeRef());
         }

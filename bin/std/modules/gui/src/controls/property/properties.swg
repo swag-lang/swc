@@ -173,7 +173,7 @@ struct Properties
             selItem: *PropertiesItem?            // Selected row, or 'null'.
         }
 
-            late readonly scrollWnd: *ScrollWnd     // Borrowed scrolling viewport, available after the grid is created.
+        late readonly scrollWnd: *ScrollWnd     // Borrowed scrolling viewport, available after the grid is created.
     }
 
     // View the rows are painted in, established when the grid is created.

@@ -236,17 +236,17 @@ private:
     std::vector<std::unique_ptr<const std::vector<PageRange>>> publishedPageRangesStorage_;
     std::atomic<const std::vector<Page*>*>                     publishedPages_{nullptr};
     std::atomic<const std::vector<PageRange>*>                 publishedPageRanges_{nullptr};
-    uint64_t                                                   totalBytes_     = 0;
-    uint32_t                                                   pageSizeValue_  = K_DEFAULT_PAGE_SIZE;
+    uint64_t                                                   totalBytes_    = 0;
+    uint32_t                                                   pageSizeValue_ = K_DEFAULT_PAGE_SIZE;
     // A page size is a power of two, which the constructor enforces, so splitting a reference into
     // a page and an offset is a shift and a mask. Keeping the size alone would leave the divisor a
     // runtime value and cost a hardware division on every dereference.
-    uint32_t                                                   pageShift_      = std::countr_zero(K_DEFAULT_PAGE_SIZE);
-    uint32_t                                                   pageMask_       = K_DEFAULT_PAGE_SIZE - 1;
-    bool                                                       proximityPages_ = false;
-    Page*                                                      curPage_        = nullptr;
-    uint32_t                                                   curPageIndex_   = 0;
-    uint8_t*                                                   lastPtr_        = nullptr;
+    uint32_t pageShift_      = std::countr_zero(K_DEFAULT_PAGE_SIZE);
+    uint32_t pageMask_       = K_DEFAULT_PAGE_SIZE - 1;
+    bool     proximityPages_ = false;
+    Page*    curPage_        = nullptr;
+    uint32_t curPageIndex_   = 0;
+    uint8_t* lastPtr_        = nullptr;
 };
 
 class PagedStore::SpanView

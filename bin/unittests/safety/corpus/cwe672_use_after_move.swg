@@ -59,7 +59,7 @@ func readBorrowAfterMove()->s32
 // BY DESIGN, not a gap - a move performed through a CALL is a documented miss: a call conservatively clears
 // the moved-from state, and the runtime 0xDD poison is what covers it instead. Kept live
 // because reading poisoned storage is defined behavior, not a memory fault.
-#[Swag.Sanity(.Lifecycle, true)]
+#[Swag.Sanity(.Lifecycle, true), Swag.Safety(.Lifecycle, true)]
 func moveThroughCall(source: *Plain)
 {
     var target = #move source[]
@@ -130,5 +130,5 @@ func readDroppableAfterMove()->s32
 {
     Swag.assert(reassignedAfterMove() == 2)
     Swag.assert(readDroppableAfterMove() == 9)
-    Swag.assert(readAfterMoveThroughCall() == 1 or true)
+    Swag.assert(readAfterMoveThroughCall() == -572662307)     // 0xDDDDDDDD: the enabled lifecycle poison.
 }

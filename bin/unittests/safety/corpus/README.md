@@ -68,9 +68,11 @@ behavior with an assertion, so the change shows up as a test failure when the ru
 
 ## Scope
 
-Concurrency is deliberately absent. The native model proposed in
-[language.parallelism.001](../../../../backlog/language.parallelism.md#languageparallelism001--specify-and-prototype-native-structured-concurrency)
-still needs a verified prototype; a data-race corpus cannot yet measure an implemented guarantee.
+Concurrency is deliberately absent from this corpus. The runtime already ships tasks, groups,
+synchronization, and `parallel for`, but does not prove race freedom.
+[language.parallelism.005](../../../../backlog/language.parallelism.md) owns checked captures and
+cross-task access; a data-race corpus must distinguish those future proofs from the behavior of
+the synchronization primitives that exist today.
 
 ## Provenance
 

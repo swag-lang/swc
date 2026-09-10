@@ -1516,6 +1516,18 @@ internal impl HtmlView
 
 internal impl IWnd for HtmlView
 {
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        discard evt
+
+        // Publish the latest thumb destination before the canvas uses its virtual origin.
+        if .virtualPendingSeek
+        {
+            .virtualPendingSeek = false
+            discard .loadVirtualWindow(.virtualPendingOffset, .virtualPendingY)
+        }
+    }
+
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
         discard evt

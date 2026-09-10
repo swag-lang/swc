@@ -430,6 +430,13 @@ internal impl CodeViewer
 
 internal impl IWnd for CodeViewer
 {
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        discard evt
+        if .pendingSeek do
+            discard .revealOffset(.pendingSeekOffset, "")
+    }
+
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged and .zoomLabel do

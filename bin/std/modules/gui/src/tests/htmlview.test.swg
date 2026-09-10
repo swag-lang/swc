@@ -1206,15 +1206,9 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     for ratio, index in ratios
     {
         view.scroll.setScrollPos(0, view.virtualHeight * ratio)
-        if view.virtualPendingSeek
-        {
-            Swag.assert(view.loadTimer != null)
-            host.fireTimer(view.loadTimer)
-        }
-
+        var image = host.render(view)
         Swag.assert(not view.virtualPendingSeek)
         Swag.assert(view.layout.boxes.count > 1)
-        var image = host.render(view)
         firstPass[index] = Hash.hashBytes32(image.pixels.toSlice())
     }
 
@@ -1222,13 +1216,8 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     {
         let reverse = ratios.count - index - 1
         view.scroll.setScrollPos(0, view.virtualHeight * ratios[reverse])
-        if view.virtualPendingSeek
-        {
-            Swag.assert(view.loadTimer != null)
-            host.fireTimer(view.loadTimer)
-        }
-
         var image = host.render(view)
+        Swag.assert(not view.virtualPendingSeek)
         Swag.assert(Hash.hashBytes32(image.pixels.toSlice()) == firstPass[reverse])
     }
 }

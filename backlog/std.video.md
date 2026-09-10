@@ -18,7 +18,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.001 — H.264 decoding costs several times what FFmpeg does per picture
 
 - Recorded: 2026-08-19 13:23
-- Updated: 2026-09-10 20:51 — Fuse dequantization into the entropy decoders, profile again, and record four rejected leads including register-resident CABAC loops
+- Updated: 2026-09-10 21:00 — Re-measure the gap against FFmpeg after fusing dequantization into the entropy decoders, and record four rejected leads
 - Intent: the decoder is byte-exact against FFmpeg on Baseline, Main, and High streams and decodes
   well above real time, but one picture still costs several times what FFmpeg spends on it. That
   margin is what a machine smaller than this one, or a stream larger than 4K, would need.
@@ -41,12 +41,14 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
     `decoder.video.avc.frameThreads[0].thread.id`. Reading the caller thread as well is what
     proves the lane carries the whole decode: on a one-slice clip the caller costs about
     4 million cycles a picture, against 160 million for the decode.
-- **Where it stands (2026-09-09, release, one AVC lane so the figure is serial, a generated
+- **Where it stands (2026-09-10, release, one AVC lane so the figure is serial, a generated
   3840x2160p25 High/CABAC one-slice clip at 18.3 Mbit/s, interleaved against FFmpeg through PyAV
-  with threading disabled, minimum of five paired rounds): 160.7 million cycles per picture
-  against FFmpeg's 45.7 million, a ratio of 3.2 to 3.6.** In wall time on that machine state,
-  53.1 ms against 15.0 ms. FFmpeg's figure carries its own demuxing and the PyAV frame objects,
-  so the decode-to-decode ratio is if anything slightly worse than that.
+  with threading disabled, four paired rounds): 98.0 million cycles per picture at the minimum
+  against FFmpeg's 36.0 million, a paired ratio of 2.75 on the median (2.74 and 2.77 in the two
+  quiet rounds).** In wall time, 32.4 ms against 11.8 ms. The 2026-09-09 measurement of the same
+  clip read 160.7 million against 45.7 million, 3.2 to 3.6, in a different machine state: only the
+  paired ratio carries from one state to another. FFmpeg's figure carries its own demuxing and the
+  PyAV frame objects, so the decode-to-decode ratio is if anything slightly worse than that.
 - Where that time goes, by sampling the decoding thread and resolving every sample inside
   `[rva, rva+size)` of a real function (2026-09-09, same clip): entropy parsing 50.9 percent —
   `Slice.residualCabac` alone 22.3 and `CabacReader.decision` 7.6 — motion compensation 16.3,

@@ -12,6 +12,60 @@ builds now use interval splitting, so those measurements identify workloads to r
 current performance guarantees. `MicroSsaState` reconstructs SSA and phi values for analysis, while
 the executable Micro instruction stream has no explicit phi instruction.
 
+### compiler.optimization.010 — A short branching function spills with the whole register file free
+
+- Recorded: 2026-08-23 22:36
+- Updated: 2026-09-10 20:58 — Record a current Release dump of the CABAC significance loop and the measured cost of register residency there
+- Area: compiler/backend
+- Found while: std.video.001, closing the distance between the H.264 entropy parse and FFmpeg's, starting
+  from the emitted code of one bin as that entry says to.
+- Observation: `CabacReader.decision` decodes one arithmetic bin. It is small, straight-line apart
+  from one two-way branch, and its whole live set is about eight scalars. It is called roughly
+  568,000 times per 3840x2160 picture, which is where the parse spends most of its time.
+  `#[Swag.PrintMicro("post-emit")]` in release showed the function opening with seven callee-saved
+  pushes and `sub rsp, 0xA0`, then storing three values — the address of the context byte, `mps`,
+  and the result — to that frame before the branch and reloading them on both sides. Sixteen
+  integer registers exist and the function needs about half of them.
+- This is [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and
+  the earlier whole-hull allocator without
+  the loop: no value here is loop-carried, no hull is being reserved, and the eviction still
+  happens. That makes it a much smaller reproducer than the inflate block loop for the same
+  allocator policy, which is why it is worth keeping separately.
+- Evidence: the same dump also measured what source shape can and cannot reach. Holding `range`
+  and `low` in locals for the length of the bin, and sharing renormalization between the two
+  outcomes, took the function from 217 to 143 instructions — a third fewer — and about one percent off the
+  serial decode of one picture, which is inside the noise floor of this machine — the arithmetic registers were being reloaded after every step because
+  the context write in between stores into the same structure. What did not move is the frame:
+  it is still 160 bytes with three spill slots live across a branch, and the seven pushes are
+  still there. Two smaller costs sit in the same function and belong to the same dump:
+  each of the three variable shifts carries a width guard of `cmp` plus `cmovae`, which is cheap
+  next to the spills and was already elided once for
+  [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and measured at zero.
+- Two of the three costs are gone (2026-08-24). `Swag.bitCountLz` no longer branches: the scan runs
+  unconditionally and a conditional move supplies the operand-width answer for zero, so the
+  sequence is one basic block instead of two and the caller keeps one fewer allocation boundary.
+  And the function no longer carries a frame register: it names none, its stack shape is one
+  subtract at entry and one add before the return, so the unwind codes describe it in full
+  without one. The prologue is six pushes and `sub rsp, 0x98`, and the emitted function is 138
+  instructions against 143.
+- **Current dump (2026-09-10, Release, split allocator).** The significance loop of
+  `Slice.residualCabac` inlines the branchless form of the same bin. While `range` and `low` sit in
+  a local structure whose address the inlined decision takes, they stay in stack slots and every
+  step of every bin loads and stores them. Holding them in plain locals driven through mixins puts
+  the whole bin in `eax` and `edx`, yet one spill of each remains around the renormalization
+  branch and the leading-zero count is still `bsr` plus `cmove`. That build measured 3.4 percent
+  slower on the serial decode of a 4K picture (median of interleaved rounds, byte-exact), so
+  register residency alone does not pay while those spills and the longer count sequence stay on
+  the bin's serial chain. The branch-crossing spill gap therefore remains under the split
+  allocator.
+- Next: reduce the renormalization branch of that mixin form (std.video.001 describes it) to a
+  standalone case and attribute its branch-crossing spills to the split allocator, then adopt
+  `lzcnt`/`tzcnt` on the x86-64-v3 target with encoder and zero-operand tests. Retry the
+  register-resident significance loop only after both.
+- Complete when: the current dump decides whether the branch-spill gap remains and any remaining
+  allocation defect has a reduced test.
+- Related: compiler.optimization.006, compiler.optimization.024.
+
 ### compiler.optimization.012 — The shipped broadcast hoist still needs a current mcChroma dump
 
 - Recorded: 2026-08-24 14:55
@@ -531,52 +585,6 @@ the executable Micro instruction stream has no explicit phi instruction.
 - Complete when: the current emitted loop and alternating timing decide whether an allocator gap
   remains, with any surviving cause reduced to one actionable change.
 - Related: compiler.optimization.005, compiler.optimization.024.
-
-### compiler.optimization.010 — A short branching function spills with the whole register file free
-
-- Recorded: 2026-08-23 22:36
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-- Area: compiler/backend
-- Found while: std.video.001, closing the distance between the H.264 entropy parse and FFmpeg's, starting
-  from the emitted code of one bin as that entry says to.
-- Observation: `CabacReader.decision` decodes one arithmetic bin. It is small, straight-line apart
-  from one two-way branch, and its whole live set is about eight scalars. It is called roughly
-  568,000 times per 3840x2160 picture, which is where the parse spends most of its time.
-  `#[Swag.PrintMicro("post-emit")]` in release showed the function opening with seven callee-saved
-  pushes and `sub rsp, 0xA0`, then storing three values — the address of the context byte, `mps`,
-  and the result — to that frame before the branch and reloading them on both sides. Sixteen
-  integer registers exist and the function needs about half of them.
-- This is [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and
-  the earlier whole-hull allocator without
-  the loop: no value here is loop-carried, no hull is being reserved, and the eviction still
-  happens. That makes it a much smaller reproducer than the inflate block loop for the same
-  allocator policy, which is why it is worth keeping separately.
-- Evidence: the same dump also measured what source shape can and cannot reach. Holding `range`
-  and `low` in locals for the length of the bin, and sharing renormalization between the two
-  outcomes, took the function from 217 to 143 instructions — a third fewer — and about one percent off the
-  serial decode of one picture, which is inside the noise floor of this machine — the arithmetic registers were being reloaded after every step because
-  the context write in between stores into the same structure. What did not move is the frame:
-  it is still 160 bytes with three spill slots live across a branch, and the seven pushes are
-  still there. Two smaller costs sit in the same function and belong to the same dump:
-  each of the three variable shifts carries a width guard of `cmp` plus `cmovae`, which is cheap
-  next to the spills and was already elided once for
-  [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and measured at zero.
-- Two of the three costs are gone (2026-08-24). `Swag.bitCountLz` no longer branches: the scan runs
-  unconditionally and a conditional move supplies the operand-width answer for zero, so the
-  sequence is one basic block instead of two and the caller keeps one fewer allocation boundary.
-  And the function no longer carries a frame register: it names none, its stack shape is one
-  subtract at entry and one add before the return, so the unwind codes describe it in full
-  without one. The prologue is six pushes and `sub rsp, 0x98`, and the emitted function is 138
-  instructions against 143.
-- Current boundary: the default optimizing allocator now splits live ranges. The instruction and
-  frame counts above describe the earlier scan, so they need a new dump before directing a fix.
-- Next: dump `CabacReader.decision` in Release and attribute any remaining branch-crossing spills
-  to the selected allocator. Keep it as the small companion to the Inflate workload. The target is
-  now x86-64-v3; adopting `lzcnt`/`tzcnt` no longer needs the AVX-to-AVX2 target-policy change
-  previously stated here, but still needs encoder and zero-operand tests.
-- Complete when: the current dump decides whether the branch-spill gap remains and any remaining
-  allocation defect has a reduced test.
-- Related: compiler.optimization.006, compiler.optimization.024.
 
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 

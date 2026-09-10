@@ -91,7 +91,7 @@ namespace Integration
         var raw: Win32.LPVOID
         try verify(Win32.CoCreateInstance(&classId, null, Win32.CLSCTX_INPROC_SERVER, &interfaceId, &raw) >= 0, "Windows must create the Shell file operation")
         let operation = cast(*IFileOperation) raw!
-        defer discard (operation.lpVtbl.base.Release)(cast(*Win32.IUnknown) operation)
+        defer discard (operation.lpVtbl.base.Release)(cast(*Win32.IUnknown) raw!)
 
         var idLists: Array'(*void?)
         defer
@@ -226,7 +226,7 @@ namespace Integration
         var stream = catch File.open(resultPath(), .Append, .Write, .Read) as openError
         if openError != null do
             return
-        discard catch stream.write(message.storage(), message.count)
+        discard catch stream.write(message.buffer, message.count)
         discard catch stream.write(("\n").buffer, 1)
         stream.close()
     }

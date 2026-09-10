@@ -51,7 +51,7 @@ impl ViewerSession
     {
         if not .view or not .retire do
             return true
-        if not .retire!(.view!) do
+        if not .retire(.view) do
             return false
         .retire = null
         return true
@@ -140,7 +140,7 @@ impl Viewer.Host for ViewerPluginHost
     mtd impl createEmbedded(parent: *Wnd)->Viewer.Embedded
     {
         Swag.assert(.window != null, "embedded viewers need an application window")
-        let embedded = EmbeddedViewer.create(parent, .window!)
+        let embedded = EmbeddedViewer.create(parent, .window)
         let result: Viewer.Embedded = embedded
         return result
     }
@@ -149,23 +149,23 @@ impl Viewer.Host for ViewerPluginHost
     {
         Swag.assert(.session.actions == null)
         .session.actions = .createGroup(.actionParent, width)
-        return .session.actions!
+        return .session.actions
     }
 
     mtd impl createInfoGroup(width: f32)->*Wnd
     {
         Swag.assert(.session.info == null)
         .session.info = .createInfoWnd(.infoParent, width)
-        .session.info!.style.addStyleSheetColors("label_TextLight $label_TextFaint")
-        .session.info!.computeStyle()
-        return .session.info!
+        .session.info.style.addStyleSheetColors("label_TextLight $label_TextFaint")
+        .session.info.computeStyle()
+        return .session.info
     }
 
     mtd impl createCommandGroup(width: f32)->*Wnd
     {
         Swag.assert(.session.commands == null)
         .session.commands = .createGroup(.commandParent, width)
-        return .session.commands!
+        return .session.commands
     }
 
     mtd impl createSidePanel(width: f32, icon: Icon, toolTip: string)->Viewer.SidePanel
@@ -185,15 +185,15 @@ impl Viewer.Host for ViewerPluginHost
             .hide()
         }
 
-        with .session.sidePanel = Wnd.create'Wnd(.session.sidePanelHost!)
+        with .session.sidePanel = Wnd.create'Wnd(.session.sidePanelHost)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Panel
         }
 
-        let panelParent = .sidePanelParent
-        let panelHost   = .session.sidePanelHost!
-        let actionSize  = themeActionButtonSize(.infoParent.themeMetrics())
+        let panelParent     = .sidePanelParent
+        let panelHost: *Wnd = .session.sidePanelHost
+        let actionSize      = themeActionButtonSize(.infoParent.themeMetrics())
         with .session.sidePanelButton = IconButton.create(.infoParent, icon, {0, 0, actionSize, actionSize}, flags: .Toggle)
         {
             .toolTip = toolTip
@@ -207,7 +207,7 @@ impl Viewer.Host for ViewerPluginHost
             }
         }
 
-        return {.session.sidePanel!, .session.sidePanelButton!}
+        return {.session.sidePanel, .session.sidePanelButton}
     }
 
     mtd impl attachView(view: *Wnd)

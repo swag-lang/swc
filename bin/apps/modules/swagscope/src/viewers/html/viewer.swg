@@ -138,7 +138,7 @@ func createHtmlViewer(host: Viewer.Host)
     let services = host.services()
     if services.reportFailure
     {
-        let reportFailure = services.reportFailure!
+        let reportFailure: Viewer.ReportFailure = services.reportFailure
         result.view.sigLoadFailed += func|reportFailure, result|(html, reason)
         {
             discard html

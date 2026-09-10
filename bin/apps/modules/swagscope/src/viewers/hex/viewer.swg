@@ -140,14 +140,14 @@ private impl IWnd for HexViewer
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure!(me, .failureReason.toString())
+                .reportFailure(me, .failureReason.toString())
             return
         }
 
         .grid.exchangeDocument(&document)
         if .reportFailure
         {
-            let report = .reportFailure!
+            let report: Viewer.ReportFailure = .reportFailure
             .grid.doc.reportFailure = func|view = me, report|(reason) { report(cast(*Wnd) view, reason) }
         }
 
@@ -157,7 +157,7 @@ private impl IWnd for HexViewer
         .analysisButton.enable(.grid.doc.fileSize != 0)
         .setInitialFocus(.grid)
         if .reportLoadingChanged do
-            .reportLoadingChanged!(me)
+            .reportLoadingChanged(me)
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -179,13 +179,13 @@ internal impl HexViewer
             return false
         if .loadTimer
         {
-            .removeTimer(.loadTimer!)
+            .removeTimer(.loadTimer)
             .loadTimer = null
         }
 
         if .analysisTimer
         {
-            .removeTimer(.analysisTimer!)
+            .removeTimer(.analysisTimer)
             .analysisTimer = null
         }
 
@@ -350,7 +350,7 @@ internal impl HexViewer
         .analysisView.retranslate()
         .details.clear()
         if .reportDetails do
-            .reportDetails!(me, .details.toString())
+            .reportDetails(me, .details.toString())
         .fitCommandBar()
         .grid.invalidate()
         .refreshInspector()
@@ -381,7 +381,7 @@ internal impl HexViewer
         menu.addItem("125%", "scope.hex.zoom125")
         menu.addItem("150%", "scope.hex.zoom150")
         menu.addItem("200%", "scope.hex.zoom200")
-        switch menu.doModal(.zoomLabel!, autoDestroy: true) orelse ""
+        switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.hex.zoom75":  .grid.setFontSize(cast(u32) Math.max(Math.round(cast(f32) base * 0.75), 1))
         case "scope.hex.zoom100": .grid.resetFontSize()
@@ -430,7 +430,7 @@ internal impl HexViewer
     {
         if not .inspectorLabel do
             return
-        let label = .inspectorLabel!
+        let label = .inspectorLabel
         if not .grid.doc.fileSize
         {
             label.setText(hexStrings().ui_InspectorEmpty)
@@ -546,7 +546,7 @@ internal impl HexViewer
         }
 
         result.info = host.createInfoGroup(HexInfoWidth)
-        with result.zoomLabel = IconButton.create(result.info!, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.hex.zoom", .CenterContent)
+        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.hex.zoom", .CenterContent)
         {
             .dockStyle = .Right
             .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
@@ -562,7 +562,7 @@ internal impl HexViewer
             }
         }
 
-        with result.inspectorLabel = Label.create(result.info!, "", {0, 0, HexInspectorWidth, 32}, null, .SecondaryText | .Ellipsis)
+        with result.inspectorLabel = Label.create(result.info, "", {0, 0, HexInspectorWidth, 32}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
@@ -681,7 +681,7 @@ internal impl HexViewer
 
         if services.reportFailure
         {
-            let report = services.reportFailure!
+            let report: Viewer.ReportFailure = services.reportFailure
             result.grid.doc.reportFailure = func|result, report|(reason) { report(cast(*Wnd) result, reason) }
         }
 

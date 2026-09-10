@@ -185,21 +185,21 @@ impl MarkdownZoomButton
             return
         if not .hasStatistics
         {
-            .reportDetails!(.view, markdownStrings().ui_Details)
+            .reportDetails(.view, markdownStrings().ui_Details)
             return
         }
 
         let texts = markdownStrings()
         let lines = .statistics.lines == 1 ? String.from(texts.ui_OneLine) : Format.toString(texts.ui_Lines, .statistics.lines)
         let words = .statistics.words == 1 ? String.from(texts.ui_OneWord) : Format.toString(texts.ui_Words, .statistics.words)
-        .reportDetails!(.view, Format.toString("% · % · %", texts.ui_Details, lines, words).toString())
+        .reportDetails(.view, Format.toString("% · % · %", texts.ui_Details, lines, words).toString())
     }
 
     mtd retire()->bool
     {
         if .statisticsTimer
         {
-            .removeTimer(.statisticsTimer!)
+            .removeTimer(.statisticsTimer)
             .statisticsTimer = null
         }
 
@@ -348,7 +348,7 @@ func createMarkdownViewer(host: Viewer.Host)
     let services = host.services()
     if services.reportFailure
     {
-        let reportFailure = services.reportFailure!
+        let reportFailure: Viewer.ReportFailure = services.reportFailure
         view.sigLoadFailed += func|reportFailure|(markdown, reason) { reportFailure(cast(*Wnd) markdown, reason) }
     }
 

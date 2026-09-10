@@ -504,7 +504,7 @@ func viewerWindowFor(view: *Wnd)->*ViewerWindow
 {
     Swag.assert(view.parent != null)
     if view.parent.userData do
-        return cast(*ViewerWindow) view.parent.userData!
+        return cast(*ViewerWindow) view.parent.userData
 
     // Focused host-service tests attach their synthetic view directly to the application window.
     return cast(*ViewerWindow) view.parent

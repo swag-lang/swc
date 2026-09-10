@@ -1,5 +1,5 @@
 /*
-TrueType reads, measures, transforms, and rasterizes TrueType outline fonts
+TrueType reads, measures, transforms, and rasterizes outline fonts
 directly from memory.
 
 A [[TrueType.Face]] owns a private copy of the font bytes and exposes one
@@ -24,7 +24,8 @@ let bitmap = &face.glyph.bitmap
 // bitmap.buffer remains valid until this face loads or renders another glyph.
 ```
 
-The module covers TrueType `glyf` outlines, `ttcf` collections, Unicode character
+The module covers TrueType `glyf` outlines, OpenType and bare CFF programs,
+Type 1 programs, `ttcf` collections, Unicode character
 maps including variation sequences, kerning from `GPOS` and from the legacy
 `kern` table, grayscale rasterization, and single- or multi-channel
 signed-distance fields. [[TrueType.Face.loadSubset]] also accepts rendering-only
@@ -32,8 +33,8 @@ document subsets whose family identity is supplied outside the font program.
 
 It does not shape text. Ligatures, mark attachment and script-specific reordering
 need `GSUB` and the rest of `GPOS`, so Arabic, Indic and Thai are positioned
-incorrectly rather than imperfectly. OpenType files carrying CFF outlines
-(`OTTO`) and WOFF containers are reported as unsupported rather than read.
+incorrectly rather than imperfectly. WOFF and WOFF2 containers are reported as
+unsupported rather than read.
 */
 
 #import("core")

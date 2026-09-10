@@ -12,17 +12,18 @@ let face  = (try Face.load(bytes.toSlice()))!
 defer face.destroy()
 ```
 
-The input is a TrueType font with `glyf` outlines. OpenType files carrying CFF
-outlines (`OTTO`) and WOFF containers are recognized and reported as unsupported,
-so a failure names what the file actually is.
+The input can be a TrueType font with `glyf` outlines, an OpenType font with CFF
+outlines (`OTTO`), or a bare CFF or Type 1 program. WOFF and WOFF2 containers are
+recognized and reported as unsupported, so a failure names the container.
 
 ## Rendering-only subsets
 
-PDF and similar document formats may embed a TrueType subset without the `name`
-and `post` metadata required of an installable font. Use
+PDF and similar document formats may embed a TrueType subset without the `name`,
+`post`, or `cmap` metadata required of an installable font. Use
 [[TrueType.Face.loadSubset]] for those programs and provide the family identity
-from the document's font descriptor. The outline, location, character-map, and
-horizontal-metric tables are still validated normally.
+from the document's font descriptor. The outline, location, and horizontal-metric
+tables are still validated normally. Without a character map, address glyphs by
+index or through the document's own encoding.
 
 ```swag
 let face = (try Face.loadSubset(embeddedBytes, "DocumentSans"))!

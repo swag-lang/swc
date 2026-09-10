@@ -132,48 +132,52 @@ impl ViewerReadingState
         .contentSettingsApplied = false
     }
 
-    // Streaming views may need several layout turns to materialize the saved position.
+    // Wait for the initial viewport, apply the saved position once, then let streaming settle.
     mtd restore(session: *ViewerSession)->bool
     {
         if !session.view do
             return true
-        if !.contentSettingsApplied and (!session.isLoading or !session.isLoading!(session.view!))
+        if session.isLoading and session.isLoading!(session.view!) do
+            return false
+        if .contentSettingsApplied do
+            return true
+
+        // Reapplying an unreachable position interrupts the viewer's own seek and scroll
+        // animation on every watch tick, so a shorter replacement can never finish loading.
+        .contentSettingsApplied = true
+        switch session.view!.itf
         {
-            .contentSettingsApplied = true
-            switch session.view!.itf
-            {
-            case PdfViewer as view:
-                view.pdfView.setPageLayout(.pdfLayout)
-                view.pdfView.setZoom(.pdfZoom)
-                view.pdfView.setZoomMode(.pdfZoomMode)
-                view.pdfView.showPage(.page)
+        case PdfViewer as view:
+            view.pdfView.setPageLayout(.pdfLayout)
+            view.pdfView.setZoom(.pdfZoom)
+            view.pdfView.setZoomMode(.pdfZoomMode)
+            view.pdfView.showPage(.page)
 
-            case ImageViewer as view:
-                if .imageMirrored do
-                    view.imageView.mirrorHorizontally()
-                for .imageRotation do
-                    view.imageView.rotateClockwise()
-                if .imageFitted do
-                    view.imageView.zoomToFit()
-                else do
-                    view.imageView.setZoom(.imageZoom)
-                view.imageView.setPanOffset(.imagePan)
+        case ImageViewer as view:
+            if .imageMirrored do
+                view.imageView.mirrorHorizontally()
+            for .imageRotation do
+                view.imageView.rotateClockwise()
+            if .imageFitted do
+                view.imageView.zoomToFit()
+            else do
+                view.imageView.setZoom(.imageZoom)
+            view.imageView.setPanOffset(.imagePan)
 
-            case SoundViewer as view:
-                view.setVolume(.volume)
-                view.setMuted(.muted)
-                view.seekSeconds(cast(f32) .seconds)
-                if view.playing != .playing do
-                    view.togglePlayback()
+        case SoundViewer as view:
+            view.setVolume(.volume)
+            view.setMuted(.muted)
+            view.seekSeconds(cast(f32) .seconds)
+            if view.playing != .playing do
+                view.togglePlayback()
 
-            case VideoViewer as view:
-                view.setVolume(.volume)
-                view.setMuted(.muted)
-                view.setPlaybackRate(.playbackRate)
-                view.seekSeconds(.seconds)
-                if view.playing != .playing do
-                    view.togglePlayback()
-            }
+        case VideoViewer as view:
+            view.setVolume(.volume)
+            view.setMuted(.muted)
+            view.setPlaybackRate(.playbackRate)
+            view.seekSeconds(.seconds)
+            if view.playing != .playing do
+                view.togglePlayback()
         }
 
         for saved in .scrolls

@@ -173,6 +173,58 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     Swag.assert(replacement.pageLayout == .Single)
 }
 
+// A much shorter replacement must settle instead of repeatedly restoring an unreachable viewport.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-shrinking-", ".md")
+    var source: String
+    for index in 12_000 do
+        source += Format.toString("## Section %\n\nA paragraph of the original manuscript.\n\n", index)
+    writeReloadFile(fileName, source)
+    defer discard catch File.delete(fileName)
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    host.setReducedMotion(false)
+    defer host.shutdown()
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&host, window)
+    let view     = cast(*Markdown.View) window.currentView!
+    let revealed = view.revealFileOffset(source.length * 3 / 4, "")
+    Swag.assert(revealed)
+    for 128 where view.isLoading() do
+        host.fireTimers()
+    Swag.assert((cast(*ScrollWnd) view.children[0]).scrollPosition().y > 10_000)
+
+    source.clear()
+    for index in 400 do
+        source += Format.toString("## Short section %\n\nReplacement paragraph.\n\n", index)
+    writeReloadFile(fileName, source)
+    for 8 where window.pendingFile.isEmpty() do
+        pollFileWatch(&host, window)
+    Swag.assert(!window.pendingFile.isEmpty())
+    completeViewerWindowClassification(&host, window)
+    for 128
+    {
+        host.fireTimers()
+        host.fireTimer(window.fileWatchTimer)
+        host.advanceAnimations(0.1)
+    }
+
+    let replacement = cast(*Markdown.View) window.currentView!
+    Swag.assert(!window.readingState.restoring and !replacement.isLoading())
+    let scroll   = cast(*ScrollWnd) replacement.children[0]
+    let position = scroll.scrollPosition()
+    for 32
+    {
+        host.fireTimers()
+        host.fireTimer(window.fileWatchTimer)
+        host.finishAnimations()
+        Swag.assert(window.pendingFile.isEmpty() and !window.readingState.restoring)
+        Swag.assert(scroll.scrollPosition() == position and !replacement.isLoading())
+    }
+}
+
 // Metadata changes include same-size writes and replacement by another file.
 #test
 {

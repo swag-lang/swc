@@ -18,7 +18,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.001 — H.264 decoding costs several times what FFmpeg does per picture
 
 - Recorded: 2026-08-19 13:23
-- Updated: 2026-09-10 21:00 — Re-measure the gap against FFmpeg after fusing dequantization into the entropy decoders, and record four rejected leads
+- Updated: 2026-09-10 21:07 — Re-measure the gap against FFmpeg after fusing dequantization into the entropy decoders, record five rejected leads, and note the overrun trap
 - Intent: the decoder is byte-exact against FFmpeg on Baseline, Main, and High streams and decodes
   well above real time, but one picture still costs several times what FFmpeg spends on it. That
   margin is what a machine smaller than this one, or a stream larger than 4K, would need.
@@ -104,7 +104,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   index, and the loop filter's strengths through `check_mv` — is a fixed-offset read in a small
   array filled once per macroblock, where this decoder makes a call with availability and slice
   checks for every neighbor of every block. A non-zero-count cache for the coded-block-flag
-  contexts is the smallest first step; the motion cache and the strengths follow from it.
+  contexts is the smallest first step; the motion cache and the strengths follow from it. A
+  smaller lead carries a trap: `Slice.residualCabac` tests for an overrun after every block, where
+  FFmpeg tests once per slice and the macroblock loop here already tests after each macroblock —
+  but that loop leaves on `terminate()` returning 1 before its test, so a truncated slice whose
+  padding ends the slice would pass silently. Dropping the per-block test first needs a test after
+  the loop, shown harmless on every valid fixture.
 - A second stream shape is worth its own measurement: a multi-slice picture takes the banded path
   and ping-pongs between two threads that each spend about half their time waiting. FFmpeg turns
   the same slices into parallelism. That is a real class of stream — every low-latency encoder
@@ -120,7 +125,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   ahead and a marker so renormalization is a plain shift, costs 8.7 percent more on the minimum as
   written here; keeping the level loop's registers in the same address-taken structure as the
   significance map is neutral; and answering strength zero early when both blocks of an inner edge
-  hold identical motion records lost every measured round.
+  hold identical motion records lost every measured round. Inlining the generic
+  `CabacReader.decision`, rejected on 2026-08-19 at a ten percent parse loss, was re-measured on
+  2026-09-10 under the live-range-splitting allocator: neutral (median of paired rounds −1.1
+  percent, minimum +2.2 percent, byte-exact), so it stays a call.
 - Current boundary: `decode/h264/deblock.swg` already packs weak filtering in both directions,
   strong horizontal luma/chroma, and strong vertical luma through a transposed tile. The remaining
   strong vertical chroma path is scalar and is tracked by cpu.simd.023. Do not implement those

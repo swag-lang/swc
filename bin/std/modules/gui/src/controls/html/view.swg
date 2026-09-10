@@ -503,7 +503,7 @@ internal impl HtmlView
         let requested = Math.clamp(requestedOffset, .virtualContentStart, .fileSize)
         let wanted    = requested > .virtualContentStart + HtmlVirtualLookBehind ? requested - HtmlVirtualLookBehind : .virtualContentStart
 
-        .stream = catch File.openRead(.fileName.toString()) as openError
+        .stream = catch File.openReadLive(.fileName.toString()) as openError
         if openError != null do
             return false
         let actual = Math.min(wanted, .fileSize)
@@ -1436,7 +1436,7 @@ internal impl HtmlView
         .failureReason.clear()
         .scroll.setScrollPos(0, 0)
 
-        .stream = catch File.openRead(fileName) as openError
+        .stream = catch File.openReadLive(fileName) as openError
         if openError != null
         {
             .reportLoadFailure(Errors.message(openError))

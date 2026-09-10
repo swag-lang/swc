@@ -64,7 +64,7 @@ impl TextStatisticsCounter
 
     func loadUtf8(fileName: string)->TextStatistics fail
     {
-        var stream = try File.open(fileName, .Open, .Read, .ReadWrite | .Delete)
+        var stream = try File.openReadLive(fileName)
         defer stream.close()
         var counter: TextStatisticsCounter
         while true

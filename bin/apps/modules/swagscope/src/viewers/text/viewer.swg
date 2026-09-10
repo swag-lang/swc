@@ -121,7 +121,7 @@ private func runTextStatistics(thread: Threading.Thread)
     let context = Swag.getContext()
     context.allocator = context.defaultAllocator!
 
-    var stream = catch File.open(view.fileName.toString(), .Open, .Read, .ReadWrite | .Delete) as openError
+    var stream = catch File.openReadLive(view.fileName.toString()) as openError
     if openError != null
     {
         Atomic.exchange(&view.statisticsState, 2)
@@ -246,7 +246,7 @@ impl TextView
     func probe(fileName: string)->TextProbe
     {
         var result: retval
-        var stream = catch File.open(fileName, .Open, .Read, .ReadWrite | .Delete) as openError
+        var stream = catch File.openReadLive(fileName) as openError
         if openError != null do
             return result
         defer stream.close()
@@ -427,7 +427,7 @@ impl TextView
         start -= (start - .contentStart) % unit
         for adjustment in 4
         {
-            .stream = catch File.open(.fileName.toString(), .Open, .Read, .ReadWrite | .Delete) as openError
+            .stream = catch File.openReadLive(.fileName.toString()) as openError
             if openError != null do
                 return false
             let actual = Math.min(start + adjustment * unit, .fileSize)
@@ -482,7 +482,7 @@ impl TextView
 
         var head: Array'u8
         head.resize(Text.bomLength(encoding))
-        var stream = catch File.open(.fileName.toString(), .Open, .Read, .ReadWrite | .Delete) as openError
+        var stream = catch File.openReadLive(.fileName.toString()) as openError
         if openError == null
         {
             let count = catch stream.read(head.toSlice()) as readError
@@ -782,7 +782,7 @@ impl TextView
             return false
         }
 
-        result.stream = catch File.open(host.fileName(), .Open, .Read, .ReadWrite | .Delete) as openError
+        result.stream = catch File.openReadLive(host.fileName()) as openError
         if openError != null do
             result.showReadError()
         else

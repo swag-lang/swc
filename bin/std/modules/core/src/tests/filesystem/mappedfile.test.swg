@@ -1,6 +1,34 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
+// A snapshot releases its source, owns bounded-copy storage, and outlives its opener.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_mapped_snapshot.tmp")
+    defer discard catch File.delete(fileName)
+    var source: [130 * 1024] u8
+    for &value, index in source do
+        value[] = cast(u8) (index % 251)
+    discard expect File.writeAllBytes(fileName, source)
+    var mapped = expect File.MappedFile.openSnapshot(fileName)
+    var region = expect mapped.mapAll()
+    mapped.close()
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) "short")
+    expect File.delete(fileName)
+    Swag.assert(mappedBytesEqual(region.bytes(), source))
+    region.close()
+
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) "")
+    var empty       = expect File.MappedFile.openSnapshot(fileName)
+    var emptyRegion = expect empty.mapAll()
+    Swag.assert(emptyRegion.isOpen() and !emptyRegion.bytes().count)
+
+    discard expect File.writeAllBytes(fileName, source)
+    var prefix       = expect File.MappedFile.openSnapshot(fileName, 17)
+    var prefixRegion = expect prefix.mapAll()
+    Swag.assert(mappedBytesEqual(prefixRegion.bytes(), source[0 until 17]))
+}
+
 func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
 {
     if actual.count != expected.count do

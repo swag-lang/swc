@@ -76,7 +76,7 @@ impl FileStream
         // `SetFilePointerEx` takes the whole distance as one signed 64-bit value; the split
         // `SetFilePointer` form truncates every offset with bit 31 set, so a file of 2 GB or more
         // cannot be addressed through it at all.
-        catch SetFilePointerEx(cast(HANDLE) .handle, cast(LARGE_INTEGER) offset, null, seekMode) as err
+        catch SetFilePointerEx(cast(HANDLE) .handle, cast #bit (LARGE_INTEGER) offset, null, seekMode) as err
         Errors.transformWinErrors(err, .name)
     }
 }

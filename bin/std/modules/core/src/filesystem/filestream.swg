@@ -4,7 +4,10 @@
 // Opaque handle to a file, used internally by FileStream
 alias FileHandle = const *void?
 
-// Owns an open file and exposes byte-oriented reading, writing, and seeking.
+// Exposes byte-oriented reading, writing, and seeking over a file.
+//
+// Ordinary streams own a native handle. [[Core.File.openReadLive]] instead retains a path and
+// cursor, opening the file only for individual operations so idle readers do not block saves.
 #[Swag.NoCopy]
 struct FileStream
 {
@@ -20,7 +23,9 @@ struct FileStream
     }
 
     // Platform handle of the open file, owned by the stream and closed with it.
-    internal handle: FileHandle
+    internal handle:       FileHandle
+    internal liveRead:     bool
+    internal livePosition: u64
 }
 
 impl FileStream
@@ -44,10 +49,10 @@ impl FileStream
         .canSeek  = canSeek
     }
 
-    // Returns true if the stream is currently open and valid
+    // Returns whether the stream is open; a live stream's path is checked by its next operation.
     func isOpen(const me)->bool
     {
-        return .handle != null
+        return .handle != null or .liveRead
     }
 
     // Reads at most `length` bytes, completing host-sized chunks until the stream ends.
@@ -57,6 +62,15 @@ impl FileStream
         Swag.assert(.canRead)
         if !length do
             return 0
+
+        if .liveRead
+        {
+            var stream = File.open(.name, .Open, .Read, .ReadWrite | .Delete)
+            stream.seek(.Begin, .livePosition)
+            let count = stream.read(buffer, length)
+            .livePosition += count
+            return count
+        }
 
         var total = 0'u64
         let bytes = cast([*] u8) buffer!
@@ -97,6 +111,8 @@ impl FileStream
     // Closes the stream. Repeated calls do nothing.
     mtd close()
     {
+        .liveRead     = false
+        .livePosition = 0
         if !.handle do
             return
         .closeNative()
@@ -108,6 +124,12 @@ impl FileStream
     {
         Swag.assert(.isOpen())
         Swag.assert(.canSeek)
+        if .liveRead
+        {
+            var stream = File.open(.name, .Open, .Read, .ReadWrite | .Delete)
+            return stream.size()
+        }
+
         return .sizeNative()
     }
 
@@ -137,6 +159,8 @@ impl FileStream
     {
         Swag.assert(.isOpen())
         Swag.assert(.canSeek)
+        if .liveRead do
+            return .livePosition
         return .positionNative()
     }
 
@@ -145,6 +169,15 @@ impl FileStream
     {
         Swag.assert(.isOpen())
         Swag.assert(.canSeek)
+        if .liveRead
+        {
+            var stream = File.open(.name, .Open, .Read, .ReadWrite | .Delete)
+            stream.seek(.Begin, .livePosition)
+            stream.seek(origin, offset)
+            .livePosition = stream.position()
+            return
+        }
+
         .seekNative(origin, offset)
     }
 

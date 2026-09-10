@@ -88,6 +88,20 @@ func openRead(fullName: string)->FileStream fail
     return open(fullName, .Open, .Read, .Read)
 }
 
+// Opens a read-only stream that releases the file between operations.
+//
+// Each read, seek, or size query reopens the path with read, write, and delete sharing. The
+// cursor survives between calls, but the file may be replaced, truncated, or removed; subsequent
+// operations observe the current path and can fail. No native handle is retained while idle,
+// so even an exclusive writer can save the source. This is not a consistent snapshot.
+func openReadLive(fullName: string)->FileStream fail
+{
+    var result = open(fullName, .Open, .Read, .ReadWrite | .Delete)
+    result.close()
+    result.liveRead = true
+    return result
+}
+
 // Creates or replaces a file for exclusive writing.
 func openWrite(fullName: string)->FileStream fail
 {

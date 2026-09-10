@@ -3,6 +3,39 @@
 
 using Swag
 
+// Live readers leave no idle handle and follow replacements without losing their cursor.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_file_live.tmp")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) "first line\nsecond line\n")
+    var stream = expect File.openReadLive(fileName)
+    let first  = expect stream.readUtf8Chunk(6)
+    Swag.assert(first == "first " and expect stream.position() == 6)
+
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) "other replacement\n")
+    let next = expect stream.readUtf8Chunk(11)
+    Swag.assert(next == "replacement")
+    expect stream.seek(.End, cast #bit (u64) -1's64)
+    let ending = expect stream.readUtf8Chunk(4)
+    Swag.assert(ending == "\n")
+
+    let replacement = CoreTests.makeFilesystemTestPath("core_file_live_replacement.tmp")
+    discard expect File.writeAllBytes(replacement, cast(const [..] u8) "new")
+    defer discard catch File.delete(replacement)
+    expect File.move(fileName, replacement)
+    Swag.assert(expect stream.size() == 3)
+    expect stream.seek(.Begin, 0)
+    let replaced = expect stream.readUtf8Chunk(4)
+    Swag.assert(replaced == "new")
+    expect File.delete(fileName)
+    discard catch stream.size() as missing
+    Swag.assert(missing != null and stream.isOpen())
+    stream.close()
+    stream.close()
+    Swag.assert(!stream.isOpen())
+}
+
 func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 {
     if actual.count != expected.count do

@@ -20,7 +20,7 @@ struct ViewerPluginRegistry
 private func readProbeHead(fileName: string)->Array'u8
 {
     var result: retval
-    var stream = catch File.openRead(fileName) as openError
+    var stream = catch File.openReadLive(fileName) as openError
     if openError != null do
         return result
     defer stream.close()

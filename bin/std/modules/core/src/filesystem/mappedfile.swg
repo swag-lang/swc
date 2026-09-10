@@ -41,7 +41,37 @@ impl MappedFile
         switch access
         {
         case .Read, .CopyOnWrite: result.stream = File.open(name, .Open, .Read, .ReadWrite | .Delete)
-        case .ReadWrite:          result.stream = File.open(name, .Open, .ReadWrite, .ReadWrite | .Delete)
+        case .ReadWrite: result.stream = File.open(name, .Open, .ReadWrite, .ReadWrite | .Delete)
+        }
+
+        return result
+    }
+
+    // Copies a file to temporary storage and opens that copy for read-only mapping.
+    //
+    // The copy uses a bounded buffer and releases the source before returning. Later writes,
+    // truncation, deletion, or replacement of the source do not affect the mapped bytes. The
+    // source must remain unchanged during the copy. Temporary storage is reclaimed after this
+    // value and its last region close. The returned name remains the original source path.
+    // `maxBytes` limits the copy to a prefix; zero creates an empty snapshot.
+    func openSnapshot(name: string, maxBytes = Swag.U64.Max)->MappedFile fail
+    {
+        var source    = File.open(name, .Open, .Read, .ReadWrite | .Delete)
+        let temporary = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("swag-mapped-%.tmp", Guid128.random()))
+        var result: retval
+        result.name   = name
+        result.stream = File.open(temporary, .CreateNew, .ReadWrite, .ReadWrite | .Delete)
+        defer discard catch File.delete(temporary)
+
+        var buffer: [64 * 1024] u8
+        var remaining = Math.min(source.size(), maxBytes)
+        while remaining
+        {
+            let count = source.read(buffer[0 until Math.min(remaining, buffer.count)])
+            if !count do
+                fail Errors.InvalidFormatError{}
+            result.stream.writeAll(buffer[0 until count])
+            remaining -= count
         }
 
         return result

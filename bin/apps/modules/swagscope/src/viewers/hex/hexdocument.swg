@@ -45,7 +45,7 @@ impl HexDocument
     {
         .close()
 
-        .stream = catch File.openRead(fileName) as openError
+        .stream = catch File.openReadLive(fileName) as openError
         if openError != null
         {
             .failRead(Errors.message(openError))

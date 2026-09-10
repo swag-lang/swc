@@ -97,7 +97,7 @@ internal func codeShebang(source: string)->CodeShebang
 // Reads the interpreter line of a file without retaining it.
 private func codeFileShebang(fileName: string)->CodeShebang
 {
-    var stream = catch File.openRead(fileName) as openError
+    var stream = catch File.openReadLive(fileName) as openError
     if openError != null do
         return {}
     defer stream.close()
@@ -110,7 +110,7 @@ private func codeFileShebang(fileName: string)->CodeShebang
 
 private func codeLooksLikeObjectiveC(fileName: string)->bool
 {
-    var stream = catch File.openRead(fileName) as openError
+    var stream = catch File.openReadLive(fileName) as openError
     if openError != null do
         return false
     defer stream.close()
@@ -131,73 +131,73 @@ internal func codeLanguage(fileName: string)->CodeLanguage
     switch baseName.toString()
     {
     case "makefile", "gnumakefile", "bsdmakefile": return .Makefile
-    case "justfile":                               return .Makefile
-    case "dockerfile", "containerfile":            return .Dockerfile
-    case "cmakelists.txt":                         return .CMake
+    case "justfile":       return .Makefile
+    case "dockerfile", "containerfile": return .Dockerfile
+    case "cmakelists.txt": return .CMake
     case "rakefile", "gemfile", "vagrantfile", "podfile", "brewfile": return .Ruby
-    case "jenkinsfile":                            return .Groovy
+    case "jenkinsfile":    return .Groovy
     case "meson.build", ".gitignore", ".gitattributes", ".gitmodules", ".editorconfig", ".clang-format", ".clang-tidy", ".prettierrc", ".eslintrc", ".npmrc", ".yarnrc", ".env": return .Config
     }
 
     let extension = Path.lowercaseExtension(fileName)
     switch extension.toString()
     {
-    case ".c", ".h":                                                                   return .C
-    case ".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx", ".inl", ".ipp":                 return .Cpp
-    case ".cs":                                                                        return .CSharp
-    case ".java":                                                                      return .Java
-    case ".js", ".jsx", ".mjs", ".cjs":                                                return .JavaScript
-    case ".ts", ".tsx", ".mts", ".cts":                                                return .TypeScript
-    case ".go":                                                                        return .Go
-    case ".rs":                                                                        return .Rust
-    case ".py", ".pyw", ".pyi":                                                        return .Python
-    case ".rb", ".rake", ".gemspec":                                                   return .Ruby
-    case ".sh", ".bash", ".zsh", ".fish":                                              return .Shell
-    case ".ps1", ".psm1", ".psd1":                                                     return .PowerShell
-    case ".php", ".phtml":                                                             return .Php
-    case ".lua":                                                                       return .Lua
-    case ".sql":                                                                       return .Sql
-    case ".json", ".jsonc", ".json5":                                                  return .Json
+    case ".c", ".h":                                                   return .C
+    case ".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx", ".inl", ".ipp": return .Cpp
+    case ".cs":                                                        return .CSharp
+    case ".java":                                                      return .Java
+    case ".js", ".jsx", ".mjs", ".cjs":                                return .JavaScript
+    case ".ts", ".tsx", ".mts", ".cts":                                return .TypeScript
+    case ".go":                                                        return .Go
+    case ".rs":                                                        return .Rust
+    case ".py", ".pyw", ".pyi":                                        return .Python
+    case ".rb", ".rake", ".gemspec":                                   return .Ruby
+    case ".sh", ".bash", ".zsh", ".fish":                              return .Shell
+    case ".ps1", ".psm1", ".psd1":                                     return .PowerShell
+    case ".php", ".phtml":                                             return .Php
+    case ".lua":                                                       return .Lua
+    case ".sql":                                                       return .Sql
+    case ".json", ".jsonc", ".json5":                                  return .Json
     case ".xml", ".xsd", ".xsl", ".xslt", ".csproj", ".vcxproj", ".props", ".targets": return .Xml
-    case ".css", ".scss", ".sass", ".less":                                            return .Css
-    case ".yaml", ".yml":                                                              return .Yaml
-    case ".toml":                                                                      return .Toml
-    case ".ini", ".cfg", ".conf", ".properties":                                       return .Config
-    case ".kt", ".kts":                                                                return .Kotlin
-    case ".swift":                                                                     return .Swift
-    case ".dart":                                                                      return .Dart
-    case ".r":                                                                         return .R
-    case ".pl", ".pm":                                                                 return .Perl
-    case ".vb":                                                                        return .VisualBasic
-    case ".glsl", ".vert", ".frag", ".geom", ".comp", ".hlsl", ".fx":                  return .Shader
-    case ".cmake":                                                                     return .CMake
-    case ".bat", ".cmd":                                                               return .Batch
-    case ".htm", ".html", ".shtml", ".xht", ".xhtml":                                  return .Html
-    case ".asm", ".s", ".incasm":                                                      return .Assembly
-    case ".zig":                                                                       return .Zig
-    case ".nim", ".nims", ".nimble":                                                   return .Nim
-    case ".hs", ".lhs":                                                                return .Haskell
-    case ".scala", ".sc":                                                              return .Scala
-    case ".groovy", ".gvy", ".gy", ".gsh":                                             return .Groovy
-    case ".ex", ".exs":                                                                return .Elixir
-    case ".erl", ".hrl":                                                               return .Erlang
-    case ".clj", ".cljs", ".cljc", ".edn":                                             return .Clojure
-    case ".jl":                                                                        return .Julia
-    case ".f", ".for", ".f77", ".f90", ".f95", ".f03", ".f08":                         return .Fortran
-    case ".pas", ".pp", ".lpr":                                                        return .Pascal
-    case ".d", ".di":                                                                  return .D
-    case ".mm":                                                                        return .ObjectiveC
-    case ".m":                                                                         return codeLooksLikeObjectiveC(fileName) ? .ObjectiveC : .Matlab
-    case ".tcl", ".tk":                                                                return .Tcl
-    case ".awk":                                                                       return .Awk
-    case ".vim":                                                                       return .Vim
-    case ".tex", ".sty", ".cls", ".bib":                                               return .Latex
-    case ".proto":                                                                     return .Protobuf
-    case ".graphql", ".gql":                                                           return .GraphQl
-    case ".gradle":                                                                    return .Gradle
-    case ".mk", ".mak", ".make":                                                       return .Makefile
-    case ".dockerfile":                                                                return .Dockerfile
-    case ".nix":                                                                       return .Nix
+    case ".css", ".scss", ".sass", ".less":                            return .Css
+    case ".yaml", ".yml":                                              return .Yaml
+    case ".toml":                                                      return .Toml
+    case ".ini", ".cfg", ".conf", ".properties":                       return .Config
+    case ".kt", ".kts":                                                return .Kotlin
+    case ".swift":                                                     return .Swift
+    case ".dart":                                                      return .Dart
+    case ".r":                                                         return .R
+    case ".pl", ".pm":                                                 return .Perl
+    case ".vb":                                                        return .VisualBasic
+    case ".glsl", ".vert", ".frag", ".geom", ".comp", ".hlsl", ".fx":  return .Shader
+    case ".cmake":                                                     return .CMake
+    case ".bat", ".cmd":                                               return .Batch
+    case ".htm", ".html", ".shtml", ".xht", ".xhtml":                  return .Html
+    case ".asm", ".s", ".incasm":                                      return .Assembly
+    case ".zig":                                                       return .Zig
+    case ".nim", ".nims", ".nimble":                                   return .Nim
+    case ".hs", ".lhs":                                                return .Haskell
+    case ".scala", ".sc":                                              return .Scala
+    case ".groovy", ".gvy", ".gy", ".gsh":                             return .Groovy
+    case ".ex", ".exs":                                                return .Elixir
+    case ".erl", ".hrl":                                               return .Erlang
+    case ".clj", ".cljs", ".cljc", ".edn":                             return .Clojure
+    case ".jl":                                                        return .Julia
+    case ".f", ".for", ".f77", ".f90", ".f95", ".f03", ".f08":         return .Fortran
+    case ".pas", ".pp", ".lpr":                                        return .Pascal
+    case ".d", ".di":                                                  return .D
+    case ".mm":                                                        return .ObjectiveC
+    case ".m":                                                         return codeLooksLikeObjectiveC(fileName) ? .ObjectiveC : .Matlab
+    case ".tcl", ".tk":                                                return .Tcl
+    case ".awk":                                                       return .Awk
+    case ".vim":                                                       return .Vim
+    case ".tex", ".sty", ".cls", ".bib":                               return .Latex
+    case ".proto":                                                     return .Protobuf
+    case ".graphql", ".gql":                                           return .GraphQl
+    case ".gradle":                                                    return .Gradle
+    case ".mk", ".mak", ".make":                                       return .Makefile
+    case ".dockerfile":                                                return .Dockerfile
+    case ".nix":                                                       return .Nix
     }
 
     let shebang = codeFileShebang(fileName)

@@ -334,7 +334,7 @@ func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fai
     if entry.method != 0 and entry.method != 8 do
         fail Errors.UnsupportedFormatError{Errors.mkString(Format.toString("ZIP compression method % is not supported", entry.method).toString())}
 
-    var stream   = try File.openRead(archiveFileName)
+    var stream   = try File.openReadLive(archiveFileName)
     let fileSize = try stream.size()
     if entry.localOffset > fileSize or 30 > fileSize - entry.localOffset do
         fail Errors.InvalidFormatError{"ZIP local header lies outside the file"}

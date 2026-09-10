@@ -312,7 +312,7 @@ private func indexIndesignPreviews(bytes: const [..] u8, start, end: u64)->Array
             break
 
         let itemContentStart = indesignFind(bytes, ">", itemStart, end)
-        let itemEnd          = indesignFind(bytes, IndesignPreviewItemClose, itemStart, end)
+        let itemEnd = indesignFind(bytes, IndesignPreviewItemClose, itemStart, end)
         if itemContentStart == Swag.U64.Max or itemEnd == Swag.U64.Max or itemContentStart >= itemEnd do
             break
 
@@ -517,7 +517,7 @@ private impl IndesignPreviewLoad
 // Legacy documents that retained XMP inside their declared pages keep a bounded compatibility path.
 func loadIndesignDocument(fileName: string)->IndesignDocument fail
 {
-    var stream      = try File.open(fileName, .Open, .Read, .ReadWrite | .Delete)
+    var stream      = try File.openReadLive(fileName)
     let fileSize    = try stream.size()
     let headerBytes = Math.min(fileSize, 2 * IndesignHeaderCopySize)
     var headerData: Array'u8
@@ -628,7 +628,7 @@ internal struct IndesignViewer
     reportLoadingChanged: Viewer.ReportLoadingChanged?
     failureReason:        String
 
-        late
+    late
     {
         commands:       *Wnd
         info:           *Wnd
@@ -790,7 +790,7 @@ private impl IndesignViewer
             preview.lastUsed = .nextPreviewUse()
             .imageView.setImage(preview.image)
             .hasPreviewContent = true
-            .details           = Format.toString(indesignStrings().ui_Details, index + 1, .previews.count, preview.image.width, preview.image.height)
+            .details = Format.toString(indesignStrings().ui_Details, index + 1, .previews.count, preview.image.width, preview.image.height)
             .refreshZoom()
             .reportCurrentDetails()
             return true
@@ -876,12 +876,12 @@ private impl IndesignViewer
         .previewIndex = index
         .htmlView?.destroy()
         .markupRenderedScale       = .markupPageScale(index)
-        .htmlView                  = HtmlView.createText(me, .markupPages[index].html(.markupRenderedScale).toString())
+        .htmlView = HtmlView.createText(me, .markupPages[index].html(.markupRenderedScale).toString())
         .htmlView!.dockStyle       = .Center
         .htmlView!.backgroundStyle = .View
         .imageView.hide()
         .hasPreviewContent = true
-        .details           = .markupDetails(index)
+        .details = .markupDetails(index)
         .refreshPageCommands()
         .refreshZoom()
         .reportCurrentDetails()
@@ -1264,7 +1264,7 @@ internal impl IndesignViewer
             }
         }
 
-        result.imageView                 = ImageView.create(result)
+        result.imageView = ImageView.create(result)
         result.imageView.backgroundStyle = .View
         result.imageView.dockStyle       = .Center
         result.imageView.sigZoomChanged  += func|view = result|(imageView)
@@ -1272,6 +1272,7 @@ internal impl IndesignViewer
             discard imageView
             view.refreshZoom()
         }
+
         result.hookOnChildEvent = func|view = result|(wnd, evt)
         {
             discard wnd

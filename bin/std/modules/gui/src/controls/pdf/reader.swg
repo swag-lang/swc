@@ -12,7 +12,7 @@ internal struct PageSource
     rotate:      s64
 }
 
-// Owns a mapped PDF source and decodes its pages on demand.
+// Owns a mapped PDF snapshot and decodes its pages on demand.
 //
 // Opening indexes the object and page trees but does not decompress page content, images, or
 // fonts. Each call to [[Gui.Pdf.Reader.loadPage]] returns an independent owned page; releasing that
@@ -35,14 +35,16 @@ struct Reader
 
 impl Reader
 {
-    // Opens a PDF file through a read-only mapping and indexes its pages.
+    // Copies a PDF file to temporary storage, maps the copy, and indexes its pages.
     //
+    // The source is released before returning, so it can be overwritten or replaced while pages
+    // remain readable. Temporary disk storage lasts until the reader is released.
     // Page streams and resources are decoded only by [[Gui.Pdf.Reader.loadPage]]. Encryption and
     // embedded executable content are not supported; embedded actions are ignored rather than
     // executed.
     func open(fileName: string)->Reader fail
     {
-        var file = #move try File.MappedFile.open(fileName)
+        var file = #move try File.MappedFile.openSnapshot(fileName)
         var result: retval
         result.sourceFileName = fileName
         result.region         = #move try file.mapAll()

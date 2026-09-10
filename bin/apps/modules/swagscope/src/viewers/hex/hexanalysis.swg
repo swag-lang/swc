@@ -160,7 +160,7 @@ func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32?
         return result
     }
 
-    var stream = catch File.openRead(fileName) as openError
+    var stream = catch File.openReadLive(fileName) as openError
     if openError != null
     {
         result.failureReason = Errors.message(openError)

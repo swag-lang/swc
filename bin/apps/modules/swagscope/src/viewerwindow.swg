@@ -142,7 +142,7 @@ struct ViewerInfoLayout
 {
     using wnd: Wnd
 
-        late
+    late
     {
         filesButton:  *IconButton
         fileGroup:    *StackLayoutCtrl
@@ -245,7 +245,7 @@ struct ViewerErrorView
 {
     using wnd: Wnd
 
-        late
+    late
     {
         summaryLabel: *Label
         reasonLabel:  *Label
@@ -559,7 +559,7 @@ impl ViewerChoiceLoad
             if pathError != null do
                 absolute = operation.fileName
             operation.result.absoluteFileName = #move absolute
-            operation.result.exists           = File.exists(operation.result.absoluteFileName.toString())
+            operation.result.exists = File.exists(operation.result.absoluteFileName.toString())
             if operation.result.exists
             {
                 operation.result.choices = operation.index!.choices(operation.result.absoluteFileName.toString())
@@ -612,7 +612,7 @@ struct ViewerWindow
 {
     using wnd: Wnd
 
-        late
+    late
     {
         commandBar:          *ViewerActionBar
         kindButton:          *IconButton
@@ -1298,17 +1298,19 @@ impl ViewerWindow
         result.language         = Gui.ReferenceLanguage
         result.index.attachTo(result.app())
 
-        result.appearanceButton                 = AppearanceButton.create(result.surface!, "scope.appearance")
+        result.appearanceButton = AppearanceButton.create(result.surface!, "scope.appearance")
         result.appearanceButton.sigThemeChanged += func|window = result|(button)
         {
             window.themeIndex = cast(u32) button.appearanceTheme
             catch window.saveState()
         }
+
         result.appearanceButton.sigLanguageChanged += func|window = result|(button)
         {
             window.language = button.language
             catch window.saveState()
         }
+
         result.appearanceButton.sigAboutRequested += func|window = result|(button)
         {
             discard button
@@ -1371,7 +1373,7 @@ impl ViewerWindow
         with result.searchOptionsButton = IconButton.create(result.searchGroup, result.theme().icon(.Options, themeActionIconSize(result.themeMetrics())), {0, 0, dropDownWidth, actionSize}, flags: .CenterContent)
         {
             .layoutSpec.alignY = .Center
-            .toolTip           = appStrings().ui_SearchOptions
+            .toolTip = appStrings().ui_SearchOptions
             .setArrowPosition(.RightDownward)
             .sigPressed += func|window = result|(button)
             {
@@ -1390,16 +1392,19 @@ impl ViewerWindow
                 discard edit
                 window.restartSearch()
             }
+
             .sigSubmitted += func|window = result|(edit)
             {
                 discard edit
                 window.findNext()
             }
+
             .sigCancelled += func|window = result|(edit)
             {
                 discard edit
                 window.hideSearch()
             }
+
             .enable(false)
         }
 
@@ -1418,6 +1423,7 @@ impl ViewerWindow
                 discard button
                 window.findPrevious()
             }
+
             .enable(false)
         }
 
@@ -1430,6 +1436,7 @@ impl ViewerWindow
                 discard button
                 window.findNext()
             }
+
             .enable(false)
         }
 
@@ -1604,6 +1611,7 @@ impl ViewerWindow
             {
                 window.openListSelection(list, window.recent.toSlice())
             }
+
             .sigRightClicked += func|window = result|(list, position)
             {
                 window.showFileMenu(list, window.recent.toSlice(), list.listView.localToSurface(position))
@@ -1670,6 +1678,7 @@ impl ViewerWindow
             {
                 window.openListSelection(list, window.siblings.toSlice())
             }
+
             .sigRightClicked += func|window = result|(list, position)
             {
                 window.showFileMenu(list, window.siblings.toSlice(), list.listView.localToSurface(position))
@@ -1736,8 +1745,8 @@ impl ViewerWindow
             discard wnd
             switch evt
             {
-            case KeyEvent as key where window.routePlaybackKey(key):                    return true
-            case KeyEvent as key where window.routeSearchNavigationKey(key):            return true
+            case KeyEvent as key where window.routePlaybackKey(key):         return true
+            case KeyEvent as key where window.routeSearchNavigationKey(key): return true
             case MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter: window.updateFullScreenChrome(mouse.surfacePos)
             }
 
@@ -2045,9 +2054,9 @@ impl ViewerWindow
     mtd chooseFile()
     {
         var options: FileDlgOptions
-        options.state             = &.fileDlgState
-        options.mode              = .SelectFile
-        options.title             = appStrings().dlg_TitleOpen
+        options.state = &.fileDlgState
+        options.mode  = .SelectFile
+        options.title = appStrings().dlg_TitleOpen
         options.confirmButtonText = appStrings().dlg_ButtonOpen
         options.filters.add({appStrings().dlg_AllFiles, ""})
 
@@ -2420,7 +2429,7 @@ impl ViewerWindow
         else
         {
             .loadingWantedSince = 0
-            lingering           = .loadingShownSince != 0 and .currentView != null and now - .loadingShownSince < ViewerLoadingMinVisibleMicroseconds
+            lingering = .loadingShownSince != 0 and .currentView != null and now - .loadingShownSince < ViewerLoadingMinVisibleMicroseconds
             if lingering do
                 .loadingOverlay.cover(.currentView!.position)
             else do
@@ -3093,7 +3102,7 @@ impl ViewerWindow
             return false
         if .activeChoiceIndex >= .choices.count do
             return false
-        let key            = .choices[.activeChoiceIndex].key.toString()
+        let key = .choices[.activeChoiceIndex].key.toString()
         let playbackViewer = key == "video" or key == "sound" or key == "image"
         if !playbackViewer do
             return false
@@ -3186,7 +3195,7 @@ impl ViewerWindow
 
     mtd beginSearch()
     {
-        .searchStream = catch File.open(.currentFile.toString(), .Open, .Read, .ReadWrite | .Delete) as openError
+        .searchStream = catch File.openReadLive(.currentFile.toString()) as openError
         if openError != null
         {
             .finishSearch()
@@ -3863,8 +3872,8 @@ impl ViewerWindow
             return .Stop
         switch #complete .playMode
         {
-        case .Once:             return .Stop
-        case .Repeat:           return .Replay
+        case .Once:   return .Stop
+        case .Repeat: return .Replay
         case .Folder, .Shuffle: return .continueFile(.playMode) ? .Next : .Replay
         }
     }

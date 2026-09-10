@@ -5,7 +5,7 @@ using Core, Gui
 
 func writeReloadFile(fileName, text: string)
 {
-    var file = expect File.open(fileName, .Create, .Write, .ReadWrite | .Delete)
+    var file = expect File.openWrite(fileName)
     discard expect file.write(cast(const [..] u8) text)
 }
 
@@ -24,7 +24,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     defer g_MarkdownViewerSettings = previous
     g_MarkdownViewerSettings = {}
     var source: String
-    for 120 do
+    for 12_000 do
         source += "A paragraph of the manuscript remains at the same reading position.\n\n"
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("scope-reload-%.md", Guid64.random()).toString())
     writeReloadFile(fileName.toString(), source.toString())
@@ -82,6 +82,95 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     completeQueuedViewerFile(&host, window)
     host.fireTimer(window.fileWatchTimer)
     Swag.assert((cast(*ScrollWnd) window.currentView!.children[0]).scrollPosition().y == 0)
+}
+
+// Idle document streams permit exclusive saves before all their content has been consumed.
+#test
+{
+    for extension in [".txt", ".cpp", ".html"]
+    {
+        let fileName = Testing.tempFilePath("scope-live-", extension)
+        var source: String
+        for 2_000 do
+            source += extension == ".html" ? "<p>A paragraph in the document before the external edit.</p>\n" : "// A line in the document before the external edit.\n"
+        writeReloadFile(fileName, source)
+        defer discard catch File.delete(fileName)
+
+        var host: Testing.HeadlessHost
+        host.setup(960, 680)
+        defer host.shutdown()
+        let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+        window.openFile(fileName, remember: false)
+        completeViewerWindowClassification(&host, window)
+        Swag.drainWork()
+        if extension == ".txt" do
+            (cast(*TextView) window.currentView!).statisticsThread.wait()
+        let key = String.from(window.choices[window.activeChoiceIndex].key.toString())
+
+        // Truncate while the progressive viewer still exists, then let the watcher reload it.
+        source += extension == ".html" ? "<p>Replacement content.</p>\n" : "// Replacement content.\n"
+        writeReloadFile(fileName, source)
+        for 8 where window.pendingFile.isEmpty() do
+            pollFileWatch(&host, window)
+        Swag.assert(!window.pendingFile.isEmpty())
+        completeQueuedViewerFile(&host, window)
+        for 64 where window.readingState.restoring do
+            host.fireTimer(window.fileWatchTimer)
+        Swag.assert(window.choices[window.activeChoiceIndex].key == key)
+        Swag.assert(!window.readingState.restoring and window.currentView != null)
+        Swag.assert(window.fileWatch.current.size == source.length)
+
+        // Editors also save by renaming a new file over the original path.
+        let replacement = Testing.tempFilePath("scope-replacement-", extension)
+        writeReloadFile(replacement, "Short replacement.\n")
+        defer discard catch File.delete(replacement)
+        expect File.move(fileName, replacement)
+        for 8 where window.pendingFile.isEmpty() do
+            pollFileWatch(&host, window)
+        Swag.assert(!window.pendingFile.isEmpty())
+        completeQueuedViewerFile(&host, window)
+        Swag.assert(window.fileWatch.current.size == 19)
+    }
+}
+
+// A PDF snapshot allows exclusive truncation and keeps the page and zoom on automatic reload.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-reload-", ".pdf")
+    var document = Pdf.Document.create()
+    for 2
+    {
+        var page = Pdf.Page.create(320, 220)
+        document.addPage(#move page)
+    }
+
+    expect document.save(fileName)
+    defer discard catch File.delete(fileName)
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&host, window)
+    let view = (cast(*PdfViewer) window.currentView!).pdfView
+    view.setPageLayout(.Single)
+    view.setZoom(1.5)
+    view.showPage(1)
+    let zoomMode = view.zoomMode
+    var page     = Pdf.Page.create(320, 220)
+    document.addPage(#move page)
+    expect document.save(fileName)
+    Swag.assert(view.pageCount() == 2)
+    for 8 where window.pendingFile.isEmpty() do
+        pollFileWatch(&host, window)
+    Swag.assert(!window.pendingFile.isEmpty())
+    completeQueuedViewerFile(&host, window)
+    for 64 where window.readingState.restoring do
+        host.fireTimer(window.fileWatchTimer)
+    let replacement = (cast(*PdfViewer) window.currentView!).pdfView
+    Swag.assert(replacement.pageCount() == 3 and replacement.pageIndex == 1)
+    Swag.assert(replacement.zoom == 1.5 and replacement.zoomMode == zoomMode)
+    Swag.assert(replacement.pageLayout == .Single)
 }
 
 // Metadata changes include same-size writes and replacement by another file.

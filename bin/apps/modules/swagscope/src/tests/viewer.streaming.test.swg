@@ -59,6 +59,18 @@ using Core, Pixel, Gui
         Swag.assert(view.residentStart != previousStart)
         Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024 + 16 * 1024)
     }
+
+    // Thumb scrubbing coalesces before paint, but cannot wait for the streaming timer.
+    for ratio in [0.85'f32, 0.15'f32, 0.65'f32]
+    {
+        view.editor.setScrollPosition({0, view.virtualHeight * (1 - ratio)})
+        view.editor.setScrollPosition({0, view.virtualHeight * ratio})
+        discard host.render(view)
+        Swag.assert(!view.pendingSeek)
+        Swag.assert(view.editor.scrollPosition().y >= view.residentOffsetY - 1)
+        Swag.assert(view.editor.scrollPosition().y + viewport.height <= view.residentOffsetY + view.editor.loadedDocumentHeight() + 1)
+        Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024)
+    }
 }
 
 // The code viewer starts replacing a resident window while several screens remain on
@@ -114,5 +126,16 @@ using Core, Pixel, Gui
 
         Swag.assert(view.residentStart != previousStart)
         Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024 + 16 * 1024)
+    }
+
+    for ratio in [0.85'f32, 0.15'f32, 0.65'f32]
+    {
+        view.editor.setScrollPosition({0, view.virtualHeight * (1 - ratio)})
+        view.editor.setScrollPosition({0, view.virtualHeight * ratio})
+        discard host.render(view)
+        Swag.assert(!view.pendingSeek)
+        Swag.assert(view.editor.scrollPosition().y >= view.residentOffsetY - 1)
+        Swag.assert(view.editor.scrollPosition().y + viewport.height <= view.residentOffsetY + view.editor.loadedDocumentHeight() + 1)
+        Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024)
     }
 }

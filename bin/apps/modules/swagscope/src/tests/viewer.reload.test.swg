@@ -189,12 +189,13 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
-    let view     = cast(*Markdown.View) window.currentView!
-    let revealed = view.revealFileOffset(source.length * 3 / 4, "")
-    Swag.assert(revealed)
+    let view = cast(*Markdown.View) window.currentView!
+    let originalScroll = cast(*ScrollWnd) view.children[0]
+    originalScroll.setScrollPos(0, originalScroll.scrollableClientRect().height * 0.75)
+    discard host.render(view)
     for 128 where view.isLoading() do
         host.fireTimers()
-    Swag.assert((cast(*ScrollWnd) view.children[0]).scrollPosition().y > 10_000)
+    Swag.assert(originalScroll.scrollPosition().y > 10_000)
 
     source.clear()
     for index in 400 do

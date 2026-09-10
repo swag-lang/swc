@@ -15,6 +15,10 @@ private const StreamLookAhead   = 6.0
 private const StreamFrameBudget = 3_000'u64
 private const StreamBlockBudget = 8'u32
 
+// A jump gets one bounded frame to prepare its visible blocks; reserves keep the smaller budget.
+private const SeekFrameBudget = 12_000'u64
+private const SeekBlockBudget = 64'u32
+
 // Controls the reading measure and typography of a [[Gui.Markdown.View]].
 //
 // Colors and font faces resolve from the window's active [[Gui.Theme]], including local
@@ -125,6 +129,8 @@ struct View
     pendingSeek:                  bool
     pendingSeekOffset:            u64
     pendingSeekPreservesPosition: bool
+    seekPreviousPosition:         Math.Point
+    prioritizeViewport:           bool
     retainedBlocks:               Array'VisualBlock
     retainedOrigin:               f32
     retainedHeight:               f32
@@ -294,7 +300,11 @@ private impl View
         let viewport        = .scroll.paddedClientRect()
         var loadedHeight    = .contentHeight + .documentStyle.bottomInset
         var estimatedHeight = loadedHeight
-        let consumed        = .bytesRead - .residentStart
+
+        // Estimate from blocks that actually have geometry. Bytes read ahead of those blocks
+        // otherwise make the scrollbar start much too short and grow during every seek.
+        let renderedEnd = .pendingIndex < .pendingBlocks.count ? .pendingBlocks[.pendingIndex].sourceOffset : .bytesRead - Math.min(.bytesRead, .sourceCarry.length)
+        let consumed    = renderedEnd > .residentStart ? renderedEnd - .residentStart : 0
         if consumed and (.bytesRead < .fileSize or .residentStart)
         {
             let residentHeight = Math.max(loadedHeight - .virtualOrigin, 1)
@@ -688,8 +698,10 @@ private impl View
 
         var stopwatch: Time.Stopwatch
         stopwatch.start()
-        var blockCount = 0'u32
-        while .needsMore() and blockCount < StreamBlockBudget
+        let blockBudget = .prioritizeViewport ? SeekBlockBudget : StreamBlockBudget
+        let frameBudget = .prioritizeViewport ? SeekFrameBudget : StreamFrameBudget
+        var blockCount  = 0'u32
+        while .needsMore() and blockCount < blockBudget
         {
             if !.preparePending() do
                 break
@@ -715,7 +727,9 @@ private impl View
 
             .pendingIndex += 1
             blockCount    += 1
-            if !.app().deterministicStreaming and stopwatch.elapsedMicroseconds() >= StreamFrameBudget do
+            if .prioritizeViewport and !.jumpToEnd and .contentHeight >= .pendingTarget + .scroll.paddedClientRect().height do
+                break
+            if !.app().deterministicStreaming and stopwatch.elapsedMicroseconds() >= frameBudget do
                 break
         }
 
@@ -738,11 +752,13 @@ private impl View
         let anchorReady = .replacementAnchorOffset == Swag.U64.Max or .replacementAnchored
         if .replacementAnchored do
             .pendingTarget = .scroll.scrollPosition().y
-        if anchorReady and .hasPendingTarget and .pendingSearch.isEmpty() and (.pendingTarget + .scroll.paddedClientRect().height * 2 <= .contentHeight or !.hasUnloadedSource())
+        let targetHeight = .scroll.paddedClientRect().height * (.prioritizeViewport ? 1 : 2)
+        if anchorReady and .hasPendingTarget and .pendingSearch.isEmpty() and (.pendingTarget + targetHeight <= .contentHeight or !.hasUnloadedSource())
         {
             let keepPosition = .replacementAnchored
             .hasPendingTarget    = false
             .pendingTargetOffset = Swag.U64.Max
+            .prioritizeViewport  = false
 
             // Publish the new extent before applying a destination beyond the old scrollbar.
             .publishReplacement()
@@ -773,6 +789,7 @@ private impl View
         if .jumpToEnd
         {
             .jumpToEnd = false
+            .prioritizeViewport = false
             .publishReplacement()
             let position = .scroll.scrollPosition()
             .repositioning = true
@@ -832,6 +849,7 @@ private impl View
 
     mtd stopLoading()
     {
+        .prioritizeViewport = false
         .imageTask.wait()
         .pendingImages.clear()
         .pendingImageSources.clear()
@@ -1057,7 +1075,7 @@ impl View
         result.scroll.sigScrollPositionChanged += func|view = result|(scroll, oldPosition, newPosition)
         {
             discard scroll
-            if view.jumpToEnd or view.repositioning do
+            if (view.jumpToEnd and !view.prioritizeViewport) or view.repositioning do
                 return
 
             // Keep an in-flight overlap alive while the wheel moves inside its visible window.
@@ -1080,11 +1098,13 @@ impl View
             // A direct scrollbar gesture supersedes a target that is still being materialized.
             // Keeping the old target here lets its next timer pull the reader back after a
             // reversal, which makes resident windows appear to oscillate.
-            let supersededTarget = view.hasPendingTarget and view.pendingSearch.isEmpty()
+            let supersededTarget = (view.hasPendingTarget or (view.jumpToEnd and view.prioritizeViewport)) and view.pendingSearch.isEmpty()
             if supersededTarget
             {
                 view.hasPendingTarget    = false
                 view.pendingTargetOffset = Swag.U64.Max
+                view.prioritizeViewport  = false
+                view.jumpToEnd           = false
             }
 
             let beforeResident           = newPosition.y < view.virtualOrigin
@@ -1093,10 +1113,12 @@ impl View
             let outside                  = !continuous and (beforeResident or newPosition.y + viewport.height > view.contentHeight)
             if view.virtualHeight > 0 and (supersededTarget or !view.blocks.isEmpty()) and view.pendingSearch.isEmpty() and (approachingResidentStart or approachingResidentEnd or outside)
             {
-                let ratio = Math.clamp(newPosition.y / view.virtualHeight, 0, 1)
+                let ratio = Math.clamp(newPosition.y / view.scroll.scrollableClientRect().height, 0, 1)
+                if !view.pendingSeek and view.retainedBlocks.isEmpty() do
+                    view.seekPreviousPosition = oldPosition
                 view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
                 view.pendingSeek       = true
-                view.pendingSeekPreservesPosition = continuous and (approachingResidentStart or approachingResidentEnd)
+                view.pendingSeekPreservesPosition = (continuous or !outside) and (approachingResidentStart or approachingResidentEnd)
                 if view.pendingSeekPreservesPosition
                 {
                     for block in view.blocks where block.wnd.position.bottom() > view.scroll.scrollPosition().y
@@ -1465,9 +1487,14 @@ impl View
         return .beginReveal(offset, text)
     }
 
-    private mtd beginReveal(offset: u64, text: string, preservePosition = false)->bool
+    private mtd beginReveal(offset: u64, text: string, preservePosition = false, viewportFirst = false)->bool
     {
+        let requestedPosition = .scroll.scrollPosition()
+        let wasRepositioning  = .repositioning
+        .repositioning = true
+        defer .repositioning = wasRepositioning
         .stopLoading()
+        .prioritizeViewport = viewportFirst
 
         // Only an overlapping prefetch belongs to the held gesture. A search or explicit
         // jump owns a new destination and must not resume the wheel's older request.
@@ -1517,8 +1544,12 @@ impl View
         .pendingSearch           = text
         .pendingSearchOccurrence = 0
 
-        let requested = Math.min(offset, .fileSize)
-        let start     = requested > RevealContextSize ? requested - RevealContextSize : 0
+        let requested     = Math.min(offset, .fileSize)
+        let start         = requested > RevealContextSize ? requested - RevealContextSize : 0
+        let viewportBytes = cast(u64) Math.ceil(.scroll.paddedClientRect().height * cast(f32) .fileSize / Math.max(.virtualHeight, 1))
+        let revealTail    = viewportFirst and .fileSize - requested <= viewportBytes * 2
+        if revealTail do
+            .jumpToEnd = true
         for adjustment in 4
         {
             .stream = catch File.openReadLive(.fileName.toString()) as openError
@@ -1535,11 +1566,18 @@ impl View
 
             let localTarget = requested > actual ? Math.min(requested - actual, chunk.length) : 0
 
-            // Start on a complete block near the beginning of the context window, not on the
-            // last block before the target. Keeping that leading source resident is what lets a
-            // reader move upward without immediately leaving every materialized block behind.
+            // A direct jump starts at its block. Overlapping prefetch retains leading context
+            // so reverse scrolling can continue through the previous resident boundary.
             var boundary: u64
-            if actual
+            if viewportFirst
+            {
+                // Locate a complete block without laying out its offscreen predecessors.
+                // At EOF retain enough preceding source to fill the final viewport as well.
+                let tailContext = revealTail ? Math.max(viewportBytes * 2, 1024'u64) : 0
+                let probeEnd    = localTarget > tailContext ? localTarget - tailContext : 0
+                boundary = streamBoundary(chunk.toString()[0 until probeEnd])
+            }
+            elif actual
             {
                 let probeEnd = localTarget > ReverseContextSize ? localTarget - ReverseContextSize : Math.min(localTarget, StreamChunkSize)
                 boundary = streamBoundary(chunk.toString()[0 until probeEnd])
@@ -1553,7 +1591,7 @@ impl View
             .sourceCarry   = String.from(chunk.toString()[boundary to])
             let targetInResident = requested - .residentStart
             var searchFrom: u64
-            while true
+            while text.count > 0
             {
                 let match = Utf8.indexOf(.sourceCarry.toString(), text, searchFrom, .Latin1NoCase)
                 if match == Swag.U64.Max or match >= targetInResident do
@@ -1569,8 +1607,16 @@ impl View
             .pendingTarget       = .fileSize ? .virtualHeight * cast(f32) requested / cast(f32) .fileSize : 0
             .hasPendingTarget    = !.jumpToEnd
             .pendingTargetOffset = .hasPendingTarget and !preservePosition ? requested : Swag.U64.Max
-            .repositioning       = true
-            defer .repositioning = false
+            if viewportFirst
+            {
+                // The thumb already chose a document coordinate. Anchor the requested block
+                // there instead of chasing a changing byte/height estimate during preparation.
+                .pendingTarget       = requestedPosition.y
+                .pendingTargetOffset = Swag.U64.Max
+                .virtualOrigin       = .pendingTarget
+                .contentHeight       = .virtualOrigin + .documentStyle.topInset
+            }
+
             .layoutDocument()
 
             // A text reveal has an exact rendered destination. Keep the current position until
@@ -1591,6 +1637,7 @@ impl View
         .pendingSearchOccurrence = 0
         .hasPendingTarget        = false
         .pendingTargetOffset     = Swag.U64.Max
+        .prioritizeViewport      = false
         .pendingSeek             = false
         .pendingSeekOffset       = 0
         .searchBlockIndex        = Swag.U64.Max
@@ -1721,6 +1768,30 @@ internal impl View
 
 internal impl IWnd for View
 {
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        discard evt
+        if .pendingSeek and !.pendingSeekPreservesPosition
+        {
+            let offset = .pendingSeekOffset
+            discard .beginReveal(offset, "", viewportFirst: true)
+        }
+
+        if !.prioritizeViewport do
+            return
+        .streamStep()
+        if (.hasPendingTarget or .jumpToEnd) and !.retainedBlocks.isEmpty()
+        {
+            // Slow image decoding may outlive this frame. Keep the previous reading surface
+            // intact until the complete destination can replace it.
+            .repositioning = true
+            .scroll.setScrollPos(.seekPreviousPosition.x, .seekPreviousPosition.y)
+            .repositioning = false
+        }
+
+        .scheduleMore()
+    }
+
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged
@@ -1798,7 +1869,9 @@ internal impl IWnd for View
             let offset = .pendingSeekOffset
             let preservePosition = .pendingSeekPreservesPosition
             .pendingSeek = false
-            discard .beginReveal(offset, "", preservePosition)
+            discard .beginReveal(offset, "", preservePosition, viewportFirst: !preservePosition)
+            if !preservePosition do
+                .streamStep()
             return
         }
 

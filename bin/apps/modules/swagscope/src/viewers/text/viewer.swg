@@ -534,6 +534,15 @@ impl TextView
 
 impl IWnd for TextView
 {
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        discard evt
+
+        // Coalesce thumb movement until paint, then provide the bytes before the editor draws.
+        if .pendingSeek do
+            discard .revealOffset(.pendingSeekOffset, "")
+    }
+
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         discard evt

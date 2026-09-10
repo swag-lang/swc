@@ -1503,21 +1503,26 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.assert(!view.pendingSeek)
 
     let high = view.virtualHeight * 0.8
+
+    // A tall viewport requires several bounded preparation turns even with viewport priority.
+    view.resize(720, 4_800)
+    view.applyLayout()
     view.scroll.setScrollPos(0, high)
     Swag.assert(view.pendingSeek and view.loadTimer != null)
+    let staleOffset = view.pendingSeekOffset
     host.fireTimer(view.loadTimer)
     Swag.assert(view.hasPendingTarget)
-    let staleOffset = view.pendingTargetOffset
 
     // Reverse before the high target has finished producing blocks. This is a real scrollbar
     // gesture, not a direct reveal call, and must replace the outstanding target immediately.
-    let low = view.virtualHeight * 0.2
+    let low = view.scroll.scrollableClientRect().height * 0.2
     view.scroll.setScrollPos(0, low)
     Swag.assert(view.pendingSeek)
     Swag.assert(view.pendingSeekOffset < staleOffset / 2)
     host.fireTimer(view.loadTimer)
     Swag.assert(view.hasPendingTarget)
-    Swag.assert(view.pendingTargetOffset < staleOffset / 2)
+    Swag.assert(view.residentStart < staleOffset / 2)
+    Swag.assert(Math.abs(view.pendingTarget - low) <= 1, Format.toString("pending=%, requested=%, position=%", view.pendingTarget, low, view.scroll.scrollPosition().y).toString())
 
     var steps = 0'u32
     while view.hasPendingTarget and steps < 1_024
@@ -1528,7 +1533,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     Swag.assert(!view.hasPendingTarget)
     Swag.assert(view.residentStart < staleOffset / 2)
-    Swag.assert(Math.abs(view.scroll.scrollPosition().y - view.virtualHeight * 0.2) <= view.scroll.paddedClientRect().height, Format.toString("position=%, virtualHeight=%, target=%, origin=%, contentHeight=%", view.scroll.scrollPosition().y, view.virtualHeight, view.pendingTarget, view.virtualOrigin, view.contentHeight).toString())
+    Swag.assert(Math.abs(view.scroll.scrollPosition().y - low) <= 1, Format.toString("position=%, target=%", view.scroll.scrollPosition().y, low).toString())
 }
 
 // Each manually fired streaming timer consumes the same block budget in a headless host.

@@ -10,6 +10,91 @@ surprising but specified rules, their comparative evidence, and their next decis
 Entries are ordered from the most recently updated down. An entry disappears when it
 ships; history lives in git, not here.
 
+### language.design.021 — The base a number is written in decides its signedness
+
+- Recorded: 2026-08-10 07:44
+- Updated: 2026-09-10 20:58 — removed an already completed reference clarification from the remaining policy work
+- Area: language
+- Found while: a second reading pass over the reference, checking what the type of a literal depends
+  on
+- Observation: a decimal literal is an unsized constant of *unknown* sign, and a hexadecimal or
+  binary one is an unsized constant of *unsigned* sign. Both adapt to an imposed type, so the
+  difference is invisible wherever the target is written down — and it becomes the constant's real
+  type the moment nobody writes one. `const Mask = 0xF0` is a `u32`, `const Mask = 240` is an `s32`,
+  and from there the difference travels into every expression the constant enters, where language.design.008's
+  "the unsigned type wins" rule applies it to the other operand. The reference documents the
+  defaulting ("hexadecimal or binary literals default to type `u32`"
+  ([003_002_number_literals.swg](../bin/reference/modules/language/src/003_002_number_literals.swg)))
+  alongside the signed decimal default. The remaining question is whether that deliberate
+  base-dependent default should change.
+- Evidence: `Sema.Literal.cpp` builds a decimal literal with `TypeInfo::Sign::Unknown`
+  ([Sema.Literal.cpp](../src/Compiler/Sema/Ast/Sema.Literal.cpp)) and a hex or binary one
+  with `Sign::Unsigned`
+  ([Sema.Literal.cpp](../src/Compiler/Sema/Ast/Sema.Literal.cpp),
+  [Sema.Literal.cpp](../src/Compiler/Sema/Ast/Sema.Literal.cpp)). A historical isolated probe,
+  `swc test -d <dir>`, prints two types for one value:
+
+  ```swag
+  const Mask    = 0xF0
+  const DecMask = 240
+  var value: s32 = 0x7F
+  Swag.print(#nameof(#typeof(value & Mask)))       // u32
+  Swag.print(#nameof(#typeof(value & DecMask)))    // s32
+  ```
+
+  A `let bound = 0xF0` behaves like the `const`. The boundary is worth stating exactly, because it
+  is what makes the rule hard to see: a *bare* literal still adapts, so `x | 0b0001` on an `s32`
+  compiles and yields `s32`. The signedness only survives once the literal has been named — a
+  `const`, or a `let` with no annotation — and from then on it is the constant's type, not a
+  literal's default. The reference's operators page writes `x = x | cast(s32) 0b0001`
+  ([003_006_operators.swg](../bin/reference/modules/language/src/003_006_operators.swg))
+  where the plain form compiles, which is some evidence that the boundary is not obvious even to the
+  page documenting the operators.
+- Elsewhere: Go integer literals remain untyped constants until context or defaulting supplies a type
+  ([Go constants](https://go.dev/ref/spec#Constants)). The spelling base does not choose an
+  unsigned default for a small hexadecimal value.
+- Next: decide whether the base should pin the sign, or only the width. The cheap experiment is
+  to build `swc` with the hex and binary paths using `Sign::Unknown` like the decimal one and run
+  the suites: what breaks is the set of places relying on a bare `0x...` being unsigned, and that
+  number is the argument either way. If the rule stays, language.design.008's proposed warning at a
+  mixed-signedness operator would expose the conversion. The number-literals page already
+  documents and tests the distinction between a named constant and a context-adapted bare literal.
+- Complete when: the unsigned-literal experiment is measured, base and signedness have one stable
+  rule, and literal, operator, and reference tests cover named and context-adapted constants.
+- Related: [language.design.008](#languagedesign008--mixing-a-signed-and-an-unsigned-operand-of-the-same-width-converts-the-signed-one)
+  is what turns the difference into arithmetic.
+
+### language.design.006 — Positional destructuring binds by position even when every name matches a field
+
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-10 20:58 — removed an already completed reference clarification from the remaining policy work
+- Area: language
+- Found while: a reading pass over the whole language reference
+- Observation: `let {a, b} = tuple` is positional, and the reference says so
+  ([004_003_tuple.swg](../bin/reference/modules/language/src/004_003_tuple.swg)).
+  The reference explicitly states that binding names do not select source fields and tests
+  a reordered `{y, x}` pattern. The named form (`{y: vertical}`) selects by field name. The
+  remaining policy question is whether a field-looking positional pattern that reorders those
+  names should also produce a warning; the documentation gap is already closed.
+- Evidence: with `let point = {x: 10, y: 20}`, `let {y, x} = point` gives `y == 10` and `x == 20`.
+  Confirmed under both the JIT and the forged binary. The same indifference to names governs
+  assignment: a `{width, height}` tuple takes a `{x, y}` tuple of the same field types, and
+  [004_003_tuple.swg](../bin/reference/modules/language/src/004_003_tuple.swg)
+  documents it — "tuples can be assigned to each other if their field types match, even if field
+  names differ", with `#typeof(x) != #typeof(y)` asserted on the same page.
+- Elsewhere: Rust distinguishes tuple patterns from named-field struct patterns, where a bare field name
+  abbreviates a binding to that same field
+  ([Rust patterns](https://doc.rust-lang.org/reference/patterns.html#destructuring)).
+- Next: decide whether a positional pattern whose every name matches a field of the source —
+  in a different order — should be a warning (`sema_warn_positional_pattern_shadows_field`) or an
+  error. A warning is enough: the shape is unambiguous to detect, and the fix is one colon per
+  binding. It also needs the warning-policy layer that now exists, so it is cheap.
+- Complete when: reordered field-looking positional patterns cannot silently bind the wrong fields,
+  and the reference and compiler tests show the positional and named spellings side by side.
+- Related: the same pattern syntax is what `let {r, g, b} = getWhite()` uses in
+  [007_008_retval.swg](../bin/reference/modules/language/src/007_008_retval.swg), where the
+  names read as field names and happen to be in order.
+
 ### language.design.027 — Loop index types follow different count, range, and collection rules
 
 - Recorded: 2026-08-10 07:53
@@ -146,38 +231,6 @@ ships; history lives in git, not here.
   narrows, rather than removes, the union bullet of compiler.safety.006: the untagged form stays for C
   interop and bit views, which is where the marker belongs. The error-handling design already shipped
   (`fail`/`try`/`catch`) chose a different axis and is not re-litigated here.
-
-### language.design.006 — Positional destructuring binds by position even when every name matches a field
-
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: language
-- Found while: a reading pass over the whole language reference
-- Observation: `let {a, b} = tuple` is positional, and the reference says so
-  ([004_003_tuple.swg](../bin/reference/modules/language/src/004_003_tuple.swg)).
-  What it does not say is that the names in the pattern are *ignored* rather than checked, so a
-  pattern whose names are exactly the source's own field names, written in the other order, binds
-  each one to the wrong field and compiles without a word. The named form (`{y: vertical}`) exists
-  and is the correct spelling, and the reference already has named-pattern examples. What is absent is a warning for a
-  field-looking positional pattern that reorders those names.
-- Evidence: with `let point = {x: 10, y: 20}`, `let {y, x} = point` gives `y == 10` and `x == 20`.
-  Confirmed under both the JIT and the forged binary. The same indifference to names governs
-  assignment: a `{width, height}` tuple takes a `{x, y}` tuple of the same field types, and
-  [004_003_tuple.swg](../bin/reference/modules/language/src/004_003_tuple.swg)
-  documents it — "tuples can be assigned to each other if their field types match, even if field
-  names differ", with `#typeof(x) != #typeof(y)` asserted on the same page.
-- Elsewhere: Rust distinguishes tuple patterns from named-field struct patterns, where a bare field name
-  abbreviates a binding to that same field
-  ([Rust patterns](https://doc.rust-lang.org/reference/patterns.html#destructuring)).
-- Next: decide whether a positional pattern whose every name matches a field of the source —
-  in a different order — should be a warning (`sema_warn_positional_pattern_shadows_field`) or an
-  error. A warning is enough: the shape is unambiguous to detect, and the fix is one colon per
-  binding. It also needs the warning-policy layer that now exists, so it is cheap.
-- Complete when: reordered field-looking positional patterns cannot silently bind the wrong fields,
-  and the reference and compiler tests show the positional and named spellings side by side.
-- Related: the same pattern syntax is what `let {r, g, b} = getWhite()` uses in
-  [007_008_retval.swg](../bin/reference/modules/language/src/007_008_retval.swg), where the
-  names read as field names and happen to be in order.
 
 ### language.design.007 — One default in a grouped declaration silently defaults every name in the group
 
@@ -498,60 +551,6 @@ ships; history lives in git, not here.
   deserves a declarative spelling, and the string escape hatch can stay for everything else.
 - Complete when: `#ast` usage is classified by generated declaration shape and recurring shapes
   have either a typed generation path or a recorded reason to remain source strings.
-
-### language.design.021 — The base a number is written in decides its signedness
-
-- Recorded: 2026-08-10 07:44
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: language
-- Found while: a second reading pass over the reference, checking what the type of a literal depends
-  on
-- Observation: a decimal literal is an unsized constant of *unknown* sign, and a hexadecimal or
-  binary one is an unsized constant of *unsigned* sign. Both adapt to an imposed type, so the
-  difference is invisible wherever the target is written down — and it becomes the constant's real
-  type the moment nobody writes one. `const Mask = 0xF0` is a `u32`, `const Mask = 240` is an `s32`,
-  and from there the difference travels into every expression the constant enters, where language.design.008's
-  "the unsigned type wins" rule applies it to the other operand. The reference documents the
-  defaulting ("hexadecimal or binary literals default to type `u32`"
-  ([003_002_number_literals.swg](../bin/reference/modules/language/src/003_002_number_literals.swg)))
-  alongside the signed decimal default. The remaining question is whether that deliberate
-  base-dependent default should change.
-- Evidence: `Sema.Literal.cpp` builds a decimal literal with `TypeInfo::Sign::Unknown`
-  ([Sema.Literal.cpp](../src/Compiler/Sema/Ast/Sema.Literal.cpp)) and a hex or binary one
-  with `Sign::Unsigned`
-  ([Sema.Literal.cpp](../src/Compiler/Sema/Ast/Sema.Literal.cpp),
-  [Sema.Literal.cpp](../src/Compiler/Sema/Ast/Sema.Literal.cpp)). A historical isolated probe,
-  `swc test -d <dir>`, prints two types for one value:
-
-  ```swag
-  const Mask    = 0xF0
-  const DecMask = 240
-  var value: s32 = 0x7F
-  Swag.print(#nameof(#typeof(value & Mask)))       // u32
-  Swag.print(#nameof(#typeof(value & DecMask)))    // s32
-  ```
-
-  A `let bound = 0xF0` behaves like the `const`. The boundary is worth stating exactly, because it
-  is what makes the rule hard to see: a *bare* literal still adapts, so `x | 0b0001` on an `s32`
-  compiles and yields `s32`. The signedness only survives once the literal has been named — a
-  `const`, or a `let` with no annotation — and from then on it is the constant's type, not a
-  literal's default. The reference's operators page writes `x = x | cast(s32) 0b0001`
-  ([003_006_operators.swg](../bin/reference/modules/language/src/003_006_operators.swg))
-  where the plain form compiles, which is some evidence that the boundary is not obvious even to the
-  page documenting the operators.
-- Elsewhere: Go integer literals remain untyped constants until context or defaulting supplies a type
-  ([Go constants](https://go.dev/ref/spec#Constants)). The spelling base does not choose an
-  unsigned default for a small hexadecimal value.
-- Next: decide whether the base should pin the sign, or only the width. The cheap experiment is
-  to build `swc` with the hex and binary paths using `Sign::Unknown` like the decimal one and run
-  the suites: what breaks is the set of places relying on a bare `0x...` being unsigned, and that
-  number is the argument either way. If the rule stays, language.design.008's proposed warning at a
-  mixed-signedness operator covers the damage, and the `#print`-visible surprise is worth one
-  sentence on the number-literals page.
-- Complete when: the unsigned-literal experiment is measured, base and signedness have one stable
-  rule, and literal, operator, and reference tests cover named and context-adapted constants.
-- Related: [language.design.008](#languagedesign008--mixing-a-signed-and-an-unsigned-operand-of-the-same-width-converts-the-signed-one)
-  is what turns the difference into arithmetic.
 
 ### language.design.023 — A blank `cast()` performs whatever conversion the target turns out to need
 

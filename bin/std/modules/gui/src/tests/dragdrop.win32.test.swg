@@ -862,3 +862,24 @@ impl IWnd for PlatformCatcher
         }
     }
 }
+
+// Native text codecs respect the transfer extent and the advertised ANSI code page.
+#test
+{
+    let unterminatedWide = [65'u8, 0, 66, 0]
+    let oddWide          = [65'u8, 0, 0]
+    let terminatedWide   = [65'u8, 0, 0, 0, 66, 0]
+    Swag.assert(NativeText.decodeUnicode(unterminatedWide).isEmpty())
+    Swag.assert(NativeText.decodeUnicode(oddWide).isEmpty())
+    Swag.assert(NativeText.decodeUnicode(terminatedWide) == "A")
+    let unterminatedAnsi = [65'u8, 66]
+    Swag.assert(NativeText.decodeAnsi(unterminatedAnsi).isEmpty())
+
+    // Windows-1252 is explicit here, so the assertion is independent of the host locale.
+    let ansi = NativeText.encodeAnsi("café", 1252)
+    Swag.assert(ansi.count == 5 and ansi[3] == 0xE9 and ansi[4] == 0)
+    Swag.assert(NativeText.decodeAnsi(ansi.toSlice(), 1252) == "café")
+    let empty = NativeText.encodeAnsi("")
+    Swag.assert(empty.count == 1 and empty[0] == 0)
+    Swag.assert(NativeText.decodeAnsi(empty.toSlice()).isEmpty())
+}

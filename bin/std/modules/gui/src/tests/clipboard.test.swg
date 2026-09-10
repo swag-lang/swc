@@ -45,3 +45,30 @@ using Swag, Core, Pixel
     Swag.assert(not Clipboard.hasImage())
     Swag.assert(not Clipboard.hasTypedValue(s32))
 }
+
+// A standalone text copy replaces rich payloads, while adding text preserves them.
+#test
+{
+    Swag.assert(Clipboard.isFake())
+    expect Clipboard.resetFake()
+    defer Clipboard.clear()
+
+    var img = Image.create(3, 2, .BGRA8)
+    img.clear()
+    Clipboard.addImage(img)
+    var value = 42's32
+    Clipboard.addTypedValue(&value, s32)
+    Clipboard.addString("old text")
+    Swag.assert(Clipboard.hasImage() and Clipboard.hasTypedValue(s32))
+
+    Clipboard.setString("C:\\données\\été.txt")
+    Swag.assert(Clipboard.hasString())
+    Swag.assert(Clipboard.getString() == "C:\\données\\été.txt")
+    Swag.assert(not Clipboard.hasImage() and not Clipboard.hasTypedValue(s32))
+
+    Clipboard.setString("été.txt")
+    Swag.assert(Clipboard.getString() == "été.txt")
+
+    Clipboard.setString("")
+    Swag.assert(Clipboard.hasString() and Clipboard.getString().isEmpty())
+}

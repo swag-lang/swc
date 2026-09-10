@@ -6,8 +6,8 @@ using Core, Pixel
 // The OS clipboard is a machine-global shared resource: another process can hold or
 // rewrite it at any time, which makes tests flaky and clobbers the user's own clipboard.
 // When enabled, every Clipboard function reads and writes this process-local store
-// instead, with the same replacement semantics as the OS paths (adding an image empties
-// the clipboard first; a string or a typed payload only replaces its own format).
+// instead, with the same replacement semantics as the OS paths (adding an image or setting
+// text empties the clipboard first; adding text or a typed payload only replaces its own format).
 
 struct FakeTypedData
 {

@@ -179,9 +179,11 @@ Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef 
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), {node->srcViewRef(), tokRef});
         sema.frame().pushNs(idRef);
 
-        constexpr SymbolFlags flags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
-        auto*                 ns    = Symbol::make<SymbolNamespace>(ctx, node, tokRef, idRef, flags);
-        Symbol*               res   = symMap->addSingleSymbol(ctx, ns);
+        SymbolFlags flags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
+        if (sema.frame().currentAccess() == SymbolAccess::Private)
+            flags.add(SymbolFlagsE::Private);
+        auto*   ns  = Symbol::make<SymbolNamespace>(ctx, node, tokRef, idRef, flags);
+        Symbol* res = symMap->addSingleSymbol(ctx, ns);
 
         if (!res->isNamespace())
         {

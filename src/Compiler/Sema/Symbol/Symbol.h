@@ -99,6 +99,7 @@ enum class SymbolFlagsE : uint16_t
     CodeGenCompleted    = 1 << 6,
     CodeGenJobScheduled = 1 << 7,
     ExcludedByCondition = 1 << 8,
+    Private             = 1 << 9,
 };
 
 using SymbolFlags             = AtomicEnumFlags<SymbolFlagsE>;
@@ -133,6 +134,7 @@ public:
     bool        hasFlag(SymbolFlagsE flag) const noexcept { return flags_.has(flag); }
     void        addFlag(SymbolFlagsE fl) { flags_.add(fl); }
     bool        isPublic() const noexcept { return flags_.has(SymbolFlagsE::Public); }
+    bool        isPrivate() const noexcept { return flags_.has(SymbolFlagsE::Private); }
 
     bool isTyped() const noexcept { return flags_.has(SymbolFlagsE::Typed); }
     void setTyped(TaskContext& ctx);

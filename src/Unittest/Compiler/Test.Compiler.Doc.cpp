@@ -300,6 +300,39 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocExamplesNestTableOfContentsLists)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocRuntimeExcludesPrivateDeclarations)
+{
+    const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "DocRuntimeExcludesPrivateDeclarations");
+    CommandLine    cmdLine;
+    cmdLine.command = CommandKind::Doc;
+    cmdLine.name    = "compiler_runtime_doc_test";
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, "func runtimeDocFixture() {}\n");
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    TaskContext          compilerCtx(compiler);
+    std::vector<DocItem> items;
+    DocApi::collectDocItems(compilerCtx, items, true);
+    bool hasTask = false;
+    for (const DocItem& item : items)
+    {
+        hasTask |= item.fullName == "Swag.Task";
+        for (const std::string_view name : {"ParallelProfile", "parallelProfile", "recordParallelCost", "runParallelChunk", "taskEntry", "runTaskBody", "groupChildEntry"})
+        {
+            if (item.fullName == std::format("Swag.{}", name))
+                return Result::Error;
+        }
+    }
+    return hasTask ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocGeneratesPublicApiAndHonorsNoDoc)
 {
     // The first declaration deliberately omits the blank comment line so this test
@@ -378,6 +411,19 @@ enum TestMode
     Fast = 41 // Prefer lower latency.
     Full // Prefer complete coverage.
 }
+
+// These names collide with lexical generic parameters, never their bindings.
+enum TestKey
+{
+    T
+    K
+}
+
+// Keeps both generic type names local to this signature.
+func(T, K) genericSignature(value: T, other: K)->T { return value }
+
+// An explicit enum reference still links to its real case.
+func selectedKey(value: TestKey = TestKey.T) {}
 
 #[Swag.Opaque]
 // An opaque public record.
@@ -586,6 +632,20 @@ func hidden(value: s32)->s32
     if (content.contains(">moduleValue<") || content.contains(">ownedValue<") || content.contains(">defaultValue<"))
         return Result::Error;
     if (!content.contains(">publicValue<") || !content.contains(">observedValue<"))
+        return Result::Error;
+
+    // Only selectedKey's explicit enum value links to T; generic bindings stay local.
+    static constexpr std::string_view KEY_LINK = "href=\"#Compiler_doc_test_DocApi_TestKey_T\">T</a>";
+    if (countOccurrences(content, KEY_LINK) != 1 ||
+        content.contains("href=\"#Compiler_doc_test_DocApi_TestKey_K\">K</a>"))
+        return Result::Error;
+    if (!content.contains("id=\"Compiler_doc_test_DocApi_TestKey_T\"") ||
+        !content.contains("id=\"Compiler_doc_test_DocApi_TestKey_K\""))
+        return Result::Error;
+    const size_t selectedKeyItem = content.find("id=\"Compiler_doc_test_DocApi_selectedKey\"");
+    const size_t selectedKeyEnd  = content.find("</section>", selectedKeyItem);
+    const size_t selectedKeyLink = content.find(KEY_LINK, selectedKeyItem);
+    if (selectedKeyItem == std::string::npos || selectedKeyEnd == std::string::npos || selectedKeyLink >= selectedKeyEnd)
         return Result::Error;
 
     // Generic roots publish their fields and methods even when no concrete instance exists.

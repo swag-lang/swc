@@ -245,6 +245,8 @@ SymbolFlags SemaFrame::flagsForCurrentAccess() const
     SymbolFlags flags = SymbolFlagsE::Zero;
     if (currentAccess() == SymbolAccess::Public)
         flags.add(SymbolFlagsE::Public);
+    else if (currentAccess() == SymbolAccess::Private)
+        flags.add(SymbolFlagsE::Private);
     return flags;
 }
 

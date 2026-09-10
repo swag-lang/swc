@@ -90,6 +90,20 @@ bool DocApi::hasNoDocAttribute(const Symbol& symbol)
 
 namespace
 {
+    const Symbol* documentationOwner(const Symbol& symbol);
+
+    bool hasPrivateDocumentationOwner(const Symbol& symbol)
+    {
+        for (const Symbol* scope = &symbol; scope;)
+        {
+            if (scope->isPrivate())
+                return true;
+            const Symbol* owner = documentationOwner(*scope);
+            scope               = owner ? owner : scope->ownerSymMap();
+        }
+        return false;
+    }
+
     bool hasPublicAggregateOwner(const Symbol& symbol)
     {
         const SymbolMap* owner = symbol.ownerSymMap();
@@ -113,7 +127,7 @@ namespace
         if (!file)
             return false;
         if (runtime)
-            return file->isRuntime();
+            return file->isRuntime() && !hasPrivateDocumentationOwner(symbol);
         if (!ModuleApi::isCurrentModuleSourceFile(*file))
             return false;
         return symbol.isPublic() && hasPublicAggregateOwner(symbol);
@@ -812,6 +826,45 @@ namespace
         }
         return {};
     }
+
+    void collectGenericNames(TaskContext& ctx, const Symbol& symbol, std::vector<Utf8>& names)
+    {
+        for (const Symbol* scope = &symbol; scope;)
+        {
+            const AstNode* declaration = scope->decl();
+            SpanRef        parameters;
+            if (declaration)
+            {
+                if (const auto* function = declaration->safeCast<AstFunctionDecl>())
+                    parameters = function->spanGenericParamsRef;
+                else if (const auto* structure = declaration->safeCast<AstStructDecl>())
+                    parameters = structure->spanGenericParamsRef;
+                else if (const auto* unionDecl = declaration->safeCast<AstUnionDecl>())
+                    parameters = unionDecl->spanGenericParamsRef;
+                else if (const auto* interfaceDecl = declaration->safeCast<AstInterfaceDecl>())
+                    parameters = interfaceDecl->spanGenericParamsRef;
+            }
+
+            if (parameters.isValid())
+            {
+                const SourceFile* file = ctx.compiler().sourceViewFile(*scope);
+                if (file && file->ast().hasSpan(parameters))
+                {
+                    SmallVector<AstNodeRef> parameterNodes;
+                    file->ast().appendNodes(parameterNodes, parameters);
+                    for (const AstNodeRef parameterRef : parameterNodes)
+                    {
+                        const AstNode&    parameter = file->ast().node(parameterRef);
+                        const SourceView& source    = ctx.compiler().srcView(parameter.srcViewRef());
+                        names.emplace_back(source.tokenString(parameter.tokRef()));
+                    }
+                }
+            }
+
+            const Symbol* owner = documentationOwner(*scope);
+            scope               = owner ? owner : scope->ownerSymMap();
+        }
+    }
 }
 
 void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, const bool runtime)
@@ -977,7 +1030,8 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
         candidate.overload.signature    = buildDisplaySignature(workerCtx, *file, declRef, rootRef);
         candidate.overload.commentLines = symbolCommentLines(workerCtx, *symbol, *file, declRef, rootRef);
         candidate.overload.sourceLine   = symbol->codeRange(workerCtx).line + 1;
-        candidate.valid                 = true;
+        collectGenericNames(workerCtx, *symbol, candidate.overload.genericNames);
+        candidate.valid = true;
     });
 
     std::unordered_map<Utf8, size_t>            itemIndices;

@@ -687,12 +687,14 @@ namespace
 
         for (size_t overloadIndex = 0; overloadIndex < item.overloads.size(); ++overloadIndex)
         {
-            const DocOverload& overload   = item.overloads[overloadIndex];
-            renderCtx.headingAnchorPrefix = std::format("{}_{}", DocMarkdown::makeAnchor(item.fullName), overloadIndex);
+            const DocOverload& overload     = item.overloads[overloadIndex];
+            DocRenderContext   overloadCtx  = renderCtx;
+            overloadCtx.genericNames        = overload.genericNames;
+            overloadCtx.headingAnchorPrefix = std::format("{}_{}", DocMarkdown::makeAnchor(item.fullName), overloadIndex);
             if (!overload.commentLines.empty())
-                content += DocMarkdown::renderLines(renderCtx, overload.commentLines);
+                content += DocMarkdown::renderLines(overloadCtx, overload.commentLines);
             if (!overload.signature.empty() && item.kind != DocItemKind::Namespace)
-                content += codeHtml(*renderCtx.ctx, renderCtx, overload.signature);
+                content += codeHtml(*overloadCtx.ctx, overloadCtx, overload.signature);
         }
         content += "</section>\n";
     }
@@ -756,8 +758,10 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
     {
         if (item.overloads.empty())
             continue;
-        const std::span<const Utf8> summary = summaryLines(item.overloads.front().commentLines);
-        summaryHtml.emplace(&item, DocMarkdown::renderLines(renderCtx, summary));
+        const std::span<const Utf8> summary    = summaryLines(item.overloads.front().commentLines);
+        DocRenderContext            summaryCtx = renderCtx;
+        summaryCtx.genericNames                = item.overloads.front().genericNames;
+        summaryHtml.emplace(&item, DocMarkdown::renderLines(summaryCtx, summary));
     }
 
     document.toc += "<h3>Start here</h3>\n<ul>\n<li><a href=\"#overview\">Overview</a></li>\n";
@@ -885,7 +889,10 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
         for (const DocItem* item : items)
         {
             renderDocItem(document.content, renderCtx, sourcePaths, *item, runtime);
-            renderMemberTable(document.content, renderCtx, *item);
+            DocRenderContext memberCtx = renderCtx;
+            if (!item->overloads.empty())
+                memberCtx.genericNames = item->overloads.front().genericNames;
+            renderMemberTable(document.content, memberCtx, *item);
             renderOwnedSymbolTables(document.content, summaryHtml, item->fullName, itemsByOwner);
         }
     };

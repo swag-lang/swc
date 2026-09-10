@@ -58,6 +58,7 @@ struct DocOverload
     const SourceFile* file   = nullptr;
     Utf8              signature;
     std::vector<Utf8> commentLines;
+    std::vector<Utf8> genericNames;
     uint32_t          sourceLine = 0;
 };
 
@@ -105,6 +106,7 @@ struct DocRenderContext
     const std::vector<std::pair<Utf8, Utf8>>* anonymousTypeNames = nullptr;
     Utf8                                      moduleName;
     Utf8                                      headingAnchorPrefix;
+    std::span<const Utf8>                     genericNames;
 };
 
 struct DocApiDocument

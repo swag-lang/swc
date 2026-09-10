@@ -55,6 +55,14 @@ namespace
 
     Utf8 resolveReference(const DocRenderContext& renderCtx, const std::string_view name)
     {
+        // A lexical generic binding wins over an equally named symbol in any module.
+        for (const Utf8& generic : renderCtx.genericNames)
+        {
+            if (name == generic.view() ||
+                (name.starts_with(generic.view()) && name.size() > generic.size() && name[generic.size()] == '.'))
+                return {};
+        }
+
         if (renderCtx.references)
         {
             const auto it = renderCtx.references->find(Utf8(name));

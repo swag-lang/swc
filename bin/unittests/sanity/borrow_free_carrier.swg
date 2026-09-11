@@ -98,7 +98,7 @@ func rejectStoreComposedParameter()
     storeComposed(&value)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-struct Owner { data: *s32? }
+struct Owner { data: [*] s32? }
 impl Owner
 {
     mtd opDrop()
@@ -108,7 +108,7 @@ impl Owner
     }
 
     #[Swag.NoInline]
-    mtd const view()->*s32 => .data!
+    mtd const view()->*s32 => cast(*s32) .data!
 
     #[Swag.NoInline]
     mtd const forwardedView()->*s32 => identity(.view())
@@ -161,8 +161,8 @@ func rejectEscapeComposedCarrier()->*Carrier
     storeInFreshCarrier(&stableValue, &value)
     Swag.assert(value == 31)
 
-    var owner = Owner{data: cast(*s32) allocate(#sizeof(s32))}
-    owner.data![] = 17
+    var owner = Owner{data: cast([*] s32) allocate(#sizeof(s32))}
+    owner.data![0] = 17
     let before = owner.forwardedView()[]
     owner.clearThroughView()
     Swag.assert(before == 17 and not owner.data)

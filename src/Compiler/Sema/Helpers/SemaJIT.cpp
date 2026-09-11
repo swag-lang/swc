@@ -484,6 +484,25 @@ namespace
             symFn.jitReadyVersion() == initTargetsVersion)
             return Result::Continue;
 
+        // A codegen job emits its function before reporting completion. Publish the
+        // release summaries before scheduling that job, while its sanity pass can
+        // still reject a stale read. Waiting only on sema permits recursive calls.
+        while (true)
+        {
+            SmallVector<SymbolFunction*> semaOrder;
+            buildJitOrderWithNativeRoots(sema, symFn, semaOrder);
+            for (const SymbolFunction* function : semaOrder)
+                SWC_RESULT(sema.waitSemaCompleted(function, function->codeRef()));
+
+            SmallVector<SymbolFunction*> completedOrder;
+            buildJitOrderWithNativeRoots(sema, symFn, completedOrder);
+            if (completedOrder.size() != semaOrder.size())
+                continue;
+
+            SemaEscape::propagateCompletedFreesSummaries(ctx, completedOrder.span());
+            break;
+        }
+
         sema.compiler().tryEnqueueCodeGenJob(sema, symFn, symFn.declNodeRef());
         SWC_RESULT(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
         if (ctx.state().jitEmissionError)

@@ -4550,17 +4550,6 @@ namespace SemaEscape
             }
         }
 
-        for (const auto& [fn, summary] : returns)
-        {
-            const auto name = fn->name(ctx);
-            if (name.find("JitSummary") != std::string_view::npos)
-                fprintf(stderr, "%s\n", std::format("summary {} complete={} borrow={} storage={} payload={} frees={} jit={}", name, summary.complete, summary.borrows, summary.storage, summary.payload, fn->freesParamsMask(), fn->jitEntryAddress() != nullptr).c_str());
-        }
-        for (const auto& edge : edges)
-        {
-            if (edge.caller && edge.caller->name(ctx) == "releaseGuardedForJitSummary")
-                fprintf(stderr, "%s\n", std::format("edge {} -> {} kind={} guards={} caller-done={} callee-done={}", edge.caller->name(ctx), edge.callee->name(ctx), static_cast<int>(edge.kind), edge.returnGuards.size(), edge.caller->isSemaCompleted(), edge.callee->isSemaCompleted()).c_str());
-        }
         changed = !edges.empty();
         while (changed)
         {

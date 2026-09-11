@@ -129,12 +129,15 @@ impl JitOwner
 
     #[Swag.NoInline]
     mtd const view()->*void => .data!
+
+    #[Swag.NoInline]
+    mtd const forwardedView()->*void => identityWrapperForJitSummary(.view())
 }
 
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
 func releaseOwnedForJitSummary(owner: *JitOwner)
 {
-    releaseForJitSummary(identityWrapperForJitSummary(owner.view()))
+    releaseForJitSummary(identityWrapperForJitSummary(owner.forwardedView()))
     owner.data = null
 }
 

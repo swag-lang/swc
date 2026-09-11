@@ -515,13 +515,15 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         addPreRaLoopPass(*memToRegPass_);
         addPreRaLoopPass(*constantFoldingPass_);
         addPreRaLoopPass(*copyEliminationPass_);
+        // Carry the products of a loop counter, and the pointers built from
+        // them, instead of recomputing them on every trip. Runs before the
+        // instruction combine: a sum of a base and an induction is a pointer
+        // to carry, and once the combine has folded it into an address mode
+        // there is nothing left to carry, only an index to keep live beside
+        // its base. Value numbering later shares the carriers of one stride.
+        addPreRaLoopPass(*inductionVariablePass_);
         addPreRaLoopPass(*instructionCombinePass_);
         addPreRaLoopPass(*strengthReductionPass_);
-        // Carry the products of a loop counter instead of multiplying on
-        // every trip. Runs after strength reduction, which has already turned
-        // a power-of-two stride into the shift this pass also recognizes, and
-        // before value numbering, which shares the accumulators of one stride.
-        addPreRaLoopPass(*inductionVariablePass_);
         // Deduplicate identical dominating computes. Runs after strength
         // reduction so the multiply-high expansions of `u / C` and `u % C`
         // exist to be shared, and before LICM so a loop body slimmed by

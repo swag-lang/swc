@@ -640,6 +640,171 @@ namespace InstructionCombine
         return true;
     }
 
+    // Fold a copy and the register add that follows it into one address:
+    //
+    //     sum = a; sum += b
+    //   ->
+    //     sum = &[a + b]
+    //
+    // The shape of every pointer plus a runtime offset, the strided row of a
+    // filter above all. The lea reads both inputs and writes neither, so the
+    // allocator keeps `a` where it was, and the access the sum feeds can take
+    // the whole address as its own operand. Runs after the scaled forms, which
+    // recognize the shift or multiply feeding `b` and keep the scale.
+    bool tryFoldCopyAddIntoAddress(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(ref))
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[2].opBits != MicroOpBits::B64 || ops[3].microOp != MicroOp::Add)
+            return false;
+
+        const MicroReg dst   = ops[0].reg;
+        const MicroReg other = ops[1].reg;
+        if (!dst.isVirtualInt() || !other.isVirtualInt() || dst == other)
+            return false;
+
+        // The value the add reads in its destination is a plain copy read
+        // nowhere else, of a register still holding that value here.
+        const auto copy = ctx.ssa->reachingDef(dst, ref);
+        if (!copy.valid() || copy.isPhi || !copy.inst || copy.inst->op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const MicroInstrOperand* copyOps = copy.inst->ops(*ctx.operands);
+        if (!copyOps || copyOps[0].reg != dst || copyOps[2].opBits != MicroOpBits::B64)
+            return false;
+        const MicroReg base = copyOps[1].reg;
+        if (!base.isVirtualInt() || base == dst)
+            return false;
+        if (!valueHasSingleUse(*ctx.ssa, dst, copy.instRef) || !sameValueAt(ctx, base, copy.instRef, ref))
+            return false;
+
+        // The sum is an address: its one reader is a memory access, or a lea,
+        // that takes it as base. A value sum stays an add, where the narrowing
+        // and folding rules of the value side find it.
+        uint32_t sumValueId = 0;
+        if (!ctx.ssa->defValue(dst, ref, sumValueId))
+            return false;
+        const MicroInstrRef useRef  = singleDirectInstructionUse(*ctx.ssa, sumValueId);
+        const MicroInstr*   useInst = useRef.isValid() ? ctx.storage->ptr(useRef) : nullptr;
+        if (!useInst)
+            return false;
+        const MicroInstrDef&     useInfo = MicroInstr::info(useInst->op);
+        const MicroInstrOperand* useOps  = useInst->ops(*ctx.operands);
+        if (!useOps || !useInfo.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) || useOps[useInfo.memBaseOperandIndex].reg != dst)
+            return false;
+
+        // An operand that is itself a copy is not settled: copy elimination
+        // forwards it next sweep, and a copy of a loop-carried value, which
+        // copy elimination leaves alone, is the sum the induction pass reads
+        // through to carry a pointer. Either way this rule is early.
+        for (const MicroReg operand : {other, base})
+        {
+            const auto def = ctx.ssa->reachingDef(operand, operand == base ? copy.instRef : ref);
+            if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const MicroInstrOperand* defOps = def.inst->ops(*ctx.operands);
+                if (defOps && defOps[1].reg.isVirtual())
+                    return false;
+            }
+        }
+
+        // An operand that is a small power-of-two product or shift of another
+        // value is a scaled index, on either side of the sum: the scaled
+        // forms above take it once strength reduction has made the multiply a
+        // shift, and a plain lea here would cost them the scale.
+        for (const MicroReg operand : {other, base})
+        {
+            MicroInstrRef              scaledCopyRef;
+            MicroSsaState::ReachingDef scaled;
+            const MicroInstrRef        atRef = operand == base ? copy.instRef : ref;
+            if (!resolveThroughCopy(ctx, operand, atRef, scaledCopyRef, scaled))
+                continue;
+            const MicroInstrOperand* scaledOps = scaled.inst->ops(*ctx.operands);
+            if (!scaledOps)
+                continue;
+
+            // The immediate form, or the register form the peephole has not
+            // yet folded the immediate into.
+            MicroOp  scaledOp = MicroOp::Add;
+            uint64_t imm      = 0;
+            bool     known    = false;
+            if (scaled.inst->op == MicroInstrOpcode::OpBinaryRegImm && scaledOps[1].opBits == MicroOpBits::B64 && !scaledOps[3].hasWideImmediateValue())
+            {
+                scaledOp = scaledOps[2].microOp;
+                imm      = scaledOps[3].valueU64;
+                known    = true;
+            }
+            else if (scaled.inst->op == MicroInstrOpcode::OpBinaryRegReg && scaledOps[2].opBits == MicroOpBits::B64)
+            {
+                // The constant may be the source operand, or the value the
+                // destination held before the operation, copied from a
+                // literal: `t = 2; t *= stride` is how `2 * stride` lowers.
+                const auto immediateOf = [&](const MicroReg reg, const MicroInstrRef atOp) -> const MicroInstrOperand* {
+                    auto def = ctx.ssa->reachingDef(reg, atOp);
+                    for (uint32_t depth = 0; depth < 2 && def.valid() && !def.isPhi && def.inst; ++depth)
+                    {
+                        if (def.inst->op == MicroInstrOpcode::LoadRegImm)
+                            return def.inst->ops(*ctx.operands);
+                        if (def.inst->op != MicroInstrOpcode::LoadRegReg)
+                            return nullptr;
+                        const MicroInstrOperand* copyOps = def.inst->ops(*ctx.operands);
+                        if (!copyOps)
+                            return nullptr;
+                        def = ctx.ssa->reachingDef(copyOps[1].reg, def.instRef);
+                    }
+                    return nullptr;
+                };
+                const MicroInstrOperand* amountOps = immediateOf(scaledOps[1].reg, scaled.instRef);
+                if (!amountOps)
+                    amountOps = immediateOf(scaledOps[0].reg, scaled.instRef);
+                if (amountOps && !amountOps[2].hasWideImmediateValue())
+                {
+                    scaledOp = scaledOps[3].microOp;
+                    imm      = amountOps[2].valueU64;
+                    known    = true;
+                }
+            }
+            if (!known)
+                continue;
+
+            // A power of two is a scale; three, five or nine times one is a
+            // lea and a scale, which the multiply-add rule splits.
+            const auto isScaledMultiplier = [](const uint64_t value) {
+                for (const uint64_t scale : {2ull, 4ull, 8ull})
+                {
+                    if (value == scale)
+                        return true;
+                    if (value % scale == 0 && (value / scale == 3 || value / scale == 5 || value / scale == 9))
+                        return true;
+                }
+                return false;
+            };
+            const bool multiply = scaledOp == MicroOp::MultiplySigned || scaledOp == MicroOp::MultiplyUnsigned;
+            if ((multiply && isScaledMultiplier(imm)) || (scaledOp == MicroOp::ShiftLeft && imm >= 1 && imm <= 3))
+                return false;
+        }
+
+        // The add wrote the flags; the lea does not.
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref))
+            return false;
+
+        if (!ctx.claimAll({ref, copy.instRef}))
+            return false;
+
+
+        MicroInstrOperand newOps[8] = {};
+        newOps[0].reg               = dst;
+        newOps[1].reg               = base;
+        newOps[2].reg               = other;
+        newOps[3].opBits            = MicroOpBits::B64;
+        newOps[4].opBits            = MicroOpBits::B64;
+        newOps[5].valueU64          = 1;
+        newOps[6].valueU64          = 0;
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{newOps, 8}, true);
+        ctx.emitErase(copy.instRef);
+        return true;
+    }
 }
 
 SWC_END_NAMESPACE();

@@ -57,6 +57,20 @@ namespace
         return bits == MicroOpBits::B32 || bits == MicroOpBits::B64;
     }
 
+    // A multiplier the x86 address arithmetic computes in a lea or a scale:
+    // the powers of two up to eight, three, five and nine, and their products.
+    bool isAddressMultiplier(const uint64_t value)
+    {
+        for (const uint64_t scale : {1ull, 2ull, 4ull, 8ull})
+        {
+            if (value == scale)
+                return true;
+            if (value % scale == 0 && (value / scale == 3 || value / scale == 5 || value / scale == 9))
+                return true;
+        }
+        return false;
+    }
+
     bool fitsSigned32(const int64_t value)
     {
         return value >= std::numeric_limits<int32_t>::min() && value <= std::numeric_limits<int32_t>::max();
@@ -490,8 +504,14 @@ namespace
                             continue;
                         if (isMultiplyOp(opOps[2].microOp))
                         {
+                            // A multiplier the address arithmetic absorbs (a
+                            // scale, or a lea and a scale) costs about what
+                            // the step would; it is carried only into a
+                            // pointer, like a shift.
                             candidate.otherImm = wrapToBits(opOps[3].valueU64, bits);
                             candidate.mulOp    = opOps[2].microOp;
+                            if (isAddressMultiplier(candidate.otherImm) && !feedsCarriedSum(ops[0].reg))
+                                continue;
                         }
                         else if (opOps[2].microOp == MicroOp::ShiftLeft && opOps[3].valueU64 < getNumBits(bits))
                         {

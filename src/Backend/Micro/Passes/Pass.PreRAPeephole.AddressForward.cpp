@@ -98,10 +98,21 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadRegMem:
+                case MicroInstrOpcode::LoadVecRegMem:
                     if (ops[1].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[1].reg      = baseReg;
+                        out.ops[3].valueU64 = ops[3].valueU64 + addrOff;
+                        return true;
+                    }
+                    return false;
+
+                case MicroInstrOpcode::StoreVecMemReg:
+                    if (ops[0].reg == addrReg)
+                    {
+                        copyOperands(out, consumer, ops);
+                        out.ops[0].reg      = baseReg;
                         out.ops[3].valueU64 = ops[3].valueU64 + addrOff;
                         return true;
                     }
@@ -292,6 +303,46 @@ namespace PreRaPeephole
                         out.ops[2].reg      = indexReg;
                         out.ops[3].opBits   = ops[2].opBits;
                         out.ops[4].opBits   = addrBits;
+                        out.ops[5].valueU64 = scale;
+                        out.ops[6].valueU64 = add + ops[3].valueU64;
+                        return true;
+                    }
+                    return false;
+
+                case MicroInstrOpcode::LoadVecRegMem:
+                    // The vector load takes the same indexed form as the
+                    // scalar one; the encoder writes the 128-bit move.
+                    if (ops[1].reg == addrReg)
+                    {
+                        if (!isEncodableAmcScale(scale))
+                            return false;
+                        out.newOp           = MicroInstrOpcode::LoadAmcRegMem;
+                        out.numOps          = 8;
+                        out.allocOps        = true;
+                        out.ops[0].reg      = ops[0].reg;
+                        out.ops[1].reg      = baseReg;
+                        out.ops[2].reg      = indexReg;
+                        out.ops[3].opBits   = ops[2].opBits;
+                        out.ops[4].opBits   = addrBits;
+                        out.ops[5].valueU64 = scale;
+                        out.ops[6].valueU64 = add + ops[3].valueU64;
+                        return true;
+                    }
+                    return false;
+
+                case MicroInstrOpcode::StoreVecMemReg:
+                    if (ops[0].reg == addrReg)
+                    {
+                        if (!isEncodableAmcScale(scale))
+                            return false;
+                        out.newOp           = MicroInstrOpcode::LoadAmcMemReg;
+                        out.numOps          = 8;
+                        out.allocOps        = true;
+                        out.ops[0].reg      = baseReg;
+                        out.ops[1].reg      = indexReg;
+                        out.ops[2].reg      = ops[1].reg;
+                        out.ops[3].opBits   = addrBits;
+                        out.ops[4].opBits   = ops[2].opBits;
                         out.ops[5].valueU64 = scale;
                         out.ops[6].valueU64 = add + ops[3].valueU64;
                         return true;

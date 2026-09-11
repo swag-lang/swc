@@ -136,7 +136,10 @@ namespace InstructionCombine
 
             if (!negated)
             {
-                if (!ctx.claimAll({ref}))
+                // Reading the copy's source claims the copy too: another rule
+                // of this sweep may otherwise retarget the instruction that
+                // feeds it and erase it, and the source would be gone.
+                if (copyRef.isValid() ? !ctx.claimAll({ref, copyRef}) : !ctx.claimAll({ref}))
                     return false;
 
                 const MicroReg source = copyRef.isValid() ? copySource : dst;

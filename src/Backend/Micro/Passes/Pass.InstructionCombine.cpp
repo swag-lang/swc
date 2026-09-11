@@ -40,6 +40,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFuseInPlaceUpdate);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldShiftAddIntoScaledAddress);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldMultiplyAddIntoScaledAddress);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldCopyAddIntoAddress);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldPureResultCopy);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldPureResultCopy);
         r.add(MicroInstrOpcode::OpBinaryRegRegReg, tryFoldPureResultCopy);

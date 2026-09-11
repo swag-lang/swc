@@ -35,7 +35,8 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-11 15:47 |
+| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-11 16:33 |
+| [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-11 16:29 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-11 06:07 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-10 21:00 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-10 21:00 |
@@ -52,7 +53,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers | 2026-09-10 19:06 |
 | [app.scope.hexa.md](app.scope.hexa.md) | The Swag Scope hexadecimal viewer | 2026-09-10 19:06 |
 | [app.scope.image.md](app.scope.image.md) | The Swag Scope image viewer | 2026-09-10 19:05 |
-| [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-10 18:44 |
 | [app.scope.font.md](app.scope.font.md) | The Swag Scope font viewer | 2026-09-10 18:30 |
 | [app.capture.md](app.capture.md) | The Swag Capture application | 2026-09-10 18:29 |
 | [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-09-10 17:54 |

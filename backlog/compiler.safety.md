@@ -43,28 +43,42 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
-### compiler.safety.023 — Opaque result provenance is incomplete for fields and early JIT
+### compiler.safety.023 — Opaque results lack pointer-field provenance
 
 - Recorded: 2026-09-08 20:48
-- Updated: 2026-09-11 15:47 — Narrow the remaining work to returned fields and pre-drain guarded releases.
+- Updated: 2026-09-11 16:33 — Narrow the remaining work to pointer fields in opaque results.
 - Area: compiler/sema, `SemaEscape`
 - Evidence: an opaque factory returning a heap carrier whose `target` field holds `&local`
   leaves `release(carrier.target)` undiagnosed. This was confirmed in a semantic-only helper
-  body with `swc.dm` 0.1.417 in `release`, without executing the invalid free. The early
-  `propagateCompletedFreesSummaries` pass also skips guarded edges while `#run` drives sema:
-  their return routes have not reached the module-wide fixpoint yet.
+  body with `swc.dm` 0.1.417 in `release`, without executing the invalid free.
 - Cause: the member-access walker deliberately drops a copied pointer field's enclosing
   borrow, because that field need not alias the container. A factory's return-borrow mask
-  cannot identify the field carrying each parameter. Early JIT emission needs completed
-  return routes before a guarded release can distinguish an alias from an owned payload.
+  cannot identify the field carrying each parameter.
 - Next: design returned-field provenance before extending pointer-field diagnostics. Cover
   a carrier with both a borrowed field and an independently allocated field, including through
-  generated module APIs. For `#run`, resolve guarded return routes within the completed call
-  graph before publishing frees; never read an unfinished callee's summary or execute an
-  invalid free merely to probe whether it is diagnosed.
-- Complete when: borrowed returned fields and early guarded releases are diagnosed without
-  rejecting releases of independent allocations or payloads, and the focused sanity, JIT and
-  workspace regressions pass with measured cost.
+  generated module APIs; never execute an invalid free merely to probe its diagnostic.
+- Complete when: borrowed returned fields are diagnosed without rejecting releases of
+  independently allocated fields, and the focused sanity and workspace regressions pass
+  with measured cost.
+
+### compiler.safety.004 — Diagnostic allocation does not intercept a stale heap read
+
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-09-11 16:29 — Correct guard placement and freed-payload checking evidence.
+- Area: runtime/allocator, `bin/runtime`
+- Evidence: lifecycle guards poison moved or dropped storage. The runtime allocator also supports
+  allocation tracking, freed-byte fill, a bounded diagnostic quarantine, double-free diagnostics
+  and electric allocations next to a guard page, with alignment slack for non-multiple sizes.
+  Electric mode retains freed addresses, but `freeHeaderBlock` leaves their payload readable
+  and writable. `checkFree` checks only header/footer magic; it does not verify the freed payload
+  pattern. `allocator_debug_modes.swg` explicitly reads the freed pattern.
+  Ordinary page allocations reuse storage and provide no stale-read instrumentation.
+- Next: evaluate a diagnostic mode that makes a freed payload inaccessible while retaining enough
+  metadata to diagnose release errors, or instrument reads. Measure its cost on an application
+  workload and specify how it composes with the existing electric/quarantine modes.
+- Complete when: a stale read through an alias is detected at the read in the selected diagnostic
+  mode, with its limits and measured cost documented; Release defaults remain unchanged.
+- Related: runtime.allocator.010.
 
 ### compiler.safety.020 — A release through storage a callee could re-establish is not judged
 
@@ -354,24 +368,6 @@ is the current scorecard.
 - Complete when: either a warning exists with its count on `bin/` recorded, or the reference states
   that a conditional release is outside what the proof covers and the corpus records the decision.
 - Related: compiler.safety.017.
-
-### compiler.safety.004 — Diagnostic allocation does not intercept a stale heap read
-
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: runtime/allocator, `bin/runtime`
-- Evidence: lifecycle guards poison moved or dropped storage. The runtime allocator also supports
-  allocation tracking, freed-byte fill, a bounded diagnostic quarantine, double-free diagnostics
-  and electric allocations ending at a guard page. Electric mode retains freed addresses, but
-  `freeHeaderBlock` leaves their payload readable; `checkFree` can find a changed fill pattern,
-  not a read that leaves it intact. `allocator_debug_modes.swg` explicitly reads the freed pattern.
-  Ordinary page allocations reuse storage and provide no stale-read instrumentation.
-- Next: evaluate a diagnostic mode that makes a freed payload inaccessible while retaining enough
-  metadata to diagnose release errors, or instrument reads. Measure its cost on an application
-  workload and specify how it composes with the existing electric/quarantine modes.
-- Complete when: a stale read through an alias is detected at the read in the selected diagnostic
-  mode, with its limits and measured cost documented; Release defaults remain unchanged.
-- Related: runtime.allocator.010.
 
 ### compiler.safety.008 — Dynamic bounds checking is switched off in release instead of being made cheap
 

@@ -47,7 +47,17 @@ func releaseForJitSummary(pointer: *void, size: u64 = 4)
 func identityForJitSummary(pointer: *void)->*void => pointer
 
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
-func identityWrapperForJitSummary(pointer: *void)->*void => identityForJitSummary(identityForJitSummary(pointer))
+func recursiveIdentityForJitSummary(pointer: *void, depth: u32)->*void
+{
+    if depth == 0 do return pointer
+    return recursiveForwardForJitSummary(pointer, depth - 1)
+}
+
+#[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
+func recursiveForwardForJitSummary(pointer: *void, depth: u32)->*void => recursiveIdentityForJitSummary(pointer, depth)
+
+#[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
+func identityWrapperForJitSummary(pointer: *void)->*void => recursiveIdentityForJitSummary(identityForJitSummary(pointer), 2)
 
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
 func releaseGuardedForJitSummary(pointer: *void)

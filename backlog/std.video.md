@@ -18,7 +18,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.001 — H.264 decoding costs several times what FFmpeg does per picture
 
 - Recorded: 2026-08-19 13:23
-- Updated: 2026-09-11 00:08 — Publish the per-block bookkeeping as row words and only export co-located motion from reference pictures
+- Updated: 2026-09-11 06:07 — Resolve the four neighbor macroblocks once per macroblock and answer every neighbor question from them
 - Intent: the decoder is byte-exact against FFmpeg on Baseline, Main, and High streams and decodes
   well above real time, but one picture still costs several times what FFmpeg spends on it. That
   margin is what a machine smaller than this one, or a stream larger than 4K, would need.
@@ -164,8 +164,21 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   macroblock index its callers already hold instead of recovering it with a division and a
   modulo per direct block. Eight paired rounds against the merged engine build, byte-exact:
   −4.7 percent on the median, −14.4 percent on the minimum.
+- **The neighbors are resolved once per macroblock (2026-09-11).** `Slice.neighbors` holds the
+  left, top, top-right and top-left macroblocks — availability to this slice, summary pointer,
+  macroblock index, luma and chroma grid bases — filled by `resolveNeighbors` before the skip flag
+  and before each skipped macroblock of a CAVLC run. `motionAt`, `refCtxFlag`, `blockNz`,
+  `blockNz8x8`, `chromaBlockNz`, `neighborIntraMode`, `dcFlagNeighbor`, the skip flag and every
+  macroblock-level context (type, chroma mode, transform flag, both coded block patterns) take
+  block coordinates relative to the macroblock and read them from there, so a question is a
+  sign test and a block offset instead of bounds, index, slice and class checks. A block to the
+  right of the macroblock is unavailable by construction, which is what the slice-identity reset
+  at every picture guaranteed before. `mbAvailable` and `mbInfoAt` stay for reconstruction, which
+  asks about arbitrary positions. Eight paired rounds on a quiet machine, byte-exact: −2.7 percent
+  on the median, −2.1 percent on the minimum; the quiet-machine floor is now about 84 million
+  cycles a picture against 94 at the start of the evening and FFmpeg's 36.
 - Next: the layer that publishes and reads per-block state is still the largest identifiable
-  item, about a fifth of the picture before this change: `motionAt` 4.4 percent, `bookkeepMb` 5.3, `predictMv` 1.7,
+  item, about a fifth of the picture before these two changes: `motionAt` 4.4 percent, `bookkeepMb` 5.3, `predictMv` 1.7,
   `deriveDirectSpatial` 1.5, `Frame.colMotion` 1.4 (an integer division and a modulo per call to
   recover coordinates every caller already holds), `assignMotion` 1.5, `assignSkipMotion` 1.1,
   `blockNz` 1.0, `mbAvailable` 0.9. FFmpeg's `fill_decode_caches` reads the left and top

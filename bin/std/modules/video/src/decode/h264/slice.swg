@@ -102,6 +102,7 @@ struct Slice
     mbY:         s32
     mbAddr:      u32
     sliceId:     u16
+    neighbors:   MbNeighbors     // The macroblocks around the one being parsed.
 }
 
 impl Slice

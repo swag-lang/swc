@@ -148,8 +148,68 @@ struct NeighborMotion
     mvdY:      s16
 }
 
+// One macroblock next to the one being parsed: whether this slice decoded it, its summary, and
+// where its blocks sit on the picture grids.
+struct MbNeighbor
+{
+    available:  bool
+    info:       *MbInfo?     // Null when unavailable.
+    mbIndex:    u64
+    blockBase:  u64     // Grid index of its top-left 4x4 block.
+    chromaBase: u64     // Chroma grid index of its top-left chroma block.
+}
+
+// The macroblocks around the one being parsed, resolved once per macroblock.
+//
+// Every question a macroblock asks of its surroundings — a motion vector, a nonzero count, an
+// intra mode, a context flag — used to re-derive this from absolute block coordinates: bounds,
+// macroblock index, slice membership, class. Some three hundred thousand questions a picture
+// concern the same four macroblocks, so they are answered from here with a block offset.
+struct MbNeighbors
+{
+    a, b, c, d: MbNeighbor     // Left, top, top-right, top-left.
+    blockBase:  u64            // Grid index of the current macroblock's top-left 4x4 block.
+}
+
 impl Slice
 {
+    // Resolves the macroblocks around the one at the current address, once per macroblock.
+    mtd resolveNeighbors()
+    {
+        let dec = .dec!
+        let sps = dec.sps!
+        let mbX = .mbX
+        let mbY = .mbY
+        .neighbors.blockBase = cast(u64) (mbY * 4 * (sps.mbWidth * 4) + mbX * 4)
+        .neighbors.a         = .resolveNeighbor(mbX - 1, mbY, mbX > 0)
+        .neighbors.b         = .resolveNeighbor(mbX, mbY - 1, mbY > 0)
+        .neighbors.c         = .resolveNeighbor(mbX + 1, mbY - 1, mbY > 0 and mbX + 1 < sps.mbWidth)
+        .neighbors.d         = .resolveNeighbor(mbX - 1, mbY - 1, mbX > 0 and mbY > 0)
+    }
+
+    // Resolves one neighbor macroblock, available when it lies in the picture and this slice
+    // decoded it.
+    mtd const resolveNeighbor(mbX, mbY: s32, inPicture: bool)->MbNeighbor
+    {
+        var result: retval
+        if not inPicture do
+            return result
+
+        let dec   = .dec!
+        let sps   = dec.sps!
+        let index = cast(u64) (mbY * sps.mbWidth + mbX)
+        let info  = &dec.mbInfo[index]
+        if info.sliceId != .sliceId do
+            return result
+
+        result.available  = true
+        result.info       = info
+        result.mbIndex    = index
+        result.blockBase  = cast(u64) (mbY * 4 * (sps.mbWidth * 4) + mbX * 4)
+        result.chromaBase = cast(u64) (mbY * 2 * (sps.mbWidth * 2) + mbX * 2)
+        return result
+    }
+
     // Reports whether the macroblock at `mbX`, `mbY` belongs to this slice's decoded region.
     mtd const mbAvailable(mbX, mbY: s32)->bool
     {
@@ -167,65 +227,64 @@ impl Slice
         return &dec.mbInfo[cast(u64) (mbY * dec.sps!.mbWidth + mbX)]
     }
 
-    // Fetches the motion of the 4x4 block at absolute grid position `x4`, `y4`.
+    // Fetches the motion of the 4x4 block at `rx`, `ry` relative to the macroblock's top-left
+    // block: `rx` runs from -1 to 4 and `ry` from -1 to 3, so the block lies in the macroblock
+    // itself or in one of its four resolved neighbors.
     //
     // A block of the current macroblock is available once its motion is final; a block of
-    // another macroblock once that macroblock belongs to the same slice.
-    //
-    // The neighbor is resolved once. Reached through two pointers and indexed from a geometry
-    // that lives behind a third, it is otherwise re-addressed at every question asked of it, and
-    // this is one of the roughly 295,000 neighbor queries a picture makes.
-    mtd const motionAt(mb: *Mb, list: u32, x4, y4: s32)->NeighborMotion
+    // another macroblock once that macroblock belongs to the same slice. To the right of the
+    // current macroblock nothing is decoded yet.
+    mtd const motionAt(mb: *Mb, list: u32, rx, ry: s32)->NeighborMotion
     {
         var result: retval
         let dec = .dec!
-        let sps = dec.sps!
-        let gw  = sps.mbWidth * 4
-        if x4 < 0 or y4 < 0 or x4 >= gw or y4 >= sps.mbHeight * 4 do
+        let gw  = dec.sps!.mbWidth * 4
+
+        var neighbor: const *MbNeighbor?
+        if ry < 0 do
+            neighbor = rx < 0 ? &.neighbors.d : (rx >= 4 ? &.neighbors.c : &.neighbors.b)
+        elif rx < 0 do
+            neighbor = &.neighbors.a
+        elif rx >= 4 do
             return result
 
-        let nMbX          = x4 >> 2
-        let nMbY          = y4 >> 2
-        let isCurrent     = nMbX == mb.mbX and nMbY == mb.mbY
-        let neighborIndex = cast(u64) (nMbY * sps.mbWidth + nMbX)
-        let neighbor      = &dec.mbInfo[neighborIndex]
-
-        if isCurrent
+        var index: u64
+        if neighbor == null
         {
             // A block of the current macroblock contributes as soon as its motion for this
             // list is assigned, which is how earlier partitions feed the entropy contexts
             // and the prediction of later ones.
-            let raster = cast(u32) ((y4 & 3) * 4 + (x4 & 3))
-            if (mb.motionMask[list] & (1'u32 << raster)) == 0 do
+            if (mb.motionMask[list] & (1'u32 << cast(u32) (ry * 4 + rx))) == 0 do
                 return result
+            index = .neighbors.blockBase + cast(u64) (ry * gw + rx)
         }
-        elif neighbor.sliceId != .sliceId
+        else
         {
-            return result
-        }
-        elif neighbor.class != MbClassInter
-        {
-            result.available = true
-            result.intra     = true
-            result.refIdx    = -1
-            return result
+            let other = neighbor
+            if not other.available do
+                return result
+            let info = other.info!
+            if info.class != MbClassInter
+            {
+                result.available = true
+                result.intra     = true
+                result.refIdx    = -1
+                return result
+            }
+
+            if .header.type == SliceTypeP and info.skipped
+            {
+                let job = &dec.parsedMbs[other.mbIndex].firstJob
+                result.available = true
+                result.refIdx    = job.refIdx[list]
+                result.mvX       = job.mv[list, 0]
+                result.mvY       = job.mv[list, 1]
+                return result
+            }
+
+            index = other.blockBase + cast(u64) ((ry & 3) * gw + (rx & 3))
         }
 
-        if not isCurrent and .header.type == SliceTypeP and neighbor.skipped
-        {
-            let job = &dec.parsedMbs[neighborIndex].firstJob
-            result.available = true
-            result.intra     = false
-            result.isDirect  = false
-            result.refIdx    = job.refIdx[list]
-            result.mvX       = job.mv[list, 0]
-            result.mvY       = job.mv[list, 1]
-            result.mvdX      = 0
-            result.mvdY      = 0
-            return result
-        }
-
-        let index = cast(u64) (y4 * gw + x4)
         result.available = true
         if list == 0
         {
@@ -247,16 +306,6 @@ impl Slice
         }
 
         result.isDirect = dec.directFlags[index] != 0
-        if isCurrent do
-            return result
-
-        // A block of a decoded neighbor may still be intra.
-        if neighbor.class != MbClassInter
-        {
-            result.intra  = true
-            result.refIdx = -1
-        }
-
         return result
     }
 
@@ -267,13 +316,11 @@ impl Slice
     // 2 bottom 16x8, 3 left 8x16, 4 right 8x16.
     mtd predictMv(mb: *Mb, list: u32, x4, y4, w4: s32, refIdx: s32, shapeHint: u32)->[2] s16
     {
-        let baseX = mb.mbX * 4 + x4
-        let baseY = mb.mbY * 4 + y4
-        let a     = .motionAt(mb, list, baseX - 1, baseY)
-        let b     = .motionAt(mb, list, baseX, baseY - 1)
-        var c     = .motionAt(mb, list, baseX + w4, baseY - 1)
+        let a = .motionAt(mb, list, x4 - 1, y4)
+        let b = .motionAt(mb, list, x4, y4 - 1)
+        var c = .motionAt(mb, list, x4 + w4, y4 - 1)
         if not c.available do
-            c = .motionAt(mb, list, baseX - 1, baseY - 1)
+            c = .motionAt(mb, list, x4 - 1, y4 - 1)
 
         // Directional shortcuts for the two-partition shapes.
         switch shapeHint
@@ -452,8 +499,8 @@ impl Slice
     // Derives the motion of a P-skip macroblock, section 8.4.1.1.
     mtd deriveSkipP(mb: *Mb)
     {
-        let a     = .motionAt(mb, 0, mb.mbX * 4 - 1, mb.mbY * 4)
-        let b     = .motionAt(mb, 0, mb.mbX * 4, mb.mbY * 4 - 1)
+        let a     = .motionAt(mb, 0, -1, 0)
+        let b     = .motionAt(mb, 0, 0, -1)
         var mv: [2] s16
         let zeroA = a.available and not a.intra and a.refIdx == 0 and a.mvX == 0 and a.mvY == 0
         let zeroB = b.available and not b.intra and b.refIdx == 0 and b.mvX == 0 and b.mvY == 0
@@ -505,11 +552,11 @@ impl Slice
         var refL1 = -1's32
         for list in 2'u32
         {
-            let a = .motionAt(mb, list, mb.mbX * 4 - 1, mb.mbY * 4)
-            let b = .motionAt(mb, list, mb.mbX * 4, mb.mbY * 4 - 1)
-            var c = .motionAt(mb, list, mb.mbX * 4 + 4, mb.mbY * 4 - 1)
+            let a = .motionAt(mb, list, -1, 0)
+            let b = .motionAt(mb, list, 0, -1)
+            var c = .motionAt(mb, list, 4, -1)
             if not c.available do
-                c = .motionAt(mb, list, mb.mbX * 4 - 1, mb.mbY * 4 - 1)
+                c = .motionAt(mb, list, -1, -1)
 
             var minimum = -1's32
             if a.available and not a.intra and a.refIdx >= 0 do
@@ -786,6 +833,7 @@ impl Slice
                 {
                     if .mbAddr >= mbCount do
                         fail InvalidFormatError{"H.264 skip run passes the end of the picture"}
+                    .resolveNeighbors()
                     .decodeSkipMb(&dec.parsedMbs[.mbAddr])
                     skipRun -= 1
                 }
@@ -796,6 +844,7 @@ impl Slice
                     fail InvalidFormatError{"H.264 slice data runs past the end of the picture"}
             }
 
+            .resolveNeighbors()
             let mb = &dec.parsedMbs[.mbAddr]
             if inter and .isCabac and .decodeSkipFlagCabac()
             {
@@ -1148,8 +1197,8 @@ impl Slice
         // The prediction is the smaller of the neighbor modes, section 8.3.1.1. A neighbor in
         // an available macroblock that is not Intra_4x4/8x8 contributes DC, but a missing
         // neighbor forces the whole prediction to DC: the -1 it reports wins the minimum.
-        let modeA     = .neighborIntraMode(mb, mb.mbX * 4 + bx - 1, mb.mbY * 4 + by)
-        let modeB     = .neighborIntraMode(mb, mb.mbX * 4 + bx, mb.mbY * 4 + by - 1)
+        let modeA     = .neighborIntraMode(mb, bx - 1, by)
+        let modeB     = .neighborIntraMode(mb, bx, by - 1)
         var predicted = Math.min(modeA, modeB)
         if predicted < 0 do
             predicted = cast(s32) IntraDc
@@ -1173,26 +1222,23 @@ impl Slice
         return mode
     }
 
-    // Returns the intra prediction mode of the block at absolute position: -1 when the
-    // neighbor is missing, DC when it exists without per-block modes.
-    mtd const neighborIntraMode(mb: *Mb, x4, y4: s32)->s32
+    // Returns the intra prediction mode of the block at `rx`, `ry` relative to the macroblock:
+    // -1 when the neighbor is missing, DC when it exists without per-block modes.
+    mtd const neighborIntraMode(mb: *Mb, rx, ry: s32)->s32
     {
+        if rx >= 0 and ry >= 0 do
+            return cast(s32) mb.intraModes[cast(u64) (ry * 4 + rx)]
+
+        let neighbor = rx < 0 ? &.neighbors.a : &.neighbors.b
+        if not neighbor.available do
+            return -1
         let dec = .dec!
-        let gw  = dec.sps!.mbWidth * 4
-        if x4 < 0 or y4 < 0 or x4 >= gw or y4 >= dec.sps!.mbHeight * 4 do
-            return -1
-        let nMbX = x4 >> 2
-        let nMbY = y4 >> 2
-        if nMbX == mb.mbX and nMbY == mb.mbY do
-            return cast(s32) mb.intraModes[cast(u64) ((y4 & 3) * 4 + (x4 & 3))]
-        if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].sliceId != .sliceId do
-            return -1
-        let neighborClass = dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].class
+        let neighborClass = neighbor.info!.class
         if neighborClass == MbClassInter and dec.pps!.constrainedIntra do
             return -1
         if neighborClass != MbClassIntra4x4 and neighborClass != MbClassIntra8x8 do
             return cast(s32) IntraDc
-        return cast(s32) dec.intraModes[cast(u64) (y4 * gw + x4)]
+        return cast(s32) dec.intraModes[neighbor.blockBase + cast(u64) ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3))]
     }
 
     // Reads the raw samples of an I_PCM macroblock.
@@ -2053,34 +2099,29 @@ impl Slice
             plane == 1 ? (mb.nzCb).buffer : (mb.nzCr).buffer}
     }
 
-    // Returns what the coded block flag of an 8x8 transform block reads from the neighbour at
-    // an absolute 4x4 position, section 9.3.3.1.1.9.
+    // Returns what the coded block flag of an 8x8 transform block reads from the neighbour block
+    // at `rx`, `ry` relative to the macroblock, section 9.3.3.1.1.9.
     //
     // An 8x8 block has a neighbouring block only where the neighbouring macroblock also takes
     // the 8x8 transform; one that takes the 4x4 transform holds no 8x8 block to answer with, and
     // contributes nothing rather than the flag of a 4x4 block. This rule is reachable only in
     // 4:4:4, where an 8x8 block codes a flag of its own at all.
-    mtd const blockNz8x8(mb: *Mb, plane: u32, x4, y4: s32)->s32
+    mtd const blockNz8x8(mb: *Mb, plane: u32, rx, ry: s32)->s32
     {
-        let value = .blockNz(mb, plane, x4, y4)
-        if value <= 0 do
+        let value = .blockNz(mb, plane, rx, ry)
+        if value <= 0 or (rx >= 0 and ry >= 0) do
             return value
 
-        let nMbX = x4 >> 2
-        let nMbY = y4 >> 2
-        if nMbX == mb.mbX and nMbY == mb.mbY do
-            return value
-
-        let dec = .dec!
-        return dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].transform8x8 ? value : 0
+        let neighbor = rx < 0 ? &.neighbors.a : &.neighbors.b
+        return neighbor.info!.transform8x8 ? value : 0
     }
 
     // Predicted nonzero count for the block of one colour plane at macroblock-relative
     // `bx`, `by`, section 9.2.1.
     mtd const planeNc(mb: *Mb, plane: u32, bx, by: s32)->s32
     {
-        let a = .blockNz(mb, plane, mb.mbX * 4 + bx - 1, mb.mbY * 4 + by)
-        let b = .blockNz(mb, plane, mb.mbX * 4 + bx, mb.mbY * 4 + by - 1)
+        let a = .blockNz(mb, plane, bx - 1, by)
+        let b = .blockNz(mb, plane, bx, by - 1)
         if a >= 0 and b >= 0 do
             return (a + b + 1) >> 1
         if a >= 0 do
@@ -2090,30 +2131,26 @@ impl Slice
         return 0
     }
 
-    // Returns the stored nonzero count of one colour plane's block at an absolute position,
-    // or -1 when it is unavailable.
-    mtd const blockNz(mb: *Mb, plane: u32, x4, y4: s32)->s32
+    // Returns the stored nonzero count of one colour plane's block at `rx`, `ry` relative to the
+    // macroblock, or -1 when it is unavailable.
+    mtd const blockNz(mb: *Mb, plane: u32, rx, ry: s32)->s32
     {
-        let dec = .dec!
-        let gw  = dec.sps!.mbWidth * 4
-        if x4 < 0 or y4 < 0 or x4 >= gw or y4 >= dec.sps!.mbHeight * 4 do
-            return -1
-        let nMbX = x4 >> 2
-        let nMbY = y4 >> 2
-        if nMbX == mb.mbX and nMbY == mb.mbY
+        if rx >= 0 and ry >= 0
         {
-            let local = cast(u64) ((y4 & 3) * 4 + (x4 & 3))
+            let local = cast(u64) (ry * 4 + rx)
             if plane == 0 do
                 return cast(s32) mb.nzLuma[local]
             return cast(s32) (plane == 1 ? mb.nzCb[local] : mb.nzCr[local])
         }
 
-        if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].sliceId != .sliceId do
+        let neighbor = rx < 0 ? &.neighbors.a : &.neighbors.b
+        if not neighbor.available do
             return -1
-        if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].skipped do
+        if neighbor.info!.skipped do
             return 0
 
-        let index = cast(u64) (y4 * gw + x4)
+        let dec   = .dec!
+        let index = neighbor.blockBase + cast(u64) ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3))
         if plane == 0 do
             return cast(s32) dec.nonZeroLuma[index]
         return cast(s32) (plane == 1 ? dec.nonZeroCb[index] : dec.nonZeroCr[index])
@@ -2122,8 +2159,8 @@ impl Slice
     // Predicted nonzero count for one chroma block.
     mtd const chromaNc(mb: *Mb, plane: u32, bx, by: s32)->s32
     {
-        let a = .chromaBlockNz(mb, plane, mb.mbX * 2 + bx - 1, mb.mbY * 2 + by)
-        let b = .chromaBlockNz(mb, plane, mb.mbX * 2 + bx, mb.mbY * 2 + by - 1)
+        let a = .chromaBlockNz(mb, plane, bx - 1, by)
+        let b = .chromaBlockNz(mb, plane, bx, by - 1)
         if a >= 0 and b >= 0 do
             return (a + b + 1) >> 1
         if a >= 0 do
@@ -2133,26 +2170,24 @@ impl Slice
         return 0
     }
 
-    // Returns the stored nonzero count of one chroma block, or -1 when unavailable.
-    mtd const chromaBlockNz(mb: *Mb, plane: u32, x2, y2: s32)->s32
+    // Returns the stored nonzero count of the chroma block at `rx`, `ry` relative to the
+    // macroblock, or -1 when unavailable.
+    mtd const chromaBlockNz(mb: *Mb, plane: u32, rx, ry: s32)->s32
     {
-        let dec = .dec!
-        let cw  = dec.sps!.mbWidth * 2
-        if x2 < 0 or y2 < 0 or x2 >= cw or y2 >= dec.sps!.mbHeight * 2 do
-            return -1
-        let nMbX = x2 >> 1
-        let nMbY = y2 >> 1
-        if nMbX == mb.mbX and nMbY == mb.mbY
+        if rx >= 0 and ry >= 0
         {
-            let local = cast(u64) ((y2 & 1) * 2 + (x2 & 1))
+            let local = cast(u64) (ry * 2 + rx)
             return cast(s32) (plane == 0 ? mb.nzCb[local] : mb.nzCr[local])
         }
 
-        if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].sliceId != .sliceId do
+        let neighbor = rx < 0 ? &.neighbors.a : &.neighbors.b
+        if not neighbor.available do
             return -1
-        if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].skipped do
+        if neighbor.info!.skipped do
             return 0
-        let index = cast(u64) (y2 * cw + x2)
+
+        let dec   = .dec!
+        let index = neighbor.chromaBase + cast(u64) ((ry & 1) * (dec.sps!.mbWidth * 2) + (rx & 1))
         return cast(s32) (plane == 0 ? dec.nonZeroCb[index] : dec.nonZeroCr[index])
     }
 }

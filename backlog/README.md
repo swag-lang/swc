@@ -35,7 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [std.video.md](std.video.md) | `std/video` | 2026-09-11 00:08 |
+| [std.video.md](std.video.md) | `std/video` | 2026-09-11 06:07 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-10 23:47 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-10 21:00 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-10 21:00 |

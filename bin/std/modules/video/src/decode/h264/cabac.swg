@@ -176,23 +176,11 @@ impl Slice
     // Decodes the skip flag of the macroblock at the current address, section 9.3.3.1.1.1.
     mtd decodeSkipFlagCabac()->bool
     {
-        let dec   = .dec!
-        let width = dec.sps!.mbWidth
-        var ctx   = 0'u32
-        if .mbX > 0
-        {
-            let left = &dec.mbInfo[.mbAddr - 1]
-            if left.sliceId == .sliceId and not left.skipped do
-                ctx += 1
-        }
-
-        if .mbY > 0
-        {
-            let top = &dec.mbInfo[.mbAddr - cast(u32) width]
-            if top.sliceId == .sliceId and not top.skipped do
-                ctx += 1
-        }
-
+        var ctx = 0'u32
+        if .neighbors.a.available and not .neighbors.a.info!.skipped do
+            ctx += 1
+        if .neighbors.b.available and not .neighbors.b.info!.skipped do
+            ctx += 1
         if .header.type == SliceTypeB do
             ctx += 13
         return .decision(11 + ctx) != 0
@@ -230,9 +218,9 @@ impl Slice
         else
         {
             var ctx = 0'u32
-            if .mbAvailable(mb.mbX - 1, mb.mbY) and not .mbInfoAt(mb.mbX - 1, mb.mbY).direct do
+            if .neighbors.a.available and not .neighbors.a.info!.direct do
                 ctx += 1
-            if .mbAvailable(mb.mbX, mb.mbY - 1) and not .mbInfoAt(mb.mbX, mb.mbY - 1).direct do
+            if .neighbors.b.available and not .neighbors.b.info!.direct do
                 ctx += 1
 
             if .decision(27 + ctx) == 0
@@ -317,9 +305,9 @@ impl Slice
         if intraSlice
         {
             var ctx = 0'u32
-            if .mbAvailable(mb.mbX - 1, mb.mbY) and .mbInfoAt(mb.mbX - 1, mb.mbY).class == MbClassIntra16x16 do
+            if .neighbors.a.available and .neighbors.a.info!.class == MbClassIntra16x16 do
                 ctx += 1
-            if .mbAvailable(mb.mbX, mb.mbY - 1) and .mbInfoAt(mb.mbX, mb.mbY - 1).class == MbClassIntra16x16 do
+            if .neighbors.b.available and .neighbors.b.info!.class == MbClassIntra16x16 do
                 ctx += 1
             if .decision(base + ctx) == 0 do
                 return 0
@@ -389,9 +377,9 @@ impl Slice
     mtd chromaModeCabac(mb: *Mb)->u32
     {
         var ctx = 0'u32
-        if .mbAvailable(mb.mbX - 1, mb.mbY) and .mbInfoAt(mb.mbX - 1, mb.mbY).chromaMode != 0 do
+        if .neighbors.a.available and .neighbors.a.info!.chromaMode != 0 do
             ctx += 1
-        if .mbAvailable(mb.mbX, mb.mbY - 1) and .mbInfoAt(mb.mbX, mb.mbY - 1).chromaMode != 0 do
+        if .neighbors.b.available and .neighbors.b.info!.chromaMode != 0 do
             ctx += 1
         if .decision(64 + ctx) == 0 do
             return 0
@@ -406,9 +394,9 @@ impl Slice
     mtd transformFlagCabac(mb: *Mb)->u32
     {
         var ctx = 0'u32
-        if .mbAvailable(mb.mbX - 1, mb.mbY) and .mbInfoAt(mb.mbX - 1, mb.mbY).transform8x8 do
+        if .neighbors.a.available and .neighbors.a.info!.transform8x8 do
             ctx += 1
-        if .mbAvailable(mb.mbX, mb.mbY - 1) and .mbInfoAt(mb.mbX, mb.mbY - 1).transform8x8 do
+        if .neighbors.b.available and .neighbors.b.info!.transform8x8 do
             ctx += 1
         return .decision(399 + ctx)
     }
@@ -419,10 +407,10 @@ impl Slice
         // An unavailable neighbor reads as fully coded, so it never raises the context.
         var leftCbp = 0xF'u32
         var topCbp  = 0xF'u32
-        if .mbAvailable(mb.mbX - 1, mb.mbY) do
-            leftCbp = cast(u32) .mbInfoAt(mb.mbX - 1, mb.mbY).cbpLuma
-        if .mbAvailable(mb.mbX, mb.mbY - 1) do
-            topCbp = cast(u32) .mbInfoAt(mb.mbX, mb.mbY - 1).cbpLuma
+        if .neighbors.a.available do
+            leftCbp = cast(u32) .neighbors.a.info!.cbpLuma
+        if .neighbors.b.available do
+            topCbp = cast(u32) .neighbors.b.info!.cbpLuma
 
         var cbp = 0'u32
         var ctx = (leftCbp & 0x02 ? 0'u32 : 1) + 2 * (topCbp & 0x04 ? 0'u32 : 1)
@@ -441,10 +429,10 @@ impl Slice
     {
         var leftCbp = 0'u32
         var topCbp  = 0'u32
-        if .mbAvailable(mb.mbX - 1, mb.mbY) do
-            leftCbp = cast(u32) .mbInfoAt(mb.mbX - 1, mb.mbY).cbpChroma
-        if .mbAvailable(mb.mbX, mb.mbY - 1) do
-            topCbp = cast(u32) .mbInfoAt(mb.mbX, mb.mbY - 1).cbpChroma
+        if .neighbors.a.available do
+            leftCbp = cast(u32) .neighbors.a.info!.cbpChroma
+        if .neighbors.b.available do
+            topCbp = cast(u32) .neighbors.b.info!.cbpChroma
 
         var ctx = 0'u32
         if leftCbp > 0 do
@@ -482,9 +470,9 @@ impl Slice
     mtd refIdxCabac(mb: *Mb, list: u32, x4, y4: s32)->u32
     {
         var ctx = 0'u32
-        if .refCtxFlag(mb, list, mb.mbX * 4 + x4 - 1, mb.mbY * 4 + y4) do
+        if .refCtxFlag(mb, list, x4 - 1, y4) do
             ctx += 1
-        if .refCtxFlag(mb, list, mb.mbX * 4 + x4, mb.mbY * 4 + y4 - 1) do
+        if .refCtxFlag(mb, list, x4, y4 - 1) do
             ctx += 2
 
         var ref = 0'u32
@@ -499,34 +487,30 @@ impl Slice
         return ref
     }
 
-    // Reports whether the neighbor block contributes to the reference-index context: it must
-    // hold a positive reference that was not produced by a direct mode.
-    mtd const refCtxFlag(mb: *Mb, list: u32, x4, y4: s32)->bool
+    // Reports whether the block at `rx`, `ry` relative to the macroblock contributes to the
+    // reference-index context: it must hold a positive reference that was not produced by a
+    // direct mode.
+    mtd const refCtxFlag(mb: *Mb, list: u32, rx, ry: s32)->bool
     {
-        let dec = .dec!
-        let gw  = dec.sps!.mbWidth * 4
-        if x4 < 0 or y4 < 0 or x4 >= gw or y4 >= dec.sps!.mbHeight * 4 do
-            return false
-
-        let nMbX = x4 >> 2
-        let nMbY = y4 >> 2
-        if nMbX == mb.mbX and nMbY == mb.mbY
+        if rx >= 0 and ry >= 0
         {
-            let quad = cast(u64) (((y4 & 3) >> 1) * 2 + ((x4 & 3) >> 1))
+            let quad = cast(u64) ((ry >> 1) * 2 + (rx >> 1))
             if mb.subDirect[quad] or mb.directMb do
                 return false
             return mb.ctxRef[cast(u64) list, quad] > 0
         }
 
-        if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].sliceId != .sliceId do
+        let neighbor = rx < 0 ? &.neighbors.a : &.neighbors.b
+        if not neighbor.available do
             return false
-        let info = &dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)]
+        let info = neighbor.info!
         if info.class != MbClassInter do
             return false
         if .header.type == SliceTypeP and info.skipped do
             return false
 
-        let index = cast(u64) (y4 * gw + x4)
+        let dec   = .dec!
+        let index = neighbor.blockBase + cast(u64) ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3))
         if dec.directFlags[index] != 0 and .header.type == SliceTypeB do
             return false
         let ref = list == 0 ? dec.motionL0[index].refIdx : dec.motionL1[index].refIdx
@@ -536,8 +520,8 @@ impl Slice
     // Decodes one motion vector difference pair, section 9.3.3.1.1.7.
     mtd mvdCabac(mb: *Mb, list: u32, x4, y4: s32)->[2] s16 fail
     {
-        let a = .motionAt(mb, list, mb.mbX * 4 + x4 - 1, mb.mbY * 4 + y4)
-        let b = .motionAt(mb, list, mb.mbX * 4 + x4, mb.mbY * 4 + y4 - 1)
+        let a = .motionAt(mb, list, x4 - 1, y4)
+        let b = .motionAt(mb, list, x4, y4 - 1)
 
         var result: retval
         for component in 2'u32
@@ -871,8 +855,8 @@ impl Slice
                 let scale = .dequantRow4(mb, cast(u32) plane + 1)
                 for block in 4's32
                 {
-                    let nzA   = .chromaBlockNz(mb, cast(u32) plane, mb.mbX * 2 + (block & 1) - 1, mb.mbY * 2 + (block >> 1))
-                    let nzB   = .chromaBlockNz(mb, cast(u32) plane, mb.mbX * 2 + (block & 1), mb.mbY * 2 + (block >> 1) - 1)
+                    let nzA   = .chromaBlockNz(mb, cast(u32) plane, (block & 1) - 1, block >> 1)
+                    let nzB   = .chromaBlockNz(mb, cast(u32) plane, block & 1, (block >> 1) - 1)
                     let count = .residualCabac'(15, false)(mb, 4, (mb.residual!.chromaAc).buffer + cast(u64) plane * 64 + cast(u64) block * 16, nzA, nzB, ResidualOrderAc, scale, 4)
                     if plane == 0 do
                         mb.nzCb[cast(u64) block] = cast(u8) count
@@ -915,8 +899,8 @@ impl Slice
                 // A 4:4:4 8x8 block codes a flag of its own, whose context reads the block left
                 // of and above the quadrant's first cell.
                 let first = (quad >> 1) * 8 + (quad & 1) * 2
-                let nzA   = .blockNz8x8(mb, plane, mb.mbX * 4 + (first & 3) - 1, mb.mbY * 4 + (first >> 2))
-                let nzB   = .blockNz8x8(mb, plane, mb.mbX * 4 + (first & 3), mb.mbY * 4 + (first >> 2) - 1)
+                let nzA   = .blockNz8x8(mb, plane, (first & 3) - 1, first >> 2)
+                let nzB   = .blockNz8x8(mb, plane, first & 3, (first >> 2) - 1)
                 let count = .residualCabac'(64, false)(mb, CatPlane8x8[cast(u64) plane], storage.t8 + cast(u64) quad * 64, nzA, nzB, ResidualOrder8x8, .dequantRow8(mb, plane), 6)
 
                 // In 4:4:4 the block states a coded flag of its own, so a quadrant the pattern
@@ -937,8 +921,8 @@ impl Slice
                 let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
                 let bx     = raster & 3
                 let by     = raster >> 2
-                let nzA    = .blockNz(mb, plane, mb.mbX * 4 + bx - 1, mb.mbY * 4 + by)
-                let nzB    = .blockNz(mb, plane, mb.mbX * 4 + bx, mb.mbY * 4 + by - 1)
+                let nzA    = .blockNz(mb, plane, bx - 1, by)
+                let nzB    = .blockNz(mb, plane, bx, by - 1)
                 var count: u32
                 if mb.class == MbClassIntra16x16 do
                     count = .residualCabac'(15, false)(mb, CatPlaneI16Ac[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, ResidualOrderAc, .dequantRow4(mb, plane), 4)
@@ -955,12 +939,11 @@ impl Slice
     // it is unavailable; `which` selects luma, Cb, or Cr.
     mtd const dcFlagNeighbor(mb: *Mb, dx, dy: s32, which: s32)->s32
     {
-        let dec = .dec!
-        if not .mbAvailable(mb.mbX + dx, mb.mbY + dy) do
+        let neighbor = dx < 0 ? &.neighbors.a : &.neighbors.b
+        if not neighbor.available do
             return -1
-        let index = cast(u64) ((mb.mbY + dy) * dec.sps!.mbWidth + mb.mbX + dx)
-        if dec.mbInfo[index].skipped do
+        if neighbor.info!.skipped do
             return 0
-        return cast(s32) dec.dcFlags[index * 3 + cast(u64) which]
+        return cast(s32) .dec!.dcFlags[neighbor.mbIndex * 3 + cast(u64) which]
     }
 }

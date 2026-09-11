@@ -61,9 +61,10 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">90</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">91</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
+<li><a href="#Pixel_Bmp_EncodeOptions">Bmp.EncodeOptions</a></li>
 <li><a href="#Pixel_Bmp_Header">Bmp.Header</a></li>
 <li><a href="#Pixel_Clipper_CInt">Clipper.CInt</a></li>
 <li><a href="#Pixel_Clipper_IntPoint">Clipper.IntPoint</a></li>
@@ -1136,6 +1137,8 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td class="code-type"><a href="#Pixel_Bmp_EncodeOptions">Bmp.EncodeOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures the BMP container around the encoded pixels.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_Bmp_Header">Bmp.Header</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents the Windows <span class="code-inline">BITMAPINFOHEADER</span> binary layout.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Clipper_CInt">Clipper.CInt</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Signed integer coordinate used by clipping operations.</p>
@@ -2675,6 +2678,8 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td class="code-type"><a href="#Pixel_Bmp_EncodeOptions">Bmp.EncodeOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures the BMP container around the encoded pixels.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_Bmp_Header">Bmp.Header</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents the Windows <span class="code-inline">BITMAPINFOHEADER</span> binary layout.</p>
 </td></tr>
 </tbody>
@@ -2954,6 +2959,19 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </section>
 <h3 id="types">Types</h3>
 <section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Pixel_Bmp_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Bmp.EncodeOptions</span> <a class="api-item-permalink" href="#Pixel_Bmp_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/bmp/bmp.swg#L12">src</a></div>
+<p>Configures the BMP container around the encoded pixels.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EncodeOptions</span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Pixel_Bmp_EncodeOptions_fileHeader" class="code-type">fileHeader</td><td class="code-type">bool</td><td><p>Includes the BMP file header by default. Disable it for a packed DIB, such as CF_DIB.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Pixel_Bmp_Header" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Bmp.Header</span> <a class="api-item-permalink" href="#Pixel_Bmp_Header" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/bmp/bmp.swg#L28">src</a></div>
 <p>Represents the Windows <span class="code-inline">BITMAPINFOHEADER</span> binary layout.</p>
 <p>Fields retain the names and units defined by the BMP file format. The structure can also be used when exchanging DIB data with Windows APIs.</p>
@@ -3195,7 +3213,7 @@ brush.<span class="SFct">addGradientStop</span>(<span class="SNum">0.5</span>, <
 </td></tr>
 <tr><td id="Pixel_Brush_gradientAngle1" class="code-type">gradientAngle1</td><td class="code-type">f32</td><td><p>Sweep end angle, in radians.</p>
 </td></tr>
-<tr><td id="Pixel_Brush_gradientEnd" class="code-type">gradientEnd</td><td class="code-type"><a href="std.core.html#Core_Math_Vector2">Core.Math.Vector2</a></td><td><p>Linear end point or secondary radial center.</p>
+<tr><td id="Pixel_Brush_gradientEnd" class="code-type">gradientEnd</td><td class="code-type"><a href="std.core.html#Core_Math_Vector2">Core.Math.Vector2</a></td><td><p>Linear end point; unused by radial and sweep sampling.</p>
 </td></tr>
 <tr><td id="Pixel_Brush_gradientRadius0" class="code-type">gradientRadius0</td><td class="code-type">f32</td><td><p>Inner radial radius, in pixels.</p>
 </td></tr>
@@ -8633,7 +8651,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">quickHaarCompareTo</span>(one, two: <span class="SCst"><a href="#Pixel_Image">Image</a></span>, windowSize: <span class="STpe">u32</span> = <span class="SNum">32</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IRenderer_acquireRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.acquireRenderTarget</span> <a class="api-item-permalink" href="#Pixel_IRenderer_acquireRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L145">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IRenderer_acquireRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.acquireRenderTarget</span> <a class="api-item-permalink" href="#Pixel_IRenderer_acquireRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L146">src</a></div>
 <p>Acquires a pooled off-screen target at least as large as requested.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">acquireRenderTarget</span>(width, height: <span class="STpe">s32</span>)-&gt;*<span class="SCst"><a href="#Pixel_RenderTarget">RenderTarget</a></span></span></div>
 </section>
@@ -8643,8 +8661,8 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addImage</span>(fullName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Pixel_Texture">Texture</a></span></span></div>
 <p>Copies an image into a texture owned by this renderer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addImage</span>(image: <span class="SCst"><a href="#Pixel_Image">Image</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Texture">Texture</a></span></span></div>
-<p>Copies a planar 4:2:0 picture into a texture owned by this renderer.</p>
-<p>The result carries <a href="#Pixel_PixelFormat_Yuv420">Pixel.PixelFormat.Yuv420</a> and draws like any other texture. A backend with shaders keeps the planes and converts while it samples, which is why a decoder is allowed to hand its picture over unconverted; one without converts here, once per upload.</p>
+<p>Copies a planar 4:2:0 or 4:4:4 picture into a texture owned by this renderer.</p>
+<p>The result carries <a href="#Pixel_PixelFormat_Yuv420">Pixel.PixelFormat.Yuv420</a> or <a href="#Pixel_PixelFormat_Yuv444">Pixel.PixelFormat.Yuv444</a> according to the view's chroma subsampling and draws like any other texture. A backend with shaders keeps the planes and converts while it samples, which is why a decoder is allowed to hand its picture over unconverted; one without converts here, once per upload.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addImage</span>(view: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_YuvPlanarView">YuvPlanarView</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Texture">Texture</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -8717,17 +8735,17 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readRenderTarget</span>(target: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_RenderTarget">RenderTarget</a></span>, x, y, width, height: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IRenderer_readTexturePixels" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.readTexturePixels</span> <a class="api-item-permalink" href="#Pixel_IRenderer_readTexturePixels" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L121">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IRenderer_readTexturePixels" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.readTexturePixels</span> <a class="api-item-permalink" href="#Pixel_IRenderer_readTexturePixels" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L122">src</a></div>
 <p>Reads a texture into the requested tightly packed pixel format.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readTexturePixels</span>(texture: <span class="SCst"><a href="#Pixel_Texture">Texture</a></span>, pixelFormat: <span class="SCst"><a href="#Pixel_PixelFormat">PixelFormat</a></span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IRenderer_releaseRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.releaseRenderTarget</span> <a class="api-item-permalink" href="#Pixel_IRenderer_releaseRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L148">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IRenderer_releaseRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.releaseRenderTarget</span> <a class="api-item-permalink" href="#Pixel_IRenderer_releaseRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L149">src</a></div>
 <p>Returns a pooled target to this renderer; <span class="code-inline">null</span> is ignored.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseRenderTarget</span>(target: *<span class="SCst"><a href="#Pixel_RenderTarget">RenderTarget</a></span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IRenderer_removeTexture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.removeTexture</span> <a class="api-item-permalink" href="#Pixel_IRenderer_removeTexture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L124">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IRenderer_removeTexture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.removeTexture</span> <a class="api-item-permalink" href="#Pixel_IRenderer_removeTexture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L125">src</a></div>
 <p>Releases a texture and invalidates its descriptor.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeTexture</span>(texture: *<span class="SCst"><a href="#Pixel_Texture">Texture</a></span>)</span></div>
 </section>
@@ -8737,19 +8755,19 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetScissorRect</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IRenderer_resetTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.resetTransform</span> <a class="api-item-permalink" href="#Pixel_IRenderer_resetTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L142">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IRenderer_resetTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.resetTransform</span> <a class="api-item-permalink" href="#Pixel_IRenderer_resetTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L143">src</a></div>
 <p>Restores the identity world transform.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetTransform</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IRenderer_rotateTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.rotateTransform</span> <a class="api-item-permalink" href="#Pixel_IRenderer_rotateTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L130">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IRenderer_rotateTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.rotateTransform</span> <a class="api-item-permalink" href="#Pixel_IRenderer_rotateTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L131">src</a></div>
 <p>Rotates following painter submissions around the surface origin.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">rotateTransform</span>(angle: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Angle">Angle</a></span>)</span></div>
 <p>Rotates following painter submissions around a surface-space center.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">rotateTransform</span>(angle: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Angle">Angle</a></span>, centerX, centerY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IRenderer_scaleTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.scaleTransform</span> <a class="api-item-permalink" href="#Pixel_IRenderer_scaleTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L136">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IRenderer_scaleTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.scaleTransform</span> <a class="api-item-permalink" href="#Pixel_IRenderer_scaleTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L137">src</a></div>
 <p>Scales following painter submissions independently on both axes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">scaleTransform</span>(x, y: <span class="STpe">f32</span>)</span></div>
 <p>Scales following painter submissions uniformly.</p>
@@ -8772,7 +8790,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">targetSize</span>()-&gt;{ width, height: <span class="STpe">s32</span> }</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IRenderer_translateTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.translateTransform</span> <a class="api-item-permalink" href="#Pixel_IRenderer_translateTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L127">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IRenderer_translateTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.translateTransform</span> <a class="api-item-permalink" href="#Pixel_IRenderer_translateTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L128">src</a></div>
 <p>Translates following painter submissions in surface pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">translateTransform</span>(x, y: <span class="STpe">f32</span>)</span></div>
 </section>
@@ -8787,7 +8805,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unbindRenderTargetToImage</span>(x, y, width, height: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IRenderer_updateTexture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.updateTexture</span> <a class="api-item-permalink" href="#Pixel_IRenderer_updateTexture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L115">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IRenderer_updateTexture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRenderer.updateTexture</span> <a class="api-item-permalink" href="#Pixel_IRenderer_updateTexture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/renderer.swg#L116">src</a></div>
 <p>Replaces all bytes of a texture owned by this renderer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateTexture</span>(texture: <span class="SCst"><a href="#Pixel_Texture">Texture</a></span>, pixels: <span class="SKwd">const</span> *<span class="STpe">u8</span>)</span></div>
 <p>Replaces the planar picture held by a texture created from a view.</p>
@@ -10217,7 +10235,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.436</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.488</div>
 </footer>
 </section>
 </main>
@@ -10568,7 +10586,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "v|Pixel.Bmp.Header.biBitCount|Pixel_Bmp_Header_biBitCount|Bits stored for one pixel.",
 "v|Pixel.Bmp.Header.biClrImportant|Pixel_Bmp_Header_biClrImportant|Number of important palette entries, or zero when all are important.",
 "v|Pixel.Bmp.Header.biClrUsed|Pixel_Bmp_Header_biClrUsed|Number of palette entries used, or zero for the format default.",
-"v|Pixel.Bmp.Header.biCompression|Pixel_Bmp_Header_biCompression|Compression mode, such as BIRGB or BIBITFIELDS.",
+"v|Pixel.Bmp.Header.biCompression|Pixel_Bmp_Header_biCompression|Compression mode, such as BI_RGB or BI_BITFIELDS.",
 "v|Pixel.Bmp.Header.biHeight|Pixel_Bmp_Header_biHeight|Signed height; a negative value denotes top-down rows.",
 "v|Pixel.Bmp.Header.biPlanes|Pixel_Bmp_Header_biPlanes|Number of color planes; valid BMP data uses 1.",
 "v|Pixel.Bmp.Header.biSize|Pixel_Bmp_Header_biSize|Size of this header in bytes.",
@@ -10577,8 +10595,10 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "v|Pixel.Bmp.Header.biXPelsPerMeter|Pixel_Bmp_Header_biXPelsPerMeter|Preferred horizontal resolution in pixels per meter.",
 "v|Pixel.Bmp.Header.biYPelsPerMeter|Pixel_Bmp_Header_biYPelsPerMeter|Preferred vertical resolution in pixels per meter.",
 "s|Pixel.Gif.Decoder|Pixel_Gif_Decoder|Decodes GIF images and retains animation state for sequential frames.",
+"s|Pixel.Bmp.EncodeOptions|Pixel_Bmp_EncodeOptions|Configures the BMP container around the encoded pixels.",
+"v|Pixel.Bmp.EncodeOptions.fileHeader|Pixel_Bmp_EncodeOptions_fileHeader|Includes the BMP file header by default. Disable it for a packed DIB, such as CF_DIB.",
 "s|Pixel.Jpg.EncodeOptions|Pixel_Jpg_EncodeOptions|Configures JPEG lossy compression.",
-"v|Pixel.Jpg.EncodeOptions.quality|Pixel_Jpg_EncodeOptions_quality|Quality in 1, 100; higher values preserve more detail and produce larger files.",
+"v|Pixel.Jpg.EncodeOptions.quality|Pixel_Jpg_EncodeOptions_quality|Quality in [1, 100]; higher values preserve more detail and produce larger files.",
 "s|Pixel.Png.EncodeOptions|Pixel_Png_EncodeOptions|Configures PNG filtering, Deflate behavior, and Adam7 interlacing.",
 "v|Pixel.Png.EncodeOptions.compressionLevel|Pixel_Png_EncodeOptions_compressionLevel|Deflate compression level.",
 "v|Pixel.Png.EncodeOptions.filtering|Pixel_Png_EncodeOptions_filtering|Select adaptive PNG scanline filters.",
@@ -10920,7 +10940,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "v|Pixel.Brush.color|Pixel_Brush_color|Color or multiplicative tint.",
 "v|Pixel.Brush.gradientAngle0|Pixel_Brush_gradientAngle0|Sweep start angle, in radians.",
 "v|Pixel.Brush.gradientAngle1|Pixel_Brush_gradientAngle1|Sweep end angle, in radians.",
-"v|Pixel.Brush.gradientEnd|Pixel_Brush_gradientEnd|Linear end point or secondary radial center.",
+"v|Pixel.Brush.gradientEnd|Pixel_Brush_gradientEnd|Linear end point; unused by radial and sweep sampling.",
 "v|Pixel.Brush.gradientRadius0|Pixel_Brush_gradientRadius0|Inner radial radius, in pixels.",
 "v|Pixel.Brush.gradientRadius1|Pixel_Brush_gradientRadius1|Outer radial radius, in pixels.",
 "v|Pixel.Brush.gradientSpread|Pixel_Brush_gradientSpread|Sampling outside the endpoint interval.",
@@ -10946,7 +10966,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "v|Pixel.Element.type|Pixel_Element_type|Segment representation.",
 "s|Pixel.GradientStop|Pixel_GradientStop|Associates a normalized gradient position with a straight-alpha color.",
 "v|Pixel.GradientStop.color|Pixel_GradientStop_color|Color sampled at offset.",
-"v|Pixel.GradientStop.offset|Pixel_GradientStop_offset|Position in 0, 1.",
+"v|Pixel.GradientStop.offset|Pixel_GradientStop_offset|Position in [0, 1].",
 "s|Pixel.LinePath|Pixel_LinePath|Builds a mutable vector path from lines, arcs, and Bézier curves.",
 "v|Pixel.LinePath.elements|Pixel_LinePath_elements|Ordered segments after the starting point.",
 "v|Pixel.LinePath.endPoint|Pixel_LinePath_endPoint|Current last point in path-space pixels.",
@@ -11448,7 +11468,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "k|Pixel.ElementType.Bezier2|Pixel_ElementType_Bezier2|Cubic Bézier segment with two control points.",
 "k|Pixel.ElementType.Curve|Pixel_ElementType_Curve|Smoothed curve point interpreted with neighboring elements.",
 "k|Pixel.ElementType.Line|Pixel_ElementType_Line|Straight segment ending at position.",
-"e|Pixel.GradientSpread|Pixel_GradientSpread|Selects how a gradient behaves outside its normalized 0, 1 interval.",
+"e|Pixel.GradientSpread|Pixel_GradientSpread|Selects how a gradient behaves outside its normalized [0, 1] interval.",
 "k|Pixel.GradientSpread.Clamp|Pixel_GradientSpread_Clamp|Extend the nearest endpoint color.",
 "k|Pixel.GradientSpread.Mirror|Pixel_GradientSpread_Mirror|Alternate forward and reversed intervals.",
 "k|Pixel.GradientSpread.Repeat|Pixel_GradientSpread_Repeat|Restart the gradient at every integer interval.",

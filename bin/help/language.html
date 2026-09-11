@@ -823,7 +823,7 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.atomadd  <span class="SNsp">Swag</span>.atomand  <span class="SNsp">Swag</span>.atomcmpxchg  <span class="SNsp">Swag</span>.atomget  <span class="SNsp">Swag</span>.atomor  <span class="SNsp">Swag</span>.atomxchg  <span class="SNsp">Swag</span>.atomxor
 <span class="SNsp">Swag</span>.memcmp  <span class="SNsp">Swag</span>.memcpy  <span class="SNsp">Swag</span>.memmove  <span class="SNsp">Swag</span>.memset</span></div>
 <p>Packed vector intrinsics:</p>
-<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.vecalign  <span class="SNsp">Swag</span>.vecall  <span class="SNsp">Swag</span>.vecany  <span class="SNsp">Swag</span>.vecavgr  <span class="SNsp">Swag</span>.vecgather  <span class="SNsp">Swag</span>.vecinterleavehi
+<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.vecalign  <span class="SNsp">Swag</span>.vecall  <span class="SNsp">Swag</span>.vecany  <span class="SNsp">Swag</span>.vecavgr  <span class="SNsp">Swag</span>.vecclmul  <span class="SNsp">Swag</span>.vecgather  <span class="SNsp">Swag</span>.vecinterleavehi
 <span class="SNsp">Swag</span>.vecinterleavelo  <span class="SNsp">Swag</span>.vecmadd  <span class="SNsp">Swag</span>.vecmaddubs  <span class="SNsp">Swag</span>.vecmask  <span class="SNsp">Swag</span>.vecmulhi  <span class="SNsp">Swag</span>.vecpackss
 <span class="SNsp">Swag</span>.vecpackus  <span class="SNsp">Swag</span>.vecperm  <span class="SNsp">Swag</span>.vecreduceadd  <span class="SNsp">Swag</span>.vecreduceand  <span class="SNsp">Swag</span>.vecreducemax
 <span class="SNsp">Swag</span>.vecreducemin  <span class="SNsp">Swag</span>.vecreduceor  <span class="SNsp">Swag</span>.vecreducexor  <span class="SNsp">Swag</span>.vecsad  <span class="SNsp">Swag</span>.vecsatadd  <span class="SNsp">Swag</span>.vecsatsub
@@ -1937,15 +1937,14 @@ swc test -w path/to/workspace -m messages</span></div>
 <h4 id="_003_006_operators_swg_Shift_Semantics">Shift Semantics</h4>
 <p>The result of 'value &lt;&lt; count' or 'value &gt;&gt; count' has exactly the type and bit width of <span class="code-inline">value</span>. The count is an independent integer operand: it keeps its own width and signedness and is never narrowed to the value's type.</p>
 <p>A left shift discards bits that leave the value's width. This truncation is the ordinary meaning of <span class="code-inline">&lt;&lt;</span> and is not an overflow, even when overflow safety is enabled. A right shift fills with zero for an unsigned value and copies the sign bit for a signed value.</p>
-<p>Counts greater than or equal to the value's bit width are defined. Both left shift and unsigned right shift produce zero. Signed right shift produces zero for a non-negative value and <span class="code-inline">-1</span> for a negative value.</p>
-<p>A negative count is invalid. A constant negative count is diagnosed at compile time; a runtime signed count panics when overflow safety is enabled. <span class="code-inline">#wrap</span> is accepted on a shift for source compatibility, but it does not change these rules because ordinary left shift already truncates discarded bits.</p>
+<p>A shift amount is valid when it is not negative and below the value's bit width. A constant amount outside that range is an error at compile time. A runtime amount outside it panics when overflow safety is enabled, and produces an unspecified value otherwise: the shift is then the processor's own instruction, which is what makes it as cheap as in C. <span class="code-inline">#wrap</span> is accepted on a shift for source compatibility, but it changes nothing, because ordinary left shift already truncates discarded bits.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> count: <span class="STpe">u64</span> = <span class="SNum">256</span>
+    <span class="SKwd">let</span> count: <span class="STpe">u64</span> = <span class="SNum">7</span>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNum">0x81</span>'<span class="STpe">u8</span> &lt;&lt; <span class="SNum">1</span> == <span class="SNum">0x02</span>'<span class="STpe">u8</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNum">0x81</span>'<span class="STpe">u8</span> &lt;&lt; count == <span class="SNum">0</span>'<span class="STpe">u8</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNum">0x81</span>'<span class="STpe">u8</span> &gt;&gt; count == <span class="SNum">0</span>'<span class="STpe">u8</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNum">0x81</span>'<span class="STpe">u8</span> &lt;&lt; count == <span class="SNum">0x80</span>'<span class="STpe">u8</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNum">0x81</span>'<span class="STpe">u8</span> &gt;&gt; count == <span class="SNum">0x01</span>'<span class="STpe">u8</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(-<span class="SNum">128</span>'<span class="STpe">s8</span> &gt;&gt; count == -<span class="SNum">1</span>'<span class="STpe">s8</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(<span class="SNum">1</span>'<span class="STpe">u8</span> &lt;&lt; count) == <span class="STpe">u8</span>)
 }</span></div>
@@ -2101,7 +2100,7 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 }</span></div>
 <h3 id="_003_006_operators_swg_Null-Coalescing_Operator">Null-Coalescing Operator</h3>
-<p>The <span class="code-inline">orelse</span> operator returns the left-hand expression when it is present, and the right-hand one when it is null. It substitutes a <b>missing</b> value, never a zero one, so the result is non-null even when the operand was not.</p>
+<p>The <span class="code-inline">orelse</span> operator returns the left-hand expression when it is present, and the right-hand one when it is null. It substitutes a <b>missing</b> value, never a zero one. A non-null fallback makes the result non-null even when the left operand was nullable; a nullable fallback can still produce null. When narrowing the left operand gives exactly the fallback's underlying type, the result retains the fallback's strict alias, if it has one.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> a: <span class="STpe">string</span>? = <span class="SStr">"string1"</span>
@@ -3225,7 +3224,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p.count == <span class="SNum">2</span>)
 
-    <span class="SCmt">// '!' asserts instead of skipping, so the member keeps its plain type.</span>
+    <span class="SCmt">// p is already proven; '!' asserts the nullable next member instead of skipping it.</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p.count == <span class="SNum">2</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p.next!.count == <span class="SNum">7</span>)
 
@@ -3701,7 +3700,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v[i] == <span class="SNum">99</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Packed_Intrinsics">Packed Intrinsics</h3>
-<p>The <span class="code-inline">Swag.vec</span> intrinsic family carries the operations the operators cannot express: <span class="code-inline">Swag.vecsplat</span> broadcasts a scalar into every lane, <span class="code-inline">Swag.vecsatadd</span> and <span class="code-inline">Swag.vecsatsub</span> clamp instead of wrapping, <span class="code-inline">Swag.vecpackus</span> and <span class="code-inline">Swag.vecpackss</span> narrow two vectors with saturation, <span class="code-inline">Swag.vecinterleavelo</span> and <span class="code-inline">Swag.vecinterleavehi</span> alternate lanes from the corresponding input halves, <span class="code-inline">Swag.vecwidenlo</span> and <span class="code-inline">Swag.vecwidenhi</span> extend half the lanes to double width, <span class="code-inline">Swag.vecavgr</span> is the rounding average, <span class="code-inline">Swag.vecmadd</span> multiplies 16-bit pairs into 32-bit sums and <span class="code-inline">Swag.vecmaddubs</span> does the same for unsigned and signed bytes with a saturating sum, <span class="code-inline">Swag.vecsad</span> sums the absolute byte differences of each half, <span class="code-inline">Swag.vectruncs32</span> converts four <span class="code-inline">f32</span> lanes to <span class="code-inline">s32</span> by truncating toward zero, <span class="code-inline">Swag.vecgather</span> loads four <span class="code-inline">s32</span> values through four <span class="code-inline">u32</span> indices, and <span class="code-inline">Swag.vecperm</span> permutes bytes through a dynamic table. NaN and values outside the <span class="code-inline">s32</span> range become <span class="code-inline">s32.Min</span>. <span class="code-inline">Swag.min</span>, <span class="code-inline">Swag.max</span>, <span class="code-inline">Swag.abs</span>, <span class="code-inline">Swag.sqrt</span>, <span class="code-inline">Swag.muladd</span>, <span class="code-inline">Swag.floor</span>, <span class="code-inline">Swag.ceil</span> and <span class="code-inline">Swag.trunc</span> also accept vectors and compute per lane. Integer <span class="code-inline">Swag.abs</span> wraps the minimum lane value back to itself, like unary minus, while a float lane clears its sign bit, so a NaN stays that NaN and a negative zero becomes a positive one. A gather uses <span class="code-inline">vpgatherdd</span> when AVX2 is selected and a portable four-load lowering otherwise; every index must designate a readable table element and be at most <span class="code-inline">s32.Max</span>.</p>
+<p>The <span class="code-inline">Swag.vec</span> intrinsic family carries the operations the operators cannot express: <span class="code-inline">Swag.vecsplat</span> broadcasts a scalar into every lane, <span class="code-inline">Swag.vecsatadd</span> and <span class="code-inline">Swag.vecsatsub</span> clamp instead of wrapping, <span class="code-inline">Swag.vecpackus</span> and <span class="code-inline">Swag.vecpackss</span> narrow two vectors with saturation, <span class="code-inline">Swag.vecinterleavelo</span> and <span class="code-inline">Swag.vecinterleavehi</span> alternate lanes from the corresponding input halves, <span class="code-inline">Swag.vecwidenlo</span> and <span class="code-inline">Swag.vecwidenhi</span> extend half the lanes to double width, <span class="code-inline">Swag.vecavgr</span> is the rounding average, <span class="code-inline">Swag.vecmadd</span> multiplies 16-bit pairs into 32-bit sums and <span class="code-inline">Swag.vecmaddubs</span> does the same for unsigned and signed bytes with a saturating sum, <span class="code-inline">Swag.vecsad</span> sums the absolute byte differences of each half, <span class="code-inline">Swag.vectruncs32</span> converts four <span class="code-inline">f32</span> lanes to <span class="code-inline">s32</span> by truncating toward zero, <span class="code-inline">Swag.vecgather</span> loads four <span class="code-inline">s32</span> values through four <span class="code-inline">u32</span> indices, and <span class="code-inline">Swag.vecperm</span> permutes bytes through a dynamic table. NaN and values outside the <span class="code-inline">s32</span> range become <span class="code-inline">s32.Min</span>. <span class="code-inline">Swag.min</span>, <span class="code-inline">Swag.max</span>, <span class="code-inline">Swag.abs</span>, <span class="code-inline">Swag.sqrt</span>, <span class="code-inline">Swag.muladd</span>, <span class="code-inline">Swag.floor</span>, <span class="code-inline">Swag.ceil</span> and <span class="code-inline">Swag.trunc</span> also accept vectors and compute per lane. Integer <span class="code-inline">Swag.abs</span> wraps the minimum lane value back to itself, like unary minus, while a float lane clears its sign bit, so a NaN stays that NaN and a negative zero becomes a positive one. A gather uses <span class="code-inline">vpgatherdd</span> on the supported x86-64-v3 baseline; every index must designate a readable table element and be at most <span class="code-inline">s32.Max</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> a = <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">200</span>'<span class="STpe">u8</span>)
@@ -6232,6 +6231,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_006_011_interface_swg_Implementing_an_Interface">Implementing an Interface</h3>
 <p>Implement interface <span class="code-inline">IReset</span> for <span class="code-inline">Point2</span>.</p>
+<p>The method modifier <span class="code-inline">impl</span> belongs in an 'impl &lt;Interface&gt; for &lt;Type&gt;' block. A plain 'impl &lt;Type&gt;' block declares ordinary methods; it cannot replace an inherited interface method by marking a method <span class="code-inline">impl</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">impl</span> <span class="SCst">IReset</span> <span class="SLgc">for</span> <span class="SCst">Point2</span>
 {
     <span class="SCmt">// Mark with 'impl' to implement an interface function</span>
@@ -6556,7 +6556,8 @@ swc test -w path/to/workspace -m messages</span></div>
 <h3 id="_007_003_closure_swg_Closures">Closures</h3>
 <p>Swag supports limited closures, allowing functions to capture variables from their surrounding scope. Up to 64 bytes can be captured without heap allocation.</p>
 <p>A by-value capture is a plain byte copy into the closure: the closure never runs <span class="code-inline">opPostCopy</span> on the way in and never drops the captured value. Only simple types (without <span class="code-inline">opDrop</span>, <span class="code-inline">opPostCopy</span>, or <span class="code-inline">opPostMove</span>, and not marked <span class="code-inline">#[Swag.NoCopy]</span>) can therefore be captured by value; other types must be captured by address with <span class="code-inline">&amp;</span>.</p>
-<p>The copy is read-only unless the capture is written <span class="code-inline">var</span>. Because the copy is storage of the closure's own, the capture list states its mutability rather than inheriting it from the source declaration.</p>
+<p>The copy is read-only unless the capture is written <span class="code-inline">var</span>. Because the copy is storage of the closure's own, the capture list states its mutability rather than inheriting it from the source declaration. A null test inside the closure can narrow a read-only value capture. Mutable and by-address captures do not provide that stable storage proof.</p>
+<p>Inside a macro, capturing a parameter by value captures its bound argument value, including a constant default when the argument is omitted. Capturing it by address requires an addressable mutable value; a constant default has no storage to capture.</p>
 <h3 id="_007_003_closure_swg_Declaring_a_Closure">Declaring a Closure</h3>
 <p>A closure is declared like a lambda, with captured variables listed between <span class="code-inline">|...|</span> before the parameter list. The type uses <span class="code-inline">func||(...)</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -8607,8 +8608,8 @@ swc test -w path/to/workspace -m messages</span></div>
 <h3 id="_013_002_safety_swg_Overflow_Safety">Overflow Safety</h3>
 <p>Example:</p>
 <div class="code-block"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, true)]</span></div>
-<p>When enabled, Swag panics on arithmetic overflow, on a runtime negative shift count, or when bits are lost during integer conversions.</p>
-<p>Operators that can overflow include '+ - <i>' and compound forms '+= -= </i>='. Shifts have defined truncating and large-count behavior; overflow safety only guards their negative signed counts.</p>
+<p>When enabled, Swag panics on arithmetic overflow, on a runtime shift amount that is negative or not below the bit width of the shifted value, or when bits are lost during integer conversions.</p>
+<p>Operators that can overflow include <span class="code-inline">+ - *</span> and compound forms <span class="code-inline">+= -= *=</span>. A left shift truncates the bits it discards, which is not an overflow; overflow safety guards a shift's amount only.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> x = <span class="SNum">255</span>'<span class="STpe">u8</span>
@@ -10076,7 +10077,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.436</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.488</div>
 </footer>
 </section>
 </main>

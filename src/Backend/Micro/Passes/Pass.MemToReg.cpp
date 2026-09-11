@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -113,6 +114,27 @@ namespace
                op == MicroInstrOpcode::OpBinaryMemImm ||
                op == MicroInstrOpcode::OpUnaryMem ||
                op == MicroInstrOpcode::CmpMemImm;
+    }
+
+    // Whether the instruction adds the frame base to another register: the
+    // front end forms the address of an element of a frame array by adding
+    // the array's address last, after the element offset, and the address of
+    // the first local IS the base. So `add p, fb`, in either shape, points
+    // into the object at offset zero, as an indexed access on the base does.
+    bool addsFrameBase(const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg frameBase)
+    {
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::OpBinaryRegReg:
+                // ops: [0] dst, [1] src, [2] opBits, [3] microOp
+                return ops[3].microOp == MicroOp::Add && ops[2].opBits == MicroOpBits::B64 && ops[1].reg == frameBase && ops[0].reg != frameBase;
+            case MicroInstrOpcode::OpBinaryRegRegReg:
+                // ops: [0] dst, [1] src1, [2] src2, [3] opBits, [4] microOp
+                return ops[4].microOp == MicroOp::Add && ops[3].opBits == MicroOpBits::B64 && ops[0].reg != frameBase &&
+                       (ops[1].reg == frameBase) != (ops[2].reg == frameBase);
+            default:
+                return false;
+        }
     }
 
     bool isPromotableBits(MicroOpBits bits)
@@ -260,6 +282,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     };
     std::unordered_map<MicroReg, AddrRegInfo> addrRegOffset;
     std::unordered_set<MicroReg>              badAddrReg;
+    // The further frame offsets a register is given by later leas or copies:
+    // it may point at any of those objects, so an escape poisons them all.
+    std::unordered_map<MicroReg, SmallVector<uint64_t, 2>> addrRegMoreOffsets;
 
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
     {
@@ -284,7 +309,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             if (!ar.isVirtualInt() || ar == frameBase)
                 badAddrReg.insert(ar);
             else if (addrRegOffset.contains(ar))
+            {
                 badAddrReg.insert(ar);
+                addrRegMoreOffsets[ar].push_back(isAddrLea ? ops[3].valueU64 : 0);
+            }
             else
                 addrRegOffset[ar] = {isAddrLea ? ops[3].valueU64 : 0, it.current};
         }
@@ -380,14 +408,34 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         return true;
     };
 
-    // The escaped offset of a tracked register, when it has a single known one.
+    // The escaped offset of a tracked register: the frame offset it was given.
+    // A register redefined by arithmetic still points inside the object it
+    // was given, by the same in-bounds reading every escape here relies on;
+    // one given a second object is escaped for both (see poisonTrackedEscape).
     auto trackedEscapeOffset = [&](const MicroReg reg, uint64_t& outOffset) -> bool {
-        if (reg == frameBase || badAddrReg.contains(reg))
+        if (reg == frameBase)
             return false;
         const auto found = addrRegOffset.find(reg);
         if (found == addrRegOffset.end())
             return false;
         outOffset = found->second.offset;
+        return true;
+    };
+
+    // Poisons the object `offset` bytes behind every frame object the tracked
+    // register `reg` was given.
+    auto poisonTrackedEscape = [&](const MicroReg reg, const uint64_t baseOffset, const uint64_t extra) -> bool {
+        if (!poisonEscapedOffset(baseOffset + extra))
+            return false;
+        const auto more = addrRegMoreOffsets.find(reg);
+        if (more != addrRegMoreOffsets.end())
+        {
+            for (const uint64_t offset : more->second)
+            {
+                if (!poisonEscapedOffset(offset + extra))
+                    return false;
+            }
+        }
         return true;
     };
 
@@ -398,10 +446,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // degenerate `mov ar, fb` the collection pass models - and the front end
     // produces it whenever the address of a function's FIRST local escapes or
     // is indexed (an inlined callee's pointer parameter home, a `state[i]`
-    // over a first local). Everywhere else - plain arithmetic on the base - a
-    // frame-base appearance keeps the whole-function bail.
+    // over a first local). An addition of the base is the same first local,
+    // indexed (see addsFrameBase); every other appearance of the base in
+    // arithmetic keeps the whole-function bail.
     auto escapedObjectOffset = [&](const MicroReg reg, uint64_t& outOffset) -> bool {
-        if (reg == frameBase && !badAddrReg.contains(reg))
+        if (reg == frameBase)
         {
             outOffset = 0;
             return true;
@@ -587,8 +636,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
         if (amcBase.isValid() && (amcBase == frameBase || isTracked(amcBase)))
         {
-            uint64_t escapedOffset = 0;
-            if (!escapedObjectOffset(amcBase, escapedOffset) || !poisonEscapedOffset(escapedOffset))
+            // The object is the one at the base's offset plus the access's
+            // displacement: a lea of the array's address folded into the
+            // indexed form leaves the array behind the displacement, not
+            // behind the base.
+            MicroPassHelpers::AmcLayout layout;
+            uint64_t                    escapedOffset = 0;
+            if (!MicroPassHelpers::amcLayoutFor(layout, inst.op) || !escapedObjectOffset(amcBase, escapedOffset) || !poisonTrackedEscape(amcBase, escapedOffset, ops[layout.addIdx].valueU64))
             {
                 bail = true;
                 break;
@@ -605,7 +659,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             uint64_t   escapedOffset = 0;
             const bool resolved      = storesTrackedValue ? escapedObjectOffset(valueReg, escapedOffset)
                                                           : trackedEscapeOffset(valueReg, escapedOffset);
-            if (!resolved || !poisonEscapedOffset(escapedOffset))
+            if (!resolved || !poisonTrackedEscape(valueReg, escapedOffset, 0))
             {
                 bail = true;
                 break;
@@ -629,7 +683,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             if (isExplainedBase || isExplainedValue || isExplainedAmcBase)
                 continue;
             uint64_t escapedOffset = 0;
-            if (!trackedEscapeOffset(*rref.reg, escapedOffset) || !poisonEscapedOffset(escapedOffset))
+            const bool resolved = *rref.reg == frameBase ? addsFrameBase(inst, ops, frameBase) && escapedObjectOffset(frameBase, escapedOffset)
+                                                         : trackedEscapeOffset(*rref.reg, escapedOffset);
+            if (!resolved || !poisonTrackedEscape(*rref.reg, escapedOffset, 0))
             {
                 bail = true;
                 break;

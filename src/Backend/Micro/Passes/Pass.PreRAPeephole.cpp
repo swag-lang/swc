@@ -31,6 +31,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryForwardLoadAddr);
+        r.add(MicroInstrOpcode::LoadAddrRegMem, tryFoldZeroDisplacementLoadAddr);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryForwardLoadAddrAmc);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryCombineAdjacentRegImm);
         return r;

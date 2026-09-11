@@ -402,6 +402,29 @@ namespace PreRaPeephole
         return true;
     }
 
+    // `lea r, [s]` is `mov r, s`, which the copy passes then fold away; the
+    // lea form stays opaque to them.
+    bool tryFoldZeroDisplacementLoadAddr(Context& ctx, const MicroInstrRef defRef, const MicroInstr& defInst)
+    {
+        if (defInst.op != MicroInstrOpcode::LoadAddrRegMem || ctx.isClaimed(defRef))
+            return false;
+
+        const MicroInstrOperand* defOps = defInst.ops(*ctx.operands);
+        if (!defOps || defOps[3].valueU64 != 0 || defOps[2].opBits != MicroOpBits::B64)
+            return false;
+        if (!defOps[0].reg.isVirtualInt() || !defOps[1].reg.isVirtualInt() || defOps[0].reg == defOps[1].reg)
+            return false;
+        if (!ctx.claimAll({defRef}))
+            return false;
+
+        MicroInstrOperand ops[3];
+        ops[0].reg    = defOps[0].reg;
+        ops[1].reg    = defOps[1].reg;
+        ops[2].opBits = MicroOpBits::B64;
+        ctx.emitRewrite(defRef, MicroInstrOpcode::LoadRegReg, std::span<const MicroInstrOperand>(ops, 3), true);
+        return true;
+    }
+
     bool tryForwardLoadAddrAmc(Context& ctx, const MicroInstrRef defRef, const MicroInstr& defInst)
     {
         if (defInst.op != MicroInstrOpcode::LoadAddrAmcRegMem || ctx.isClaimed(defRef))

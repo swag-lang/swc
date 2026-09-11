@@ -51,6 +51,19 @@ namespace PreRaPeephole
             if (!getAddressAddOffset(offset, addOps[2].microOp, addOps[3].valueU64) || !canEncodeSigned32(offset))
                 return false;
 
+            // Adding nothing leaves the copy: a lea with no displacement is
+            // an instruction the copy elimination would not see through.
+            if (offset == 0)
+            {
+                out.newOp         = MicroInstrOpcode::LoadRegReg;
+                out.numOps        = 3;
+                out.allocOps      = true;
+                out.ops[0].reg    = dst;
+                out.ops[1].reg    = src;
+                out.ops[2].opBits = MicroOpBits::B64;
+                return true;
+            }
+
             out.newOp           = MicroInstrOpcode::LoadAddrRegMem;
             out.numOps          = 4;
             out.allocOps        = true;

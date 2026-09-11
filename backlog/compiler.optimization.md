@@ -15,32 +15,6 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.012 — The shipped broadcast hoist still needs a current mcChroma dump
-
-- Recorded: 2026-08-24 14:55
-- Updated: 2026-09-10 19:41 — Track the current materialization predicate while retaining the missing codec dump.
-- Area: compiler/backend
-- Found while: std.video.001, reading the chroma interpolation loop of the H.264 decoder after the
-  vector temporaries stopped round-tripping through the frame.
-- Observation: the loop rebuilt the same four lane broadcasts on every row, each a `movd` from an
-  integer register followed by `pshufd`, while the replication feeding them (`zero_extend` then
-  `imul 0x10001`) already sat in the preheader. The opcode filter was only half of the refusal:
-  `VecShuffleRegRegImm`, `VecUnaryRegReg`, `OpBinaryRegRegImm`, `OpBinaryRegRegReg` and
-  `LoadVecRegMem` were ineligible, but making them eligible changed nothing because the profit
-  filter behind it keeps a hoist only when the instruction reads memory or feeds more than one
-  consumer, and each broadcast feeds exactly one multiply. Since 2026-09-03 the filter also keeps
-  a vector materialization (`isCostlyMaterialization`, `Pass.LoopInvariantCodeMotion`): the
-  `movd` of an integer into a float register, a shuffle, or a three-operand vector op whose
-  inputs are invariant. A vector built from a scalar is cheap to keep live, and rebuilding it is
-  an integer-to-float move on every trip.
-- Evidence: `#[Swag.PrintMicro("post-licm")]` in release on an eight-lane `u16` row scaling:
-  the `zero_extend`, `imul 0x10001`, `movd` and `pshufd` all sit between the loop guard and the
-  header label, and the body multiplies straight from the hoisted register
-  (`LICM_HoistsSingleUseLaneBroadcast`).
-- Next: read `Video.H264.mcChroma` again in release and confirm its four broadcasts left the row
-  loop.
-- Complete when: the chroma interpolation loop shows no `movd` or `pshufd` in its body.
-
 ### compiler.optimization.026 — Folding a constant address into a RIP-relative load miscompiles library images
 
 - Recorded: 2026-09-02 14:39

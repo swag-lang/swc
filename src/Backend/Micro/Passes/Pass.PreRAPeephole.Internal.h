@@ -84,6 +84,7 @@ namespace PreRaPeephole
     bool tryFoldCopyIntoFloatBinary(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryForwardLoadAddr(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
+    bool tryFoldZeroDisplacementLoadAddr(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryForwardLoadAddrAmc(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryCombineAdjacentRegImm(Context& ctx, MicroInstrRef firstRef, const MicroInstr& firstInst);
 }

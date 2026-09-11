@@ -187,6 +187,7 @@ namespace
         std::unordered_map<MicroReg, uint32_t>      defCount;  // definitions inside the body
         std::unordered_map<MicroReg, MicroInstrRef> singleDef; // the one definition, when there is one
         std::unordered_map<MicroReg, uint32_t>      useCount;  // uses in the whole function
+        std::unordered_map<MicroReg, MicroInstrRef> singleUse; // the one use, when there is one
     };
 
     // One round over every natural loop. Returns true when it changed the IR.
@@ -266,7 +267,10 @@ namespace
                 if (!useDef)
                     continue;
                 for (const MicroReg use : useDef->uses)
-                    ++scan.useCount[use];
+                {
+                    if (++scan.useCount[use] == 1)
+                        scan.singleUse[use] = instrRefs[i];
+                }
                 if (!inBody[i])
                     continue;
                 for (const MicroReg def : useDef->defs)
@@ -374,6 +378,48 @@ namespace
                 return copyOps[1].reg;
             };
 
+            // Whether the one use of `reg` is a sum with an invariant that the
+            // second family would carry: `mov u, base / add u, reg`, the
+            // three-operand add, or a lea over both. A product that is already
+            // a shift costs one cycle like the step that would replace it, so
+            // it is carried only when the pointer built on it dies with it.
+            auto feedsCarriedSum = [&](const MicroReg reg) {
+                const auto useIt = scan.useCount.find(reg);
+                if (useIt == scan.useCount.end() || useIt->second != 1)
+                    return false;
+                const MicroInstrRef      useRef  = scan.singleUse[reg];
+                const MicroInstr*        useInst = storage.ptr(useRef);
+                const MicroInstrOperand* useOps  = useInst ? useInst->ops(operands) : nullptr;
+                if (!useOps)
+                    return false;
+                switch (useInst->op)
+                {
+                    case MicroInstrOpcode::OpBinaryRegReg:
+                    {
+                        // ops: [0] dst, [1] src, [2] opBits, [3] microOp. The
+                        // destination was copied from the base just before.
+                        if (useOps[3].microOp != MicroOp::Add || useOps[1].reg != reg)
+                            return false;
+                        const MicroInstrRef      copyRef  = storage.findPreviousInstructionRef(useRef);
+                        const MicroInstr*        copyInst = copyRef.isValid() ? storage.ptr(copyRef) : nullptr;
+                        const MicroInstrOperand* copyOps  = copyInst ? copyInst->ops(operands) : nullptr;
+                        return copyOps && copyInst->op == MicroInstrOpcode::LoadRegReg && copyOps[0].reg == useOps[0].reg && isInvariantReg(copyOps[1].reg);
+                    }
+                    case MicroInstrOpcode::OpBinaryRegRegReg:
+                        // ops: [0] dst, [1] src1, [2] src2, [3] opBits, [4] microOp
+                        if (useOps[4].microOp != MicroOp::Add)
+                            return false;
+                        return (useOps[1].reg == reg && isInvariantReg(useOps[2].reg)) || (useOps[2].reg == reg && isInvariantReg(useOps[1].reg));
+                    case MicroInstrOpcode::LoadAddrAmcRegMem:
+                        // ops: [0] dst, [1] base, [2] index, [3] opBitsDst, [4] opBitsValue, [5] mul, [6] add
+                        if (useOps[5].valueU64 != 1)
+                            return false;
+                        return (useOps[1].reg == reg && isInvariantReg(useOps[2].reg)) || (useOps[2].reg == reg && isInvariantReg(useOps[1].reg));
+                    default:
+                        return false;
+                }
+            };
+
             std::vector<Candidate> products;
             std::vector<Candidate> sums;
             for (uint32_t i = 0; i < n; ++i)
@@ -449,6 +495,8 @@ namespace
                         }
                         else if (opOps[2].microOp == MicroOp::ShiftLeft && opOps[3].valueU64 < getNumBits(bits))
                         {
+                            if (!feedsCarriedSum(ops[0].reg))
+                                continue;
                             candidate.otherImm = wrapToBits(1ull << opOps[3].valueU64, bits);
                             candidate.mulOp    = MicroOp::MultiplySigned;
                         }

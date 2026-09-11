@@ -8,12 +8,12 @@ using Corpus
 //
 // Storage is read as a type it does not hold. The read is in bounds for the type it claims
 // and out of bounds for the object that is really there, which is why this class turns a
-// small object into a large one and a integer into a pointer.
+// small object into a large one and an integer into a pointer.
 //
 // Swag: the DYNAMIC form is checked - 'any' remembers its concrete type and a mismatched
 // extraction panics under '.DynCast', and an interface knows what it was built from. The
-// STATIC form is not: a reinterpreting cast between unrelated pointee types, and a read of a
-// union member that was not the one written, are both accepted with no marker of any kind.
+// direct STATIC cast between unrelated structs is rejected. Deliberate reinterpretation
+// through '*void', and reading a union member that was not written, remain unchecked.
 // -----------------------------------------------------------------------------
 
 struct Small
@@ -47,17 +47,33 @@ func extractWrongTypeFromAny(boxed: any)->s32
     #run extractWrongTypeFromAny("text")
 }
 
-// GAP compiler.safety.006 - a reinterpreting cast between unrelated pointee types is
-// accepted, and the read that follows is in bounds for 'Large' and far past the end of
-// 'Small'. No diagnostic, no guard, no marker. Left commented because it really does read
-// out of bounds.
-//
-// func readSmallAsLarge()->s64
-// {
-//     var small: Small
-//     let wide = cast(*Large) &small
-//     return wide.d          // reads 24 bytes past a 4-byte object
-// }
+// Rejected at the cast, before a read can overrun the smaller object.
+func readSmallAsLarge()->s64
+{
+    var small: Small
+    let wide = cast(*Large) &small     // swc-expected-error {{sema_err_cast_unrelated_structs}}
+    return wide.d
+}
+
+// The rule is about the type relationship, not just the destination's size.
+func readLargeAsSmall(large: *Large)->*Small
+{
+    return cast(*Small) large     // swc-expected-error {{sema_err_cast_unrelated_structs}}
+}
+
+// GAP compiler.safety.006 - '*void' explicitly bypasses that relationship. Observe the
+// address only: dereferencing this result as Large would really overrun Small.
+func reinterpretSmallAddress()->bool
+{
+    var small: Small
+    let wide = cast(*Large) cast(*void) &small
+    return cast(*void) wide == cast(*void) &small
+}
+
+#test
+{
+    Swag.assert(reinterpretSmallAddress())
+}
 
 // GAP compiler.safety.006 - reading the union member that was not written turns an integer
 // into a pointer with no cast at all: the widest route on the unsafe surface, and the one
@@ -72,6 +88,21 @@ func extractWrongTypeFromAny(boxed: any)->s32
 // }
 
 // --- Sound ---
+
+struct Derived
+{
+    using small: Small
+    extra:       s32
+}
+
+func relatedPointerRoundTrip()->s32
+{
+    var derived: Derived
+    derived.extra = 17
+    let base      = cast(*Small) &derived
+    let recovered = cast(*Derived) base
+    return recovered.extra
+}
 
 // The matching extraction is what the guard lets through.
 #[Swag.Safety(.DynCast, true)]
@@ -101,4 +132,5 @@ func readWrittenUnionMember()->u64
     Swag.assert(extractRightTypeFromAny(42's32) == 42)
     Swag.assert(inspectAnyKind())
     Swag.assert(readWrittenUnionMember() == 0x4142434445)
+    Swag.assert(relatedPointerRoundTrip() == 17)
 }

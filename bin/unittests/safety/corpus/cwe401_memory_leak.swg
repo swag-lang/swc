@@ -22,8 +22,7 @@ using Corpus
 // --- Faults (none is rejected statically; runtime leak reporting is a separate layer) ---
 
 // GAP compiler.safety.017 - the allocation is never released and the pointer dies with the
-// frame. Leaks do not corrupt memory, so unlike the other gaps this one is safe to RUN: it
-// is left live and merely leaks, which is exactly the point being pinned.
+// frame. The probe retains and counts the block, then releases it at the end of the test.
 #[Swag.Sanity(.Lifecycle, true)]
 func leakOnEveryPath()
 {
@@ -71,10 +70,55 @@ func leakThroughOwnerWithoutDrop()
 
 #test
 {
+    let context = Swag.getContext()
+    var heap    = RetainedHeap{base: context.allocator!}
+    context.allocator = &heap
+    defer context.allocator = heap.base
+
     leakOnEveryPath()
+    Swag.assert(heap.count == 1)
+    Swag.assert(heap.frees == 0)
+    Swag.assert(heap.liveCount() == 1)
+}
+
+#test
+{
+    let context = Swag.getContext()
+    var heap    = RetainedHeap{base: context.allocator!}
+    context.allocator = &heap
+    defer context.allocator = heap.base
+
     leakOnOnePath(opaqueBool(false))
+    leakOnOnePath(opaqueBool(true))
+    Swag.assert(heap.count == 2)
+    Swag.assert(heap.frees == 1)
+    Swag.assert(heap.liveCount() == 1)
+}
+
+#test
+{
+    let context = Swag.getContext()
+    var heap    = RetainedHeap{base: context.allocator!}
+    context.allocator = &heap
+    defer context.allocator = heap.base
+
     leakByOverwrite()
+    Swag.assert(heap.count == 2)
+    Swag.assert(heap.frees == 1)
+    Swag.assert(heap.liveCount() == 1)
+}
+
+#test
+{
+    let context = Swag.getContext()
+    var heap    = RetainedHeap{base: context.allocator!}
+    context.allocator = &heap
+    defer context.allocator = heap.base
+
     leakThroughOwnerWithoutDrop()
+    Swag.assert(heap.count == 1)
+    Swag.assert(heap.frees == 0)
+    Swag.assert(heap.liveCount() == 1)
 }
 
 // --- Sound ---
@@ -122,7 +166,19 @@ func ownerReleasesOnDrop()->s32
 
 #test
 {
-    Swag.assert(releasedOnEveryPath(opaqueBool(false)) == 1)
-    Swag.assert(releasedOnEveryPath(opaqueBool(true)) == 0)
-    Swag.assert(ownerReleasesOnDrop() == 5)
+    let context = Swag.getContext()
+    var heap    = RetainedHeap{base: context.allocator!}
+    context.allocator = &heap
+    defer context.allocator = heap.base
+
+    let normal  = releasedOnEveryPath(opaqueBool(false))
+    let early   = releasedOnEveryPath(opaqueBool(true))
+    let dropped = ownerReleasesOnDrop()
+    Swag.assert(normal == 1)
+    Swag.assert(early == 0)
+    Swag.assert(dropped == 5)
+    Swag.assert(heap.count == 3)
+    Swag.assert(heap.frees == 3)
+    Swag.assert(heap.liveCount() == 0)
+    Swag.assert(heap.duplicates == 0)
 }

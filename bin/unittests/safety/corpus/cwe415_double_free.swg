@@ -112,30 +112,41 @@ struct OwnerHolder
 
 // --- Known misses ---
 
-// GAP compiler.safety.004 - the same fault without 'opDrop': a plain struct carrying a
+// GAP compiler.safety.020 - the same fault without 'opDrop': a plain struct carrying a
 // pointer, released through a helper, copied in between. Nothing marks the type as an owner,
-// so no ownership rule can see the second one; this is the half a runtime net is for.
-//
-// struct Handle { pointer: *s32? }
-//
-// #[Swag.Sanity(.Lifecycle, true)]
-// func releaseHandle(handle: *Handle)
-// {
-//     if handle.pointer != null
-//     {
-//         heapFree(handle.pointer!, 4)
-//         handle.pointer = null
-//     }
-// }
-//
-// #test
-// {
-//     var first: Handle
-//     first.pointer = cast(*s32) heapAlloc(4)
-//     var second = first
-//     releaseHandle(&first)
-//     releaseHandle(&second)     // expected: the same block, released twice
-// }
+// and the caller has no field-release summary. The retaining allocator makes the second
+// release observable without handing it to the real allocator.
+struct Handle { pointer: *s32? }
+
+#[Swag.Sanity(.Lifecycle, true)]
+func releaseHandle(handle: *Handle)
+{
+    if handle.pointer != null
+    {
+        heapFree(handle.pointer, 4)
+        handle.pointer = null
+    }
+}
+
+#test
+{
+    let context = Swag.getContext()
+    var heap    = RetainedHeap{base: context.allocator!}
+    context.allocator = &heap
+    defer context.allocator = heap.base
+
+    var first: Handle
+    first.pointer = cast(*s32) heapAlloc(4)
+    var second = first
+    releaseHandle(&first)
+    releaseHandle(&second)
+    Swag.assert(first.pointer == null)
+    Swag.assert(second.pointer == null)
+    Swag.assert(heap.count == 1)
+    Swag.assert(heap.frees == 2)
+    Swag.assert(heap.duplicates == 1)
+    Swag.assert(heap.liveCount() == 0)
+}
 
 // --- Sound ---
 
@@ -161,6 +172,33 @@ func freeReallocateFree()
 
 #test
 {
+    let context = Swag.getContext()
+    var heap    = RetainedHeap{base: context.allocator!}
+    context.allocator = &heap
+    defer context.allocator = heap.base
+
     freeTwoBlocks()
     freeReallocateFree()
+    Swag.assert(heap.count == 4)
+    Swag.assert(heap.frees == 4)
+    Swag.assert(heap.duplicates == 0)
+    Swag.assert(heap.liveCount() == 0)
+}
+
+// Resetting one handle makes a repeated call harmless; copying it created the fault above.
+#test
+{
+    let context = Swag.getContext()
+    var heap    = RetainedHeap{base: context.allocator!}
+    context.allocator = &heap
+    defer context.allocator = heap.base
+
+    var handle: Handle
+    handle.pointer = cast(*s32) heapAlloc(4)
+    releaseHandle(&handle)
+    releaseHandle(&handle)
+    Swag.assert(heap.count == 1)
+    Swag.assert(heap.frees == 1)
+    Swag.assert(heap.duplicates == 0)
+    Swag.assert(heap.liveCount() == 0)
 }

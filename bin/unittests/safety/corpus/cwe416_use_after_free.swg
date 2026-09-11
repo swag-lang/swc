@@ -275,23 +275,98 @@ func readTableElementAfterFree()->s32
     discard readTableElementAfterFree()
 }
 
-// BY DESIGN - an object is named by where its own pointer lives, which is one level:
-// a frame slot, or a register the function defines once. A field reached through
-// another object's field ('outer.next.data') has no such name, so releasing it and
-// reading it again is a miss. Widening the name to a chain would have to invalidate
-// every prefix of it, and each level added is another way to name the wrong object.
-//
-// #[Swag.Sanity(.Lifecycle, true)]
-// func readNestedFieldAfterFree()->s32
-// {
-//     let outer = cast(*Owner) heapAlloc(16)
-//     outer.child = cast(*Owner) heapAlloc(16)
-//     outer.child!.buffer = cast(*s32) heapAlloc(4)
-//     heapFree(outer.child!.buffer!, 4)
-//     return outer.child!.buffer![]     // expected: use of released memory
-// }
+// --- Known misses ---
 
-// --- Sound: documented misses that must stay silent ---
+// BY DESIGN - an object is named by one storage slot, not an arbitrary chain of fields.
+// A retaining heap makes this documented miss executable without a real stale heap read.
+struct NestedOwner { child: *Owner? }
+
+#[Swag.Sanity(.Lifecycle, true)]
+func readNestedFieldAfterFree()->s32
+{
+    let outer = cast(*NestedOwner) heapAlloc(#sizeof(NestedOwner))
+    outer.child          = cast(*Owner) heapAlloc(#sizeof(Owner))
+    outer.child.buffer   = cast(*s32) heapAlloc(4)
+    outer.child.buffer[] = 11
+    heapFree(outer.child.buffer, 4)
+    return outer.child.buffer[]
+}
+
+#test
+{
+    let context = Swag.getContext()
+    var heap    = RetainedHeap{base: context.allocator!}
+    context.allocator = &heap
+    defer context.allocator = heap.base
+
+    let value = readNestedFieldAfterFree()
+    Swag.assert(value == 11)
+    Swag.assert(heap.count == 3)
+    Swag.assert(heap.frees == 1)
+    Swag.assert(heap.liveCount() == 2)
+    Swag.assert(heap.duplicates == 0)
+}
+
+// GAP compiler.safety.018 - a release on one path only cannot be proven. Retaining the
+// allocation lets the corpus exercise BOTH paths, including the stale read, without
+// accessing physically freed storage. This pins a limitation, not a static guarantee.
+#[Swag.Sanity(.Lifecycle, true)]
+func conditionalFree(release: bool)->s32
+{
+    let pointer = cast(*s32) heapAlloc(4)
+    pointer[] = 3
+    if release do
+        heapFree(pointer, 4)
+    return pointer[]
+}
+
+#test
+{
+    let context = Swag.getContext()
+    var heap    = RetainedHeap{base: context.allocator!}
+    context.allocator = &heap
+    defer context.allocator = heap.base
+
+    let kept     = conditionalFree(opaqueBool(false))
+    let released = conditionalFree(opaqueBool(true))
+    Swag.assert(kept == 3)
+    Swag.assert(released == 3)
+    Swag.assert(heap.count == 2)
+    Swag.assert(heap.frees == 1)
+    Swag.assert(heap.liveCount() == 1)
+    Swag.assert(heap.duplicates == 0)
+}
+
+// --- Sound ---
+
+#[Swag.Sanity(.Lifecycle, true)]
+func readNestedFieldBeforeFree()->s32
+{
+    let outer = cast(*NestedOwner) heapAlloc(#sizeof(NestedOwner))
+    outer.child          = cast(*Owner) heapAlloc(#sizeof(Owner))
+    outer.child.buffer   = cast(*s32) heapAlloc(4)
+    outer.child.buffer[] = 11
+    let value = outer.child.buffer[]
+    heapFree(outer.child.buffer, 4)
+    heapFree(outer.child, #sizeof(Owner))
+    heapFree(outer, #sizeof(NestedOwner))
+    return value
+}
+
+#test
+{
+    let context = Swag.getContext()
+    var heap    = RetainedHeap{base: context.allocator!}
+    context.allocator = &heap
+    defer context.allocator = heap.base
+
+    let value = readNestedFieldBeforeFree()
+    Swag.assert(value == 11)
+    Swag.assert(heap.count == 3)
+    Swag.assert(heap.frees == 3)
+    Swag.assert(heap.liveCount() == 0)
+    Swag.assert(heap.duplicates == 0)
+}
 
 // Handing the pointer's own storage to a callee ends the proof: the callee can reassign it,
 // and it does. Nothing may be reported at the read.
@@ -324,17 +399,6 @@ func reassignedAfterFree()->s32
     let value = pointer[]
     heapFree(pointer, 4)
     return value
-}
-
-// A release on one path only cannot be proven, so nothing is reported.
-#[Swag.Sanity(.Lifecycle, true)]
-func conditionalFree(release: bool)->s32
-{
-    let pointer = cast(*s32) heapAlloc(4)
-    pointer[] = 3
-    if release do
-        heapFree(pointer, 4)
-    return pointer[]
 }
 
 // Reassigning the field is what correct code does, and the release says nothing after it.
@@ -372,5 +436,4 @@ func readOtherTableElement()->s32
     Swag.assert(readOtherTableElement() == 5)
     Swag.assert(readAfterFreeThroughEscapedSlot() == 9)
     Swag.assert(reassignedAfterFree() == 7)
-    Swag.assert(conditionalFree(opaqueBool(false)) == 3)
 }

@@ -29,16 +29,36 @@ A case Swag does not catch, and should, stays in the file. It is commented out, 
 really do corrupt memory, and one of them takes the compiler's own heap with it.
 
 ```
-grep -rn "GAP " bin/unittests/safety/corpus
+rg -n "GAP " bin/unittests/safety/corpus
 ```
 
-is the current scorecard. A gap disappears by being uncommented, not by being deleted. Two
+is the current scorecard. Closing a gap adds an expected-diagnostic regression; it never deletes
+the reproducer. A live probe marked `GAP` still describes a missing guarantee. Two
 other markers exist and are deliberately not gaps: `NO GAP` records that the class has no Swag
 form at all, and `BY DESIGN` records a documented miss with a stated reason.
 
-A few gaps are left **live** instead, when the fault is a wrong value rather than a memory
-fault — a leak, a forged enum value, a switch that silently falls through. Those pin today's
-behavior with an assertion, so the change shows up as a test failure when the rule lands.
+Some gaps are **live probes**: a forged enum value, a switch that falls through, or an
+explicit pointer reinterpretation whose address is compared without dereferencing it. Those
+pin today's behavior with an assertion, so a new diagnostic makes the case fail and asks for
+promotion to an expected-error test.
+
+`Corpus.RetainedHeap` also lets known allocation-lifetime misses execute. It wraps the current
+allocator, records logical releases, and keeps each physical block until the probe leaves its
+scope. CWE-401 checks the exact live-block count on every leak path; CWE-415 counts the second
+release of a copied handle; CWE-416 exercises both conditional-release paths and nested fields. Sound counterparts
+must leave no logical leaks or duplicate releases. Restore the context allocator with `defer`
+before the retaining heap drops. A passing probe records an analysis limitation: it does not
+claim that the real allocator detects the fault, or that reading freed memory is safe.
+
+## Running the corpus
+
+```text
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm safety -bc devmode --file-filter corpus --num-cores 6
+```
+
+The corpus shares `helpers.swg`, so a filename-only filter would discard required declarations.
+The `corpus` filter keeps those helpers and excludes the other safety fixtures. No compiler
+rebuild or broader consumer campaign is needed for a corpus-only change.
 
 ## Where each class stands
 
@@ -59,7 +79,8 @@ behavior with an assertion, so the change shows up as a test failure when the ru
 | 843 | Type confusion, dynamic half (`any`) | **Guarded** |
 | 672 | Use after move | Proven, plus runtime poison for what it misses |
 | 415, 416 | Double free, use after free | **Proven** through the storage a program actually keeps a pointer in — a parameter, an element of a local table, a field of a local, a field of an OBJECT, a copy into another local — across casts, wrappers and an ordinary call, at the return that would hand a released pointer to the caller, and through ownership: a type declaring `opDrop` states no copy. A release on one path only, and storage a callee could re-establish, are must-analysis misses by design |
-| 843 | Type confusion, static half (pointer cast, union) | **Not judged** — compiler.safety.006 |
+| 843 | Direct cast between unrelated structs | **Rejected** at the cast; related pointers remain accepted |
+| 843 | Reinterpretation through `*void`, inactive union member | **Not judged** — compiler.safety.006 |
 | 122, 124, 787, 806, 823 | Faults through `[*] T` and the raw intrinsics | **Not judged** — compiler.safety.006 |
 | 704 | Integer to enum | **Not judged** — compiler.safety.010 |
 | 478 | Non-exhaustive switch | **Not judged** — language.design.001 |

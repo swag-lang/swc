@@ -63,3 +63,63 @@ func heapFree(ptr: *void, size: u64)
     let itf = Swag.getContext().allocator!
     itf.free(&req)
 }
+
+// Retain physical storage until the probe ends. Known static misses can then execute
+// their release paths without a leak or a second real free in the compiler's heap.
+// Logical releases remain observable, including a second release of the same block.
+struct RetainedHeap
+{
+    late base:  IAllocator
+    requests:   [4] AllocatorRequest
+    released:   [4] bool
+    count:      u64
+    frees:      u64
+    duplicates: u64
+}
+
+impl RetainedHeap
+{
+    mtd const liveCount()->u64
+    {
+        var result = 0'u64
+        for index in .count
+        {
+            if not .released[index] do result += 1
+        }
+        return result
+    }
+
+    mtd opDrop()
+    {
+        for index in .count do .base.free(&.requests[index])
+    }
+}
+
+impl IAllocator for RetainedHeap
+{
+    mtd impl alloc(request: *AllocatorRequest)
+    {
+        Swag.assert(.count < .requests.count)
+        .base.alloc(request)
+        .requests[.count] = request[]
+        .count += 1
+    }
+
+    mtd impl free(request: *AllocatorRequest)
+    {
+        for index in .count
+        {
+            if .requests[index].address != request.address do continue
+            .frees += 1
+            if .released[index] do .duplicates += 1
+            .released[index] = true
+            return
+        }
+        Swag.assert(false)
+    }
+
+    // These probes exercise alloc/free only. An unexpected operation must fail the test.
+    mtd impl realloc(request: *AllocatorRequest) { discard request; Swag.assert(false) }
+    mtd impl freeAll(request: *AllocatorRequest) { discard request; Swag.assert(false) }
+    mtd impl assertAllocated(request: *AllocatorRequest) { discard request; Swag.assert(false) }
+}

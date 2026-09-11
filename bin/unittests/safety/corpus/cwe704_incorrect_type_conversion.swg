@@ -61,22 +61,30 @@ func rankForgedValue(colour: Colour)->s32
     Swag.assert(rankForgedValue(forged) == -1)
 }
 
-// GAP compiler.safety.010 - the same forged value reaching a
-// 'switch #complete'. With '.Switch' on it panics; with the guard off it matches no arm and
-// walks past the switch, which is the deliberate design: '#complete' is the promise that
-// makes the dispatch branch-free. What is missing is the rule that stops the forged value
-// existing. Left commented because the outcome depends on the configuration, and a corpus
-// case that means two things measures neither.
-//
-// func rankComplete(colour: Colour)->s32
-// {
-//     switch #complete colour
-//     {
-//     case .Red:   return 1
-//     case .Green: return 2
-//     case .Blue:  return 3
-//     }
-// }
+// The conversion remains unchecked, but an explicitly guarded complete switch rejects
+// its result at dispatch. Naming the guard makes this case independent of the preset.
+#[Swag.Safety(.Switch, true)]
+func rankComplete(colour: Colour)->s32
+{
+    switch #complete colour     // swc-expected-error {{safety_err_runtime}}
+    {
+    case .Red:   return 1
+    case .Green: return 2
+    case .Blue:  return 3
+    }
+}
+
+#test
+{
+    #run rankComplete(forgeEnumValue(opaqueS32(99)))
+}
+
+#test
+{
+    Swag.assert(rankComplete(forgeEnumValue(opaqueS32(0))) == 1)
+    Swag.assert(rankComplete(forgeEnumValue(opaqueS32(1))) == 2)
+    Swag.assert(rankComplete(forgeEnumValue(opaqueS32(2))) == 3)
+}
 
 // --- Sound ---
 

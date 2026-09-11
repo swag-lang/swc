@@ -33,6 +33,35 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
+### std.gui.042 — Text outside a framed field is still centered on its line box, so its height follows the face
+
+- Recorded: 2026-08-07 19:13
+- Updated: 2026-09-11 22:39 — Include the shipped optical centering of popup-list rows.
+- Area: std/gui
+- Found while: fixing the vertical alignment of the Swag Vault container-file field, which is set in
+  the fixed-width theme family and read as riding high inside its own box.
+- Observation: a single line was centered by putting its *line box* on the middle of the rectangle,
+  which hands the placement to the internal leading of the face. Measured on the shipped theme:
+  Segoe UI at 13 has `ascent 14.03, descent -3.27, capHeight 9.11`, so its capitals sit 0.83
+  logical pixels below the middle of its line box; the fixed family at 14 has
+  `ascent 10.40, descent -3.60, capHeight 8.94` and sits 1.07 above. Two fields of one form set in
+  the two families therefore put their words 1.9 pixels apart, and neither on the middle of the
+  frame the reader compares them against. `EditBox`, `ComboBox` and `PopupListCtrl` now center on the capitals
+  through `StringVertAlignment.OpticalCenter`; other labels and menu rows still center on the line box.
+- Evidence: `Pixel.Font.opticalLineTop` and the `OpticalCenter` case in
+  [drawstring.swg](../bin/std/modules/pixel/src/painter/drawstring.swg). Before the fix, in
+  `bin/apps/modules/swagvault/src/tests/goldens/surface.png`: the "256" digits of the capacity
+  field spanned rows 352..360 in a box spanning 342..373, one pixel above its middle, while the
+  password placeholder below it sat exactly on the middle of its own box.
+- Next step: decide whether the rest of the toolkit follows. A label, a menu entry and a list row
+  are read against their neighbours rather than against a frame, and they all share the interface
+  family, so line-box centering is consistent among them today — the defect only shows where a
+  frame is drawn or where two families meet. If it does follow, `Gui.opticalTop` degenerates to a
+  plain centering and its twenty-odd call sites go with it, and every golden holding text moves by
+  the offset of its face; that is the whole cost, and it is why the existing change is limited to the framed fields and
+  popup-list rows. Pin the decision with a headless test that puts one field of each
+  family side by side and asserts their capitals share a center.
+
 ### std.gui.056 — Confirm large-surface input latency during a physical border drag
 
 - Recorded: 2026-09-09 06:35
@@ -252,35 +281,6 @@ preview. Validate requested settings against the capabilities supplied by platfo
   given. The second keeps the drawn size and is the smaller change, but it needs the inset to come
   from the theme rather than from a constant in the widget — `ThemeImageRect` is where the atlas
   already describes itself.
-
-### std.gui.042 — Text outside a framed field is still centered on its line box, so its height follows the face
-
-- Recorded: 2026-08-07 19:13
-- Updated: 2026-09-04 23:01 — git: Refresh what the backlog and the changelog claim
-- Area: std/gui
-- Found while: fixing the vertical alignment of the Swag Vault container-file field, which is set in
-  the fixed-width theme family and read as riding high inside its own box.
-- Observation: a single line was centered by putting its *line box* on the middle of the rectangle,
-  which hands the placement to the internal leading of the face. Measured on the shipped theme:
-  Segoe UI at 13 has `ascent 14.03, descent -3.27, capHeight 9.11`, so its capitals sit 0.83
-  logical pixels below the middle of its line box; the fixed family at 14 has
-  `ascent 10.40, descent -3.60, capHeight 8.94` and sits 1.07 above. Two fields of one form set in
-  the two families therefore put their words 1.9 pixels apart, and neither on the middle of the
-  frame the reader compares them against. `EditBox` and `ComboBox` now center on the capitals
-  through `StringVertAlignment.OpticalCenter`; every other widget still centers on the line box.
-- Evidence: `Pixel.Font.opticalLineTop` and the `OpticalCenter` case in
-  [drawstring.swg](../bin/std/modules/pixel/src/painter/drawstring.swg). Before the fix, in
-  `bin/apps/modules/swagvault/src/tests/goldens/surface.png`: the "256" digits of the capacity
-  field spanned rows 352..360 in a box spanning 342..373, one pixel above its middle, while the
-  password placeholder below it sat exactly on the middle of its own box.
-- Next step: decide whether the rest of the toolkit follows. A label, a menu entry and a list row
-  are read against their neighbours rather than against a frame, and they all share the interface
-  family, so line-box centering is consistent among them today — the defect only shows where a
-  frame is drawn or where two families meet. If it does follow, `Gui.opticalTop` degenerates to a
-  plain centering and its twenty-odd call sites go with it, and every golden holding text moves by
-  the offset of its face; that is the whole cost, and it is why the change stopped at the two
-  widgets that draw a frame. Pin the decision with a headless test that puts one field of each
-  family side by side and asserts their capitals share a center.
 
 ### std.gui.001 — Clipboard data cannot represent virtual files
 

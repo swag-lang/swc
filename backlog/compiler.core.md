@@ -6,6 +6,38 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.041 — Reduce parallel dependency registration to a workspace-suite witness
+
+- Recorded: 2026-09-11 23:34
+- Evidence: the 2026-09-11 workspace build stopped inside `std::set::insert` reached from
+  `semaCompilerInclude`. `NativeArtifact_ConcurrentCompilerInputsKeepEveryDependency` now forces
+  six simultaneous writers and checks all included files, loaded files, and deduplicated imports;
+  registration and snapshots share a mutex. That C++ boundary is covered, but the language suites
+  cannot yet force the failing interleaving. A reduction with 256 independent source files and
+  16,384 `#include` expressions over 256 byte fixtures passed both standalone semantic analysis
+  and a workspace build with the unfixed Release 0.1.477 compiler; its manifest retained every
+  fixture. Keeping that reduction as a regression would not distinguish the defect.
+- Next: find a bounded source-level ordering or a workspace-test scheduling hook that exposes
+  missing or corrupted dependency registration without depending on a large GUI module build.
+  Keep the existing C++ concurrency test as the precise internal guard.
+- Complete when: a `bin/unittests/workspace` case fails with unsynchronized registration, passes
+  with synchronized registration under both compiler executables with six workers, and verifies
+  dependency retention and subsequent invalidation without an intermittent timeout as its oracle.
+
+### compiler.core.040 — Select microcode output without a source attribute
+
+- Recorded: 2026-09-11 22:14
+- Evidence: moved from the compiler portion of app.prism.004. `CodeGen::startFunction` installs
+  only `symbolFunc.attributes().printMicroPassOptions` before recording the fully scoped name;
+  the command-line parser has no symbol/stage selector. Inspecting a library function therefore
+  requires editing its attributes today.
+- Next: define a command-line symbol-pattern and stage selector, including matching and diagnostics,
+  then combine its selected stages with the function's own print options in code generation.
+- Complete when: an unedited library function can emit selected stages, attribute requests retain
+  their behavior, unmatched and ambiguous requests have a stated contract, and help and focused
+  command tests describe the selector. The proposed spelling is `--print-micro=<pattern>:<stage>`.
+- Related: app.prism.004, app.prism.002
+
 ### compiler.core.030 — Every executable lowers the runtime's functions again
 
 - Recorded: 2026-09-05 22:13
@@ -168,31 +200,6 @@ The reason is that a frame is trivially copyable in the parts that dominate its 
 - Complete when: the next invocation after either overlap uses the latest source, with a
   deterministic workspace regression test for any confirmed invalidation or publication bug.
 
-### compiler.core.036 — A misplaced 'mtd impl' is accepted and silently overrides nothing
-
-- Recorded: 2026-09-08 22:35
-- Found while: writing the timer handler of Swag Prism, which never ran. The three
-  `mtd impl` overrides of `MainWindow` sat in its plain `impl MainWindow` block instead of an
-  `impl IWnd for MainWindow` one. Nothing was reported, and the window waited forever on a
-  compilation whose result it could no longer collect.
-- Evidence: an isolated module with `interface ISpeak { mtd speak()->s32 }`, a `Base` that
-  implements it returning 1, and a `Derived` embedding it through `using base: Base` and
-  declaring `mtd impl speak()->s32 => 2` inside a plain `impl Derived`. It compiles with no
-  diagnostic. `let itf: ISpeak = &d; itf.speak()` returns 1, so the marked method overrode
-  nothing; `d.speak()` returns 2, so it is a plain method that only a direct call reaches. In
-  the same block, `mtd impl notAnInterfaceMethodAnywhere()->s32 => 3` — a name belonging to no
-  interface in the program — also compiles silently.
-- Why this costs so much: the two blocks look the same in a diff and read the same at a glance,
-  the mistake compiles clean, every direct call still works, and only virtual dispatch differs.
-  What it produces is not a wrong answer but an interface method that is never called, which
-  surfaces far from its cause — a window that stops responding, a state that is never persisted,
-  a language switch that changes nothing.
-- Next: decide which of the two readings `mtd impl` in a plain `impl` block should take. Either
-  it names an interface the type already implements and installs the override, which is what the
-  author meant in every case seen so far, or it is rejected. Either way, `mtd impl` naming a
-  method that belongs to no interface the type implements must be an error, and that check is
-  the smaller half: the name is already resolved when the marker is seen.
-
 ### compiler.core.035 — Bound native test recovery with outstanding borrowed tasks
 
 - Recorded: 2026-09-08 09:08
@@ -234,46 +241,6 @@ The reason is that a frame is trivially copyable in the parts that dominate its 
   emitted; test the driver boundary with an injected diagnostic-free failure and a declared main.
 - Complete when: that failure returns a nonzero exit status with an actionable report, and a
   declared main or selected test cannot silently disappear from a successful run.
-
-### compiler.core.034 — 'orelse' loses a strict interface alias when removing nullability
-
-- Recorded: 2026-09-07 21:16
-- Found during prompt 7 while testing nullable interface presence.
-- Evidence: with `interface IValue { mtd value()->u32 }` and
-  `#[Swag.Strict] alias Handle = IValue`, the function
-  `func choose(value: Handle?, fallback: Handle)->Handle { return value orelse fallback }`
-  reports `cannot cast from 'Handle' to 'IValue'` on `fallback`. The reduced standalone source
-  fails under checkout-local `swc.dm.exe sema --file <source> --num-cores 6`, build 0.1.399.
-  Ordinary nullable-interface coalescing works; strict-alias boolean presence and equality also work.
-- Source lead: `resolveNullCoalescingResultType` in
-  [Sema.Conditional.cpp](../src/Compiler/Sema/Ast/Sema.Conditional.cpp) unwraps the alias before
-  removing `Nullable`, and only restores the alias when the concrete type did not change.
-  Existing `strictHandleFallback` coverage keeps the fallback nullable, so that concrete type
-  stays unchanged and does not exercise this narrowing case.
-- Next: specify how nullability changes preserve a strict alias, then cover nullable-to-required
-  coalescing for pointer and interface aliases, both branch outcomes, constants, and result types.
-  Check that any accepted implicit conversion changes only nullability, not the alias identity.
-- Complete when: these coalescing expressions retain the intended strict type and compile/run with
-  standalone sema and native regressions, or a deliberate restriction has a precise diagnostic.
-
-### compiler.core.033 — A closure cannot capture the parameter of the macro it is written in
-
-- Recorded: 2026-09-07 16:02
-- Found while: moving `Pixel.Image.visitPixels` and `visitVectorBytes` off `Core.Jobs` and onto a
-  closure passed to `Swag.parallelRange`.
-- Evidence: inside a `#[Swag.Macro]` function, `func|pixelUserData|(...)` on a parameter of that
-  macro reports `closure does not capture outer variable 'pixelUserData'` at every expansion, while
-  the same capture of an ordinary local of the macro body is accepted. The macro's parameters are
-  bound at the call site rather than materialized as locals, and the capture path looks for a
-  local. Binding the parameter to a local first -- `let opaque = pixelUserData` -- and capturing
-  that local compiles and runs, which is what both macros now do.
-- Next: decide whether a macro parameter is capturable at all. It is a caller expression bound by
-  name, so capturing it by value means capturing the bound value, and capturing it by address means
-  taking the address of the caller's own storage. Both are answerable; neither is answered today,
-  and the diagnostic describes a missing capture rather than the real restriction.
-- Complete when: either the capture is accepted with a stated meaning, or the diagnostic says that
-  a macro parameter is bound at the call site and names the local-binding workaround.
-- Related: language.parallelism.001
 
 ### compiler.core.024 — A JIT '#test' can silently compute a wrong value in a release run
 

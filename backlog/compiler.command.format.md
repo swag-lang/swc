@@ -19,8 +19,9 @@ an explicit opt-out (`--style preserve`) and a `style` key that rebases a config
 ([FormatStyle.cpp](../src/Format/FormatStyle.cpp)); a cascading `.swc-format` resolved from the
 file's directory upward with parent inheritance
 ([FormatOptionsLoader.cpp](../src/Format/FormatOptionsLoader.cpp)); `--dump-config`;
-`swc-format off`/`on` regions; thirteen passes over a token-and-AST model; and C++ tests over 243
-cases (source inventory checked on 2026-09-10).
+`swc-format off`/`on` regions; thirteen passes over a token-and-AST model; and 243 C++ test
+cases: 242 in `src/Unittest/Format` and one filesystem test in
+`src/Unittest/Compiler/Test.Compiler.CommandFormat.cpp` (source inventory checked on 2026-09-11).
 
 The wrapping contract is settled and written down at the top of
 [Pass.Wrap.cpp](../src/Format/Pass.Wrap.cpp): layout is decided locally, one construct and one

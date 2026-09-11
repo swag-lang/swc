@@ -80,27 +80,33 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ## Entries
 
-### std.gui.pdf.036 — One page is decoded at a time, and the eviction budget is an estimate
+### std.gui.pdf.036 — One worker serializes visible-page decoding
 
 - Recorded: 2026-09-07 20:45
-- Intent: `PdfPageCache` runs one worker with one `Pdf.Reader`, so a reader scrolling faster than
-  a page decodes walks over blank paper until the worker catches up, one page behind at a time.
-  A `Reader` is single-threaded, so a second decoder means a second reader on the same file, and
-  the cost of that — a second mapping, a second object index, a second font cache — has not been
-  measured against what it buys.
-- Evidence: the same walk also shows the eviction budget resting on an approximation.
-  `Pdf.Page.memoryUsage` reported 18 MB for the eight resident pages of
-  `llvm-polly-kernelgen-ncar-2012-slides.pdf` while evicting all eight freed 34 MB, so the
-  estimate is short by about half: it counts rasters and contour geometry and not what a page
-  holds beside them. The budget is set against the estimate, so it bounds twice what it says.
-- Next: measure a two-worker cache on the 90 MB corpus document against the current one, on the
-  time between a scroll step and the frame that shows the page it reached; separately, account
-  for the resolved faces and the tessellator's own storage in `memoryUsage` and re-measure the
-  gap.
-- Complete when: scrolling a document faster than one page per frame shows decoded pages within
-  a bounded number of frames, and the cache's reported memory is within a small factor of what
-  evicting it frees.
-- Related: std.gui.pdf.025, std.gui.pdf.027
+- Updated: 2026-09-11 22:34 — Separate decoding concurrency from resident-memory accounting.
+- Evidence: `PdfPageCache` owns one `Swag.Task`, one worker `Pdf.Reader` and one pending page.
+  Scrolling past a slow page leaves paper placeholders until that worker catches up. A Reader
+  is single-threaded; another worker needs its own mapping, object index and resource caches.
+- Next: compare a bounded two-worker cache with the current one on the recorded 90 MB corpus
+  document, measuring scroll-to-visible-page latency and the extra reader storage. Preserve
+  document-close and cancellation behavior while defining page priority and publication.
+- Complete when: the comparison establishes a bounded scheduling policy and improves visible-page
+  latency on the same fixture without unbounded queues or stale-page publication.
+- Related: std.gui.pdf.025, std.gui.pdf.029, std.gui.pdf.037
+
+### std.gui.pdf.037 — Resident-page memory accounting omits retained resources
+
+- Recorded: 2026-09-11 22:34
+- Evidence: split from std.gui.pdf.036. `PdfResidentPage.measure` records only
+  `page.memoryUsage()`. The resident entry also holds renderer textures, resolved fonts and a
+  lazily built text index. Item accounting includes text and path storage but cannot account for
+  those resident resources. The historical eight-page observation reported 18 MB while eviction
+  freed 34 MB; it is not a new measurement of this checkout.
+- Next: define which owned and shared allocations the budget covers, account for resident
+  resources without double-counting shared typefaces, and compare against measured eviction.
+- Complete when: decode, first paint, text indexing and zoom update the documented accounting,
+  evictions respect that budget, and a measured corpus comparison states the remaining error.
+- Related: std.gui.pdf.027, std.gui.pdf.028, std.gui.pdf.036
 
 ### std.gui.pdf.029 — A render cannot be cancelled or bounded in time
 

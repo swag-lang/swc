@@ -16,8 +16,10 @@ every allocation made while a diagnostic mode is on.
 The static review recorded on 2026-09-11 finds a modern small-allocation design, but no
 current evidence of parity with leading general-purpose allocators in performance consistency or
 hardening. This is the application runtime allocator; the C++ compiler already uses mimalloc
-through `src/Support/Memory/Allocator.cpp`. No new benchmark or executable reproducer was run for
-this review. Code-derived defects below require focused reproduction before implementation.
+through `src/Support/Memory/Allocator.cpp`. The subsequent health reset reproduced and fixed four allocation-contract defects;
+`native/runtime/allocator_contract.swg` covers those boundaries, and the 109 allocator cases
+pass in JIT and native execution under both program configurations. No new performance benchmark
+was run. Remaining code-derived leads require focused reproduction before implementation.
 
 There are 45 size classes from 8 bytes through 64 KiB. Classes use 64 KiB or 512 KiB pages inside
 4 MiB segments. Each thread heap has a current page per class, and cached local allocation/free
@@ -57,65 +59,44 @@ alone. Comparative reference points for that investigation:
 | [TCMalloc](https://google.github.io/tcmalloc/design.html) | Per-CPU caches, batched transfers and a hugepage-aware backend are useful architectural reference points. Its [per-CPU restartable sequences](https://google.github.io/tcmalloc/rseq.html) use Linux facilities, so this is not a direct Windows backend comparison. |
 | [Scudo](https://llvm.org/docs/ScudoHardenedAllocator.html) and [hardened_malloc](https://github.com/GrapheneOS/hardened_malloc) | Hardening reference points for state/integrity checks, metadata isolation, randomization and quarantine. Features differ by allocator and configuration; do not imply all protections are enabled by default or provide complete memory safety. |
 
-### runtime.allocator.012 — Preserve stronger alignment during in-place reallocation
+### runtime.allocator.010 — Decide what the security properties are, and write them down
 
-- Recorded: 2026-09-11 16:29
-- Evidence: static review of `bin/runtime/allocator.swg::reallocate`. The page fast return
-  accepts any alignment at most 16 when the new size fits the old class. A class-0 block is only
-  8-byte aligned; a valid address at 8 modulo 16 can be returned unchanged when realloc requests
-  alignment 16. Initial `allocate` promotes this case to class 1, but realloc does not.
-- Next: allocate adjacent class-0 blocks, select an address at 8 modulo 16, write a payload,
-  and reallocate it with size 8/alignment 16. Confirm the failure, then check the actual address
-  or the old class's alignment guarantee before taking the in-place branch.
-- Complete when: realloc preserves contents and satisfies every supported strengthened alignment,
-  with a regression for class 0 and coverage for unchanged/weaker alignment.
-- Related: runtime.allocator.005.
-
-### runtime.allocator.013 — Bound electric reallocation copies by readable payload storage
-
-- Recorded: 2026-09-11 16:29
-- Evidence: static review of `allocator.swg::allocateHeaderBlock/reallocate`. Electric allocation
-  keeps a size-class `blockSize`, but places the user address from the requested size and alignment.
-  Reallocation copies `min(oldBlockSize, newSize)` rather than the old logical payload length.
-- Concrete case to reproduce: allocate 129 bytes in electric mode at alignment 16. Its class is
-  160 bytes, but only 144 bytes lie between the returned pointer and the guard. Growing to 200
-  selects a 160-byte copy, reading 16 bytes from the inaccessible guard page. This is a code-derived
-  valid-operation failure, not an executed crash report.
-- Next: add a guarded native growth reproducer and derive copy length from the old allocation's
-  valid payload contract; audit page/header transitions and `AllocatorRequest.oldSize` consistently.
-- Complete when: electric realloc for non-class and non-alignment-multiple sizes preserves all
-  old payload bytes without reading a guard, with focused growth/shrink regression coverage.
-- Related: runtime.allocator.010, runtime.allocator.012.
-
-### runtime.allocator.014 — Reject overflowing allocation sizes independently of runtime guards
-
-- Recorded: 2026-09-11 16:29
-- Evidence: static review of `allocator.swg::allocateHeaderBlock/memAlign/osAllocGuarded`.
-  Prefix, alignment, payload, footer, commit rounding and the additional guard reservation use
-  unchecked additions. The Release preset disables runtime overflow guards, so huge requests
-  may wrap into a smaller allocation instead of failing cleanly. The bootstrap allocator already
-  checks its analogous additions explicitly.
-- Next: reproduce near-`U64.Max` requests with normal, over-aligned and electric allocation;
-  add explicit checked arithmetic and define valid alignment inputs. Verify that rejection leaves
-  an existing realloc payload and allocator bookkeeping intact, with an explicit failure contract.
-- Complete when: every size/rounding/guard calculation either produces sufficient storage or
-  reports allocation failure without wraparound or partial mutation in Release and DevMode.
-- Related: runtime.allocator.008, runtime.allocator.013.
-
-### runtime.allocator.015 — Release live untracked header allocations during freeAll
-
-- Recorded: 2026-09-11 16:29
-- Evidence: static review of `allocator.swg::allocateHeaderBlock/releaseAll`. Header blocks are
-  counted unconditionally, but enter `firstAlloc` only when `header.isTracked` is true.
-  `releaseAll` can walk tracked headers, quarantine and cached freed blocks, but cannot discover
-  still-live nontracked header blocks; it nevertheless clears `headerCount/headerBytes`.
-  This affects large or over-aligned ordinary allocations and diagnostic headers without tracking.
-- Next: reproduce `freeAll` with live page blocks and live untracked large/aligned headers,
-  checking actual OS commitment as well as the counters. Define bookkeeping that makes owned
-  allocations discoverable without requiring the expensive diagnostic tracking mode.
-- Complete when: `freeAll` reclaims all owned page/header allocations in the supported lifecycle,
-  and repeated teardown neither leaks nor underflows statistics, with tracking on and off.
-- Related: runtime.allocator.003, runtime.allocator.008.
+- Recorded: 2026-08-06 06:22
+- Updated: 2026-09-11 21:18 — Remove corrected documentation claims; retain the unproved hardening contracts.
+- Evidence: `allocator.pages.swg::encode/decode/acquireBlock/isBlockAddress` obfuscate links
+  with a per-page key and validate decoded block boundaries before allocation. Small live blocks
+  have no header/footer or exact requested-size record. These checks are useful corruption
+  detection, not complete spatial or temporal memory safety.
+- `allocator.swg::freeBlock` only compares a local free with the list head. With at least three
+  blocks of a class allocated, releasing A, then B, then A can pass that check and create a
+  free-list cycle while another block remains live. Remote publication has no equivalent
+  duplicate check. Reproduce through a harness that reaches the allocator rather than relying on
+  a statically obvious invalid source that the compiler may reject.
+- `assertIsAllocated` explicitly walks free lists, but ordinary free does not. A block-boundary
+  check alone does not prove current liveness; a stale address can name a reused slot, and a
+  corrupted link can name another valid block on the same page.
+- Electric placement rounds the starting address down for alignment. With alignment 16 and
+  size 129, the payload ends 15 bytes before the guard; a one-byte overflow remains accessible.
+  The allocator comments now describe this alignment slack accurately. Electric blocks have
+  no footer. Decide how alignment, exact-bound checking and guard placement
+  compose, and test non-multiple sizes explicitly.
+- `quarantine` never evicts in electric mode, so freed addresses are not reused before teardown,
+  but their payload stays committed/readable/writable. Retention can grow without a byte limit.
+  Stale-read interception is already owned by compiler.safety.004; retaining an address is not
+  interception. Ordinary page allocations also reuse memory without stale-access instrumentation.
+- `fillFree` writes a pattern, but `checkFree` checks only header/footer magic. It does not scan
+  the freed payload for later writes; the allocator comments now state that boundary. `fillMemory` alone does not enable diagnostic mode or quarantine.
+- Elsewhere: mimalloc secure mode adds protections such as randomized allocation and encoded
+  lists; Scudo checks allocation state/header integrity; hardened_malloc offers isolated metadata,
+  canaries, randomization and quarantine according to configuration. Swag's current checks do not
+  establish comparable hardening. See the primary sources in this file's introduction.
+- Next: reproduce nonconsecutive local and remote double frees, aligned guard slack and
+  write-after-free inside the payload; choose the supported guarantees and implement the
+  necessary checks. Make comments and public documentation distinguish detection, mitigation,
+  optional diagnostics and unsupported cases. Measure their cost separately from normal Release.
+- Complete when: every claimed guarantee has a focused regression and accurate documentation,
+  with explicit limits for reuse, alignment slack, quarantine lifetime and payload checking.
+- Related: compiler.safety.004, runtime.allocator.001.
 
 ### runtime.allocator.016 — Avoid repeated scans of full pages during live-set growth
 
@@ -297,46 +278,6 @@ alone. Comparative reference points for that investigation:
 - Complete when: a trace-backed decision covers both internal fragmentation and per-thread
   page retention, including very small and aligned allocations.
 - Related: runtime.allocator.001, runtime.allocator.003, runtime.allocator.005.
-
-### runtime.allocator.010 — Decide what the security properties are, and write them down
-
-- Recorded: 2026-08-06 06:22
-- Updated: 2026-09-11 16:29 — Correct the electric and fill guarantees and record double-free gaps.
-- Evidence: `allocator.pages.swg::encode/decode/acquireBlock/isBlockAddress` obfuscate links
-  with a per-page key and validate decoded block boundaries before allocation. Small live blocks
-  have no header/footer or exact requested-size record. These checks are useful corruption
-  detection, not complete spatial or temporal memory safety.
-- `allocator.swg::freeBlock` only compares a local free with the list head. With at least three
-  blocks of a class allocated, releasing A, then B, then A can pass that check and create a
-  free-list cycle while another block remains live. Remote publication has no equivalent
-  duplicate check. Reproduce through a harness that reaches the allocator rather than relying on
-  a statically obvious invalid source that the compiler may reject.
-- `assertIsAllocated` explicitly walks free lists, but ordinary free does not. A block-boundary
-  check alone does not prove current liveness; a stale address can name a reused slot, and a
-  corrupted link can name another valid block on the same page.
-- Electric placement rounds the starting address down for alignment. With alignment 16 and
-  size 129, the payload ends 15 bytes before the guard; a one-byte overflow remains accessible.
-  Thus the comments promising that every payload ends flush against a guard are too strong.
-  Electric blocks have no footer. Decide how alignment, exact-bound checking and guard placement
-  compose, and test non-multiple sizes explicitly.
-- `quarantine` never evicts in electric mode, so freed addresses are not reused before teardown,
-  but their payload stays committed/readable/writable. Retention can grow without a byte limit.
-  Stale-read interception is already owned by compiler.safety.004; retaining an address is not
-  interception. Ordinary page allocations also reuse memory without stale-access instrumentation.
-- `fillFree` writes a pattern, but `checkFree` checks only header/footer magic. It does not scan
-  the freed payload for later writes, despite the allocator field comment and earlier backlog
-  wording. `fillMemory` alone does not enable diagnostic mode or quarantine.
-- Elsewhere: mimalloc secure mode adds protections such as randomized allocation and encoded
-  lists; Scudo checks allocation state/header integrity; hardened_malloc offers isolated metadata,
-  canaries, randomization and quarantine according to configuration. Swag's current checks do not
-  establish comparable hardening. See the primary sources in this file's introduction.
-- Next: reproduce nonconsecutive local and remote double frees, aligned guard slack and
-  write-after-free inside the payload; choose the supported guarantees and implement the
-  necessary checks. Make comments and public documentation distinguish detection, mitigation,
-  optional diagnostics and unsupported cases. Measure their cost separately from normal Release.
-- Complete when: every claimed guarantee has a focused regression and accurate documentation,
-  with explicit limits for reuse, alignment slack, quarantine lifetime and payload checking.
-- Related: compiler.safety.004, runtime.allocator.001, runtime.allocator.013.
 
 ### runtime.allocator.011 — Audit error storage ownership and reclamation
 

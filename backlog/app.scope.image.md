@@ -7,6 +7,40 @@ PSD layers, texture subresources, and OpenEXR parts. This backlog owns professio
 missing codec and pixel-format work remains in [std.pixel.image.md](std.pixel.image.md), while
 render primitives remain in [std.pixel.md](std.pixel.md).
 
+### app.scope.image.011 — Apply encoded image orientation exactly once
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-11 22:34 — Separate orientation normalization from ICC and XMP inspection.
+- Evidence: `loadImageViewerContent` decodes the movie and reports EXIF properties through
+  `MediaInfoData.addImageMetadata`, but does not normalize the encoded orientation. Temporary
+  rotate/mirror commands operate on the view independently.
+- Next: expose a normalized source orientation and apply it exactly once during loading,
+  preserving the authored metadata and the coordinate mapping owned by app.scope.image.004.
+- Complete when: all eight EXIF orientations display correctly without double rotation, reset
+  returns to the oriented source, and metadata still identifies the encoded value.
+- Related: app.scope.image.004, app.scope.image.013, app.scope.image.014
+
+### app.scope.image.013 — Embedded ICC profiles have no readable identity
+
+- Recorded: 2026-09-11 22:34
+- Evidence: split from app.scope.image.011. `MediaInfoData.addImageMetadata` interprets EXIF
+  and PNG text; ICC records receive only an opaque byte-count description.
+- Next: expose bounded profile identity and descriptive fields, distinguishing embedded data
+  from the display conversion that app.scope.image.003 owns.
+- Complete when: supported profile names and source color-space identities are visible,
+  malformed profiles report their limitation, and inspection does not imply an applied conversion.
+- Related: app.scope.image.003, std.pixel.image.019
+
+### app.scope.image.014 — XMP image properties remain opaque
+
+- Recorded: 2026-09-11 22:34
+- Evidence: split from app.scope.image.011. The metadata panel does not interpret image XMP
+  packets; the separate InDesign preview reader does not provide an image metadata contract.
+- Next: parse a bounded set of XMP descriptive properties with namespace-aware field identity,
+  preserving unrecognized packets and source provenance.
+- Complete when: supported XMP fields are readable and copyable, conflicting EXIF/XMP values
+  remain distinguishable, and malformed or oversized packets fail within explicit limits.
+
 ### app.scope.image.007 — Animated images have no frame-step, speed, or disposal inspection
 
 - Recorded: 2026-08-29 08:36
@@ -86,18 +120,6 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 - Complete when: the embedded preview of the common TIFF-based RAW containers is extracted and
   displayed, with the metadata panel from app.scope.image.011 beside it.
 - Related: app.scope.image.011
-
-### app.scope.image.011 — Orientation, ICC identity, and XMP remain incomplete
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-05 19:54 — git: toto
-- Evidence: the information panel shows preserved PNG text and interpreted JPEG EXIF fields.
-  Encoded orientation is reported but not applied; ICC records have only a byte count and XMP
-  properties are not interpreted.
-- Next: apply encoded orientation exactly once and expose ICC identity and readable XMP fields.
-- Complete when: EXIF orientation is applied on load and the panel identifies embedded profiles
-  and presents supported XMP properties.
-- Related: std.pixel.001, std.pixel.image.019
 
 ### app.scope.image.001 — The image has no pixel probe or measurement tools
 

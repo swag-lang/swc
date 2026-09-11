@@ -30,6 +30,33 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
+### language.parallelism.010 — Nothing detects a data race while the program runs
+
+- Recorded: 2026-09-08 20:14
+- Updated: 2026-09-11 22:31 — Name the current guarded configuration accurately.
+- Evidence: .005 states that a capture list is written rather than proved, and names the two cases
+  that still compile: two partitions writing the same element, and a captured pointer whose
+  pointee is mutated elsewhere. Neither is caught at run time either. The `devmode` configuration
+  checks allocation lifetime and bounds, and the sanity pass reasons inside one function's flow,
+  but no configuration records happens-before edges between threads. A race in a partitioned loop
+  therefore surfaces as an occasional wrong pixel or an intermittent crash somewhere unrelated,
+  which is the shape of several intermittent defects already recorded in this repository.
+- Next: choose the instrument before writing it. Only a checker that knows the runtime's own
+  synchronization points -- lock, unlock, atomic operation, submission, completion, join, and
+  partition boundary -- can see the edges this runtime creates, so the shadow state belongs
+  beside the scheduler rather than in a foreign tool. Scope it to one build configuration with a
+  stated slowdown budget, start from the accesses the compiler already instruments for bounds and
+  lifetime, and decide what it does with a foreign call, which is opaque to it for the same reason
+  it is opaque to compiler.safety.007.
+- Complete when: a test writing one element from two partitions fails deterministically in that
+  configuration, naming both accesses and the edge that is missing between them, and a correct
+  partitioned loop reports nothing.
+- Elsewhere: Go ships `-race`, C++ and Rust use ThreadSanitizer, and Rust adds `loom` for
+  exhaustive interleavings of a small structure. A language that claims checked memory access
+  without a dynamic detector claims it only as far as its static analysis reaches.
+- Related: language.parallelism.005, language.parallelism.007, compiler.safety.007,
+  compiler.safety.014
+
 ### language.parallelism.009 — Cancellation stops at one group and has no deadline
 
 - Recorded: 2026-09-08 20:14
@@ -294,32 +321,6 @@ of simplicity when every useful helper needs an unchecked contract.
   Until then the capture list states intent rather than proving race freedom.
 - Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
   language.parallelism.001.
-
-### language.parallelism.010 — Nothing detects a data race while the program runs
-
-- Recorded: 2026-09-08 20:14
-- Evidence: .005 states that a capture list is written rather than proved, and names the two cases
-  that still compile: two partitions writing the same element, and a captured pointer whose
-  pointee is mutated elsewhere. Neither is caught at run time either. The debug configuration
-  checks allocation lifetime and bounds, and the sanity pass reasons inside one function's flow,
-  but no configuration records happens-before edges between threads. A race in a partitioned loop
-  therefore surfaces as an occasional wrong pixel or an intermittent crash somewhere unrelated,
-  which is the shape of several intermittent defects already recorded in this repository.
-- Next: choose the instrument before writing it. Only a checker that knows the runtime's own
-  synchronization points -- lock, unlock, atomic operation, submission, completion, join, and
-  partition boundary -- can see the edges this runtime creates, so the shadow state belongs
-  beside the scheduler rather than in a foreign tool. Scope it to one build configuration with a
-  stated slowdown budget, start from the accesses the compiler already instruments for bounds and
-  lifetime, and decide what it does with a foreign call, which is opaque to it for the same reason
-  it is opaque to compiler.safety.007.
-- Complete when: a test writing one element from two partitions fails deterministically in that
-  configuration, naming both accesses and the edge that is missing between them, and a correct
-  partitioned loop reports nothing.
-- Elsewhere: Go ships `-race`, C++ and Rust use ThreadSanitizer, and Rust adds `loom` for
-  exhaustive interleavings of a small structure. A language that claims checked memory access
-  without a dynamic detector claims it only as far as its static analysis reaches.
-- Related: language.parallelism.005, language.parallelism.007, compiler.safety.007,
-  compiler.safety.014
 
 ### language.parallelism.008 — A parallel loop cannot combine per-partition results
 

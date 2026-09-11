@@ -15,6 +15,105 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
+
+- Recorded: 2026-09-05 22:13
+- Updated: 2026-09-11 22:17 — Use the current benchmark entry points for core and hello-world measurements.
+- Area: compiler/backend, compilation time
+- Found while: the compile-speed campaign, profiling `bench/compile.py core_rebuild` (std/core in
+  `devmode`, six worker cores, Release 0.1.367 with a PDB, a user-mode sampling profiler).
+- Observation: `runLoopPasses` is the largest single item of a full rebuild — 13.9 % of all
+  thread samples, about 40 % of the CPU actually spent (a third of the samples are workers
+  parked on the job queue) — and it is the largest item of a hello world build too (22 %) and of
+  `swc sema` on an empty file (14 %, the JIT lowering of the prelude's `#run`). Inside it the
+  SSA state is the cost: `MicroSsaState::build`, `ensureFor`, `renameBlock`, `reachingDef` and
+  `createPhi` add up to about 8.5 % of samples, more than any transform. `runPass` invalidates the
+  whole shared SSA state as soon as a pass reports `passChanged`, so every sweep of the fixed
+  point rebuilds it from scratch for the next pass that asks, however local the mutation was.
+  `devmode` is `O1`, "everything that does not cost compilation time", and this does.
+- Updated evidence (2026-09-06): external sampling of Release compiler 0.1.383 rebuilding a
+  private copy of tracked `bin/std` sources, six workers, still finds SSA construction prominent.
+  For `core` in `devmode`, 30 of 151 samples inside `JobManager::executeJob` include
+  `MicroSsaState::build`; in `release`, 25 of 131 do. The corresponding `CodeGenJob` counts are
+  110 and 99. These are inclusive stack counts, with each sample counted once per function;
+  they are attribution evidence, not independent percentages to add or unprofiled timings.
+  Repeated builds by the same baseline compiler also produce different raw PE `.text` hashes,
+  so a whole-section hash alone cannot establish whether an SSA change preserves code quality.
+- Updated evidence (2026-09-07): Release compiler 0.1.390, six workers, an isolated Pixel rebuild
+  gave 518 CPU-weighted external stack samples. SSA construction accounted for 22.15% of the
+  sampled CPU, renaming for 11.63%, and the entry-snapshot call in `renameBlock` for 5.82%.
+  The corresponding GUI-only profile attributed 12.94% to SSA construction. These are inclusive
+  shares, not costs to add together. Each block snapshots every active tracked register, and
+  each mutating pass can repeat the work. Reusing block scratch storage alone did not establish
+  a consistent speed/memory improvement and was removed; `repo.tooling.008` records that trial.
+- Next: trace rebuilds and mutating passes externally on GUI and Pixel to size the win, then keep the
+  SSA state valid across the mutations that preserve it — a deleted instruction, a renamed
+  operand, a folded constant — and rebuild only the blocks a pass touched otherwise. Measure `core_rebuild` with
+  `bench/compile.py --against`; `hello_build` belongs to the full `tools/bench.swgs` campaign,
+  which also checks generated code across the seven benchmark tasks.
+- Complete when: `core_rebuild` and `hello_build` move by the share the profile attributes to SSA
+  rebuilds, at identical generated code on the seven bench tasks, and the `native` suite is green.
+- Related: compiler.core.004, compiler.core.030.
+
+### compiler.optimization.006 — A hot loop's loop-carried locals all live in stack slots
+
+- Recorded: 2026-08-15 08:48
+- Updated: 2026-09-11 22:17 — Correct the experiment count and retain the current split-allocator rebaseline boundary.
+- Area: compiler/backend
+- Found while: making `Compress.Inflate` fast. The library side of that is done and shipped —
+  the block loop keeps its cursors in locals and refills branchlessly, and it went from 62 MB/s
+  to 119 MB/s. What this entry keeps is the part no source shape could reach: the same algorithm
+  written line by line in C and compiled by clang-cl `/O2` runs at 191 MB/s, so 1.6x is left and
+  all of it is in the emitted code.
+- Observation: `#[Swag.PrintMicro("post-emit")]` on the block loop against clang's assembly for
+  that C transcription. **Every loop-carried local is a stack slot.** The bit buffer, the bit
+  count, the source cursor, the output cursor and the decoded symbol are each loaded and stored
+  on every symbol; a table entry read once in the source is stored to a stack temporary and
+  re-loaded twice. In the literal fast path — ten live scalars, fifteen usable registers — that
+  is 31 stack loads and 8 stack stores against clang's zero. The prologue also materializes ~25
+  field addresses and spills each one. mem2reg is not the culprit and was checked:
+  `pre-mem-to-reg`/`post-mem-to-reg` differ by 212 promoted instructions, so it promotes what it
+  should and the allocator puts the values back.
+- Evidence: measured 2026-08-15 on an otherwise idle machine, release config, on the 12.8 MB
+  deflate payload of `8_9_2025_15_43_58.scc` (17.0 MB out, 14.76 M symbols, 1.21 bytes per
+  symbol — a stored photograph, so the loop runs about once per output byte). Best of several
+  alternating runs: clang-cl `/O2` 88.8 ms (191 MB/s), a bare Swag prototype of the same loop
+  121.7 ms (139 MB/s), the shipped `Compress.Inflate` 141.9 ms (119 MB/s). Swag block loop 619
+  instructions against clang's 411. **Machine load moves every one of these numbers by up to 3x,
+  so only same-run comparisons mean anything** — an earlier pass of this measurement read
+  122 ms for clang and 176 ms for Swag, and the ratio was the only part that survived.
+- Five experiments ruled out by measurement, so they are not retried:
+  - **zlib's two-level decode table.** Written in C beside the current design, same payload:
+    93.8 ms against 88.8 ms — *slower*. Only 6.7% of length codes and no distance code at all
+    miss the nine-bit fast table on this data.
+  - **Lifting the cold paths out of the loop.** The Huffman fallback and the slow refill moved
+    into `#[Swag.NoInline]` functions taking the bit cursor by value and handing it back: 3%.
+    So the allocator is not evicting the loop-carried scalars because cold blocks compete with
+    them; it evicts them anyway.
+  - **Eliding the shift width guard.** Implemented in `CodeGenSafety::emitShiftIntLike` (skip
+    the materialized count, width compare and conditional move when the count is a constant or
+    a mask by one, looking through casts and parentheses), verified to fire — 14 conditional
+    moves down to 8 in the block loop — and measured at **zero**, twice, on a quiet machine.
+    The loop is latency-bound on the serial bit-cursor chain and its stack round-trips, so
+    removing twelve independent instructions changes nothing. Reverted. Since 2026-09-10 the
+    guard no longer exists at all: a shift amount must be below the value's width, and release
+    emits the bare instruction — so this workload should be re-timed without it.
+  - **Two symbols per refill, and pre-tabulated masks and packed base+extra words.** Zero each.
+  - **A shuffle-based fill for matches closer than eight bytes**, which libdeflate carries and
+    this loop still copies one byte at a time. Counted rather than timed, over the IDAT of the
+    PNG fixtures: matches at a distance of two to seven bytes produce 2.7% of the output on
+    `rgb.png` and 3.3% on `rgba.png`, against 78% for distances of sixteen bytes and up, which
+    already run on vectors. The whole path is too small to pay for the two shuffle tables.
+- Current boundary: `Pass.RegisterAllocation.Interval.cpp` now supplies live-range splitting for
+  optimizing builds, with the older scan retained for `-O0` and failed preconditions. The historical
+  spill counts above predate that allocator and cannot establish the current gap.
+- Next: repeat the same Inflate/clang comparison and count frame accesses with the current Release
+  compiler. If a gap remains, attribute it to the split allocator or its fallback before selecting
+  a change; do not implement a second interval allocator.
+- Complete when: the current emitted loop and alternating timing decide whether an allocator gap
+  remains, with any surviving cause reduced to one actionable change.
+- Related: compiler.optimization.005, compiler.optimization.024.
+
 ### compiler.optimization.026 — Folding a constant address into a RIP-relative load miscompiles library images
 
 - Recorded: 2026-09-02 14:39
@@ -81,46 +180,6 @@ block, and the hot path keeps the register.
 - Complete when: the remaining repeated pointer/element reads disappear with sound alias and
   control-flow proofs, or a focused experiment identifies the register-residency constraint.
 - Related: compiler.optimization.026.
-
-### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
-
-- Recorded: 2026-09-05 22:13
-- Updated: 2026-09-07 10:37 — Attribute GUI and Pixel SSA cost and record the rejected storage experiment
-- Area: compiler/backend, compilation time
-- Found while: the compile-speed campaign, profiling `bench/compile.py core_rebuild` (std/core in
-  `devmode`, six worker cores, Release 0.1.367 with a PDB, a user-mode sampling profiler).
-- Observation: `runLoopPasses` is the largest single item of a full rebuild — 13.9 % of all
-  thread samples, about 40 % of the CPU actually spent (a third of the samples are workers
-  parked on the job queue) — and it is the largest item of a hello world build too (22 %) and of
-  `swc sema` on an empty file (14 %, the JIT lowering of the prelude's `#run`). Inside it the
-  SSA state is the cost: `MicroSsaState::build`, `ensureFor`, `renameBlock`, `reachingDef` and
-  `createPhi` add up to about 8.5 % of samples, more than any transform. `runPass` invalidates the
-  whole shared SSA state as soon as a pass reports `passChanged`, so every sweep of the fixed
-  point rebuilds it from scratch for the next pass that asks, however local the mutation was.
-  `devmode` is `O1`, "everything that does not cost compilation time", and this does.
-- Updated evidence (2026-09-06): external sampling of Release compiler 0.1.383 rebuilding a
-  private copy of tracked `bin/std` sources, six workers, still finds SSA construction prominent.
-  For `core` in `devmode`, 30 of 151 samples inside `JobManager::executeJob` include
-  `MicroSsaState::build`; in `release`, 25 of 131 do. The corresponding `CodeGenJob` counts are
-  110 and 99. These are inclusive stack counts, with each sample counted once per function;
-  they are attribution evidence, not independent percentages to add or unprofiled timings.
-  Repeated builds by the same baseline compiler also produce different raw PE `.text` hashes,
-  so a whole-section hash alone cannot establish whether an SSA change preserves code quality.
-- Updated evidence (2026-09-07): Release compiler 0.1.390, six workers, an isolated Pixel rebuild
-  gave 518 CPU-weighted external stack samples. SSA construction accounted for 22.15% of the
-  sampled CPU, renaming for 11.63%, and the entry-snapshot call in `renameBlock` for 5.82%.
-  The corresponding GUI-only profile attributed 12.94% to SSA construction. These are inclusive
-  shares, not costs to add together. Each block snapshots every active tracked register, and
-  each mutating pass can repeat the work. Reusing block scratch storage alone did not establish
-  a consistent speed/memory improvement and was removed; `repo.tooling.008` records that trial.
-- Next: trace rebuilds and mutating passes externally on GUI and Pixel to size the win, then keep the
-  SSA state valid across the mutations that preserve it — a deleted instruction, a renamed
-  operand, a folded constant — and rebuild only the blocks a pass touched otherwise. Measure with
-  `bench/compile.py --against` on `core_rebuild` and `hello_build`, and with `bench.swgs` so the
-  generated code is proven unchanged.
-- Complete when: `core_rebuild` and `hello_build` move by the share the profile attributes to SSA
-  rebuilds, at identical generated code on the seven bench tasks, and the `native` suite is green.
-- Related: compiler.core.004, compiler.core.030.
 
 ### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
 
@@ -450,65 +509,6 @@ block, and the hot path keeps the register.
 - Complete when: a proven stable, side-effect-free by-value aggregate parameter costs no copy
   after inlining, written or indirectly mutable storage still preserves value semantics, and the value-returning shape of a block transform is as cheap as the in-place
   one on the video corpus.
-
-### compiler.optimization.006 — A hot loop's loop-carried locals all live in stack slots
-
-- Recorded: 2026-08-15 08:48
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-- Area: compiler/backend
-- Found while: making `Compress.Inflate` fast. The library side of that is done and shipped —
-  the block loop keeps its cursors in locals and refills branchlessly, and it went from 62 MB/s
-  to 119 MB/s. What this entry keeps is the part no source shape could reach: the same algorithm
-  written line by line in C and compiled by clang-cl `/O2` runs at 191 MB/s, so 1.6x is left and
-  all of it is in the emitted code.
-- Observation: `#[Swag.PrintMicro("post-emit")]` on the block loop against clang's assembly for
-  that C transcription. **Every loop-carried local is a stack slot.** The bit buffer, the bit
-  count, the source cursor, the output cursor and the decoded symbol are each loaded and stored
-  on every symbol; a table entry read once in the source is stored to a stack temporary and
-  re-loaded twice. In the literal fast path — ten live scalars, fifteen usable registers — that
-  is 31 stack loads and 8 stack stores against clang's zero. The prologue also materializes ~25
-  field addresses and spills each one. mem2reg is not the culprit and was checked:
-  `pre-mem-to-reg`/`post-mem-to-reg` differ by 212 promoted instructions, so it promotes what it
-  should and the allocator puts the values back.
-- Evidence: measured 2026-08-15 on an otherwise idle machine, release config, on the 12.8 MB
-  deflate payload of `8_9_2025_15_43_58.scc` (17.0 MB out, 14.76 M symbols, 1.21 bytes per
-  symbol — a stored photograph, so the loop runs about once per output byte). Best of several
-  alternating runs: clang-cl `/O2` 88.8 ms (191 MB/s), a bare Swag prototype of the same loop
-  121.7 ms (139 MB/s), the shipped `Compress.Inflate` 141.9 ms (119 MB/s). Swag block loop 619
-  instructions against clang's 411. **Machine load moves every one of these numbers by up to 3x,
-  so only same-run comparisons mean anything** — an earlier pass of this measurement read
-  122 ms for clang and 176 ms for Swag, and the ratio was the only part that survived.
-- Four things ruled out by measurement, so they are not retried:
-  - **zlib's two-level decode table.** Written in C beside the current design, same payload:
-    93.8 ms against 88.8 ms — *slower*. Only 6.7% of length codes and no distance code at all
-    miss the nine-bit fast table on this data.
-  - **Lifting the cold paths out of the loop.** The Huffman fallback and the slow refill moved
-    into `#[Swag.NoInline]` functions taking the bit cursor by value and handing it back: 3%.
-    So the allocator is not evicting the loop-carried scalars because cold blocks compete with
-    them; it evicts them anyway.
-  - **Eliding the shift width guard.** Implemented in `CodeGenSafety::emitShiftIntLike` (skip
-    the materialized count, width compare and conditional move when the count is a constant or
-    a mask by one, looking through casts and parentheses), verified to fire — 14 conditional
-    moves down to 8 in the block loop — and measured at **zero**, twice, on a quiet machine.
-    The loop is latency-bound on the serial bit-cursor chain and its stack round-trips, so
-    removing twelve independent instructions changes nothing. Reverted. Since 2026-09-10 the
-    guard no longer exists at all: a shift amount must be below the value's width, and release
-    emits the bare instruction — so this workload should be re-timed without it.
-  - **Two symbols per refill, and pre-tabulated masks and packed base+extra words.** Zero each.
-  - **A shuffle-based fill for matches closer than eight bytes**, which libdeflate carries and
-    this loop still copies one byte at a time. Counted rather than timed, over the IDAT of the
-    PNG fixtures: matches at a distance of two to seven bytes produce 2.7% of the output on
-    `rgb.png` and 3.3% on `rgba.png`, against 78% for distances of sixteen bytes and up, which
-    already run on vectors. The whole path is too small to pay for the two shuffle tables.
-- Current boundary: `Pass.RegisterAllocation.Interval.cpp` now supplies live-range splitting for
-  optimizing builds, with the older scan retained for `-O0` and failed preconditions. The historical
-  spill counts above predate that allocator and cannot establish the current gap.
-- Next: repeat the same Inflate/clang comparison and count frame accesses with the current Release
-  compiler. If a gap remains, attribute it to the split allocator or its fallback before selecting
-  a change; do not implement a second interval allocator.
-- Complete when: the current emitted loop and alternating timing decide whether an allocator gap
-  remains, with any surviving cause reduced to one actionable change.
-- Related: compiler.optimization.005, compiler.optimization.024.
 
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 

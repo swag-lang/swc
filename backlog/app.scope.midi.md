@@ -5,6 +5,32 @@ duration, and a zoomable/filterable piano roll. It deliberately has no synthesis
 backlog owns professional sequence inspection and optional audition; structured chunk/event bytes
 remain available in the Binary viewer.
 
+### app.scope.midi.012 — MIDI event reports and piano-roll images cannot be exported
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-11 22:08 — Separate report export from normalized MIDI file writing.
+- Evidence: the viewer has no copy-note/event, CSV/JSON event export, tempo-map export, or piano-roll
+  image export. The current MidiDocument retains notes and timing summaries, not
+  every raw event; complete event retention remains app.scope.midi.005.
+- Next: export selected/all decoded events and tempo maps to stable JSON/CSV plus a rendered image;
+  retain source-event provenance through app.scope.midi.005. MIDI file writing is app.scope.midi.013.
+- Complete when: tabular exports preserve track/channel/tick/time/source offset and raw unknown data,
+  images name scale and range, omitted fields are declared, and the original file is never modified.
+- Related: app.scope.midi.005, app.scope.midi.013
+
+### app.scope.midi.013 — A selected MIDI range cannot be written as a new SMF file
+
+- Recorded: 2026-09-11 22:08
+- Evidence: split from app.scope.midi.012 after reviewing `mididocument.swg` and the viewer commands.
+  The reader has no SMF writer and retains neither every event nor raw source ranges. A report
+  export cannot establish the timing and event-state contract needed for a playable excerpt.
+- Next: define a normalized writer over the event model in app.scope.midi.005, including initial
+  program/controller state, note boundaries, tempo/meter state, and End-of-Track placement.
+- Complete when: a selected tick range writes a new valid SMF with declared format, timing origin,
+  event ordering, running-status policy, and treatment of crossing notes and unknown events;
+  round-trip fixtures verify those choices and the source file remains unchanged.
+- Related: app.scope.midi.005, app.scope.midi.010, app.scope.midi.012
+
 ### app.scope.midi.010 — SMF timing and structural edge cases have no explicit support matrix
 
 - Recorded: 2026-08-29 08:36
@@ -148,15 +174,3 @@ remain available in the Binary viewer.
 - Complete when: CC, pitch bend, channel/poly pressure, program/bank, sustain, and velocity can be
   shown and probed; 7/14-bit values state resolution; channel scope is explicit; and dense lanes
   aggregate without losing exact event access.
-
-### app.scope.midi.012 — MIDI events and views cannot be exported with an explicit loss policy
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: the viewer has no copy-note/event, CSV/JSON event export, tempo-map export, piano-roll
-  image, or selected-range MIDI extraction. Rewriting SMF safely is outside the current reader.
-- Next: export selected/all decoded events and tempo maps to stable JSON/CSV plus a rendered image;
-  treat SMF range extraction as a separate, explicitly normalized writer outcome.
-- Complete when: tabular exports preserve track/channel/tick/time/source offset and raw unknown data,
-  images name scale and range, normalized SMF export states event ordering/running-status/timing
-  changes, and the original file is never modified.

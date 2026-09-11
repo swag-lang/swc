@@ -13,6 +13,23 @@ composition remains an explicitly separate capability. A feature-complete viewer
 representative, openly licensed real documents and their visible reading workflow, never merely by
 whether a JPEG preview decoded.
 
+### app.scope.indesign.016 — Linked resources can still read author-chosen absolute local paths
+
+- Recorded: 2026-09-03 17:37
+- Updated: 2026-09-11 22:10 — Retain local-root policy; record the existing decoded-URI guards and tests.
+- Evidence: the viewer never fetches a network URL, enforces image byte/pixel budgets, and retries a
+  same-folder basename when an InDesign absolute link is stale. `idmlFileUriPath` rejects remote
+  authorities, decoded UNC separators, malformed escapes and invalid path names, covered by
+  `viewer.indesign.test.swg`. A valid direct `file:` URI may still
+  cause the renderer to inspect an arbitrary readable local image.
+- Next: define a document-root capability policy with an explicit user command for broader local
+  resolution and privacy-redacted diagnostics. Extend the existing URI tests with document-root
+  traversal, out-of-root local files, oversized image, cyclic link and moved-package cases.
+- Complete when: ordinary opening reads only the declared document root, no remote/UNC path is
+  contacted, expansion requires a deliberate scoped choice, all resource attempts are visible, and
+  missing art remains a labelled frame rather than a failed document.
+- Related: app.scope.indesign.013, app.scope.viewers.011
+
 ### app.scope.indesign.001 — InDesign opening has no published latency and memory contract
 
 - Recorded: 2026-09-03 17:37
@@ -262,17 +279,3 @@ whether a JPEG preview decoded.
   decode warning are announced meaningfully, text selection works without a pointer, and fixtures
   exercise the same semantic tree exposed to the platform bridge.
 - Related: app.scope.viewers.007, platform.portability.048
-
-### app.scope.indesign.016 — Linked resources can still read author-chosen absolute local paths
-
-- Recorded: 2026-09-03 17:37
-- Evidence: the viewer never fetches a network URL, enforces image byte/pixel budgets, and retries a
-  same-folder basename when an InDesign absolute link is stale. A valid direct `file:` URI may still
-  cause the renderer to inspect an arbitrary readable local image.
-- Next: define a document-root capability policy with an explicit user command for broader local
-  resolution, privacy-redacted diagnostics, and a test for traversal, UNC, malformed URI, oversized
-  image, cyclic link and stale moved-package cases.
-- Complete when: ordinary opening reads only the declared document root, no remote/UNC path is
-  contacted, expansion requires a deliberate scoped choice, all resource attempts are visible, and
-  missing art remains a labelled frame rather than a failed document.
-- Related: app.scope.indesign.013, app.scope.viewers.011

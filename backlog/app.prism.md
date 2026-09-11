@@ -13,19 +13,53 @@ in their viewer, and the readouts report measured compilation and frame renderin
 
 ## Entries
 
-### app.prism.003 — Extend the running-program preview
+### app.prism.003 — Forward continuous input to the running preview
 
 - Recorded: 2026-09-08 21:53
-- Updated: 2026-09-09 08:31 — Native 2D and GUI previews are implemented; retain the remaining input and export work.
+- Updated: 2026-09-11 22:14 — Separate input delivery from resolution negotiation and frame export.
+- Evidence: `previewcanvas.swg` forwards clicks; `FrameHeader` has one acknowledged click mailbox
+  and `previewhost.swg` calls `HeadlessHost.click`. Keyboard, pointer movement, drag and wheel
+  events have no transport. Existing native preview tests cover clicks, pause, recovery and cancellation.
+- Next: add a bounded ordered event queue with focus and cancellation rules, then route keyboard,
+  movement, button transitions and wheel events to the child controls.
+- Complete when: event order and coordinates survive fitted previews, dragging and key sequences
+  work, replacing a preview clears pending input, and saturation has an explicit policy.
+- Related: app.prism.006
 
-The 2D and GUI viewers now build executable snippets, receive live frames, pause, cancel, and
-restart after edits. The GUI child hosts real controls through `Gui.Testing.HeadlessHost`; clicks
-are mapped from the fitted image back to the child's logical coordinates. These paths have native
-process, interaction, recovery, cancellation, and rendered surface tests.
+### app.prism.004 — Inspect a library function from Prism
 
-Next: forward keyboard input, pointer movement, drag gestures, and the wheel; negotiate rendering
-resolution with the panel and DPI; add "save this frame as a golden". The first transport uses a
-single acknowledged frame and click mailbox, so continuous input needs its own ordered queue.
+- Recorded: 2026-09-08 21:53
+- Updated: 2026-09-11 22:14 — Move the compiler selector into its owning domain; retain the Prism workflow.
+- Evidence: `MicrocodeViewer` builds a source snippet through `BuildRequest`. It has no library
+  symbol request or symbol selector. The compiler flag needed to inspect unedited source is
+  compiler.core.040, split from this entry.
+- Next: carry library/workspace identity, symbol pattern and requested stage in the build request,
+  then connect the compiler selector without modifying library files.
+- Complete when: selecting a library function displays its requested microcode stage, ambiguous
+  or absent matches are explained, and the library working tree remains unchanged.
+- Related: compiler.core.040, app.prism.002
+
+### app.prism.006 — Negotiate preview resolution with the panel
+
+- Recorded: 2026-09-11 22:14
+- Evidence: split from app.prism.003. `FrameChannel` fixes frames at 640 by 400 pixels;
+  `PreviewCanvas` scales that image into the panel and the child sets up a fixed-size host.
+- Next: version the frame transport to negotiate dimensions and DPI with bounded allocation and
+  an acknowledgement before either side changes the shared buffer layout.
+- Complete when: resizing and DPI changes produce correctly sized frames, input coordinates stay
+  aligned, allocation remains bounded, and cancellation cannot race a buffer replacement.
+- Related: app.prism.003
+
+### app.prism.007 — Save a completed preview frame as a golden candidate
+
+- Recorded: 2026-09-11 22:14
+- Evidence: split from app.prism.003. `PreviewViewer` receives complete BGRA images, but its
+  commands cannot export the displayed frame; test goldens are authored through separate tests.
+- Next: export one acknowledged frame with source/build/options and dimensions as provenance,
+  leaving golden acceptance to the existing review workflow.
+- Complete when: the saved image is a complete frame, reproducing its source and options is
+  possible, export cannot race frame publication, and existing golden files are not overwritten
+  without an explicit destination choice.
 
 ### app.prism.002 — Read the pipeline instead of printing it
 
@@ -44,21 +78,3 @@ emits the same categories as tags rather than as escapes, which is the stream to
 
 Next: parse the `[micro]` header and instruction block, map the categories onto the theme palette,
 and show the count and the gain beside the stage selector.
-
-
-### app.prism.004 — Inspect a function of `bin/std` without editing its source
-
-- Recorded: 2026-09-08 21:53
-
-`Swag.PrintMicro` is an attribute, so asking for a stage means writing it into the source. That is
-right for a snippet the reader owns and wrong for `Core.Array.add`: a tool must not edit the
-standard library to look at it.
-
-`CodeGen::startFunction` already holds the fully scoped name one line below where it installs the
-print options — see the `setPrintPassOptions` and `setPrintLocation` pair in
-`src/Compiler/CodeGen/Core/CodeGen.cpp`. A command-line selector matching that name and appending
-its stages to the attribute's own list is the whole change; nothing else in the pipeline moves.
-
-Next: add `--print-micro=<symbol pattern>:<stage>` to the compiler, then let Swag Prism take a
-symbol as well as a snippet. That turns the pane from a sandbox for the reader's own code into a
-readable machine-level view of the library, which is the better argument of the two.

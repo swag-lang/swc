@@ -29,6 +29,7 @@ namespace
         r.add(MicroInstrOpcode::ClearReg, tryForwardConstantLike);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyAddIntoLoadAddress);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoFloatBinary);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldLaneCopyIntoStore);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryForwardLoadAddr);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryFoldZeroDisplacementLoadAddr);

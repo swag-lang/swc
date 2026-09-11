@@ -82,6 +82,7 @@ namespace PreRaPeephole
     bool tryForwardConstantLike(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryFoldCopyAddIntoLoadAddress(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldCopyIntoFloatBinary(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryFoldLaneCopyIntoStore(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryForwardLoadAddr(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryFoldZeroDisplacementLoadAddr(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);

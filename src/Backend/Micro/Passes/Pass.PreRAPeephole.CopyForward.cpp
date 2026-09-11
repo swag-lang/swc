@@ -132,6 +132,65 @@ namespace PreRaPeephole
         return true;
     }
 
+    // A lane moved into a general register only to be stored is stored from
+    // the vector register instead: the scalar store writes the low four or
+    // eight bytes of the register, so the move and the general register go.
+    // The copy stays for dead-code elimination, in case another reader remains.
+    bool tryFoldLaneCopyIntoStore(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (copyInst.op != MicroInstrOpcode::LoadRegReg || ctx.isClaimed(copyRef))
+            return false;
+
+        const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
+        if (!copyOps)
+            return false;
+
+        const MicroReg    dst  = copyOps[0].reg;
+        const MicroReg    src  = copyOps[1].reg;
+        const MicroOpBits bits = copyOps[2].opBits;
+        if (!dst.isVirtualInt() || !src.isVirtualFloat())
+            return false;
+        if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+            return false;
+
+        const MicroInstrRef storeRef  = ctx.nextRef(copyRef);
+        const MicroInstr*   storeInst = storeRef.isValid() ? ctx.instruction(storeRef) : nullptr;
+        if (!storeInst || ctx.isClaimed(storeRef))
+            return false;
+
+        const MicroInstrOperand* storeOps = ctx.operandsFor(storeRef);
+        if (!storeOps)
+            return false;
+
+        // ops: [0] base, [1] value, [2] opBits, [3] offset for the plain store;
+        // [0] base, [1] index, [2] value, [3] address bits, [4] opBits for the
+        // indexed one. The value is the moved lane, stored at its own width,
+        // and no address register is that same general register.
+        switch (storeInst->op)
+        {
+            case MicroInstrOpcode::LoadMemReg:
+                if (storeOps[1].reg != dst || storeOps[2].opBits != bits || storeOps[0].reg == dst)
+                    return false;
+                break;
+            case MicroInstrOpcode::LoadAmcMemReg:
+                if (storeOps[2].reg != dst || storeOps[4].opBits != bits || storeOps[0].reg == dst || storeOps[1].reg == dst)
+                    return false;
+                break;
+            default:
+                return false;
+        }
+
+        Action rewrite;
+        if (!buildUseOnlyRegRewrite(rewrite, *storeInst, storeOps, dst, src))
+            return false;
+        if (!ctx.claimAll({storeRef}))
+            return false;
+
+        rewrite.ref = storeRef;
+        ctx.actions.push_back(rewrite);
+        return true;
+    }
+
     bool tryForwardCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
         if (copyInst.op != MicroInstrOpcode::LoadRegReg || ctx.isClaimed(copyRef))

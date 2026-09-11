@@ -539,7 +539,7 @@ namespace
             // The module-wide summary fixpoint runs after sema drains, but #run must emit
             // and execute this completed call graph now. Publish its transitive frees first
             // so the static lifecycle pass sees the same facts as ordinary code generation.
-            SemaEscape::propagateCompletedFreesSummaries(ctx);
+            SemaEscape::propagateCompletedFreesSummaries(ctx, stableJitOrder.span());
             for (SymbolFunction* function : stableJitOrder)
             {
                 SWC_RESULT(function->emit(ctx));

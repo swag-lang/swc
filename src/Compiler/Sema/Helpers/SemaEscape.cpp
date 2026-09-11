@@ -4463,10 +4463,105 @@ namespace SemaEscape
         return Result::Error;
     }
 
-    void propagateCompletedFreesSummaries(TaskContext& ctx)
+    void propagateCompletedFreesSummaries(TaskContext& ctx, std::span<SymbolFunction* const> completedFunctions)
     {
+        struct ReturnSummary
+        {
+            uint64_t borrows  = 0;
+            uint64_t storage  = 0;
+            uint64_t payload  = 0;
+            bool     complete = true;
+        };
+
+        // These functions completed before the edge snapshot is taken, so all their
+        // return edges are present. Keep the fixpoint local: sema workers may still
+        // read the published, non-atomic return masks of completed functions.
+        std::unordered_map<const SymbolFunction*, ReturnSummary> returns;
+        returns.reserve(completedFunctions.size());
+        for (const SymbolFunction* fn : completedFunctions)
+        {
+            if (fn->isSemaCompleted())
+                returns.emplace(fn, ReturnSummary{fn->returnBorrowsParamsMask(), fn->returnsStorageParamsMask(), fn->returnsPayloadParamsMask()});
+        }
+
         const std::vector<SemaEscapeSummaryEdge> edges   = ctx.compiler().copyEscapeSummaryEdges();
         bool                                     changed = !edges.empty();
+        // Code generation may have removed a call whose semantic return edge still
+        // exists. An unresolved route can later reveal an owned payload, so absence
+        // of a payload bit is not an alias proof until every return dependency closes.
+        while (changed)
+        {
+            changed = false;
+            for (const SemaEscapeSummaryEdge& edge : edges)
+            {
+                const auto caller = returns.find(edge.caller);
+                if (edge.kind != SemaEscapeSummaryEdgeKind::ReturnToReturn || caller == returns.end() || !caller->second.complete)
+                    continue;
+                const auto callee       = returns.find(edge.callee);
+                const bool missingGuard = std::ranges::any_of(edge.returnGuards, [&returns](const SemaEscapeDeferredGuard& guard) {
+                    const auto source = returns.find(guard.callee);
+                    return source == returns.end() || !source->second.complete;
+                });
+                if (callee == returns.end() || !callee->second.complete || missingGuard)
+                {
+                    caller->second.complete = false;
+                    changed                 = true;
+                }
+            }
+        }
+
+        changed = !edges.empty();
+        while (changed)
+        {
+            changed = false;
+            for (const SemaEscapeSummaryEdge& edge : edges)
+            {
+                const auto caller = returns.find(edge.caller);
+                if (edge.kind != SemaEscapeSummaryEdgeKind::ReturnToReturn || caller == returns.end() || !caller->second.complete)
+                    continue;
+
+                const ReturnSummary callee    = returns.at(edge.callee);
+                const uint64_t      calleeBit = 1ULL << edge.calleeParamIndex;
+                const uint64_t      callerBit = 1ULL << edge.callerParamIndex;
+                bool                borrows   = true;
+                bool                storage   = true;
+                bool                payload   = edge.viaOwnedPayload;
+                for (const SemaEscapeDeferredGuard& guard : edge.returnGuards)
+                {
+                    const ReturnSummary source = returns.at(guard.callee);
+                    const uint64_t      bit    = 1ULL << guard.paramIndex;
+                    borrows &= (source.borrows & bit) != 0;
+                    storage &= (source.storage & bit) != 0;
+                    payload |= (source.payload & bit) != 0;
+                }
+
+                ReturnSummary&      summary = caller->second;
+                const ReturnSummary before  = summary;
+                if (borrows && (callee.borrows & calleeBit))
+                    summary.borrows |= callerBit;
+                if (borrows && storage && !edge.viaStoredField)
+                {
+                    if (callee.storage & calleeBit)
+                        summary.storage |= callerBit;
+                    if ((callee.payload & calleeBit) || (payload && (callee.storage & calleeBit)))
+                        summary.payload |= callerBit;
+                }
+                changed |= before.borrows != summary.borrows || before.storage != summary.storage || before.payload != summary.payload;
+            }
+        }
+
+        for (const auto& [fn, summary] : returns)
+        {
+            const auto name = fn->name(ctx);
+            if (name.find("JitSummary") != std::string_view::npos)
+                fprintf(stderr, "%s\n", std::format("summary {} complete={} borrow={} storage={} payload={} frees={} jit={}", name, summary.complete, summary.borrows, summary.storage, summary.payload, fn->freesParamsMask(), fn->jitEntryAddress() != nullptr).c_str());
+        }
+        for (const auto& edge : edges)
+        {
+            if (edge.caller && edge.caller->name(ctx) == "releaseGuardedForJitSummary")
+                fprintf(stderr, "%s\n", std::format("edge {} -> {} kind={} guards={} caller-done={} callee-done={}", edge.caller->name(ctx), edge.callee->name(ctx), static_cast<int>(edge.kind), edge.returnGuards.size(), edge.caller->isSemaCompleted(), edge.callee->isSemaCompleted()).c_str());
+        }
+        changed = !edges.empty();
         while (changed)
         {
             changed = false;
@@ -4478,10 +4573,14 @@ namespace SemaEscape
                     continue;
                 if (edge.viaStoredField || edge.viaOwnedPayload)
                     continue;
-                // Guarded routes need the completed return-summary fixpoint to tell
-                // an alias from an owned payload. Do not publish a speculative free
-                // while #run is still driving semantic analysis.
-                if (!edge.returnGuards.empty())
+                const bool missingAlias = std::ranges::any_of(edge.returnGuards, [&returns](const SemaEscapeDeferredGuard& guard) {
+                    const auto source = returns.find(guard.callee);
+                    if (source == returns.end() || !source->second.complete)
+                        return true;
+                    const uint64_t bit = 1ULL << guard.paramIndex;
+                    return !(source->second.borrows & bit) || !(source->second.storage & bit) || (source->second.payload & bit);
+                });
+                if (missingAlias)
                     continue;
 
                 const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;

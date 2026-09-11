@@ -24,29 +24,41 @@ impl RetainedAllocation
 }
 
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
-func allocateForJitSummary()->*void
+func allocateForJitSummary(size: u64 = 4)->*void
 {
     var request: AllocatorRequest
-    request.size = 4
+    request.size = size
     let allocator = Swag.getContext().allocator!
     allocator.alloc(&request)
     return request.address!
 }
 
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
-func releaseForJitSummary(pointer: *void)
+func releaseForJitSummary(pointer: *void, size: u64 = 4)
 {
     var request: AllocatorRequest
     request.address = pointer
-    request.size    = 4
+    request.size    = size
     let allocator = Swag.getContext().allocator!
     allocator.free(&request)
 }
 
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
+func identityForJitSummary(pointer: *void)->*void => pointer
+
+#[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
+func identityWrapperForJitSummary(pointer: *void)->*void => identityForJitSummary(identityForJitSummary(pointer))
+
+#[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
+func releaseGuardedForJitSummary(pointer: *void)
+{
+    releaseForJitSummary(identityWrapperForJitSummary(pointer))
+}
+
+#[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
 func releaseWrapperForJitSummary(pointer: *void)
 {
-    releaseForJitSummary(pointer)
+    releaseGuardedForJitSummary(pointer)
 }
 
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
@@ -67,4 +79,75 @@ func probeJitSummary()->s32
     context.allocator = &retained
     defer context.allocator = base
     Swag.assert(probeJitSummary() == 42)
+}
+
+struct JitCarrier { late target: *void }
+
+#[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
+func createCarrierForJitSummary(pointer: *void)->*JitCarrier
+{
+    let carrier = cast(*JitCarrier) allocateForJitSummary(#sizeof(JitCarrier))
+    carrier.target = pointer
+    return carrier
+}
+
+#[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
+func releaseCarrierForJitSummary(pointer: *void)
+{
+    releaseForJitSummary(identityForJitSummary(createCarrierForJitSummary(pointer)), #sizeof(JitCarrier))
+}
+
+#[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
+func allocateIndependentForJitSummary(pointer: *void)->*void => allocateForJitSummary()
+
+#[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
+func releaseIndependentForJitSummary(pointer: *void)
+{
+    releaseForJitSummary(identityForJitSummary(allocateIndependentForJitSummary(pointer)))
+}
+
+#[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
+func probeIndependentJitSummary()->s32
+{
+    let pointer = cast(*s32) allocateForJitSummary()
+    defer releaseForJitSummary(pointer)
+    pointer[] = 42
+    releaseCarrierForJitSummary(pointer)
+    releaseIndependentForJitSummary(pointer)
+    return pointer[]
+}
+
+struct JitOwner
+{
+    data:   [*] s32?
+    marker: s32 = 42
+}
+
+impl JitOwner
+{
+    mtd opDrop() { if .data do releaseForJitSummary(.data) }
+
+    #[Swag.NoInline]
+    mtd const view()->*void => .data!
+}
+
+#[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
+func releaseOwnedForJitSummary(owner: *JitOwner)
+{
+    releaseForJitSummary(identityWrapperForJitSummary(owner.view()))
+    owner.data = null
+}
+
+#[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
+func probeOwnedJitSummary()->s32
+{
+    var owner = JitOwner{data: cast([*] s32) allocateForJitSummary()}
+    releaseOwnedForJitSummary(&owner)
+    return owner.marker
+}
+
+#run
+{
+    Swag.assert(probeIndependentJitSummary() == 42)
+    Swag.assert(probeOwnedJitSummary() == 42)
 }

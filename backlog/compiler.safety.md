@@ -43,29 +43,28 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
-### compiler.safety.023 — Opaque results lose field and forwarded-parameter provenance
+### compiler.safety.023 — Opaque result provenance is incomplete for fields and early JIT
 
 - Recorded: 2026-09-08 20:48
-- Updated: 2026-09-11 15:18 — Narrow the remaining work to returned fields and guarded parameter-summary composition.
+- Updated: 2026-09-11 15:47 — Narrow the remaining work to returned fields and pre-drain guarded releases.
 - Area: compiler/sema, `SemaEscape`
 - Evidence: an opaque factory returning a heap carrier whose `target` field holds `&local`
   leaves `release(carrier.target)` undiagnosed. This was confirmed in a semantic-only helper
-  body with `swc.dm` 0.1.417 in `release`, without executing the invalid free. Code inspection
-  also finds that deferred call composition forwards diagnostic templates but drops the
-  snapshot's parameter-summary edges; a wrapper returning `identity(identity(param))` needs
-  a focused reproducer before extending that composition.
+  body with `swc.dm` 0.1.417 in `release`, without executing the invalid free. The early
+  `propagateCompletedFreesSummaries` pass also skips guarded edges while `#run` drives sema:
+  their return routes have not reached the module-wide fixpoint yet.
 - Cause: the member-access walker deliberately drops a copied pointer field's enclosing
   borrow, because that field need not alias the container. A factory's return-borrow mask
-  cannot identify the field carrying each parameter. Parameter-summary edges also lack the
-  return guards that diagnostic templates use when forwarding an opaque result.
-- Next: reproduce nested and local-bound forwarding of a parameter, then compose its summary
-  edges with return-borrow and storage-alias guards. Design returned-field provenance before
-  extending pointer-field diagnostics. Preserve the distinction between freeing a separate
-  carrier and freeing its borrowed target; cover a carrier with both a borrowed field and an
-  independently allocated field, including through generated module APIs.
-- Complete when: forwarded parameter borrows and borrowed returned fields are diagnosed
-  without rejecting releases of independent allocations, and the focused sanity and workspace
-  regressions pass with measured cost.
+  cannot identify the field carrying each parameter. Early JIT emission needs completed
+  return routes before a guarded release can distinguish an alias from an owned payload.
+- Next: design returned-field provenance before extending pointer-field diagnostics. Cover
+  a carrier with both a borrowed field and an independently allocated field, including through
+  generated module APIs. For `#run`, resolve guarded return routes within the completed call
+  graph before publishing frees; never read an unfinished callee's summary or execute an
+  invalid free merely to probe whether it is diagnosed.
+- Complete when: borrowed returned fields and early guarded releases are diagnosed without
+  rejecting releases of independent allocations or payloads, and the focused sanity, JIT and
+  workspace regressions pass with measured cost.
 
 ### compiler.safety.020 — A release through storage a callee could re-establish is not judged
 

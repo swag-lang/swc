@@ -153,6 +153,10 @@ struct SemaEscapeSummaryEdge
     // First field used to reach the callee argument from the caller parameter. A callee
     // reallocation then affects this field, whatever nested payload it moves internally.
     const SymbolVariable* callerProjectionField = nullptr;
+    // Intermediate calls must return this parameter's borrow before the outer
+    // summary can apply. Storage effects additionally require every result to alias
+    // the preceding argument; a fresh carrier only forwards the lifetime dependency.
+    std::vector<SemaEscapeDeferredGuard> returnGuards;
 };
 
 // The captured argument borrows of one opaque call. Checks are templates whose site,

@@ -375,6 +375,13 @@ namespace PreRaPeephole
         if (hasVirtualForbiddenPhysRegs(ctx, addrReg) || hasVirtualForbiddenPhysRegs(ctx, baseReg))
             return false;
 
+        // `lea r, [r + C]` steps a pointer in place. Its base is the value
+        // before the step, which no consumer can read any more: forwarding it
+        // would add the step to an address that already holds it, once per
+        // sweep, and the loop would never settle.
+        if (addrReg == baseReg)
+            return false;
+
         const MicroInstrRef consumerRef = skipCopiesToConsumer(ctx, defRef, addrReg, baseReg, MicroReg::invalid());
         if (!consumerRef.isValid() || ctx.isClaimed(consumerRef))
             return false;
@@ -408,6 +415,8 @@ namespace PreRaPeephole
         if (!addrReg.isVirtualInt())
             return false;
         if (hasVirtualForbiddenPhysRegs(ctx, addrReg) || hasVirtualForbiddenPhysRegs(ctx, defOps[1].reg) || hasVirtualForbiddenPhysRegs(ctx, defOps[2].reg))
+            return false;
+        if (addrReg == defOps[1].reg || addrReg == defOps[2].reg)
             return false;
 
         const MicroInstrRef consumerRef = skipCopiesToConsumer(ctx, defRef, addrReg, defOps[1].reg, defOps[2].reg);

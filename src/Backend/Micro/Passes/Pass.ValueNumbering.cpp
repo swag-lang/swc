@@ -123,6 +123,20 @@ namespace
         uint8_t                 immediateSlot        = 0;
         bool                    keyedByRelocationToo = false;
 
+        // A move from an integer register into a vector register, the seed
+        // of every broadcast. Numbered but never rewritten: a copy in its
+        // place is a copy of a copy, which the peephole forwards straight
+        // back into the move it replaced. The broadcasts fed by two seeds of
+        // one value match through the alias, and the second seed dies with
+        // its broadcast.
+        bool crossFileMove = false;
+
+        // A three-operand compute takes part only into a vector register. The
+        // scalar forms are the address arithmetic the instruction combine
+        // spreads back into every consumer's address mode, and sharing them
+        // here would only be undone there.
+        bool packedOnly = false;
+
         // A load. Its inputs are addresses, read at 64 bits whatever the width
         // of the value loaded; its key names the bytes read (the address and
         // their width) and not the opcode, so the plain and the extending loads
@@ -250,6 +264,70 @@ namespace
                 outShape.memoryFamily = 1;
                 outShape.srcBitsSlot  = 4;
                 outShape.extension    = op == MicroInstrOpcode::LoadSignedExtAmcRegMem ? LoadExtension::Signed : LoadExtension::Zero;
+                return true;
+
+            // The non-destructive packed computes. None of them reads its
+            // destination or touches the flags.
+            case MicroInstrOpcode::OpBinaryRegRegReg:
+                // ops: [0] dst, [1] src1, [2] src2, [3] opBits, [4] microOp
+                outShape.useSlots    = {1, 2};
+                outShape.rawSlots    = {3, 4};
+                outShape.movBitsSlot = 3;
+                outShape.packedOnly  = true;
+                return true;
+
+            case MicroInstrOpcode::OpBinaryRegRegImm:
+                // ops: [0] dst, [1] src, [2] opBits, [3] microOp, [4] imm
+                outShape.useSlots      = {1};
+                outShape.rawSlots      = {2, 3};
+                outShape.movBitsSlot   = 2;
+                outShape.hasImmediate  = true;
+                outShape.immediateSlot = 4;
+                outShape.packedOnly    = true;
+                return true;
+
+            case MicroInstrOpcode::OpTernaryRegRegRegImm:
+                // ops: [0] dst, [1] src1, [2] src2, [3] opBits, [4] microOp, [5] imm
+                outShape.useSlots    = {1, 2};
+                outShape.rawSlots    = {3, 4, 5};
+                outShape.movBitsSlot = 3;
+                outShape.packedOnly  = true;
+                return true;
+
+            case MicroInstrOpcode::VecUnaryRegReg:
+                // ops: [0] dst, [1] src, [2] opBits, [3] microOp
+                outShape.useSlots    = {1};
+                outShape.rawSlots    = {2, 3};
+                outShape.movBitsSlot = 2;
+                return true;
+
+            case MicroInstrOpcode::VecShuffleRegRegImm:
+                // ops: [0] dst, [1] src, [2] opBits, [3] control
+                outShape.useSlots    = {1};
+                outShape.rawSlots    = {2, 3};
+                outShape.movBitsSlot = 2;
+                return true;
+
+            case MicroInstrOpcode::LoadVecRegMem:
+                // ops: [0] dst, [1] base, [2] opBits, [3] offset. A vector
+                // load, in a family of its own: it shares no bytes with a
+                // scalar load of the same cell.
+                outShape.useSlots     = {1};
+                outShape.rawSlots     = {3};
+                outShape.movBitsSlot  = 2;
+                outShape.readsMemory  = true;
+                outShape.memoryFamily = 2;
+                outShape.srcBitsSlot  = 2;
+                return true;
+
+            case MicroInstrOpcode::LoadRegReg:
+                // ops: [0] dst, [1] src, [2] opBits. Only the move into a
+                // vector register from an integer one takes part; the loop
+                // leaves the plain copies to copy elimination.
+                outShape.useSlots      = {1};
+                outShape.rawSlots      = {2};
+                outShape.movBitsSlot   = 2;
+                outShape.crossFileMove = true;
                 return true;
 
             default:
@@ -437,11 +515,19 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             continue;
 
         // Integer immediates and positive float zero are cheap to recreate.
-        // Sharing them would add live registers without removing a load.
-        if (inst->op == MicroInstrOpcode::LoadRegImm &&
-            (!dstReg.isVirtualFloat() ||
-             (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
-             ops[2].immediateValue().isZero()))
+        // Sharing them would add live registers without removing a load, so
+        // they are numbered but never rewritten, like the broadcast seed: two
+        // registers loaded with one immediate are still one value to what
+        // consumes them.
+        const bool cheapToRecreate = inst->op == MicroInstrOpcode::LoadRegImm &&
+                                     (!dstReg.isVirtualFloat() ||
+                                      (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
+                                      ops[2].immediateValue().isZero());
+        const bool aliasOnly = cheapToRecreate || shape.crossFileMove;
+
+        if (shape.crossFileMove && (!dstReg.isVirtualFloat() || ops[1].reg.isVirtualFloat()))
+            continue;
+        if (shape.packedOnly && !dstReg.isVirtualFloat())
             continue;
 
         // A >64-bit immediate would need extra key words; too rare to matter.
@@ -461,6 +547,11 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
         SmallVector<uint64_t, 8> key;
         key.push_back(shape.readsMemory ? K_MEMORY_KEY_BASE + shape.memoryFamily : static_cast<uint64_t>(inst->op));
+
+        // The same bits in an integer register and in a vector register are
+        // two values: the move between the files is what the peephole folds
+        // an immediate into, and a copy in its place would bring it back.
+        key.push_back(dstReg.isVirtualFloat() ? 1 : 0);
 
         bool usable = true;
         if (shape.dstIsAlsoUse)
@@ -527,6 +618,8 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             // the rewrite below is possible; later keys resolve through this.
             if (sameResult)
                 valueAliases.emplace(myValueId, cand.defValueId);
+            if (aliasOnly)
+                break;
 
             // The earlier result must still be what its register holds here.
             const MicroSsaState::ReachingDef reach = ssaState->reachingDef(cand.defReg, instRef);
@@ -576,6 +669,8 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
     if (rewrites.empty())
         return Result::Continue;
+
+
 
     for (const PlannedRewrite& rewrite : rewrites)
     {

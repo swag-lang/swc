@@ -1645,6 +1645,18 @@ namespace
         return storedDepth && storedDepth > intoDepth;
     }
 
+    void appendGuardedCallChecks(SemaEscapeDeferredCallSnapshot& outCapture, const SemaEscapeDeferredCallSnapshot& snapshot, const SymbolFunction& callee, uint32_t paramIndex)
+    {
+        for (const SemaEscapeDeferredCheck& inner : snapshot.checks)
+        {
+            SemaEscapeDeferredCheck check = inner;
+            check.guards.push_back({inner.callee, inner.paramIndex});
+            check.callee     = &callee;
+            check.paramIndex = paramIndex;
+            outCapture.checks.push_back(std::move(check));
+        }
+    }
+
     // Snapshots the borrows carried by the arguments of an opaque call into check
     // templates (escaping borrows) and proto-edges (caller-parameter arguments). The
     // flow state is only valid NOW, so the argument side is captured eagerly; the
@@ -1653,10 +1665,11 @@ namespace
     // callee's stores-into-parameter pairs ('g_container.add(&local)') - only wanted
     // from the once-per-call Argument hook. Returns false when nothing borrows or the
     // call is not summarizable.
-    bool captureOpaqueCallBorrows(Sema& sema, AstNodeRef exprRef, bool collectPairs, SemaEscapeDeferredCallSnapshot& outCapture)
+    bool captureOpaqueCallBorrows(Sema& sema, AstNodeRef exprRef, bool collectPairs, SemaEscapeDeferredCallSnapshot& outCapture, uint32_t& budget)
     {
-        if (exprRef.isInvalid())
+        if (exprRef.isInvalid() || !budget)
             return false;
+        --budget;
 
         AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
         uint32_t   unwrapGuard = 8;
@@ -1683,6 +1696,8 @@ namespace
                 resolvedRef = sema.viewZero(node.cast<AstAutoCastExpr>().nodeExprRef).nodeRef();
             else if (node.is(AstNodeId::AsCastExpr))
                 resolvedRef = sema.viewZero(node.cast<AstAsCastExpr>().nodeExprRef).nodeRef();
+            else if (node.is(AstNodeId::ErrorManagementExpr) && sema.token(node.codeRef()).id == TokenId::SymBang)
+                resolvedRef = sema.viewZero(node.cast<AstErrorManagementExpr>().nodeExprRef).nodeRef();
             else
                 break;
         }
@@ -1769,8 +1784,17 @@ namespace
             if (paramTypeRef.isValid() && !typeCanCarryBorrowImpl(sema, paramTypeRef) && !paramIsByValueOwner)
                 continue;
 
-            uint32_t             budget = K_EXPR_BUDGET;
-            const SemaEscapeInfo info   = borrowInfoFromCallArgument(sema, arg, param->typeRef(), budget);
+            uint32_t             argumentBudget = K_EXPR_BUDGET;
+            const SemaEscapeInfo info           = borrowInfoFromCallArgument(sema, arg, param->typeRef(), argumentBudget);
+            if (!info.hasBorrow())
+            {
+                // A nested call has no bound local to hold its deferred provenance.
+                // Snapshot it with the same traversal budget; the guards below still
+                // wait for final summaries before deciding whether it returns a borrow.
+                SemaEscapeDeferredCallSnapshot nested;
+                if (captureOpaqueCallBorrows(sema, arg.argRef, false, nested, budget))
+                    appendGuardedCallChecks(outCapture, nested, *fn, static_cast<uint32_t>(thisParam));
+            }
             if (collectPairs && info.hasBorrow())
                 argBorrows.push_back({static_cast<uint32_t>(thisParam), info});
 
@@ -1891,14 +1915,7 @@ namespace
                 {
                     if (!snapshot)
                         continue;
-                    for (const SemaEscapeDeferredCheck& inner : snapshot->checks)
-                    {
-                        SemaEscapeDeferredCheck check = inner;
-                        check.guards.push_back({inner.callee, inner.paramIndex});
-                        check.callee     = fn;
-                        check.paramIndex = static_cast<uint32_t>(thisParam);
-                        outCapture.checks.push_back(std::move(check));
-                    }
+                    appendGuardedCallChecks(outCapture, *snapshot, *fn, static_cast<uint32_t>(thisParam));
                 }
 
                 continue;
@@ -2028,7 +2045,8 @@ namespace
     void recordDeferredCallBorrow(Sema& sema, AstNodeRef exprRef, AstNodeRef atNodeRef, std::string_view what, DeferredCallUse use, bool durableDest)
     {
         SemaEscapeDeferredCallSnapshot capture;
-        if (!captureOpaqueCallBorrows(sema, exprRef, use == DeferredCallUse::Argument, capture))
+        uint32_t                       budget = K_EXPR_BUDGET;
+        if (!captureOpaqueCallBorrows(sema, exprRef, use == DeferredCallUse::Argument, capture, budget))
             return;
 
         switch (use)
@@ -2057,7 +2075,8 @@ namespace
     SemaEscapeInfo deferredCallBorrowInfo(Sema& sema, AstNodeRef exprRef)
     {
         SemaEscapeDeferredCallSnapshot capture;
-        if (!captureOpaqueCallBorrows(sema, exprRef, false, capture))
+        uint32_t                       budget = K_EXPR_BUDGET;
+        if (!captureOpaqueCallBorrows(sema, exprRef, false, capture, budget))
             return {};
 
         SemaEscapeInfo info;

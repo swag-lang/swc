@@ -43,6 +43,30 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.023 — Opaque results lose field and forwarded-parameter provenance
+
+- Recorded: 2026-09-08 20:48
+- Updated: 2026-09-11 15:18 — Narrow the remaining work to returned fields and guarded parameter-summary composition.
+- Area: compiler/sema, `SemaEscape`
+- Evidence: an opaque factory returning a heap carrier whose `target` field holds `&local`
+  leaves `release(carrier.target)` undiagnosed. This was confirmed in a semantic-only helper
+  body with `swc.dm` 0.1.417 in `release`, without executing the invalid free. Code inspection
+  also finds that deferred call composition forwards diagnostic templates but drops the
+  snapshot's parameter-summary edges; a wrapper returning `identity(identity(param))` needs
+  a focused reproducer before extending that composition.
+- Cause: the member-access walker deliberately drops a copied pointer field's enclosing
+  borrow, because that field need not alias the container. A factory's return-borrow mask
+  cannot identify the field carrying each parameter. Parameter-summary edges also lack the
+  return guards that diagnostic templates use when forwarding an opaque result.
+- Next: reproduce nested and local-bound forwarding of a parameter, then compose its summary
+  edges with return-borrow and storage-alias guards. Design returned-field provenance before
+  extending pointer-field diagnostics. Preserve the distinction between freeing a separate
+  carrier and freeing its borrowed target; cover a carrier with both a borrowed field and an
+  independently allocated field, including through generated module APIs.
+- Complete when: forwarded parameter borrows and borrowed returned fields are diagnosed
+  without rejecting releases of independent allocations, and the focused sanity and workspace
+  regressions pass with measured cost.
+
 ### compiler.safety.020 — A release through storage a callee could re-establish is not judged
 
 - Recorded: 2026-09-08 09:05
@@ -242,29 +266,6 @@ is the current scorecard.
 - Complete when: a guarded release configuration exists and is documented, and its cost on one
   application workload is recorded.
 - Related: compiler.safety.008 is what makes that configuration affordable.
-
-### compiler.safety.023 — Opaque results lose borrow provenance in nested calls and pointer-field reads
-
-- Recorded: 2026-09-08 20:48
-- Area: compiler/sema, `SemaEscape`
-- Evidence: while reducing the GUI timer release false positive, two additional diagnostic
-  coverage limits were confirmed with `swc.dm` 0.1.417 in `release`. With an opaque identity
-  helper, `let p = identity(&local); release(p)` raises `sanity_err_free_borrowed`, but
-  `release(identity(&local))` does not. With an opaque factory returning a heap carrier whose
-  `target` field holds `&local`, `release(carrier.target)` also stays silent. These were
-  semantic-only helper bodies, not executed invalid frees. The supported neighboring forms
-  are protected by `bin/unittests/sanity/borrow_free_carrier.swg`.
-- Cause: `callResultEscapeInfo` returns no immediate provenance; deferred snapshots are bound
-  at selected uses, including local initialization, but not composed for a nested call argument.
-  The member-access walker deliberately drops a copied pointer field's enclosing borrow: that
-  field need not alias the container. A factory's return-borrow mask says which parameters the
-  result can reach, but cannot identify the field carrying each parameter.
-- Next: compose deferred snapshots for nested arguments with bounded expression traversal, and
-  design returned-field provenance before extending pointer-field diagnostics. Preserve the
-  distinction between freeing a separate carrier and freeing the borrowed target; test a carrier
-  with both a borrowed field and an independently allocated field, through generated module APIs.
-- Complete when: both forms above are rejected without diagnosing releases of independently
-  allocated fields, and the focused sanity and workspace regressions pass with measured cost.
 
 ### compiler.safety.022 — A COM object's ABI header is held first by a comment, not by the language
 

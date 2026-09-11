@@ -47,6 +47,9 @@ func identityWrapped(target: *s32)->*s32
     return identity(target)
 }
 
+#[Swag.NoInline]
+func nullableIdentity(target: *s32)->*s32? => target
+
 // Releasing the allocation does not release the local its field references.
 #test
 {
@@ -82,6 +85,38 @@ func rejectReleaseAlias()
     var value: s32
     let borrowed = identityWrapped(&value)
     release(borrowed, #sizeof(s32))     // swc-expected-error {{sanity_err_free_borrowed}}
+}
+
+func rejectReleaseNestedAlias()
+{
+    var value: s32
+    release(identity(&value), #sizeof(s32))     // swc-expected-error {{sanity_err_free_borrowed}}
+}
+
+func rejectReleaseDeepNestedAlias()
+{
+    var value: s32
+    release(identity(identityWrapped(&value)), #sizeof(s32))     // swc-expected-error {{sanity_err_free_borrowed}}
+}
+
+func rejectReleaseAssertedNestedAlias()
+{
+    var value: s32
+    release(nullableIdentity(&value)!, #sizeof(s32))     // swc-expected-error {{sanity_err_free_borrowed}}
+}
+
+func rejectEscapeNestedAlias()->*s32
+{
+    var value: s32
+    return identity(identityWrapped(&value))     // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A nested factory still returns a separate allocation, not the borrowed target.
+#test
+{
+    var value: s32 = 23
+    release(createWrapped(identity(&value)), #sizeof(Carrier))
+    Swag.assert(value == 23)
 }
 
 func rejectReleaseCarrierTarget()

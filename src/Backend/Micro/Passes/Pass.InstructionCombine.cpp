@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -50,6 +51,8 @@ namespace
         r.add(MicroInstrOpcode::LoadVecRegMem, tryFoldVecLoadIntoWiden);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldVecLoadIntoWiden);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldVecLoadIntoWiden);
+        r.add(MicroInstrOpcode::LoadVecRegMem, tryBuildVectorFromStores);
+        r.add(MicroInstrOpcode::LoadRegMem, tryBuildVectorFromStores);
         r.add(MicroInstrOpcode::VecUnaryAmcRegMem, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::VecUnaryAmcRegMem, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::VecUnaryRegMem, tryFoldLeaConstIntoMemBase);
@@ -139,6 +142,8 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     ctx.ssa          = ssa;
     ctx.builder      = context.builder;
     ctx.stackPointer = CallConv::get(context.callConvKind).stackPointer;
+    ctx.nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
+    ctx.nextVirtualIntRegIndex   = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
     if (ctx.builder)
     {
         ctx.relocated.reserve(ctx.builder->codeRelocations().size());
@@ -160,7 +165,12 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
         return Result::Continue;
 
     for (const Action& action : ctx.actions)
-        MicroPeephole::applyAction(ctx, action);
+    {
+        if (action.insert)
+            ctx.storage->insertDerivedBefore(*ctx.operands, action.ref, action.newOp, std::span<const MicroInstrOperand>(action.ops, action.numOps));
+        else
+            MicroPeephole::applyAction(ctx, action);
+    }
 
     context.passChanged = true;
     return Result::Continue;

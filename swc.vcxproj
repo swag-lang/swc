@@ -234,6 +234,7 @@
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.MemoryFold.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.LoadFold.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.VecLoadFold.cpp"/>
+        <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.BuildVector.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.AddressMode.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.NarrowExtend.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.ZeroExtend.cpp"/>

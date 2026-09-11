@@ -288,6 +288,13 @@ enum class MicroOp : uint8_t
     VecShiftRightV64,
     VecShiftRightAV16,
     VecShiftRightAV32,
+
+    // Lane inserts from an integer register (OpTernaryRegRegRegImm): the
+    // first source with the lane the immediate names replaced by the low
+    // bits of the integer second source - vpinsrb, vpinsrw, vpinsrd.
+    VecInsert8,
+    VecInsert16,
+    VecInsert32,
 };
 
 // True for the 128-bit packed operations: they run on the float register

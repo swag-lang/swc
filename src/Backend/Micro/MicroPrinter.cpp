@@ -436,6 +436,12 @@ namespace
                 return "vec.sarv16";
             case MicroOp::VecShiftRightAV32:
                 return "vec.sarv32";
+            case MicroOp::VecInsert8:
+                return "vec.insert8";
+            case MicroOp::VecInsert16:
+                return "vec.insert16";
+            case MicroOp::VecInsert32:
+                return "vec.insert32";
         }
 
         SWC_UNREACHABLE();

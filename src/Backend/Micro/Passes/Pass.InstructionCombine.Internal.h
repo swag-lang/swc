@@ -29,6 +29,8 @@ namespace InstructionCombine
         MicroInstrOperand ops[K_MAX_OPS] = {};
         bool              erase          = false;
         bool              allocOps       = false;
+        // A new instruction placed before `ref` instead of a rewrite of it.
+        bool insert = false;
     };
 
     // Context threaded through every pattern. Pointers (not references) so the
@@ -48,6 +50,26 @@ namespace InstructionCombine
         // The stack pointer of the calling convention, which every frame
         // address derives from.
         MicroReg stackPointer = MicroReg::invalid();
+
+        // The next free virtual register of each file, for rules that build
+        // new values; set by the pass from the function's registers.
+        uint32_t nextVirtualFloatRegIndex = 0;
+        uint32_t nextVirtualIntRegIndex   = 0;
+
+        // Queues a new instruction to be inserted before `ref`, in queue
+        // order with the other insertions before the same instruction.
+        void emitInsertBefore(MicroInstrRef ref, MicroInstrOpcode op, std::span<const MicroInstrOperand> newOps)
+        {
+            SWC_ASSERT(newOps.size() <= Action::K_MAX_OPS);
+            Action action;
+            action.ref    = ref;
+            action.newOp  = op;
+            action.numOps = static_cast<uint8_t>(newOps.size());
+            action.insert = true;
+            for (size_t idx = 0; idx < newOps.size(); ++idx)
+                action.ops[idx] = newOps[idx];
+            actions.push_back(action);
+        }
 
         // Whether the instruction sits inside a natural loop. The loop bodies
         // are collected on the first question, since only the memory folds
@@ -113,6 +135,7 @@ namespace InstructionCombine
     bool tryMemoryFoldTriple(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldLoadIntoRegOp(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldVecLoadIntoWiden(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
+    bool tryBuildVectorFromStores(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldAmcLoadIntoSignExtend(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldAmcLoadIntoZeroExtend(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldZeroExtAmcLoadIntoCompare(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);

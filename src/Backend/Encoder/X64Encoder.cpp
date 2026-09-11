@@ -784,6 +784,9 @@ namespace
             case MicroOp::VecShiftRightV64: return {VEX_MAP_0F, 0x66, 0xD3};
             case MicroOp::VecShiftRightAV16: return {VEX_MAP_0F, 0x66, 0xE1};
             case MicroOp::VecShiftRightAV32: return {VEX_MAP_0F, 0x66, 0xE2};
+            case MicroOp::VecInsert8: return {VEX_MAP_0F3A, 0x66, 0x20};
+            case MicroOp::VecInsert16: return {VEX_MAP_0F, 0x66, 0xC4};
+            case MicroOp::VecInsert32: return {VEX_MAP_0F3A, 0x66, 0x22};
             default:
                 SWC_INTERNAL_ERROR();
         }
@@ -3816,9 +3819,13 @@ void X64Encoder::encodeOpTernaryRegRegRegImm(MicroReg regDst, MicroReg regSrc1, 
     // Two sources and a trailing immediate: vcmpps/vcmppd carry a predicate
     // and answer all-ones/all-zeros lanes, vshufps a four-lane control,
     // vpalignr a byte offset into the concatenation of both sources, and
-    // vpclmulqdq the half selector of a carry-less multiplication.
-    SWC_ASSERT(op == MicroOp::VecCmpF32 || op == MicroOp::VecCmpF64 || op == MicroOp::VecShufF32 || op == MicroOp::VecAlignR || op == MicroOp::VecClmul);
-    SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc1.isFloat() && regSrc2.isFloat());
+    // vpclmulqdq the half selector of a carry-less multiplication. The lane
+    // inserts (vpinsrb/w/d) name the lane in the immediate and read their
+    // second source from an integer register, which rides in r/m like any
+    // other.
+    const bool insert = op == MicroOp::VecInsert8 || op == MicroOp::VecInsert16 || op == MicroOp::VecInsert32;
+    SWC_ASSERT(insert || op == MicroOp::VecCmpF32 || op == MicroOp::VecCmpF64 || op == MicroOp::VecShufF32 || op == MicroOp::VecAlignR || op == MicroOp::VecClmul);
+    SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc1.isFloat() && (insert ? regSrc2.isInt() : regSrc2.isFloat()));
     SWC_ASSERT(value <= 0xFF);
 
     const VecOpEncoding enc = vecOpEncoding(op);

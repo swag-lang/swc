@@ -354,7 +354,7 @@ namespace
     // saturating add, widen, multiply-add, saturating packs, shift, signed
     // compare, movemask, and the and/andnot/or select composition. Inputs at
     // offsets 0/16 (bytes), 32 (s16 twos), 48 (s16 fifties); outputs from 64.
-    uint32_t vecPackedOpsData[40];
+    uint32_t vecPackedOpsData[48];
 
     void buildReturnZeroAfterVecCodecOps(MicroBuilder& builder, const CallConv& callConv)
     {
@@ -365,6 +365,7 @@ namespace
         constexpr MicroReg xmm3 = MicroReg::floatReg(3);
         constexpr MicroReg xmm4 = MicroReg::floatReg(4);
         constexpr MicroReg xmm5 = MicroReg::floatReg(5);
+        constexpr MicroReg rcx  = MicroReg::intReg(2);
 
         builder.emitLoadRegPtrImm(r8, reinterpret_cast<uint64_t>(vecPackedOpsData));
         builder.emitLoadVecRegMem(xmm1, r8, 0, MicroOpBits::B128);
@@ -414,15 +415,36 @@ namespace
         builder.emitVecUnaryAmcRegMem(xmm3, r8, rdx, 4, 8, MicroOpBits::B64, MicroOp::VecWidenLoU8, MicroOpBits::B128);
         builder.emitStoreVecMemReg(r8, 144, xmm3, MicroOpBits::B128);
 
-        // acc |= (out word ^ expected word) over the six stored vectors.
-        static constexpr uint32_t EXPECTED[24] = {
+        // A vector built from scalars: words {7, 9} through movd and a lane
+        // insert, doubled twice by interleaving with itself; then bytes and a
+        // dword inserted into a cleared register.
+        builder.emitLoadRegImm(rdx, ApInt(7, 32), MicroOpBits::B32);
+        builder.emitLoadRegImm(rcx, ApInt(9, 32), MicroOpBits::B32);
+        builder.emitLoadRegReg(xmm1, rdx, MicroOpBits::B32);
+        builder.emitOpTernaryRegRegRegImm(xmm2, xmm1, rcx, 1, MicroOp::VecInsert16, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(xmm2, xmm2, xmm2, MicroOp::VecUnpackLo16, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(xmm2, xmm2, xmm2, MicroOp::VecUnpackLo16, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(r8, 160, xmm2, MicroOpBits::B128);
+        builder.emitClearReg(xmm3, MicroOpBits::B128);
+        builder.emitLoadRegImm(rdx, ApInt(0x11, 32), MicroOpBits::B32);
+        builder.emitOpTernaryRegRegRegImm(xmm3, xmm3, rdx, 0, MicroOp::VecInsert8, MicroOpBits::B128);
+        builder.emitLoadRegImm(rdx, ApInt(0x22, 32), MicroOpBits::B32);
+        builder.emitOpTernaryRegRegRegImm(xmm3, xmm3, rdx, 15, MicroOp::VecInsert8, MicroOpBits::B128);
+        builder.emitLoadRegImm(rcx, ApInt(0x33333333, 32), MicroOpBits::B32);
+        builder.emitOpTernaryRegRegRegImm(xmm3, xmm3, rcx, 1, MicroOp::VecInsert32, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(r8, 176, xmm3, MicroOpBits::B128);
+
+        // acc |= (out word ^ expected word) over the eight stored vectors.
+        static constexpr uint32_t EXPECTED[32] = {
             0x80808080, 0x80808080, 0x80808080, 0x80808080,
             0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
             0x1A120A02, 0x1A120A02, 0x1A120A02, 0x1A120A02,
             0x00320032, 0x00320032, 0x00500040, 0x00700060,
             0x00090008, 0x000B000A, 0x000D000C, 0x000F000E,
-            0x00090008, 0x000B000A, 0x000D000C, 0x000F000E};
-        for (uint32_t word = 0; word < 24; ++word)
+            0x00090008, 0x000B000A, 0x000D000C, 0x000F000E,
+            0x00070007, 0x00070007, 0x00090009, 0x00090009,
+            0x00000011, 0x33333333, 0x00000000, 0x22000000};
+        for (uint32_t word = 0; word < 32; ++word)
         {
             builder.emitLoadRegMem(rdx, r8, 64 + word * 4, MicroOpBits::B32);
             builder.emitOpBinaryRegImm(rdx, ApInt(EXPECTED[word], 32), MicroOp::Xor, MicroOpBits::B32);

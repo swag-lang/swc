@@ -11,8 +11,9 @@
 // Step 1: compute a "canonical value" lattice over SSA. A value's canonical
 //         form is itself, unless it's defined by a register-to-register copy
 //         from a source whose own canonical value still reaches this point —
-//         in which case we transitively forward to that source. Phi nodes are
-//         canonicalized only when every incoming canonical value agrees.
+//         in which case we transitively forward to that source. Phi nodes take
+//         the common form when every incoming canonical value agrees, and are
+//         a value of their own otherwise.
 //
 // Step 2: rewrite every virtual-register use to its canonical value, but only
 //         when the canonical reg's reaching def at the use site is the same
@@ -180,6 +181,41 @@ namespace
     {
         const CanonicalValueContext context{&ssaState, &storage, &operands};
         computeSsaValueFixedPoint<CanonicalValue, CanonicalValueTraits>(outValues, outFlags, ssaState, context, tryInferInstructionCanonical);
+
+        // A phi whose incoming values disagree is a value of its own, like any
+        // instruction that is not a copy: the pointer a loop carries, at its
+        // header. Named, it lets a copy taken from it forward to it wherever
+        // the phi still reaches, which is what the rewrite checks; unnamed, the
+        // copy stayed and cost the allocator one live value per trip. The fixed
+        // point above has resolved what it could first, so a phi whose incoming
+        // values agree keeps their common form.
+        const auto values  = ssaState.values();
+        bool       changed = false;
+        for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
+        {
+            if (outFlags[valueId] || !values[valueId].isPhi())
+                continue;
+            outValues[valueId].reg     = values[valueId].reg;
+            outValues[valueId].valueId = valueId;
+            outFlags[valueId]          = 1;
+            changed                    = true;
+        }
+
+        while (changed)
+        {
+            changed = false;
+            for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
+            {
+                if (outFlags[valueId] || values[valueId].isPhi())
+                    continue;
+                CanonicalValue inferred;
+                if (!tryInferInstructionCanonical(inferred, context, valueId, values[valueId], outValues, outFlags))
+                    continue;
+                outValues[valueId] = inferred;
+                outFlags[valueId]  = 1;
+                changed            = true;
+            }
+        }
     }
 
     bool rewriteCanonicalUses(MicroBuilder* builder, const MicroSsaState& ssaState, const std::vector<CanonicalValue>& canonicalValues, const std::vector<uint8_t>& canonicalFlags, MicroStorage& storage, MicroOperandStorage& operands)

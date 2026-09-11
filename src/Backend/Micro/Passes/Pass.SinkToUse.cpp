@@ -94,7 +94,20 @@ namespace
                 return false;
         }
 
-        return true;
+        // Sinking a definition to its reader ends its result's live range
+        // there but stretches every register it reads down to the same
+        // point. A materialization reads nothing, a load one base register:
+        // the move costs nothing or breaks even. A compute over two registers
+        // sunk to the end of a chain keeps both alive across everything in
+        // between; a run of them turns a block into every load first and
+        // every compute last, and the allocator pays the width of the run.
+        uint32_t virtualReads = 0;
+        for (const MicroReg used : useDef.uses)
+        {
+            if (used.isVirtual())
+                ++virtualReads;
+        }
+        return virtualReads <= 1;
     }
 
     bool sinkRound(MicroPassContext& context)

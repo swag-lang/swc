@@ -292,6 +292,68 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
             const uint32_t firstFreshVirtual = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
 
+            // A copy defines the body's temporaries anew. A register the body
+            // writes outright before it reads it, and nothing outside the body
+            // reads, is a temporary of one trip: it takes a fresh name at each
+            // such write, so the copies are distinct values the passes behind
+            // can reason about — value numbering merges the same computation
+            // across copies, the peephole folds an address into its one
+            // reader — where one name written eight times is opaque to both.
+            // A register the body reads before writing carries a value from
+            // the trip before, around an enclosing loop too, so it keeps its
+            // name, and so does an in-place update and a register the
+            // allocator has constraints on. Internal control flow makes a
+            // linear renaming wrong at a join, so a body with labels keeps
+            // every name.
+            std::unordered_set<MicroReg> renamable;
+            if (internalLabels.empty())
+            {
+                std::unordered_set<MicroReg> seenInBody;
+                std::unordered_set<MicroReg> readOutside;
+                for (uint32_t o = 0; o < order.size(); ++o)
+                {
+                    MicroInstr* inst = storage.ptr(order[o]);
+                    if (!inst || !inst->numOperands)
+                        continue;
+                    SmallVector<MicroInstrRegOperandRef> regOps;
+                    inst->collectRegOperands(operands, regOps, context.encoder);
+                    const bool inBody = o >= bodyBegin && o < bodyEnd;
+                    if (!inBody)
+                    {
+                        for (const MicroInstrRegOperandRef& regOp : regOps)
+                            if (regOp.reg && regOp.use && regOp.reg->isVirtual())
+                                readOutside.insert(*regOp.reg);
+                        continue;
+                    }
+
+                    // The reads of an instruction come before its writes: a
+                    // register first met as a read, or as an in-place update,
+                    // is carried; one first met as an outright write is a
+                    // temporary.
+                    for (const MicroInstrRegOperandRef& regOp : regOps)
+                        if (regOp.reg && regOp.use && regOp.reg->isVirtual())
+                            seenInBody.insert(*regOp.reg);
+                    for (const MicroInstrRegOperandRef& regOp : regOps)
+                    {
+                        if (!regOp.reg || !regOp.def || regOp.use || !regOp.reg->isVirtual())
+                            continue;
+                        if (seenInBody.insert(*regOp.reg).second)
+                            renamable.insert(*regOp.reg);
+                    }
+                }
+
+                for (const MicroReg reg : readOutside)
+                    renamable.erase(reg);
+                renamable.erase(counter);
+                std::erase_if(renamable, [&](const MicroReg reg) {
+                    return builder.virtualRegForbiddenPhysRegs().contains(reg) || builder.shouldPreserveVirtualCopy(reg);
+                });
+            }
+
+            std::unordered_map<MicroReg, MicroReg> currentName;
+            uint32_t                               nextFreshInt   = firstFreshVirtual + static_cast<uint32_t>(trips) - 1;
+            uint32_t                               nextFreshFloat = renamable.empty() ? 0 : MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
+
             for (uint64_t k = 1; k < trips; ++k)
             {
                 const MicroReg copyCounter = MicroReg::virtualIntReg(firstFreshVirtual + static_cast<uint32_t>(k) - 1);
@@ -335,10 +397,40 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     {
                         SmallVector<MicroInstrRegOperandRef> regOps;
                         inserted->collectRegOperands(operands, regOps, context.encoder);
+
+                        // The reads first, under the name the previous write
+                        // gave the register, then the outright writes under a
+                        // fresh one: an instruction that reads a register and
+                        // writes it anew reads the old name.
                         for (const MicroInstrRegOperandRef& regOp : regOps)
                         {
                             if (*regOp.reg == counter)
                                 *regOp.reg = copyCounter;
+                            else if (regOp.use && renamable.contains(*regOp.reg))
+                            {
+                                const auto nameIt = currentName.find(*regOp.reg);
+                                if (nameIt != currentName.end())
+                                    *regOp.reg = nameIt->second;
+                            }
+                        }
+                        for (const MicroInstrRegOperandRef& regOp : regOps)
+                        {
+                            if (!regOp.def || regOp.use || !renamable.contains(*regOp.reg))
+                                continue;
+                            const MicroReg original = *regOp.reg;
+                            MicroReg       fresh;
+                            if (original.isVirtualFloat())
+                            {
+                                SWC_ASSERT(nextFreshFloat < MicroReg::K_MAX_INDEX);
+                                fresh = MicroReg::virtualFloatReg(nextFreshFloat++);
+                            }
+                            else
+                            {
+                                SWC_ASSERT(nextFreshInt < MicroReg::K_MAX_INDEX);
+                                fresh = MicroReg::virtualIntReg(nextFreshInt++);
+                            }
+                            currentName[original] = fresh;
+                            *regOp.reg            = fresh;
                         }
                     }
 

@@ -106,6 +106,46 @@ func fillPartial(out: *Strength, a: u32)
     out.bs          = strengths.bs
 }
 
+#[Swag.NoInline]
+func sumWords(words: *[16] u32)->u32
+{
+    var sum = 0'u32
+    for i in 16 do
+        sum += words[][i]
+    return sum
+}
+
+#[Swag.Optimize(true)]
+func fillCopyAndPass(out: [*] u32, a, b, c, d: u32)
+{
+    // The words are stored one by one, the array is copied whole - four
+    // vector loads over the stored words - and then passed by address. The
+    // address is the first word's, before the later vectors' slots: the
+    // stores behind those slots must stay, since the callee reads them.
+    var words: [16] u32
+    words[0]  = 1
+    words[1]  = 2
+    words[2]  = 3
+    words[3]  = 4
+    words[4]  = a
+    words[5]  = b
+    words[6]  = c
+    words[7]  = d
+    words[8]  = d
+    words[9]  = c
+    words[10] = b
+    words[11] = a
+    words[12] = a
+    words[13] = a
+    words[14] = b
+    words[15] = b
+    var copy = words
+    copy[5] = 100
+    out[0]  = sumWords(&words)
+    out[1]  = copy[5]
+    out[2]  = copy[13]
+}
+
 #test
 {
     var out: [8] u16
@@ -146,4 +186,9 @@ func fillPartial(out: *Strength, a: u32)
     Swag.assert(strength.bs[0] == 7 and strength.bs[1] == 7 and strength.bs[2] == 7 and strength.bs[3] == 7)
     fillPartial(&strength, 9)
     Swag.assert(strength.bs[0] == 0 and strength.bs[1] == 9 and strength.bs[2] == 9 and strength.bs[3] == 0)
+
+    var words: [3] u32
+    fillCopyAndPass(&words[0], 10, 20, 30, 40)
+    // 10 + 2 * (10 + 20 + 30 + 40) + 2 * 10 + 2 * 20
+    Swag.assert(words[0] == 270 and words[1] == 100 and words[2] == 10)
 }

@@ -111,11 +111,15 @@ namespace InstructionCombine
 
         // Whether any instruction other than the load and its stores reads
         // the slot's bytes, or could: a read through the base at an
-        // overlapping offset, an indexed read or an address computation
-        // through the base at an unknown offset, or the slot's own address
-        // escaping. Stores elsewhere do not matter - the walk already refused
-        // any between the lane stores and the load. The base as a plain value
-        // stands for the first local, the object at offset zero.
+        // overlapping offset, an indexed read through the base at an unknown
+        // offset, or an address that may reach the slot escaping - the
+        // address of the slot itself, or of anything before it, since the
+        // slot may be an element of a larger object whose address is what
+        // escapes (the fourth vector of a cipher state, passed as a whole to
+        // the rounds); the base as a plain value is the address of the first
+        // local. An address computed after the slot cannot reach back into
+        // it. Stores elsewhere do not matter - the walk already refused any
+        // between the lane stores and the load.
         bool slotHasOtherReaders(const Context& ctx, const MicroReg base, const uint64_t slotOffset, const MicroInstrRef loadRef, const SmallVector<MicroInstrRef, 16>& storeRefs)
         {
             const auto view = ctx.storage->view();
@@ -134,32 +138,28 @@ namespace InstructionCombine
                     return true;
                 const MicroInstrDef& info = MicroInstr::info(inst.op);
 
-                // The base may also be the stored value, or read twice.
-                uint32_t baseReads = 0;
-                for (const MicroReg use : useDef->uses)
-                    baseReads += use == base ? 1 : 0;
-                if (baseReads > 1)
-                    return true;
-                if (isPureStore(inst.op))
-                    continue;
-
                 MicroPassHelpers::AmcLayout layout;
                 if (MicroPassHelpers::amcLayoutFor(layout, inst.op) || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
                     return true;
                 if (inst.op == MicroInstrOpcode::LoadAddrRegMem)
                 {
                     // ops: [0] dst, [1] base, [2] opBits, [3] offset
-                    if (ops[1].reg != base || rangesOverlap(ops[3].valueU64, 1, slotOffset, 16))
+                    if (ops[1].reg != base || ops[3].valueU64 < slotOffset + 16)
                         return true;
                     continue;
                 }
-                if (info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && ops[info.memBaseOperandIndex].reg == base)
-                {
-                    if (rangesOverlap(ops[info.memOffsetOperandIndex].valueU64, accessBytes(inst, ops), slotOffset, 16))
-                        return true;
+
+                // The base read anywhere but as the memory base - copied,
+                // compared, stored, added to - is its address escaping.
+                const bool asMemBase = info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && ops[info.memBaseOperandIndex].reg == base;
+                uint32_t   baseReads = 0;
+                for (const MicroReg use : useDef->uses)
+                    baseReads += use == base ? 1 : 0;
+                if (!asMemBase || baseReads > 1)
+                    return true;
+                if (isPureStore(inst.op))
                     continue;
-                }
-                if (slotOffset == 0)
+                if (rangesOverlap(ops[info.memOffsetOperandIndex].valueU64, accessBytes(inst, ops), slotOffset, 16))
                     return true;
             }
             return false;

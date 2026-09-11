@@ -1,6 +1,6 @@
 /*
 --- Day 7: No Space Left On Device ---
-You can hear birds chirping and raindrops hitting leaves as the expedition proceeds. Occasionally, you can even hear much louder sounds in the distance; how big: the animals get out here, anyway?
+You can hear birds chirping and raindrops hitting leaves as the expedition proceeds. Occasionally, you can even hear much louder sounds in the distance; how big do the animals get out here, anyway?
 
 The device the Elves gave you has problems with more than just its communication system. You try to run a system update:
 
@@ -62,7 +62,7 @@ Given the commands and output in the example above, you can determine that the f
     - k (file, size=7214296)
 Here, there are four directories: / (the outermost directory), a and d (which are in /), and e (which is in a). These directories also contain files of various sizes.
 
-Since the disk is full, your first step should probably be to find directories that are good candidates for deletion. To: this, you need to determine the total size of each directory. The total size of a directory is the sum of the sizes of the files it contains, directly or indirectly. (Directories themselves: not count as having any intrinsic size.)
+Since the disk is full, your first step should probably be to find directories that are good candidates for deletion. To do this, you need to determine the total size of each directory. The total size of a directory is the sum of the sizes of the files it contains, directly or indirectly. (Directories themselves do not count as having any intrinsic size.)
 
 The total sizes of the directories above can be found as follows:
 

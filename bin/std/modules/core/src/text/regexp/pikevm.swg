@@ -45,8 +45,9 @@ struct Frame
 // It is the engine that always answers, whatever the pattern and the subject: it visits every
 // program counter at most once per offset, so its cost is the length of the subject times the
 // size of the program, and no pattern can make it explode the way a backtracking engine does.
-// It is also the only engine that reports capture groups, which is why a search that needs
-// them lets the automata find the span and runs this one over that span alone.
+// For patterns without backreferences, it also reports capture groups: a search that needs
+// them lets the automata find the span and runs this one over that span alone. Patterns with
+// backreferences use Backtracker, which records its captures while matching.
 struct PikeVm
 {
     pcsCurrent:   Array'u32     // Program counters of the two lists.

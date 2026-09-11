@@ -19,7 +19,7 @@ Looking right, its view is not blocked; it can see 2 trees.
 Looking down, its view is blocked eventually; it can see 2 trees (one of height 3, then the tree of height 5 that blocks its view).
 A tree's scenic score is found by multiplying together its viewing distance in each of the four directions. For this tree, this is 4 (found by multiplying 1 * 1 * 2 * 2).
 
-However, you can: even better: consider the tree of height 5 in the middle of the fourth row:
+However, you can do even better: consider the tree of height 5 in the middle of the fourth row:
 
 30373
 25512

@@ -182,7 +182,7 @@ A literal in a widget is a color no theme can answer for. The exceptions are nam
 - `imageRect_Fg` is white, which is the tint that leaves an image alone;
 - a syntax palette keeps its hues, because a reader has learned that green is a comment — but
   each hue is pushed through `Color.ensureContrast` against the editor ground, so it stays
-  readable when the interface turns white. See `richeditlexerswag.swg`.
+  readable when the interface turns white. See `bin/std/modules/gui/src/controls/richedit/lexerswag.swg`.
 
 Anything else goes through `ThemeColors`.
 

@@ -69,7 +69,7 @@ When enabled, Swag panics on arithmetic overflow, on a runtime shift amount that
 is negative or not below the bit width of the shifted value, or when bits are
 lost during integer conversions.
 
-Operators that can overflow include '+ - *' and compound forms '+= -= *='. A
+Operators that can overflow include `+ - *` and compound forms `+= -= *=`. A
 left shift truncates the bits it discards, which is not an overflow; overflow
 safety guards a shift's amount only.
 */

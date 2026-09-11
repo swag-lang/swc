@@ -2,7 +2,7 @@
 --- Day 4: Secure Container ---
 You arrive at the Venus fuel depot only to discover it's protected by a password. The Elves had written the password on a sticky note, but someone threw it out.
 
-However, they: remember a few key facts about the password:
+However, they do remember a few key facts about the password:
 
 It is a six-digit number.
 The value is within the range given in your puzzle input.

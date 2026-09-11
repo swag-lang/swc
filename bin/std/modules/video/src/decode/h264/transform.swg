@@ -11,9 +11,9 @@ using Core
 // Inverse transforms of section 8.5. Every routine adds its result to the prediction already
 // sitting in the destination plane, clamping to the byte range.
 
-// Branchless pixel-loop primitives. The backend lowers a ternary to a compare and branch,
-// and a branch inside a pixel loop forces the register allocator to flush its live values to
-// memory, so every clamp on the per-sample paths uses sign-bit arithmetic instead.
+// Branchless pixel-loop primitives retained from the decoder's measured sign-bit path.
+// The backend can now lower simple clamps to conditional moves; replacing these forms
+// still needs a comparison of the generated loops and decoder cost.
 
 // Clamps one reconstructed sample.
 #[Swag.Inline]

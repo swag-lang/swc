@@ -447,7 +447,7 @@ impl Ghost
      * SCATTER movement AI attempts to force all ghosts to disperse from one another
      * Each ghost is set to target a point outside the map (one in each of the four corners) based on their colour
      *
-     * If left in SCATTER mode, this will cause each to for around a small section of the map in a different corner
+     * If left in SCATTER mode, this will cause each to loop around a small section of the map in a different corner
      * SCATTER mode is not normally enabled long enough for this to occur, instead just forcing ghosts to separate
      */
     mtd aiScatter()
@@ -1440,7 +1440,7 @@ func drawPlayScreen()
 
 /**
  * Draw all elements of the game, depending on the game mode
- * Common elements have been extracted to methods in globals.h for simplicity of code
+ * Common elements are drawn by the helpers above, including drawPlayScreen.
  */
 func display()
 {

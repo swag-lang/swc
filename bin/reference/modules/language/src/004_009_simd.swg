@@ -162,9 +162,8 @@ values outside the 's32' range become 's32.Min'. 'Swag.min',
 vectors and compute per lane. Integer 'Swag.abs' wraps the minimum lane value back
 to itself, like unary minus, while a float lane clears its sign bit, so a NaN
 stays that NaN and a negative zero becomes a positive one.
-A gather uses 'vpgatherdd' when AVX2 is selected
-and a portable four-load lowering otherwise; every index must designate a
-readable table element and be at most 's32.Max'.
+A gather uses 'vpgatherdd' on the supported x86-64-v3 baseline; every index must
+designate a readable table element and be at most 's32.Max'.
 */
 #test
 {

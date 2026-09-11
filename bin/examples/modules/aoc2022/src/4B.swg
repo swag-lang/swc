@@ -10,7 +10,7 @@ In the above example, the first two pairs (2-4,6-8 and 2-3,4-5) don't overlap, w
 2-6,4-8 overlaps in sections 4, 5, and 6.
 So, in this example, the number of overlapping assignment pairs is 4.
 
-In how many assignment pairs: the ranges overlap?
+In how many assignment pairs do the ranges overlap?
 */
 
 using Core

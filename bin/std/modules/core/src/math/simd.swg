@@ -9,8 +9,8 @@ using Swag
 // The aliases name every legal 16-byte vector shape, lane type by lane count, and the
 // functions give the packed hardware intrinsics their product spelling: memory transfers,
 // saturating arithmetic, narrowing and widening, byte shuffles, and mask handling. Every
-// operation maps directly to packed backend operations. A gather can use several indexed
-// loads when the baseline instruction set has no native gather instruction.
+// operation maps directly to packed backend operations. Gather uses the AVX2 instruction
+// provided by the supported x86-64-v3 baseline.
 //
 // The rest of the vector vocabulary needs no function at all. Comparisons and the
 // arithmetic, bitwise and shift operators are part of the language and compute per lane,
@@ -235,8 +235,7 @@ namespace Simd
         //
         // Result lane `i` is `base[indices[i]]`. The caller owns the bounds contract:
         // every index must be at most `s32.Max` and designate a readable element of
-        // `base`. AVX2 targets use a hardware gather; portable targets assemble four
-        // scalar indexed loads.
+        // `base`. The supported x86-64-v3 baseline uses an AVX2 hardware gather.
         func gather(base: const [*] s32, indices: U32x4)->S32x4 => Swag.vecgather(base, indices)
 
         // Narrows two vectors into one with unsigned saturation.

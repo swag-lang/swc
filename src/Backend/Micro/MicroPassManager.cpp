@@ -28,6 +28,7 @@
 #include "Backend/Micro/Passes/Pass.SlpVectorize.h"
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
+#include "Backend/Micro/Passes/Pass.InductionVariable.h"
 #include "Backend/Micro/Passes/Pass.ValueNumbering.h"
 #include "Backend/Micro/Passes/Pass.VecLoopPromote.h"
 #include "Backend/RuntimeName.h"
@@ -458,6 +459,7 @@ MicroPassManager::MicroPassManager()
     copyEliminationPass_     = std::make_unique<MicroCopyEliminationPass>();
     instructionCombinePass_  = std::make_unique<MicroInstructionCombinePass>();
     strengthReductionPass_   = std::make_unique<MicroStrengthReductionPass>();
+    inductionVariablePass_   = std::make_unique<MicroInductionVariablePass>();
     valueNumberingPass_      = std::make_unique<MicroValueNumberingPass>();
     licmPass_                = std::make_unique<MicroLoopInvariantCodeMotionPass>();
     sinkToUsePass_           = std::make_unique<MicroSinkToUsePass>();
@@ -515,6 +517,11 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         addPreRaLoopPass(*copyEliminationPass_);
         addPreRaLoopPass(*instructionCombinePass_);
         addPreRaLoopPass(*strengthReductionPass_);
+        // Carry the products of a loop counter instead of multiplying on
+        // every trip. Runs after strength reduction, which has already turned
+        // a power-of-two stride into the shift this pass also recognizes, and
+        // before value numbering, which shares the accumulators of one stride.
+        addPreRaLoopPass(*inductionVariablePass_);
         // Deduplicate identical dominating computes. Runs after strength
         // reduction so the multiply-high expansions of `u / C` and `u % C`
         // exist to be shared, and before LICM so a loop body slimmed by

@@ -28,6 +28,7 @@ class MicroConstantFoldingPass;
 class MicroCopyEliminationPass;
 class MicroInstructionCombinePass;
 class MicroStrengthReductionPass;
+class MicroInductionVariablePass;
 class MicroValueNumberingPass;
 class MicroLoopInvariantCodeMotionPass;
 class MicroSinkToUsePass;
@@ -98,6 +99,7 @@ private:
     std::unique_ptr<MicroCopyEliminationPass>         copyEliminationPass_;
     std::unique_ptr<MicroInstructionCombinePass>      instructionCombinePass_;
     std::unique_ptr<MicroStrengthReductionPass>       strengthReductionPass_;
+    std::unique_ptr<MicroInductionVariablePass>       inductionVariablePass_;
     std::unique_ptr<MicroValueNumberingPass>          valueNumberingPass_;
     std::unique_ptr<MicroLoopInvariantCodeMotionPass> licmPass_;
     std::unique_ptr<MicroSinkToUsePass>               sinkToUsePass_;

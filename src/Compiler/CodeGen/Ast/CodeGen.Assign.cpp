@@ -351,20 +351,27 @@ namespace
         MicroReg resultReg;
         if (binaryOp == TokenId::SymLowerLower || binaryOp == TokenId::SymGreaterGreater)
         {
-            const TypeRef     countTypeRef = unwrapAssignScalarTypeRef(codeGen, encodeCtx.rightTypeRef);
-            const TypeInfo&   countType    = codeGen.typeMgr().get(countTypeRef);
-            const MicroOpBits countBits    = CodeGenTypeHelpers::numericBits(countType);
-            MicroReg          countReg     = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, countTypeRef);
-            if (countBits != MicroOpBits::B64)
+            // A count the source names rides in the instruction. Otherwise it
+            // travels in the low bits of a vector register.
+            const auto& node = codeGen.node(codeGen.curNodeRef()).cast<AstAssignStmt>();
+            resultReg        = CodeGenVectorHelpers::emitConstantShift(codeGen, binaryOp, leftReg, laneType, node.nodeRightRef);
+            if (!resultReg.isValid())
             {
-                const MicroReg wideCountReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadZeroExtendRegReg(wideCountReg, countReg, MicroOpBits::B64, countBits);
-                countReg = wideCountReg;
-            }
+                const TypeRef     countTypeRef = unwrapAssignScalarTypeRef(codeGen, encodeCtx.rightTypeRef);
+                const TypeInfo&   countType    = codeGen.typeMgr().get(countTypeRef);
+                const MicroOpBits countBits    = CodeGenTypeHelpers::numericBits(countType);
+                MicroReg          countReg     = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, countTypeRef);
+                if (countBits != MicroOpBits::B64)
+                {
+                    const MicroReg wideCountReg = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadZeroExtendRegReg(wideCountReg, countReg, MicroOpBits::B64, countBits);
+                    countReg = wideCountReg;
+                }
 
-            const MicroReg countVecReg = codeGen.nextVirtualFloatRegister();
-            builder.emitLoadRegReg(countVecReg, countReg, MicroOpBits::B64);
-            resultReg = CodeGenVectorHelpers::emitVariableShift(codeGen, binaryOp, leftReg, countVecReg, laneType);
+                const MicroReg countVecReg = codeGen.nextVirtualFloatRegister();
+                builder.emitLoadRegReg(countVecReg, countReg, MicroOpBits::B64);
+                resultReg = CodeGenVectorHelpers::emitVariableShift(codeGen, binaryOp, leftReg, countVecReg, laneType);
+            }
         }
         else
         {

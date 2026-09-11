@@ -539,6 +539,41 @@ MicroReg CodeGenVectorHelpers::emitLaneShiftImm(CodeGen& codeGen, MicroReg value
     return emitVecBinary(codeGen, shiftedReg, repeatedConstant(codeGen, 1, keep), MicroOp::VecAnd);
 }
 
+MicroReg CodeGenVectorHelpers::emitConstantShift(CodeGen& codeGen, TokenId tokId, MicroReg valueReg, const TypeInfo& laneType, AstNodeRef countOperandRef)
+{
+    const bool shiftLeft = tokId == TokenId::SymLowerLower;
+    SWC_ASSERT(shiftLeft || tokId == TokenId::SymGreaterGreater);
+    if (!countOperandRef.isValid())
+        return MicroReg::invalid();
+
+    const SemaNodeView countView = codeGen.viewConstant(countOperandRef);
+    if (!countView.hasConstant())
+        return MicroReg::invalid();
+    const ConstantValue& countConst = codeGen.cstMgr().get(countView.cstRef());
+    if (!countConst.isInt())
+        return MicroReg::invalid();
+
+    // A count of zero or one at or above the lane width keeps the vector
+    // register form, which is where the language defines those cases.
+    const ApsInt&  amount   = countConst.getInt();
+    const uint32_t laneBits = laneBitsOf(laneType);
+    if (amount.isNegative() || !amount.fits64() || amount.as64() == 0 || amount.as64() >= laneBits)
+        return MicroReg::invalid();
+    const auto count = static_cast<uint32_t>(amount.as64());
+
+    if (shiftLeft || !laneType.isIntSigned())
+        return emitLaneShiftImm(codeGen, valueReg, laneType, count, shiftLeft);
+
+    // The arithmetic right shift has an immediate form for word and dword
+    // lanes only.
+    switch (laneBits)
+    {
+        case 16: return emitVecBinaryImm(codeGen, valueReg, count, MicroOp::VecShiftRightA16);
+        case 32: return emitVecBinaryImm(codeGen, valueReg, count, MicroOp::VecShiftRightA32);
+        default: return MicroReg::invalid();
+    }
+}
+
 MicroReg CodeGenVectorHelpers::emitRotateImm(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType, uint32_t count, bool rotateLeft)
 {
     const uint32_t laneBits  = laneBitsOf(laneType);

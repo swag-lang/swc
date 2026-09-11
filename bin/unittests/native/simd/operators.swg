@@ -144,6 +144,54 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
 
 #test
 {
+    // A constant count rides in the instruction on every lane width that has
+    // the form: word and dword lanes both ways, qword lanes logically, byte
+    // lanes through the word shift and a mask.
+    let words      = cast(#simd [8] s16) [-32768, -3, 32767, 1, -1, 0, 2, -2]
+    let wordsRight = cast([8] s16) (words >> 3)
+    let wordsLeft  = cast([8] s16) (words << 3)
+    Swag.assert(wordsRight[0] == -4096 and wordsRight[1] == -1 and wordsRight[2] == 4095 and wordsRight[3] == 0)
+    Swag.assert(wordsLeft[0] == 0 and wordsLeft[1] == -24 and wordsLeft[2] == -8 and wordsLeft[3] == 8)
+
+    let uwords      = cast(#simd [8] u16) [0x8000, 3, 0xFFFF, 1, 0, 0, 0, 0]
+    let uwordsRight = cast([8] u16) (uwords >> 3)
+    let uwordsLeft  = cast([8] u16) (uwords << 15)
+    Swag.assert(uwordsRight[0] == 0x1000 and uwordsRight[1] == 0 and uwordsRight[2] == 0x1FFF)
+    Swag.assert(uwordsLeft[0] == 0 and uwordsLeft[1] == 0x8000 and uwordsLeft[2] == 0x8000)
+
+    let quads      = cast(#simd [2] u64) [0x8000_0000_0000_0000, 0xFFFF_FFFF_FFFF_FFFF]
+    let quadsRight = cast([2] u64) (quads >> 63)
+    let quadsLeft  = cast([2] u64) (quads << 4)
+    Swag.assert(quadsRight[0] == 1 and quadsRight[1] == 1)
+    Swag.assert(quadsLeft[0] == 0 and quadsLeft[1] == 0xFFFF_FFFF_FFFF_FFF0)
+
+    let signedQuads     = cast(#simd [2] s64) [-8, 1]
+    let signedQuadsLeft = cast([2] s64) (signedQuads << 60)
+    Swag.assert(signedQuadsLeft[0] == OperatorS64Min and signedQuadsLeft[1] == 0x1000_0000_0000_0000)
+
+    let bytes      = cast(#simd [16] u8) [0x81, 0x7F, 1, 0, 255, 128, 64, 3, 1, 2, 3, 4, 5, 6, 7, 8]
+    let bytesRight = cast([16] u8) (bytes >> 7)
+    let bytesLeft  = cast([16] u8) (bytes << 7)
+    Swag.assert(bytesRight[0] == 1 and bytesRight[1] == 0 and bytesRight[4] == 1 and bytesRight[6] == 0)
+    Swag.assert(bytesLeft[0] == 128 and bytesLeft[1] == 128 and bytesLeft[2] == 128 and bytesLeft[3] == 0 and bytesLeft[6] == 0)
+
+    // The compound forms take the same route.
+    var acc = cast(#simd [8] s16) [-32768, -3, 32767, 1, -1, 0, 2, -2]
+    acc >>= 3
+    var lanes = cast([8] s16) acc
+    Swag.assert(lanes[0] == -4096 and lanes[1] == -1 and lanes[2] == 4095)
+    acc <<= 2
+    lanes = cast([8] s16) acc
+    Swag.assert(lanes[0] == -16384 and lanes[1] == -4 and lanes[2] == 16380)
+
+    var uacc = cast(#simd [4] u32) [0x8000_0000, 4, 2, 1]
+    uacc >>= 31
+    let ulanes = cast([4] u32) uacc
+    Swag.assert(ulanes[0] == 1 and ulanes[1] == 0)
+}
+
+#test
+{
     // Sixteen u8 lanes and eight s16 lanes.
     let a8 = Swag.vecsplat(200'u8)
     let b8 = Swag.vecsplat(100'u8)

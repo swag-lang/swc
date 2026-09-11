@@ -535,10 +535,16 @@ namespace
 
         if (tokId == TokenId::SymLowerLower || tokId == TokenId::SymGreaterGreater)
         {
-            // Every lane shifts by the same count, carried in the low bits of
+            // A count the source names rides in the instruction. Otherwise
+            // every lane shifts by the same count, carried in the low bits of
             // a vector register.
+            const auto&    node   = codeGen.node(codeGen.curNodeRef()).cast<AstBinaryExpr>();
             const MicroReg lhsReg = CodeGenVectorHelpers::loadVectorOperand(codeGen, *encodeCtx.leftPayload);
-            MicroReg       countReg;
+            nodePayload.reg       = CodeGenVectorHelpers::emitConstantShift(codeGen, tokId, lhsReg, laneType, node.nodeRightRef);
+            if (nodePayload.reg.isValid())
+                return Result::Continue;
+
+            MicroReg countReg;
             materializeArithmeticOperand(countReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, codeGen.typeMgr().typeU64());
             const MicroReg countVecReg = codeGen.nextVirtualFloatRegister();
             builder.emitLoadRegReg(countVecReg, countReg, MicroOpBits::B64);

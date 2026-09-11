@@ -57,6 +57,12 @@ namespace CodeGenVectorHelpers
     // instruction are synthesized without leaving the register file.
     MicroReg emitVariableShift(CodeGen& codeGen, TokenId tokId, MicroReg valueReg, MicroReg countVecReg, const TypeInfo& laneType);
 
+    // Shifts every lane by the count the source names, when it names one below
+    // the lane width and the hardware has an immediate form for the shape.
+    // Returns an invalid register otherwise, and the count then travels in a
+    // vector register (emitVariableShift).
+    MicroReg emitConstantShift(CodeGen& codeGen, TokenId tokId, MicroReg valueReg, const TypeInfo& laneType, AstNodeRef countOperandRef);
+
     // Shifts every lane by a count known here. Byte lanes borrow the word shift
     // and mask the bits that crossed their boundary, which is what the hardware
     // leaves out.

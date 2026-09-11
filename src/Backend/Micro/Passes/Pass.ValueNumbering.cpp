@@ -332,6 +332,18 @@ namespace
                 outShape.srcBitsSlot  = 2;
                 return true;
 
+            case MicroInstrOpcode::VecUnaryAmcRegMem:
+                // ops: [0] dst, [1] base, [2] index, [3] opBits, [4] addrBits,
+                // [5] mul, [6] add, [7] microOp: the indexed widening read.
+                outShape.useSlots     = {1, 2};
+                outShape.rawSlots     = {5, 6, 7};
+                outShape.movBitsSlot  = 3;
+                outShape.readsMemory  = true;
+                outShape.memoryFamily = 2;
+                outShape.srcBitsSlot  = 3;
+                outShape.addrBitsSlot = 4;
+                return true;
+
             case MicroInstrOpcode::LoadRegReg:
                 // ops: [0] dst, [1] src, [2] opBits. Only the move into a
                 // vector register from an integer one takes part; the loop

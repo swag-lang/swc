@@ -258,6 +258,7 @@ namespace
                 return 7;
 
             case MicroInstrOpcode::LoadAmcMemImm:
+            case MicroInstrOpcode::VecUnaryAmcRegMem:
                 return 8;
 
             default:
@@ -392,6 +393,7 @@ namespace
             case MicroInstrOpcode::LoadAmcMemReg:
             case MicroInstrOpcode::LoadAmcMemImm:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
+            case MicroInstrOpcode::VecUnaryAmcRegMem:
                 if (!isValidAmcIndexRegister(ops[2].reg))
                 {
                     return reportError(context, phase, std::format("instruction #{} references unknown AMC index register {} at operand 2", instructionIndex, ops[2].reg.packed));
@@ -592,6 +594,7 @@ Result MicroVerify::verifyAllRegistersVirtual(const MicroPassContext& context, s
             case MicroInstrOpcode::LoadAmcMemReg:
             case MicroInstrOpcode::LoadAmcMemImm:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
+            case MicroInstrOpcode::VecUnaryAmcRegMem:
                 if (inst.numOperands > 2)
                     SWC_RESULT(verifyVirtualRegisterOperand(context, phase, instructionIdx, 2, ops[2].reg));
                 break;

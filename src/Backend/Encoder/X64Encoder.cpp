@@ -2199,6 +2199,53 @@ void X64Encoder::encodeVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     emitModRm(store_, memOffset, regDst, memReg);
 }
 
+// vpmovzx/vpmovsx xmm, [base + index * scale + disp]: the widening from an
+// indexed address. The three-byte VEX form carries the index in X and the
+// base in B, as the REX prefix does for the legacy indexed forms; vvvv is
+// unused. The stack pointer cannot index, so it changes places with the
+// base when the scale is one, as the legacy encoder does.
+void X64Encoder::encodeVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, MicroOpBits opBits)
+{
+    SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && !regBase.isFloat() && !regMul.isFloat() && !regBase.isNoBase());
+    SWC_ASSERT(op == MicroOp::VecWidenLoU8 || op == MicroOp::VecWidenLoU16 || op == MicroOp::VecWidenLoU32 ||
+               op == MicroOp::VecWidenLoS8 || op == MicroOp::VecWidenLoS16 || op == MicroOp::VecWidenLoS32);
+    SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
+    SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
+
+    X64Reg baseX64 = microRegToX64Reg(regBase);
+    X64Reg mulX64  = microRegToX64Reg(regMul);
+    if (mulX64 == X64Reg::Rsp)
+    {
+        SWC_ASSERT(mulValue == 1);
+        std::swap(baseX64, mulX64);
+    }
+    const X64Reg dstX64 = microRegToX64Reg(regDst);
+
+    if (opBitsBaseMul == MicroOpBits::B32)
+        store_.pushU8(0x67);
+
+    const VecOpEncoding enc = vecOpEncoding(op);
+    const uint8_t       pp  = vexPrefixBits(enc.prefix);
+    store_.pushU8(0xC4);
+    store_.pushU8(static_cast<uint8_t>((isExtendedReg(dstX64) ? 0 : 0x80) |
+                                       (isExtendedReg(mulX64) ? 0 : 0x40) |
+                                       (isExtendedReg(baseX64) ? 0 : 0x20) |
+                                       enc.map));
+    store_.pushU8(static_cast<uint8_t>((0x0F << 3) | pp));
+    emitCpuOp(store_, enc.opcode);
+
+    const bool      forcedDisplacement = baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp;
+    const ModRmMode mode               = addValue == 0 && !forcedDisplacement ? ModRmMode::Memory : canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32;
+    emitModRm(store_, mode, encodeReg(dstX64), MODRM_RM_SIB);
+
+    uint8_t scale = 0;
+    for (uint64_t value = mulValue; value > 1; value >>= 1)
+        ++scale;
+    emitSib(store_, scale, encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);
+    if (mode != ModRmMode::Memory)
+        emitValue(store_, addValue, mode == ModRmMode::Displacement8 ? MicroOpBits::B8 : MicroOpBits::B32);
+}
+
 // movdqu m128, xmm   (F3 0F 7F /r) : unaligned 128-bit packed store.
 void X64Encoder::encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits)
 {

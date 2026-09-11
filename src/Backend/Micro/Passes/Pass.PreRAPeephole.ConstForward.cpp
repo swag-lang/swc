@@ -223,6 +223,20 @@ namespace PreRaPeephole
                     }
                     return false;
 
+                case MicroInstrOpcode::VecUnaryAmcRegMem:
+                    if (ops[2].reg == producer.reg && ops[1].reg.isAnyInt())
+                    {
+                        out.newOp           = MicroInstrOpcode::VecUnaryRegMem;
+                        out.numOps          = 5;
+                        out.ops[0].reg      = ops[0].reg;
+                        out.ops[1].reg      = ops[1].reg;
+                        out.ops[2].opBits   = ops[3].opBits;
+                        out.ops[3].valueU64 = ops[6].valueU64 + producer.value * ops[5].valueU64;
+                        out.ops[4].microOp  = ops[7].microOp;
+                        return true;
+                    }
+                    return false;
+
                 case MicroInstrOpcode::LoadAmcMemReg:
                     if (ops[1].reg == producer.reg && ops[0].reg.isAnyInt())
                     {

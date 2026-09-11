@@ -1274,6 +1274,7 @@ namespace
             case MicroInstrOpcode::LoadZeroExtAmcRegMem:
             case MicroInstrOpcode::CmpAmcImm:
             case MicroInstrOpcode::VecUnaryRegMem:
+            case MicroInstrOpcode::VecUnaryAmcRegMem:
                 scan.hasUnresolvedMemRead = true;
                 setDefsOpaque(fn, scan, inst);
                 return;

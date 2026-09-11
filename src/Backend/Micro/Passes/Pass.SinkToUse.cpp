@@ -63,7 +63,8 @@ namespace
 
         return inst.op == MicroInstrOpcode::LoadAmcRegMem ||
                inst.op == MicroInstrOpcode::LoadSignedExtAmcRegMem ||
-               inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem;
+               inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem ||
+               inst.op == MicroInstrOpcode::VecUnaryAmcRegMem;
     }
 
     // A definition this pass may move: writes exactly one virtual register,

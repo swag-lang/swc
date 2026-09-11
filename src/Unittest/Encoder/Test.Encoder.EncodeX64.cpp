@@ -181,6 +181,8 @@ namespace
 
         ENCODE_CASE("load_amc_reg_mem", "4F 8B 54 85 20", b.emitLoadAmcRegMem(R10, MicroOpBits::B64, R13, R8, 4, 0x20, MicroOpBits::B64););
         ENCODE_CASE("load_amc_reg_mem_xmm2", "66 4B 0F 6E 54 4C 7F", b.emitLoadAmcRegMem(XMM2, MicroOpBits::B64, R12, R9, 2, 0x7F, MicroOpBits::B64););
+        ENCODE_CASE("vec_widen_mem_xmm2", "C4 C2 79 30 55 7F", b.emitVecUnaryRegMem(XMM2, R13, 0x7F, MicroOp::VecWidenLoU8, MicroOpBits::B128););
+        ENCODE_CASE("vec_widen_amc_xmm2", "C4 82 79 30 54 4C 7F", b.emitVecUnaryAmcRegMem(XMM2, R12, R9, 2, 0x7F, MicroOpBits::B64, MicroOp::VecWidenLoU8, MicroOpBits::B128););
         ENCODE_CASE("load_amc_mem_reg", "47 89 94 C5 00 01 00 00", b.emitLoadAmcMemReg(R13, R8, 8, 0x100, MicroOpBits::B64, R10, MicroOpBits::B32););
         ENCODE_CASE("load_amc_mem_reg_xmm3", "66 4B 0F 7E 5C 0C 40", b.emitLoadAmcMemReg(R12, R9, 1, 0x40, MicroOpBits::B64, XMM3, MicroOpBits::B64););
         ENCODE_CASE("load_amc_mem_imm", "43 C7 44 85 24 34 12 00 00", b.emitLoadAmcMemImm(R13, R8, 4, 0x24, MicroOpBits::B64, ApInt(0x1234, 64), MicroOpBits::B32););

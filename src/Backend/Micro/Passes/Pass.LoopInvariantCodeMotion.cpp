@@ -45,6 +45,7 @@ namespace
             case MicroInstrOpcode::LoadAddrRegMem:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
             case MicroInstrOpcode::LoadAmcRegMem:
+            case MicroInstrOpcode::VecUnaryAmcRegMem:
             case MicroInstrOpcode::LoadRegMem:
             case MicroInstrOpcode::LoadSignedExtRegMem:
             case MicroInstrOpcode::LoadZeroExtRegMem:
@@ -104,6 +105,7 @@ namespace
         switch (op)
         {
             case MicroInstrOpcode::LoadAmcRegMem:
+            case MicroInstrOpcode::VecUnaryAmcRegMem:
             case MicroInstrOpcode::LoadRegMem:
             case MicroInstrOpcode::LoadSignedExtRegMem:
             case MicroInstrOpcode::LoadZeroExtRegMem:

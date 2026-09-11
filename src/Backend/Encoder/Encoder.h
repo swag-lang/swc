@@ -113,6 +113,7 @@ protected:
     virtual void encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)                                                                                   = 0;
     virtual void encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)                                                                             = 0;
     virtual void encodeVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)                                                                 = 0;
+    virtual void encodeVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, MicroOpBits opBits) = 0;
     virtual void encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits)                                                                            = 0;
     virtual void encodeVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uint64_t control, MicroOpBits opBits)                                                                         = 0;
     virtual void encodeVecGatherS32(MicroReg regDst, MicroReg baseReg, MicroReg indicesReg)                                                                                                = 0;

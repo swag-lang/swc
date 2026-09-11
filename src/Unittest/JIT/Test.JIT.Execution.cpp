@@ -354,7 +354,7 @@ namespace
     // saturating add, widen, multiply-add, saturating packs, shift, signed
     // compare, movemask, and the and/andnot/or select composition. Inputs at
     // offsets 0/16 (bytes), 32 (s16 twos), 48 (s16 fifties); outputs from 64.
-    uint32_t vecPackedOpsData[36];
+    uint32_t vecPackedOpsData[40];
 
     void buildReturnZeroAfterVecCodecOps(MicroBuilder& builder, const CallConv& callConv)
     {
@@ -406,18 +406,23 @@ namespace
         builder.emitStoreVecMemReg(r8, 112, xmm1, MicroOpBits::B128);
 
         // The widening read straight from memory: bytes 8..15 zero-extended
-        // to words.
+        // to words, once through a plain address and once through an indexed
+        // one with a zero index.
         builder.emitVecUnaryRegMem(xmm2, r8, 8, MicroOp::VecWidenLoU8, MicroOpBits::B128);
         builder.emitStoreVecMemReg(r8, 128, xmm2, MicroOpBits::B128);
+        builder.emitClearReg(rdx, MicroOpBits::B64);
+        builder.emitVecUnaryAmcRegMem(xmm3, r8, rdx, 4, 8, MicroOpBits::B64, MicroOp::VecWidenLoU8, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(r8, 144, xmm3, MicroOpBits::B128);
 
-        // acc |= (out word ^ expected word) over the five stored vectors.
-        static constexpr uint32_t EXPECTED[20] = {
+        // acc |= (out word ^ expected word) over the six stored vectors.
+        static constexpr uint32_t EXPECTED[24] = {
             0x80808080, 0x80808080, 0x80808080, 0x80808080,
             0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
             0x1A120A02, 0x1A120A02, 0x1A120A02, 0x1A120A02,
             0x00320032, 0x00320032, 0x00500040, 0x00700060,
+            0x00090008, 0x000B000A, 0x000D000C, 0x000F000E,
             0x00090008, 0x000B000A, 0x000D000C, 0x000F000E};
-        for (uint32_t word = 0; word < 20; ++word)
+        for (uint32_t word = 0; word < 24; ++word)
         {
             builder.emitLoadRegMem(rdx, r8, 64 + word * 4, MicroOpBits::B32);
             builder.emitOpBinaryRegImm(rdx, ApInt(EXPECTED[word], 32), MicroOp::Xor, MicroOpBits::B32);
@@ -606,7 +611,7 @@ SWC_TEST_BEGIN(JIT_VecCodecOps)
         vecPackedOpsData[8 + lane]  = 0x00020002u;
         vecPackedOpsData[12 + lane] = 0x00320032u;
     }
-    for (uint32_t word = 16; word < 36; ++word)
+    for (uint32_t word = 16; word < 40; ++word)
         vecPackedOpsData[word] = 0;
 
     SWC_RESULT(runCase(ctx, &buildReturnZeroAfterVecCodecOps, 0));

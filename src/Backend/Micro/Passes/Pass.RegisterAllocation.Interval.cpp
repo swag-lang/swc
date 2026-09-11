@@ -277,6 +277,8 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
             case MicroInstrOpcode::LoadZeroExtRegReg:
             case MicroInstrOpcode::LoadAddrRegMem:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
+            case MicroInstrOpcode::VecUnaryRegMem:
+            case MicroInstrOpcode::VecUnaryAmcRegMem:
             case MicroInstrOpcode::ClearReg:
                 return true;
             default:

@@ -485,6 +485,7 @@ namespace InstructionCombine
             case MicroInstrOpcode::LoadSignedExtAmcRegMem:
             case MicroInstrOpcode::LoadZeroExtAmcRegMem:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
+            case MicroInstrOpcode::VecUnaryAmcRegMem:
                 break;
             case MicroInstrOpcode::LoadAmcMemReg:
             case MicroInstrOpcode::LoadAmcMemImm:
@@ -513,6 +514,7 @@ namespace InstructionCombine
         {
             case MicroInstrOpcode::LoadAmcRegMem:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
+            case MicroInstrOpcode::VecUnaryAmcRegMem:
                 if (ops[4].opBits != MicroOpBits::B64)
                     return false;
                 break;
@@ -578,6 +580,18 @@ namespace InstructionCombine
                 newOps[2].opBits   = ops[3].opBits;
                 newOps[3].valueU64 = offsetU64;
                 ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrRegMem, newOps);
+                return true;
+            }
+            case MicroInstrOpcode::VecUnaryAmcRegMem:
+            {
+                // [dst, base, index, opBits, addrBits, mul, add, microOp] -> [dst, base, opBits, off, microOp]
+                MicroInstrOperand newOps[5];
+                newOps[0].reg      = ops[0].reg;
+                newOps[1].reg      = base;
+                newOps[2].opBits   = ops[3].opBits;
+                newOps[3].valueU64 = offsetU64;
+                newOps[4].microOp  = ops[7].microOp;
+                ctx.emitRewrite(ref, MicroInstrOpcode::VecUnaryRegMem, newOps);
                 return true;
             }
             case MicroInstrOpcode::LoadAmcMemReg:

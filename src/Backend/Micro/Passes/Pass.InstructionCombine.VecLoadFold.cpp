@@ -7,17 +7,18 @@
 
 // A vector load whose every reader widens half of it.
 //
-//     LoadVecRegMem      vt,  [b+o]           (or the 128-bit LoadRegMem)
-//     VecUnaryRegReg     lo,  vt, widenLo          (the low eight bytes)
+//     LoadVecRegMem      vt,  [b+o]           (or the 128-bit LoadRegMem,
+//     VecUnaryRegReg     lo,  vt, widenLo           or the indexed LoadAmcRegMem)
 //     OpBinaryRegRegReg  hi,  vt, zero, unpackHi   (the high eight, against zero)
 //   ->
 //     VecUnaryRegMem     lo,  [b+o],   widenLo
 //     VecUnaryRegMem     hi,  [b+o+8], widenLo
 //
 // Each half is one widening from memory instead of a load and a widening:
-// no register holds the sixteen bytes, and the zero goes unread. The reads
-// move to the readers, so nothing between the load and a reader may write
-// memory, transfer control, or redefine the base.
+// no register holds the sixteen bytes, and the zero goes unread. An indexed
+// load becomes the indexed widening the same way. The reads move to the
+// readers, so nothing between the load and a reader may write memory,
+// transfer control, or redefine the address registers.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -101,10 +102,50 @@ namespace InstructionCombine
             return def.valid() && isZeroVectorValue(ctx, def.valueId, 0);
         }
 
+        // The address a load reads: a base and an offset, with an index, a
+        // scale and an addressing width for the indexed form.
+        struct LoadAddress
+        {
+            bool        indexed  = false;
+            MicroReg    base     = MicroReg::invalid();
+            MicroReg    index    = MicroReg::invalid();
+            MicroOpBits addrBits = MicroOpBits::B64;
+            uint64_t    mul      = 1;
+            uint64_t    offset   = 0;
+        };
+
+        bool readLoadAddress(LoadAddress& out, const MicroInstr& inst, const MicroInstrOperand* ops)
+        {
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadVecRegMem:
+                case MicroInstrOpcode::LoadRegMem:
+                    // ops: [0] dst, [1] base, [2] opBits, [3] offset
+                    if (ops[2].opBits != MicroOpBits::B128)
+                        return false;
+                    out.base   = ops[1].reg;
+                    out.offset = ops[3].valueU64;
+                    return out.base.isVirtualInt();
+                case MicroInstrOpcode::LoadAmcRegMem:
+                    // ops: [0] dst, [1] base, [2] index, [3] loadBits, [4] addrBits, [5] mul, [6] add
+                    if (ops[3].opBits != MicroOpBits::B128 || ops[4].opBits != MicroOpBits::B64)
+                        return false;
+                    out.indexed  = true;
+                    out.base     = ops[1].reg;
+                    out.index    = ops[2].reg;
+                    out.addrBits = ops[4].opBits;
+                    out.mul      = ops[5].valueU64;
+                    out.offset   = ops[6].valueU64;
+                    return out.base.isVirtualInt() && out.index.isVirtualInt();
+                default:
+                    return false;
+            }
+        }
+
         // Whether the read may move from the load to `useRef`: the reader
         // follows the load in the same straight line, and nothing in between
-        // writes memory, is a call, or redefines the base.
-        bool readMovesToReader(const Context& ctx, const MicroInstrRef loadRef, const MicroInstrRef useRef, const MicroReg base)
+        // writes memory, is a call, or redefines an address register.
+        bool readMovesToReader(const Context& ctx, const MicroInstrRef loadRef, const MicroInstrRef useRef, const LoadAddress& address)
         {
             MicroInstrRef ref = ctx.storage->findNextInstructionRef(loadRef);
             for (uint32_t step = 0; ref.isValid() && step < K_MAX_VECFOLD_WINDOW; ++step, ref = ctx.storage->findNextInstructionRef(ref))
@@ -115,7 +156,11 @@ namespace InstructionCombine
                 if (!inst || isControlOrCall(*inst) || writesMemory(*inst))
                     return false;
                 const MicroInstrUseDef* useDef = ctx.ssa->instrUseDef(ref);
-                if (useDef && std::ranges::find(useDef->defs, base) != useDef->defs.end())
+                if (!useDef)
+                    continue;
+                if (std::ranges::find(useDef->defs, address.base) != useDef->defs.end())
+                    return false;
+                if (address.indexed && std::ranges::find(useDef->defs, address.index) != useDef->defs.end())
                     return false;
             }
             return false;
@@ -125,32 +170,56 @@ namespace InstructionCombine
         {
             MicroInstrRef ref;
             MicroReg      dst;
-            MicroOp       widen  = MicroOp::VecWidenLoU8;
-            uint64_t      offset = 0;
+            MicroOp       widen = MicroOp::VecWidenLoU8;
+            uint64_t      extra = 0; // eight for the high half
         };
+
+        void emitWiden(Context& ctx, const Fold& fold, const LoadAddress& address)
+        {
+            if (address.indexed)
+            {
+                MicroInstrOperand ops[8] = {};
+                ops[0].reg               = fold.dst;
+                ops[1].reg               = address.base;
+                ops[2].reg               = address.index;
+                ops[3].opBits            = MicroOpBits::B128;
+                ops[4].opBits            = address.addrBits;
+                ops[5].valueU64          = address.mul;
+                ops[6].valueU64          = address.offset + fold.extra;
+                ops[7].microOp           = fold.widen;
+                ctx.emitRewrite(fold.ref, MicroInstrOpcode::VecUnaryAmcRegMem, std::span<const MicroInstrOperand>(ops, 8), true);
+                return;
+            }
+
+            MicroInstrOperand ops[5] = {};
+            ops[0].reg               = fold.dst;
+            ops[1].reg               = address.base;
+            ops[2].opBits            = MicroOpBits::B128;
+            ops[3].valueU64          = address.offset + fold.extra;
+            ops[4].microOp           = fold.widen;
+            ctx.emitRewrite(fold.ref, MicroInstrOpcode::VecUnaryRegMem, std::span<const MicroInstrOperand>(ops, 5), true);
+        }
     }
 
     bool tryFoldVecLoadIntoWiden(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
     {
-        // The front end reads a vector through either load form; both carry
-        // [dst, base, opBits, offset].
         if (ctx.isClaimed(loadRef) || ctx.isRelocated(loadRef) || !ctx.ssa)
-            return false;
-        if (loadInst.op != MicroInstrOpcode::LoadVecRegMem && loadInst.op != MicroInstrOpcode::LoadRegMem)
             return false;
 
         const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
-        if (!loadOps || loadOps[2].opBits != MicroOpBits::B128)
+        if (!loadOps)
             return false;
 
-        const MicroReg vt   = loadOps[0].reg;
-        const MicroReg base = loadOps[1].reg;
-        const uint64_t off  = loadOps[3].valueU64;
-        if (!vt.isVirtualFloat() || !base.isVirtualInt())
+        LoadAddress address;
+        if (!readLoadAddress(address, loadInst, loadOps))
+            return false;
+
+        const MicroReg vt = loadOps[0].reg;
+        if (!vt.isVirtualFloat())
             return false;
         // A frame slot belongs to slot promotion, a global to its own
         // instruction-pointer form.
-        if (keepAccessScalar(ctx, loadRef, base) || isFrameDerivedAddress(ctx, base, loadRef) || isRelocatedAddress(ctx, base, loadRef))
+        if (keepAccessScalar(ctx, loadRef, address.base) || isFrameDerivedAddress(ctx, address.base, loadRef) || isRelocatedAddress(ctx, address.base, loadRef))
             return false;
 
         uint32_t valueId = 0;
@@ -181,9 +250,8 @@ namespace InstructionCombine
                 // ops: [0] dst, [1] src, [2] opBits, [3] microOp
                 if (useOps[1].reg != vt || useOps[2].opBits != MicroOpBits::B128 || !isLowWiden(useOps[3].microOp))
                     return false;
-                fold.dst    = useOps[0].reg;
-                fold.widen  = useOps[3].microOp;
-                fold.offset = off;
+                fold.dst   = useOps[0].reg;
+                fold.widen = useOps[3].microOp;
             }
             else if (useInst->op == MicroInstrOpcode::OpBinaryRegRegReg)
             {
@@ -192,13 +260,13 @@ namespace InstructionCombine
                     return false;
                 if (!widenOfUnpackHi(useOps[4].microOp, fold.widen) || !isZeroVectorAt(ctx, useOps[2].reg, use.instRef))
                     return false;
-                fold.dst    = useOps[0].reg;
-                fold.offset = off + 8;
+                fold.dst   = useOps[0].reg;
+                fold.extra = 8;
             }
             else
                 return false;
 
-            if (!fold.dst.isVirtualFloat() || !readMovesToReader(ctx, loadRef, use.instRef, base))
+            if (!fold.dst.isVirtualFloat() || !readMovesToReader(ctx, loadRef, use.instRef, address))
                 return false;
             folds.push_back(fold);
         }
@@ -218,15 +286,7 @@ namespace InstructionCombine
         }
 
         for (const Fold& fold : folds)
-        {
-            MicroInstrOperand ops[5] = {};
-            ops[0].reg               = fold.dst;
-            ops[1].reg               = base;
-            ops[2].opBits            = MicroOpBits::B128;
-            ops[3].valueU64          = fold.offset;
-            ops[4].microOp           = fold.widen;
-            ctx.emitRewrite(fold.ref, MicroInstrOpcode::VecUnaryRegMem, std::span<const MicroInstrOperand>(ops, 5), true);
-        }
+            emitWiden(ctx, fold, address);
         ctx.emitErase(loadRef);
         return true;
     }

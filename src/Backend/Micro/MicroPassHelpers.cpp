@@ -763,6 +763,7 @@ bool MicroPassHelpers::amcLayoutFor(AmcLayout& out, MicroInstrOpcode op)
         case MicroInstrOpcode::LoadSignedExtAmcRegMem:
         case MicroInstrOpcode::LoadZeroExtAmcRegMem:
         case MicroInstrOpcode::LoadAddrAmcRegMem:
+        case MicroInstrOpcode::VecUnaryAmcRegMem:
             return true;
         case MicroInstrOpcode::LoadAmcMemReg:
         case MicroInstrOpcode::LoadAmcMemImm:

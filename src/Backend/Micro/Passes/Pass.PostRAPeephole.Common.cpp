@@ -37,7 +37,8 @@ namespace PostRaPeephole
 
             return inst.op == MicroInstrOpcode::LoadAmcRegMem ||
                    inst.op == MicroInstrOpcode::LoadSignedExtAmcRegMem ||
-                   inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem;
+                   inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem ||
+                   inst.op == MicroInstrOpcode::VecUnaryAmcRegMem;
         }
 
         // A frame write the scan can prove lands somewhere else. Two accesses through the

@@ -331,6 +331,27 @@ namespace PreRaPeephole
                     }
                     return false;
 
+                case MicroInstrOpcode::VecUnaryRegMem:
+                    // The memory widening has its indexed form too.
+                    if (ops[1].reg == addrReg)
+                    {
+                        if (!isEncodableAmcScale(scale))
+                            return false;
+                        out.newOp           = MicroInstrOpcode::VecUnaryAmcRegMem;
+                        out.numOps          = 8;
+                        out.allocOps        = true;
+                        out.ops[0].reg      = ops[0].reg;
+                        out.ops[1].reg      = baseReg;
+                        out.ops[2].reg      = indexReg;
+                        out.ops[3].opBits   = ops[2].opBits;
+                        out.ops[4].opBits   = addrBits;
+                        out.ops[5].valueU64 = scale;
+                        out.ops[6].valueU64 = add + ops[3].valueU64;
+                        out.ops[7].microOp  = ops[4].microOp;
+                        return true;
+                    }
+                    return false;
+
                 case MicroInstrOpcode::StoreVecMemReg:
                     if (ops[0].reg == addrReg)
                     {

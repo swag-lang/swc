@@ -501,6 +501,20 @@ void MicroBuilder::emitVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     ops[4].microOp          = op;
 }
 
+void MicroBuilder::emitVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, MicroOpBits opBits)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::VecUnaryAmcRegMem, 8);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = regDst;
+    ops[1].reg              = regBase;
+    ops[2].reg              = regMul;
+    ops[3].opBits           = opBits;
+    ops[4].opBits           = opBitsBaseMul;
+    ops[5].valueU64         = mulValue;
+    ops[6].valueU64         = addValue;
+    ops[7].microOp          = op;
+}
+
 void MicroBuilder::emitVecUnaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::VecUnaryRegReg, 4);

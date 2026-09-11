@@ -34,6 +34,18 @@ func widenSigned(dst: [*] s16, src: const [*] s8)
 }
 
 #[Swag.Optimize(true)]
+func gatherRows(dst: [*] u16, src: const [*] u8, offsets: const [*] u64, rows: u64)
+{
+    // Each row sits at an offset read from a table: the vector is loaded
+    // through an indexed address.
+    for row in rows
+    {
+        let bytes = (cast(const [*] #simd [16] u8) (src + offsets[row]))[0]
+        (cast([*] #simd [8] u16) (dst + row * 8))[0] = Swag.vecwidenlo(bytes) + Swag.vecwidenhi(bytes)
+    }
+}
+
+#[Swag.Optimize(true)]
 func widenAfterStore(dst: [*] u16, buffer: [*] u8)
 {
     // The store between the load and the widening overwrites the bytes that
@@ -62,6 +74,11 @@ func widenAfterStore(dst: [*] u16, buffer: [*] u8)
     var wide:   [8] s16
     widenSigned(&wide[0], &signed[0])
     Swag.assert(wide[0] == -1 and wide[1] == -2 and wide[7] == -128)
+
+    var offsets: [3] u64 = [0, 64, 192]
+    var gathered: [3 * 8] u16
+    gatherRows(&gathered[0], &plane[0], &offsets[0], 3)
+    Swag.assert(gathered[0] == 0 + 8 and gathered[8] == 64 + 72 and gathered[16] == 192 + 200 and gathered[23] == 199 + 207)
 
     var buffer: [16] u8
     for i in 16 do

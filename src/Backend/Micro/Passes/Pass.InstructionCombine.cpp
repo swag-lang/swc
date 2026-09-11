@@ -49,6 +49,9 @@ namespace
         r.add(MicroInstrOpcode::LoadRegMem, tryMemoryFoldTriple);
         r.add(MicroInstrOpcode::LoadVecRegMem, tryFoldVecLoadIntoWiden);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldVecLoadIntoWiden);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldVecLoadIntoWiden);
+        r.add(MicroInstrOpcode::VecUnaryAmcRegMem, tryFoldConstIndexAmc);
+        r.add(MicroInstrOpcode::VecUnaryAmcRegMem, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::VecUnaryRegMem, tryFoldLeaConstIntoMemBase);
         r.add(MicroInstrOpcode::VecUnaryRegMem, tryFoldMemoryAddressing);
         // The address computation folds into the load before the load folds

@@ -747,3 +747,19 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 1,
         .memOffsetOperandIndex = 3,
     })
+
+// The indexed form of VecUnaryRegMem: dst = op([base + index * mul + add]),
+// reading the eight bytes the low widening needs. Layout [dst, base, index,
+// opBits, addrBits, mul, add, microOp], the indexed load's with the
+// operation behind it. Does not touch the CPU flags.
+SWC_MICRO_INSTR_DEF(
+    VecUnaryAmcRegMem,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 7,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })

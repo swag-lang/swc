@@ -259,6 +259,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::VecUnaryRegMem:
             encoder.encodeVecUnaryRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[4].microOp, ops[2].opBits);
             break;
+        case MicroInstrOpcode::VecUnaryAmcRegMem:
+            encoder.encodeVecUnaryAmcRegMem(ops[0].reg, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, ops[4].opBits, ops[7].microOp, ops[3].opBits);
+            break;
         case MicroInstrOpcode::StoreVecMemReg:
             encoder.encodeStoreVecMemReg(ops[0].reg, ops[3].valueU64, ops[1].reg, ops[2].opBits);
             break;

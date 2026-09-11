@@ -260,6 +260,7 @@ namespace
                 if (inst.op == MicroInstrOpcode::LoadAmcRegMem ||
                     inst.op == MicroInstrOpcode::LoadSignedExtAmcRegMem ||
                     inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem ||
+                    inst.op == MicroInstrOpcode::VecUnaryAmcRegMem ||
                     inst.op == MicroInstrOpcode::CmpAmcImm)
                     return false;
                 return true;

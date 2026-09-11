@@ -102,6 +102,7 @@ public:
     // cleanup runs would otherwise see the new instruction inherit the old
     // relocation. MicroBuilder::pruneDeadRelocations is what calls this.
     void          releaseErasedRefs();
+    MicroInstrRef lastInstructionRef() const noexcept { return tail_; }
     MicroInstrRef findNextInstructionRef(MicroInstrRef afterRef) const noexcept;
     MicroInstrRef findPreviousInstructionRef(MicroInstrRef beforeRef) const noexcept;
     MicroInstrRef insertBefore(MicroInstrRef beforeRef, const MicroInstr& value);

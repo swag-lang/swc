@@ -143,6 +143,46 @@ func splatU8(value: u8)->#simd [16] u8 => Swag.vecsplat(value)
 
 #test
 {
+    // The unsigned high half interleaves with one zero the function shares
+    // between its widenings, whatever the lane width.
+    let words  = cast(#simd [8] u16) [1, 2, 3, 4, 5, 6, 7, 0xFFFF]
+    let dwords = cast([4] u32) Swag.vecwidenhi(words)
+    Swag.assert(dwords[0] == 5 and dwords[2] == 7 and dwords[3] == 0xFFFF)
+
+    let quads = cast(#simd [4] u32) [1, 2, 0x8000_0000, 0xFFFF_FFFF]
+    let octs  = cast([2] u64) Swag.vecwidenhi(quads)
+    Swag.assert(octs[0] == 0x8000_0000 and octs[1] == 0xFFFF_FFFF)
+
+    let bytes = cast(#simd [16] u8) [0, 0, 0, 0, 0, 0, 0, 0, 200, 201, 202, 203, 204, 205, 206, 207]
+    let wh    = cast([8] u16) Swag.vecwidenhi(bytes)
+    Swag.assert(wh[0] == 200 and wh[7] == 207)
+}
+
+func sumHighHalves(dst: [*] u16, src: const [*] u8, stride: u64, rows: u64)
+{
+    for row in rows
+    {
+        let bytes = (cast(const [*] #simd [16] u8) (src + row * stride))[0]
+        let lo    = Swag.vecwidenlo(bytes)
+        let hi    = Swag.vecwidenhi(bytes)
+        (cast([*] #simd [8] u16) (dst + row * 8))[0] = lo + hi
+    }
+}
+
+#test
+{
+    // Widening in a loop: the zero is cleared once, outside it.
+    var plane: [4 * 64] u8
+    var out: [4 * 8] u16
+    for i in 4 * 64 do
+        plane[i] = cast(u8) (i & 0xFF)
+    sumHighHalves(&out[0], &plane[0], 64, 4)
+    Swag.assert(out[0] == 0 + 8 and out[7] == 7 + 15)
+    Swag.assert(out[8] == 64 + 72 and out[31] == (3 * 64 + 7) + (3 * 64 + 15))
+}
+
+#test
+{
     // Rounding average, and the pairwise multiply-add.
     let a = cast(#simd [16] u8) [0, 1, 2, 3, 10, 20, 30, 40, 100, 101, 102, 103, 200, 201, 254, 255]
     let b = cast(#simd [16] u8) [1, 1, 3, 3, 11, 21, 31, 41, 103, 104, 105, 106, 201, 202, 255, 255]

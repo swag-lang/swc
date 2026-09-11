@@ -580,6 +580,10 @@ namespace
             spillParametersToDebugSlots(codeGen, symbolFunc);
         }
 
+        // The body starts after this instruction: what the function makes
+        // once for its whole body is inserted here.
+        codeGen.setBodyEntryRef(codeGen.builder().instructions().lastInstructionRef());
+
         codeGen.pushDeferScope(declRef);
         codeGen.registerImplicitParameterDrops();
 

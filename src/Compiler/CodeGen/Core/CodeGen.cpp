@@ -486,6 +486,8 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         nextVirtualRegister_                      = 1;
         localStackFrameSize_                      = 0;
         localStackBaseReg_                        = MicroReg::invalid();
+        vectorZeroReg_                            = MicroReg::invalid();
+        bodyEntryRef_                             = MicroInstrRef::invalid();
         currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu;
         currentFunctionIndirectReturnReg_         = MicroReg::invalid();
         currentFunctionClosureContextReg_         = MicroReg::invalid();
@@ -938,6 +940,35 @@ MicroReg CodeGen::offsetAddressReg(const MicroReg baseReg, const uint32_t offset
     builder().emitLoadRegReg(addressReg, baseReg, MicroOpBits::B64);
     builder().emitOpBinaryRegImm(addressReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
     return addressReg;
+}
+
+// The function's cleared vector register: the zero an unsigned widening
+// interleaves with. One per function, cleared where the body starts so every
+// use is dominated, and shared rather than remade at each site; the allocator
+// rematerializes a clear wherever it has no register to spare, so the long
+// live range costs nothing where the register is not wanted. It goes after
+// the prologue and the parameter copies: the stack adjustments stay one run
+// for the prologue passes to merge, and the argument registers are read
+// before anything else may take one.
+MicroReg CodeGen::vectorZeroRegister()
+{
+    if (vectorZeroReg_.isValid())
+        return vectorZeroReg_;
+
+    vectorZeroReg_                = nextVirtualFloatRegister();
+    MicroStorage&       instrs    = builder().instructions();
+    const MicroInstrRef beforeRef = instrs.findNextInstructionRef(bodyEntryRef_);
+    if (!beforeRef.isValid())
+    {
+        builder().emitClearReg(vectorZeroReg_, MicroOpBits::B128);
+        return vectorZeroReg_;
+    }
+
+    std::array<MicroInstrOperand, 2> clearOps;
+    clearOps[0].reg    = vectorZeroReg_;
+    clearOps[1].opBits = MicroOpBits::B128;
+    instrs.insertSyntheticBefore(builder().operands(), beforeRef, MicroInstrOpcode::ClearReg, clearOps);
+    return vectorZeroReg_;
 }
 
 CodeGenNodePayload CodeGen::resolveLocalStackPayload(const SymbolVariable& sym, const bool cache)

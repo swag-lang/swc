@@ -43,6 +43,30 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.021 — Validate nullable storage projections across the shipped workspaces
+
+- Recorded: 2026-09-08 11:17
+- Updated: 2026-09-11 14:28 — Fixed projection through `!` and validated the sanity suite; the consumer build awaits machine headroom.
+- Area: compiler/sema, `SemaEscape`
+- Evidence: `storageProjection` now sees through `ErrorManagementExpr` only when its token is `!`.
+  The previous compiler falsely rejected `let view = pair!.left.view(); pair!.right.reserve(64)`
+  followed by a read of `view`: losing the nullable receiver's projection conflated two distinct
+  owned fields. The new compiler accepts that case and still rejects mutation of the borrowed field.
+- Validation: the DevMode compiler build, focused `borrow_invalidation.swg` run, and complete
+  `sanity` suite passed in `devmode` (43 files, 50 executed tests). Four source cases cover direct
+  payload access and accessor summaries, each with a matching-field error and a sibling-field
+  acceptance. The sibling-accessor case failed on the previous compiler before rebuilding.
+- Remaining evidence: repeated machine admission checks refused the all-workspace build with
+  about 5 GiB of commit headroom against the required 8 GiB. A pre-change `sema --workspace bin/std
+  --workspace-module core -bc devmode --rebuild --num-cores 6` sample took 3.880 s wall time and
+  reached 510.848 MiB peak working set; the matching post-change sample is also pending. One sample
+  is a baseline, not a performance conclusion.
+- Next: run `bin/swc.dm.exe --num-cores 6 tools/build.swgs dm -bc devmode --num-cores 6` and repeat
+  the focused core semantic-analysis measurement once machine admission reports `ready`.
+- Complete when: all shipped workspaces build unchanged with nullable projections enabled and
+  the before/after compiler time and memory comparison is checked.
+- Related: compiler.safety.020.
+
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
 - Recorded: 2026-09-04 17:05
@@ -288,25 +312,6 @@ is the current scorecard.
 - Complete when: both shapes above are compile-time errors, the `reset` shape and the
   carrier case stay silent, and all of them are in `bin/unittests/sanity/use_after_free.swg`.
 - Related: compiler.safety.017, compiler.safety.021.
-
-### compiler.safety.021 — A projection does not see through the not-null assertion
-
-- Recorded: 2026-09-08 11:17
-- Area: compiler/sema, `SemaEscape`
-- Evidence: `storageProjection` walks casts, parentheses and member accesses to name the
-  storage an expression designates, and has no case for the `!` assertion, which is an
-  `ErrorManagementExpr`. `f(p.buffer!)` therefore projects to nothing where `f(p.buffer)`
-  projects to `p`'s field. `!` asserts a value is not null and names the same storage as
-  its operand, so the walk should be transparent to it — every other error keyword changes
-  what the expression yields and must not be.
-- Consequence: every field-sensitive rule reading a projection loses precision exactly where
-  a nullable owned pointer is used, which is where those pointers are written.
-- Next: add the case, guarded on the operand's token being `!` rather than on the node kind,
-  then measure what it changes: it makes the borrow and view-invalidation analyses see
-  projections they used to miss, so the sweep over `bin/` is the evidence that it reports
-  nothing new that is wrong.
-- Complete when: `storageProjection` sees through `!`, and `bin/` builds unchanged.
-- Related: compiler.safety.020.
 
 ### compiler.safety.017 — Allocation ownership has no static leak proof
 

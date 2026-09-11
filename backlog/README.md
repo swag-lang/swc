@@ -35,6 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-11 14:28 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-11 06:07 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-10 21:00 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-10 21:00 |
@@ -45,7 +46,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-10 19:43 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-10 19:39 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-10 19:39 |
-| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-10 19:35 |
 | [std.audio.md](std.audio.md) | `std/audio` | 2026-09-10 19:12 |
 | [app.scope.binary.md](app.scope.binary.md) | The Swag Scope structured-binary and container viewer | 2026-09-10 19:10 |
 | [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-10 19:06 |

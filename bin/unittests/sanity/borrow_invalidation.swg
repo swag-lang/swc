@@ -180,6 +180,35 @@ struct BorrowInvPair
     right: BorrowInvBuffer
 }
 
+// A non-null assertion preserves the field that owns the borrowed payload.
+func borrowInvNullableReceiverMatchingField(pair: *BorrowInvPair?)->u8
+{
+    let view = pair!.right.data!
+    pair!.right.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return view[0]
+}
+
+func borrowInvNullableReceiverSiblingField(pair: *BorrowInvPair?)->u8
+{
+    let view = pair!.left.data!
+    pair!.right.reserve(64)
+    return view[0]
+}
+
+func borrowInvNullableReceiverSiblingAccessor(pair: *BorrowInvPair?)->u8
+{
+    let view = pair!.left.view()
+    pair!.right.reserve(64)
+    return view[0]
+}
+
+func borrowInvNullableReceiverMatchingAccessor(pair: *BorrowInvPair?)->u8
+{
+    let view = pair!.right.view()
+    pair!.right.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return view[0]
+}
+
 impl BorrowInvPair
 {
     mtd receiverInvalidatesMatchingField()->u8

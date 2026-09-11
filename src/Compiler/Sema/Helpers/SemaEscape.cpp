@@ -389,6 +389,11 @@ namespace
             case AstNodeId::AsCastExpr:
                 return storageProjection(sema, node.cast<AstAsCastExpr>().nodeExprRef, outProjection, depth + 1);
 
+            case AstNodeId::ErrorManagementExpr:
+                if (sema.token(node.codeRef()).id == TokenId::SymBang)
+                    return storageProjection(sema, node.cast<AstErrorManagementExpr>().nodeExprRef, outProjection, depth + 1);
+                return false;
+
             case AstNodeId::CastExpr:
             {
                 // An implicit conversion (e.g. the nullable widening synthesized when a

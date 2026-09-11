@@ -116,27 +116,6 @@ namespace
                op == MicroInstrOpcode::CmpMemImm;
     }
 
-    // Whether the instruction adds the frame base to another register: the
-    // front end forms the address of an element of a frame array by adding
-    // the array's address last, after the element offset, and the address of
-    // the first local IS the base. So `add p, fb`, in either shape, points
-    // into the object at offset zero, as an indexed access on the base does.
-    bool addsFrameBase(const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg frameBase)
-    {
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::OpBinaryRegReg:
-                // ops: [0] dst, [1] src, [2] opBits, [3] microOp
-                return ops[3].microOp == MicroOp::Add && ops[2].opBits == MicroOpBits::B64 && ops[1].reg == frameBase && ops[0].reg != frameBase;
-            case MicroInstrOpcode::OpBinaryRegRegReg:
-                // ops: [0] dst, [1] src1, [2] src2, [3] opBits, [4] microOp
-                return ops[4].microOp == MicroOp::Add && ops[3].opBits == MicroOpBits::B64 && ops[0].reg != frameBase &&
-                       (ops[1].reg == frameBase) != (ops[2].reg == frameBase);
-            default:
-                return false;
-        }
-    }
-
     bool isPromotableBits(MicroOpBits bits)
     {
         // 128 bits is the vector width, and a float register copy of it is full width too;
@@ -162,7 +141,7 @@ namespace
     // stable base — and (b) actually used as the base of constant-offset scalar
     // loads/stores, preferring the most-used one. The escape analysis then
     // validates the choice and bails the whole function if it is wrong.
-    MicroReg detectFrameBase(MicroStorage& storage, MicroOperandStorage& operands, MicroReg stackPointer, MicroInstrRef& outDefRef)
+    MicroReg detectFrameBase(MicroStorage& storage, MicroOperandStorage& operands, MicroReg stackPointer, MicroReg preferred, MicroInstrRef& outDefRef)
     {
         struct Cand
         {
@@ -231,6 +210,23 @@ namespace
             }
         }
 
+        // The code generator names the register its locals hang from; when it
+        // is a stable candidate it is the base, however many other addresses
+        // the function derives from the stack pointer. The local extents the
+        // escapes are measured against are offsets from that register, and a
+        // detection that settled on another sp-derived register - an indirect
+        // return slot's, a parameter home's - left every extent unusable and
+        // every escape a whole-function bail.
+        if (preferred.isValid())
+        {
+            const auto found = cands.find(preferred);
+            if (found != cands.end() && found->second.stable && found->second.defRef.isValid())
+            {
+                outDefRef = found->second.defRef;
+                return preferred;
+            }
+        }
+
         MicroReg best;
         uint32_t bestUses = 0;
         for (const auto& [reg, c] : cands)
@@ -270,7 +266,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         return Result::Continue;
 
     MicroInstrRef  frameBaseDefRef = MicroInstrRef::invalid();
-    const MicroReg frameBase       = detectFrameBase(storage, operands, stackPointer, frameBaseDefRef);
+    const MicroReg frameBase       = detectFrameBase(storage, operands, stackPointer, context.debugStackBaseVirtualReg, frameBaseDefRef);
     if (!frameBase.isValid() || !frameBaseDefRef.isValid())
         return Result::Continue;
 
@@ -446,9 +442,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // degenerate `mov ar, fb` the collection pass models - and the front end
     // produces it whenever the address of a function's FIRST local escapes or
     // is indexed (an inlined callee's pointer parameter home, a `state[i]`
-    // over a first local). An addition of the base is the same first local,
-    // indexed (see addsFrameBase); every other appearance of the base in
-    // arithmetic keeps the whole-function bail.
+    // over a first local). Every appearance of the base as a value is read
+    // the same way: the first local, escaping.
     auto escapedObjectOffset = [&](const MicroReg reg, uint64_t& outOffset) -> bool {
         if (reg == frameBase)
         {
@@ -682,9 +677,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             const bool isExplainedAmcBase = amcBase.isValid() && *rref.reg == amcBase;
             if (isExplainedBase || isExplainedValue || isExplainedAmcBase)
                 continue;
-            uint64_t escapedOffset = 0;
-            const bool resolved = *rref.reg == frameBase ? addsFrameBase(inst, ops, frameBase) && escapedObjectOffset(frameBase, escapedOffset)
-                                                         : trackedEscapeOffset(*rref.reg, escapedOffset);
+            // The frame base read as a value - added to an element offset,
+            // copied into an argument register, compared, stored - is the
+            // address of the first local, whose object escapes; the front end
+            // forms every element address from the object's address, so the
+            // base never stands for another object.
+            uint64_t   escapedOffset = 0;
+            const bool resolved      = escapedObjectOffset(*rref.reg, escapedOffset);
             if (!resolved || !poisonTrackedEscape(*rref.reg, escapedOffset, 0))
             {
                 bail = true;

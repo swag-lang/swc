@@ -210,6 +210,9 @@ public:
         std::vector<uint32_t>     valueNodesBegin;
         uint32_t                  splitCount = 0;
         uint32_t                  spillCount = 0;
+        // Values parked in their home for the duration of a guarded call, so that a
+        // caller-saved register carries them across a call the straight-line path never makes.
+        uint32_t parkCount = 0;
         // The registers the walk allocated from, and the register the debug
         // local-stack base was pinned to (invalid when it was not).
         SmallVector<MicroReg> poolRegs;
@@ -237,6 +240,7 @@ private:
     void              markLiveAcrossCall(MicroReg key);
     void              computeGuardedCallPositions();
     bool              intervalHasHotCall(uint32_t lo, uint32_t hi) const;
+    bool              isGuardedCall(uint32_t instructionIndex) const;
     bool              requiresCallSpill(MicroReg key) const;
     void              markCallSpill(MicroReg key);
     void              clearCallSpill(MicroReg key);

@@ -152,8 +152,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   on the median, minimums equal; the mixins alone and the padded refill alone were within the
   noise. The bin engine was never the factor — 320,000 bins at twenty cycles is six million of the
   ninety-four — and this settles it in the code rather than in an estimate. What the rewrite did
-  find is a compiler defect that costs every hot loop with a cold call in it:
-  compiler.optimization.035.
+  find is a compiler defect that cost every hot loop with a cold call in it — the split allocator
+  spilled the hot path around a call it never took — fixed in the compiler on 2026-09-11 (build
+  438: the clobber of a guarded call is no longer a fixed interval, and a value crossing it is
+  parked in its home inside the cold block).
 - **The bookkeeping writes were a real cost (2026-09-11).** `bookkeepMb` published about 150
   scalar byte stores per macroblock — 4.8 million a picture — and exported the co-located motion
   of every macroblock of every picture in five per-block arrays. Now a grid row of four blocks
@@ -206,7 +208,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   significance map is neutral; and answering strength zero early when both blocks of an inner edge
   hold identical motion records lost every measured round. The first port of FFmpeg's engine
   representation measured 8.7 percent worse that afternoon; the loss was the allocator spilling
-  around the cold refill call (compiler.optimization.035), and with the payload padded and the
+  around the cold refill call (fixed in build 438), and with the payload padded and the
   reload inline the same engine is what ships. Inlining the generic
   `CabacReader.decision`, rejected on 2026-08-19 at a ten percent parse loss, was re-measured on
   2026-09-10 under the live-range-splitting allocator: neutral (median of paired rounds −1.1

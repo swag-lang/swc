@@ -10,112 +10,10 @@ Several entries address register residency, loop-entry shape, spill traffic, ali
 inline argument materialization. Earlier measurements used the whole-hull allocator; optimizing
 builds now use interval splitting, so those measurements identify workloads to recheck rather than
 current performance guarantees. `MicroSsaState` reconstructs SSA and phi values for analysis, while
-the executable Micro instruction stream has no explicit phi instruction.
-
-### compiler.optimization.035 — The split allocator spills the hot path around a call it never takes
-
-- Recorded: 2026-09-10 23:17
-- Updated: 2026-09-10 23:47 — Add the counts of the call-free build with the smaller engine
-- Area: compiler/backend
-- Found while: std.video.001, tracing which allocator took every function of the H.264 decoder and
-  how many splits and spills each walk decided. A temporary `SWC_RA_TRACE` print in
-  `Pass.RegisterAllocation.Interval.cpp` produced the figures; it is not committed.
-- Evidence: every hot function of the decoder takes the interval path (31,096 functions against
-  90 refused and 39 failed walks in the video module), so the fallback scan is not where the
-  spills come from. `Slice.residualCabac` decodes every bin of a block through an inlined engine
-  whose bit-buffer refill was a call sitting in the renormalization branch — a branch taken on
-  about half the bins, a call taken once per fifty. With that call present the five
-  specializations of the function walked with 140 to 164 splits and 81 to 96 spills each; with
-  the refill inlined and the call gone, and no other change to the body, 105 to 118 splits and 58
-  to 67 spills. `CabacReader.decision`, one bin with the same cold call, went from five
-  callee-saved pushes, `sub rsp, 0x80` and a spill slot written on both arms of its branch to
-  three pushes and no frame access at all. The mechanism is in the walk: the clobber of a call is
-  a fixed interval on every volatile register, so a value that spans the call has its
-  `freeUntilPos` capped there and is either handed a callee-saved register or split at the call;
-  the split child is spilled, and the edge resolution then stores the value on the edge that
-  jumps *over* the call block — the hot edge — because the label after the block sees the value in
-  memory. The straight-line path pays a store and a reload for a call it never makes. This is the
-  branch-crossing spill compiler.optimization.010 measured in `decision` and could not explain.
-  With FFmpeg's smaller bin engine in the same call-free function the walk still decides 56 to 70
-  splits and 32 to 40 spills for about twenty live values, and the emitted body keeps 61 frame
-  accesses in 756 instructions — the parameters read only after the loops and the loop counters
-  are what remains in memory, which is ordinary pressure rather than this defect.
-- Next: treat a call inside a forward-jumped-over block — one no path from the function entry
-  reaches without taking a conditional jump around its fall-through — as parkable, the way the
-  scan allocator's `saveRestorePinnedAcrossCall` already does for pinned values: leave its clobbers
-  out of the fixed intervals in `buildFixedIntervals`, and have `applyIntervalAllocation` save and
-  restore, inside that block, every register the walk left live across the call. The
-  `computeGuardedCallPositions` analysis exists for the scan and can feed both places.
-- Complete when: `CabacReader.decision` and the significance loop of `Slice.residualCabac`, built
-  from a source whose refill is a call again, show no store or reload on the path that skips the
-  refill, and the split and spill counts of the trace match the call-free build's.
-- Related: compiler.optimization.010, compiler.optimization.006, compiler.optimization.024.
-
-### compiler.optimization.010 — A short branching function spills with the whole register file free
-
-- Recorded: 2026-08-23 22:36
-- Updated: 2026-09-10 22:36 — The leading-zero count is one instruction and the shift width guard is gone with the language rule, measured on the decoder; the branch-crossing spill is what remains
-- Area: compiler/backend
-- Found while: std.video.001, closing the distance between the H.264 entropy parse and FFmpeg's, starting
-  from the emitted code of one bin as that entry says to.
-- Observation: `CabacReader.decision` decodes one arithmetic bin. It is small, straight-line apart
-  from one two-way branch, and its whole live set is about eight scalars. It is called roughly
-  568,000 times per 3840x2160 picture, which is where the parse spends most of its time.
-  `#[Swag.PrintMicro("post-emit")]` in release showed the function opening with seven callee-saved
-  pushes and `sub rsp, 0xA0`, then storing three values — the address of the context byte, `mps`,
-  and the result — to that frame before the branch and reloading them on both sides. Sixteen
-  integer registers exist and the function needs about half of them.
-- This is [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and
-  the earlier whole-hull allocator without
-  the loop: no value here is loop-carried, no hull is being reserved, and the eviction still
-  happens. That makes it a much smaller reproducer than the inflate block loop for the same
-  allocator policy, which is why it is worth keeping separately.
-- Evidence: the same dump also measured what source shape can and cannot reach. Holding `range`
-  and `low` in locals for the length of the bin, and sharing renormalization between the two
-  outcomes, took the function from 217 to 143 instructions — a third fewer — and about one percent off the
-  serial decode of one picture, which is inside the noise floor of this machine — the arithmetic registers were being reloaded after every step because
-  the context write in between stores into the same structure. What did not move is the frame:
-  it is still 160 bytes with three spill slots live across a branch, and the seven pushes are
-  still there. Two smaller costs sit in the same function and belong to the same dump:
-  each of the three variable shifts carries a width guard of `cmp` plus `cmovae`, which is cheap
-  next to the spills and was already elided once for
-  [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and measured at zero.
-- Two of the three costs are gone (2026-08-24). `Swag.bitCountLz` no longer branches: the scan runs
-  unconditionally and a conditional move supplies the operand-width answer for zero, so the
-  sequence is one basic block instead of two and the caller keeps one fewer allocation boundary.
-  And the function no longer carries a frame register: it names none, its stack shape is one
-  subtract at entry and one add before the return, so the unwind codes describe it in full
-  without one. The prologue is six pushes and `sub rsp, 0x98`, and the emitted function is 138
-  instructions against 143.
-- **Current dump (2026-09-10, Release, split allocator).** The significance loop of
-  `Slice.residualCabac` inlines the branchless form of the same bin. While `range` and `low` sit in
-  a local structure whose address the inlined decision takes, they stay in stack slots and every
-  step of every bin loads and stores them. Holding them in plain locals driven through mixins puts
-  the whole bin in `eax` and `edx`, yet one spill of each remains around the renormalization
-  branch and the leading-zero count is still `bsr` plus `cmove`. That build measured 3.4 percent
-  slower on the serial decode of a 4K picture (median of interleaved rounds, byte-exact), so
-  register residency alone does not pay while those spills and the longer count sequence stay on
-  the bin's serial chain. The branch-crossing spill gap therefore remains under the split
-  allocator.
-- **Two of the three costs of that dump are gone (2026-09-10 22:15).** `Swag.bitCountLz` and
-  `bitCountTz` are `lzcnt` and `tzcnt` (`MicroOp::LeadingZeroCount`, `TrailingZeroCount`, x86-64-v3
-  has both), defined at zero as the operand width exactly as the language is; a byte operand is
-  widened to 32 bits and adjusted (`- 24` for leading zeros, `| 0x100` before trailing zeros). And
-  the shift width guard no longer exists: a shift amount is valid below the value's width and
-  nowhere else, a constant outside that range is a compile-time error, a runtime one panics under
-  overflow safety, and release emits the bare instruction. `CabacReader.decision` went from 112 to
-  94 instructions and six conditional moves to one; `Slice.residualCabac` from 921 to 834 and 23
-  conditional moves to none. Measured on the serial decode of the one-slice 4K clip, the same
-  decoder source built by the two compilers and interleaved for six paired rounds, byte-exact:
-  1.4 percent fewer cycles on the median and 2.6 on the minimum. Eighteen instructions off a bin
-  that is latency-bound buy about that much; the shape is what changed, and it changes for every
-  shift and every count in the code base.
-- Next: reduce the renormalization branch of the mixin form (std.video.001 describes it) to a
-  standalone case and attribute its branch-crossing spills to the split allocator. Retry the
-  register-resident significance loop after that.
-- Complete when: the current dump decides whether the branch-spill gap remains and any remaining
-  allocation defect has a reduced test.
-- Related: compiler.optimization.006, compiler.optimization.024.
+the executable Micro instruction stream has no explicit phi instruction. Since build 438 a call the
+straight-line path steps over — a safety panic, a cold refill — no longer constrains the split
+allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
+block, and the hot path keeps the register.
 
 ### compiler.optimization.012 — The shipped broadcast hoist still needs a current mcChroma dump
 
@@ -536,7 +434,7 @@ the executable Micro instruction stream has no explicit phi instruction.
   function with a stack-pointer adjustment between its first and last spill access skipped
   (call-argument setup shifts the offset coordinate system) - and the full video release run stays
   green. An older session recorded a `dse-parked` prototype; it is not present in this checkout.
-- Related: compiler.optimization.010. The historical lane-count failure was fixed on 2026-08-27; current allocator changes still require fresh validation.
+- Related: the historical lane-count failure was fixed on 2026-08-27; current allocator changes still require fresh validation.
 
 ### compiler.optimization.020 — Memory optimizations maintain separate frame alias analyses
 
@@ -658,7 +556,7 @@ the executable Micro instruction stream has no explicit phi instruction.
   still fires at all.
 - Complete when: the three forms carry position-precise fixed intervals, the borrow path no
   longer fires on a whole-library build, and the suites stay green.
-- Related: compiler.optimization.010, compiler.optimization.016.
+- Related: compiler.optimization.016.
 
 ### compiler.optimization.002 — Unrolling the key-stream loop still has to prove it pays
 

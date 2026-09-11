@@ -837,6 +837,12 @@ bool MicroRegisterAllocationPass::intervalHasCall(const uint32_t lo, const uint3
     return false;
 }
 
+bool MicroRegisterAllocationPass::isGuardedCall(const uint32_t instructionIndex) const
+{
+    return instructionIndex < instructionCount_ && instructionUseDefs_[instructionIndex].isCall &&
+           instructionIndex < guardedCallPositions_.size() && guardedCallPositions_[instructionIndex];
+}
+
 bool MicroRegisterAllocationPass::intervalHasHotCall(const uint32_t lo, const uint32_t hi) const
 {
     for (uint32_t idx = lo; idx <= hi && idx < instructionCount_; ++idx)

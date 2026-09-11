@@ -309,6 +309,15 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
             const bool     definedHere = std::ranges::find(defConcreteIndices_[idx], denseConcrete) != defConcreteIndices_[idx].end();
             const bool     liveInHere  = DenseBits::contains(DenseBits::row(liveInConcreteBits_, idx, concreteWordCount), denseConcrete);
             const bool     definedOnly = definedHere && !usedHere && !liveInHere && isPlainDefinition(idx);
+
+            // A call the straight-line path steps over clobbers nothing the hot path has to
+            // give up. A value may keep its caller-saved register across it and be parked in
+            // its home for the call's duration (walkIntervals), so the cold block pays the
+            // traffic. The registers the call reads and the one it hands back stay claims:
+            // those are named at the call or read right after it.
+            if (definedOnly && isGuardedCall(idx))
+                continue;
+
             const uint32_t from        = definedOnly ? idx * 2 + 1 : idx * 2;
             const uint32_t to          = idx * 2 + 2;
             if (!fixed.ranges.empty() && fixed.ranges.back().to >= from)
@@ -450,6 +459,59 @@ namespace
         ++walk.splitCount;
         pushUnhandled(walk, childIndex);
         return childIndex;
+    }
+
+    // Cuts node `nodeIndex` at `pos`: the head keeps everything before, a new node takes
+    // everything from `pos` on and inherits the register. Nothing is queued - the walk is over
+    // when this runs, and the caller decides what the child holds.
+    uint32_t cutNodeAt(std::vector<MicroRegisterAllocationPass::LiveInterval>& nodes, const uint32_t nodeIndex, const uint32_t pos)
+    {
+        if (pos <= nodes[nodeIndex].start() || pos >= nodes[nodeIndex].end())
+            return K_IV_INVALID;
+
+        MicroRegisterAllocationPass::LiveInterval child;
+        child.denseIndex  = nodes[nodeIndex].denseIndex;
+        child.assignedReg = nodes[nodeIndex].assignedReg;
+        child.hintPhys    = nodes[nodeIndex].assignedReg;
+
+        auto& parent = nodes[nodeIndex];
+        for (size_t rangeIndex = 0; rangeIndex < parent.ranges.size(); ++rangeIndex)
+        {
+            auto& range = parent.ranges[rangeIndex];
+            if (range.to <= pos)
+                continue;
+            if (range.from >= pos)
+            {
+                child.ranges.append(parent.ranges.begin() + static_cast<ptrdiff_t>(rangeIndex),
+                                    static_cast<uint32_t>(parent.ranges.size() - rangeIndex));
+                parent.ranges.resize(rangeIndex);
+            }
+            else
+            {
+                child.ranges.push_back({pos, range.to});
+                child.ranges.append(parent.ranges.begin() + static_cast<ptrdiff_t>(rangeIndex) + 1,
+                                    static_cast<uint32_t>(parent.ranges.size() - rangeIndex - 1));
+                range.to = pos;
+                parent.ranges.resize(rangeIndex + 1);
+            }
+            break;
+        }
+        if (child.ranges.empty() || parent.ranges.empty())
+            return K_IV_INVALID;
+
+        const auto moveTail = [pos](auto& fromList, auto& toList) {
+            size_t keep = 0;
+            while (keep < fromList.size() && fromList[keep] < pos)
+                ++keep;
+            toList.append(fromList.begin() + static_cast<ptrdiff_t>(keep),
+                          static_cast<uint32_t>(fromList.size() - keep));
+            fromList.resize(keep);
+        };
+        moveTail(parent.usePositions, child.usePositions);
+        moveTail(parent.defPositions, child.defPositions);
+
+        nodes.push_back(std::move(child));
+        return static_cast<uint32_t>(nodes.size() - 1);
     }
 
     // The last access strictly before `pos`, or K_IV_INVALID when the node
@@ -949,6 +1011,66 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         }
         if (!walk.failed)
             walk.active.push_back(currentIndex);
+    }
+
+    // A value holding a caller-saved register across a call the hot path steps over is parked:
+    // its node is cut into a register head, a memory-resident middle spanning the call, and a
+    // register tail in the same register. The adjacent-node connector stores the head before
+    // the call, and the edge resolution reloads the tail before the join on the fall-through
+    // side alone - the side that made the call - while the jump that steps over the block
+    // finds the value where it left it. A value the call itself reads keeps its register up to
+    // the call's input, so the head ends at the output slot.
+    if (!walk.failed && hasControlFlow_)
+    {
+        for (uint32_t idx = 0; idx + 1 < instructionCount_ && !walk.failed; ++idx)
+        {
+            if (!isGuardedCall(idx))
+                continue;
+            const auto&    clobbers = instructionUseDefs_[idx].defs;
+            const uint32_t callIn   = idx * 2;
+            const uint32_t callOut  = idx * 2 + 1;
+            const uint32_t after    = idx * 2 + 2;
+            for (size_t n = 0; n < out.nodes.size(); ++n)
+            {
+                const LiveInterval& node = out.nodes[n];
+                // The register must hold the value past the call's output slot: a node that ends
+                // there dies at the call's input, one that hands over right after the call still
+                // expects its register to carry the value across it.
+                if (node.spilled || !node.assignedReg.isValid() || !node.covers(callIn) || node.end() <= callOut)
+                    continue;
+                if (std::ranges::find(clobbers, node.assignedReg) == clobbers.end())
+                    continue;
+
+                // A value that reaches this call in memory - parked at the call just before it,
+                // or due for a reload here - stays there through this call as well, and the tail
+                // reloads it once after. Cutting a head off would order its store after the
+                // reload at the same point and park the clobbered register instead.
+                uint32_t middleIndex = static_cast<uint32_t>(n);
+                if (node.start() != callIn)
+                {
+                    middleIndex = cutNodeAt(out.nodes, static_cast<uint32_t>(n), callOut);
+                    if (middleIndex == K_IV_INVALID)
+                    {
+                        walk.failed     = true;
+                        walk.failReason = "cannot park a value across a guarded call";
+                        break;
+                    }
+                }
+
+                // The tail keeps the register from the instruction after the call on; a node that
+                // hands over exactly there has none, and the handover reads the home instead.
+                if (out.nodes[middleIndex].end() > after && cutNodeAt(out.nodes, middleIndex, after) == K_IV_INVALID)
+                {
+                    walk.failed     = true;
+                    walk.failReason = "cannot park a value across a guarded call";
+                    break;
+                }
+
+                out.nodes[middleIndex].spilled     = true;
+                out.nodes[middleIndex].assignedReg = MicroReg::invalid();
+                ++out.parkCount;
+            }
+        }
     }
 
     out.splitCount = walk.splitCount;
@@ -1527,10 +1649,15 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             const uint32_t depth = idx < loopDepth_.size() ? std::min(loopDepth_[idx], 8u) : 0u;
             return 1ull << (3 * depth);
         };
+        // A store parking a value at a guarded call belongs to the cold block and is left out
+        // of the trade: moved to the definition it would land on the hot path.
+        const auto isParkStore = [&](const Connector& connector) {
+            return !connector.dst.isValid() && isGuardedCall(connector.beforeIndex);
+        };
         std::vector<uint64_t> resolutionStoreCost(virtualCount, 0);
         for (const Connector& connector : connectors)
         {
-            if (!connector.dst.isValid())
+            if (!connector.dst.isValid() && !isParkStore(connector))
                 resolutionStoreCost[connector.denseIndex] += weightAt(connector.beforeIndex);
         }
         bool rewritten = false;
@@ -1558,7 +1685,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             }
             if (!placeable || defStores.empty() || defStoreCost > resolutionStoreCost[denseIndex])
                 continue;
-            std::erase_if(connectors, [&](const Connector& connector) { return connector.denseIndex == denseIndex && !connector.dst.isValid(); });
+            std::erase_if(connectors, [&](const Connector& connector) { return connector.denseIndex == denseIndex && !connector.dst.isValid() && !isParkStore(connector); });
             for (const Connector& store : defStores)
                 connectors.push_back(store);
             rewritten = true;

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -18,7 +19,13 @@
 // no register holds the sixteen bytes, and the zero goes unread. An indexed
 // load becomes the indexed widening the same way. The reads move to the
 // readers, so nothing between the load and a reader may write memory,
-// transfer control, or redefine the address registers.
+// transfer control, or redefine the address registers - except a store into
+// this function's own frame when the load reads through a pointer that came
+// from outside it: an argument, or an address computed from one, was formed
+// before the frame existed and cannot point into it. A deblocking filter
+// builds its strength vectors in frame temporaries between the row loads
+// and the high widenings; without that exception every row stayed in a
+// register across the whole low half, and spilled.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -26,7 +33,9 @@ namespace InstructionCombine
 {
     namespace
     {
-        constexpr uint32_t K_MAX_VECFOLD_WINDOW = 32;
+        constexpr uint32_t K_MAX_VECFOLD_WINDOW = 512;
+        constexpr uint32_t K_MAX_ORIGIN_DEPTH   = 12;
+        constexpr uint32_t K_MAX_ENTRY_WALK     = 256;
 
         bool isLowWiden(const MicroOp op)
         {
@@ -142,10 +151,100 @@ namespace InstructionCombine
             }
         }
 
+        // Whether the physical register `reg` still holds what the caller put
+        // in it where `atRef` reads it: the read sits in the function's entry
+        // straight line, with no call, no label, and no definition of the
+        // register before it. That is where the code generator copies each
+        // argument register into its virtual register.
+        bool isArgumentRegisterAt(const Context& ctx, const MicroReg reg, const MicroInstrRef atRef)
+        {
+            if (reg == ctx.stackPointer)
+                return false;
+            MicroInstrRef ref = ctx.storage->findPreviousInstructionRef(atRef);
+            for (uint32_t step = 0; step < K_MAX_ENTRY_WALK; ++step, ref = ctx.storage->findPreviousInstructionRef(ref))
+            {
+                if (!ref.isValid())
+                    return true;
+                const MicroInstr* inst = ctx.storage->ptr(ref);
+                if (!inst || isControlOrCall(*inst))
+                    return false;
+                const MicroInstrUseDef* useDef = ctx.ssa->instrUseDef(ref);
+                if (useDef && std::ranges::find(useDef->defs, reg) != useDef->defs.end())
+                    return false;
+            }
+            return false;
+        }
+
+        // Whether `reg`, where `atRef` reads it, holds a value formed from
+        // arguments and constants alone: a copy of an argument register, or
+        // address arithmetic over such values. Such a pointer was formed
+        // before this function's frame existed and cannot point into it. A
+        // phi, a value loaded from memory, and anything else answer no.
+        bool isOutsideOrigin(const Context& ctx, const MicroReg reg, const MicroInstrRef atRef, const uint32_t depth)
+        {
+            if (depth > K_MAX_ORIGIN_DEPTH || !reg.isValid())
+                return false;
+            if (reg.isInt())
+                return isArgumentRegisterAt(ctx, reg, atRef);
+            if (!reg.isVirtualInt())
+                return false;
+
+            const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+            if (!def.valid() || def.isPhi || !def.inst)
+                return false;
+            const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
+            if (!ops)
+                return false;
+
+            switch (def.inst->op)
+            {
+                case MicroInstrOpcode::LoadRegImm:
+                case MicroInstrOpcode::LoadRegPtrImm:
+                    return true;
+                case MicroInstrOpcode::LoadRegReg:
+                case MicroInstrOpcode::LoadSignedExtRegReg:
+                case MicroInstrOpcode::LoadZeroExtRegReg:
+                    return isOutsideOrigin(ctx, ops[1].reg, def.instRef, depth + 1);
+                case MicroInstrOpcode::LoadAddrRegMem:
+                    return isOutsideOrigin(ctx, ops[1].reg, def.instRef, depth + 1);
+                case MicroInstrOpcode::LoadAddrAmcRegMem:
+                    return isOutsideOrigin(ctx, ops[1].reg, def.instRef, depth + 1) && isOutsideOrigin(ctx, ops[2].reg, def.instRef, depth + 1);
+                case MicroInstrOpcode::OpBinaryRegImm:
+                    // ops: [0] dst (read and written), [1] opBits, [2] microOp, [3] imm
+                    return isOutsideOrigin(ctx, ops[0].reg, def.instRef, depth + 1);
+                case MicroInstrOpcode::OpBinaryRegReg:
+                    // ops: [0] dst (read and written), [1] src, [2] opBits, [3] microOp
+                    return isOutsideOrigin(ctx, ops[0].reg, def.instRef, depth + 1) && isOutsideOrigin(ctx, ops[1].reg, def.instRef, depth + 1);
+                case MicroInstrOpcode::OpBinaryRegRegReg:
+                    return isOutsideOrigin(ctx, ops[1].reg, def.instRef, depth + 1) && isOutsideOrigin(ctx, ops[2].reg, def.instRef, depth + 1);
+                default:
+                    return false;
+            }
+        }
+
+        // Whether the instruction is a store into this function's frame.
+        bool storesIntoFrame(const Context& ctx, const MicroInstr& inst, const MicroInstrRef ref)
+        {
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            if (!info.flags.has(MicroInstrFlagsE::WritesMemory) || info.flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return false;
+            const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+            if (!ops)
+                return false;
+
+            MicroPassHelpers::AmcLayout layout;
+            if (MicroPassHelpers::amcLayoutFor(layout, inst.op))
+                return isFrameDerivedAddress(ctx, ops[layout.baseIdx].reg, ref);
+            if (!info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
+                return false;
+            return isFrameDerivedAddress(ctx, ops[info.memBaseOperandIndex].reg, ref);
+        }
+
         // Whether the read may move from the load to `useRef`: the reader
         // follows the load in the same straight line, and nothing in between
-        // writes memory, is a call, or redefines an address register.
-        bool readMovesToReader(const Context& ctx, const MicroInstrRef loadRef, const MicroInstrRef useRef, const LoadAddress& address)
+        // writes memory the load may read, is a call, or redefines an address
+        // register.
+        bool readMovesToReader(const Context& ctx, const MicroInstrRef loadRef, const MicroInstrRef useRef, const LoadAddress& address, const bool baseFromOutside)
         {
             MicroInstrRef ref = ctx.storage->findNextInstructionRef(loadRef);
             for (uint32_t step = 0; ref.isValid() && step < K_MAX_VECFOLD_WINDOW; ++step, ref = ctx.storage->findNextInstructionRef(ref))
@@ -153,7 +252,9 @@ namespace InstructionCombine
                 if (ref == useRef)
                     return true;
                 const MicroInstr* inst = ctx.storage->ptr(ref);
-                if (!inst || isControlOrCall(*inst) || writesMemory(*inst))
+                if (!inst || isControlOrCall(*inst))
+                    return false;
+                if (writesMemory(*inst) && !(baseFromOutside && storesIntoFrame(ctx, *inst, ref)))
                     return false;
                 const MicroInstrUseDef* useDef = ctx.ssa->instrUseDef(ref);
                 if (!useDef)
@@ -229,6 +330,9 @@ namespace InstructionCombine
         if (valueId >= values.size())
             return false;
 
+        const bool baseFromOutside = isOutsideOrigin(ctx, address.base, loadRef, 0) &&
+                                     (!address.indexed || isOutsideOrigin(ctx, address.index, loadRef, 0));
+
         SmallVector<Fold, 4> folds;
         for (const MicroSsaState::UseSite& use : values[valueId].uses)
         {
@@ -266,7 +370,7 @@ namespace InstructionCombine
             else
                 return false;
 
-            if (!fold.dst.isVirtualFloat() || !readMovesToReader(ctx, loadRef, use.instRef, address))
+            if (!fold.dst.isVirtualFloat() || !readMovesToReader(ctx, loadRef, use.instRef, address, baseFromOutside))
                 return false;
             folds.push_back(fold);
         }

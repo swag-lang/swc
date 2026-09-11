@@ -55,6 +55,35 @@ func widenAfterStore(dst: [*] u16, buffer: [*] u8)
     (cast([*] #simd [8] u16) dst)[0] = Swag.vecwidenlo(bytes)
 }
 
+#[Swag.Optimize(true)]
+func maskRows(dst: [*] u16, pix: const [*] u8, stride: u64, a, b: u16)
+{
+    // The two rows are loaded before the mask is built in frame temporaries;
+    // the widenings read the rows after those stores. The rows come through
+    // an argument, which cannot point into the frame, so the widenings may
+    // read the memory the rows were loaded from.
+    let p0   = (cast(const [*] #simd [16] u8) (pix - stride))[0]
+    let q0   = (cast(const [*] #simd [16] u8) pix)[0]
+    let mask = cast(#simd [8] u16) [a, a, a, a, b, b, b, b]
+    let lo   = (Swag.vecwidenlo(p0) + Swag.vecwidenlo(q0)) & mask
+    let hi   = (Swag.vecwidenhi(p0) + Swag.vecwidenhi(q0)) & mask
+    (cast([*] #simd [8] u16) dst)[0]       = lo
+    (cast([*] #simd [8] u16) (dst + 8))[0] = hi
+}
+
+#[Swag.Optimize(true)]
+func widenLocalPastStore(dst: [*] u16, value: u8)
+{
+    // The vector lives in the frame and a frame store follows its load:
+    // the widening must see the bytes as they were loaded.
+    var bytes: [16] u8
+    for i in 16 do
+        bytes[i] = cast(u8) i
+    let loaded = (cast(const [*] #simd [16] u8) &bytes[0])[0]
+    bytes[0]   = value
+    (cast([*] #simd [8] u16) dst)[0] = Swag.vecwidenlo(loaded) + Swag.vecwidenhi(loaded) + cast(u16) bytes[0]
+}
+
 #test
 {
     var plane: [4 * 64] u8
@@ -86,4 +115,13 @@ func widenAfterStore(dst: [*] u16, buffer: [*] u8)
     var seen: [8] u16
     widenAfterStore(&seen[0], &buffer[0])
     Swag.assert(seen[0] == 0 and seen[1] == 1 and buffer[0] == 200)
+
+    var masked: [16] u16
+    maskRows(&masked[0], &plane[64], 64, 0xFFFF, 0)
+    Swag.assert(masked[0] == 0 + 64 and masked[3] == 3 + 67 and masked[4] == 0 and masked[7] == 0)
+    Swag.assert(masked[8] == 8 + 72 and masked[11] == 11 + 75 and masked[12] == 0 and masked[15] == 0)
+
+    var local: [8] u16
+    widenLocalPastStore(&local[0], 200)
+    Swag.assert(local[0] == 0 + 8 + 200 and local[7] == 7 + 15 + 200)
 }

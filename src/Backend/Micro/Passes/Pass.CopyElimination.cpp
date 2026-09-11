@@ -118,6 +118,18 @@ namespace
                (ops[2].opBits == MicroOpBits::B64 || ops[2].opBits == MicroOpBits::B32);
     }
 
+    // A full-width vector copy is a copy too: the 128-bit move writes every
+    // bit of its destination, so nothing the 32-bit rule below guards against
+    // applies, and the value a load or a lane operation produced reaches its
+    // readers directly, where the folds that read through a value find it.
+    bool isVirtualVecCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        return isCopyInstruction(inst, ops) &&
+               ops[0].reg.isVirtualFloat() &&
+               ops[1].reg.isVirtualFloat() &&
+               ops[2].opBits == MicroOpBits::B128;
+    }
+
     bool isSelfCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         return isCopyInstruction(inst, ops) && ops[0].reg == ops[1].reg;
@@ -146,7 +158,7 @@ namespace
         if (!ops)
             return false;
 
-        if (!isVirtualIntCopy(*inst, ops))
+        if (!isVirtualIntCopy(*inst, ops) && !isVirtualVecCopy(*inst, ops))
         {
             outValue.reg     = valueInfo.reg;
             outValue.valueId = valueId;
@@ -165,7 +177,7 @@ namespace
         // half clear. Most of the copies the front end emits are 32 bits, and refusing all of
         // them left a third of a hot function in register-to-register moves that also cost the
         // allocator one live value each.
-        if (ops[2].opBits != MicroOpBits::B64)
+        if (ops[2].opBits != MicroOpBits::B64 && ops[2].opBits != MicroOpBits::B128)
         {
             if (rootReachingDef.isPhi || !rootReachingDef.inst)
                 return false;

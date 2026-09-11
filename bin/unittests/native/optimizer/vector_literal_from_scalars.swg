@@ -103,7 +103,7 @@ func fillPartial(out: *Strength, a: u32)
     var strengths: Strength
     strengths.bs[1] = a
     strengths.bs[2] = a
-    out.bs          = strengths.bs
+    out.bs = strengths.bs
 }
 
 #[Swag.NoInline]

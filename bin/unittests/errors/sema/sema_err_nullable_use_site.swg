@@ -159,3 +159,39 @@ func nullableUseSiteAssignedInElse(flag: bool, q: *NullableUseSiteItem)->s32
         p = q
     return p.value     // swc-expected-error {{sema_err_nullable_member_access}}
 }
+
+// Shared or mutable capture storage does not become stable because one read was non-null.
+func nullableReferenceCapture(value: *s32?)
+{
+    var pointer = value
+    let read    = func|&pointer|()->s32
+    {
+        if pointer != null do
+            return pointer[]     // swc-expected-error {{sema_err_nullable_deref}}
+        return -1
+    }
+    discard read
+}
+
+func nullableMutableCapture(value: *s32?)
+{
+    let read = func|var value|()->s32
+    {
+        if value != null do
+            return value[]     // swc-expected-error {{sema_err_nullable_deref}}
+        return -1
+    }
+    discard read
+}
+
+// A proof from one branch does not escape that branch.
+func nullableCaptureAfterGuard(value: *s32?)
+{
+    let read = func|value|()->s32
+    {
+        if value != null do
+            discard value[]
+        return value[]     // swc-expected-error {{sema_err_nullable_deref}}
+    }
+    discard read
+}

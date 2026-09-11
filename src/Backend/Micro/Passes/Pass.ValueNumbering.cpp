@@ -694,8 +694,6 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     if (rewrites.empty())
         return Result::Continue;
 
-
-
     for (const PlannedRewrite& rewrite : rewrites)
     {
         MicroInstr* inst = storage.ptr(rewrite.instRef);

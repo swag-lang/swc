@@ -2595,7 +2595,8 @@ namespace
             {
                 // Interleaving the high half with zero is the zero extension
                 // in one instruction, against the function's shared zero.
-                const MicroOp unpackOp = laneBits == 8 ? MicroOp::VecUnpackHi8 : laneBits == 16 ? MicroOp::VecUnpackHi16 : MicroOp::VecUnpackHi32;
+                const MicroOp unpackOp = laneBits == 8 ? MicroOp::VecUnpackHi8 : laneBits == 16 ? MicroOp::VecUnpackHi16
+                                                                                                : MicroOp::VecUnpackHi32;
                 builder.emitOpBinaryRegRegReg(resultPayload.reg, srcReg, codeGen.vectorZeroRegister(), unpackOp, MicroOpBits::B128);
                 outHandled = true;
                 return Result::Continue;

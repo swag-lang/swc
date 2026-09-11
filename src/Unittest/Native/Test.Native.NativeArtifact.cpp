@@ -1378,6 +1378,73 @@ SWC_TEST_BEGIN(NativeArtifact_TestProgressProtocolIsStrict)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NativeArtifact_ConcurrentCompilerInputsKeepEveryDependency)
+{
+    CommandLine                          cmdLine;
+    CompilerInstance                     compiler(ctx.global(), cmdLine);
+    constexpr uint32_t                   NUM_WORKERS = 6;
+    constexpr uint32_t                   NUM_FILES   = 2048;
+    std::barrier                         rendezvous(NUM_WORKERS);
+    std::array<std::thread, NUM_WORKERS> writers;
+    for (uint32_t worker = 0; worker < NUM_WORKERS; worker++)
+    {
+        writers[worker] = std::thread([&, worker] {
+            rendezvous.arrive_and_wait();
+            for (uint32_t index = 0; index < NUM_FILES; index++)
+            {
+                compiler.registerCompilerInputFile(fs::path("includes") / std::format("shared-{}.bin", index));
+                compiler.registerCompilerInputFile(fs::path("includes") / std::format("worker-{}-{}.bin", worker, index));
+                (void) compiler.registerModuleSetupLoad(fs::path("loads") / std::format("shared-{}.swg", index));
+                (void) compiler.registerModuleSetupLoad(fs::path("loads") / std::format("worker-{}-{}.swg", worker, index));
+                if (index % 64 == 0)
+                {
+                    (void) compiler.registerModuleSetupImport(std::format("shared{}", index), "", "");
+                    (void) compiler.registerModuleSetupImport(std::format("worker{}module{}", worker, index), "", "");
+                }
+                if (index % 128 == 0)
+                {
+                    (void) compiler.compilerInputFiles();
+                    (void) compiler.moduleSetupLoadedFiles();
+                    (void) compiler.moduleSetupImports();
+                }
+            }
+        });
+    }
+    for (auto& writer : writers)
+        writer.join();
+
+    compiler.registerCompilerInputFile({});
+    const auto inputs  = compiler.compilerInputFiles();
+    const auto loads   = compiler.moduleSetupLoadedFiles();
+    const auto imports = compiler.moduleSetupImports();
+    if (loads.size() != NUM_FILES * (NUM_WORKERS + 1) || imports.size() != (NUM_FILES / 64) * (NUM_WORKERS + 1))
+        return Result::Error;
+    std::set<std::string> importNames;
+    for (const auto& import : imports)
+        importNames.emplace(import.moduleName.view());
+    if (inputs.size() != NUM_FILES * (NUM_WORKERS + 1))
+        return Result::Error;
+    for (uint32_t index = 0; index < NUM_FILES; index++)
+    {
+        if (!inputs.contains(FileSystem::normalizePath(fs::path("includes") / std::format("shared-{}.bin", index))))
+            return Result::Error;
+        if (!loads.contains(FileSystem::normalizePath(fs::path("loads") / std::format("shared-{}.swg", index))))
+            return Result::Error;
+        if (index % 64 == 0 && !importNames.contains(std::format("shared{}", index)))
+            return Result::Error;
+        for (uint32_t worker = 0; worker < NUM_WORKERS; worker++)
+        {
+            if (!loads.contains(FileSystem::normalizePath(fs::path("loads") / std::format("worker-{}-{}.swg", worker, index))))
+                return Result::Error;
+            if (index % 64 == 0 && !importNames.contains(std::format("worker{}module{}", worker, index)))
+                return Result::Error;
+            if (!inputs.contains(FileSystem::normalizePath(fs::path("includes") / std::format("worker-{}-{}.bin", worker, index))))
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

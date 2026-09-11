@@ -299,7 +299,8 @@ public:
     const ModuleApiFileEntries*             moduleApiPublicEntries() const { return moduleApiPublicEntries_ ? &*moduleApiPublicEntries_ : nullptr; }
     const std::vector<fs::path>&            importedDependencyLinkDirs() const { return importedDependencyLinkDirs_; }
     const std::vector<fs::path>&            importedDependencySharedDirs() const { return importedDependencySharedDirs_; }
-    const std::vector<ModuleSetupImport>&   moduleSetupImports() const { return moduleSetupImports_; }
+    std::vector<ModuleSetupImport>          moduleSetupImports() const;
+    std::set<fs::path>                      moduleSetupLoadedFiles() const;
     const std::vector<NativeRuntimeImport>& nativeRuntimeImports() const { return nativeRuntimeImports_; }
     std::string_view                        runtimeImportLinkName(std::string_view moduleName) const;
 
@@ -312,6 +313,7 @@ public:
     Result                   registerModuleSetupImport(std::string_view moduleName, std::string_view location, std::string_view version, Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None);
     Result                   registerModuleSetupLoad(const fs::path& filePath);
     void                     registerCompilerInputFile(const fs::path& filePath);
+    std::set<fs::path>       compilerInputFiles() const;
 
     template<typename T, typename... ARGS>
     T* allocate(ARGS&&... args)
@@ -503,6 +505,7 @@ private:
     std::vector<ModuleSetupImport>                 moduleSetupImports_;
     std::vector<NativeRuntimeImport>               nativeRuntimeImports_;
     std::set<fs::path>                             moduleSetupLoadedFiles_;
+    mutable std::mutex                             moduleInputsMutex_;
     std::set<fs::path>                             compilerInputFiles_;
     std::vector<fs::path>                          importedDependencyLinkDirs_;
     std::unordered_set<fs::path>                   importedDependencyLinkDirSet_;

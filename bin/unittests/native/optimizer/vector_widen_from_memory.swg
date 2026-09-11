@@ -80,7 +80,7 @@ func widenLocalPastStore(dst: [*] u16, value: u8)
     for i in 16 do
         bytes[i] = cast(u8) i
     let loaded = (cast(const [*] #simd [16] u8) &bytes[0])[0]
-    bytes[0]   = value
+    bytes[0] = value
     (cast([*] #simd [8] u16) dst)[0] = Swag.vecwidenlo(loaded) + Swag.vecwidenhi(loaded) + cast(u16) bytes[0]
 }
 

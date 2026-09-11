@@ -1,5 +1,17 @@
 #global private
 
+#[Swag.Macro]
+func captureDefaultByAddress(value: u32 = 17)
+{
+    let callback = func|&value|() {}     // swc-expected-error {{sema_err_take_address_not_lvalue}}
+    callback()
+}
+
+#test
+{
+    captureDefaultByAddress()
+}
+
 #test
 {
     var x = 0

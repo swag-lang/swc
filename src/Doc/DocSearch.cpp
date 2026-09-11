@@ -331,7 +331,21 @@ Utf8 DocSearch::summarize(const std::string_view markdown)
     while (index < markdown.size())
     {
         const char c = markdown[index];
-        if (c == '`' || c == '*' || c == '_')
+        // Code spans carry literal punctuation and link-shaped text. Strip their
+        // delimiters without interpreting the payload as Markdown a second time.
+        if (c == '`')
+        {
+            const size_t end = markdown.find('`', index + 1);
+            if (end != std::string_view::npos)
+            {
+                result.append(markdown.substr(index + 1, end - index - 1));
+                index    = end + 1;
+                wasSpace = false;
+                continue;
+            }
+        }
+
+        if (c == '*')
         {
             index++;
             continue;

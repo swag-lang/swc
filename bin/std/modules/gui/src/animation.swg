@@ -1035,7 +1035,7 @@ impl Animator
             discard result
             if outgoing
             {
-                let wnd = outgoing!
+                let wnd = outgoing
                 if not wnd.isPendingDestroy
                 {
                     wnd.resetPresentation()
@@ -1082,7 +1082,7 @@ impl Animator
                                target.preferredSize.y = result == .Completed ? height : target.position.height
                                target.invalidateLayout()
                                if target.parent do
-                                   target.parent!.applyLayout()
+                                   target.parent.applyLayout()
                            })
     }
 }

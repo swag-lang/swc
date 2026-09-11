@@ -478,7 +478,9 @@ namespace
     // rather than on what the flow proves at one site.
     void reportNotNullAlreadyProven(Sema& sema, AstNodeRef operandRef, const SemaNodeView& operandView)
     {
-        if (SemaHelpers::effectiveInlinePayload(sema))
+        // An argument clone can deliberately restore the caller's non-inline lookup
+        // context. It is still a clone, and its original expression was already checked.
+        if (sema.frame().currentInlinePayload() || SemaHelpers::effectiveInlinePayload(sema))
             return;
 
         const SymbolFunction* fn = sema.currentFunction();

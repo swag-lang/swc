@@ -2238,7 +2238,8 @@ void X64Encoder::encodeVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, Micr
     emitCpuOp(store_, enc.opcode);
 
     const bool      forcedDisplacement = baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp;
-    const ModRmMode mode               = addValue == 0 && !forcedDisplacement ? ModRmMode::Memory : canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32;
+    const ModRmMode mode               = addValue == 0 && !forcedDisplacement ? ModRmMode::Memory : canEncodeSigned8(addValue) ? ModRmMode::Displacement8
+                                                                                                                               : ModRmMode::Displacement32;
     emitModRm(store_, mode, encodeReg(dstX64), MODRM_RM_SIB);
 
     uint8_t scale = 0;

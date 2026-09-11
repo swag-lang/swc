@@ -14,7 +14,13 @@ with '&'.
 
 The copy is read-only unless the capture is written 'var'. Because the copy is
 storage of the closure's own, the capture list states its mutability rather than
-inheriting it from the source declaration.
+inheriting it from the source declaration. A null test inside the closure can narrow
+a read-only value capture. Mutable and by-address captures do not provide that stable
+storage proof.
+
+Inside a macro, capturing a parameter by value captures its bound argument value,
+including a constant default when the argument is omitted. Capturing it by address
+requires an addressable mutable value; a constant default has no storage to capture.
 */
 
 /**

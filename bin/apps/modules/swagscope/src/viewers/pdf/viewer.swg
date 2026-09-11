@@ -349,7 +349,7 @@ private impl PdfViewer
             {
                 discard pdf
                 if view.reportFailure do
-                    view.reportFailure!(view, message)
+                    view.reportFailure(view, message)
             }
         }
 

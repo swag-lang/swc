@@ -298,7 +298,10 @@ A <=> B ==  1 if A > B
 
 The 'orelse' operator returns the left-hand expression when it is present, and
 the right-hand one when it is null. It substitutes a **missing** value, never a
-zero one, so the result is non-null even when the operand was not.
+zero one. A non-null fallback makes the result non-null even when the left operand
+was nullable; a nullable fallback can still produce null. When narrowing the left
+operand gives exactly the fallback's underlying type, the result retains the
+fallback's strict alias, if it has one.
 */
 #test
 {

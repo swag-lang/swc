@@ -793,7 +793,6 @@ namespace InstructionCombine
         if (!ctx.claimAll({ref, copy.instRef}))
             return false;
 
-
         MicroInstrOperand newOps[8] = {};
         newOps[0].reg               = dst;
         newOps[1].reg               = base;

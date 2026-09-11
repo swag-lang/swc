@@ -170,7 +170,7 @@ namespace InstructionCombine
         // written once the walk is over, with one width for all of them.
         bool collectStores(const Context& ctx, const MicroInstrRef loadRef, const MicroReg base, const uint64_t slotOffset, SmallVector<Lane, 16>& outLanes, uint32_t& outLaneBytes, SmallVector<MicroInstrRef, 16>& outStoreRefs)
         {
-            bool     covered[16] = {};
+            bool     covered[16]  = {};
             uint32_t coveredBytes = 0;
             outLaneBytes          = 0;
 
@@ -283,10 +283,10 @@ namespace InstructionCombine
 
         struct Plan
         {
-            Context&                ctx;
-            uint32_t                laneBytes;
-            SmallVector<Step, 24>   steps;
-            bool                    failed = false;
+            Context&              ctx;
+            uint32_t              laneBytes;
+            SmallVector<Step, 24> steps;
+            bool                  failed = false;
 
             MicroReg freshFloat()
             {
@@ -302,8 +302,11 @@ namespace InstructionCombine
                 return MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
             }
 
-            MicroOp insertOp() const { return laneBytes == 1 ? MicroOp::VecInsert8 : laneBytes == 2 ? MicroOp::VecInsert16 : MicroOp::VecInsert32; }
-            MicroOp unpackOp(const uint32_t bytes) const { return bytes == 1 ? MicroOp::VecUnpackLo8 : bytes == 2 ? MicroOp::VecUnpackLo16 : bytes == 4 ? MicroOp::VecUnpackLo32 : MicroOp::VecUnpackLo64; }
+            MicroOp insertOp() const { return laneBytes == 1 ? MicroOp::VecInsert8 : laneBytes == 2 ? MicroOp::VecInsert16
+                                                                                                    : MicroOp::VecInsert32; }
+            MicroOp unpackOp(const uint32_t bytes) const { return bytes == 1 ? MicroOp::VecUnpackLo8 : bytes == 2 ? MicroOp::VecUnpackLo16
+                                                                                                   : bytes == 4   ? MicroOp::VecUnpackLo32
+                                                                                                                  : MicroOp::VecUnpackLo64; }
 
             // The lane's scalar in an integer register: the register it came
             // from, or an immediate materialized.

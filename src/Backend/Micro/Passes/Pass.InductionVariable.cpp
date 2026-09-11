@@ -103,15 +103,15 @@ namespace
     // One product or sum of an induction found in the body.
     struct Candidate
     {
-        Shape         shape       = Shape::CopyThenOp;
-        MicroInstrRef firstRef    = MicroInstrRef::invalid(); // the copy, or the whole instruction
-        MicroInstrRef secondRef   = MicroInstrRef::invalid(); // the destructive op, CopyThenOp only
-        MicroReg      dstReg      = MicroReg::invalid();
-        uint32_t      inductionIx = K_INVALID;
-        bool          isSum       = false;
-        MicroReg      otherReg    = MicroReg::invalid(); // the invariant stride or base; invalid for an immediate stride
-        uint64_t      otherImm    = 0;                   // the immediate stride, or the sum's displacement
-        MicroOp       mulOp       = MicroOp::MultiplySigned;
+        Shape         shape              = Shape::CopyThenOp;
+        MicroInstrRef firstRef           = MicroInstrRef::invalid(); // the copy, or the whole instruction
+        MicroInstrRef secondRef          = MicroInstrRef::invalid(); // the destructive op, CopyThenOp only
+        MicroReg      dstReg             = MicroReg::invalid();
+        uint32_t      inductionIx        = K_INVALID;
+        bool          isSum              = false;
+        MicroReg      otherReg           = MicroReg::invalid(); // the invariant stride or base; invalid for an immediate stride
+        uint64_t      otherImm           = 0;                   // the immediate stride, or the sum's displacement
+        MicroOp       mulOp              = MicroOp::MultiplySigned;
         MicroInstrRef copyOfInductionRef = MicroInstrRef::invalid(); // a sum's copy of the induction, erased with the sum
     };
 
@@ -304,7 +304,7 @@ namespace
             // whose flags nothing reads before they are redefined (a carrier's
             // step lands right behind it and writes them too).
             std::vector<Induction> inductions;
-            auto inductionIndexOf = [&](const MicroReg reg) -> uint32_t {
+            auto                   inductionIndexOf = [&](const MicroReg reg) -> uint32_t {
                 for (uint32_t k = 0; k < inductions.size(); ++k)
                     if (inductions[k].reg == reg)
                         return k;

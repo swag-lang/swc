@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Support/Report/Assert.h"
 
@@ -137,11 +137,11 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     const MicroSsaState* ssa = MicroSsaState::ensureFor(context, localSsa);
 
     Context ctx;
-    ctx.storage      = context.instructions;
-    ctx.operands     = context.operands;
-    ctx.ssa          = ssa;
-    ctx.builder      = context.builder;
-    ctx.stackPointer = CallConv::get(context.callConvKind).stackPointer;
+    ctx.storage                  = context.instructions;
+    ctx.operands                 = context.operands;
+    ctx.ssa                      = ssa;
+    ctx.builder                  = context.builder;
+    ctx.stackPointer             = CallConv::get(context.callConvKind).stackPointer;
     ctx.nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
     ctx.nextVirtualIntRegIndex   = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
     if (ctx.builder)

@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -232,9 +233,10 @@ bool CodeGenSafety::hasMathRuntimeSafety(const CodeGen& codeGen)
 
 bool CodeGenSafety::hasLifecycleRuntimeSafety(const CodeGen& codeGen)
 {
-    // Lifecycle checks are function-scoped (like the sanity pass): poison stores and
-    // sanitizer markers have no dedicated AST node to carry a per-node payload.
-    const uint16_t mask = codeGen.function().attributes().effectiveRuntimeSafetyMask(codeGen.buildCfg().safetyGuards);
+    // Lifecycle stores have no dedicated AST payload. An inline expansion retains the
+    // effective guards of its lexical body, including the caller's explicit disables.
+    const SemaInlinePayload* inlinePayload = codeGen.frame().currentInlineContext().payload;
+    const uint16_t           mask          = inlinePayload ? inlinePayload->runtimeSafetyMask : codeGen.function().attributes().effectiveRuntimeSafetyMask(codeGen.buildCfg().safetyGuards);
     return (mask & static_cast<uint16_t>(Runtime::SafetyWhat::Lifecycle)) != 0;
 }
 

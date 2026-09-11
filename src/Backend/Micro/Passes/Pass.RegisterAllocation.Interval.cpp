@@ -307,10 +307,10 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
         LiveInterval& fixed = outByPoolIndex[poolIndex];
         for (const uint32_t idx : concreteClaimPositionsByDenseIndex_[denseConcrete])
         {
-            const bool     usedHere    = std::ranges::find(useConcreteIndices_[idx], denseConcrete) != useConcreteIndices_[idx].end();
-            const bool     definedHere = std::ranges::find(defConcreteIndices_[idx], denseConcrete) != defConcreteIndices_[idx].end();
-            const bool     liveInHere  = DenseBits::contains(DenseBits::row(liveInConcreteBits_, idx, concreteWordCount), denseConcrete);
-            const bool     definedOnly = definedHere && !usedHere && !liveInHere && isPlainDefinition(idx);
+            const bool usedHere    = std::ranges::find(useConcreteIndices_[idx], denseConcrete) != useConcreteIndices_[idx].end();
+            const bool definedHere = std::ranges::find(defConcreteIndices_[idx], denseConcrete) != defConcreteIndices_[idx].end();
+            const bool liveInHere  = DenseBits::contains(DenseBits::row(liveInConcreteBits_, idx, concreteWordCount), denseConcrete);
+            const bool definedOnly = definedHere && !usedHere && !liveInHere && isPlainDefinition(idx);
 
             // A call the straight-line path steps over clobbers nothing the hot path has to
             // give up. A value may keep its caller-saved register across it and be parked in
@@ -320,8 +320,8 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
             if (definedOnly && isGuardedCall(idx))
                 continue;
 
-            const uint32_t from        = definedOnly ? idx * 2 + 1 : idx * 2;
-            const uint32_t to          = idx * 2 + 2;
+            const uint32_t from = definedOnly ? idx * 2 + 1 : idx * 2;
+            const uint32_t to   = idx * 2 + 2;
             if (!fixed.ranges.empty() && fixed.ranges.back().to >= from)
                 fixed.ranges.back().to = to;
             else

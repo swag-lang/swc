@@ -216,6 +216,7 @@ SWC_DIAG_DEF(sema_err_index_out_of_range, Error, "index {value} is out of range 
 SWC_DIAG_DEF(sema_err_range_invalid_bounds, Error, "range lower bound {left} is greater than upper bound {right}; [help] swap or adjust the bounds")
 SWC_DIAG_DEF(sema_err_range_empty_op_slice, Error, "'opSlice' receives an inclusive upper bound and cannot represent the empty range {left} until {right}; [help] guard the empty case before slicing")
 SWC_DIAG_DEF(sema_err_method_outside_impl, Error, "method declaration is outside an implementation block; [help] declare it inside an 'impl <Type> { ... }' block")
+SWC_DIAG_DEF(sema_err_method_impl_outside_interface, Error, "modifier 'impl' needs an interface implementation block; [help] move the method into 'impl <Interface> for <Type>', or remove 'impl' to declare an ordinary method")
 SWC_DIAG_DEF(sema_err_retval_outside_function, Error, "'retval' can only be used inside a function")
 SWC_DIAG_DEF(sema_err_retval_unknown_return_type, Error, "'retval' cannot be used before the function return type is known; [help] add an explicit return type before using 'retval'")
 SWC_DIAG_DEF(sema_err_tok_outside_impl, Error, "'{tok}' can only be used inside an implementation block; [help] move it into an 'impl <Type> { ... }' block")

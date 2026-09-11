@@ -605,7 +605,7 @@ private impl ImageViewer
         result.imageView.sigDecodeFailed += func|view = result|(imageView)
         {
             if view.reportFailure do
-                view.reportFailure!(view, imageView.movie.failureReason.toString())
+                view.reportFailure(view, imageView.movie.failureReason.toString())
         }
 
         result.applyLayout()

@@ -203,7 +203,12 @@ namespace
             resultType.addFlag(TypeInfoFlagsE::Nullable);
 
         const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
-        return resultTypeRef == concreteLeftTypeRef ? leftTypeRef : resultTypeRef;
+        if (resultTypeRef == concreteLeftTypeRef)
+            return leftTypeRef;
+
+        // Narrowing the left changes its concrete type. When the fallback already has
+        // that exact result type, keep its alias rather than implicitly stripping it.
+        return resultTypeRef == concreteRightTypeRef ? rightTypeRef : resultTypeRef;
     }
 
     // A '?.' chain whose result type cannot carry the null outcome fuses with an

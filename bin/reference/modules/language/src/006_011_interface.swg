@@ -34,6 +34,10 @@ interface IReset
 /**
 # Implementing an Interface
 Implement interface 'IReset' for 'Point2'.
+
+The method modifier 'impl' belongs in an 'impl <Interface> for <Type>' block.
+A plain 'impl <Type>' block declares ordinary methods; it cannot replace an
+inherited interface method by marking a method 'impl'.
 */
 impl IReset for Point2
 {

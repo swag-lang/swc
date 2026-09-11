@@ -485,6 +485,13 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, SourceCodeRef{srcViewRef(), mtdTokRef});
     }
 
+    if (hasFlag(AstFunctionFlagsE::Impl) && declImpl && !declImpl->symInterface())
+    {
+        const SourceView& srcView    = sema.srcView(srcViewRef());
+        const TokenRef    implTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdImpl});
+        return SemaError::raise(sema, DiagnosticId::sema_err_method_impl_outside_interface, SourceCodeRef{srcViewRef(), implTokRef});
+    }
+
     bool genericRootImplFunction = false;
     SWC_RESULT(isGenericRootImplFunction(sema, sym, declImpl, genericRootImplFunction));
     if (genericRootImplFunction)
@@ -1292,8 +1299,14 @@ namespace
             SymbolVariable*           sourceVar        = nullptr;
             TypeRef                   typeRef          = TypeRef::invalid();
             const bool                hasExplicitAlias = captureArg.tokAliasNameRef.isValid();
+            const auto*               identifier       = sema.node(captureArg.nodeIdentifierRef).safeCast<AstIdentifier>();
+            const bool                hasBoundConstant = identifier && identifier->hasFlag(AstIdentifierFlagsE::ConstantBinding) &&
+                                          sema.viewConstant(captureArg.nodeIdentifierRef).hasConstant();
 
-            if (hasExplicitAlias)
+            // Expansion parameters can already be bound to a constant, including an omitted
+            // argument's default. Capture that value: looking its name up again would replace
+            // it with the macro's parameter, which has no storage in the caller's frame.
+            if (hasExplicitAlias || hasBoundConstant)
             {
                 sourceSym = sema.viewSymbol(captureArg.nodeIdentifierRef).sym();
                 if (sourceSym && sourceSym->isVariable())
@@ -1343,7 +1356,7 @@ namespace
                 return Result::Error;
             }
 
-            if (captureByRef && hasExplicitAlias && !sema.isLValue(captureArg.nodeIdentifierRef))
+            if (captureByRef && (hasExplicitAlias || hasBoundConstant) && !sema.isLValue(captureArg.nodeIdentifierRef))
                 return SemaError::raise(sema, DiagnosticId::sema_err_take_address_not_lvalue, captureArg.nodeIdentifierRef);
 
             // A by-value capture is a raw byte copy into the closure buffer: the environment never

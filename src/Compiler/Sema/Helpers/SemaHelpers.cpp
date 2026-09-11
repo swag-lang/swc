@@ -384,8 +384,10 @@ namespace
 
     bool isNarrowRootVariable(Sema& sema, const SymbolVariable& symVar)
     {
+        // A read-only value capture owns a stable copy, just like a local 'let'. A
+        // reference capture or mutable environment can change through another caller.
         if (symVar.isClosureCapture())
-            return false;
+            return !symVar.closureCaptureByRef() && symVar.hasExtraFlag(SymbolVariableFlagsE::Let);
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage) || symVar.hasGlobalStorage())
         {

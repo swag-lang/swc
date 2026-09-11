@@ -1,5 +1,16 @@
 #global private
 
+#[Swag.Strict]
+alias CoalescingFirstPointer  = const *u32
+
+#[Swag.Strict]
+alias CoalescingSecondPointer = const *u32
+
+func differentCoalescingAliases(first: CoalescingFirstPointer, second: CoalescingSecondPointer)
+{
+    let chosen = first orelse second     // swc-expected-error {{sema_err_cannot_cast}}
+}
+
 enum EnumArrayNoImplicitCast: u8
 {
     First

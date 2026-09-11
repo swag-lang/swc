@@ -19,3 +19,19 @@ func needed(node: *Node?)->s32
 {
     return node!.value
 }
+
+#[Swag.Inline, Swag.Warning("sema_warn_notnull_already_proven", .Error)]
+func readInline(node: *Node)->s32 => node.value
+
+// Rechecking an inline argument must not repeat its warning under the callee's policy.
+#[Swag.NoInline, Swag.Warning("sema_warn_notnull_already_proven", .Disable)]
+func suppressedInlineArgument(node: *Node)->s32
+{
+    return readInline(node!)
+}
+
+#[Swag.NoInline]
+func reportedInlineArgument(node: *Node)->s32
+{
+    return readInline(node!)     // swc-expected-warning {{sema_warn_notnull_already_proven}}
+}

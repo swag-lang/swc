@@ -29,6 +29,7 @@ struct SemaInlinePayload
     const SymbolImpl*                                callerImpl          = nullptr;
     SemaScope*                                       upLookupScope       = nullptr;
     bool                                             crossAstInline      = false;
+    uint16_t                                         runtimeSafetyMask   = 0;
     SymbolVariable*                                  resultVar           = nullptr;
     SmallVector<SemaClone::ParamBinding, 6>          argMappings;
     SmallVector2<SymbolVariable*>                    callerBindingVars;

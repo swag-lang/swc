@@ -5,6 +5,7 @@
 #include "Doc/DocApi.h"
 #include "Doc/DocGenerator.h"
 #include "Doc/DocMarkdown.h"
+#include "Doc/DocSearch.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
@@ -63,6 +64,19 @@ namespace
         };
     }
 }
+
+SWC_TEST_BEGIN(Compiler_DocSearchPreservesLiteralCode)
+{
+    if (DocSearch::summarize("Uses `CF_DIB`, `*u8`, and `a_b`.") != "Uses CF_DIB, *u8, and a_b.")
+        return Result::Error;
+    if (DocSearch::summarize("`[name](path)` and [[Core.String]].") != "[name](path) and Core.String.")
+        return Result::Error;
+    if (DocSearch::summarize("CF_DIB and **bold** and *italics*.") != "CF_DIB and bold and italics.")
+        return Result::Error;
+    if (DocSearch::summarize("An unmatched `code_name") != "An unmatched `code_name")
+        return Result::Error;
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_DocCommandParsesOptions)
 {

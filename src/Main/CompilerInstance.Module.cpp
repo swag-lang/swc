@@ -3517,7 +3517,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                 WorkspaceArtifactManifest manifest;
                 manifest.debugInfo       = moduleCompiler->buildCfg().backend.debugInfo;
                 manifest.tagsFingerprint = workspaceTagsFingerprint(moduleCmdLine.tags);
-                collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
+                collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles());
                 if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
                     return Result::Error;
                 collectWorkspaceOutputArtifacts(manifest.artifacts, moduleCmdLine.outDir);
@@ -3542,7 +3542,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         {
             link->manifest.debugInfo       = moduleCompiler->buildCfg().backend.debugInfo;
             link->manifest.tagsFingerprint = workspaceTagsFingerprint(moduleCmdLine.tags);
-            collectWorkspaceModuleInputs(link->manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
+            collectWorkspaceModuleInputs(link->manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles());
             if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, link->manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
                 return Result::Error;
         }
@@ -3572,6 +3572,7 @@ Result CompilerInstance::registerModuleSetupImport(const std::string_view module
     if (!baseDir.empty())
         baseDir = FileSystem::normalizePath(baseDir);
 
+    const std::scoped_lock lock(moduleInputsMutex_);
     for (const ModuleSetupImport& existingImport : moduleSetupImports_)
     {
         if (existingImport.moduleName == moduleName &&
@@ -3597,8 +3598,22 @@ Result CompilerInstance::registerModuleSetupLoad(const fs::path& filePath)
     if (filePath.empty())
         return Result::Continue;
 
-    moduleSetupLoadedFiles_.insert(FileSystem::normalizePath(filePath));
+    const fs::path         normalizedPath = FileSystem::normalizePath(filePath);
+    const std::scoped_lock lock(moduleInputsMutex_);
+    moduleSetupLoadedFiles_.insert(normalizedPath);
     return Result::Continue;
+}
+
+std::vector<CompilerInstance::ModuleSetupImport> CompilerInstance::moduleSetupImports() const
+{
+    const std::scoped_lock lock(moduleInputsMutex_);
+    return moduleSetupImports_;
+}
+
+std::set<fs::path> CompilerInstance::moduleSetupLoadedFiles() const
+{
+    const std::scoped_lock lock(moduleInputsMutex_);
+    return moduleSetupLoadedFiles_;
 }
 
 void CompilerInstance::registerCompilerInputFile(const fs::path& filePath)
@@ -3606,7 +3621,15 @@ void CompilerInstance::registerCompilerInputFile(const fs::path& filePath)
     if (filePath.empty())
         return;
 
-    compilerInputFiles_.insert(FileSystem::normalizePath(filePath));
+    const fs::path         normalizedPath = FileSystem::normalizePath(filePath);
+    const std::scoped_lock lock(moduleInputsMutex_);
+    compilerInputFiles_.insert(normalizedPath);
+}
+
+std::set<fs::path> CompilerInstance::compilerInputFiles() const
+{
+    const std::scoped_lock lock(moduleInputsMutex_);
+    return compilerInputFiles_;
 }
 
 void CompilerInstance::registerImportedDependencyLinkDir(const fs::path& path)
@@ -3709,7 +3732,7 @@ Result CompilerInstance::collectModuleSetupLoadedFiles(TaskContext& ctx, const s
     const JobClientId clientId = jobClientId();
 
     std::vector<SourceFile*> added;
-    for (const fs::path& filePath : moduleSetupLoadedFiles_)
+    for (const fs::path& filePath : moduleSetupLoadedFiles())
     {
         const fs::path normalizedPath = FileSystem::normalizePath(filePath);
         if (alreadyRead.contains(normalizedPath) || hasResolvedFilePath(normalizedPath))
@@ -3793,9 +3816,9 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     if (files.empty())
     {
         outSnapshot.buildCfg           = setupCompiler.buildCfg();
-        outSnapshot.imports            = setupCompiler.moduleSetupImports_;
-        outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles_;
-        outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles_;
+        outSnapshot.imports            = setupCompiler.moduleSetupImports();
+        outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles();
+        outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles();
         ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
         return Result::Continue;
     }
@@ -3852,9 +3875,9 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     }
 
     outSnapshot.buildCfg           = setupCompiler.buildCfg();
-    outSnapshot.imports            = setupCompiler.moduleSetupImports_;
-    outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles_;
-    outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles_;
+    outSnapshot.imports            = setupCompiler.moduleSetupImports();
+    outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles();
+    outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles();
     ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
     return Result::Continue;
 }

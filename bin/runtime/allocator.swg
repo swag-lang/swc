@@ -55,8 +55,8 @@ struct AllocatorHeader
     alignment: u32
     isTracked: bool
 
-    // An electric block ends flush against a reserved guard page, so it carries no footer: a write
-    // one byte past the request faults instead of waiting for the free to notice a broken pattern.
+    // An electric block ends near a reserved guard page, with less than one alignment unit of
+    // trailing slack. It carries no footer; an access reaching the guard faults immediately.
     isElectric: bool
     magic:      u32
 }
@@ -112,10 +112,19 @@ struct AllocatorThreadHeap
 // the runtime never started, which is what lets an OS-owned callback thread give its pages back.
 private var g_AllocatorThreadHeapFlsId = AllocatorInvalidFlsId
 
+// Allocates page-backed blocks with optional allocation diagnostics.
+//
+// Alignment is zero for the default or a power of two. An invalid alignment, an unrepresentable
+// size, or an operating-system allocation failure sets the request address to null. A failed
+// reallocation leaves the original block live; retain its address before submitting the request.
+// Bulk release and teardown require all users to have stopped accessing this allocator's blocks.
 struct Allocator
 {
     // Guards the diagnostic quarantine and the tracked-allocation list.
     mutex: MutexRW
+
+    // Guards both live header lists, including ordinary allocations outside diagnostic mode.
+    headerMutex: MutexRW
 
     // Guards the segment list, the thread-heap list, and the abandoned pages.
     segmentMutex: MutexRW
@@ -124,9 +133,10 @@ struct Allocator
     firstHeap:      *AllocatorThreadHeap?
     firstAbandoned: *AllocatorPage?
 
-    // Header-path bookkeeping. Live blocks are always counted; the tracked list and the quarantine
-    // exist only while a diagnostic mode is on.
+    // Every live header belongs to one list so bulk release can discover it. Only tracked blocks
+    // enter firstAlloc and supply detailed leak reports; ordinary headers enter firstUntracked.
     firstAlloc:      *AllocatorHeader?
+    firstUntracked:  *AllocatorHeader?
     firstQuarantine: *AllocatorHeader?
     lastQuarantine:  *AllocatorHeader?
     headerCount:     u64
@@ -146,8 +156,8 @@ struct Allocator
     nextId:       u32
     installMagic: u32 = 0
 
-    // Bounds the diagnostic quarantine. It retains headers for double-free diagnostics and, when
-    // fillFree is enabled, patterns checked for later writes. Ordinary reads are not intercepted.
+    // Bounds the diagnostic quarantine. It retains headers and footers for corruption and
+    // double-free diagnostics. Freed payload fill bytes are not checked for later writes.
     maxQuarantineBytes: u64
     showMaxLeaks:       u32
     breakOnAllocId:     u32
@@ -254,6 +264,8 @@ impl Allocator
     func memAlign(value: u64, alignment: u32)->u64
     {
         let toAlign = cast(u64) (alignment != 0 ? alignment : cast(u32) #sizeof(*void)) - 1
+        if value > Swag.U64.Max - toAlign do
+            return 0
         return (value + toAlign) & ~toAlign
     }
 
@@ -321,6 +333,8 @@ impl Allocator
     mtd osAlloc(size: u64)->[*] u8?
     {
         let rounded = memAlign(size, cast(u32) AllocatorCommitGranularity)
+        if rounded == 0 do
+            return null
         let address = __hostPageReserve(rounded)
         if not address do
             return null
@@ -336,10 +350,11 @@ impl Allocator
     }
 
     // Reserves one extra page past the block and leaves it uncommitted. Electric mode places the
-    // user data flush against it, so an overflow of a single byte faults at the instruction that
-    // writes it rather than at the next consistency check.
+    // aligned payload immediately before it, leaving only the slack required by alignment.
     mtd osAllocGuarded(commitBytes: u64)->[*] u8?
     {
+        if commitBytes == 0 or commitBytes > Swag.U64.Max - AllocatorCommitGranularity do
+            return null
         let reservedBytes = commitBytes + AllocatorCommitGranularity
         let address       = __hostPageReserve(reservedBytes)
         if not address do
@@ -672,7 +687,7 @@ impl Allocator
         return cast(*AllocatorFooter) (.userAddress(header) + header.userSize)
     }
 
-    // An electric block has no footer: the byte after its last one belongs to the guard page.
+    // An electric block has no footer: only alignment slack separates its payload from the guard.
     mtd footerMagic(header: *AllocatorHeader)->u32
     {
         return header.isElectric ? header.magic : .footer(header).magic
@@ -709,17 +724,29 @@ impl Allocator
 
     mtd linkAllocated(header: *AllocatorHeader)
     {
+        .headerMutex.lock()
+        defer .headerMutex.unlock()
         header.prev = null
-        header.next = .firstAlloc
+        header.next = header.isTracked ? .firstAlloc : .firstUntracked
         if header.next do
             header.next.prev = header
-        .firstAlloc = header
+        if header.isTracked do
+            .firstAlloc = header
+        else do
+            .firstUntracked = header
     }
 
     mtd unlinkAllocated(header: *AllocatorHeader)
     {
-        if not header.prev do
-            .firstAlloc = header.next
+        .headerMutex.lock()
+        defer .headerMutex.unlock()
+        if not header.prev
+        {
+            if header.isTracked do
+                .firstAlloc = header.next
+            else do
+                .firstUntracked = header.next
+        }
         else do
             header.prev.next = header.next
 
@@ -731,7 +758,7 @@ impl Allocator
     }
 
     // Holds a freed block instead of unmapping it. A second free is diagnosed through its header;
-    // writes can be found by checking the fill pattern, but a read alone is not observed.
+    // consistency checks cover the header and footer, not accesses confined to the freed payload.
     mtd quarantine(header: *AllocatorHeader)
     {
         header.prev = .lastQuarantine
@@ -846,23 +873,33 @@ impl Allocator
         let trackingSize = .diagnosticMode() ? cast(u64) #sizeof(AllocatorTracking) : 0'u64
         let prefix       = memAlign(trackingSize + #sizeof(AllocatorHeader), alignment)
         let blockSize    = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
+        let payloadSize  = .electricMode ? request.size : blockSize
+        let overhead     = prefix + cast(u64) alignment + (.electricMode ? 0'u64 : #sizeof(AllocatorFooter))
+        if payloadSize > Swag.U64.Max - overhead
+        {
+            request.address = null
+            return
+        }
 
-        var allocSize: u64
-        var base:      [*] u8?
-        var userAddr:  u64
+        let allocSize = memAlign(overhead + payloadSize, cast(u32) AllocatorCommitGranularity)
+        if allocSize == 0
+        {
+            request.address = null
+            return
+        }
+
+        var base:     [*] u8?
+        var userAddr: u64
 
         if .electricMode
         {
-            // The request ends exactly where the committed range does, so the reserved page beyond
-            // it turns the first byte of an overflow into an access violation.
-            allocSize = memAlign(prefix + alignment + request.size, cast(u32) AllocatorCommitGranularity)
-            base      = .osAllocGuarded(allocSize)
+            // Round the payload address down to preserve alignment without entering the guard.
+            base = .osAllocGuarded(allocSize)
             if base do
                 userAddr = (cast(u64) base + allocSize - request.size) & ~(cast(u64) alignment - 1)
         }
         else
         {
-            allocSize = memAlign(prefix + alignment + blockSize + #sizeof(AllocatorFooter), cast(u32) AllocatorCommitGranularity)
             if not .diagnosticMode() do
                 base = .popCachedBlock(allocSize)
             if not base do
@@ -908,8 +945,7 @@ impl Allocator
 
         atomicAddU64(&.headerCount, 1)
         atomicAddU64(&.headerBytes, blockSize)
-        if header.isTracked do
-            .linkAllocated(header)
+        .linkAllocated(header)
 
         request.address = cast(*void) userAddr
     }
@@ -919,8 +955,7 @@ impl Allocator
         let header = .headerOf(address)
         .checkAllocated(header, callerLoc)
 
-        if header.isTracked do
-            .unlinkAllocated(header)
+        .unlinkAllocated(header)
 
         atomicSubU64(&.headerCount, 1)
         atomicSubU64(&.headerBytes, header.blockSize)
@@ -956,6 +991,12 @@ impl Allocator
 
     mtd allocate(request: *AllocatorRequest)
     {
+        if request.alignment != 0 and (request.alignment & (request.alignment - 1)) != 0
+        {
+            request.address = null
+            return
+        }
+
         // A zero-size reallocation with a live address never reaches this point:
         // 'reallocate' frees it before delegating.
         if request.size == 0
@@ -1000,6 +1041,12 @@ impl Allocator
 
     mtd reallocate(request: *AllocatorRequest)
     {
+        if request.alignment != 0 and (request.alignment & (request.alignment - 1)) != 0
+        {
+            request.address = null
+            return
+        }
+
         if not request.address
         {
             .allocate(request)
@@ -1016,16 +1063,19 @@ impl Allocator
         let oldPage    = allocatorPageOf(oldAddress)
 
         var oldBlockSize: u64
+        var oldCopySize:  u64
         if oldPage
         {
             .checkPageAddress(oldPage, oldAddress, request.callerLoc)
             oldBlockSize = oldPage.blockSize
+            oldCopySize  = oldBlockSize
         }
         else
         {
             let oldHeader = .headerOf(oldAddress)
             .checkAllocated(oldHeader, request.callerLoc)
             oldBlockSize = oldHeader.blockSize
+            oldCopySize  = oldHeader.userSize
 
             // Growing inside the block the header already covers only moves the footer.
             if request.size <= oldHeader.blockSize and request.alignment <= oldHeader.alignment and not oldHeader.isElectric
@@ -1044,7 +1094,7 @@ impl Allocator
 
         // A page block keeps its address whenever the request still fits its class, which is what
         // makes a growing buffer stop calling the operating system.
-        if oldPage and request.size <= oldBlockSize and request.alignment <= AllocatorPagePathAlignment and not .diagnosticMode()
+        if oldPage and request.size <= oldBlockSize and request.alignment <= AllocatorPagePathAlignment and (request.alignment == 0 or (oldAddress & (cast(u64) request.alignment - 1)) == 0) and not .diagnosticMode()
         {
             request.address = cast(*void) oldAddress
             return
@@ -1059,7 +1109,7 @@ impl Allocator
             return
         }
 
-        Swag.memcpy(allocReq.address, cast(*void) oldAddress, Swag.min(oldBlockSize, request.size))
+        Swag.memcpy(allocReq.address, cast(*void) oldAddress, Swag.min(oldCopySize, request.size))
 
         var freeReq = request[]
         freeReq.address = cast(*void) oldAddress
@@ -1310,6 +1360,13 @@ impl Allocator
         while .firstAlloc
         {
             let header = .firstAlloc
+            .unlinkAllocated(header)
+            .osFree(header.allocAddr, header.allocSize)
+        }
+
+        while .firstUntracked
+        {
+            let header = .firstUntracked
             .unlinkAllocated(header)
             .osFree(header.allocAddr, header.allocSize)
         }

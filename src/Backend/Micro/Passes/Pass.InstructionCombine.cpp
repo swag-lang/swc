@@ -47,6 +47,10 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFuseInPlaceUpdate);
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryFuseInPlaceUpdate);
         r.add(MicroInstrOpcode::LoadRegMem, tryMemoryFoldTriple);
+        r.add(MicroInstrOpcode::LoadVecRegMem, tryFoldVecLoadIntoWiden);
+        r.add(MicroInstrOpcode::LoadRegMem, tryFoldVecLoadIntoWiden);
+        r.add(MicroInstrOpcode::VecUnaryRegMem, tryFoldLeaConstIntoMemBase);
+        r.add(MicroInstrOpcode::VecUnaryRegMem, tryFoldMemoryAddressing);
         // The address computation folds into the load before the load folds
         // into its consumer: an indexed access has no memory-operand form, and
         // a plain one gets both folds across two sweeps.

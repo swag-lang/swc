@@ -857,6 +857,8 @@ namespace
                 return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[3].microOp)), regName(ops[1].reg, regPrintMode, encoder), hexU64(ops[4].valueU64));
             case MicroInstrOpcode::VecUnaryRegReg:
                 return std::format("{} = {}({})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[3].microOp)), regName(ops[1].reg, regPrintMode, encoder));
+            case MicroInstrOpcode::VecUnaryRegMem:
+                return std::format("{} = {}({})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[4].microOp)), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::OpTernaryRegRegRegImm:
                 return std::format("{} = {}({}, {}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[4].microOp)), regName(ops[1].reg, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder), hexU64(ops[5].valueU64));
             case MicroInstrOpcode::LoadSignedExtRegMem:
@@ -2058,6 +2060,12 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
 
             case MicroInstrOpcode::LoadVecRegMem:
+                appendRegMemBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder);
+                break;
+
+            case MicroInstrOpcode::VecUnaryRegMem:
+                appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[4].microOp));
+                appendSep(out);
                 appendRegMemBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder);
                 break;
 

@@ -490,6 +490,17 @@ void MicroBuilder::emitVecGatherS32(MicroReg regDst, MicroReg baseReg, MicroReg 
     ops[2].reg              = indicesReg;
 }
 
+void MicroBuilder::emitVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::VecUnaryRegMem, 5);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = regDst;
+    ops[1].reg              = memReg;
+    ops[2].opBits           = opBits;
+    ops[3].valueU64         = memOffset;
+    ops[4].microOp          = op;
+}
+
 void MicroBuilder::emitVecUnaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::VecUnaryRegReg, 4);

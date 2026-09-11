@@ -236,6 +236,7 @@ namespace
                 return 4;
 
             case MicroInstrOpcode::OpBinaryRegRegImm:
+            case MicroInstrOpcode::VecUnaryRegMem:
                 return 5;
 
             case MicroInstrOpcode::LoadSignedExtRegMem:

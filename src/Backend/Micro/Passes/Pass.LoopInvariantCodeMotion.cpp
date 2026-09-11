@@ -51,6 +51,7 @@ namespace
             case MicroInstrOpcode::LoadSignedExtRegReg:
             case MicroInstrOpcode::LoadZeroExtRegReg:
             case MicroInstrOpcode::LoadVecRegMem:
+            case MicroInstrOpcode::VecUnaryRegMem:
             case MicroInstrOpcode::VecShuffleRegRegImm:
             case MicroInstrOpcode::VecUnaryRegReg:
             case MicroInstrOpcode::OpBinaryRegRegImm:
@@ -107,6 +108,7 @@ namespace
             case MicroInstrOpcode::LoadSignedExtRegMem:
             case MicroInstrOpcode::LoadZeroExtRegMem:
             case MicroInstrOpcode::LoadVecRegMem:
+            case MicroInstrOpcode::VecUnaryRegMem:
                 return true;
             default:
                 return false;

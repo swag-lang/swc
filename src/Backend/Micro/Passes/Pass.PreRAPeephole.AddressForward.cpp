@@ -99,6 +99,7 @@ namespace PreRaPeephole
 
                 case MicroInstrOpcode::LoadRegMem:
                 case MicroInstrOpcode::LoadVecRegMem:
+                case MicroInstrOpcode::VecUnaryRegMem:
                     if (ops[1].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);

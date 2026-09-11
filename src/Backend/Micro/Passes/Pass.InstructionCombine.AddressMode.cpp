@@ -37,6 +37,7 @@ namespace InstructionCombine
                 // scalar one, and SIMD code is where the front end materializes an address
                 // per access most often.
                 case MicroInstrOpcode::LoadVecRegMem:
+                case MicroInstrOpcode::VecUnaryRegMem:
                     out.baseIdx = 1;
                     out.offIdx  = 3;
                     return true;

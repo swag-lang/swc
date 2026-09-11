@@ -54,6 +54,7 @@ protected:
     void encodeJumpReg(MicroReg reg) override;
     void encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits) override;
     void encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits) override;
+    void encodeVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits) override;
     void encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits) override;
     void encodeVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uint64_t control, MicroOpBits opBits) override;
     void encodeVecGatherS32(MicroReg regDst, MicroReg baseReg, MicroReg indicesReg) override;

@@ -731,3 +731,19 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+
+// Non-destructive packed widening whose source is memory: dst = op([base +
+// offset]), reading the eight bytes the low widening needs. Carries the six
+// widen forms of VecUnaryRegReg and nothing else. Layout [dst, base, opBits,
+// offset, microOp]. Does not touch the CPU flags.
+SWC_MICRO_INSTR_DEF(
+    VecUnaryRegMem,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 4,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands,
+        .memBaseOperandIndex   = 1,
+        .memOffsetOperandIndex = 3,
+    })

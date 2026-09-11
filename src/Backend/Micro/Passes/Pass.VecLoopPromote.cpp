@@ -184,6 +184,13 @@ namespace
                 isRead  = true;
                 vecLoad = ops[2].opBits == MicroOpBits::B128;
                 break;
+            case MicroInstrOpcode::VecUnaryRegMem:
+                // A widening reads the eight bytes its low lanes come from.
+                baseReg = ops[1].reg;
+                size    = 8;
+                offset  = ops[3].valueU64;
+                isRead  = true;
+                break;
             case MicroInstrOpcode::LoadMemReg:
                 baseReg = ops[0].reg;
                 size    = getNumBytes(ops[2].opBits);

@@ -114,6 +114,7 @@ public:
     void emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
     void emitLoadVolatileRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
     void emitLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
+    void emitVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits);
     void emitStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits);
     void emitVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uint8_t control, MicroOpBits opBits);
     void emitVecGatherS32(MicroReg regDst, MicroReg baseReg, MicroReg indicesReg);

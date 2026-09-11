@@ -2183,6 +2183,22 @@ void X64Encoder::encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t 
     emitModRm(store_, memOffset, regDst, memReg);
 }
 
+// vpmovzx/vpmovsx xmm, m64: a lane widening whose eight source bytes come
+// from memory. The VEX B bit covers the base register, as it covers the r/m
+// register of the register form; vvvv is unused.
+void X64Encoder::encodeVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)
+{
+    SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && !memReg.isFloat());
+    SWC_ASSERT(op == MicroOp::VecWidenLoU8 || op == MicroOp::VecWidenLoU16 || op == MicroOp::VecWidenLoU32 ||
+               op == MicroOp::VecWidenLoS8 || op == MicroOp::VecWidenLoS16 || op == MicroOp::VecWidenLoS32);
+    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+
+    const VecOpEncoding enc = vecOpEncoding(op);
+    emitVex(store_, enc.prefix, enc.map, microRegToX64Reg(regDst), X64Reg::Rax, microRegToX64Reg(memReg));
+    emitCpuOp(store_, enc.opcode);
+    emitModRm(store_, memOffset, regDst, memReg);
+}
+
 // movdqu m128, xmm   (F3 0F 7F /r) : unaligned 128-bit packed store.
 void X64Encoder::encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits)
 {

@@ -320,6 +320,18 @@ namespace
                 outShape.srcBitsSlot  = 2;
                 return true;
 
+            case MicroInstrOpcode::VecUnaryRegMem:
+                // ops: [0] dst, [1] base, [2] opBits, [3] offset, [4] microOp.
+                // A widening read from the vector family's memory; the
+                // operation is part of the key.
+                outShape.useSlots     = {1};
+                outShape.rawSlots     = {3, 4};
+                outShape.movBitsSlot  = 2;
+                outShape.readsMemory  = true;
+                outShape.memoryFamily = 2;
+                outShape.srcBitsSlot  = 2;
+                return true;
+
             case MicroInstrOpcode::LoadRegReg:
                 // ops: [0] dst, [1] src, [2] opBits. Only the move into a
                 // vector register from an integer one takes part; the loop

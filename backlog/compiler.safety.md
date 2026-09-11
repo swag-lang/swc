@@ -43,29 +43,70 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
-### compiler.safety.021 — Validate nullable storage projections across the shipped workspaces
+### compiler.safety.020 — A release through storage a callee could re-establish is not judged
 
-- Recorded: 2026-09-08 11:17
-- Updated: 2026-09-11 14:28 — Fixed projection through `!` and validated the sanity suite; the consumer build awaits machine headroom.
+- Recorded: 2026-09-08 09:05
+- Updated: 2026-09-11 14:38 — The nullable projection prerequisite is implemented and covered by borrow regressions.
 - Area: compiler/sema, `SemaEscape`
-- Evidence: `storageProjection` now sees through `ErrorManagementExpr` only when its token is `!`.
-  The previous compiler falsely rejected `let view = pair!.left.view(); pair!.right.reserve(64)`
-  followed by a read of `view`: losing the nullable receiver's projection conflated two distinct
-  owned fields. The new compiler accepts that case and still rejects mutation of the borrowed field.
-- Validation: the DevMode compiler build, focused `borrow_invalidation.swg` run, and complete
-  `sanity` suite passed in `devmode` (43 files, 50 executed tests). Four source cases cover direct
-  payload access and accessor summaries, each with a matching-field error and a sibling-field
-  acceptance. The sibling-accessor case failed on the previous compiler before rebuilding.
-- Remaining evidence: repeated machine admission checks refused the all-workspace build with
-  about 5 GiB of commit headroom against the required 8 GiB. A pre-change `sema --workspace bin/std
-  --workspace-module core -bc devmode --rebuild --num-cores 6` sample took 3.880 s wall time and
-  reached 510.848 MiB peak working set; the matching post-change sample is also pending. One sample
-  is a baseline, not a performance conclusion.
-- Next: run `bin/swc.dm.exe --num-cores 6 tools/build.swgs dm -bc devmode --num-cores 6` and repeat
-  the focused core semantic-analysis measurement once machine admission reports `ready`.
-- Complete when: all shipped workspaces build unchanged with nullable projections enabled and
-  the before/after compiler time and memory comparison is checked.
-- Related: compiler.safety.020.
+- The half that no longer needs anything: a release helper that reaches for what it just
+  released is proven inside its own BODY, because the receiver names the object there and
+  no summary has to cross a call. `mtd releaseThenTouch() { heapFree(.data!, 4); .data![] = 0 }`
+  is a compile-time error, while the same method putting the field back - with null or with
+  a fresh allocation - stays silent. What remains is the CALLER side alone.
+- Evidence: two shapes, one blocker. A release reached through a FIELD of the receiver:
+
+  ```
+  impl Node { mtd release() { if .data != null do heapFree(.data!, 4) } }
+  var node: Node
+  node.data = cast(*s32) heapAlloc(4)
+  node.release()
+  return node.data![]     // silent
+  ```
+
+  and a release of what a GLOBAL owns:
+
+  ```
+  var owned: *s32?
+  owned = cast(*s32) heapAlloc(4)
+  heapFree(owned!, 4)
+  return owned![]         // silent
+  ```
+
+  Every other storage class a program keeps a pointer in — a parameter, an element of a
+  local table, a field of a local, a copy into another local, and the return itself — is
+  proven. These two are what is left.
+- The per-field summary was implemented end to end and reverted, because a release is not
+  on its own a statement about what the storage holds on return:
+
+  ```
+  mtd reset() { heapFree(.data!, 4); .data = cast(*s32) heapAlloc(4) }
+  node.reset()
+  node.data![] = 1     // CORRECT, and a per-field FREES mark reports it
+  ```
+
+  A release helper normally does something with the storage afterwards, and the summary
+  cannot tell that apart from leaving it dangling. The global shape has the same hole from
+  the other side: any callee may write any global, so the freeing call is itself what would
+  invalidate the fact it creates.
+- Why this is not a small addition: the missing half is a NEGATIVE fact — *the callee does
+  not write this storage before returning*. A positive fact needs one witness; a negative
+  one needs every write form excluded, including a store through a pointer that could reach
+  the storage, which is alias analysis. That is the honest size of this entry, and it is why
+  the implemented half was not shipped on its own.
+- What the attempt established, for whoever takes it: the seeding (a call argument whose
+  storage projection is a field of one of the caller's parameters), a `FieldToFrees` summary
+  edge kind, and the fact that the chaining must ALSO run in
+  `propagateCompletedFreesSummaries` — the early fixpoint — because the backend reads these
+  summaries while it lowers, and a fact only the final drain publishes arrives after the
+  call site it judges. `storageProjection` now sees through `x!`; nullable receiver paths
+  are covered by `bin/unittests/sanity/borrow_invalidation.swg`.
+- Next: decide whether the negative fact is affordable at all. The cheaper direction this
+  entry named has since landed on its own — the body of a release helper is judged where it
+  is written — so what is left is only the caller, and only for a helper whose body the
+  caller cannot see. Weigh that against the cost before building it.
+- Complete when: both shapes above are compile-time errors, the `reset` shape and the
+  carrier case stay silent, and all of them are in `bin/unittests/sanity/use_after_free.swg`.
+- Related: compiler.safety.017.
 
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
@@ -247,71 +288,6 @@ is the current scorecard.
 - Complete when: the four OLE objects compose their interface, the recovery is a checked descent,
   and no comment in the file asks a field to stay first.
 - Related: compiler.safety.006 counts these among its 32 residual reinterpretation sites.
-
-### compiler.safety.020 — A release through storage a callee could re-establish is not judged
-
-- Recorded: 2026-09-08 09:05
-- Updated: 2026-09-08 12:27 — the half inside the release helper is now proven; what is left is the caller side
-- Area: compiler/sema, `SemaEscape`
-- The half that no longer needs anything: a release helper that reaches for what it just
-  released is proven inside its own BODY, because the receiver names the object there and
-  no summary has to cross a call. `mtd releaseThenTouch() { heapFree(.data!, 4); .data![] = 0 }`
-  is a compile-time error, while the same method putting the field back - with null or with
-  a fresh allocation - stays silent. What remains is the CALLER side alone.
-- Evidence: two shapes, one blocker. A release reached through a FIELD of the receiver:
-
-  ```
-  impl Node { mtd release() { if .data != null do heapFree(.data!, 4) } }
-  var node: Node
-  node.data = cast(*s32) heapAlloc(4)
-  node.release()
-  return node.data![]     // silent
-  ```
-
-  and a release of what a GLOBAL owns:
-
-  ```
-  var owned: *s32?
-  owned = cast(*s32) heapAlloc(4)
-  heapFree(owned!, 4)
-  return owned![]         // silent
-  ```
-
-  Every other storage class a program keeps a pointer in — a parameter, an element of a
-  local table, a field of a local, a copy into another local, and the return itself — is
-  proven. These two are what is left.
-- The per-field summary was implemented end to end and reverted, because a release is not
-  on its own a statement about what the storage holds on return:
-
-  ```
-  mtd reset() { heapFree(.data!, 4); .data = cast(*s32) heapAlloc(4) }
-  node.reset()
-  node.data![] = 1     // CORRECT, and a per-field FREES mark reports it
-  ```
-
-  A release helper normally does something with the storage afterwards, and the summary
-  cannot tell that apart from leaving it dangling. The global shape has the same hole from
-  the other side: any callee may write any global, so the freeing call is itself what would
-  invalidate the fact it creates.
-- Why this is not a small addition: the missing half is a NEGATIVE fact — *the callee does
-  not write this storage before returning*. A positive fact needs one witness; a negative
-  one needs every write form excluded, including a store through a pointer that could reach
-  the storage, which is alias analysis. That is the honest size of this entry, and it is why
-  the implemented half was not shipped on its own.
-- What the attempt established, for whoever takes it: the seeding (a call argument whose
-  storage projection is a field of one of the caller's parameters), a `FieldToFrees` summary
-  edge kind, and the fact that the chaining must ALSO run in
-  `propagateCompletedFreesSummaries` — the early fixpoint — because the backend reads these
-  summaries while it lowers, and a fact only the final drain publishes arrives after the
-  call site it judges. It also needs `storageProjection` to see through `x!`
-  (compiler.safety.021).
-- Next: decide whether the negative fact is affordable at all. The cheaper direction this
-  entry named has since landed on its own — the body of a release helper is judged where it
-  is written — so what is left is only the caller, and only for a helper whose body the
-  caller cannot see. Weigh that against the cost before building it.
-- Complete when: both shapes above are compile-time errors, the `reset` shape and the
-  carrier case stay silent, and all of them are in `bin/unittests/sanity/use_after_free.swg`.
-- Related: compiler.safety.017, compiler.safety.021.
 
 ### compiler.safety.017 — Allocation ownership has no static leak proof
 

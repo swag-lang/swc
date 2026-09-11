@@ -26,10 +26,10 @@ const Zigzag8: [64] u8 = [
 // inverse transform reads the block as it is. A DC block keeps its own order, since it goes
 // through a transform of its own before it is scaled. An AC block codes the zigzag scan from
 // its second position, the first being the DC that reconstruction adds.
-const ResidualOrderDc  = 0'u64
-const ResidualOrder4x4 = 16'u64
-const ResidualOrderAc  = 32'u64
-const ResidualOrder8x8 = 48'u64
+const ResidualOrderDc         = 0'u64
+const ResidualOrder4x4        = 16'u64
+const ResidualOrderAc         = 32'u64
+const ResidualOrder8x8        = 48'u64
 const ResidualOrder: [112] u8 = [
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15,

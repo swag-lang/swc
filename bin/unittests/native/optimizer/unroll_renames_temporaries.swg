@@ -16,8 +16,8 @@ func scaleRows(dst: [*] u8, src: const [*] u8, stride: u64)->u32
         let twice = cast(u8) (value * 2)
         dst[row * stride]     = twice
         dst[row * stride + 1] = twice
-        sum += cast(u32) twice
-        last = twice
+        sum                   += cast(u32) twice
+        last                  = twice
     }
 
     return sum + cast(u32) last
@@ -41,7 +41,7 @@ func chain(values: const [*] s32)->s32
     for i in 1'u64 until 5
     {
         let current = values[i]
-        result += current - previous
+        result   += current - previous
         previous = current
     }
 

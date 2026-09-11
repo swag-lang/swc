@@ -114,11 +114,11 @@ func nestedProducts(base: const [*] u8, stride: u64, rows, cols: u64)->{ sum: u6
 #[Swag.Optimize(true)]
 func movingStride(base: const [*] u8, rows: u64)->u64
 {
-    var acc: u64
+    var acc:    u64
     var stride: u64 = 1
     for row in rows
     {
-        acc += cast(u64) base[row * stride]
+        acc    += cast(u64) base[row * stride]
         stride += 1
     }
     return acc
@@ -181,7 +181,7 @@ func reference(rows, stride: u64, cols: u64)->u64
     while evenRow < 15
     {
         expected += cast(u64) Plane[evenRow * 64]
-        evenRow += 2
+        evenRow  += 2
     }
     Swag.assert(sumStepTwo(base, 64, 15) == expected)
 

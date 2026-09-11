@@ -173,7 +173,7 @@ func sumHighHalves(dst: [*] u16, src: const [*] u8, stride: u64, rows: u64)
 {
     // Widening in a loop: the zero is cleared once, outside it.
     var plane: [4 * 64] u8
-    var out: [4 * 8] u16
+    var out:   [4 * 8] u16
     for i in 4 * 64 do
         plane[i] = cast(u8) (i & 0xFF)
     sumHighHalves(&out[0], &plane[0], 64, 4)

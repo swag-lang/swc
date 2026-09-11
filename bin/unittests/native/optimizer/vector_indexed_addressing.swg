@@ -7,7 +7,7 @@ using Swag
 // are checked against the scalar arithmetic.
 
 var Plane: [8 * 64] u8
-var Out: [4 * 64] u8
+var Out:   [4 * 64] u8
 
 func fillPlane()
 {

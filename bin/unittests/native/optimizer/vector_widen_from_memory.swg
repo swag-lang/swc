@@ -65,7 +65,7 @@ func widenAfterStore(dst: [*] u16, buffer: [*] u8)
     Swag.assert(out[0] == 0 + 8 and out[7] == 7 + 15)
     Swag.assert(out[8] == 64 + 72 and out[31] == (3 * 64 + 7) + (3 * 64 + 15))
 
-    var words: [8] u16 = [1, 2, 3, 4, 5, 6, 7, 0xFFFF]
+    var words:  [8] u16 = [1, 2, 3, 4, 5, 6, 7, 0xFFFF]
     var dwords: [8] u32
     widenWords(&dwords[0], &words[0])
     Swag.assert(dwords[0] == 1 and dwords[3] == 4 and dwords[4] == 5 and dwords[7] == 0xFFFF)
@@ -75,7 +75,7 @@ func widenAfterStore(dst: [*] u16, buffer: [*] u8)
     widenSigned(&wide[0], &signed[0])
     Swag.assert(wide[0] == -1 and wide[1] == -2 and wide[7] == -128)
 
-    var offsets: [3] u64 = [0, 64, 192]
+    var offsets:  [3] u64 = [0, 64, 192]
     var gathered: [3 * 8] u16
     gatherRows(&gathered[0], &plane[0], &offsets[0], 3)
     Swag.assert(gathered[0] == 0 + 8 and gathered[8] == 64 + 72 and gathered[16] == 192 + 200 and gathered[23] == 199 + 207)

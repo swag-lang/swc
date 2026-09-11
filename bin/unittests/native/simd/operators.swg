@@ -180,7 +180,7 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
     acc >>= 3
     var lanes = cast([8] s16) acc
     Swag.assert(lanes[0] == -4096 and lanes[1] == -1 and lanes[2] == 4095)
-    acc <<= 2
+    acc   <<= 2
     lanes = cast([8] s16) acc
     Swag.assert(lanes[0] == -16384 and lanes[1] == -4 and lanes[2] == 16380)
 

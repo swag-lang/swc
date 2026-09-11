@@ -8,7 +8,7 @@ using Swag
 // applied once per optimization sweep until the loop gave up.
 
 var Samples: [8 * 64] u8
-var Out: [256] u8
+var Out:     [256] u8
 
 func fillSamples()
 {
@@ -29,9 +29,9 @@ func upsample(dst: [*] u8, luma: const [*] u8, units: u64)
             d[0] = y[0]
             d[1] = c[0]
             d[2] = y[8]
-            d += 3
-            c += 4
-            y += 64
+            d    += 3
+            c    += 4
+            y    += 64
         }
         y += 64 * 4 - 64 * 2
         c += 64 * 4 - 8
@@ -50,9 +50,9 @@ func referenceUpsample(dst: [*] u8, luma: const [*] u8, units: u64)
             dst[d]     = luma[y]
             dst[d + 1] = luma[c]
             dst[d + 2] = luma[y + 8]
-            d += 3
-            c += 4
-            y += 64
+            d          += 3
+            c          += 4
+            y          += 64
         }
         y += 64 * 4 - 64 * 2
         c += 64 * 4 - 8

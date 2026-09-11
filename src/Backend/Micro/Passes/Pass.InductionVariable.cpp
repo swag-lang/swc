@@ -528,7 +528,11 @@ namespace
                     else
                         continue;
 
-                    if (!MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, opRef))
+                    // The destructive op goes, and its flags with it: nothing
+                    // may read them on any path out of it. A sum in a branch of
+                    // the body ends its straight line at the join, so the
+                    // check follows the graph.
+                    if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(cfg, storage, operands, opIt->second))
                         continue;
                 }
                 else if (inst->op == MicroInstrOpcode::OpBinaryRegRegReg)

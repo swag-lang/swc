@@ -228,6 +228,40 @@ bool MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(const MicroStorage& st
     return false;
 }
 
+bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cfg, const MicroStorage& storage, const MicroOperandStorage& operands, const uint32_t index)
+{
+    const uint32_t count = cfg.instructionCount();
+    if (index >= count)
+        return false;
+
+    std::vector<bool>     visited(count, false);
+    SmallVector<uint32_t> worklist;
+    for (const uint32_t successor : cfg.successors(index))
+        worklist.push_back(successor);
+
+    while (!worklist.empty())
+    {
+        const uint32_t i = worklist.back();
+        worklist.pop_back();
+        if (i >= count || visited[i])
+            continue;
+        visited[i] = true;
+
+        const MicroInstr* inst = storage.ptr(cfg.instructionRefs()[i]);
+        if (!inst)
+            return false;
+        const MicroInstrOperand* ops = inst->ops(operands);
+        if (instructionActuallyUsesCpuFlags(*inst, ops))
+            return false;
+        if (instructionActuallyDefinesCpuFlags(*inst, ops) || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+            continue;
+        for (const uint32_t successor : cfg.successors(i))
+            worklist.push_back(successor);
+    }
+
+    return true;
+}
+
 uint32_t MicroPassHelpers::replaceRegInLocalUses(MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef afterInstRef, MicroReg fromReg, MicroReg toReg)
 {
     if (!fromReg.isValid() || fromReg.isNoBase())

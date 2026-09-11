@@ -148,6 +148,13 @@ namespace MicroPassHelpers
     // window up to the next boundary is trusted.
     bool areCpuFlagsRedefinedBeforeBoundary(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef instRef);
 
+    // True when no path out of the instruction at 'index' reads the CPU flags
+    // before redefining them: the straight line, and past a jump or a label
+    // every successor in the graph. The exact form of the boundary criterion,
+    // for a transform that removes a flag definition inside a branch. A call
+    // ends a path like a definition does.
+    bool areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cfg, const MicroStorage& storage, const MicroOperandStorage& operands, uint32_t index);
+
     // First virtual register index not used by any operand, starting above the
     // builder's hint. Passes that synthesize registers allocate upward from here.
     uint32_t computeNextVirtualIntRegIndex(const MicroPassContext& context);

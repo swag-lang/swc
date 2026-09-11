@@ -55,13 +55,13 @@ internal impl Properties
                 if opaque do
                     result |= 0xFF000000
                 elif keepAlpha do
-                    result |= color.a << 24
+                    result |= cast(u32) color.a << 24
                 color.argb = result
                 prop.commitItemChange(item)
             }
         }
 
-        me.flattenCondensedEdit(ed)
+        .flattenCondensedEdit(ed)
 
         btn.iconPainter = func|color|(btn, bc, pos, paintFlags)
         {
@@ -93,7 +93,7 @@ internal impl Properties
                 if opaque do
                     result |= 0xFF000000
                 elif keepAlpha do
-                    result |= color.a << 24
+                    result |= cast(u32) color.a << 24
                 color.argb = result
                 prop.commitItemChange(item)
             }

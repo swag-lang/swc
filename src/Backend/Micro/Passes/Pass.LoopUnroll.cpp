@@ -39,6 +39,11 @@ namespace
     constexpr uint64_t K_MAX_TRIPS       = 8;
     constexpr uint32_t K_MAX_BODY_INSTR  = 96;
     constexpr uint32_t K_MAX_TOTAL_INSTR = 384;
+    // A body with branches of its own does not simplify once laid flat: each
+    // copy keeps its tests and jumps, and what the branches compute stays in
+    // separate blocks that value numbering does not merge. Such a body is
+    // unrolled only while the whole stays small.
+    constexpr uint32_t K_MAX_TOTAL_INSTR_WITH_BRANCHES = 96;
 
     bool defsRegister(const MicroInstr& inst, const MicroOperandStorage& operands, const Encoder* encoder, const MicroReg reg)
     {
@@ -268,6 +273,9 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 }
             }
             if (!ok)
+                continue;
+
+            if (!internalLabels.empty() && bodyCount * trips > K_MAX_TOTAL_INSTR_WITH_BRANCHES)
                 continue;
 
             // No jump from outside the body may land on an internal label.

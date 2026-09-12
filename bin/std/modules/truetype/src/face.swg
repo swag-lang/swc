@@ -328,8 +328,7 @@ public impl Face
         var units = 0's16
         if faceData.gposPairSubtables.count != 0
         {
-            let value = catch lookupGposKerning(faceData, cast(u16) leftGlyph, cast(u16) rightGlyph) as err
-            units = err != null ? 0's16 : value
+            units = lookupGposKerning(faceData, cast(u16) leftGlyph, cast(u16) rightGlyph)
         }
 
         if not units

@@ -177,14 +177,14 @@ func subrBias(count: u32)->s32
 func readCffIndex(block: const [..] u8?, offset: u64)->CffIndex fail
 {
     var result: retval
-    let count = readU16(block, offset)
+    let count = peekU16(block, offset)
     if not count
     {
         result.end = offset + 2
         return result
     }
 
-    let offSize = readU8(block, offset + 2)
+    let offSize = peekU8(block, offset + 2)
     if offSize < 1 or offSize > 4 do
         fault(0x08)
 
@@ -198,7 +198,7 @@ func readCffIndex(block: const [..] u8?, offset: u64)->CffIndex fail
     {
         var value = 0'u32
         for b in cast(u64) offSize do
-            value = value << 8 | readU8(block, table + i * offSize + b)
+            value = value << 8 | peekU8(block, table + i * offSize + b)
         result.starts.add(cast(u32) (dataBase + value))
     }
 
@@ -224,7 +224,7 @@ func readCffReal(data: const [..] u8?, offset: u64)->{ value: f64, next: u64 } f
 
     while not done
     {
-        let byte = readU8(data, pos)
+        let byte = peekU8(data, pos)
         pos += 1
         for half in 2'u32
         {
@@ -289,14 +289,14 @@ func parseCffDict(data: const [..] u8?)->CffDict fail
 
     while pos < data.count
     {
-        let b0 = readU8(data, pos)
+        let b0 = peekU8(data, pos)
         if b0 <= 21
         {
             var op = cast(u16) b0
             pos += 1
             if b0 == 12
             {
-                op  = 0x0C00 | cast(u16) readU8(data, pos)
+                op  = 0x0C00 | cast(u16) peekU8(data, pos)
                 pos += 1
             }
 
@@ -312,7 +312,7 @@ func parseCffDict(data: const [..] u8?)->CffDict fail
 
         if b0 == 28
         {
-            pending.add(cast(f64) readS16(data, pos + 1))
+            pending.add(cast(f64) peekS16(data, pos + 1))
             pos += 3
         }
         elif b0 == 29
@@ -333,13 +333,13 @@ func parseCffDict(data: const [..] u8?)->CffDict fail
         }
         elif b0 >= 247 and b0 <= 250
         {
-            let b1 = readU8(data, pos + 1)
+            let b1 = peekU8(data, pos + 1)
             pending.add(cast(f64) ((cast(s32) b0 - 247) * 256 + cast(s32) b1 + 108))
             pos += 2
         }
         elif b0 >= 251 and b0 <= 254
         {
-            let b1 = readU8(data, pos + 1)
+            let b1 = peekU8(data, pos + 1)
             pending.add(cast(f64) (-(cast(s32) b0 - 251) * 256 - cast(s32) b1 - 108))
             pos += 2
         }
@@ -388,13 +388,13 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
     }
     else
     {
-        let format = readU8(font.block, offset)
+        let format = peekU8(font.block, offset)
         var pos    = offset + 1
         if format == 0
         {
             while sids.count < glyphCount
             {
-                sids.add(readU16(font.block, pos))
+                sids.add(peekU16(font.block, pos))
                 pos += 2
             }
         }
@@ -403,8 +403,8 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
             let leftSize = format == 1 ? 1'u64 : 2'u64
             while sids.count < glyphCount
             {
-                let first = cast(u32) readU16(font.block, pos)
-                let left  = format == 1 ? cast(u32) readU8(font.block, pos + 2) : cast(u32) readU16(font.block, pos + 2)
+                let first = cast(u32) peekU16(font.block, pos)
+                let left  = format == 1 ? cast(u32) peekU8(font.block, pos + 2) : cast(u32) peekU16(font.block, pos + 2)
                 pos += 2 + leftSize
                 for offsetInRange in left + 1
                 {
@@ -461,27 +461,27 @@ private func readCffEncoding(font: *CffFont, offset: u64) fail
         return
     }
 
-    let format = readU8(font.block, offset)
+    let format = peekU8(font.block, offset)
     var pos    = offset + 1
     if (format & 0x7F) == 0
     {
-        let count = readU8(font.block, pos)
+        let count = peekU8(font.block, pos)
         pos += 1
         for i in count
         {
-            font.codeToGid[cast(u32) readU8(font.block, pos)] = cast(u32) i + 1
+            font.codeToGid[cast(u32) peekU8(font.block, pos)] = cast(u32) i + 1
             pos += 1
         }
     }
     elif (format & 0x7F) == 1
     {
-        let ranges = readU8(font.block, pos)
+        let ranges = peekU8(font.block, pos)
         pos += 1
         var gid = 1'u32
         for ranges
         {
-            let first = cast(u32) readU8(font.block, pos)
-            let left  = cast(u32) readU8(font.block, pos + 1)
+            let first = cast(u32) peekU8(font.block, pos)
+            let left  = cast(u32) peekU8(font.block, pos + 1)
             pos += 2
             for k in left + 1
             {
@@ -497,12 +497,12 @@ private func readCffEncoding(font: *CffFont, offset: u64) fail
 
     if (format & 0x80) != 0
     {
-        let supplements = readU8(font.block, pos)
+        let supplements = peekU8(font.block, pos)
         pos += 1
         for supplements
         {
-            let code = cast(u32) readU8(font.block, pos)
-            let sid  = cast(u32) readU16(font.block, pos + 1)
+            let code = cast(u32) peekU8(font.block, pos)
+            let sid  = cast(u32) peekU16(font.block, pos + 1)
             pos += 3
             let found = font.nameToGid.tryFind(font.stringOf(sid))
             if found do
@@ -516,24 +516,24 @@ private func readCffFdSelect(font: *CffFont, offset: u64) fail
     let glyphCount = font.charStrings.count()
     font.fdSelect.resize(glyphCount)
 
-    let format = readU8(font.block, offset)
+    let format = peekU8(font.block, offset)
     if format == 0
     {
         for gid in glyphCount do
-            font.fdSelect[gid] = readU8(font.block, offset + 1 + gid)
+            font.fdSelect[gid] = peekU8(font.block, offset + 1 + gid)
         return
     }
 
     if format != 3 do
         fault(0x08)
 
-    let ranges = readU16(font.block, offset + 1)
+    let ranges = peekU16(font.block, offset + 1)
     var pos    = offset + 3
     for ranges
     {
-        let first = cast(u32) readU16(font.block, pos)
-        let fd    = readU8(font.block, pos + 2)
-        let next  = cast(u32) readU16(font.block, pos + 3)
+        let first = cast(u32) peekU16(font.block, pos)
+        let fd    = peekU8(font.block, pos + 2)
+        let next  = cast(u32) peekU16(font.block, pos + 3)
         pos += 3
         for gid in first until Math.min(next, glyphCount) do
             font.fdSelect[gid] = fd
@@ -559,7 +559,7 @@ func parseCffFont(block: const [..] u8?)->CffFont fail
     var result: retval
     result.block = block
 
-    let headerSize = cast(u64) readU8(block, 2)
+    let headerSize = cast(u64) peekU8(block, 2)
     if headerSize < 4 do
         fault(0x08)
 

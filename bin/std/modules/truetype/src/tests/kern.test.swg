@@ -44,12 +44,12 @@ using Swag, Core
 
     let glyphA = face.glyphIndex('A')
     let glyphV = face.glyphIndex('V')
-    let units  = expect lookupGposKerning(faceData, cast(u16) glyphA, cast(u16) glyphV)
+    let units  = lookupGposKerning(faceData, cast(u16) glyphA, cast(u16) glyphV)
     Swag.assert(units == -152)
 
     // An unkerned pair is covered by the same subtable and adjusts by nothing.
     let glyphH = face.glyphIndex('H')
-    let flat   = expect lookupGposKerning(faceData, cast(u16) glyphH, cast(u16) glyphH)
+    let flat   = lookupGposKerning(faceData, cast(u16) glyphH, cast(u16) glyphH)
     Swag.assert(flat == 0)
 }
 
@@ -67,7 +67,7 @@ using Swag, Core
     Swag.assert(glyphLeft > 0)
     Swag.assert(glyphRight > 0)
 
-    let units = expect lookupGposKerning(faceData, cast(u16) glyphLeft, cast(u16) glyphRight)
+    let units = lookupGposKerning(faceData, cast(u16) glyphLeft, cast(u16) glyphRight)
     Swag.assert(units == 171)
 
     discard expect face.setPixelSize(0, 100)
@@ -94,14 +94,14 @@ using Swag, Core
     // outright and the pair-adjustment lookups leave at zero.
     let glyphP     = face.glyphIndex('P')
     let glyphComma = face.glyphIndex(',')
-    let fromGpos   = expect lookupGposKerning(faceData, cast(u16) glyphP, cast(u16) glyphComma)
+    let fromGpos   = lookupGposKerning(faceData, cast(u16) glyphP, cast(u16) glyphComma)
     Swag.assert(fromGpos == 0)
     Swag.assert(face.getKerning(glyphP, glyphComma).x < 0)
 
     // Where both state a pair, GPOS is the one that answers.
     let glyphA   = face.glyphIndex('A')
     let glyphV   = face.glyphIndex('V')
-    let bothHave = expect lookupGposKerning(faceData, cast(u16) glyphA, cast(u16) glyphV)
+    let bothHave = lookupGposKerning(faceData, cast(u16) glyphA, cast(u16) glyphV)
     Swag.assert(bothHave != 0)
 }
 

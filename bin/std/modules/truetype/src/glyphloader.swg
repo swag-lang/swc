@@ -23,20 +23,20 @@ func addScaledPoint(faceData: *FaceImpl, x, y: f64, onCurve: bool)
     faceData.outlineTags.add(onCurve ? CURVE_TAG_ON : 0)
 }
 
-func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8?, xPpem, yPpem: u32) fail
+func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8?, xPpem, yPpem: u32)
 {
-    let contourCount = cast(u32) readS16(glyphData, 0)
+    let contourCount = cast(u32) peekS16(glyphData, 0)
     var offset       = 10'u64
     var contourEnds: Array'u16
     contourEnds.resize(contourCount)
     for index in contourCount
     {
-        contourEnds[index] = readU16(glyphData, offset)
+        contourEnds[index] = peekU16(glyphData, offset)
         offset += 2
     }
 
     let pointCount        = contourCount ? contourEnds.back() + 1 : 0
-    let instructionLength = readU16(glyphData, offset)
+    let instructionLength = peekU16(glyphData, offset)
     offset += 2 + instructionLength
 
     var flags: Array'u8
@@ -44,13 +44,13 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8?, xPpem, yP
     var i = 0'u32
     while i < pointCount
     {
-        let flag = readU8(glyphData, offset)
+        let flag = peekU8(glyphData, offset)
         offset   += 1
         flags[i] = flag
         i        += 1
         if (flag & 0x08) != 0
         {
-            let repeat = readU8(glyphData, offset)
+            let repeat = peekU8(glyphData, offset)
             offset += 1
             for repeat
             {
@@ -68,13 +68,13 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8?, xPpem, yP
         let flag = flags[index]
         if (flag & 0x02) != 0
         {
-            let dx = cast(s32) readU8(glyphData, offset)
+            let dx = cast(s32) peekU8(glyphData, offset)
             offset += 1
             x      += (flag & 0x10) != 0 ? dx : -dx
         }
         elif (flag & 0x10) == 0
         {
-            x      += readS16(glyphData, offset)
+            x      += peekS16(glyphData, offset)
             offset += 2
         }
 
@@ -89,13 +89,13 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8?, xPpem, yP
         let flag = flags[index]
         if (flag & 0x04) != 0
         {
-            let dy = cast(s32) readU8(glyphData, offset)
+            let dy = cast(s32) peekU8(glyphData, offset)
             offset += 1
             y      += (flag & 0x20) != 0 ? dy : -dy
         }
         elif (flag & 0x20) == 0
         {
-            y      += readS16(glyphData, offset)
+            y      += peekS16(glyphData, offset)
             offset += 2
         }
 
@@ -123,22 +123,22 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8?, xPpem,
     var hasMore = true
     while hasMore
     {
-        let flags        = readU16(glyphData, offset + 0)
-        let componentIdx = readU16(glyphData, offset + 2)
+        let flags        = peekU16(glyphData, offset + 0)
+        let componentIdx = peekU16(glyphData, offset + 2)
         offset += 4
 
         var arg1 = 0's32
         var arg2 = 0's32
         if (flags & CMP_ARG_1_AND_2_ARE_WORDS) != 0
         {
-            arg1   = readS16(glyphData, offset + 0)
-            arg2   = readS16(glyphData, offset + 2)
+            arg1   = peekS16(glyphData, offset + 0)
+            arg2   = peekS16(glyphData, offset + 2)
             offset += 4
         }
         else
         {
-            arg1   = cast #bit (s8) readU8(glyphData, offset + 0)
-            arg2   = cast #bit (s8) readU8(glyphData, offset + 1)
+            arg1   = cast #bit (s8) peekU8(glyphData, offset + 0)
+            arg2   = cast #bit (s8) peekU8(glyphData, offset + 1)
             offset += 2
         }
 
@@ -148,22 +148,22 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8?, xPpem,
         var yy: f64 = 1.0
         if (flags & CMP_WE_HAVE_A_SCALE) != 0
         {
-            xx     = readF2Dot14(glyphData, offset)
+            xx     = peekF2Dot14(glyphData, offset)
             yy     = xx
             offset += 2
         }
         elif (flags & CMP_WE_HAVE_AN_XY_SCALE) != 0
         {
-            xx     = readF2Dot14(glyphData, offset + 0)
-            yy     = readF2Dot14(glyphData, offset + 2)
+            xx     = peekF2Dot14(glyphData, offset + 0)
+            yy     = peekF2Dot14(glyphData, offset + 2)
             offset += 4
         }
         elif (flags & CMP_WE_HAVE_A_2X2) != 0
         {
-            xx     = readF2Dot14(glyphData, offset + 0)
-            yx     = readF2Dot14(glyphData, offset + 2)
-            xy     = readF2Dot14(glyphData, offset + 4)
-            yy     = readF2Dot14(glyphData, offset + 6)
+            xx     = peekF2Dot14(glyphData, offset + 0)
+            yx     = peekF2Dot14(glyphData, offset + 2)
+            xy     = peekF2Dot14(glyphData, offset + 4)
+            yy     = peekF2Dot14(glyphData, offset + 6)
             offset += 8
         }
 
@@ -215,7 +215,7 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8?, xPpem,
         hasMore = (flags & CMP_MORE_COMPONENTS) != 0
     }
 
-    if hasMore and (readU16(glyphData, offset) & CMP_WE_HAVE_INSTRUCTIONS) != 0 {}
+    if hasMore and (peekU16(glyphData, offset) & CMP_WE_HAVE_INSTRUCTIONS) != 0 {}
 }
 
 func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth: u32 = 0) fail
@@ -233,7 +233,7 @@ func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth:
 
     let glyf  = getTableSlice(faceData, TAG_GLYF, 0x8E)
     let data  = getSlice(glyf, start, stop - start)
-    let count = readS16(data, 0)
+    let count = peekS16(data, 0)
     if count >= 0 do
         appendSimpleGlyph(faceData, data, xPpem, yPpem)
     else do

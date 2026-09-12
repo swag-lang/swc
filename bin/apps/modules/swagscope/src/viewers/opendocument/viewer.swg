@@ -1553,6 +1553,7 @@ internal struct OpenDocumentViewer
     }
 
     document:             OpenDocumentContent
+    outline:              *DocumentOutline?
     sheetIndex:           u64
     slideIndex:           u64
     zoomPercent:          u32 = 100
@@ -1928,6 +1929,33 @@ private impl OpenDocumentViewer
             .setInitialFocus(.html)
         }
 
+        if .outline
+        {
+            if .document.kind == .Text do
+                .outline.bindHtml(.html)
+            else
+            {
+                .outline.clear()
+                if .document.kind == .Spreadsheet
+                {
+                    for sheet, index in .document.sheets do
+                        .outline.add(sheet.name.toString(), 1, index)
+                }
+                else
+                {
+                    for slide, index in .document.slides do
+                        .outline.add(slide.name.toString(), 1, index)
+                }
+
+                .outline.refresh()
+                .outline.sigSelected += func|view = me|(panel, index)
+                {
+                    discard panel
+                    discard view.showPage(index, true)
+                }
+            }
+        }
+
         .refreshZoomChrome()
         .applyLayout()
     }
@@ -2091,6 +2119,7 @@ private impl OpenDocumentViewer
 func createOpenDocumentViewer(host: Viewer.Host)
 {
     let view = OpenDocumentViewer.create(host)
+    view.outline = DocumentOutline.create(host)
     host.attachView(view)
     host.setDetails(openDocumentStrings().ui_Name)
     host.setSearch({

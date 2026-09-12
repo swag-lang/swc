@@ -53,12 +53,14 @@ struct PdfViewerContent
     reader:  Pdf.Reader
     page:    Pdf.Page
     details: String
+    outline: Array'Pdf.OutlineEntry
 }
 
 private func loadPdfViewerContent(fileName: string)->PdfViewerContent fail
 {
     var result: retval
-    result.reader = #move try Pdf.Reader.open(fileName)
+    result.reader  = #move try Pdf.Reader.open(fileName)
+    result.outline = result.reader.loadOutline()
     let count = result.reader.pageCount()
     if not count do
         fail Errors.InvalidFormatError{"PDF document contains no page"}
@@ -77,6 +79,8 @@ internal struct PdfViewer
     load:                 Viewer.BackgroundLoad'PdfViewerContent
     loadTimer:            *Timer?
     failureReason:        String
+    outline:              *DocumentOutline?
+    bookmarks:            Array'Pdf.OutlineEntry
 
     late
     {
@@ -127,6 +131,15 @@ private impl IWnd for PdfViewer
         }
 
         .pdfView.exchangeDocument(&content.reader, &content.page)
+        .bookmarks = #move content.outline
+        if .outline
+        {
+            .outline.clear()
+            for entry, index in .bookmarks do
+                .outline.add(entry.title.toString(), entry.level, index)
+            .outline.refresh()
+        }
+
         .details = #move content.details
         .applyLayout()
         .refreshNavigation()
@@ -373,6 +386,16 @@ func createPdfViewer(host: Viewer.Host)
     info.preferredSize.x = infoWidth
     let view = PdfViewer.create(host.contentParent(), info, host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
+    view.outline = DocumentOutline.create(host)
+    view.outline.sigSelected += func|view|(panel, index)
+    {
+        discard panel
+        if index < view.bookmarks.count
+        {
+            let entry = &view.bookmarks[index]
+            view.pdfView.showPosition(entry.pageIndex, entry.position)
+        }
+    }
 
     // PDF text lives compressed inside the file, so the viewer extracts every page's text and
     // hands the host stable logical matches for counting and bidirectional navigation, a page at

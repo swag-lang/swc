@@ -154,6 +154,7 @@ struct View
     hasPendingTarget:             bool
     pendingTarget:                f32
     pendingTargetOffset:          u64 = Swag.U64.Max
+    pendingHeadingOffset:         u64 = Swag.U64.Max
     repositioning:                bool
     searchBlockIndex:             u64 = Swag.U64.Max
     documentThemeColors:          String
@@ -709,6 +710,13 @@ private impl View
             if not .prepareImages() do
                 break
             .appendBlock(#move .pendingBlocks[.pendingIndex])
+            if .pendingHeadingOffset != Swag.U64.Max and .blocks.back().sourceOffset == .pendingHeadingOffset
+            {
+                .pendingTarget        = .blocks.back().wnd.position.y - .documentStyle.topInset
+                .pendingTargetOffset  = Swag.U64.Max
+                .pendingHeadingOffset = Swag.U64.Max
+            }
+
             if not .retainedBlocks.isEmpty()
             {
                 let appended = .blocks.backPtr()
@@ -757,7 +765,7 @@ private impl View
         if .replacementAnchored do
             .pendingTarget = .scroll.scrollPosition().y
         let targetHeight = .scroll.paddedClientRect().height * (.prioritizeViewport ? 1 : 2)
-        if anchorReady and .hasPendingTarget and .pendingSearch.isEmpty() and (.pendingTarget + targetHeight <= .contentHeight or not .hasUnloadedSource())
+        if anchorReady and .hasPendingTarget and .pendingSearch.isEmpty() and (.pendingHeadingOffset == Swag.U64.Max or not .hasUnloadedSource()) and (.pendingTarget + targetHeight <= .contentHeight or not .hasUnloadedSource())
         {
             let keepPosition   = .replacementAnchored
             let animating      = .app().animator.isActive(.scroll.scrollAnimation)
@@ -818,7 +826,33 @@ private impl View
         .replacementAnchorOffset = Swag.U64.Max
         .replacementAnchored     = false
         .repositioning           = true
+
+        // An estimated distant jump can give the first source block a nonzero virtual origin
+        // when reverse prefetch finally reaches it. Rebase content and scroll together: the
+        // text stays still, and the real beginning remains reachable by the wheel.
+        let shift     = .residentStart == 0 ? .virtualOrigin : 0
+        let position  = .scroll.scrollPosition()
+        let target    = .scroll.scrollTarget()
+        let animating = .app().animator.isActive(.scroll.scrollAnimation)
+        if shift != 0
+        {
+            for block in .blocks do
+                block.wnd.move(block.wnd.position.x, block.wnd.position.y - shift)
+            .virtualOrigin         = 0
+            .contentHeight         -= shift
+            .virtualHeight         = Math.max(.virtualHeight - shift, .contentHeight)
+            .pendingTarget         = Math.max(0, .pendingTarget - shift)
+            .waitingScrollTarget.y = Math.max(0, .waitingScrollTarget.y - shift)
+        }
+
         .updateDocumentSize()
+        if shift != 0
+        {
+            .scroll.setScrollPos(position.x, position.y - shift)
+            if animating do
+                .scroll.smoothScrollTo({target.x, target.y - shift})
+        }
+
         .repositioning = false
     }
 
@@ -1447,21 +1481,62 @@ impl View
         return .beginReveal(offset, text)
     }
 
-    private mtd beginReveal(offset: u64, text: string, preservePosition = false, viewportFirst = false)->bool
+    // Brings the heading at a source byte offset to the top reading inset without a search mark.
+    //
+    // Use offsets from [[Gui.Markdown.parseHeadings]]. A distant file-backed heading starts its
+    // own viewport, without laying out preceding blocks. Text is prepared for the next paint;
+    // images may finish asynchronously. True means the destination was shown or queued.
+    // In-memory views return false if the offset does not identify a heading.
+    mtd revealHeading(offset: u64)->bool
+    {
+        .clearSearchHighlight()
+        .waitingScroll = false
+        .jumpToEnd     = false
+
+        // A click supersedes the wheel's animation as well as its deferred loading request.
+        .scroll.setScrollPos(.scroll.scrollPosition())
+        for block in .blocks where .retainedBlocks.isEmpty() and block.sourceOffset == offset and block.kind >= .Heading1 and block.kind <= .Heading6
+        {
+            if .hasUnloadedSource() and block.wnd.position.y - .documentStyle.topInset + .scroll.paddedClientRect().height > .contentHeight do
+                break
+
+            // This is a known document coordinate, not a scrollbar gesture to estimate again.
+            .repositioning = true
+            .scroll.setScrollPos(.scroll.scrollPosition().x, block.wnd.position.y - .documentStyle.topInset)
+            .repositioning = false
+            .scheduleMore()
+            return true
+        }
+
+        if .fileName.isEmpty() or offset >= .fileSize do
+            return false
+        .seekPreviousPosition = .scroll.scrollPosition()
+        let queued = .beginReveal(offset, "", exactHeading: true)
+        if queued
+        {
+            .streamStep()
+            .scheduleMore()
+        }
+
+        return queued
+    }
+
+    private mtd beginReveal(offset: u64, text: string, preservePosition = false, viewportFirst = false, exactHeading = false)->bool
     {
         let requestedPosition = .scroll.scrollPosition()
         let wasRepositioning  = .repositioning
         .repositioning = true
         defer .repositioning = wasRepositioning
         .stopLoading()
-        .prioritizeViewport = viewportFirst or preservePosition
+        .prioritizeViewport = viewportFirst or preservePosition or exactHeading
 
         // Only an overlapping prefetch belongs to the held gesture. A search or explicit
         // jump owns a new destination and must not resume the wheel's older request.
         if not preservePosition do
             .waitingScroll = false
-        .pendingSeek       = false
-        .pendingSeekOffset = 0
+        .pendingSeek          = false
+        .pendingSeekOffset    = 0
+        .pendingHeadingOffset = Swag.U64.Max
 
         // The positions a selection is expressed in name views that are about to be destroyed,
         // and the document they addressed is being rebuilt from another offset of the file.
@@ -1504,8 +1579,11 @@ impl View
         .pendingSearch           = text
         .pendingSearchOccurrence = 0
 
-        let requested     = Math.min(offset, .fileSize)
-        let start         = requested > RevealContextSize ? requested - RevealContextSize : 0
+        let requested = Math.min(offset, .fileSize)
+
+        // Outline offsets already identify a complete block and a UTF-8 boundary. Reading from
+        // that boundary makes the work depend on the viewport, not on the preceding section.
+        let start         = exactHeading ? requested : requested > RevealContextSize ? requested - RevealContextSize : 0
         let viewportBytes = cast(u64) Math.ceil(.scroll.paddedClientRect().height * cast(f32) .fileSize / Math.max(.virtualHeight, 1))
         let revealTail    = viewportFirst and .fileSize - requested <= viewportBytes * 2
         if revealTail do
@@ -1517,7 +1595,7 @@ impl View
                 return false
             let actual = Math.min(start + adjustment, .fileSize)
             discard catch .stream.seek(.Begin, actual)
-            var chunk = catch .stream.readUtf8Chunk(RevealChunkSize) as readError
+            var chunk = catch .stream.readUtf8Chunk(exactHeading ? StreamChunkSize : RevealChunkSize) as readError
             if readError != null
             {
                 .stream.close()
@@ -1537,15 +1615,21 @@ impl View
                 let probeEnd    = localTarget > tailContext ? localTarget - tailContext : 0
                 boundary = streamBoundary(chunk.toString()[0 until probeEnd])
             }
-            elif actual
+            elif not exactHeading and (actual or preservePosition)
             {
                 // Overlap only a few screens when continuing a gesture. Parsing a fixed 32 KiB
                 // prefix can take hundreds of blocks before the wheel's first line is ready.
-                let context  = preservePosition ? Math.min(ReverseContextSize, Math.max(viewportBytes * 2, 1024'u64)) : ReverseContextSize
-                let probeEnd = localTarget > context ? localTarget - context : Math.min(localTarget, StreamChunkSize)
-                boundary = streamBoundary(chunk.toString()[0 until probeEnd])
-                if not boundary and localTarget > probeEnd do
-                    boundary = streamBoundary(chunk.toString()[0 until localTarget])
+                let context = preservePosition ? Math.min(ReverseContextSize, Math.max(viewportBytes * 2, 1024'u64)) : ReverseContextSize
+
+                // Reaching byte zero in the read buffer does not require rendering its whole
+                // prefix. Keep zero only when it falls inside the useful reverse reserve.
+                if actual or localTarget > context
+                {
+                    let probeEnd = localTarget > context ? localTarget - context : Math.min(localTarget, StreamChunkSize)
+                    boundary = streamBoundary(chunk.toString()[0 until probeEnd])
+                    if not boundary and localTarget > probeEnd do
+                        boundary = streamBoundary(chunk.toString()[0 until localTarget])
+                }
             }
 
             let previousHeight = Math.max(.virtualHeight, .scroll.scrollableClientRect().height)
@@ -1563,13 +1647,14 @@ impl View
                 searchFrom = match + Math.max(text.count, 1)
             }
 
-            .sourceDone          = .bytesRead >= .fileSize
-            .virtualHeight       = Math.max(previousHeight, .scroll.paddedClientRect().height)
-            .virtualOrigin       = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
-            .contentHeight       = .virtualOrigin + .documentStyle.topInset
-            .pendingTarget       = .fileSize ? .virtualHeight * cast(f32) requested / cast(f32) .fileSize : 0
-            .hasPendingTarget    = not .jumpToEnd
-            .pendingTargetOffset = .hasPendingTarget and not preservePosition ? requested : Swag.U64.Max
+            .sourceDone           = .bytesRead >= .fileSize
+            .virtualHeight        = Math.max(previousHeight, .scroll.paddedClientRect().height)
+            .virtualOrigin        = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
+            .contentHeight        = .virtualOrigin + .documentStyle.topInset
+            .pendingTarget        = .fileSize ? .virtualHeight * cast(f32) requested / cast(f32) .fileSize : 0
+            .hasPendingTarget     = not .jumpToEnd
+            .pendingTargetOffset  = .hasPendingTarget and not preservePosition and not exactHeading ? requested : Swag.U64.Max
+            .pendingHeadingOffset = exactHeading ? requested : Swag.U64.Max
             if viewportFirst
             {
                 // The thumb already chose a document coordinate. Anchor the requested block
@@ -1596,6 +1681,7 @@ impl View
     // Removes a programmatic search mark and cancels any unfinished reveal destination.
     mtd clearSearchHighlight()
     {
+        .pendingHeadingOffset = Swag.U64.Max
         .pendingSearch.clear()
         .pendingSearchOccurrence = 0
         .hasPendingTarget        = false

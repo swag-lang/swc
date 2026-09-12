@@ -149,6 +149,7 @@ func createHtmlViewer(host: Viewer.Host)
     result.applyLayout()
     result.setZoom(100)
     host.attachView(result)
+    DocumentOutline.create(host).bindHtml(result.view)
     host.setDetails(htmlStrings().ui_Details)
     host.setSearch({
         revealMatch: func(wnd, match, text)->bool { return (cast(*HtmlViewer) wnd).view.revealFileOffset(match.offset, text) },

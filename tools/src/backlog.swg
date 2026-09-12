@@ -554,6 +554,191 @@ private func collectDomainIdentifiers(text: string, headingPrefix: string, stem:
     return result
 }
 
+// A missed Git rename is recoverable only when every source entry survives with the same
+// suffix, title, and Recorded stamp, and the match is unique in both directions.
+private struct BacklogIdentity
+{
+    path: String
+    entries: HashSet'String
+}
+
+private impl BacklogIdentity
+{
+    mtd const survivesIn(destination: BacklogIdentity)->bool
+    {
+        if .entries.count == 0 do
+            return false
+        for entry in .entries where not destination.entries.contains(entry) do
+            return false
+        return true
+    }
+}
+
+private func readBacklogIdentity(context: *Context, revision: string, path: string)->BacklogIdentity fail
+{
+    var content: String
+    if revision.count == 0 do
+        content = try File.readAllText(Path.combine(context.root.toString(), path).toString())
+    else
+    {
+        var command: Arguments
+        command.add(["show", Format.toString("%:%", revision, path).toString()])
+        content = try captureBacklogGit(context, command)
+    }
+
+    var result: retval
+    result.path = String.from(path)
+    let prefix = Format.toString("### %.", Path.fileNameWithoutExtension(path)!)
+    var heading: String
+    for line in Tokenize.splitLines(content.toString())
+    {
+        if Utf8.startsWith(cast(const [..] u8) line, "### ")
+        {
+            heading.clear()
+            if Utf8.startsWith(cast(const [..] u8) line, prefix.toString())
+            {
+                let end = Utf8.indexOf(cast(const [..] u8) line, " ", 4)
+                if end == prefix.count + 3 and isBacklogIdentifier(line[4 until end]) do
+                    heading = String.from(line[prefix.count to])
+            }
+        }
+        elif heading.count != 0 and Utf8.startsWith(cast(const [..] u8) Latin1.trim(line), RecordedField)
+        {
+            result.entries.add(Format.toString("%\n%", heading.toString(), Latin1.trim(line)))
+            heading.clear()
+        }
+    }
+    return result
+}
+
+private func findBacklogPredecessor(context: *Context, before: string, after: string, path: string)->String fail
+{
+    var command: Arguments
+    command.add(["diff", "--name-status", "--no-renames", before])
+    if after.count != 0 do
+        command.add([after])
+    command.add(["--", "backlog"])
+    let changes = try captureBacklogGit(context, command)
+    var sourcePaths: Array'String
+    var destinationPaths: HashSet'String
+    var hasDestination: bool
+    for line in Tokenize.splitLines(changes.toString())
+    {
+        let fields = Tokenize.split(line, "\t")
+        if fields.count != 2 or (fields[0] != "A" and fields[0] != "D") do
+            continue
+        let stem = Path.fileNameWithoutExtension(fields[1]) orelse ""
+        if (Path.extension(fields[1]) orelse "") != ".md" or not isBacklogScope(stem) do
+            continue
+        if fields[0] == "D" do
+            sourcePaths.add(String.from(fields[1]))
+        else
+        {
+            destinationPaths.add(String.from(fields[1]))
+            hasDestination = hasDestination or fields[1] == path
+        }
+    }
+    if sourcePaths.count == 0 do
+        return String{}
+
+    // A filesystem rename leaves its destination untracked until staging. Include every
+    // untracked domain so a second possible destination cannot make the match look unique.
+    if after.count == 0
+    {
+        var untrackedCommand: Arguments
+        untrackedCommand.add(["ls-files", "--others", "--exclude-standard", "--", "backlog"])
+        let untracked = try captureBacklogGit(context, untrackedCommand)
+        for candidate in Tokenize.splitLines(untracked.toString())
+        {
+            let stem = Path.fileNameWithoutExtension(candidate) orelse ""
+            if (Path.extension(candidate) orelse "") != ".md" or not isBacklogScope(stem) do
+                continue
+            destinationPaths.add(String.from(candidate))
+            hasDestination = hasDestination or candidate == path
+        }
+    }
+    if not hasDestination do
+        return String{}
+
+    var sources: Array'BacklogIdentity
+    var destinations: Array'BacklogIdentity
+    for source in sourcePaths do
+        sources.add(try readBacklogIdentity(context, before, source.toString()))
+    for destination in destinationPaths do
+        destinations.add(try readBacklogIdentity(context, after, destination.toString()))
+
+    var result: String
+    for destination in destinations where destination.path.toString() == path
+    {
+        for source in sources where source.survivesIn(destination)
+        {
+            if result.count != 0 do
+                return String{}
+            var matches: u32
+            for candidate in destinations where source.survivesIn(candidate) do
+                matches += 1
+            if matches != 1 do
+                return String{}
+            result = source.path
+        }
+    }
+    return result
+}
+
+// Git's normal rename following handles edits efficiently. Inspect each creation boundary
+// for a semantic rename that its byte-similarity threshold missed, including older renames.
+private func collectBacklogAllocationHistory(context: *Context, revision: string, path: string, stem: string, visited: *HashSet'String, allocated: *HashSet'String) fail
+{
+    let key = Format.toString("%:%", revision, path)
+    if visited.contains(key) do
+        return
+    visited.add(key)
+
+    var command: Arguments
+    command.add(["log", "--follow", "--find-renames=40%", "--format=", "--no-color", "--no-ext-diff", "--no-textconv", "-p", revision, "--", path])
+    let history = try captureBacklogGit(context, command)
+    for headingPrefix in ["+### ", "-### "]
+    {
+        let identifiers = collectDomainIdentifiers(history.toString(), headingPrefix, stem)
+        for identifier in identifiers do
+            allocated.add(identifier)
+    }
+
+    // A merge-only allocation can be absent from patches while remaining live at this revision.
+    var headCommand: Arguments
+    headCommand.add(["grep", "-h", "--no-color", "-e", "^### ", revision, "--", path])
+    let head = try captureBacklogGit(context, headCommand, true)
+    let live = collectDomainIdentifiers(head.toString(), "### ", stem)
+    for identifier in live do
+        allocated.add(identifier)
+
+    var boundaryCommand: Arguments
+    boundaryCommand.add(["log", "--follow", "--find-renames=40%", "--diff-filter=A", "--format=%H", "--name-only", "--no-color", revision, "--", path])
+    let boundaries = try captureBacklogGit(context, boundaryCommand)
+    var commit: String
+    for line in Tokenize.splitLines(boundaries.toString())
+    {
+        if line.count == 0 do
+            continue
+        if not Utf8.startsWith(cast(const [..] u8) line, "backlog/")
+        {
+            commit = String.from(line)
+            continue
+        }
+
+        var parentCommand: Arguments
+        parentCommand.add(["rev-list", "--parents", "-n", "1", commit.toString()])
+        let parentText = try captureBacklogGit(context, parentCommand)
+        let parents = Tokenize.split(Latin1.trim(parentText.toString()), " ")
+        for i in 1 until parents.count
+        {
+            let source = try findBacklogPredecessor(context, parents[i], commit.toString(), line)
+            if source.count != 0 do
+                try collectBacklogAllocationHistory(context, parents[i], source.toString(), stem, visited, allocated)
+        }
+    }
+}
+
 private func auditDomainAllocations(context: *Context, seen: *HashSet'String, domain: Domain, renames: string)->u32 fail
 {
     let stem        = Path.fileNameWithoutExtension(domain.name.toString())!
@@ -567,7 +752,18 @@ private func auditDomainAllocations(context: *Context, seen: *HashSet'String, do
 
     var headCommand: Arguments
     headCommand.add(["grep", "-h", "--no-color", "-e", "^### ", "HEAD", "--", historyPath.toString()])
-    let head     = try captureBacklogGit(context, headCommand, true)
+    var head = try captureBacklogGit(context, headCommand, true)
+    if head.count == 0
+    {
+        let predecessor = try findBacklogPredecessor(context, "HEAD", "", historyPath.toString())
+        if predecessor.count != 0
+        {
+            historyPath = predecessor
+            var predecessorCommand: Arguments
+            predecessorCommand.add(["grep", "-h", "--no-color", "-e", "^### ", "HEAD", "--", historyPath.toString()])
+            head = try captureBacklogGit(context, predecessorCommand, true)
+        }
+    }
     let previous = collectDomainIdentifiers(head.toString(), "### ", stem)
 
     var added: Array'String
@@ -582,17 +778,9 @@ private func auditDomainAllocations(context: *Context, seen: *HashSet'String, do
         return 0
     added.sort()
 
-    var historyCommand: Arguments
-    historyCommand.add(["log", "--follow", "--find-renames=40%", "--format=", "--no-ext-diff", "--no-textconv", "-p", "--", historyPath.toString()])
-    let history   = try captureBacklogGit(context, historyCommand)
-    var allocated = collectDomainIdentifiers(history.toString(), "+### ", stem)
-    // Default Git logs omit merge patches. A live heading, or a later removal, still proves
-    // that a merge-resolution-only identifier was allocated.
-    let retired = collectDomainIdentifiers(history.toString(), "-### ", stem)
-    for identifier in previous do
-        allocated.add(identifier)
-    for identifier in retired do
-        allocated.add(identifier)
+    var allocated: HashSet'String
+    var visited: HashSet'String
+    try collectBacklogAllocationHistory(context, "HEAD", historyPath.toString(), stem, &visited, &allocated)
 
     var errors: u32
     for identifier in added

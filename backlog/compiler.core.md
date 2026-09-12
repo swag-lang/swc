@@ -6,6 +6,32 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.031 — Reject silent semantic failure before reporting success
+
+- Recorded: 2026-09-06 21:14
+- Updated: 2026-09-12 10:02 — clarified this identifier's retired and current meanings
+- Historical identifier provenance: `298e185b5` retired this identifier's large-float-to-u64
+  conversion entry. `fc3049db9` reused it for silent failure when taking immutable GUID addresses;
+  its current meaning is the remaining command-level guard against diagnostic-free semantic failure.
+- Historical evidence: taking the address of immutable GUID locals made `Integration.run` fail
+  to produce machine code, while the corresponding script reported success with `0 mains`.
+  A standalone `let bytes: [2] u8 = [17, 29]; let ptr = &bytes` reproduced the same silent loss
+  inside a `#test`, without Win32 or imports.
+- Resolved source cause: unary constant folding returned `Result::Error` without a diagnostic
+  for address and dereference operators. Build 0.1.403 lets them reach their storage semantics
+  and materializes aligned constant storage with native pointer relocations and stable addresses.
+  [The native regression](../bin/unittests/native/operators/address_constant_storage.swg) covers
+  captured arrays and structures, scalar addresses, embedded pointers and repeated address use.
+  The reduced script now executes `1 main`, and the previously missing ChaCha20 test runs.
+- Remaining gap: these source regressions protect the unary path, but the command boundary has
+  no explicit protection against another semantic job returning an unreported error. The original
+  failure showed that checking only the successfully registered mains or tests can report success
+  after an enclosing function disappears.
+- Next: propagate failed semantic jobs to command status even when no source diagnostic was
+  emitted; test the driver boundary with an injected diagnostic-free failure and a declared main.
+- Complete when: that failure returns a nonzero exit status with an actionable report, and a
+  declared main or selected test cannot silently disappear from a successful run.
+
 ### compiler.core.041 — Reduce parallel dependency registration to a workspace-suite witness
 
 - Recorded: 2026-09-11 23:34
@@ -218,29 +244,6 @@ The reason is that a frame is trivially copyable in the parts that dominate its 
   abandoned frames is not a safe recovery strategy.
 - Complete when: a failing native test with pending borrowed work produces a bounded failure
   without hanging subsequent tests, shutdown, or running callbacks against abandoned storage.
-
-### compiler.core.031 — Reject silent semantic failure before reporting success
-
-- Recorded: 2026-09-06 21:14
-- Updated: 2026-09-08 07:27 — fixed constant address lowering; the driver-level failure guard remains
-- Historical evidence: taking the address of immutable GUID locals made `Integration.run` fail
-  to produce machine code, while the corresponding script reported success with `0 mains`.
-  A standalone `let bytes: [2] u8 = [17, 29]; let ptr = &bytes` reproduced the same silent loss
-  inside a `#test`, without Win32 or imports.
-- Resolved source cause: unary constant folding returned `Result::Error` without a diagnostic
-  for address and dereference operators. Build 0.1.403 lets them reach their storage semantics
-  and materializes aligned constant storage with native pointer relocations and stable addresses.
-  [The native regression](../bin/unittests/native/operators/address_constant_storage.swg) covers
-  captured arrays and structures, scalar addresses, embedded pointers and repeated address use.
-  The reduced script now executes `1 main`, and the previously missing ChaCha20 test runs.
-- Remaining gap: these source regressions protect the unary path, but the command boundary has
-  no explicit protection against another semantic job returning an unreported error. The original
-  failure showed that checking only the successfully registered mains or tests can report success
-  after an enclosing function disappears.
-- Next: propagate failed semantic jobs to command status even when no source diagnostic was
-  emitted; test the driver boundary with an injected diagnostic-free failure and a declared main.
-- Complete when: that failure returns a nonzero exit status with an actionable report, and a
-  declared main or selected test cannot silently disappear from a successful run.
 
 ### compiler.core.024 — A JIT '#test' can silently compute a wrong value in a release run
 

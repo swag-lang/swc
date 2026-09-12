@@ -39,13 +39,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.090 — A COM object's ABI header is held first by a comment, not by the language
 
 - Recorded: 2026-09-08 18:59
-- Updated: 2026-09-12 06:57 — Move the Windows OLE header contract to the platform integration owner.
+- Updated: 2026-09-12 10:02 — Correct the current cast spelling and identify the dated reinterpretation census.
 - Historical provenance: moved from retired compiler.safety.022.
 - Area: `std/gui`, Windows OLE bindings
 - Evidence: the four OLE objects in `gui/dragdrop.win32.swg` each open with the interface header
   OLE calls through, and each says so in a comment - `lpVtbl: *IDropTargetVtbl?  // Interface
   header OLE calls through; must stay first.` Recovering the Swag object is then C's `container_of`:
-  `cast(*SurfaceDropTarget) itf`. Nothing checks the invariant the comment states, so inserting a
+  `cast(*SurfaceDropTarget) cast(*void) itf`. Nothing checks the invariant the comment states, so inserting a
   field above `lpVtbl` silently breaks every callback OLE makes.
 - The fix the language already offers, and why it did not land with compiler.safety.006: writing
   `using base: IDropTarget` instead of the copied field makes the composition real, the recovery a
@@ -59,7 +59,74 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   constructor at each creation site - then compose the four objects and delete their `cast(*void)`.
 - Complete when: the four OLE objects compose their interface, the recovery is a checked descent,
   and no comment in the file asks a field to stay first.
-- Related: compiler.safety.006 counts these among its 32 residual reinterpretation sites.
+- Related: compiler.safety.006 includes these bindings in its historical 2026-09-08 census of
+  32 reinterpretation sites; that count is not a current whole-repository inventory.
+
+### platform.portability.078 — No Linux FUSE backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-12 10:02 — Include the existing native auto-unmount monitor in the application boundary.
+- Owner: Swag Vault
+- The existing boundary includes system backends for `Core.Crypto`, `Core.Time` and
+  `Core.File`, the WinFsp layer and mount-point selector, and `autounmount.win32.swg` for session
+  lock, suspend, and idle monitoring. The container format, logical filesystem, password widget,
+  and auto-unmount decisions live above those native mechanisms. The Linux mount backend remains
+  this entry's outcome; native session and idle monitoring must also be accounted for before the
+  full application port ships.
+- Next: map the logical filesystem to the chosen FUSE interface, specifying mount ownership,
+  permission translation, cancellation, and callback shutdown before packaging the backend.
+- Complete when: a Linux mount passes the common filesystem behavior and lifetime tests,
+  including failed mounting and shutdown while requests are active.
+- Related: platform.portability.079
+
+### platform.portability.050 — No second-platform surface and presentation backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-12 10:02 — Include the shared native-text adapter without treating file count as a port plan.
+
+The filenames already expose most of the seam: `surface.win32.swg`, `application.win32.swg`,
+`clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`, with shared Windows
+clipboard text conversion in `nativetext.win32.swg`. The retained tree, layouts, themes, controls
+and the toolkit-owned file dialog are platform-neutral. These leaves identify mechanisms to
+replace; their file count is not a porting plan.
+
+Choose one platform and implement the application loop, surface creation/destruction, native
+resize/move/minimize, renderer presentation, and cursor as the first independently testable slice.
+
+- Complete when: a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
+  second platform. Platform-neutral events expose no native message numbers, and Windows and
+  headless contract tests remain green. Focus, DPI, clipboard and input integrations retain
+  their own entries and tests.
+- Boundary: a GUI port does not complete the applications. Swag Capture still requires
+  platform.portability.071; Swag Vault requires platform.portability.078 or .079. Both also
+  need the runtime, filesystem and font services used by their common code.
+- Related: platform.portability.003, platform.portability.033, platform.portability.034,
+  platform.portability.035, platform.portability.051, platform.portability.057,
+  platform.portability.058, platform.portability.060
+
+### platform.portability.080 — Bare `.swgs` execution has only a Windows shell contract
+
+- Recorded: 2026-08-30 12:27
+- Updated: 2026-09-12 10:02 — Locate the current setup implementation and distinguish its comment from shell guidance.
+
+**Evidence.** `tools/setup.swgs` launches `Tool.runSetup` in `tools/src/maintenance.swg`, which
+installs the current-user file association used by double-click launch. The implementation
+comment identifies elevated `assoc`/`ftype` as the remaining Windows shell step, but setup only
+prints a generic terminal-restart message; it neither checks bare execution nor prints that step.
+
+**Intent.** Define shell and desktop-launch integration per host without making Windows file
+associations the portable script contract. Machine-wide mutation remains explicit and opt-in.
+
+**Complete when.**
+
+- Setup reports whether bare execution is supported for the current shell and either configures it safely or prints the exact remaining elevated step.
+- A fresh `cmd.exe` and Windows PowerShell 5.1 session execute a representative bare `.swgs` script according to that contract.
+- A supported non-Windows shell either executes the same representative script through its
+  documented launcher/shebang path or reports bare execution as unsupported with an exact command.
+- Existing double-click behavior remains intact.
+- Moving the checkout and rerunning setup refreshes stale interpreter paths, and removal instructions undo installed associations.
+
+**Related:** compiler.core.016.
 
 ### platform.portability.089 — Allocator stress is not run under Windows heap instrumentation
 
@@ -121,20 +188,6 @@ collection, and so reads the font twice.
 
 - Complete when: the Windows adapter returns the portable file-and-face-index descriptor from
   platform.portability.016/platform.portability.019 without locale-dependent matching, and the same descriptor accepts platform.portability.020's source.
-
-### platform.portability.078 — No Linux FUSE backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-10 20:28 — Make the Linux mount-contract work explicit instead of claiming no design risk.
-- Owner: Swag Vault
-- The boundary is already where it needs to be: system backends for `Core.Crypto`, `Core.Time` and
-  `Core.File`, plus the WinFsp layer and the mount-point selector. Everything above them — the
-  container format, the logical filesystem, the password widget — is platform-independent already.
-- Next: map the logical filesystem to the chosen FUSE interface, specifying mount ownership,
-  permission translation, cancellation, and callback shutdown before packaging the backend.
-- Complete when: a Linux mount passes the common filesystem behavior and lifetime tests,
-  including failed mounting and shutdown while requests are active.
-- Related: platform.portability.079
 
 ### platform.portability.019 — A system face cannot load directly from file and face index
 
@@ -282,30 +335,6 @@ Map the platform's data-transfer and gesture service to the drag and drop contra
 backend already implements.
 
 - Related: platform.portability.050
-
-### platform.portability.050 — No second-platform surface and presentation backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-07 13:22 — Restore the surface acceptance boundary and correct obsolete process-only dependencies
-
-The filenames already expose most of the seam: `surface.win32.swg`, `application.win32.swg`,
-`clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`. The retained tree, layouts,
-themes, controls and the toolkit-owned file dialog are platform-neutral. That is a good boundary,
-but five replacement files are not yet a porting plan.
-
-Choose one platform and implement the application loop, surface creation/destruction, native
-resize/move/minimize, renderer presentation, and cursor as the first independently testable slice.
-
-- Complete when: a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
-  second platform. Platform-neutral events expose no native message numbers, and Windows and
-  headless contract tests remain green. Focus, DPI, clipboard and input integrations retain
-  their own entries and tests.
-- Boundary: a GUI port does not complete the applications. Swag Capture still requires
-  platform.portability.071; Swag Vault requires platform.portability.078 or .079. Both also
-  need the runtime, filesystem and font services used by their common code.
-- Related: platform.portability.003, platform.portability.033, platform.portability.034,
-  platform.portability.035, platform.portability.051, platform.portability.057,
-  platform.portability.058, platform.portability.060
 
 ### platform.portability.022 — Application-to-application messaging has no portable contract
 
@@ -1071,24 +1100,3 @@ capture side. The editor, the forms, the library, and the serialization are alre
 - Add the macOS mount backend and packaging independently of Linux, choosing the supported FUSE or
   native filesystem mechanism explicitly.
 - Related: platform.portability.078
-
-### platform.portability.080 — Bare `.swgs` execution has only a Windows shell contract
-
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-**Evidence.** `tools/setup.swgs` installs the current-user file association used by double-click launch, but its own guidance still requires elevated `assoc`/`ftype` configuration for bare script execution in a shell.
-
-**Intent.** Define shell and desktop-launch integration per host without making Windows file
-associations the portable script contract. Machine-wide mutation remains explicit and opt-in.
-
-**Complete when.**
-
-- Setup reports whether bare execution is supported for the current shell and either configures it safely or prints the exact remaining elevated step.
-- A fresh `cmd.exe` and Windows PowerShell 5.1 session execute a representative bare `.swgs` script according to that contract.
-- A supported non-Windows shell either executes the same representative script through its
-  documented launcher/shebang path or reports bare execution as unsupported with an exact command.
-- Existing double-click behavior remains intact.
-- Moving the checkout and rerunning setup refreshes stale interpreter paths, and removal instructions undo installed associations.
-
-**Related:** compiler.core.016.

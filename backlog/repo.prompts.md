@@ -144,13 +144,15 @@ runtime, standard-library, repository-tooling, or build input that earlier steps
 the impact cannot be bounded confidently. Record the invalidation decision in the live campaign
 table so both a full restart and a narrow resume have explicit evidence:
 
-  1. Build `swc.dm.exe` with the DevMode solution configuration.
+  1. Rebuild `swc.dm.exe` with the DevMode solution configuration using MSBuild `/t:Rebuild`
+     to establish the initial baseline from freshly compiled C++ objects.
   2. `bin\swc.exe tools\build.swgs dm --all-cfg` - build every workspace in release and devmode,
      including modules that have no tests.
   3. `bin\swc.exe tools\tests.swgs dm` - the full DevMode default campaign.
   4. `bin\swc.exe tools\tests.swgs dm --all-cfg` - the same five-rung campaign in both target
      configurations.
-  5. Build `swc.exe` with the Release solution configuration.
+  5. Rebuild `swc.exe` with the Release solution configuration using MSBuild `/t:Rebuild`
+     to establish the initial baseline from freshly compiled C++ objects.
   6. `bin\swc.exe tools\tests.swgs` - the full Release validation campaign. Do not add a Release
      `--all-cfg` pass; the repository workflow deliberately reserves all-config coverage for
      DevMode.

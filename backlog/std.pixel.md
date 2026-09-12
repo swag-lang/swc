@@ -28,6 +28,25 @@ output, path measurement and effects, and the modern renderer choice tracked by
 
 ## Entries
 
+### std.pixel.021 — Nothing reaches the unordered-intersection path
+
+- Recorded: 2026-09-03 20:15
+- Updated: 2026-09-12 10:02 — clarified this identifier's retired and current meanings
+- Historical identifier provenance: `7cf248ed7` retired this identifier's OpenGL parity-readback
+  entry. `d2f7ec754` reused it for polygon intersection cleanup; its current meaning is the
+  remaining coverage investigation for the unordered-intersection path.
+- Evidence: `Transform.processIntersections` in `poly/clipper.swg` now releases the nodes of a
+  scanbeam whose intersections cannot be ordered, abandons the sweep, and returns an empty
+  solution, which is what the reference library reports as a failed operation. No fixture reaches
+  that branch, so the choice is argued rather than pinned, and neither the release nor the
+  abandonment is covered.
+- Next: build the input. The ordering failure needs three or more edges meeting so closely that
+  no adjacent pair remains in the sorted edge list, which the union of near-coincident contours
+  produces; drive `fixupIntersectionOrder` from a probe until it answers false, then reduce.
+- Complete when: a test in `poly.clipper.test.swg` reaches the branch and pins the empty
+  solution, or the branch is shown to be unreachable and says so.
+- Related: std.pixel.011
+
 ### std.pixel.026 — Stroking a page costs four times filling the same geometry
 
 - Recorded: 2026-08-30 17:42
@@ -187,22 +206,6 @@ output, path measurement and effects, and the modern renderer choice tracked by
 - Complete when: a representative worst-case fixture justifies and protects a change, or the
   current algorithm is retained with a documented bound for the supported workload.
 - Related: std.pixel.022, std.pixel.021
-
-### std.pixel.021 — Nothing reaches the unordered-intersection path
-
-- Recorded: 2026-09-03 20:15
-- Updated: 2026-09-04 06:42 — git: Fix two mis-ported predicates in the polygon clipper
-- Evidence: `Transform.processIntersections` in `poly/clipper.swg` now releases the nodes of a
-  scanbeam whose intersections cannot be ordered, abandons the sweep, and returns an empty
-  solution, which is what the reference library reports as a failed operation. No fixture reaches
-  that branch, so the choice is argued rather than pinned, and neither the release nor the
-  abandonment is covered.
-- Next: build the input. The ordering failure needs three or more edges meeting so closely that
-  no adjacent pair remains in the sorted edge list, which the union of near-coincident contours
-  produces; drive `fixupIntersectionOrder` from a probe until it answers false, then reduce.
-- Complete when: a test in `poly.clipper.test.swg` reaches the branch and pins the empty
-  solution, or the branch is shown to be unreachable and says so.
-- Related: std.pixel.011
 
 ### std.pixel.011 — Painter paths cannot use polygon boolean operations
 

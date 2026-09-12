@@ -48,6 +48,28 @@ instead. It applies to the accepted kernels as much as to the discarded ones: ev
 inside that window has to be re-baselined before it is trusted, and the entries below name their
 own. Work dated before the window used the raw `Swag.vec*` intrinsics directly and is unaffected.
 
+### cpu.simd.028 — PNG Sub stride 6 and remaining sample conversion need a current profile
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-12 10:02 — removed shipped packed Sub strides 1 and 3 from the remaining work
+- Evidence: packed bit expansion, encoder filter/scoring kernels, decoder Up/Average/Paeth and
+  Sub for 1/2/3/4/8-byte pixels already exist. `bc810f058` added the one-byte prefix sum and
+  three-byte layout; `defilterSubRow` advances the latter by 15 bytes per packed step.
+  `image.png.test.swg` compares Sub against scalar recurrence across strides 1 through 8.
+  Gray and palette conversion also have thresholded packed-word paths. `convert16` still converts
+  native 16-bit samples and transparency keys individually; Sub stride 6 retains scalar recurrence.
+- Historical experiments: packed Sub prototypes for strides 1/3/6 and gray byte shuffles lost
+  during the 2026-08-20/21 cross-module wrapper-call window. The encoder Paeth speedup from that
+  window was also biased because the scalar form called `Math.abs`. These measurements cannot
+  settle the current inlined kernels' cost, and the later packed Sub 1/3 implementations supersede
+  their earlier rejection.
+- Next: profile current decoding by filter and bit depth, then remeasure Sub stride 6 and native
+  16-bit conversion against their scalar forms in the same process. Keep Inflate's share separate
+  from image conversion so a microkernel gain has an end-to-end interpretation.
+- Complete when: remaining paths have a measured decision, odd/Adam7 tails and malformed rows
+  retain bounds protection, and every retained kernel improves representative decoding.
+- Related: cpu.simd.006, cpu.simd.007, cpu.simd.010.
+
 ### cpu.simd.024 — Irregular H.264 directional intra prediction still needs a measured packed strategy
 
 - Recorded: 2026-08-20 08:56
@@ -246,25 +268,6 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 - Complete when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
   match existing behavior and each retained kernel beats callback dispatch.
 - Related: cpu.simd.004, cpu.simd.006, cpu.simd.010.
-
-### cpu.simd.028 — PNG Sub strides and remaining sample conversion need a current profile
-
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: packed bit expansion, encoder filter/scoring kernels, decoder Up/Average/Paeth and
-  Sub for 2/4/8-byte pixels already exist. Gray and palette conversion also have thresholded
-  packed-word paths. `convert16` still converts samples and transparency keys individually; Sub
-  strides 1/3/6 retain scalar recurrence paths.
-- Historical experiments: packed Sub prototypes for strides 1/3/6 and gray byte shuffles lost
-  during the 2026-08-20/21 cross-module wrapper-call window. The encoder Paeth speedup from that
-  window was also biased because the scalar form called `Math.abs`. These measurements cannot
-  settle the current inlined kernels' cost.
-- Next: profile current decoding by filter and bit depth, then remeasure the remaining Sub
-  layouts and 16-bit conversion against their scalar forms in the same process. Keep Inflate's
-  share separate from image conversion so a microkernel gain has an end-to-end interpretation.
-- Complete when: remaining paths have a measured decision, odd/Adam7 tails and malformed rows
-  retain bounds protection, and every retained kernel improves representative decoding.
-- Related: cpu.simd.006, cpu.simd.007, cpu.simd.010.
 
 ### cpu.simd.031 — Remaining palette lookups need a profitable packed strategy
 

@@ -61,6 +61,116 @@ func deleteBacklogFixture(root: string) fail
     try Directory.delete(root, recurse: true)
 }
 
+func initializeBacklogGit(root: string) fail
+{
+    try runBacklogGit(root, ["init", "--template=", "--initial-branch=main"])
+    try runBacklogGit(root, ["config", "user.name", "Repository test"])
+    try runBacklogGit(root, ["config", "user.email", "repository-test@example.invalid"])
+    try runBacklogGit(root, ["config", "commit.gpgsign", "false"])
+    try runBacklogGit(root, ["config", "core.hooksPath", "missing-test-hooks"])
+}
+
+func checkBacklogRenameLineage(parentRoot: string) fail
+{
+    let root = Path.combine(parentRoot, "lineage")
+    try Directory.create(root.toString())
+    defer expect deleteBacklogFixture(root.toString())
+    try Directory.create(Path.combine(root.toString(), "backlog").toString())
+    let first = sampleEntry("")
+    var fourth = first
+    fourth.replace("repo.sample.001", "repo.sample.004")
+    try checkBacklog(root.toString(), Format.toString("%\n%", first.toString(), fourth.toString()).toString(), 0)
+    try initializeBacklogGit(root.toString())
+    try runBacklogGit(root.toString(), ["add", "backlog"])
+    try runBacklogGit(root.toString(), ["commit", "-m", "Record the historical maximum"])
+    try checkBacklog(root.toString(), first.toString(), 0)
+    try runBacklogGit(root.toString(), ["commit", "-am", "Retire the highest allocation"])
+
+    // A filesystem rename is untracked first, then becomes a delete/add pair when staged.
+    try File.move(Path.combine(root.toString(), "backlog", "repo.renamed.md").toString(), Path.combine(root.toString(), "backlog", "repo.sample.md").toString())
+    var renamedFirst = first
+    renamedFirst.replace("repo.sample", "repo.renamed")
+    var readme = String.from(SampleReadme)
+    readme.replace("repo.sample", "repo.renamed")
+    var reused = fourth
+    reused.replace("repo.sample", "repo.renamed")
+    try checkBacklog(root.toString(), Format.toString("%\n%", renamedFirst.toString(), reused.toString()).toString(), 1, "must use suffix 5", readme.toString(), "repo.renamed.md")
+    var fifth = first
+    fifth.replace("repo.sample.001", "repo.renamed.005")
+    let fresh = Format.toString("%\n%", renamedFirst.toString(), fifth.toString())
+    try checkBacklog(root.toString(), fresh.toString(), 0, "", readme.toString(), "repo.renamed.md")
+    try runBacklogGit(root.toString(), ["add", "backlog"])
+    try checkBacklog(root.toString(), fresh.toString(), 0, "", readme.toString(), "repo.renamed.md")
+    try runBacklogGit(root.toString(), ["commit", "-m", "Rename and allocate in one commit"])
+    try checkBacklog(root.toString(), renamedFirst.toString(), 0, "", readme.toString(), "repo.renamed.md")
+    try runBacklogGit(root.toString(), ["commit", "-am", "Retire the allocation made with the rename"])
+
+    // A longer prefix alone can also defeat similarity detection. Recover its committed
+    // predecessor and the predecessor's own missed rename without losing retired suffixes.
+    const LongStem = "repo.renamed.with.a.long.scope.that.exercises.committed.domain.lineage"
+    let longPath = Format.toString("backlog/%.md", LongStem)
+    let longFile = Format.toString("%.md", LongStem)
+    try runBacklogGit(root.toString(), ["mv", "backlog/repo.renamed.md", longPath.toString()])
+    var longFirst = renamedFirst
+    longFirst.replace("repo.renamed", LongStem)
+    readme.replace("repo.renamed", LongStem)
+    try checkBacklog(root.toString(), longFirst.toString(), 0, "", readme.toString(), longFile.toString())
+    try runBacklogGit(root.toString(), ["add", "backlog"])
+    try runBacklogGit(root.toString(), ["commit", "-m", "Rename after retiring the highest allocation"])
+    var longFifth = fifth
+    longFifth.replace("repo.renamed", LongStem)
+    try checkBacklog(root.toString(), Format.toString("%\n%", longFirst.toString(), longFifth.toString()).toString(), 1, "must use suffix 6", readme.toString(), longFile.toString())
+    longFifth.replace(".005", ".006")
+    try checkBacklog(root.toString(), Format.toString("%\n%", longFirst.toString(), longFifth.toString()).toString(), 0, "", readme.toString(), longFile.toString())
+}
+
+func checkBacklogRenameAmbiguity(parentRoot: string) fail
+{
+    let root = Path.combine(parentRoot, "ambiguous-lineage")
+    try Directory.create(root.toString())
+    defer expect deleteBacklogFixture(root.toString())
+    try Directory.create(Path.combine(root.toString(), "backlog").toString())
+    let first = sampleEntry("")
+    var fourth = first
+    fourth.replace("repo.sample.001", "repo.sample.004")
+    try checkBacklog(root.toString(), Format.toString("%\n%", first.toString(), fourth.toString()).toString(), 0)
+    try initializeBacklogGit(root.toString())
+    try runBacklogGit(root.toString(), ["add", "backlog"])
+    try runBacklogGit(root.toString(), ["commit", "-m", "Record the first source history"])
+    try checkBacklog(root.toString(), first.toString(), 0)
+    var other = first
+    other.replace("repo.sample", "repo.other")
+    let otherPath = Path.combine(root.toString(), "backlog", "repo.other.md")
+    discard try File.writeAllBytes(otherPath.toString(), cast(const [..] u8) other.toString())
+    try runBacklogGit(root.toString(), ["add", "backlog"])
+    try runBacklogGit(root.toString(), ["commit", "-m", "Retire the maximum and add an identical source"])
+
+    // Identical entry evidence in two removed domains does not choose either history.
+    try runBacklogGit(root.toString(), ["rm", "backlog/repo.sample.md", "backlog/repo.other.md"])
+    var destination = first
+    destination.replace("repo.sample", "repo.destination")
+    var fifth = destination
+    fifth.replace(".001", ".005")
+    var readme = String.from(SampleReadme)
+    readme.replace("repo.sample", "repo.destination")
+    let destinationPath = Path.combine(root.toString(), "backlog", "repo.destination.md")
+    let entries = Format.toString("%\n%", destination.toString(), fifth.toString())
+    discard try File.writeAllBytes(destinationPath.toString(), cast(const [..] u8) entries.toString())
+    try runBacklogGit(root.toString(), ["add", "backlog"])
+    try checkBacklog(root.toString(), entries.toString(), 1, "backlog identifier 'repo.destination.005' must use suffix 2", readme.toString(), "repo.destination.md")
+
+    // One removed source shared by two destinations is equally ambiguous.
+    try runBacklogGit(root.toString(), ["restore", "--source=HEAD", "--staged", "--worktree", "backlog/repo.other.md"])
+    var duplicate = entries
+    duplicate.replace("repo.destination", "repo.duplicate")
+    let duplicatePath = Path.combine(root.toString(), "backlog", "repo.duplicate.md")
+    discard try File.writeAllBytes(duplicatePath.toString(), cast(const [..] u8) duplicate.toString())
+    readme += Format.toString("| [repo.other.md](repo.other.md) | Other | % |\n| [repo.duplicate.md](repo.duplicate.md) | Duplicate | % |\n", SampleStamp, SampleStamp)
+    try checkBacklog(root.toString(), entries.toString(), 1, "backlog identifier 'repo.destination.005' must use suffix 2", readme.toString(), "repo.destination.md")
+    try runBacklogGit(root.toString(), ["add", "backlog"])
+    try checkBacklog(root.toString(), entries.toString(), 1, "backlog identifier 'repo.destination.005' must use suffix 2", readme.toString(), "repo.destination.md")
+}
+
 func checkBacklogAllocationHistory(root: string) fail
 {
     let first  = sampleEntry("")
@@ -73,11 +183,7 @@ func checkBacklogAllocationHistory(root: string) fail
     fourth.replace("repo.sample.001", "repo.sample.004")
     fifth.replace("repo.sample.001", "repo.sample.005")
     try checkBacklog(root, Format.toString("%\n%", first.toString(), second.toString()).toString(), 0)
-    try runBacklogGit(root, ["init", "--template=", "--initial-branch=main"])
-    try runBacklogGit(root, ["config", "user.name", "Repository test"])
-    try runBacklogGit(root, ["config", "user.email", "repository-test@example.invalid"])
-    try runBacklogGit(root, ["config", "commit.gpgsign", "false"])
-    try runBacklogGit(root, ["config", "core.hooksPath", "missing-test-hooks"])
+    try initializeBacklogGit(root)
     try runBacklogGit(root, ["add", "backlog"])
     try runBacklogGit(root, ["commit", "-m", "Allocate two backlog entries"])
     try checkBacklog(root, first.toString(), 0)
@@ -152,6 +258,8 @@ func checkBacklogAllocationHistory(root: string) fail
     try checkBacklog(root, merged.toString(), 1, "must use suffix 7", renamedReadme.toString(), "repo.renamed.md")
     let afterMerge = Format.toString("%\n%", fresh.toString(), seventh.toString())
     try checkBacklog(root, afterMerge.toString(), 0, "", renamedReadme.toString(), "repo.renamed.md")
+    try checkBacklogRenameLineage(root)
+    try checkBacklogRenameAmbiguity(root)
 }
 
 #main

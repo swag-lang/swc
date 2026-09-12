@@ -33,6 +33,43 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
+### std.gui.003 — Construction-time text does not automatically retranslate
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-12 07:21 — Retain automatic text binding beyond the shipped language notification.
+
+`Application.setLanguage` already broadcasts `LanguageChanged`, and its documented contract asks
+windows with construction-time text to handle that notification. Command-driven surfaces and
+explicitly rebuilt grids already refresh. Define an automatic binding for text resolved once at
+construction so static labels do not depend on each application remembering a manual handler.
+
+- Related: std.gui.004
+
+### std.gui.044 — A composite that commits a measured size loses the fraction the layout rounds off
+
+- Recorded: 2026-08-11 08:09
+- Updated: 2026-09-12 07:21 — Separate the remaining composite audit from the shipped dialog and tooltip fixes.
+- Area: std/gui
+- Found while: the dialog-sizing investigation; dialogs and tooltips have fixes, while other
+  self-sizing composites still need a systematic fractional-size audit.
+- Observation: `Wnd.resize` rounds a window's logical size to whole units and
+  `Surface.setPosition` places a native window on whole physical pixels. A composite that measures
+  its content, commits that measurement as its size, and then assumes the content still fits loses
+  up to half a logical unit in the round trip. Half a unit is enough: in the message box it was one
+  wrapped line, and it clipped the second sentence of every error box on a scaled display. Only
+  some lengths land on a losing fraction, which is why it read as intermittent.
+- Evidence: `Dialog.physicalRoom` and the commit-then-measure order in
+  [messagedlg.swg](../bin/std/modules/gui/src/dialogs/messagedlg.swg) close it for dialogs, and
+  [tooltip.swg](../bin/std/modules/gui/src/tooltip.swg) now rounds its measurement *up* on both
+  axes. The tool tip is what the pattern costs when nobody guards it: a third of a pixel dropped
+  from the committed height put the content one line over its viewport, which raised a scroll bar,
+  which took twenty units of width, which re-wrapped the text and hid its tail — on every tip in
+  the toolkit, including one-word ones.
+- Next step: audit the remaining composites that size themselves from a measurement — the popup
+  list, the menu popup, and the automatic label height — for that pattern, and either round out
+  through one shared helper or measure the second axis after committing the first. Prove it the way
+  `dialogs.layout.test.swg` does, by sweeping the content length rather than picking one.
+
 ### std.gui.042 — Text outside a framed field is still centered on its line box, so its height follows the face
 
 - Recorded: 2026-08-07 19:13
@@ -99,17 +136,6 @@ prove it. Operating-system integrations live in
   parameter; prototype the owning field on `PopupMenuItem` and measure the churn on consumers.
 - Complete when: an identifier formatted at the call site either works or is rejected at build
   time, and a test in `menu.test.swg` pins whichever it is.
-
-### std.gui.003 — Construction-time text does not automatically retranslate
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 17:42 — git: Add unit tests for float to u64 conversion safety checks
-
-Define an automatic binding or required notification contract for text that was resolved once at
-construction. Command-driven surfaces and explicitly rebuilt grids already refresh; static text
-must not depend on each application remembering a manual handler.
-
-- Related: std.gui.004
 
 ### std.gui.004 — French is the only shipped GUI translation
 
@@ -484,30 +510,6 @@ pagination path that can disagree with paper.
   typed accessors cannot be generated at compile time, a UI resource reintroduces exactly the
   lookup boundary the builders just removed, and a resource editor would ship that cost to every
   window. Only then evaluate the editor.
-
-### std.gui.044 — A composite that commits a measured size loses the fraction the layout rounds off
-
-- Recorded: 2026-08-11 08:09
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Area: std/gui
-- Found while: the same investigation; the dialog family is fixed, nothing else is
-- Observation: `Wnd.resize` rounds a window's logical size to whole units and
-  `Surface.setPosition` places a native window on whole physical pixels. A composite that measures
-  its content, commits that measurement as its size, and then assumes the content still fits loses
-  up to half a logical unit in the round trip. Half a unit is enough: in the message box it was one
-  wrapped line, and it clipped the second sentence of every error box on a scaled display. Only
-  some lengths land on a losing fraction, which is why it read as intermittent.
-- Evidence: `Dialog.physicalRoom` and the commit-then-measure order in
-  [messagedlg.swg](../bin/std/modules/gui/src/dialogs/messagedlg.swg) close it for dialogs, and
-  [tooltip.swg](../bin/std/modules/gui/src/tooltip.swg) now rounds its measurement *up* on both
-  axes. The tool tip is what the pattern costs when nobody guards it: a third of a pixel dropped
-  from the committed height put the content one line over its viewport, which raised a scroll bar,
-  which took twenty units of width, which re-wrapped the text and hid its tail — on every tip in
-  the toolkit, including one-word ones.
-- Next step: audit the remaining composites that size themselves from a measurement — the popup
-  list, the menu popup, and the automatic label height — for that pattern, and either round out
-  through one shared helper or measure the second axis after committing the first. Prove it the way
-  `dialogs.layout.test.swg` does, by sweeping the content length rather than picking one.
 
 ---
 

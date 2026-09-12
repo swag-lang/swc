@@ -79,6 +79,11 @@ contract - every scoped `THIRDPARTY.md` is indexed and every `@NOTICE:` resolves
 selects or starts a test campaign. `bin\swc.exe --num-cores 6 tools\tests\repository.swgs .`
 runs the backlog check alone.
 
+In a Git checkout, the backlog check also compares new working-tree identifiers with `HEAD` and
+the checked-out branch's history. Deleted suffixes remain reserved, and new suffixes must follow
+the historical maximum consecutively. Stage domain renames before checking; the audit follows
+their old paths to preserve earlier reservations. A source archive can run the other checks without Git.
+
 ## Workspaces
 
 | Tool | Commands | Purpose |

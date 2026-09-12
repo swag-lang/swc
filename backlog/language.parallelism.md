@@ -30,6 +30,61 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
+### language.parallelism.008 — A parallel loop cannot combine per-partition results
+
+- Recorded: 2026-09-08 20:14
+- Updated: 2026-09-12 07:12 — State the floating-point associativity limitation precisely.
+- Evidence: every partition of a `parallel for` receives the same captures. A loop that computes
+  one value -- a sum, a maximum, a count, a first match, an accumulated bounding box -- cannot
+  say that each partition needs its own accumulator and that the accumulators combine at the
+  join. Consumers write one of two workarounds: an atomic on the shared destination, which
+  serializes the loop's hot line and, with `AtomicValue.store` lowered to a locked exchange,
+  pays a full barrier per iteration; or an array indexed by a partition number the language does
+  not expose, which forces the body to know the partitioning it is explicitly told not to depend
+  on.
+- Evidence: the general escape, one accumulator per thread, is also expensive. `tls` lowers a
+  thread-local global to a runtime call per access, measured at 4 ns against 1 ns for a plain
+  global read (runtime.allocator.002), and the per-thread block is released at thread exit
+  without running `opDrop`, so it can only hold a plain value.
+- Next: design the combining form as part of the statement, stating the identity, the
+  per-partition storage and the combining operation together, and combining at the join rather
+  than in the body. Settle whether the operation must be associative and commutative or only
+  associative -- floating-point addition is not associative -- and say what result the program is entitled
+  to when it is not. Decide whether the form is a clause of `parallel for` or a value the
+  statement produces.
+- Complete when: a parallel sum, a parallel maximum and a parallel bounding box are written
+  without an atomic on the hot line and without indexing a partition, and a single-worker run of
+  the same source produces the same value the loop promises.
+- Elsewhere: OpenMP has `reduction(+:x)` and user-declared reducers; Rayon, .NET PLINQ and Java
+  streams reduce through the iterator; Chapel writes `+ reduce`. All of them treat reduction as
+  the second data-parallel primitive after the map, not as a library afterthought.
+- Related: language.parallelism.001, language.parallelism.004, std.core.025
+
+### language.parallelism.002 — No suspension, and no typed task result
+
+- Recorded: 2026-09-07 15:52
+- Updated: 2026-09-12 07:12 — Distinguish occupied workers from queued operations in flight.
+- Evidence: [Swag.Task](../bin/runtime/task.swg) runs an infallible closure and reports only that it
+  finished. A consumer that produces a value writes it into captured storage and reads it after
+  the join, which is what `Viewer.BackgroundLoad` and `Gui.PdfView` do; a consumer that fails
+  stores the error beside the value. Nothing suspends: a task that waits occupies its worker for
+  the whole wait, reducing the capacity available to execute queued operations.
+- Next: settle the suspension gates before implementing. Fix the `async`/`await` grammar, the
+  effect in the callable type, stackless frame ownership, stable frame addresses, and the async
+  boundary for both native and JIT execution. Decide whether cancellability is a separate control
+  effect or an outcome carried by `fail`, and what `try`, a catch-all, `defer #fail` and
+  `defer #nofail` observe. Then give the runtime a typed `Task'T` whose result is owned and
+  consumed once, with failure and cancellation as terminal outcomes beside success.
+- Complete when: a `Task'T` transfers its result or its failure to exactly one observer, an
+  awaiting task releases its worker, and native and JIT lifecycle tests cover every exit after
+  capture: immediate completion, a suspended frame, a cancelled waiter whose child still owns a
+  loan, and destruction exactly once.
+- Elsewhere: [Swift structured concurrency](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0304-structured-concurrency.md)
+  scopes child-task lifetime; [Go's memory model](https://go.dev/ref/mem) makes synchronization and
+  happens-before part of the language contract. These are references for separate decisions, not a
+  proposal to import one language's complete model.
+- Related: std.core.025, std.core.028, language.parallelism.001.
+
 ### language.parallelism.010 — Nothing detects a data race while the program runs
 
 - Recorded: 2026-09-08 20:14
@@ -322,35 +377,6 @@ of simplicity when every useful helper needs an unchecked contract.
 - Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
   language.parallelism.001.
 
-### language.parallelism.008 — A parallel loop cannot combine per-partition results
-
-- Recorded: 2026-09-08 20:14
-- Evidence: every partition of a `parallel for` receives the same captures. A loop that computes
-  one value -- a sum, a maximum, a count, a first match, an accumulated bounding box -- cannot
-  say that each partition needs its own accumulator and that the accumulators combine at the
-  join. Consumers write one of two workarounds: an atomic on the shared destination, which
-  serializes the loop's hot line and, with `AtomicValue.store` lowered to a locked exchange,
-  pays a full barrier per iteration; or an array indexed by a partition number the language does
-  not expose, which forces the body to know the partitioning it is explicitly told not to depend
-  on.
-- Evidence: the general escape, one accumulator per thread, is also expensive. `tls` lowers a
-  thread-local global to a runtime call per access, measured at 4 ns against 1 ns for a plain
-  global read (runtime.allocator.002), and the per-thread block is released at thread exit
-  without running `opDrop`, so it can only hold a plain value.
-- Next: design the combining form as part of the statement, stating the identity, the
-  per-partition storage and the combining operation together, and combining at the join rather
-  than in the body. Settle whether the operation must be associative and commutative or only
-  associative -- a floating-point sum is neither -- and say what result the program is entitled
-  to when it is not. Decide whether the form is a clause of `parallel for` or a value the
-  statement produces.
-- Complete when: a parallel sum, a parallel maximum and a parallel bounding box are written
-  without an atomic on the hot line and without indexing a partition, and a single-worker run of
-  the same source produces the same value the loop promises.
-- Elsewhere: OpenMP has `reduction(+:x)` and user-declared reducers; Rayon, .NET PLINQ and Java
-  streams reduce through the iterator; Chapel writes `+ reduce`. All of them treat reduction as
-  the second data-parallel primitive after the map, not as a library afterthought.
-- Related: language.parallelism.001, language.parallelism.004, std.core.025
-
 ### language.parallelism.007 — The memory model is a design note, and only sequential consistency exists
 
 - Recorded: 2026-09-08 20:14
@@ -423,27 +449,3 @@ of simplicity when every useful helper needs an unchecked contract.
   under a shutdown that races its last callback, and the UI executor keeps servicing completion
   and destruction while it drains.
 - Related: platform.portability.035, std.audio.md, std.video.md.
-
-### language.parallelism.002 — No suspension, and no typed task result
-
-- Recorded: 2026-09-07 15:52
-- Evidence: [Swag.Task](../bin/runtime/task.swg) runs an infallible closure and reports only that it
-  finished. A consumer that produces a value writes it into captured storage and reads it after
-  the join, which is what `Viewer.BackgroundLoad` and `Gui.PdfView` do; a consumer that fails
-  stores the error beside the value. Nothing suspends: a task that waits occupies its worker for
-  the whole wait, so `Swag.workerCount` also bounds how many operations can be in flight.
-- Next: settle the suspension gates before implementing. Fix the `async`/`await` grammar, the
-  effect in the callable type, stackless frame ownership, stable frame addresses, and the async
-  boundary for both native and JIT execution. Decide whether cancellability is a separate control
-  effect or an outcome carried by `fail`, and what `try`, a catch-all, `defer #fail` and
-  `defer #nofail` observe. Then give the runtime a typed `Task'T` whose result is owned and
-  consumed once, with failure and cancellation as terminal outcomes beside success.
-- Complete when: a `Task'T` transfers its result or its failure to exactly one observer, an
-  awaiting task releases its worker, and native and JIT lifecycle tests cover every exit after
-  capture: immediate completion, a suspended frame, a cancelled waiter whose child still owns a
-  loan, and destruction exactly once.
-- Elsewhere: [Swift structured concurrency](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0304-structured-concurrency.md)
-  scopes child-task lifetime; [Go's memory model](https://go.dev/ref/mem) makes synchronization and
-  happens-before part of the language contract. These are references for separate decisions, not a
-  proposal to import one language's complete model.
-- Related: std.core.025, std.core.028, language.parallelism.001.

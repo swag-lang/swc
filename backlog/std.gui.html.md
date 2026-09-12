@@ -69,9 +69,10 @@ mean, and CSS surface that is read and silently dropped.
 ### std.gui.html.009 — Inline and embedded SVG images are not rendered
 
 - Recorded: 2026-08-18 14:57
-- Updated: 2026-09-07 13:14 — Local SVG images already render; narrow the remaining work to inline and embedded SVG
+- Updated: 2026-09-12 07:14 — Refresh the display-sized local SVG rasterization limits.
 - Evidence: `HtmlImageCache.fetch` in `controls/html/image.swg` parses local `.svg` files through
-  `Svg.Drawing`, rasterizes them with a 2,048-pixel bound, and preserves their natural layout size.
+  `Svg.Drawing`, preserves their natural layout size, and rasterizes visible vectors at their
+  displayed size with a 4,096-pixel dimension bound and an 8-megapixel area bound.
   `htmlview.test.swg` verifies intrinsic dimensions and CSS overrides. Inline `<svg>` remains in
   `HtmlDocument.isSkippedTag`, and data URIs still go through the raster-only `Image.fromDataUri`.
 - Next: route bounded embedded SVG bytes through the existing SVG engine and define how an inline
@@ -79,6 +80,90 @@ mean, and CSS surface that is read and silently dropped.
 - Complete when: inline `<svg>` and `data:image/svg+xml` render through the same bounded path as
   local SVG, their dimensions are honored, unsupported content has a visible placeholder, and
   regression fixtures preserve the working local-image path.
+
+### std.gui.html.008 — Percentage heights resolve against nothing in normal flow
+
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-12 07:14 — Name the current containing-block construction site.
+- Intent: `layoutBlockBox` builds each child's containing block with a width and
+  `hasHeight: false`, so `height: 100%` resolves only for the root and for absolutely
+  positioned boxes. The classic full-height chain — `html, body, .app { height: 100% }` — and
+  every percentage-height panel inside a definite-height parent collapse to content height.
+- Complete when: a child whose parent's used height is definite resolves percentage heights
+  against it, the definiteness propagates down a chain of definite heights, and an indefinite
+  parent still falls back to content height as it does today.
+
+### std.gui.html.011 — Shadows are not drawn
+
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-12 07:14 — Generated documentation now supplies a concrete unsupported shadow.
+- Intent: `box-shadow` is not a property the parser resolves, and `text-shadow` is not either.
+  Cards cast no elevation and outlined hero text loses its legibility layer. The generated
+  documentation stylesheet in `src/Doc/DocPage.cpp` now uses `box-shadow`, which this viewer drops.
+- Complete when: an outset `box-shadow` with offset, blur and color draws behind the border box
+  (inset may be recorded as a limitation), `text-shadow` draws behind the run, and both respect
+  border radius.
+
+### std.gui.html.012 — Dashed, dotted and double borders paint solid
+
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-12 07:14 — Distinguish the existing absent-border check from missing patterns.
+- Intent: `HtmlBorderStyle` distinguishes the styles but `paintDecorations` only tests for `None` —
+  every side is filled as a solid rectangle or trapezoid, so `border: 1px dashed` draws exactly
+  like `solid`. Corner radii are also collapsed: the largest of the four corners is applied to
+  all of them, drawn with the top side's width and color alone.
+- Complete when: dashed and dotted sides draw their pattern, double draws its two lines, each
+  corner uses its own radius, and mixed side colors on a rounded box either draw correctly or
+  are recorded as the one documented approximation.
+
+### std.gui.html.013 — `transform` does not exist
+
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-12 07:14 — Remove the obsolete tier-order claim.
+- Intent: no transform property is parsed and the painter applies none, so a rotated badge, a
+  scaled thumbnail or a translated decoration renders untransformed in place. Unlike the entries
+  above this rarely destroys a document's meaning, but
+  pages that build shapes out of transformed pseudo-elements show their raw boxes.
+- Complete when: `translate`, `scale` and `rotate` transforms apply to a box's painting and hit
+  testing as one affine matrix, `transform-origin` is honoured, and layout remains untransformed
+  as the specification says.
+
+### std.gui.html.015 — Cascade layers collapse into source order
+
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-12 07:14 — Remove the shipped rejection of unsupported complex selectors.
+- Evidence: `addSubSelectors` rejects an argument when compound parsing leaves unconsumed input;
+  `htmlview.test.swg` covers `:is(nav a)` and `:not(nav a)` without applying a truncated selector.
+- Intent: `@layer` blocks are still unwrapped into plain source order, so a sheet that uses
+  layers to de-prioritize its reset cascades in the wrong order.
+- Complete when: layers retain their declared order, ordinary layered rules order below unlayered
+  rules, and important declarations reverse layer precedence, with focused cascade tests.
+
+### std.gui.html.019 — Adversarial document coverage is incomplete
+
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-12 07:14 — Describe the missing adversarial corpus without denying substitution limits.
+- Intent: the byte cap (48 MB) and the element depth cap (256, flattening with a visible
+  notice) bound document storage and nesting. There is still no fixture for truncation at a hostile point, an
+  attribute of pathological length, or a rule that expands `var()` toward its substitution cap
+  on every element.
+- Complete when: a malformed corpus covers truncated tags at chunk edges, pathological
+  attribute lengths and pathological stylesheets with the expected outcome for each.
+
+### std.gui.html.020 — What is left between this parser and a zero-copy one
+
+- Recorded: 2026-08-29 21:49
+- Updated: 2026-09-12 07:14 — Remove the shipped in-memory document reservation task.
+- Intent: the page above parses in 130 ms where `tl` takes 64 ms. Where the remaining difference
+  sits, measured by ablation on the 8.15 MB page: the tokenizer's own scan is about 40% of the
+  time, storing text about 30%, storing attributes about 24%, and building the 430 k nodes
+  themselves under 10 ms. Nothing here is a single missing idea any more — it is the write traffic
+  of 430 k nodes and 289 k attributes against a scan that already runs at about 100 MB/s.
+- Evidence: file loading, `createText`, and text replacement now call `reserveForSource`.
+- Next: refresh the profile after those reservations, then examine the two per-attribute costs: the
+  `class` test on every attribute name, and the pool append that follows it.
+- Complete when: the page parses under 100 ms, or the remaining distance is recorded here as the
+  cost of the data model rather than of the code.
 
 ### std.gui.html.014 — Legacy presentational HTML support is incomplete
 
@@ -197,18 +282,6 @@ mean, and CSS surface that is read and silently dropped.
   follows direction, and the residual shaping limit is recorded against the text stack rather
   than silently absorbed here.
 
-### std.gui.html.008 — Percentage heights resolve against nothing in normal flow
-
-- Recorded: 2026-08-18 14:57
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Intent: `layoutBlockChildren` builds each child's containing block with a width and
-  `hasHeight: false`, so `height: 100%` resolves only for the root and for absolutely
-  positioned boxes. The classic full-height chain — `html, body, .app { height: 100% }` — and
-  every percentage-height panel inside a definite-height parent collapse to content height.
-- Complete when: a child whose parent's used height is definite resolves percentage heights
-  against it, the definiteness propagates down a chain of definite heights, and an indefinite
-  parent still falls back to content height as it does today.
-
 ### std.gui.html.010 — A gradient is read as no background at all
 
 - Recorded: 2026-08-18 14:57
@@ -224,52 +297,6 @@ mean, and CSS surface that is read and silently dropped.
 - Note: `mask-image` today suppresses the fill entirely rather than painting it flat — the
   documented conservative choice. A real mask is the same image machinery this entry builds,
   applied as an alpha source, and should follow it.
-
-### std.gui.html.011 — Shadows are not drawn
-
-- Recorded: 2026-08-18 14:57
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Intent: `box-shadow` is not a property the parser resolves, and `text-shadow` is not either.
-  Cards cast no elevation and outlined hero text loses its legibility layer. The engine's own
-  generated documentation avoids both, which is why the gap has stayed invisible.
-- Complete when: an outset `box-shadow` with offset, blur and color draws behind the border box
-  (inset may be recorded as a limitation), `text-shadow` draws behind the run, and both respect
-  border radius.
-
-### std.gui.html.012 — Dashed, dotted and double borders paint solid
-
-- Recorded: 2026-08-18 14:57
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Intent: `HtmlBorderStyle` distinguishes the styles and `paintDecorations` never reads them —
-  every side is filled as a solid rectangle or trapezoid, so `border: 1px dashed` draws exactly
-  like `solid`. Corner radii are also collapsed: the largest of the four corners is applied to
-  all of them, drawn with the top side's width and color alone.
-- Complete when: dashed and dotted sides draw their pattern, double draws its two lines, each
-  corner uses its own radius, and mixed side colors on a rounded box either draw correctly or
-  are recorded as the one documented approximation.
-
-### std.gui.html.013 — `transform` does not exist
-
-- Recorded: 2026-08-18 14:57
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Intent: no transform property is parsed and the painter applies none, so a rotated badge, a
-  scaled thumbnail or a translated decoration renders untransformed in place. Unlike the entries
-  above this rarely destroys a document's meaning — which is why it sits last in the tier — but
-  pages that build shapes out of transformed pseudo-elements show their raw boxes.
-- Complete when: `translate`, `scale` and `rotate` transforms apply to a box's painting and hit
-  testing as one affine matrix, `transform-origin` is honoured, and layout remains untransformed
-  as the specification says.
-
-### std.gui.html.015 — Selector matching diverges where documents notice
-
-- Recorded: 2026-08-18 14:57
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Intent: two bounded divergences remain. A complex selector inside `:is()`/`:not()` is
-  truncated to its first compound — `:is(nav a)` matches `nav` — which over- and under-styles
-  silently. And `@layer` blocks are unwrapped into plain source order, so a sheet that uses
-  layers to de-prioritize its reset cascades in the wrong order.
-- Complete when: `:is()`/`:not()` either match their full complex argument or reject the rule
-  rather than truncate it, and layered rules order below unlayered ones.
 
 ### std.gui.html.016 — The global keywords do nothing
 
@@ -309,32 +336,6 @@ mean, and CSS surface that is read and silently dropped.
   Unicode rather than `Latin1NoCase`.
 - Note: the Markdown view solved the same problem with a position model of its own — a text view
   plus a byte offset into its text — which is the shape this entry needs here.
-
-### std.gui.html.019 — A hostile document has no budget guard beyond depth and size
-
-- Recorded: 2026-08-18 14:57
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Intent: the byte cap (48 MB) and the element depth cap (256, flattening with a visible
-  notice) are the only limits. There is still no fixture for truncation at a hostile point, an
-  attribute of pathological length, or a rule that expands `var()` toward its substitution cap
-  on every element.
-- Complete when: a malformed corpus covers truncated tags at chunk edges, pathological
-  attribute lengths and pathological stylesheets with the expected outcome for each.
-
-### std.gui.html.020 — What is left between this parser and a zero-copy one
-
-- Recorded: 2026-08-29 21:49
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Intent: the page above parses in 130 ms where `tl` takes 64 ms. Where the remaining difference
-  sits, measured by ablation on the 8.15 MB page: the tokenizer's own scan is about 40% of the
-  time, storing text about 30%, storing attributes about 24%, and building the 430 k nodes
-  themselves under 10 ms. Nothing here is a single missing idea any more — it is the write traffic
-  of 430 k nodes and 289 k attributes against a scan that already runs at about 100 MB/s.
-- Next: measure what a page costs when the node array is reserved from the source size (already
-  done for a file, not for `createText`), then look at the two remaining per-attribute costs: the
-  `class` test on every attribute name, and the pool append that follows it.
-- Complete when: the page parses under 100 ms, or the remaining distance is recorded here as the
-  cost of the data model rather than of the code.
 
 ---
 

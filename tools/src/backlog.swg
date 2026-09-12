@@ -515,7 +515,7 @@ private func collectHeadingIdentifiers(text: string, prefix: string, result: *Ha
         if not Utf8.startsWith(cast(const [..] u8) line, prefix) do
             continue
         let heading = line[prefix.count to]
-        let end = Utf8.indexOf(cast(const [..] u8) heading, " ")
+        let end     = Utf8.indexOf(cast(const [..] u8) heading, " ")
         if end != Swag.U64.Max and isBacklogIdentifier(heading[0 until end]) do
             result.add(String.from(heading[0 until end]))
     }
@@ -527,54 +527,79 @@ private func captureBacklogGit(context: *Context, arguments: Arguments, allowNoM
     command.add(["-C", context.root.toString()])
     command.addAll(arguments)
     let commandLine = joinArguments(command.toSlice())
-    let process = try Env.runProcess("git", commandLine.toString())
+    let process     = try Env.runProcess("git", commandLine.toString())
     if process.exitCode() != 0 and not (allowNoMatches and process.exitCode() == 1)
     {
         Console.print(process.standardOutput())
         Console.print(process.standardError())
         fail Swag.SystemError{"cannot read backlog allocation history", errorID: cast(u32) process.exitCode()}
     }
+
     return String.from(process.standardOutput())
 }
 
-// Compare new working-tree entries with every suffix allocated on the checked-out branch.
-// Removed entries still reserve their suffix. Source archives have no Git history to consult.
-private func auditBacklogAllocations(context: *Context, seen: *HashSet'String, domains: const [..] Domain)->u32 fail
+// A renamed file keeps its old suffixes. Git's followed file history also includes retired
+// identifiers from before committed renames, whose prefixes differ from the current domain.
+private func collectDomainIdentifiers(text: string, headingPrefix: string, stem: string)->HashSet'String
 {
-    let gitPath = Path.combine(context.root.toString(), ".git")
-    if not File.exists(gitPath.toString()) and not Directory.exists(gitPath.toString()) do
-        return 0
+    var identifiers: HashSet'String
+    collectHeadingIdentifiers(text, headingPrefix, &identifiers)
+    var result: HashSet'String
+    for identifier in identifiers
+    {
+        let value = identifier.toString()
+        result.add(Format.toString("%.%", stem, value[value.count - 3 to]))
+    }
+
+    return result
+}
+
+private func auditDomainAllocations(context: *Context, seen: *HashSet'String, domain: Domain, renames: string)->u32 fail
+{
+    let stem        = Path.fileNameWithoutExtension(domain.name.toString())!
+    var historyPath = Format.toString("backlog/%", domain.name.toString())
+    for line in Tokenize.splitLines(renames)
+    {
+        let fields = Tokenize.split(line, "\t")
+        if fields.count == 3 and fields[0][0] == 'R' and fields[2] == historyPath.toString() do
+            historyPath = String.from(fields[1])
+    }
 
     var headCommand: Arguments
-    headCommand.add(["grep", "-h", "--no-color", "-e", "^### ", "HEAD", "--"])
-    for domain in domains do
-        headCommand.add([Format.toString("backlog/%", domain.name.toString()).toString()])
-    let head = try captureBacklogGit(context, headCommand, true)
-    var previous: HashSet'String
-    collectHeadingIdentifiers(head.toString(), "### ", &previous)
+    headCommand.add(["grep", "-h", "--no-color", "-e", "^### ", "HEAD", "--", historyPath.toString()])
+    let head     = try captureBacklogGit(context, headCommand, true)
+    let previous = collectDomainIdentifiers(head.toString(), "### ", stem)
 
     var added: Array'String
-    for identifier in seen[] where not previous.contains(identifier) do
-        added.add(identifier)
+    let prefix = Format.toString("%.", stem)
+    for identifier in seen[] where identifier.count == prefix.count + 3 and Utf8.startsWith(cast(const [..] u8) identifier.toString(), prefix.toString())
+    {
+        if not previous.contains(identifier) do
+            added.add(identifier)
+    }
+
     if added.count == 0 do
         return 0
     added.sort()
 
     var historyCommand: Arguments
-    historyCommand.add(["log", "--format=", "--no-ext-diff", "--no-textconv", "--no-renames", "-p", "--"])
-    for domain in domains do
-        historyCommand.add([Format.toString("backlog/%", domain.name.toString()).toString()])
-    let history = try captureBacklogGit(context, historyCommand)
-    var allocated: HashSet'String
-    collectHeadingIdentifiers(history.toString(), "+### ", &allocated)
+    historyCommand.add(["log", "--follow", "--find-renames=40%", "--format=", "--no-ext-diff", "--no-textconv", "-p", "--", historyPath.toString()])
+    let history   = try captureBacklogGit(context, historyCommand)
+    var allocated = collectDomainIdentifiers(history.toString(), "+### ", stem)
+    // Default Git logs omit merge patches. A live heading, or a later removal, still proves
+    // that a merge-resolution-only identifier was allocated.
+    let retired = collectDomainIdentifiers(history.toString(), "-### ", stem)
+    for identifier in previous do
+        allocated.add(identifier)
+    for identifier in retired do
+        allocated.add(identifier)
 
     var errors: u32
     for identifier in added
     {
         let text = identifier.toString()
-        let prefix = text[0 until text.count - 3]
         var maximum: u32
-        for old in allocated where Utf8.startsWith(cast(const [..] u8) old.toString(), prefix) do
+        for old in allocated do
             maximum = Math.max(maximum, parseDecimal(old.toString(), prefix.count).value)
         let suffix = parseDecimal(text, prefix.count).value
         if suffix != maximum + 1
@@ -585,9 +610,30 @@ private func auditBacklogAllocations(context: *Context, seen: *HashSet'String, d
         else do
             allocated.add(identifier)
     }
+
     return errors
 }
 
+// Compare new working-tree entries with every suffix allocated on the checked-out branch.
+// Removed entries still reserve their suffix. Source archives have no Git history to consult.
+private func auditBacklogAllocations(context: *Context, seen: *HashSet'String, domains: const [..] Domain)->u32 fail
+{
+    let gitPath = Path.combine(context.root.toString(), ".git")
+    if not File.exists(gitPath.toString()) and not Directory.exists(gitPath.toString()) do
+        return 0
+    var renameCommand: Arguments
+
+    // A minimal entry retains its stamp while its entire heading changes with the prefix;
+    // that puts a valid rename just below Git's default 50% similarity threshold.
+    renameCommand.add(["diff", "--name-status", "--find-renames=40%", "HEAD", "--", "backlog"])
+    let renames = try captureBacklogGit(context, renameCommand)
+    var errors: u32
+    for domain in domains do
+        errors += try auditDomainAllocations(context, seen, domain, renames.toString())
+    return errors
+}
+
+// Checks the permanent backlog contract before every repository test campaign.
 public func auditBacklog(context: *Context)->s32 fail
 {
     let backlogDir = Path.combine(context.root.toString(), "backlog")

@@ -7,10 +7,10 @@ const SampleStamp  = "2026-09-06 12:00"
 const SampleReadme = "| File | Area | Updated |\n| --- | --- | --- |\n| [repo.sample.md](repo.sample.md) | Sample | 2026-09-06 12:00 |\n"
 
 // Run the public audit in a child so expected rejection diagnostics stay captured.
-func checkBacklog(root: string, content: string, expectedExit: s32, expectedDiagnostic = "", readme = SampleReadme) fail
+func checkBacklog(root: string, content: string, expectedExit: s32, expectedDiagnostic = "", readme = SampleReadme, domain = "repo.sample.md") fail
 {
     discard File.writeAllBytes(Path.combine(root, "backlog", "README.md").toString(), cast(const [..] u8) readme)
-    discard File.writeAllBytes(Path.combine(root, "backlog", "repo.sample.md").toString(), cast(const [..] u8) content)
+    discard File.writeAllBytes(Path.combine(root, "backlog", domain).toString(), cast(const [..] u8) content)
 
     var arguments: Tool.Arguments
     arguments.add(["--num-cores", "6", #curlocation.fileName!, root])
@@ -41,20 +41,38 @@ func runBacklogGit(root: string, tokens: const [..] string) fail
     arguments.add(["-C", root])
     arguments.add(tokens)
     let commandLine = Tool.joinArguments(arguments.toSlice())
-    let process = try Env.runProcess("git", commandLine.toString())
+    let process     = try Env.runProcess("git", commandLine.toString())
     Swag.assert(process.exitCode() == 0, process.standardError())
+}
+
+// Git creates read-only object files on Windows. Remove that attribute only inside this
+// test's freshly created repository before the normal recursive cleanup.
+func deleteBacklogFixture(root: string) fail
+{
+    let gitPath = Path.combine(root, ".git")
+    if Directory.exists(gitPath.toString())
+    {
+        var arguments: Tool.Arguments
+        arguments.add(["-R", Path.combine(gitPath.toString(), "*").toString(), "/S", "/D"])
+        let commandLine = Tool.joinArguments(arguments.toSlice())
+        let process = try Env.runProcess("attrib.exe", commandLine.toString())
+        Swag.assert(process.exitCode() == 0, process.standardError())
+    }
+    try Directory.delete(root, recurse: true)
 }
 
 func checkBacklogAllocationHistory(root: string) fail
 {
-    let first = sampleEntry("")
+    let first  = sampleEntry("")
     var second = sampleEntry("")
-    var third = sampleEntry("")
+    var third  = sampleEntry("")
     var fourth = sampleEntry("")
+    var fifth = sampleEntry("")
     second.replace("repo.sample.001", "repo.sample.002")
     third.replace("repo.sample.001", "repo.sample.003")
     fourth.replace("repo.sample.001", "repo.sample.004")
-    try checkBacklog(root, Format.toString("%%", first.toString(), second.toString()).toString(), 0)
+    fifth.replace("repo.sample.001", "repo.sample.005")
+    try checkBacklog(root, Format.toString("%\n%", first.toString(), second.toString()).toString(), 0)
     try runBacklogGit(root, ["init", "--template=", "--initial-branch=main"])
     try runBacklogGit(root, ["config", "user.name", "Repository test"])
     try runBacklogGit(root, ["config", "user.email", "repository-test@example.invalid"])
@@ -65,17 +83,75 @@ func checkBacklogAllocationHistory(root: string) fail
     try checkBacklog(root, first.toString(), 0)
     try runBacklogGit(root, ["commit", "-am", "Retire the second entry"])
 
+    // Parent and child domains own distinct counters even though their prefixes overlap.
+    let childPath = Path.combine(root, "backlog", "repo.sample.child.md")
+    let childReadme = Format.toString("%| [repo.sample.child.md](repo.sample.child.md) | Child | % |\n", SampleReadme, SampleStamp)
+    var child = first
+    child.replace("repo.sample.001", "repo.sample.child.001")
+    discard try File.writeAllBytes(childPath.toString(), cast(const [..] u8) child.toString())
+    try checkBacklog(root, first.toString(), 0, "", childReadme.toString())
+    child.replace("repo.sample.child.001", "repo.sample.child.003")
+    discard try File.writeAllBytes(childPath.toString(), cast(const [..] u8) child.toString())
+    try checkBacklog(root, first.toString(), 1, "repo.sample.child.003' must use suffix 1", childReadme.toString())
+    try File.delete(childPath.toString())
+
     // A deleted suffix stays reserved, including when its replacement is staged.
-    try checkBacklog(root, Format.toString("%%", first.toString(), second.toString()).toString(), 1, "retired suffixes stay allocated")
+    try checkBacklog(root, Format.toString("%\n%", first.toString(), second.toString()).toString(), 1, "retired suffixes stay allocated")
     try runBacklogGit(root, ["add", "backlog"])
-    try checkBacklog(root, Format.toString("%%", first.toString(), second.toString()).toString(), 1, "must use suffix 3")
-    try checkBacklog(root, Format.toString("%%", first.toString(), fourth.toString()).toString(), 1, "must use suffix 3")
-    try checkBacklog(root, Format.toString("%%", first.toString(), third.toString()).toString(), 0)
+    try checkBacklog(root, Format.toString("%\n%", first.toString(), second.toString()).toString(), 1, "must use suffix 3")
+    try checkBacklog(root, Format.toString("%\n%", first.toString(), fourth.toString()).toString(), 1, "must use suffix 3")
+    try checkBacklog(root, Format.toString("%\n%", first.toString(), third.toString()).toString(), 0)
+
     // Position is chronological, so allocation checking must sort new suffixes independently.
-    try checkBacklog(root, Format.toString("%%%", first.toString(), fourth.toString(), third.toString()).toString(), 0)
+    try checkBacklog(root, Format.toString("%\n%\n%", first.toString(), fourth.toString(), third.toString()).toString(), 0)
     var renamed = first
     renamed.replace("— Sample", "— Renamed sample")
     try checkBacklog(root, renamed.toString(), 0)
+
+    // A staged domain rename preserves live suffixes and reservations from its old name.
+    try checkBacklog(root, Format.toString("%\n%", first.toString(), third.toString()).toString(), 0)
+    try runBacklogGit(root, ["commit", "-am", "Allocate the third entry"])
+    try checkBacklog(root, Format.toString("%\n%\n%", first.toString(), third.toString(), fourth.toString()).toString(), 0)
+    try runBacklogGit(root, ["commit", "-am", "Allocate the fourth entry"])
+    try checkBacklog(root, Format.toString("%\n%", first.toString(), third.toString()).toString(), 0)
+    try runBacklogGit(root, ["commit", "-am", "Retire the highest suffix before renaming"])
+    try runBacklogGit(root, ["mv", "backlog/repo.sample.md", "backlog/repo.renamed.md"])
+    var renamedEntries = Format.toString("%\n%", first.toString(), third.toString())
+    renamedEntries.replace("repo.sample", "repo.renamed")
+    var renamedReadme = String.from(SampleReadme)
+    renamedReadme.replace("repo.sample", "repo.renamed")
+    try checkBacklog(root, renamedEntries.toString(), 0, "", renamedReadme.toString(), "repo.renamed.md")
+    try runBacklogGit(root, ["add", "backlog"])
+    try runBacklogGit(root, ["commit", "-m", "Rename the domain"])
+    var reused = Format.toString("%\n%", renamedEntries.toString(), fourth.toString())
+    reused.replace("repo.sample", "repo.renamed")
+    try checkBacklog(root, reused.toString(), 1, "must use suffix 5", renamedReadme.toString(), "repo.renamed.md")
+    var fresh = Format.toString("%\n%", renamedEntries.toString(), fifth.toString())
+    fresh.replace("repo.sample", "repo.renamed")
+    try checkBacklog(root, fresh.toString(), 0, "", renamedReadme.toString(), "repo.renamed.md")
+
+    // A merge can allocate an entry absent from both parents. Default log patches omit it.
+    try runBacklogGit(root, ["commit", "-am", "Allocate the fifth entry"])
+    try runBacklogGit(root, ["switch", "-c", "merge-side"])
+    try runBacklogGit(root, ["commit", "--allow-empty", "-m", "Create the merge side"])
+    try runBacklogGit(root, ["switch", "main"])
+    try runBacklogGit(root, ["commit", "--allow-empty", "-m", "Create the merge mainline"])
+    try runBacklogGit(root, ["merge", "--no-ff", "--no-commit", "merge-side"])
+    var sixth = fifth
+    sixth.replace("repo.sample.005", "repo.renamed.006")
+    let merged = Format.toString("%\n%", fresh.toString(), sixth.toString())
+    try checkBacklog(root, merged.toString(), 0, "", renamedReadme.toString(), "repo.renamed.md")
+    try runBacklogGit(root, ["add", "backlog"])
+    try runBacklogGit(root, ["commit", "-m", "Allocate the sixth entry in the merge"])
+    var seventh = fifth
+    seventh.replace("repo.sample.005", "repo.renamed.007")
+    let withLiveMerge = Format.toString("%\n%", merged.toString(), seventh.toString())
+    try checkBacklog(root, withLiveMerge.toString(), 0, "", renamedReadme.toString(), "repo.renamed.md")
+    try checkBacklog(root, fresh.toString(), 0, "", renamedReadme.toString(), "repo.renamed.md")
+    try runBacklogGit(root, ["commit", "-am", "Retire the merge-only entry"])
+    try checkBacklog(root, merged.toString(), 1, "must use suffix 7", renamedReadme.toString(), "repo.renamed.md")
+    let afterMerge = Format.toString("%\n%", fresh.toString(), seventh.toString())
+    try checkBacklog(root, afterMerge.toString(), 0, "", renamedReadme.toString(), "repo.renamed.md")
 }
 
 #main
@@ -102,7 +178,7 @@ func checkBacklogAllocationHistory(root: string) fail
         Env.exit(0)
     }
 
-    if args.count > 1
+    if args.count > 1 and args[1] != "--allocation-history"
     {
         var context: Tool.Context
         context.root = String.from(args[1])
@@ -113,8 +189,15 @@ func checkBacklogAllocationHistory(root: string) fail
     let name      = Format.toString("swag-backlog-%", Guid64.random())
     let root      = Path.combine(temporary.toString(), name.toString())
     expect Directory.create(root.toString())
-    defer discard catch Directory.delete(root.toString(), recurse: true)
+    defer expect deleteBacklogFixture(root.toString())
     expect Directory.create(Path.combine(root.toString(), "backlog").toString())
+
+    if args.count > 1 and args[1] == "--allocation-history"
+    {
+        expect checkBacklogAllocationHistory(root.toString())
+        Console.println("backlog allocation history regression checks passed")
+        return
+    }
 
     expect checkRelated(root.toString(), "- Related: repo.sample.001.", 0)
     expect checkRelated(root.toString(), "**Related:** repo.sample.001.", 0)

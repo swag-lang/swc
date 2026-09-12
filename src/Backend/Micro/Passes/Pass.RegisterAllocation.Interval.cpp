@@ -1532,6 +1532,26 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                     recipe.valid      = true;
                     break;
                 }
+                case MicroInstrOpcode::LoadRegMem:
+                {
+                    // A read of the constant pool, reached from the
+                    // instruction pointer: it depends on no register and the
+                    // bytes never change, so remaking it costs one
+                    // instruction where a spill costs a store and a load. A
+                    // global is written, so only a constant qualifies.
+                    // ops: [0] dst, [1] base, [2] opBits, [3] offset
+                    if (!ops[1].reg.isInstructionPointer())
+                        break;
+                    const auto found = relocationByInstruction.find(defRef.get());
+                    if (found == relocationByInstruction.end() || found->second->kind != MicroRelocation::Kind::ConstantAddress)
+                        break;
+                    recipe.op         = MicroInstrOpcode::LoadRegMem;
+                    recipe.bits       = ops[2].opBits;
+                    recipe.relocation = *found->second;
+                    recipe.relocated  = true;
+                    recipe.valid      = true;
+                    break;
+                }
                 default:
                     break;
             }
@@ -1938,15 +1958,26 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 const RematRecipe& recipe = remat[connector.denseIndex];
                 pendingInst.op            = recipe.op;
                 pendingInst.ops[0].reg    = connector.dst;
-                pendingInst.ops[1].opBits = recipe.bits;
-                if (recipe.op == MicroInstrOpcode::ClearReg)
+                if (recipe.op == MicroInstrOpcode::LoadRegMem)
                 {
-                    pendingInst.numOps = 2;
+                    // The displacement stays at zero: the relocation the
+                    // insertion binds to this instruction is what names the
+                    // constant.
+                    pendingInst.numOps          = 4;
+                    pendingInst.ops[1].reg      = MicroReg::instructionPointer();
+                    pendingInst.ops[2].opBits   = recipe.bits;
+                    pendingInst.ops[3].valueU64 = 0;
+                }
+                else if (recipe.op == MicroInstrOpcode::ClearReg)
+                {
+                    pendingInst.numOps        = 2;
+                    pendingInst.ops[1].opBits = recipe.bits;
                 }
                 else
                 {
-                    pendingInst.numOps = 3;
-                    pendingInst.ops[2] = recipe.immediate;
+                    pendingInst.numOps        = 3;
+                    pendingInst.ops[1].opBits = recipe.bits;
+                    pendingInst.ops[2]        = recipe.immediate;
                 }
                 if (recipe.relocated)
                 {

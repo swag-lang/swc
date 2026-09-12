@@ -114,6 +114,28 @@ block, and the hot path keeps the register.
   remains, with any surviving cause reduced to one actionable change.
 - Related: compiler.optimization.005, compiler.optimization.024.
 
+### compiler.optimization.036 — A constant offset ahead of an indexed access is not folded into it
+
+- Recorded: 2026-09-12 13:05
+- Area: compiler/backend
+- Evidence, read from LLVM's output on the H.264 CABAC residual parser (clang-cl /O2 /arch:AVX on
+  the same algorithm, scratch `cabacres/resbench.c`): clang reads the context array with one
+  operand, `movzx r11d, byte ptr [rdx + r8]`, where Swag computes the array's address first,
+  `lea rcx, [r10 + 0x98]`, and then indexes it. `tryFoldLeaConstIntoAmcIndex` folds such an offset
+  into the *index* of an indexed access; nothing folds it into the *base*.
+- Attempted 2026-09-12, reverted: `tryFoldLeaConstIntoAmcBase`, refusing a frame-derived base and
+  an address with more than one reader, and erasing the folded computation. It pays where it was
+  read from - the five residual parsers 3563 to 3536 instructions and 264 to 240 frame accesses,
+  `bookkeepMb` 590 to 574, `parseResidualCabac` 243 to 229 - and `intraPredict8x8` pays for all of
+  it: 927 to 1083 instructions and 340 to 452 memory operands, fifty more address computations and
+  the spills they cost. Narrowing the rule to reads, or to stores, or off the address-computation
+  form, moves nothing: the regression follows the reads of the predictor's own reference arrays,
+  which are frame locals, though `isFrameDerivedAddress` answers for their base.
+- Next: reduce the predictor's regression to a probe and find why folding the offset of a frame
+  array into its reads costs a sixth of the function, before re-enabling the rule. The suspicion is
+  that slot promotion or the vectorizer recognizes the array by the shape of its address.
+- Complete when: the fold lands with the CABAC gain and no kernel regression.
+
 ### compiler.optimization.035 — Legalization cannot stage a value without a free register
 
 - Recorded: 2026-09-12 11:40

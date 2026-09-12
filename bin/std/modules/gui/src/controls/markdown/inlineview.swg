@@ -629,8 +629,9 @@ impl InlineView
 
     mtd fontStyle(flags: InlineFlags)->FontFamilyStyle
     {
-        let bold   = flags.has(.Bold) or .kind >= .Heading1 and .kind <= .Heading6
-        let italic = flags.has(.Italic) or .kind == .Quote
+        let base   = .kind >= .Heading1 and .kind <= .Heading6 ? .owner.documentStyle.headingFontStyles[cast(u32) .kind - cast(u32) BlockKind.Heading1] : FontFamilyStyle.Regular
+        let bold   = flags.has(.Bold) or base == .Bold or base == .BoldItalic
+        let italic = flags.has(.Italic) or .kind == .Quote or base == .Italic or base == .BoldItalic
         if bold and italic do
             return .BoldItalic
         if bold do
@@ -645,8 +646,8 @@ impl InlineView
         let style = .fontStyle(atom.flags)
         let size  = atom.flags.has(.Subscript) or atom.flags.has(.Superscript) ? Math.max(.fontSize() * 3 / 4, 8) : .fontSize()
         if atom.flags.has(.Code) or .kind == .Code or .kind == .Table or .kind == .Metadata do
-            return .theme().createDefaultFontFS(size, style)
-        return .theme().createDefaultFont(size, style)
+            return .owner.documentFont(.Code, size, style)
+        return .owner.documentFont(.kind, size, style)
     }
 
     mtd measureAtom(atom: *InlineAtom, availableWidth = 0'f32)
@@ -671,7 +672,7 @@ impl InlineView
         {
             var options: MathLayoutOptions
             options.style = .Text
-            let metrics = atom.expression.measure(.theme().createDefaultFont(.fontSize()), options)
+            let metrics = atom.expression.measure(.owner.documentFont(.kind, .fontSize()), options)
             atom.position.width  = metrics.width
             atom.position.height = metrics.height()
             atom.ascent          = metrics.ascent
@@ -713,7 +714,7 @@ impl InlineView
     mtd finishLine(first, last: u64, top, left, right: f32, wrapped: bool)->f32
     {
         if first >= last do
-            return .theme().createDefaultFont(.fontSize()).height * .owner.documentStyle.lineHeight
+            return .owner.documentFont(.kind, .fontSize()).height * .owner.documentStyle.lineHeight
 
         var ascent:  f32
         var descent: f32
@@ -724,7 +725,7 @@ impl InlineView
         }
 
         let natural   = ascent + descent
-        let line      = Math.max(natural, .theme().createDefaultFont(.fontSize()).height * .owner.documentStyle.lineHeight)
+        let line      = Math.max(natural, .owner.documentFont(.kind, .fontSize()).height * .owner.documentStyle.lineHeight)
         let offset    = (line - natural) * 0.5
         var lineRight = left
         for index in first until last where .atoms[index].visible do
@@ -1356,7 +1357,7 @@ impl IWnd for InlineView
             {
                 var options: MathLayoutOptions
                 options.style = .Text
-                painter.drawMath(atom.position.x, atom.position.y, &atom.expression, .theme().createDefaultFont(.fontSize()), color, options)
+                painter.drawMath(atom.position.x, atom.position.y, &atom.expression, .owner.documentFont(.kind, .fontSize()), color, options)
             }
             else
             {

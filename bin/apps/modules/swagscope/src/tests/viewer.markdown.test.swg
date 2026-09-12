@@ -3,6 +3,28 @@
 
 using Core, Pixel, Gui, Gui.Testing
 
+// A missing optional family must fall back without installing or loading an application asset.
+#test
+{
+    let absent = markdownSystemFaces(["Swag Scope unavailable font family 794501"])
+    for face in absent do
+        Swag.assert(face == null)
+    let absentAgain = markdownSystemFaces(["Swag Scope unavailable font family 794501"])
+    Swag.assert(absent == absentAgain)
+
+    #static if #os == Swag.TargetOs.Windows
+    {
+        let installed = FontFamily.enumerateSystemFonts()
+        if not installed.isEmpty()
+        {
+            let name     = installed[0].name.toString()
+            let direct   = markdownSystemFaces([name])
+            let fallback = markdownSystemFaces(["Swag Scope unavailable font family 794501", name])
+            Swag.assert(direct == fallback)
+        }
+    }
+}
+
 // Full-screen reading reaches every edge; transient controls never resize the document.
 #[Swag.TestTag("golden")]
 #test

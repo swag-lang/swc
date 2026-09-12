@@ -2,6 +2,32 @@
 
 using Core, Pixel
 
+// Typeface overrides affect measured text and survive a zoom; empty slots resume the GUI font.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 400)
+    defer host.shutdown()
+    let view   = Markdown.View.createText(&host.root, "iiii WWWW")
+    let inline = view.blocks[0].inline!
+    discard inline.layout(600)
+    let original = inline.atoms[0].position.width
+    var style    = Markdown.Style.theme()
+    style.bodyTypeFaces[0] = host.theme.res.defaultFsTypeFaceR
+    view.setDocumentStyle(style)
+    discard inline.layout(600)
+    let mono = inline.atoms[0].position.width
+    Swag.assert(mono > original)
+    style.bodyFontSize *= 2
+    view.setDocumentStyle(style)
+    discard inline.layout(600)
+    Swag.assert(inline.atoms[0].position.width > mono * 1.8)
+    view.setDocumentStyle(Markdown.Style.theme())
+    discard inline.layout(600)
+    Swag.assert(inline.atoms[0].position.width == original)
+    Swag.assert(Markdown.renderInline("word&nbsp;!") == "word\u00A0!")
+}
+
 // Styling boundaries are not word boundaries, even when only the punctuation would overflow.
 #test
 {

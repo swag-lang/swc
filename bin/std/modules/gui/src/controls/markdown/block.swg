@@ -365,6 +365,7 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                     let tag = document.constNode(node.element).tag
                     if tag != .Div and tag != .Figure and tag != .Section do
                         markdownContainer = false
+
                     // Styled or hidden containers must retain their HTML cascade and visibility.
                     for attribute in document.attributes(node.element) where document.text(attribute.name) != "align" do
                         markdownContainer = false

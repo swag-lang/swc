@@ -30,6 +30,8 @@ func markdownViewerPlugin()->Viewer.Plugin
 internal func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
 {
     var result = Markdown.Style.theme()
+    if themeIndex do
+        result.codeTypeFaces = markdownSystemFaces(["Consolas", "Menlo", "Monaco"])
     switch themeIndex
     {
     // The application's own theme and Whitey set their body column flush on both edges. The four
@@ -38,7 +40,11 @@ internal func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
     case 0:
         result.paragraphAlignment = .Justify
 
+    case 1:
+        result.bodyTypeFaces = markdownSystemFaces(["Open Sans", "Clear Sans", "Helvetica Neue", "Helvetica", "Arial"])
+
     case 2:
+        result.bodyTypeFaces    = markdownSystemFaces(["PT Serif", "Times New Roman", "Times"])
         result.maxContentWidth  = 640
         result.horizontalInset  = 40
         result.topInset         = 48
@@ -50,6 +56,8 @@ internal func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.lineHeight       = 1.5
 
     case 3:
+        result.bodyTypeFaces    = markdownSystemFaces(["Helvetica Neue", "Helvetica", "Arial"])
+        result.headingTypeFaces = markdownSystemFaces(["Lucida Grande", "Corbel"])
         result.maxContentWidth  = 914
         result.horizontalInset  = 48
         result.topInset         = 42
@@ -62,6 +70,9 @@ internal func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.lineHeight       = 1.625
 
     case 4:
+        result.bodyTypeFaces    = markdownSystemFaces(["Merriweather", "PT Serif", "Georgia", "Times New Roman"])
+        result.headingTypeFaces = markdownSystemFaces(["Lato", "Helvetica Neue", "Helvetica", "Arial"])
+        result.codeTypeFaces    = markdownSystemFaces(["Menlo", "Monaco", "Courier New"])
         result.maxContentWidth  = 914
         result.horizontalInset  = 48
         result.topInset         = 32
@@ -78,6 +89,8 @@ internal func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.lineHeight       = 1.8
 
     case 5:
+        result.bodyTypeFaces      = markdownSystemFaces(["Vollkorn", "Palatino", "Palatino Linotype", "Times", "Times New Roman"])
+        result.headingFontStyles  = [.Regular, .Regular, .Italic, .Bold, .Bold, .Bold]
         result.maxContentWidth    = 960
         result.horizontalInset    = 52
         result.topInset           = 40
@@ -85,7 +98,7 @@ internal func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.bodyFontSize       = 19
         result.codeFontSize       = 17
         result.mathFontSize       = 25
-        result.heading1FontSize   = 48
+        result.heading1FontSize   = 57
         result.heading2FontSize   = 30
         result.heading3FontSize   = 23
         result.heading4FontSize   = 20

@@ -21,9 +21,8 @@ private const SeekBlockBudget = 64'u32
 
 // Controls the reading measure and typography of a [[Gui.Markdown.View]].
 //
-// Colors and font faces resolve from the window's active [[Gui.Theme]], including local
-// theme-sheet overrides, so a document can follow either an application palette or a document
-// theme.
+// Colors resolve from the active [[Gui.Theme]], including local theme-sheet overrides.
+// Optional typefaces give a document its own typography without changing application chrome.
 struct Style
 {
     public
@@ -53,6 +52,16 @@ struct Style
         // ragged rather than pulled apart. Headings, lists, quotes, tables and code are never
         // justified.
         paragraphAlignment: StringHorzAlignment = .Left
+
+        // Optional body faces indexed by [[Pixel.FontFamilyStyle]].
+        //
+        // All face arrays borrow from Pixel's process-wide typeface cache.
+        // A missing body or code slot uses the corresponding GUI theme face;
+        // a missing heading slot uses the body face. Sizes remain controlled by this style.
+        bodyTypeFaces:     [FontFamilyStyle.count] (*TypeFace?)
+        headingTypeFaces:  [FontFamilyStyle.count] (*TypeFace?)                                 // Heading faces, with body-face fallback.
+        codeTypeFaces:     [FontFamilyStyle.count] (*TypeFace?)                                 // Code faces, with fixed-width theme fallback.
+        headingFontStyles: [6] FontFamilyStyle = [.Bold, .Bold, .Bold, .Bold, .Bold, .Bold]     // Base style for heading levels one through six.
     }
 }
 
@@ -94,7 +103,8 @@ struct SelectionPoint
 //
 // [[Gui.Markdown.View.createText]] renders in-memory source, while
 // [[Gui.Markdown.View.createFile]] streams a file without tying the renderer to an application.
-// Block and inline mathematics use [[Pixel.MathExpression]] and the active theme font.
+// Mathematics use [[Pixel.MathExpression]]. Inline mathematics follow the document font;
+// display mathematics use the active theme font.
 struct View
 {
     public
@@ -172,6 +182,9 @@ struct View
 private func applyThemeColors(wnd: *Wnd, colors: string)
 {
     wnd.style.setStyleSheetColors(colors)
+
+    // Embedded HTML resolves its own cascade before the next paint computes dirty window styles.
+    wnd.computeStyle()
     for child in wnd.children do
         applyThemeColors(child, colors)
 }
@@ -469,6 +482,7 @@ private impl View
                 applyThemeColors(visual.wnd, .documentThemeColors.toString())
                 html.setDocumentStyle(htmlStyle(.documentStyle))
             }
+
             .blocks.add(visual)
             let geometry = .documentGeometry()
             .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
@@ -1021,7 +1035,7 @@ private impl View
 
         // Arrow navigation advances by the same minimum line height used by body text. Page
         // navigation remains viewport-relative in handleDocumentKey.
-        .scroll.verticalScrollStep = .theme().createDefaultFont(.documentStyle.bodyFontSize).height * .documentStyle.lineHeight
+        .scroll.verticalScrollStep = .documentFont(.Paragraph, .documentStyle.bodyFontSize).height * .documentStyle.lineHeight
         for &block in .blocks
         {
             if block.inline
@@ -1033,8 +1047,13 @@ private impl View
                     block.inline.horizontalAlignment = .documentStyle.paragraphAlignment
             }
 
-            if block.table do
+            if block.table
+            {
                 block.table.layoutWidth = 0
+                for &cell in block.table.cells do
+                    cell.view.layoutWidth = 0
+            }
+
             if block.html do
                 block.html.setDocumentStyle(htmlStyle(.documentStyle))
         }
@@ -1043,6 +1062,30 @@ private impl View
 
         .scheduleMore()
         .invalidate()
+    }
+}
+
+internal impl View
+{
+    mtd documentFont(kind: BlockKind, size: u32, style = FontFamilyStyle.Regular)->*Font
+    {
+        let slot = cast(u32) style
+        if kind == .Code or kind == .Table or kind == .Metadata
+        {
+            if let face = .documentStyle.codeTypeFaces[slot] do
+                return .theme().fonts.createFont(face, size)
+            return .theme().createDefaultFontFS(size, style)
+        }
+
+        if kind >= .Heading1 and kind <= .Heading6
+        {
+            if let face = .documentStyle.headingTypeFaces[slot] do
+                return .theme().fonts.createFont(face, size)
+        }
+
+        if let face = .documentStyle.bodyTypeFaces[slot] do
+            return .theme().fonts.createFont(face, size)
+        return .theme().createDefaultFont(size, style)
     }
 }
 
@@ -1062,7 +1105,7 @@ impl View
         result.scroll = Wnd.create'ScrollWnd(result, "", {})
         result.scroll.dockStyle = .Center
         result.scroll.updateFlags(.DisableHorizontal)
-        result.scroll.verticalScrollStep       = result.theme().createDefaultFont(documentStyle.bodyFontSize).height * documentStyle.lineHeight
+        result.scroll.verticalScrollStep       = result.documentFont(.Paragraph, documentStyle.bodyFontSize).height * documentStyle.lineHeight
         result.body = result.scroll.createView'Wnd()
         result.body.backgroundStyle            = .View
         result.scroll.sigScrollPositionChanged += func|view = result|(scroll, oldPosition, newPosition)
@@ -1230,7 +1273,7 @@ impl View
         return result
     }
 
-    // Replaces the document metrics while keeping colors and font faces bound to the active theme.
+    // Replaces the document metrics and optional typefaces while keeping the active colors.
     mtd setDocumentStyle(documentStyle: Style)
     {
         .documentStyle = documentStyle

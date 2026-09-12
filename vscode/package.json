@@ -10,6 +10,9 @@
     "type": "git",
     "url": "https://github.com/swag-lang/swc"
   },
+  "vsce": {
+    "baseImagesUrl": "https://github.com/swag-lang/swc/raw/HEAD/vscode"
+  },
   "engines": {
     "vscode": "^1.41.0"
   },

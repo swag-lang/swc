@@ -794,7 +794,7 @@ private impl AacCodec
         let globalGain = cast(s32) reader.get(8)
         let value      = &.ics[channel]
         if not commonWindow do
-            .parseIcsInfo(reader, value)
+            try .parseIcsInfo(reader, value)
         let bandCount = value.windowSequence == 2 ? value.numWindowGroups * value.maxSfb : value.maxSfb
         if bandCount > MaxBands do
             fail InvalidFormatError{"AAC scalefactor-band count is too large"}
@@ -832,16 +832,16 @@ private impl AacCodec
             }
         }
 
-        .decodeScaleFactors(reader, channel, bandCount, globalGain)
+        try .decodeScaleFactors(reader, channel, bandCount, globalGain)
         if reader.get1() do
             fail UnsupportedFormatError{"AAC pulse data is not supported"}
         if reader.get1() do
-            .decodeTns(reader, channel)
+            try .decodeTns(reader, channel)
         else do
             Memory.set(&.tnsFilterCount[channel, 0], 0, #sizeof(.tnsFilterCount[0]))
         if reader.get1() do
             fail UnsupportedFormatError{"AAC gain control is not supported by the Low Complexity profile"}
-        .decodeSpectral(reader, channel, bandCount)
+        try .decodeSpectral(reader, channel, bandCount)
     }
 
     mtd applyStereoPair(left: s32)
@@ -977,7 +977,7 @@ private impl AacCodec
                 if commonWindow
                 {
                     var shared: Ics
-                    .parseIcsInfo(&reader, &shared)
+                    try .parseIcsInfo(&reader, &shared)
                     let msMaskPresent = cast(s32) reader.get(2)
                     if msMaskPresent == 3 do
                         fail InvalidFormatError{"AAC M/S mask mode is reserved"}
@@ -1001,7 +1001,7 @@ private impl AacCodec
                 for channelOffset in elementCount
                 {
                     let channel = decodedChannels + channelOffset
-                    .decodeChannel(&reader, channel, commonWindow)
+                    try .decodeChannel(&reader, channel, commonWindow)
                 }
 
                 if isPair do
@@ -1076,7 +1076,7 @@ impl IPacketCodec for AacCodec
         let required = cast(u64) FrameSamples * cast(u64) .channels * #sizeof(s16)
         if destinationSize < required do
             fail BadParameterError{"AAC destination buffer is too small"}
-        .decodeRaw(packet, cast([*] s16) destination)
+        try .decodeRaw(packet, cast([*] s16) destination)
         return required
     }
 }

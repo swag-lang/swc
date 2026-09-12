@@ -250,7 +250,7 @@ impl Decoder
         let levels = Math.max(readU32(buffer.buffer + 28), 1'u32)
         if levels > 32 do
             fail InvalidFormatError{"DDS mip count exceeds its dimensions"}
-        options.checkFrameCount(cast(u64) layers * faces.count * levels)
+        try options.checkFrameCount(cast(u64) layers * faces.count * levels)
         let baseWidth  = width
         let baseHeight = height
         var cursor     = offset
@@ -268,8 +268,8 @@ impl Decoder
                     let frameWidth  = Math.max(baseWidth >> level, 1'u32)
                     let frameHeight = Math.max(baseHeight >> level, 1'u32)
                     let slices      = Math.max(depth >> level, 1'u32)
-                    options.checkFrameCount(current + slices)
-                    options.checkImage(cast(s32) frameWidth, cast(s32) frameHeight, format)
+                    try options.checkFrameCount(current + slices)
+                    try options.checkImage(cast(s32) frameWidth, cast(s32) frameHeight, format)
                     let rowBytes      = directCopy ? cast(u64) frameWidth * format.bitsPerPixel() / 8 : (cast(u64) frameWidth * bits + 7) / 8
                     let declaredPitch = level == 0 ? cast(u64) readU32(buffer.buffer + 20) : 0
                     let pitch         = Math.max(rowBytes, declaredPitch)
@@ -328,7 +328,7 @@ impl Decoder
 impl IImageDecoder for Decoder
 {
     mtd impl format()->ImageFormat => {"DDS - DirectDraw Surface", ".dds"}
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => .decodeSurface(buffer, options)
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => try .decodeSurface(buffer, options)
 }
 
 impl IImageSetDecoder for Decoder
@@ -338,11 +338,11 @@ impl IImageSetDecoder for Decoder
         .bytes = buffer
         var probeOptions = options
         probeOptions.decodePixels = false
-        discard .decodeSurface(buffer, probeOptions, collect: true)
+        discard try .decodeSurface(buffer, probeOptions, collect: true)
         var result: retval
         result.frames = .frames
         return result
     }
 
-    mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail => .decodeSurface(.bytes!, options, index)
+    mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail => try .decodeSurface(.bytes!, options, index)
 }

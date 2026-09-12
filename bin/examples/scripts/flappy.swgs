@@ -475,24 +475,24 @@ func loadAssets(wnd: *Wnd) fail
     dataPath = Path.combine(dataPath, "flappy")
 
     // Load all sounds.
-    g_SoundDie   = Audio.SoundFile.load(Path.combine(dataPath, "die.wav"))
-    g_SoundScore = Audio.SoundFile.load(Path.combine(dataPath, "point.wav"))
-    g_SoundHit   = Audio.SoundFile.load(Path.combine(dataPath, "hit.wav"))
-    g_SoundFlap  = Audio.SoundFile.load(Path.combine(dataPath, "flap.wav"))
+    g_SoundDie   = try Audio.SoundFile.load(Path.combine(dataPath, "die.wav"))
+    g_SoundScore = try Audio.SoundFile.load(Path.combine(dataPath, "point.wav"))
+    g_SoundHit   = try Audio.SoundFile.load(Path.combine(dataPath, "hit.wav"))
+    g_SoundFlap  = try Audio.SoundFile.load(Path.combine(dataPath, "flap.wav"))
 
     // Load all textures through the application's selected renderer.
-    g_BirdTexture[0] = render.addImage(Path.combine(dataPath, "yellowbird-upflap.png"))
-    g_BirdTexture[1] = render.addImage(Path.combine(dataPath, "yellowbird-midflap.png"))
-    g_BirdTexture[2] = render.addImage(Path.combine(dataPath, "yellowbird-downflap.png"))
-    g_OverTexture    = render.addImage(Path.combine(dataPath, "gameover.png"))
-    g_BaseTexture    = render.addImage(Path.combine(dataPath, "base.png"))
-    g_BackTexture    = render.addImage(Path.combine(dataPath, "background-day.png"))
-    g_MsgTexture     = render.addImage(Path.combine(dataPath, "message.png"))
+    g_BirdTexture[0] = try render.addImage(Path.combine(dataPath, "yellowbird-upflap.png"))
+    g_BirdTexture[1] = try render.addImage(Path.combine(dataPath, "yellowbird-midflap.png"))
+    g_BirdTexture[2] = try render.addImage(Path.combine(dataPath, "yellowbird-downflap.png"))
+    g_OverTexture    = try render.addImage(Path.combine(dataPath, "gameover.png"))
+    g_BaseTexture    = try render.addImage(Path.combine(dataPath, "base.png"))
+    g_BackTexture    = try render.addImage(Path.combine(dataPath, "background-day.png"))
+    g_MsgTexture     = try render.addImage(Path.combine(dataPath, "message.png"))
 
-    var img = Image.load(Path.combine(dataPath, "pipe-green.png"))
+    var img = try Image.load(Path.combine(dataPath, "pipe-green.png"))
     g_PipeTextureD = render.addImage(img)
     img.flip()
     g_PipeTextureU = render.addImage(img)
 
-    g_Font = render.fontCache().createFont(Path.combine(dataPath, "FlappyBirdy.ttf"), 50)
+    g_Font = try render.fontCache().createFont(Path.combine(dataPath, "FlappyBirdy.ttf"), 50)
 }

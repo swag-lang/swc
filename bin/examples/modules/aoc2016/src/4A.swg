@@ -22,7 +22,7 @@ func day4A()
     expect
     {
         let dataPath = Path.combine(Path.directoryName(#file), "4.txt")
-        let lines    = File.readAllLines(dataPath)
+        let lines    = try File.readAllLines(dataPath)
 
         var total = 0's64
         for l in lines
@@ -36,7 +36,7 @@ func day4A()
                 idx += 1
             }
 
-            let res = StrConv.parseS64(l[idx to])
+            let res = try StrConv.parseS64(l[idx to])
             idx += res.eat
 
             var valid = true

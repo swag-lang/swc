@@ -126,12 +126,12 @@ impl Cursor
 
     private mtd readVint(limit: u64, maximum: u32, keepMarker: bool)->Vint fail
     {
-        let first  = .readByte(limit)
-        let width  = .vintWidth(first, maximum)
+        let first  = try .readByte(limit)
+        let width  = try .vintWidth(first, maximum)
         let marker = 0x80'u8 >> (width - 1)
         var value  = keepMarker ? cast(u64) first : cast(u64) (first & (marker - 1))
         for 1 until width do
-            value = (value << 8) | .readByte(limit)
+            value = (value << 8) | (try .readByte(limit))
         return {value, width}
     }
 
@@ -152,18 +152,18 @@ impl Cursor
     {
         if limit > (.bytes).count do
             fail InvalidFormatError{"Matroska parent element exceeds the stream size"}
-        let idVint = .readVint(limit, 4, true)
+        let idVint = try .readVint(limit, 4, true)
         if idVint.value > Swag.U32.Max do
             fail InvalidFormatError{"Matroska element identifier exceeds four bytes"}
 
-        let sizeFirst = .readByte(limit)
-        let sizeWidth = .vintWidth(sizeFirst, 8)
+        let sizeFirst = try .readByte(limit)
+        let sizeWidth = try .vintWidth(sizeFirst, 8)
         let marker    = 0x80'u8 >> (sizeWidth - 1)
         var size      = cast(u64) (sizeFirst & (marker - 1))
         var unknown   = size == cast(u64) marker - 1
         for 1 until sizeWidth
         {
-            let value = .readByte(limit)
+            let value = try .readByte(limit)
             size    = (size << 8) | value
             unknown = unknown and value == 0xFF
         }
@@ -181,10 +181,10 @@ impl Cursor
         let size = element.end - element.data
         if not size or size > 8 do
             fail InvalidFormatError{"Matroska integer needs between one and eight bytes"}
-        .seek(element.data)
+        try .seek(element.data)
         var result = 0'u64
         for size do
-            result = (result << 8) | .readByte(element.end)
+            result = (result << 8) | (try .readByte(element.end))
         return result
     }
 
@@ -194,10 +194,10 @@ impl Cursor
         let size = element.end - element.data
         if not size or size > 8 do
             fail InvalidFormatError{"Matroska integer needs between one and eight bytes"}
-        .seek(element.data)
+        try .seek(element.data)
         var result = 0'u64
         for size do
-            result = (result << 8) | .readByte(element.end)
+            result = (result << 8) | (try .readByte(element.end))
         let shift = cast(u32) (64 - 8 * size)
         return (cast #bit (s64) (result << shift)) >> shift
     }
@@ -206,12 +206,12 @@ impl Cursor
     mtd readFloat(element: Element)->f64 fail
     {
         let size = element.end - element.data
-        .seek(element.data)
+        try .seek(element.data)
         if size == 4
         {
             var bits = 0'u32
             for 4 do
-                bits = (bits << 8) | .readByte(element.end)
+                bits = (bits << 8) | (try .readByte(element.end))
             return cast(f64) cast #bit (f32) bits
         }
 
@@ -219,7 +219,7 @@ impl Cursor
         {
             var bits = 0'u64
             for 8 do
-                bits = (bits << 8) | .readByte(element.end)
+                bits = (bits << 8) | (try .readByte(element.end))
             return cast #bit (f64) bits
         }
 
@@ -234,7 +234,7 @@ impl Cursor
     // specification says to read the value as ending at the first of them.
     mtd readString(element: Element)->String fail
     {
-        .seek(element.end)
+        try .seek(element.end)
         var size = element.end - element.data
         while size and not .bytes[element.data + size - 1] do
             size -= 1
@@ -249,17 +249,17 @@ impl Cursor
         result.resize(size)
         if size do
             Memory.copy(result.storage(), (.bytes).buffer + element.data, size)
-        .seek(element.end)
+        try .seek(element.end)
         return result
     }
 
     // Reads a marker-stripped EBML variable-width value from the current position.
-    mtd readVintValue(limit: u64)->Vint fail => .readVint(limit, 8, false)
+    mtd readVintValue(limit: u64)->Vint fail => try .readVint(limit, 8, false)
 
     // Reads the signed delta used by EBML lacing.
     mtd readSignedVint(limit: u64)->s64 fail
     {
-        let encoded = .readVint(limit, 8, false)
+        let encoded = try .readVint(limit, 8, false)
         let bits    = encoded.width * 7
         let bias    = cast(s64) ((1'u64 << (bits - 1)) - 1)
         return cast(s64) encoded.value - bias

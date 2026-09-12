@@ -341,16 +341,16 @@ impl Ledger
 
 // Block-level catch: multiple failing calls under a single boundary.
 // The block aborts on the first failure; later statements are skipped.
-#test
+func verifyBlockCatch()
 {
     var ledger: Ledger
     ledger.reset()
 
     catch
     {
-        ledger.deposit(0, 200)
-        ledger.deposit(1, 300)
-        ledger.withdraw(0, 50)
+        try ledger.deposit(0, 200)
+        try ledger.deposit(1, 300)
+        try ledger.withdraw(0, 50)
     } as errA
 
     Swag.assert(errA == null)
@@ -359,9 +359,9 @@ impl Ledger
 
     catch
     {
-        ledger.deposit(0, 100)
-        ledger.withdraw(5, 999)
-        ledger.deposit(1, 100)
+        try ledger.deposit(0, 100)
+        try ledger.withdraw(5, 999)
+        try ledger.deposit(1, 100)
     } as errB
 
     Swag.assert(errB != null)
@@ -369,4 +369,9 @@ impl Ledger
     Swag.assert(ev.kind == .InsufficientFunds)
     Swag.assert(ledger.accounts[0].balance == 250)
     Swag.assert(ledger.accounts[1].balance == 300)
+}
+
+#test
+{
+    verifyBlockCatch()
 }

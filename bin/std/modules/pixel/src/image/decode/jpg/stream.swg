@@ -181,19 +181,19 @@ impl Decoder
                 fail UnsupportedFormatError{"no arithmetic support"}
 
             case .M_DHT:
-                .readDhtMarker()
+                try .readDhtMarker()
 
             case .M_DQT:
-                .readDqtMarker()
+                try .readDqtMarker()
 
             case .M_DRI:
-                .readDriMarker()
+                try .readDriMarker()
 
             default:
                 if cast(u32) c & cast(u32) M_APP0 == cast(u32) M_APP0 do
-                    .readAppMarker(c)
+                    try .readAppMarker(c)
                 else do
-                    .readVariableMarker(c)
+                    try .readVariableMarker(c)
             }
         }
 
@@ -435,12 +435,12 @@ impl Decoder
 
     mtd locateSosMarker()->bool fail
     {
-        let c = .processMarkers()
+        let c = try .processMarkers()
         if c == .M_EOI do
             return false
         elif c != .M_SOS do
             fail InvalidFormatError{"unexpected marker"}
-        .readSosMarker()
+        try .readSosMarker()
         return true
     }
 
@@ -469,8 +469,8 @@ impl Decoder
 
     mtd locateSofMarker() fail
     {
-        .locateSoiMarker()
-        let c = .processMarkers()
+        try .locateSoiMarker()
+        let c = try .processMarkers()
         switch c
         {
         case .M_SOF2:
@@ -478,7 +478,7 @@ impl Decoder
             try .readSofMarker()
 
         case .M_SOF0, .M_SOF1:
-            .readSofMarker()
+            try .readSofMarker()
 
         case .M_SOF9:
             fail UnsupportedFormatError{"no arithmetic support"}

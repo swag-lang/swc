@@ -75,7 +75,7 @@ impl Encoder
             if .subimage[i].width == 0 or .subimage[i].height == 0 do
                 continue
 
-            .subimage[i].scanlineWidth = .calculateScanlineWidth(.subimage[i].width)
+            .subimage[i].scanlineWidth = try .calculateScanlineWidth(.subimage[i].width)
             if .subimage[.widestPass].scanlineWidth < .subimage[i].scanlineWidth do
                 .widestPass = i
             .lastPass = i
@@ -85,7 +85,7 @@ impl Encoder
     mtd finishIDat() fail
     {
         var zlib: Compress.ZLib
-        let cmp = zlib.compress(.bufferToCompress.toSlice(), .userOptions.compressionLevel)
+        let cmp = try zlib.compress(.bufferToCompress.toSlice(), .userOptions.compressionLevel)
 
         .writePtr = .writeHeader(TypeIDat, cmp.count)
         Memory.copy(.writePtr, cmp.buffer, cmp.count)
@@ -104,7 +104,7 @@ impl Encoder
         let pass = .rowInfo.pass
 
         if not .ihdr.interlaceMethod or pass == 6 do
-            return .encodeScanLine(row)
+            return try .encodeScanLine(row)
 
         let bitDepth = .ihdr.bitDepth
         if bitDepth < 8
@@ -139,7 +139,7 @@ impl Encoder
                 }
             }
 
-            return .encodeScanLine(cast([*] u8) scanline)
+            return try .encodeScanLine(cast([*] u8) scanline)
         }
 
         for k in .subimage[pass].width
@@ -169,7 +169,7 @@ impl Encoder
             }
         }
 
-        return .encodeScanLine(cast([*] u8) .scanline!)
+        return try .encodeScanLine(cast([*] u8) .scanline!)
     }
 
     mtd encodeScanLine(sl: [*] u8)->bool fail
@@ -232,12 +232,12 @@ impl Encoder
         if filter != .None do
             .filterScanline(filtered_sl, scanlineWidth - 1, filter)
 
-        .writeIDatBytes(filtered_sl - 1, scanlineWidth)
+        try .writeIDatBytes(filtered_sl - 1, scanlineWidth)
 
         swap(&.prevScanline, &.scanline)
         if .updateRowInfo()
         {
-            .finishIDat()
+            try .finishIDat()
             return true
         }
 

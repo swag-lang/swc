@@ -121,7 +121,7 @@ impl AvcStream
         if not config.count do
             fail InvalidFormatError{"H.264 track has no decoder configuration"}
         for &decoder in .decoders do
-            decoder.configure(config)
+            try decoder.configure(config)
 
         .laneCount = Math.max(1'u32, Math.min(Swag.workerCount(), AvcMaxFrameThreads))
         let sps = .decoders[0].firstSps()
@@ -140,7 +140,7 @@ impl AvcStream
         if laneBytes do
             .laneCount = Math.max(1'u32, Math.min(.laneCount, cast(u32) Math.max(AvcLaneMemoryBudget / laneBytes, 1'u64)))
 
-        .installFrames(#move frames)
+        try .installFrames(#move frames)
     }
 
     // Replaces the container window while retaining the configured decoder contexts.
@@ -159,7 +159,7 @@ impl AvcStream
         .decodeLimit = Swag.U64.Max
         .reachedEnd  = false
         .positioned  = false
-        .installFrames(#move frames)
+        try .installFrames(#move frames)
     }
 
     private mtd installFrames(frames: Array'SampleEntry) fail
@@ -454,8 +454,8 @@ impl AvcStream
             let frameThread = &.frameThreads[lane]
             frameThread.wake.init(false)
             frameThread.done.init(true)
-            frameThread.thread.init(&runAvcFrameThread, frameThread, priority: .BelowNormal)
-            frameThread.thread.start()
+            try frameThread.thread.init(&runAvcFrameThread, frameThread, priority: .BelowNormal)
+            try frameThread.thread.start()
         }
 
         .threadsStarted = true
@@ -533,7 +533,7 @@ impl AvcStream
         while .nextDecode < .frames.count and .nextDecode < .decodeLimit
         {
             let entry = .frames[.nextDecode]
-            readStoredFrame(source, entry, .prefix.toSlice(), payload)
+            try readStoredFrame(source, entry, .prefix.toSlice(), payload)
 
             let rank = cast(u64) .rankOfSample[.nextDecode]
             .nextDecode += 1
@@ -570,7 +570,7 @@ impl AvcStream
     // Keeps every automatic frame context busy.
     private mtd fillFrameThreads(source: *ByteSource) fail
     {
-        .ensureFrameThreads()
+        try .ensureFrameThreads()
         while .threadedCount < .laneCount and not .reachedEnd
         {
             if not try .startFrame(source) do
@@ -581,7 +581,7 @@ impl AvcStream
     // Joins the oldest frame thread and immediately reuses its context for future setup.
     mtd decodeStoredSample(source: *ByteSource)->DecodedAvcSample fail
     {
-        .fillFrameThreads(source)
+        try .fillFrameThreads(source)
         if .threadedCount == 0 do
             fail InvalidFormatError{"H.264 stream ends before the requested frame"}
 
@@ -599,7 +599,7 @@ impl AvcStream
         let frame = frameThread.frame
         frameThread.frame = null
         .laneStates[threaded.lane] = .Free
-        .fillFrameThreads(source)
+        try .fillFrameThreads(source)
         return {frame, threaded.rank}
     }
 

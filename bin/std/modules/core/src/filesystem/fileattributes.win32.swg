@@ -50,6 +50,6 @@ func attributes(fullName: string)->FileAttributes fail
 {
     let winPath    = Utf16.toZeroTerminated(fullName)
     let attributes = catch GetFileAttributesW(winPath.buffer) as err
-    Errors.transformWinErrors(err)
+    try Errors.transformWinErrors(err)
     return FileAttributes.fromDWORD(attributes)
 }

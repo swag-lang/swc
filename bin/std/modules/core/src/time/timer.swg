@@ -42,7 +42,7 @@ impl Timer
     func create(delay: Duration, callback: func(*Timer), periodic = false)->Timer fail
     {
         var result: retval
-        result.initialize(delay, callback, periodic)
+        try result.initialize(delay, callback, periodic)
         return result
     }
 
@@ -55,7 +55,7 @@ impl Timer
 
         .callback = callback
         .context  = Swag.getContext()[]
-        .handle   = createTimerNative(me, cast(u32) delayMs, periodic)
+        .handle   = try createTimerNative(me, cast(u32) delayMs, periodic)
     }
 
     // Stops the timer and waits for any active callback before returning.

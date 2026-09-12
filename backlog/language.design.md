@@ -318,20 +318,6 @@ ships; history lives in git, not here.
 - Complete when: mixed-signedness arithmetic has a recorded policy and its diagnostics, operator
   reference, compile-time behavior, checked-runtime behavior, and release behavior agree.
 
-### language.design.009 — The policy for implicit error propagation remains undecided
-
-- Recorded: 2026-09-06 07:51
-- Evidence: a `fail` function may call a fallible function without a written `try`;
-  `implicitTryCount` in
-  [013_001_error_management.swg](../bin/reference/modules/language/src/013_001_error_management.swg)
-  demonstrates and tests the documented behavior. Explicit `try` is also accepted.
-- Elsewhere: Swift marks potentially throwing calls with `try`
-  ([Swift error handling](https://raw.githubusercontent.com/swiftlang/swift-book/main/TSPL.docc/LanguageGuide/ErrorHandling.md)).
-- Next: measure implicit propagation sites under `bin/`, then decide whether the existing choice
-  of explicit or implicit propagation should stay or whether each call should require a marker.
-- Complete when: the propagation policy is recorded with its migration cost and reference and
-  compiler tests agree. The separate test-context alias is owned by language.design.030.
-
 ### language.design.030 — Inside `#test`, `try` means `expect`
 
 - Recorded: 2026-08-07 07:43
@@ -345,7 +331,6 @@ ships; history lives in git, not here.
   to the existing `expect` spelling. This decision can be made independently of implicit propagation.
 - Complete when: the chosen test-context rule is documented and focused tests distinguish the
   failure path in a test body from the same call in a fallible helper.
-- Related: language.design.009.
 
 ### language.design.010 — `catch` without a capture substitutes the type default and says nothing
 

@@ -190,8 +190,8 @@ func frameChunkId(index: u32, a, b: u32)->u32
 private func readChunk(source: *ByteSource, end: u64)->Chunk fail
 {
     var result: retval
-    result.id   = source.readLittleEndian'u32()
-    result.size = cast(u64) source.readLittleEndian'u32()
+    result.id   = try source.readLittleEndian'u32()
+    result.size = cast(u64) (try source.readLittleEndian'u32())
     result.data = source.position()
     if result.data > end or result.size > end - result.data do
         fail InvalidFormatError{"AVI chunk runs past the end of the stream"}
@@ -222,14 +222,14 @@ private impl Layout
     // Walks the top-level chunks of the file, keeping the ones a picture stream needs.
     mtd parse(source: *ByteSource) fail
     {
-        if source.readLittleEndian'u32() != RiffId do
+        if try source.readLittleEndian'u32() != RiffId do
             fail InvalidFormatError{"AVI stream is not a RIFF file"}
 
         // A capture interrupted before its header was patched leaves a size of zero behind, and a
         // size larger than the file means the same thing: the file itself is the bound.
-        let declared = cast(u64) source.readLittleEndian'u32()
+        let declared = cast(u64) (try source.readLittleEndian'u32())
         let end      = declared < FourCcSize ? source.size() : Math.min(source.size(), source.position() + declared)
-        if source.readLittleEndian'u32() != AviId do
+        if try source.readLittleEndian'u32() != AviId do
             fail InvalidFormatError{"RIFF stream does not hold an AVI file"}
 
         while source.position() + ChunkHeaderSize <= end
@@ -238,7 +238,7 @@ private impl Layout
             // era got it wrong by a few bytes often enough that a last chunk overruns it while
             // still lying inside the file. What the file holds is readable, so the file is what
             // bounds a chunk; the declared size only says how far to walk.
-            let chunk = readChunk(source, source.size())
+            let chunk = try readChunk(source, source.size())
             if chunk.id == IndexId
             {
                 .indexStart = chunk.data
@@ -246,10 +246,10 @@ private impl Layout
             }
             elif chunk.id == ListId and chunk.size >= FourCcSize
             {
-                switch source.readLittleEndian'u32()
+                switch try source.readLittleEndian'u32()
                 {
                 case HeaderListId:
-                    .parseHeaderList(source, chunk.next)
+                    try .parseHeaderList(source, chunk.next)
 
                 case FrameListId:
                     .frameList = chunk.data
@@ -257,7 +257,7 @@ private impl Layout
                 }
             }
 
-            source.seek(chunk.next)
+            try source.seek(chunk.next)
         }
     }
 
@@ -267,19 +267,19 @@ private impl Layout
         var index = 0'u32
         while source.position() + ChunkHeaderSize <= end
         {
-            let chunk = readChunk(source, end)
+            let chunk = try readChunk(source, end)
             if chunk.id == MainHeaderId and chunk.size >= #sizeof(MainHeader)
             {
-                .main    = source.readNative'MainHeader()
+                .main    = try source.readNative'MainHeader()
                 .hasMain = true
             }
-            elif chunk.id == ListId and chunk.size >= FourCcSize and source.readLittleEndian'u32() == StreamListId
+            elif chunk.id == ListId and chunk.size >= FourCcSize and (try source.readLittleEndian'u32()) == StreamListId
             {
-                .parseStreamList(source, chunk.next, index)
+                try .parseStreamList(source, chunk.next, index)
                 index += 1
             }
 
-            source.seek(chunk.next)
+            try source.seek(chunk.next)
         }
     }
 
@@ -292,10 +292,10 @@ private impl Layout
 
         while source.position() + ChunkHeaderSize <= end
         {
-            let chunk = readChunk(source, end)
+            let chunk = try readChunk(source, end)
             if chunk.id == StreamHeaderId and chunk.size >= #sizeof(StreamHeader)
             {
-                header    = source.readNative'StreamHeader()
+                header    = try source.readNative'StreamHeader()
                 hasHeader = true
             }
             elif chunk.id == StreamFormatId and hasHeader and not .hasStream and header.kind == VideoStreamId
@@ -303,14 +303,14 @@ private impl Layout
                 if chunk.size < #sizeof(Bmp.Header) do
                     fail UnsupportedFormatError{"AVI video stream is not described by a bitmap header"}
 
-                .format      = source.readNative'(Bmp.Header)()
+                .format      = try source.readNative'(Bmp.Header)()
                 .stream      = header
                 .streamIndex = index
                 .hasStream   = true
             }
             elif chunk.id == StreamFormatId and hasHeader and not hasAudio and header.kind == AudioStreamId and chunk.size >= #sizeof(AudioFormat)
             {
-                let format = source.readNative'AudioFormat()
+                let format = try source.readNative'AudioFormat()
                 if format.isPlayable()
                 {
                     .audioTracks.add({format, index})
@@ -318,7 +318,7 @@ private impl Layout
                 }
             }
 
-            source.seek(chunk.next)
+            try source.seek(chunk.next)
         }
     }
 
@@ -329,9 +329,9 @@ private impl Layout
     mtd const frameRate()->FrameRate fail
     {
         if .stream.scale and .stream.rate do
-            return FrameRate.create(.stream.rate, .stream.scale)
+            return try FrameRate.create(.stream.rate, .stream.scale)
         if .main.microSecPerFrame do
-            return FrameRate.create(1_000_000, .main.microSecPerFrame)
+            return try FrameRate.create(1_000_000, .main.microSecPerFrame)
         fail InvalidFormatError{"AVI stream declares no frame rate"}
     }
 }
@@ -401,7 +401,7 @@ impl IDecoder for Decoder
     mtd impl open(source: *ByteSource)->StreamInfo fail
     {
         var layout: Layout
-        layout.parse(source)
+        try layout.parse(source)
         if not layout.hasMain do
             fail InvalidFormatError{"AVI file has no main header"}
         if not layout.hasStream do
@@ -409,8 +409,8 @@ impl IDecoder for Decoder
         if not layout.frameList do
             fail InvalidFormatError{"AVI file has no frame list"}
 
-        .describeFrames(&layout)
-        .buildFrameTable(source, &layout)
+        try .describeFrames(&layout)
+        try .buildFrameTable(source, &layout)
         if not .frames.count do
             fail InvalidFormatError{"AVI video stream has no frame"}
 
@@ -418,7 +418,7 @@ impl IDecoder for Decoder
         .nextIndex       = 0
         if .isCoded do
             try .openPictures(source)
-        .buildSoundTracks(source, &layout)
+        try .buildSoundTracks(source, &layout)
         return .info
     }
 
@@ -451,19 +451,19 @@ impl IDecoder for Decoder
         }
 
         .nextIndex = NoFrameIndex
-        let entry = .frames[.resolveFrame(current)]
+        let entry = .frames[try .resolveFrame(current)]
         if entry.offset > source.size() or entry.size > source.size() - entry.offset do
             fail InvalidFormatError{"AVI frame payload is truncated"}
 
         if .payload.count != entry.size do
             .payload.resize(entry.size)
-        source.seek(entry.offset)
-        source.readExact(.payload.toSlice())
+        try source.seek(entry.offset)
+        try source.readExact(.payload.toSlice())
 
         if .isJpeg do
-            .decodeJpegFrame(target)
+            try .decodeJpegFrame(target)
         else do
-            .decodeBitmapFrame(target)
+            try .decodeBitmapFrame(target)
         .nextIndex = current + 1
     }
 }
@@ -516,11 +516,11 @@ private impl Decoder
                 continue
 
             var packets: Array'SoundPacket
-            .walkSoundPackets(source, layout, track, &packets)
+            try .walkSoundPackets(source, layout, track, &packets)
             if not packets.count do
                 continue
 
-            let sound = SoundFile.openPcmPacketStream(path, track.format.encoding(), track.format.sampleRate, track.format.channels, packets.toSlice())
+            let sound = try SoundFile.openPcmPacketStream(path, track.format.encoding(), track.format.sampleRate, track.format.channels, packets.toSlice())
             .soundTracks.add(#move sound)
         }
     }
@@ -532,8 +532,8 @@ private impl Decoder
         var position = layout.frameList + FourCcSize
         while position + ChunkHeaderSize <= layout.frameEnd
         {
-            source.seek(position)
-            let chunk = readChunk(source, layout.frameEnd)
+            try source.seek(position)
+            let chunk = try readChunk(source, layout.frameEnd)
             if chunk.id == audioId
             {
                 if chunk.size
@@ -547,7 +547,7 @@ private impl Decoder
                 continue
             }
 
-            let isGroup = chunk.id == ListId and chunk.size >= FourCcSize and source.readLittleEndian'u32() == RecordListId
+            let isGroup = chunk.id == ListId and chunk.size >= FourCcSize and (try source.readLittleEndian'u32()) == RecordListId
             position = isGroup ? chunk.data + FourCcSize : chunk.next
         }
     }
@@ -564,7 +564,7 @@ private impl Decoder
 
         .info.width     = width
         .info.height    = height
-        .info.frameRate = layout.frameRate()
+        .info.frameRate = try layout.frameRate()
 
         let compression = layout.format.biCompression
         if Slice.contains(MotionJpegIds, compression)
@@ -604,7 +604,7 @@ private impl Decoder
         if .readIndex(source, layout, dataId, compressedId) do
             return
 
-        .walkFrames(source, layout, dataId, compressedId)
+        try .walkFrames(source, layout, dataId, compressedId)
     }
 
     // Builds the frame table from the `idx1` chunk, and reports whether it produced one.
@@ -630,8 +630,8 @@ private impl Decoder
         var base = Swag.U64.Max
         for entry in layout.indexSize / IndexEntrySize
         {
-            source.seek(layout.indexStart + entry * IndexEntrySize)
-            let id = source.readLittleEndian'u32()
+            try source.seek(layout.indexStart + entry * IndexEntrySize)
+            let id = try source.readLittleEndian'u32()
             if id != dataId and id != compressedId
             {
                 // Interleaved audio, and the lists an OpenDML file wraps its frames in, are
@@ -639,11 +639,11 @@ private impl Decoder
                 continue
             }
 
-            let flags  = source.readLittleEndian'u32()
-            let offset = cast(u64) source.readLittleEndian'u32()
-            let size   = cast(u64) source.readLittleEndian'u32()
+            let flags  = try source.readLittleEndian'u32()
+            let offset = cast(u64) (try source.readLittleEndian'u32())
+            let size   = cast(u64) (try source.readLittleEndian'u32())
             if base == Swag.U64.Max do
-                base = probeIndexBase(source, layout, id, offset)
+                base = try probeIndexBase(source, layout, id, offset)
 
             let start = base + offset + ChunkHeaderSize
             if start > source.size() or size > source.size() - start do
@@ -662,8 +662,8 @@ private impl Decoder
         var position = layout.frameList + FourCcSize
         while position + ChunkHeaderSize <= layout.frameEnd
         {
-            source.seek(position)
-            let chunk = readChunk(source, layout.frameEnd)
+            try source.seek(position)
+            let chunk = try readChunk(source, layout.frameEnd)
             if chunk.id == dataId or chunk.id == compressedId
             {
                 .frames.add({chunk.data, chunk.size, .frames.count == 0})
@@ -674,7 +674,7 @@ private impl Decoder
             // An OpenDML file groups its frames into `rec ` lists, one level below the frame
             // list; descending into one reaches the frames it holds without a second walk. Any
             // other list is skipped rather than entered, since its content is not chunks.
-            let isGroup = chunk.id == ListId and chunk.size >= FourCcSize and source.readLittleEndian'u32() == RecordListId
+            let isGroup = chunk.id == ListId and chunk.size >= FourCcSize and (try source.readLittleEndian'u32()) == RecordListId
             position = isGroup ? chunk.data + FourCcSize : chunk.next
         }
     }
@@ -708,8 +708,8 @@ private impl Decoder
         if first.size > source.size() or first.offset > source.size() - first.size do
             fail InvalidFormatError{"AVI frame payload is truncated"}
         .payload.resize(first.size)
-        source.seek(first.offset)
-        source.readExact(.payload.toSlice())
+        try source.seek(first.offset)
+        try source.readExact(.payload.toSlice())
 
         try .pictures.open(PictureMpeg4, Video.inlineSetupHeaders(.payload.toSlice()), samples.toSlice(), Video.storedNothing())
         .info.width  = .pictures.width()
@@ -738,7 +738,7 @@ private impl Decoder
     // Decodes one Motion JPEG frame, which is a complete JPEG image.
     mtd decodeJpegFrame(target: *Image) fail
     {
-        var decoded = Image.decode(JpegName, .payload.toSlice())
+        var decoded = try Image.decode(JpegName, .payload.toSlice())
         if decoded.width != .info.width or decoded.height != .info.height do
             fail InvalidFormatError{"AVI frame does not have the dimensions its stream declares"}
 
@@ -809,6 +809,6 @@ private func matchesChunkId(source: *ByteSource, offset: u64, id: u32)->bool
 // Returns the identifier of the chunk header at `offset`.
 private func readChunkIdAt(source: *ByteSource, offset: u64)->u32 fail
 {
-    source.seek(offset)
-    return source.readLittleEndian'u32()
+    try source.seek(offset)
+    return try source.readLittleEndian'u32()
 }

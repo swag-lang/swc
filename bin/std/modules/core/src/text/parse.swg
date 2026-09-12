@@ -430,7 +430,7 @@ func parseString(str: string)->{ value: String, eat: u32 } fail
 // Transform a string to an 's8'
 func toS8(str: string)->s8 fail
 {
-    let {v, eat, ovf} = parseS8(str)
+    let {v, eat, ovf} = try parseS8(str)
     if ovf do
         fail OverflowError{}
     if eat != str.count do
@@ -441,7 +441,7 @@ func toS8(str: string)->s8 fail
 // Transform a string to an 's16'
 func toS16(str: string)->s16 fail
 {
-    let {v, eat, ovf} = parseS16(str)
+    let {v, eat, ovf} = try parseS16(str)
     if ovf do
         fail OverflowError{}
     if eat != str.count do
@@ -452,7 +452,7 @@ func toS16(str: string)->s16 fail
 // Transform a string to an 's32'
 func toS32(str: string)->s32 fail
 {
-    let {v, eat, ovf} = parseS32(str)
+    let {v, eat, ovf} = try parseS32(str)
     if ovf do
         fail OverflowError{}
     if eat != str.count do
@@ -463,7 +463,7 @@ func toS32(str: string)->s32 fail
 // Transform a string to an 's64'
 func toS64(str: string)->s64 fail
 {
-    let {v, eat, ovf} = parseS64(str)
+    let {v, eat, ovf} = try parseS64(str)
     if ovf do
         fail OverflowError{}
     if eat != str.count do
@@ -474,7 +474,7 @@ func toS64(str: string)->s64 fail
 // Transform a string to an 'u8'
 func toU8(str: string)->u8 fail
 {
-    let {v, eat, ovf} = parseU8(str)
+    let {v, eat, ovf} = try parseU8(str)
     if ovf do
         fail OverflowError{}
     if eat != str.count do
@@ -485,7 +485,7 @@ func toU8(str: string)->u8 fail
 // Transform a string to an 'u16'
 func toU16(str: string)->u16 fail
 {
-    let {v, eat, ovf} = parseU16(str)
+    let {v, eat, ovf} = try parseU16(str)
     if ovf do
         fail OverflowError{}
     if eat != str.count do
@@ -496,7 +496,7 @@ func toU16(str: string)->u16 fail
 // Transform a string to an 'u32'
 func toU32(str: string)->u32 fail
 {
-    let {v, eat, ovf} = parseU32(str)
+    let {v, eat, ovf} = try parseU32(str)
     if ovf do
         fail OverflowError{}
     if eat != str.count do
@@ -507,7 +507,7 @@ func toU32(str: string)->u32 fail
 // Transform a string to an 'u64'
 func toU64(str: string)->u64 fail
 {
-    let {v, eat, ovf} = parseU64(str)
+    let {v, eat, ovf} = try parseU64(str)
     if ovf do
         fail OverflowError{}
     if eat != str.count do
@@ -518,7 +518,7 @@ func toU64(str: string)->u64 fail
 // Transform a string to an 'f32'
 func toF32(str: string)->f32 fail
 {
-    let {v, eat, ovf} = parseF32(str)
+    let {v, eat, ovf} = try parseF32(str)
     if ovf do
         fail OverflowError{}
     if eat != str.count do
@@ -529,7 +529,7 @@ func toF32(str: string)->f32 fail
 // Transform a string to an 'f64'
 func toF64(str: string)->f64 fail
 {
-    let {v, eat, ovf} = parseF64(str)
+    let {v, eat, ovf} = try parseF64(str)
     if ovf do
         fail OverflowError{}
     if eat != str.count do
@@ -542,16 +542,16 @@ func(T) toNum(str: string)->T fail
 {
     #static switch T
     {
-    case u8:  return toU8(str)
-    case u16: return toU16(str)
-    case u32: return toU32(str)
-    case u64: return toU64(str)
-    case s8:  return toS8(str)
-    case s16: return toS16(str)
-    case s32: return toS32(str)
-    case s64: return toS64(str)
-    case f32: return toF32(str)
-    case f64: return toF64(str)
+    case u8:  return try toU8(str)
+    case u16: return try toU16(str)
+    case u32: return try toU32(str)
+    case u64: return try toU64(str)
+    case s8:  return try toS8(str)
+    case s16: return try toS16(str)
+    case s32: return try toS32(str)
+    case s64: return try toS64(str)
+    case f32: return try toF32(str)
+    case f64: return try toF64(str)
     default:  #error("invalid type")
     }
 

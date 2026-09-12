@@ -254,7 +254,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var dec: Tiff.Decoder
     let itf: IImageDecoder = &dec
-    return itf.decode(bytes, opt)
+    return try itf.decode(bytes, opt)
 }
 
 // The decoder and encoder registries recognise .tif and .tiff files.

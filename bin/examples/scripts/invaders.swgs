@@ -331,7 +331,7 @@ func loadBindTextures()
         return g_Wnd.app().renderer.addImage(image)
     }
 
-    func loadSound(name: string)->Audio.SoundFile fail => Audio.SoundFile.load(Path.combine(g_DataPath, name), true)
+    func loadSound(name: string)->Audio.SoundFile fail => try Audio.SoundFile.load(Path.combine(g_DataPath, name), true)
 
     g_DataPath = Path.directoryName(#curlocation.fileName)
     g_DataPath = Path.combine(g_DataPath, "datas")
@@ -339,15 +339,15 @@ func loadBindTextures()
 
     expect
     {
-        g_ExtraImg  = loadAndBindTexture("bonus.svg")
-        g_RedImg    = loadAndBindTexture("alien-red.svg")
-        g_GreenImg  = loadAndBindTexture("alien-green.svg")
-        g_YellowImg = loadAndBindTexture("alien-yellow.svg")
-        g_PlayerImg = loadAndBindTexture("player.svg")
+        g_ExtraImg  = try loadAndBindTexture("bonus.svg")
+        g_RedImg    = try loadAndBindTexture("alien-red.svg")
+        g_GreenImg  = try loadAndBindTexture("alien-green.svg")
+        g_YellowImg = try loadAndBindTexture("alien-yellow.svg")
+        g_PlayerImg = try loadAndBindTexture("player.svg")
 
-        g_SoundExplosion = loadSound("explosion.wav")
-        g_SoundLaser     = loadSound("laser.wav")
-        g_SoundMusic     = loadSound("music.wav")
+        g_SoundExplosion = try loadSound("explosion.wav")
+        g_SoundLaser     = try loadSound("laser.wav")
+        g_SoundMusic     = try loadSound("music.wav")
 
         g_Font = g_Wnd.theme().res.fontDefaultFs.regular!
     }

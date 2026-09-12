@@ -709,7 +709,7 @@ impl Capture
     {
         var output:  ConcatBuffer
         var encoder: Encoder'Write.TagBin
-        encoder.writeAll(&output, value[])
+        try encoder.writeAll(&output, value[])
         output.makeLinear()
 
         var result: retval
@@ -910,13 +910,13 @@ impl Capture
         entry.primaryChunk  = modelId
         entry.variantChunks = #move variants
         writer.manifest().entries.add(#move entry)
-        writer.saveAtomic(job.file)
+        try writer.saveAtomic(job.file)
     }
 
     private func loadScc(file: String, preview: bool, deferPreviewDecode: bool)->*Capture fail
     {
         var reader: Scc.Reader
-        reader.initialize(file)
+        try reader.initialize(file)
         if reader.kind() != containerKind() do
             fail Core.Errors.InvalidFormatError{"capture file has a different SCC profile"}
         if reader.manifest().profileVersion > CaptureProfileVersion do
@@ -926,7 +926,7 @@ impl Capture
         if preview
         {
             var decoder: Decoder'Read.TagBin
-            let metadata = decoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())!
+            let metadata = try decoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())!
             defer Memory.delete(metadata)
             metadata.sanitize()
             capture = fromLibraryMetadata(metadata[], reader.manifest())
@@ -939,7 +939,7 @@ impl Capture
             var bytes = try reader.readChunk(info.id)
             var decoder: Decoder'Read.TagBin
             decoder.flags |= .IgnoreStructFieldError
-            let model = decoder.readAll'CaptureFileModel(bytes.toSlice())!
+            let model = try decoder.readAll'CaptureFileModel(bytes.toSlice())!
             defer Memory.delete(model)
             capture = fromFileModel(model)
 
@@ -951,7 +951,7 @@ impl Capture
             {
                 var imageBytes = try reader.readChunk(background.id)
                 var imageDecoder: Decoder'Read.TagBin
-                let image      = imageDecoder.readAll'Image(imageBytes.toSlice())!
+                let image      = try imageDecoder.readAll'Image(imageBytes.toSlice())!
                 capture.backImg = #move image[]
                 Memory.delete(image)
                 let imageDiag = imageDecoder.serializer.diag
@@ -963,7 +963,7 @@ impl Capture
             {
                 var imageBytes = try reader.readChunk(original.id)
                 var imageDecoder: Decoder'Read.TagBin
-                let image      = imageDecoder.readAll'Image(imageBytes.toSlice())!
+                let image      = try imageDecoder.readAll'Image(imageBytes.toSlice())!
                 capture.backImgOriginal = #move image[]
                 Memory.delete(image)
                 let imageDiag = imageDecoder.serializer.diag

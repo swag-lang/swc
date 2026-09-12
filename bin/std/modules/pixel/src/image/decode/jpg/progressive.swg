@@ -211,7 +211,7 @@ impl Decoder
                 var blockMcuOfsY = 0
 
                 if .restartInterval and (.restartsLeft == 0) do
-                    .restartProcess()
+                    try .restartProcess()
 
                 for mcuBlock in .blocksPerMcu
                 {
@@ -221,16 +221,16 @@ impl Decoder
                     if dcOnlyScan
                     {
                         if refinementScan do
-                            .decodeBlockDcRefine(componentId, blkX, blkY)
+                            try .decodeBlockDcRefine(componentId, blkX, blkY)
                         else do
-                            .decodeBlockDcFirst(componentId, blkX, blkY)
+                            try .decodeBlockDcFirst(componentId, blkX, blkY)
                     }
                     else
                     {
                         if refinementScan do
-                            .decodeBlockAcRefine(componentId, blkX, blkY)
+                            try .decodeBlockAcRefine(componentId, blkX, blkY)
                         else do
-                            .decodeBlockAcFirst(componentId, blkX, blkY)
+                            try .decodeBlockAcFirst(componentId, blkX, blkY)
                     }
 
                     if .compsInScan == 1 do
@@ -277,7 +277,7 @@ impl Decoder
 
         for
         {
-            let res = .initScan()
+            let res = try .initScan()
             if not res do
                 break
 
@@ -300,7 +300,7 @@ impl Decoder
             if refinementScan and (.successiveLow != .successiveHigh - 1) do
                 fail InvalidFormatError{"bad sos successive"}
 
-            .decodeScan(dcOnlyScan, refinementScan)
+            try .decodeScan(dcOnlyScan, refinementScan)
 
             .bitsLeft = 16
 

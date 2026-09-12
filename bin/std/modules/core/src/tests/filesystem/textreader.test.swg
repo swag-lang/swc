@@ -51,13 +51,10 @@ func assertString(value: String, expected: string)->bool
     discard expect File.writeAllBytes(fileName, content.toSlice())
     var lineCount = 0
     var totalSize = 0'u64
-    expect
+    for line in expect File.readAllLines(fileName)
     {
-        for line in File.readAllLines(fileName)
-        {
-            lineCount += 1
-            totalSize += line.count
-        }
+        lineCount += 1
+        totalSize += line.count
     }
 
     Swag.assert(lineCount == 40)

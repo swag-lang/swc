@@ -110,10 +110,10 @@ public impl Image
         if .alphaMode == .Premultiplied
         {
             let straight = .convertedAlphaTo(.Straight)
-            itf.encode(&result, straight, options)
+            try itf.encode(&result, straight, options)
         }
         else do
-            itf.encode(&result, me, options)
+            try itf.encode(&result, me, options)
         return result
     }
 
@@ -132,7 +132,7 @@ public impl Image
     mtd const save(fileName: string, options: any? = null) fail
     {
         var result = try .encode(fileName, options)
-        File.writeAllBytes(fileName, result)
+        try File.writeAllBytes(fileName, result)
     }
 }
 

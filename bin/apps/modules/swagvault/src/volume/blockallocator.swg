@@ -92,7 +92,7 @@ impl BlockAllocator
     mtd allocateRun(maximumCount: u64)->FreeExtent fail
     {
         if not .free.count do
-            failWith("The virtual disk is full.", .DiskFull)
+            try failWith("The virtual disk is full.", .DiskFull)
         Swag.assert(maximumCount != 0)
 
         let index  = .free.count - 1
@@ -133,7 +133,7 @@ impl BlockAllocator
             return {first, count}
         }
 
-        failWith("The smaller container has no room for every used block.", .DiskFull)
+        try failWith("The smaller container has no room for every used block.", .DiskFull)
         unreachable
     }
 

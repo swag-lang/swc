@@ -2603,7 +2603,7 @@ impl Wnd
         if not evt.accepted
         {
             for c in .children do
-                c.serializeState(ser)
+                try c.serializeState(ser)
         }
     }
 }

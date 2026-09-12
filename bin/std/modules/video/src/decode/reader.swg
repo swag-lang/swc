@@ -212,8 +212,8 @@ impl Reader
     func open(fileName: string)->Reader fail
     {
         var result: retval
-        result.source = ByteSource.openFile(fileName)
-        result.start(fileName)
+        result.source = try ByteSource.openFile(fileName)
+        try result.start(fileName)
         return result
     }
 
@@ -225,7 +225,7 @@ impl Reader
     {
         var result: retval
         result.source = ByteSource.openMemory(bytes)
-        result.start(fileName)
+        try result.start(fileName)
         return result
     }
 
@@ -248,7 +248,7 @@ impl Reader
         .planarDecoder   = Swag.makeInterface(instance, selected.type, IPlanarDecoder)
         .timedDecoder    = Swag.makeInterface(instance, selected.type, ITimedDecoder)
         .deferred        = Swag.makeInterface(instance, selected.type, IDeferredDecoder)
-        .info            = .decoder.open(&.source)
+        .info            = try .decoder.open(&.source)
     }
 
     // Releases the decoder instance and the source when the reader leaves scope.
@@ -394,9 +394,9 @@ impl Reader
         if count and index >= count do
             fail BadParameterError{"video frame index exceeds the stream frame count"}
 
-        .decoder.seekFrame(&.source, index)
+        try .decoder.seekFrame(&.source, index)
         .refreshDeferredInfo()
-        .planarDecoder.decodeFramePlanes(&.source, target)
+        try .planarDecoder.decodeFramePlanes(&.source, target)
     }
 
     // Returns the first frame at or after `index` that decodes without any earlier frame.
@@ -427,7 +427,7 @@ impl Reader
     mtd decodeFrame(index: u64)->Image fail
     {
         var result: retval
-        .decodeFrameInto(&result, index)
+        try .decodeFrameInto(&result, index)
         return result
     }
 
@@ -446,9 +446,9 @@ impl Reader
         if count and index >= count do
             fail BadParameterError{"video frame index exceeds the stream frame count"}
 
-        .decoder.seekFrame(&.source, index)
+        try .decoder.seekFrame(&.source, index)
         .refreshDeferredInfo()
-        .decoder.decodeFrame(&.source, target)
+        try .decoder.decodeFrame(&.source, target)
     }
 
     private mtd refreshDeferredInfo()

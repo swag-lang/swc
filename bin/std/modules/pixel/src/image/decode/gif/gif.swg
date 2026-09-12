@@ -112,7 +112,7 @@ public impl Decoder
     // The decoder owns a copy of `buffer`; the caller may release its input after this call.
     mtd open(buffer: const [..] u8) fail
     {
-        var reader = ImageReader.decode("image.gif", buffer)
+        var reader = try ImageReader.decode("image.gif", buffer)
         Swag.drop(me, 1)
         Swag.init(me, 1)
         .reader = #move reader
@@ -128,34 +128,34 @@ public impl Decoder
 
         // Header
         var sigver: [3] u8
-        .read(sigver, 3)
+        try .read(sigver, 3)
         if Memory.compare(sigver, ("GIF").buffer, 3) != 0 do
             fail InvalidFormatError{"invalid signature"}
 
         // Version
-        .read(sigver, 3)
+        try .read(sigver, 3)
         if Memory.compare(sigver, ("89a").buffer, 3) != 0 and Memory.compare(sigver, ("87a").buffer, 3) != 0 do
             fail InvalidFormatError{"invalid version"}
 
         // Width x Height
-        .width  = .readU16()
-        .height = .readU16()
+        .width  = try .readU16()
+        .height = try .readU16()
 
         // FDSZ
         var fdsz: u8
-        .read(&fdsz, 1)
+        try .read(&fdsz, 1)
 
         // Ignore sort flag
         // GCT Size
         .gct.size = fdsz & 0x80 ? 1 << ((fdsz & 0x07) + 1) : 0
 
         // Background color index
-        .bgIndex = .readU8()
+        .bgIndex = try .readU8()
 
         // Aspect ratio
-        discard .readU8()
+        discard try .readU8()
 
-        .read(.gct.colors, 3'u64 * .gct.size)
+        try .read(.gct.colors, 3'u64 * .gct.size)
         .palette = &.gct
     }
 
@@ -168,7 +168,7 @@ public impl Decoder
         Swag.assert(.reader.isOpen())
         if .nextIndex >= .reader.info.frames.count do
             return false
-        img[]      = .reader.read(.nextIndex)
+        img[]      = try .reader.read(.nextIndex)
         .nextIndex += 1
         return true
     }
@@ -194,8 +194,8 @@ public impl IImageDecoder for Decoder
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        var reader         = ImageReader.decode("image.gif", buffer, options)
-        var result: retval = reader.read(0)
+        var reader         = try ImageReader.decode("image.gif", buffer, options)
+        var result: retval = try reader.read(0)
         if options.decodePixels and reader.info.frames[0].pixelFormat == .RGB8 do
             result.convertTo(.RGB8)
         .reader    = #move reader
@@ -225,7 +225,7 @@ impl IImageDecoder for SetDecoder
     {
         var decoder: Decoder
         let single:  IImageDecoder = &decoder
-        return single.decode(buffer, options)
+        return try single.decode(buffer, options)
     }
 }
 
@@ -234,8 +234,8 @@ impl IImageSetDecoder for SetDecoder
     mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
     {
         .frames.clear()
-        .decoder.init(buffer)
-        options.checkImage(.decoder.width, .decoder.height, .RGBA8)
+        try .decoder.init(buffer)
+        try options.checkImage(.decoder.width, .decoder.height, .RGBA8)
         var result: retval
         result.canvasWidth  = .decoder.width
         result.canvasHeight = .decoder.height
@@ -245,9 +245,9 @@ impl IImageSetDecoder for SetDecoder
             result.background = {r: color[0], g: color[1], b: color[2], a: 255}
         }
 
-        while .decoder.getFrame(false)
+        while try .decoder.getFrame(false)
         {
-            options.checkFrameCount(.frames.count + 1)
+            try options.checkFrameCount(.frames.count + 1)
             .frames.add({.decoder.descriptorOffset, .decoder.descriptorRemaining, .decoder.gce})
             let control = .decoder.gce
             let frame: ImageFrameInfo = {kind: .Animation, width: .decoder.fw, height: .decoder.fh, x: .decoder.fx, y: .decoder.fy, pixelFormat: control.transparency ? .RGBA8 : .RGB8, durationSeconds: cast(f64) control.delay / 100, disposal: control.disposal == 3 ? .Previous : (control.disposal == 2 ? .Background : .Keep), blend: .Over}
@@ -269,7 +269,7 @@ impl IImageSetDecoder for SetDecoder
         .decoder.gce       = .frames[index].control
         if options.decodePixels do
             .decoder.frame.resize(cast(u64) .decoder.width * .decoder.height)
-        .decoder.readImage(options.decodePixels)
+        try .decoder.readImage(options.decodePixels)
         var result: retval
         result.init(.decoder.fw, .decoder.fh, .decoder.gce.transparency ? .RGBA8 : .RGB8)
         if not options.decodePixels do

@@ -18,13 +18,13 @@ func day3A()
     expect
     {
         let dataPath = Path.combine(Path.directoryName(#file), "3.txt")
-        let lines    = File.readAllLines(dataPath)
+        let lines    = try File.readAllLines(dataPath)
 
         var total = 0
         for l in lines
         {
             let split = Tokenize.split(l[], ' 'u8)
-            let v     = [StrConv.toS32(split[0]), StrConv.toS32(split[1]), StrConv.toS32(split[2])]
+            let v     = [try StrConv.toS32(split[0]), try StrConv.toS32(split[1]), try StrConv.toS32(split[2])]
 
             var ok = 0
             for i in 3 do

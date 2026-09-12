@@ -78,7 +78,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var dec: Ico.Decoder
     let itf: IImageDecoder = &dec
-    return itf.decode(bytes, opt)
+    return try itf.decode(bytes, opt)
 }
 
 // The registries recognise .ico (and .cur for loading).

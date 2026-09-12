@@ -57,11 +57,11 @@ func day5A()
     {
         expect
         {
-            discard r.match(#raw "(\d+),(\d+) -> (\d+),(\d+)", l[])
-            var x0 = StrConv.toS32(r.getCapture(1))
-            var y0 = StrConv.toS32(r.getCapture(2))
-            var x1 = StrConv.toS32(r.getCapture(3))
-            var y1 = StrConv.toS32(r.getCapture(4))
+            discard try r.match(#raw "(\d+),(\d+) -> (\d+),(\d+)", l[])
+            var x0 = try StrConv.toS32(r.getCapture(1))
+            var y0 = try StrConv.toS32(r.getCapture(2))
+            var x1 = try StrConv.toS32(r.getCapture(3))
+            var y1 = try StrConv.toS32(r.getCapture(4))
         }
 
         if x0 != x1 and y0 != y1 do

@@ -54,8 +54,8 @@ var g_Formulas:          [FormulaCount] MathExpression
 
 func initContent() fail
 {
-    g_TypeFace     = TypeFace.load("segoeui.ttf")
-    g_BoldTypeFace = TypeFace.load("segoeuib.ttf")
+    g_TypeFace     = try TypeFace.load("segoeui.ttf")
+    g_BoldTypeFace = try TypeFace.load("segoeuib.ttf")
     g_TitleFont    = g_Renderer.fonts.createFont(g_BoldTypeFace, 32, .Auto)
     g_SubtitleFont = g_Renderer.fonts.createFont(g_TypeFace, 15, .Auto)
     g_LabelFont    = g_Renderer.fonts.createFont(g_BoldTypeFace, 15, .Auto)

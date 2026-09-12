@@ -39,7 +39,7 @@ impl ByteSink
     func createFile(fileName: string)->ByteSink fail
     {
         var result: retval
-        result.stream   = File.openWrite(fileName)
+        result.stream   = try File.openWrite(fileName)
         result.fileName = fileName
         result.isFile   = true
         return result
@@ -83,13 +83,13 @@ impl ByteSink
         // rather than through a buffer that would copy it a second time.
         if count >= WindowSize
         {
-            .flush()
-            .stream.writeAll(bytes)
+            try .flush()
+            try .stream.writeAll(bytes)
             return
         }
 
         if .pendingCount + count > WindowSize do
-            .flush()
+            try .flush()
         if .pending.count != WindowSize do
             .pending.resize(WindowSize)
         Memory.copy(.pending.buffer + .pendingCount, bytes.buffer, count)
@@ -99,14 +99,14 @@ impl ByteSink
     // Appends the bytes of `text` to the stream.
     mtd writeText(text: string) fail
     {
-        .write(cast(const [..] u8) text)
+        try .write(cast(const [..] u8) text)
     }
 
     // Appends one byte.
     mtd writeByte(value: u8) fail
     {
         var stored = value
-        .write(Swag.makeSlice(&stored, 1))
+        try .write(Swag.makeSlice(&stored, 1))
     }
 
     // Appends one value of type `T` laid out as the host stores it.
@@ -117,19 +117,19 @@ impl ByteSink
     mtd(T) writeNative(value: T) fail
     {
         var stored = value
-        .write(Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(T)))
+        try .write(Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(T)))
     }
 
     // Appends an integer of type `T` in little-endian byte order.
     mtd(T) writeLittleEndian(value: T) fail
     {
-        .writeNative(Math.nativeToLittleEndian(value))
+        try .writeNative(Math.nativeToLittleEndian(value))
     }
 
     // Appends an integer of type `T` in big-endian byte order.
     mtd(T) writeBigEndian(value: T) fail
     {
-        .writeNative(Math.nativeToBigEndian(value))
+        try .writeNative(Math.nativeToBigEndian(value))
     }
 
     // Rewrites bytes this sink already accepted, at `offset` bytes from the start of its stream.
@@ -163,9 +163,9 @@ impl ByteSink
 
         // The window can still hold bytes covering the patched range, so what is buffered reaches
         // the file first; the patch would otherwise be overwritten by the next flush.
-        .flush()
-        .stream.writeAllAt(offset, bytes)
-        .stream.seek(.Begin, .written)
+        try .flush()
+        try .stream.writeAllAt(offset, bytes)
+        try .stream.seek(.Begin, .written)
     }
 
     // Hands every buffered byte to the file. A memory sink has nothing to flush.
@@ -173,7 +173,7 @@ impl ByteSink
     {
         if not .pendingCount do
             return
-        .stream.writeAll(.pending.toSlice()[0 until .pendingCount])
+        try .stream.writeAll(.pending.toSlice()[0 until .pendingCount])
         .pendingCount = 0
     }
 
@@ -186,7 +186,7 @@ impl ByteSink
     {
         if not .isFile do
             return
-        .flush()
+        try .flush()
         .stream.close()
     }
 }

@@ -8403,7 +8403,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <li>the borrow rules reject programs where a view outlives what it views;</li>
 <li>warnings report code that compiles but is very likely a mistake.</li>
 </ul>
-<p>Build configuration selects defaults for runtime guards, static sanity checks, and warnings; attributes can narrow those defaults for a declaration or scope. Fallible calls must always be handled. The borrow rules are also part of the language: no attribute or build configuration turns them off.</p>
+<p>Build configuration selects defaults for runtime guards, static sanity checks, and warnings; attributes can narrow those defaults for a declaration or scope. Fallible calls must always be handled explicitly. The borrow rules are also part of the language: no attribute or build configuration turns them off.</p>
 <h3 id="_013_001_error_management_swg">Error Management</h3>
 <h3 id="_013_001_error_management_swg_Error_Management">Error Management</h3>
 <p>Swag models errors as values. A function marked with <span class="code-inline">fail</span> can either return its normal result or exit early with 'fail errorValue'. The caller then chooses whether to propagate, catch, dismiss, or expect success.</p>
@@ -8435,7 +8435,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>'catch e else { H }' runs the anonymous handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails. <span class="code-inline">H</span> cannot inspect the error (capture it with 'as err' for that); it is evaluated lazily — only on the failure path — and may divert control flow (e.g. an early <span class="code-inline">return</span>). To read the caught error, use the 'as err' capture form instead.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">recordTrace</span>(name: <span class="STpe">string</span>?, out: *<span class="STpe">s32</span>) <span class="SKwd">fail</span>
 {
-    out[] = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) <span class="SFct">count</span>(name)
+    out[] = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) (<span class="SKwd">try</span> <span class="SFct">count</span>(name))
 }
 
 <span class="SFct">#test</span>
@@ -8486,29 +8486,29 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span>(<span class="SCst">MyError</span>) err).code == <span class="SNum">7</span>)
 }</span></div>
-<h3 id="_013_001_error_management_swg_Implicit_try">Implicit try</h3>
-<p>Inside a function declared with <span class="code-inline">fail</span>, calling another fallible function is an implicit propagation.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">implicitTryCount</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
+<h3 id="_013_001_error_management_swg_Explicit_Error_Handling">Explicit Error Handling</h3>
+<p>Every call to a function declared with <span class="code-inline">fail</span> needs <span class="code-inline">try</span>, <span class="code-inline">catch</span>, or <span class="code-inline">expect</span>. Declaring the caller with <span class="code-inline">fail</span> permits propagation, but does not make it implicit. The compiler rejects a call that omits its error-management keyword.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">explicitTryCount</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
-    <span class="SLgc">return</span> <span class="SFct">count</span>(name)
+    <span class="SLgc">return</span> <span class="SKwd">try</span> <span class="SFct">count</span>(name)
 }
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">implicitTryCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">explicitTryCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span>(<span class="SCst">MyError</span>) err).code == <span class="SNum">7</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Error-Handling_Blocks">Error-Handling Blocks</h3>
-<p><span class="code-inline">try</span>, <span class="code-inline">catch</span> (optionally with 'as err' or <span class="code-inline">else</span>), and <span class="code-inline">expect</span> can also guard a whole block of code.</p>
+<p><span class="code-inline">try</span>, <span class="code-inline">catch</span> (optionally with 'as err' or <span class="code-inline">else</span>), and <span class="code-inline">expect</span> can also guard a whole block of code. Each fallible call inside the block still needs its own keyword: use <span class="code-inline">try</span> to pass its error to the enclosing block's handler.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">blockTry</span>(name0: <span class="STpe">string</span>?, name1: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
     <span class="SKwd">var</span> total: <span class="STpe">u64</span> = <span class="SNum">0</span>
     <span class="SKwd">try</span>
     {
-        total += <span class="SFct">count</span>(name0)
-        total += <span class="SFct">count</span>(name1)
+        total += <span class="SKwd">try</span> <span class="SFct">count</span>(name0)
+        total += <span class="SKwd">try</span> <span class="SFct">count</span>(name1)
     }
 
     <span class="SLgc">return</span> total
@@ -8518,8 +8518,8 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">catch</span>
     {
-        <span class="SKwd">discard</span> <span class="SFct">count</span>(<span class="SStr">"ok"</span>)
-        <span class="SKwd">discard</span> <span class="SFct">count</span>(<span class="SKwd">null</span>)
+        <span class="SKwd">discard</span> <span class="SKwd">try</span> <span class="SFct">count</span>(<span class="SStr">"ok"</span>)
+        <span class="SKwd">discard</span> <span class="SKwd">try</span> <span class="SFct">count</span>(<span class="SKwd">null</span>)
     } <span class="SLgc">as</span> err
 
     <span class="SLgc">if</span> err == <span class="SKwd">null</span> <span class="SLgc">do</span>
@@ -8532,7 +8532,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">catch</span>
     {
-        <span class="SLgc">return</span> <span class="SFct">count</span>(name)
+        <span class="SLgc">return</span> <span class="SKwd">try</span> <span class="SFct">count</span>(name)
     }
     <span class="SLgc">else</span> {}
 
@@ -10088,7 +10088,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.489</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.503</div>
 </footer>
 </section>
 </main>
@@ -10938,7 +10938,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Handling on Failure with 'catch ... else'|_013_001_error_management_swg_Handling_on_Failure_with__catch_____else_|",
 "h|Dismissing Errors|_013_001_error_management_swg_Dismissing_Errors|",
 "h|Propagating Errors|_013_001_error_management_swg_Propagating_Errors|",
-"h|Implicit try|_013_001_error_management_swg_Implicit_try|",
+"h|Explicit Error Handling|_013_001_error_management_swg_Explicit_Error_Handling|",
 "h|Error-Handling Blocks|_013_001_error_management_swg_Error-Handling_Blocks|",
 "h|Expect|_013_001_error_management_swg_Expect|",
 "h|Defer on Error Paths|_013_001_error_management_swg_Defer_on_Error_Paths|",

@@ -144,7 +144,7 @@ public impl Voice
         voice.file = file
         voice.seekDiscardFrames = cast(u32) file.leadingTrim
 
-        voice.createNative(createFlags)
+        try voice.createNative(createFlags)
         g_Driver.updateVoice(voice, .Register)
 
         return voice
@@ -158,9 +158,9 @@ public impl Voice
     #[Swag.Discardable]
     func play(file: const *SoundFile, createFlags = VoiceCreateFlags.Default, playFlags = VoicePlayFlags.Default)->*Voice? fail
     {
-        let voice = create(file, createFlags)!
+        let voice = try create(file, createFlags)!
         defer #fail voice.destroy()
-        voice.play(playFlags)
+        try voice.play(playFlags)
         return voice
     }
 
@@ -177,7 +177,7 @@ public impl Voice
         if .hasState(.Playing) do
             return
         .playFlags = playFlags
-        .playNative()
+        try .playNative()
         .setState(.Playing)
 
         if not .hasState(.PlayedOnce)
@@ -201,7 +201,7 @@ public impl Voice
         defer .dataMutex.unlock()
         if not .hasState(.Playing) do
             return
-        .stopNative()
+        try .stopNative()
         .resetState(.Playing)
     }
 
@@ -216,8 +216,8 @@ public impl Voice
         if not .hasState(.PlayedOnce) do
             return
         if .hasState(.Playing) do
-            .stopNative()
-        .resetNative()
+            try .stopNative()
+        try .resetNative()
         .closeBuffer()
         .seekDiscardFrames = cast(u32) .file!.leadingTrim
         .playbackBaseFrame = 0
@@ -243,8 +243,8 @@ public impl Voice
         let target     = Math.min(frame, file.frameCount)
         let wasPlaying = .hasState(.Playing)
         if wasPlaying do
-            .stopNative()
-        .resetNative()
+            try .stopNative()
+        try .resetNative()
         .closeData()
         .destroyCodec()
         .destroyPacketCodec()
@@ -285,7 +285,7 @@ public impl Voice
         if wasPlaying
         {
             .setState(.PlayedOnce)
-            .playNative()
+            try .playNative()
             .setState(.Playing)
             g_Driver.updateVoice(me, .UpdateBuffers)
             return
@@ -342,12 +342,12 @@ public impl Voice
     // `batchId` is forwarded to backends that support deferred operation sets.
     mtd setVolumeDb(decibels: f32, batchId: u32 = 0) fail
     {
-        .setVolume(decibelsToLinearGain(decibels), batchId)
+        try .setVolume(decibelsToLinearGain(decibels), batchId)
     }
 
     // Returns this voice's current gain in decibels.
     mtd volumeDb()->f32 fail
     {
-        return linearGainToDecibels(.volume())
+        return linearGainToDecibels(try .volume())
     }
 }

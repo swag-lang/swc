@@ -247,12 +247,12 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
 
 func renderCurrentOutline(slot: *GlyphSlot) fail
 {
-    let faceData = getSlotImpl(slot)
+    let faceData = try getSlotImpl(slot)
     let safeSlot = slot
     clearBitmap(safeSlot)
 
     if safeSlot.format != .Outline do
-        fault(0x13)
+        try fault(0x13)
 
     if safeSlot.outline.pointCount <= 0 do
         return

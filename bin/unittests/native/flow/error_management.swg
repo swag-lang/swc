@@ -154,14 +154,14 @@ func inlineAlwaysFailValue(code: s32)->s32 fail
     fail ErrValue{code: code}
 }
 
-func propagateBareSuccess()->s32 fail
+func propagateExplicitSuccess()->s32 fail
 {
-    return mayFailValue(42)
+    return try mayFailValue(42)
 }
 
-func propagateBareFailure()->s32 fail
+func propagateExplicitFailure()->s32 fail
 {
-    return alwaysFailValue(17)
+    return try alwaysFailValue(17)
 }
 
 func propagateTrySuccess()->s32 fail
@@ -179,9 +179,9 @@ func propagateTryVoidSuccess() fail
     try mayFailVoid()
 }
 
-func propagateBareVoidFailure() fail
+func propagateExplicitVoidFailure() fail
 {
-    alwaysFailVoid(19)
+    try alwaysFailVoid(19)
 }
 
 func propagateTryBlockVoidFailure() fail
@@ -305,14 +305,14 @@ func traceFailLeaf() fail
 func traceFailMid() fail
 {
     defer appendErrorTrace(2)
-    traceFailLeaf()
+    try traceFailLeaf()
 }
 
 #[Swag.Inline]
 func traceFailTop() fail
 {
     defer appendErrorTrace(4)
-    traceFailMid()
+    try traceFailMid()
 }
 
 func traceFailCatch()->s64
@@ -344,7 +344,7 @@ func inlineCatchFailureInfo()->CatchInfo
 func catchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    result.value  = catch propagateBareFailure() as err2
+    result.value  = catch propagateExplicitFailure() as err2
     result.hasErr = err2 != null
     if err2 != null
     {
@@ -409,7 +409,7 @@ func dismissFailureInfo()->CatchInfo
 {
     var result: CatchInfo
     // 'catch' without a capture dismisses the error; the fallback is the type default.
-    result.value  = catch propagateBareFailure()
+    result.value  = catch propagateExplicitFailure()
     result.hasErr = false
     result.code   = 0
     return result
@@ -653,7 +653,7 @@ func notNullSliceSuccess()->s32
 
 #test
 {
-    let value = catch propagateBareSuccess() as err
+    let value = catch propagateExplicitSuccess() as err
     Swag.assert(value == 42)
     Swag.assert(err == null)
 }
@@ -754,7 +754,7 @@ func notNullSliceSuccess()->s32
 
 #test
 {
-    catch propagateBareVoidFailure() as err10
+    catch propagateExplicitVoidFailure() as err10
     Swag.assert(err10 != null)
     let err = cast(ErrValue) err10
     Swag.assert(err.code == 19)

@@ -213,7 +213,7 @@ impl SoundFile
         result.resize(wanted)
         if .packets.count
         {
-            var source        = ByteSource.openFile(.path.toString())
+            var source        = try ByteSource.openFile(.path.toString())
             var logicalStart  = 0'u64
             var logicalOffset = offset
             var written       = 0'u64
@@ -225,8 +225,8 @@ impl SoundFile
                     let packetSkip = logicalOffset > logicalStart ? logicalOffset - logicalStart : 0
                     let available  = cast(u64) packet.byteSize - packetSkip
                     let readSize   = Math.min(available, wanted - written)
-                    source.seek(packet.sourceOffset + packetSkip)
-                    source.readExact(result.toSlice()[written until written + readSize])
+                    try source.seek(packet.sourceOffset + packetSkip)
+                    try source.readExact(result.toSlice()[written until written + readSize])
                     written       += readSize
                     logicalOffset += readSize
                 }
@@ -246,9 +246,9 @@ impl SoundFile
             return result
         }
 
-        var source = ByteSource.openFile(.path.toString())
-        source.seek(.dataOffset + offset)
-        let read = source.read(result.toSlice())
+        var source = try ByteSource.openFile(.path.toString())
+        try source.seek(.dataOffset + offset)
+        let read = try source.read(result.toSlice())
         result.resize(read)
         return result
     }
@@ -340,8 +340,8 @@ impl SoundFile
         if packetEncodingNeedsConfig(encoding) and not decoderConfig.count do
             fail BadParameterError{"packetized sound needs decoder configuration"}
 
-        var stream     = File.openRead(path)
-        let sourceSize = stream.size()
+        var stream     = try File.openRead(path)
+        let sourceSize = try stream.size()
 
         var result: retval
         result.path               = path
@@ -431,8 +431,8 @@ impl SoundFile
         if not packets.count do
             fail BadParameterError{"packetized PCM needs source chunks"}
         let bytesPerFrame = cast(u64) channels * cast(u64) (bitsPerSample / 8)
-        var stream        = File.openRead(path)
-        let sourceSize    = stream.size()
+        var stream        = try File.openRead(path)
+        let sourceSize    = try stream.size()
 
         var result: retval
         result.path               = path

@@ -100,7 +100,7 @@ impl Ast
         // Capture zero is the whole match, and it has no name.
         result.captureNames.add(String{})
 
-        result.root = result.parseAlternate()
+        result.root = try result.parseAlternate()
         if not result.atEnd()
         {
             if result.peek() == ')' do
@@ -234,12 +234,12 @@ impl Ast
     mtd parseAlternate()->u32 fail
     {
         var branches: Array'u32
-        branches.add(.parseConcat())
+        branches.add(try .parseConcat())
 
         while .peek() == '|' and not .atEnd()
         {
             .advance()
-            branches.add(.parseConcat())
+            branches.add(try .parseConcat())
         }
 
         return .addList(.Alternate, branches.toSlice())
@@ -250,7 +250,7 @@ impl Ast
         var items: Array'u32
         while not .atEnd() and .peek() != '|' and .peek() != ')'
         {
-            let item = .parseRepeat()
+            let item = try .parseRepeat()
             if item != NoNode do
                 items.add(item)
         }
@@ -261,7 +261,7 @@ impl Ast
     // Parses one item and the repetition operators applied to it.
     mtd parseRepeat()->u32 fail
     {
-        var current = .parseSingle()
+        var current = try .parseSingle()
         if current == NoNode do
             return NoNode
 
@@ -286,7 +286,7 @@ impl Ast
                 maxCount = 1
 
             case '{':
-                let counted = .parseCounted()
+                let counted = try .parseCounted()
                 if not counted.valid do
                     return current
 
@@ -392,10 +392,10 @@ impl Ast
         switch .peek()
         {
         case '(':
-            return .parseGroup()
+            return try .parseGroup()
 
         case '[':
-            return .addClassNode(.parseClass())
+            return .addClassNode(try .parseClass())
 
         case '.':
             .advance()
@@ -420,7 +420,7 @@ impl Ast
             return .addNode({kind: .Assert, assertion: .flags.multiline ? AssertKind.EndLine : AssertKind.EndText})
 
         case '\\':
-            return .parseEscape()
+            return try .parseEscape()
 
         case '*', '+', '?':
             fail SyntaxError{"nothing to repeat"}
@@ -429,7 +429,7 @@ impl Ast
 
             // A repetition with nothing in front of it is a mistake; a brace that does not
             // spell one is just a brace.
-            let counted = .parseCounted()
+            let counted = try .parseCounted()
             if counted.valid do
                 fail SyntaxError{"nothing to repeat"}
             .advance()
@@ -466,14 +466,14 @@ impl Ast
             case '<', '\'':
                 if .peek() == '<' and (.peekAt(1) == '=' or .peekAt(1) == '!') do
                     fail SyntaxError{"look-around is not supported"}
-                name    = .parseGroupName()
+                name    = try .parseGroupName()
                 capture = .newCapture(name)
 
             case 'P':
                 .advance()
                 if .peek() != '<' do
                     fail SyntaxError{"expected '<' after '(?P'"}
-                name    = .parseGroupName()
+                name    = try .parseGroupName()
                 capture = .newCapture(name)
 
             case '=', '!':
@@ -499,7 +499,7 @@ impl Ast
             capture = .newCapture(String{})
         }
 
-        let inner = .parseAlternate()
+        let inner = try .parseAlternate()
         if not .eat(')') do
             fail SyntaxError{"missing ')'"}
         .flags = savedFlags
@@ -607,7 +607,7 @@ impl Ast
             return .addNode({kind: .Backref, reference: cast(u32) (value - '0')})
         }
 
-        let cls = .parseClassEscape()
+        let cls = try .parseClassEscape()
         if cls.isClass do
             return .addClassNode(cls.value)
         return .addLiteralNode(cls.scalar)
@@ -631,7 +631,7 @@ impl Ast
         case 'p', 'P':
             .advance()
             result.isClass = true
-            result.value   = .parseUnicodeClass(value == 'P')
+            result.value   = try .parseUnicodeClass(value == 'P')
             return result
 
         case 'a':
@@ -676,7 +676,7 @@ impl Ast
 
         case 'x':
             .advance()
-            result.scalar = .parseHexEscape()
+            result.scalar = try .parseHexEscape()
             return result
         }
 
@@ -700,7 +700,7 @@ impl Ast
             var digits = 0
             while not .atEnd() and .peek() != '}'
             {
-                value  = value * 16 + .hexDigit(.peek())
+                value  = value * 16 + (try .hexDigit(.peek()))
                 digits += 1
                 .advance()
             }
@@ -714,7 +714,7 @@ impl Ast
         {
             for 2
             {
-                value = value * 16 + .hexDigit(.peek())
+                value = value * 16 + (try .hexDigit(.peek()))
                 .advance()
             }
         }
@@ -808,11 +808,11 @@ impl Ast
             // A POSIX class, which is the only construct nested brackets may spell.
             if .peek() == '[' and .peekAt(1) == ':'
             {
-                result.addClass(.parsePosixClass())
+                result.addClass(try .parsePosixClass())
                 continue
             }
 
-            let low = .parseClassItem()
+            let low = try .parseClassItem()
             if low.isClass
             {
                 if .peek() == '-' and .peekAt(1) != ']' and .peekAt(1) != 0 do
@@ -825,7 +825,7 @@ impl Ast
             if .peek() == '-' and .peekAt(1) != ']' and .peekAt(1) != 0
             {
                 .advance()
-                let high = .parseClassItem()
+                let high = try .parseClassItem()
                 if high.isClass do
                     fail SyntaxError{"a class cannot be the bound of a range"}
 
@@ -879,7 +879,7 @@ impl Ast
             return result
         }
 
-        return .parseClassEscape()
+        return try .parseClassEscape()
     }
 
     mtd parsePosixClass()->RuneClass fail

@@ -169,7 +169,7 @@ internal impl IImageDecoder for Decoder
 
         var result: retval
         result.init(cast(s32) width, cast(s32) height, format)
-        options.checkImage(result.width, result.height, format)
+        try options.checkImage(result.width, result.height, format)
         if not options.decodePixels do
             return result
 
@@ -243,7 +243,7 @@ impl Decoder
             fail InvalidFormatError{"PSD layer count is truncated"}
         let signedCount = cast(s32) cast #bit(s16) readU16(buffer.buffer)
         let count       = cast(u32) Math.abs(signedCount)
-        options.checkFrameCount(cast(u64) count + 1)
+        try options.checkFrameCount(cast(u64) count + 1)
         var offset = 2'u64
         for index in count
         {
@@ -265,7 +265,7 @@ impl Decoder
             let format: PixelFormat = .colorMode == 1 ? (.depth == 16 ? .GrayAlpha16 : .GrayAlpha8) : (.depth == 16 ? .RGBA16 : .RGBA8)
             layer.info = {kind: .Layer, width: cast(s32) width, height: cast(s32) height, x: left, y: top, pixelFormat: format, layer: index}
             if width and height do
-                options.checkImage(layer.info.width, layer.info.height, format)
+                try options.checkImage(layer.info.width, layer.info.height, format)
             for channels
             {
                 layer.channels.add({id: cast #bit(s16) readU16(buffer.buffer + offset), length: readU32(buffer.buffer + offset + 2)})
@@ -280,8 +280,8 @@ impl Decoder
                 fail InvalidFormatError{"PSD layer extra data is truncated"}
             let extra       = buffer[offset until offset + extraLength]
             var extraOffset = 0'u64
-            skipSection(extra, &extraOffset)
-            skipSection(extra, &extraOffset)
+            try skipSection(extra, &extraOffset)
+            try skipSection(extra, &extraOffset)
             if extraOffset >= extra.count do
                 fail InvalidFormatError{"PSD layer name is truncated"}
             let nameLength = cast(u64) extra[extraOffset]
@@ -347,7 +347,7 @@ impl Layer
                     let length = cast(u64) readU16(bytes.buffer + 2 + cast(u64) y * 2)
                     if length > bytes.count - offset do
                         fail InvalidFormatError{"PSD compressed layer row is truncated"}
-                    decodePackBits(pixels.storage() + cast(u64) y * rowBytes, rowBytes, bytes[offset until offset + length])
+                    try decodePackBits(pixels.storage() + cast(u64) y * rowBytes, rowBytes, bytes[offset until offset + length])
                     offset += length
                 }
 
@@ -357,7 +357,7 @@ impl Layer
             elif compression == 2 or compression == 3
             {
                 var zlib: Compress.ZLib
-                pixels = zlib.decompress(bytes[offset to], required)
+                pixels = try zlib.decompress(bytes[offset to], required)
                 if pixels.count != required do
                     fail InvalidFormatError{"PSD ZIP layer channel has an invalid decoded size"}
                 if compression == 3
@@ -399,14 +399,14 @@ impl IImageSetDecoder for Decoder
         var probeOptions = options
         probeOptions.decodePixels = false
         let single: IImageDecoder = me
-        let probe = single.decode(buffer, probeOptions)
+        let probe = try single.decode(buffer, probeOptions)
         .depth     = readU16(buffer.buffer + 22)
         .colorMode = readU16(buffer.buffer + 24)
         var result: retval
         result.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat, name: String.from("Composite")})
         var offset = HeaderSize
-        skipSection(buffer, &offset)
-        skipSection(buffer, &offset)
+        try skipSection(buffer, &offset)
+        try skipSection(buffer, &offset)
         if buffer.count - offset < 4 do
             fail InvalidFormatError{"PSD layer section is truncated"}
         let sectionLength = cast(u64) readU32(buffer.buffer + offset)
@@ -422,11 +422,11 @@ impl IImageSetDecoder for Decoder
         if layerLength > section.count - 4 do
             fail InvalidFormatError{"PSD layer information exceeds its section"}
         if layerLength do
-            .indexLayers(section[4 until 4 + layerLength], options)
+            try .indexLayers(section[4 until 4 + layerLength], options)
         var tail = 4 + layerLength
         if tail < section.count
         {
-            skipSection(section, &tail)
+            try skipSection(section, &tail)
             while section.count - tail >= 12
             {
                 let key  = readU32(section.buffer + tail + 4)
@@ -435,7 +435,7 @@ impl IImageSetDecoder for Decoder
                 if size > section.count - tail do
                     fail InvalidFormatError{"PSD additional layer block is truncated"}
                 if key == 0x4C723136 and .depth == 16 do
-                    .indexLayers(section[tail until tail + size], options)
+                    try .indexLayers(section[tail until tail + size], options)
                 tail += size + (size & 1)
                 if tail > section.count do
                     fail InvalidFormatError{"PSD additional layer padding is truncated"}
@@ -460,11 +460,11 @@ impl IImageSetDecoder for Decoder
         if not index
         {
             let single: IImageDecoder = me
-            return single.decode(.bytes!, options)
+            return try single.decode(.bytes!, options)
         }
 
         if index > .imageLayers.count do
             fail InvalidFormatError{"PSD layer index is out of range"}
-        return .layers[.imageLayers[index - 1]].decode(.depth, options)
+        return try .layers[.imageLayers[index - 1]].decode(.depth, options)
     }
 }

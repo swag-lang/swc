@@ -47,7 +47,7 @@ impl SoundFile
             }
 
             try packetCodec!.initialize(.decoderConfig.toSlice(), .sampleRate, .channelCount)
-            var source        = ByteSource.openFile(.path.toString())
+            var source        = try ByteSource.openFile(.path.toString())
             var packetBytes:  Array'u8
             var decodedBytes: Array'u8
             var discardFrames = .leadingTrim
@@ -56,8 +56,8 @@ impl SoundFile
             {
                 if packetBytes.count != packet.byteSize do
                     packetBytes.resize(packet.byteSize)
-                source.seek(packet.sourceOffset)
-                source.readExact(packetBytes.toSlice())
+                try source.seek(packet.sourceOffset)
+                try source.readExact(packetBytes.toSlice())
 
                 let decodedSize = cast(u64) packet.sampleFrameCount * .channelCount * #sizeof(s16)
                 if decodedBytes.count != decodedSize do

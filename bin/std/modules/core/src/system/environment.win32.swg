@@ -529,7 +529,7 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
 
     let hWnd = CreateWindowExA(0, options.identifier.buffer, options.title.buffer, style, CW_USEDEFAULT, CW_USEDEFAULT, options.width, options.height, null, null, wc.hInstance, result)
     if not hWnd do
-        failWinError(GetLastError())
+        try failWinError(GetLastError())
 
     result.setNativeHandle(hWnd)
 }
@@ -591,9 +591,9 @@ public impl Window
         var windowRect: RECT
         var clientRect: RECT
         if not GetWindowRect(.win32Handle(), &windowRect) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         if not GetClientRect(.win32Handle(), &clientRect) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
 
         let frameWidth  = (windowRect.right - windowRect.left) - (clientRect.right - clientRect.left)
         let frameHeight = (windowRect.bottom - windowRect.top) - (clientRect.bottom - clientRect.top)
@@ -604,7 +604,7 @@ public impl Window
     {
         var clientRect: RECT
         if not GetClientRect(.win32Handle(), &clientRect) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         return {clientRect.right - clientRect.left, clientRect.bottom - clientRect.top}
     }
 

@@ -22,7 +22,7 @@ struct EnumerationOptions
 func create(dirName: string) fail
 {
     try Env.guardWrite(dirName)
-    createNative(dirName)
+    try createNative(dirName)
 }
 
 // Deletes `dirName`, optionally deleting its complete contents first.
@@ -49,7 +49,7 @@ func delete(dirName: string, recurse = false) fail
         }
     }
 
-    deleteEmptyNative(dirName)
+    try deleteEmptyNative(dirName)
 }
 
 // Enumerates a directory and applies recursion and filters in platform-neutral code.
@@ -67,7 +67,7 @@ func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileI
         if Path.VolumeSeparator != 0 and toScan.back() == Path.VolumeSeparator do
             toScan += Path.DirectorySeparator
 
-        var entries = enumerateOneNative(toScan.toString())
+        var entries = try enumerateOneNative(toScan.toString())
         for &entry in entries
         {
             let fileName = Path.fileName(entry.fullname.toString()) orelse ""

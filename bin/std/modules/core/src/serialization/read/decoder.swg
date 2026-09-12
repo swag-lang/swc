@@ -86,7 +86,7 @@ Serialization decoder.
 This is a high level decoder that needs a specific implementation like [[Core.Serialization.Read.TagBin]] or [[Core.Serialization.Read.Json]].
 
 ```swag
-var res = File.readAllBytes(file)
+var res = try File.readAllBytes(file)
 var decoder: Decoder'Read.TagBin
 let myStruct = catch decoder.readAll'MyStruct(res.toSlice())
 ```
@@ -109,9 +109,9 @@ impl Decoder
             fail SerializationError{"missing type value pointed type"}
         if not data do
             fail SerializationError{"missing data for type value"}
-        discard .serializer.beginElement(typedVal)
-        .readTypedContent(data, typedVal.pointedType)
-        .serializer.endElement(typedVal)
+        discard try .serializer.beginElement(typedVal)
+        try .readTypedContent(data, typedVal.pointedType)
+        try .serializer.endElement(typedVal)
     }
 
     // Reads one value into caller-owned storage large and aligned enough for `dataType`.
@@ -122,8 +122,8 @@ impl Decoder
         var type = Reflection.resolveAliases(dataType orelse #typeof(u8))
         type = Reflection.enumUnderlyingType(type)
 
-        .serializer.beginValue()
-        defer #nofail .serializer.endValue()
+        try .serializer.beginValue()
+        defer #nofail try .serializer.endValue()
 
         // Native
         if type.kind == .Native
@@ -131,17 +131,17 @@ impl Decoder
             let typeNative = cast(const *TypeInfoNative) type
             switch typeNative.nativeKind
             {
-            case .Bool:       data[as bool] = .serializer.readNative'bool()
-            case .U8:         data[as u8] = .serializer.readNative'u8()
-            case .U16:        data[as u16] = .serializer.readNative'u16()
-            case .U32, .Rune: data[as u32] = .serializer.readNative'u32()
-            case .U64:        data[as u64] = .serializer.readNative'u64()
-            case .S8:         data[as s8] = .serializer.readNative's8()
-            case .S16:        data[as s16] = .serializer.readNative's16()
-            case .S32:        data[as s32] = .serializer.readNative's32()
-            case .S64:        data[as s64] = .serializer.readNative's64()
-            case .F32:        data[as f32] = .serializer.readNative'f32()
-            case .F64:        data[as f64] = .serializer.readNative'f64()
+            case .Bool:       data[as bool] = try .serializer.readNative'bool()
+            case .U8:         data[as u8] = try .serializer.readNative'u8()
+            case .U16:        data[as u16] = try .serializer.readNative'u16()
+            case .U32, .Rune: data[as u32] = try .serializer.readNative'u32()
+            case .U64:        data[as u64] = try .serializer.readNative'u64()
+            case .S8:         data[as s8] = try .serializer.readNative's8()
+            case .S16:        data[as s16] = try .serializer.readNative's16()
+            case .S32:        data[as s32] = try .serializer.readNative's32()
+            case .S64:        data[as s64] = try .serializer.readNative's64()
+            case .F32:        data[as f32] = try .serializer.readNative'f32()
+            case .F64:        data[as f64] = try .serializer.readNative'f64()
             }
 
             return
@@ -149,7 +149,7 @@ impl Decoder
 
         if Reflection.isType(type)
         {
-            let crc      = .serializer.readNative'u32()
+            let crc      = try .serializer.readNative'u32()
             let typeType = Reflection.typeFromCrc(crc)
             data[as typeinfo?] = typeType
             return
@@ -159,8 +159,8 @@ impl Decoder
         {
             let itf = cast(*Swag.Interface) data
 
-            .serializer.beginSection(.Raw)
-            defer #nofail .serializer.endSection()
+            try .serializer.beginSection(.Raw)
+            defer #nofail try .serializer.endSection()
 
             var objType, itfType: typeinfo?
             var typeVal: TypeValue
@@ -168,16 +168,16 @@ impl Decoder
 
             #static if T == Read.TagBin
             {
-                objType = .serializer.readInterfaceType()
+                objType = try .serializer.readInterfaceType()
                 itfType = type
                 if objType and not Reflection.hasInterface(objType, type) do
                     fail SerializationError{"interface object type does not implement the requested interface"}
             }
             else
             {
-                .readTypeValue(typeVal, &objType)
+                try .readTypeValue(typeVal, &objType)
                 if objType do
-                    .readTypeValue(typeVal, &itfType)
+                    try .readTypeValue(typeVal, &itfType)
             }
 
             if objType
@@ -188,7 +188,7 @@ impl Decoder
                 itf.obj = Memory.new(objType)
                 if not itf.obj do
                     fail SerializationError{"cannot allocate interface object"}
-                .readTypeValue(typeVal, itf.obj)
+                try .readTypeValue(typeVal, itf.obj)
             }
 
             return
@@ -200,7 +200,7 @@ impl Decoder
             if type == String
             {
                 let strBuf = cast(*String) data
-                strBuf[] = #nodrop .serializer.readNative'String()
+                strBuf[] = #nodrop try .serializer.readNative'String()
                 strBuf.opPostMove()
                 return
             }
@@ -211,8 +211,8 @@ impl Decoder
             {
                 let safeValueType = valueType
                 var count         = 0'u64
-                let treated       = .serializer.beginSequence(type, data, &count)
-                defer #nofail .serializer.endSequence()
+                let treated       = try .serializer.beginSequence(type, data, &count)
+                defer #nofail try .serializer.endSequence()
 
                 if not treated
                 {
@@ -220,7 +220,7 @@ impl Decoder
                     while .serializer.toNextSequenceElement(&count)
                     {
                         let bufArr = Reflection.appendDynamicArrayElement(data, safeValueType, initialize: false)
-                        .readTypedContent(bufArr!, safeValueType)
+                        try .readTypedContent(bufArr!, safeValueType)
                     }
                 }
 
@@ -232,22 +232,22 @@ impl Decoder
             let itf      = Swag.makeInterface(data, type, ISerialize)
             if itf != null
             {
-                if itf.read(idecoder) do
+                if try itf.read(idecoder) do
                     return
             }
 
             // Generic struct load, driven by the shared per-type plan.
             let structType = cast(const *TypeInfoStruct) type
-            let treated    = .serializer.beginStruct(structType, data)
-            defer #nofail .serializer.endStruct()
+            let treated    = try .serializer.beginStruct(structType, data)
+            defer #nofail try .serializer.endStruct()
             if treated do
                 return
 
-            let plan = planFor(structType)
+            let plan = try planFor(structType)
             for &pf in plan.fields
             {
                 let fieldType = pf.value.pointedType
-                if not itf or not itf.readElement(pf.value, cast([*] u8) data + pf.value.offset, idecoder)
+                if not itf or not (try itf.readElement(pf.value, cast([*] u8) data + pf.value.offset, idecoder))
                 {
                     let fieldData = cast([*] u8) data + pf.value.offset
                     let doIt      = catch .serializer.beginElement(pf.value) as beginErr
@@ -263,7 +263,7 @@ impl Decoder
                         continue
                     }
 
-                    defer #nofail .serializer.endElement(pf.value)
+                    defer #nofail try .serializer.endElement(pf.value)
                     if not doIt do
                         continue
 
@@ -283,7 +283,7 @@ impl Decoder
 
             // Inform user code we are done
             if itf do
-                itf.postRead(data, idecoder)
+                try itf.postRead(data, idecoder)
 
             return
         }
@@ -294,15 +294,15 @@ impl Decoder
             let typeArr  = cast(const *TypeInfoArray) type
             let elemType = typeArr.pointedType
             var count    = typeArr.count
-            let treated  = .serializer.beginSequence(elemType, data, &count)
-            defer #nofail .serializer.endSequence()
+            let treated  = try .serializer.beginSequence(elemType, data, &count)
+            defer #nofail try .serializer.endSequence()
             if treated do
                 return
 
             var bufArr = cast([*] u8) data
             for count
             {
-                .readTypedContent(bufArr, elemType)
+                try .readTypedContent(bufArr, elemType)
                 bufArr += elemType.sizeof
             }
 
@@ -313,8 +313,8 @@ impl Decoder
     // Start reading
     mtd start(input: const [..] u8) fail
     {
-        .serializer.startRead(input)
-        .serializer.beginRoot()
+        try .serializer.startRead(input)
+        try .serializer.beginRoot()
     }
 
     // Starts deserialization with a reflected root type.
@@ -325,13 +325,13 @@ impl Decoder
     {
         #static if T == Read.TagBin do
             .serializer.setExpectedRootType(rootType)
-        .start(input)
+        try .start(input)
     }
 
     // Finish reading
     mtd end() fail
     {
-        .serializer.endRoot()
+        try .serializer.endRoot()
 
         // Payload corruption is detected inside no-fail cleanup paths, so it surfaces
         // here: a strict decode refuses the result, a tolerant one keeps it and reports
@@ -348,14 +348,14 @@ impl Decoder
     {
         Swag.assert(Reflection.isStruct(TR))
 
-        .start(input, TR)
+        try .start(input, TR)
 
         let val = Memory.new'TR()
         defer #fail Memory.delete(val)
 
-        .readTypedContent(val, TR)
+        try .readTypedContent(val, TR)
 
-        .end()
+        try .end()
         return val
     }
 }
@@ -365,42 +365,42 @@ impl IDecoder for Decoder
     // Starts the operation.
     mtd impl start(input: const [..] u8) fail
     {
-        .serializer.startRead(input)
-        .serializer.beginRoot()
+        try .serializer.startRead(input)
+        try .serializer.beginRoot()
     }
 
     // Finishes the operation.
     mtd impl end() fail
     {
-        .serializer.endRoot()
+        try .serializer.endRoot()
     }
 
     // Begins field.
     mtd impl beginField(val: Swag.TypeValue)->bool fail
     {
-        if not .serializer.beginElement(val) do
+        if not (try .serializer.beginElement(val)) do
             return false
-        .serializer.beginValue()
+        try .serializer.beginValue()
         return true
     }
 
     // Performs the end field operation.
     mtd impl endField(val: Swag.TypeValue) fail
     {
-        .serializer.endValue()
-        .serializer.endElement(val)
+        try .serializer.endValue()
+        try .serializer.endElement(val)
     }
 
     // Begins section.
     mtd impl beginSection(kind: SectionKind) fail
     {
-        .serializer.beginSection(kind)
+        try .serializer.beginSection(kind)
     }
 
     // Performs the end section operation.
     mtd impl endSection() fail
     {
-        .serializer.endSection()
+        try .serializer.endSection()
     }
 
     // Returns version.
@@ -418,7 +418,7 @@ impl IDecoder for Decoder
     // Performs the read operation.
     mtd impl read(data: *void, dataType: typeinfo) fail
     {
-        .readTypedContent(data, dataType)
+        try .readTypedContent(data, dataType)
     }
 
     // Reads buffer u8.
@@ -430,17 +430,17 @@ impl IDecoder for Decoder
         let safeData = cast([*] u8) Memory.alloc(count)
 
         var cpt     = count
-        let treated = .serializer.beginSequence(u8, safeData, &cpt)
-        defer #nofail .serializer.endSequence()
+        let treated = try .serializer.beginSequence(u8, safeData, &cpt)
+        defer #nofail try .serializer.endSequence()
 
         if not treated
         {
             var ptr = safeData
             for Math.min(cpt, count)
             {
-                .serializer.beginValue()
-                ptr[] = .serializer.readNative'u8()
-                .serializer.endValue()
+                try .serializer.beginValue()
+                ptr[] = try .serializer.readNative'u8()
+                try .serializer.endValue()
                 ptr += 1
             }
         }
@@ -449,38 +449,38 @@ impl IDecoder for Decoder
     }
 
     // Reads bool.
-    mtd impl readBool()->bool fail => .serializer.readNative'bool()
+    mtd impl readBool()->bool fail => try .serializer.readNative'bool()
 
     // Reads s8.
-    mtd impl readS8()->s8 fail => .serializer.readNative's8()
+    mtd impl readS8()->s8 fail => try .serializer.readNative's8()
 
     // Reads s16.
-    mtd impl readS16()->s16 fail => .serializer.readNative's16()
+    mtd impl readS16()->s16 fail => try .serializer.readNative's16()
 
     // Reads s32.
-    mtd impl readS32()->s32 fail => .serializer.readNative's32()
+    mtd impl readS32()->s32 fail => try .serializer.readNative's32()
 
     // Reads s64.
-    mtd impl readS64()->s64 fail => .serializer.readNative's64()
+    mtd impl readS64()->s64 fail => try .serializer.readNative's64()
 
     // Reads u8.
-    mtd impl readU8()->u8 fail => .serializer.readNative'u8()
+    mtd impl readU8()->u8 fail => try .serializer.readNative'u8()
 
     // Reads u16.
-    mtd impl readU16()->u16 fail => .serializer.readNative'u16()
+    mtd impl readU16()->u16 fail => try .serializer.readNative'u16()
 
     // Reads u32.
-    mtd impl readU32()->u32 fail => .serializer.readNative'u32()
+    mtd impl readU32()->u32 fail => try .serializer.readNative'u32()
 
     // Reads u64.
-    mtd impl readU64()->u64 fail => .serializer.readNative'u64()
+    mtd impl readU64()->u64 fail => try .serializer.readNative'u64()
 
     // Reads f32.
-    mtd impl readF32()->f32 fail => .serializer.readNative'f32()
+    mtd impl readF32()->f32 fail => try .serializer.readNative'f32()
 
     // Reads f64.
-    mtd impl readF64()->f64 fail => .serializer.readNative'f64()
+    mtd impl readF64()->f64 fail => try .serializer.readNative'f64()
 
     // Reads string.
-    mtd impl readString()->String fail => .serializer.readNative'String()
+    mtd impl readString()->String fail => try .serializer.readNative'String()
 }

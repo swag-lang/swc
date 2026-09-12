@@ -92,7 +92,7 @@ public impl RegExp
     func create(expr: string, ignoreCase = false)->RegExp fail
     {
         var result: retval
-        result.compile(expr, ignoreCase)
+        try result.compile(expr, ignoreCase)
         return result
     }
 
@@ -104,15 +104,15 @@ public impl RegExp
         var flags: Regex.Flags
         flags.ignoreCase = ignoreCase
 
-        var ast = Regex.Ast.parse(expr, flags)
-        .program      = Regex.Program.compile(&ast, false)
-        .reverse      = Regex.Program.compile(&ast, true)
+        var ast = try Regex.Ast.parse(expr, flags)
+        .program      = try Regex.Program.compile(&ast, false)
+        .reverse      = try Regex.Program.compile(&ast, true)
         .prefilter    = Regex.Prefilter.fromProgram(&.program)
         .captureNames = ast.captureNames
         .compiled     = true
 
         .slots.resize(.program.slotCount)
-        .prepareInnerLiteral(&ast)
+        try .prepareInnerLiteral(&ast)
 
         // A hit that costs one anchored attempt is only worth it while hits are rare; past
         // that, reading forwards once and backwards once over the whole subject is cheaper.
@@ -160,7 +160,7 @@ public impl RegExp
     // Compiles the pattern, then returns whether the whole subject matches it.
     mtd match(expr: string, str: string, ignoreCase = false)->bool fail
     {
-        .compile(expr, ignoreCase)
+        try .compile(expr, ignoreCase)
         return .match(str)
     }
 
@@ -196,7 +196,7 @@ public impl RegExp
     // Compiles the pattern, then returns its first occurrence in the subject.
     func grep(expr: string, str: string?)->string? fail
     {
-        var expression = create(expr)
+        var expression = try create(expr)
         return expression.grep(str)
     }
 
@@ -223,7 +223,7 @@ public impl RegExp
     // Compiles the pattern, then returns every occurrence of it in the subject.
     func grepAll(expr: string, str: string?)->Array'(string) fail
     {
-        var expression = create(expr)
+        var expression = try create(expr)
         return expression.grepAll(str)
     }
 
@@ -436,7 +436,7 @@ private impl RegExp
             return
 
         .innerScan   = scan
-        .innerPrefix = Regex.Program.compile(ast, true, inner.prefixRoot)
+        .innerPrefix = try Regex.Program.compile(ast, true, inner.prefixRoot)
         .useInner    = true
     }
 

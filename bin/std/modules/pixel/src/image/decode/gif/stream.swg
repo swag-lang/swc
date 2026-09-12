@@ -57,40 +57,40 @@ impl Decoder
     {
         for
         {
-            let size = .readU8()
+            let size = try .readU8()
             if not size do
                 break
-            .seek(cast() size)
+            try .seek(cast() size)
         }
     }
 
     mtd readPlainTextExt() fail
     {
         // Discard plain text metadata.
-        .seek(13)
+        try .seek(13)
 
         // Discard plain text sub-blocks.
-        .discardSubBlocks()
+        try .discardSubBlocks()
     }
 
     mtd readGraphicControlExt() fail
     {
         // Discard block size (always 0x04)
-        .seek(1)
-        let rdit = .readU8()
+        try .seek(1)
+        let rdit = try .readU8()
         .gce.disposal     = (rdit >> 2) & 3
         .gce.input        = rdit & 2
         .gce.transparency = rdit & 1
-        .gce.delay        = .readU16()
-        .gce.tindex       = .readU8()
+        .gce.delay        = try .readU16()
+        .gce.tindex       = try .readU8()
 
         // Skip block terminator
-        .seek(1)
+        try .seek(1)
     }
 
     mtd readCommentExt() fail
     {
-        .discardSubBlocks()
+        try .discardSubBlocks()
     }
 
     mtd readApplicationExt() fail
@@ -99,39 +99,39 @@ impl Decoder
         var app_auth_code: [3] u8
 
         // Discard block size (always 0x0B)
-        .seek(1)
+        try .seek(1)
 
         // Application Identifier
-        .read(app_id, 8)
+        try .read(app_id, 8)
 
         // Application Authentication Code
-        .read(app_auth_code, 3)
+        try .read(app_auth_code, 3)
 
         if not Memory.compare(app_id, ("NETSCAPE").buffer, app_id.count)
         {
             // Discard block size (0x03) and constant byte (0x01).
-            .seek(2)
-            .loopCount        = .readU16()
+            try .seek(2)
+            .loopCount        = try .readU16()
             .hasLoopExtension = true
 
             // Skip block terminator.
-            .seek(1)
+            try .seek(1)
         }
         else
         {
-            .discardSubBlocks()
+            try .discardSubBlocks()
         }
     }
 
     mtd readExt() fail
     {
-        let label = .readU8()
+        let label = try .readU8()
         switch label
         {
-        case 0x01: .readPlainTextExt()
-        case 0xF9: .readGraphicControlExt()
-        case 0xFE: .readCommentExt()
-        case 0xFF: .readApplicationExt()
+        case 0x01: try .readPlainTextExt()
+        case 0xF9: try .readGraphicControlExt()
+        case 0xFE: try .readCommentExt()
+        case 0xFF: try .readApplicationExt()
         default:   fail UnsupportedFormatError{Errors.mkString(Format.toString("unknown extension: %", label))}
         }
     }

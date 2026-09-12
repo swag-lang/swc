@@ -12,8 +12,8 @@ namespace ExpectBlockBindings
     {
         expect
         {
-            var x0 = valueOrFail(12)
-            var y0 = valueOrFail(34)
+            var x0 = try valueOrFail(12)
+            var y0 = try valueOrFail(34)
         }
 
         x0 += y0
@@ -24,8 +24,8 @@ namespace ExpectBlockBindings
     {
         expect
         {
-            let x0 = valueOrFail(7)
-            let y0 = valueOrFail(8)
+            let x0 = try valueOrFail(7)
+            let y0 = try valueOrFail(8)
         }
 
         return x0 + y0

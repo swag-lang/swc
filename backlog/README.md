@@ -35,6 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-12 13:05 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-12 10:21 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-12 10:04 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-12 10:02 |
@@ -56,7 +57,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [app.scope.font.md](app.scope.font.md) | The Swag Scope font viewer | 2026-09-12 05:55 |
 | [app.scope.image.md](app.scope.image.md) | The Swag Scope image viewer | 2026-09-12 05:46 |
 | [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-12 05:22 |
-| [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-11 22:17 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-11 22:14 |
 | [app.scope.midi.md](app.scope.midi.md) | The Swag Scope MIDI viewer | 2026-09-11 22:08 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-11 21:18 |

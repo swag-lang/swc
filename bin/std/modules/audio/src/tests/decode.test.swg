@@ -10,7 +10,7 @@ func audioPcmPacketSound()->SoundFile fail
     let source = try SoundFile.load(path, preloadData: false)
     let packets: [2] SoundPacket = [{source.dataOffset + 4, 4, 1},
                                     {source.dataOffset, 4, 1}]
-    return SoundFile.openPcmPacketStream(path, .Pcm16, 44_100, 2, packets)
+    return try SoundFile.openPcmPacketStream(path, .Pcm16, 44_100, 2, packets)
 }
 
 #test

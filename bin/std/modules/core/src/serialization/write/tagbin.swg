@@ -284,7 +284,7 @@ impl TagBin
     #[Swag.NoDoc]
     mtd writeInterfaceType(type: typeinfo?) fail
     {
-        let key = .interfaceTypeKey(type)
+        let key = try .interfaceTypeKey(type)
         .writeVarint(key.count)
         .output!.addBytes(key)
     }
@@ -456,7 +456,7 @@ impl TagBin
             return false
         }
 
-        let plan = planFor(cast(const *Swag.TypeInfoStruct) structType)
+        let plan = try planFor(cast(const *Swag.TypeInfoStruct) structType)
         if plan.podFinal
         {
             output.addNative(TagBinSignature.Raw)

@@ -190,13 +190,13 @@ func camouflageSize(logicalSize: u64, avoidedSize = 0'u64)->u64 fail
     }
 
     if logicalSize > Swag.U64.Max - minimum do
-        failWith("The requested capacity leaves no room for camouflage.", .InvalidInput)
+        try failWith("The requested capacity leaves no room for camouflage.", .InvalidInput)
     maximum = Math.min(maximum, Swag.U64.Max - logicalSize)
     if maximum < minimum do
-        failWith("The requested capacity leaves no room for camouflage.", .InvalidInput)
+        try failWith("The requested capacity leaves no room for camouflage.", .InvalidInput)
 
     var random = 0'u64
-    Core.Crypto.randomBytes(Swag.makeSlice(cast([*] u8) &random, #sizeof(random)))
+    try Core.Crypto.randomBytes(Swag.makeSlice(cast([*] u8) &random, #sizeof(random)))
     let range  = maximum - minimum + 1
     var result = logicalSize + minimum + random % range
     if result == avoidedSize do
@@ -222,11 +222,11 @@ impl Volume
         while offset < last
         {
             if progress and progress.isCanceled() do
-                failWith(canceledMessage, .Canceled)
+                try failWith(canceledMessage, .Canceled)
 
             let count = Math.min(last - offset, randomChunk.count)
-            Core.Crypto.randomBytes(randomChunk[0 until count])
-            .file.writeAllAt(offset, randomChunk[0 until count])
+            try Core.Crypto.randomBytes(randomChunk[0 until count])
+            try .file.writeAllAt(offset, randomChunk[0 until count])
             offset += count
             if progress do
                 progress.publish(progressBase + offset - first)
@@ -240,9 +240,9 @@ impl Volume
     mtd requireWritable() fail
     {
         if .file.protectionTriggered do
-            failWith("Hidden-volume protection has stopped writes until unmount.", .HiddenProtected)
+            try failWith("Hidden-volume protection has stopped writes until unmount.", .HiddenProtected)
         if .readOnly do
-            failWith("The container is mounted read only.", .WriteProtected)
+            try failWith("The container is mounted read only.", .WriteProtected)
     }
 
     mtd close()
@@ -277,7 +277,7 @@ impl Volume
     func create(path: string, password: const [..] u8, requestedSize: u64, progress: *VolumeProgress? = null)->Volume fail
     {
         if requestedSize < MinimumSize do
-            failWith(Format.toString("The container must be at least % bytes.", MinimumSize), .SizeTooSmall)
+            try failWith(Format.toString("The container must be at least % bytes.", MinimumSize), .SizeTooSmall)
 
         var result: retval
         var created   = false
@@ -309,9 +309,9 @@ impl Volume
             .label         = ProductName
         }
 
-        result.file.stream = File.open(path, .CreateNew, .ReadWrite, .Read)
+        result.file.stream = try File.open(path, .CreateNew, .ReadWrite, .Read)
         created = true
-        result.file.resize(result.physicalSize)
+        try result.file.resize(result.physicalSize)
 
         // Fill the whole container with random bytes before anything real is
         // written. Encrypted blocks are indistinguishable from random, so this is
@@ -327,13 +327,13 @@ impl Volume
             progress.setTotal(result.physicalSize)
         try result.randomizeRange(0, result.physicalSize, progress, 0, "Container creation was canceled.")
         if (try File.attributes(path)).has(.SparseFile) do
-            failWith("Sparse container files are not supported.", .SparseContainer)
+            try failWith("Sparse container files are not supported.", .SparseContainer)
 
         // The master key is drawn once and never derived. A password only ever
         // unwraps it, which is what makes changing a password cheap.
-        Core.Crypto.randomBytes(result.master)
-        Core.Crypto.randomBytes(result.slotSalt)
-        result.file.writeAllAt(KeySlotAreaOffset, result.slotSalt)
+        try Core.Crypto.randomBytes(result.master)
+        try Core.Crypto.randomBytes(result.slotSalt)
+        try result.file.writeAllAt(KeySlotAreaOffset, result.slotSalt)
         result.keys = try Crypto.deriveKeys(result.master)
         let initialKeySlot = try randomKeySlotIndex()
         result.keySlotMask = keySlotBit(initialKeySlot)
@@ -359,7 +359,7 @@ impl Volume
 
         result.blocks.initialize(result.blockCount)
         result.dirty = true
-        result.checkpoint()
+        try result.checkpoint()
 
         completed = true
         return result
@@ -378,16 +378,16 @@ impl Volume
     func open(path: string, password: const [..] u8, readOnly = false, protectionPassword: const [..] u8 = "")->Volume fail
     {
         if (try File.attributes(path)).has(.SparseFile) do
-            failWith("Sparse container files are not supported.", .SparseContainer)
+            try failWith("Sparse container files are not supported.", .SparseContainer)
 
         var result: retval
         result.dirty    = false
         result.readOnly = readOnly
         result.path     = path
         if readOnly do
-            result.file.stream = File.open(path, .Open, .Read, .Read)
+            result.file.stream = try File.open(path, .Open, .Read, .Read)
         else do
-            result.file.stream = File.open(path, .Open, .ReadWrite, .Read)
+            result.file.stream = try File.open(path, .Open, .ReadWrite, .Read)
         var completed = false
         defer
         {
@@ -398,9 +398,9 @@ impl Volume
             }
         }
 
-        result.physicalSize = result.file.size()
+        result.physicalSize = try result.file.size()
         if result.physicalSize < MinimumSize do
-            failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
+            try failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
         result.containerSize = result.physicalSize
         result.blockCount    = (result.physicalSize - DataOffset) / BlockRecordSize
 
@@ -419,7 +419,7 @@ impl Volume
         if protectionPassword.count
         {
             if result.file.base do
-                failWith("Hidden-volume protection needs the outer volume password.", .InvalidInput)
+                try failWith("Hidden-volume protection needs the outer volume password.", .InvalidInput)
             let region = try HiddenLocator.find(&result.file.stream, protectionPassword)
             result.file.protectedFirst = region.first
             result.file.protectedEnd   = region.first + region.count
@@ -437,7 +437,7 @@ impl Volume
         elif second.valid do
             selected = &second
         else do
-            failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
+            try failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
 
         let validHeader = selected!
         result.activeSlot = validHeader == &first ? 0 : 1
@@ -448,7 +448,7 @@ impl Volume
         // first.
         discard catch result.restore(validHeader.plain.toSlice()) as parseError
         if parseError != null do
-            failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
+            try failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
 
         if result.file.protectedEnd do
             try result.validateHiddenRegion({result.file.protectedFirst, result.file.protectedEnd - result.file.protectedFirst})
@@ -456,10 +456,10 @@ impl Volume
         // A shrink publishes its authenticated geometry before truncating the now-unused tail.
         // If the process stopped between those steps, the next writable open completes the
         // truncation; a read-only open simply ignores the unauthenticated excess bytes.
-        if not readOnly and not result.file.base and not result.file.protectedEnd and result.file.size() > result.physicalSize
+        if not readOnly and not result.file.base and not result.file.protectedEnd and (try result.file.size()) > result.physicalSize
         {
-            result.file.resize(result.physicalSize)
-            result.file.flush()
+            try result.file.resize(result.physicalSize)
+            try result.file.flush()
         }
 
         completed = true
@@ -470,7 +470,7 @@ impl Volume
     mtd validateHiddenRegion(region: FreeExtent) fail
     {
         if region.first < DataOffset or region.first > .containerSize or region.count > .containerSize - region.first do
-            failWith("The hidden region no longer fits the outer volume.", .HiddenProtected)
+            try failWith("The hidden region no longer fits the outer volume.", .HiddenProtected)
         for extent in .blocks.free
         {
             let first = DataOffset + extent.first * BlockRecordSize
@@ -479,7 +479,7 @@ impl Volume
                 return
         }
 
-        failWith("The outer volume has allocated part of the hidden region.", .HiddenProtected)
+        try failWith("The outer volume has allocated part of the hidden region.", .HiddenProtected)
     }
 
     // Creates one hidden volume inside a contiguous free outer extent. The outer handle is
@@ -488,20 +488,20 @@ impl Volume
     func createHidden(path: string, outerPassword, hiddenPassword: const [..] u8, requestedSize: u64, progress: *VolumeProgress? = null, outerReserve: u64 = MinimumBlocks * BlockSize)->Volume fail
     {
         if requestedSize < MinimumSize do
-            failWith("The hidden volume is too small for its metadata.", .SizeTooSmall)
+            try failWith("The hidden volume is too small for its metadata.", .SizeTooSmall)
         if not hiddenPassword.count do
-            failWith("A hidden volume needs a password or key files.", .PasswordRequired)
+            try failWith("A hidden volume needs a password or key files.", .PasswordRequired)
         var outer = try Volume.open(path, outerPassword)
         if outer.file.base do
-            failWith("A hidden volume needs an outer container.", .InvalidInput)
+            try failWith("A hidden volume needs an outer container.", .InvalidInput)
         if (try outer.findKeySlot(hiddenPassword)) != Swag.U64.Max do
-            failWith("Hidden and outer access need different credentials.", .InvalidInput)
+            try failWith("Hidden and outer access need different credentials.", .InvalidInput)
         try outer.checkpoint()
         let hiddenBlocks  = requestedSize / BlockRecordSize + (requestedSize % BlockRecordSize != 0 ? 1'u64 : 0)
         let reserveBlocks = outerReserve / BlockSize + (outerReserve % BlockSize != 0 ? 1'u64 : 0)
         let freeBlocks    = outer.blocks.freeBlockCount()
         if hiddenBlocks > freeBlocks or Math.max(reserveBlocks, MinimumBlocks) > freeBlocks - hiddenBlocks do
-            failWith("The hidden capacity leaves too little free space for the outer volume.", .DiskFull)
+            try failWith("The hidden capacity leaves too little free space for the outer volume.", .DiskFull)
         var region: FreeExtent
         for extent in outer.blocks.free
         {
@@ -511,12 +511,12 @@ impl Volume
         }
 
         if region.count < requestedSize do
-            failWith("No contiguous free region fits the hidden volume.", .DiskFull)
+            try failWith("No contiguous free region fits the hidden volume.", .DiskFull)
         region.first += region.count - requestedSize
         region.count = requestedSize
         try outer.validateHiddenRegion(region)
         if progress and progress.isCanceled() do
-            failWith("Container creation was canceled.", .Canceled)
+            try failWith("Container creation was canceled.", .Canceled)
 
         var result: retval
         result.file.stream   = #move outer.file.stream
@@ -543,9 +543,9 @@ impl Volume
 
         // Clearing old journal records is essential when this free extent held an older volume.
         try result.randomizeRange(0, requestedSize, progress, 0, "Container creation was canceled.")
-        Core.Crypto.randomBytes(result.master)
-        Core.Crypto.randomBytes(result.slotSalt)
-        result.file.writeAllAt(0, result.slotSalt)
+        try Core.Crypto.randomBytes(result.master)
+        try Core.Crypto.randomBytes(result.slotSalt)
+        try result.file.writeAllAt(0, result.slotSalt)
         result.keys = try Crypto.deriveKeys(result.master)
         let slot = try randomKeySlotIndex()
         result.keySlotMask = keySlotBit(slot)
@@ -584,8 +584,8 @@ impl Volume
     {
         var area: [KeySlotAreaSize] u8
         defer Core.Crypto.secureClear(area)
-        if not .file.readExactAt(KeySlotAreaOffset, area) do
-            failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
+        if not (try .file.readExactAt(KeySlotAreaOffset, area)) do
+            try failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
 
         Swag.memcpy(&.slotSalt[0], &area[0], Crypto.SaltSize)
         var slotKey = try Crypto.deriveSlotKey(password, .slotSalt)
@@ -606,7 +606,7 @@ impl Volume
         }
 
         if not found do
-            failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
+            try failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
         .keys = try Crypto.deriveKeys(.master)
     }
 
@@ -619,14 +619,14 @@ impl Volume
         var slot = try KeySlot.create(slotKey, .master, index)
         defer slot.clear()
         let record = try slot.encode()
-        .file.writeAllAt(keySlotPayloadOffset(index), record[until KeySlotPlainSize])
-        .file.flush()
+        try .file.writeAllAt(keySlotPayloadOffset(index), record[until KeySlotPlainSize])
+        try .file.flush()
         if .file.base
         {
             try HiddenLocator.write(&.file.stream, index, password, {.file.base, .file.limit})
             let verified = try HiddenLocator.find(&.file.stream, password)
             if verified.first != .file.base or verified.count != .file.limit do
-                failWith("The replacement hidden locator could not be verified.", .Io)
+                try failWith("The replacement hidden locator could not be verified.", .Io)
         }
     }
 
@@ -636,9 +636,9 @@ impl Volume
     {
         try .requireWritable()
         var record: [KeySlotPayloadSize] u8
-        Core.Crypto.randomBytes(record)
-        .file.writeAllAt(keySlotPayloadOffset(index), record[until KeySlotPlainSize])
-        .file.flush()
+        try Core.Crypto.randomBytes(record)
+        try .file.writeAllAt(keySlotPayloadOffset(index), record[until KeySlotPlainSize])
+        try .file.flush()
         if .file.base do
             try HiddenLocator.erase(&.file.stream, index)
     }
@@ -648,7 +648,7 @@ impl Volume
     {
         var area: [KeySlotAreaSize] u8
         defer Core.Crypto.secureClear(area)
-        if not .file.readExactAt(KeySlotAreaOffset, area) do
+        if not (try .file.readExactAt(KeySlotAreaOffset, area)) do
             return Swag.U64.Max
 
         var slotKey = try Crypto.deriveSlotKey(password, .slotSalt)
@@ -680,11 +680,11 @@ impl Volume
     mtd changePassword(current, replacement: const [..] u8) fail
     {
         if .file.base and (not replacement.count or (try HiddenLocator.opensOuter(&.file.stream, replacement))) do
-            failWith("Hidden access needs nonempty credentials distinct from outer access.", .InvalidInput)
+            try failWith("Hidden access needs nonempty credentials distinct from outer access.", .InvalidInput)
 
         let currentIndex = try .findKeySlot(current)
         if currentIndex == Swag.U64.Max do
-            failWith("The current password is incorrect.", .AccessDenied)
+            try failWith("The current password is incorrect.", .AccessDenied)
 
         let existingReplacement = try .findKeySlot(replacement)
         if existingReplacement == currentIndex do
@@ -700,7 +700,7 @@ impl Volume
             }
 
             if replacementIndex == Swag.U64.Max do
-                failWith("Every key slot is already in use.", .DiskFull)
+                try failWith("Every key slot is already in use.", .DiskFull)
 
             // Reserve before writing. A stopped write may waste this slot, but it cannot expose
             // the current one to reuse or make the vault lose its existing access.
@@ -711,7 +711,7 @@ impl Volume
             try .writeKeySlot(replacementIndex, replacement)
 
             if (try .findKeySlot(replacement)) != replacementIndex do
-                failWith("The replacement key slot could not be verified.", .Io)
+                try failWith("The replacement key slot could not be verified.", .Io)
         }
 
         // An already occupied hidden slot can have lost its locator independently. Repair and
@@ -739,12 +739,12 @@ impl Volume
     mtd addPassword(additional: const [..] u8)->u64 fail
     {
         if .file.base and (not additional.count or (try HiddenLocator.opensOuter(&.file.stream, additional))) do
-            failWith("Hidden access needs nonempty credentials distinct from outer access.", .InvalidInput)
+            try failWith("Hidden access needs nonempty credentials distinct from outer access.", .InvalidInput)
 
         if not additional.count do
-            failWith("A password is required.", .PasswordRequired)
+            try failWith("A password is required.", .PasswordRequired)
         if (try .findKeySlot(additional)) != Swag.U64.Max do
-            failWith("That password already opens this container.", .AlreadyExists)
+            try failWith("That password already opens this container.", .AlreadyExists)
 
         for index in KeySlotCount
         {
@@ -762,7 +762,7 @@ impl Volume
             return index
         }
 
-        failWith("Every key slot is already in use.", .DiskFull)
+        try failWith("Every key slot is already in use.", .DiskFull)
         unreachable
     }
 
@@ -774,9 +774,9 @@ impl Volume
     {
         let index = try .findKeySlot(password)
         if index == Swag.U64.Max do
-            failWith("That password does not open this container.", .NotFound)
+            try failWith("That password does not open this container.", .NotFound)
         if .keySlotCount() <= 1 do
-            failWith("The last password cannot be removed.", .AccessDenied)
+            try failWith("The last password cannot be removed.", .AccessDenied)
 
         try .eraseKeySlot(index)
         .keySlotMask  &= ~keySlotBit(index)
@@ -805,15 +805,15 @@ impl Volume
     {
         try .requireWritable()
         if .file.base or .file.protectedEnd do
-            failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
+            try failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
         if progress and progress.isCanceled() do
-            failWith("Growing the container was canceled.", .Canceled)
+            try failWith("Growing the container was canceled.", .Canceled)
         if requestedSize <= .containerSize do
-            failWith("A container can only grow.", .InvalidInput)
+            try failWith("A container can only grow.", .InvalidInput)
 
         let newBlockCount = (requestedSize - DataOffset) / BlockRecordSize
         if newBlockCount <= .blockCount do
-            failWith("The requested size does not add a single block.", .InvalidInput)
+            try failWith("The requested size does not add a single block.", .InvalidInput)
 
         // Everything below is undone by putting the file back to the length the durable header
         // already claims. `committed` is set on the last line, so every failure — including the
@@ -843,11 +843,11 @@ impl Volume
             progress.setTotal(addedPhysical)
         if targetPhysical > previousPhysical
         {
-            .file.resize(targetPhysical)
+            try .file.resize(targetPhysical)
             try .randomizeRange(previousPhysical, targetPhysical, progress, 0, "Growing the container was canceled.")
         }
 
-        .file.flush()
+        try .file.flush()
         .containerSize = requestedSize
         .physicalSize  = targetPhysical
         .blockCount    = newBlockCount
@@ -859,8 +859,8 @@ impl Volume
         committed = true
         if targetPhysical < previousPhysical
         {
-            .file.resize(targetPhysical)
-            .file.flush()
+            try .file.resize(targetPhysical)
+            try .file.flush()
         }
     }
 
@@ -871,7 +871,7 @@ impl Volume
     {
         try .requireWritable()
         if .file.base or .file.protectedEnd do
-            failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
+            try failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
         let previousPhysical = .physicalSize
         let targetPhysical   = try camouflageSize(.containerSize, previousPhysical)
         let addedPhysical    = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
@@ -890,12 +890,12 @@ impl Volume
 
         if targetPhysical > previousPhysical
         {
-            .file.resize(targetPhysical)
+            try .file.resize(targetPhysical)
             try .randomizeRange(previousPhysical, targetPhysical, progress, 0, "Camouflage refresh was canceled.")
-            .file.flush()
+            try .file.flush()
         }
         elif progress and progress.isCanceled() do
-            failWith("Camouflage refresh was canceled.", .Canceled)
+            try failWith("Camouflage refresh was canceled.", .Canceled)
 
         .physicalSize = targetPhysical
         .scalarsDirty = true
@@ -905,8 +905,8 @@ impl Volume
 
         if targetPhysical < previousPhysical
         {
-            .file.resize(targetPhysical)
-            .file.flush()
+            try .file.resize(targetPhysical)
+            try .file.flush()
         }
     }
 
@@ -930,17 +930,17 @@ impl Volume
     {
         try .requireWritable()
         if .file.base or .file.protectedEnd do
-            failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
+            try failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
         if progress and progress.isCanceled() do
-            failWith("Resizing the container was canceled.", .Canceled)
+            try failWith("Resizing the container was canceled.", .Canceled)
         if requestedSize < MinimumSize do
-            failWith(Format.toString("The container must be at least % bytes.", MinimumSize), .SizeTooSmall)
+            try failWith(Format.toString("The container must be at least % bytes.", MinimumSize), .SizeTooSmall)
         if requestedSize >= .containerSize do
-            failWith("Shrinking needs a smaller container size.", .InvalidInput)
+            try failWith("Shrinking needs a smaller container size.", .InvalidInput)
 
         let newBlockCount = (requestedSize - DataOffset) / BlockRecordSize
         if newBlockCount >= .blockCount do
-            failWith("The requested size does not remove a single block.", .InvalidInput)
+            try failWith("The requested size does not remove a single block.", .InvalidInput)
 
         // Start from one durable image. The relocation itself writes only into free blocks and
         // therefore changes nothing the active header can reach until the final checkpoint.
@@ -998,9 +998,9 @@ impl Volume
             progress.setTotal(addedPhysical + blocksToMove * BlockSize)
         if targetPhysical > previousPhysical
         {
-            .file.resize(targetPhysical)
+            try .file.resize(targetPhysical)
             try .randomizeRange(previousPhysical, targetPhysical, progress, 0, "Resizing the container was canceled.")
-            .file.flush()
+            try .file.flush()
         }
 
         var moved = addedPhysical
@@ -1030,7 +1030,7 @@ impl Volume
                 while count
                 {
                     if progress and progress.isCanceled() do
-                        failWith("Resizing the container was canceled.", .Canceled)
+                        try failWith("Resizing the container was canceled.", .Canceled)
 
                     let destination = try .blocks.allocateRunBelow(newBlockCount, Math.min(count, MaximumIoBatchBlocks))
                     let bytes       = destination.count * BlockSize
@@ -1064,8 +1064,8 @@ impl Volume
         // From this point the smaller geometry is durable. Leaving the physical tail in place on
         // a truncation error is recoverable and must not resurrect the old mappings in memory.
         committed = true
-        .file.resize(targetPhysical)
-        .file.flush()
+        try .file.resize(targetPhysical)
+        try .file.flush()
     }
 
     mtd readHeader(slot: u32)->HeaderCandidate fail
@@ -1127,7 +1127,7 @@ impl Volume
         writer.writeLittleEndian(.physicalSize)
 
         if result.count > HeaderPlainSize do
-            failWith("The metadata page index no longer fits in the header.", .DiskFull)
+            try failWith("The metadata page index no longer fits in the header.", .DiskFull)
         return result
     }
 
@@ -1147,54 +1147,54 @@ impl Volume
         var reader = ByteStream.openRead(plain)
 
         var magic: [#sizeof(HeaderMagic)] u8
-        reader.readBytes(&magic[0], #sizeof(magic))
+        try reader.readBytes(&magic[0], #sizeof(magic))
         if Swag.memcmp(&magic[0], &HeaderMagic[0], #sizeof(magic)) != 0 do
-            failWith("The container does not start with a Swag Vault header.", .Corrupted)
+            try failWith("The container does not start with a Swag Vault header.", .Corrupted)
 
-        let version = reader.readLittleEndian'u32()
+        let version = try reader.readLittleEndian'u32()
         if version != FormatVersion do
-            failWith("The container format version is not supported.", .Corrupted)
+            try failWith("The container format version is not supported.", .Corrupted)
 
-        .sequence     = reader.readLittleEndian'u64()
+        .sequence     = try reader.readLittleEndian'u64()
         .checkpointAt = .sequence
         if .sequence == Swag.U64.Max do
-            failWith("The container sequence can no longer advance.", .Corrupted)
+            try failWith("The container sequence can no longer advance.", .Corrupted)
         let actualSize = .physicalSize
-        let storedSize = reader.readLittleEndian'u64()
-        .blockCount   = reader.readLittleEndian'u64()
-        .nextNodeId   = reader.readLittleEndian'u64()
-        .label        = reader.readSizedString(MaximumLabelSize)
-        .keySlotMask  = reader.readLittleEndian'u32()
-        .metadataSize = reader.readLittleEndian'u64()
+        let storedSize = try reader.readLittleEndian'u64()
+        .blockCount   = try reader.readLittleEndian'u64()
+        .nextNodeId   = try reader.readLittleEndian'u64()
+        .label        = try reader.readSizedString(MaximumLabelSize)
+        .keySlotMask  = try reader.readLittleEndian'u32()
+        .metadataSize = try reader.readLittleEndian'u64()
         if storedSize < MinimumSize or storedSize > actualSize or .blockCount != (storedSize - DataOffset) / BlockRecordSize do
-            failWith("The container geometry does not match its size.", .Corrupted)
+            try failWith("The container geometry does not match its size.", .Corrupted)
         .containerSize = storedSize
 
         let expectedPages = (.metadataSize + BlockSize - 1) / BlockSize
         if expectedPages > .blockCount do
-            failWith("The metadata index is larger than the container.", .Corrupted)
+            try failWith("The metadata index is larger than the container.", .Corrupted)
 
-        let runCount = reader.readLittleEndian'u64()
+        let runCount = try reader.readLittleEndian'u64()
         if runCount > expectedPages do
-            failWith("The metadata index declares an implausible number of runs.", .Corrupted)
+            try failWith("The metadata index declares an implausible number of runs.", .Corrupted)
 
         .metadataPages.reserve(expectedPages)
         for runCount
         {
-            let first = reader.readLittleEndian'u64()
-            let count = reader.readLittleEndian'u64()
+            let first = try reader.readLittleEndian'u64()
+            let count = try reader.readLittleEndian'u64()
             if not count or first >= .blockCount or count > .blockCount - first or count > expectedPages - .metadataPages.count do
-                failWith("A metadata page falls outside the container.", .Corrupted)
+                try failWith("A metadata page falls outside the container.", .Corrupted)
             for i in count do
                 .metadataPages.add(first + i)
         }
 
         if .metadataPages.count != expectedPages do
-            failWith("The metadata index is incomplete.", .Corrupted)
+            try failWith("The metadata index is incomplete.", .Corrupted)
 
-        let storedPhysicalSize = reader.readLittleEndian'u64()
+        let storedPhysicalSize = try reader.readLittleEndian'u64()
         if storedPhysicalSize < storedSize or storedPhysicalSize > actualSize do
-            failWith("The container geometry does not match its size.", .Corrupted)
+            try failWith("The container geometry does not match its size.", .Corrupted)
         .physicalSize = storedPhysicalSize
 
         var image: Array'u8
@@ -1214,7 +1214,7 @@ impl Volume
         try .replayJournal()
 
         if .nodeById(RootNodeId) == null do
-            failWith("The container has no root directory.", .Corrupted)
+            try failWith("The container has no root directory.", .Corrupted)
         try .rebuildFreeList()
     }
 
@@ -1222,9 +1222,9 @@ impl Volume
     mtd loadNodes(image: const [..] u8) fail
     {
         var reader    = ByteStream.openRead(image)
-        let nodeCount = reader.readLittleEndian'u64()
+        let nodeCount = try reader.readLittleEndian'u64()
         if not nodeCount or nodeCount > MaximumNodeCount do
-            failWith("The container declares an implausible number of entries.", .Corrupted)
+            try failWith("The container declares an implausible number of entries.", .Corrupted)
 
         .nodes.reserve(nodeCount)
         for nodeCount
@@ -1233,7 +1233,7 @@ impl Volume
             let nodeIndex = .nodes.count
             .nodes.add(#move node)
             if not .nodeLookup.add(&.nodes[nodeIndex], nodeIndex) do
-                failWith("The container contains a duplicate entry.", .Corrupted)
+                try failWith("The container contains a duplicate entry.", .Corrupted)
         }
     }
 
@@ -1250,7 +1250,7 @@ impl Volume
         for page in .metadataPages
         {
             if page >= .blockCount do
-                failWith("A metadata page falls outside the container.", .Corrupted)
+                try failWith("A metadata page falls outside the container.", .Corrupted)
             used.set(page, true)
         }
 
@@ -1259,7 +1259,7 @@ impl Volume
             for mapping in node.blocks
             {
                 if mapping.physical >= .blockCount or not mapping.count or mapping.count > .blockCount - mapping.physical do
-                    failWith("A block mapping falls outside the container.", .Corrupted)
+                    try failWith("A block mapping falls outside the container.", .Corrupted)
                 for physical in mapping.physical until mapping.physical + mapping.count do
                     used.set(physical, true)
             }
@@ -1274,15 +1274,15 @@ impl Volume
         var record: [BlockRecordSize] u8
         {
             Sync.scopedLock(&.ioLock)
-            if not .file.readExactAt(DataOffset + physical * BlockRecordSize, record) do
-                failWith("The container is truncated or unreadable.", .Io)
+            if not (try .file.readExactAt(DataOffset + physical * BlockRecordSize, record)) do
+                try failWith("The container is truncated or unreadable.", .Io)
         }
 
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
         let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
         if not (try Crypto.open(&.keys, MetadataPageKind, physical, nonce, ciphertext, tag, destination)) do
-            failWith("An encrypted metadata page is damaged.", .Corrupted)
+            try failWith("An encrypted metadata page is damaged.", .Corrupted)
     }
 
     mtd writeMetadataPage(physical: u64, source: const [..] u8) fail
@@ -1294,7 +1294,7 @@ impl Volume
         let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
         try Crypto.seal(&.keys, MetadataPageKind, physical, source, nonce, ciphertext, tag)
         Sync.scopedLock(&.ioLock)
-        .file.writeAllAt(DataOffset + physical * BlockRecordSize, record)
+        try .file.writeAllAt(DataOffset + physical * BlockRecordSize, record)
     }
 
     // Writes a full checkpoint: the metadata image into fresh pages, then the
@@ -1374,7 +1374,7 @@ impl Volume
     {
         let used = HeaderRecordPrefixSize + plain.count + Crypto.TagSize
         if used > area do
-            failWith("A metadata record no longer fits its area.", .DiskFull)
+            try failWith("A metadata record no longer fits its area.", .DiskFull)
 
         // Only the bytes the record occupies are written. The rest of the area
         // still holds the noise the container was created with, or an older
@@ -1393,8 +1393,8 @@ impl Volume
         let tag        = record[HeaderRecordPrefixSize + plain.count until used]
         try Crypto.seal(&.keys, recordKind, recordId, plain, nonce, ciphertext, tag)
         Sync.scopedLock(&.ioLock)
-        .file.writeAllAt(offset, record.toSlice())
-        .file.flush()
+        try .file.writeAllAt(offset, record.toSlice())
+        try .file.flush()
     }
 
     // Reads a record written by `writeFramedRecord`. An empty result means the
@@ -1404,7 +1404,7 @@ impl Volume
         var result: retval
 
         var prefix: [Crypto.RecordLocatorSize] u8
-        if not .file.readExactAt(offset, prefix) do
+        if not (try .file.readExactAt(offset, prefix)) do
             return result
 
         var locator = try Crypto.recordLocator(.keys.locator, locatorKind, recordId)
@@ -1418,7 +1418,7 @@ impl Volume
 
         var record: Array'u8
         record.resize(Crypto.NonceSize + plainSize + Crypto.TagSize)
-        if not .file.readExactAt(offset + #sizeof(prefix), record.toSlice()) do
+        if not (try .file.readExactAt(offset + #sizeof(prefix), record.toSlice())) do
             return result
 
         var plain: Array'u8
@@ -1548,9 +1548,9 @@ impl Volume
         if not .dirty do
             return
         if not .hasPendingChanges() do
-            return .checkpoint()
+            return try .checkpoint()
         if .sequence - .checkpointAt >= JournalCapacity do
-            return .checkpoint()
+            return try .checkpoint()
 
         var upserted: Array'(*Node)
         upserted.reserve(.touched.count)
@@ -1577,7 +1577,7 @@ impl Volume
         // fragmented block map, or a large security descriptor. Rewriting the
         // whole image is the honest answer rather than a second record format.
         if plain.count > JournalPlainSize do
-            return .checkpoint()
+            return try .checkpoint()
 
         let sequence = .sequence + 1
         try .writeFramedRecord(JournalAreaOffset + (sequence % JournalCapacity) * JournalRecordSize, JournalRecordSize, JournalLocatorKind, JournalKind, sequence % JournalCapacity, plain.toSlice())
@@ -1617,7 +1617,7 @@ impl Volume
             if decodeError != null or record.sequence != expected do
                 break
             if record.sequence == Swag.U64.Max do
-                failWith("The container sequence can no longer advance.", .Corrupted)
+                try failWith("The container sequence can no longer advance.", .Corrupted)
             try .applyJournal(record)
             .sequence = record.sequence
             expected  += 1
@@ -1645,20 +1645,20 @@ impl Volume
             let target = .nodes.count
             .nodes.add(#move copy)
             if not .nodeLookup.add(&.nodes[target], target) do
-                failWith("A journal record contains a duplicate entry.", .Corrupted)
+                try failWith("A journal record contains a duplicate entry.", .Corrupted)
         }
 
         for patch in record.metadata
         {
             let node = .nodeById(patch.id)
             if not node do
-                failWith("A journal metadata change names an entry that does not exist.", .Corrupted)
+                try failWith("A journal metadata change names an entry that does not exist.", .Corrupted)
             let validNode = node!
             if patch.id != RootNodeId
             {
                 let parent = .nodeById(patch.parentId)
                 if not parent or not parent.isDirectory() or not .nodeLookup.changeParent(validNode, patch.parentId, patch.name) do
-                    failWith("A journal metadata change has an invalid destination.", .Corrupted)
+                    try failWith("A journal metadata change has an invalid destination.", .Corrupted)
             }
 
             validNode.attributes     = patch.attributes
@@ -1736,15 +1736,15 @@ impl Volume
         var record: [BlockRecordSize] u8
         {
             Sync.scopedLock(&.ioLock)
-            if not .file.readExactAt(DataOffset + physical * BlockRecordSize, record) do
-                failWith("The container is truncated or unreadable.", .Io)
+            if not (try .file.readExactAt(DataOffset + physical * BlockRecordSize, record)) do
+                try failWith("The container is truncated or unreadable.", .Io)
         }
 
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
         let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
         if not (try Crypto.open(&.keys, DataKind, physical, nonce, ciphertext, tag, destination)) do
-            failWith("An encrypted data block is damaged.", .Corrupted)
+            try failWith("An encrypted data block is damaged.", .Corrupted)
     }
 
     mtd readBlock(node: *Node, logical: u64, destination: [..] u8) fail
@@ -1754,7 +1754,7 @@ impl Volume
         if search.found
         {
             let mapping = node.blocks[search.index]
-            .readPhysical(mapping.physical + logical - mapping.logical, destination)
+            try .readPhysical(mapping.physical + logical - mapping.logical, destination)
         }
     }
 
@@ -1768,8 +1768,8 @@ impl Volume
         records.resize(count * BlockRecordSize)
         {
             Sync.scopedLock(&.ioLock)
-            if not .file.readExactAt(DataOffset + physical * BlockRecordSize, records.toSlice()) do
-                failWith("The container is truncated or unreadable.", .Io)
+            if not (try .file.readExactAt(DataOffset + physical * BlockRecordSize, records.toSlice())) do
+                try failWith("The container is truncated or unreadable.", .Io)
         }
 
         var batch = CryptoBatch{keys: &.keys, physical: physical, records: records.toSlice(), plain: destination}
@@ -1791,7 +1791,7 @@ impl Volume
         if batch.error != null do
             fail batch.error
         if batch.invalidTags do
-            failWith("An encrypted data block is damaged.", .Corrupted)
+            try failWith("An encrypted data block is damaged.", .Corrupted)
     }
 
     mtd writePhysicalRun(physical: u64, source: const [..] u8) fail
@@ -1802,7 +1802,7 @@ impl Volume
 
         var records: Array'u8
         records.resize(count * BlockRecordSize)
-        Core.Crypto.randomBytes(records.toSlice())
+        try Core.Crypto.randomBytes(records.toSlice())
 
         var plain = Swag.makeSlice(cast #unconst ([*] u8) source.buffer, source.count)
         var batch = CryptoBatch{keys: &.keys, physical: physical, records: records.toSlice(), plain: plain}
@@ -1823,7 +1823,7 @@ impl Volume
             fail batch.error
 
         Sync.scopedLock(&.ioLock)
-        .file.writeAllAt(DataOffset + physical * BlockRecordSize, records.toSlice())
+        try .file.writeAllAt(DataOffset + physical * BlockRecordSize, records.toSlice())
     }
 
     // Replaces a logical range with one physical run and defers the old physical ranges until
@@ -1979,10 +1979,10 @@ impl Volume
         var block: [BlockSize] u8
         defer Core.Crypto.secureClear(block)
         let mapping = node.blocks[search.index]
-        .readPhysical(mapping.physical + logical - mapping.logical, block)
+        try .readPhysical(mapping.physical + logical - mapping.logical, block)
         let end = Math.min(newSize, (logical + 1) * BlockSize)
         Swag.memset(&block[oldSize % BlockSize], 0, end - oldSize)
-        .writeBlock(nodeId, logical, block)
+        try .writeBlock(nodeId, logical, block)
     }
 
     mtd resizeNode(nodeId, newSize: u64) fail
@@ -1990,10 +1990,10 @@ impl Volume
         try .requireWritable()
         let node = .nodeById(nodeId)!
         if node.isDirectory() do
-            failWith("Cannot resize a directory.", .IsDirectory)
+            try failWith("Cannot resize a directory.", .IsDirectory)
         let oldSize = node.size
         if newSize > oldSize do
-            .zeroOldTail(nodeId, oldSize, newSize)
+            try .zeroOldTail(nodeId, oldSize, newSize)
         elif newSize < oldSize do
             .trimNode(node, newSize)
         let current = .nodeById(nodeId)!
@@ -2007,10 +2007,10 @@ impl Volume
     {
         let node = .nodeById(nodeId)
         if not node do
-            failWith("File handle is no longer valid.", .NotFound)
+            try failWith("File handle is no longer valid.", .NotFound)
         let validNode = node!
         if validNode.isDirectory() do
-            failWith("Cannot read a directory as a file.", .IsDirectory)
+            try failWith("Cannot read a directory as a file.", .IsDirectory)
         if offset >= validNode.size or not destination.count do
             return 0
 
@@ -2033,7 +2033,7 @@ impl Volume
                     let mappingOffset = logical - mapping.logical
                     let batchBlocks   = Math.min(Math.min(remainingBlocks, mapping.count - mappingOffset), MaximumIoBatchBlocks)
                     let batchBytes    = batchBlocks * BlockSize
-                    .readPhysicalRun(mapping.physical + mappingOffset, destination[done until done + batchBytes])
+                    try .readPhysicalRun(mapping.physical + mappingOffset, destination[done until done + batchBytes])
                     done += batchBytes
                     continue
                 }
@@ -2047,7 +2047,7 @@ impl Volume
             }
 
             var block: [BlockSize] u8
-            .readBlock(validNode, logical, block)
+            try .readBlock(validNode, logical, block)
             Swag.memcpy(destination.buffer + done, &block[inBlock], chunk)
             Core.Crypto.secureClear(block)
             done += chunk
@@ -2061,12 +2061,12 @@ impl Volume
         try .requireWritable()
         let node = .nodeById(nodeId)
         if not node do
-            failWith("File handle is no longer valid.", .NotFound)
+            try failWith("File handle is no longer valid.", .NotFound)
         let validNode = node!
         if validNode.isDirectory() do
-            failWith("Cannot write to a directory.", .IsDirectory)
+            try failWith("Cannot write to a directory.", .IsDirectory)
         if (validNode.attributes & FileAttributeReadOnly) != 0 do
-            failWith("The file is read-only.", .AccessDenied)
+            try failWith("The file is read-only.", .AccessDenied)
 
         var writeOffset = offset
         if writeToEnd do
@@ -2082,12 +2082,12 @@ impl Volume
         if not count do
             return 0
         if writeOffset > Swag.U64.Max - count do
-            failWith("File size overflow.", .InvalidInput)
+            try failWith("File size overflow.", .InvalidInput)
 
         let oldSize = validNode.size
         let end     = writeOffset + count
         if not constrained and end > oldSize do
-            .zeroOldTail(nodeId, oldSize, end)
+            try .zeroOldTail(nodeId, oldSize, end)
 
         var done = 0'u64
         while done < count
@@ -2100,7 +2100,7 @@ impl Volume
             if not inBlock and chunk == BlockSize
             {
                 let fullBytes = (count - done) / BlockSize * BlockSize
-                .writeFullBlocks(nodeId, logical, source[done until done + fullBytes])
+                try .writeFullBlocks(nodeId, logical, source[done until done + fullBytes])
                 done += fullBytes
                 continue
             }
@@ -2108,9 +2108,9 @@ impl Volume
             let current = .nodeById(nodeId)!
             var block: [BlockSize] u8
             if inBlock or chunk != BlockSize do
-                .readBlock(current, logical, block)
+                try .readBlock(current, logical, block)
             Swag.memcpy(&block[inBlock], source.buffer + done, chunk)
-            .writeBlock(nodeId, logical, block)
+            try .writeBlock(nodeId, logical, block)
             Core.Crypto.secureClear(block)
             done += chunk
         }
@@ -2134,12 +2134,12 @@ impl Volume
         try .requireWritable()
         let {parent, name} = .resolveParent(path)
         if parent == null or not parent.isDirectory() do
-            failWith("Parent directory does not exist.", .NotFound)
+            try failWith("Parent directory does not exist.", .NotFound)
         let validParent = parent!
         if not name.count or name == "." or name == ".." do
-            failWith("Invalid file name.", .InvalidInput)
+            try failWith("Invalid file name.", .InvalidInput)
         if .findChild(validParent.id, name) do
-            failWith("A file with this name already exists.", .AlreadyExists)
+            try failWith("A file with this name already exists.", .AlreadyExists)
 
         let now = volumeTimeNow()
         var node: Node
@@ -2170,7 +2170,7 @@ impl Volume
     mtd createNode(path: string, directory: bool, attributes: u32, security: const [..] u8)->u64 fail
     {
         let result = try .createNodePending(path, directory, attributes, security)
-        .commit()
+        try .commit()
         return result
     }
 
@@ -2197,29 +2197,29 @@ impl Volume
     {
         try .requireWritable()
         if id == 1 do
-            failWith("Cannot delete the root directory.", .AccessDenied)
+            try failWith("Cannot delete the root directory.", .AccessDenied)
         let index = .nodeIndex(id)
         if index == Swag.U64.Max do
             return
         if .nodes[index].isDirectory() and .hasChildren(id) do
-            failWith("The directory is not empty.", .DirectoryNotEmpty)
+            try failWith("The directory is not empty.", .DirectoryNotEmpty)
         .freeNodeBlocks(&.nodes[index])
         .removeNodeAt(index)
 
         // A node that is being deleted must leave the pending set, or the
         // journal record would describe a node that no longer exists.
         .drop(id)
-        .commit()
+        try .commit()
     }
 
     mtd renameNode(id: u64, newPath: string, replace: bool) fail
     {
         try .requireWritable()
         if id == 1 do
-            failWith("Cannot rename the root directory.", .AccessDenied)
+            try failWith("Cannot rename the root directory.", .AccessDenied)
         let {parent, name} = .resolveParent(newPath)
         if parent == null or not parent.isDirectory() or not name.count do
-            failWith("The destination directory does not exist.", .NotFound)
+            try failWith("The destination directory does not exist.", .NotFound)
         let validParent         = parent!
         let destinationParentId = validParent.id
         let sourceIsDirectory   = .nodeById(id)!.isDirectory()
@@ -2227,11 +2227,11 @@ impl Volume
         if existing and existing.id != id
         {
             if not replace do
-                failWith("The destination already exists.", .AlreadyExists)
+                try failWith("The destination already exists.", .AlreadyExists)
             if existing.isDirectory() != sourceIsDirectory do
-                failWith("A file cannot replace a directory, or conversely.", .InvalidInput)
+                try failWith("A file cannot replace a directory, or conversely.", .InvalidInput)
             if existing.isDirectory() and .hasChildren(existing.id) do
-                failWith("The destination directory is not empty.", .DirectoryNotEmpty)
+                try failWith("The destination directory is not empty.", .DirectoryNotEmpty)
             let existingId    = existing.id
             let existingIndex = .nodeIndex(existingId)
             .freeNodeBlocks(&.nodes[existingIndex])
@@ -2246,7 +2246,7 @@ impl Volume
             while ancestor != 1
             {
                 if ancestor == id do
-                    failWith("Cannot move a directory into itself.", .InvalidInput)
+                    try failWith("Cannot move a directory into itself.", .InvalidInput)
                 ancestor = .nodeById(ancestor)!.parentId
             }
         }
@@ -2256,7 +2256,7 @@ impl Volume
         Swag.assert(indexUpdated)
         updated.changeTime = volumeTimeNow()
         .touchMetadata(id)
-        .commit()
+        try .commit()
     }
 
     mtd freeBytes()->u64

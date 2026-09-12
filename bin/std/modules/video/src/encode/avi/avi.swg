@@ -44,7 +44,7 @@ private struct IndexEntry
 private func(T) patchValue(sink: *ByteSink, offset: u64, value: T) fail
 {
     var stored = value
-    sink.patch(offset, Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(T)))
+    try sink.patch(offset, Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(T)))
 }
 
 // Writes AVI files one frame at a time, compressing each of them as a JPEG image.
@@ -87,37 +87,37 @@ impl IEncoder for Encoder
             .options = options.buffer![as EncodeOptions]
         }
 
-        sink.writeNative(RiffId)
-        sink.writeNative(0'u32)
-        sink.writeNative(AviId)
+        try sink.writeNative(RiffId)
+        try sink.writeNative(0'u32)
+        try sink.writeNative(AviId)
 
-        sink.writeNative(ListId)
-        sink.writeNative(cast(u32) HeaderListSize)
-        sink.writeNative(HeaderListId)
+        try sink.writeNative(ListId)
+        try sink.writeNative(cast(u32) HeaderListSize)
+        try sink.writeNative(HeaderListId)
 
-        sink.writeNative(MainHeaderId)
-        sink.writeNative(cast(u32) #sizeof(MainHeader))
+        try sink.writeNative(MainHeaderId)
+        try sink.writeNative(cast(u32) #sizeof(MainHeader))
         .mainHeader = sink.position()
-        sink.writeNative(.createMainHeader())
+        try sink.writeNative(.createMainHeader())
 
-        sink.writeNative(ListId)
-        sink.writeNative(cast(u32) StreamListSize)
-        sink.writeNative(StreamListId)
+        try sink.writeNative(ListId)
+        try sink.writeNative(cast(u32) StreamListSize)
+        try sink.writeNative(StreamListId)
 
-        sink.writeNative(StreamHeaderId)
-        sink.writeNative(cast(u32) #sizeof(StreamHeader))
+        try sink.writeNative(StreamHeaderId)
+        try sink.writeNative(cast(u32) #sizeof(StreamHeader))
         .streamHeader = sink.position()
-        sink.writeNative(.createStreamHeader())
+        try sink.writeNative(.createStreamHeader())
 
-        sink.writeNative(StreamFormatId)
-        sink.writeNative(cast(u32) #sizeof(Bmp.Header))
-        sink.writeNative(.createFormatHeader())
+        try sink.writeNative(StreamFormatId)
+        try sink.writeNative(cast(u32) #sizeof(Bmp.Header))
+        try sink.writeNative(.createFormatHeader())
 
-        sink.writeNative(ListId)
+        try sink.writeNative(ListId)
         .frameListSize = sink.position()
-        sink.writeNative(0'u32)
+        try sink.writeNative(0'u32)
         .frameList = sink.position()
-        sink.writeNative(FrameListId)
+        try sink.writeNative(FrameListId)
     }
 
     mtd impl addFrame(sink: *ByteSink, image: Image) fail
@@ -125,38 +125,38 @@ impl IEncoder for Encoder
         var frameOptions: Jpg.EncodeOptions
         frameOptions.quality = .options.quality
 
-        var encoded = image.encode(JpegName, frameOptions)
+        var encoded = try image.encode(JpegName, frameOptions)
         encoded.makeLinear()
 
         let payload = encoded.toSlice()!
         let size    = payload.count
-        .reserve(sink, size)
+        try .reserve(sink, size)
 
         .index.add({cast(u32) (sink.position() - .frameList), cast(u32) size})
-        sink.writeNative(FrameChunkId)
-        sink.writeNative(cast(u32) size)
-        sink.write(payload)
+        try sink.writeNative(FrameChunkId)
+        try sink.writeNative(cast(u32) size)
+        try sink.write(payload)
 
         // RIFF pads an odd payload so the next chunk starts on an even offset.
         if size & 1 do
-            sink.writeNative(0'u8)
+            try sink.writeNative(0'u8)
         .largestFrame = Math.max(.largestFrame, size)
     }
 
     mtd impl end(sink: *ByteSink) fail
     {
         let frameEnd = sink.position()
-        sink.writeNative(IndexId)
-        sink.writeNative(cast(u32) (.index.count * IndexEntrySize))
+        try sink.writeNative(IndexId)
+        try sink.writeNative(cast(u32) (.index.count * IndexEntrySize))
         for entry in .index
         {
-            sink.writeNative(FrameChunkId)
-            sink.writeNative(IndexKeyFrame)
-            sink.writeNative(entry.offset)
-            sink.writeNative(entry.size)
+            try sink.writeNative(FrameChunkId)
+            try sink.writeNative(IndexKeyFrame)
+            try sink.writeNative(entry.offset)
+            try sink.writeNative(entry.size)
         }
 
-        .patchTotals(sink, frameEnd)
+        try .patchTotals(sink, frameEnd)
     }
 }
 
@@ -225,15 +225,15 @@ private impl Encoder
         main.totalFrames         = frames
         main.suggestedBufferSize = cast(u32) .largestFrame
         main.maxBytesPerSec      = .bytesPerSecond(frameEnd)
-        patchValue(sink, .mainHeader, main)
+        try patchValue(sink, .mainHeader, main)
 
         var stream = .createStreamHeader()
         stream.length = frames
         stream.suggestedBufferSize = cast(u32) .largestFrame
-        patchValue(sink, .streamHeader, stream)
+        try patchValue(sink, .streamHeader, stream)
 
-        patchValue(sink, RiffSizeOffset, cast(u32) (sink.position() - ChunkHeaderSize))
-        patchValue(sink, .frameListSize, cast(u32) (frameEnd - .frameList))
+        try patchValue(sink, RiffSizeOffset, cast(u32) (sink.position() - ChunkHeaderSize))
+        try patchValue(sink, .frameListSize, cast(u32) (frameEnd - .frameList))
     }
 
     // Returns the average data rate of the finished stream, in bytes per second.

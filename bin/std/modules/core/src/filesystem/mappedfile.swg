@@ -40,8 +40,8 @@ impl MappedFile
 
         switch access
         {
-        case .Read, .CopyOnWrite: result.stream = File.open(name, .Open, .Read, .ReadWrite | .Delete)
-        case .ReadWrite: result.stream = File.open(name, .Open, .ReadWrite, .ReadWrite | .Delete)
+        case .Read, .CopyOnWrite: result.stream = try File.open(name, .Open, .Read, .ReadWrite | .Delete)
+        case .ReadWrite: result.stream = try File.open(name, .Open, .ReadWrite, .ReadWrite | .Delete)
         }
 
         return result
@@ -56,21 +56,21 @@ impl MappedFile
     // `maxBytes` limits the copy to a prefix; zero creates an empty snapshot.
     func openSnapshot(name: string, maxBytes = Swag.U64.Max)->MappedFile fail
     {
-        var source    = File.open(name, .Open, .Read, .ReadWrite | .Delete)
+        var source    = try File.open(name, .Open, .Read, .ReadWrite | .Delete)
         let temporary = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("swag-mapped-%.tmp", Guid128.random()))
         var result: retval
         result.name   = name
-        result.stream = File.open(temporary, .CreateNew, .ReadWrite, .ReadWrite | .Delete)
+        result.stream = try File.open(temporary, .CreateNew, .ReadWrite, .ReadWrite | .Delete)
         defer discard catch File.delete(temporary)
 
         var buffer: [64 * 1024] u8
-        var remaining = Math.min(source.size(), maxBytes)
+        var remaining = Math.min(try source.size(), maxBytes)
         while remaining
         {
-            let count = source.read(buffer[0 until Math.min(remaining, buffer.count)])
+            let count = try source.read(buffer[0 until Math.min(remaining, buffer.count)])
             if not count do
                 fail Errors.InvalidFormatError{}
-            result.stream.writeAll(buffer[0 until count])
+            try result.stream.writeAll(buffer[0 until count])
             remaining -= count
         }
 
@@ -96,7 +96,7 @@ impl MappedFile
     mtd size()->u64 fail
     {
         Swag.assert(.isOpen())
-        return .stream.size()
+        return try .stream.size()
     }
 
     // Changes the file length.
@@ -107,7 +107,7 @@ impl MappedFile
     {
         Swag.assert(.isOpen())
         Swag.assert(.access == .ReadWrite)
-        .stream.resize(newSize)
+        try .stream.resize(newSize)
     }
 
     // Flushes file data and metadata through the underlying file handle.
@@ -115,7 +115,7 @@ impl MappedFile
     {
         Swag.assert(.isOpen())
         Swag.assert(.access == .ReadWrite)
-        .stream.flush()
+        try .stream.flush()
     }
 
     // Maps exactly `length` bytes beginning at `offset`.
@@ -127,7 +127,7 @@ impl MappedFile
     {
         Swag.assert(.isOpen())
 
-        let fileSize = .size()
+        let fileSize = try .size()
         if offset > fileSize or length > fileSize - offset do
             fail Errors.BadParameterError{}
 
@@ -136,7 +136,7 @@ impl MappedFile
         result.length = length
         result.access = .access
         if length do
-            result.mapNative(.stream.handle, offset, length, .access)
+            try result.mapNative(.stream.handle, offset, length, .access)
         result.valid = true
         return result
     }
@@ -144,7 +144,7 @@ impl MappedFile
     // Maps the complete current file.
     mtd mapAll()->MappedRegion fail
     {
-        return .map(0, .size())
+        return try .map(0, try .size())
     }
 }
 
@@ -217,7 +217,7 @@ impl MappedRegion
         Swag.assert(.isOpen())
         if .access != .ReadWrite or not .length do
             return
-        .flushNative()
+        try .flushNative()
     }
 
     // Drops the pages holding `bytes` from the working set of the process.

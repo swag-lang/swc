@@ -105,7 +105,7 @@ impl Program
         if not reverse do
             tail = result.addInst({kind: .Save, slot: 1, next: tail})
 
-        let body = result.emit(ast, entry, tail)
+        let body = try result.emit(ast, entry, tail)
 
         result.start = body
         if not reverse do
@@ -173,10 +173,10 @@ impl Program
         case .Group:
             let child = ast.kids[current.first]
             if current.capture == 0 or .reverse do
-                return .emit(ast, child, next)
+                return try .emit(ast, child, next)
 
             let close = .addInst({kind: .Save, slot: 2 * current.capture + 1, next: next})
-            let inner = .emit(ast, child, close)
+            let inner = try .emit(ast, child, close)
             return .addInst({kind: .Save, slot: 2 * current.capture, next: inner})
 
         case .Concat:
@@ -184,12 +184,12 @@ impl Program
             if .reverse
             {
                 for var i = 0'u32; i < current.count; i += 1 do
-                    tail = .emit(ast, ast.kids[current.first + i], tail)
+                    tail = try .emit(ast, ast.kids[current.first + i], tail)
             }
             else
             {
                 for var i = current.count; i > 0; i -= 1 do
-                    tail = .emit(ast, ast.kids[current.first + i - 1], tail)
+                    tail = try .emit(ast, ast.kids[current.first + i - 1], tail)
             }
 
             return tail
@@ -197,17 +197,17 @@ impl Program
         case .Alternate:
 
             // The branches are tried in order, so the chain of splits keeps their order.
-            var entry = .emit(ast, ast.kids[current.first + current.count - 1], next)
+            var entry = try .emit(ast, ast.kids[current.first + current.count - 1], next)
             for var i = current.count - 1; i > 0; i -= 1
             {
-                let branch = .emit(ast, ast.kids[current.first + i - 1], next)
+                let branch = try .emit(ast, ast.kids[current.first + i - 1], next)
                 entry = .addInst({kind: .Split, next: branch, alt: entry})
             }
 
             return entry
 
         case .Repeat:
-            return .emitRepeat(ast, node, next)
+            return try .emitRepeat(ast, node, next)
         }
 
         return next
@@ -325,7 +325,7 @@ impl Program
         if current.minCount == 0 and current.maxCount == RepeatInfinite
         {
             let split = .addInst({kind: .Split})
-            let body  = .emit(ast, child, split)
+            let body  = try .emit(ast, child, split)
             .setSplit(split, body, next, greedy)
             return split
         }
@@ -334,12 +334,12 @@ impl Program
         {
             // One or more, preceded by the copies the low bound requires.
             let split = .addInst({kind: .Split})
-            let body  = .emit(ast, child, split)
+            let body  = try .emit(ast, child, split)
             .setSplit(split, body, next, greedy)
 
             var entry = body
             for var i = 1'u32; i < current.minCount; i += 1 do
-                entry = .emit(ast, child, entry)
+                entry = try .emit(ast, child, entry)
             return entry
         }
 
@@ -348,14 +348,14 @@ impl Program
         var tail = next
         for var i = current.minCount; i < current.maxCount; i += 1
         {
-            let body  = .emit(ast, child, tail)
+            let body  = try .emit(ast, child, tail)
             let split = .addInst({kind: .Split})
             .setSplit(split, body, next, greedy)
             tail = split
         }
 
         for var i = 0'u32; i < current.minCount; i += 1 do
-            tail = .emit(ast, child, tail)
+            tail = try .emit(ast, child, tail)
         return tail
     }
 

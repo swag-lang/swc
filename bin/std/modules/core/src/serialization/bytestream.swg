@@ -130,7 +130,7 @@ public impl ByteStream
     // Reads a little-endian value of type 'T'.
     mtd(T) readLittleEndian()->T fail
     {
-        return Math.littleEndianToNative(.readNative'T())
+        return Math.littleEndianToNative(try .readNative'T())
     }
 
     // Writes a value of type 'T' in big-endian byte order.
@@ -142,7 +142,7 @@ public impl ByteStream
     // Reads a big-endian value of type 'T'.
     mtd(T) readBigEndian()->T fail
     {
-        return Math.bigEndianToNative(.readNative'T())
+        return Math.bigEndianToNative(try .readNative'T())
     }
 
     // Writes an unsigned value as a LEB128 varint.
@@ -170,7 +170,7 @@ public impl ByteStream
         var shift = 0'u32
         while true
         {
-            let b       = .readNative'u8()
+            let b       = try .readNative'u8()
             let payload = cast(u64) (b & 0x7F)
 
             // The tenth byte can only carry the top bit of a 64-bit value; anything
@@ -204,11 +204,11 @@ public impl ByteStream
     mtd readSizedString(maxLength: u64 = Swag.U32.Max)->String fail
     {
         var result: retval
-        let count = cast(u64) .readLittleEndian'u32()
+        let count = cast(u64) (try .readLittleEndian'u32())
         if count > maxLength do
             fail OverflowError{"sized string is too long"}
         result.reserve(count)
-        .readBytes(result.buffer, count)
+        try .readBytes(result.buffer, count)
         result.length = count
         return result
     }

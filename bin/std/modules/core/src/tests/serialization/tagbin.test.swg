@@ -227,21 +227,21 @@ public impl Serialization.ISerialize for TagBinHookPayload
     {
         if type.name == "remapped"
         {
-            if not decoder.beginField(type) do
+            if not (try decoder.beginField(type)) do
                 return true
-            defer #nofail decoder.endField(type)
+            defer #nofail try decoder.endField(type)
 
-            data![as s32] = decoder.readS32() - 6
+            data![as s32] = try decoder.readS32() - 6
             return true
         }
 
         if type.name == "bytes"
         {
-            if not decoder.beginField(type) do
+            if not (try decoder.beginField(type)) do
                 return true
-            defer #nofail decoder.endField(type)
+            defer #nofail try decoder.endField(type)
 
-            let raw = decoder.readBufferU8(4)
+            let raw = try decoder.readBufferU8(4)
             defer Memory.free(raw, 4)
 
             let values = cast(*Array'u8) data!
@@ -259,8 +259,8 @@ public impl Serialization.ISerialize for TagBinHookPayload
     {
         if type.name == "remapped"
         {
-            encoder.beginField(type)
-            defer #nofail encoder.endField(type)
+            try encoder.beginField(type)
+            defer #nofail try encoder.endField(type)
 
             encoder.writeS32(data![as s32] + 10)
             return true
@@ -268,11 +268,11 @@ public impl Serialization.ISerialize for TagBinHookPayload
 
         if type.name == "bytes"
         {
-            encoder.beginField(type)
-            defer #nofail encoder.endField(type)
+            try encoder.beginField(type)
+            defer #nofail try encoder.endField(type)
 
             let values = cast(const *Array'u8) data!
-            encoder.writeBufferU8(values.buffer, values.count)
+            try encoder.writeBufferU8(values.buffer, values.count)
             return true
         }
 

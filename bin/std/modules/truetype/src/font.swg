@@ -160,14 +160,14 @@ impl FaceImpl
 func getFaceImpl(face: *Face?)->*FaceImpl fail
 {
     if not face do
-        fault(0x23)
+        try fault(0x23)
     let safeFace = face!
     return cast(*FaceImpl) cast(*void) safeFace
 }
 
 func getSlotImpl(slot: *GlyphSlot)->*FaceImpl fail
 {
-    return getFaceImpl(slot.face)
+    return try getFaceImpl(slot.face)
 }
 
 func findTable(faceData: *FaceImpl, tag: u32)->const *TableRecord?
@@ -185,7 +185,7 @@ func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->const [..] u
 {
     let rec = findTable(faceData, tag)
     if not rec do
-        fault(missingCode)
+        try fault(missingCode)
     let r = rec!
-    return getSlice(faceData.fontData.toSlice(), r.offset, r.length)
+    return try getSlice(faceData.fontData.toSlice(), r.offset, r.length)
 }

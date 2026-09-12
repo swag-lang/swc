@@ -473,9 +473,9 @@ impl Inflate
                 .stream.advanceBytes(uncompressedLen)
 
             case 1:
-                repeatHt.init(FixedLength)
-                repeatZ.init(FixedDist)
-                .parseBlock(&repeatHt, &repeatZ, result)
+                try repeatHt.init(FixedLength)
+                try repeatZ.init(FixedDist)
+                try .parseBlock(&repeatHt, &repeatZ, result)
 
             case 3:
                 fail InvalidFormatError{"invalid block type"}
@@ -493,12 +493,12 @@ impl Inflate
                     codeLengthSizes[LengthDezigzag[i]] = s
                 }
 
-                codeLengthHt.init(codeLengthSizes)
+                try codeLengthHt.init(codeLengthSizes)
                 let ntot = hlit + hdist
                 var n    = 0
                 while n < ntot
                 {
-                    var c = .decode(&codeLengthHt)
+                    var c = try .decode(&codeLengthHt)
                     if c < 0 or c >= 19 do
                         fail InvalidFormatError{"bad code lengths"}
 
@@ -542,9 +542,9 @@ impl Inflate
 
                 if n != ntot do
                     fail InvalidFormatError{"bad code lengths"}
-                repeatHt.init(lenCodes[0 to hlit - 1])
-                repeatZ.init(lenCodes[hlit to ntot - 1])
-                .parseBlock(&repeatHt, &repeatZ, result)
+                try repeatHt.init(lenCodes[0 to hlit - 1])
+                try repeatZ.init(lenCodes[hlit to ntot - 1])
+                try .parseBlock(&repeatHt, &repeatZ, result)
             }
 
             if final == 1 do

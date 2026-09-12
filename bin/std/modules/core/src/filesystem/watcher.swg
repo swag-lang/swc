@@ -89,7 +89,7 @@ struct Watcher
 func watch(root: string)->Watcher fail
 {
     var options: WatchOptions
-    return watch(root, options)
+    return try watch(root, options)
 }
 
 // Starts watching `root` with an explicit scope and notification policy.
@@ -99,9 +99,9 @@ func watch(root: string, options: WatchOptions)->Watcher fail
         fail Errors.BadParameterError{}
 
     var result: retval
-    result.root    = Path.absolute(root)
+    result.root    = try Path.absolute(root)
     result.options = options
-    result.openNative()
+    try result.openNative()
     return result
 }
 
@@ -140,6 +140,6 @@ impl Watcher
     mtd next(waitMilliseconds = Swag.U32.Max)->WatchBatch fail
     {
         Swag.assert(.isOpen())
-        return .nextNative(waitMilliseconds)
+        return try .nextNative(waitMilliseconds)
     }
 }

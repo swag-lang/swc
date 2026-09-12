@@ -56,7 +56,7 @@ namespace WinFsp
             if not ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl.buffer, SddlRevisionOne, &.context.defaultSecurity, null)
             {
                 .stop()
-                failWith("Windows could not create the volume security descriptor.")
+                try failWith("Windows could not create the volume security descriptor.")
             }
 
             traceWinFspStage("default security descriptor created")
@@ -94,7 +94,7 @@ namespace WinFsp
             if createStatus != StatusSuccess
             {
                 .stop()
-                failWith(Format.toString("WinFsp could not create the volume (NTSTATUS %{X}).", statusBits(createStatus)))
+                try failWith(Format.toString("WinFsp could not create the volume (NTSTATUS %{X}).", statusBits(createStatus)))
             }
 
             let fileSystem = .fileSystem!
@@ -117,7 +117,7 @@ namespace WinFsp
             if status != StatusSuccess
             {
                 .stop()
-                failWith(Format.toString("WinFsp could not mount drive % (NTSTATUS %{X}).", mountPoint, statusBits(status)))
+                try failWith(Format.toString("WinFsp could not mount drive % (NTSTATUS %{X}).", mountPoint, statusBits(status)))
             }
 
             traceWinFspStage("WinFspMount initialized in place")

@@ -131,14 +131,14 @@ func inlineAlwaysFailValue(code: s32)->s32 fail
     fail ErrValue{code: code}
 }
 
-func propagateBareSuccess()->s32 fail
+func propagateExplicitSuccess()->s32 fail
 {
-    return mayFailValue(42)
+    return try mayFailValue(42)
 }
 
-func propagateBareFailure()->s32 fail
+func propagateExplicitFailure()->s32 fail
 {
-    return alwaysFailValue(17)
+    return try alwaysFailValue(17)
 }
 
 func propagateTrySuccess()->s32 fail
@@ -255,7 +255,7 @@ func aggregateDeferFail()->AggregateResult fail
 
 func catchSuccessValue()->s32
 {
-    return catch propagateBareSuccess()
+    return catch propagateExplicitSuccess()
 }
 
 func catchTrySuccessValue()->s32
@@ -271,7 +271,7 @@ func inlineCatchSuccessValue()->s32
 func catchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    result.value  = catch propagateBareFailure() as err
+    result.value  = catch propagateExplicitFailure() as err
     result.hasErr = err != null
     if err != null
     {
@@ -314,7 +314,7 @@ func dismissFailureInfo()->CatchInfo
 {
     var result: CatchInfo
     // 'catch' without a capture dismisses the error; the fallback is the type default.
-    result.value  = catch propagateBareFailure()
+    result.value  = catch propagateExplicitFailure()
     result.hasErr = false
     result.code   = 0
     return result
@@ -424,14 +424,14 @@ func traceFailLeaf() fail
 func traceFailMid() fail
 {
     defer appendErrorTrace(2)
-    traceFailLeaf()
+    try traceFailLeaf()
 }
 
 #[Swag.Inline]
 func traceFailTop() fail
 {
     defer appendErrorTrace(4)
-    traceFailMid()
+    try traceFailMid()
 }
 
 func traceFailCatch()->s64

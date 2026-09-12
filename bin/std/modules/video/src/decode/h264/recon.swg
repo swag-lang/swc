@@ -105,7 +105,7 @@ impl Decoder
         {
             let mb = &.parsedMbs[index]
             if mb.class != MbClassInter do
-                .pictureSlices[mb.sliceIndex].reconstructMb(mb)
+                try .pictureSlices[mb.sliceIndex].reconstructMb(mb)
         }
     }
 }
@@ -138,7 +138,7 @@ impl Slice
         }
         else
         {
-            .compensate(mb, frame)
+            try .compensate(mb, frame)
             if mb.skipped do
                 return
         }
@@ -394,9 +394,9 @@ impl Slice
             if not ref0 and not ref1 do
                 fail InvalidFormatError{"H.264 inter block has no reference picture"}
             if ref0 do
-                .awaitJobReference(mb, job, 0, ref0)
+                try .awaitJobReference(mb, job, 0, ref0)
             if ref1 do
-                .awaitJobReference(mb, job, 1, ref1)
+                try .awaitJobReference(mb, job, 1, ref1)
 
             // Luma, and in 4:4:4 the two colour planes with it: a colour plane there is
             // predicted with the same motion and the same interpolation as luma, over a block

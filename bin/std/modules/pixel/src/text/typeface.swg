@@ -149,11 +149,11 @@ public impl TypeFace
         if not File.exists(fullname)
         {
             let p = Path.combine(Env.realSpecialDirectory(.Font), fullname)
-            buffer = File.readAllBytes(p)
+            buffer = try File.readAllBytes(p)
         }
         else
         {
-            buffer = File.readAllBytes(fullname)
+            buffer = try File.readAllBytes(fullname)
         }
 
         let face = try Face.load(buffer.toSlice(), allocator)
@@ -169,7 +169,7 @@ public impl TypeFace
         var emb = .forceBold or forceBold ? Math.max(1, size / .forceBoldDiv) : 0
         emb += embolden
         if emb do
-            .face.glyph.outline.embolden(cast(s32) emb * 64)
+            try .face.glyph.outline.embolden(cast(s32) emb * 64)
         if .forceItalic or forceItalic do
             .face.glyph.oblique()
     }
@@ -195,12 +195,12 @@ public impl TypeFace
     // Render one glyph by glyph index (crisp bitmap path): stem darkening + vertical grid-fitting.
     mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold, forceItalic = false)->const *Bitmap fail
     {
-        .face.setPixelSize(0, size)
-        .face.loadGlyph(glyphIndex)
-        .transform(size, 0, forceBold, forceItalic)
-        .face.glyph.outline.embolden(stemDarkenStrength(size))
-        .face.hintVertical()
-        .face.renderGlyph()
+        try .face.setPixelSize(0, size)
+        try .face.loadGlyph(glyphIndex)
+        try .transform(size, 0, forceBold, forceItalic)
+        try .face.glyph.outline.embolden(stemDarkenStrength(size))
+        try .face.hintVertical()
+        try .face.renderGlyph()
         return &.face.glyph.bitmap
     }
 
@@ -213,10 +213,10 @@ public impl TypeFace
     // Render one glyph by glyph index as a multi-channel signed distance field
     mtd renderGlyphMsdfByIndex(glyphIndex: u32, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap fail
     {
-        .face.setPixelSize(0, size)
-        .face.loadGlyph(glyphIndex)
-        .transform(size, 0, forceBold, forceItalic)
-        .face.renderGlyphMsdf(spread)
+        try .face.setPixelSize(0, size)
+        try .face.loadGlyph(glyphIndex)
+        try .transform(size, 0, forceBold, forceItalic)
+        try .face.renderGlyphMsdf(spread)
         return &.face.glyph.bitmap
     }
 
@@ -225,9 +225,9 @@ public impl TypeFace
     {
         var result: retval
 
-        .face.setPixelSize(0, size)
-        .face.loadChar(c)
-        .transform(size, embolden)
+        try .face.setPixelSize(0, size)
+        try .face.loadChar(c)
+        try .transform(size, embolden)
 
         let prevIdx  = result.outline.paths.count
         let commands = .face.glyph.outline.decompose()
@@ -255,8 +255,8 @@ public impl TypeFace
 
         Utf8.visitRunes(text)
         {
-            .face.loadChar(c)
-            .transform(size, embolden)
+            try .face.loadChar(c)
+            try .transform(size, embolden)
 
             .face.glyph.outline.translate(x, 0)
 

@@ -959,7 +959,7 @@ internal impl VideoViewer
         let coversRange   = videoSoundCovers(sound, position)
         let shouldPlay    = wasPlaying and coversRange and not .resumeAudioAfterSeek
         let restoreOld    = wasPlaying and .voice != null and not .audioRangePending and not .resumeAudioAfterSeek
-        let newVoice      = Voice.create(sound)!
+        let newVoice      = try Voice.create(sound)!
         let oldVoice      = .voice
         var restoreNeeded = restoreOld
         defer #fail
@@ -969,15 +969,15 @@ internal impl VideoViewer
                 catch oldVoice!.play()
         }
 
-        newVoice.setVolume(.muted ? 0 : .volume)
+        try newVoice.setVolume(.muted ? 0 : .volume)
         if .playbackRate != 1 do
             catch newVoice.setFrequencyRatio(cast(f32) .playbackRate)
         if coversRange do
-            newVoice.seekSampleFrame(videoSoundSample(sound, position))
+            try newVoice.seekSampleFrame(videoSoundSample(sound, position))
         if oldVoice do
-            oldVoice.pause()
+            try oldVoice.pause()
         if shouldPlay do
-            newVoice.play()
+            try newVoice.play()
 
         restoreNeeded = false
         if oldVoice
@@ -1962,13 +1962,13 @@ private impl VideoViewer
             if not acquireSoundEngine() do
                 fail UnsupportedFormatError{"cannot create the audio engine for video playback"}
             .audioEngineAcquired = true
-            .selectAudioTrack(0)
+            try .selectAudioTrack(0)
         }
         elif .audioReady
         {
             let sound = .video.audioTrack(.audioTrackIndex)
             if sound and sound != .audio do
-                .selectAudioTrack(.audioTrackIndex)
+                try .selectAudioTrack(.audioTrackIndex)
         }
     }
 

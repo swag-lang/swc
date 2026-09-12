@@ -23,7 +23,7 @@ public impl Gamepad
         {
         case ERROR_SUCCESS: return
         case ERROR_DEVICE_NOT_CONNECTED: fail Swag.SystemError{"not connected"}
-        default: Win32.failWinError(res)
+        default: try Win32.failWinError(res)
         }
     }
 }

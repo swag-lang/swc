@@ -41,7 +41,7 @@ public impl Bus
         let bus       = Memory.new'Bus(allocator)
         bus.allocationAllocator = allocator
         defer #fail Memory.delete(bus, allocator)
-        createNative(bus, channelCount, parent)
+        try createNative(bus, channelCount, parent)
         bus.channelCount = channelCount
         bus.parent       = parent
 
@@ -69,12 +69,12 @@ public impl Bus
     // `batchId` is forwarded to backends that support deferred operation sets.
     mtd setVolumeDb(decibels: f32, batchId: u32 = 0) fail
     {
-        .setVolume(decibelsToLinearGain(decibels), batchId)
+        try .setVolume(decibelsToLinearGain(decibels), batchId)
     }
 
     // Returns the current bus gain in decibels.
     mtd volumeDb()->f32 fail
     {
-        return linearGainToDecibels(.volume())
+        return linearGainToDecibels(try .volume())
     }
 }

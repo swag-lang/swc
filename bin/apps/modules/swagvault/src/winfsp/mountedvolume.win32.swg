@@ -20,7 +20,7 @@ namespace WinFsp
         // given: the drive is what carries the state, so nothing here has to remember it.
         mtd open(path: string, password: const [..] u8, mountPoint: string, readOnly = false, protectionPassword: const [..] u8 = "") fail
         {
-            .volume     = Volume.open(path, password, readOnly, protectionPassword)
+            .volume     = try Volume.open(path, password, readOnly, protectionPassword)
             .volumeOpen = true
             traceWinFspStage("calling WinFspMount.start from MountedVolume.open")
             discard catch .mount.start(&.volume, mountPoint) as mountError
@@ -46,7 +46,7 @@ namespace WinFsp
                 }
 
                 if .volume.dirty and not .volume.readOnly do
-                    .volume.commit()
+                    try .volume.commit()
             }
         }
 

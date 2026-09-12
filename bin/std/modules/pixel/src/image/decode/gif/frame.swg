@@ -20,17 +20,17 @@ impl Decoder
         .descriptorRemaining = .streamLen
 
         // Image descriptor
-        .fx = .readU16()
-        .fy = .readU16()
+        .fx = try .readU16()
+        .fy = try .readU16()
         if .fx >= .width or .fy >= .height do
             fail InvalidFormatError{"invalid frame size"}
 
-        .fw = .readU16()
-        .fh = .readU16()
+        .fw = try .readU16()
+        .fh = try .readU16()
         if not .fw or not .fh or .fw > .width - .fx or .fh > .height - .fy do
             fail InvalidFormatError{"GIF frame rectangle lies outside its canvas"}
 
-        let fisrz     = .readU8()
+        let fisrz     = try .readU8()
         let interlace = fisrz & 0x40
 
         // Ignore Sort Flag
@@ -39,7 +39,7 @@ impl Decoder
         {
             /* Read LCT */
             .lct.size = 1 << ((fisrz & 0x07) + 1)
-            .read(.lct.colors, 3'u64 * .lct.size)
+            try .read(.lct.colors, 3'u64 * .lct.size)
             .palette = &.lct
         }
         else do
@@ -48,31 +48,31 @@ impl Decoder
         if not .palette.size do
             fail InvalidFormatError{"GIF frame has no color table"}
         if decodePixels do
-            .readImageData(interlace)
+            try .readImageData(interlace)
         else
         {
-            let codeSize = .readU8()
+            let codeSize = try .readU8()
             if codeSize < 2 or codeSize > 8 do
                 fail InvalidFormatError{"GIF LZW code size is invalid"}
-            .discardSubBlocks()
+            try .discardSubBlocks()
         }
     }
 
     mtd getFrame(decodePixels: bool)->s32 fail
     {
         .gce = {}
-        var sep = .readU8()
+        var sep = try .readU8()
         while sep != ','
         {
             if sep == ';' do
                 return 0
             if sep != '!' do
                 fail InvalidFormatError{"invalid format"}
-            .readExt()
-            sep = .readU8()
+            try .readExt()
+            sep = try .readU8()
         }
 
-        .readImage(decodePixels)
+        try .readImage(decodePixels)
         return 1
     }
 }

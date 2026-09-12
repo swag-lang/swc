@@ -13947,7 +13947,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Serialization_Decoder" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Serialization.Decoder</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L95">src</a></div>
 <p>Serialization decoder. This is a high level decoder that needs a specific implementation like <a href="#Core_Serialization_Read_TagBin">Core.Serialization.Read.TagBin</a> or <a href="#Core_Serialization_Read_Json">Core.Serialization.Read.Json</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">var</span> res = <span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(file)
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> res = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(file)
 <span class="SKwd">var</span> decoder: <span class="SFct">Decoder</span>'<span class="SCst"><a href="#namespace_Core_Serialization_Read">Read</a></span>.<span class="SCst">TagBin</span>
 <span class="SKwd">let</span> myStruct = <span class="SKwd">catch</span> decoder.<span class="SFct">readAll</span>'<span class="SFct">MyStruct</span>(res.<span class="SFct">toSlice</span>())</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst"><a href="#Core_Serialization_Decoder">Decoder</a></span></span></div>
@@ -13983,8 +13983,8 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <p>Serialization encoder. This is a high level encoder that needs a specific implementation like <a href="#Core_Serialization_Write_TagBin">Core.Serialization.Write.TagBin</a> or <a href="#Core_Serialization_Write_Json">Core.Serialization.Write.Json</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> buf:     <span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>
 <span class="SKwd">var</span> encoder: <span class="SFct">Encoder</span>'<span class="SCst"><a href="#namespace_Core_Serialization_Write">Write</a></span>.<span class="SCst">TagBin</span>
-encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
-<span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SFct">writeAllBytes</span>(file, buf)</span></div>
+<span class="SKwd">try</span> encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
+<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SFct">writeAllBytes</span>(file, buf)</span></div>
 <p>Can be serialized:</p>
 <ul>
 <li>All simple types: <span class="code-inline">bool/u8/u16/u32/u64/s8/s16/s32/s64/rune/f32/f64</span></li>
@@ -19230,7 +19230,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">start</span>(result: *<span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>, rootType: <span class="STpe">typeinfo</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Encoder_writeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.writeAll</span> <a class="api-item-permalink" href="#Core_Serialization_Encoder_writeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/encoder.swg#L349">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Encoder_writeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.writeAll</span> <a class="api-item-permalink" href="#Core_Serialization_Encoder_writeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/encoder.swg#L356">src</a></div>
 <p>Write a full struct. Will call <a href="#Core_Serialization_Encoder_start">Encoder.start</a>, <a href="#Core_Serialization_Encoder_writeValue">Encoder.writeValue</a> and <a href="#Core_Serialization_Encoder_end">Encoder.end</a></p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeAll</span>(result: *<span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>, value: <span class="STpe">any</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -19240,7 +19240,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeTypeValue</span>(typeVal: <span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>, data: <span class="SKwd">const</span> [*] <span class="STpe">void</span>?) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Encoder_writeValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.writeValue</span> <a class="api-item-permalink" href="#Core_Serialization_Encoder_writeValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/encoder.swg#L155">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Encoder_writeValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.writeValue</span> <a class="api-item-permalink" href="#Core_Serialization_Encoder_writeValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/encoder.swg#L158">src</a></div>
 <p>Write a given value with a given type.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeValue</span>(data: <span class="SKwd">const</span> [*] <span class="STpe">void</span>, dataType: <span class="STpe">typeinfo</span>?) <span class="SKwd">fail</span></span></div>
 </section>
@@ -27144,7 +27144,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.489</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.503</div>
 </footer>
 </section>
 </main>

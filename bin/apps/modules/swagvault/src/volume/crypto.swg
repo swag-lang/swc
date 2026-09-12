@@ -118,7 +118,7 @@ namespace Crypto
         Swag.assert(nonce.count == NonceSize)
         Swag.assert(ciphertext.count == plaintext.count)
         Swag.assert(tag.count == TagSize)
-        Core.Crypto.randomBytes(nonce)
+        try Core.Crypto.randomBytes(nonce)
         try Core.Crypto.chacha20Poly1305Seal(keys.record, nonce, plaintext, associatedData(kind, recordId), ciphertext, tag)
     }
 
@@ -128,6 +128,6 @@ namespace Crypto
     {
         if nonce.count != NonceSize or tag.count != TagSize or ciphertext.count != plaintext.count do
             return false
-        return Core.Crypto.chacha20Poly1305Open(keys.record, nonce, ciphertext, tag, associatedData(kind, recordId), plaintext)
+        return try Core.Crypto.chacha20Poly1305Open(keys.record, nonce, ciphertext, tag, associatedData(kind, recordId), plaintext)
     }
 }

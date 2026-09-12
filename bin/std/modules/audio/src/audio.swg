@@ -19,7 +19,7 @@ public func createEngine(kind: DriverKind = .Default) fail
     if Env.isSandboxed() do
         resolved = .NoSound
 
-    g_Driver.create(resolved)
+    try g_Driver.create(resolved)
 }
 
 // Creates the process-wide engine without opening an audio device.
@@ -27,7 +27,7 @@ public func createEngine(kind: DriverKind = .Default) fail
 // This is equivalent to [[Audio.createEngine]] with
 // [[Audio.DriverKind.NoSound]] and is intended for deterministic tests and
 // headless programs.
-public func createNoSoundEngine() fail => createEngine(.NoSound)
+public func createNoSoundEngine() fail => try createEngine(.NoSound)
 
 // Destroys the process-wide audio engine and its backend resources.
 //
@@ -52,7 +52,7 @@ public func setOutputVolume(volume: f32) fail
 {
     if not g_Driver.isCreated do
         fail BadParameterError{"audio engine is not created"}
-    g_Driver.setOutputVolume(Math.clamp(volume, 0, 1))
+    try g_Driver.setOutputVolume(Math.clamp(volume, 0, 1))
 }
 
 // Returns the current mastering output gain as a linear value.
@@ -66,11 +66,11 @@ public func outputVolume()->f32 fail
 // Sets the mastering output gain in decibels.
 public func setOutputVolumeDb(decibels: f32) fail
 {
-    setOutputVolume(decibelsToLinearGain(decibels))
+    try setOutputVolume(decibelsToLinearGain(decibels))
 }
 
 // Returns the mastering output gain in decibels.
 public func outputVolumeDb()->f32 fail
 {
-    return linearGainToDecibels(outputVolume())
+    return linearGainToDecibels(try outputVolume())
 }

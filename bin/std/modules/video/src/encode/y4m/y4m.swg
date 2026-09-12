@@ -47,7 +47,7 @@ impl IEncoder for Encoder
         discard options
 
         .info = info
-        sink.writeText(Format.toString("% W% H% F%:% Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n", StreamSignature, info.width, info.height, info.frameRate.numerator(), info.frameRate.denominator()).toString())
+        try sink.writeText(Format.toString("% W% H% F%:% Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n", StreamSignature, info.width, info.height, info.frameRate.numerator(), info.frameRate.denominator()).toString())
     }
 
     mtd impl addFrame(sink: *ByteSink, image: Image) fail
@@ -81,9 +81,9 @@ impl IEncoder for Encoder
             }
         }
 
-        sink.writeText(FrameMarker)
-        sink.writeText("\n")
-        sink.write(.payload.toSlice())
+        try sink.writeText(FrameMarker)
+        try sink.writeText("\n")
+        try sink.write(.payload.toSlice())
     }
 
     mtd impl end(sink: *ByteSink) fail

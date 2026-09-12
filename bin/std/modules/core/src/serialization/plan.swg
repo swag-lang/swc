@@ -124,7 +124,7 @@ public func planFor(structType: const *Swag.TypeInfoStruct)->*Plan fail
         return again.value
 
     let plan = g_PlanPool.addNew()
-    buildPlan(plan, structType)
+    try buildPlan(plan, structType)
     g_Plans.add(key, plan)
     return plan
 }

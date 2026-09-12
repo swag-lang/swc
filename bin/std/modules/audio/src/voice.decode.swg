@@ -66,7 +66,7 @@ impl Voice
             if .decodedBuffers[.decodedBufferIdx].count < .decodedBufferCapacity() do
                 .decodedBuffers[.decodedBufferIdx].resize(.decodedBufferCapacity())
             let destBuffer = .decodedBuffers[.decodedBufferIdx].storage()
-            let destSize   = .decodePacketData(destBuffer, .decodedFillSize())
+            let destSize   = try .decodePacketData(destBuffer, .decodedFillSize())
             .decodedBufferIdx = (.decodedBufferIdx + 1) % NumDecodedBuffers
             return {destBuffer, destSize}
         }
@@ -96,7 +96,7 @@ impl Voice
             .decodedBuffers[.decodedBufferIdx].resize(DecodedBufferSize)
 
         let destBuffer = .decodedBuffers[.decodedBufferIdx].storage()
-        let destSize   = .decodeData(destBuffer, .decodedFillSize())
+        let destSize   = try .decodeData(destBuffer, .decodedFillSize())
 
         .decodedBufferIdx = (.decodedBufferIdx + 1) % NumDecodedBuffers
         return {destBuffer, destSize}
@@ -146,7 +146,7 @@ impl Voice
         decoder.configure(file.encoding, .Pcm16, desc.type, allocator)
         .packetCodec = Swag.makeInterface(decoder, desc.type, IPacketCodec)
         defer #fail .destroyPacketCodec()
-        .packetCodec!.initialize(file.decoderConfig.toSlice(), file.sampleRate, file.channelCount)
+        try .packetCodec!.initialize(file.decoderConfig.toSlice(), file.sampleRate, file.channelCount)
     }
 
     mtd destroyPacketCodec()
@@ -168,7 +168,7 @@ impl Voice
     {
         let file = .file!
         if not .packetCodec do
-            .createPacketCodec()
+            try .createPacketCodec()
 
         var written = 0'u64
         while .streamPacketIdx < file.packets.count
@@ -181,9 +181,9 @@ impl Voice
             if .packetBuffer.count != packet.byteSize do
                 .packetBuffer.resize(packet.byteSize)
             if not .stream.isOpen() do
-                .stream = ByteSource.openFile(file.path)
-            .stream.seek(packet.sourceOffset)
-            if .stream.read(.packetBuffer.toSlice()) != packet.byteSize do
+                .stream = try ByteSource.openFile(file.path)
+            try .stream.seek(packet.sourceOffset)
+            if try .stream.read(.packetBuffer.toSlice()) != packet.byteSize do
                 fail InvalidFormatError{"compressed sound packet is truncated"}
 
             if .seekDiscardFrames
@@ -194,7 +194,7 @@ impl Voice
                 // A codec restarted by a seek may lack the history the first packets of the run need
                 // and produce fewer frames than the index states. Those frames are the leading ones,
                 // and the seek discards that region anyway, so the shortfall counts as discarded.
-                let produced = .packetCodec!.decodePacket(.packetScratch.storage(), decodedSize, .packetBuffer.toSlice())
+                let produced = try .packetCodec!.decodePacket(.packetScratch.storage(), decodedSize, .packetBuffer.toSlice())
                 if produced > decodedSize do
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
                 let missing       = decodedSize - produced
@@ -213,7 +213,7 @@ impl Voice
             }
             else
             {
-                let produced = .packetCodec!.decodePacket(cast([*] u8) destination + written, decodedSize, .packetBuffer.toSlice())
+                let produced = try .packetCodec!.decodePacket(cast([*] u8) destination + written, decodedSize, .packetBuffer.toSlice())
                 if produced != decodedSize do
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
                 written += produced
@@ -235,7 +235,7 @@ impl Voice
         if file.encoding == .requestedEncoding
         {
             let readStart = .streamCurSeek
-            let bytesRead = .readData(destBuffer, length)
+            let bytesRead = try .readData(destBuffer, length)
             .streamCurSeek = readStart + bytesRead
             return bytesRead
         }
@@ -248,15 +248,15 @@ impl Voice
             let readStart    = .streamCurSeek
             let streamBuffer = .streamBuffer.storage()
             let codec        = .codec!
-            .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
-            .streamCurSeek      = readStart + codec.initialize(streamBuffer, .streamBuffer.count)
+            .streamBuffer.count = try .readData(streamBuffer, StreamBufferSize)
+            .streamCurSeek      = readStart + (try codec.initialize(streamBuffer, .streamBuffer.count))
         }
 
         let readStart    = .streamCurSeek
         let streamBuffer = .streamBuffer.storage()
         let codec        = .codec!
-        .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
-        let used = codec.decode(destBuffer, length, streamBuffer, .streamBuffer.count)
+        .streamBuffer.count = try .readData(streamBuffer, StreamBufferSize)
+        let used = try codec.decode(destBuffer, length, streamBuffer, .streamBuffer.count)
         .streamCurSeek = readStart + used.bytesRead
         return used.bytesWritten
     }
@@ -272,7 +272,7 @@ impl Voice
         var wantedLength = length
 
         if file.packets.count do
-            return .readPacketBytes(destBuffer, wantedLength)
+            return try .readPacketBytes(destBuffer, wantedLength)
 
         // First take from the prefetched buffer if there's something there, instead of reading
         // from the file.
@@ -291,16 +291,16 @@ impl Voice
 
         // Open file for streaming
         if not .stream.isOpen() do
-            .stream = ByteSource.openFile(file.path)
+            .stream = try ByteSource.openFile(file.path)
 
         // Read from file. A payload the header declares past what the file holds ends where the
         // file does.
         let position = file.dataOffset + .streamCurSeek
         if position >= .stream.size() do
             return 0
-        .stream.seek(position)
+        try .stream.seek(position)
         wantedLength = Math.min(wantedLength, file.dataSize - .streamCurSeek)
-        return .stream.read(Swag.makeSlice(cast([*] u8) destBuffer, wantedLength))
+        return try .stream.read(Swag.makeSlice(cast([*] u8) destBuffer, wantedLength))
     }
 
     // Reads a logical byte range from PCM chunks that are scattered through a container.
@@ -326,7 +326,7 @@ impl Voice
         var packetIndex = low
 
         if not .stream.isOpen() do
-            .stream = ByteSource.openFile(file.path)
+            .stream = try ByteSource.openFile(file.path)
 
         while written < length and packetIndex < file.packets.count
         {
@@ -341,8 +341,8 @@ impl Voice
 
             let packetSkip = logicalOffset - packetStart
             let readSize   = Math.min(cast(u64) packet.byteSize - packetSkip, length - written)
-            .stream.seek(packet.sourceOffset + packetSkip)
-            if .stream.read(Swag.makeSlice(cast([*] u8) destBuffer + written, readSize)) != readSize do
+            try .stream.seek(packet.sourceOffset + packetSkip)
+            if try .stream.read(Swag.makeSlice(cast([*] u8) destBuffer + written, readSize)) != readSize do
                 fail InvalidFormatError{"PCM source chunk is truncated"}
             written       += readSize
             logicalOffset += readSize

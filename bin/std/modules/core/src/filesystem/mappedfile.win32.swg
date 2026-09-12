@@ -34,17 +34,17 @@ internal impl MappedRegion
             fail Errors.OverflowError{}
         let mappedLength = length + prefix
 
-        let mapping = CreateFileMappingW(cast(HANDLE) sourceHandle, null, protect, 0, 0, null)
+        let mapping = try CreateFileMappingW(cast(HANDLE) sourceHandle, null, protect, 0, 0, null)
         defer if not .mapHandle do
             CloseHandle(mapping)
 
         let currentProcess = GetCurrentProcess()
         var duplicate: HANDLE
-        DuplicateHandle(currentProcess, cast(HANDLE) sourceHandle, currentProcess, &duplicate, 0, FALSE, DUPLICATE_SAME_ACCESS)
+        try DuplicateHandle(currentProcess, cast(HANDLE) sourceHandle, currentProcess, &duplicate, 0, FALSE, DUPLICATE_SAME_ACCESS)
         defer if not .fileHandle do
             CloseHandle(duplicate)
 
-        let nativeView = MapViewOfFile(mapping, desiredAccess, cast(DWORD) (alignedOffset >> 32), cast(DWORD) alignedOffset, mappedLength)
+        let nativeView = try MapViewOfFile(mapping, desiredAccess, cast(DWORD) (alignedOffset >> 32), cast(DWORD) alignedOffset, mappedLength)
         defer if not .nativeView do
             discard catch UnmapViewOfFile(nativeView)
 
@@ -82,9 +82,9 @@ internal impl MappedRegion
 
     mtd flushNative() fail
     {
-        FlushViewOfFile(.view, .length)
+        try FlushViewOfFile(.view, .length)
         catch FlushFileBuffers(cast(HANDLE) .fileHandle) as err
-        Errors.transformWinErrors(err)
+        try Errors.transformWinErrors(err)
     }
 
     // Unlocking pages that were never locked is the documented way to remove them from the

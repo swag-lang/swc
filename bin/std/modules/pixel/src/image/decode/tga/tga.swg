@@ -223,7 +223,7 @@ func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelInd
 
     if isMappedType(header.imageTypeCode)
     {
-        writePalettePixel(dst, palette, paletteIndex(src, header.bitsPerPixel))
+        try writePalettePixel(dst, palette, paletteIndex(src, header.bitsPerPixel))
         return
     }
 
@@ -249,7 +249,7 @@ func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelInd
 func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: const [*] u8, pixelBytes: u8, pixelCount: u64) fail
 {
     var p = src
-    checkBuffer(p, last, pixelCount * pixelBytes)
+    try checkBuffer(p, last, pixelCount * pixelBytes)
     if header.imageTypeCode == TYPE_RGB and (header.bitsPerPixel == 15 or header.bitsPerPixel == 16)
     {
         let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
@@ -307,7 +307,7 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
 
     for i in pixelCount
     {
-        writeSourcePixel(result, header, palette, i, p)
+        try writeSourcePixel(result, header, palette, i, p)
         p += pixelBytes
     }
 }
@@ -322,7 +322,7 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
         let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
         while index < pixelCount
         {
-            checkBuffer(p, last, 1)
+            try checkBuffer(p, last, 1)
             let packet = p[0]
             p += 1
 
@@ -331,7 +331,7 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
                 fail InvalidFormatError{"invalid source buffer"}
 
             let repeated = (packet & 0x80) != 0
-            checkBuffer(p, last, repeated ? pixelBytes : count * pixelBytes)
+            try checkBuffer(p, last, repeated ? pixelBytes : count * pixelBytes)
             var remaining = count
             var source    = p
             while remaining
@@ -376,7 +376,7 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
 
     while index < pixelCount
     {
-        checkBuffer(p, last, 1)
+        try checkBuffer(p, last, 1)
         let packet = p[0]
         p += 1
 
@@ -386,10 +386,10 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
 
         if packet & 0x80
         {
-            checkBuffer(p, last, pixelBytes)
+            try checkBuffer(p, last, pixelBytes)
             for count
             {
-                writeSourcePixel(result, header, palette, index, p)
+                try writeSourcePixel(result, header, palette, index, p)
                 index += 1
             }
 
@@ -397,10 +397,10 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
         }
         else
         {
-            checkBuffer(p, last, count * pixelBytes)
+            try checkBuffer(p, last, count * pixelBytes)
             for count
             {
-                writeSourcePixel(result, header, palette, index, p)
+                try writeSourcePixel(result, header, palette, index, p)
                 index += 1
                 p     += pixelBytes
             }
@@ -429,8 +429,8 @@ internal impl IImageDecoder for Decoder
         if header.colorMapType != 0 and header.colorMapType != 1 do
             fail UnsupportedFormatError{"unsupported palette"}
 
-        let pixelBytes = sourcePixelBytes(header)
-        checkBuffer(dataof, last, header.idLength)
+        let pixelBytes = try sourcePixelBytes(header)
+        try checkBuffer(dataof, last, header.idLength)
         dataof += header.idLength
 
         var palette: Palette
@@ -439,9 +439,9 @@ internal impl IImageDecoder for Decoder
             palette.first         = header.colorMapFirst
             palette.count         = header.colorMapLength
             palette.bitsPerPixel  = header.colorMapBpp
-            palette.bytesPerPixel = palettePixelBytes(header.colorMapBpp)
+            palette.bytesPerPixel = try palettePixelBytes(header.colorMapBpp)
             palette.data          = dataof
-            checkBuffer(dataof, last, cast(u64) palette.count * palette.bytesPerPixel)
+            try checkBuffer(dataof, last, cast(u64) palette.count * palette.bytesPerPixel)
             dataof += cast(u64) palette.count * palette.bytesPerPixel
         }
 
@@ -449,7 +449,7 @@ internal impl IImageDecoder for Decoder
             fail InvalidFormatError{"missing palette"}
 
         var result: retval
-        result.init(header.width, header.height, pixelFormat(header, palette))
+        result.init(header.width, header.height, try pixelFormat(header, palette))
 
         if not options.decodePixels do
             return result
@@ -457,9 +457,9 @@ internal impl IImageDecoder for Decoder
         result.allocPixels()
         let pixelCount = cast(u64) result.width * result.height
         if isRleType(header.imageTypeCode) do
-            decodeRle(&result, header, palette, dataof, last, pixelBytes, pixelCount)
+            try decodeRle(&result, header, palette, dataof, last, pixelBytes, pixelCount)
         else do
-            decodeRaw(&result, header, palette, dataof, last, pixelBytes, pixelCount)
+            try decodeRaw(&result, header, palette, dataof, last, pixelBytes, pixelCount)
 
         return result
     }

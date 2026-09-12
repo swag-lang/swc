@@ -48,7 +48,7 @@ impl TypeFace
             length = 0
 
         result.resize(cast() length)
-        discard GetFontData(hdc, table, 0, result.buffer, cast(DWORD) result.count)
+        discard try GetFontData(hdc, table, 0, result.buffer, cast(DWORD) result.count)
         return result
     }
 
@@ -84,11 +84,11 @@ impl TypeFace
             {
                 let name = catch Face.familyNameAt(bytes, index) as err
                 if err == null and not Latin1.compare(name, family, ignoreCase: true) do
-                    return Face.loadAt(bytes, index, allocator)
+                    return try Face.loadAt(bytes, index, allocator)
             }
         }
 
-        return Face.load(bytes, allocator)
+        return try Face.load(bytes, allocator)
     }
 
     // Creates or reuses a cached typeface from a borrowed Windows font handle.
@@ -107,7 +107,7 @@ impl TypeFace
         // typeface destroys the face it holds, and a typeface built ahead of its face
         // has no face to destroy — the failure path would read an unassigned pointer
         // instead of reporting the failure.
-        var buffer = readHfontData(hfont)
+        var buffer = try readHfontData(hfont)
         let family = try readHfontFamily(hfont)
         let face   = (try loadFaceForFamily(buffer.toSlice(), family, allocator))!
 

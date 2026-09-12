@@ -523,7 +523,7 @@ private impl Surface
 
             var hIcon: HICON
             if app.appIcon.isValid() do
-                hIcon = app.appIcon.toHicon()
+                hIcon = try app.appIcon.toHicon()
 
             var wc: WNDCLASSW
             wc.hInstance     = GetModuleHandleW(null)
@@ -551,7 +551,7 @@ private impl Surface
         // Create window
         result.hWnd = cast(const *void?) CreateWindowExW(winFlagsEx, className, surfaceName, winFlags, x, y, width, height, null, null, GetModuleHandleW(null), result)
         if not result.hWnd do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
 
         result.enablePerPixelAlpha()
 

@@ -245,7 +245,7 @@ func getDesktopImage(drawCursor: bool)->Image fail
     let y = Env.getSystemMetric(.DesktopY)
     let w = Env.getSystemMetric(.DesktopWidth)
     let h = Env.getSystemMetric(.DesktopHeight)
-    return getScreenRectImage(drawCursor, x, y, w, h)
+    return try getScreenRectImage(drawCursor, x, y, w, h)
 }
 
 // Grab only the requested rectangle (absolute virtual-desktop coordinates). The
@@ -265,7 +265,7 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail
     let hDesktopDC  = GetDC(hDesktopWnd)
     defer discard ReleaseDC(hDesktopWnd, hDesktopDC)
 
-    let memDC = CreateCompatibleDC(hDesktopDC)
+    let memDC = try CreateCompatibleDC(hDesktopDC)
     defer catch DeleteDC(memDC)
 
     // Capture straight into a 32-bit DIB section so the BitBlt lands directly in a
@@ -282,7 +282,7 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail
     bi.bmiHeader.biCompression = BI_RGB
 
     var bits: *u8?
-    let memBMP = CreateDIBSection(hDesktopDC, &bi, cast() DIB_RGB_COLORS, &bits, null, 0)
+    let memBMP = try CreateDIBSection(hDesktopDC, &bi, cast() DIB_RGB_COLORS, &bits, null, 0)
     if not memBMP or not bits do
         fail Swag.SystemError{"CreateDIBSection failed"}
     defer catch DeleteObject(cast() memBMP)
@@ -294,7 +294,7 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail
     let oldBMP = SelectObject(memDC, cast() memBMP)
     defer discard SelectObject(memDC, oldBMP)
 
-    BitBlt(memDC, 0, 0, w, h, hDesktopDC, x, y, SRCCOPY | CAPTUREBLT)
+    try BitBlt(memDC, 0, 0, w, h, hDesktopDC, x, y, SRCCOPY | CAPTUREBLT)
 
     if drawCursor do
         drawCursorInto(memDC, x, y)

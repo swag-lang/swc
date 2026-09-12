@@ -10,7 +10,7 @@ using Corpus
 // never produced. In C this is the ignored 'errno' and the unread return code; in Juliet it
 // is one of the largest families outside the memory classes.
 //
-// Swag: a fallible call in a context that cannot handle an error is a compile-time ERROR, not
+// Swag: a fallible call without an explicit error-management keyword is a compile-time ERROR, not
 // a warning. Every failure has to be propagated, caught, dismissed on purpose, or asserted -
 // four spellings, all visible. A value-returning call whose result is dropped is rejected too,
 // unless the function opts out with '#[Swag.Discardable]'.
@@ -39,6 +39,12 @@ func ignoresFailure()->s32
     return load(false)     // swc-expected-error {{sema_err_fallible_call_requires_handler}}
 }
 
+// Declaring the caller with 'fail' does not replace the call's explicit keyword.
+func propagatesImplicitly(present: bool)->s32 fail
+{
+    return load(present)     // swc-expected-error {{sema_err_fallible_call_requires_handler}}
+}
+
 // The result of a value-returning call is dropped silently.
 func ignoresResult()
 {
@@ -57,12 +63,6 @@ func propagatesWithoutBeingFallible()->s32
 func propagates(present: bool)->s32 fail
 {
     return try load(present)
-}
-
-// Propagate, implicitly: inside a 'fail' function a fallible call already propagates.
-func propagatesImplicitly(present: bool)->s32 fail
-{
-    return load(present)
 }
 
 // Catch and inspect.
@@ -104,7 +104,6 @@ func discardsOnPurpose()
 #test
 {
     Swag.assert((catch propagates(true)) == 1)
-    Swag.assert((catch propagatesImplicitly(true)) == 1)
     Swag.assert(catchesAndInspects(true) == 1)
     Swag.assert(catchesAndInspects(false) == -7)
     Swag.assert(dismisses(false) == 0)

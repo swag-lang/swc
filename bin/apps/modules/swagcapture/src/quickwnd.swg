@@ -253,18 +253,18 @@ impl IWnd for QuickWnd
         {
             with evt.serializer
             {
-                .serialize("QuickWnd.qsArrow", &me.qsArrow)
-                .serialize("QuickWnd.qsShape", &me.qsShape)
-                .serialize("QuickWnd.qsImage", &me.qsImage)
-                .serialize("QuickWnd.qsStep", &me.qsStep)
-                .serialize("QuickWnd.qsLine", &me.qsLine)
-                .serialize("QuickWnd.qsPolygon", &me.qsPolygon)
-                .serialize("QuickWnd.qsText", &me.qsText)
-                .serialize("QuickWnd.qsFavorites", &me.qsFavorites)
-                .serialize("QuickWnd.qsDraw", &me.qsDraw)
-                .serialize("QuickWnd.qsHighlight", &me.qsHighlight)
-                .serialize("QuickWnd.qsPixSel", &me.qsPixSel)
-                .serialize("QuickWnd.qsCallout", &me.qsCallout)
+                try .serialize("QuickWnd.qsArrow", &me.qsArrow)
+                try .serialize("QuickWnd.qsShape", &me.qsShape)
+                try .serialize("QuickWnd.qsImage", &me.qsImage)
+                try .serialize("QuickWnd.qsStep", &me.qsStep)
+                try .serialize("QuickWnd.qsLine", &me.qsLine)
+                try .serialize("QuickWnd.qsPolygon", &me.qsPolygon)
+                try .serialize("QuickWnd.qsText", &me.qsText)
+                try .serialize("QuickWnd.qsFavorites", &me.qsFavorites)
+                try .serialize("QuickWnd.qsDraw", &me.qsDraw)
+                try .serialize("QuickWnd.qsHighlight", &me.qsHighlight)
+                try .serialize("QuickWnd.qsPixSel", &me.qsPixSel)
+                try .serialize("QuickWnd.qsCallout", &me.qsCallout)
             }
         }
     }

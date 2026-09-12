@@ -35,12 +35,12 @@ impl Decoder
                 // Update byte.
                 if subLen[] == 0
                 {
-                    subLen[] = .readU8()     // Must be nonzero!
+                    subLen[] = try .readU8()     // Must be nonzero!
                     if subLen[] == 0 do
                         return 0x1000
                 }
 
-                byte[]   = .readU8()
+                byte[]   = try .readU8()
                 subLen[] -= 1
             }
 
@@ -92,14 +92,14 @@ impl Decoder
 
     mtd readImageData(interlace: u8) fail
     {
-        var byte    = .readU8()
+        var byte    = try .readU8()
         var keySize = cast(s32) byte
         if keySize < 2 or keySize > 8 do
             fail InvalidFormatError{"invalid frame"}
 
         let start       = cast(u64) (.stream - .streamStart)
         let remainStart = .streamLen
-        .discardSubBlocks()
+        try .discardSubBlocks()
         let end       = cast(u64) (.stream - .streamStart)
         let remainEnd = .streamLen
         .stream    = .streamStart + start
@@ -111,7 +111,7 @@ impl Decoder
         keySize += 1
         let initKeySize   = keySize
         var subLen, shift = 0'u8
-        var key           = .getKey(keySize, &subLen, &shift, &byte)     // clear code
+        var key           = try .getKey(keySize, &subLen, &shift, &byte)     // clear code
         var frmOff        = 0
         var ret           = 0
         let frmSize       = cast(u32) .fw * .fh
@@ -137,7 +137,7 @@ impl Decoder
                 }
             }
 
-            key = .getKey(keySize, &subLen, &shift, &byte)
+            key = try .getKey(keySize, &subLen, &shift, &byte)
             if key == clear do
                 continue
             if key == stop or key == 0x1000 do
@@ -173,7 +173,7 @@ impl Decoder
         if frmOff != frmSize do
             fail InvalidFormatError{"GIF LZW frame has too few pixels"}
         if key == stop do
-            subLen = .readU8()     // Must be zero!
+            subLen = try .readU8()     // Must be zero!
         .stream    = .streamStart + end
         .streamLen = remainEnd
     }

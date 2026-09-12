@@ -23,7 +23,7 @@ impl Scc.ICodec for ReverseSccCodec
     {
         if source.count != decodedSize do
             fail Errors.InvalidFormatError{"reverse test codec received a different size"}
-        return .encode(source)
+        return try .encode(source)
     }
 }
 

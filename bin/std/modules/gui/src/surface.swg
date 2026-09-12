@@ -968,6 +968,6 @@ impl Surface
             }
         }
 
-        .wnd.serializeState(ser)
+        try .wnd.serializeState(ser)
     }
 }

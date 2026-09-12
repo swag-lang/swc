@@ -214,7 +214,7 @@ impl Slice
             if .lumaLog2Denom > 7 or .chromaLog2Denom > 7 do
                 fail InvalidFormatError{"H.264 slice declares an out-of-range weight denominator"}
             .initDefaultWeights()
-            .parseWeights()
+            try .parseWeights()
         }
         elif .header.type == SliceTypeB and pps.weightedBipredIdc == 2
         {
@@ -386,7 +386,7 @@ impl Slice
         {
             if list == 1 and .header.type != SliceTypeB do
                 break
-            .applyListOps(&initial[list], .listOps[list], cast(u32) list)
+            try .applyListOps(&initial[list], .listOps[list], cast(u32) list)
 
             let wanted = .header.refCount[list]
             if not initial[list].count do

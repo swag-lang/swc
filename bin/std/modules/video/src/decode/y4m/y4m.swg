@@ -79,14 +79,14 @@ private func parseHeader(line: string)->Header fail
         switch token[0]
         {
         case 'W':
-            let width = parsePositiveU32(value, "width")
+            let width = try parsePositiveU32(value, "width")
             if width > cast(u32) (Swag.S32.Max / 4) do
                 fail UnsupportedFormatError{"YUV4MPEG2 frame width exceeds Pixel image storage"}
             result.info.width = cast(s32) width
             hasWidth = true
 
         case 'H':
-            let height = parsePositiveU32(value, "height")
+            let height = try parsePositiveU32(value, "height")
             if height > Swag.S32.Max do
                 fail UnsupportedFormatError{"YUV4MPEG2 frame height exceeds Pixel image storage"}
             result.info.height = cast(s32) height
@@ -96,9 +96,9 @@ private func parseHeader(line: string)->Header fail
             let parts = Tokenize.split(value, ':'u8, removeEmpty: false)
             if parts.count != 2 do
                 fail InvalidFormatError{"YUV4MPEG2 frame rate needs numerator:denominator"}
-            let numerator   = parsePositiveU32(parts[0], "frame-rate numerator")
-            let denominator = parsePositiveU32(parts[1], "frame-rate denominator")
-            result.info.frameRate = FrameRate.create(numerator, denominator)
+            let numerator   = try parsePositiveU32(parts[0], "frame-rate numerator")
+            let denominator = try parsePositiveU32(parts[1], "frame-rate denominator")
+            result.info.frameRate = try FrameRate.create(numerator, denominator)
             hasRate = true
 
         case 'I':
@@ -231,13 +231,13 @@ impl IDecoder for Decoder
 
     mtd impl open(source: *ByteSource)->StreamInfo fail
     {
-        .header      = parseHeader(source.readLine(MaxLineBytes).toString())
+        .header      = try parseHeader(try source.readLine(MaxLineBytes).toString())
         .payloadSize = framePayloadSize(.header.info.width, .header.info.height, .header.chromaMode)
         .firstMarker = source.position()
         if source.isAtEnd() do
             fail InvalidFormatError{"YUV4MPEG2 stream needs at least one frame"}
 
-        .markerSize  = .readMarker(source)
+        .markerSize  = try .readMarker(source)
         .frameStride = .markerSize + .payloadSize
         if .payloadSize > source.remaining() do
             fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
@@ -254,7 +254,7 @@ impl IDecoder for Decoder
         if not .isRandomAccess do
             result.frameCount = 0
 
-        source.seek(.firstMarker)
+        try source.seek(.firstMarker)
         .nextIndex = 0
         return result
     }
@@ -268,7 +268,7 @@ impl IDecoder for Decoder
 
         if .isRandomAccess
         {
-            source.seek(.firstMarker + index * .frameStride)
+            try source.seek(.firstMarker + index * .frameStride)
             .nextIndex = index
             return
         }
@@ -278,15 +278,15 @@ impl IDecoder for Decoder
         var walked = .nextIndex
         if walked == NoFrameIndex or index < walked
         {
-            source.seek(.firstMarker)
+            try source.seek(.firstMarker)
             walked = 0
         }
 
         .nextIndex = NoFrameIndex
         while walked < index
         {
-            discard .readMarker(source)
-            source.skip(.payloadSize)
+            discard try .readMarker(source)
+            try source.skip(.payloadSize)
             walked += 1
         }
 
@@ -298,13 +298,13 @@ impl IDecoder for Decoder
         let current = .nextIndex
         .nextIndex = NoFrameIndex
 
-        discard .readMarker(source)
+        discard try .readMarker(source)
         if .payloadSize > source.remaining() do
             fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
 
         if .payload.count != .payloadSize do
             .payload.resize(.payloadSize)
-        source.readExact(.payload.toSlice())
+        try source.readExact(.payload.toSlice())
         decodePayload(target, .payload.toSlice(), &.header)
         .nextIndex = current + 1
     }
@@ -319,7 +319,7 @@ private impl Decoder
     mtd readMarker(source: *ByteSource)->u64 fail
     {
         var marker: [ShortMarkerSize] u8
-        source.readExact(marker)
+        try source.readExact(marker)
         if Swag.memcmp(&marker[0], FrameMarker.buffer, FrameMarker.count) != 0 do
             fail InvalidFormatError{"YUV4MPEG2 frame marker is missing"}
         if marker[ShortMarkerSize - 1] == '\n' do
@@ -330,7 +330,7 @@ private impl Decoder
         var size = ShortMarkerSize
         while true
         {
-            let value = source.readByte()
+            let value = try source.readByte()
             size += 1
             if value == '\n' do
                 return size
@@ -355,8 +355,8 @@ private impl Decoder
     // Fails unless a complete frame of the constant size starts at `offset`.
     mtd checkFrameAt(source: *ByteSource, offset: u64) fail
     {
-        source.seek(offset)
-        if .readMarker(source) != .markerSize do
+        try source.seek(offset)
+        if try .readMarker(source) != .markerSize do
             fail InvalidFormatError{"YUV4MPEG2 frame markers do not have a constant size"}
         if .payloadSize > source.remaining() do
             fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}

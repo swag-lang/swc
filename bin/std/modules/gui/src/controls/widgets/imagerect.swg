@@ -175,7 +175,7 @@ impl ImageRect
     // Loads and displays an animated GIF without changing the current content on failure.
     mtd loadGif(fileName: string) fail
     {
-        .loadMovie(fileName)
+        try .loadMovie(fileName)
     }
 
     // Loads a registered image set; animations play and independent images start paused.

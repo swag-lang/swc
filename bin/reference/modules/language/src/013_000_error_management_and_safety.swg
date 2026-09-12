@@ -10,6 +10,6 @@ Swag separates five concerns:
 
 Build configuration selects defaults for runtime guards, static sanity checks, and warnings;
 attributes can narrow those defaults for a declaration or scope. Fallible calls must always
-be handled. The borrow rules are also part of the language: no attribute or build
+be handled explicitly. The borrow rules are also part of the language: no attribute or build
 configuration turns them off.
 */

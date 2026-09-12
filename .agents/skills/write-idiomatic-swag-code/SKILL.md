@@ -24,6 +24,19 @@ silently teach a workaround as the idiom.
 4. Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) for repository validation and `design-swag-bin-modules` plus
    `write-swag-public-api-docs` when a public declaration under `bin/` changes.
 
+## Review Diagnostics Before Repairing Rejected Code
+
+Whenever Swag code you write triggers a legitimate compiler error, use the rejected code to
+review that diagnostic before fixing the source. Follow
+[write-swag-compiler-messages](../write-swag-compiler-messages/SKILL.md): check that the wording
+is accurate, clear, complete, and well written, and inspect the actual presentation, including
+source spans, notes, help, ordering, and wrapping. A correct rejection alone is not enough.
+
+If any part falls short, improve the compiler diagnostic and verify it on the same rejected
+code before correcting the Swag code. Keep a regression fixture when the diagnostic contract or
+source presentation changes. Apply this review to incidental programming mistakes as well as
+deliberately invalid test cases.
+
 ## Organize Source Files Around Types
 
 A file is named for the type it introduces and holds that type with all of its `impl` blocks,
@@ -293,6 +306,11 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
 
 ## Use Direct Control and Data Flow
 
+- Mark every fallible call explicitly with `try`, `catch`, or `expect`, including calls inside
+  a fallible function or an error-handling block. A function's `fail` declaration does not make
+  propagation implicit. Choose the keyword for the intended failure path.
+- Preserve expression grouping when inserting `try`: after a cast or another operator, use
+  parentheses such as `cast(u16) (try readByte()) << 8` so the conversion still precedes the shift.
 - Prefer early exits over nested success paths.
 - Use `orelse`, the postfix `!`, optional chaining, and `with` when they express absence or
   structured initialization more directly than temporary variables and repeated checks.

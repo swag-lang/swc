@@ -150,7 +150,7 @@ impl DateTime
     // Parses an 8-bit unsigned integer from the buffer and updates the consumed character count
     internal func parseU8(buf: *string, eat: *u32)->u16 fail
     {
-        let {year, eat0, ovf} = StrConv.parseU8(buf[])
+        let {year, eat0, ovf} = try StrConv.parseU8(buf[])
         if ovf do
             fail SyntaxError{}
         eat[] += eat0
@@ -161,7 +161,7 @@ impl DateTime
     // Parses a 16-bit unsigned integer from the buffer and updates the consumed character count
     internal func parseU16(buf: *string, eat: *u32)->u16 fail
     {
-        let {year, eat0, ovf} = StrConv.parseU16(buf[])
+        let {year, eat0, ovf} = try StrConv.parseU16(buf[])
         if ovf do
             fail SyntaxError{}
         eat[] += eat0
@@ -211,7 +211,7 @@ impl DateTime
                 fail SyntaxError{}
 
             done = false
-            parseSep(&buf, ' ', &result.eat)
+            try parseSep(&buf, ' ', &result.eat)
 
             // Month name
             for dow, idx in MonthNames
@@ -230,10 +230,10 @@ impl DateTime
             if not done do
                 fail SyntaxError{}
 
-            parseSep(&buf, ' ', &result.eat)
-            result.value.day = parseU8(&buf, &result.eat)
-            parseSep(&buf, ' ', &result.eat)
-            result.value.year = parseU16(&buf, &result.eat)
+            try parseSep(&buf, ' ', &result.eat)
+            result.value.day = try parseU8(&buf, &result.eat)
+            try parseSep(&buf, ' ', &result.eat)
+            result.value.year = try parseU16(&buf, &result.eat)
 
             // Check day of week
             if checkDate and dayOfWeek != result.value.dayOfWeek() do
@@ -251,11 +251,11 @@ impl DateTime
              Latin1.isDigit(buf[8]) and
              Latin1.isDigit(buf[9])
         {
-            result.value.year = parseU16(&buf, &result.eat)
-            parseSep(&buf, '-', &result.eat)
-            result.value.month = parseU8(&buf, &result.eat)
-            parseSep(&buf, '-', &result.eat)
-            result.value.day = parseU8(&buf, &result.eat)
+            result.value.year = try parseU16(&buf, &result.eat)
+            try parseSep(&buf, '-', &result.eat)
+            result.value.month = try parseU8(&buf, &result.eat)
+            try parseSep(&buf, '-', &result.eat)
+            result.value.day = try parseU8(&buf, &result.eat)
         }
         else
         {
@@ -265,7 +265,7 @@ impl DateTime
         if buf.count >= 1 and
            buf[0] == ' '
         {
-            parseSep(&buf, ' ', &result.eat)
+            try parseSep(&buf, ' ', &result.eat)
         }
 
         // Time
@@ -276,9 +276,9 @@ impl DateTime
            Latin1.isDigit(buf[3]) and
            Latin1.isDigit(buf[4])
         {
-            result.value.hour = parseU8(&buf, &result.eat)
-            parseSep(&buf, ':', &result.eat)
-            result.value.minute = parseU8(&buf, &result.eat)
+            result.value.hour = try parseU8(&buf, &result.eat)
+            try parseSep(&buf, ':', &result.eat)
+            result.value.minute = try parseU8(&buf, &result.eat)
 
             // Seconds
             if buf.count >= 3 and
@@ -286,8 +286,8 @@ impl DateTime
                Latin1.isDigit(buf[1]) and
                Latin1.isDigit(buf[2])
             {
-                parseSep(&buf, ':', &result.eat)
-                result.value.second = parseU8(&buf, &result.eat)
+                try parseSep(&buf, ':', &result.eat)
+                result.value.second = try parseU8(&buf, &result.eat)
             }
 
             // Milliseconds
@@ -295,8 +295,8 @@ impl DateTime
                buf[0] == '.' and
                Latin1.isDigit(buf[1])
             {
-                parseSep(&buf, '.', &result.eat)
-                result.value.millisecond = parseU16(&buf, &result.eat)
+                try parseSep(&buf, '.', &result.eat)
+                result.value.millisecond = try parseU16(&buf, &result.eat)
             }
         }
 
@@ -335,8 +335,8 @@ impl Serialization.ISerialize for DateTime
     {
         if decoder.isTextual()
         {
-            let val = decoder.readString()
-            me[] = parse(val).value
+            let val = try decoder.readString()
+            me[] = try parse(val).value
             return true
         }
 

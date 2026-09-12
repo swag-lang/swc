@@ -9,7 +9,7 @@ func createNative(dirname: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirname)
     catch CreateDirectoryW(winPath.buffer, null) as err
-    Errors.transformWinErrors(err, dirname)
+    try Errors.transformWinErrors(err, dirname)
 }
 
 // Removes an empty directory on Windows, failing if it cannot be removed.
@@ -17,7 +17,7 @@ func deleteEmptyNative(dirName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirName)
     catch RemoveDirectoryW(winPath.buffer) as err
-    Errors.transformWinErrors(err, dirName)
+    try Errors.transformWinErrors(err, dirName)
 }
 
 // Returns true if the given directory exists
@@ -83,11 +83,11 @@ func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
 func currentPath()->String fail
 {
     var result: retval
-    let length = GetCurrentDirectoryW(0, null)
+    let length = try GetCurrentDirectoryW(0, null)
 
     var arr16: Array'u16
     arr16.reserve(cast(u64) length + 1)
-    arr16.count = GetCurrentDirectoryW(length + 1, arr16.buffer)
+    arr16.count = try GetCurrentDirectoryW(length + 1, arr16.buffer)
 
     result = Utf8.fromUtf16(arr16.toSlice())
     Path.normalize(&result)
@@ -99,7 +99,7 @@ func setCurrentPath(dirName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirName)
     catch SetCurrentDirectoryW(winPath.buffer) as err
-    Errors.transformWinErrors(err, dirName)
+    try Errors.transformWinErrors(err, dirName)
 }
 
 // Get the list of logical drives
@@ -131,7 +131,7 @@ func volumes()->Array'String fail
     var volName:   [MAX_PATH] u8
     var driveName: [MAX_PATH] u8
 
-    let h = FindFirstVolumeA(volName, MAX_PATH)
+    let h = try FindFirstVolumeA(volName, MAX_PATH)
     if h == INVALID_HANDLE_VALUE do
         return result
 
@@ -150,10 +150,10 @@ func volumes()->Array'String fail
             }
         }
 
-        if not FindNextVolumeA(h, volName, MAX_PATH) do
+        if not (try FindNextVolumeA(h, volName, MAX_PATH)) do
             break
     }
 
-    FindVolumeClose(h)
+    try FindVolumeClose(h)
     return result
 }

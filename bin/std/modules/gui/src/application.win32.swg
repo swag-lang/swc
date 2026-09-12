@@ -113,7 +113,7 @@ impl Application
             mod |= MOD_SHIFT
 
         catch UnregisterHotKey(null, hotKeyId)
-        RegisterHotKey(null, hotKeyId, mod, winKey)
+        try RegisterHotKey(null, hotKeyId, mod, winKey)
     }
 
     // Symmetrical to [[registerNativeHotKey]]: a sandboxed run holds no system hot key to release.

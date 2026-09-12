@@ -37,8 +37,8 @@ impl CffIndex
         let from = .starts[index]
         let stop = .starts[index + 1]
         if stop < from do
-            fault(0x08)
-        return getSlice(block, from, stop - from)
+            try fault(0x08)
+        return try getSlice(block, from, stop - from)
     }
 }
 
@@ -148,7 +148,7 @@ impl CffFont
         if standard.count do
             return String.from(standard)
 
-        let custom = .strings.item(.block, sid - cast(u32) StandardStrings.count)
+        let custom = try .strings.item(.block, sid - cast(u32) StandardStrings.count)
         return String.from(cast(string?) custom)
     }
 }
@@ -177,16 +177,16 @@ func subrBias(count: u32)->s32
 func readCffIndex(block: const [..] u8?, offset: u64)->CffIndex fail
 {
     var result: retval
-    let count = readU16(block, offset)
+    let count = try readU16(block, offset)
     if not count
     {
         result.end = offset + 2
         return result
     }
 
-    let offSize = readU8(block, offset + 2)
+    let offSize = try readU8(block, offset + 2)
     if offSize < 1 or offSize > 4 do
-        fault(0x08)
+        try fault(0x08)
 
     // Item offsets are one-based and relative to the byte before the data block, which
     // is what makes the first item start exactly where the offset table ends.
@@ -198,13 +198,13 @@ func readCffIndex(block: const [..] u8?, offset: u64)->CffIndex fail
     {
         var value = 0'u32
         for b in cast(u64) offSize do
-            value = value << 8 | readU8(block, table + i * offSize + b)
+            value = value << 8 | (try readU8(block, table + i * offSize + b))
         result.starts.add(cast(u32) (dataBase + value))
     }
 
     result.end = result.starts.back()
     if result.end > block.count do
-        fault(0x08)
+        try fault(0x08)
     return result
 }
 
@@ -224,7 +224,7 @@ func readCffReal(data: const [..] u8?, offset: u64)->{ value: f64, next: u64 } f
 
     while not done
     {
-        let byte = readU8(data, pos)
+        let byte = try readU8(data, pos)
         pos += 1
         for half in 2'u32
         {
@@ -289,14 +289,14 @@ func parseCffDict(data: const [..] u8?)->CffDict fail
 
     while pos < data.count
     {
-        let b0 = readU8(data, pos)
+        let b0 = try readU8(data, pos)
         if b0 <= 21
         {
             var op = cast(u16) b0
             pos += 1
             if b0 == 12
             {
-                op  = 0x0C00 | cast(u16) readU8(data, pos)
+                op  = 0x0C00 | cast(u16) (try readU8(data, pos))
                 pos += 1
             }
 
@@ -312,17 +312,17 @@ func parseCffDict(data: const [..] u8?)->CffDict fail
 
         if b0 == 28
         {
-            pending.add(cast(f64) readS16(data, pos + 1))
+            pending.add(cast(f64) (try readS16(data, pos + 1)))
             pos += 3
         }
         elif b0 == 29
         {
-            pending.add(cast(f64) readS32(data!, pos + 1))
+            pending.add(cast(f64) (try readS32(data!, pos + 1)))
             pos += 5
         }
         elif b0 == 30
         {
-            let real = readCffReal(data, pos + 1)
+            let real = try readCffReal(data, pos + 1)
             pending.add(real.value)
             pos = real.next
         }
@@ -333,19 +333,19 @@ func parseCffDict(data: const [..] u8?)->CffDict fail
         }
         elif b0 >= 247 and b0 <= 250
         {
-            let b1 = readU8(data, pos + 1)
+            let b1 = try readU8(data, pos + 1)
             pending.add(cast(f64) ((cast(s32) b0 - 247) * 256 + cast(s32) b1 + 108))
             pos += 2
         }
         elif b0 >= 251 and b0 <= 254
         {
-            let b1 = readU8(data, pos + 1)
+            let b1 = try readU8(data, pos + 1)
             pending.add(cast(f64) (-(cast(s32) b0 - 251) * 256 - cast(s32) b1 - 108))
             pos += 2
         }
         else
         {
-            fault(0x08)
+            try fault(0x08)
         }
     }
 
@@ -361,14 +361,14 @@ private func readCffPrivate(font: *CffFont, dict: const *CffDict)->{ subrs: CffI
     if not size or not offset do
         return result
 
-    let priv = parseCffDict(getSlice(font.block, offset, size))
+    let priv = try parseCffDict(try getSlice(font.block, offset, size))
     result.defaultWidth = priv.value(CFF_OP_DEFAULT_WIDTH, 0, 0)
     result.nominalWidth = priv.value(CFF_OP_NOMINAL_WIDTH, 0, 0)
 
     // The subroutine offset is stated relative to the private DICT, not to the file.
     let subrs = cast(u64) priv.value(CFF_OP_SUBRS, 0, 0)
     if subrs do
-        result.subrs = readCffIndex(font.block, offset + subrs)
+        result.subrs = try readCffIndex(font.block, offset + subrs)
     return result
 }
 
@@ -388,13 +388,13 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
     }
     else
     {
-        let format = readU8(font.block, offset)
+        let format = try readU8(font.block, offset)
         var pos    = offset + 1
         if format == 0
         {
             while sids.count < glyphCount
             {
-                sids.add(readU16(font.block, pos))
+                sids.add(try readU16(font.block, pos))
                 pos += 2
             }
         }
@@ -403,8 +403,8 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
             let leftSize = format == 1 ? 1'u64 : 2'u64
             while sids.count < glyphCount
             {
-                let first = cast(u32) readU16(font.block, pos)
-                let left  = format == 1 ? cast(u32) readU8(font.block, pos + 2) : cast(u32) readU16(font.block, pos + 2)
+                let first = cast(u32) (try readU16(font.block, pos))
+                let left  = format == 1 ? cast(u32) (try readU8(font.block, pos + 2)) : cast(u32) (try readU16(font.block, pos + 2))
                 pos += 2 + leftSize
                 for offsetInRange in left + 1
                 {
@@ -416,7 +416,7 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
         }
         else
         {
-            fault(0x08)
+            try fault(0x08)
         }
     }
 
@@ -432,7 +432,7 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
     font.glyphNames.reserve(sids.count)
     for sid, gid in sids
     {
-        let name = font.stringOf(sid)
+        let name = try font.stringOf(sid)
         if name.length and not font.nameToGid.contains(name) do
             font.nameToGid.add(name, cast(u32) gid)
         font.glyphNames.add(name)
@@ -461,27 +461,27 @@ private func readCffEncoding(font: *CffFont, offset: u64) fail
         return
     }
 
-    let format = readU8(font.block, offset)
+    let format = try readU8(font.block, offset)
     var pos    = offset + 1
     if (format & 0x7F) == 0
     {
-        let count = readU8(font.block, pos)
+        let count = try readU8(font.block, pos)
         pos += 1
         for i in count
         {
-            font.codeToGid[cast(u32) readU8(font.block, pos)] = cast(u32) i + 1
+            font.codeToGid[cast(u32) (try readU8(font.block, pos))] = cast(u32) i + 1
             pos += 1
         }
     }
     elif (format & 0x7F) == 1
     {
-        let ranges = readU8(font.block, pos)
+        let ranges = try readU8(font.block, pos)
         pos += 1
         var gid = 1'u32
         for ranges
         {
-            let first = cast(u32) readU8(font.block, pos)
-            let left  = cast(u32) readU8(font.block, pos + 1)
+            let first = cast(u32) (try readU8(font.block, pos))
+            let left  = cast(u32) (try readU8(font.block, pos + 1))
             pos += 2
             for k in left + 1
             {
@@ -492,19 +492,19 @@ private func readCffEncoding(font: *CffFont, offset: u64) fail
     }
     else
     {
-        fault(0x08)
+        try fault(0x08)
     }
 
     if (format & 0x80) != 0
     {
-        let supplements = readU8(font.block, pos)
+        let supplements = try readU8(font.block, pos)
         pos += 1
         for supplements
         {
-            let code = cast(u32) readU8(font.block, pos)
-            let sid  = cast(u32) readU16(font.block, pos + 1)
+            let code = cast(u32) (try readU8(font.block, pos))
+            let sid  = cast(u32) (try readU16(font.block, pos + 1))
             pos += 3
-            let found = font.nameToGid.tryFind(font.stringOf(sid))
+            let found = font.nameToGid.tryFind(try font.stringOf(sid))
             if found do
                 font.codeToGid[code] = found.value
         }
@@ -516,24 +516,24 @@ private func readCffFdSelect(font: *CffFont, offset: u64) fail
     let glyphCount = font.charStrings.count()
     font.fdSelect.resize(glyphCount)
 
-    let format = readU8(font.block, offset)
+    let format = try readU8(font.block, offset)
     if format == 0
     {
         for gid in glyphCount do
-            font.fdSelect[gid] = readU8(font.block, offset + 1 + gid)
+            font.fdSelect[gid] = try readU8(font.block, offset + 1 + gid)
         return
     }
 
     if format != 3 do
-        fault(0x08)
+        try fault(0x08)
 
-    let ranges = readU16(font.block, offset + 1)
+    let ranges = try readU16(font.block, offset + 1)
     var pos    = offset + 3
     for ranges
     {
-        let first = cast(u32) readU16(font.block, pos)
-        let fd    = readU8(font.block, pos + 2)
-        let next  = cast(u32) readU16(font.block, pos + 3)
+        let first = cast(u32) (try readU16(font.block, pos))
+        let fd    = try readU8(font.block, pos + 2)
+        let next  = cast(u32) (try readU16(font.block, pos + 3))
         pos += 3
         for gid in first until Math.min(next, glyphCount) do
             font.fdSelect[gid] = fd
@@ -542,11 +542,11 @@ private func readCffFdSelect(font: *CffFont, offset: u64) fail
 
 private func readCffFdArray(font: *CffFont, offset: u64) fail
 {
-    let fdArray = readCffIndex(font.block, offset)
+    let fdArray = try readCffIndex(font.block, offset)
     for index in fdArray.count()
     {
-        let dict        = parseCffDict(fdArray.item(font.block, index))
-        let privateData = readCffPrivate(font, &dict)
+        let dict        = try parseCffDict(try fdArray.item(font.block, index))
+        let privateData = try readCffPrivate(font, &dict)
         font.fdLocalSubrs.add(privateData.subrs)
         font.fdDefaultWidth.add(privateData.defaultWidth)
         font.fdNominalWidth.add(privateData.nominalWidth)
@@ -559,22 +559,22 @@ func parseCffFont(block: const [..] u8?)->CffFont fail
     var result: retval
     result.block = block
 
-    let headerSize = cast(u64) readU8(block, 2)
+    let headerSize = cast(u64) (try readU8(block, 2))
     if headerSize < 4 do
-        fault(0x08)
+        try fault(0x08)
 
-    let names   = readCffIndex(block, headerSize)
-    let topDict = readCffIndex(block, names.end)
-    result.strings     = readCffIndex(block, topDict.end)
-    result.globalSubrs = readCffIndex(block, result.strings.end)
+    let names   = try readCffIndex(block, headerSize)
+    let topDict = try readCffIndex(block, names.end)
+    result.strings     = try readCffIndex(block, topDict.end)
+    result.globalSubrs = try readCffIndex(block, result.strings.end)
     if not topDict.count() do
-        fault(0x08)
+        try fault(0x08)
 
-    let top = parseCffDict(topDict.item(block, 0))
+    let top = try parseCffDict(try topDict.item(block, 0))
     result.isCid = top.has(CFF_OP_ROS)
     result.charstringType = cast(u32) top.value(CFF_OP_CHARSTRING_TYPE, 0, 2)
     if result.charstringType != 2 do
-        fault(0x07)
+        try fault(0x07)
 
     // The font matrix scales charstring units to the em square; its reciprocal is the
     // units-per-em the rest of the module measures a design in.
@@ -588,18 +588,18 @@ func parseCffFont(block: const [..] u8?)->CffFont fail
 
     let charStrings = cast(u64) top.value(CFF_OP_CHARSTRINGS, 0, 0)
     if not charStrings do
-        fault(0x08)
-    result.charStrings = readCffIndex(block, charStrings)
+        try fault(0x08)
+    result.charStrings = try readCffIndex(block, charStrings)
 
-    result.fontName = String.from(cast(string?) names.item(block, 0))
+    result.fontName = String.from(cast(string?) (try names.item(block, 0)))
     result.xMin     = clampToS16(top.value(CFF_OP_FONT_BBOX, 0, 0))
     result.yMin     = clampToS16(top.value(CFF_OP_FONT_BBOX, 1, 0))
     result.xMax     = clampToS16(top.value(CFF_OP_FONT_BBOX, 2, cast(f64) result.unitsPerEm))
     result.yMax     = clampToS16(top.value(CFF_OP_FONT_BBOX, 3, cast(f64) result.unitsPerEm))
     result.italic   = top.value(CFF_OP_ITALIC_ANGLE, 0, 0) != 0
-    result.bold     = isBoldWeightName(result.stringOf(cast(u32) top.value(CFF_OP_WEIGHT, 0, 0)).toString())
+    result.bold     = isBoldWeightName(try result.stringOf(cast(u32) top.value(CFF_OP_WEIGHT, 0, 0)).toString())
 
-    let privateData = readCffPrivate(&result, &top)
+    let privateData = try readCffPrivate(&result, &top)
     result.localSubrs    = privateData.subrs
     result.defaultWidthX = privateData.defaultWidth
     result.nominalWidthX = privateData.nominalWidth
@@ -608,13 +608,13 @@ func parseCffFont(block: const [..] u8?)->CffFont fail
     {
         let fdArray = cast(u64) top.value(CFF_OP_FD_ARRAY, 0, 0)
         if fdArray do
-            readCffFdArray(&result, fdArray)
+            try readCffFdArray(&result, fdArray)
         let fdSelect = cast(u64) top.value(CFF_OP_FD_SELECT, 0, 0)
         if fdSelect do
-            readCffFdSelect(&result, fdSelect)
+            try readCffFdSelect(&result, fdSelect)
     }
 
-    readCffCharset(&result, cast(u64) top.value(CFF_OP_CHARSET, 0, 0))
-    readCffEncoding(&result, cast(u64) top.value(CFF_OP_ENCODING, 0, 0))
+    try readCffCharset(&result, cast(u64) top.value(CFF_OP_CHARSET, 0, 0))
+    try readCffEncoding(&result, cast(u64) top.value(CFF_OP_ENCODING, 0, 0))
     return result
 }

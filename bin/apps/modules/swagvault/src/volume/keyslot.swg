@@ -47,7 +47,7 @@ func keySlotIndex(random: u64)->u64 => random & (KeySlotCount - 1)
 func randomKeySlotIndex()->u64 fail
 {
     var random: u64
-    Core.Crypto.randomBytes(Swag.makeSlice(cast([*] u8) &random, #sizeof(random)))
+    try Core.Crypto.randomBytes(Swag.makeSlice(cast([*] u8) &random, #sizeof(random)))
     return keySlotIndex(random)
 }
 
@@ -60,7 +60,7 @@ impl KeySlot
         Swag.assert(master.count == Crypto.MasterKeySize)
 
         var result: retval
-        Core.Crypto.randomBytes(result.nonce)
+        try Core.Crypto.randomBytes(result.nonce)
         try Core.Crypto.chacha20Poly1305Seal(slotKey, result.nonce, master, Crypto.associatedData(KeySlotKind, index), result.wrapped, result.tag)
         return result
     }
@@ -71,14 +71,14 @@ impl KeySlot
     {
         Swag.assert(slotKey.count == Crypto.KeySize)
         Swag.assert(master.count == Crypto.MasterKeySize)
-        return Core.Crypto.chacha20Poly1305Open(slotKey, .nonce, .wrapped, .tag, Crypto.associatedData(KeySlotKind, index), master)
+        return try Core.Crypto.chacha20Poly1305Open(slotKey, .nonce, .wrapped, .tag, Crypto.associatedData(KeySlotKind, index), master)
     }
 
     // Serializes the authenticated payload after the slot's random prefix.
     mtd const encode()->[KeySlotPayloadSize] u8 fail
     {
         var result: retval
-        Core.Crypto.randomBytes(result)
+        try Core.Crypto.randomBytes(result)
 
         var offset = 0'u64
         Swag.memcpy(&result[offset], &.nonce[0], Crypto.NonceSize)

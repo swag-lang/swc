@@ -18,7 +18,7 @@ func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind,
 {
     for 12
     {
-        let batch = watcher.next(500)
+        let batch = try watcher.next(500)
         if batch.status == .Overflow do
             return false
         if batch.status != .Changes do

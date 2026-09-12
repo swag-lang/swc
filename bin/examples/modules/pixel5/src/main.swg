@@ -69,8 +69,8 @@ func loadFonts() fail
 {
     g_FontPath = dataPath("segoeui.ttf")
     let path = g_FontPath.toString()
-    g_FontBytes    = File.readAllBytes(path)
-    g_TypeFace     = TypeFace.create(path, g_FontBytes.toSlice())
+    g_FontBytes    = try File.readAllBytes(path)
+    g_TypeFace     = try TypeFace.create(path, g_FontBytes.toSlice())
     g_TitleFont    = g_Renderer.fonts.createFont(g_TypeFace, 34)
     g_SubTitleFont = g_Renderer.fonts.createFont(g_TypeFace, 18)
     g_LabelFont    = g_Renderer.fonts.createFont(g_TypeFace, 15)
@@ -112,7 +112,7 @@ func setImageCard(card: *TextureCard, title, subtitle: string, image: Image, opt
 
 func loadShowcase() fail
 {
-    let loaded = Image.load(dataPath("balloon.jpg"))
+    let loaded = try Image.load(dataPath("balloon.jpg"))
     let source = normalizeShowcaseImage(loaded)
 
     g_SourceTexture = g_Render.addImage(source)

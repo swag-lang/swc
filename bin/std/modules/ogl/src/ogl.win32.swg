@@ -30,14 +30,14 @@ internal namespace PrivOgl
     {
         let res = PrivOgl.wglCreateContext(hDc)
         if not res do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         return res
     }
 
     func wglDeleteContext(hRc: HGLRC) fail
     {
         if not PrivOgl.wglDeleteContext(hRc) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func wglGetCurrentContext()->HGLRC => PrivOgl.wglGetCurrentContext()
@@ -45,13 +45,13 @@ internal namespace PrivOgl
     func wglMakeCurrent(hDc: HDC, hRc: HGLRC) fail
     {
         if not PrivOgl.wglMakeCurrent(hDc, hRc) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func wglShareLists(hRc0, hRc1: HGLRC) fail
     {
         if not PrivOgl.wglShareLists(hRc0, hRc1) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 }
 

@@ -10,7 +10,7 @@ using Swag, Core
 func testSchemaOf(type: typeinfo)->String fail
 {
     var result: retval
-    let plan = Serialization.planFor(cast(const *Swag.TypeInfoStruct) type)
+    let plan = try Serialization.planFor(cast(const *Swag.TypeInfoStruct) type)
 
     for &pf in plan.fields
     {
@@ -26,7 +26,7 @@ func testSchemaOf(type: typeinfo)->String fail
 
 func testAssertSchema(type: typeinfo, expected: string) fail
 {
-    let actual = testSchemaOf(type)
+    let actual = try testSchemaOf(type)
     if actual != expected
     {
         Console.print("schema drift for ", type.name, "\n")

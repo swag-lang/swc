@@ -38,7 +38,7 @@ impl TextReader
             {
                 let buffer = .buffer.storage()
                 buffer[as u32] = 0
-                .buffer.count  = .stream.read(buffer, .buffer.capacity)
+                .buffer.count  = try .stream.read(buffer, .buffer.capacity)
 
                 // BOM
                 if .buffer.count >= 3 and .buffer[0] == 0xEF and .buffer[1] == 0xBB and .buffer[2] == 0xBF do
@@ -48,7 +48,7 @@ impl TextReader
             }
         }
 
-        .buffer.count = .stream.read(.buffer.buffer, .buffer.capacity)
+        .buffer.count = try .stream.read(.buffer.buffer, .buffer.capacity)
     }
 }
 
@@ -64,7 +64,7 @@ public impl TextReader
 
         .byteSeek      = 0
         .checkPreamble = true
-        .bufferSize    = Math.min(.stream.size(), 64 * 1024'u64)
+        .bufferSize    = Math.min(try .stream.size(), 64 * 1024'u64)
         .bufferSize    = Math.max(.bufferSize, 16)
         .encodingType  = encoding
     }
@@ -85,7 +85,7 @@ public impl TextReader
 
         if .byteSeek == .buffer.count
         {
-            .readBuffer()
+            try .readBuffer()
             if .buffer.isEmpty() do
                 return false
         }
@@ -117,7 +117,7 @@ public impl TextReader
             // Restart
             if ptr == ptrE
             {
-                .readBuffer()
+                try .readBuffer()
                 if .buffer.isEmpty() do
                     return true
                 continue
@@ -136,7 +136,7 @@ public impl TextReader
                 }
                 else
                 {
-                    .readBuffer()
+                    try .readBuffer()
                     if .byteSeek < .buffer.count and .buffer[.byteSeek] == '\n' do
                         .byteSeek += 1
                 }
@@ -163,14 +163,14 @@ public impl TextReader
         }
 
         // Then read and append all the rest
-        .readBuffer()
+        try .readBuffer()
         while .buffer.count
         {
             let remain = .buffer.count - .byteSeek
             result.grow(result.length + remain)
             Memory.copy(result.buffer + result.length, .buffer.buffer + .byteSeek, remain)
             result.length += remain
-            .readBuffer()
+            try .readBuffer()
         }
 
         return result

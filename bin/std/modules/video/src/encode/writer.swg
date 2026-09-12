@@ -148,9 +148,9 @@ impl Writer
     func create(fileName: string, width, height: s32, frameRate: FrameRate, options: any? = null)->Writer fail
     {
         var result: retval
-        result.validate(fileName, width, height, frameRate)
-        result.sink = ByteSink.createFile(fileName)
-        result.start(fileName, options)
+        try result.validate(fileName, width, height, frameRate)
+        result.sink = try ByteSink.createFile(fileName)
+        try result.start(fileName, options)
         return result
     }
 
@@ -162,9 +162,9 @@ impl Writer
     func createMemory(fileName: string, buffer: *ConcatBuffer, width, height: s32, frameRate: FrameRate, options: any? = null)->Writer fail
     {
         var result: retval
-        result.validate(fileName, width, height, frameRate)
+        try result.validate(fileName, width, height, frameRate)
         result.sink = ByteSink.createMemory(buffer)
-        result.start(fileName, options)
+        try result.start(fileName, options)
         return result
     }
 
@@ -192,7 +192,7 @@ impl Writer
 
         // The registry only ever holds types that implement the interface, so the table resolves.
         .encoder = Swag.makeInterface(Memory.new(selected.type), selected.type, IEncoder)!
-        .encoder.begin(&.sink, .info, options)
+        try .encoder.begin(&.sink, .info, options)
     }
 
     // Releases the encoder instance and the sink when the writer leaves scope.
@@ -219,7 +219,7 @@ impl Writer
         if image.width != .info.width or image.height != .info.height do
             fail BadParameterError{"video frame dimensions do not match the stream"}
 
-        .encoder.addFrame(&.sink, image)
+        try .encoder.addFrame(&.sink, image)
         .frames += 1
     }
 
@@ -234,8 +234,8 @@ impl Writer
             fail BadParameterError{"video writer has no open stream"}
 
         .isEnded = true
-        .encoder.end(&.sink)
-        .sink.close()
+        try .encoder.end(&.sink)
+        try .sink.close()
         .release()
     }
 

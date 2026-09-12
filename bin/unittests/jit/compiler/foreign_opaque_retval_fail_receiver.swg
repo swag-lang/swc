@@ -21,7 +21,7 @@ impl BigOpaque
         var result: retval
         expect
         {
-            result.prepare(value)
+            try result.prepare(value)
         }
         return result
     }
@@ -41,7 +41,7 @@ impl BigOpaque
 
 func captureValue(line: string)->string fail
 {
-    var r = BigOpaque.create("init")
+    var r = try BigOpaque.create("init")
     discard r.match(line)
     return r.getCapture()
 }
@@ -51,7 +51,7 @@ func captureValueInExpectBlock(line: string)->string
     var result = ""
     expect
     {
-        var r = BigOpaque.create("init")
+        var r = try BigOpaque.create("init")
         discard r.match(line)
         result = r.getCapture()
     }
@@ -61,9 +61,6 @@ func captureValueInExpectBlock(line: string)->string
 
 #test
 {
-    expect
-    {
-        Swag.assert(captureValue("2x3x4") == "2x3x4")
-        Swag.assert(captureValueInExpectBlock("2x3x4") == "2x3x4")
-    }
+    Swag.assert(expect captureValue("2x3x4") == "2x3x4")
+    Swag.assert(captureValueInExpectBlock("2x3x4") == "2x3x4")
 }

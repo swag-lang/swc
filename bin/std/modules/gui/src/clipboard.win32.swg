@@ -77,7 +77,7 @@ func hasTypedData(fmt: ValueFormat, type: typeinfo?)->bool
     defer discard GlobalUnlock(hglob)
     catch
     {
-        let payload = TypedPayload.decode(Swag.makeSlice(data, GlobalSize(hglob)))
+        let payload = try TypedPayload.decode(Swag.makeSlice(data, GlobalSize(hglob)))
         return payload.matches(type)
     }
     else {}
@@ -119,7 +119,7 @@ func getTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
     defer discard GlobalUnlock(hglob)
     catch
     {
-        let payload = TypedPayload.decode(Swag.makeSlice(data, GlobalSize(hglob)))
+        let payload = try TypedPayload.decode(Swag.makeSlice(data, GlobalSize(hglob)))
         if payload.matches(type) and payload.data do
             result.add(payload.data)
     }

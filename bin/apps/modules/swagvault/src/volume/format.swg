@@ -109,13 +109,13 @@ func parseHeaderSequence(plain: const [..] u8)->u64 fail
     var reader = ByteStream.openRead(plain)
 
     var magic: [#sizeof(HeaderMagic)] u8
-    reader.readBytes(&magic[0], #sizeof(magic))
+    try reader.readBytes(&magic[0], #sizeof(magic))
     if Swag.memcmp(&magic[0], &HeaderMagic[0], #sizeof(magic)) != 0 do
-        failWith("The container does not start with a Swag Vault header.", .Corrupted)
+        try failWith("The container does not start with a Swag Vault header.", .Corrupted)
 
-    let version = reader.readLittleEndian'u32()
+    let version = try reader.readLittleEndian'u32()
     if version != FormatVersion do
-        failWith("The container format version is not supported.", .Corrupted)
+        try failWith("The container format version is not supported.", .Corrupted)
 
-    return reader.readLittleEndian'u64()
+    return try reader.readLittleEndian'u64()
 }

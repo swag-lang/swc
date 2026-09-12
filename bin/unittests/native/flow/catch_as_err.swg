@@ -82,14 +82,19 @@ func catchAsErrInlineFoldable(value: s32)->s32 fail
 #[Swag.Inline]
 func catchAsErrInlineVoid() fail {}
 
-#test
+func catchAsErrInlineCaptures()
 {
     // Void inline callee: the statement and block forms of the capture.
     catch catchAsErrInlineVoid() as err
     Swag.assert(err == null)
 
-    catch { discard catchAsErrInlineFoldable(9) } as err2
+    catch { discard try catchAsErrInlineFoldable(9) } as err2
     Swag.assert(err2 == null)
+}
+
+#test
+{
+    catchAsErrInlineCaptures()
 }
 
 // The captured error is dismissed after the catch, so a following fallible flow starts clean;
@@ -122,7 +127,7 @@ func catchAsErrNestedExpectSuccess() fail
 func catchAsErrSuccessWithFailDefer() fail
 {
     defer #fail catchAsErrFailDeferCount += 1
-    catchAsErrNestedExpectSuccess()
+    try catchAsErrNestedExpectSuccess()
 }
 
 #test

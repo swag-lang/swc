@@ -38,8 +38,8 @@ func loadFonts() fail
 {
     g_FontPath = fontPath("segoeui.ttf")
     let path = g_FontPath.toString()
-    g_FontBytes    = File.readAllBytes(path)
-    g_TypeFace     = TypeFace.create(path, g_FontBytes.toSlice())
+    g_FontBytes    = try File.readAllBytes(path)
+    g_TypeFace     = try TypeFace.create(path, g_FontBytes.toSlice())
     g_TitleFont    = g_Renderer.fonts.createFont(g_TypeFace, 34)
     g_OutlineFont  = g_Renderer.fonts.createFont(g_TypeFace, 84)
     g_SubTitleFont = g_Renderer.fonts.createFont(g_TypeFace, 18)

@@ -276,7 +276,7 @@ private func encodeHeader(header: const *Header)->Array'u8 fail
 {
     var output:  ConcatBuffer
     var encoder: Encoder'Write.TagBin
-    encoder.writeAll(&output, header[])
+    try encoder.writeAll(&output, header[])
     output.makeLinear()
 
     var result: retval
@@ -287,7 +287,7 @@ private func encodeHeader(header: const *Header)->Array'u8 fail
 private func decodeHeader(bytes: const [..] u8)->Header fail
 {
     var decoder: Decoder'Read.TagBin
-    let decoded = decoder.readAll'Header(bytes)!
+    let decoded = try decoder.readAll'Header(bytes)!
     defer Memory.delete(decoded)
     return #move decoded[]
 }
@@ -311,13 +311,13 @@ private func encodePayload(codecs: Array'ICodec, codecId: Guid128, source: const
     if sameId(codecId, deflateCodecId())
     {
         var codec: Core.Compress.ZLib
-        return codec.compress(source, .BestSpeed)
+        return try codec.compress(source, .BestSpeed)
     }
 
     let codec = findCodec(codecs, codecId)
     if not codec do
         fail UnsupportedFormatError{"SCC has no encoder for the selected chunk codec"}
-    return codec.encode(source)
+    return try codec.encode(source)
 }
 
 private func decodePayload(codecs: Array'ICodec, info: const *ChunkInfo, source: const [..] u8)->Array'u8 fail
@@ -332,13 +332,13 @@ private func decodePayload(codecs: Array'ICodec, info: const *ChunkInfo, source:
     if sameId(info.codecId, deflateCodecId())
     {
         var codec: Core.Compress.ZLib
-        return codec.decompress(source, info.decodedSize)
+        return try codec.decompress(source, info.decodedSize)
     }
 
     let codec = findCodec(codecs, info.codecId)
     if not codec do
         fail UnsupportedFormatError{"SCC has no decoder for this chunk codec"}
-    return codec.decode(source, info.decodedSize)
+    return try codec.decode(source, info.decodedSize)
 }
 
 private func validateManifest(manifest: const *Manifest, chunks: const [..] ChunkInfo) fail
@@ -442,7 +442,7 @@ impl Writer
         .header.chunks.clear()
         for &chunk in .chunks do
             .header.chunks.add(chunk.info)
-        validateManifest(&.header.manifest, .header.chunks.toSlice())
+        try validateManifest(&.header.manifest, .header.chunks.toSlice())
 
         var headerBytes = try encodeHeader(&.header)
         var dataOffset  = alignUp(PrefixSize + headerBytes.count, 8)
@@ -481,9 +481,9 @@ impl Writer
                 discard catch File.delete(temporary)
         }
 
-        var output = File.openWrite(temporary)
-        output.writeAll(prefix.toSlice())
-        output.writeAll(headerBytes.toSlice())
+        var output = try File.openWrite(temporary)
+        try output.writeAll(prefix.toSlice())
+        try output.writeAll(headerBytes.toSlice())
 
         var position = PrefixSize + headerBytes.count
         var zero: [4096] u8
@@ -492,24 +492,24 @@ impl Writer
             while position < chunk.info.offset
             {
                 let count = Math.min(chunk.info.offset - position, #sizeof(zero))
-                output.writeAll(zero[until count])
+                try output.writeAll(zero[until count])
                 position += count
             }
 
-            output.writeAll(chunk.bytes.toSlice())
+            try output.writeAll(chunk.bytes.toSlice())
             position += chunk.bytes.count
         }
 
         while position < .header.declaredFileSize
         {
             let count = Math.min(.header.declaredFileSize - position, #sizeof(zero))
-            output.writeAll(zero[until count])
+            try output.writeAll(zero[until count])
             position += count
         }
 
-        output.flush()
+        try output.flush()
         output.close()
-        File.move(fileName, temporary)
+        try File.move(fileName, temporary)
         committed = true
     }
 }
@@ -520,10 +520,10 @@ impl Reader
     mtd initialize(fileName: string, limits: ReadLimits = {}) fail
     {
         .limits = limits
-        .stream = File.openRead(fileName)
+        .stream = try File.openRead(fileName)
 
         var prefix: [PrefixSize] u8
-        if not .stream.readExact(prefix) do
+        if not (try .stream.readExact(prefix)) do
             fail InvalidFormatError{"SCC prefix is truncated"}
         if Swag.memcmp(&prefix[0], Magic.buffer, Magic.count) != 0 do
             fail InvalidFormatError{"file does not contain an SCC signature"}
@@ -537,13 +537,13 @@ impl Reader
         let headerSize = readU64(prefix, 16)
         if headerSize > limits.maxHeaderSize do
             fail OverflowError{"SCC header exceeds the configured size limit"}
-        let fileSize = .stream.size()
+        let fileSize = try .stream.size()
         if headerSize > fileSize - PrefixSize do
             fail InvalidFormatError{"SCC header runs past the end of the file"}
 
         var headerBytes: Array'u8
         headerBytes.resize(headerSize)
-        if not .stream.readExact(headerBytes.toSlice()) do
+        if not (try .stream.readExact(headerBytes.toSlice())) do
             fail InvalidFormatError{"SCC header is truncated"}
         if Hash.Crc32.compute(headerBytes.toSlice()) != readU32(prefix, 24) do
             fail InvalidFormatError{"SCC header checksum does not match its bytes"}
@@ -585,7 +585,7 @@ impl Reader
             }
         }
 
-        validateManifest(&.header.manifest, .header.chunks.toSlice())
+        try validateManifest(&.header.manifest, .header.chunks.toSlice())
     }
 
     // Closes the underlying file while keeping the decoded header available.
@@ -650,7 +650,7 @@ impl Reader
 
         var result: retval
         result.resize(info.storedSize)
-        if not .stream.readExactAt(info.offset, result.toSlice()) do
+        if not (try .stream.readExactAt(info.offset, result.toSlice())) do
             fail InvalidFormatError{"SCC chunk payload is truncated"}
         if Hash.Crc32.compute(result.toSlice()) != info.storedChecksum do
             fail InvalidFormatError{"SCC stored chunk checksum does not match its bytes"}
@@ -677,9 +677,9 @@ impl Reader
 // Returns whether `fileName` begins with the SCC signature.
 func hasSignature(fileName: string)->bool fail
 {
-    var stream = File.openRead(fileName)
+    var stream = try File.openRead(fileName)
     var magic: [8] u8
-    if not stream.readExact(magic) do
+    if not (try stream.readExact(magic)) do
         return false
     return Swag.memcmp(&magic[0], Magic.buffer, Magic.count) == 0
 }

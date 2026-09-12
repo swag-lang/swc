@@ -88,18 +88,18 @@ impl Thread
             .context.tempAllocator.setCapacity(.context.tempAllocator.capacity, allocator)
         elif tempAllocSize != 0 do
             .context.tempAllocator.setCapacity(cast(u64) tempAllocSize, allocator)
-        .handle     = createSuspendedNative(&threadEntry, me, &.id)
+        .handle     = try createSuspendedNative(&threadEntry, me, &.id)
         .userLambda = lambda
         .userParam  = userParam
         .requestEnd = false
-        .setPriority(priority)
+        try .setPriority(priority)
     }
 
     // Starts this suspended thread.
     mtd start() fail
     {
         Swag.assert(.isValid())
-        startNative(.handle)
+        try startNative(.handle)
     }
 
     // Changes this thread's scheduling priority.
@@ -108,7 +108,7 @@ impl Thread
         Swag.assert(.isValid())
         if .priority == priority do
             return
-        setPriorityNative(.handle, priority)
+        try setPriorityNative(.handle, priority)
         .priority = priority
     }
 

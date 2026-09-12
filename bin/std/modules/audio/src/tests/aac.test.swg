@@ -26,7 +26,7 @@ private func aacTestSound()->SoundFile fail
     const Config: [2] u8 = [0x12, 0x10]
     let path    = audioGetTestDataPath("aac-lc-stereo-44100.aac")
     let packets = try aacTestPackets(path)
-    return SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config)
+    return try SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config)
 }
 
 private func aacTestSound51()->SoundFile fail
@@ -34,7 +34,7 @@ private func aacTestSound51()->SoundFile fail
     const Config: [2] u8 = [0x11, 0xB0]
     let path    = audioGetTestDataPath("aac-lc-5.1-48000.aac")
     let packets = try aacTestPackets(path)
-    return SoundFile.openPacketStream(path, .AacLc, 48_000, 6, packets.count * 1024, packets.toSlice(), Config)
+    return try SoundFile.openPacketStream(path, .AacLc, 48_000, 6, packets.count * 1024, packets.toSlice(), Config)
 }
 
 private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channels, channel: u64, sampleRate, frequency: f64)->f64

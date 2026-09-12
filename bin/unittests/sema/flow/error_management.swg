@@ -55,11 +55,6 @@ func raiseHandled()
     }
 }
 
-func directPropagateStmt() fail
-{
-    mayFailVoid()
-}
-
 func propagateStmt() fail
 {
     try mayFailVoid()

@@ -573,7 +573,7 @@ impl ImageView
     // Existing content remains unchanged when decoding fails.
     mtd loadGif(fileName: string) fail
     {
-        .loadMovie(fileName)
+        try .loadMovie(fileName)
     }
 
     // Loads a registered image set and fits its representative image to the viewport, preserving content on failure.

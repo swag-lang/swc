@@ -7,7 +7,7 @@ remain alive.
 ```swag
 using Core, TrueType
 
-let bytes = File.readAllBytes("Inter-Regular.ttf")
+let bytes = try File.readAllBytes("Inter-Regular.ttf")
 let face  = (try Face.load(bytes.toSlice()))!
 defer face.destroy()
 ```
@@ -45,7 +45,7 @@ Looking for one member by name does not mean loading the others.
 collection can be searched first and loaded once.
 
 ```swag
-let bytes = File.readAllBytes("msgothic.ttc")
+let bytes = try File.readAllBytes("msgothic.ttc")
 let count = try Face.countFaces(bytes.toSlice())
 for index in count
 {

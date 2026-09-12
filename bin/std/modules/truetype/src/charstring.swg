@@ -193,19 +193,19 @@ private impl Type2State
 private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fail
 {
     if depth >= MaxCharstringDepth do
-        fault(0x89)
+        try fault(0x89)
 
     var pos = 0'u64
     while pos < code.count
     {
-        let b0 = readU8(code, pos)
+        let b0 = try readU8(code, pos)
         pos += 1
 
         if b0 >= 32 or b0 == 28
         {
             if b0 == 28
             {
-                state.push(cast(f64) readS16(code, pos))
+                state.push(cast(f64) (try readS16(code, pos)))
                 pos += 2
             }
             elif b0 <= 246
@@ -214,18 +214,18 @@ private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fai
             }
             elif b0 <= 250
             {
-                state.push(cast(f64) ((cast(s32) b0 - 247) * 256 + cast(s32) readU8(code, pos) + 108))
+                state.push(cast(f64) ((cast(s32) b0 - 247) * 256 + cast(s32) (try readU8(code, pos)) + 108))
                 pos += 1
             }
             elif b0 <= 254
             {
-                state.push(cast(f64) (-(cast(s32) b0 - 251) * 256 - cast(s32) readU8(code, pos) - 108))
+                state.push(cast(f64) (-(cast(s32) b0 - 251) * 256 - cast(s32) (try readU8(code, pos)) - 108))
                 pos += 1
             }
             else
             {
                 // A 16.16 fixed-point literal, the only fractional operand the format has.
-                state.push(cast(f64) readS32(code!, pos) / 65536.0)
+                state.push(cast(f64) (try readS32(code!, pos)) / 65536.0)
                 pos += 4
             }
 
@@ -409,8 +409,8 @@ private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fai
             let table = b0 == 10 ? state.subrs : &state.font.globalSubrs
             let entry = cast(s32) index + subrBias(table.count())
             if entry < 0 or cast(u32) entry >= table.count() do
-                fault(0x86)
-            execType2(state, table.item(state.font.block, cast(u32) entry), depth + 1)
+                try fault(0x86)
+            try execType2(state, try table.item(state.font.block, cast(u32) entry), depth + 1)
             if state.finished do
                 return
 
@@ -446,7 +446,7 @@ private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fai
             return
 
         case 12:
-            let b1 = readU8(code, pos)
+            let b1 = try readU8(code, pos)
             pos += 1
             execType2Escape(state, b1)
 
@@ -630,7 +630,7 @@ private func execType2Escape(state: *Type2State, op: u8)
 func runType2Charstring(font: *CffFont, gid: u32, builder: *OutlineBuilder?)->f64 fail
 {
     if gid >= font.charStrings.count() do
-        fault(0x10)
+        try fault(0x10)
 
     let glyphPrivate = font.privateFor(gid)
     var state: Type2State
@@ -641,7 +641,7 @@ func runType2Charstring(font: *CffFont, gid: u32, builder: *OutlineBuilder?)->f6
     state.width        = glyphPrivate.defaultWidth
     state.widthOnly    = builder == null
 
-    execType2(&state, font.charStrings.item(font.block, gid), 0)
+    try execType2(&state, try font.charStrings.item(font.block, gid), 0)
     if builder do
         builder.closeContour()
 
@@ -652,9 +652,9 @@ func runType2Charstring(font: *CffFont, gid: u32, builder: *OutlineBuilder?)->f6
         let baseGid   = cffGlyphForStandardCode(font, cast(u8) state.seacBase)
         let accentGid = cffGlyphForStandardCode(font, cast(u8) state.seacAccent)
         if baseGid do
-            discard runType2Charstring(font, baseGid, builder)
+            discard try runType2Charstring(font, baseGid, builder)
         if accentGid do
-            runComposedAccent(font, accentGid, builder, state.seacAdx, state.seacAdy)
+            try runComposedAccent(font, accentGid, builder, state.seacAdx, state.seacAdy)
     }
 
     return state.width
@@ -664,7 +664,7 @@ func runType2Charstring(font: *CffFont, gid: u32, builder: *OutlineBuilder?)->f6
 private func runComposedAccent(font: *CffFont, gid: u32, builder: *OutlineBuilder, adx, ady: f64) fail
 {
     let first = cast(u32) builder.face.outlinePoints.count
-    discard runType2Charstring(font, gid, builder)
+    discard try runType2Charstring(font, gid, builder)
 
     let dx = cast(s32) Math.round(adx * builder.scaleX)
     let dy = cast(s32) Math.round(ady * builder.scaleY)
@@ -795,12 +795,12 @@ private impl Type1State
 private func execType1(state: *Type1State, code: const [..] u8?, depth: u32) fail
 {
     if depth >= MaxCharstringDepth do
-        fault(0x89)
+        try fault(0x89)
 
     var pos = 0'u64
     while pos < code.count
     {
-        let b0 = readU8(code, pos)
+        let b0 = try readU8(code, pos)
         pos += 1
 
         if b0 >= 32
@@ -811,19 +811,19 @@ private func execType1(state: *Type1State, code: const [..] u8?, depth: u32) fai
             }
             elif b0 <= 250
             {
-                state.push(cast(f64) ((cast(s32) b0 - 247) * 256 + cast(s32) readU8(code, pos) + 108))
+                state.push(cast(f64) ((cast(s32) b0 - 247) * 256 + cast(s32) (try readU8(code, pos)) + 108))
                 pos += 1
             }
             elif b0 <= 254
             {
-                state.push(cast(f64) (-(cast(s32) b0 - 251) * 256 - cast(s32) readU8(code, pos) - 108))
+                state.push(cast(f64) (-(cast(s32) b0 - 251) * 256 - cast(s32) (try readU8(code, pos)) - 108))
                 pos += 1
             }
             else
             {
                 // Type 1 spells its wide literals as plain 32-bit integers, not as the
                 // fixed-point form Type 2 introduced for the same encoding byte.
-                state.push(cast(f64) readS32(code!, pos))
+                state.push(cast(f64) (try readS32(code!, pos)))
                 pos += 4
             }
 
@@ -925,8 +925,8 @@ private func execType1(state: *Type1State, code: const [..] u8?, depth: u32) fai
             state.depth -= 1
             let index = cast(s32) state.stack[state.depth]
             if index < 0 or cast(u64) index >= state.font.subrs.count do
-                fault(0x86)
-            execType1(state, state.font.subrs[index].toSlice(), depth + 1)
+                try fault(0x86)
+            try execType1(state, state.font.subrs[index].toSlice(), depth + 1)
             if state.finished do
                 return
 
@@ -941,9 +941,9 @@ private func execType1(state: *Type1State, code: const [..] u8?, depth: u32) fai
             state.depth = 0
 
         case 12:
-            let b1 = readU8(code, pos)
+            let b1 = try readU8(code, pos)
             pos += 1
-            execType1Escape(state, b1)
+            try execType1Escape(state, b1)
             if state.finished do
                 return
 
@@ -1070,14 +1070,14 @@ private func execType1OtherSubr(state: *Type1State)
 func runType1Charstring(font: *Type1Font, gid: u32, builder: *OutlineBuilder?)->f64 fail
 {
     if cast(u64) gid >= font.charstrings.count do
-        fault(0x10)
+        try fault(0x10)
 
     var state: Type1State
     state.font      = font
     state.builder   = builder
     state.widthOnly = builder == null
 
-    execType1(&state, font.charstrings[gid].toSlice(), 0)
+    try execType1(&state, font.charstrings[gid].toSlice(), 0)
     if builder do
         builder.closeContour()
 
@@ -1086,12 +1086,12 @@ func runType1Charstring(font: *Type1Font, gid: u32, builder: *OutlineBuilder?)->
         let baseGid   = type1GlyphForStandardCode(font, cast(u8) state.seacBase)
         let accentGid = type1GlyphForStandardCode(font, cast(u8) state.seacAccent)
         if baseGid do
-            discard runType1Charstring(font, baseGid, builder)
+            discard try runType1Charstring(font, baseGid, builder)
 
         // The accent is placed relative to the base glyph's own sidebearing, which is what
         // keeps a composed glyph aligned when the two parts were drawn with different ones.
         if accentGid do
-            runType1ComposedAccent(font, accentGid, builder, state.seacAdx - state.seacAsb + state.sideBearingX, state.seacAdy)
+            try runType1ComposedAccent(font, accentGid, builder, state.seacAdx - state.seacAsb + state.sideBearingX, state.seacAdy)
     }
 
     return state.width
@@ -1100,7 +1100,7 @@ func runType1Charstring(font: *Type1Font, gid: u32, builder: *OutlineBuilder?)->
 private func runType1ComposedAccent(font: *Type1Font, gid: u32, builder: *OutlineBuilder, adx, ady: f64) fail
 {
     let first = cast(u32) builder.face.outlinePoints.count
-    discard runType1Charstring(font, gid, builder)
+    discard try runType1Charstring(font, gid, builder)
 
     let dx = cast(s32) Math.round(adx * builder.scaleX)
     let dy = cast(s32) Math.round(ady * builder.scaleY)

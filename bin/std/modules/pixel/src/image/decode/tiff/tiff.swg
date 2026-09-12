@@ -118,7 +118,7 @@ func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 fail
     if totalBytes > 4
     {
         p = base + e.valoff
-        checkBuffer(p, last, totalBytes)
+        try checkBuffer(p, last, totalBytes)
     }
 
     for i in e.count
@@ -163,7 +163,7 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
             let count = cast(u64) (header + 1)
             if out + count > expected do
                 fail InvalidFormatError{"invalid source buffer"}
-            checkBuffer(p, last, count)
+            try checkBuffer(p, last, count)
             Memory.copy(dst + out, p, count)
             p   += count
             out += count
@@ -173,7 +173,7 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
             let count = cast(u64) (1 - header)
             if out + count > expected do
                 fail InvalidFormatError{"invalid source buffer"}
-            checkBuffer(p, last, 1)
+            try checkBuffer(p, last, 1)
             let value = p[0]
             p += 1
             for index in count do
@@ -213,7 +213,7 @@ impl Decoder
         // Parse the first IFD
         var ifd: Ifd
         let numEntries = rd16(base + ifdOffset, le)
-        checkBuffer(base + ifdOffset, last, cast(u64) 2 + cast(u64) numEntries * 12)
+        try checkBuffer(base + ifdOffset, last, cast(u64) 2 + cast(u64) numEntries * 12)
         for i in numEntries
         {
             let ep = base + ifdOffset + 2 + cast(u64) i * 12
@@ -226,19 +226,19 @@ impl Decoder
             ifd.entries.add(e)
         }
 
-        let width  = readScalar(base, last, le, &ifd, TAG_IMAGE_WIDTH, 0)
-        let height = readScalar(base, last, le, &ifd, TAG_IMAGE_LENGTH, 0)
+        let width  = try readScalar(base, last, le, &ifd, TAG_IMAGE_WIDTH, 0)
+        let height = try readScalar(base, last, le, &ifd, TAG_IMAGE_LENGTH, 0)
         if width == 0 or height == 0 do
             fail InvalidFormatError{"invalid dimensions"}
         if width > Swag.S32.Max or height > Swag.S32.Max do
             fail UnsupportedFormatError{"image is too big"}
 
-        let compression  = readScalar(base, last, le, &ifd, TAG_COMPRESSION, COMPRESSION_NONE)
-        let photometric  = readScalar(base, last, le, &ifd, TAG_PHOTOMETRIC, PHOTO_BLACK_IS_ZERO)
-        let samples      = readScalar(base, last, le, &ifd, TAG_SAMPLES_PER_PIXEL, 1)
-        let planar       = readScalar(base, last, le, &ifd, TAG_PLANAR_CONFIG, 1)
-        let predictor    = readScalar(base, last, le, &ifd, TAG_PREDICTOR, 1)
-        var rowsPerStrip = readScalar(base, last, le, &ifd, TAG_ROWS_PER_STRIP, height)
+        let compression  = try readScalar(base, last, le, &ifd, TAG_COMPRESSION, COMPRESSION_NONE)
+        let photometric  = try readScalar(base, last, le, &ifd, TAG_PHOTOMETRIC, PHOTO_BLACK_IS_ZERO)
+        let samples      = try readScalar(base, last, le, &ifd, TAG_SAMPLES_PER_PIXEL, 1)
+        let planar       = try readScalar(base, last, le, &ifd, TAG_PLANAR_CONFIG, 1)
+        let predictor    = try readScalar(base, last, le, &ifd, TAG_PREDICTOR, 1)
+        var rowsPerStrip = try readScalar(base, last, le, &ifd, TAG_ROWS_PER_STRIP, height)
 
         if compression != COMPRESSION_NONE and compression != COMPRESSION_LZW and compression != COMPRESSION_PACKBITS do
             fail UnsupportedFormatError{"unsupported compression"}
@@ -285,7 +285,7 @@ impl Decoder
 
         var result: retval
         result.init(cast(s32) width, cast(s32) height, pf)
-        options.checkImage(result.width, result.height, pf)
+        try options.checkImage(result.width, result.height, pf)
 
         if not options.decodePixels do
             return result
@@ -339,17 +339,17 @@ impl Decoder
             let srcOff     = stripOffsets[s]
             let srcCount   = cast(u64) stripCounts[s]
             let srcPtr     = base + srcOff
-            checkBuffer(srcPtr, last, srcCount)
+            try checkBuffer(srcPtr, last, srcCount)
 
             let dstPtr = decoded.storage() + cast(u64) rowStart * rowBytes
 
             if compression == COMPRESSION_LZW
             {
-                unpackLzw(dstPtr, stripBytes, srcPtr, srcCount)
+                try unpackLzw(dstPtr, stripBytes, srcPtr, srcCount)
             }
             elif compression == COMPRESSION_PACKBITS
             {
-                unpackBits(dstPtr, stripBytes, srcPtr, srcPtr + srcCount)
+                try unpackBits(dstPtr, stripBytes, srcPtr, srcPtr + srcCount)
             }
             else
             {
@@ -439,7 +439,7 @@ impl Decoder
 impl IImageDecoder for Decoder
 {
     mtd impl format()->ImageFormat => {"TIFF - Tagged Image File Format", ".tif;.tiff"}
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => .decodePage(buffer, options)
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => try .decodePage(buffer, options)
 }
 
 impl IImageSetDecoder for Decoder
@@ -450,13 +450,13 @@ impl IImageSetDecoder for Decoder
         .directories.clear()
         var probeOptions = options
         probeOptions.decodePixels = false
-        discard .decodePage(buffer, probeOptions)
+        discard try .decodePage(buffer, probeOptions)
         let le     = buffer[0] == 0x49
         var offset = rd32(buffer.buffer + 4, le)
         var result: retval
         while offset
         {
-            options.checkFrameCount(.directories.count + 1)
+            try options.checkFrameCount(.directories.count + 1)
             for prior in .directories where prior == offset do
                 fail InvalidFormatError{"TIFF directory chain contains a cycle"}
             if cast(u64) offset + 2 > buffer.count do
@@ -465,7 +465,7 @@ impl IImageSetDecoder for Decoder
             let next  = cast(u64) offset + 2 + cast(u64) count * 12
             if next + 4 > buffer.count do
                 fail InvalidFormatError{"TIFF directory chain is truncated"}
-            let probe = .decodePage(buffer, probeOptions, offset)
+            let probe = try .decodePage(buffer, probeOptions, offset)
             result.frames.add({kind: ImageFrameKind.Page, width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
             .directories.add(offset)
             offset = rd32(buffer.buffer + next, le)
@@ -478,6 +478,6 @@ impl IImageSetDecoder for Decoder
     {
         if index >= .directories.count do
             fail InvalidFormatError{"TIFF page index is out of range"}
-        return .decodePage(.bytes!, options, .directories[index])
+        return try .decodePage(.bytes!, options, .directories[index])
     }
 }

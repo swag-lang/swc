@@ -87,8 +87,8 @@ impl Image
             var probeOptions = options
             probeOptions.decodePixels   = false
             probeOptions.decodeMetadata = false
-            let probe = decode(decoderType, bytes, probeOptions)
-            options.checkImage(probe.width, probe.height, probe.pixelFormat)
+            let probe = try decode(decoderType, bytes, probeOptions)
+            try options.checkImage(probe.width, probe.height, probe.pixelFormat)
         }
 
         // Create a decoder instance
@@ -104,7 +104,7 @@ impl Image
         // The registry only ever holds types that implement the interface, so the table resolves.
         let itf    = Swag.makeInterface(ptrDecoder, decoderType, IImageDecoder)!
         var result = #move try itf.decode(bytes, options)
-        options.checkImage(result.width, result.height, result.pixelFormat)
+        try options.checkImage(result.width, result.height, result.pixelFormat)
         return #move result
     }
 }
@@ -168,10 +168,10 @@ public impl Image
         let found = getDecoder(fileName)
         if not found do
             fail UnsupportedFormatError{"no matching image decoder"}
-        var file = File.MappedFile.open(fileName)
-        if options.maxInputBytes and file.size() > options.maxInputBytes do
+        var file = try File.MappedFile.open(fileName)
+        if options.maxInputBytes and (try file.size()) > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
-        let region = file.mapAll()
+        let region = try file.mapAll()
         var result = #move try decode(fileName, region.bytes(), options)
         return #move result
     }

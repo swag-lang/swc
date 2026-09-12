@@ -150,8 +150,8 @@ private struct Layout
 // Skips the version and flags shared by every full box and returns the version.
 private func readFullBox(source: *ByteSource)->u8 fail
 {
-    let version = source.readByte()
-    source.skip(3)
+    let version = try source.readByte()
+    try source.skip(3)
     return version
 }
 
@@ -160,14 +160,14 @@ private func readDescriptor(source: *ByteSource, parentEnd: u64)->Descriptor fai
 {
     if source.position() >= parentEnd do
         fail InvalidFormatError{"MP4 descriptor header runs past its parent descriptor"}
-    let tag  = source.readByte()
+    let tag  = try source.readByte()
     var size = 0'u64
     var complete: bool
     for 4
     {
         if source.position() >= parentEnd do
             fail InvalidFormatError{"MP4 descriptor length runs past its parent descriptor"}
-        let value = source.readByte()
+        let value = try source.readByte()
         size = (size << 7) | cast(u64) (value & 0x7F)
         if not (value & 0x80)
         {
@@ -190,14 +190,14 @@ func readBox(source: *ByteSource, parentEnd: u64)->Box fail
     if start > parentEnd or BoxHeaderSize > parentEnd - start do
         fail InvalidFormatError{"MP4 box header runs past its parent box"}
 
-    let compactSize = source.readBigEndian'u32()
-    let kind        = source.readBigEndian'u32()
+    let compactSize = try source.readBigEndian'u32()
+    let kind        = try source.readBigEndian'u32()
     var size        = cast(u64) compactSize
     if compactSize == 1
     {
         if 8 > parentEnd - source.position() do
             fail InvalidFormatError{"MP4 extended box size runs past its parent box"}
-        size = source.readBigEndian'u64()
+        size = try source.readBigEndian'u64()
         if size < 16 do
             fail InvalidFormatError{"MP4 extended box size is smaller than its header"}
     }
@@ -235,14 +235,14 @@ private impl Layout
     {
         while source.position() + BoxHeaderSize <= source.size()
         {
-            let box = readBox(source, source.size())
+            let box = try readBox(source, source.size())
             if box.kind == MovieId
             {
                 .hasMovie = true
-                .parseMovie(source, box.end)
+                try .parseMovie(source, box.end)
             }
 
-            source.seek(box.end)
+            try source.seek(box.end)
         }
 
         if source.position() != source.size() do
@@ -264,11 +264,11 @@ private impl Layout
     {
         while source.position() + BoxHeaderSize <= end
         {
-            let box = readBox(source, end)
+            let box = try readBox(source, end)
             if box.kind == TrackId
             {
                 var candidate: Track
-                candidate.parse(source, box.end)
+                try candidate.parse(source, box.end)
                 if candidate.handler == VideoHandlerId
                 {
                     .hasVideo = true
@@ -281,7 +281,7 @@ private impl Layout
                     .audioTracks.add(#move candidate)
             }
 
-            source.seek(box.end)
+            try source.seek(box.end)
         }
     }
 }
@@ -293,10 +293,10 @@ impl Track
     {
         while source.position() + BoxHeaderSize <= end
         {
-            let box = readBox(source, end)
+            let box = try readBox(source, end)
             if box.kind == MediaId do
-                .parseMedia(source, box.end)
-            source.seek(box.end)
+                try .parseMedia(source, box.end)
+            try source.seek(box.end)
         }
     }
 
@@ -304,21 +304,21 @@ impl Track
     {
         while source.position() + BoxHeaderSize <= end
         {
-            let box = readBox(source, end)
+            let box = try readBox(source, end)
             switch box.kind
             {
             case MediaHeaderId:
-                .parseMediaHeader(source, box.end)
+                try .parseMediaHeader(source, box.end)
 
             case HandlerId:
-                .parseHandler(source, box.end)
+                try .parseHandler(source, box.end)
 
             case MediaInfoId:
                 if .handler == VideoHandlerId or .handler == AudioHandlerId do
-                    .parseMediaInfo(source, box.end)
+                    try .parseMediaInfo(source, box.end)
             }
 
-            source.seek(box.end)
+            try source.seek(box.end)
         }
     }
 
@@ -326,22 +326,22 @@ impl Track
     {
         if FullBoxSize > end - source.position() do
             fail InvalidFormatError{"MP4 media header is truncated"}
-        let version = readFullBox(source)
+        let version = try readFullBox(source)
         switch version
         {
         case 0:
             if 16 > end - source.position() do
                 fail InvalidFormatError{"MP4 media header is truncated"}
-            source.skip(8)
-            .timescale = source.readBigEndian'u32()
-            source.skip(4)
+            try source.skip(8)
+            .timescale = try source.readBigEndian'u32()
+            try source.skip(4)
 
         case 1:
             if 28 > end - source.position() do
                 fail InvalidFormatError{"MP4 media header is truncated"}
-            source.skip(16)
-            .timescale = source.readBigEndian'u32()
-            source.skip(8)
+            try source.skip(16)
+            .timescale = try source.readBigEndian'u32()
+            try source.skip(8)
 
         default:
             fail UnsupportedFormatError{"video decoder does not support this MP4 media-header version"}
@@ -355,19 +355,19 @@ impl Track
     {
         if 12 > end - source.position() do
             fail InvalidFormatError{"MP4 handler box is truncated"}
-        discard readFullBox(source)
-        source.skip(4)
-        .handler = source.readBigEndian'u32()
+        discard try readFullBox(source)
+        try source.skip(4)
+        .handler = try source.readBigEndian'u32()
     }
 
     mtd parseMediaInfo(source: *ByteSource, end: u64) fail
     {
         while source.position() + BoxHeaderSize <= end
         {
-            let box = readBox(source, end)
+            let box = try readBox(source, end)
             if box.kind == SampleTableId do
-                .parseSampleTable(source, box.end)
-            source.seek(box.end)
+                try .parseSampleTable(source, box.end)
+            try source.seek(box.end)
         }
     }
 
@@ -375,20 +375,20 @@ impl Track
     {
         while source.position() + BoxHeaderSize <= end
         {
-            let box = readBox(source, end)
+            let box = try readBox(source, end)
             switch box.kind
             {
-            case SampleDescriptionId: .parseSampleDescription(source, box.end)
-            case TimeToSampleId:      .parseTimeToSample(source, box.end)
-            case SampleToChunkId:     .parseSampleToChunk(source, box.end)
-            case SampleSizeId:        .parseSampleSizes(source, box.end)
-            case ChunkOffsetId:       .parseChunkOffsets(source, box.end, false)
-            case ChunkOffset64Id:     .parseChunkOffsets(source, box.end, true)
-            case SyncSampleId:        .parseSyncSamples(source, box.end)
-            case CompositionId:       .parseCompositionOffsets(source, box.end)
+            case SampleDescriptionId: try .parseSampleDescription(source, box.end)
+            case TimeToSampleId:      try .parseTimeToSample(source, box.end)
+            case SampleToChunkId:     try .parseSampleToChunk(source, box.end)
+            case SampleSizeId:        try .parseSampleSizes(source, box.end)
+            case ChunkOffsetId:       try .parseChunkOffsets(source, box.end, false)
+            case ChunkOffset64Id:     try .parseChunkOffsets(source, box.end, true)
+            case SyncSampleId:        try .parseSyncSamples(source, box.end)
+            case CompositionId:       try .parseCompositionOffsets(source, box.end)
             }
 
-            source.seek(box.end)
+            try source.seek(box.end)
         }
     }
 
@@ -396,35 +396,35 @@ impl Track
     {
         if 8 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-description box is truncated"}
-        discard readFullBox(source)
-        let count = source.readBigEndian'u32()
+        discard try readFullBox(source)
+        let count = try source.readBigEndian'u32()
         if not count do
             fail InvalidFormatError{"MP4 video track has no sample description"}
 
-        let entry = readBox(source, end)
+        let entry = try readBox(source, end)
         if .handler == AudioHandlerId
         {
-            .parseAudioDescription(source, entry)
+            try .parseAudioDescription(source, entry)
             return
         }
 
         if 28 > entry.end - entry.data do
             fail InvalidFormatError{"MP4 visual sample entry is truncated"}
         .codec = entry.kind
-        source.seek(entry.data + 24)
-        .width          = cast(s32) source.readBigEndian'u16()
-        .height         = cast(s32) source.readBigEndian'u16()
+        try source.seek(entry.data + 24)
+        .width          = cast(s32) (try source.readBigEndian'u16())
+        .height         = cast(s32) (try source.readBigEndian'u16())
         .hasDescription = true
         if .width <= 0 or .height <= 0 do
             fail InvalidFormatError{"MP4 video track needs positive frame dimensions"}
 
         .isJpeg = Slice.contains(JpegCodecIds, .codec)
         if .codec == Mpeg4VisualId do
-            .isJpeg = .parseMpeg4VisualDescription(source, entry)
+            .isJpeg = try .parseMpeg4VisualDescription(source, entry)
         if Slice.contains(AvcCodecIds, .codec) do
-            .isAvc = .parseCodecConfiguration(source, entry, AvcConfigId)
+            .isAvc = try .parseCodecConfiguration(source, entry, AvcConfigId)
         if Slice.contains(HevcCodecIds, .codec) do
-            .isHevc = .parseCodecConfiguration(source, entry, HevcConfigId)
+            .isHevc = try .parseCodecConfiguration(source, entry, HevcConfigId)
     }
 
     // Reads an MPEG-4 audio sample entry and locates its AudioSpecificConfig.
@@ -434,13 +434,13 @@ impl Track
         if AudioSampleEntrySize > entry.end - entry.data do
             fail InvalidFormatError{"MP4 audio sample entry is truncated"}
         .codec = entry.kind
-        source.seek(entry.data + 8)
-        let version = source.readBigEndian'u16()
-        source.skip(6)
-        .channelCount = source.readBigEndian'u16()
-        .sampleBits   = source.readBigEndian'u16()
-        source.skip(4)
-        .sampleRate     = source.readBigEndian'u32() >> 16
+        try source.seek(entry.data + 8)
+        let version = try source.readBigEndian'u16()
+        try source.skip(6)
+        .channelCount = try source.readBigEndian'u16()
+        .sampleBits   = try source.readBigEndian'u16()
+        try source.skip(4)
+        .sampleRate     = try source.readBigEndian'u32() >> 16
         .hasDescription = true
         if not .channelCount or not .sampleRate do
             fail InvalidFormatError{"MP4 audio track needs channels and a sample rate"}
@@ -451,7 +451,7 @@ impl Track
         if childStart > entry.end do
             fail InvalidFormatError{"MP4 audio sample entry is truncated"}
         if .codec == Mpeg4AudioId do
-            .isAac = .parseAudioChildren(source, childStart, entry.end)
+            .isAac = try .parseAudioChildren(source, childStart, entry.end)
     }
 
     // Recursively searches the sample entry and its QuickTime `wave` wrapper for `esds`.
@@ -460,11 +460,11 @@ impl Track
         var position = start
         while position + BoxHeaderSize <= end
         {
-            source.seek(position)
-            let child = readBox(source, end)
+            try source.seek(position)
+            let child = try readBox(source, end)
             if child.kind == ElementaryStreamId do
-                return .parseAacElementaryStreamDescriptor(source, child.end)
-            if child.kind == WaveId and .parseAudioChildren(source, child.data, child.end) do
+                return try .parseAacElementaryStreamDescriptor(source, child.end)
+            if child.kind == WaveId and (try .parseAudioChildren(source, child.data, child.end)) do
                 return true
             position = child.end
         }
@@ -477,35 +477,35 @@ impl Track
     {
         if FullBoxSize > end - source.position() do
             fail InvalidFormatError{"MP4 elementary-stream box is truncated"}
-        discard readFullBox(source)
-        let es = readDescriptor(source, end)
+        discard try readFullBox(source)
+        let es = try readDescriptor(source, end)
         if es.tag != 3 or 3 > es.end - source.position() do
             fail InvalidFormatError{"MP4 elementary-stream descriptor is truncated"}
-        source.skip(2)
-        let flags = source.readByte()
+        try source.skip(2)
+        let flags = try source.readByte()
         if flags & 0x80 do
-            .skipDescriptorBytes(source, es.end, 2)
+            try .skipDescriptorBytes(source, es.end, 2)
         if flags & 0x40
         {
             if source.position() >= es.end do
                 fail InvalidFormatError{"MP4 elementary-stream URL length is truncated"}
-            .skipDescriptorBytes(source, es.end, source.readByte())
+            try .skipDescriptorBytes(source, es.end, try source.readByte())
         }
 
         if flags & 0x20 do
-            .skipDescriptorBytes(source, es.end, 2)
+            try .skipDescriptorBytes(source, es.end, 2)
 
-        let decoder = readDescriptor(source, es.end)
+        let decoder = try readDescriptor(source, es.end)
         if decoder.tag != 4 or 13 > decoder.end - source.position() do
             fail InvalidFormatError{"MP4 decoder-configuration descriptor is truncated"}
-        if source.readByte() != Mpeg4AudioObjectType do
+        if try source.readByte() != Mpeg4AudioObjectType do
             return false
-        source.skip(12)
-        let specific = readDescriptor(source, decoder.end)
+        try source.skip(12)
+        let specific = try readDescriptor(source, decoder.end)
         if specific.tag != 5 or specific.end <= source.position() do
             fail InvalidFormatError{"MP4 AAC track has no AudioSpecificConfig"}
         .aacConfig.resize(specific.end - source.position())
-        source.readExact(.aacConfig.toSlice())
+        try source.readExact(.aacConfig.toSlice())
         return true
     }
 
@@ -516,13 +516,13 @@ impl Track
         var position = entry.data + VisualSampleEntrySize
         while position + BoxHeaderSize <= entry.end
         {
-            source.seek(position)
-            let child = readBox(source, entry.end)
+            try source.seek(position)
+            let child = try readBox(source, entry.end)
             if child.kind == kind
             {
                 let size = child.end - child.data
                 .videoConfig.resize(size)
-                source.readExact(.videoConfig.toSlice())
+                try source.readExact(.videoConfig.toSlice())
                 return true
             }
 
@@ -537,14 +537,14 @@ impl Track
     {
         if 8 > end - source.position() do
             fail InvalidFormatError{"MP4 sync-sample box is truncated"}
-        discard readFullBox(source)
-        let count = source.readBigEndian'u32()
+        discard try readFullBox(source)
+        let count = try source.readBigEndian'u32()
         if cast(u64) count * 4 > end - source.position() do
             fail InvalidFormatError{"MP4 sync-sample table is truncated"}
         .syncSamples.reserve(count)
         for count
         {
-            let number = source.readBigEndian'u32()
+            let number = try source.readBigEndian'u32()
             if not number do
                 fail InvalidFormatError{"MP4 sync-sample table holds a zero sample number"}
             .syncSamples.add(number - 1)
@@ -556,8 +556,8 @@ impl Track
     {
         if 8 > end - source.position() do
             fail InvalidFormatError{"MP4 composition-offset box is truncated"}
-        let version = readFullBox(source)
-        let count   = source.readBigEndian'u32()
+        let version = try readFullBox(source)
+        let count   = try source.readBigEndian'u32()
         if cast(u64) count * 8 > end - source.position() do
             fail InvalidFormatError{"MP4 composition-offset table is truncated"}
         if version > 1 do
@@ -565,8 +565,8 @@ impl Track
         .ctsEntries.reserve(count)
         for count
         {
-            let sampleCount = source.readBigEndian'u32()
-            let rawOffset   = source.readBigEndian'u32()
+            let sampleCount = try source.readBigEndian'u32()
+            let rawOffset   = try source.readBigEndian'u32()
             let offset      = version == 0 ? cast(s32) Math.min(rawOffset, cast(u32) Swag.S32.Max) : cast(s32) rawOffset
             .ctsEntries.add({sampleCount, offset})
         }
@@ -582,10 +582,10 @@ impl Track
         var position = entry.data + VisualSampleEntrySize
         while position + BoxHeaderSize <= entry.end
         {
-            source.seek(position)
-            let child = readBox(source, entry.end)
+            try source.seek(position)
+            let child = try readBox(source, entry.end)
             if child.kind == ElementaryStreamId do
-                return .parseElementaryStreamDescriptor(source, child.end)
+                return try .parseElementaryStreamDescriptor(source, child.end)
             position = child.end
         }
 
@@ -597,30 +597,30 @@ impl Track
     {
         if FullBoxSize > end - source.position() do
             fail InvalidFormatError{"MP4 elementary-stream box is truncated"}
-        discard readFullBox(source)
-        let es = readDescriptor(source, end)
+        discard try readFullBox(source)
+        let es = try readDescriptor(source, end)
         if es.tag != 3 or 3 > es.end - source.position() do
             fail InvalidFormatError{"MP4 elementary-stream descriptor is truncated"}
 
-        source.skip(2)
-        let flags = source.readByte()
+        try source.skip(2)
+        let flags = try source.readByte()
         if flags & 0x80 do
-            .skipDescriptorBytes(source, es.end, 2)
+            try .skipDescriptorBytes(source, es.end, 2)
         if flags & 0x40
         {
             if source.position() >= es.end do
                 fail InvalidFormatError{"MP4 elementary-stream URL length is truncated"}
-            let urlSize = source.readByte()
-            .skipDescriptorBytes(source, es.end, urlSize)
+            let urlSize = try source.readByte()
+            try .skipDescriptorBytes(source, es.end, urlSize)
         }
 
         if flags & 0x20 do
-            .skipDescriptorBytes(source, es.end, 2)
+            try .skipDescriptorBytes(source, es.end, 2)
 
-        let decoder = readDescriptor(source, es.end)
+        let decoder = try readDescriptor(source, es.end)
         if decoder.tag != 4 or source.position() >= decoder.end do
             fail InvalidFormatError{"MP4 decoder-configuration descriptor is truncated"}
-        return source.readByte() == JpegObjectType
+        return try source.readByte() == JpegObjectType
     }
 
     // Skips bytes without leaving their descriptor.
@@ -628,35 +628,35 @@ impl Track
     {
         if source.position() > end or count > end - source.position() do
             fail InvalidFormatError{"MP4 elementary-stream descriptor is truncated"}
-        source.skip(count)
+        try source.skip(count)
     }
 
     mtd parseTimeToSample(source: *ByteSource, end: u64) fail
     {
         if 8 > end - source.position() do
             fail InvalidFormatError{"MP4 time-to-sample box is truncated"}
-        discard readFullBox(source)
-        let count = source.readBigEndian'u32()
+        discard try readFullBox(source)
+        let count = try source.readBigEndian'u32()
         if cast(u64) count * 8 > end - source.position() do
             fail InvalidFormatError{"MP4 time-to-sample table is truncated"}
         .times.reserve(count)
         for count do
-            .times.add({source.readBigEndian'u32(), source.readBigEndian'u32()})
+            .times.add({try source.readBigEndian'u32(), try source.readBigEndian'u32()})
     }
 
     mtd parseSampleToChunk(source: *ByteSource, end: u64) fail
     {
         if 8 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-to-chunk box is truncated"}
-        discard readFullBox(source)
-        let count = source.readBigEndian'u32()
+        discard try readFullBox(source)
+        let count = try source.readBigEndian'u32()
         if cast(u64) count * 12 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-to-chunk table is truncated"}
         .chunks.reserve(count)
         var previous = 0'u32
         for count
         {
-            let entry = ChunkEntry{source.readBigEndian'u32(), source.readBigEndian'u32(), source.readBigEndian'u32()}
+            let entry = ChunkEntry{try source.readBigEndian'u32(), try source.readBigEndian'u32(), try source.readBigEndian'u32()}
             if entry.firstChunk <= previous do
                 fail InvalidFormatError{"MP4 sample-to-chunk entries are not in ascending chunk order"}
             previous = entry.firstChunk
@@ -668,28 +668,28 @@ impl Track
     {
         if 12 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-size box is truncated"}
-        discard readFullBox(source)
-        let fixedSize = source.readBigEndian'u32()
-        let count     = source.readBigEndian'u32()
+        discard try readFullBox(source)
+        let fixedSize = try source.readBigEndian'u32()
+        let count     = try source.readBigEndian'u32()
         if not fixedSize and cast(u64) count * 4 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-size table is truncated"}
         .sizes.resize(count)
         for &size in .sizes do
-            size[] = fixedSize ? fixedSize : source.readBigEndian'u32()
+            size[] = fixedSize ? fixedSize : try source.readBigEndian'u32()
     }
 
     mtd parseChunkOffsets(source: *ByteSource, end: u64, wide: bool) fail
     {
         if 8 > end - source.position() do
             fail InvalidFormatError{"MP4 chunk-offset box is truncated"}
-        discard readFullBox(source)
-        let count     = source.readBigEndian'u32()
+        discard try readFullBox(source)
+        let count     = try source.readBigEndian'u32()
         let entrySize = wide ? 8'u64 : 4'u64
         if cast(u64) count * entrySize > end - source.position() do
             fail InvalidFormatError{"MP4 chunk-offset table is truncated"}
         .offsets.reserve(count)
         for count do
-            .offsets.add(wide ? source.readBigEndian'u64() : cast(u64) source.readBigEndian'u32())
+            .offsets.add(wide ? try source.readBigEndian'u64() : cast(u64) (try source.readBigEndian'u32()))
     }
 
     // Returns the exact frame rate of a constant-duration track, and the exact average rate
@@ -719,7 +719,7 @@ impl Track
         {
             if not delta do
                 fail InvalidFormatError{"MP4 video samples have a zero duration"}
-            return FrameRate.create(.timescale, delta)
+            return try FrameRate.create(.timescale, delta)
         }
 
         if not ticks do
@@ -740,8 +740,8 @@ impl Track
         numerator   /= a
         denominator /= a
         if numerator <= Swag.U32.Max and denominator <= Swag.U32.Max do
-            return FrameRate.create(cast(u32) numerator, cast(u32) denominator)
-        return FrameRate.create(.timescale, cast(u32) Math.max(ticks / samples, 1))
+            return try FrameRate.create(cast(u32) numerator, cast(u32) denominator)
+        return try FrameRate.create(.timescale, cast(u32) Math.max(ticks / samples, 1))
     }
 
     // Expands the composition offsets into the display time of every sample.
@@ -838,7 +838,7 @@ impl Track
     // packet, because a table that does not is a broken one.
     mtd buildSoundPackets(sourceSize: u64)->{ packets: Array'SoundPacket, frameCount: u64 } fail
     {
-        let frames = .buildFrames(sourceSize)
+        let frames = try .buildFrames(sourceSize)
         var result: retval
         result.packets.reserve(frames.count)
 
@@ -891,10 +891,10 @@ impl IDecoder for Decoder
     mtd impl open(source: *ByteSource)->StreamInfo fail
     {
         var layout: Layout
-        layout.parse(source)
-        var frames = layout.track.buildFrames(source.size())
+        try layout.parse(source)
+        var frames = try layout.track.buildFrames(source.size())
 
-        let times = layout.track.sampleTimes()
+        let times = try layout.track.sampleTimes()
         .presentationTimescale = layout.track.timescale
         .presentationTimes.reserve(times.count)
         if layout.track.isCodedVideo()
@@ -928,13 +928,13 @@ impl IDecoder for Decoder
             .soundTracks.reserve(layout.audioTracks.count)
             for &audioTrack in layout.audioTracks
             {
-                let packetLayout = audioTrack.buildSoundPackets(source.size())
-                let sound        = SoundFile.openPacketStream(path, .AacLc, audioTrack.sampleRate, audioTrack.channelCount, packetLayout.frameCount, packetLayout.packets.toSlice(), audioTrack.aacConfig.toSlice())
+                let packetLayout = try audioTrack.buildSoundPackets(source.size())
+                let sound        = try SoundFile.openPacketStream(path, .AacLc, audioTrack.sampleRate, audioTrack.channelCount, packetLayout.frameCount, packetLayout.packets.toSlice(), audioTrack.aacConfig.toSlice())
                 .soundTracks.add(#move sound)
             }
         }
 
-        .info.frameRate  = layout.track.frameRate()
+        .info.frameRate  = try layout.track.frameRate()
         .info.frameCount = frames.count
         .nextIndex       = 0
 
@@ -1015,10 +1015,10 @@ impl IDecoder for Decoder
             .payload.count = frame.size
         }
 
-        source.seek(frame.offset)
-        source.readExact(.payload.toSlice())
+        try source.seek(frame.offset)
+        try source.readExact(.payload.toSlice())
 
-        var decoded = Image.decode(JpegName, .payload.toSlice())
+        var decoded = try Image.decode(JpegName, .payload.toSlice())
         if decoded.width != .info.width or decoded.height != .info.height do
             fail InvalidFormatError{"MP4 frame does not have the dimensions its track declares"}
         decoded.convertTo(.RGB8)

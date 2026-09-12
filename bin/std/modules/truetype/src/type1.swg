@@ -170,8 +170,8 @@ private func unwrapPfb(bytes: const [..] u8?)->Array'u8 fail
             size |= cast(u64) data[pos + 2 + k] << (k * 8)
         pos += 6
         if pos + size > bytes.count do
-            fault(0x03)
-        result.add(getSlice(bytes, pos, size))
+            try fault(0x03)
+        result.add(try getSlice(bytes, pos, size))
         pos += size
     }
 
@@ -254,7 +254,7 @@ private func readCharstringData(data: const [..] u8?, from: u64, lenIV: u64)->{ 
         return result
     }
 
-    result.bytes = eexecDecrypt(getSlice(data, start, size), EexecCharstringKey, lenIV)
+    result.bytes = eexecDecrypt(try getSlice(data, start, size), EexecCharstringKey, lenIV)
     result.next  = start + size
     return result
 }
@@ -279,7 +279,7 @@ private func parseType1Subrs(font: *Type1Font, data: const [..] u8?, lenIV: u64)
             return
 
         let index = readPostScriptNumber(data, dup + 3)
-        let entry = readCharstringData(data, index.next, lenIV)
+        let entry = try readCharstringData(data, index.next, lenIV)
         let slot  = cast(u64) index.value
         if slot < font.subrs.count do
             font.subrs[slot] = entry.bytes
@@ -294,7 +294,7 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8?, lenIV
 {
     var pos = findBytes(data, 0, "/CharStrings")
     if pos >= data.count do
-        fault(0xBA)
+        try fault(0xBA)
     pos += 12
 
     // A Type 1 dictionary is unordered, so the first glyph it happens to spell out would
@@ -334,7 +334,7 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8?, lenIV
             continue
         }
 
-        let entry = readCharstringData(data, name.next, lenIV)
+        let entry = try readCharstringData(data, name.next, lenIV)
         if entry.bytes.isEmpty() and entry.next >= data.count do
             break
 
@@ -354,7 +354,7 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8?, lenIV
     }
 
     if font.charstrings.count < 2 do
-        fault(0xBA)
+        try fault(0xBA)
 }
 
 private func parseType1Encoding(font: *Type1Font, clear: const [..] u8?) fail
@@ -473,15 +473,15 @@ func parseType1Font(bytes: const [..] u8?)->Type1Font fail
 {
     var result: retval
 
-    let program = unwrapPfb(bytes)
+    let program = try unwrapPfb(bytes)
     let flat    = program.toSlice()
     let marker  = findBytes(flat, 0, "eexec")
     if marker >= flat.count do
-        fault(0x02)
+        try fault(0x02)
 
-    let clear   = getSlice(flat, 0, marker)
+    let clear   = try getSlice(flat, 0, marker)
     let start   = skipPostScriptSpaces(flat, marker + 5)
-    let encoded = getSlice(flat, start, flat.count - start)
+    let encoded = try getSlice(flat, start, flat.count - start)
     let binary  = isHexPrivateSection(encoded) ? decodeEexecHex(encoded) : Array'u8{}
 
     var privateSection: Array'u8
@@ -502,9 +502,9 @@ func parseType1Font(bytes: const [..] u8?)->Type1Font fail
             lenIV = cast(u64) value.value
     }
 
-    parseType1Subrs(&result, decrypted, lenIV)
-    parseType1CharStrings(&result, decrypted, lenIV)
-    parseType1Encoding(&result, clear)
+    try parseType1Subrs(&result, decrypted, lenIV)
+    try parseType1CharStrings(&result, decrypted, lenIV)
+    try parseType1Encoding(&result, clear)
     parseType1Header(&result, clear)
     return result
 }

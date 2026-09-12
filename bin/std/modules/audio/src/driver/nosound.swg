@@ -73,14 +73,14 @@ impl Voice
 
         if .playFlags.has(.Loop)
         {
-            let {_, sizeBuffer} = .readBuffer()
+            let {_, sizeBuffer} = try .readBuffer()
             handle.samplesPlayed += sizeBuffer / .decodedBytesPerFrame()
             return sizeBuffer != 0
         }
 
         for
         {
-            let {_, sizeBuffer} = .readBuffer()
+            let {_, sizeBuffer} = try .readBuffer()
             if not sizeBuffer do
                 break
             handle.samplesPlayed += sizeBuffer / .decodedBytesPerFrame()

@@ -95,7 +95,7 @@ impl GamepadState
     // Refreshes this state from one backend snapshot.
     mtd update(padIndex: u32) fail
     {
-        .update(readRawGamepadState(padIndex))
+        .update(try readRawGamepadState(padIndex))
     }
 
     internal mtd setPressed(button: GamepadButton, pressed: bool)

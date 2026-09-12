@@ -834,7 +834,7 @@ impl Slice
                     if .mbAddr >= mbCount do
                         fail InvalidFormatError{"H.264 skip run passes the end of the picture"}
                     .resolveNeighbors()
-                    .decodeSkipMb(&dec.parsedMbs[.mbAddr])
+                    try .decodeSkipMb(&dec.parsedMbs[.mbAddr])
                     skipRun -= 1
                 }
 
@@ -848,18 +848,18 @@ impl Slice
             let mb = &dec.parsedMbs[.mbAddr]
             if inter and .isCabac and .decodeSkipFlagCabac()
             {
-                .decodeSkipMb(mb)
+                try .decodeSkipMb(mb)
             }
             else
             {
                 .prepareMb(mb)
                 if .isCabac do
-                    .parseMbCabac(mb)
+                    try .parseMbCabac(mb)
                 else do
-                    .parseMbCavlc(mb)
+                    try .parseMbCavlc(mb)
                 .bookkeepMb(mb)
                 if dec.inlineRecon do
-                    .reconstructMb(mb)
+                    try .reconstructMb(mb)
                 dec.decodedMbs += 1
                 .advanceMb()
             }
@@ -987,7 +987,7 @@ impl Slice
         .lastQpDelta = 0
         .bookkeepMb(mb)
         if dec.inlineRecon do
-            .reconstructMb(mb)
+            try .reconstructMb(mb)
         dec.decodedMbs += 1
         .advanceMb()
     }
@@ -1036,11 +1036,11 @@ impl Slice
         }
 
         if isIntra do
-            .parseIntraMb(mb, mbType, fromCabac: false)
+            try .parseIntraMb(mb, mbType, fromCabac: false)
         elif .header.type == SliceTypeP do
-            .parseInterMbP(mb, mbType)
+            try .parseInterMbP(mb, mbType)
         else do
-            .parseInterMbB(mb, mbType)
+            try .parseInterMbB(mb, mbType)
 
         if mb.class == MbClassIPcm do
             return
@@ -1083,7 +1083,7 @@ impl Slice
         }
 
         mb.qp = .qp
-        .parseResidualCavlc(mb)
+        try .parseResidualCavlc(mb)
     }
 
     // Reports whether every inter partition of the macroblock is at least 8x8.
@@ -1120,7 +1120,7 @@ impl Slice
         if mbType == 25
         {
             mb.class = MbClassIPcm
-            .parsePcm(mb)
+            try .parsePcm(mb)
             return
         }
 
@@ -1301,15 +1301,15 @@ impl Slice
         {
         case 0:
             mb.shape = Shape16x16
-            .parsePartitions(mb, 1)
+            try .parsePartitions(mb, 1)
 
         case 1:
             mb.shape = Shape16x8
-            .parsePartitions(mb, 2)
+            try .parsePartitions(mb, 2)
 
         case 2:
             mb.shape = Shape8x16
-            .parsePartitions(mb, 2)
+            try .parsePartitions(mb, 2)
 
         default:
 
@@ -1324,7 +1324,7 @@ impl Slice
                 mb.subDirect[quad] = false
             }
 
-            .parseSubPartitions(mb, refZero: mbType == 4)
+            try .parseSubPartitions(mb, refZero: mbType == 4)
         }
     }
 
@@ -1363,13 +1363,13 @@ impl Slice
                 }
             }
 
-            .parseSubPartitionsB(mb)
+            try .parseSubPartitionsB(mb)
             return
         }
 
         // Table 7-14: two-partition and one-partition types with their list usage.
         mb.shape = BShapes[mbType]
-        .parsePartitionsB(mb, mbType)
+        try .parsePartitionsB(mb, mbType)
     }
 
     // Parses references and vectors for P partitions; `count` is 1 or 2.
@@ -1378,14 +1378,14 @@ impl Slice
         var refs: [2] s32
         for part in cast(u64) count
         {
-            refs[part] = .parseRefIdx(mb, 0, cast(u32) part)
+            refs[part] = try .parseRefIdx(mb, 0, cast(u32) part)
             .markCtxRef(mb, 0, cast(u32) part, refs[part])
         }
 
         for part in cast(u64) count
         {
             let geometry = .partGeometry(mb.shape, cast(u32) part)
-            let mvd      = .parseMvd(mb, 0, geometry.x4, geometry.y4)
+            let mvd      = try .parseMvd(mb, 0, geometry.x4, geometry.y4)
             .applyMotion(mb, 0, cast(u32) part, refs[part], mvd)
 
             // A P partition never uses list 1; writing that down keeps the deblocking
@@ -1497,7 +1497,7 @@ impl Slice
         var result: retval
         if .isCabac
         {
-            result = .mvdCabac(mb, list, x4, y4)
+            result = try .mvdCabac(mb, list, x4, y4)
         }
         else
         {
@@ -1519,13 +1519,13 @@ impl Slice
         {
             refs[quad] = 0
             if not refZero do
-                refs[quad] = .parseSubRefIdx(mb, 0, cast(s32) quad)
+                refs[quad] = try .parseSubRefIdx(mb, 0, cast(s32) quad)
             mb.ctxRef[0, quad] = cast(s8) refs[quad]
         }
 
         for quad in 4's32
         {
-            .parseSubMvs(mb, 0, quad, refs[quad])
+            try .parseSubMvs(mb, 0, quad, refs[quad])
             var zero: [2] s16
             .assignMotion(mb, 1, (quad & 1) * 2, (quad >> 1) * 2, 2, 2, -1, zero, zero, false)
         }
@@ -1595,7 +1595,7 @@ impl Slice
                 break
             }
 
-            let mvd         = .parseMvd(mb, list, x4, y4)
+            let mvd         = try .parseMvd(mb, list, x4, y4)
             let predicted   = .predictMv(mb, list, x4, y4, w4, refIdx, 0)
             var mv: [2] s16 = [cast(s16) (cast(s32) predicted[0] + cast(s32) mvd[0]), cast(s16) (cast(s32) predicted[1] + cast(s32) mvd[1])]
             .assignMotion(mb, list, x4, y4, w4, h4, refIdx, mv, mvd, false)
@@ -1639,7 +1639,7 @@ impl Slice
                 let use = (usage >> cast(u32) (part + list * 4)) & 1
                 if use != 0
                 {
-                    refs[list, part] = .parseRefIdx(mb, list, part)
+                    refs[list, part] = try .parseRefIdx(mb, list, part)
                     .markCtxRef(mb, list, part, refs[list, part])
                 }
                 else
@@ -1658,7 +1658,7 @@ impl Slice
                 if refs[list, part] >= 0
                 {
                     let geometry = .partGeometry(mb.shape, part)
-                    let mvd      = .parseMvd(mb, list, geometry.x4, geometry.y4)
+                    let mvd      = try .parseMvd(mb, list, geometry.x4, geometry.y4)
                     .applyMotion(mb, list, part, refs[list, part], mvd)
                 }
                 else
@@ -1686,7 +1686,7 @@ impl Slice
                 let use = (BSubListUsage[sub] >> list) & 1
                 if use != 0
                 {
-                    refs[list, quad] = .parseSubRefIdx(mb, list, quad)
+                    refs[list, quad] = try .parseSubRefIdx(mb, list, quad)
                     mb.ctxRef[list, cast(u64) quad] = cast(s8) refs[list, quad]
                 }
             }
@@ -1707,7 +1707,7 @@ impl Slice
                     continue
                 if refs[list, quad] >= 0
                 {
-                    .parseSubMvs(mb, list, quad, refs[list, quad])
+                    try .parseSubMvs(mb, list, quad, refs[list, quad])
                 }
                 else
                 {
@@ -1939,7 +1939,7 @@ impl Slice
         // another and all three under the same coded block pattern.
         let planes = .dec!.sps!.is444() ? 3'u32 : 1'u32
         for plane in planes do
-            .parsePlaneResidualCavlc(mb, plane)
+            try .parsePlaneResidualCavlc(mb, plane)
         if planes > 1 do
             return
 
@@ -1948,7 +1948,7 @@ impl Slice
         {
             for plane in 2'u64
             {
-                let count = residualCavlc(&.bits, -1, 4, (mb.residual!.chromaDc).buffer + plane * 4)
+                let count = try residualCavlc(&.bits, -1, 4, (mb.residual!.chromaDc).buffer + plane * 4)
                 mb.dcFlags[1 + plane] = count > 0 ? 1 : 0
             }
         }
@@ -1963,7 +1963,7 @@ impl Slice
                 {
                     let nC    = .chromaNc(mb, cast(u32) plane, block & 1, block >> 1)
                     var levels: [16] s16
-                    let count = residualCavlc(&.bits, nC, 15, levels.buffer)
+                    let count = try residualCavlc(&.bits, nC, 15, levels.buffer)
                     storeLevels(levels.buffer, 15, (mb.residual!.chromaAc).buffer + plane * 64 + cast(u64) block * 16, ResidualOrderAc, scale, 4)
                     if plane == 0 do
                         mb.nzCb[cast(u64) block] = cast(u8) count
@@ -1987,7 +1987,7 @@ impl Slice
         if isIntra16
         {
             let nC    = .planeNc(mb, plane, 0, 0)
-            let count = residualCavlc(&.bits, nC, 16, storage.dc)
+            let count = try residualCavlc(&.bits, nC, 16, storage.dc)
             mb.dcFlags[cast(u64) plane] = count > 0 ? 1 : 0
             if count > 0 and isLuma
             {
@@ -2014,14 +2014,14 @@ impl Slice
                 var count:  u32
                 if isIntra16
                 {
-                    count = residualCavlc(&.bits, nC, 15, levels.buffer)
+                    count = try residualCavlc(&.bits, nC, 15, levels.buffer)
                     storeLevels(levels.buffer, 15, storage.ac + cast(u64) raster * 16, ResidualOrderAc, scale4, 4)
                 }
                 elif mb.transform8x8
                 {
                     // CAVLC codes an 8x8 block as four interleaved 4x4 blocks: the levels of
                     // this cell sit at every fourth position of the 8x8 scan.
-                    count = residualCavlc(&.bits, nC, 16, levels.buffer)
+                    count = try residualCavlc(&.bits, nC, 16, levels.buffer)
                     let block = storage.t8 + cast(u64) quad * 64
                     for coefficient in 16'u64
                     {
@@ -2034,7 +2034,7 @@ impl Slice
                 }
                 else
                 {
-                    count = residualCavlc(&.bits, nC, 16, levels.buffer)
+                    count = try residualCavlc(&.bits, nC, 16, levels.buffer)
                     storeLevels(levels.buffer, 16, storage.ac + cast(u64) raster * 16, ResidualOrder4x4, scale4, 4)
                 }
 

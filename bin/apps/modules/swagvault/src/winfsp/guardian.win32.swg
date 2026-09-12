@@ -23,7 +23,7 @@ namespace WinFsp
 
     func writeGuardianStatus(path, status: string) fail
     {
-        discard File.writeAllBytes(path, Swag.makeSlice(cast(const [*] u8) status.buffer, status.count))
+        discard try File.writeAllBytes(path, Swag.makeSlice(cast(const [*] u8) status.buffer, status.count))
     }
 
     func startPortableGuardian(statusPath: string) fail
@@ -87,19 +87,19 @@ namespace WinFsp
     {
         // Checked before anything else, so no test run can reach ShellExecute.
         if not canRequestElevation() do
-            failWith("This build must not request elevation. Mounting belongs to the privileged integration harness.")
+            try failWith("This build must not request elevation. Mounting belongs to the privileged integration harness.")
 
         if g_WinFsp.guardianManaged do
             return
         if isElevated() do
-            failWith("Launch Swag Vault normally, not with 'Run as administrator', so Windows Explorer can see the mounted drive.")
+            try failWith("Launch Swag Vault normally, not with 'Run as administrator', so Windows Explorer can see the mounted drive.")
 
         let temp = Env.getSpecialDirectory(.Temp)
         if temp.isEmpty() do
-            failWith("Windows did not provide a usable temporary directory.")
+            try failWith("Windows did not provide a usable temporary directory.")
 
         let communicationRoot = Path.combine(temp, Format.toString("vault-Guardian-%-%", Env.Process.currentProcessId(), Guid64.random()))
-        Directory.create(communicationRoot)
+        try Directory.create(communicationRoot)
         let statusPath     = Path.combine(communicationRoot, "status.txt")
         let parameters     = Format.toString("% % \"%\"", WinFspGuardianArgument, Env.Process.currentProcessId(), statusPath)
         let executablePath = try Env.Process.currentExecutablePath()
@@ -111,7 +111,7 @@ namespace WinFsp
         if cast(u64) launch <= 32
         {
             removeRuntimeTree(communicationRoot)
-            failWith(Format.toString("Windows could not start the portable WinFsp helper (ShellExecute code %, Windows error %).", cast(u64) launch, GetLastError()))
+            try failWith(Format.toString("Windows could not start the portable WinFsp helper (ShellExecute code %, Windows error %).", cast(u64) launch, GetLastError()))
         }
 
         for attempt in 1200
@@ -132,14 +132,14 @@ namespace WinFsp
                 {
                     let prefixCount = ("ERROR\n").count
                     let detail      = status.count > prefixCount ? Swag.makeString(status.buffer + prefixCount, status.count - prefixCount) : "The portable WinFsp helper failed."
-                    failWith(detail)
+                    try failWith(detail)
                 }
             }
 
             Threading.Thread.sleep(50'ms)
         }
 
-        failWith("The portable WinFsp helper did not become ready in time.")
+        try failWith("The portable WinFsp helper did not become ready in time.")
     }
 
     func removeRuntimeTree(path: string)
@@ -179,21 +179,21 @@ namespace WinFsp
         let sourceDll           = Path.combine(executableDirectory, WinFspDllName)
         let sourceDriver        = Path.combine(executableDirectory, WinFspDriverName)
         if not File.exists(sourceDll) or not File.exists(sourceDriver) do
-            failWith("The signed portable WinFsp runtime is incomplete.")
+            try failWith("The signed portable WinFsp runtime is incomplete.")
 
         let temp = Env.getSpecialDirectory(.Temp)
         if temp.isEmpty() do
-            failWith("Windows did not provide a usable temporary directory.")
+            try failWith("Windows did not provide a usable temporary directory.")
 
         // A guardian owns one driver registration. Sharing an identity across processes lets
         // one guardian unregister another's driver, and a pending deletion blocks every restart.
         // WinFsp reads at most 32 bytes from the SxS identity file.
         let sxsName = Format.toString("%-%", WinFspSxsName, Guid64.random())
         var root    = Path.combine(temp, Format.toString("vault-WinFsp-%", sxsName))
-        Directory.create(root)
+        try Directory.create(root)
 
         let bin = Path.combine(root, "bin")
-        Directory.create(bin)
+        try Directory.create(bin)
         let dll    = Path.combine(bin, WinFspDllName)
         let driver = Path.combine(bin, WinFspDriverName)
         discard catch File.duplicate(dll, sourceDll) as dllError
@@ -201,11 +201,11 @@ namespace WinFsp
         if dllError != null or driverError != null or not File.exists(dll) or not File.exists(driver)
         {
             removeRuntimeTree(root)
-            failWith("The portable WinFsp runtime could not be staged.")
+            try failWith("The portable WinFsp runtime could not be staged.")
         }
 
         let identity = Path.combine(bin, "winfsp.sxs")
-        discard File.writeAllBytes(identity, sxsName.toSlice())
+        discard try File.writeAllBytes(identity, sxsName.toSlice())
         g_WinFsp.runtimeRoot = #move root
         return dll
     }
@@ -222,7 +222,7 @@ namespace WinFsp
         if result < 0
         {
             endWinFspLog(logHandle)
-            failWith(Format.toString("Windows refused to register the portable WinFsp driver (HRESULT 0x%).\n\n%", Format.toString("%{X}", statusBits(result)), winFspLogDetail()))
+            try failWith(Format.toString("Windows refused to register the portable WinFsp driver (HRESULT 0x%).\n\n%", Format.toString("%{X}", statusBits(result)), winFspLogDetail()))
         }
 
         g_WinFsp.registered = true
@@ -232,7 +232,7 @@ namespace WinFsp
         traceWinFspStage("FspFsctlStartService returned")
         endWinFspLog(logHandle)
         if startStatus < 0 do
-            failWith(Format.toString("Windows registered the portable WinFsp driver but could not start it (NTSTATUS %{X}).\n\n%", statusBits(startStatus), winFspLogDetail()))
+            try failWith(Format.toString("Windows registered the portable WinFsp driver but could not start it (NTSTATUS %{X}).\n\n%", statusBits(startStatus), winFspLogDetail()))
     }
 }
 

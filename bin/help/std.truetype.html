@@ -124,7 +124,7 @@
 <h2 id="overview_Render_a_glyph">Render a glyph</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>
 
-<span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
+<span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
 <span class="SKwd">let</span> face  = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))!
 <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
 
@@ -140,7 +140,7 @@
 <p>TrueType works from bytes already present in memory. A <a href="#TrueType_Face">TrueType.Face</a> parses and owns a private copy of those bytes, so the source buffer does not need to remain alive.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>
 
-<span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
+<span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
 <span class="SKwd">let</span> face  = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))!
 <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()</span></div>
 <p>The input can be a TrueType font with <span class="code-inline">glyf</span> outlines, an OpenType font with CFF outlines (<span class="code-inline">OTTO</span>), or a bare CFF or Type 1 program. WOFF and WOFF2 containers are recognized and reported as unsupported, so a failure names the container.</p>
@@ -152,7 +152,7 @@
 <h3 id="guide_Loading_fonts_and_glyphs_Font_collections">Font collections</h3>
 <p>A <span class="code-inline">ttcf</span> collection packs several faces into one file, which is how Windows ships many of its font families. <a href="#TrueType_Face_countFaces">TrueType.Face.countFaces</a> reports how many a buffer holds and <a href="#TrueType_Face_loadAt">TrueType.Face.loadAt</a> selects one; <a href="#TrueType_Face_load">TrueType.Face.load</a> takes the first. A bare font file answers a count of one, so the same code path serves both.</p>
 <p>Looking for one member by name does not mean loading the others. <a href="#TrueType_Face_familyNameAt">TrueType.Face.familyNameAt</a> reads a face's <span class="code-inline">name</span> table and nothing else, so a collection can be searched first and loaded once.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"msgothic.ttc"</span>)
+<div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"msgothic.ttc"</span>)
 <span class="SKwd">let</span> count = <span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">countFaces</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">for</span> index <span class="SLgc">in</span> count
 {
@@ -895,7 +895,7 @@
 <div class="api-item api-item-func"><span id="TrueType_Face_familyNameAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.familyNameAt</span> <a class="api-item-permalink" href="#TrueType_Face_familyNameAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L258">src</a></div>
 <p>Returns the family name the face at <span class="code-inline">faceIndex</span> declares.</p>
 <p>Only the offset table and the <span class="code-inline">name</span> table are read, so no face is loaded and nothing but the returned string is allocated. This is what makes a collection searchable by family: a caller looking for one member reads the names first, then calls <a href="#TrueType_Face_loadAt">TrueType.Face.loadAt</a> once, instead of loading every face to ask each one what it is called. The answer is the value <a href="#TrueType_Face_familyName">TrueType.Face.familyName</a> carries once that face is loaded.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"msgothic.ttc"</span>)
+<div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"msgothic.ttc"</span>)
 <span class="SKwd">let</span> count = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">countFaces</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">for</span> index <span class="SLgc">in</span> count
 {
@@ -986,7 +986,7 @@
 <p>Loads a TrueType face from an in-memory font file.</p>
 <p>The face owns a private copy of <span class="code-inline">bytes</span>, so the input may be released after this call. Release the returned pointer with <a href="#TrueType_Face_destroy">TrueType.Face.destroy</a>. When <span class="code-inline">allocator</span> is null, the allocator active at the start of the call owns the face allocation.</p>
 <p><span class="code-inline">bytes</span> may be a TrueType or OpenType file, a bare CFF or Type 1 font program, or a <span class="code-inline">ttcf</span> collection, of which the first face is taken; use <a href="#TrueType_Face_loadAt">TrueType.Face.loadAt</a> to reach the others. WOFF containers are reported as unsupported rather than as an unknown format.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
+<div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
 <span class="SKwd">let</span> face  = (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))!
 <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#TrueType_Face">Face</a></span>? <span class="SKwd">fail</span></span></div>
@@ -995,7 +995,7 @@
 <div class="api-item api-item-func"><span id="TrueType_Face_loadAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadAt</span> <a class="api-item-permalink" href="#TrueType_Face_loadAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L224">src</a></div>
 <p>Loads one face of a TrueType collection by index.</p>
 <p>A <span class="code-inline">ttcf</span> collection packs several faces into one file, which is the form a stock Windows installation ships many of its font families in. Indices run from zero to <a href="#TrueType_Face_countFaces">TrueType.Face.countFaces</a> minus one, and a bare font file behaves as a collection holding its single face at index zero. Ownership and cleanup match <a href="#TrueType_Face_load">TrueType.Face.load</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"msgothic.ttc"</span>)
+<div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"msgothic.ttc"</span>)
 <span class="SKwd">let</span> count = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">countFaces</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">for</span> index <span class="SLgc">in</span> count
 {
@@ -1083,7 +1083,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.489</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.503</div>
 </footer>
 </section>
 </main>

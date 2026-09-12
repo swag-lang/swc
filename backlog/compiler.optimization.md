@@ -15,6 +15,54 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.036 — A constant offset ahead of an indexed access is not folded into it
+
+- Recorded: 2026-09-12 13:05
+- Area: compiler/backend
+- Evidence, read from LLVM's output on the H.264 CABAC residual parser (clang-cl /O2 /arch:AVX on
+  the same algorithm, scratch `cabacres/resbench.c`): clang reads the context array with one
+  operand, `movzx r11d, byte ptr [rdx + r8]`, where Swag computes the array's address first,
+  `lea rcx, [r10 + 0x98]`, and then indexes it. `tryFoldLeaConstIntoAmcIndex` folds such an offset
+  into the *index* of an indexed access; nothing folds it into the *base*.
+- Attempted 2026-09-12, reverted: `tryFoldLeaConstIntoAmcBase`, refusing a frame-derived base and
+  an address with more than one reader, and erasing the folded computation. It pays where it was
+  read from - the five residual parsers 3563 to 3536 instructions and 264 to 240 frame accesses,
+  `bookkeepMb` 590 to 574, `parseResidualCabac` 243 to 229 - and `intraPredict8x8` pays for all of
+  it: 927 to 1083 instructions and 340 to 452 memory operands, fifty more address computations and
+  the spills they cost. Narrowing the rule to reads, or to stores, or off the address-computation
+  form, moves nothing: the regression follows the reads of the predictor's own reference arrays,
+  which are frame locals, though `isFrameDerivedAddress` answers for their base.
+- Next: reduce the predictor's regression to a probe and find why folding the offset of a frame
+  array into its reads costs a sixth of the function, before re-enabling the rule. The suspicion is
+  that slot promotion or the vectorizer recognizes the array by the shape of its address.
+- Complete when: the fold lands with the CABAC gain and no kernel regression.
+
+### compiler.optimization.035 — Legalization cannot stage a value without a free register
+
+- Recorded: 2026-09-12 11:40
+- Area: compiler/backend
+- Evidence: the interval allocator holds one callee-saved integer register out of its pool for the
+  legalization that runs on its own output. Measured on the 76 H.264 kernels at build 497, giving
+  that register back is worth 80 instructions and 177 frame accesses (19676 to 19596, 1914 to
+  1737), against 39 more prologue saves. It cannot simply be given back: without the reserve the
+  `pixel` and `gui` modules fail to compile, the scan allocator reaching
+  `SWC_INTERNAL_CHECK(false)` with no register it may name.
+- What exists: the reserve is now paid only by a function whose allocation took every integer
+  register **and** that carries a shape whose legalization may need a register of its own
+  (`Encoder::mayNeedLegalizeScratchRegister`). Ordinary functions keep the register. The H.264
+  kernels still pay it: they carry shifts by a register and multiplies, whose rewrites move an
+  operand through a named register and save the occupant in a fresh virtual.
+- Boundary: `Pass.Legalize.cpp` stages through a virtual register and forbids it every physical
+  register live across the instruction, so a saturated function leaves it nothing. The
+  scratch-frame scaffolding (`stackScratchFrameSize` / `insertScratchFrame` /
+  `computeStackScratchBaseOffset`) is wired and unused, and the float-immediate rewrite already
+  demonstrates the other way out, a transient push/pop around the staged sequence.
+- Next: make the staged rewrites fall back to a frame slot (or a push/pop pair that the stack
+  adjustment normalization already understands) when no physical register is admissible, then
+  drop the reserve entirely and re-measure the kernels.
+- Complete when: no allocation holds a register back for legalization, `pixel` and `gui` compile,
+  and the kernel frame traffic drops by the measured amount.
+
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13
@@ -113,54 +161,6 @@ block, and the hot path keeps the register.
 - Complete when: the current emitted loop and alternating timing decide whether an allocator gap
   remains, with any surviving cause reduced to one actionable change.
 - Related: compiler.optimization.005, compiler.optimization.024.
-
-### compiler.optimization.036 — A constant offset ahead of an indexed access is not folded into it
-
-- Recorded: 2026-09-12 13:05
-- Area: compiler/backend
-- Evidence, read from LLVM's output on the H.264 CABAC residual parser (clang-cl /O2 /arch:AVX on
-  the same algorithm, scratch `cabacres/resbench.c`): clang reads the context array with one
-  operand, `movzx r11d, byte ptr [rdx + r8]`, where Swag computes the array's address first,
-  `lea rcx, [r10 + 0x98]`, and then indexes it. `tryFoldLeaConstIntoAmcIndex` folds such an offset
-  into the *index* of an indexed access; nothing folds it into the *base*.
-- Attempted 2026-09-12, reverted: `tryFoldLeaConstIntoAmcBase`, refusing a frame-derived base and
-  an address with more than one reader, and erasing the folded computation. It pays where it was
-  read from - the five residual parsers 3563 to 3536 instructions and 264 to 240 frame accesses,
-  `bookkeepMb` 590 to 574, `parseResidualCabac` 243 to 229 - and `intraPredict8x8` pays for all of
-  it: 927 to 1083 instructions and 340 to 452 memory operands, fifty more address computations and
-  the spills they cost. Narrowing the rule to reads, or to stores, or off the address-computation
-  form, moves nothing: the regression follows the reads of the predictor's own reference arrays,
-  which are frame locals, though `isFrameDerivedAddress` answers for their base.
-- Next: reduce the predictor's regression to a probe and find why folding the offset of a frame
-  array into its reads costs a sixth of the function, before re-enabling the rule. The suspicion is
-  that slot promotion or the vectorizer recognizes the array by the shape of its address.
-- Complete when: the fold lands with the CABAC gain and no kernel regression.
-
-### compiler.optimization.035 — Legalization cannot stage a value without a free register
-
-- Recorded: 2026-09-12 11:40
-- Area: compiler/backend
-- Evidence: the interval allocator holds one callee-saved integer register out of its pool for the
-  legalization that runs on its own output. Measured on the 76 H.264 kernels at build 497, giving
-  that register back is worth 80 instructions and 177 frame accesses (19676 to 19596, 1914 to
-  1737), against 39 more prologue saves. It cannot simply be given back: without the reserve the
-  `pixel` and `gui` modules fail to compile, the scan allocator reaching
-  `SWC_INTERNAL_CHECK(false)` with no register it may name.
-- What exists: the reserve is now paid only by a function whose allocation took every integer
-  register **and** that carries a shape whose legalization may need a register of its own
-  (`Encoder::mayNeedLegalizeScratchRegister`). Ordinary functions keep the register. The H.264
-  kernels still pay it: they carry shifts by a register and multiplies, whose rewrites move an
-  operand through a named register and save the occupant in a fresh virtual.
-- Boundary: `Pass.Legalize.cpp` stages through a virtual register and forbids it every physical
-  register live across the instruction, so a saturated function leaves it nothing. The
-  scratch-frame scaffolding (`stackScratchFrameSize` / `insertScratchFrame` /
-  `computeStackScratchBaseOffset`) is wired and unused, and the float-immediate rewrite already
-  demonstrates the other way out, a transient push/pop around the staged sequence.
-- Next: make the staged rewrites fall back to a frame slot (or a push/pop pair that the stack
-  adjustment normalization already understands) when no physical register is admissible, then
-  drop the reserve entirely and re-measure the kernels.
-- Complete when: no allocation holds a register back for legalization, `pixel` and `gui` compile,
-  and the kernel frame traffic drops by the measured amount.
 
 ### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
 

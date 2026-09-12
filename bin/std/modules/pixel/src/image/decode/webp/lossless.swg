@@ -142,7 +142,7 @@ impl LosslessHuffmanTree
     mtd insert(symbol, code, codeLength: u32) fail
     {
         if symbol > 0xFFFF or codeLength > 0xFE do
-            losslessTreeError()
+            try losslessTreeError()
 
         var baseCode: u32
         if codeLength > LOSSLESS_LUT_BITS
@@ -165,16 +165,16 @@ impl LosslessHuffmanTree
         {
             remaining -= 1
             if node >= .nodeCount do
-                losslessTreeError()
+                try losslessTreeError()
 
             switch .nodes[node].children
             {
             case LOSSLESS_LEAF_NODE:
-                losslessTreeError()
+                try losslessTreeError()
 
             case 0:
                 if .nodeCount + 2 > .nodes.count do
-                    losslessTreeError()
+                    try losslessTreeError()
                 .nodes[node].children = cast(s32) .nodeCount
                 .nodeCount += 2
             }
@@ -194,7 +194,7 @@ impl LosslessHuffmanTree
         }
         elif .nodes[node].children != LOSSLESS_LEAF_NODE
         {
-            losslessTreeError()
+            try losslessTreeError()
         }
 
         .nodes[node].symbol = symbol
@@ -217,7 +217,7 @@ impl LosslessHuffmanTree
         }
 
         if symbolCount == 0 or maxLength > LOSSLESS_MAX_CODE_LENGTH do
-            losslessTreeError()
+            try losslessTreeError()
 
         .nodes.resize(2 * symbolCount - 1)
         .nodeCount = 1
@@ -226,7 +226,7 @@ impl LosslessHuffmanTree
 
         if symbolCount == 1
         {
-            .insert(lastSymbol, 0, 0)
+            try .insert(lastSymbol, 0, 0)
             return
         }
 
@@ -251,7 +251,7 @@ impl LosslessHuffmanTree
                 continue
             let code = nextCodes[length]
             nextCodes[length] += 1
-            .insert(cast(u32) symbol, code, length)
+            try .insert(cast(u32) symbol, code, length)
         }
     }
 
@@ -265,8 +265,8 @@ impl LosslessHuffmanTree
         for i in symbolCount
         {
             if symbols[i] >= alphabetSize do
-                losslessTreeError()
-            .insert(symbols[i], i, symbolCount - 1)
+                try losslessTreeError()
+            try .insert(symbols[i], i, symbolCount - 1)
         }
     }
 
@@ -300,7 +300,7 @@ impl LosslessHuffmanTree
         while true
         {
             if node >= .nodeCount do
-                losslessTreeError()
+                try losslessTreeError()
             if .nodes[node].children == LOSSLESS_LEAF_NODE do
                 return .nodes[node].symbol
 
@@ -335,13 +335,13 @@ func losslessDistance(width: s32, code: u32)->s32
 func losslessDecodeCodeLengths(reader: *LosslessBitReader, destination: [..] u32, codeLengthCodeLengths: const [..] u32) fail
 {
     var tree: LosslessHuffmanTree
-    tree.build(codeLengthCodeLengths)
+    try tree.build(codeLengthCodeLengths)
 
     var maxSymbol = destination.count
-    if reader.read(1)
+    if try reader.read(1)
     {
-        let countBits = 2 + 2 * reader.read(3)
-        maxSymbol = cast(u64) reader.read(countBits) + 2
+        let countBits = 2 + 2 * (try reader.read(3))
+        maxSymbol = cast(u64) (try reader.read(countBits)) + 2
         if maxSymbol > destination.count do
             fail InvalidFormatError{"WebP lossless code lengths exceed their alphabet"}
     }
@@ -354,7 +354,7 @@ func losslessDecodeCodeLengths(reader: *LosslessBitReader, destination: [..] u32
             break
         maxSymbol -= 1
 
-        let codeLength = tree.next(reader)
+        let codeLength = try tree.next(reader)
         if codeLength < 16
         {
             destination[symbol] = codeLength
@@ -367,7 +367,7 @@ func losslessDecodeCodeLengths(reader: *LosslessBitReader, destination: [..] u32
         if codeLength > 18 do
             fail InvalidFormatError{"WebP lossless code-length repeat symbol is out of range"}
         let repeatIndex = codeLength - 16
-        let repeat      = reader.read(LOSSLESS_REPEAT_BITS[repeatIndex]) + LOSSLESS_REPEAT_OFFSETS[repeatIndex]
+        let repeat      = try reader.read(LOSSLESS_REPEAT_BITS[repeatIndex]) + LOSSLESS_REPEAT_OFFSETS[repeatIndex]
         if symbol + repeat > destination.count do
             fail InvalidFormatError{"WebP lossless code-length repeat exceeds its alphabet"}
 
@@ -382,32 +382,32 @@ func losslessDecodeCodeLengths(reader: *LosslessBitReader, destination: [..] u32
 
 func losslessDecodeHuffmanTree(reader: *LosslessBitReader, tree: *LosslessHuffmanTree?, alphabetSize: u32) fail
 {
-    if reader.read(1)
+    if try reader.read(1)
     {
-        let symbolCount = reader.read(1) + 1
-        let firstLength = 7 * reader.read(1) + 1
+        let symbolCount = try reader.read(1) + 1
+        let firstLength = 7 * (try reader.read(1)) + 1
         var symbols: [2] u32
-        symbols[0] = reader.read(firstLength)
+        symbols[0] = try reader.read(firstLength)
         if symbolCount == 2 do
-            symbols[1] = reader.read(8)
+            symbols[1] = try reader.read(8)
         if tree do
-            tree.buildSimple(symbolCount, symbols, alphabetSize)
+            try tree.buildSimple(symbolCount, symbols, alphabetSize)
         return
     }
 
-    let codeCount = reader.read(4) + 4
+    let codeCount = try reader.read(4) + 4
     if codeCount > LOSSLESS_CODE_LENGTH_ORDER.count do
-        losslessTreeError()
+        try losslessTreeError()
 
     var codeLengthCodeLengths: [LOSSLESS_CODE_LENGTH_ORDER.count] u32
     for i in codeCount do
-        codeLengthCodeLengths[LOSSLESS_CODE_LENGTH_ORDER[i]] = reader.read(3)
+        codeLengthCodeLengths[LOSSLESS_CODE_LENGTH_ORDER[i]] = try reader.read(3)
 
     var codeLengths: Array'u32
     codeLengths.resize(alphabetSize)
-    losslessDecodeCodeLengths(reader, codeLengths.toSlice(), Swag.makeSlice(&codeLengthCodeLengths[0], codeLengthCodeLengths.count))
+    try losslessDecodeCodeLengths(reader, codeLengths.toSlice(), Swag.makeSlice(&codeLengthCodeLengths[0], codeLengthCodeLengths.count))
     if tree do
-        tree.build(codeLengths.toSlice())
+        try tree.build(codeLengths.toSlice())
 }
 
 func losslessDecodeHeader(reader: *LosslessBitReader, source: const [..] u8, width: *s32, height: *s32) fail
@@ -416,13 +416,13 @@ func losslessDecodeHeader(reader: *LosslessBitReader, source: const [..] u8, wid
     reader.last  = reader.ptr + source.count
     reader.bits  = 0
     reader.nBits = 0
-    if reader.read(8) != 0x2F do
+    if try reader.read(8) != 0x2F do
         fail InvalidFormatError{"WebP lossless stream does not start with the VP8L signature"}
 
-    width[]  = cast(s32) reader.read(14) + 1
-    height[] = cast(s32) reader.read(14) + 1
-    discard reader.read(1)
-    if reader.read(3) != 0 do
+    width[]  = cast(s32) (try reader.read(14)) + 1
+    height[] = cast(s32) (try reader.read(14)) + 1
+    discard try reader.read(1)
+    if try reader.read(3) != 0 do
         fail UnsupportedFormatError{"WebP lossless stream uses an unsupported version"}
 }
 
@@ -432,26 +432,26 @@ func losslessLz77Parameter(reader: *LosslessBitReader, symbol: u32)->u32 fail
         return symbol + 1
     let extraBits = (symbol - 2) >> 1
     let offset    = (2 + (symbol & 1)) << extraBits
-    return offset + reader.read(extraBits) + 1
+    return offset + (try reader.read(extraBits)) + 1
 }
 
 func losslessDecodeTransform(reader: *LosslessBitReader, transform: *LosslessTransform, width, height: s32)->s32 fail
 {
     transform.oldWidth = width
-    transform.kind     = reader.read(2)
+    transform.kind     = try reader.read(2)
 
     switch transform.kind
     {
     case LOSSLESS_TRANSFORM_PREDICTOR, LOSSLESS_TRANSFORM_CROSS_COLOR:
-        transform.bits = reader.read(3) + 2
-        losslessDecodePixels(reader, &transform.pixels, losslessTileCount(width, transform.bits), losslessTileCount(height, transform.bits), 0, false)
+        transform.bits = try reader.read(3) + 2
+        try losslessDecodePixels(reader, &transform.pixels, losslessTileCount(width, transform.bits), losslessTileCount(height, transform.bits), 0, false)
         return width
 
     case LOSSLESS_TRANSFORM_SUBTRACT_GREEN:
         return width
 
     case LOSSLESS_TRANSFORM_COLOR_INDEXING:
-        let colorCount = reader.read(8) + 1
+        let colorCount = try reader.read(8) + 1
         switch
         {
         case colorCount <= 2:  transform.bits = 3
@@ -460,7 +460,7 @@ func losslessDecodeTransform(reader: *LosslessBitReader, transform: *LosslessTra
         default: transform.bits = 0
         }
 
-        losslessDecodePixels(reader, &transform.pixels, cast(s32) colorCount, 1, 4 * 256, false)
+        try losslessDecodePixels(reader, &transform.pixels, cast(s32) colorCount, 1, 4 * 256, false)
         var offset = 4'u64
         while offset < transform.pixels.count
         {
@@ -485,13 +485,13 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
     var maxGroupIndex: s32
     var groupCount = 1's32
 
-    if topLevel and reader.read(1)
+    if topLevel and (try reader.read(1))
     {
-        huffmanBits[] = reader.read(3) + 2
+        huffmanBits[] = try reader.read(3) + 2
         let tileWidth  = losslessTileCount(width, huffmanBits[])
         let tileHeight = losslessTileCount(height, huffmanBits[])
         let tileCount  = tileWidth * tileHeight
-        losslessDecodePixels(reader, huffmanPixels, tileWidth, tileHeight, 0, false)
+        try losslessDecodePixels(reader, huffmanPixels, tileWidth, tileHeight, 0, false)
         let huffmanData = cast([*] u8) huffmanPixels.storage()
 
         var offset: u64
@@ -552,7 +552,7 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
             var tree: *LosslessHuffmanTree?
             if group do
                 tree = &group.trees[treeIndex]
-            losslessDecodeHuffmanTree(reader, tree, alphabetSize)
+            try losslessDecodeHuffmanTree(reader, tree, alphabetSize)
         }
     }
 }
@@ -562,9 +562,9 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
     var colorCacheBits:  u32
     var colorCacheShift: u32
     var colorCache:      Array'u32
-    if reader.read(1)
+    if try reader.read(1)
     {
-        colorCacheBits = reader.read(4)
+        colorCacheBits = try reader.read(4)
         if colorCacheBits < 1 or colorCacheBits > 11 do
             fail InvalidFormatError{"WebP lossless color-cache size is outside 1 to 11 bits"}
         colorCacheShift = 32 - colorCacheBits
@@ -574,7 +574,7 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
     var groups:        Array'LosslessHuffmanGroup
     var huffmanPixels: Array'u8
     var huffmanBits:   u32
-    losslessDecodeHuffmanGroups(reader, &groups, &huffmanPixels, &huffmanBits, width, height, topLevel, colorCacheBits)
+    try losslessDecodeHuffmanGroups(reader, &groups, &huffmanPixels, &huffmanBits, width, height, topLevel, colorCacheBits)
 
     var huffmanMask: s32
     var tilesPerRow: s32
@@ -614,14 +614,14 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
             group = groupData + groupIndex
         }
 
-        var green = group.trees[LOSSLESS_HUFF_GREEN].next(reader)
+        var green = try group.trees[LOSSLESS_HUFF_GREEN].next(reader)
         switch
         {
         case green < LOSSLESS_LITERAL_CODES:
-            output[offset + 0] = cast(u8) group.trees[LOSSLESS_HUFF_RED].next(reader)
+            output[offset + 0] = cast(u8) (try group.trees[LOSSLESS_HUFF_RED].next(reader))
             output[offset + 1] = cast(u8) green
-            output[offset + 2] = cast(u8) group.trees[LOSSLESS_HUFF_BLUE].next(reader)
-            output[offset + 3] = cast(u8) group.trees[LOSSLESS_HUFF_ALPHA].next(reader)
+            output[offset + 2] = cast(u8) (try group.trees[LOSSLESS_HUFF_BLUE].next(reader))
+            output[offset + 3] = cast(u8) (try group.trees[LOSSLESS_HUFF_ALPHA].next(reader))
             offset += 4
 
             x += 1
@@ -634,9 +634,9 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
             lookupGroup = huffmanMask != 0 and (x & huffmanMask) == 0
 
         case green < LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES:
-            let length         = losslessLz77Parameter(reader, green - LOSSLESS_LITERAL_CODES)
-            let distanceSymbol = group.trees[LOSSLESS_HUFF_DISTANCE].next(reader)
-            let distanceCode   = losslessLz77Parameter(reader, distanceSymbol)
+            let length         = try losslessLz77Parameter(reader, green - LOSSLESS_LITERAL_CODES)
+            let distanceSymbol = try group.trees[LOSSLESS_HUFF_DISTANCE].next(reader)
+            let distanceCode   = try losslessLz77Parameter(reader, distanceSymbol)
             let distance       = losslessDistance(width, distanceCode)
             let copyBytes      = cast(u64) length * 4
 
@@ -992,27 +992,27 @@ func losslessApplyInverseTransform(transform: *LosslessTransform, pixels: *Array
 func losslessDecode(source: const [..] u8, pixels: *Array'u8, width: *s32, height: *s32) fail
 {
     var reader: LosslessBitReader
-    losslessDecodeHeader(&reader, source, width, height)
+    try losslessDecodeHeader(&reader, source, width, height)
 
     var transforms:     Array'LosslessTransform
     var seenTransforms: [LOSSLESS_TRANSFORM_COUNT] bool
     let originalWidth    = width[]
     var transformedWidth = originalWidth
 
-    while reader.read(1)
+    while try reader.read(1)
     {
         if transforms.count == LOSSLESS_TRANSFORM_COUNT do
             fail InvalidFormatError{"WebP lossless stream contains too many transforms"}
 
         transforms.resize(transforms.count + 1)
         let transform = &transforms[transforms.count - 1]
-        transformedWidth = losslessDecodeTransform(&reader, transform, transformedWidth, height[])
+        transformedWidth = try losslessDecodeTransform(&reader, transform, transformedWidth, height[])
         if seenTransforms[transform.kind] do
             fail InvalidFormatError{"WebP lossless stream repeats a transform"}
         seenTransforms[transform.kind] = true
     }
 
-    losslessDecodePixels(&reader, pixels, transformedWidth, height[], 0, true)
+    try losslessDecodePixels(&reader, pixels, transformedWidth, height[], 0, true)
 
     var index = transforms.count
     while index

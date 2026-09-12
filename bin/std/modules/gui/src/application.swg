@@ -1264,10 +1264,10 @@ impl Application
 
     private mtd serializeState(ser: *Serializer) fail
     {
-        ser.beginSection(.Unordered)
+        try ser.beginSection(.Unordered)
         for s in .surfaces do
-            s.serializeState(ser)
-        ser.endSection()
+            try s.serializeState(ser)
+        try ser.endSection()
     }
 
     private func stateId(text: string)->Guid128
@@ -1292,9 +1292,9 @@ impl Application
         var save: Encoder'Write.TagBin
         save.serializer.schema = "gui.application-state"
         var ser: Serializer
-        ser.startWrite(&save, &buf)
-        .serializeState(&ser)
-        ser.end()
+        try ser.startWrite(&save, &buf)
+        try .serializeState(&ser)
+        try ser.end()
 
         buf.makeLinear()
         var manifest: Scc.Manifest
@@ -1314,7 +1314,7 @@ impl Application
         entry.name         = "state"
         entry.primaryChunk = stateId
         writer.manifest().entries.add(#move entry)
-        writer.saveAtomic(.statePath)
+        try writer.saveAtomic(.statePath)
     }
 
     // Loads serializable surface placement from the configured state file.
@@ -1327,7 +1327,7 @@ impl Application
         if try Scc.hasSignature(.statePath)
         {
             var reader: Scc.Reader
-            reader.initialize(.statePath)
+            try reader.initialize(.statePath)
             if reader.kind() != stateContainerKind() do
                 fail Errors.InvalidFormatError{"GUI state file has a different SCC profile"}
             let state = reader.findRole(stateChunkRole())
@@ -1341,9 +1341,9 @@ impl Application
         var load: Decoder'Read.TagBin
         load.serializer.schema = "gui.application-state"
         var ser: Serializer
-        ser.startRead(&load, buf.toSlice())
-        .serializeState(&ser)
-        ser.end()
+        try ser.startRead(&load, buf.toSlice())
+        try .serializeState(&ser)
+        try ser.end()
     }
 
     // Returns the window currently holding mouse capture.

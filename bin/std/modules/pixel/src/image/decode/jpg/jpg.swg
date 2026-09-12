@@ -264,16 +264,16 @@ impl Decoder
         .bitsLeft = 16
         .getBits1(16)
         .getBits1(16)
-        .locateSofMarker()
+        try .locateSofMarker()
     }
 
     mtd start() fail
     {
-        .initFrame()
+        try .initFrame()
         if .progressiveFlag do
-            .initProgressive()
+            try .initProgressive()
         else do
-            .initSequential()
+            try .initSequential()
     }
 
     mtd doit(buf: [*] u8) fail
@@ -288,7 +288,7 @@ impl Decoder
             pdest += (.imageSizeY - 1) * .imageSizeX * 3
             for
             {
-                if .decode(&scanLineOfs, &scanLineLen) do
+                if try .decode(&scanLineOfs, &scanLineLen) do
                     break
 
                 var pdest1 = pdest
@@ -313,7 +313,7 @@ impl Decoder
             pdest += (.imageSizeY - 1) * .imageSizeX * 3
             for
             {
-                if .decode(&scanLineOfs, &scanLineLen) do
+                if try .decode(&scanLineOfs, &scanLineLen) do
                     break
                 Memory.copy(pdest, cast(*void) scanLineOfs!, cast(u64) .imageSizeX * 3)
                 pdest -= .imageSizeX * 3
@@ -329,8 +329,8 @@ internal impl IImageDecoder for Decoder
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
         var result: retval
-        .init(buffer, options)
-        .start()
+        try .init(buffer, options)
+        try .start()
 
         // Creates image
         result.init(.imageSizeX, .imageSizeY, PixelFormat.BGR8)
@@ -342,7 +342,7 @@ internal impl IImageDecoder for Decoder
 
         result.allocPixels()
 
-        .doit(cast([*] u8) result.pixels.storage())
+        try .doit(cast([*] u8) result.pixels.storage())
         result.metadata = #move .metadata
 
         return result

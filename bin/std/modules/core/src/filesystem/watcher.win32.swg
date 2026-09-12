@@ -63,18 +63,18 @@ impl Watcher
         }
 
         let winPath = Utf16.toZeroTerminated(.root.toString())
-        state.directory = CreateFileW(winPath.buffer, FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, null)
+        state.directory = try CreateFileW(winPath.buffer, FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, null)
         defer if not .native and state.directory do
             CloseHandle(state.directory)
 
-        state.event = CreateEventW(null, TRUE, FALSE, null)
+        state.event = try CreateEventW(null, TRUE, FALSE, null)
         defer if not .native and state.event do
             CloseHandle(state.event)
 
         state.buffer.reserve(.options.bufferSize)
         state.buffer.count      = .options.bufferSize
         state.overlapped.hEvent = state.event
-        .issueRead(state)
+        try .issueRead(state)
         .native = state
     }
 
@@ -119,7 +119,7 @@ impl Watcher
         state.overlapped.data.Pointer = null
         state.overlapped.hEvent       = state.event
         catch ResetEvent(state.event)
-        discard ReadDirectoryChangesW(state.directory, state.buffer.buffer, cast(DWORD) state.buffer.count, .options.recurse ? TRUE : FALSE, watchFilterNative(.options.filter), null, &state.overlapped, null)
+        discard try ReadDirectoryChangesW(state.directory, state.buffer.buffer, cast(DWORD) state.buffer.count, .options.recurse ? TRUE : FALSE, watchFilterNative(.options.filter), null, &state.overlapped, null)
         state.pending = true
 
         // Cancellation can race the interval between the caller's state check and submission.
@@ -199,8 +199,8 @@ impl Watcher
             return cancelled
         }
 
-        .issueRead(state)
-        if WaitForSingleObject(state.event, waitMilliseconds) == WAIT_TIMEOUT
+        try .issueRead(state)
+        if try WaitForSingleObject(state.event, waitMilliseconds) == WAIT_TIMEOUT
         {
             var timedOut: retval
             timedOut.status = .TimedOut

@@ -119,7 +119,7 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
     var dataof  = src
     if paletteCount
     {
-        checkBuffer(palette, last, cast(u64) paletteCount * 4)
+        try checkBuffer(palette, last, cast(u64) paletteCount * 4)
         dataof += cast(u64) paletteCount * 4
     }
 
@@ -128,7 +128,7 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
     let xorData   = dataof
     let andData   = dataof + xorStride * cast(u64) height
 
-    checkBuffer(xorData, last, xorStride * cast(u64) height)
+    try checkBuffer(xorData, last, xorStride * cast(u64) height)
 
     // The AND mask is optional for 32-bit images that carry their own alpha
     let hasAndMask = andData + andStride * cast(u64) height <= last
@@ -225,7 +225,7 @@ impl Decoder
         if index >= dir.count do
             fail InvalidFormatError{"icon entry index is out of range"}
 
-        checkBuffer(base, last, cast(u64) #sizeof(IconDir) + cast(u64) dir.count * #sizeof(IconDirEntry))
+        try checkBuffer(base, last, cast(u64) #sizeof(IconDir) + cast(u64) dir.count * #sizeof(IconDirEntry))
 
         // Select the best image: largest area, tie-break on bit depth
         var bestEntry: IconDirEntry
@@ -272,7 +272,7 @@ impl Decoder
 
         var result: retval
         result.init(dib.width, dib.height / 2, PixelFormat.BGRA8)
-        options.checkImage(result.width, result.height, result.pixelFormat)
+        try options.checkImage(result.width, result.height, result.pixelFormat)
 
         if not options.decodePixels do
             return result
@@ -280,7 +280,7 @@ impl Decoder
         result.allocPixels()
         if dib.size > imgLen do
             fail InvalidFormatError{"icon DIB header is truncated"}
-        decodeDib(&result, dib, imgPtr + dib.size, imgPtr + imgLen)
+        try decodeDib(&result, dib, imgPtr + dib.size, imgPtr + imgLen)
         return result
     }
 }
@@ -288,7 +288,7 @@ impl Decoder
 impl IImageDecoder for Decoder
 {
     mtd impl format()->ImageFormat => {"ICO - Windows Icon and Cursor", ".ico;.cur"}
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => .decodeEntry(buffer, options)
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => try .decodeEntry(buffer, options)
 }
 
 impl IImageSetDecoder for Decoder
@@ -297,15 +297,15 @@ impl IImageSetDecoder for Decoder
     {
         var probeOptions = options
         probeOptions.decodePixels = false
-        discard .decodeEntry(buffer, probeOptions)
+        discard try .decodeEntry(buffer, probeOptions)
         .bytes      = buffer
         .entryCount = buffer.buffer[as IconDir].count
-        options.checkFrameCount(.entryCount)
+        try options.checkFrameCount(.entryCount)
         var result:    retval
         var bestScore: u64
         for index in .entryCount
         {
-            let probe = .decodeEntry(buffer, probeOptions, cast(s32) index)
+            let probe = try .decodeEntry(buffer, probeOptions, cast(s32) index)
             let entry = (buffer.buffer + #sizeof(IconDir) + cast(u64) index * #sizeof(IconDirEntry))[as IconDirEntry]
             let score = (cast(u64) dimFromByte(entry.width) * dimFromByte(entry.height) << 16) + entry.bitCount
             if score > bestScore
@@ -324,6 +324,6 @@ impl IImageSetDecoder for Decoder
     {
         if index >= .entryCount do
             fail InvalidFormatError{"icon entry index is out of range"}
-        return .decodeEntry(.bytes!, options, cast(s32) index)
+        return try .decodeEntry(.bytes!, options, cast(s32) index)
     }
 }

@@ -404,7 +404,7 @@ impl Process
         {
             let job = CreateJobObjectW(null, null)
             if not job do
-                failWinError(GetLastError())
+                try failWinError(GetLastError())
 
             .jobHandle = cast(ProcessHandle) job
             try AssignProcessToJobObject(job, cast(HANDLE) .handle)
@@ -605,7 +605,7 @@ impl Process
             var written: DWORD
             try WriteFile(handle, data.buffer + offset, cast(u32) Math.min(data.count - offset, cast(u64) Swag.U32.Max), &written, null)
             if not written do
-                failWinError(ERROR_NO_DATA)
+                try failWinError(ERROR_NO_DATA)
             offset += written
         }
     }
@@ -628,9 +628,9 @@ impl Process
         var buffer: [32768] u16
         let count = GetModuleFileNameW(null, buffer.buffer, cast(u32) buffer.count)
         if not count do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         if count >= buffer.count do
-            failWinError(ERROR_INSUFFICIENT_BUFFER)
+            try failWinError(ERROR_INSUFFICIENT_BUFFER)
         return Utf8.fromUtf16(Swag.makeSlice(buffer.buffer, count))
     }
 

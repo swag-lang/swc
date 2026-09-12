@@ -471,8 +471,8 @@ impl LibraryView
             .imgSpin.show()
         try
         {
-            .thread.init(func|view = me|(th: Thread) { view.loadFiles(th); })
-            .thread.start()
+            try .thread.init(func|view = me|(th: Thread) { view.loadFiles(th); })
+            try .thread.start()
         }
     }
 

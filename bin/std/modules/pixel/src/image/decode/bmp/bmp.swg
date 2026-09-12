@@ -184,7 +184,7 @@ internal impl IImageDecoder for Decoder
             }
         }
 
-        checkBuffer(dataof, last, #sizeof(u32))
+        try checkBuffer(dataof, last, #sizeof(u32))
         let headerStart = dataof
         let size        = dataof[as u32]
         if size < #sizeof(CoreHeader) do
@@ -195,7 +195,7 @@ internal impl IImageDecoder for Decoder
         var paletteEntrySize = 4'u32
         if size == #sizeof(CoreHeader)
         {
-            checkBuffer(dataof, last, #sizeof(CoreHeader))
+            try checkBuffer(dataof, last, #sizeof(CoreHeader))
             let ch = cast(const *CoreHeader) dataof
             dataof += #sizeof(CoreHeader)
             paletteEntrySize = 3
@@ -211,7 +211,7 @@ internal impl IImageDecoder for Decoder
         {
             if size < #sizeof(Header) do
                 fail UnsupportedFormatError{"unsupported BMP header"}
-            checkBuffer(dataof, last, size)
+            try checkBuffer(dataof, last, size)
 
             Memory.copy(&bh, dataof, #sizeof(Header))
             dataof = headerStart + size
@@ -239,7 +239,7 @@ internal impl IImageDecoder for Decoder
             }
             elif size == #sizeof(Header)
             {
-                checkBuffer(dataof, last, 12)
+                try checkBuffer(dataof, last, 12)
                 masks.r = readMask(dataof[as u32])
                 masks.g = readMask((dataof + 4)[as u32])
                 masks.b = readMask((dataof + 8)[as u32])
@@ -277,7 +277,7 @@ internal impl IImageDecoder for Decoder
         let palette      = dataof
         if paletteCount
         {
-            checkBuffer(palette, last, cast(u64) paletteCount * paletteEntrySize)
+            try checkBuffer(palette, last, cast(u64) paletteCount * paletteEntrySize)
             dataof += cast(u64) paletteCount * paletteEntrySize
         }
 
@@ -295,20 +295,20 @@ internal impl IImageDecoder for Decoder
         if bh.biCompression == BI_RLE8
         {
             result.clear()
-            decodeRle8(&result, dataof, last, palette, paletteEntrySize, paletteCount)
+            try decodeRle8(&result, dataof, last, palette, paletteEntrySize, paletteCount)
         }
         elif bh.biCompression == BI_RLE4
         {
             result.clear()
-            decodeRle4(&result, dataof, last, palette, paletteEntrySize, paletteCount)
+            try decodeRle4(&result, dataof, last, palette, paletteEntrySize, paletteCount)
         }
         else
         {
             switch bh.biBitCount
             {
-            case 1, 4, 8: decodePackedPalette(&result, dataof, last, palette, paletteEntrySize, paletteCount, bh.biBitCount, topDown)
-            case 16:      decode16(&result, dataof, last, masks, topDown)
-            case 24, 32:  decodeUncompressedDirect(&result, dataof, last, bh.biBitCount, topDown)
+            case 1, 4, 8: try decodePackedPalette(&result, dataof, last, palette, paletteEntrySize, paletteCount, bh.biBitCount, topDown)
+            case 16:      try decode16(&result, dataof, last, masks, topDown)
+            case 24, 32:  try decodeUncompressedDirect(&result, dataof, last, bh.biBitCount, topDown)
             }
         }
 

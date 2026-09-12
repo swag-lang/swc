@@ -14,7 +14,7 @@ func sourceMatches(bytes: const [..] u8, start: u64)->bool
 }
 
 // A non-null slice has no fallback for `expect`, so a test peeks through this nullable adapter.
-func peekBytes(source: *ByteSource, count: u64)->const [..] u8? fail => source.peek(count)
+func peekBytes(source: *ByteSource, count: u64)->const [..] u8? fail => try source.peek(count)
 
 // Writes a fixture of `count` pattern bytes and returns its path.
 func writeSourceFixture(name: string, count: u64)->String

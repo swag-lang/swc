@@ -29,7 +29,7 @@ namespace InlineDeferReemission
     {
         let native = nativeHandle(handle)
         if native == cast #bit (u64) -1 do
-            raiseCleanupError()
+            try raiseCleanupError()
         return native
     }
 }

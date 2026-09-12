@@ -22,8 +22,8 @@ impl HiddenLocator
     func opensOuter(stream: *File.FileStream, password: const [..] u8)->bool fail
     {
         var area: [KeySlotAreaSize] u8
-        if not stream.readExactAt(0, area) do
-            failWith("The container is truncated or unreadable.", .Io)
+        if not (try stream.readExactAt(0, area)) do
+            try failWith("The container is truncated or unreadable.", .Io)
         var key = try Crypto.deriveSlotKey(password, area[until Crypto.SaltSize])
         defer Core.Crypto.secureClear(key)
         var master: [Crypto.MasterKeySize] u8
@@ -46,7 +46,7 @@ impl HiddenLocator
         for index in KeySlotCount
         {
             var record: [HiddenLocatorSize] u8
-            if not stream.readExactAt(offset(index), record) do
+            if not (try stream.readExactAt(offset(index), record)) do
                 break
             let salt   = record[until Crypto.SaltSize]
             let nonce  = record[HiddenNonceOffset until HiddenGeometryOffset]
@@ -59,14 +59,14 @@ impl HiddenLocator
             if not (try Core.Crypto.chacha20Poly1305Open(key, nonce, cipher, tag, Crypto.associatedData(HiddenLocatorKind, index), plain)) do
                 continue
             var reader = ByteStream.openRead(plain)
-            let first  = reader.readLittleEndian'u64()
-            let count  = reader.readLittleEndian'u64()
+            let first  = try reader.readLittleEndian'u64()
+            let count  = try reader.readLittleEndian'u64()
             if first < DataOffset or first > hostSize or count < MinimumSize or count > hostSize - first do
                 break
             return {first, count}
         }
 
-        failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
+        try failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
         unreachable
     }
 
@@ -74,7 +74,7 @@ impl HiddenLocator
     func write(stream: *File.FileStream, index: u64, password: const [..] u8, region: FreeExtent) fail
     {
         var record: [HiddenLocatorSize] u8
-        Core.Crypto.randomBytes(record)
+        try Core.Crypto.randomBytes(record)
         var plain: Array'u8
         defer Core.Crypto.secureClear(plain.toSlice())
         var writer = ByteStream.openWrite(&plain)
@@ -83,15 +83,15 @@ impl HiddenLocator
         var key = try Crypto.deriveSlotKey(password, record[until Crypto.SaltSize])
         defer Core.Crypto.secureClear(key)
         try Core.Crypto.chacha20Poly1305Seal(key, record[HiddenNonceOffset until HiddenGeometryOffset], plain.toSlice(), Crypto.associatedData(HiddenLocatorKind, index), record[HiddenGeometryOffset until HiddenTagOffset], record[HiddenTagOffset until HiddenPayloadEnd])
-        stream.writeAllAt(offset(index), record)
-        stream.flush()
+        try stream.writeAllAt(offset(index), record)
+        try stream.flush()
     }
 
     func erase(stream: *File.FileStream, index: u64) fail
     {
         var record: [HiddenLocatorSize] u8
-        Core.Crypto.randomBytes(record)
-        stream.writeAllAt(offset(index), record)
-        stream.flush()
+        try Core.Crypto.randomBytes(record)
+        try stream.writeAllAt(offset(index), record)
+        try stream.flush()
     }
 }

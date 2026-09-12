@@ -31,7 +31,7 @@ func unmapView(address: const [*] void?) fail
 {
     g_Unmapped += 1
     if not processId() do
-        raiseNativeError(lastError())
+        try raiseNativeError(lastError())
 }
 
 struct Region

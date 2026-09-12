@@ -93,35 +93,35 @@ impl Node
     func deserialize(reader: *ByteStream, blockCount: u64)->Node fail
     {
         var result: retval
-        result.id             = reader.readLittleEndian'u64()
-        result.parentId       = reader.readLittleEndian'u64()
-        result.name           = reader.readSizedString(MaximumNameSize)
-        result.attributes     = reader.readLittleEndian'u32()
-        result.size           = reader.readLittleEndian'u64()
-        result.creationTime   = reader.readLittleEndian'u64()
-        result.lastAccessTime = reader.readLittleEndian'u64()
-        result.lastWriteTime  = reader.readLittleEndian'u64()
-        result.changeTime     = reader.readLittleEndian'u64()
+        result.id             = try reader.readLittleEndian'u64()
+        result.parentId       = try reader.readLittleEndian'u64()
+        result.name           = try reader.readSizedString(MaximumNameSize)
+        result.attributes     = try reader.readLittleEndian'u32()
+        result.size           = try reader.readLittleEndian'u64()
+        result.creationTime   = try reader.readLittleEndian'u64()
+        result.lastAccessTime = try reader.readLittleEndian'u64()
+        result.lastWriteTime  = try reader.readLittleEndian'u64()
+        result.changeTime     = try reader.readLittleEndian'u64()
 
-        let securitySize = reader.readLittleEndian'u32()
+        let securitySize = try reader.readLittleEndian'u32()
         if securitySize > MaximumSecuritySize do
-            failWith("An entry declares an implausible security descriptor.", .Corrupted)
+            try failWith("An entry declares an implausible security descriptor.", .Corrupted)
         result.security.resize(securitySize)
-        reader.readBytes(result.security.buffer, securitySize)
+        try reader.readBytes(result.security.buffer, securitySize)
 
-        let runCount = reader.readLittleEndian'u64()
+        let runCount = try reader.readLittleEndian'u64()
         if runCount > blockCount do
-            failWith("An entry declares more block runs than the container holds.", .Corrupted)
+            try failWith("An entry declares more block runs than the container holds.", .Corrupted)
 
         var mapped = 0'u64
         var previousLogical = 0'u64
         for runCount
         {
-            let logical  = reader.readLittleEndian'u64()
-            let physical = reader.readLittleEndian'u64()
-            let count    = reader.readLittleEndian'u64()
+            let logical  = try reader.readLittleEndian'u64()
+            let physical = try reader.readLittleEndian'u64()
+            let count    = try reader.readLittleEndian'u64()
             if not count or physical >= blockCount or count > blockCount - physical or count > blockCount - mapped or logical > Swag.U64.Max - count or (result.blocks.count and logical < previousLogical) do
-                failWith("A block run falls outside the container.", .Corrupted)
+                try failWith("A block run falls outside the container.", .Corrupted)
 
             result.appendMapping({logical, physical, count})
             previousLogical = logical + count
@@ -129,7 +129,7 @@ impl Node
         }
 
         if reader.isEof() do
-            failWith("The metadata ends inside an entry.", .Corrupted)
+            try failWith("The metadata ends inside an entry.", .Corrupted)
         return result
     }
 }

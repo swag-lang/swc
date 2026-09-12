@@ -13,7 +13,7 @@ them by 64 to obtain ordinary pixel values.
 ```swag
 using Core, TrueType
 
-let bytes = File.readAllBytes("Inter-Regular.ttf")
+let bytes = try File.readAllBytes("Inter-Regular.ttf")
 let face  = (try Face.load(bytes.toSlice()))!
 defer face.destroy()
 

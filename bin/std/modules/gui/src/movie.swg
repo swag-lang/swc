@@ -163,9 +163,9 @@ impl Movie
     // paused at their representative image and can be browsed with setFrameIndex.
     mtd load(fileName: string) fail
     {
-        var reader     = ImageReader.load(fileName)
+        var reader     = try ImageReader.load(fileName)
         let firstIndex = reader.info.representativeIndex
-        var firstFrame = reader.read(firstIndex)
+        var firstFrame = try reader.read(firstIndex)
         .clear()
         .source     = .ImageSet
         .reader     = #move reader
@@ -219,7 +219,7 @@ impl Movie
             if .cachedBytes > .maxCacheBytes or .frame.byteCount > .maxCacheBytes - .cachedBytes do
                 break
             let index = cast(s32) .cachedFrames.count
-            let frame = .reader.read(cast(u32) index)
+            let frame = try .reader.read(cast(u32) index)
             .cacheFrame(index, frame)
         }
     }

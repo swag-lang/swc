@@ -945,7 +945,7 @@ impl Painter
     #[Swag.Discardable]
     mtd drawMathLatex(left, top: f32, source: string, font: *Font, color: Color, options: MathLayoutOptions = {})->MathMetrics fail
     {
-        var expression = MathExpression.parse(source)
+        var expression = try MathExpression.parse(source)
         return .drawMath(left, top, &expression, font, color, options)
     }
 }

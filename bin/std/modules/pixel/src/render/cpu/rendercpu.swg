@@ -2522,7 +2522,7 @@ impl RenderCpu
     // Loads an image file and registers an owned CPU texture.
     internal mtd addImageImpl(fullName: string)->Texture fail
     {
-        let image = Image.load(fullName)
+        let image = try Image.load(fullName)
         return .addImageImpl(&image)
     }
 

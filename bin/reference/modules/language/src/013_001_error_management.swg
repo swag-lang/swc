@@ -48,7 +48,7 @@ lazily — only on the failure path — and may divert control flow (e.g. an ear
 */
 func recordTrace(name: string?, out: *s32) fail
 {
-    out[] = cast(s32) count(name)
+    out[] = cast(s32) (try count(name))
 }
 
 #test
@@ -111,18 +111,19 @@ func propagateCount(name: string?)->u64 fail
 }
 
 /**
-# Implicit try
-Inside a function declared with 'fail', calling another fallible function is
-an implicit propagation.
+# Explicit Error Handling
+Every call to a function declared with 'fail' needs 'try', 'catch', or 'expect'.
+Declaring the caller with 'fail' permits propagation, but does not make it implicit.
+The compiler rejects a call that omits its error-management keyword.
 */
-func implicitTryCount(name: string?)->u64 fail
+func explicitTryCount(name: string?)->u64 fail
 {
-    return count(name)
+    return try count(name)
 }
 
 #test
 {
-    let value = catch implicitTryCount(null) as err
+    let value = catch explicitTryCount(null) as err
     Swag.assert(value == 0)
     Swag.assert(err != null)
     Swag.assert((cast(MyError) err).code == 7)
@@ -131,15 +132,16 @@ func implicitTryCount(name: string?)->u64 fail
 /**
 # Error-Handling Blocks
 'try', 'catch' (optionally with 'as err' or 'else'), and 'expect' can also guard
-a whole block of code.
+a whole block of code. Each fallible call inside the block still needs its own
+keyword: use 'try' to pass its error to the enclosing block's handler.
 */
 func blockTry(name0: string?, name1: string?)->u64 fail
 {
     var total: u64 = 0
     try
     {
-        total += count(name0)
-        total += count(name1)
+        total += try count(name0)
+        total += try count(name1)
     }
 
     return total
@@ -149,8 +151,8 @@ func blockCatchCode()->s32
 {
     catch
     {
-        discard count("ok")
-        discard count(null)
+        discard try count("ok")
+        discard try count(null)
     } as err
 
     if err == null do
@@ -163,7 +165,7 @@ func blockCatchElse(name: string?)->u64
 {
     catch
     {
-        return count(name)
+        return try count(name)
     }
     else {}
 

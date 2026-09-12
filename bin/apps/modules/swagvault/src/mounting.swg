@@ -33,7 +33,7 @@ impl MountedVault
     mtd open(path: string, password: const [..] u8, destination: string, readOnly = false, protectionPassword: const [..] u8 = "") fail
     {
         Swag.assert(.handle == null)
-        .handle = mountVaultNative(path, password, destination, readOnly, protectionPassword)
+        .handle = try mountVaultNative(path, password, destination, readOnly, protectionPassword)
     }
 
     mtd close() fail
@@ -43,7 +43,7 @@ impl MountedVault
 
         let handle = .handle
         .handle = null
-        unmountVaultNative(handle)
+        try unmountVaultNative(handle)
     }
 
     mtd space()->MountedVaultSpace

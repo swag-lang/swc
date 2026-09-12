@@ -45,7 +45,7 @@ func readRawGamepadState(padIndex: u32)->RawGamepadState fail
     {
     case ERROR_SUCCESS: break
     case ERROR_DEVICE_NOT_CONNECTED: fail Swag.SystemError{"not connected"}
-    default: Win32.failWinError(status)
+    default: try Win32.failWinError(status)
     }
 
     return {rawButtons(state.Gamepad.wButtons),

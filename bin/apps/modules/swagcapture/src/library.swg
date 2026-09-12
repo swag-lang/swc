@@ -18,11 +18,11 @@ impl Library
     func ensureFolder(folder: String) fail
     {
         if not Directory.exists(folder) do
-            Directory.create(folder)
+            try Directory.create(folder)
 
         let trash = Path.combine(folder, ".trash")
         if not Directory.exists(trash) do
-            Directory.create(trash)
+            try Directory.create(trash)
     }
 
     func init() fail

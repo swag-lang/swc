@@ -62,7 +62,7 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
 
     while output < expected
     {
-        let code = reader.read(width)
+        let code = try reader.read(width)
         if code == LZW_CLEAR_CODE
         {
             width    = 9

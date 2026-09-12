@@ -767,12 +767,12 @@ const MsdfParallelMinSamples: u64 = 2000
 // The output bitmap has 3 bytes per pixel (pitch = width * 3).
 func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
 {
-    let faceData = getSlotImpl(slot)
+    let faceData = try getSlotImpl(slot)
     let safeSlot = slot
     clearBitmap(safeSlot)
 
     if safeSlot.format != .Outline do
-        fault(0x13)
+        try fault(0x13)
     if safeSlot.outline.pointCount <= 0 do
         return
 

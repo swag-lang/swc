@@ -299,9 +299,9 @@ internal impl IImageEncoder for Encoder
         if image.pixelFormat.hasAlpha() do
             .ihdr.colorType |= .Alpha
 
-        .writeChunksBeforeIDat()
-        .writeMetadata(image)
-        .calculateSubImages()
+        try .writeChunksBeforeIDat()
+        try .writeMetadata(image)
+        try .calculateSubImages()
 
         .bytesPerPixel = .numChannels() * (.ihdr.bitDepth / 8)
         var scanlineBufSize = .subimage[.widestPass].scanlineWidth
@@ -328,7 +328,7 @@ internal impl IImageEncoder for Encoder
         for
         {
             let ioffset = (image.height - .rowInfo.rowNum - 1) * image.width * image.bytesPerPixel
-            if .encodeRow(srcPixels + ioffset) do
+            if try .encodeRow(srcPixels + ioffset) do
                 break
         }
 

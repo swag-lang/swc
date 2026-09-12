@@ -84,7 +84,7 @@ private func detectProgramSource(bytes: const [..] u8)->{ source: OutlineSource,
 private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: IAllocator?)->*Face? fail
 {
     if bytes.count == 0 do
-        fault(0x06)
+        try fault(0x06)
     let allocationAllocator = (allocator orelse Swag.getContext().allocator)!
     let faceData = Memory.new'FaceImpl(allocationAllocator)
     faceData.allocationAllocator = allocationAllocator
@@ -96,14 +96,14 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
     let detected = detectProgramSource(bytes)
     if detected.sfnt
     {
-        parseFace(faceData, faceIndex, fallbackFamilyName)
+        try parseFace(faceData, faceIndex, fallbackFamilyName)
         return &faceData.face
     }
 
     if faceIndex do
-        fault(0x0F)
+        try fault(0x0F)
     faceData.outlineSource = detected.source
-    parseProgramFace(faceData, fallbackFamilyName)
+    try parseProgramFace(faceData, fallbackFamilyName)
     return &faceData.face
 }
 
@@ -176,13 +176,13 @@ public impl Face
     // unsupported rather than as an unknown format.
     //
     // ```swag
-    // let bytes = File.readAllBytes("Inter-Regular.ttf")
+    // let bytes = try File.readAllBytes("Inter-Regular.ttf")
     // let face  = (try TrueType.Face.load(bytes.toSlice()))!
     // defer face.destroy()
     // ```
     func load(bytes: const [..] u8, allocator: IAllocator? = null)->*Face? fail
     {
-        return Face.loadAt(bytes, 0, allocator)
+        return try Face.loadAt(bytes, 0, allocator)
     }
 
     // Loads a rendering-only TrueType subset from an in-memory font program.
@@ -199,8 +199,8 @@ public impl Face
     func loadSubset(bytes: const [..] u8, familyName: string, allocator: IAllocator? = null)->*Face? fail
     {
         if not familyName.count do
-            fault(0x06)
-        return loadFaceBytes(bytes, 0, familyName, allocator)
+            try fault(0x06)
+        return try loadFaceBytes(bytes, 0, familyName, allocator)
     }
 
     // Loads one face of a TrueType collection by index.
@@ -212,7 +212,7 @@ public impl Face
     // cleanup match [[TrueType.Face.load]].
     //
     // ```swag
-    // let bytes = File.readAllBytes("msgothic.ttc")
+    // let bytes = try File.readAllBytes("msgothic.ttc")
     // let count = try TrueType.Face.countFaces(bytes.toSlice())
     // for index in count
     // {
@@ -222,7 +222,7 @@ public impl Face
     // ```
     func loadAt(bytes: const [..] u8, faceIndex: u32, allocator: IAllocator? = null)->*Face? fail
     {
-        return loadFaceBytes(bytes, faceIndex, "", allocator)
+        return try loadFaceBytes(bytes, faceIndex, "", allocator)
     }
 
     // Returns how many faces an in-memory font file holds.
@@ -233,7 +233,7 @@ public impl Face
     // read, which is the same diagnostic [[TrueType.Face.load]] would give.
     func countFaces(bytes: const [..] u8)->u32 fail
     {
-        return countFacesIn(bytes)
+        return try countFacesIn(bytes)
     }
 
     // Returns the family name the face at `faceIndex` declares.
@@ -246,7 +246,7 @@ public impl Face
     // [[TrueType.Face.familyName]] carries once that face is loaded.
     //
     // ```swag
-    // let bytes = File.readAllBytes("msgothic.ttc")
+    // let bytes = try File.readAllBytes("msgothic.ttc")
     // let count = try TrueType.Face.countFaces(bytes.toSlice())
     // for index in count
     // {
@@ -256,7 +256,7 @@ public impl Face
     // ```
     func familyNameAt(bytes: const [..] u8, faceIndex: u32)->String fail
     {
-        return familyNameIn(bytes, faceIndex)
+        return try familyNameIn(bytes, faceIndex)
     }
 
     // Releases this face and every resource borrowed from it.
@@ -282,9 +282,9 @@ public impl Face
     // be zero. Scaled metrics are exposed through [[TrueType.Face.size]].
     mtd setPixelSize(pixelWidth, pixelHeight: u32) fail
     {
-        let faceData = getFaceImpl(me)
+        let faceData = try getFaceImpl(me)
         if (not pixelWidth and not pixelHeight) or pixelWidth > Swag.U16.Max or pixelHeight > Swag.U16.Max do
-            fault(0x17)
+            try fault(0x17)
 
         var width  = pixelWidth
         var height = pixelHeight
@@ -443,9 +443,9 @@ public impl Face
     // in the same operation.
     mtd loadGlyph(glyphIndex: u32, loadFlags = LoadFlag.Default) fail
     {
-        loadGlyphInternal(me, glyphIndex)
+        try loadGlyphInternal(me, glyphIndex)
         if loadFlags & .Render do
-            .renderGlyph()
+            try .renderGlyph()
     }
 
     // Resolves and loads a Unicode scalar value into the reusable slot.
@@ -454,9 +454,9 @@ public impl Face
     // [[TrueType.Face.loadGlyph]], except lookup failures are reported.
     mtd loadChar(charCode: rune, loadFlags = LoadFlag.Default) fail
     {
-        let faceData = getFaceImpl(me)
-        let idx      = lookupGlyphIndex(faceData, cast(u32) charCode)
-        .loadGlyph(idx, loadFlags)
+        let faceData = try getFaceImpl(me)
+        let idx      = try lookupGlyphIndex(faceData, cast(u32) charCode)
+        try .loadGlyph(idx, loadFlags)
     }
 
     // Rasterizes the current outline into an 8-bit grayscale bitmap.
@@ -465,7 +465,7 @@ public impl Face
     // previous bitmap from this face.
     mtd renderGlyph() fail
     {
-        renderCurrentOutline(&.glyph)
+        try renderCurrentOutline(&.glyph)
     }
 
     // Aligns important vertical zones of the current outline to whole pixels.
@@ -475,7 +475,7 @@ public impl Face
     // rendering, but not before size-independent SDF or MSDF generation.
     mtd hintVertical() fail
     {
-        let faceData = getFaceImpl(me)
+        let faceData = try getFaceImpl(me)
         let o        = &.glyph.outline
         if o.pointCount <= 0 do
             return
@@ -513,7 +513,7 @@ public impl Face
     // clamped to 1 through 64. The result uses [[TrueType.PixelMode.Gray]].
     mtd renderGlyphSdf(spread: u32 = 8) fail
     {
-        renderCurrentOutlineSdf(&.glyph, spread)
+        try renderCurrentOutlineSdf(&.glyph, spread)
     }
 
     // Renders the current outline as a multi-channel signed-distance field.
@@ -523,7 +523,7 @@ public impl Face
     // bitmap reports [[TrueType.PixelMode.Rgba]].
     mtd renderGlyphMsdf(spread: u32 = 8) fail
     {
-        renderCurrentOutlineMsdf(&.glyph, spread)
+        try renderCurrentOutlineMsdf(&.glyph, spread)
     }
 }
 

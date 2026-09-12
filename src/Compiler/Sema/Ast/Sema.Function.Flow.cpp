@@ -260,7 +260,22 @@ namespace
                sema.frame().currentErrorContextMode() != SemaFrame::ErrorContextMode::None;
     }
 
-    void addFunctionDeclaredHereNote(Sema& sema, Diagnostic& diag, const SymbolFunction& fn)
+    bool hasExplicitCallErrorHandler(Sema& sema)
+    {
+        const AstNodeRef scopeRef = sema.frame().currentErrorScope();
+        if (scopeRef.isInvalid())
+            return false;
+
+        const AstNode& scope = sema.node(scopeRef);
+        // A block chooses where errors go; each call still spells that it can fail.
+        if (const auto* stmt = scope.safeCast<AstErrorManagementStmt>())
+            return sema.node(stmt->nodeBodyRef).isNot(AstNodeId::EmbeddedBlock) &&
+                   sema.node(stmt->nodeBodyRef).isNot(AstNodeId::ParallelForStmt);
+
+        return true;
+    }
+
+    void addFunctionDeclaredHereNote(Sema& sema, Diagnostic& diag, const Symbol& fn)
     {
         const SourceCodeRange codeRange = fn.codeRange(sema.ctx());
         if (codeRange.srcView == nullptr)
@@ -291,9 +306,17 @@ namespace
 
     Result reportFallibleCallRequiresContext(Sema& sema, const SymbolFunction& fn, AstNodeRef errorRef)
     {
+        const Symbol* callable = &fn;
+        if (const auto* call = sema.node(errorRef).safeCast<AstCallExpr>())
+        {
+            const Symbol* callee = sema.viewSymbol(call->nodeExprRef).sym();
+            if (callee && callee->isVariable())
+                callable = callee;
+        }
+
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_fallible_call_requires_handler, errorRef);
-        diag.addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
-        addFunctionDeclaredHereNote(sema, diag, fn);
+        diag.addArgument(Diagnostic::ARG_SYM, callable->name(sema.ctx()));
+        addFunctionDeclaredHereNote(sema, diag, *callable);
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -1460,7 +1483,7 @@ namespace
         if (calledFn.isFallible())
         {
             markCurrentErrorScopeFallible(sema);
-            if (!canPropagateFallibleResult(sema))
+            if (!hasExplicitCallErrorHandler(sema))
                 return reportFallibleCallRequiresContext(sema, calledFn, sema.curNodeRef());
 
             SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::HasErr, sema.curNode().codeRef()));

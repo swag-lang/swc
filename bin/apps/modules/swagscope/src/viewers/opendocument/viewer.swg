@@ -1327,7 +1327,7 @@ private impl OpenDocumentReader
         if .sheets.isEmpty() do
             fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_Sheet)}
         for &sheet in .sheets do
-            .normalizeSheet(sheet)
+            try .normalizeSheet(sheet)
         result.sheets = #move .sheets
         return result
     }

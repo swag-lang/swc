@@ -450,8 +450,8 @@ impl HevcStream
             let frameThread = &.frameThreads[lane]
             frameThread.wake.init(false)
             frameThread.done.init(true)
-            frameThread.thread.init(&runHevcFrameThread, frameThread, priority: .BelowNormal)
-            frameThread.thread.start()
+            try frameThread.thread.init(&runHevcFrameThread, frameThread, priority: .BelowNormal)
+            try frameThread.thread.start()
         }
 
         .threadsStarted = true
@@ -589,7 +589,7 @@ impl HevcStream
 
     private mtd fillFrameThreads(source: *ByteSource) fail
     {
-        .ensureFrameThreads()
+        try .ensureFrameThreads()
         while .threadedCount < .laneCount and not .reachedEnd
         {
             if not try .startFrame(source) do

@@ -48,8 +48,8 @@ impl ByteSource
     func openFile(fileName: string)->ByteSource fail
     {
         var result: retval
-        result.stream   = File.openRead(fileName)
-        result.length   = result.stream.size()
+        result.stream   = try File.openRead(fileName)
+        result.length   = try result.stream.size()
         result.fileName = fileName
         result.isFile   = true
         return result
@@ -146,13 +146,13 @@ impl ByteSource
             // byte twice and evict a window the header parser still uses.
             if missing >= WindowSize
             {
-                if not .stream.readExactAt(.cursor, buffer[done until done + missing]) do
+                if not (try .stream.readExactAt(.cursor, buffer[done until done + missing])) do
                     fail InvalidFormatError{"byte source ends before the requested bytes"}
                 .cursor += missing
                 return wanted
             }
 
-            .fillWindow(missing)
+            try .fillWindow(missing)
         }
 
         return wanted
@@ -166,14 +166,14 @@ impl ByteSource
     {
         if buffer.count > .remaining() do
             fail InvalidFormatError{"byte source ends before the requested bytes"}
-        discard .read(buffer)
+        discard try .read(buffer)
     }
 
     // Reads one byte.
     mtd readByte()->u8 fail
     {
         var value: u8
-        .readExact(Swag.makeSlice(&value, 1))
+        try .readExact(Swag.makeSlice(&value, 1))
         return value
     }
 
@@ -185,20 +185,20 @@ impl ByteSource
     mtd(T) readNative()->T fail
     {
         var result: T
-        .readExact(Swag.makeSlice(cast([*] u8) &result, #sizeof(T)))
+        try .readExact(Swag.makeSlice(cast([*] u8) &result, #sizeof(T)))
         return result
     }
 
     // Reads a little-endian integer of type `T`.
     mtd(T) readLittleEndian()->T fail
     {
-        return Math.littleEndianToNative(.readNative'T())
+        return Math.littleEndianToNative(try .readNative'T())
     }
 
     // Reads a big-endian integer of type `T`.
     mtd(T) readBigEndian()->T fail
     {
-        return Math.bigEndianToNative(.readNative'T())
+        return Math.bigEndianToNative(try .readNative'T())
     }
 
     // Reads the bytes up to the next line feed and returns the line without it.
@@ -211,7 +211,7 @@ impl ByteSource
         var bytes: Array'u8
         while true
         {
-            let value = .readByte()
+            let value = try .readByte()
             if value == '\n'
             {
                 if bytes.count and bytes.back() == '\r' do
@@ -247,7 +247,7 @@ impl ByteSource
             return Swag.makeSlice((.memory).buffer! + .cursor, .remaining())
 
         if .cursor < .windowStart or .cursor + count > .windowStart + .windowCount do
-            .fillWindow(count)
+            try .fillWindow(count)
         return .window.toSlice()[.cursor - .windowStart until .windowCount]
     }
 
@@ -259,7 +259,7 @@ impl ByteSource
             .window.resize(size)
 
         let count = Math.min(size, .remaining())
-        if not .stream.readExactAt(.cursor, .window.toSlice()[0 until count]) do
+        if not (try .stream.readExactAt(.cursor, .window.toSlice()[0 until count])) do
             fail InvalidFormatError{"byte source ends before the requested bytes"}
 
         .windowStart = .cursor

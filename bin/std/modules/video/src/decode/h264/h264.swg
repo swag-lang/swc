@@ -188,13 +188,13 @@ impl Decoder
         let spsCount = cast(u64) (record[offset] & 0x1F)
         offset += 1
         for spsCount do
-            offset = .configureSet(record, offset)
+            offset = try .configureSet(record, offset)
         if offset >= record.count do
             fail InvalidFormatError{"H.264 decoder configuration is truncated"}
         let ppsCount = cast(u64) record[offset]
         offset += 1
         for ppsCount do
-            offset = .configureSet(record, offset)
+            offset = try .configureSet(record, offset)
     }
 
     // Reads one length-prefixed parameter set of the configuration record.
@@ -207,7 +207,7 @@ impl Decoder
         if size < 1 or start + size > record.count do
             fail InvalidFormatError{"H.264 decoder configuration is truncated"}
 
-        .handleNal(record[start until start + size])
+        try .handleNal(record[start until start + size])
         return start + size
     }
 
@@ -327,13 +327,13 @@ impl Decoder
 
             if size < 1 or size > sample.count - offset do
                 fail InvalidFormatError{"H.264 sample ends inside a NAL unit"}
-            .handleNal(sample[offset until offset + size], true)
+            try .handleNal(sample[offset until offset + size], true)
             offset += size
         }
 
         if not .current do
             return false
-        .applyMarking(.current)
+        try .applyMarking(.current)
         .holdPictureReferences()
         .preparedData = true
         return true
@@ -346,9 +346,9 @@ impl Decoder
         {
             Swag.assert(.pictureSlices.count == 1)
             if .pictureSlices[0].header.type == SliceTypeB do
-                .awaitReferenceProgress(false)
-            .pictureSlices[0].decodeData()
-            .validatePicture()
+                try .awaitReferenceProgress(false)
+            try .pictureSlices[0].decodeData()
+            try .validatePicture()
             .current!.publishParse(1)
             .preparedData = false
         }
@@ -401,14 +401,14 @@ impl Decoder
 
             if size < 1 or size > sample.count - offset do
                 fail InvalidFormatError{"H.264 sample ends inside a NAL unit"}
-            .handleNal(sample[offset until offset + size])
+            try .handleNal(sample[offset until offset + size])
             offset += size
         }
 
         if not .current do
             return false
-        .validatePicture()
-        .applyMarking(.current)
+        try .validatePicture()
+        try .applyMarking(.current)
         .holdPictureReferences()
         .current.publishParse(1)
         return true
@@ -431,8 +431,8 @@ impl Decoder
         }
 
         if .frameThreaded do
-            .awaitReferenceProgress(true)
-        .reconstructPicture()
+            try .awaitReferenceProgress(true)
+        try .reconstructPicture()
         deblockPicture(me)
         let result = .current!
         result.extendEdges()
@@ -610,15 +610,15 @@ impl Decoder
         {
         case 1, 5:
             unescapeRbsp(&.rbsp, nal[1 until nal.count])
-            .decodeSliceNal(refIdc, nalType == 5, not prepareOnly)
+            try .decodeSliceNal(refIdc, nalType == 5, not prepareOnly)
 
         case 7:
             unescapeRbsp(&.rbsp, nal[1 until nal.count])
-            .parseSpsNal()
+            try .parseSpsNal()
 
         case 8:
             unescapeRbsp(&.rbsp, nal[1 until nal.count])
-            .parsePpsNal()
+            try .parsePpsNal()
 
         case 2, 3, 4:
             fail UnsupportedFormatError{"video decoder does not support H.264 data partitioning"}
@@ -638,7 +638,7 @@ impl Decoder
     private mtd decodeSliceNal(refIdc: u32, isIdr: bool, decodeData: bool = true) fail
     {
         var slice: Slice
-        if not slice.parseHeader(me, refIdc, isIdr) do
+        if not (try slice.parseHeader(me, refIdc, isIdr)) do
             return
 
         if slice.header.type == SliceTypeI do
@@ -649,16 +649,16 @@ impl Decoder
             .isRefPicture = refIdc != 0
             .isIdrPicture = isIdr
             let poc = .computePoc(&slice.header)
-            .startPicture(slice.header.frameNum, poc)
+            try .startPicture(slice.header.frameNum, poc)
         }
 
         .sliceCount   += 1
         slice.sliceId = cast(u16) .sliceCount
         if slice.header.type != SliceTypeI do
-            slice.buildLists()
+            try slice.buildLists()
         .pictureSlices.add(#move slice)
         if decodeData do
-            .pictureSlices[.pictureSlices.count - 1].decodeData()
+            try .pictureSlices[.pictureSlices.count - 1].decodeData()
     }
 
     // Parses one sequence parameter set and stores it under its identifier.
@@ -673,7 +673,7 @@ impl Decoder
             fail InvalidFormatError{"H.264 sequence parameter set is truncated"}
 
         var parsed: Sps
-        parsed.parse(.rbsp.toSlice())
+        try parsed.parse(.rbsp.toSlice())
         if .spsSet.count <= id do
             .spsSet.resize(id + 1)
         .spsSet[id] = #move parsed
@@ -692,7 +692,7 @@ impl Decoder
             fail InvalidFormatError{"H.264 picture set references an unknown sequence set"}
 
         var parsed: Pps
-        parsed.parse(.rbsp.toSlice(), &.spsSet[spsId])
+        try parsed.parse(.rbsp.toSlice(), &.spsSet[spsId])
         if .ppsSet.count <= id do
             .ppsSet.resize(id + 1)
         .ppsSet[id] = #move parsed
@@ -835,7 +835,7 @@ impl Decoder
             return
 
         if .adaptiveMarking do
-            .applyMmco(frame)
+            try .applyMmco(frame)
 
         if not frame.isLongTerm
         {

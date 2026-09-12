@@ -81,20 +81,20 @@ impl JournalRecord
         var result: retval
         var reader = ByteStream.openRead(plain)
 
-        result.sequence   = reader.readLittleEndian'u64()
-        result.nextNodeId = reader.readLittleEndian'u64()
-        result.label      = reader.readSizedString(MaximumLabelSize)
+        result.sequence   = try reader.readLittleEndian'u64()
+        result.nextNodeId = try reader.readLittleEndian'u64()
+        result.label      = try reader.readSizedString(MaximumLabelSize)
 
-        let removedCount = reader.readLittleEndian'u64()
+        let removedCount = try reader.readLittleEndian'u64()
         if removedCount > MaximumNodeCount do
-            failWith("A journal record declares an implausible number of deletions.", .Corrupted)
+            try failWith("A journal record declares an implausible number of deletions.", .Corrupted)
         result.removed.reserve(removedCount)
         for removedCount do
-            result.removed.add(reader.readLittleEndian'u64())
+            result.removed.add(try reader.readLittleEndian'u64())
 
-        let upsertCount = reader.readLittleEndian'u64()
+        let upsertCount = try reader.readLittleEndian'u64()
         if upsertCount > MaximumNodeCount do
-            failWith("A journal record declares an implausible number of entries.", .Corrupted)
+            try failWith("A journal record declares an implausible number of entries.", .Corrupted)
         result.upserted.reserve(upsertCount)
         for upsertCount
         {
@@ -106,27 +106,27 @@ impl JournalRecord
         // Keeping that form readable preserves every existing container.
         if (reader.remainingBytes()).count
         {
-            let metadataCount = reader.readLittleEndian'u64()
+            let metadataCount = try reader.readLittleEndian'u64()
             if metadataCount > MaximumNodeCount do
-                failWith("A journal record declares an implausible number of metadata changes.", .Corrupted)
+                try failWith("A journal record declares an implausible number of metadata changes.", .Corrupted)
             result.metadata.reserve(metadataCount)
             for metadataCount
             {
                 var patch: NodeMetadataPatch
-                patch.id             = reader.readLittleEndian'u64()
-                patch.parentId       = reader.readLittleEndian'u64()
-                patch.name           = reader.readSizedString(MaximumNameSize)
-                patch.attributes     = reader.readLittleEndian'u32()
-                patch.creationTime   = reader.readLittleEndian'u64()
-                patch.lastAccessTime = reader.readLittleEndian'u64()
-                patch.lastWriteTime  = reader.readLittleEndian'u64()
-                patch.changeTime     = reader.readLittleEndian'u64()
+                patch.id             = try reader.readLittleEndian'u64()
+                patch.parentId       = try reader.readLittleEndian'u64()
+                patch.name           = try reader.readSizedString(MaximumNameSize)
+                patch.attributes     = try reader.readLittleEndian'u32()
+                patch.creationTime   = try reader.readLittleEndian'u64()
+                patch.lastAccessTime = try reader.readLittleEndian'u64()
+                patch.lastWriteTime  = try reader.readLittleEndian'u64()
+                patch.changeTime     = try reader.readLittleEndian'u64()
                 result.metadata.add(#move patch)
             }
         }
 
         if reader.isEof() do
-            failWith("A journal record ends early.", .Corrupted)
+            try failWith("A journal record ends early.", .Corrupted)
         return result
     }
 }

@@ -24,9 +24,9 @@ public func addTypedValue(value: *void, type: typeinfo)
     var encode: Encoder'Write.TagBin
     catch
     {
-        encode.start(&buf, type)
-        encode.writeValue(value, type)
-        encode.end()
+        try encode.start(&buf, type)
+        try encode.writeValue(value, type)
+        try encode.end()
     }
     else {}
 
@@ -68,9 +68,9 @@ public func getTypedValue(value: *void, type: typeinfo)->bool
     var decoder: Decoder'Read.TagBin
     catch
     {
-        decoder.start(data.toSlice(), type)
-        decoder.readTypedContent(value, type)
-        decoder.end()
+        try decoder.start(data.toSlice(), type)
+        try decoder.readTypedContent(value, type)
+        try decoder.end()
     }
     else
     {

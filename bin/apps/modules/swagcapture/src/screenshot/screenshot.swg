@@ -66,7 +66,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     g_CaptureWindow = {}
 
     var result: retval
-    result.img       = getDesktopImage(main.captureOptions.captureCursor)
+    result.img       = try getDesktopImage(main.captureOptions.captureCursor)
     g_DesktopTexture = g_App.renderer.addImage(result.img)
     defer g_App.renderer.removeTexture(&g_DesktopTexture)
 
@@ -214,7 +214,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     // Capture
     var capture: *Capture?
     if not setGrabBounds(main, captureMode, monitorIndex) do
-        capture = captureRect(main)
+        capture = try captureRect(main)
     else
     {
         let grabRect = getGrabRect()
@@ -223,7 +223,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
 
         // Grab bounds are desktop-relative; blit only that rectangle instead of
         // capturing the whole virtual desktop and cropping.
-        var img = getScreenRectImage(main.captureOptions.captureCursor,
+        var img = try getScreenRectImage(main.captureOptions.captureCursor,
                                      g_DesktopX + cast(s32) grabRect.x,
                                      g_DesktopY + cast(s32) grabRect.y,
                                      cast(s32) wGrab,

@@ -194,25 +194,25 @@ public impl ImageReader
         result.decoder     = Memory.new(found.type)
         let multiple = Swag.makeInterface(result.decoder, found.type, IImageSetDecoder)
         if multiple do
-            result.info = multiple.open(result.bytes.toSlice(), options)
+            result.info = try multiple.open(result.bytes.toSlice(), options)
         else
         {
             let single       = Swag.makeInterface(result.decoder, found.type, IImageDecoder)!
             var probeOptions = options
             probeOptions.decodePixels = false
-            let probe = single.decode(result.bytes.toSlice(), probeOptions)
+            let probe = try single.decode(result.bytes.toSlice(), probeOptions)
             result.info.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
         }
 
         if not result.info.frames.count or result.info.representativeIndex >= result.info.frames.count do
             fail InvalidFormatError{"image container has no representative image"}
-        options.checkFrameCount(result.info.frames.count)
+        try options.checkFrameCount(result.info.frames.count)
         for frame in result.info.frames
         {
-            options.checkImage(frame.width, frame.height, frame.pixelFormat)
+            try options.checkImage(frame.width, frame.height, frame.pixelFormat)
             if frame.kind == .Animation
             {
-                options.checkImage(result.info.canvasWidth, result.info.canvasHeight, frame.pixelFormat.bitDepth() > 8 ? .RGBA16 : .RGBA8)
+                try options.checkImage(result.info.canvasWidth, result.info.canvasHeight, frame.pixelFormat.bitDepth() > 8 ? .RGBA16 : .RGBA8)
                 if frame.x < 0 or frame.y < 0 or frame.x > result.info.canvasWidth - frame.width or frame.y > result.info.canvasHeight - frame.height do
                     fail InvalidFormatError{"animation frame lies outside its canvas"}
             }
@@ -224,11 +224,11 @@ public impl ImageReader
     // Loads a file into owned storage and indexes its images.
     func load(fileName: string, options: DecodeOptions = {})->ImageReader fail
     {
-        var file = File.MappedFile.open(fileName)
-        if options.maxInputBytes and file.size() > options.maxInputBytes do
+        var file = try File.MappedFile.open(fileName)
+        if options.maxInputBytes and (try file.size()) > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
-        let region = file.mapAll()
-        return decode(fileName, region.bytes(), options)
+        let region = try file.mapAll()
+        return try decode(fileName, region.bytes(), options)
     }
 
     // Decodes a zero-based image index, failing for a closed reader or an out-of-range index.
@@ -240,14 +240,14 @@ public impl ImageReader
         if not multiple
         {
             let single = Swag.makeInterface(.decoder, .decoderType!, IImageDecoder)!
-            return single.decode(.bytes.toSlice(), .options)
+            return try single.decode(.bytes.toSlice(), .options)
         }
 
         if .info.frames[index].kind != .Animation do
-            return multiple.readFrame(index, .options)
+            return try multiple.readFrame(index, .options)
         if not .options.decodePixels
         {
-            let frame = multiple.readFrame(index, .options)
+            let frame = try multiple.readFrame(index, .options)
             var result: retval
             result.init(.info.canvasWidth, .info.canvasHeight, frame.pixelFormat)
             result.metadata = frame.metadata
@@ -281,8 +281,8 @@ public impl ImageReader
             let descriptor = &.info.frames[current]
             if descriptor.disposal == .Previous do
                 .previous = .canvas
-            let image = multiple!.readFrame(current, .options)
-            .composite(descriptor[], image)
+            let image = try multiple!.readFrame(current, .options)
+            try .composite(descriptor[], image)
             .canvas.metadata = image.metadata
             .lastIndex       += 1
         }

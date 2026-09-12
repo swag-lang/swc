@@ -299,7 +299,7 @@ impl Decoder
             .bitsLeft = 16
             .getBits1(16)
             .getBits1(16)
-            .processMarkers()
+            try .processMarkers()
         }
 
         .totalBytesRead -= .inBufLeft

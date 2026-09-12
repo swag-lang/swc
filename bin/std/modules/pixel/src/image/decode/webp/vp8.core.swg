@@ -416,7 +416,7 @@ func vp8ParseHeaders(decoder: *Vp8Decoder) fail
     vp8ParseSegmentHeader(decoder)
     vp8ParseFilterHeader(decoder)
     vp8ComputeFilterParams(decoder)
-    vp8ParseOtherPartitions(decoder, firstOffset + decoder.header.firstPartSize)
+    try vp8ParseOtherPartitions(decoder, firstOffset + decoder.header.firstPartSize)
     vp8ParseQuant(decoder)
 
     discard decoder.firstPart.readBit(VP8_UNIFORM_PROB)

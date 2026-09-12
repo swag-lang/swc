@@ -139,7 +139,7 @@ namespace Integration
     func verify(condition: bool, message: string) fail
     {
         if not condition do
-            failWith(Format.toString("Integration check failed: %", message))
+            try failWith(Format.toString("Integration check failed: %", message))
         g_CheckCount += 1
     }
 
@@ -176,7 +176,7 @@ namespace Integration
                 return Format.toString("%:", cast(rune) ('A' + index))
         }
 
-        failWith("No unused drive letter is available for the integration sandbox.")
+        try failWith("No unused drive letter is available for the integration sandbox.")
         unreachable
     }
 
@@ -185,14 +185,14 @@ namespace Integration
         let existing16    = Utf16.toZeroTerminated(existing)
         let replacement16 = Utf16.toZeroTerminated(replacement)
         if not MoveFileExW(existing16.buffer, replacement16.buffer, replace ? MoveReplaceExisting : 0) do
-            failWith(Format.toString("Windows error %: cannot rename [[%]] to [[%]].", GetLastError(), existing, replacement))
+            try failWith(Format.toString("Windows error %: cannot rename [[%]] to [[%]].", GetLastError(), existing, replacement))
     }
 
     func setAttributes(path: string, attributes: u32) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
         if not SetFileAttributesW(path16.buffer, attributes) do
-            failWith(Format.toString("Windows error %: cannot set attributes on [[%]].", GetLastError(), path))
+            try failWith(Format.toString("Windows error %: cannot set attributes on [[%]].", GetLastError(), path))
     }
 
     func attributes(path: string)->u32
@@ -205,7 +205,7 @@ namespace Integration
     {
         let path16 = Utf16.toZeroTerminated(path)
         if not WinFsp.RemoveDirectoryW(path16.buffer) do
-            failWith(Format.toString("Windows error %: cannot remove directory [[%]].", GetLastError(), path))
+            try failWith(Format.toString("Windows error %: cannot remove directory [[%]].", GetLastError(), path))
     }
 
     func containsEntry(entries: const [..] File.FileInfo, name: string)->bool
@@ -250,9 +250,9 @@ namespace Integration
             var result: retval
             let temp = Env.getSpecialDirectory(.Temp)
             if temp.isEmpty() do
-                failWith("Windows did not provide a temporary directory for the sandbox.")
+                try failWith("Windows did not provide a temporary directory for the sandbox.")
             result.root = Path.combine(temp, Format.toString("vault-integration-%", Guid64.random()))
-            Directory.create(result.root)
+            try Directory.create(result.root)
             result.container  = Path.combine(result.root, "integration")
             result.source     = Path.combine(result.root, "external-source.bin")
             result.recovered  = Path.combine(result.root, "recovered-from-volume.bin")
@@ -263,7 +263,7 @@ namespace Integration
         mtd mountVolume(passwordBytes: const [..] u8, protectionPassword: const [..] u8 = "") fail
         {
             if .mountedActive do
-                failWith("The integration volume is already mounted.")
+                try failWith("The integration volume is already mounted.")
             let mounted = Memory.new'WinFsp.MountedVolume()
             discard catch mounted.open(.container, passwordBytes, .mountPoint, protectionPassword: protectionPassword) as mountError
             if mountError != null
@@ -310,7 +310,7 @@ namespace Integration
                 try .unmountVolume()
             WinFsp.removeRuntimeTree(.root)
             if Directory.exists(.root) do
-                failWith(Format.toString("The integration sandbox could not be removed: %", .root))
+                try failWith(Format.toString("The integration sandbox could not be removed: %", .root))
             .root.clear()
         }
 
@@ -331,27 +331,27 @@ namespace Integration
         let documents = Path.combine(root, "Documents")
         let nested    = Path.combine(documents, "Nested")
         trace("FS: create nested directories")
-        Directory.create(documents)
-        Directory.create(nested)
+        try Directory.create(documents)
+        try Directory.create(nested)
         try verify(Directory.exists(documents) and Directory.exists(nested), "nested directories must be creatable")
 
         let persistent = Path.combine(nested, "external-copy.bin")
         trace("FS: external copy round trip")
-        File.duplicate(persistent, box.source)
+        try File.duplicate(persistent, box.source)
         try verify(File.exists(persistent), "an external file must copy into the mounted drive")
-        File.duplicate(box.recovered, persistent)
+        try File.duplicate(box.recovered, persistent)
         let firstRecovery = try File.readAllBytes(box.recovered)
         try verify(sameBytes(original, firstRecovery.toSlice()), "a copied file must survive a round trip through the mounted drive")
 
         let empty = Path.combine(documents, "empty.txt")
         trace("FS: empty file")
-        discard File.writeAllBytes(empty, Swag.makeSlice(cast(const [*] u8) ("").buffer, 0))
+        discard try File.writeAllBytes(empty, Swag.makeSlice(cast(const [*] u8) ("").buffer, 0))
         try verify(File.exists(empty) and (try File.openRead(empty)).size() == 0, "zero-length files must be supported")
 
         let unicode = Path.combine(documents, "résumé-東京.txt")
         trace("FS: Unicode file")
         let unicodePayload = "UTF-8 names are preserved"
-        discard File.writeAllBytes(unicode, Swag.makeSlice(cast(const [*] u8) unicodePayload.buffer, unicodePayload.count))
+        discard try File.writeAllBytes(unicode, Swag.makeSlice(cast(const [*] u8) unicodePayload.buffer, unicodePayload.count))
         let unicodeRead = try File.readAllText(unicode)
         try verify(unicodeRead == unicodePayload, "Unicode file names and text must round-trip")
 
@@ -359,8 +359,8 @@ namespace Integration
         trace("FS: overwrite and append")
         let first:  [7] u8 = [1, 2, 3, 4, 5, 6, 7]
         let second: [3] u8 = [9, 8, 7]
-        discard File.writeAllBytes(overwrite, first)
-        discard File.writeAllBytes(overwrite, second)
+        discard try File.writeAllBytes(overwrite, first)
+        discard try File.writeAllBytes(overwrite, second)
         let overwritten = try File.readAllBytes(overwrite)
         try verify(sameBytes(overwritten.toSlice(), second), "overwriting must truncate and replace an existing file")
 
@@ -386,7 +386,7 @@ namespace Integration
 
         let renamed = Path.combine(documents, "renamed.bin")
         trace("FS: file and directory rename")
-        movePath(overwrite, renamed)
+        try movePath(overwrite, renamed)
         try verify(not File.exists(overwrite) and File.exists(renamed), "files must be renameable")
 
         // Explorer computes progress while cached writes and namespace notifications are still
@@ -397,10 +397,10 @@ namespace Integration
         let largeDestination = Path.combine(nested, "large-move-destination.bin")
         trace("FS: large file move between directories")
         var largePayload = try createPayload(LargeMoveSize)
-        discard File.writeAllBytes(largeSource, largePayload.toSlice())
+        discard try File.writeAllBytes(largeSource, largePayload.toSlice())
         var renameTimer: Time.Stopwatch
         renameTimer.start()
-        movePath(largeSource, largeDestination)
+        try movePath(largeSource, largeDestination)
         renameTimer.stop()
         let movedLargeStream = try File.openRead(largeDestination)
         let movedSize        = try movedLargeStream.size()
@@ -409,7 +409,7 @@ namespace Integration
         try verify(not File.exists(largeSource) and movedSize == LargeMoveSize, "a large moved file must retain its size and destination")
 
         let renamedNested = Path.combine(documents, "Renamed-Nested")
-        movePath(nested, renamedNested)
+        try movePath(nested, renamedNested)
         let movedPersistent = Path.combine(renamedNested, "external-copy.bin")
         let movedLargePath  = Path.combine(renamedNested, "large-move-destination.bin")
         try verify(not Directory.exists(nested) and File.exists(movedPersistent) and File.exists(movedLargePath), "directories with children must be renameable")
@@ -418,43 +418,43 @@ namespace Integration
         trace("FS: rename with replacement")
         let replacementTarget        = Path.combine(documents, "replacement-target.bin")
         let replacementBytes: [5] u8 = [21, 22, 23, 24, 25]
-        discard File.writeAllBytes(replacementSource, replacementBytes)
-        discard File.writeAllBytes(replacementTarget, first)
-        movePath(replacementSource, replacementTarget, true)
+        discard try File.writeAllBytes(replacementSource, replacementBytes)
+        discard try File.writeAllBytes(replacementTarget, first)
+        try movePath(replacementSource, replacementTarget, true)
         let replacementRead = try File.readAllBytes(replacementTarget)
         try verify(not File.exists(replacementSource) and sameBytes(replacementRead.toSlice(), replacementBytes), "rename with replacement must atomically replace the destination")
 
         let readOnlyPath = Path.combine(documents, "readonly.bin")
         trace("FS: read-only attributes")
-        discard File.writeAllBytes(readOnlyPath, first)
+        discard try File.writeAllBytes(readOnlyPath, first)
         try setAttributes(readOnlyPath, FileAttributeReadOnly)
         try verify((attributes(readOnlyPath) & FileAttributeReadOnly) != 0, "read-only attributes must be reported")
         discard catch File.writeAllBytes(readOnlyPath, second) as readonlyError
         try verify(readonlyError != null, "writes to read-only files must be rejected")
         try setAttributes(readOnlyPath, FileAttributeNormal)
-        discard File.writeAllBytes(readOnlyPath, second)
+        discard try File.writeAllBytes(readOnlyPath, second)
         try verify(sameBytes((try File.readAllBytes(readOnlyPath)).toSlice(), second), "clearing read-only must allow writes again")
 
         let disposable = Path.combine(documents, "disposable.txt")
         trace("FS: file and directory deletion")
-        discard File.writeAllBytes(disposable, first)
+        discard try File.writeAllBytes(disposable, first)
         try File.delete(disposable)
         try verify(not File.exists(disposable), "files must be deletable")
         let emptyDirectory = Path.combine(documents, "Empty-Directory")
-        Directory.create(emptyDirectory)
+        try Directory.create(emptyDirectory)
         try removeDirectory(emptyDirectory)
         try verify(not Directory.exists(emptyDirectory), "empty directories must be deletable")
 
         let bulk = Path.combine(documents, "Bulk")
         trace("FS: bulk directory enumeration")
-        Directory.create(bulk)
+        try Directory.create(bulk)
         for index in 24
         {
             let name = Path.combine(bulk, Format.toString("item-%.bin", index))
             var bytes: [113] u8
             for byteIndex in #sizeof(bytes) do
                 bytes[byteIndex] = cast(u8) ((index * 31 + byteIndex * 17) & 0xFF)
-            discard File.writeAllBytes(name, bytes)
+            discard try File.writeAllBytes(name, bytes)
         }
 
         let entries     = try Directory.enumerateFiles(bulk)
@@ -465,7 +465,7 @@ namespace Integration
 
         trace("FS: batch rename with name collisions")
         let occupied = Path.combine(bulk, "occupied.bin")
-        discard File.writeAllBytes(occupied, first)
+        discard try File.writeAllBytes(occupied, first)
         let occupied16 = Utf16.toZeroTerminated(occupied)
         var renamePaths: Array'String
         for index in 24
@@ -479,7 +479,7 @@ namespace Integration
 
             let destination = Path.combine(bulk, Format.toString("clip (%).mp4", index + 1))
             renamePaths.add(destination)
-            movePath(source, destination)
+            try movePath(source, destination)
             let renamedBytes = try File.readAllBytes(destination)
             try verify(not File.exists(source) and renamedBytes.count == 113, "batch renames must preserve each file and remove its old name")
             var expected: [113] u8
@@ -491,7 +491,7 @@ namespace Integration
         trace("FS: Shell batch rename with automatic numbering")
 
         // Seed the first number, as an Explorer batch rename does; the Shell chooses the rest.
-        shellRenameItems(renamePaths.toSlice(), "video (1).mp4")
+        try shellRenameItems(renamePaths.toSlice(), "video (1).mp4")
         for index in 24
         {
             let numbered     = Path.combine(bulk, Format.toString("video (%).mp4", index + 1))
@@ -517,7 +517,7 @@ namespace Integration
 
         var rejected: WinFsp.MountedVolume
         discard catch rejected.open(box.container, wrongPassword(), box.mountPoint) as passwordError
-        rejected.close()
+        try rejected.close()
         try verify(passwordError != null, "a wrong password must not mount the container")
         try verify(not Directory.exists(driveRoot(box.mountPoint)), "a rejected password must not leave a drive mounted")
 
@@ -527,7 +527,7 @@ namespace Integration
         let root           = driveRoot(box.mountPoint)
         let persisted      = Path.combine(root, "Documents", "Renamed-Nested", "external-copy.bin")
         let recoveredAgain = Path.combine(box.root, "recovered-after-remount.bin")
-        File.duplicate(recoveredAgain, persisted)
+        try File.duplicate(recoveredAgain, persisted)
         let bytes = try File.readAllBytes(recoveredAgain)
         try verify(sameBytes(original, bytes.toSlice()), "file contents must persist across unmount and remount")
 
@@ -537,7 +537,7 @@ namespace Integration
 
         let newAfterRemount = Path.combine(root, "created-after-remount.txt")
         let text = "mounted twice"
-        discard File.writeAllBytes(newAfterRemount, Swag.makeSlice(cast(const [*] u8) text.buffer, text.count))
+        discard try File.writeAllBytes(newAfterRemount, Swag.makeSlice(cast(const [*] u8) text.buffer, text.count))
         try verify((try File.readAllText(newAfterRemount)) == text, "the remounted drive must remain writable")
 
         try box.unmountVolume()
@@ -554,7 +554,7 @@ namespace Integration
         hidden.close()
         try box.mountVolume(HiddenPassword)
         let secret = Path.combine(driveRoot(box.mountPoint), "secret.txt")
-        discard File.writeAllBytes(secret, "hidden integration bytes")
+        discard try File.writeAllBytes(secret, "hidden integration bytes")
         try box.unmountVolume()
 
         try box.mountVolume(password(), HiddenPassword)
@@ -634,7 +634,7 @@ namespace Integration
         trace(Format.toString("DRIVE: %", box.mountPoint))
 
         var payload = try createPayload(512 * 1024 + 37)
-        discard File.writeAllBytes(box.source, payload.toSlice())
+        discard try File.writeAllBytes(box.source, payload.toSlice())
         try verify(File.exists(box.source), "the external source file must exist")
 
         Console.println("Creating encrypted fixed-size container...")

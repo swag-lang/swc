@@ -150,7 +150,7 @@ impl Decoder
         for .mcusPerRow
         {
             if .restartInterval and (.restartsLeft == 0) do
-                .restartProcess()
+                try .restartProcess()
 
             for mcuBlock in .blocksPerMcu
             {
@@ -225,11 +225,11 @@ impl Decoder
         if .mcuLinesLeft == 0
         {
             if .progressiveFlag do
-                .loadNextRow()
+                try .loadNextRow()
             else do
-                .decodeNextRow()
+                try .decodeNextRow()
             if .totalLinesLeft <= .maxMcuSizeY do
-                .findEoi()
+                try .findEoi()
             .transformRow()
             .mcuLinesLeft = .maxMcuSizeY
         }
@@ -420,13 +420,13 @@ impl Decoder
 
     mtd initScan()->bool fail
     {
-        let res = .locateSosMarker()
+        let res = try .locateSosMarker()
         if not res do
             return false
 
         .calcMcuBlockOrder()
-        .checkHuffTables()
-        .checkQuantTables()
+        try .checkHuffTables()
+        try .checkQuantTables()
 
         Memory.clear(.lastDcVal, cast(u64) .compsInFrame * #sizeof(u32))
 
@@ -657,7 +657,7 @@ impl Decoder
 
     mtd initSequential() fail
     {
-        let res = .initScan()
+        let res = try .initScan()
         if not res do
             fail InvalidFormatError{"unexpected marker"}
     }

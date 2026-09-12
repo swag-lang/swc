@@ -85,8 +85,8 @@ This is a high level encoder that needs a specific implementation like [[Core.Se
 ```swag
 var buf:     ConcatBuffer
 var encoder: Encoder'Write.TagBin
-encoder.writeAll(&buf, myStruct)
-File.writeAllBytes(file, buf)
+try encoder.writeAll(&buf, myStruct)
+try File.writeAllBytes(file, buf)
 ```
 
 Can be serialized:
@@ -129,7 +129,7 @@ impl Encoder
     {
         #static if T == Write.TagBin do
             .serializer.setRootType(rootType)
-        .start(result)
+        try .start(result)
     }
 
     // End serialization
@@ -145,8 +145,11 @@ impl Encoder
             fail SerializationError{"missing type value pointed type"}
         if not data do
             fail SerializationError{"missing data for type value"}
-        .serializer.beginElement(typeVal)
-        .writeValue(data, typeVal.pointedType)
+        #static if T == Write.TagBin do
+            try .serializer.beginElement(typeVal)
+        else do
+            .serializer.beginElement(typeVal)
+        try .writeValue(data, typeVal.pointedType)
         .serializer.endElement(typeVal)
     }
 
@@ -169,7 +172,7 @@ impl Encoder
                 if not itf.itable and type.flags & .Nullable == 0 do
                     fail SerializationError{"non-null interface value is missing"}
                 let objType = itf.itable ? cast(const *Swag.TypeInfoStruct?) itf.itable[] : null
-                discard .serializer.interfaceTypeKey(objType)
+                discard try .serializer.interfaceTypeKey(objType)
             }
         }
 
@@ -221,14 +224,14 @@ impl Encoder
 
             #static if T == Write.TagBin
             {
-                .serializer.writeInterfaceType(objType)
+                try .serializer.writeInterfaceType(objType)
                 if objType
                 {
                     if not itf.obj do
                         fail SerializationError{"interface object is missing"}
                     var objValue: TypeValue
                     objValue.pointedType = objType
-                    .writeTypeValue(objValue, itf.obj)
+                    try .writeTypeValue(objValue, itf.obj)
                 }
 
                 return
@@ -236,15 +239,15 @@ impl Encoder
 
             var typeVal: TypeValue
             typeVal.pointedType = #typeof(typeinfo?)
-            .writeTypeValue(typeVal, &objType)
+            try .writeTypeValue(typeVal, &objType)
 
             if objType
             {
-                .writeTypeValue(typeVal, &itfType)
+                try .writeTypeValue(typeVal, &itfType)
                 typeVal.pointedType = objType
                 if not itf.obj do
                     fail SerializationError{"missing interface object"}
-                .writeTypeValue(typeVal, itf.obj)
+                try .writeTypeValue(typeVal, itf.obj)
             }
 
             return
@@ -281,7 +284,7 @@ impl Encoder
                     var bufArr = cast(const [*] u8?) ptrArr.buffer
                     for i in ptrArr.count
                     {
-                        .writeValue(bufArr!, safeValueType)
+                        try .writeValue(bufArr!, safeValueType)
                         bufArr += safeValueType.sizeof
                     }
                 }
@@ -293,13 +296,17 @@ impl Encoder
             let itf = Swag.makeInterface(data, type, ISerialize)
             if itf != null
             {
-                if itf.write(cast(IEncoder) me[]) do
+                if try itf.write(cast(IEncoder) me[]) do
                     return
             }
 
             // Start a fields section
             let structType = cast(const *TypeInfoStruct) type
-            let treated    = .serializer.beginStruct(structType, data)
+            var treated: bool
+            #static if T == Write.TagBin do
+                treated = try .serializer.beginStruct(structType, data)
+            else do
+                treated = .serializer.beginStruct(structType, data)
             defer #nofail .serializer.endStruct()
             if treated do
                 return
@@ -307,12 +314,12 @@ impl Encoder
             // Generic structure save, driven by the shared per-type plan: the field
             // filter, the crcs and the compression policy are computed once per type
             // instead of once per instance.
-            let plan = planFor(structType)
+            let plan = try planFor(structType)
             for &pf in plan.fields
             {
-                if not itf or not itf.writeElement(pf.value, cast(const [*] u8?) data + pf.value.offset, cast(IEncoder) me[])
+                if not itf or not (try itf.writeElement(pf.value, cast(const [*] u8?) data + pf.value.offset, cast(IEncoder) me[]))
                 {
-                    .writeTypeValue(pf.value, cast(const [*] u8?) data + pf.value.offset)
+                    try .writeTypeValue(pf.value, cast(const [*] u8?) data + pf.value.offset)
                 }
             }
 
@@ -332,7 +339,7 @@ impl Encoder
             var bufArr = cast(const [*] u8) data
             for typeArr.count
             {
-                .writeValue(bufArr, elemType)
+                try .writeValue(bufArr, elemType)
                 bufArr += elemType.sizeof
             }
 
@@ -348,9 +355,9 @@ impl Encoder
     mtd writeAll(result: *ConcatBuffer, value: any) fail
     {
         Swag.assert(Reflection.isStruct(Swag.kindOf(value)))
-        .start(result, Swag.kindOf(value))
-        .writeValue(value.buffer, Swag.kindOf(value))
-        end(me)
+        try .start(result, Swag.kindOf(value))
+        try .writeValue(value.buffer, Swag.kindOf(value))
+        try end(me)
     }
 }
 
@@ -378,7 +385,10 @@ impl IEncoder for Encoder
     // Begins field.
     mtd impl beginField(val: Swag.TypeValue) fail
     {
-        .serializer.beginElement(val)
+        #static if T == Write.TagBin do
+            try .serializer.beginElement(val)
+        else do
+            .serializer.beginElement(val)
         .serializer.beginValue()
     }
 
@@ -404,7 +414,7 @@ impl IEncoder for Encoder
     // Defines write.
     mtd impl write(data: const [*] void, type: typeinfo) fail
     {
-        .writeValue(data, type)
+        try .writeValue(data, type)
     }
 
     // Writes buffer u8.

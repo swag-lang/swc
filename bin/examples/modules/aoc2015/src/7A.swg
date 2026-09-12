@@ -54,7 +54,7 @@ using Core
 
     expect
     {
-        for &l in File.readAllLines(dataPath)
+        for &l in try File.readAllLines(dataPath)
         {
             l.replace("as", "_as")
             l.replace("is", "_is")
@@ -63,13 +63,13 @@ using Core
             l.replace("in", "_in")
 
             result += "internal const "
-            if r.match(#raw "(\w+) -> (\w+)", l[])
+            if try r.match(#raw "(\w+) -> (\w+)", l[])
             {
                 result += r[2]
                 result += " = "
                 result += r[1]
             }
-            elif r.match(#raw "(\w+) (\w+) (\w+) -> (\w+)", l[])
+            elif try r.match(#raw "(\w+) (\w+) (\w+) -> (\w+)", l[])
             {
                 result += r[4]
                 result += " = "
@@ -79,7 +79,7 @@ using Core
                 result += " "
                 result += r[3]
             }
-            elif r.match(#raw "NOT (\w+) -> (\w+)", l[])
+            elif try r.match(#raw "NOT (\w+) -> (\w+)", l[])
             {
                 result += r[2]
                 result += " = ~"

@@ -488,13 +488,13 @@ const SHCNF_IDLIST       = 0x0000'u32
     func SHGetSpecialFolderPathA(hwnd: HWND, pszPath: LPSTR, csidl: s32, fCreate: BOOL) fail
     {
         if not Shell32Priv.SHGetSpecialFolderPathA(hwnd, pszPath, csidl, fCreate) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func SHGetSpecialFolderPathW(hwnd: HWND, pszPath: LPWSTR, csidl: s32, fCreate: BOOL) fail
     {
         if not Shell32Priv.SHGetSpecialFolderPathW(hwnd, pszPath, csidl, fCreate) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     #[Swag.Discardable]
@@ -502,7 +502,7 @@ const SHCNF_IDLIST       = 0x0000'u32
     {
         let res = Shell32Priv.ExtractIconExA(lpszFile, nIconIndex, phiconLarge, phiconSmall, nIcons)
         if res == Swag.U32.Max do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         return res
     }
 
@@ -511,7 +511,7 @@ const SHCNF_IDLIST       = 0x0000'u32
     {
         let res = Shell32Priv.ExtractIconExW(lpszFile, nIconIndex, phiconLarge, phiconSmall, nIcons)
         if res == Swag.U32.Max do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         return res
     }
 
@@ -519,26 +519,26 @@ const SHCNF_IDLIST       = 0x0000'u32
     {
         let result = Shell32Priv.SHGetStockIconInfo(siid, uFlags, psii)
         if result != S_OK do
-            failWinError(cast #bit (u32) result)
+            try failWinError(cast #bit (u32) result)
     }
 
     func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA) fail
     {
         if not Shell32Priv.Shell_NotifyIconA(dwMessage, lpData) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func Shell_NotifyIconW(dwMessage: DWORD, lpData: *NOTIFYICONDATAW) fail
     {
         if not Shell32Priv.Shell_NotifyIconW(dwMessage, lpData) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE fail
     {
         let result = Shell32Priv.ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
         if cast(u64) result <= 32 do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         return result
     }
 
@@ -546,7 +546,7 @@ const SHCNF_IDLIST       = 0x0000'u32
     {
         let result = Shell32Priv.ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
         if cast(u64) result <= 32 do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         return result
     }
 }

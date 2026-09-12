@@ -33,7 +33,7 @@ impl Image
         infos.bmiHeader.biPlanes      = 1
         infos.bmiHeader.biBitCount    = bitmap.bmBitsPixel
         infos.bmiHeader.biCompression = BI_RGB
-        GetDIBits(dc, hbitmap, 0, cast() bitmap.bmHeight, cast([*] u8) result.pixels.storage(), &infos, cast() DIB_RGB_COLORS)
+        try GetDIBits(dc, hbitmap, 0, cast() bitmap.bmHeight, cast([*] u8) result.pixels.storage(), &infos, cast() DIB_RGB_COLORS)
 
         return result
     }
@@ -52,8 +52,8 @@ impl Image
         bi.bmiHeader.biCompression = BI_RGB
 
         var ppvBits: *u8?
-        let hbmp = CreateDIBSection(null, &bi, cast() DIB_RGB_COLORS, &ppvBits, null, 0)
-        defer #nofail DeleteObject(cast() hbmp)
+        let hbmp = try CreateDIBSection(null, &bi, cast() DIB_RGB_COLORS, &ppvBits, null, 0)
+        defer #nofail try DeleteObject(cast() hbmp)
 
         Memory.copy(ppvBits!, dib.pixels.buffer, dib.byteCount)
 
@@ -65,7 +65,7 @@ impl Image
         ii.fIcon    = TRUE
         ii.hbmMask  = hbmp
         ii.hbmColor = hbmp
-        return CreateIconIndirect(&ii)
+        return try CreateIconIndirect(&ii)
     }
 
     // Creates an image from a Windows icon handle.
@@ -74,13 +74,13 @@ impl Image
         var result: retval
         var ii:     ICONINFO
 
-        GetIconInfo(hicon, &ii)
-        result = fromBitmapHandle(ii.hbmColor)
+        try GetIconInfo(hicon, &ii)
+        result = try fromBitmapHandle(ii.hbmColor)
 
         if ii.hbmMask != null do
-            DeleteObject(cast() ii.hbmMask)
+            try DeleteObject(cast() ii.hbmMask)
         if ii.hbmColor != null do
-            DeleteObject(cast() ii.hbmColor)
+            try DeleteObject(cast() ii.hbmColor)
 
         return result
     }
@@ -88,6 +88,6 @@ impl Image
     // Creates an image from a Windows bitmap handle.
     func from(hbitmap: HBITMAP)->Image fail
     {
-        return fromBitmapHandle(hbitmap)
+        return try fromBitmapHandle(hbitmap)
     }
 }

@@ -22,7 +22,7 @@ namespace WinFsp
         let startService      = GetProcAddress(g_WinFsp.module, ("FspFsctlStartService").buffer)
 
         if not create or not destroy or not setMountPoint or not removeMountPoint or not startDispatcher or not stopDispatcher or not addDirInfo or not setGuard or not setSecurity or not deleteSecurity or not registerServer or not unregisterServer or not setDebugLogHandle or not startService do
-            failWith("The bundled WinFsp runtime does not expose the expected ABI.")
+            try failWith("The bundled WinFsp runtime does not expose the expected ABI.")
 
         g_WinFsp.fsCreate                 = cast(FspFileSystemCreateFn) create!
         g_WinFsp.destroy                  = cast(FspFileSystemDeleteFn) destroy!
@@ -141,7 +141,7 @@ namespace WinFsp
                 g_WinFsp.runtimeRoot.clear()
             }
 
-            failWith("Windows could not load the signed WinFsp runtime.")
+            try failWith("Windows could not load the signed WinFsp runtime.")
         }
 
         traceWinFspStage("resolving WinFsp exports")

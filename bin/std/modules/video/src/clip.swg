@@ -97,11 +97,11 @@ impl Clip
     // options structure, such as [[Avi.EncodeOptions]].
     mtd const encode(fileName: string, options: any? = null)->ConcatBuffer fail
     {
-        .validateEncode(fileName)
+        try .validateEncode(fileName)
 
         var result: retval
-        var writer = Writer.createMemory(fileName, &result, .frameWidth, .frameHeight, .rate, options)
-        .write(&writer)
+        var writer = try Writer.createMemory(fileName, &result, .frameWidth, .frameHeight, .rate, options)
+        try .write(&writer)
         return result
     }
 
@@ -124,10 +124,10 @@ impl Clip
     // ```
     mtd const save(fileName: string, options: any? = null) fail
     {
-        .validateEncode(fileName)
+        try .validateEncode(fileName)
 
-        var writer = Writer.create(fileName, .frameWidth, .frameHeight, .rate, options)
-        .write(&writer)
+        var writer = try Writer.create(fileName, .frameWidth, .frameHeight, .rate, options)
+        try .write(&writer)
     }
 
     // Rejects a request no clip can satisfy, before a stream is created or a file is opened.
@@ -146,7 +146,7 @@ impl Clip
     private mtd const write(writer: *Writer) fail
     {
         for frame in .frames do
-            writer.addFrame(frame[])
-        writer.end()
+            try writer.addFrame(frame[])
+        try writer.end()
     }
 }

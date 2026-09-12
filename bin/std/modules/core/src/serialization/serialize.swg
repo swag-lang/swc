@@ -89,7 +89,7 @@ impl Serializer
     {
         .encode  = encoder
         .isWrite = true
-        .encode.start(output)
+        try .encode.start(output)
     }
 
     // Start decoding
@@ -97,7 +97,7 @@ impl Serializer
     {
         .decode  = decoder
         .isWrite = false
-        .decode.start(input)
+        try .decode.start(input)
     }
 
     // End encoding/decoding
@@ -106,12 +106,12 @@ impl Serializer
         if .isWrite
         {
             let encode = .encode!
-            encode.end()
+            try encode.end()
         }
         else
         {
             let decode = .decode!
-            decode.end()
+            try decode.end()
         }
     }
 
@@ -121,12 +121,12 @@ impl Serializer
         if .isWrite
         {
             let encode = .encode!
-            encode.beginSection(kind)
+            try encode.beginSection(kind)
         }
         else
         {
             let decode = .decode!
-            decode.beginSection(kind)
+            try decode.beginSection(kind)
         }
     }
 
@@ -136,12 +136,12 @@ impl Serializer
         if .isWrite
         {
             let encode = .encode!
-            encode.endSection()
+            try encode.endSection()
         }
         else
         {
             let decode = .decode!
-            decode.endSection()
+            try decode.endSection()
         }
     }
 
@@ -157,8 +157,8 @@ impl Serializer
         if .isWrite
         {
             let encode = .encode!
-            encode.beginField(value)
-            defer #nofail encode.endField(value)
+            try encode.beginField(value)
+            defer #nofail try encode.endField(value)
 
             #static switch MT
             {
@@ -173,30 +173,30 @@ impl Serializer
             case bool:      encode.writeBool(res[])
             case f32:       encode.writeF32(res[])
             case f64:       encode.writeF64(res[])
-            default:        encode.write(res, #typeof(MT))
+            default:        try encode.write(res, #typeof(MT))
             }
         }
         else
         {
             let decode = .decode!
-            if not decode.beginField(value) do
+            if not (try decode.beginField(value)) do
                 return
-            defer #nofail decode.endField(value)
+            defer #nofail try decode.endField(value)
 
             #static switch MT
             {
-            case s8:        res[] = decode.readS8()
-            case s16:       res[] = decode.readS16()
-            case s32:       res[] = decode.readS32()
-            case s64:       res[] = decode.readS64()
-            case u8:        res[] = decode.readU8()
-            case u16:       res[] = decode.readU16()
-            case u32, rune: res[] = decode.readU32()
-            case u64:       res[] = decode.readU64()
-            case bool:      res[] = decode.readBool()
-            case f32:       res[] = decode.readF32()
-            case f64:       res[] = decode.readF64()
-            default:        decode.read(res, #typeof(MT))
+            case s8:        res[] = try decode.readS8()
+            case s16:       res[] = try decode.readS16()
+            case s32:       res[] = try decode.readS32()
+            case s64:       res[] = try decode.readS64()
+            case u8:        res[] = try decode.readU8()
+            case u16:       res[] = try decode.readU16()
+            case u32, rune: res[] = try decode.readU32()
+            case u64:       res[] = try decode.readU64()
+            case bool:      res[] = try decode.readBool()
+            case f32:       res[] = try decode.readF32()
+            case f64:       res[] = try decode.readF64()
+            default:        try decode.read(res, #typeof(MT))
             }
         }
     }
@@ -205,6 +205,6 @@ impl Serializer
     #[Swag.Mixin]
     mtd(MT) serialize(name: string, res: *MT) fail
     {
-        .serialize(name, Hash.Crc32.compute(name), res)
+        try .serialize(name, Hash.Crc32.compute(name), res)
     }
 }

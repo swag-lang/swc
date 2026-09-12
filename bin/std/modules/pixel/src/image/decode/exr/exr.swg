@@ -187,8 +187,8 @@ impl Part
         var partType:               String
         while offset[] < buffer.count and buffer[offset[]]
         {
-            let name = readText(buffer, offset, 255)
-            let type = readText(buffer, offset, 255)
+            let name = try readText(buffer, offset, 255)
+            let type = try readText(buffer, offset, 255)
             if offset[] + 4 > buffer.count do
                 fail InvalidFormatError{"OpenEXR attribute size is truncated"}
             let size = cast(u64) readU32(buffer.buffer + offset[])
@@ -197,7 +197,7 @@ impl Part
                 fail InvalidFormatError{"OpenEXR attribute exceeds the file"}
             let payload = buffer[offset[] until offset[] + size]
             if name.toString() == "channels" and type.toString() == "chlist" do
-                result.channels = parseChannels(payload)
+                result.channels = try parseChannels(payload)
             elif name.toString() == "compression" and type.toString() == "compression"
             {
                 if size != 1 do
@@ -269,7 +269,7 @@ impl Part
         result.info.y           = yMin
         result.info.pixelFormat = format
         result.yMin             = yMin
-        options.checkImage(result.info.width, result.info.height, format)
+        try options.checkImage(result.info.width, result.info.height, format)
         let linesPerChunk = result.compression == 3 ? 16'u64 : 1'u64
         result.chunkCount = (cast(u64) height + linesPerChunk - 1) / linesPerChunk
         if hasChunkCount and declaredChunks != result.chunkCount do
@@ -325,7 +325,7 @@ impl Part
             if .compression and packedSize != expected
             {
                 var zlib: Compress.ZLib
-                unpacked = zlib.decompress(pixels, expected)
+                unpacked = try zlib.decompress(pixels, expected)
                 if unpacked.count != expected do
                     fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
                 undoZipPredictor(unpacked.toSlice())
@@ -334,7 +334,7 @@ impl Part
 
             if pixels.count != expected do
                 fail InvalidFormatError{"OpenEXR scanline chunk has an invalid size"}
-            writeChunk(&result, .channels.toSlice(), pixels, firstY, rows, .yMin)
+            try writeChunk(&result, .channels.toSlice(), pixels, firstY, rows, .yMin)
         }
 
         return result
@@ -359,8 +359,8 @@ impl IImageSetDecoder for Decoder
         var result: retval
         for
         {
-            options.checkFrameCount(.parts.count + 1)
-            var part = Part.parse(buffer, &offset, .multipart, options)
+            try options.checkFrameCount(.parts.count + 1)
+            var part = try Part.parse(buffer, &offset, .multipart, options)
             result.frames.add(part.info)
             .parts.add(#move part)
             if not .multipart do
@@ -389,7 +389,7 @@ impl IImageSetDecoder for Decoder
     {
         if index >= .parts.count do
             fail InvalidFormatError{"OpenEXR part index is out of range"}
-        return .parts[index].decode(.bytes!, index, .multipart, options)
+        return try .parts[index].decode(.bytes!, index, .multipart, options)
     }
 }
 
@@ -400,7 +400,7 @@ impl IImageDecoder for Decoder
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
         let multiple: IImageSetDecoder = me
-        discard multiple.open(buffer, options)
-        return multiple.readFrame(0, options)
+        discard try multiple.open(buffer, options)
+        return try multiple.readFrame(0, options)
     }
 }

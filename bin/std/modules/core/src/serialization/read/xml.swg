@@ -52,14 +52,14 @@ public impl Xml
 
     internal mtd readStartTag()->string fail
     {
-        let tag = .readTag()
+        let tag = try .readTag()
         .stackTags.add(tag)
         return tag
     }
 
     internal mtd readEndTag() fail
     {
-        let tag   = .readTag()
+        let tag   = try .readTag()
         let start = .stackTags.popBack()
         if tag[1 to ] != start do
             fail .getError(Format.toString("invalid end tag [[%]] for [[%]]", tag, start))
@@ -114,31 +114,31 @@ public impl Xml
     // Begins section.
     mtd beginSection(_kind: SectionKind) fail
     {
-        discard .readTag()
+        discard try .readTag()
     }
 
     // Performs the end section operation.
     mtd endSection() fail
     {
-        discard .readTag()
+        discard try .readTag()
     }
 
     // Begins root.
     mtd beginRoot() fail
     {
-        discard .readStartTag()
+        discard try .readStartTag()
     }
 
     // Performs the end root operation.
     mtd endRoot() fail
     {
-        .readEndTag()
+        try .readEndTag()
     }
 
     // Begins element.
     mtd beginElement(val: TypeValue)->bool fail
     {
-        let tag = .readStartTag()
+        let tag = try .readStartTag()
         if tag != val.name do
             fail .getError("invalid property name")
         return true
@@ -147,7 +147,7 @@ public impl Xml
     // Performs the end element operation.
     mtd endElement(_val: TypeValue) fail
     {
-        .readEndTag()
+        try .readEndTag()
     }
 
     {

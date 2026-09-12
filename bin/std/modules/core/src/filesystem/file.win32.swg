@@ -9,7 +9,7 @@ func deleteNative(fullName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(fullName)
     catch DeleteFileW(winPath.buffer) as err
-    Errors.transformWinErrors(err, fullName)
+    try Errors.transformWinErrors(err, fullName)
 }
 
 // Moves `oldName` to `newName`, replacing an existing file and permitting a cross-volume copy.
@@ -18,7 +18,7 @@ func moveNative(newName, oldName: string) fail
     let winOld = Utf16.toZeroTerminated(oldName)
     let winNew = Utf16.toZeroTerminated(newName)
     catch MoveFileExW(winOld.buffer, winNew.buffer, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED) as err
-    Errors.transformWinErrors(err, oldName)
+    try Errors.transformWinErrors(err, oldName)
 }
 
 // Opens an existing file exclusively and requests its modification time be set to the current UTC time.
@@ -27,14 +27,14 @@ func touchNative(fullName: string) fail
     let winPath = Utf16.toZeroTerminated(fullName)
 
     let hFile = catch CreateFileW(winPath.buffer, FILE_WRITE_ATTRIBUTES, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null) as err
-    Errors.transformWinErrors(err, fullName)
+    try Errors.transformWinErrors(err, fullName)
     defer CloseHandle(hFile)
 
     var ft: FILETIME
     var st: SYSTEMTIME
     GetSystemTime(&st)
-    SystemTimeToFileTime(&st, &ft)
-    SetFileTime(hFile, null, null, &ft)
+    try SystemTimeToFileTime(&st, &ft)
+    try SetFileTime(hFile, null, null, &ft)
 }
 
 // Returns true if the given file exists
@@ -99,6 +99,6 @@ func openNative(fullName: string, mode: FileMode, access: FileAccess, share: Fil
 
     let winPath = Utf16.toZeroTerminated(fullName)
     let hFile   = catch CreateFileW(winPath.buffer, wAccess, wShare, securityPtr, wMode, FILE_ATTRIBUTE_NORMAL, null) as err
-    Errors.transformWinErrors(err, fullName)
+    try Errors.transformWinErrors(err, fullName)
     return cast(FileHandle) hFile
 }

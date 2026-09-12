@@ -191,7 +191,7 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
 
     while offset < source.count
     {
-        var block = chacha20Block(key, counter, nonce)
+        var block = try chacha20Block(key, counter, nonce)
         let count = Math.min(source.count - offset, ChaCha20BlockSize)
 
         // Apply the key stream a word at a time; the tail of the final

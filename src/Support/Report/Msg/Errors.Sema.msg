@@ -237,7 +237,7 @@ SWC_DIAG_DEF(sema_err_continue_not_in_loop, Error, "'continue' cannot be used in
 SWC_DIAG_DEF(sema_err_continue_in_scope, Error, "cannot restart a '#scope' with 'continue'; [help] use a 'for' or 'while' loop when the block needs to repeat")
 SWC_DIAG_DEF(sema_err_try_outside_fallible_context, Error, "'try' can only be used in a context that can propagate errors; [help] mark the enclosing function with 'fail', or use it inside 'catch'/'expect'")
 SWC_DIAG_DEF(sema_err_fail_outside_fallible_context, Error, "'fail' can only be used in a context that can propagate errors; [help] mark the enclosing function with 'fail', or use it inside 'catch'/'expect'")
-SWC_DIAG_DEF(sema_err_fallible_call_requires_handler, Error, "call to fallible function '{sym}' needs a fallible or handled context; [help] mark the enclosing function with 'fail', or use 'catch'/'expect' to handle it")
+SWC_DIAG_DEF(sema_err_fallible_call_requires_handler, Error, "call to fallible function '{sym}' needs 'try', 'catch', or 'expect'; [help] use 'try' to propagate the error, 'catch' to handle it, or 'expect' to assert success")
 SWC_DIAG_DEF(sema_err_error_mgmt_operand_not_fallible, Error, "'{tok}' needs a fallible expression or block; [help] apply it to a call to a function declared with 'fail', or to a block that contains one")
 SWC_DIAG_DEF(sema_err_orelse_not_nullable_type, Error, "'orelse' substitutes a missing value, but '{type}' can never be null; [help] to substitute a zero value, test it: 'value != 0 ? value : fallback'")
 SWC_DIAG_DEF(sema_err_unknown_scope_name, Error, "cannot find an enclosing '#scope' named '{sym}'; [help] check the name, or add the matching enclosing scope")

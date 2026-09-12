@@ -1240,7 +1240,7 @@ public impl Deflate
         d.srcBufLeft = src.count
         d.outBufOfs  = result.count
 
-        .compress()
+        try .compress()
         .flushBlock(true)
         Swag.assert(not d.lookaheadSize and not d.srcBufLeft)
 

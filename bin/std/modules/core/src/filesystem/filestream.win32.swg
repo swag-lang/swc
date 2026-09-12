@@ -11,7 +11,7 @@ impl FileStream
     {
         var read: DWORD
         if not ReadFile(.handle, buffer, length, &read, null) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         return read
     }
 
@@ -20,7 +20,7 @@ impl FileStream
     {
         var written: DWORD
         discard catch WriteFile(.handle, buffer, length, &written, null) as err
-        Errors.transformWinErrors(err)
+        try Errors.transformWinErrors(err)
         return written
     }
 
@@ -35,7 +35,7 @@ impl FileStream
     {
         var result: LARGE_INTEGER
         catch GetFileSizeEx(cast(HANDLE) .handle, &result) as err
-        Errors.transformWinErrors(err, .name)
+        try Errors.transformWinErrors(err, .name)
         return cast(u64) result
     }
 
@@ -43,14 +43,14 @@ impl FileStream
     mtd resizeNative() fail
     {
         catch SetEndOfFile(cast(HANDLE) .handle) as err
-        Errors.transformWinErrors(err, .name)
+        try Errors.transformWinErrors(err, .name)
     }
 
     // Flushes buffered file data through the Windows file handle.
     mtd flushNative() fail
     {
         catch FlushFileBuffers(cast(HANDLE) .handle) as err
-        Errors.transformWinErrors(err, .name)
+        try Errors.transformWinErrors(err, .name)
     }
 
     // Returns the current byte offset from the beginning of the file.
@@ -58,7 +58,7 @@ impl FileStream
     {
         var result: LARGE_INTEGER
         catch SetFilePointerEx(cast(HANDLE) .handle, 0, &result, FILE_CURRENT) as err
-        Errors.transformWinErrors(err, .name)
+        try Errors.transformWinErrors(err, .name)
         return cast(u64) result
     }
 
@@ -77,6 +77,6 @@ impl FileStream
         // `SetFilePointer` form truncates every offset with bit 31 set, so a file of 2 GB or more
         // cannot be addressed through it at all.
         catch SetFilePointerEx(cast(HANDLE) .handle, cast #bit (LARGE_INTEGER) offset, null, seekMode) as err
-        Errors.transformWinErrors(err, .name)
+        try Errors.transformWinErrors(err, .name)
     }
 }

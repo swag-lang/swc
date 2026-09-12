@@ -30,30 +30,24 @@ using Swag
 
 #test
 {
-    expect
-    {
-        var boxed = Parser.RegExp.create(#raw "(\d+)x(\d+)x(\d+)")
+    var boxed = expect Parser.RegExp.create(#raw "(\d+)x(\d+)x(\d+)")
 
-        Swag.assert(boxed.match("2x3x4"))
-        Swag.assert(boxed.getCapture(1) == "2")
-        Swag.assert(boxed.getCapture(2) == "3")
-        Swag.assert(boxed.getCapture(3) == "4")
-    }
+    Swag.assert(boxed.match("2x3x4"))
+    Swag.assert(boxed.getCapture(1) == "2")
+    Swag.assert(boxed.getCapture(2) == "3")
+    Swag.assert(boxed.getCapture(3) == "4")
 }
 
 #test
 {
-    expect
-    {
-        var boxed = Parser.RegExp.create(#raw "(\d+)x(\d+)x(\d+)")
+    var boxed = expect Parser.RegExp.create(#raw "(\d+)x(\d+)x(\d+)")
 
-        for 256
-        {
-            Swag.assert(boxed.match("2x3x4"))
-            Swag.assert(boxed.getCapture(1) == "2")
-            Swag.assert(boxed.getCapture(2) == "3")
-            Swag.assert(boxed.getCapture(3) == "4")
-        }
+    for 256
+    {
+        Swag.assert(boxed.match("2x3x4"))
+        Swag.assert(boxed.getCapture(1) == "2")
+        Swag.assert(boxed.getCapture(2) == "3")
+        Swag.assert(boxed.getCapture(3) == "4")
     }
 }
 
@@ -296,19 +290,16 @@ using Swag
 
 #test
 {
-    expect
+    var repeated = expect Parser.RegExp.create(#raw "([a-z]+)-\1")
+
+    Swag.assert(repeated.match("abc-abc"))
+    Swag.assert(repeated.getCapture(1) == "abc")
+    Swag.assert(not repeated.match("abc-ab"))
+
+    for 256
     {
-        var repeated = Parser.RegExp.create(#raw "([a-z]+)-\1")
-
-        Swag.assert(repeated.match("abc-abc"))
-        Swag.assert(repeated.getCapture(1) == "abc")
-        Swag.assert(not repeated.match("abc-ab"))
-
-        for 256
-        {
-            Swag.assert(repeated.match("xyz-xyz"))
-            Swag.assert(repeated.getCapture(1) == "xyz")
-        }
+        Swag.assert(repeated.match("xyz-xyz"))
+        Swag.assert(repeated.getCapture(1) == "xyz")
     }
 }
 
@@ -564,17 +555,14 @@ using Swag
 
 #test
 {
-    expect
-    {
-        var anchored = Parser.RegExp.create(#raw "^(\d+)")
+    var anchored = expect Parser.RegExp.create(#raw "^(\d+)")
 
-        for 256
-        {
-            let prefix = anchored.partialMatch("789xyz")
-            Swag.assert(prefix != null)
-            Swag.assert(cast(string?) prefix == "789")
-            Swag.assert(anchored.getCapture(1) == "789")
-        }
+    for 256
+    {
+        let prefix = anchored.partialMatch("789xyz")
+        Swag.assert(prefix != null)
+        Swag.assert(cast(string?) prefix == "789")
+        Swag.assert(anchored.getCapture(1) == "789")
     }
 }
 
@@ -601,25 +589,22 @@ using Swag
 
 #test
 {
-    expect
+    var captures = expect Parser.RegExp.create(#raw "(\d+)")
+
+    for 256
     {
-        var captures = Parser.RegExp.create(#raw "(\d+)")
+        let first = captures.grep("a12")
+        Swag.assert(first != null)
+        Swag.assert(cast(string?) first == "12")
+        Swag.assert(captures.getCapture(1) == "12")
 
-        for 256
-        {
-            let first = captures.grep("a12")
-            Swag.assert(first != null)
-            Swag.assert(cast(string?) first == "12")
-            Swag.assert(captures.getCapture(1) == "12")
+        Swag.assert(captures.grep("abc") == null)
+        Swag.assert(captures.captures().count == 0)
 
-            Swag.assert(captures.grep("abc") == null)
-            Swag.assert(captures.captures().count == 0)
-
-            let second = captures.grep("34x")
-            Swag.assert(second != null)
-            Swag.assert(cast(string?) second == "34")
-            Swag.assert(captures.getCapture(1) == "34")
-        }
+        let second = captures.grep("34x")
+        Swag.assert(second != null)
+        Swag.assert(cast(string?) second == "34")
+        Swag.assert(captures.getCapture(1) == "34")
     }
 }
 

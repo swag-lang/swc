@@ -124,11 +124,11 @@ impl Driver
         .buses.allocator                = .allocationAllocator
 
         defer #fail .destroyNative()
-        .createNative(kind)
+        try .createNative(kind)
 
         .wakeupUpdate.init()
-        .updateTh.init(&updateThreadProc)
-        .updateTh.start()
+        try .updateTh.init(&updateThreadProc)
+        try .updateTh.start()
         .isCreated = true
     }
 
@@ -250,7 +250,7 @@ impl Driver
         return back
     }
 
-    mtd setOutputVolume(volume: f32) fail => .native.setOutputVolumeNative(volume)
+    mtd setOutputVolume(volume: f32) fail => try .native.setOutputVolumeNative(volume)
 
     mtd outputVolume()->f32 => .native.outputVolumeNative()
 }

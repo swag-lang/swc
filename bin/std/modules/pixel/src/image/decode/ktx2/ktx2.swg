@@ -158,7 +158,7 @@ impl Decoder
 
         var result: retval
         result.init(cast(s32) width, cast(s32) height, format, alphaMode)
-        options.checkImage(result.width, result.height, format)
+        try options.checkImage(result.width, result.height, format)
 
         let levelEntry  = HeaderSize + cast(u64) levelIndex * 24
         let levelOffset = readU64(buffer.buffer + levelEntry)
@@ -169,7 +169,7 @@ impl Decoder
         let imageCount = cast(u64) Math.max(layerCount, 1'u32) * faceCount * Math.max(depth >> levelIndex, 1'u32)
         if imageCount == 0 or rawLength % imageCount do
             fail InvalidFormatError{"KTX2 base level has an invalid layer size"}
-        options.checkFrameCount(imageCount)
+        try options.checkFrameCount(imageCount)
         if imageIndex >= imageCount do
             fail InvalidFormatError{"KTX2 image index is out of range"}
         let oneImageLength = blocks == .None ? result.byteCount : cast(u64) ((width + 3) / 4) * ((height + 3) / 4) * TextureBlocks.blockBytes(blocks)
@@ -207,7 +207,7 @@ impl Decoder
 impl IImageDecoder for Decoder
 {
     mtd impl format()->ImageFormat => {"KTX2 - Khronos Texture", ".ktx2"}
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => .decodeImage(buffer, options)
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => try .decodeImage(buffer, options)
 }
 
 impl IImageSetDecoder for Decoder
@@ -218,16 +218,16 @@ impl IImageSetDecoder for Decoder
         .frames.clear()
         var probeOptions = options
         probeOptions.decodePixels = false
-        discard .decodeImage(buffer, probeOptions)
+        discard try .decodeImage(buffer, probeOptions)
         let levels = Math.max(readU32(buffer.buffer + 40), 1'u32)
         let layers = Math.max(readU32(buffer.buffer + 32), 1'u32)
         let faces  = readU32(buffer.buffer + 36)
         let depth  = readU32(buffer.buffer + 28)
         for level in levels
         {
-            let probe  = .decodeImage(buffer, probeOptions, level)
+            let probe  = try .decodeImage(buffer, probeOptions, level)
             let slices = Math.max(depth >> level, 1'u32)
-            options.checkFrameCount(.frames.count + cast(u64) layers * faces * slices)
+            try options.checkFrameCount(.frames.count + cast(u64) layers * faces * slices)
             for layer in layers
             {
                 for face in faces
@@ -254,6 +254,6 @@ impl IImageSetDecoder for Decoder
         let buffer = .bytes!
         let faces  = readU32(buffer.buffer + 36)
         let slices = Math.max(readU32(buffer.buffer + 28) >> frame.level, 1'u32)
-        return .decodeImage(buffer, options, frame.level, (cast(u64) frame.layer * faces + frame.face) * slices + frame.depthSlice)
+        return try .decodeImage(buffer, options, frame.level, (cast(u64) frame.layer * faces + frame.face) * slices + frame.depthSlice)
     }
 }

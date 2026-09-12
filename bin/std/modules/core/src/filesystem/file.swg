@@ -47,7 +47,7 @@ enum FileShare
 func delete(fullName: string) fail
 {
     try Env.guardWrite(fullName)
-    deleteNative(fullName)
+    try deleteNative(fullName)
 }
 
 // Moves `oldName` to `newName`, replacing the destination when it exists.
@@ -55,14 +55,14 @@ func move(newName, oldName: string) fail
 {
     try Env.guardWrite(oldName)
     try Env.guardWrite(newName)
-    moveNative(newName, oldName)
+    try moveNative(newName, oldName)
 }
 
 // Updates a file's write time after enforcing the process sandbox.
 func touch(fullName: string) fail
 {
     try Env.guardWrite(fullName)
-    touchNative(fullName)
+    try touchNative(fullName)
 }
 
 // Opens a file with the requested creation, access, and sharing policy.
@@ -73,19 +73,19 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
 
     let canRead  = access.has(.Read)
     let canWrite = access.has(.Write)
-    let handle   = openNative(fullName, mode, access, share)
+    let handle   = try openNative(fullName, mode, access, share)
 
     var result: retval
     result.open(fullName, handle, canRead, canWrite, true)
     if mode == .Append do
-        result.seek(.End, 0)
+        try result.seek(.End, 0)
     return result
 }
 
 // Opens an existing file for shared reading.
 func openRead(fullName: string)->FileStream fail
 {
-    return open(fullName, .Open, .Read, .Read)
+    return try open(fullName, .Open, .Read, .Read)
 }
 
 // Opens a read-only stream that releases the file between operations.
@@ -96,7 +96,7 @@ func openRead(fullName: string)->FileStream fail
 // so even an exclusive writer can save the source. This is not a consistent snapshot.
 func openReadLive(fullName: string)->FileStream fail
 {
-    var result = open(fullName, .Open, .Read, .ReadWrite | .Delete)
+    var result = try open(fullName, .Open, .Read, .ReadWrite | .Delete)
     result.close()
     result.liveRead = true
     return result
@@ -105,21 +105,21 @@ func openReadLive(fullName: string)->FileStream fail
 // Creates or replaces a file for exclusive writing.
 func openWrite(fullName: string)->FileStream fail
 {
-    return open(fullName, .Create, .Write, .Zero)
+    return try open(fullName, .Create, .Write, .Zero)
 }
 
 // Reads the entire content of a file into a UTF-8 string
 func readAllText(fullname: string, encoding = TextEncoding.Utf8, normalizeEol = false)->String fail
 {
     var textReader: TextReader
-    textReader.open(fullname, encoding)
+    try textReader.open(fullname, encoding)
 
     // Normalized end of lines.
     if normalizeEol
     {
         var result: retval
         var res:    String
-        while textReader.readLine(&res)
+        while try textReader.readLine(&res)
         {
             result += res
             result += '\n'u8
@@ -128,18 +128,18 @@ func readAllText(fullname: string, encoding = TextEncoding.Utf8, normalizeEol = 
         return result
     }
 
-    return textReader.readToEnd()
+    return try textReader.readToEnd()
 }
 
 // Reads all lines from a file into an array of strings
 func readAllLines(fullname: string, encoding = TextEncoding.Utf8)->Array'String fail
 {
     var textReader: TextReader
-    textReader.open(fullname, encoding)
+    try textReader.open(fullname, encoding)
 
     var result: retval
     var res:    String
-    while textReader.readLine(&res) do
+    while try textReader.readLine(&res) do
         result.add(#move res)
     return result
 }
@@ -162,12 +162,12 @@ func readEachLines(fullname: string, encoding = TextEncoding.Utf8, stmt: #code(v
 // Reads the entire content of a file into an array of bytes
 func readAllBytes(fullname: string)->Array'u8 fail
 {
-    var stream = openRead(fullname)
+    var stream = try openRead(fullname)
 
     var result: retval
-    let len = stream.size()
+    let len = try stream.size()
     result.reserve(len)
-    result.count = stream.read(result.buffer, len)
+    result.count = try stream.read(result.buffer, len)
     return result
 }
 
@@ -175,19 +175,19 @@ func readAllBytes(fullname: string)->Array'u8 fail
 #[Swag.Discardable]
 func writeAllBytes(fullname: string, buffer: const [..] u8)->u64 fail
 {
-    var stream = openWrite(fullname)
-    return stream.write(buffer.buffer, buffer.count)
+    var stream = try openWrite(fullname)
+    return try stream.write(buffer.buffer, buffer.count)
 }
 
 // Writes the content of a ConcatBuffer to a file
 #[Swag.Discardable]
 func writeAllBytes(fullname: string, buffer: ConcatBuffer)->u64 fail
 {
-    var stream = openWrite(fullname)
+    var stream = try openWrite(fullname)
 
     var total = 0'u64
     for p in buffer do
-        total += stream.write(p.data, p.count)
+        total += try stream.write(p.data, p.count)
 
     return total
 }
@@ -196,13 +196,13 @@ func writeAllBytes(fullname: string, buffer: ConcatBuffer)->u64 fail
 #[Swag.Discardable]
 func writeAllLines(fullname: string, lines: Array'(string))->u64 fail
 {
-    var stream = openWrite(fullname)
+    var stream = try openWrite(fullname)
 
     var total = 0'u64
     for v in lines
     {
-        total += stream.write(v.buffer, v.count)
-        total += stream.write(("\n").buffer, 1)
+        total += try stream.write(v.buffer, v.count)
+        total += try stream.write(("\n").buffer, 1)
     }
 
     return total
@@ -211,6 +211,6 @@ func writeAllLines(fullname: string, lines: Array'(string))->u64 fail
 // Creates a duplicate of an existing file
 func duplicate(newName, oldName: string) fail
 {
-    var res = readAllBytes(oldName)
-    writeAllBytes(newName, res.toSlice())
+    var res = try readAllBytes(oldName)
+    try writeAllBytes(newName, res.toSlice())
 }

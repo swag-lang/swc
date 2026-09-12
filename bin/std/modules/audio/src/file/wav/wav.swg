@@ -251,17 +251,17 @@ private func readLayout(stream: *File.FileStream)->Layout fail
     var result: retval
     var stage:  Stage = FindRiff
     var header: ChunkHeader
-    let size = stream.size()
+    let size = try stream.size()
 
     for
     {
-        let seek = stream.position()
+        let seek = try stream.position()
         if seek >= size do
             fail InvalidFormatError{"invalid wav"}
         if seek & 1 do
-            stream.skip(1)
+            try stream.skip(1)
 
-        if not stream.readValue(&header) do
+        if not (try stream.readValue(&header)) do
             fail InvalidFormatError{"invalid wav"}
 
         switch header.chunkID
@@ -269,7 +269,7 @@ private func readLayout(stream: *File.FileStream)->Layout fail
         case .SND_WAV_FOURCC_RIFF:
             if stage == .FindRiff
             {
-                if not stream.readValue(&header.chunkID) do
+                if not (try stream.readValue(&header.chunkID)) do
                     fail InvalidFormatError{"invalid riff chunk"}
                 if header.chunkID != SND_WAV_FOURCC_WAVE do
                     fail InvalidFormatError{"not a wav"}
@@ -283,7 +283,7 @@ private func readLayout(stream: *File.FileStream)->Layout fail
                     fail InvalidFormatError{"invalid wav"}
                 var bytes: Array'u8
                 bytes.resize(header.chunkSize)
-                if stream.read(bytes.toSlice()) != header.chunkSize do
+                if try stream.read(bytes.toSlice()) != header.chunkSize do
                     fail InvalidFormatError{"invalid wav"}
                 result.format = try parseFormat(bytes.toSlice())
                 stage         = .FindData
@@ -293,29 +293,29 @@ private func readLayout(stream: *File.FileStream)->Layout fail
             if header.chunkSize >= 4
             {
                 var count: u32
-                if not stream.readValue(&count) do
+                if not (try stream.readValue(&count)) do
                     fail InvalidFormatError{"invalid wav"}
                 result.factFrames = count
-                stream.skip(header.chunkSize - 4)
+                try stream.skip(header.chunkSize - 4)
             }
             else do
-                stream.skip(header.chunkSize)
+                try stream.skip(header.chunkSize)
 
         case .SND_WAV_FOURCC_data:
             if stage == .FindData
             {
                 result.hasData    = true
-                result.dataOffset = stream.position()
+                result.dataOffset = try stream.position()
                 result.dataSize   = header.chunkSize
                 return result
             }
 
         case .SND_WAV_FOURCC_cue, .SND_WAV_FOURCC_LIST, .SND_WAV_FOURCC_labl, .SND_WAV_FOURCC_note, .SND_WAV_FOURCC_ltxt, .SND_WAV_FOURCC_bext:
-            stream.skip(header.chunkSize)
+            try stream.skip(header.chunkSize)
 
         default:
             if header.chunkSize do
-                stream.skip(header.chunkSize)
+                try stream.skip(header.chunkSize)
             else do
                 fail InvalidFormatError{"invalid wav"}
         }
@@ -364,7 +364,7 @@ private func openAdpcm(path: string, layout: const *Layout)->SoundFile fail
 // as packets and decoded on demand, so `preloadData` does not apply to it.
 internal func openFile(path: string, preloadData: bool)->SoundFile fail
 {
-    var stream = File.openRead(path)
+    var stream = try File.openRead(path)
     let layout = try readLayout(&stream)
     let format = &layout.format
     if format.encoding == .AdpcmMs or format.encoding == .AdpcmIma
@@ -399,7 +399,7 @@ internal func openFile(path: string, preloadData: bool)->SoundFile fail
     if preloadData
     {
         result.data.resize(layout.dataSize)
-        if stream.read(result.data.buffer, layout.dataSize) != layout.dataSize do
+        if try stream.read(result.data.buffer, layout.dataSize) != layout.dataSize do
             fail InvalidFormatError{"WAV audio data is truncated"}
     }
 

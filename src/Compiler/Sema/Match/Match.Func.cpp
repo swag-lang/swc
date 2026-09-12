@@ -2155,10 +2155,22 @@ namespace
             outFunctionSymbols.push_back(fn);
         }
 
-        // With multiple overloads, a failed generic instantiation is just one failed
-        // candidate. Suppress its immediate diagnostics and preserve the structured
-        // failure so overload reporting can choose the most useful note.
-        const bool suppressGenericInstantiationErrors = outFunctionSymbols.size() > 1;
+        // Only overloads that accept the call shape can make instantiation speculative.
+        // An unrelated arity must not hide an error inside the only possible generic body.
+        uint32_t matchingShapes = 0;
+        if (outFunctionSymbols.size() > 1)
+        {
+            for (const SymbolFunction* fn : outFunctionSymbols)
+            {
+                MatchFailure shapeFailure;
+                SWC_RESULT(precheckGenericCallShape(sema, *fn, args, AstNodeRef::invalid(), shapeFailure));
+                if (shapeFailure.active && ufcsArg.isValid())
+                    SWC_RESULT(precheckGenericCallShape(sema, *fn, args, ufcsArg, shapeFailure));
+                if (!shapeFailure.active && ++matchingShapes > 1)
+                    break;
+            }
+        }
+        const bool suppressGenericInstantiationErrors = matchingShapes > 1;
 
         for (SymbolFunction* fn : outFunctionSymbols)
         {

@@ -1191,25 +1191,25 @@ internal namespace User32Priv
     func RegisterHotKey(hWnd: HWND, id: s32, fsModifiers: UINT, vk: UINT) fail
     {
         if not User32Priv.RegisterHotKey(hWnd, id, fsModifiers, vk) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func UnregisterHotKey(hWnd: HWND, id: s32) fail
     {
         if not User32Priv.UnregisterHotKey(hWnd, id) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func PostMessageA(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM) fail
     {
         if not User32Priv.PostMessageA(hWnd, msg, wParam, lParam) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func PostMessageW(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM) fail
     {
         if not User32Priv.PostMessageW(hWnd, msg, wParam, lParam) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     #[Discardable]
@@ -1217,7 +1217,7 @@ internal namespace User32Priv
     {
         let res = User32Priv.RegisterClassA(lpWndClass)
         if not res do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         return res
     }
 
@@ -1226,59 +1226,59 @@ internal namespace User32Priv
     {
         let res = User32Priv.RegisterClassW(lpWndClass)
         if not res do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         return res
     }
 
     func UpdateWindow(hWnd: HWND) fail
     {
         if not User32Priv.UpdateWindow(hWnd) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func DestroyWindow(hWnd: HWND) fail
     {
         if not User32Priv.DestroyWindow(hWnd) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func MoveWindow(hWnd: HWND, x, y, nWidth, nHeight: s32, bRepaint: BOOL) fail
     {
         if not User32Priv.MoveWindow(hWnd, x, y, nWidth, nHeight, bRepaint) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func SetWindowPos(hWnd, hWndInsertAfter: HWND, x, y, cx, cy: s32, uFlags: UINT) fail
     {
         if not User32Priv.SetWindowPos(hWnd, hWndInsertAfter, x, y, cx, cy, uFlags) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func SetLayeredWindowAttributes(hwnd: HWND, crKey: COLORREF, bAlpha: BYTE, dwFlags: DWORD) fail
     {
         if not User32Priv.SetLayeredWindowAttributes(hwnd, crKey, bAlpha, dwFlags) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func GetMonitorInfoA(hMonitor: HMONITOR, lpmi: *MONITORINFO) fail
     {
         lpmi.cbSize = #sizeof(MONITORINFO)
         if not User32Priv.GetMonitorInfoA(hMonitor, lpmi) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func GetMonitorInfoW(hMonitor: HMONITOR, lpmi: *MONITORINFO) fail
     {
         lpmi.cbSize = #sizeof(MONITORINFO)
         if not User32Priv.GetMonitorInfoW(hMonitor, lpmi) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func RegisterClipboardFormatA(name: LPCSTR)->UINT fail
     {
         let res = User32Priv.RegisterClipboardFormatA(name)
         if not res do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         return res
     }
 
@@ -1286,27 +1286,27 @@ internal namespace User32Priv
     {
         let res = User32Priv.RegisterClipboardFormatW(name)
         if not res do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         return res
     }
 
     func DestroyIcon(hIcon: HICON) fail
     {
         if not User32Priv.DestroyIcon(hIcon) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func GetIconInfo(hIcon: HICON, piconinfo: *ICONINFO) fail
     {
         if not User32Priv.GetIconInfo(hIcon, piconinfo) do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
     }
 
     func CreateIconIndirect(piconinfo: *ICONINFO)->HICON fail
     {
         let h = User32Priv.CreateIconIndirect(piconinfo)
         if not h do
-            failWinError(GetLastError())
+            try failWinError(GetLastError())
         return h
     }
 }

@@ -1032,7 +1032,7 @@ impl RenderOgl
     // Load and register an image for rendering
     internal mtd addImageImpl(fullName: string)->Texture fail
     {
-        let image = Image.load(fullName)
+        let image = try Image.load(fullName)
         return .addImageImpl(&image)
     }
 

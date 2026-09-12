@@ -57,7 +57,7 @@ func dataPath(fileName: string, loc = #callerlocation)->String
 
 func loadFonts() fail
 {
-    g_TypeFace  = TypeFace.load("segoeui.ttf")
+    g_TypeFace  = try TypeFace.load("segoeui.ttf")
     g_TitleFont = g_Renderer.fonts.createFont(g_TypeFace, 34)
     g_LabelFont = g_Renderer.fonts.createFont(g_TypeFace, 18)
     g_HelpFont  = g_Renderer.fonts.createFont(g_TypeFace, 14)
@@ -77,7 +77,7 @@ func normalizeSource(image: Image)->Image
 
 func loadSource(fileName: string)->Image fail
 {
-    let image = Image.load(dataPath(fileName))
+    let image = try Image.load(dataPath(fileName))
     return normalizeSource(image)
 }
 
@@ -145,24 +145,24 @@ func setCard(card: *DecoderCard, title, encoding: string, image: Image, encodedS
 
 func encodeCard(card: *DecoderCard, fileName, title, encoding: string, source: Image, options: any? = null) fail
 {
-    var encoded = source.encode(fileName, options)
+    var encoded = try source.encode(fileName, options)
     encoded.makeLinear()
 
     let bytes   = nonNullBytes(encoded.toSlice())
-    let decoded = Image.decode(fileName, bytes)
+    let decoded = try Image.decode(fileName, bytes)
     setCard(card, title, encoding, decoded, bytes.count)
 }
 
 func buildPages() fail
 {
-    buildBmpPage()
-    buildTgaPage()
-    buildJpgPage()
-    buildPngPage()
-    buildGifPage()
-    buildTiffPage()
-    buildIcoPage()
-    buildWebpPage()
+    try buildBmpPage()
+    try buildTgaPage()
+    try buildJpgPage()
+    try buildPngPage()
+    try buildGifPage()
+    try buildTiffPage()
+    try buildIcoPage()
+    try buildWebpPage()
 }
 
 func pageTitle(page: s32)->string

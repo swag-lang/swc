@@ -29,7 +29,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
         while one.count and one[0] != '#'
         {
             let addrVal = Reflection.appendDynamicArrayElement(addr, safeValueType)
-            one = (parseValue(addrVal!, safeValueType, one) orelse "")
+            one = (try parseValue(addrVal!, safeValueType, one) orelse "")
             one = Tokenize.eatSpaces(one)
         }
 
@@ -46,7 +46,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
         {
             if cpt == arrayType.totalCount do
                 fail InvalidFormatError{"too many static array values"}
-            one     = (parseValue(addrVal, arrayType.finalType, one) orelse "")
+            one     = (try parseValue(addrVal, arrayType.finalType, one) orelse "")
             one     = Tokenize.eatSpaces(one)
             addrVal += arrayType.finalType.sizeof
             cpt     += 1
@@ -67,7 +67,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
         for
         {
             one = Tokenize.eatSpaces(one)
-            let id = parseIdentifier(one) orelse ""
+            let id = try parseIdentifier(one) orelse ""
             let v  = Reflection.enumValue(type, id)
             if not v do
                 fail InvalidFormatError{Errors.mkString(Format.toString("unknown enum value [[%]]", id))}
@@ -120,7 +120,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
 
     // Decode interface
     if let itf = Swag.makeInterface(addr, type, IPokeValue) do
-        return itf.poke(one)
+        return try itf.poke(one)
 
     // Struct: a brace-enclosed list of field values in declaration order. 'Core.String' is
     // excluded because it decodes as a quoted literal below, and a type with a poke interface
@@ -137,7 +137,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
         {
             if not one.count or one[0] == '}' do
                 break
-            one = (parseValue(cast([*] u8) addr + field.offset, field.pointedType!, one) orelse "")
+            one = (try parseValue(cast([*] u8) addr + field.offset, field.pointedType!, one) orelse "")
             one = Tokenize.eatSpaces(one)
             if one.count and one[0] == ','
             {
@@ -159,7 +159,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
     var ovf = false
     if type == String
     {
-        eat = parseString(cast(*String) patch, one)
+        eat = try parseString(cast(*String) patch, one)
         return Tokenize.eatCount(one, cast(u64) eat)
     }
 
@@ -171,82 +171,82 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
     {
     case .S8:
         var val: s8
-        {val, eat, ovf} = parseS8(one)
+        {val, eat, ovf} = try parseS8(one)
         if ovf do
             fail OverflowError{}
         patch[as s8] = val
 
     case .S16:
         var val: s16
-        {val, eat, ovf} = parseS16(one)
+        {val, eat, ovf} = try parseS16(one)
         if ovf do
             fail OverflowError{}
         patch[as s16] = val
 
     case .S32:
         var val: s32
-        {val, eat, ovf} = parseS32(one)
+        {val, eat, ovf} = try parseS32(one)
         if ovf do
             fail OverflowError{}
         patch[as s32] = val
 
     case .S64:
         var val: s64
-        {val, eat, ovf} = parseS64(one)
+        {val, eat, ovf} = try parseS64(one)
         if ovf do
             fail OverflowError{}
         patch[as s64] = val
 
     case .U8:
         var val: u8
-        {val, eat, ovf} = parseU8(one)
+        {val, eat, ovf} = try parseU8(one)
         if ovf do
             fail OverflowError{}
         patch[as u8] = val
 
     case .U16:
         var val: u16
-        {val, eat, ovf} = parseU16(one)
+        {val, eat, ovf} = try parseU16(one)
         if ovf do
             fail OverflowError{}
         patch[as u16] = val
 
     case .U32:
         var val: u32
-        {val, eat, ovf} = parseU32(one)
+        {val, eat, ovf} = try parseU32(one)
         if ovf do
             fail OverflowError{}
         patch[as u32] = val
 
     case .U64:
         var val: u64
-        {val, eat, ovf} = parseU64(one)
+        {val, eat, ovf} = try parseU64(one)
         if ovf do
             fail OverflowError{}
         patch[as u64] = val
 
     case .F32:
         var val: f32
-        {val, eat, ovf} = parseF32(one)
+        {val, eat, ovf} = try parseF32(one)
         if ovf do
             fail OverflowError{}
         patch[as f32] = val
 
     case .F64:
         var val: f64
-        {val, eat, ovf} = parseF64(one)
+        {val, eat, ovf} = try parseF64(one)
         if ovf do
             fail OverflowError{}
         patch[as f64] = val
 
     case .Bool:
         var val: bool
-        {val, eat}     = parseBool(one)
+        {val, eat}     = try parseBool(one)
         patch[as bool] = val
 
     case .Rune:
         var val: rune
-        {val, eat}     = parseRune(one)
+        {val, eat}     = try parseRune(one)
         patch[as rune] = val
 
     default:

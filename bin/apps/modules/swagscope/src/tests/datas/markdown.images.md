@@ -5,6 +5,8 @@
 
 <img src="markdown.images.svg" width="49%" alt="Opening page"> <img src="markdown.images.svg" width="49%" alt="Opening illustration">
 
+> *FIG. 5 — **The center.** Both illustrations share one caption, with nested emphasis and readable ink.*
+
 </div>
 
 ## A figure in the text

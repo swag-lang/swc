@@ -49,7 +49,7 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
         result.value = "'"
 
     case "nbsp":
-        result.value = " "
+        result.value = "\u00A0"
 
     case "ndash":
         result.value = "–"

@@ -25,6 +25,21 @@ namespace
 {
     bool isInlineRecursion(Sema& sema, const SymbolFunction& fn)
     {
+        // A body that makes no call of its own cannot recurse, whatever stands above it. The test
+        // below asks a different question - whether the function already appears anywhere in the
+        // chain of expansions in progress - and those two are not the same. Writing `f(g(a), b)`
+        // puts f on that chain while g is analyzed, so g's own calls to f read as recursion and
+        // stayed calls. A packed operation is one machine instruction wearing a name, and every
+        // kernel that wraps its work in helpers has exactly that shape, which is how calls to one
+        // appeared in the middle of a filter that had asked for none.
+        const AstNode* declNode = fn.decl();
+        if (declNode)
+        {
+            const auto* decl = declNode->safeCast<AstFunctionDecl>();
+            if (decl && !decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls))
+                return false;
+        }
+
         const SemaInlinePayload* frameInlinePayload     = sema.frame().currentInlinePayload();
         const SemaInlinePayload* effectiveInlinePayload = SemaHelpers::effectiveInlinePayload(sema);
 

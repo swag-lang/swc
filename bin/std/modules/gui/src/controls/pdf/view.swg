@@ -1393,6 +1393,23 @@ impl PdfView
         .invalidate()
     }
 
+    // Brings a position in displayed page points into view, preserving the current zoom.
+    //
+    // Coordinates start at the page's top-left corner, after cropping and rotation, as in
+    // [[Gui.Pdf.OutlineEntry.position]]. Out-of-range pages and non-finite coordinates are ignored.
+    mtd showPosition(index: u64, position: Math.Point)
+    {
+        if not .hasDocument or index >= .pageSizes.count or not Math.isFinite(position.x) or not Math.isFinite(position.y) do
+            return
+        .showPage(index)
+        let page  = .pageRect(index)
+        let scale = .effectiveZoom()
+        let point = Math.Point{Math.clamp(position.x, 0, .pageSizes[index].x), Math.clamp(position.y, 0, .pageSizes[index].y)}
+        .scroll.setScrollPos(page.x + point.x * scale - PageMargin, page.y + point.y * scale - PageMargin)
+        .updateCurrentPage()
+        .invalidate()
+    }
+
     // Shows the next page when one exists.
     mtd nextPage()
     {

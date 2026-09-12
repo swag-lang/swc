@@ -196,6 +196,12 @@ namespace
         ENCODE_CASE("load_zext_reg_reg_b16", "4D 0F B7 CA", b.emitLoadZeroExtendRegReg(R9, R10, MicroOpBits::B64, MicroOpBits::B16););
         ENCODE_CASE("load_zext_reg_reg_b32", "45 89 CA", b.emitLoadZeroExtendRegReg(R10, R9, MicroOpBits::B64, MicroOpBits::B32););
 
+        // The thread's own block holds its first thread-local slots at a fixed
+        // place, and the index operand carries the slot number plus one, so the
+        // displacement is one slot short of the array.
+        ENCODE_CASE("load_reg_tls_slot_rax_rcx", "65 48 8B 04 CD 78 14 00 00", b.emitLoadRegTlsSlot(RAX, RCX););
+        ENCODE_CASE("load_reg_tls_slot_r8_r9", "65 4E 8B 04 CD 78 14 00 00", b.emitLoadRegTlsSlot(R8, R9););
+
         ENCODE_CASE("lea_reg_mem_rip", "4C 8D 15 00 00 00 00", b.emitLoadAddressRegMem(R10, MicroReg::instructionPointer(), 0, MicroOpBits::B64););
         ENCODE_CASE("lea_reg_mem_r11_r12_0", "4D 89 E3", b.emitLoadAddressRegMem(R11, R12, 0, MicroOpBits::B64););
         ENCODE_CASE("lea_reg_mem_r10_rsp_0_b64", "49 89 E2", b.emitLoadAddressRegMem(R10, RSP, 0, MicroOpBits::B64););

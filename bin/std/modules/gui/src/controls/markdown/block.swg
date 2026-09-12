@@ -156,10 +156,10 @@ internal func isHtmlBlockStart(line: string)->bool
     return false
 }
 
-internal func parseBlocks(source: string)->Array'Block
+internal func parseBlocks(source: string, headingsOnly = false)->Array'Block
 {
     var result:     retval
-    let lines = Tokenize.splitLines(source)
+    let lines = Tokenize.splitLines(Utf8.startsWith(source, "\uFEFF") ? source[3 to] : source)
     var index = 0'u64
     var references: Array'Reference
 
@@ -188,7 +188,8 @@ internal func parseBlocks(source: string)->Array'Block
 
         if index < lines.count do
             index += 1
-        appendBlock(&result, .Metadata, #move metadata)
+        if not headingsOnly do
+            appendBlock(&result, .Metadata, #move metadata)
     }
 
     while index < lines.count
@@ -200,8 +201,18 @@ internal func parseBlocks(source: string)->Array'Block
         // streaming window can then preserve the exact visible block across an overlap.
         defer
         {
-            for blockIndex in firstBlock until result.count do
-                result[blockIndex].sourceOffset = cast(u64) (raw.buffer - source.buffer)
+            var blockIndex = firstBlock
+            while blockIndex < result.count
+            {
+                let kind = result[blockIndex].kind
+                if headingsOnly and (kind < .Heading1 or kind > .Heading6) do
+                    result.removeAtOrdered(blockIndex)
+                else
+                {
+                    result[blockIndex].sourceOffset = cast(u64) (raw.buffer - source.buffer)
+                    blockIndex += 1
+                }
+            }
         }
 
         let trimmed = Latin1.trim(raw)

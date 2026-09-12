@@ -843,6 +843,8 @@ namespace
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), relocValue.empty() ? "<reloc>" : tagNaturalToken(NaturalTagKind::Constant, relocValue));
             case MicroInstrOpcode::LoadLabelAddress:
                 return std::format("{} = &L{}", regName(ops[0].reg, regPrintMode, encoder), ops[1].valueU64);
+            case MicroInstrOpcode::LoadRegTlsSlot:
+                return std::format("{} = tls[{}]", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::JumpTableData:
                 return std::format("{} {} entries", tagInstructionToken("jump_table"), inst.numOperands);
             case MicroInstrOpcode::LoadRegMem:
@@ -1863,6 +1865,12 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
 
             case MicroInstrOpcode::LoadRegPtrReloc:
                 appendRegImmBits(out, ctx, ops, 0, 1, 2, regPrintMode, encoder, hasInlineRelocation);
+                break;
+
+            case MicroInstrOpcode::LoadRegTlsSlot:
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[1].reg, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::LoadRegMem:

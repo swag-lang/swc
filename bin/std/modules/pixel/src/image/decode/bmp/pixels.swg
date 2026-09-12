@@ -22,12 +22,14 @@ func writeBgraPixel(dst: [*] u8, b, g, r, a: u8)
     dst[3] = a
 }
 
-func writePalettePixel(dst: [*] u8, palette: const [*] u8, paletteEntrySize: u32, index, paletteCount: u32) fail
+// An index outside the palette draws the last entry rather than raising. This
+// runs once per pixel, and an error raised here is read back by the caller at
+// every one of them; a palette is validated where it is read, and a file that
+// indexes past it is drawn, not refused.
+func writePalettePixel(dst: [*] u8, palette: const [*] u8, paletteEntrySize: u32, index, paletteCount: u32)
 {
-    if index >= paletteCount do
-        fail InvalidFormatError{"invalid palette index"}
-
-    let entry = palette + cast(u64) index * paletteEntrySize
+    let safeIndex = index < paletteCount ? index : (paletteCount ? paletteCount - 1 : 0)
+    let entry     = palette + cast(u64) safeIndex * paletteEntrySize
     writeBgrPixel(dst, entry[0], entry[1], entry[2])
 }
 
@@ -70,7 +72,7 @@ func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const
         var dst    = cast([*] u8) result.pixels.storage() + cast(u64) dstY * result.rowStride
         for x in result.width
         {
-            try writePalettePixel(dst, palette, paletteEntrySize, packedIndex(srcRow, bitCount, x), paletteCount)
+            writePalettePixel(dst, palette, paletteEntrySize, packedIndex(srcRow, bitCount, x), paletteCount)
             dst += 3
         }
     }

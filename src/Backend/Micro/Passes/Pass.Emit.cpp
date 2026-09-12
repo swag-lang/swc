@@ -258,6 +258,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::LoadVecRegMem:
             encoder.encodeLoadVecRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[2].opBits);
             break;
+        case MicroInstrOpcode::LoadRegTlsSlot:
+            encoder.encodeLoadRegTlsSlot(ops[0].reg, ops[1].reg);
+            break;
         case MicroInstrOpcode::VecUnaryRegMem:
             encoder.encodeVecUnaryRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[4].microOp, ops[2].opBits);
             break;

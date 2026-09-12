@@ -73,6 +73,7 @@ struct PdfParser
     // Filled by the trailer scan: the catalog and metadata dictionaries the file itself
     // names, and whether it declares a security handler.
     trailerRoot: u32 = InvalidNode
+    catalogId:   u32 = InvalidNode
     trailerInfo: u32 = InvalidNode
     isEncrypted: bool
 

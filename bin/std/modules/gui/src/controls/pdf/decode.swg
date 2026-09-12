@@ -1645,6 +1645,7 @@ internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Arr
         fail UnsupportedFormatError{"encrypted PDF documents are not supported"}
     if catalog == InvalidNode do
         fail InvalidFormatError{"PDF catalog is missing"}
+    parser.catalogId = catalog
 
     if info != InvalidNode
     {

@@ -29,6 +29,7 @@ struct CabacReader
     low:      u32           // codIOffset << 17, then sixteen look-ahead bits, then the marker.
     range:    u32           // codIRange.
     contexts: [1024] u8     // Packed state: `(pStateIdx << 1) | valMPS`.
+    invalid:  bool          // A syntax element did not decode; the macroblock loop reports it.
 }
 
 // Table 9-44 laid out for one lookup from the packed state and the two range bits that select
@@ -38,9 +39,6 @@ const CabacLpsRange: [512] u8 = #run buildCabacLpsRange()
 // The state after a bin, one table for both outcomes: `128 + state` on the MPS path and
 // `128 + (state ^ -1)` on the LPS path, which flips valMPS at pStateIdx 0 as Table 9-45 says.
 const CabacNextState: [256] u8 = #run buildCabacNextState()
-
-// The renormalization shift bringing a range below 256 back to the interval; zero above.
-const CabacNormShift: [512] u8 = #run buildCabacNormShift()
 
 func buildCabacLpsRange()->[512] u8
 {
@@ -68,24 +66,6 @@ func buildCabacNextState()->[256] u8
     return result
 }
 
-func buildCabacNormShift()->[512] u8
-{
-    var result: retval
-    for range in 512'u64
-    {
-        var shift = 0'u8
-        var value = range
-        while value < 256 and shift < 9
-        {
-            value <<= 1
-            shift += 1
-        }
-
-        result[range] = shift
-    }
-
-    return result
-}
 
 impl CabacReader
 {
@@ -295,7 +275,7 @@ impl Slice
         }
 
         mb.qp = .qp
-        try .parseResidualCabac(mb)
+        .parseResidualCabac(mb)
     }
 
     // Decodes one intra macroblock type, with its slice-dependent context base.
@@ -518,7 +498,7 @@ impl Slice
     }
 
     // Decodes one motion vector difference pair, section 9.3.3.1.1.7.
-    mtd mvdCabac(mb: *Mb, list: u32, x4, y4: s32)->[2] s16 fail
+    mtd mvdCabac(mb: *Mb, list: u32, x4, y4: s32)->[2] s16
     {
         let a = .motionAt(mb, list, x4 - 1, y4)
         let b = .motionAt(mb, list, x4, y4 - 1)
@@ -559,8 +539,11 @@ impl Slice
                 {
                     value += 1'u32 << k
                     k     += 1
-                    if k > 24 do
-                        fail InvalidFormatError{"H.264 motion vector difference does not decode"}
+                    if k > 24
+                    {
+                        .cabac.invalid = true
+                        break
+                    }
                 }
 
                 while k > 0
@@ -594,15 +577,29 @@ impl Slice
         let #uniq1 = cast(u32) CabacLpsRange[cast(u64) (2 * (range & 0xC0)) + cast(u64) #uniq0]
         range -= #uniq1
 
-        // All ones on the less probable path.
-        let #uniq2 = cast #wrap (u32) ((cast(s32) (range << 17) - cast(s32) low) >> 31)
-        low    = low - #wrap ((range << 17) & #uniq2)
-        range  = range + #wrap ((#uniq1 - #wrap range) & #uniq2)
-        #uniq0 ^= cast #bit(s32) #uniq2
+        // The offset standing above the most probable subrange is what takes the less probable
+        // path, and each of the three values it changes is one conditional move. Written as the
+        // mask of that comparison folded into an and and an add, as the standard states it, every
+        // one of them costs a copy as well: the machine's arithmetic reads and writes the same
+        // register, so a value still needed afterwards has to be moved out of the way first.
+        //
+        // The comparison is exact because both quantities stay well below the sign bit: the range
+        // holds nine bits and the offset the sixteen look-ahead bits above it.
+        let #uniq2 = range << 17
+        let #uniq4 = low - #wrap #uniq2
+        let #uniq5 = cast(s32) #uniq2 < cast(s32) low
+        low    = #uniq5 ? #uniq4 : low
+        range  = #uniq5 ? #uniq1 : range
+        #uniq0 = #uniq5 ? ~#uniq0 : #uniq0
         .cabac.contexts[binCtx] = CabacNextState[cast(u64) (128 + #uniq0)]
         bin    = cast(u32) (#uniq0 & 1)
 
-        let #uniq3 = cast(u32) CabacNormShift[cast(u64) range]
+        // The renormalization shift is the distance from the range's highest set bit to bit 8,
+        // which the machine counts in one instruction. The table it replaces was 512 bytes the
+        // hot loop kept resident and one more memory read on the only chain this decoder cannot
+        // widen: a bin is decoded from the range the bin before it left. At a range of zero the
+        // count gives 32, which is the shift of 9 the table held there.
+        let #uniq3 = Swag.bitCountLz(range) - 23
         range <<= #uniq3
         low   <<= #uniq3
         if (low & 0xFFFF) == 0 do
@@ -618,12 +615,13 @@ impl Slice
         if (low & 0xFFFF) == 0 do
             low = .cabac.reload(low)
 
-        // All ones when the offset stays below the range, which is a zero bin.
+        // The offset below the range is a zero bin and keeps the offset; above it the bin is one
+        // and the range comes off. One comparison and one conditional move each.
         let #uniq0 = range << 17
-        low = low - #wrap #uniq0
-        let #uniq1 = cast #wrap (u32) (cast #bit(s32) low >> 31)
-        low = low + #wrap (#uniq0 & #uniq1)
-        bin = 1 + #wrap #uniq1
+        let #uniq1 = low - #wrap #uniq0
+        let #uniq2 = cast(s32) #uniq0 <= cast(s32) low
+        low = #uniq2 ? #uniq1 : low
+        bin = #uniq2 ? 1 : 0
     }
 
     // Decodes a bypass sign and applies it to `magnitude` without branching, into `level`.
@@ -634,12 +632,12 @@ impl Slice
         if (low & 0xFFFF) == 0 do
             low = .cabac.reload(low)
 
+        // Same bin as the bypass, read as a sign: below the range it is positive.
         let #uniq0 = range << 17
-        low = low - #wrap #uniq0
-        let #uniq1 = cast #wrap (u32) (cast #bit(s32) low >> 31)
-        low = low + #wrap (#uniq0 & #uniq1)
-        let #uniq2 = cast #bit(s32) ~#uniq1
-        level = (magnitude ^ #uniq2) - #uniq2
+        let #uniq1 = low - #wrap #uniq0
+        let #uniq2 = cast(s32) #uniq0 <= cast(s32) low
+        low   = #uniq2 ? #uniq1 : low
+        level = #uniq2 ? -magnitude : magnitude
     }
 
     // Decodes one bin with the context at `contextIndex`, section 9.3.3.2.1, for the syntax
@@ -695,7 +693,7 @@ impl Slice
     // The block size and the DC distinction are compile-time parameters: the four block shapes a
     // stream carries each get a body whose bounds, table choice and store are folded, and only
     // the values the loops read stay live across them.
-    func(const MaxCoeffs: u32, const IsDc: bool) residualCabac(me, mb: *Mb, cat: u32, coeffs: [*] s16, nzA, nzB: s32, order: u64, scale: [*] u32?, shift: u32)->u32 fail
+    func(const MaxCoeffs: u32, const IsDc: bool) residualCabac(me, mb: *Mb, cat: u32, coeffs: [*] s16, nzA, nzB: s32, order: u64, scale: [*] u32?, shift: u32)->u32
     {
         var range = .cabac.range
         var low   = .cabac.low
@@ -819,13 +817,11 @@ impl Slice
 
         .cabac.range = range
         .cabac.low   = low
-        if .cabac.hasOverrun() do
-            fail InvalidFormatError{"H.264 residual block is truncated"}
         return count
     }
 
     // Parses every residual block of the macroblock with CABAC coding.
-    mtd parseResidualCabac(mb: *Mb) fail
+    mtd parseResidualCabac(mb: *Mb)
     {
         let dec = .dec!
 
@@ -833,7 +829,7 @@ impl Slice
         // another and all three under the same coded block pattern.
         let planes = dec.sps!.is444() ? 3'u32 : 1'u32
         for plane in planes do
-            try .parsePlaneResidualCabac(mb, plane)
+            .parsePlaneResidualCabac(mb, plane)
         if planes > 1 do
             return
 
@@ -843,7 +839,7 @@ impl Slice
             {
                 let nzA   = .dcFlagNeighbor(mb, -1, 0, 1 + plane)
                 let nzB   = .dcFlagNeighbor(mb, 0, -1, 1 + plane)
-                let count = try .residualCabac'(4, true)(mb, 3, (mb.residual!.chromaDc).buffer + cast(u64) plane * 4, nzA, nzB, ResidualOrderDc, null, 0)
+                let count = .residualCabac'(4, true)(mb, 3, (mb.residual!.chromaDc).buffer + cast(u64) plane * 4, nzA, nzB, ResidualOrderDc, null, 0)
                 mb.dcFlags[cast(u64) (1 + plane)] = count > 0 ? 1 : 0
             }
         }
@@ -857,7 +853,7 @@ impl Slice
                 {
                     let nzA   = .chromaBlockNz(mb, cast(u32) plane, (block & 1) - 1, block >> 1)
                     let nzB   = .chromaBlockNz(mb, cast(u32) plane, block & 1, (block >> 1) - 1)
-                    let count = try .residualCabac'(15, false)(mb, 4, (mb.residual!.chromaAc).buffer + cast(u64) plane * 64 + cast(u64) block * 16, nzA, nzB, ResidualOrderAc, scale, 4)
+                    let count = .residualCabac'(15, false)(mb, 4, (mb.residual!.chromaAc).buffer + cast(u64) plane * 64 + cast(u64) block * 16, nzA, nzB, ResidualOrderAc, scale, 4)
                     if plane == 0 do
                         mb.nzCb[cast(u64) block] = cast(u8) count
                     else do
@@ -873,7 +869,7 @@ impl Slice
     // Only luma feeds the deblocking strength: the boundary filter reads the luma transform
     // coefficients whatever the chroma format, so a colour plane writes its nonzero counts for
     // the entropy contexts and nothing else.
-    mtd parsePlaneResidualCabac(mb: *Mb, plane: u32) fail
+    mtd parsePlaneResidualCabac(mb: *Mb, plane: u32)
     {
         let storage = .planeResidual(mb, plane)
         let isLuma  = plane == 0
@@ -881,7 +877,7 @@ impl Slice
         {
             let nzA   = .dcFlagNeighbor(mb, -1, 0, cast(s32) plane)
             let nzB   = .dcFlagNeighbor(mb, 0, -1, cast(s32) plane)
-            let count = try .residualCabac'(16, true)(mb, CatPlaneDc[cast(u64) plane], storage.dc, nzA, nzB, ResidualOrderDc, null, 0)
+            let count = .residualCabac'(16, true)(mb, CatPlaneDc[cast(u64) plane], storage.dc, nzA, nzB, ResidualOrderDc, null, 0)
             mb.dcFlags[cast(u64) plane] = count > 0 ? 1 : 0
             if count > 0 and isLuma
             {
@@ -901,7 +897,7 @@ impl Slice
                 let first = (quad >> 1) * 8 + (quad & 1) * 2
                 let nzA   = .blockNz8x8(mb, plane, (first & 3) - 1, first >> 2)
                 let nzB   = .blockNz8x8(mb, plane, first & 3, (first >> 2) - 1)
-                let count = try .residualCabac'(64, false)(mb, CatPlane8x8[cast(u64) plane], storage.t8 + cast(u64) quad * 64, nzA, nzB, ResidualOrder8x8, .dequantRow8(mb, plane), 6)
+                let count = .residualCabac'(64, false)(mb, CatPlane8x8[cast(u64) plane], storage.t8 + cast(u64) quad * 64, nzA, nzB, ResidualOrder8x8, .dequantRow8(mb, plane), 6)
 
                 // In 4:4:4 the block states a coded flag of its own, so a quadrant the pattern
                 // named can still hold nothing.
@@ -925,9 +921,9 @@ impl Slice
                 let nzB    = .blockNz(mb, plane, bx, by - 1)
                 var count: u32
                 if mb.class == MbClassIntra16x16 do
-                    count = try .residualCabac'(15, false)(mb, CatPlaneI16Ac[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, ResidualOrderAc, .dequantRow4(mb, plane), 4)
+                    count = .residualCabac'(15, false)(mb, CatPlaneI16Ac[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, ResidualOrderAc, .dequantRow4(mb, plane), 4)
                 else do
-                    count = try .residualCabac'(16, false)(mb, CatPlane4x4[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, ResidualOrder4x4, .dequantRow4(mb, plane), 4)
+                    count = .residualCabac'(16, false)(mb, CatPlane4x4[cast(u64) plane], storage.ac + cast(u64) raster * 16, nzA, nzB, ResidualOrder4x4, .dequantRow4(mb, plane), 4)
                 storage.nz[cast(u64) raster] = cast(u8) count
                 if isLuma do
                     mb.codedBlocks[cast(u64) raster] = count > 0 ? 1 : 0

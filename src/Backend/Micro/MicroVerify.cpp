@@ -204,6 +204,7 @@ namespace
             case MicroInstrOpcode::ClearReg:
             case MicroInstrOpcode::SanityInvalidate:
             case MicroInstrOpcode::LoadLabelAddress:
+            case MicroInstrOpcode::LoadRegTlsSlot:
                 return 2;
 
             case MicroInstrOpcode::JumpCond:

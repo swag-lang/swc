@@ -2244,6 +2244,27 @@ void X64Encoder::encodeCmpAmcImm(MicroReg regBase, MicroReg regMul, uint64_t mul
 // ============================================================================
 
 // movdqu xmm, m128   (F3 0F 6F /r) : unaligned 128-bit packed load.
+// mov dst, gs:[index * 8 + K_TEB_TLS_SLOTS]: the thread's slot array lives at a
+// fixed offset of the thread environment block, which the GS segment addresses.
+// The index operand carries the slot number plus one, so the displacement is
+// one slot short of the array - what the caller holds is what the runtime
+// stores, and no instruction is spent bringing it back.
+void X64Encoder::encodeLoadRegTlsSlot(MicroReg regDst, MicroReg indexReg)
+{
+    SWC_ASSERT(!regDst.isFloat() && !indexReg.isFloat());
+
+    constexpr uint32_t K_TEB_TLS_SLOTS_MINUS_ONE = 0x1478;
+
+    store_.pushU8(0x65); // GS segment override
+    const auto x64Dst   = microRegToX64Reg(regDst);
+    const auto x64Index = microRegToX64Reg(indexReg);
+    store_.pushU8(getRex(true, isExtendedReg(x64Dst), isExtendedReg(x64Index), false));
+    emitCpuOp(store_, 0x8B);
+    emitModRm(store_, ModRmMode::Memory, regDst, MODRM_RM_SIB);
+    emitSib(store_, 3, encodeReg(x64Index), SIB_NO_BASE); // scale eight, no base register
+    store_.pushU32(K_TEB_TLS_SLOTS_MINUS_ONE);
+}
+
 void X64Encoder::encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
 {
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && !memReg.isFloat());
@@ -3811,6 +3832,47 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
 
 void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits)
 {
+    // SHLX/SHRX/SARX: the shift whose count comes from any register and whose
+    // source it does not overwrite. The legacy form asks for its count in one
+    // named register and writes its result over its own operand, so a shift
+    // whose value is still needed costs a copy, and a count anywhere else
+    // costs a move into that register - two instructions around a shift that
+    // is one. This form takes neither, and touches no flags.
+    if (!regDst.isFloat())
+    {
+        SWC_ASSERT(!regSrc1.isFloat() && !regSrc2.isFloat());
+        SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+
+        uint8_t pp = 0;
+        switch (op)
+        {
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftArithmeticLeft:
+                pp = 0b01; // 66
+                break;
+            case MicroOp::ShiftRight:
+                pp = 0b11; // F2
+                break;
+            case MicroOp::ShiftArithmeticRight:
+                pp = 0b10; // F3
+                break;
+            default:
+                SWC_UNREACHABLE();
+        }
+
+        const auto    x64Dst   = microRegToX64Reg(regDst);
+        const auto    x64Src   = microRegToX64Reg(regSrc1);
+        const auto    x64Count = microRegToX64Reg(regSrc2);
+        const uint8_t vvvv     = static_cast<uint8_t>(~x64RegNumber(x64Count) & 0x0F);
+
+        store_.pushU8(0xC4);
+        store_.pushU8(static_cast<uint8_t>((isExtendedReg(x64Dst) ? 0 : 0x80) | 0x40 | (isExtendedReg(x64Src) ? 0 : 0x20) | VEX_MAP_0F38));
+        store_.pushU8(static_cast<uint8_t>((opBits == MicroOpBits::B64 ? 0x80 : 0x00) | (vvvv << 3) | pp));
+        emitCpuOp(store_, 0xF7);
+        emitModRm(store_, regDst, regSrc1);
+        return;
+    }
+
     SWC_ASSERT(regDst.isFloat() && regSrc1.isFloat() && regSrc2.isFloat());
 
     // 128-bit packed: the VEX form of the same legacy encoding the two-operand

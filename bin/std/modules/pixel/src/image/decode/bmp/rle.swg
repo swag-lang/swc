@@ -28,7 +28,7 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             var dst = cast([*] u8) result.pixels.storage() + cast(u64) y * result.rowStride + cast(u64) x * 3
             for count
             {
-                try writePalettePixel(dst, palette, paletteEntrySize, value, paletteCount)
+                writePalettePixel(dst, palette, paletteEntrySize, value, paletteCount)
                 dst += 3
             }
 
@@ -63,7 +63,7 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             var dst = cast([*] u8) result.pixels.storage() + cast(u64) y * result.rowStride + cast(u64) x * 3
             for i in absoluteCount
             {
-                try writePalettePixel(dst, palette, paletteEntrySize, p[i], paletteCount)
+                writePalettePixel(dst, palette, paletteEntrySize, p[i], paletteCount)
                 dst += 3
             }
 
@@ -101,7 +101,7 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             var dst = cast([*] u8) result.pixels.storage() + cast(u64) y * result.rowStride + cast(u64) x * 3
             for i in count
             {
-                try writePalettePixel(dst, palette, paletteEntrySize, rle4Index(value, i), paletteCount)
+                writePalettePixel(dst, palette, paletteEntrySize, rle4Index(value, i), paletteCount)
                 dst += 3
             }
 
@@ -137,7 +137,7 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             var dst = cast([*] u8) result.pixels.storage() + cast(u64) y * result.rowStride + cast(u64) x * 3
             for i in pixelCount
             {
-                try writePalettePixel(dst, palette, paletteEntrySize, rle4Index(p[i / 2], i), paletteCount)
+                writePalettePixel(dst, palette, paletteEntrySize, rle4Index(p[i / 2], i), paletteCount)
                 dst += 3
             }
 

@@ -161,6 +161,7 @@ internal struct MarkdownZoomButton
     statisticsTimer: *Timer?
     hasStatistics:   bool
     reportDetails:   Viewer.ReportDetails?
+    outline:         *DocumentOutline?
 }
 
 impl IWnd for MarkdownZoomButton
@@ -197,6 +198,8 @@ impl MarkdownZoomButton
 
     mtd retire()->bool
     {
+        if .outline and not .outline.retire() do
+            return false
         if .statisticsTimer
         {
             .removeTimer(.statisticsTimer)
@@ -295,6 +298,8 @@ func createMarkdownViewer(host: Viewer.Host)
     themeCombo.setSelectedIndex(g_MarkdownViewerSettings.themeIndex, notify: false)
 
     let zoomButton = MarkdownZoomButton.create(host.createInfoGroup(ViewerZoomSlotWidth), view, themeCombo, widthCombo)
+    zoomButton.outline = DocumentOutline.create(host)
+    zoomButton.outline.bindMarkdown(view, host.fileName())
 
     view.hookOnEvent = func|widthCombo, themeCombo, zoomButton|(wnd, evt)
     {

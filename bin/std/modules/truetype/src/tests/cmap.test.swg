@@ -4,19 +4,19 @@ using Swag, Core
 
 #test
 {
-    let glyphA = expect lookupCMap4(Cmap4Fixture, 'A'u32)
+    let glyphA = lookupCMap4(Cmap4Fixture, 'A'u32)
     Swag.assert(glyphA == 3)
 
-    let glyphB = expect lookupCMap4(Cmap4Fixture, 'B'u32)
+    let glyphB = lookupCMap4(Cmap4Fixture, 'B'u32)
     Swag.assert(glyphB == 0)
 }
 
 #test
 {
-    let glyph0 = expect lookupCMap12(Cmap12Fixture, 0x00010000)
+    let glyph0 = lookupCMap12(Cmap12Fixture, 0x00010000)
     Swag.assert(glyph0 == 7)
 
-    let glyph1 = expect lookupCMap12(Cmap12Fixture, 0x00010001)
+    let glyph1 = lookupCMap12(Cmap12Fixture, 0x00010001)
     Swag.assert(glyph1 == 0)
 }
 
@@ -71,45 +71,45 @@ using Swag, Core
     cmap[6 + 'A']  = 3
     cmap[6 + 0xE9] = 9
 
-    let glyphA = expect lookupCMap0(cmap.toSlice(), 'A'u32)
+    let glyphA = lookupCMap0(cmap.toSlice(), 'A'u32)
     Swag.assert(glyphA == 3)
 
-    let glyphAccent = expect lookupCMap0(cmap.toSlice(), 0xE9)
+    let glyphAccent = lookupCMap0(cmap.toSlice(), 0xE9)
     Swag.assert(glyphAccent == 9)
 
-    let glyphUnmapped = expect lookupCMap0(cmap.toSlice(), 'B'u32)
+    let glyphUnmapped = lookupCMap0(cmap.toSlice(), 'B'u32)
     Swag.assert(glyphUnmapped == 0)
 
-    let glyphBeyondByte = expect lookupCMap0(cmap.toSlice(), 0x0100)
+    let glyphBeyondByte = lookupCMap0(cmap.toSlice(), 0x0100)
     Swag.assert(glyphBeyondByte == 0)
 }
 
 // Format 6 covers one contiguous run and nothing on either side of it.
 #test
 {
-    let glyphA = expect lookupCMap6(Cmap6Fixture, 'A'u32)
+    let glyphA = lookupCMap6(Cmap6Fixture, 'A'u32)
     Swag.assert(glyphA == 5)
 
-    let glyphC = expect lookupCMap6(Cmap6Fixture, 'C'u32)
+    let glyphC = lookupCMap6(Cmap6Fixture, 'C'u32)
     Swag.assert(glyphC == 7)
 
-    let glyphBelow = expect lookupCMap6(Cmap6Fixture, '@'u32)
+    let glyphBelow = lookupCMap6(Cmap6Fixture, '@'u32)
     Swag.assert(glyphBelow == 0)
 
-    let glyphAbove = expect lookupCMap6(Cmap6Fixture, 'D'u32)
+    let glyphAbove = lookupCMap6(Cmap6Fixture, 'D'u32)
     Swag.assert(glyphAbove == 0)
 }
 
 // Format 13 folds a whole range onto one glyph instead of walking it.
 #test
 {
-    let glyphA = expect lookupCMap13(Cmap13Fixture, 'A'u32)
+    let glyphA = lookupCMap13(Cmap13Fixture, 'A'u32)
     Swag.assert(glyphA == 9)
 
-    let glyphZ = expect lookupCMap13(Cmap13Fixture, 'Z'u32)
+    let glyphZ = lookupCMap13(Cmap13Fixture, 'Z'u32)
     Swag.assert(glyphZ == 9)
 
-    let glyphOutside = expect lookupCMap13(Cmap13Fixture, 'a'u32)
+    let glyphOutside = lookupCMap13(Cmap13Fixture, 'a'u32)
     Swag.assert(glyphOutside == 0)
 }
 

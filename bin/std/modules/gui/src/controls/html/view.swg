@@ -144,8 +144,9 @@ struct HtmlView
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigLinkActivated: SigArray'func||(*HtmlView, string)     // Emitted when an activated link cannot be followed as a local document or fragment.
-        sigLoadFailed:    SigArray'func||(*HtmlView, string)     // Emitted with the exact reason when progressive file loading stops.
+        sigLinkActivated:   SigArray'func||(*HtmlView, string)     // Emitted when an activated link cannot be followed as a local document or fragment.
+        sigLoadFailed:      SigArray'func||(*HtmlView, string)     // Emitted with the exact reason when progressive file loading stops.
+        sigDocumentChanged: SigArray'func||(*HtmlView)             // Emitted after document content or layout is rebuilt; heading snapshots may be refreshed here.
 
         readonly
         {
@@ -386,6 +387,34 @@ internal impl HtmlView
         .applyLayout()
         .placeDocument()
         .restoreRegionScrolls(regionScrolls.toSlice())
+        .sigDocumentChanged.call(me)
+    }
+
+    // Returns owned, visible h1 through h6 headings in document order.
+    //
+    // Offsets address the current source and survive changes of zoom or width. Refresh the
+    // snapshot on [[Gui.HtmlView.sigDocumentChanged]], including local document navigation.
+    public mtd headings()->Array'DocumentHeading
+    {
+        var result: retval
+        for index in .document.nodes.count
+        {
+            let node = .document.constNode(cast(u32) index)
+            if node.kind != .Element or node.tag < .H1 or node.tag > .H6 do
+                continue
+            let box = .layout.nodeBox.tryFind(cast(u32) index)
+            if not box or .layout.constBox(box.value).rect.height <= 0 or not .layout.constStyle(.layout.constBox(box.value).style).visible do
+                continue
+            var heading: DocumentHeading
+            heading.title = .document.textContent(cast(u32) index)
+            heading.title.trim()
+            heading.level        = cast(u32) node.tag - cast(u32) HtmlTag.H1 + 1
+            heading.sourceOffset = node.sourceOffset
+            if not heading.title.isEmpty() do
+                result.add(#move heading)
+        }
+
+        return result
     }
 
     // Captures independently scrolled element positions before a streaming rebuild replaces the
@@ -1435,6 +1464,7 @@ internal impl HtmlView
         .pendingSearch.clear()
         .failureReason.clear()
         .scroll.setScrollPos(0, 0)
+        .sigDocumentChanged.call(me)
 
         .stream = catch File.openReadLive(fileName) as openError
         if openError != null

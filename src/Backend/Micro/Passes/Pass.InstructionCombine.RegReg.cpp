@@ -302,6 +302,71 @@ namespace InstructionCombine
                 return false;
         }
     }
+
+    // A shift of a value that is still needed afterwards:
+    //
+    //     copy d, s; d <<= c      ->      d = s << c
+    //
+    // The machine has a shift that names its source, its count and its result
+    // separately, and takes the count from any register. Written the other
+    // way it costs the copy above, and a move of the count into the one
+    // register the legacy form reads it from. It writes no flags, so it only
+    // stands where nothing reads them after the shift.
+    bool tryThreeOperandShift(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(ref) || ctx.isRelocated(ref))
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops)
+            return false;
+
+        // ops: [0] dst (read and written), [1] count, [2] opBits, [3] microOp
+        const MicroOp op = ops[3].microOp;
+        if (op != MicroOp::ShiftLeft && op != MicroOp::ShiftRight && op != MicroOp::ShiftArithmeticRight && op != MicroOp::ShiftArithmeticLeft)
+            return false;
+        if (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64)
+            return false;
+
+        const MicroReg dst   = ops[0].reg;
+        const MicroReg count = ops[1].reg;
+        if (!dst.isVirtualInt() || !count.isVirtualInt() || dst == count)
+            return false;
+
+        // The copy that put the value where the shift could destroy it.
+        const auto reaching = ctx.ssa->reachingDef(dst, ref);
+        if (!reaching.valid() || reaching.isPhi || !reaching.inst)
+            return false;
+        if (reaching.inst->op != MicroInstrOpcode::LoadRegReg)
+            return false;
+
+        const MicroInstrOperand* copyOps = reaching.inst->ops(*ctx.operands);
+        if (!copyOps || copyOps[0].reg != dst || copyOps[2].opBits != ops[2].opBits)
+            return false;
+
+        const MicroReg src = copyOps[1].reg;
+        if (!src.isVirtualInt() || src == count || src == dst)
+            return false;
+        if (!valueHasSingleUse(*ctx.ssa, dst, reaching.instRef))
+            return false;
+
+        // The legacy shift writes the flags and this form does not.
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref))
+            return false;
+
+        if (!ctx.claimAll({ref, reaching.instRef}))
+            return false;
+
+        MicroInstrOperand newOps[5] = {};
+        newOps[0].reg    = dst;
+        newOps[1].reg    = src;
+        newOps[2].reg    = count;
+        newOps[3].opBits = ops[2].opBits;
+        newOps[4].microOp = op;
+        ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegRegReg, std::span<const MicroInstrOperand>(newOps, 5), true);
+        ctx.emitErase(reaching.instRef);
+        return true;
+    }
 }
 
 SWC_END_NAMESPACE();

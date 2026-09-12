@@ -198,14 +198,14 @@ private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fai
     var pos = 0'u64
     while pos < code.count
     {
-        let b0 = try readU8(code, pos)
+        let b0 = peekU8(code, pos)
         pos += 1
 
         if b0 >= 32 or b0 == 28
         {
             if b0 == 28
             {
-                state.push(cast(f64) (try readS16(code, pos)))
+                state.push(cast(f64) peekS16(code, pos))
                 pos += 2
             }
             elif b0 <= 246
@@ -214,12 +214,12 @@ private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fai
             }
             elif b0 <= 250
             {
-                state.push(cast(f64) ((cast(s32) b0 - 247) * 256 + cast(s32) (try readU8(code, pos)) + 108))
+                state.push(cast(f64) ((cast(s32) b0 - 247) * 256 + cast(s32) peekU8(code, pos) + 108))
                 pos += 1
             }
             elif b0 <= 254
             {
-                state.push(cast(f64) (-(cast(s32) b0 - 251) * 256 - cast(s32) (try readU8(code, pos)) - 108))
+                state.push(cast(f64) (-(cast(s32) b0 - 251) * 256 - cast(s32) peekU8(code, pos) - 108))
                 pos += 1
             }
             else
@@ -446,7 +446,7 @@ private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fai
             return
 
         case 12:
-            let b1 = try readU8(code, pos)
+            let b1 = peekU8(code, pos)
             pos += 1
             execType2Escape(state, b1)
 
@@ -800,7 +800,7 @@ private func execType1(state: *Type1State, code: const [..] u8?, depth: u32) fai
     var pos = 0'u64
     while pos < code.count
     {
-        let b0 = try readU8(code, pos)
+        let b0 = peekU8(code, pos)
         pos += 1
 
         if b0 >= 32
@@ -811,12 +811,12 @@ private func execType1(state: *Type1State, code: const [..] u8?, depth: u32) fai
             }
             elif b0 <= 250
             {
-                state.push(cast(f64) ((cast(s32) b0 - 247) * 256 + cast(s32) (try readU8(code, pos)) + 108))
+                state.push(cast(f64) ((cast(s32) b0 - 247) * 256 + cast(s32) peekU8(code, pos) + 108))
                 pos += 1
             }
             elif b0 <= 254
             {
-                state.push(cast(f64) (-(cast(s32) b0 - 251) * 256 - cast(s32) (try readU8(code, pos)) - 108))
+                state.push(cast(f64) (-(cast(s32) b0 - 251) * 256 - cast(s32) peekU8(code, pos) - 108))
                 pos += 1
             }
             else
@@ -941,7 +941,7 @@ private func execType1(state: *Type1State, code: const [..] u8?, depth: u32) fai
             state.depth = 0
 
         case 12:
-            let b1 = try readU8(code, pos)
+            let b1 = peekU8(code, pos)
             pos += 1
             try execType1Escape(state, b1)
             if state.finished do

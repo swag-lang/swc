@@ -870,6 +870,13 @@ impl Slice
                     break
                 if .cabac.hasOverrun() do
                     fail InvalidFormatError{"H.264 slice data is truncated"}
+
+                // What the arithmetic layer met and could not decode. It records instead of
+                // raising: a bin reader whose caller asks whether the call failed pays an
+                // opaque call at every residual block, and a macroblock holds twenty-seven of
+                // them. One reading here costs nothing measurable and says the same thing.
+                if .cabac.invalid do
+                    fail InvalidFormatError{"H.264 macroblock syntax does not decode"}
             }
             elif not .bits.moreData()
             {
@@ -1497,7 +1504,7 @@ impl Slice
         var result: retval
         if .isCabac
         {
-            result = try .mvdCabac(mb, list, x4, y4)
+            result = .mvdCabac(mb, list, x4, y4)
         }
         else
         {

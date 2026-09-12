@@ -12,6 +12,18 @@ internal struct PageSource
     rotate:      s64
 }
 
+// One document bookmark, in depth-first reading order.
+struct OutlineEntry
+{
+    public
+    {
+        title:     String                 // Owned bookmark title.
+        level:     u32                    // Hierarchy depth, starting at one.
+        pageIndex: u64 = Swag.U64.Max     // Zero-based destination page; Max denotes a group or an unresolved destination.
+        position:  Math.Point             // Destination in displayed page points, from its top-left corner.
+    }
+}
+
 // Owns a mapped PDF snapshot and decodes its pages on demand.
 //
 // Opening indexes the object and page trees but does not decompress page content, images, or
@@ -61,6 +73,152 @@ impl Reader
 
     // Returns the number of pages found in the page tree.
     mtd const pageCount()->u64 => .sources.count
+
+    // Returns owned bookmarks and their local destinations without decoding page content.
+    //
+    // Direct destinations, named destinations, and local GoTo actions are resolved. Entries
+    // without a usable local destination retain their hierarchy and have pageIndex set to Max.
+    // An absent outline returns an empty array; cycles in damaged outline and name trees are ignored.
+    mtd loadOutline()->Array'OutlineEntry
+    {
+        var result:       retval
+        var names:        HashTable'(String, u32)
+        var pendingNames: Array'u32
+        var visitedNames: HashTable'(u32, bool)
+        let catalog      = .parser.catalogId
+        let firstOutline = .parser.dict(.parser.dict(catalog, "Outlines"), "First")
+        if firstOutline == InvalidNode do
+            return result
+        pendingNames.add(.parser.dict(.parser.dict(catalog, "Names"), "Dests"))
+        while pendingNames.count
+        {
+            let node = .parser.resolve(pendingNames.popBack())
+            if node == InvalidNode or visitedNames.contains(node) do
+                continue
+            visitedNames[node] = true
+            let pairsId = .parser.dict(node, "Names")
+            if pairsId != InvalidNode and .parser.nodes[pairsId].kind == .Array
+            {
+                let pairs = .parser.nodes[pairsId].values
+                var index = 0'u64
+                while index + 1 < pairs.count
+                {
+                    let name = String.from(.parser.stringValue(pairs[index]))
+                    names[name] = pairs[index + 1]
+                    index       += 2
+                }
+            }
+
+            let kidsId = .parser.dict(node, "Kids")
+            if kidsId != InvalidNode and .parser.nodes[kidsId].kind == .Array
+            {
+                let kids = .parser.nodes[kidsId].values
+                for child in kids do
+                    pendingNames.add(child)
+            }
+        }
+
+        var pages: HashTable'(u32, u64)
+        for source, index in .sources do
+            pages[source.objectId] = index
+        var pending: Array'{node: u32, level: u32}
+        var visited: HashTable'(u32, bool)
+        pending.add({firstOutline, 1})
+        while pending.count
+        {
+            let item = pending.popBack()
+            let node = .parser.resolve(item.node)
+            if node == InvalidNode or visited.contains(node) do
+                continue
+            visited[node] = true
+            var entry: OutlineEntry
+            entry.level = item.level
+            let title = .parser.stringValue(.parser.dict(node, "Title"))
+            if title.count >= 2 and title[0] == 0xFE and title[1] == 0xFF do
+                entry.title = Text.decode(cast(const [..] u8) title[2 to], .Utf16Be)
+            else do
+                entry.title = Text.decode(cast(const [..] u8) title, .Windows1252)
+
+            var destination = .parser.dict(node, "Dest")
+            if destination == InvalidNode
+            {
+                let action = .parser.dict(node, "A")
+                if .parser.name(.parser.dict(action, "S")) == "GoTo" do
+                    destination = .parser.dict(action, "D")
+            }
+
+            var resolved: HashTable'(u32, bool)
+            while destination != InvalidNode and not resolved.contains(destination)
+            {
+                resolved[destination] = true
+                let kind = .parser.nodes[destination].kind
+                if kind == .Array do
+                    break
+                if kind == .Dictionary do
+                    destination = .parser.dict(destination, "D")
+                elif kind == .Name or kind == .String
+                {
+                    let name  = .parser.nodes[destination].text
+                    let found = names.tryFind(name)
+                    destination = found ? .parser.resolve(found.value) : .parser.dict(.parser.dict(catalog, "Dests"), name.toString())
+                }
+                else do
+                    destination = InvalidNode
+            }
+
+            if destination != InvalidNode and .parser.nodes[destination].kind == .Array
+            {
+                let values = .parser.nodes[destination].values
+                if values.count >= 2
+                {
+                    let page = pages.tryFind(.parser.resolve(values[0]))
+                    if page
+                    {
+                        entry.pageIndex = page.value
+                        let source = .sources[page.value]
+                        let region = catch pageBox(&.parser, source.objectId, source.mediaBoxId, source.cropBoxId, source.rotate) as boxError
+                        if boxError == null
+                        {
+                            let mode = String.from(.parser.name(values[1]))
+                            var x    = region.box.x
+                            var y    = region.box.bottom()
+                            if (mode == "XYZ" or mode == "FitV" or mode == "FitBV" or mode == "FitR") and values.count > 2 do
+                                x = cast(f32) .parser.number(values[2], x)
+                            if mode == "XYZ" and values.count > 3 do
+                                y = cast(f32) .parser.number(values[3], y)
+                            elif (mode == "FitH" or mode == "FitBH") and values.count > 2 do
+                                y = cast(f32) .parser.number(values[2], y)
+                            elif mode == "FitR" and values.count > 5 do
+                                y = cast(f32) .parser.number(values[5], y)
+                            x -= region.box.x
+                            y -= region.box.y
+                            switch region.rotate
+                            {
+                            case 90:  entry.position = {y, x}
+                            case 180: entry.position = {region.box.width - x, y}
+                            case 270: entry.position = {region.box.height - y, region.box.width - x}
+                            default:  entry.position = {x, region.box.height - y}
+                            }
+
+                            if mode == "Fit" or mode == "FitB" do
+                                entry.position = {}
+                        }
+                    }
+                }
+            }
+
+            if not entry.title.isEmpty() do
+                result.add(#move entry)
+            let next  = .parser.dict(node, "Next")
+            let first = .parser.dict(node, "First")
+            if next != InvalidNode do
+                pending.add({next, item.level})
+            if first != InvalidNode do
+                pending.add({first, item.level + 1})
+        }
+
+        return result
+    }
 
     // Decodes and returns the page at zero-based `index`.
     //

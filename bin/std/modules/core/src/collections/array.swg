@@ -57,6 +57,8 @@ impl Array
             let oldBuffer = .buffer
             .buffer = null
             .realloc(.count)
+            if not .count do
+                return
 
             #static if Reflection.hasPostCopy(T)
             {

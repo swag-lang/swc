@@ -3,7 +3,9 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
+#include "Backend/RuntimeContext.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Main/Command/CommandLine.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
@@ -1436,8 +1438,50 @@ Result CodeGenCallHelpers::emitFallibleFailureJump(CodeGen& codeGen)
     return emitFallibleJump(codeGen);
 }
 
+// Whether the error a call may have left behind can be read where it lives.
+// The runtime keeps the thread's context in a thread-local slot, and the
+// platform keeps the first of those slots at a fixed place in the thread's own
+// block: four instructions reach the flag. Through the runtime helper it is an
+// opaque call, which is 23 instructions, two calls of its own to resolve the
+// slot, and every caller-saved register spilled around it - after every
+// fallible call, in whatever loop it sits in.
+bool CodeGenCallHelpers::canReadErrorFlagInline(const CodeGen& codeGen)
+{
+    return codeGen.isNativeBuild() && codeGen.ctx().cmdLine().targetOs == Runtime::TargetOs::Windows;
+}
+
 Result CodeGenCallHelpers::emitFallibleFailureJumpIfHasError(CodeGen& codeGen)
 {
+    MicroBuilder&       builder       = codeGen.builder();
+    const MicroLabelRef continueLabel = builder.createLabel();
+
+    if (canReadErrorFlagInline(codeGen))
+    {
+        // The slot number plus one, as the runtime stores it: zero says no
+        // thread has asked for a context yet, so no error can be waiting.
+        const uint32_t tlsIdOffset   = codeGen.compiler().nativeRuntimeContextTlsIdOffset();
+        const MicroReg tlsStorageReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegDataSegmentReloc(tlsStorageReg, DataSegmentKind::GlobalZero, tlsIdOffset);
+
+        const MicroReg tlsIdPlusOneReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(tlsIdPlusOneReg, tlsStorageReg, 0, MicroOpBits::B64);
+        builder.emitCmpRegImm(tlsIdPlusOneReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, continueLabel);
+
+        // The slot itself. A thread the runtime has never seen holds nothing
+        // there, and has raised nothing either.
+        const MicroReg contextReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegTlsSlot(contextReg, tlsIdPlusOneReg);
+        builder.emitCmpRegImm(contextReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, continueLabel);
+
+        builder.emitCmpMemImm(contextReg, offsetof(Runtime::Context, hasError), ApInt(0, 32), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, continueLabel);
+        SWC_RESULT(emitFallibleJump(codeGen));
+        builder.placeLabel(continueLabel);
+        return Result::Continue;
+    }
+
     const SymbolFunction* runtimeHasErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::HasErr);
     SWC_ASSERT(runtimeHasErr != nullptr);
     if (!runtimeHasErr)
@@ -1446,8 +1490,6 @@ Result CodeGenCallHelpers::emitFallibleFailureJumpIfHasError(CodeGen& codeGen)
     const MicroReg hasErrReg = codeGen.nextVirtualIntRegister();
     SWC_RESULT(emitRuntimeCallWithDirectArgsToReg(codeGen, *runtimeHasErr, std::span<const MicroReg>{}, hasErrReg));
 
-    MicroBuilder&       builder       = codeGen.builder();
-    const MicroLabelRef continueLabel = builder.createLabel();
     builder.emitCmpRegImm(hasErrReg, ApInt(0, 64), MicroOpBits::B8);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, continueLabel);
     SWC_RESULT(emitFallibleJump(codeGen));

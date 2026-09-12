@@ -614,11 +614,7 @@ namespace
                 continue;
             const MicroInstr* cmpInst = storage.ptr(cmpRef);
             if (!cmpInst || cmpInst->op != MicroInstrOpcode::CmpRegImm)
-            {
-                if (isConditionalMove)
-                    fprintf(stderr, "CMOVFLAGS reject prev op=%d\n", static_cast<int>(cmpInst ? cmpInst->op : MicroInstrOpcode::Nop));
                 continue;
-            }
             const MicroInstrOperand* cmpOps = cmpInst->ops(operands);
             if (!cmpOps || cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0)
                 continue;
@@ -676,11 +672,7 @@ namespace
                 continue;
 
             if (defInst->op != MicroInstrOpcode::SetCondReg)
-            {
-                if (isConditionalMove)
-                    fprintf(stderr, "CMOVFLAGS reject def op=%d\n", static_cast<int>(defInst->op));
                 continue;
-            }
             const MicroInstrOperand* setOps = defInst->ops(operands);
             if (!setOps || setOps[0].reg != trackedBool)
                 continue;

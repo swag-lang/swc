@@ -87,6 +87,19 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
         // Complete worker jobs before advancing that transition; the new viewer
         // starts its own work only after pendingFile has been cleared.
         Swag.drainWork()
+        // Text statistics run on a native thread outside the Swag worker pool. Join only
+        // after the real retirement callback requests its stop; classification may still
+        // decide to keep the current document during an interrupted external save.
+        for index in window.instances.count where index < window.choices.count
+        {
+            let instance = &window.instances[index]
+            if instance.view and window.choices[index].key == TextViewerKey
+            {
+                let view = cast(*TextView) instance.view
+                if view.statisticsThread.isValid() and view.statisticsThread.requestEnd do
+                    view.statisticsThread.wait()
+            }
+        }
         if window.startupTimer do
             host.fireTimer(window.startupTimer)
         steps += 1

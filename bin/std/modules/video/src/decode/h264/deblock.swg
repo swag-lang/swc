@@ -485,82 +485,112 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
     }
 }
 
+// The saturating byte arithmetic this filter is written in.
+//
+// Every quantity it compares or clips is a distance between two samples, which is a byte, and the
+// machine carries the whole vocabulary for bytes: a difference that stops at zero, an average that
+// rounds up, and a byte minimum and maximum. Widening to 16-bit lanes to obtain signed arithmetic
+// halves the samples a register holds and pays an unpack and a pack around every one of them.
+
+// All ones in each byte whose two samples lie within `limit` of each other.
+//
+// One of the two saturating differences is zero and the other is the distance between the
+// samples, and a third takes the limit off it, leaving zero exactly where the test passes.
+#[Swag.Inline]
+private func within(a, b, limit: Simd.U8x16)->Simd.U8x16
+{
+    let distance = Simd.subSaturating(a, b) | Simd.subSaturating(b, a)
+    return Simd.subSaturating(distance, limit) == Simd.splat(0'u8)
+}
+
+// The exact half-sum of two bytes: the rounding average less the bit it rounded away.
+#[Swag.Inline]
+private func halfSum(a, b: Simd.U8x16)->Simd.U8x16
+{
+    return Simd.subSaturating(Simd.average(a, b), (a ^ b) & Simd.splat(1'u8))
+}
+
+// The correction one edge applies to its two nearest samples, section 8.7.2.3, carried around a
+// bias of 161.
+//
+// `(((q0 - p0) << 2) + (p1 - q1) + 4) >> 3` is a signed quantity and a byte is not, so the whole
+// of it is computed above a bias that keeps it inside one: each rounding average performs one of
+// the divisions, each exclusive-or restores the bit an average rounded away, and the caller splits
+// the result against the bias into the amount to take off and the amount to put back.
+#[Swag.Inline]
+private func biasedEdge(p1, p0, q0, q1: Simd.U8x16)->Simd.U8x16
+{
+    let ones    = Simd.splat(1'u8)
+    let allOnes = Simd.splat(0xFF'u8)
+    var edge    = Simd.average(q1 ^ allOnes, p1)
+    edge        = Simd.average(edge, Simd.splat(3'u8))
+    edge        = Simd.average(edge, (p0 ^ q0) & ones)
+    return Simd.addSaturating(edge, Simd.average(p0 ^ allOnes, q0))
+}
+
+// One side's outer sample, section 8.7.2.3: the inner samples pull it, and it moves by at most
+// the clip the caller passes, which is zero where this side is not to move at all.
+#[Swag.Inline]
+private func pullOuter(outer, beyond, middle, clip: Simd.U8x16)->Simd.U8x16
+{
+    let target = halfSum(beyond, middle)
+    return Math.min(Math.max(target, Simd.subSaturating(outer, clip)), Simd.addSaturating(outer, clip))
+}
+
 // Filters one complete horizontal weak luma edge. The four strengths apply to four lanes
 // each; zero-strength lanes remain unchanged, while strong edges keep the scalar path.
 func filterLumaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
 {
-    let p0Bytes = Simd.load(pix - stride)
-    let q0Bytes = Simd.load(pix)
-    let p1Bytes = Simd.load(pix - 2 * stride)
-    let q1Bytes = Simd.load(pix + stride)
-    let p2Bytes = Simd.load(pix - 3 * stride)
-    let q2Bytes = Simd.load(pix + 2 * stride)
+    let p2 = Simd.load(pix - 3 * stride)
+    let p1 = Simd.load(pix - 2 * stride)
+    let p0 = Simd.load(pix - stride)
+    let q0 = Simd.load(pix)
+    let q1 = Simd.load(pix + stride)
+    let q2 = Simd.load(pix + 2 * stride)
 
-    let bs0    = cast(s16) strengths.bs[0]
-    let bs1    = cast(s16) strengths.bs[1]
-    let bs2    = cast(s16) strengths.bs[2]
-    let bs3    = cast(s16) strengths.bs[3]
-    let tc0    = bs0 == 0 or bs0 == 4 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs0 - 1)]
-    let tc1    = bs1 == 0 or bs1 == 4 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs1 - 1)]
-    let tc2    = bs2 == 0 or bs2 == 4 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs2 - 1)]
-    let tc3    = bs3 == 0 or bs3 == 4 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs3 - 1)]
-    let bsLow  = cast(Simd.S16x8) [bs0, bs0, bs0, bs0, bs1, bs1, bs1, bs1]
-    let bsHigh = cast(Simd.S16x8) [bs2, bs2, bs2, bs2, bs3, bs3, bs3, bs3]
-    let tcLow  = cast(Simd.S16x8) [tc0, tc0, tc0, tc0, tc1, tc1, tc1, tc1]
-    let tcHigh = cast(Simd.S16x8) [tc2, tc2, tc2, tc2, tc3, tc3, tc3, tc3]
-    let zeros  = Simd.splat(0's16)
-    let fours  = Simd.splat(4's16)
-    let alphas = Simd.splat(cast(s16) alpha)
-    let betas  = Simd.splat(cast(s16) beta)
+    let bs0 = cast(s32) strengths.bs[0]
+    let bs1 = cast(s32) strengths.bs[1]
+    let bs2 = cast(s32) strengths.bs[2]
+    let bs3 = cast(s32) strengths.bs[3]
+    let tc0 = bs0 == 0 or bs0 == 4 ? 0'u8 : DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs0 - 1)]
+    let tc1 = bs1 == 0 or bs1 == 4 ? 0'u8 : DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs1 - 1)]
+    let tc2 = bs2 == 0 or bs2 == 4 ? 0'u8 : DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs2 - 1)]
+    let tc3 = bs3 == 0 or bs3 == 4 ? 0'u8 : DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs3 - 1)]
+    let on0 = bs0 > 0 and bs0 < 4 ? 0xFF'u8 : 0'u8
+    let on1 = bs1 > 0 and bs1 < 4 ? 0xFF'u8 : 0'u8
+    let on2 = bs2 > 0 and bs2 < 4 ? 0xFF'u8 : 0'u8
+    let on3 = bs3 > 0 and bs3 < 4 ? 0xFF'u8 : 0'u8
 
-    let p0Low     = cast #bit(Simd.S16x8) Simd.widenLow(p0Bytes)
-    let q0Low     = cast #bit(Simd.S16x8) Simd.widenLow(q0Bytes)
-    let p1Low     = cast #bit(Simd.S16x8) Simd.widenLow(p1Bytes)
-    let q1Low     = cast #bit(Simd.S16x8) Simd.widenLow(q1Bytes)
-    let p2Low     = cast #bit(Simd.S16x8) Simd.widenLow(p2Bytes)
-    let q2Low     = cast #bit(Simd.S16x8) Simd.widenLow(q2Bytes)
-    let activeLow = (bsLow > zeros) & (bsLow < fours) & (Math.abs(p0Low - q0Low) < alphas) & (Math.abs(p1Low - p0Low) < betas) & (Math.abs(q1Low - q0Low) < betas)
-    let apLow     = Math.abs(p2Low - p0Low) < betas
-    let aqLow     = Math.abs(q2Low - q0Low) < betas
-    let limitLow  = tcLow - cast #bit(Simd.S16x8) apLow - cast #bit(Simd.S16x8) aqLow
-    var deltaLow  = (((q0Low - p0Low) << 2) + (p1Low - q1Low) + 4) >> 3
-    deltaLow = Math.max(Math.min(deltaLow, limitLow), -limitLow)
-    let averageLow = (p0Low + q0Low + 1) >> 1
-    var pAdjustLow = (p2Low + averageLow - 2 * p1Low) >> 1
-    var qAdjustLow = (q2Low + averageLow - 2 * q1Low) >> 1
-    pAdjustLow = Math.max(Math.min(pAdjustLow, tcLow), -tcLow)
-    qAdjustLow = Math.max(Math.min(qAdjustLow, tcLow), -tcLow)
-    let newP0Low = Simd.select(activeLow, p0Low + deltaLow, p0Low)
-    let newQ0Low = Simd.select(activeLow, q0Low - deltaLow, q0Low)
-    let newP1Low = Simd.select(activeLow & apLow, p1Low + pAdjustLow, p1Low)
-    let newQ1Low = Simd.select(activeLow & aqLow, q1Low + qAdjustLow, q1Low)
+    // Four samples carry one strength, and a strength of zero or four is not this filter's.
+    let limits    = cast(Simd.U8x16) [tc0, tc0, tc0, tc0, tc1, tc1, tc1, tc1, tc2, tc2, tc2, tc2, tc3, tc3, tc3, tc3]
+    let strengthy = cast(Simd.U8x16) [on0, on0, on0, on0, on1, on1, on1, on1, on2, on2, on2, on2, on3, on3, on3, on3]
 
-    let p0High     = cast #bit(Simd.S16x8) Simd.widenHigh(p0Bytes)
-    let q0High     = cast #bit(Simd.S16x8) Simd.widenHigh(q0Bytes)
-    let p1High     = cast #bit(Simd.S16x8) Simd.widenHigh(p1Bytes)
-    let q1High     = cast #bit(Simd.S16x8) Simd.widenHigh(q1Bytes)
-    let p2High     = cast #bit(Simd.S16x8) Simd.widenHigh(p2Bytes)
-    let q2High     = cast #bit(Simd.S16x8) Simd.widenHigh(q2Bytes)
-    let activeHigh = (bsHigh > zeros) & (bsHigh < fours) & (Math.abs(p0High - q0High) < alphas) & (Math.abs(p1High - p0High) < betas) & (Math.abs(q1High - q0High) < betas)
-    let apHigh     = Math.abs(p2High - p0High) < betas
-    let aqHigh     = Math.abs(q2High - q0High) < betas
-    let limitHigh  = tcHigh - cast #bit(Simd.S16x8) apHigh - cast #bit(Simd.S16x8) aqHigh
-    var deltaHigh  = (((q0High - p0High) << 2) + (p1High - q1High) + 4) >> 3
-    deltaHigh = Math.max(Math.min(deltaHigh, limitHigh), -limitHigh)
-    let averageHigh = (p0High + q0High + 1) >> 1
-    var pAdjustHigh = (p2High + averageHigh - 2 * p1High) >> 1
-    var qAdjustHigh = (q2High + averageHigh - 2 * q1High) >> 1
-    pAdjustHigh = Math.max(Math.min(pAdjustHigh, tcHigh), -tcHigh)
-    qAdjustHigh = Math.max(Math.min(qAdjustHigh, tcHigh), -tcHigh)
-    let newP0High = Simd.select(activeHigh, p0High + deltaHigh, p0High)
-    let newQ0High = Simd.select(activeHigh, q0High - deltaHigh, q0High)
-    let newP1High = Simd.select(activeHigh & apHigh, p1High + pAdjustHigh, p1High)
-    let newQ1High = Simd.select(activeHigh & aqHigh, q1High + qAdjustHigh, q1High)
+    // The standard states its two thresholds as strict bounds and a byte comparison is inclusive,
+    // so both drop by one.
+    let ones      = Simd.splat(1'u8)
+    let alphaEdge = Simd.splat(cast(u8) (alpha - 1))
+    let betaEdge  = Simd.splat(cast(u8) (beta - 1))
+    let filtering = strengthy & within(p0, q0, alphaEdge) & within(p1, p0, betaEdge) & within(q1, q0, betaEdge)
 
-    Simd.store(pix - stride, Simd.packUnsigned(newP0Low, newP0High))
-    Simd.store(pix, Simd.packUnsigned(newQ0Low, newQ0High))
-    Simd.store(pix - 2 * stride, Simd.packUnsigned(newP1Low, newP1High))
-    Simd.store(pix + stride, Simd.packUnsigned(newQ1Low, newQ1High))
+    // A clip of zero is what leaves a lane alone, so the conditions are folded into the clips
+    // rather than selected over at the end.
+    let clip     = limits & filtering
+    let pullsP   = within(p2, p0, betaEdge) & filtering
+    let pullsQ   = within(q2, q0, betaEdge) & filtering
+    let clipP1   = clip & pullsP
+    let clipQ1   = clip & pullsQ
+    let clipEdge = clip + (pullsP & ones) + (pullsQ & ones)
+
+    let edge  = biasedEdge(p1, p0, q0, q1)
+    let bias  = Simd.splat(0xA1'u8)
+    let below = Math.min(Simd.subSaturating(bias, edge), clipEdge)
+    let above = Math.min(Simd.subSaturating(edge, bias), clipEdge)
+
+    let middle = Simd.average(p0, q0)
+    Simd.store(pix - 2 * stride, pullOuter(p1, p2, middle, clipP1))
+    Simd.store(pix + stride, pullOuter(q1, q2, middle, clipQ1))
+    Simd.store(pix - stride, Simd.addSaturating(Simd.subSaturating(p0, below), above))
+    Simd.store(pix, Simd.addSaturating(Simd.subSaturating(q0, above), below))
 }
 
 // Filters the eight samples of one horizontal weak chroma edge. Each luma strength maps
@@ -588,6 +618,7 @@ func filterChromaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *Edge
     Simd.storeLow8(pix - stride, Simd.packUnsigned(Simd.select(active, p0 + delta, p0), zeros))
     Simd.storeLow8(pix, Simd.packUnsigned(Simd.select(active, q0 - delta, q0), zeros))
 }
+
 
 // Filters every strong luma lane of one horizontal edge. Weak lanes are applied first when
 // present; the strong mask then leaves them untouched while sharing the same packed rows.

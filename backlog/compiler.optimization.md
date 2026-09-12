@@ -15,6 +15,26 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.038 — A vector wrapper three helpers deep stops being inlined
+
+- Recorded: 2026-09-12 22:10
+- Evidence: `std/core`'s packed operations are one machine instruction each behind a name, and a
+  caller in another module normally receives them inlined. Reached through two of the caller's own
+  `#[Swag.Inline]` helpers they are not: the H.264 weak luma deblocking filter called a local
+  helper that called another that called `Simd.subSaturating`, and the built kernel carried ten
+  calls to it, one per use, with the argument and return traffic around each. Collapsing the two
+  helpers into one removed all ten and took the kernel from 315 instructions to 272 and from 32
+  stack accesses to 24. Marking the whole `Simd` namespace `#[Swag.Inline]` changed nothing, so
+  the attribute is not what is missing.
+- Why it matters beyond one kernel: a packed operation that becomes a call costs more than the
+  work it performs, and the depth at which it happens is invisible in the source. Every consumer
+  that wraps packed work in helpers is exposed, and the fix each one finds is to flatten its own
+  code rather than to state anything about the call.
+- Next: find what stops the inliner at that depth, in the auto-inline decision rather than in the
+  attribute, and make a wrapper whose body is a single intrinsic inline from any depth.
+- Complete when: a packed operation reached through two layers of inline helpers emits no call.
+- Related: cpu.simd.035
+
 ### compiler.optimization.037 — Hoisting a constant-pool read out of a loop is undone by rematerialization
 
 - Recorded: 2026-09-12 20:30

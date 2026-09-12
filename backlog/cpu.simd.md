@@ -82,9 +82,19 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   why it is worth returning to once compiler.optimization.037 lets the coefficients stay in
   registers across the loop. The reference's own luma kernel widens too, and applies its
   coefficients with a 16-bit multiply.
-- Next: the deblocking filters, where the reference stays in bytes throughout with `pavgb`,
-  `psubusb` and `pminub` and ours widens 36 times, then the clip-and-add of the inverse transform.
-  Keep the existing scalar reference beside each one and the plane digests byte-exact.
+- Done: `filterLumaWeakHorizontal`, the costliest deblocking kernel, now runs entirely on bytes.
+  The two thresholds are compared with a saturating difference that stops at zero, the correction
+  of section 8.7.2.3 is carried above a bias of 161 so a signed quantity fits an unsigned byte, and
+  each condition is folded into a clip of zero rather than selected over at the end, exactly as the
+  reference's own filter is written. It fell from 354 instructions to 272 and from 56 stack
+  accesses to 24, with the decoded planes unchanged.
+- Where the byte domain does not pay: the same rewrite of `filterChromaWeakHorizontal` cost 30
+  instructions instead of saving any, and was reverted. That edge is eight samples, which already
+  fit one register once widened, so widening buys nothing back. The byte domain pays where it
+  doubles the samples a register carries, which is the sixteen-sample luma edge, and not otherwise.
+- Next: the vertical weak luma filter, which reads columns rather than rows and needs the
+  reference's transpose before the same body applies, then the clip-and-add of the inverse
+  transform. Keep the existing scalar reference beside each one and the plane digests byte-exact.
 - Complete when: the H.264 pixel layer reaches FFmpeg's SSE2 figure on the same fixture with
   unchanged decoded planes.
 - Related: std.video.001, cpu.simd.023, cpu.simd.024

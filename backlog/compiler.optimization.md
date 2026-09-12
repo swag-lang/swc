@@ -136,6 +136,29 @@ block, and the hot path keeps the register.
   that slot promotion or the vectorizer recognizes the array by the shape of its address.
 - Complete when: the fold lands with the CABAC gain and no kernel regression.
 
+### compiler.optimization.037 — Asking whether a call failed costs an opaque call
+
+- Recorded: 2026-09-12 14:10
+- Area: compiler/backend, runtime
+- Evidence: every call to a `fail` function is followed by `sub rsp, 0x28`, `call __hasErr`,
+  `add rsp, 0x28`, `movzx`, `test`, `jcc`. `__hasErr` is 23 instructions and reaches the thread
+  context through `__tlsAlloc`/`__tlsGetPtr`, two further calls, to read one 32-bit field. The
+  check is therefore an opaque call in the middle of whatever loop contains it: the allocator
+  must spill every caller-saved value around it, which is most of why
+  `Slice.parsePlaneResidualCabac` spent 104 frame accesses on 427 instructions.
+- What it cost the H.264 decoder: the arithmetic layer raised errors per residual block, so a
+  macroblock paid about twenty-seven of these. Moving the two conditions to the macroblock loop,
+  where FFmpeg puts them, took the CABAC path from 81 calls to 62 and the kernel set from 19603
+  to 19452 instructions. The library is fixed; the compiler cost remains for every other `fail`
+  in every program.
+- Next: emit the check inline. The context pointer a function already needs can be fetched once
+  and the check becomes `cmp dword ptr [ctx + hasError], 0` and a branch - two instructions
+  against an opaque call. `Swag.setContext` inside the callee is what makes a cached pointer
+  unsound, so either the fetch stays per check (still no call if `__tlsGetPtr` is inlined) or the
+  language states that the context register may be cached across a call.
+- Complete when: a fail-call's error check emits no call, and the decoder's macroblock path shows
+  it.
+
 ### compiler.optimization.035 — Legalization cannot stage a value without a free register
 
 - Recorded: 2026-09-12 11:40

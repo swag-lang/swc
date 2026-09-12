@@ -29,6 +29,7 @@ struct CabacReader
     low:      u32           // codIOffset << 17, then sixteen look-ahead bits, then the marker.
     range:    u32           // codIRange.
     contexts: [1024] u8     // Packed state: `(pStateIdx << 1) | valMPS`.
+    invalid:  bool          // A syntax element did not decode; the macroblock loop reports it.
 }
 
 // Table 9-44 laid out for one lookup from the packed state and the two range bits that select
@@ -518,7 +519,7 @@ impl Slice
     }
 
     // Decodes one motion vector difference pair, section 9.3.3.1.1.7.
-    mtd mvdCabac(mb: *Mb, list: u32, x4, y4: s32)->[2] s16 fail
+    mtd mvdCabac(mb: *Mb, list: u32, x4, y4: s32)->[2] s16
     {
         let a = .motionAt(mb, list, x4 - 1, y4)
         let b = .motionAt(mb, list, x4, y4 - 1)
@@ -559,8 +560,11 @@ impl Slice
                 {
                     value += 1'u32 << k
                     k     += 1
-                    if k > 24 do
-                        fail InvalidFormatError{"H.264 motion vector difference does not decode"}
+                    if k > 24
+                    {
+                        .cabac.invalid = true
+                        break
+                    }
                 }
 
                 while k > 0
@@ -695,7 +699,7 @@ impl Slice
     // The block size and the DC distinction are compile-time parameters: the four block shapes a
     // stream carries each get a body whose bounds, table choice and store are folded, and only
     // the values the loops read stay live across them.
-    func(const MaxCoeffs: u32, const IsDc: bool) residualCabac(me, mb: *Mb, cat: u32, coeffs: [*] s16, nzA, nzB: s32, order: u64, scale: [*] u32?, shift: u32)->u32 fail
+    func(const MaxCoeffs: u32, const IsDc: bool) residualCabac(me, mb: *Mb, cat: u32, coeffs: [*] s16, nzA, nzB: s32, order: u64, scale: [*] u32?, shift: u32)->u32
     {
         var range = .cabac.range
         var low   = .cabac.low
@@ -819,13 +823,11 @@ impl Slice
 
         .cabac.range = range
         .cabac.low   = low
-        if .cabac.hasOverrun() do
-            fail InvalidFormatError{"H.264 residual block is truncated"}
         return count
     }
 
     // Parses every residual block of the macroblock with CABAC coding.
-    mtd parseResidualCabac(mb: *Mb) fail
+    mtd parseResidualCabac(mb: *Mb)
     {
         let dec = .dec!
 
@@ -873,7 +875,7 @@ impl Slice
     // Only luma feeds the deblocking strength: the boundary filter reads the luma transform
     // coefficients whatever the chroma format, so a colour plane writes its nonzero counts for
     // the entropy contexts and nothing else.
-    mtd parsePlaneResidualCabac(mb: *Mb, plane: u32) fail
+    mtd parsePlaneResidualCabac(mb: *Mb, plane: u32)
     {
         let storage = .planeResidual(mb, plane)
         let isLuma  = plane == 0

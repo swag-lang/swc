@@ -589,6 +589,8 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
         switch item.kind
         {
         case .Text:
+            if item.invisibleText do
+                break
             if item.text.isEmpty() and item.textCodes.isEmpty() do
                 continue
             try drawTextItem(painter, fonts, fontCache, page, item, placed, fallbackFontFile)

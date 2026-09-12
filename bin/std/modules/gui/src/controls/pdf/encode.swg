@@ -300,8 +300,10 @@ private func pageContent(page: const *Page, fonts: const [..] StandardFont)->Str
             appendColor(&result, item.fillColor, false)
             let baseline = item.transform.transformPoint({0, item.fontSize})
             result.appendFormat("BT\n/F% % Tf\n% % % % % % Tm\n", fontSlot(fonts, item.standardFont), pdfNumber(item.fontSize), pdfNumber(item.transform.m11), pdfNumber(-item.transform.m12), pdfNumber(-item.transform.m21), pdfNumber(item.transform.m22), pdfNumber(baseline.x), pdfNumber(page.height - baseline.y))
+            if item.invisibleText do
+                result += "3 Tr\n"
             try appendPdfString(&result, item.text.toString())
-            result += " Tj\nET\n"
+            result += item.invisibleText ? " Tj\n0 Tr\nET\n" : " Tj\nET\n"
 
         case .Path:
             appendPath(&result, page, item)

@@ -239,7 +239,9 @@ resource limits.
 ## Out of scope
 
 **Font file authoring.** Writing, subsetting, or editing font files is a different problem from
-reading them, and nothing in this repository needs it.
+reading them. The current PDF writer uses standard faces; future PDF font embedding and
+subsetting belongs to [std.gui.pdf.019](std.gui.pdf.md), which must settle its writer dependency
+before extending this reader module.
 
 **A system font database.** Enumerating installed fonts, resolving a family name to a file, and
 walking a fallback chain when a glyph is missing are all real needs, but they belong above this

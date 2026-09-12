@@ -39,6 +39,21 @@ language.parallelism.001. The concurrency entries own Core integration, algorith
 migration against that native surface; they do not introduce Core-owned task or synchronization
 types.
 
+### std.core.019 — Unambiguous regular-expression captures replay the search
+
+- Recorded: 2026-09-06 17:42
+- Updated: 2026-09-12 06:43 — Record both capture-replay engines and their existing bounded fallback.
+- Evidence: `src/text/regexp` finds the matching span with its automata, then uses the iterative
+  backtracking engine for short-span capture recovery, with the Pike VM handling longer spans or
+  exhausted backtracking budgets. The 2026-08-29 date-pattern measurement reduced that
+  replay from 360 ns to 90 ns, but capture extraction still walks the pattern a second time.
+  Anchored backtracking and lazy automaton construction are already implemented.
+- Next: identify patterns whose capture transitions are unambiguous and prototype capture
+  extraction during one forward pass. Keep the bounded fallback for patterns outside that subset.
+- Complete when: the capture corpus returns identical groups and spans, ambiguous patterns retain
+  the existing fallback, and interleaved measurements show the cost of the second walk removed.
+- Related: std.core.020, std.core.030
+
 ### std.core.032 — The recovered inflate rewrite fails a real-document golden
 
 - Recorded: 2026-09-08 22:17
@@ -175,19 +190,6 @@ types.
   and retain buffers, request records, and callbacks until the backend is finished with them;
   owning I/O consumers use the common runtime without private task or cancellation machinery.
 - Related: language.parallelism.002, std.core.025, std.core.004
-
-### std.core.019 — Unambiguous regular-expression captures replay the search
-
-- Recorded: 2026-09-06 17:42
-- Evidence: `src/text/regexp` finds the matching span with its automata, then uses the iterative
-  backtracking engine to recover groups. The 2026-08-29 date-pattern measurement reduced that
-  replay from 360 ns to 90 ns, but capture extraction still walks the pattern a second time.
-  Anchored backtracking and lazy automaton construction are already implemented.
-- Next: identify patterns whose capture transitions are unambiguous and prototype capture
-  extraction during one forward pass. Keep the bounded fallback for patterns outside that subset.
-- Complete when: the capture corpus returns identical groups and spans, ambiguous patterns retain
-  the existing fallback, and interleaved measurements show the cost of the second walk removed.
-- Related: std.core.020, std.core.030
 
 ### std.core.030 — Compiling a regular expression makes many separate allocations
 

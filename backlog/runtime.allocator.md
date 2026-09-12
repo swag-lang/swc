@@ -307,7 +307,7 @@ alone. Comparative reference points for that investigation:
 - Inject reserve and commit failures at every transition and verify that page masks, segment lists,
   and the abandoned list stay consistent and that the allocation returns null rather than a
   half-built page.
-- Related: runtime.allocator.009, platform.portability.004
+- Related: platform.portability.089, platform.portability.004
 
 ### runtime.allocator.006 — Huge allocations have no separately measured policy
 
@@ -318,13 +318,3 @@ Define the threshold and reserve/commit/release behavior for genuinely huge allo
 medium tier is separated. Benchmark large growth and release independently of size-class caching.
 
 - Related: runtime.allocator.001, runtime.allocator.005
-
-### runtime.allocator.009 — Allocator stress is not run under Windows heap instrumentation
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Run the allocator stress suite under Windows Application Verifier and page heap, and make the
-invocation reproducible without folding it into failure injection.
-
-- Related: runtime.allocator.001, runtime.allocator.008

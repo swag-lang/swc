@@ -71,9 +71,8 @@ impl BinaryReport
 
     // Adds one value and the byte range it was read from.
     //
-    // The typed forms below exist because a call result handed straight to a parameter is a
-    // temporary this compiler does not yet drop, so a report of a few thousand rows would leak one
-    // buffer per row. Building the text inside the row is what keeps the call sites free of them.
+    // The typed forms below format each value directly into its owning row, keeping numeric
+    // formatting consistent across readers.
     mtd field(offset, length: u64, label, value: string, detail: string = "")
     {
         var row: BinaryRow

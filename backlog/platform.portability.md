@@ -36,6 +36,17 @@ new platform implements capabilities rather than copies policy.
 The following entries implement the target backends and remove the Windows-bound behavior exposed
 by portable modules and products. The earlier entries prepare and enforce the same boundaries.
 
+### platform.portability.089 — Allocator stress is not run under Windows heap instrumentation
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-12 06:42 — Move Windows-specific validation to the platform integration owner.
+- Historical provenance: moved from retired runtime.allocator.009.
+
+Run the allocator stress suite under Windows Application Verifier and page heap, and make the
+invocation reproducible without folding it into failure injection.
+
+- Related: runtime.allocator.001, runtime.allocator.008
+
 ### platform.portability.021 — Application-message payloads have no ownership contract
 
 - Recorded: 2026-08-09 11:30

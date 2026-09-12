@@ -29,7 +29,7 @@ still-image editing and output work.
 ### app.capture.023 — Property painters have no regression for stale selections
 
 - Recorded: 2026-09-01 17:55
-- Updated: 2026-09-10 18:29 — Name the remaining painter-test gap rather than the fixed crash.
+- Updated: 2026-09-12 06:19 — Describe both typed accessors and explicit kind checks used by the repaired painters.
 - The bug is fixed; what remains is that the headless panel does not reproduce it, so nothing
   guards the painters themselves.
 - What happened: `PropWnd.propShape` checks the selected kind when it creates its button, but the
@@ -37,7 +37,8 @@ still-image editing and output work.
   `*FormShape`. Selecting a text form put a `String`'s first bytes where `kind` lives, and
   `drawShapeGlyph` switches over a three-value enum with `#complete`. Release has the guard off and
   drew a wrong glyph; devmode panicked. Six other painters and popup handlers had the same shape.
-  All of them now ask `getSelectedForm'T()`, which answers null when the selection is not a `T`.
+  They now use `getSelectedForm'T()`, which answers null when the selection is not a `T`, or
+  explicitly check the selected kind before reading fields shared by supported form types.
 - Why there is no test for the painter: a headless fixture that builds the panel, moves the
   selection to a text form and renders each style button does not fault, with or without the fix —
   the buttons are laid out and painted and the value read still comes back inside the enum. The

@@ -5,38 +5,18 @@ Parser, layout, and renderer defects remain with their engines in [std.gui.markd
 [std.gui.html.md](std.gui.html.md), and [std.gui.pdf.md](std.gui.pdf.md); entries here own navigation, inspection, and application
 integration around those engines.
 
-### app.scope.document.016 — PDF text selection, copy, and reading order are not a complete workflow
+### app.scope.document.016 — Image-only PDF pages do not explain why text search finds nothing
 
 - Recorded: 2026-08-29 08:36
-- Updated: 2026-09-10 17:54 — narrow selection work to keyboard and copy semantics after verifying cross-page pointer selection
-- Evidence: `PdfView` already selects across page boundaries and joins copied page text with line
-  feeds. `pdfview.test.swg` drags from page zero to page one and checks `PDF viewer\nSecond page`.
-  Double-click word selection, document search, `Ctrl+A`, and `Ctrl+C` are also implemented.
-  Arrow keys scroll rather than extending a text selection; there is no keyboard caret selection,
-  no choice between logical and visual copy order, no reflow reading, and an image-only page says
-  nothing about why a search finds nothing in it.
-- Next: add keyboard caret and selection movement on the existing cross-page text positions,
-  preserving glyph/source coordinates for exact and logical copy forms. Keep the pointer drag
-  and copy regression as the working baseline.
-- Complete when: keyboard selection reaches across lines and pages, copy exposes logical and
-  visual order, reflow has a defined reading order, and image-only pages state that OCR is absent.
-
-### app.scope.document.014 — PDF viewing has no facing-page layout
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-07 20:47 — git: Continuous scrolling and Fit Width shipped; facing pages remain
-- Evidence: `PdfView` now lays every page out in one scrolled column, decodes pages on a worker as
-  the viewport reaches them, and offers Fit Page, Fit Width, an explicit zoom and a one-page-at-a-time
-  layout, all reachable from the viewer's zoom menu. What remains is the two-page reading of a
-  document: facing pages, continuous facing pages, the cover-page rule that decides whether page
-  one stands alone, and Fit Selection. The host also provides F11 content-only fullscreen and has
-  no PDF-specific slide presentation workflow.
-- Next: lay two pages per row in `PdfView` behind the existing `PdfPageLayout`, deciding the cover
-  rule from the document's page count and first page size, and reuse the same visible-range and
-  residency path the column already uses.
-- Complete when: Single, Continuous, Facing and Continuous Facing share navigation, search and
-  selection; Fit Page, Fit Width and Fit Selection are distinct; page gaps and cover handling are
-  correct; and decoded-page caching stays bounded in all of them.
+- Updated: 2026-09-12 06:10 — Keep application search guidance here; split shared selection, copy, and reflow work into the PDF domain.
+- Evidence: the PDF adapter forwards document search into `PdfView`, but its information surface
+  does not distinguish a decoded page with no text from a page whose text has not been loaded.
+  An image-only page gives no explanation that optical character recognition is unavailable.
+- Next: expose the decoded page's text availability through the existing information surface,
+  distinguishing loading, absent text, and unavailable decoding without scanning the whole file.
+- Complete when: searching an image-only page explains that OCR is absent, text-backed scans stay
+  searchable, and a pending or failed page is not mislabeled as having no text.
+- Related: std.gui.pdf.040, std.gui.pdf.041, std.gui.pdf.042
 
 ### app.scope.document.003 — Markdown links and resources have no trust or diagnostics surface
 

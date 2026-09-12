@@ -9,6 +9,19 @@ also belongs here; rendered Markdown and HTML integration lives in
 The intended surface is read-only: navigation, comparison, structured inspection and bounded
 large-file work without editing, implicit network access, macros or source mutation.
 
+### app.scope.text.002 — Text navigation has no line, column, byte-offset, or percentage jump
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-12 06:24 — Distinguish existing offset-driven search reveal from user navigation and reverse position mapping.
+- Evidence: basic text and code can reach the file ends and host search matches, but there is no
+  Go To command or caret address readout. `revealOffset` already seeks a source byte offset into
+  the resident editor for search and streamed scrolling; it does not provide a reverse map from
+  arbitrary editor positions to exact whole-file line, column, and byte coordinates.
+- Next: introduce a streamed text-position map and a Go To surface that accepts line, `line:column`,
+  absolute byte offset, and percentage.
+- Complete when: jumps work before a full line index exists, report exact versus estimated
+  positions, align to an encoding boundary, and keep line/column/offset visible for the caret.
+
 ### app.scope.text.001 — Text and HTML zoom still lack persistence and Ctrl+wheel
 
 - Recorded: 2026-08-29 08:36
@@ -346,18 +359,6 @@ large-file work without editing, implicit network access, macros or source mutat
   result plus precise damage; huge arrays and JSON Lines remain paged; search covers keys and values;
   and schemas are local or explicitly supplied rather than fetched from the network.
 - Related: app.scope.text.004, app.scope.viewers.004, app.scope.viewers.006
-
-### app.scope.text.002 — Text navigation has no line, column, byte-offset, or percentage jump
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: basic text and code can reach the file ends and host search matches, but there is no
-  Go To command, address readout, or conversion between resident editor positions and whole-file
-  byte offsets.
-- Next: introduce a streamed text-position map and a Go To surface that accepts line, `line:column`,
-  absolute byte offset, and percentage.
-- Complete when: jumps work before a full line index exists, report exact versus estimated
-  positions, align to an encoding boundary, and keep line/column/offset visible for the caret.
 
 ### app.scope.text.003 — Basic text has no line numbers, whitespace view, or newline diagnostics
 

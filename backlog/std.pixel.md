@@ -28,6 +28,56 @@ output, path measurement and effects, and the modern renderer choice tracked by
 
 ## Entries
 
+### std.pixel.026 — Stroking a page costs four times filling the same geometry
+
+- Recorded: 2026-08-30 17:42
+- Updated: 2026-09-12 06:31 — Move painter stroke tessellation from the PDF consumer to Pixel.
+- Intent: a fill keeps its tessellation inside the contour it filled, so a page drawn again only
+  appends vertices. A stroke keeps nothing: every frame rebuilds a quad per segment and, between
+  each pair of them, a join — two triangles and an antialiasing band along each of its outer
+  edges. Eighteen vertices for the join against six for the segment it bridges, on a contour
+  flattened from a curve where every turn is shallow.
+- Historical provenance: moved from retired std.gui.pdf.035.
+- Evidence: the historical comparison measured against a CPU renderer in release configuration, timing `drawPageItems`
+  alone, best of twenty-five warm frames on an idle machine. A page of 3 300 glyph-sized marks —
+  5 000 contours, 132 000 points, the shape a document that draws every glyph through a form of
+  its own produces — records in 8.9 ms filled and 39 to 46 ms stroked. Removing every join takes
+  the stroked page from 6.0 to 3.3 times the filled one, and to 1.8 times when the segments also
+  measure their coverage from the centre line, so the join alone is about half of a stroke's
+  recording.
+- Note: two shortcuts were measured and rejected. Skipping a join whose outer corners fall closer
+  than a tenth of a device pixel — which a minified pass already does — scallops every rounded
+  corner at normal scale, because a curve's corner is a run of such turns and dropping all of them
+  leaves the outer side unjoined; four focus-ring goldens and two stroke goldens caught it, with
+  channel differences up to 235. Drawing a page's strokes under
+  [[Pixel.PaintParams.DistanceStrokes]], as the SVG renderer does, was worth 7% of a stroked
+  page's recording and moved 0.08% to 0.9% of a rendered page's pixels, by up to a full channel:
+  the ink of a document is not ours to trade for that.
+- Next: lay a contour's stroke down as one mitered ribbon rather than a quad per segment and a
+  join between them, the way [[Pixel.Painter.fillPath]]'s antialiasing band already shares its
+  mitered corners between adjacent edges. A turn past the miter limit still needs a join; every
+  other turn stops needing one.
+- Complete when: stroking a page costs the same order as filling the same contours, and a page of
+  a few thousand stroked marks records in single-digit milliseconds on a warm cache.
+- Related: std.gui.pdf.030, std.pixel.020
+
+### std.pixel.027 — Dynamically registered typefaces cannot be released before module shutdown
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-12 06:31 — Move the process-wide typeface lifetime contract to its Pixel owner.
+- Historical provenance: moved from retired std.gui.pdf.027.
+- Evidence: `TypeFace.create` and `load` return process-cache-owned pointers valid until module
+  shutdown, with no unregister operation. PDF pages borrow those pointers; their embedded font
+  program keys are already cached. Opening unrelated documents can grow the table for the
+  process lifetime, even after their page caches close.
+- Next: define releasable registration ownership alongside existing borrowed process-cache
+  pointers. Account for renderer glyph caches and shared users before giving a document a
+  release operation; never invalidate a pointer covered by the current lifetime contract.
+- Complete when: dynamically registered faces can be reclaimed after their final owner releases
+  them, cached glyph resources cannot retain stale pointers, and repeated PDF open/close tests
+  show bounded growth while existing process-lifetime callers retain their documented behavior.
+- Related: std.gui.pdf.028, std.gui.pdf.037
+
 ### std.pixel.019 — Image pipelines always materialize full intermediates
 
 - Recorded: 2026-09-01 08:20

@@ -122,11 +122,66 @@ using Core, Core.Math, Pdf
 
     let content  = "BT /F0 10 Tf 3 Tr (hidden) Tj 0 Tr (shown) Tj ET"
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) content, objects.toSlice()).toSlice())
-    Swag.assert(pageText(document.pages[0]) == "shown")
-    Swag.assert(document.pages[0].items.count == 1)
+    Swag.assert(pageText(document.pages[0]) == "hiddenshown")
+    Swag.assert(document.pages[0].items.count == 2)
+    Swag.assert(document.pages[0].items[0].invisibleText)
+    Swag.assert(not document.pages[0].items[1].invisibleText)
 
     // The hidden run still moved the position, so the visible one does not start at the origin.
-    Swag.assert(document.pages[0].items[0].itemTransform().tx > 20)
+    Swag.assert(document.pages[0].items[1].itemTransform().tx > 20)
+}
+
+// Invisible OCR text remains searchable at the same offsets as the displayed page's index.
+#test
+{
+    var objects: Array'u8
+    addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+    let content  = "BT /F0 10 Tf 10 80 Td 3 Tr (hidden) Tj 0 Tr (shown) Tj 7 Tr (clipped) Tj ET"
+    let bytes    = singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) content, objects.toSlice())
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("pdf-invisible-%{X016}.pdf", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    var reader = expect Reader.open(fileName)
+    let text   = expect reader.loadPageText(0)
+    Swag.assert(text.contains(cast(string) "hidden"))
+    Swag.assert(text.contains(cast(string) "shown"))
+    Swag.assert(text.contains(cast(string) "clipped"))
+    var page    = expect reader.loadPage(0)
+    let indexed = TextIndex.build(&page)
+    Swag.assert(text == indexed.text)
+}
+
+// Invisible runs stay unpainted through decode, preparation, and encoding, without hiding a
+// later visible run through leaked text state.
+#[Swag.TestTag("golden")]
+#test
+{
+    var objects: Array'u8
+    addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+    let content  = "BT /F0 10 Tf 10 80 Td 3 Tr (hidden) Tj 7 Tr (clipped) Tj ET"
+    var document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) content, objects.toSlice()).toSlice())
+    var page     = document.pages[0]
+    page.prepare(1)
+    var blank    = Page.create(page.width, page.height)
+    let expected = expect blank.render()
+    let actual   = expect page.render()
+    Pixel.Testing.assertImagesNear(&expected, &actual, "pdf.text.invisible")
+
+    document.editPage(0).addText("visible", 10, 40, 10)
+    let bytes     = expect document.encode()
+    var roundtrip = expect Document.decode(bytes.toSlice())
+    Swag.assert(pageText(roundtrip.pages[0]) == "hiddenclippedvisible")
+    Swag.assert(roundtrip.pages[0].items.count == 3)
+    Swag.assert(roundtrip.pages[0].items[0].invisibleText)
+    Swag.assert(roundtrip.pages[0].items[1].invisibleText)
+    Swag.assert(not roundtrip.pages[0].items[2].invisibleText)
+    var roundPage = roundtrip.pages[0]
+    var visible   = Page.create(page.width, page.height)
+    visible.addText("visible", 10, 40, 10)
+    let expectedRound = expect visible.render()
+    let actualRound   = expect roundPage.render()
+    Pixel.Testing.assertImagesNear(&expectedRound, &actualRound, "pdf.text.invisible-roundtrip")
 }
 
 // A `/Differences` array renames single codes, and text extraction follows the new names.

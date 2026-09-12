@@ -408,11 +408,11 @@ private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state
     else do
         advance = cast(f32) bytes.count * state.fontSize * 0.5
 
-    // Render modes 3 and 7 add no marks; the text still moves the position, which is how
-    // an invisible layer over a scanned page stays aligned with what it transcribes.
+    // Render modes 3 and 7 add no marks, but their text and geometry still belong to search
+    // and selection. Keep the same runs in complete pages and text-only decoding.
     let invisible = state.renderMode == 3 or state.renderMode == 7
     let text      = #move (font ? font.decodeText(bytes) : Text.decode(cast(const [..] u8) bytes, .Windows1252))
-    if not invisible and not text.isEmpty()
+    if not text.isEmpty()
     {
         var combined = Transform2{state.horizScale, 0, 0, 1, 0, state.rise}
         combined.multiply(state.textMatrix)
@@ -424,6 +424,7 @@ private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state
         let baselineY = page.height - baseline.y
 
         var item = Item.createText()
+        item.invisibleText = invisible
         item.text = #move text
         if font
         {
@@ -846,6 +847,8 @@ private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.R
 // before masks were read at all: losing a shadow's softness beats losing the mark under it.
 private func maskItem(parser: *PdfParser, page: *Page, mask: const *SoftMaskRef, item: *Item, depth: u32)
 {
+    if item.kind == .Text and item.invisibleText do
+        return
     let group = catch softMaskGroup(parser, page, mask, depth) as groupError
     if groupError != null do
         return

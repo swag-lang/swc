@@ -80,6 +80,64 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ## Entries
 
+### std.gui.pdf.038 — PdfView has no facing-page layout
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-12 06:10 — Move the remaining layout work from retired app.scope.document.014 to its shared widget owner.
+- Evidence: `PdfPageLayout` exposes Single and Continuous. `PdfView` already shares navigation,
+  search, selection, and bounded page residency between them; it cannot place two pages per row.
+- Next: add Facing and Continuous Facing through the existing layout and visible-range machinery,
+  with an explicit cover-page rule that does not infer reading intent from page dimensions alone.
+- Complete when: both facing layouts preserve navigation, search, cross-page selection, and cache
+  bounds; cover handling, unequal page sizes, gaps, and viewport resizing have regression coverage.
+- Related: std.gui.pdf.039
+
+### std.gui.pdf.039 — PdfView cannot fit a selected region to the viewport
+
+- Recorded: 2026-09-12 06:10
+- Evidence: split from retired app.scope.document.014. `PdfZoomMode` exposes FitPage, FitWidth,
+  and Free; no operation derives zoom and scroll position from a selected page-space region.
+- Next: define whether Fit Selection accepts text bounds, an explicit rectangle, or both, and
+  implement it using the same page-to-viewport transforms as selection and search highlighting.
+- Complete when: fitting a nonempty region keeps it visible with defined padding, empty selection
+  has a defined result, and selection spanning pages works in every supported layout.
+- Related: std.gui.pdf.038
+
+### std.gui.pdf.040 — PdfView cannot move a text caret or extend selection from the keyboard
+
+- Recorded: 2026-09-12 06:10
+- Evidence: split from app.scope.document.016. The widget already supports pointer selection
+  across pages, double-click word selection, Ctrl+A and Ctrl+C. Arrow keys scroll; they do not
+  move a text caret or extend a selection. `pdfview.test.swg` protects cross-page pointer copy.
+- Next: add keyboard movement and selection extension over the existing `PdfTextPosition` model,
+  preserving pointer behavior and distinguishing text navigation from viewport scrolling.
+- Complete when: keyboard selection crosses words, lines, and pages, respects modifiers, reveals
+  its caret, and survives lazy page loading with tests at the widget boundary.
+- Related: std.gui.pdf.041
+
+### std.gui.pdf.041 — PDF copy has no choice between logical and visual text order
+
+- Recorded: 2026-09-12 06:10
+- Evidence: split from app.scope.document.016. `PdfView.selectedText` joins each selected page's
+  indexed text with line feeds. There is one extraction order and no caller-selected copy mode.
+- Next: define logical and visual copy orders against the retained glyph/source coordinates,
+  including columns, bidirectional runs, and page boundaries, then expose the selected policy.
+- Complete when: both forms preserve their documented order on independent text fixtures and
+  copying a selection retains its exact range across pages.
+- Related: std.gui.pdf.040, std.gui.pdf.042
+
+### std.gui.pdf.042 — PdfView has no reflow reading mode
+
+- Recorded: 2026-09-12 06:10
+- Evidence: split from app.scope.document.016. `PdfView` paints positioned page items; zoom and
+  page layout preserve the source geometry. Neither the widget nor its text index composes a
+  reading surface whose lines wrap to the viewport width.
+- Next: define a reading-order contract and the supported text subset before composing a reflow
+  surface, retaining a route from reflowed text to its source page and selection coordinates.
+- Complete when: supported text reflows on resize without losing search or selection, unsupported
+  structures have an explicit fallback, and multi-column fixtures protect the chosen order.
+- Related: std.gui.pdf.041
+
 ### std.gui.pdf.036 — One worker serializes visible-page decoding
 
 - Recorded: 2026-09-07 20:45
@@ -106,7 +164,7 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   resources without double-counting shared typefaces, and compare against measured eviction.
 - Complete when: decode, first paint, text indexing and zoom update the documented accounting,
   evictions respect that budget, and a measured corpus comparison states the remaining error.
-- Related: std.gui.pdf.027, std.gui.pdf.028, std.gui.pdf.036
+- Related: std.pixel.027, std.gui.pdf.028, std.gui.pdf.036
 
 ### std.gui.pdf.029 — A render cannot be cancelled or bounded in time
 
@@ -238,38 +296,6 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   exercise text, images, strokes and forms compare rendered output rather than model fields, and a
   round trip through the writer is judged on its rendered result.
 - Related: std.gui.pdf.021
-
-### std.gui.pdf.035 — Stroking a page costs four times filling the same geometry
-
-- Recorded: 2026-08-30 17:42
-- Updated: 2026-09-04 09:47 — git: Close the recording-cost entry and name what a stroke still costs
-- Intent: a fill keeps its tessellation inside the contour it filled, so a page drawn again only
-  appends vertices. A stroke keeps nothing: every frame rebuilds a quad per segment and, between
-  each pair of them, a join — two triangles and an antialiasing band along each of its outer
-  edges. Eighteen vertices for the join against six for the segment it bridges, on a contour
-  flattened from a curve where every turn is shallow.
-- Evidence: measured against a CPU renderer in release configuration, timing `drawPageItems`
-  alone, best of twenty-five warm frames on an idle machine. A page of 3 300 glyph-sized marks —
-  5 000 contours, 132 000 points, the shape a document that draws every glyph through a form of
-  its own produces — records in 8.9 ms filled and 39 to 46 ms stroked. Removing every join takes
-  the stroked page from 6.0 to 3.3 times the filled one, and to 1.8 times when the segments also
-  measure their coverage from the centre line, so the join alone is about half of a stroke's
-  recording.
-- Note: two shortcuts were measured and rejected. Skipping a join whose outer corners fall closer
-  than a tenth of a device pixel — which a minified pass already does — scallops every rounded
-  corner at normal scale, because a curve's corner is a run of such turns and dropping all of them
-  leaves the outer side unjoined; four focus-ring goldens and two stroke goldens caught it, with
-  channel differences up to 235. Drawing a page's strokes under
-  [[Pixel.PaintParams.DistanceStrokes]], as the SVG renderer does, was worth 7% of a stroked
-  page's recording and moved 0.08% to 0.9% of a rendered page's pixels, by up to a full channel:
-  the ink of a document is not ours to trade for that.
-- Next: lay a contour's stroke down as one mitered ribbon rather than a quad per segment and a
-  join between them, the way [[Pixel.Painter.fillPath]]'s antialiasing band already shares its
-  mitered corners between adjacent edges. A turn past the miter limit still needs a join; every
-  other turn stops needing one.
-- Complete when: stroking a page costs the same order as filling the same contours, and a page of
-  a few thousand stroked marks records in single-digit milliseconds on a warm cache.
-- Related: std.gui.pdf.030
 
 ### std.gui.pdf.017 — Outline, destinations, and link targets are not read
 
@@ -495,19 +521,6 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Complete when: showing the same image on a hundred pages costs one copy of it, or the entry is
   rewritten around the ownership decision that says it may not.
 - Related: std.gui.pdf.028, std.gui.pdf.025
-
-### std.gui.pdf.027 — Typefaces built for a document are never released
-
-- Recorded: 2026-08-18 14:15
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Intent: the program is now hashed once, when the font is read, and the key travels on the
-  `FontResource`. What remains is the other half: the typefaces registered in the process-wide
-  `TypeFace` table are never released, so the table grows for the process lifetime as documents
-  are opened and closed. `Pixel.TypeFace` publishes `create` and `load` and no way to give one
-  back, so this needs an unregister on that side before it can be honoured here.
-- Complete when: `Pixel` can release a typeface it created, and the typefaces a document created
-  are released with it.
-- Related: std.gui.pdf.028
 
 ### std.gui.pdf.028 — An embedded font program is copied once per page that uses it
 

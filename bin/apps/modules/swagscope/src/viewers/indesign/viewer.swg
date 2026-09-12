@@ -991,8 +991,8 @@ private impl IndesignViewer
         }
     }
 
-    // IDML pages have a real local text scene. Search those page sources rather than scanning the
-    // ZIP bytes, which keeps matches on selectable document text and makes page navigation exact.
+    // Search each generated HTML page source and retain its page index for revealFileOffset.
+    // Source matches may include markup; rendered text ranges belong to the HTML view.
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         if not .isMarkup() do

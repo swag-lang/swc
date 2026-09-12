@@ -13,6 +13,22 @@ composition remains an explicitly separate capability. A feature-complete viewer
 representative, openly licensed real documents and their visible reading workflow, never merely by
 whether a JPEG preview decoded.
 
+### app.scope.indesign.011 — InDesign text selection stops at the rendered page scene
+
+- Recorded: 2026-09-03 17:37
+- Updated: 2026-09-12 06:37 — Distinguish generated-source search from rendered text coordinates.
+- Evidence: each local HTML page supports pointer selection, Ctrl+A, Ctrl+C, selection paint and
+  plain-text visual copy without document-supplied markup. Search scans generated HTML source and
+  switches to its page for source-offset reveal; it has no rendered-text index spanning markup.
+  Selection does not span pages, no story/frame locator exists, and visual versus logical copy order
+  is not distinguished.
+- Next: retain story run and frame coordinates through layout and expose a read-only selection model
+  shared by pointer, keyboard, search and Copy.
+- Complete when: selection crosses supported frames/pages in logical order, visual copy is an
+  explicit alternative, copied text carries no hidden markup, search reveals the exact run, and
+  unsupported/reordered text reports its limitation.
+- Related: app.scope.indesign.004, app.scope.viewers.007, std.gui.html.018
+
 ### app.scope.indesign.016 — Linked resources can still read author-chosen absolute local paths
 
 - Recorded: 2026-09-03 17:37
@@ -59,21 +75,6 @@ whether a JPEG preview decoded.
   saved preview with freshness information; absent previews remain navigable and diagnosable; no
   native action, script, or plugin is executed.
 - Related: app.scope.indesign.012, app.scope.indesign.018
-
-### app.scope.indesign.011 — InDesign text selection stops at the rendered page scene
-
-- Recorded: 2026-09-03 17:37
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: each local HTML page supports pointer selection, Ctrl+A, Ctrl+C, selection paint and
-  plain-text visual copy without document-supplied markup. Search switches to the rendered page,
-  but selection does not span pages, no story/frame locator exists, and visual versus logical copy
-  order is not distinguished.
-- Next: retain story run and frame coordinates through layout and expose a read-only selection model
-  shared by pointer, keyboard, search and Copy.
-- Complete when: selection crosses supported frames/pages in logical order, visual copy is an
-  explicit alternative, copied text carries no hidden markup, search reveals the exact run, and
-  unsupported/reordered text reports its limitation.
-- Related: app.scope.indesign.004, app.scope.viewers.007
 
 ### app.scope.indesign.014 — Reader modes and state stop at one page, fit modes, and transient zoom
 

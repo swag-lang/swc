@@ -44,19 +44,21 @@ struct PathStrokeStyle
 //
 // Use the matching [[Gui.Pdf.Page.addText]], [[Gui.Pdf.Page.addPath]], or
 // [[Gui.Pdf.Page.addImage]] operation to construct an item. Fields unrelated to
-// `kind` retain their defaults.
+// `kind` retain their defaults. Decoded invisible text remains in the item sequence for
+// search and selection, but contributes no painted marks.
 struct Item
 {
     public readonly kind: ItemKind     // Active item representation.
 
     internal
     {
-        text:         String
-        textCodes:    Array'u32
-        textAdvances: Array'f32
-        path:         LinePathList
-        image:        Image
-        transform:    Transform2 = Transform2.Identity
+        text:          String
+        textCodes:     Array'u32
+        textAdvances:  Array'f32
+        invisibleText: bool
+        path:          LinePathList
+        image:         Image
+        transform:     Transform2 = Transform2.Identity
 
         fillColor:    Color        = Color.fromArgb(Argb.Black)
         strokeColor:  Color        = Color.fromArgb(Argb.Black)

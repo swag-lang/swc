@@ -91,7 +91,8 @@ impl Reader
 
     // Returns the text of the page at zero-based `index`, in reading order.
     //
-    // Lines run from top to bottom and words from left to right, one space per word gap and one
+    // Invisible text layers are included, so stored OCR text remains searchable without painting
+    // over the scan. Lines run from top to bottom and words from left to right, one space per word gap and one
     // line feed per line break, whatever order the file painted them in: the shape a search or a
     // copy expects. Only the text is decoded, with no image, path, or mask, so a page costs a
     // fraction of [[Gui.Pdf.Reader.loadPage]]; and the result is byte for byte the text that

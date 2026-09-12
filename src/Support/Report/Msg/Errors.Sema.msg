@@ -100,7 +100,7 @@ SWC_DIAG_DEF(sema_err_bad_storage_type, Error, "type '{type}' cannot be used for
 SWC_DIAG_DEF(sema_err_tls_not_global, Error, "'tls' can only qualify a global variable; [help] move the declaration to global storage, or remove 'tls'")
 SWC_DIAG_DEF(sema_err_tls_global_with_drop, Error, "'tls' does not accept type '{type}', because its per-thread copy is released without running 'opDrop'; [help] store a type with no drop lifecycle, and manage the resource explicitly")
 SWC_DIAG_DEF(sema_err_using_member_type, Error, "'using' needs a struct value or pointer-to-struct, found '{type}'; [help] use a struct member, or a pointer to a struct")
-SWC_DIAG_DEF(sema_err_using_module_namespace, Error, "'using' cannot import the current module namespace '{sym}'; [help] declarations in this module already contribute to it")
+SWC_DIAG_DEF(sema_err_using_module_namespace, Error, "'using' cannot import the current module namespace '{sym}'; [help] remove '{sym}' from this 'using' declaration because its declarations are already in scope")
 SWC_DIAG_DEF(sema_err_decomposition_not_struct, Error, "cannot decompose value of type '{type}' because it is not a struct; [help] decompose a struct value instead")
 SWC_DIAG_DEF(sema_err_decomposition_too_many_names, Error, "too many bindings in decomposition; struct has {count} fields; [help] remove the extra binding names")
 SWC_DIAG_DEF(sema_err_decomposition_not_enough_names, Error, "not enough bindings in decomposition; struct has {count} fields; [help] add the missing binding names")

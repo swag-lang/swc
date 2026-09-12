@@ -1,6 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 
-using Core, Gui, Pixel
+using Core, Pixel
 
 // Styling boundaries are not word boundaries, even when only the punctuation would overflow.
 #test

@@ -209,7 +209,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         entries.clear();
         addInfoEntry(entries, "--workspace", "Remove the .output, .tmp, and .dep directories of that workspace", LogColor::White, 0, helpArgumentLabelColor());
         addInfoEntry(entries, "--workspace-module", "Restrict the removal to one module, keeping the .dep directory the workspace shares", LogColor::White, 0, helpArgumentLabelColor());
-        addInfoEntry(entries, "--module", "Remove the .output directory under that module root, and --out-dir and --work-dir when they are set", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "--module", "Remove the .output and .tmp directories under that module root, and --out-dir and --work-dir when they are set", LogColor::White, 0, helpArgumentLabelColor());
         addInfoEntry(entries, "--cache", "Remove every dependency copy a script filled outside a workspace", LogColor::White, 0, helpArgumentLabelColor());
         addInfoEntry(entries, "--cache-days", "Keep the copies a run has used within that many days", LogColor::White, 0, helpArgumentLabelColor());
         addInfoEntry(entries, "--dry-run", "Report what each target holds and remove nothing", LogColor::White, 0, helpArgumentLabelColor());

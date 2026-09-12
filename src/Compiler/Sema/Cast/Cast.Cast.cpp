@@ -1762,8 +1762,6 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
         const auto& autoCast = view.node()->cast<AstAutoCastExpr>();
         effectiveKind        = CastKind::Explicit;
         effectiveFlags.add(autoCastFlags(autoCast.modifierFlags));
-        if (autoCast.modifierFlags.has(AstModifierFlagsE::Wrap))
-            effectiveFlags.add(CastFlagsE::NoOverflow);
     }
 
     if (view.cstRef().isValid() && sema.isFoldedTypedConst(view.nodeRef()))

@@ -5,6 +5,59 @@ supported codecs, audio-clock synchronization, track selection, sidecar and embe
 seeking, full-screen hosting, mute, and volume. This backlog owns professional playback and
 inspection around `std/video`; codec implementation work remains in [std.video.md](std.video.md).
 
+### app.scope.video.001 — Playback rate has no keyboard stepping or pitch-preserving mode
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-12 06:01 — Locate rate choices in their dedicated playback-speed menu
+- Evidence: the transport's playback-speed menu offers 0.25x–2x pitch-following rates through
+  `Voice.setFrequencyRatio`; the silent clock scales with the rate, time labels stay source-time
+  based, and the host summary declares a non-1x rate. 2x is the XAudio2 default frequency-ratio
+  ceiling. There is still no keyboard rate stepping, no rate above 2x, no pitch-preserving mode,
+  and no indication of the frame-drop/duplication policy.
+- Next: add keyboard rate stepping, then decide the above-2x path — a voice created with a larger
+  maximum frequency ratio, or software resampling — leaving pitch preservation explicitly
+  unavailable until implemented.
+- Complete when: rate is keyboard adjustable, rates above 2x are offered or explicitly declined,
+  A/V sync and subtitle timing hold at supported rates, frame scheduling declares drops, and reset
+  returns exactly to 1x.
+
+### app.scope.video.016 — Audio-to-video synchronisation has never been observed against a real output device
+
+- Recorded: 2026-08-23 16:42
+- Updated: 2026-09-12 06:01 — Identify the stalled-output regression without relying on test order
+- Area: apps/swagscope
+- Found while: std.video.001, after the video viewer started presenting against the audio clock.
+- Observation: the viewer presents each picture at the time the sound has reached, and nothing has
+  yet confirmed that the time the sound reports is the time it is playing. In the originally reported environment, the
+  played-sample counter of a source voice stays at zero for a whole run even with buffers queued
+  and the voice started, so the position `Voice.playbackPositionSeconds` answers never moves and
+  the correction the player applies to its own clock never fires. Sound is audible on the user's
+  machine, but the archived probe did not establish whether its own process had a working audio
+  endpoint. That remains a hypothesis, not a current-device measurement.
+- Evidence: a temporary probe in the video viewer logging `activeDriverKind`, `buffersQueued`, and
+  the raw played-sample counter once per second. Driver 2 (XAudio2), `queued=2` from the first
+  second — so the source is primed and submission works — with `samplesPlayed` flat at zero
+  twenty seconds in, from the start of the file and after a seek. Presentation is unaffected
+  because playback keeps its own clock and only lets the sound correct it, which the stalled-output
+  test in `viewer.video.test.swg` pins down using the no-sound backend.
+- Next: play a video with sound on a machine whose output is audible and log
+  `playbackSampleFrame` against the wall clock for a minute.
+- Complete when: the sample cursor tracks real time, `followAudioClock` corrects a deliberately
+  skewed video clock, and the 0.1 s dead band is shown not to cause visible stutter.
+
+### app.scope.video.003 — Video cannot mark or loop an A/B range
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-12 06:01 — Account for the host-owned end-of-file mode
+- Evidence: the host's shared playback mode can loop the whole file, but the timeline carries only a
+  playhead. There is no set A/B, range selection, range loop, play-once selection, or duration
+  readout for a scene under inspection.
+- Next: reuse the source-time range contract from app.scope.audio.002 on the video clock and seek pipeline.
+- Complete when: A/B can be set by pointer, timecode, or current frame; looping accounts for decode
+  preroll without showing earlier pictures; subtitles/audio repeat in sync; and clearing the range
+  restores normal end behavior.
+- Related: app.scope.audio.002
+
 ### app.scope.video.012 — Playback position and track choices are not resumed safely
 
 - Recorded: 2026-08-29 08:36
@@ -34,22 +87,6 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   reversible, pan/zoom is bounded, subtitle placement follows display geometry, and screenshots
   use the chosen explicit transform.
 
-### app.scope.video.001 — Playback rate has no keyboard stepping or pitch-preserving mode
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: the transport's settings menu now offers 0.25x–2x pitch-following rates through
-  `Voice.setFrequencyRatio`; the silent clock scales with the rate, time labels stay source-time
-  based, and the host summary declares a non-1x rate. 2x is the XAudio2 default frequency-ratio
-  ceiling. There is still no keyboard rate stepping, no rate above 2x, no pitch-preserving mode,
-  and no indication of the frame-drop/duplication policy.
-- Next: add keyboard rate stepping, then decide the above-2x path — a voice created with a larger
-  maximum frequency ratio, or software resampling — leaving pitch preservation explicitly
-  unavailable until implemented.
-- Complete when: rate is keyboard adjustable, rates above 2x are offered or explicitly declined,
-  A/V sync and subtitle timing hold at supported rates, frame scheduling declares drops, and reset
-  returns exactly to 1x.
-
 ### app.scope.video.009 — Audio synchronization and channel output cannot be inspected or corrected
 
 - Recorded: 2026-08-29 08:36
@@ -78,30 +115,6 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   and A/V drift can be monitored, hardware output is validated against CPU reference frames, device
   loss recovers, and a deterministic CPU mode remains selectable.
 
-### app.scope.video.016 — Audio-to-video synchronisation has never been observed against a real output device
-
-- Recorded: 2026-08-23 16:42
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: apps/swagscope
-- Found while: std.video.001, after the video viewer started presenting against the audio clock.
-- Observation: the viewer presents each picture at the time the sound has reached, and nothing has
-  yet confirmed that the time the sound reports is the time it is playing. In the originally reported environment, the
-  played-sample counter of a source voice stays at zero for a whole run even with buffers queued
-  and the voice started, so the position `Voice.playbackPositionSeconds` answers never moves and
-  the correction the player applies to its own clock never fires. Sound is audible on the user's
-  machine, but the archived probe did not establish whether its own process had a working audio
-  endpoint. That remains a hypothesis, not a current-device measurement.
-- Evidence: a temporary probe in the video viewer logging `activeDriverKind`, `buffersQueued`, and
-  the raw played-sample counter once per second. Driver 2 (XAudio2), `queued=2` from the first
-  second — so the source is primed and submission works — with `samplesPlayed` flat at zero
-  twenty seconds in, from the start of the file and after a seek. Presentation is unaffected
-  because playback keeps its own clock and only lets the sound correct it, which is what the last
-  test of `viewer.video.test.swg` pins down.
-- Next: play a video with sound on a machine whose output is audible and log
-  `playbackSampleFrame` against the wall clock for a minute.
-- Complete when: the sample cursor tracks real time, `followAudioClock` corrects a deliberately
-  skewed video clock, and the 0.1 s dead band is shown not to cause visible stutter.
-
 ### app.scope.video.010 — Track and stream metadata have no complete media-information panel
 
 - Recorded: 2026-08-29 08:36
@@ -117,19 +130,6 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   derived values identify their source, attachments open safely, warnings link to track/time where
   possible, and the report can be copied/exported.
 - Related: app.scope.viewers.006
-
-### app.scope.video.003 — Video cannot mark or loop an A/B range
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-02 21:55 — git: feat(video): add playback rate settings and loop functionality
-- Evidence: the settings menu can now loop the whole file, but the timeline carries only a
-  playhead. There is no set A/B, range selection, range loop, play-once selection, or duration
-  readout for a scene under inspection.
-- Next: reuse the source-time range contract from app.scope.audio.002 on the video clock and seek pipeline.
-- Complete when: A/B can be set by pointer, timecode, or current frame; looping accounts for decode
-  preroll without showing earlier pictures; subtitles/audio repeat in sync; and clearing the range
-  restores normal end behavior.
-- Related: app.scope.audio.002
 
 ### app.scope.video.002 — Video has no previous/next frame or exact time/frame address
 

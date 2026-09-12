@@ -432,6 +432,8 @@ CastFlags Cast::autoCastFlags(const AstModifierFlags modifierFlags)
         castFlags.add(CastFlagsE::BitCast);
     if (modifierFlags.has(AstModifierFlagsE::UnConst))
         castFlags.add(CastFlagsE::UnConst);
+    if (modifierFlags.has(AstModifierFlagsE::Wrap))
+        castFlags.add(CastFlagsE::NoOverflow);
     return castFlags;
 }
 

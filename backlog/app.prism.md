@@ -5,7 +5,8 @@ Swag Prism: editable Swag source and independent viewers of what it compiles int
 The application demonstrates its own compiler and toolkit through executable examples. A single
 viewer is the default; a global comparison switch exposes a second panel. Each panel keeps its
 microcode, 2D render, and GUI viewer options. The gallery supplies animated plasma, a Julia set,
-a clickable GUI, and a dot product. Source edits recompile after 700 ms of inactivity.
+a clickable GUI, and a dot product. When live editing is enabled, source edits recompile after
+150 ms of inactivity.
 
 Native previews run in separate, cancellable processes and exchange complete frames through a
 mapped file. The GUI preview forwards clicks to real controls. Compiler and preview failures stay

@@ -7,6 +7,17 @@ PSD layers, texture subresources, and OpenEXR parts. This backlog owns professio
 missing codec and pixel-format work remains in [std.pixel.image.md](std.pixel.image.md), while
 render primitives remain in [std.pixel.md](std.pixel.md).
 
+### app.scope.image.012 — Camera RAW files show nothing
+
+- Recorded: 2026-08-17 11:01
+- Updated: 2026-09-12 05:46 — Refer to the existing metadata panel after orientation work was split
+- Intent: extract an embedded JPEG preview when a supported camera RAW container carries one.
+  Full RAW development is out of scope; a missing or unsupported preview must be stated explicitly.
+- Complete when: the embedded preview of the common TIFF-based RAW containers is extracted and
+  displayed, with its source and preview metadata in the existing `MediaInfoPanel` and any encoded
+  orientation applied through app.scope.image.011.
+- Related: app.scope.image.011, app.scope.image.013, app.scope.image.014
+
 ### app.scope.image.011 — Apply encoded image orientation exactly once
 
 - Recorded: 2026-08-29 08:36
@@ -110,16 +121,6 @@ render primitives remain in [std.pixel.md](std.pixel.md).
   tiles have priority, animation cache has an explicit budget, cancellation is prompt, and partial
   damage is marked without discarding valid regions.
 - Related: app.scope.viewers.004, std.pixel.image.038, std.pixel.image.039
-
-### app.scope.image.012 — Camera RAW files show nothing
-
-- Recorded: 2026-08-17 11:01
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Intent: extract an embedded JPEG preview when a supported camera RAW container carries one.
-  Full RAW development is out of scope; a missing or unsupported preview must be stated explicitly.
-- Complete when: the embedded preview of the common TIFF-based RAW containers is extracted and
-  displayed, with the metadata panel from app.scope.image.011 beside it.
-- Related: app.scope.image.011
 
 ### app.scope.image.001 — The image has no pixel probe or measurement tools
 

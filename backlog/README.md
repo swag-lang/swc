@@ -35,9 +35,13 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-12 06:01 |
+| [app.scope.font.md](app.scope.font.md) | The Swag Scope font viewer | 2026-09-12 05:55 |
+| [app.scope.image.md](app.scope.image.md) | The Swag Scope image viewer | 2026-09-12 05:46 |
+| [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-12 05:40 |
+| [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-12 05:22 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-11 23:34 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-11 22:39 |
-| [app.scope.image.md](app.scope.image.md) | The Swag Scope image viewer | 2026-09-11 22:34 |
 | [std.gui.pdf.md](std.gui.pdf.md) | The PDF engine and `PdfView` inside `std/gui` | 2026-09-11 22:34 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-11 22:31 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-11 22:20 |
@@ -55,25 +59,21 @@ the latest entry was removed. The removal itself lives in Git.
 | [std.core.md](std.core.md) | `std/core` | 2026-09-10 19:39 |
 | [std.audio.md](std.audio.md) | `std/audio` | 2026-09-10 19:12 |
 | [app.scope.binary.md](app.scope.binary.md) | The Swag Scope structured-binary and container viewer | 2026-09-10 19:10 |
-| [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-10 19:06 |
 | [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers | 2026-09-10 19:06 |
 | [app.scope.hexa.md](app.scope.hexa.md) | The Swag Scope hexadecimal viewer | 2026-09-10 19:06 |
-| [app.scope.font.md](app.scope.font.md) | The Swag Scope font viewer | 2026-09-10 18:30 |
 | [app.capture.md](app.capture.md) | The Swag Capture application | 2026-09-10 18:29 |
 | [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-09-10 17:54 |
 | [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers | 2026-09-09 13:55 |
-| [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-08 08:02 |
-| [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-07 19:11 |
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-07 13:14 |
 | [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-06 17:42 |
 | [std.gui.markdown.md](std.gui.markdown.md) | The Markdown engine behind `Gui.Markdown.View` | 2026-09-06 17:42 |
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command | 2026-09-06 07:51 |
-| [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-06 07:51 |
 | [app.scope.audio.md](app.scope.audio.md) | The Swag Scope sound viewer | 2026-09-06 07:51 |
 | [app.scope.opendocument.md](app.scope.opendocument.md) | The Swag Scope OpenDocument decoder and reader | 2026-09-06 07:51 |
 | [compiler.distribution.md](compiler.distribution.md) | Release delivery, first use, local learning, and agent-grade command discovery | 2026-09-06 07:51 |
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-05 16:27 |
 | [std.truetype.md](std.truetype.md) | `std/truetype` | 2026-09-01 08:37 |
+| [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-07 19:11 |
 
 Put an entry in the domain where it will be investigated or fixed, not where it happened to be
 noticed. Create a new domain file only when a real cluster forms; a category holding one isolated

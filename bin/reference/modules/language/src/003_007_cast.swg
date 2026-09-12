@@ -77,6 +77,22 @@ func testAutoCast(x: s32)
 }
 
 /**
+A structure field or a typed array element also supplies a destination. Named and
+positional fields follow the same rule; the cast remains explicit even though its
+destination is inferred.
+*/
+struct CastCount { value: u16 }
+
+#test
+{
+    var count:  u64     = 42
+    let field           = CastCount{value: cast() count}
+    let values: [2] u16 = [cast() count, cast() count]
+    Swag.assert(field.value == 42)
+    Swag.assert(values == [42'u16, 42'u16])
+}
+
+/**
 # Bit Cast
 
 The '#bit' cast mode performs a **bit-level reinterpretation** of a value’s

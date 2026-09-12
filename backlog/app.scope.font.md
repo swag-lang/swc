@@ -5,6 +5,19 @@ editable specimen at several pixel sizes, and pages through mapped Unicode chara
 backlog owns professional font inspection; shaping, font-format, hinting, and color-glyph engine work
 remains in [std.truetype.md](std.truetype.md).
 
+### app.scope.font.013 — CFF OpenType fonts do not reach the font specimen
+
+- Recorded: 2026-09-12 05:55
+- Evidence: `fontViewerPlugin` selects `.ttf` and `.ttc`, and `fontPluginProbe` explicitly
+  excludes the `OTTO` signature. The shared `TrueType.Face` engine can load CFF OpenType,
+  but those files currently reach the Binary viewer's sfnt report instead of a specimen.
+- Next: validate CFF face loading through Pixel's typeface cache, then register `.otf` and
+  the matching content probe at the viewer boundary. Keep unsupported font containers explicit.
+- Complete when: a small licensed CFF OpenType fixture and a renamed copy both open a readable
+  specimen and character map, while damaged fonts report a useful failure and retain Binary/Hex
+  inspection. WOFF and WOFF2 container work remains in the font engine backlog.
+- Related: std.truetype.001, std.truetype.002
+
 ### app.scope.font.001 — Font collections expose only their first face
 
 - Recorded: 2026-08-29 08:36
@@ -33,7 +46,6 @@ remains in [std.truetype.md](std.truetype.md).
   positioning are visible; toggles update the specimen; unsupported tables/features say so; and
   original text-to-glyph mapping remains inspectable.
 - Related: std.truetype.003, std.truetype.009, std.truetype.008
-
 
 ### app.scope.font.002 — The character map cannot search or jump to a glyph
 

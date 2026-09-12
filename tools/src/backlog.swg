@@ -58,13 +58,13 @@ private func parseStamp(text: string)->u64
             return 0
     }
 
-    let minute = value % 100
-    let hour   = (value / 100) % 100
-    let day    = (value / 10000) % 100
-    let month  = (value / 1000000) % 100
-    if month == 0 or month > 12 or day == 0 or day > 31 or hour > 23 or minute > 59 do
-        return 0
-    return value
+    let date = Time.DateTime{
+        year: cast() (value / 100000000),
+        month: cast() ((value / 1000000) % 100),
+        day: cast() ((value / 10000) % 100),
+        hour: cast() ((value / 100) % 100),
+        minute: cast() (value % 100)}
+    return date.isValid() ? value : 0
 }
 
 // An entry is placed by its latest stamp: nothing above it may be older.
@@ -118,6 +118,12 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
 
         if Utf8.startsWith(cast(const [..] u8) line, "### ")
         {
+            if awaitRecorded
+            {
+                Console.println("error: ", fileName, ":", entryLine, ": backlog entry does not open with '", RecordedField, "YYYY-MM-DD HH:MM'")
+                result.errors += 1
+            }
+
             result.errors += auditEntryOrder(fileName, entryLine, entryLatest, &previousLatest)
             if sectionLine != 0
             {
@@ -241,6 +247,12 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
             Console.println("error: ", fileName, ":", lineNumber, ": a Recorded stamp must directly follow the entry heading")
             result.errors += 1
         }
+    }
+
+    if awaitRecorded
+    {
+        Console.println("error: ", fileName, ":", entryLine, ": backlog entry does not open with '", RecordedField, "YYYY-MM-DD HH:MM'")
+        result.errors += 1
     }
 
     result.errors += auditEntryOrder(fileName, entryLine, entryLatest, &previousLatest)
@@ -471,6 +483,12 @@ private func auditBacklogIndex(fileName: string, readme: string, domains: const 
         }
 
         previous = stamp
+        if listed.contains(name)
+        {
+            Console.println("error: ", fileName, ":", lineNumber, ": duplicate inventory row for '", name, "'")
+            errors += 1
+        }
+
         listed.add(String.from(name))
 
         for domain in domains where domain.name.toString() == name and domain.latest != 0 and domain.latest != stamp

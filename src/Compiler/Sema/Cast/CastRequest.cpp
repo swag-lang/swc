@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
+#include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Core/Sema.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -25,6 +27,18 @@ void CastRequest::setConstantFoldingSrc(ConstantRef v)
 void CastRequest::setConstantFoldingResult(ConstantRef v)
 {
     outConstRef = v;
+}
+
+void CastRequest::applyAutoCast(const Sema& sema, AstNodeRef nodeRef)
+{
+    if (nodeRef.isInvalid())
+        return;
+    const auto* autoCast = sema.node(nodeRef).safeCast<AstAutoCastExpr>();
+    if (!autoCast)
+        return;
+
+    kind = CastKind::Explicit;
+    flags.add(Cast::autoCastFlags(autoCast->modifierFlags));
 }
 
 SWC_END_NAMESPACE();

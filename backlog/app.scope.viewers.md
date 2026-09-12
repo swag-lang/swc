@@ -8,7 +8,7 @@ integration belongs to [platform.portability.md](platform.portability.md). Reusa
 ## Where the viewer family already stands
 
 **Several readers stream bounded windows.** The hexadecimal viewer keeps one 256 KiB window
-aligned to 64 KiB. Host file search reads asynchronous 256 KiB chunks, although generic regular
+aligned to 64 KiB. Host file search reads 256 KiB chunks on timer ticks, although generic regular
 expressions retain the whole source before matching. Proportional scrollbars and `revealMatch`
 keep distant offsets reachable in the streamed text and hexadecimal readers. Whole-document
 decoders and archive entry previews have their own limits; this is not a universal memory bound.
@@ -263,7 +263,7 @@ that proves it.
 | Log | `.log` | text | entries, start-at-tail/follow, queries, structured fields, timelines | [app.scope.text.023](app.scope.text.md), [app.scope.text.034](app.scope.text.md) |
 | Subtitles | `.srt` `.vtt` `.ass` `.ssa` | timed transcript with cue/time jump | previous/next/current cue, timeline, source/styled modes, media check | [app.scope.text.011](app.scope.text.md) |
 | Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB, and raw text | bounded streaming, dialect, sort/filter, types | [app.scope.text.015](app.scope.text.md), [app.scope.text.016](app.scope.text.md) |
-| PDF | `.pdf` | page rendering | partial pages, thumbnails, outline, layout modes | [app.scope.document.011](app.scope.document.md), [app.scope.document.012](app.scope.document.md), [std.gui.pdf.md](std.gui.pdf.md) |
+| PDF | `.pdf` | page rendering, single-page and continuous layouts | partial pages, thumbnails, outline, facing pages | [app.scope.document.011](app.scope.document.md), [app.scope.document.012](app.scope.document.md), [app.scope.document.014](app.scope.document.md), [std.gui.pdf.md](std.gui.pdf.md) |
 | Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | [app.scope.document.020](app.scope.document.md) |
 | OpenDocument | `.odt` `.ott` `.fodt` `.ods` `.ots` `.fods` `.odp` `.otp` `.fodp` `.odg` `.otg` `.fodg` | readable text, sheets, slides, and drawing pages | layout, semantics, inspection, and fidelity | [OpenDocument roadmap](app.scope.opendocument.md) |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
@@ -282,7 +282,7 @@ that proves it.
 | Metadata | EXIF, ICC, XMP | PNG text and interpreted EXIF panel; opaque profile records | applied orientation, ICC identity, XMP properties, color management | [app.scope.image.011](app.scope.image.md) |
 | Simple raster | `.pnm` `.ppm` | none | Pixel codecs | — |
 | Modern codecs | `.avif` `.heic` `.jxl` | none | Pixel codecs | std.pixel.image.026, std.pixel.image.027 |
-| High dynamic range | `.exr` `.hdr` | EXR flattened image | Radiance HDR codec | — |
+| High dynamic range | `.exr` `.hdr` | EXR images and indexed parts | Radiance HDR codec | — |
 | Layered | `.psd` `.xcf` | PSD composite and indexed layers; XCF signature | descriptive layer navigation | [app.scope.image.008](app.scope.image.md) |
 | GPU textures | `.dds` `.ktx2` | indexed levels, layers, faces, and slices, including BC1–BC5 decode | subresource labels and compressed upload | [app.scope.image.008](app.scope.image.md), std.pixel.image.041, std.pixel.image.042 |
 | Camera RAW | `.cr2` `.nef` `.arw` `.dng` | signature | embedded preview extraction | [app.scope.image.012](app.scope.image.md) |
@@ -312,7 +312,7 @@ that proves it.
 | ZIP family | `.zip` `.jar` `.apk` `.vsix` | full tree and stored/Deflate entry preview | nested archive provenance, encryption, more methods | [app.scope.binary.008](app.scope.binary.md), [app.scope.binary.010](app.scope.binary.md) |
 | Other archives | `.7z` `.rar` `.tar` `.gz` `.xz` `.zst` `.cab` `.msi` | signature | listing, `tar`/`gzip` first | [app.scope.binary.010](app.scope.binary.md) |
 | TrueType fonts | `.ttf` `.ttc` | specimen and first-face character map | face selector, glyph/metric/coverage inspection | [app.scope.font.001](app.scope.font.md) |
-| CFF and web fonts | `.otf` `.woff` `.woff2` | OTF specimen; WOFF structure | professional inspection; WOFF containers | [app.scope.font.001](app.scope.font.md), std.truetype.001, std.truetype.002 |
+| CFF and web fonts | `.otf` `.woff` `.woff2` | CFF OpenType structure; WOFF/WOFF2 signatures | CFF specimen registration; WOFF containers | [app.scope.font.013](app.scope.font.md), std.truetype.001, std.truetype.002 |
 | Program databases | `.pdb` | signature | MSF streams and CodeView match | [app.scope.binary.014](app.scope.binary.md) |
 | Databases | `.sqlite` `.db` | signature | schema and bounded table browse | [app.scope.binary.012](app.scope.binary.md) |
 | Certificates and keys | `.pem` `.der` `.crt` `.p12` | printable PEM as text; binary inspection otherwise | ASN.1 and X.509 decode | [app.scope.binary.013](app.scope.binary.md) |

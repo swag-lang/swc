@@ -278,6 +278,7 @@ namespace
         elemCtx.errorNodeRef = fieldNodeRef.isValid() ? fieldNodeRef : args.castRequest->errorNodeRef;
         elemCtx.errorCodeRef = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
         elemCtx.probing      = args.castRequest->probing;
+        elemCtx.applyAutoCast(*args.sema, aggregateFieldValueNodeRef(*args.sema, fieldNodeRef));
         return elemCtx;
     }
 
@@ -300,12 +301,12 @@ namespace
         SymbolFunction*     setFn       = nullptr;
         TypeRef             setParamRef = TypeRef::invalid();
         const SourceCodeRef codeRef     = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
-        SWC_RESULT(Cast::resolveStructSetCastCandidate(*args.sema, codeRef, srcElemType, dstElemType, args.castRequest->kind, setFn, setParamRef, valueNodeRef));
-        if (!setFn && !elemCtx.selectedStructOpCast)
+        SWC_RESULT(Cast::resolveStructSetCastCandidate(*args.sema, codeRef, srcElemType, dstElemType, elemCtx.kind, setFn, setParamRef, valueNodeRef));
+        if (!setFn && !elemCtx.selectedStructOpCast && !args.sema->node(valueNodeRef).is(AstNodeId::AutoCastExpr))
             return Cast::retargetLiteralRuntimeStorageIfNeeded(*args.sema, valueNodeRef, srcElemType, dstElemType, false);
 
         SemaNodeView valueView(*args.sema, valueNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
-        SWC_RESULT(Cast::castIfNeeded(*args.sema, valueView, dstElemType, args.castRequest->kind, args.castRequest->flags));
+        SWC_RESULT(Cast::castIfNeeded(*args.sema, valueView, dstElemType, elemCtx.kind, elemCtx.flags));
         refreshNamedArgumentPayload(*args.sema, fieldNodeRef);
         return Result::Continue;
     }

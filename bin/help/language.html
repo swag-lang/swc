@@ -2260,6 +2260,17 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SFct">testAutoCast</span>(<span class="SKwd">cast</span>() <span class="SNum">1.4</span>)     <span class="SCmt">// Automatically cast to 's32'</span>
 }</span></div>
+<p>A structure field or a typed array element also supplies a destination. Named and positional fields follow the same rule; the cast remains explicit even though its destination is inferred.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">CastCount</span> { value: <span class="STpe">u16</span> }
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> count:  <span class="STpe">u64</span>     = <span class="SNum">42</span>
+    <span class="SKwd">let</span> field           = <span class="SCst">CastCount</span>{value: <span class="SKwd">cast</span>() count}
+    <span class="SKwd">let</span> values: [<span class="SNum">2</span>] <span class="STpe">u16</span> = [<span class="SKwd">cast</span>() count, <span class="SKwd">cast</span>() count]
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(field.value == <span class="SNum">42</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values == [<span class="SNum">42</span>'<span class="STpe">u16</span>, <span class="SNum">42</span>'<span class="STpe">u16</span>])
+}</span></div>
 <h3 id="_003_007_cast_swg_Bit_Cast">Bit Cast</h3>
 <p>The <span class="code-inline">#bit</span> cast mode performs a <b>bit-level reinterpretation</b> of a value’s type without altering its underlying bit pattern. Source and destination types must have the same size.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -10077,7 +10088,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.488</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.489</div>
 </footer>
 </section>
 </main>

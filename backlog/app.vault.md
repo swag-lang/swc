@@ -21,15 +21,25 @@ module's roadmap.
 ### app.vault.002 — Unmounting has no explicit busy-versus-force contract
 
 - Recorded: 2026-08-06 08:32
-- Updated: 2026-09-06 07:51 — git: prompt 6
+- Updated: 2026-09-12 05:22 — Remove the unrelated, obsolete password-only interpretation of startup state.
 - Owner: Swag Vault
 - Current `WinFspMount.stop` stops the dispatcher, removes the mount point, and destroys the
   filesystem without a busy-result or force parameter. Define an ordinary unmount result for
   open handles and an explicit forced-unmount flow, including confirmation, outstanding-I/O
   cancellation, and a truthful result.
-- Note: the startup list is persisted with `needsPassword` beside each path, which is what keeps a
-  start quiet for an unprotected vault. It is not a hint an attacker could not obtain in one Argon2
-  attempt, but it does mean the state file says which vaults have no password.
+
+### app.vault.007 — No normative container-format specification
+
+- Recorded: 2026-08-06 08:32
+- Updated: 2026-09-12 05:22 — Distinguish the documented hidden-volume extension from the missing complete format contract.
+- Owner: Swag Vault
+- Evidence: [hidden-volumes.md](../bin/apps/modules/swagvault/hidden-volumes.md) documents the
+  version-1 hidden-locator extension and its protection rules. The base layout remains described
+  by implementation comments in `volume/format.swg`, `keyslot.swg` and `journal.swg`; neither is
+  a complete independent specification of the container.
+- Write a normative format document independent of the implementation, covering layout, key
+  derivation, record framing, validation order, versioning, and failure indistinguishability.
+- Related: app.vault.008, app.vault.009, app.vault.010, app.vault.011, app.vault.012
 
 ### app.vault.003 — Additional password slots are not in the interface
 
@@ -103,15 +113,6 @@ module's roadmap.
 - Fix: replace the exclusive side with per-node locks plus a metadata lock.
 - Sequencing: only alongside a concurrent stress test. Getting this wrong is a correctness failure,
   not a performance regression.
-
-### app.vault.007 — No normative container-format specification
-
-- Recorded: 2026-08-06 08:32
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Owner: Swag Vault
-- Write a normative format document independent of the implementation, covering layout, key
-  derivation, record framing, validation order, versioning, and failure indistinguishability.
-- Related: app.vault.008, app.vault.009, app.vault.010, app.vault.011, app.vault.012
 
 ### app.vault.008 — No published Swag Vault format test vectors
 

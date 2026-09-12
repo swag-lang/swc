@@ -7,6 +7,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
+class Sema;
 
 enum class CastKind
 {
@@ -73,6 +74,7 @@ struct CastRequest
     ConstantRef constantFoldingResult() const { return outConstRef; }
     void        setConstantFoldingSrc(ConstantRef v);
     void        setConstantFoldingResult(ConstantRef v);
+    void        applyAutoCast(const Sema& sema, AstNodeRef nodeRef);
 };
 
 SWC_END_NAMESPACE();

@@ -5,6 +5,37 @@ being compiled by it.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### repo.tooling.003 — Matroska timing and display-size cases lack reproducible fixtures
+
+- Recorded: 2026-08-25 22:01
+- Updated: 2026-09-12 05:40 — Distinguish existing edited fixtures from the two uncovered header cases
+- Area: tooling
+- Found while: fixing two defects a real film exposed and trying to pin them with a fixture
+  (2026-08-25): a track whose `DefaultDuration` says one millisecond, and one whose display size
+  differs from its stored size.
+- Observation: the original fixture attempts used FFmpeg through PyAV, which
+  writes what the source stream says and nothing else. Rewriting one stream into a new file with
+  a chosen sample aspect drops it (`add_stream_from_template` fixes the parameters, and building
+  the stream by hand loses the setup headers, after which the fixture decodes nothing). Editing
+  the EBML by hand means growing every parent size around the inserted element, which is more
+  machinery than the test it would serve.
+- Evidence: three attempts during the 2026-08-25 investigation produced a file reporting
+  `container_sar 1` or decoding zero frames. The current fixture collection also contains edited
+  Matroska headers, including content stripping and codec delay, documented in
+  `bin/std/modules/video/src/tests/datas/THIRDPARTY.md`. No reusable EBML fixture producer is
+  checked in. `matroska.test.swg` checks the absent-display-size fallback, but neither the
+  misleading one-millisecond default duration nor a display size different from the stored size.
+- Consequence: two behaviours are exercised only against files that cannot be committed — the
+  frame rate a stream's own timestamps state when its track lies about it, and the display size
+  of a track whose samples are not square. Both were verified on real films of a personal library
+  and neither has a fixture.
+- Next step: write the fixture generator this repository needs rather than borrowing one — a
+  small Swag or Python producer that emits an EBML document element by element, so a test can ask
+  for exactly the header a defect needs. `std/video` already writes Matroska nowhere, so this is
+  test tooling rather than a module feature.
+- Complete when: a checked-in producer reproducibly creates both small header cases and tests
+  verify timestamp-derived frame rate and non-square display geometry without private media.
+
 ### repo.tooling.009 — Reassess Release LTO after iteration costs are controlled
 
 - Recorded: 2026-09-08 08:02
@@ -122,28 +153,3 @@ being compiled by it.
   time.
 - Next step: make the differential harness record the timestamp of each reference picture and ask
   this reader for the rank that carries it before comparing decoded pixels.
-
-### repo.tooling.003 — A Matroska fixture cannot state what a real file states about itself
-
-- Recorded: 2026-08-25 22:01
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Area: tooling
-- Found while: fixing two defects a real film exposed and trying to pin them with a fixture
-  (2026-08-25): a track whose `DefaultDuration` says one millisecond, and one whose display size
-  differs from its stored size.
-- Observation: every Matroska fixture of `std/video` is muxed with FFmpeg through PyAV, which
-  writes what the source stream says and nothing else. Rewriting one stream into a new file with
-  a chosen sample aspect drops it (`add_stream_from_template` fixes the parameters, and building
-  the stream by hand loses the setup headers, after which the fixture decodes nothing). Editing
-  the EBML by hand means growing every parent size around the inserted element, which is more
-  machinery than the test it would serve.
-- Evidence: three attempts, all in this session; the resulting file reports `container_sar 1` or
-  decodes zero frames.
-- Consequence: two behaviours are exercised only against files that cannot be committed — the
-  frame rate a stream's own timestamps state when its track lies about it, and the display size
-  of a track whose samples are not square. Both were verified on real films of a personal library
-  and neither has a fixture.
-- Next step: write the fixture generator this repository needs rather than borrowing one — a
-  small Swag or Python producer that emits an EBML document element by element, so a test can ask
-  for exactly the header a defect needs. `std/video` already writes Matroska nowhere, so this is
-  test tooling rather than a module feature.

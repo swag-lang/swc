@@ -27,24 +27,25 @@ private enum InlineFlags
 
 private struct InlineAtom
 {
-    text:        String
-    target:      String
-    imageSource: String
-    expression:  MathExpression
-    position:    Math.Rectangle
-    textStart:   u64     // Byte offset of this atom in the view's text, which is what a search and a selection address.
-    ascent:      f32
-    descent:     f32
-    colorIndex:  u32
-    flags:       InlineFlags
-    isMath:      bool
-    isImage:     bool
-    imageLoaded: bool
-    isSpace:     bool
-    isBreak:     bool
-    visible:     bool
-    searchHit:   bool
-    textBatch:   u32 = Swag.U32.Max
+    text:          String
+    target:        String
+    imageSource:   String
+    expression:    MathExpression
+    position:      Math.Rectangle
+    textStart:     u64     // Byte offset of this atom in the view's text, which is what a search and a selection address.
+    ascent:        f32
+    descent:       f32
+    colorIndex:    u32
+    flags:         InlineFlags
+    isMath:        bool
+    isImage:       bool
+    imageLoaded:   bool
+    isSpace:       bool
+    isBreak:       bool
+    emergencyWrap: bool     // A bounded fragment of an overlong word; markup boundaries never create wraps.
+    visible:       bool
+    searchHit:     bool
+    textBatch:     u32 = Swag.U32.Max
 }
 
 // One line and font can be submitted together while retaining each atom's laid-out position.
@@ -287,13 +288,26 @@ impl InlineView
             runes += 1
             if runes < 24 do
                 continue
+
+            // Keep a closing mark attached even at an emergency word split.
+            if index < text.count
+            {
+                let {?, nextSize} = Utf8.decodeRune(text[index to])
+                if Utf8.indexOf(".,;:!?)]}»”’…、。，；：！？）】》", text[index until index + nextSize]) != Swag.U64.Max do
+                    continue
+            }
+
             .appendTextAtom(text[start until index], state)
+            .atoms[.atoms.count - 1].emergencyWrap = start != 0
             start = index
             runes = 0
         }
 
-        if start < text.count do
+        if start < text.count
+        {
             .appendTextAtom(text[start to], state)
+            .atoms[.atoms.count - 1].emergencyWrap = start != 0
+        }
     }
 
     mtd appendText(text: string, state: InlineState)
@@ -815,11 +829,31 @@ impl InlineView
         var continuationLeft = left
         var explicitStart    = true
         var afterMarker: bool
+        var groupEnd         = 0'u64
+        var groupWidth       = 0'f32
 
         for &atom, index in .atoms
         {
             atom.visible = false
-            .measureAtom(atom, right - continuationLeft)
+
+            // A word can contain several styled runs. Measure through their boundaries so a
+            // comma after bold, code, a link or a formula moves with the preceding word.
+            let groupStart = index >= groupEnd
+            if groupStart
+            {
+                groupEnd   = index
+                groupWidth = 0
+                while groupEnd < .atoms.count
+                {
+                    let next = &.atoms[groupEnd]
+                    if groupEnd > index and (atom.isSpace or atom.isBreak or next.isSpace or next.isBreak or next.emergencyWrap) do
+                        break
+                    .measureAtom(next, right - continuationLeft)
+                    groupWidth += next.position.width
+                    groupEnd   += 1
+                }
+            }
+
             if atom.isBreak
             {
                 y                += .finishLine(first, index, y, lineLeft, right, wrapped: false)
@@ -836,7 +870,7 @@ impl InlineView
             // list level — is layout, so it renders; only the space a wrap left behind is dropped.
             if atom.isSpace and x == lineLeft and not explicitStart do
                 continue
-            if not atom.isSpace and x > lineLeft and x + atom.position.width > right
+            if groupStart and not atom.isSpace and x > lineLeft and x + groupWidth > right
             {
                 y        += .finishLine(first, index, y, lineLeft, right, wrapped: true)
                 x        = continuationLeft
@@ -847,6 +881,7 @@ impl InlineView
             atom.visible    = true
             atom.position.x = x
             x += atom.position.width
+            groupWidth      -= atom.position.width
             if not atom.isSpace do
                 explicitStart = false
             if atom.flags.has(.ListMarker) do

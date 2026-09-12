@@ -464,8 +464,11 @@ private impl View
             visual.wnd        = html
             visual.html       = html
             visual.searchText = html.document.textContent(0)
-            if not .documentThemeColors.isEmpty() do
+            if not .documentThemeColors.isEmpty()
+            {
                 applyThemeColors(visual.wnd, .documentThemeColors.toString())
+                html.setDocumentStyle(htmlStyle(.documentStyle))
+            }
             .blocks.add(visual)
             let geometry = .documentGeometry()
             .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)

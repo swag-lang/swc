@@ -156,12 +156,13 @@ internal func isHtmlBlockStart(line: string)->bool
     return false
 }
 
-internal func parseBlocks(source: string, headingsOnly = false)->Array'Block
+internal func parseBlocks(source: string, headingsOnly = false, inheritedReferences: const [..] Reference? = null)->Array'Block
 {
     var result:     retval
     let lines = Tokenize.splitLines(Utf8.startsWith(source, "\uFEFF") ? source[3 to] : source)
     var index = 0'u64
     var references: Array'Reference
+    references.add(inheritedReferences)
 
     for line in lines
     {
@@ -209,7 +210,8 @@ internal func parseBlocks(source: string, headingsOnly = false)->Array'Block
                     result.removeAtOrdered(blockIndex)
                 else
                 {
-                    result[blockIndex].sourceOffset = cast(u64) (raw.buffer - source.buffer)
+                    if not result[blockIndex].sourceOffset do
+                        result[blockIndex].sourceOffset = cast(u64) (raw.buffer - source.buffer)
                     blockIndex += 1
                 }
             }
@@ -345,17 +347,80 @@ internal func parseBlocks(source: string, headingsOnly = false)->Array'Block
         if isHtmlBlockStart(raw)
         {
             var html:   String
-            var document = HtmlDocument.create()
+            var hasHtmlContent   = false
+            var htmlSourceOffset = cast(u64) (raw.buffer - source.buffer)
+            var document         = HtmlDocument.create()
             var parser: HtmlParser
             parser.start(&document, .Fragment)
             while index < lines.count
             {
+                let line = Latin1.trim(lines[index])
+
+                // Typora-style containers may put blank-separated Markdown between HTML rows.
+                // Keep those blocks in the native renderer; feeding them to HTML would print
+                // their emphasis markers literally and bypass the document typography.
+                var markdownContainer = parser.stack.count > 1 and not parser.hasPendingSource()
+                for node in parser.stack where node.element != 0
+                {
+                    let tag = document.constNode(node.element).tag
+                    if tag != .Div and tag != .Figure and tag != .Section do
+                        markdownContainer = false
+                    // Styled or hidden containers must retain their HTML cascade and visibility.
+                    for attribute in document.attributes(node.element) where document.text(attribute.name) != "align" do
+                        markdownContainer = false
+                }
+
+                if markdownContainer and index > 0 and not Latin1.trim(lines[index - 1]).count and line.count and line[0] != '<'
+                {
+                    var reopen: String
+                    var close:  String
+                    for node in parser.stack where node.element != 0
+                    {
+                        let element = document.constNode(node.element)
+                        let end     = Utf8.indexOf(document.source(), '>'rune, element.sourceOffset)
+                        if end != Swag.U64.Max do
+                            reopen += document.source()[element.sourceOffset until end + 1]
+                        close = Format.toString("</%>%", HtmlDocument.tagName(element.tag), close)
+                    }
+
+                    if hasHtmlContent
+                    {
+                        html += close
+                        appendBlock(&result, .Html, #move html)
+                        result.backPtr().sourceOffset = htmlSourceOffset
+                    }
+
+                    var markdown: String
+                    let markdownOffset = cast(u64) (lines[index].buffer - source.buffer)
+                    while index < lines.count and Latin1.trim(lines[index]).count and not isHtmlBlockStart(lines[index])
+                    {
+                        markdown += lines[index]
+                        markdown += "\n"
+                        index    += 1
+                    }
+
+                    var nested = parseBlocks(markdown.toString(), headingsOnly, references.toSlice())
+                    for &block in nested
+                    {
+                        block.sourceOffset += markdownOffset
+                        result.add(#move block[])
+                    }
+
+                    html = #move reopen
+                    hasHtmlContent = false
+                    if index < lines.count do
+                        htmlSourceOffset = cast(u64) (lines[index].buffer - source.buffer)
+                    continue
+                }
+
                 // A paired container owns its blank lines; comments may span them too.
                 if not (Latin1.trim(lines[index])).count and parser.stack.count == 1 and not parser.hasPendingSource() do
                     break
                 if not html.isEmpty() do
                     html += "\n"
                 html += lines[index]
+                if line.count and not Utf8.startsWith(line, "</") do
+                    hasHtmlContent = true
                 parser.feed(lines[index])
                 parser.feed("\n")
                 index += 1
@@ -364,8 +429,12 @@ internal func parseBlocks(source: string, headingsOnly = false)->Array'Block
             }
 
             parser.finish()
-            if document.childCount(0) do
+            if hasHtmlContent and document.childCount(0)
+            {
                 appendBlock(&result, .Html, #move html)
+                result.backPtr().sourceOffset = htmlSourceOffset
+            }
+
             continue
         }
 

@@ -40,9 +40,6 @@ const CabacLpsRange: [512] u8 = #run buildCabacLpsRange()
 // `128 + (state ^ -1)` on the LPS path, which flips valMPS at pStateIdx 0 as Table 9-45 says.
 const CabacNextState: [256] u8 = #run buildCabacNextState()
 
-// The renormalization shift bringing a range below 256 back to the interval; zero above.
-const CabacNormShift: [512] u8 = #run buildCabacNormShift()
-
 func buildCabacLpsRange()->[512] u8
 {
     var result: retval
@@ -69,24 +66,6 @@ func buildCabacNextState()->[256] u8
     return result
 }
 
-func buildCabacNormShift()->[512] u8
-{
-    var result: retval
-    for range in 512'u64
-    {
-        var shift = 0'u8
-        var value = range
-        while value < 256 and shift < 9
-        {
-            value <<= 1
-            shift += 1
-        }
-
-        result[range] = shift
-    }
-
-    return result
-}
 
 impl CabacReader
 {
@@ -615,7 +594,12 @@ impl Slice
         .cabac.contexts[binCtx] = CabacNextState[cast(u64) (128 + #uniq0)]
         bin    = cast(u32) (#uniq0 & 1)
 
-        let #uniq3 = cast(u32) CabacNormShift[cast(u64) range]
+        // The renormalization shift is the distance from the range's highest set bit to bit 8,
+        // which the machine counts in one instruction. The table it replaces was 512 bytes the
+        // hot loop kept resident and one more memory read on the only chain this decoder cannot
+        // widen: a bin is decoded from the range the bin before it left. At a range of zero the
+        // count gives 32, which is the shift of 9 the table held there.
+        let #uniq3 = Swag.bitCountLz(range) - 23
         range <<= #uniq3
         low   <<= #uniq3
         if (low & 0xFFFF) == 0 do

@@ -34,10 +34,25 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
 - Recorded: 2026-08-19 13:23
-- Updated: 2026-09-11 22:20 — Remove shipped cache work from the next step and separate multi-slice scheduling.
-- Evidence: the latest recorded one-lane measurement, 2026-09-11, put the quiet-machine floor
-  near 84 million decode-thread cycles per 3840x2160 picture, versus FFmpeg's 36 million on the
-  same one-slice High/CABAC clip. These are historical measurements, not a new health-reset run.
+- Updated: 2026-09-12 17:40 — Record what the FFmpeg gap is made of, measured against its own build without assembly.
+- Evidence: on 2026-09-12, decoding the same 3840x2160 one-slice High/CABAC clip and alternating
+  the two decoders inside one measurement window, this decoder and FFmpeg's own build with its
+  hand-written assembly disabled read within a tenth of each other, while FFmpeg with its
+  assembly read half. Forcing its dispatch down one instruction set at a time gives the ladder
+  the assembly climbs: compiled code 179, with SSE2 111, with SSSE3 82, and with everything 83.
+  Alternation matters: this machine's cores are shared and its clock moves, and the same binary
+  read 124 and 204 million cycles in two rounds an hour apart.
+- The gap is not algorithmic. The entropy layer decodes a number of bins fixed by the bitstream,
+  5.29 million per picture here, so no decoder can decode fewer; the three shortcuts that do
+  carry algorithmic freedom are all taken, namely the integer-sample copy and per-phase kernels
+  in `mcLuma`, the skip of a zero-strength edge in `deblockMb`, and the flat-block and
+  zero-block skips in `addPlane4x4Residual`. A decoder doing materially more work per
+  macroblock could not match FFmpeg's compiled code within a tenth.
+- What remains is scalar. `cabac.swg` holds 46 per cent of the decode and uses no vector
+  arithmetic, because an arithmetic decoder cannot: each bin is decoded from the range the bin
+  before it left. At 5.29 million bins that layer costs about 16 cycles per bin. Sampling inside
+  `Slice.residualCabac` shows the significance loop remaking three relocated table addresses and
+  spilling the range on every bin, which is register pressure, not instruction selection.
 - Current source: `Slice.resolveNeighbors` caches the four neighboring macroblocks;
   `bookkeepMb` writes grid rows and reference-picture co-located motion in words/vectors;
   `Frame.colMotion` receives the macroblock index. The old next step to build those paths is done.
@@ -63,7 +78,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   Recasting RGB conversion as pair sums predates cross-module SIMD inlining and needs a fresh
   comparison before its old verdict is used.
 - Complete when: serial decode costs at most four-thirds of FFmpeg on the same one-slice fixture
-  and machine, measured in decoding-thread cycles with unchanged decoded planes.
+  and machine, measured in decoding-thread cycles with unchanged decoded planes. Parity with its
+  compiled code is reached; the remaining factor is its assembly, so the target is now reached by
+  vector kernels in the pixel layer and by relieving register pressure in the entropy layer.
 - Related: std.video.013, compiler.optimization.011, cpu.simd.023
 
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding

@@ -545,7 +545,10 @@ namespace
                 flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return MicroInstrRef::invalid();
 
-            if (flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+            // What the operation does, not what its opcode may do: a bitwise
+            // complement, a move and an address computation share an opcode
+            // with arithmetic that writes the flags, and leave them alone.
+            if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*scanInst, scanInst->ops(operands)))
                 return scanRef;
             if (stopOnFlagUse && flags.has(MicroInstrFlagsE::UsesCpuFlags))
                 return scanRef;
@@ -579,14 +582,23 @@ namespace
             MicroInstr&         jumpInst = *it;
             ++it;
 
-            if (jumpInst.op != MicroInstrOpcode::JumpCond)
+            // A conditional move reads the flags exactly as a conditional jump
+            // does, and a select whose condition was named by the source
+            // arrives the same way: the comparison, a setcc, then a test of
+            // that byte in front of every use of it. The arithmetic decoder
+            // selects three values on one comparison and paid three tests for
+            // it; the condition the setcc carries is the one the moves want.
+            const bool isConditionalMove = jumpInst.op == MicroInstrOpcode::LoadCondRegReg;
+            if (jumpInst.op != MicroInstrOpcode::JumpCond && !isConditionalMove)
                 continue;
 
             MicroInstrOperand* jumpOps = jumpInst.ops(operands);
             if (!jumpOps)
                 continue;
 
-            const MicroCond jumpCond = jumpOps[0].cpuCond;
+            // LoadCondRegReg: [dst, src, cond, opBits]; JumpCond: [cond, ...].
+            const uint8_t   condIdx  = isConditionalMove ? 2 : 0;
+            const MicroCond jumpCond = jumpOps[condIdx].cpuCond;
             bool            branchOnBoolZero;
             if (jumpCond == MicroCond::Equal || jumpCond == MicroCond::Zero)
                 branchOnBoolZero = true;
@@ -602,7 +614,11 @@ namespace
                 continue;
             const MicroInstr* cmpInst = storage.ptr(cmpRef);
             if (!cmpInst || cmpInst->op != MicroInstrOpcode::CmpRegImm)
+            {
+                if (isConditionalMove)
+                    fprintf(stderr, "CMOVFLAGS reject prev op=%d\n", static_cast<int>(cmpInst ? cmpInst->op : MicroInstrOpcode::Nop));
                 continue;
+            }
             const MicroInstrOperand* cmpOps = cmpInst->ops(operands);
             if (!cmpOps || cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0)
                 continue;
@@ -612,8 +628,11 @@ namespace
                 continue;
 
             // The fall-through path keeps observing the flags at the jump, so
-            // the compare can only go when nothing downstream reads them.
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, jumpRef))
+            // the compare can only go when nothing downstream reads them. A
+            // conditional move leaves the flags it read untouched, so a later
+            // reader of the same comparison is served by the comparison
+            // itself once this test is gone.
+            if (!isConditionalMove && !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, jumpRef))
                 continue;
 
             // Readers between the setcc and the compare still see the original
@@ -623,21 +642,47 @@ namespace
             if (!defInst)
                 continue;
 
-            if (defInst->op == MicroInstrOpcode::LoadZeroExtRegReg || defInst->op == MicroInstrOpcode::LoadSignedExtRegReg)
+            // The boolean reaches its test through whatever the lowering put
+            // between: a widening of the byte the setcc wrote, and a copy of
+            // it per reader when several read it - which is exactly the shape
+            // a condition named once and used by three selects takes.
+            MicroReg trackedBool = boolReg;
+            for (uint32_t hop = 0; defInst && hop < 4; ++hop)
             {
-                const MicroInstrOperand* extOps = defInst->ops(operands);
-                if (!extOps || extOps[0].reg != boolReg || extOps[1].reg != boolReg)
+                const MicroInstrOperand* stepOps = defInst->ops(operands);
+                if (!stepOps)
+                    break;
+
+                if ((defInst->op == MicroInstrOpcode::LoadZeroExtRegReg || defInst->op == MicroInstrOpcode::LoadSignedExtRegReg) &&
+                    stepOps[0].reg == trackedBool && stepOps[1].reg == trackedBool)
+                {
+                    defRef  = previousFlagChainInstruction(storage, operands, defRef, trackedBool, false);
+                    defInst = defRef.isValid() ? storage.ptr(defRef) : nullptr;
                     continue;
-                defRef  = previousFlagChainInstruction(storage, operands, defRef, boolReg, false);
-                defInst = defRef.isValid() ? storage.ptr(defRef) : nullptr;
-                if (!defInst)
+                }
+
+                if (defInst->op == MicroInstrOpcode::LoadRegReg && stepOps[0].reg == trackedBool && stepOps[1].reg.isVirtual())
+                {
+                    trackedBool = stepOps[1].reg;
+                    defRef      = previousFlagChainInstruction(storage, operands, defRef, trackedBool, false);
+                    defInst     = defRef.isValid() ? storage.ptr(defRef) : nullptr;
                     continue;
+                }
+
+                break;
             }
 
-            if (defInst->op != MicroInstrOpcode::SetCondReg)
+            if (!defInst)
                 continue;
+
+            if (defInst->op != MicroInstrOpcode::SetCondReg)
+            {
+                if (isConditionalMove)
+                    fprintf(stderr, "CMOVFLAGS reject def op=%d\n", static_cast<int>(defInst->op));
+                continue;
+            }
             const MicroInstrOperand* setOps = defInst->ops(operands);
-            if (!setOps || setOps[0].reg != boolReg)
+            if (!setOps || setOps[0].reg != trackedBool)
                 continue;
 
             const MicroCond setCond = setOps[1].cpuCond;
@@ -645,7 +690,7 @@ namespace
             if (branchOnBoolZero && !MicroPassHelpers::invertCondition(newCond, setCond))
                 continue;
 
-            jumpOps[0].cpuCond = newCond;
+            jumpOps[condIdx].cpuCond = newCond;
             changed |= storage.erase(cmpRef);
         }
 

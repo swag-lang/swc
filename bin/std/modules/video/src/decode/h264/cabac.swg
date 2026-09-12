@@ -598,11 +598,20 @@ impl Slice
         let #uniq1 = cast(u32) CabacLpsRange[cast(u64) (2 * (range & 0xC0)) + cast(u64) #uniq0]
         range -= #uniq1
 
-        // All ones on the less probable path.
-        let #uniq2 = cast #wrap (u32) ((cast(s32) (range << 17) - cast(s32) low) >> 31)
-        low    = low - #wrap ((range << 17) & #uniq2)
-        range  = range + #wrap ((#uniq1 - #wrap range) & #uniq2)
-        #uniq0 ^= cast #bit(s32) #uniq2
+        // The offset standing above the most probable subrange is what takes the less probable
+        // path, and each of the three values it changes is one conditional move. Written as the
+        // mask of that comparison folded into an and and an add, as the standard states it, every
+        // one of them costs a copy as well: the machine's arithmetic reads and writes the same
+        // register, so a value still needed afterwards has to be moved out of the way first.
+        //
+        // The comparison is exact because both quantities stay well below the sign bit: the range
+        // holds nine bits and the offset the sixteen look-ahead bits above it.
+        let #uniq2 = range << 17
+        let #uniq4 = low - #wrap #uniq2
+        let #uniq5 = cast(s32) #uniq2 < cast(s32) low
+        low    = #uniq5 ? #uniq4 : low
+        range  = #uniq5 ? #uniq1 : range
+        #uniq0 = #uniq5 ? ~#uniq0 : #uniq0
         .cabac.contexts[binCtx] = CabacNextState[cast(u64) (128 + #uniq0)]
         bin    = cast(u32) (#uniq0 & 1)
 
@@ -622,12 +631,13 @@ impl Slice
         if (low & 0xFFFF) == 0 do
             low = .cabac.reload(low)
 
-        // All ones when the offset stays below the range, which is a zero bin.
+        // The offset below the range is a zero bin and keeps the offset; above it the bin is one
+        // and the range comes off. One comparison and one conditional move each.
         let #uniq0 = range << 17
-        low = low - #wrap #uniq0
-        let #uniq1 = cast #wrap (u32) (cast #bit(s32) low >> 31)
-        low = low + #wrap (#uniq0 & #uniq1)
-        bin = 1 + #wrap #uniq1
+        let #uniq1 = low - #wrap #uniq0
+        let #uniq2 = cast(s32) #uniq0 <= cast(s32) low
+        low = #uniq2 ? #uniq1 : low
+        bin = #uniq2 ? 1 : 0
     }
 
     // Decodes a bypass sign and applies it to `magnitude` without branching, into `level`.
@@ -638,12 +648,12 @@ impl Slice
         if (low & 0xFFFF) == 0 do
             low = .cabac.reload(low)
 
+        // Same bin as the bypass, read as a sign: below the range it is positive.
         let #uniq0 = range << 17
-        low = low - #wrap #uniq0
-        let #uniq1 = cast #wrap (u32) (cast #bit(s32) low >> 31)
-        low = low + #wrap (#uniq0 & #uniq1)
-        let #uniq2 = cast #bit(s32) ~#uniq1
-        level = (magnitude ^ #uniq2) - #uniq2
+        let #uniq1 = low - #wrap #uniq0
+        let #uniq2 = cast(s32) #uniq0 <= cast(s32) low
+        low   = #uniq2 ? #uniq1 : low
+        level = #uniq2 ? -magnitude : magnitude
     }
 
     // Decodes one bin with the context at `contextIndex`, section 9.3.3.2.1, for the syntax

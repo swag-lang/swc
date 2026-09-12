@@ -48,6 +48,47 @@ instead. It applies to the accepted kernels as much as to the discarded ones: ev
 inside that window has to be re-baselined before it is trusted, and the entries below name their
 own. Work dated before the window used the raw `Swag.vec*` intrinsics directly and is unaffected.
 
+### cpu.simd.035 — The H.264 pixel kernels widen to 16 bits where the reference stays in bytes
+
+- Recorded: 2026-09-12 18:05
+- Evidence: forcing FFmpeg's dispatch down one instruction set at a time on a 3840x2160 one-slice
+  High/CABAC clip gives the ladder its assembly climbs, in millions of decode-thread cycles per
+  picture: compiled code 179, with SSE2 111, with SSSE3 82. Its SSE2 step covers the deblocking
+  filters, every inverse transform, weighted prediction, and the 8x8 and 16x16 luma quarter-sample
+  kernels. This decoder vectorizes those same four families, and reads about the same total.
+- The difference is the arithmetic domain. Counting mnemonics in FFmpeg's own kernels,
+  `h264_deblock.asm` uses `pavgb` 30 times, `psubusb` 24, `pminub` 6 and `paddusb` 4, so the whole
+  filter runs on bytes with saturating arithmetic; `h264_qpel_8bit.asm` builds its six shifted taps
+  with `palignr` 35 times and averages with `pavgb` 22 times rather than reloading each tap;
+  `h264_chromamc.asm` and `h264_weight.asm` apply their weights with `pmaddubsw`, which multiplies
+  and accumulates bytes into 16-bit lanes in one instruction. Our `deblock.swg`, `inter.swg` and
+  `transform.swg` call `Simd.widenLow` or `Simd.widenHigh` 71 times between them and use
+  `Simd.average` 5 times, `Simd.subSaturating`, `Simd.addSaturating`, `Simd.mulAddPairs`,
+  `Simd.align`, `Simd.minimum` and `Simd.maximum` not at all. Widening halves the lanes a kernel
+  works on and adds the unpack and pack around it.
+- Nothing is missing from the compiler. Every one of those instructions already has a micro-op and
+  an encoding, and `std/core` already publishes each: `Simd.average` is `vpavgb`,
+  `Simd.addSaturating` and `Simd.subSaturating` are `vpaddusb` and `vpsubusb`, `Simd.minimum` and
+  `Simd.maximum` on bytes are `vpminub` and `vpmaxub`, `Simd.align` is `vpalignr`, and
+  `Simd.mulAddPairs` of a byte pair is `vpmaddubsw`. The work is in the kernels.
+- Done: `mcChroma`, the costliest pixel kernel at 3.7 per cent of the decode, now interleaves its
+  two source rows and applies each weight pair with one byte multiply, as the reference does. It
+  fell from 491 instructions to 463 and from 55 stack accesses to 47, with the decoded planes
+  unchanged.
+- Tried and reverted: the same rewrite of the luma six-tap filter. Its sixteen-pixel body held 39
+  instructions before and after, because the form it replaces already fuses the load and the widen
+  into one instruction, and the two coefficient vectors it needs cost two loads a row and four more
+  callee-saved vector registers. It halves the shuffle-port traffic, 12 operations to 6, which is
+  why it is worth returning to once compiler.optimization.037 lets the coefficients stay in
+  registers across the loop. The reference's own luma kernel widens too, and applies its
+  coefficients with a 16-bit multiply.
+- Next: the deblocking filters, where the reference stays in bytes throughout with `pavgb`,
+  `psubusb` and `pminub` and ours widens 36 times, then the clip-and-add of the inverse transform.
+  Keep the existing scalar reference beside each one and the plane digests byte-exact.
+- Complete when: the H.264 pixel layer reaches FFmpeg's SSE2 figure on the same fixture with
+  unchanged decoded planes.
+- Related: std.video.001, cpu.simd.023, cpu.simd.024
+
 ### cpu.simd.028 — PNG Sub stride 6 and remaining sample conversion need a current profile
 
 - Recorded: 2026-08-20 08:56

@@ -595,11 +595,10 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
         let wr = fracX * 8
         if width == 8 or width == 4
         {
+            let weights = chromaWeights(wl, wr)
             for cast(u64) height
             {
-                let a = Simd.widenLow(Simd.load(line))
-                let b = Simd.widenLow(Simd.load(line + 1))
-                storeChromaBlend(out, width, a * cast(u16) wl + b * cast(u16) wr)
+                storeChromaBlend(out, width, chromaPairs(Simd.load(line), Simd.load(line + 1), weights))
                 out  += dstStride
                 line += srcStride
             }
@@ -624,11 +623,10 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
         let wb = fracY * 8
         if width == 8 or width == 4
         {
+            let weights = chromaWeights(wt, wb)
             for cast(u64) height
             {
-                let a = Simd.widenLow(Simd.load(line))
-                let b = Simd.widenLow(Simd.load(line + srcStride))
-                storeChromaBlend(out, width, a * cast(u16) wt + b * cast(u16) wb)
+                storeChromaBlend(out, width, chromaPairs(Simd.load(line), Simd.load(line + srcStride), weights))
                 out  += dstStride
                 line += srcStride
             }
@@ -653,14 +651,16 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
     let wrb = fracX * fracY
     if width == 8 or width == 4
     {
+        // Each row carries its own vertical weight folded into its horizontal pair, so the two
+        // rows are two multiplies and one sum rather than four multiplies and three sums.
+        let topWeights    = chromaWeights(wlt, wrt)
+        let bottomWeights = chromaWeights(wlb, wrb)
         for cast(u64) height
         {
             let below = line + srcStride
-            let a     = Simd.widenLow(Simd.load(line))
-            let b     = Simd.widenLow(Simd.load(line + 1))
-            let c     = Simd.widenLow(Simd.load(below))
-            let d     = Simd.widenLow(Simd.load(below + 1))
-            storeChromaBlend(out, width, a * cast(u16) wlt + b * cast(u16) wrt + c * cast(u16) wlb + d * cast(u16) wrb)
+            let top   = chromaPairs(Simd.load(line), Simd.load(line + 1), topWeights)
+            let lower = chromaPairs(Simd.load(below), Simd.load(below + 1), bottomWeights)
+            storeChromaBlend(out, width, top + lower)
             out  += dstStride
             line += srcStride
         }
@@ -682,14 +682,33 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
     }
 }
 
+// The two weights of one bilinear blend, packed as the byte pair the multiply below reads.
+#[Swag.Inline]
+private func chromaWeights(first, second: s32)->Simd.S8x16
+{
+    return cast #bit(Simd.S8x16) Simd.splat(cast(u16) (first | (second << 8)))
+}
+
+// Eight blended chroma samples from two rows of bytes and one weight pair.
+//
+// The two samples a weight pair covers are neighbours, so interleaving the rows puts each pair
+// in adjacent bytes and the machine multiplies and sums a pair in the one instruction meant for
+// exactly this shape, reading bytes and answering 16-bit lanes. Widening each sample to 16 bits
+// first, then multiplying twice and adding, does the same work over half as many lanes. This is
+// how the reference decoder's own chroma kernel is written.
+#[Swag.Inline]
+private func chromaPairs(low, high: Simd.U8x16, weights: Simd.S8x16)->Simd.S16x8
+{
+    return Simd.mulAddPairs(Simd.interleaveLow(low, high), weights)
+}
+
 // Rounds, narrows, and stores one row of blended chroma lanes. The weights of
 // one blend sum to 64, so the accumulators peak at 64 * 255 + 32, well inside
-// the unsigned lanes, and the shifted lanes are plain bytes.
+// the lanes, and the shifted lanes are plain bytes.
 #[Swag.Inline]
-private func storeChromaBlend(out: [*] u8, width: s32, value: Simd.U16x8)
+private func storeChromaBlend(out: [*] u8, width: s32, value: Simd.S16x8)
 {
-    let bytes  = cast #bit(Simd.S16x8) ((value + 32) >> 6)
-    let packed = Simd.packUnsigned(bytes, bytes)
+    let packed = Simd.packUnsigned((value + 32) >> 6, (value + 32) >> 6)
     if width == 8 do
         Simd.storeLow8(out, packed)
     else do

@@ -15,6 +15,29 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.037 — Hoisting a constant-pool read out of a loop is undone by rematerialization
+
+- Recorded: 2026-09-12 20:30
+- Evidence: loop-invariant motion refuses to hoist a memory read when the loop writes through a
+  pointer, and it applies that refusal before it looks at the address. A filter kernel reads its
+  coefficients from the constant pool on every iteration and writes its result through a pointer,
+  so its coefficient reads never leave the loop. Relaxing the refusal for a read whose base is the
+  instruction pointer and whose relocation is `ConstantAddress` is sound, since nothing writes the
+  constant pool, and it did hoist them: the sixteen-pixel body of the H.264 horizontal half-sample
+  filter went from 39 instructions to 36, its two coefficient loads moving to the preheader.
+- What it cost elsewhere: `intraPredict8x8` grew from 927 instructions to 1078 and from 340 memory
+  operands to 445 under the same change alone. The hoist gives one definition many uses spread
+  across the function, the allocator then refuses it a register, and the rematerialization recipe
+  for a constant-pool read remakes the read at every one of those uses. The hoist therefore
+  produces more reads than it removed. The change was reverted; build 520 is the number it used.
+- Next: make rematerialization weigh where it remakes a value. A value remade inside a loop is
+  remade once per iteration, and LLVM's spiller prices a remake by the block frequency of the use
+  for exactly this reason. Once a remake inside a loop is no longer free, hoist the constant-pool
+  read again and measure both kernels.
+- Complete when: the filter kernel keeps its coefficients in registers across its loop and no
+  other decoder kernel grows.
+- Related: cpu.simd.035, compiler.optimization.006
+
 ### compiler.optimization.036 — A constant offset ahead of an indexed access is not folded into it
 
 - Recorded: 2026-09-12 13:05

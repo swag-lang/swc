@@ -32,35 +32,45 @@ struct CabacReader
     invalid:  bool          // A syntax element did not decode; the macroblock loop reports it.
 }
 
-// Table 9-44 laid out for one lookup from the packed state and the two range bits that select
-// its column: index `2 * (range & 0xC0) + state`.
-const CabacLpsRange: [512] u8 = #run buildCabacLpsRange()
+// Every table a residual block reads while it is decoded, in one object.
+//
+// Separate objects are separate addresses, and an address that a relocation supplies is remade
+// where it stands rather than given a register of its own, so the innermost loop of the decoder
+// rebuilt one address for every table it touched, on every bin. Behind a single base they are
+// one address and a displacement, which the addressing of a memory operand already carries at no
+// cost, and the two registers this frees are two the loop no longer spills.
+const CabacLpsAt   = 0'u64   // Table 9-44, read as `2 * (range & 0xC0) + state`.
+const CabacStateAt = 512'u64 // The state after a bin, read as `128 + state`.
+const CabacSigAt   = 768'u64 // Table 9-43 frame coding, significance context per 8x8 scan position.
+const CabacLastAt  = 832'u64 // Table 9-43 frame coding, last-coefficient context per 8x8 scan position.
+const CabacTables: [896] u8 = #run buildCabacTables()
 
-// The state after a bin, one table for both outcomes: `128 + state` on the MPS path and
-// `128 + (state ^ -1)` on the LPS path, which flips valMPS at pStateIdx 0 as Table 9-45 says.
-const CabacNextState: [256] u8 = #run buildCabacNextState()
-
-func buildCabacLpsRange()->[512] u8
+func buildCabacTables()->[896] u8
 {
     var result: retval
+
+    // Table 9-44 laid out for one lookup from the packed state and the two range bits that
+    // select its column.
     for column in 4'u64
     {
         for state in 128'u64 do
-            result[column * 128 + state] = CabacRangeLps[(state >> 1) * 4 + column]
+            result[CabacLpsAt + column * 128 + state] = CabacRangeLps[(state >> 1) * 4 + column]
     }
 
-    return result
-}
-
-func buildCabacNextState()->[256] u8
-{
-    var result: retval
+    // One table for both outcomes: `128 + state` on the MPS path and `128 + (state ^ -1)` on the
+    // LPS path, which flips valMPS at pStateIdx 0 as Table 9-45 says.
     for state in 128'u64
     {
         let mps  = cast(u32) (state & 1)
         let flip = (state >> 1) == 0 ? 1'u32 : 0'u32
-        result[128 + state] = cast(u8) ((cast(u32) CabacTransMps[state >> 1] << 1) | mps)
-        result[127 - state] = cast(u8) ((cast(u32) CabacTransLps[state >> 1] << 1) | (mps ^ flip))
+        result[CabacStateAt + 128 + state] = cast(u8) ((cast(u32) CabacTransMps[state >> 1] << 1) | mps)
+        result[CabacStateAt + 127 - state] = cast(u8) ((cast(u32) CabacTransLps[state >> 1] << 1) | (mps ^ flip))
+    }
+
+    for scan in 63'u64
+    {
+        result[CabacSigAt + scan]  = SigCoeffCtx8x8[scan]
+        result[CabacLastAt + scan] = LastCoeffCtx8x8[scan]
     }
 
     return result
@@ -574,7 +584,7 @@ impl Slice
     private mtd binDecision(binCtx: u32)
     {
         var #uniq0 = cast(s32) .cabac.contexts[binCtx]
-        let #uniq1 = cast(u32) CabacLpsRange[cast(u64) (2 * (range & 0xC0)) + cast(u64) #uniq0]
+        let #uniq1 = cast(u32) CabacTables[CabacLpsAt + cast(u64) (2 * (range & 0xC0)) + cast(u64) #uniq0]
         range -= #uniq1
 
         // The offset standing above the most probable subrange is what takes the less probable
@@ -591,7 +601,7 @@ impl Slice
         low    = #uniq5 ? #uniq4 : low
         range  = #uniq5 ? #uniq1 : range
         #uniq0 = #uniq5 ? ~#uniq0 : #uniq0
-        .cabac.contexts[binCtx] = CabacNextState[cast(u64) (128 + #uniq0)]
+        .cabac.contexts[binCtx] = CabacTables[CabacStateAt + cast(u64) (128 + #uniq0)]
         bin    = cast(u32) (#uniq0 & 1)
 
         // The renormalization shift is the distance from the range's highest set bit to bit 8,
@@ -730,13 +740,13 @@ impl Slice
         var foundLast = false
         while scan < MaxCoeffs - 1
         {
-            let sigCtx = MaxCoeffs == 64 ? sigBase + cast(u32) SigCoeffCtx8x8[scan] : sigBase + scan
+            let sigCtx = MaxCoeffs == 64 ? sigBase + cast(u32) CabacTables[CabacSigAt + cast(u64) scan] : sigBase + scan
             .binDecision(sigCtx)
             if bin != 0
             {
                 indices[count] = cast(u8) scan
                 count += 1
-                let lastCtx = MaxCoeffs == 64 ? lastBase + cast(u32) LastCoeffCtx8x8[scan] : lastBase + scan
+                let lastCtx = MaxCoeffs == 64 ? lastBase + cast(u32) CabacTables[CabacLastAt + cast(u64) scan] : lastBase + scan
                 .binDecision(lastCtx)
                 if bin != 0
                 {

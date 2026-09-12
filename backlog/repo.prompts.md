@@ -36,10 +36,13 @@ measured. The failures that produces look exactly like the bug the campaign was 
 ## 1. Repository health reset
 
 ```
-You are running a repository-wide health reset on swc. Read AGENTS.md and every skill it points to
-before acting, then README.md, tools/README.md, backlog/README.md, and every domain file listed in
-the backlog inventory. Read the additional area-specific skills as soon as a discovered fix enters
-their scope.
+You are running a repository-wide health reset on swc. The primary goal is to verify the code,
+find bugs by executing the complete validation campaigns, and fix them. Documentation and backlog
+accuracy are required secondary outcomes; they must never delay the first complete code campaign.
+
+Read AGENTS.md, modify-swag-codebase, validate-swag-changes, and the README/tool instructions needed
+to start the builds and tests. Read each additional skill when the work enters its scope. Do not
+read every backlog domain, audit every document, or normalize prose before starting validation.
 
 This is not an audit that ends with a list of problems. You own every concrete problem this pass
 exposes, wherever it lives: compiler, language, runtime, standard library, application, example,
@@ -102,80 +105,36 @@ may remain. It does mean fixing every actual defect, inconsistency, stale statem
 failing command, formatting drift, and hygiene problem discovered by this pass. Rewording a
 concrete failure as an investigation is not a way to make the campaign appear green.
 
-AUDIT THE REPOSITORY BEFORE TRUSTING THE TESTS
+EXECUTION PRIORITY: RUN CODE FIRST
 
-Build an inventory before the first fix:
+After the starting-state record and mandatory artifact reset, immediately start validation steps
+1 through 7. Stop at the first failure, reduce it, fix its cause, add its regression, and rerun
+the affected campaign. An already failing test always takes priority over documentation wording,
+backlog ordering, historical identifier research, or a general API/prose review.
 
-  1. Inspect tracked, untracked, and ignored state. Use `git clean -ndX` only as a preview; never
-     run a broad clean command without classifying its exact targets first.
-  2. Search project-owned files for TODO, FIXME, HACK, XXX, disabled tests, unconditional skips,
-     suspicious expected failures, stale `.actual.txt`/`.actual.png` snapshots, crash dumps, and
-     scratch names. Exclude vendored sources and generated outputs from conclusions, not from the
-     initial inventory.
-  3. Rebuild the backlog from repository reality, file by file; do not merely proofread its prose
-     or assume a recently edited entry is current. Verify every claim against the current
-     implementation, tests, documentation, and relevant Git history. Delete shipped or invalid
-     outcomes even when their entry contains useful history; history belongs in Git. Cut a partly
-     completed entry down to one independently finishable result, split unrelated remaining
-     results under fresh identifiers, move work to the domain that owns it, refresh evidence,
-     acceptance conditions, and next actions, merge duplicates, and stamp each refreshed entry so
-     it rises to the top of its file.
-     When investigation establishes implementation work, update the same entry in place and retain
-     its identifier. A move to another domain is the exception: allocate that file's next suffix and
-     update every live reference and Markdown fragment. Audit files with no recent commit too, and
-     delete empty category files rather than treating their existence as coverage.
-  4. Check backlog invariants mechanically: every domain file follows `<family>.<what>.md`; every
-     entry identifier is that file name without `.md` plus a three-digit suffix; live identifiers
-     are unique; a new suffix is one above the greatest suffix ever allocated in that file; every
-     entry opens with its `Recorded` stamp and any `Updated` stamp under it is no earlier and says
-     what changed; and the README inventory carries each file's latest stamp, newest first.
-     Compare with Git history when needed to prove that a deleted suffix was not reused. Check valid
-     Markdown anchors and file links, no dangling live cross-reference, and no domain file missing
-     from the README inventory. The README is an index and naming contract, not a counter registry.
-     A `Related:` line names live entries only; a retired identifier may remain solely as explicit
-     historical provenance. Sort each file by `Updated`, or by `Recorded` when there is no
-     `Updated` stamp, from newest to oldest. Neither identifiers nor judged value decide position,
-     and no `##` heading groups the entries. Read new stamps from the clock when writing them;
-     preserve existing `Recorded` stamps when updating an entry.
-  5. Check the portability exception explicitly: every operating-system backend, product port,
-     target integration, and Windows-bound contract that must become portable lives in
-     `backlog/platform.portability.md`, with none of that work scattered through owner-domain files.
-  6. Check repository instructions, READMEs, public API documentation, the language reference,
-     examples, command help, and website prose against the code that exists now. Update every stale
-     command, count, name, guarantee, prerequisite, or link you find.
+Mechanical preflight checks may block a test launch. Fix only the blocking invariant, then resume
+the tests; do not turn that interruption into a full documentation audit. Update documentation
+needed to make a code fix correct, but defer unrelated editorial cleanup until the code campaign
+has passed. Report executed suites, test counts, failures, and fixes as the main progress evidence.
 
-If an invariant can regress silently and no automated check protects it, add the smallest useful
-check to the repository tooling or tests. The next health reset should not need to rediscover the
-same class of problem manually.
+Use parallel work when available: keep the primary agent on code validation and failure diagnosis,
+and delegate bounded backlog/documentation audits. A secondary audit may advance while tests run,
+but it must not hold up the next validation command. Coordinate file ownership: collect proposed
+documentation/backlog edits separately while a running campaign reads those inputs, then apply
+them at a safe boundary. Do not change test inputs underneath a running suite.
 
-Repeat the complete backlog pass after the last source, test, or documentation fix. A health
-reset changes the facts the backlog describes, so an audit performed only at the start is stale by
-construction. In the live campaign table, record every backlog entry removed, narrowed, split,
-moved, or refreshed, plus the code/test evidence used to keep every entry that remains.
+Parallel agents do not make build outputs independent. Never overlap cleanup or rebuilding with
+another command using the same artifact or dependency paths. Serialize such commands unless all
+shared outputs are actually isolated, and admit every build/test from measured machine load.
 
-FORMAT AND REGENERATE, THEN REVIEW THE DIFF
-
-After the first DevMode compiler build:
-
-  1. Format every Swag workspace with `bin\swc.exe tools\format.swgs dm`.
-  2. Format every project-owned compiler `.cpp`, `.h`, and `.inc` file under `src/` with
-     clang-format and the repository `.clang-format`. Exclude vendored mimalloc sources; do not
-     rewrite third-party code.
-  3. Run both formatters a second time and prove that the second pass introduces no additional
-     change. Review the complete formatting diff; formatting is not permission to hide a semantic
-     change or rewrite unrelated generated/vendor files.
-  4. Regenerate the complete documentation site and brand assets with
-     `bin\swc.exe tools\help.swgs dm`. Review every tracked change for correctness, including public
-     API pages, the executable language reference, links, images, indexes, and examples.
-  5. Run the documentation generation a second time and prove it is idempotent. Fix the generator
-     if it is not; do not normalize nondeterministic output as expected churn.
-
-When formatting or documentation exposes a compiler or tool defect, fix that defect at the root
-and add its regression test. Never hand-edit generated output to make the diff look right.
+After the code campaign is green, finish the secondary audit, canonical formatting, documentation
+generation, and the final backlog pass. Any newly exposed code failure immediately regains
+priority. Complete affected reruns, review, cleanup, and commits before the final Vault integration.
 
 RUN THE COMPLETE VALIDATION LADDER
 
-Run these in order, stopping at the first failure as the tooling requires. After any fix, rerun the
+Run steps 1 through 7 first, in order, stopping at the first failure as the tooling requires.
+Step 8 remains deferred until the secondary audit and final cleanup are complete. After any fix, rerun the
 smallest focused reproducer first, then restart the smallest aggregate campaign that contains it.
 Resume the ladder at the earliest step the fix can actually affect; keep earlier independent green
 steps valid. A stale golden, fixture, generated asset, packaging input, or similarly local data
@@ -228,6 +187,81 @@ disable a test, weaken an assertion, broaden a timeout, accept a crash, update a
 narrow a safety check until it stops firing, or add a local workaround. A golden changes only after
 the new output has been independently reviewed and proved correct.
 
+COMPLETE THE SECONDARY REPOSITORY AND DOCUMENTATION AUDIT
+
+This work follows the code-validation priority above. It may run in parallel through a separate
+agent, but the primary agent must not wait for it before launching or advancing the code campaign.
+Read backlog/README.md and every inventoried domain when starting this phase, then:
+
+  1. Inspect tracked, untracked, and ignored state. Use `git clean -ndX` only as a preview; never
+     run a broad clean command without classifying its exact targets first.
+  2. Search project-owned files for TODO, FIXME, HACK, XXX, disabled tests, unconditional skips,
+     suspicious expected failures, stale `.actual.txt`/`.actual.png` snapshots, crash dumps, and
+     scratch names. Exclude vendored sources and generated outputs from conclusions, not from the
+     initial inventory.
+  3. Rebuild the backlog from repository reality, file by file; do not merely proofread its prose
+     or assume a recently edited entry is current. Verify every claim against the current
+     implementation, tests, documentation, and relevant Git history. Delete shipped or invalid
+     outcomes even when their entry contains useful history; history belongs in Git. Cut a partly
+     completed entry down to one independently finishable result, split unrelated remaining
+     results under fresh identifiers, move work to the domain that owns it, refresh evidence,
+     acceptance conditions, and next actions, merge duplicates, and stamp each refreshed entry so
+     it rises to the top of its file.
+     When investigation establishes implementation work, update the same entry in place and retain
+     its identifier. A move to another domain is the exception: allocate that file's next suffix and
+     update every live reference and Markdown fragment. Audit files with no recent commit too, and
+     delete empty category files rather than treating their existence as coverage.
+  4. Check backlog invariants mechanically: every domain file follows `<family>.<what>.md`; every
+     entry identifier is that file name without `.md` plus a three-digit suffix; live identifiers
+     are unique; a new suffix is one above the greatest suffix ever allocated in that file; every
+     entry opens with its `Recorded` stamp and any `Updated` stamp under it is no earlier and says
+     what changed; and the README inventory carries each file's latest stamp, newest first.
+     Compare with Git history when needed to prove that a deleted suffix was not reused. Check valid
+     Markdown anchors and file links, no dangling live cross-reference, and no domain file missing
+     from the README inventory. The README is an index and naming contract, not a counter registry.
+     A `Related:` line names live entries only; a retired identifier may remain solely as explicit
+     historical provenance. Sort each file by `Updated`, or by `Recorded` when there is no
+     `Updated` stamp, from newest to oldest. Neither identifiers nor judged value decide position,
+     and no `##` heading groups the entries. Read new stamps from the clock when writing them;
+     preserve existing `Recorded` stamps when updating an entry.
+  5. Check the portability exception explicitly: every operating-system backend, product port,
+     target integration, and Windows-bound contract that must become portable lives in
+     `backlog/platform.portability.md`, with none of that work scattered through owner-domain files.
+  6. Check repository instructions, READMEs, public API documentation, the language reference,
+     examples, command help, and website prose against the code that exists now. Update every stale
+     command, count, name, guarantee, prerequisite, or link you find.
+
+If an invariant can regress silently and no automated check protects it, add the smallest useful
+check to the repository tooling or tests. The next health reset should not need to rediscover the
+same class of problem manually.
+
+Repeat the complete backlog pass after the last source, test, or documentation fix. A health
+reset changes the facts the backlog describes, so an audit performed only at the start is stale by
+construction. In the live campaign table, record every backlog entry removed, narrowed, split,
+moved, or refreshed, plus the code/test evidence used to keep every entry that remains.
+
+FORMAT AND REGENERATE, THEN REVIEW THE DIFF
+
+After the complete code campaign is green, finish formatting and generation. These are validation
+steps too: fix any code defect they expose, run its focused reproducer, and rerun only the affected
+aggregate before returning to the secondary audit:
+
+  1. Format every Swag workspace with `bin\swc.exe tools\format.swgs dm`.
+  2. Format every project-owned compiler `.cpp`, `.h`, and `.inc` file under `src/` with
+     clang-format and the repository `.clang-format`. Exclude vendored mimalloc sources; do not
+     rewrite third-party code.
+  3. Run both formatters a second time and prove that the second pass introduces no additional
+     change. Review the complete formatting diff; formatting is not permission to hide a semantic
+     change or rewrite unrelated generated/vendor files.
+  4. Regenerate the complete documentation site and brand assets with
+     `bin\swc.exe tools\help.swgs dm`. Review every tracked change for correctness, including public
+     API pages, the executable language reference, links, images, indexes, and examples.
+  5. Run the documentation generation a second time and prove it is idempotent. Fix the generator
+     if it is not; do not normalize nondeterministic output as expected churn.
+
+When formatting or documentation exposes a compiler or tool defect, fix that defect at the root
+and add its regression test. Never hand-edit generated output to make the diff look right.
+
 CLEAN THE TREE BEFORE THE FINAL SWAG VAULT INTEGRATION
 
 After validation steps 1 through 7 and before step 8, classify and remove temporary material created
@@ -249,8 +283,9 @@ rerun, review, cleanup, and commit before retrying Swag Vault, again as the fina
 
 THE CAMPAIGN MAY END ONLY WHEN
 
-  - The complete final validation ladder has passed after the last source, test, formatting, or
-    documentation change.
+  - Every required validation result is valid for the final code and artifacts, with the affected
+    focused and aggregate checks rerun after changes. Pure prose edits do not invalidate unrelated
+    green code campaigns.
   - Formatting and documentation generation are idempotent.
   - The backlog and inline-marker audit has no unresolved inconsistency.
   - No concrete defect discovered during the campaign remains open or has merely been relabeled.

@@ -5,6 +5,46 @@ being compiled by it.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### repo.tooling.005 — An incremental Release build can mix two versions of the diagnostic table
+
+- Recorded: 2026-09-04 15:19
+- Updated: 2026-09-12 10:21 — Record the confirmed stale-object recurrence and the remaining invalidation uncertainty.
+- Area: tooling
+- Found while: the Release rung of a repository health reset, on sources whose only recent change
+  was in semantic analysis
+- Observation: the Release compiler built incrementally over an object tree left by an earlier
+  session reported the wrong diagnostic for an unknown symbol: `var v: MissingType` came back as
+  `modifier 'MissingType' needs an integer type, found` — the message of the id that follows
+  `sema_err_unknown_symbol` in `Errors.Sema.msg`. The DevMode compiler built from the same sources
+  reported it correctly. These results are consistent with translation units compiled against
+  different diagnostic identifiers, but the dependency that failed to invalidate was not isolated.
+  The current `pch.h` contains no diagnostic declarations: `DiagnosticDef.h` takes identifiers
+  from `Errors.inc` and `Notes.inc`, while `Diagnostic.cpp` takes message variants from the
+  separate `.msg` catalogs and maps each group through its explicit `DiagnosticId`.
+- Evidence: 2026-09-04, sources at `SWC_BUILD_NUM` 343. `MSBuild swc.sln /p:Configuration=Release`
+  produced a binary that failed nine `bin/unittests/errors/sema` fixtures whose expected ids never
+  matched; recompiling `Diagnostic.cpp` alone changed nothing; `MSBuild /t:Rebuild` on the same
+  sources produced a binary that reports `unknown symbol 'MissingType'` and passes the suite.
+- Confirmed recurrence (2026-09-12, Release 0.1.489): the local-function expansion fixture
+  emitted `sema_note_generated_source_root` where it expected `sema_note_expansion_invoked_here`.
+  Commit `8811b59ae` added one error identifier before the note identifiers; the old numeric value
+  therefore selected exactly the preceding note. `SemaClone.obj` dated 2026-09-11 16:38, while
+  `Errors.Sema.inc` dated 21:48. Touching only `SemaClone.cpp`, without changing its contents,
+  recompiled that object and made the unchanged fixture pass. This confirms mixed enumeration
+  versions in the executable; it does not identify why the earlier build retained the object.
+- Attribution limit: the tracked reads inspected after recompilation included `Errors.Sema.inc`,
+  but that section had already been rewritten; the historical tracking state is unavailable.
+  No dependency-tracking exclusion was found in the project. The health-reset prompt now uses
+  `/t:Rebuild` for both initial compiler baselines, which avoids retaining these objects without
+  repairing the unresolved incremental-invalidation cause.
+- Next: reproduce a catalog edit over a warm Release object tree and inspect the MSBuild tracked
+  reads for `DiagnosticDef.h`, its `.inc` catalogs, and the affected translation units. Distinguish
+  an identifier insertion in `.inc` from a message-only edit in `.msg`, then fix the dependency
+  that fails to invalidate.
+- Complete when: an incremental Release build after ids are added to an `.inc` catalog either
+  recompiles what depends on them, or cannot produce a binary whose reported id and printed text
+  disagree.
+
 ### repo.tooling.003 — Matroska timing and display-size cases lack reproducible fixtures
 
 - Recorded: 2026-08-25 22:01
@@ -107,34 +147,6 @@ being compiled by it.
   delay externally, and profile the formatter's dominant passes before choosing another change.
 - Complete when: the campaign distinguishes input-opening cost from formatting CPU and a retained
   optimization has an order-alternated speed gain with identical output and measured memory.
-
-### repo.tooling.005 — An incremental Release build can mix two versions of the diagnostic table
-
-- Recorded: 2026-09-04 15:19
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: tooling
-- Found while: the Release rung of a repository health reset, on sources whose only recent change
-  was in semantic analysis
-- Observation: the Release compiler built incrementally over an object tree left by an earlier
-  session reported the wrong diagnostic for an unknown symbol: `var v: MissingType` came back as
-  `modifier 'MissingType' needs an integer type, found` — the message of the id that follows
-  `sema_err_unknown_symbol` in `Errors.Sema.msg`. The DevMode compiler built from the same sources
-  reported it correctly. These results are consistent with translation units compiled against
-  different diagnostic identifiers, but the dependency that failed to invalidate was not isolated.
-  The current `pch.h` contains no diagnostic declarations: `DiagnosticDef.h` takes identifiers
-  from `Errors.inc` and `Notes.inc`, while `Diagnostic.cpp` takes message variants from the
-  separate `.msg` catalogs and maps each group through its explicit `DiagnosticId`.
-- Evidence: 2026-09-04, sources at `SWC_BUILD_NUM` 343. `MSBuild swc.sln /p:Configuration=Release`
-  produced a binary that failed nine `bin/unittests/errors/sema` fixtures whose expected ids never
-  matched; recompiling `Diagnostic.cpp` alone changed nothing; `MSBuild /t:Rebuild` on the same
-  sources produced a binary that reports `unknown symbol 'MissingType'` and passes the suite.
-- Next: reproduce a catalog edit over a warm Release object tree and inspect the MSBuild tracked
-  reads for `DiagnosticDef.h`, its `.inc` catalogs, and the affected translation units. Distinguish
-  an identifier insertion in `.inc` from a message-only edit in `.msg`, then fix the dependency
-  that fails to invalidate.
-- Complete when: an incremental Release build after ids are added to an `.inc` catalog either
-  recompiles what depends on them, or cannot produce a binary whose reported id and printed text
-  disagree.
 
 ### repo.tooling.002 — A differential harness must line pictures up by time, not by rank
 

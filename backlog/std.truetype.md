@@ -244,6 +244,8 @@ subsetting belongs to [std.gui.pdf.019](std.gui.pdf.md), which must settle its w
 before extending this reader module.
 
 **A system font database.** Enumerating installed fonts, resolving a family name to a file, and
-walking a fallback chain when a glyph is missing are all real needs, but they belong above this
-module — `pixel` already owns the platform side of that in `src/text/typeface.win32.swg`. Keep
-this module about the bytes of one face.
+walking a fallback chain when a glyph is missing belong above this module. `pixel` now owns
+scalar fallback, coverage policy, and per-glyph rendering in `src/text/font.swg`; its Windows
+backend only discovers installed fonts and retrieves their bytes. Cluster selection remains in
+[std.pixel.028](std.pixel.md#stdpixel028--fallback-selection-does-not-yet-preserve-shaping-clusters).
+Keep this module about the bytes of one face.

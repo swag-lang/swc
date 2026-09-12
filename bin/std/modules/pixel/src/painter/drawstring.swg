@@ -156,10 +156,11 @@ struct ShapedGlyph
         offsetX:    f32                  // Horizontal placement adjustment.
         offsetY:    f32                  // Vertical placement adjustment.
         isTab:      bool                 // Whether this glyph represents an expanded tab.
+        font:       *Font?               // Borrowed face owning the glyph; null uses the enclosing run's font.
     }
 }
 
-// Owns shaped glyphs and aggregate measurements for a single font run.
+// Owns shaped glyphs and aggregate measurements for a primary font and its fallback faces.
 struct ShapedRun
 {
     public
@@ -172,6 +173,33 @@ struct ShapedRun
         tabSize:       u32 = DefaultTextTabSize     // Tab-stop width in space advances.
         letterSpacing: f32                          // Additional spacing between glyphs, in pixels.
         wordSpacing:   f32                          // Additional advance given to each blank, in pixels.
+    }
+}
+
+impl ShapedRun
+{
+    // Returns line-box metrics covering the primary font and every used fallback font.
+    //
+    // Unlike `metrics`, which bounds glyph ink, these extents use font ascenders and descenders.
+    // MSDF atlas padding cannot enlarge a line. Width is the shaped logical advance; all values
+    // are in pixels at the primary font's nominal size. Descent is positive below the baseline.
+    mtd const lineMetrics()->StringMetrics
+    {
+        var result: retval
+        result.width   = .metrics.width
+        result.ascent  = .font.ascent
+        result.descent = -.font.descent
+        for glyph in .glyphs
+        {
+            if let face = glyph.font
+            {
+                result.ascent  = Math.max(result.ascent, face.ascent)
+                result.descent = Math.max(result.descent, -face.descent)
+            }
+        }
+
+        result.height = result.ascent + result.descent
+        return result
     }
 }
 
@@ -222,14 +250,19 @@ private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cl
 {
     var glyph: ShapedGlyph
     glyph.desc       = font.getGlyphDescByIndex(glyphIndex)
+    glyph.font       = font
     glyph.glyphIndex = glyphIndex
     glyph.cluster    = cluster
     let desc = glyph.desc
     glyph.advanceX = isTab ? customAdvanceX : desc.advanceX + extraAdvanceX
     glyph.advanceY = desc.advanceY
     glyph.isTab    = isTab
-    if previousGlyphIndex and not isTab do
-        glyph.offsetX = font.cache.kerning(previousGlyphIndex, glyphIndex) + letterSpacing
+    if not run.glyphs.isEmpty() and not run.glyphs.back().isTab and not isTab
+    {
+        glyph.offsetX = letterSpacing
+        if previousGlyphIndex and run.glyphs.back().font == font do
+            glyph.offsetX += font.cache.kerning(previousGlyphIndex, glyphIndex)
+    }
 
     let glyphX = run.metrics.width + glyph.offsetX
     if desc.width != 0 and desc.height != 0
@@ -261,8 +294,9 @@ private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cl
 
 private func appendShapedTab(run: *ShapedRun, font: *Font, cluster: u64, tabSize: u32)
 {
-    let spaceGlyphIndex  = font.glyphIndex(' ')
-    let spaceDesc        = font.getGlyphDescByIndex(spaceGlyphIndex)
+    let spaceFont        = font.resolveRune(' ')
+    let spaceGlyphIndex  = spaceFont.glyphIndex(' ')
+    let spaceDesc        = spaceFont.getGlyphDescByIndex(spaceGlyphIndex)
     var effectiveTabSize = tabSize
     if not effectiveTabSize do
         effectiveTabSize = 1
@@ -274,7 +308,7 @@ private func appendShapedTab(run: *ShapedRun, font: *Font, cluster: u64, tabSize
     let tabWidth   = spaceAdvance * cast(f32) effectiveTabSize
     let nextStop   = (Math.floor(run.metrics.width / tabWidth) + 1) * tabWidth
     let tabAdvance = nextStop - run.metrics.width
-    appendShapedGlyph(run, font, spaceGlyphIndex, cluster, 0, tabAdvance, true)
+    appendShapedGlyph(run, spaceFont, spaceGlyphIndex, cluster, 0, tabAdvance, true)
 }
 
 private func finishShapedRun(run: *ShapedRun, font: *Font)
@@ -401,8 +435,9 @@ impl Painter
             }
             else
             {
-                let glyphIndex = font.glyphIndex(c)
-                appendShapedGlyph(result, font, glyphIndex, byteIdx, previousGlyphIndex, 0.0, false, letterSpacingRef, c == ' ' ? wordSpacingRef : 0.0)
+                let glyphFont  = font.resolveRune(c)
+                let glyphIndex = glyphFont.glyphIndex(c)
+                appendShapedGlyph(result, glyphFont, glyphIndex, byteIdx, previousGlyphIndex, 0.0, false, letterSpacingRef, c == ' ' ? wordSpacingRef : 0.0)
                 previousGlyphIndex = glyphIndex
             }
 
@@ -440,12 +475,6 @@ impl Painter
         let letterSpacingRef   = run.letterSpacing / font.scale()
         let wordSpacingRef     = run.wordSpacing / font.scale()
 
-        // Both fonts share one typeface, so the blank keeps its glyph index across the rebuild
-        // and word spacing lands on the same glyphs it did the first time. A run with no word
-        // spacing never asks for that index: resolving a glyph populates the cache, and a run
-        // that has no use for the blank must not be what puts it there.
-        let spaceGlyphIndex = run.wordSpacing != 0 ? font.glyphIndex(' ') : 0'u32
-
         for glyph in run.glyphs
         {
             if glyph.isTab
@@ -455,7 +484,10 @@ impl Painter
             }
             else
             {
-                appendShapedGlyph(&result, font, glyph.glyphIndex, glyph.cluster, previousGlyphIndex, 0.0, false, letterSpacingRef, glyph.glyphIndex == spaceGlyphIndex ? wordSpacingRef : 0.0)
+                let sourceFont = glyph.font orelse run.font
+                let glyphFont  = sourceFont == run.font ? font : font.withTypeFace(sourceFont.cache.typeFace)
+                let isSpace    = run.wordSpacing != 0 and glyph.glyphIndex != 0 and glyph.glyphIndex == sourceFont.glyphIndex(' ')
+                appendShapedGlyph(&result, glyphFont, glyph.glyphIndex, glyph.cluster, previousGlyphIndex, 0.0, false, letterSpacingRef, isSpace ? wordSpacingRef : 0.0)
                 previousGlyphIndex = glyph.glyphIndex
             }
         }
@@ -596,8 +628,8 @@ impl Painter
         {
             result.ascent  = Math.max(result.ascent, refr.shiftY)
             result.descent = Math.max(result.descent, refr.height - refr.shiftY)
-            if i do
-                result.width += font.cache.kerning(text[i - 1].glyphIndex, refr.glyphIndex)
+            if i and text[i - 1].cache == refr.cache do
+                result.width += (refr.cache orelse font.cache).kerning(text[i - 1].glyphIndex, refr.glyphIndex)
             result.width += refr.advanceX
         }
 
@@ -623,7 +655,7 @@ impl Painter
             let refr = glyph.desc
             if refr.width != 0 and refr.height != 0
             {
-                .setTextureFont(drawFont, refr.atlasIndex)
+                .setTextureFont(glyph.font orelse drawFont, refr.atlasIndex)
 
                 let x1 = snapTextPosition(glyphX + refr.shiftX * info.scale, snapPixels, info.deviceScale, info.snapOffsetX) + dx
                 let y1 = snapTextPosition(baselineY + glyph.offsetY * info.scale - refr.shiftY * info.scale, snapPixels, info.deviceScale, info.snapOffsetY) + dy
@@ -700,6 +732,16 @@ impl Painter
         }
 
         .updateFont(drawFont)
+        var updatedFonts: Array'(*Font)
+        for glyph in runToDraw.glyphs
+        {
+            let glyphFont = glyph.font orelse drawFont
+            if glyphFont != drawFont and not updatedFonts.contains(glyphFont)
+            {
+                .updateFont(glyphFont)
+                updatedFonts.add(glyphFont)
+            }
+        }
 
         // Drop shadow: an offset pass behind the text, drawn solid in the shadow
         // color (paint reset to solid). Binds the glyph atlas, so reset the font
@@ -864,6 +906,7 @@ impl Painter
             // advances the chunk is drawn with (see the function comment); vertical
             // metrics stay nominal, they position lines, not glyph runs.
             c.shaped = shapeRun(c.slice, c.font, format.tabSize, format.letterSpacing)
+            let lineMetrics = c.shaped.lineMetrics()
             var ms = c.shaped.metrics
             ms.width    = measureStringSnapped(&c.shaped, deviceScale: deviceScale)
             c.boundRect = {0, 0, ms.width, Math.max(c.font.height, ms.height)}
@@ -929,8 +972,9 @@ impl Painter
                             line.measure.ascent  = Math.max(line.measure.ascent, wc.shaped.metrics.ascent)
                             line.measure.descent = Math.max(line.measure.descent, wc.shaped.metrics.descent)
                             line.measure.height  = Math.max(line.measure.height, wc.shaped.metrics.height)
-                            line.fontAscent      = Math.max(line.fontAscent, wc.font.ascent)
-                            line.fontDescent     = Math.min(line.fontDescent, wc.font.descent)
+                            let wordMetrics = wc.shaped.lineMetrics()
+                            line.fontAscent  = Math.max(line.fontAscent, wordMetrics.ascent)
+                            line.fontDescent = Math.min(line.fontDescent, -wordMetrics.descent)
                         }
 
                         wordLine = OneLine{}
@@ -959,8 +1003,8 @@ impl Painter
                         line.measure.ascent  = Math.max(line.measure.ascent, ms.ascent)
                         line.measure.descent = Math.max(line.measure.descent, ms.descent)
                         line.measure.height  = Math.max(line.measure.height, ms.height)
-                        line.fontAscent      = Math.max(line.fontAscent, c.font.ascent)
-                        line.fontDescent     = Math.min(line.fontDescent, c.font.descent)
+                        line.fontAscent      = Math.max(line.fontAscent, lineMetrics.ascent)
+                        line.fontDescent     = Math.min(line.fontDescent, -lineMetrics.descent)
                     }
 
                     wordStart = startLine
@@ -982,8 +1026,8 @@ impl Painter
             line.measure.ascent  = Math.max(line.measure.ascent, ms.ascent)
             line.measure.descent = Math.max(line.measure.descent, ms.descent)
             line.measure.height  = Math.max(line.measure.height, ms.height)
-            line.fontAscent      = Math.max(line.fontAscent, c.font.ascent)
-            line.fontDescent     = Math.min(line.fontDescent, c.font.descent)
+            line.fontAscent      = Math.max(line.fontAscent, lineMetrics.ascent)
+            line.fontDescent     = Math.min(line.fontDescent, -lineMetrics.descent)
 
             // A space closes a word, so the line as it now stands is where a later overflow
             // rewinds to.
@@ -1067,7 +1111,7 @@ impl Painter
                 while true
                 {
                     let scan = &text.chunks[cut]
-                    mark = scan.font.glyphIndex(EllipsisRune) ? "\u2026" : "..."
+                    mark = scan.font.resolveRune(EllipsisRune).glyphIndex(EllipsisRune) ? "\u2026" : "..."
                     room = pos.width - accum - measureStringSnapped(mark, scan.font, deviceScale: deviceScale)
                     if room >= 0 or cut == l.start
                     {

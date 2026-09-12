@@ -25,6 +25,22 @@ using Core, Pixel, Gui, Gui.Testing
     }
 }
 
+// Whitey's bold-italic face can lack arrows even though the family itself is installed.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 200)
+    defer host.shutdown()
+    let view = Markdown.View.createText(&host.root, "> ***530 → 780 → 470 → 580 → 600 → 500 → 420 → 560 → 650 → 520***")
+    view.resize(960, 200)
+    applyMarkdownViewerStyle(view, 5, 1)
+    view.applyLayout()
+    Testing.assertContentFits(view)
+    var image = host.render(view)
+    Pixel.Testing.assertImageGolden(&image, "viewer.markdown.whitey.arrows")
+}
+
 // Full-screen reading reaches every edge; transient controls never resize the document.
 #[Swag.TestTag("golden")]
 #test

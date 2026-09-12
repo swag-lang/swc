@@ -699,11 +699,19 @@ impl InlineView
             return
         }
 
-        let text = atom.isSpace ? " " : atom.text.toString()
-        atom.position.width  = Painter.measureString(text, font).width
-        atom.position.height = font.height
-        atom.ascent          = font.ascent
-        atom.descent         = -font.descent
+        let text    = atom.isSpace ? " " : atom.text.toString()
+        let shaped  = Painter.shapeRun(text, font)
+        let metrics = shaped.lineMetrics()
+        atom.position.width  = shaped.metrics.width
+        atom.position.height = metrics.height
+        atom.ascent          = metrics.ascent
+        atom.descent         = metrics.descent
+    }
+
+    // Atom bounds include taller fallback faces; Painter draws against the primary baseline.
+    private mtd textTop(atom: const *InlineAtom, font: *Font)->f32
+    {
+        return atom.ascent == font.ascent ? atom.position.y : atom.position.y + (atom.ascent - font.ascent)
     }
 
     // Places one finished line of atoms and returns the height it takes.
@@ -929,15 +937,16 @@ impl InlineView
 
             let font  = .font(atom)
             let color = .color(atom)
+            let top   = .textTop(atom, font)
             var info  = Painter.computeTextDrawInfo(font, 1, scale)
             info.snapOffsetX = phase
-            if current == Swag.U32.Max or .textBatches[current].font != font or .textBatches[current].origin.y != atom.position.y or .textBatches[current].color != color
+            if current == Swag.U32.Max or .textBatches[current].font != font or .textBatches[current].origin.y != top or .textBatches[current].color != color
             {
                 var batch: InlineTextBatch
                 batch.font        = font
                 batch.shaped.font = info.drawFont
                 batch.firstAtom   = index
-                batch.origin      = {atom.position.x, atom.position.y}
+                batch.origin      = {atom.position.x, top}
                 batch.color       = color
                 current           = cast(u32) .textBatches.count
                 .textBatches.add(#move batch)
@@ -1387,7 +1396,8 @@ impl IWnd for InlineView
                 }
 
                 let decoration = atom.flags.has(.Strikeout) ? UnderlineStyle.Strikeout : (atom.flags.has(.Link) ? UnderlineStyle.Underline : UnderlineStyle.None)
-                painter.drawString(atom.position.x, atom.position.y, atom.isSpace ? " " : atom.text.toString(), .font(atom), color, decoration)
+                let font       = .font(atom)
+                painter.drawString(atom.position.x, .textTop(atom, font), atom.isSpace ? " " : atom.text.toString(), font, color, decoration)
             }
         }
     }

@@ -39,6 +39,18 @@ language.parallelism.001. The concurrency entries own Core integration, algorith
 migration against that native surface; they do not introduce Core-owned task or synchronization
 types.
 
+### std.core.033 — Endian helpers do not accept signed integer fields
+
+- Recorded: 2026-09-12 19:56
+- Evidence: constructing a TrueType test fixture with `ByteStream.writeBigEndian(800's16)`
+  fails in `Math.nativeToBigEndian` with an ambiguous `byteswap` lookup. The generic endian
+  conversion accepts an integer type, but the available byte-swap overloads are unsigned.
+  Signed 16-bit ascender and descender fields currently require writing their unsigned bits.
+- Next: define signed-integer support for the endian conversion family and byte streams,
+  preserving the exact bit pattern; constrain any deliberately unsupported types at the API.
+- Complete when: positive and negative s16/s32/s64 fields round-trip through big-endian and
+  little-endian byte streams, and rejected types receive an error at their call site.
+
 ### std.core.019 — Unambiguous regular-expression captures replay the search
 
 - Recorded: 2026-09-06 17:42

@@ -2,6 +2,11 @@
 
 using Core, Win32, Gdi32
 
+private var g_SystemFallbackLock:     Sync.Mutex
+private var g_SystemFallbackFaces:    HashTable'(u64, *TypeFace?)
+private var g_SystemFallbackFamilies: Array'SystemFontFamilyInfo
+private var g_SystemFallbackReady:    bool
+
 // Describes one Windows face discovered for a font-family style.
 public struct SystemFontFaceInfo
 {
@@ -24,6 +29,53 @@ public struct SystemFontFamilyInfo
 
 impl FontFamily
 {
+    // Keep discovery and misses shared across renderer caches. Merely measuring another label
+    // must not enumerate the installed fonts again. Character coverage is always answered
+    // by TrueType; the operating system only supplies installed family names and font data.
+    internal func findSystemFallback(c: rune, bold, italic: bool)->*TypeFace?
+    {
+        let code = cast(u32) c
+        if code > 0x10FFFF or (code >= 0xD800 and code <= 0xDFFF) or (code >= 0xFDD0 and code <= 0xFDEF) or (code & 0xFFFF) >= 0xFFFE do
+            return null
+
+        let style = bold ? (italic ? FontFamilyStyle.BoldItalic : FontFamilyStyle.Bold) : (italic ? FontFamilyStyle.Italic : FontFamilyStyle.Regular)
+        let key   = cast(u64) code * FontFamilyStyle.count + cast(u64) style
+        Sync.scopedLock(&g_SystemFallbackLock)
+        if let found = g_SystemFallbackFaces.tryFind(key) do
+            return found.value
+
+        if not g_SystemFallbackReady
+        {
+            // Start with general text and symbol families, then let every installed family
+            // participate. A machine's optional script fonts do not need a hard-coded entry.
+            for name in ["Segoe UI", "Segoe UI Symbol", "Cambria Math", "Segoe UI Emoji"]
+            {
+                let family = findSystemFont(name)
+                if not family.name.isEmpty() do
+                    g_SystemFallbackFamilies.add(family)
+            }
+
+            let installed = enumerateSystemFonts()
+            for family in installed do
+                g_SystemFallbackFamilies.add(family)
+            g_SystemFallbackReady = true
+        }
+
+        var result: *TypeFace?
+        for family in g_SystemFallbackFamilies
+        {
+            let face = catch createTypeFace(family, style)
+            if face and face.face.hasChar(c)
+            {
+                result = face
+                break
+            }
+        }
+
+        g_SystemFallbackFaces.add(key, result)
+        return result
+    }
+
     func enumSubFamily(fa: const *LOGFONTW, _tm: const *TEXTMETRICW, _fontType: DWORD, lParam: LPARAM)->BOOL
     {
         let len = Utf16.lengthUntilZero(fa.lfFaceName)

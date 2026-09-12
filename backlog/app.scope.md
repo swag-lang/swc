@@ -19,6 +19,19 @@ owned by a viewer lives in the corresponding domain:
 Reusable engine work remains in the backlog of the standard module that owns it. Entries here are
 ordered from the most recently updated down.
 
+### app.scope.004 — About icon golden differs on the unchanged baseline
+
+- Recorded: 2026-09-12 20:10
+- Evidence: the DevMode compiler with program configuration `devmode` produces an `about`
+  snapshot differing in 580 pixels, with maximum channel delta 2, around the application icon.
+  The complete Swag Scope golden selection reproduces this on clean commit `63118adad`, with
+  42 tests passing and only `about` failing. The font-fallback change produces a byte-identical
+  actual PNG (SHA-256 `DDA5BC4D8A16E415E33F877C7D3C0C275AC74E4C4FF70F1C521D56371D4F96B8`).
+- Next: isolate image resampling/compositing of the About icon and compare the compiler and
+  rendering configuration that recorded the reference. Do not attribute the delta to text fallback.
+- Complete when: the icon's exact-pixel golden is reproducible or a justified rendering change
+  has been reviewed and its owning regression/reference updated.
+
 ### app.scope.001 — One document per window
 
 - Recorded: 2026-08-27 07:08

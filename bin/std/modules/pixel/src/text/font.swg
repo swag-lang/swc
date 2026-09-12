@@ -28,6 +28,8 @@ public struct GlyphAtlas
 // [[Pixel.Font.scale]] to obtain values for a particular font view.
 public struct GlyphDesc
 {
+    cache: *GlyphCache?     // Cache that owns this descriptor; glyph indices are local to it.
+
     public
     {
         uv:         Math.Rectangle     // Normalized texture coordinates in the atlas.
@@ -161,8 +163,9 @@ public struct Font
 
     internal
     {
-        late owner: *FontCache      // Cache that created this view and owns it.
-        late cache: *GlyphCache     // Shared glyph storage borrowed by this font view.
+        late owner:    *FontCache                  // Cache that created this view and owns it.
+        late cache:    *GlyphCache                 // Shared glyph storage borrowed by this font view.
+        fallbackFonts: HashTable'(rune, *Font)     // Resolved misses, including the primary font when no face covers the rune.
     }
 }
 
@@ -183,8 +186,10 @@ public struct FontCache
 
     internal
     {
-        glyphCaches: Array'(*GlyphCache?)     // Glyph storage, one per typeface / reference size / style.
-        fonts:       ArrayPtr'Font            // Views handed out by this cache.
+        glyphCaches:       Array'(*GlyphCache?)     // Glyph storage, one per typeface / reference size / style.
+        fonts:             ArrayPtr'Font            // Views handed out by this cache.
+        fallbackTypeFaces: Array'(*TypeFace)
+        useSystemFallback: bool = true
     }
 }
 
@@ -206,6 +211,30 @@ public impl FontCache
         for it in .glyphCaches do
             Memory.delete(it)
         .glyphCaches.clear()
+        .fallbackTypeFaces.clear()
+        .useSystemFallback = true
+    }
+
+    // Sets the ordered typefaces searched when a font lacks a Unicode character.
+    //
+    // The list is copied; typefaces retain their process-wide lifetime. The primary face
+    // always wins. Installed system fonts are searched last on Windows when `useSystemFonts`
+    // is true (the default). Other platforms use only this list. An empty list with false
+    // disables fallback. Existing font views adopt the policy; reshape any retained text runs.
+    // Fallback preserves size and rendering mode and synthesizes missing bold or italic styles.
+    //
+    // ```swag
+    // let symbols = try Pixel.TypeFace.load("symbols.ttf")
+    // cache.setFallbackTypeFaces([symbols], false)
+    // ```
+    mtd setFallbackTypeFaces(faces: const [..] (*TypeFace), useSystemFonts = true)
+    {
+        .fallbackTypeFaces.clear()
+        for face in faces do
+            .fallbackTypeFaces.add(face)
+        .useSystemFallback = useSystemFonts
+        for font in .fonts do
+            font!.fallbackFonts.clear()
     }
 
     // Releases every glyph cache and font view owned by this cache.
@@ -386,10 +415,51 @@ public impl Font
         return .mode
     }
 
-    // Returns the glyph descriptor of a given rune (in reference-size pixels)
+    // Resolves the font used to draw a Unicode character, including configured fallbacks.
+    //
+    // The returned view belongs to the same cache and has the same size, reference units,
+    // and rendering mode. If no face covers `c`, returns this font for its missing glyph.
+    // Successful and unsuccessful searches are cached. System lookup can load font data.
+    // This resolves individual scalars; it does not perform cluster shaping or bidi layout.
+    mtd resolveRune(c: rune)->*Font
+    {
+        if .glyphIndex(c) do
+            return me
+        if let found = .fallbackFonts.tryFind(c) do
+            return found.value
+
+        var face: *TypeFace?
+        for candidate in .owner.fallbackTypeFaces
+        {
+            if candidate.face.hasChar(c)
+            {
+                face = candidate
+                break
+            }
+        }
+
+        #static if #os == Swag.TargetOs.Windows
+        {
+            if not face and .owner.useSystemFallback do
+                face = FontFamily.findSystemFallback(c, .cache.typeFace.isBold() or .cache.typeFace.forceBold or .forceBold, .cache.typeFace.isItalic() or .cache.typeFace.forceItalic or .forceItalic)
+        }
+
+        let resolved = face ? .withTypeFace(face) : me
+        .fallbackFonts.add(c, resolved)
+        return resolved
+    }
+
+    internal mtd withTypeFace(face: *TypeFace)->*Font
+    {
+        let bold   = .cache.typeFace.isBold() or .cache.typeFace.forceBold or .forceBold
+        let italic = .cache.typeFace.isItalic() or .cache.typeFace.forceItalic or .forceItalic
+        return .owner.createFont(face, .size, .mode, bold and not (face.isBold() or face.forceBold), italic and not (face.isItalic() or face.forceItalic))
+    }
+
+    // Returns a rune's descriptor, including fallback, in this font's reference-size units.
     mtd getGlyphDesc(c: rune)->const *GlyphDesc
     {
-        return .cache.getGlyphDesc(c)
+        return .resolveRune(c).cache.getGlyphDesc(c)
     }
 
     // Returns the glyph descriptor of a given glyph index (in reference-size pixels)
@@ -398,7 +468,10 @@ public impl Font
         return .cache.getGlyphDescByIndex(glyphIndex)
     }
 
-    // Returns the typeface glyph index of a rune
+    // Returns a rune's glyph index in this typeface alone, or zero when absent.
+    //
+    // Use [[Pixel.Font.resolveRune]] first when fallback is wanted. Glyph indices are local
+    // to a face; explicit indices, PDF encodings, and glyph-name lookups never use fallback.
     mtd glyphIndex(c: rune)->u32
     {
         return .cache.typeFace.face.glyphIndex(c)
@@ -589,6 +662,7 @@ impl GlyphCache
         // Setup GlyphDesc
         let refr = Memory.new'GlyphDesc()
         .glyphRef.add(glyphIndex, refr)
+        refr.cache = me
 
         refr.width  = bmpRef.width
         refr.height = bmpRef.rows

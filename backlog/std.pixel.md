@@ -20,13 +20,52 @@ with command goldens and CPU rendering tests. Its painter has a full state stack
 transforms, clipping rectangles and boolean regions, render targets, layers, artistic blend modes,
 custom OpenGL shaders, and integrated DPI content scale. Computational geometry includes boolean
 polygon operations, offsetting, Delaunay triangulation, and painter fill/stroke tessellation;
-math typesetting and distance-field text are integrated rendering families.
+math typesetting and distance-field text are integrated rendering families. Text resolves missing
+Unicode scalars through an ordered, configurable fallback chain. Pixel owns coverage checks,
+per-glyph font and atlas selection, baseline alignment, measurement, style synthesis, and
+bitmap/MSDF rebuilding; Windows supplies optional installed-font discovery only.
 
 The module-wide gaps are explicit color semantics, high-quality texture sampling, portable vector
 output, path measurement and effects, and the modern renderer choice tracked by
 [platform.portability.066](platform.portability.md#platformportability066--renderer-backend-choice-has-no-target-matrix).
 
 ## Entries
+
+### std.pixel.028 — Fallback selection does not yet preserve shaping clusters
+
+- Recorded: 2026-09-12 19:53
+- Evidence: `Font.resolveRune` and `Painter.shapeRunInto` now resolve missing Unicode scalars,
+  including supplementary-plane values, and preserve each glyph's face through measurement and
+  drawing. The current shaper still emits one glyph per scalar: a base plus combining mark,
+  a variation selector, or an emoji ZWJ sequence can require one fallback face for the whole
+  cluster instead. Rune fallback alone neither performs those substitutions nor positions marks.
+- Next: connect fallback selection to the shaping boundary decided in std.truetype.008. Try a
+  face against a complete cluster, preserve source byte ranges, and define the unresolved-cluster
+  policy alongside variation selectors and default-ignorable characters.
+- Complete when: combining-mark, variation-selector, and ZWJ fixtures retain cluster identity
+  across fallback, shaping, selection, and bitmap/MSDF rebuilding.
+- Related: std.truetype.008, std.truetype.009, std.truetype.016
+
+### std.pixel.027 — Dynamically registered typefaces cannot be released before module shutdown
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-12 19:53 — include automatic system fallback in the retained-typeface investigation
+- Historical provenance: moved from retired std.gui.pdf.027.
+- Evidence: `TypeFace.create` and `load` return process-cache-owned pointers valid until module
+  shutdown, with no unregister operation. PDF pages borrow those pointers; their embedded font
+  program keys are already cached. Opening unrelated documents can grow the table for the
+  process lifetime, even after their page caches close.
+- Evidence: automatic system fallback also loads candidate faces into this process cache. A
+  first unsupported scalar can visit every installed family; the rune result is cached, but
+  candidate font programs remain retained even when none covers that scalar.
+- Next: index character coverage without retaining every candidate font program, and define
+  releasable registration ownership alongside existing borrowed process-cache pointers.
+  Account for renderer glyph caches and shared users before giving a document a
+  release operation; never invalidate a pointer covered by the current lifetime contract.
+- Complete when: dynamically registered faces can be reclaimed after their final owner releases
+  them, cached glyph resources cannot retain stale pointers, and repeated PDF open/close tests
+  show bounded growth while existing process-lifetime callers retain their documented behavior.
+- Related: std.gui.pdf.028, std.gui.pdf.037
 
 ### std.pixel.021 — Nothing reaches the unordered-intersection path
 
@@ -79,23 +118,6 @@ output, path measurement and effects, and the modern renderer choice tracked by
 - Complete when: stroking a page costs the same order as filling the same contours, and a page of
   a few thousand stroked marks records in single-digit milliseconds on a warm cache.
 - Related: std.gui.pdf.030, std.pixel.020
-
-### std.pixel.027 — Dynamically registered typefaces cannot be released before module shutdown
-
-- Recorded: 2026-08-18 14:15
-- Updated: 2026-09-12 06:31 — Move the process-wide typeface lifetime contract to its Pixel owner.
-- Historical provenance: moved from retired std.gui.pdf.027.
-- Evidence: `TypeFace.create` and `load` return process-cache-owned pointers valid until module
-  shutdown, with no unregister operation. PDF pages borrow those pointers; their embedded font
-  program keys are already cached. Opening unrelated documents can grow the table for the
-  process lifetime, even after their page caches close.
-- Next: define releasable registration ownership alongside existing borrowed process-cache
-  pointers. Account for renderer glyph caches and shared users before giving a document a
-  release operation; never invalidate a pointer covered by the current lifetime contract.
-- Complete when: dynamically registered faces can be reclaimed after their final owner releases
-  them, cached glyph resources cannot retain stale pointers, and repeated PDF open/close tests
-  show bounded growth while existing process-lifetime callers retain their documented behavior.
-- Related: std.gui.pdf.028, std.gui.pdf.037
 
 ### std.pixel.019 — Image pipelines always materialize full intermediates
 

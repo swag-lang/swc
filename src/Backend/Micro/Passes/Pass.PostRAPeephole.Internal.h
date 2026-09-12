@@ -52,6 +52,7 @@ namespace PostRaPeephole
     bool tryReuseFlagsForCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryForwardLoadRegImm(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryEraseRedundantCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryCanonicalizeZeroToClear(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryFoldCopyIntoFloatBinary(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldCopyIntoVecShiftImm(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

@@ -26,6 +26,7 @@ namespace PostRaPeephole
     namespace
     {
         constexpr int K_MAX_LIVENESS_WINDOW = 32;
+        constexpr int K_MAX_SAME_COPY_WINDOW = 16;
 
         bool regInList(std::span<const MicroReg> list, MicroReg reg)
         {
@@ -63,6 +64,60 @@ namespace PostRaPeephole
                     return false;
             }
         }
+    }
+
+    // A copy whose destination already holds exactly what it is about to be
+    // given again. The shape comes from the lowering of an operand a form
+    // requires in a named register: two shifts by the same count each move
+    // that count into rcx, and the second move has nothing to do. Same
+    // registers, same width - a narrower copy left the upper half of the
+    // destination with something else - and nothing in between writes either
+    // register or leaves the straight line.
+    bool tryEraseRedundantCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (copyInst.op != MicroInstrOpcode::LoadRegReg || ctx.isClaimed(copyRef))
+            return false;
+
+        const MicroInstrOperand* copyOps = copyInst.ops(*ctx.operands);
+        if (!copyOps)
+            return false;
+
+        const MicroReg    dst    = copyOps[0].reg;
+        const MicroReg    src    = copyOps[1].reg;
+        const MicroOpBits opBits = copyOps[2].opBits;
+        if (dst == src || !dst.isInt() || !src.isInt())
+            return false;
+
+        MicroInstrRef cur = ctx.previousRef(copyRef);
+        for (int step = 0; step < K_MAX_SAME_COPY_WINDOW && cur.isValid(); ++step, cur = ctx.previousRef(cur))
+        {
+            const MicroInstr* inst = ctx.instruction(cur);
+            if (!inst || ctx.isClaimed(cur))
+                return false;
+
+            const MicroInstrDef& info = MicroInstr::info(inst->op);
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                inst->op == MicroInstrOpcode::Label)
+                return false;
+
+            const MicroInstrOperand* ops = inst->ops(*ctx.operands);
+            if (inst->op == MicroInstrOpcode::LoadRegReg && ops &&
+                ops[0].reg == dst && ops[1].reg == src && ops[2].opBits == opBits)
+            {
+                if (!ctx.claimAll({copyRef}))
+                    return false;
+                ctx.emitErase(copyRef);
+                return true;
+            }
+
+            const MicroInstrUseDef ud = inst->collectUseDef(*ctx.operands, ctx.encoder);
+            if (regInList(ud.defs, dst) || regInList(ud.defs, src))
+                return false;
+        }
+
+        return false;
     }
 
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)

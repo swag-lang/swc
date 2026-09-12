@@ -114,6 +114,32 @@ block, and the hot path keeps the register.
   remains, with any surviving cause reduced to one actionable change.
 - Related: compiler.optimization.005, compiler.optimization.024.
 
+### compiler.optimization.035 — Legalization cannot stage a value without a free register
+
+- Recorded: 2026-09-12 11:40
+- Area: compiler/backend
+- Evidence: the interval allocator holds one callee-saved integer register out of its pool for the
+  legalization that runs on its own output. Measured on the 76 H.264 kernels at build 497, giving
+  that register back is worth 80 instructions and 177 frame accesses (19676 to 19596, 1914 to
+  1737), against 39 more prologue saves. It cannot simply be given back: without the reserve the
+  `pixel` and `gui` modules fail to compile, the scan allocator reaching
+  `SWC_INTERNAL_CHECK(false)` with no register it may name.
+- What exists: the reserve is now paid only by a function whose allocation took every integer
+  register **and** that carries a shape whose legalization may need a register of its own
+  (`Encoder::mayNeedLegalizeScratchRegister`). Ordinary functions keep the register. The H.264
+  kernels still pay it: they carry shifts by a register and multiplies, whose rewrites move an
+  operand through a named register and save the occupant in a fresh virtual.
+- Boundary: `Pass.Legalize.cpp` stages through a virtual register and forbids it every physical
+  register live across the instruction, so a saturated function leaves it nothing. The
+  scratch-frame scaffolding (`stackScratchFrameSize` / `insertScratchFrame` /
+  `computeStackScratchBaseOffset`) is wired and unused, and the float-immediate rewrite already
+  demonstrates the other way out, a transient push/pop around the staged sequence.
+- Next: make the staged rewrites fall back to a frame slot (or a push/pop pair that the stack
+  adjustment normalization already understands) when no physical register is admissible, then
+  drop the reserve entirely and re-measure the kernels.
+- Complete when: no allocation holds a register back for legalization, `pixel` and `gui` compile,
+  and the kernel frame traffic drops by the measured amount.
+
 ### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
 
 - Recorded: 2026-09-07 10:46

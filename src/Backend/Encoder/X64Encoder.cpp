@@ -1144,6 +1144,75 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
     }
 }
 
+// The shapes whose legalization stages a value somewhere of its own: an
+// operand that has to travel through a named register, an immediate no form
+// takes, a float constant staged through the integer file, an address whose
+// scale has to be computed. Every other rewrite works with the registers the
+// instruction already names, and the four that only clamp an immediate or
+// split a store need nothing at all.
+bool X64Encoder::mayNeedLegalizeScratchRegister(const MicroInstr& inst, const MicroInstrOperand* ops) const
+{
+    if (!ops)
+        return true;
+
+    switch (inst.op)
+    {
+        case MicroInstrOpcode::OpBinaryRegReg:
+            // ops: [0] dst, [1] src, [2] opBits, [3] microOp
+            return isShiftImmediateOp(ops[3].microOp) || requiresRegImmRewrite(ops[3].microOp) ||
+                   ops[3].microOp == MicroOp::MultiplySigned || ops[3].microOp == MicroOp::MultiplyUnsigned ||
+                   ops[3].microOp == MicroOp::MultiplyHighSigned || ops[3].microOp == MicroOp::MultiplyHighUnsigned;
+
+        case MicroInstrOpcode::OpBinaryRegMem:
+            // ops: [0] dst, [1] base, [2] opBits, [3] microOp, [4] offset
+            return ops[3].microOp == MicroOp::MultiplySigned || ops[3].microOp == MicroOp::MultiplyUnsigned ||
+                   ops[3].microOp == MicroOp::MultiplyHighSigned || ops[3].microOp == MicroOp::MultiplyHighUnsigned ||
+                   requiresRegImmRewrite(ops[3].microOp);
+
+        case MicroInstrOpcode::OpBinaryMemReg:
+            // ops: [0] base, [1] src, [2] opBits, [3] microOp, [4] offset
+            return ops[1].reg.isAnyFloat() || isShiftImmediateOp(ops[3].microOp) || requiresRegImmRewrite(ops[3].microOp) ||
+                   ops[3].microOp == MicroOp::MultiplySigned || ops[3].microOp == MicroOp::MultiplyUnsigned ||
+                   ops[3].microOp == MicroOp::MultiplyHighSigned || ops[3].microOp == MicroOp::MultiplyHighUnsigned;
+
+        case MicroInstrOpcode::CompareExchangeRegMemReg:
+            return true;
+
+        case MicroInstrOpcode::LoadRegImm:
+            // A float constant is read from the constant segment, which needs
+            // no register at all. Only one too wide to store there is staged
+            // through the integer file.
+            return ops[0].reg.isAnyFloat() && ops[2].hasWideImmediateValue() && !ops[2].wideImmediateValue().fit64();
+
+        case MicroInstrOpcode::LoadRegPtrImm:
+        case MicroInstrOpcode::LoadRegPtrReloc:
+            // An address into a float register has no segment form: it is
+            // staged through an integer register.
+            return ops[0].reg.isAnyFloat();
+
+        case MicroInstrOpcode::OpBinaryRegImm:
+        case MicroInstrOpcode::OpBinaryMemImm:
+        case MicroInstrOpcode::CmpRegImm:
+        case MicroInstrOpcode::CmpMemImm:
+            // An immediate the form cannot take is loaded into a register
+            // first. Which operand carries it differs; any wide one is enough
+            // to answer yes.
+            for (uint8_t index = 0; index < inst.numOperands; ++index)
+            {
+                if (ops[index].hasWideImmediateValue() || !canEncodeSigned32(ops[index].valueU64))
+                    return true;
+            }
+            return false;
+
+        case MicroInstrOpcode::LoadAddrAmcRegMem:
+            // ops: [0] dst, [1] base, [2] index, ...
+            return ops[0].reg == ops[1].reg || ops[0].reg == ops[2].reg;
+
+        default:
+            return false;
+    }
+}
+
 bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const
 {
     outIssue = {};

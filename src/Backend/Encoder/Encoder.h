@@ -171,6 +171,20 @@ public:
         return false;
     }
 
+    // Whether legalizing this instruction may need a register of its own -
+    // one this instruction does not already name. Answered on the shape
+    // alone, before registers are assigned, so it must say yes wherever the
+    // assignment could make it so: the register allocator asks it to decide
+    // whether the function has to leave a register free for what follows it.
+    // A no that is wrong costs a compile; a yes that is wrong costs a
+    // register in one function.
+    virtual bool mayNeedLegalizeScratchRegister(const MicroInstr& inst, const MicroInstrOperand* ops) const
+    {
+        SWC_UNUSED(inst);
+        SWC_UNUSED(ops);
+        return true;
+    }
+
 protected:
     static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 

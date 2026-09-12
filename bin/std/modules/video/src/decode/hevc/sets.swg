@@ -282,7 +282,7 @@ impl Sps
         .bitDepthLuma   = reader.ue() + 8
         .bitDepthChroma = reader.ue() + 8
         if .bitDepthLuma > 10 or .bitDepthChroma > 10 or .bitDepthLuma != .bitDepthChroma do
-            fail UnsupportedFormatError{"HEVC decoder reads 8-bit and 10-bit streams only"}
+            fail UnsupportedFormatError{"HEVC decoder requires matching luma and chroma bit depths from 8 to 10"}
 
         .log2MaxPocLsb = reader.ue() + 4
         if .log2MaxPocLsb > 16 do

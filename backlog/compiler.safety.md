@@ -43,6 +43,36 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.008 — Dynamic bounds checking is switched off in release instead of being made cheap
+
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-09-12 06:57 — Distinguish unchecked access from guaranteed silence and planned elimination from shipped code.
+- Area: compiler/backend, optimization
+- Evidence: `buildCfg.safetyGuards` is `None` in `release`, so `a[i]` with a runtime `i` has no
+  bounds guard; an invalid access may read unrelated storage or fault. The same invalid index
+  gets a located panic in `devmode`. The static half still covers what it can
+  prove — a constant index, and an index the value analysis folds to a constant, are rejected at
+  compile time *in release* — but a genuinely dynamic index is unchecked.
+- Prior decision (2026-07-08, do not re-litigate on the same evidence): the cost was measured at
+  +7-8% on a worst-case tight indexed-sum loop and +2% on a data-dependent double lookup, and
+  `release` deliberately kept `safetyGuards = None`.
+- What has not been measured is the same question with the checks made cheap. That measurement was
+  taken against code generation that emits `cmp`/`jb`/call at every index and has no pass dedicated
+  to removing them. The two idiomatic Swag forms — `for v in arr` and `for i in arr.count` — are
+  provably in range on every iteration, and a range analysis over the Micro SSA could remove checks
+  where a guard was emitted for an explicit index. Direct element iteration already uses the
+  compiler's own traversal; it must be measured separately from indexed accesses. The remaining
+  cost belongs to checks that cannot be proven redundant.
+- Next: implement bound-check elimination as a backend pass (induction-variable range against the
+  container's `.count`, dominating comparisons, constant indices), then re-measure the two loops
+  above with guards on. The deliverable is the pass, not a change of default: `release` stays
+  guard-free, `devmode` pays this cost on every index today, and a build that turns the guards on
+  deliberately is exactly the build the pass is for.
+- Complete when: a bound-check-elimination pass exists, `devmode` compile time and generated code
+  are measured before and after, and the residual cost of `.BoundCheck` on the two loops above is
+  recorded next to the 2026-07-08 numbers.
+- Related: [compiler.optimization.md](compiler.optimization.md) owns the pass once it is scoped.
+
 ### compiler.safety.023 — Opaque results lack pointer-field provenance
 
 - Recorded: 2026-09-08 20:48
@@ -280,29 +310,6 @@ is the current scorecard.
   application workload is recorded.
 - Related: compiler.safety.008 is what makes that configuration affordable.
 
-### compiler.safety.022 — A COM object's ABI header is held first by a comment, not by the language
-
-- Recorded: 2026-09-08 18:59
-- Area: `std/gui`, language
-- Evidence: the four OLE objects in `gui/dragdrop.win32.swg` each open with the interface header
-  OLE calls through, and each says so in a comment - `lpVtbl: *IDropTargetVtbl?  // Interface
-  header OLE calls through; must stay first.` Recovering the Swag object is then C's `container_of`:
-  `cast(*SurfaceDropTarget) itf`. Nothing checks the invariant the comment states, so inserting a
-  field above `lpVtbl` silently breaks every callback OLE makes.
-- The fix the language already offers, and why it did not land with compiler.safety.006: writing
-  `using base: IDropTarget` instead of the copied field makes the composition real, the recovery a
-  checked descent, and the offset computed rather than assumed. It was built and reverted the same
-  day: `IDropTarget.lpVtbl` is non-nullable, so composing it leaves `SurfaceDropTarget` with no
-  valid implicit default, and `Memory.new'DragFormatEnum()` and `Memory.new'Surface()` stop
-  compiling. The blocker is a zero-initialized struct owning a non-nullable pointer, not the
-  composition itself.
-- Next: decide how a composed ABI header reaches its vtable pointer under zero-initialization -
-  a nullable `lpVtbl` in the four `ole32.swg` interface structs, a `late` field, or an explicit
-  constructor at each creation site - then compose the four objects and delete their `cast(*void)`.
-- Complete when: the four OLE objects compose their interface, the recovery is a checked descent,
-  and no comment in the file asks a field to stay first.
-- Related: compiler.safety.006 counts these among its 32 residual reinterpretation sites.
-
 ### compiler.safety.017 — Allocation ownership has no static leak proof
 
 - Recorded: 2026-09-04 19:35
@@ -368,35 +375,6 @@ is the current scorecard.
 - Complete when: either a warning exists with its count on `bin/` recorded, or the reference states
   that a conditional release is outside what the proof covers and the corpus records the decision.
 - Related: compiler.safety.017.
-
-### compiler.safety.008 — Dynamic bounds checking is switched off in release instead of being made cheap
-
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: compiler/backend, optimization
-- Evidence: `buildCfg.safetyGuards` is `None` in `release`, so `a[i]` with a runtime `i` reads out of
-  bounds silently; the same program panics in `devmode`. The static half still covers what it can
-  prove — a constant index, and an index the value analysis folds to a constant, are rejected at
-  compile time *in release* — but a genuinely dynamic index is unchecked.
-- Prior decision (2026-07-08, do not re-litigate on the same evidence): the cost was measured at
-  +7-8% on a worst-case tight indexed-sum loop and +2% on a data-dependent double lookup, and
-  `release` deliberately kept `safetyGuards = None`.
-- What has not been measured is the same question with the checks made cheap. That measurement was
-  taken against code generation that emits `cmp`/`jb`/call at every index and has no pass dedicated
-  to removing them. The two idiomatic Swag forms — `for v in arr` and `for i in arr.count` — are
-  provably in range on every iteration, and a range analysis over the Micro SSA removes those checks
-  where a guard was emitted for an explicit index. Direct element iteration already uses the
-  compiler's own traversal; it must be measured separately from indexed accesses. The remaining
-  cost belongs to checks that cannot be proven redundant.
-- Next: implement bound-check elimination as a backend pass (induction-variable range against the
-  container's `.count`, dominating comparisons, constant indices), then re-measure the two loops
-  above with guards on. The deliverable is the pass, not a change of default: `release` stays
-  guard-free, `devmode` pays this cost on every index today, and a build that turns the guards on
-  deliberately is exactly the build the pass is for.
-- Complete when: a bound-check-elimination pass exists, `devmode` compile time and generated code
-  are measured before and after, and the residual cost of `.BoundCheck` on the two loops above is
-  recorded next to the 2026-07-08 numbers.
-- Related: [compiler.optimization.md](compiler.optimization.md) owns the pass once it is scoped.
 
 ### compiler.safety.010 — An integer becomes an enum value that no member names
 

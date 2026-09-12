@@ -15,6 +15,22 @@ bounded sound windows.
 The picture codec of an AVI stream is the Pixel one. Its generic minimum-coded-unit walker accepts
 the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
 
+### std.video.009 — H.265 range-extension chroma formats are not decoded
+
+- Recorded: 2026-09-06 18:10
+- Updated: 2026-09-12 06:47 — State the actual bit-depth checks and the supported range-extension subset.
+- Evidence: `decode/hevc/sets.swg` rejects `chroma_format_idc` values other than 1, unequal luma
+  and chroma bit depths, and depths above 10. The syntax supplies a minimum of 8; the conformance
+  corpus covers Main/Main10 at 8 and 10 bits. The reader accepts some range-extension flags, but
+  rejects extended precision, explicit RDPCM, persistent Rice adaptation, CABAC bypass alignment,
+  cross-component prediction and per-unit chroma offsets. PCM, multilayer, 3D and screen-content
+  tools are also refused. Current conformance coverage does not establish range-profile support.
+- Next: choose a bounded range-extension profile for 4:2:2/4:4:4 input and implement its sample
+  geometry and reconstruction rules. Keep unsupported extension families explicitly rejected.
+- Complete when: redistributable conformance fixtures for the chosen profile match reference
+  planes, malformed inputs remain bounded, and the documented limits name every unsupported tool.
+- Related: std.video.005
+
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
 - Recorded: 2026-08-19 13:23
@@ -157,18 +173,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   supported format automatically while keeping its separate binary structure viewer.
 - Historical provenance: split from the retired `app.scope.video.014` playback capability entry.
 - Related: std.video.010, app.scope.binary.011
-
-### std.video.009 — H.265 range-extension chroma formats are not decoded
-
-- Recorded: 2026-09-06 18:10
-- Evidence: `decode/hevc/sets.swg` rejects `chroma_format_idc` values other than 1 and
-  bit depths other than 8 or 10. It also rejects PCM, range-extension, multilayer, 3D and screen
-  content tools. Current Main/Main10 conformance coverage does not exercise those profiles.
-- Next: choose a bounded range-extension profile for 4:2:2/4:4:4 input and implement its sample
-  geometry and reconstruction rules. Keep unsupported extension families explicitly rejected.
-- Complete when: redistributable conformance fixtures for the chosen profile match reference
-  planes, malformed inputs remain bounded, and the documented limits name every unsupported tool.
-- Related: std.video.005
 
 ### std.video.008 — ISO-BMFF does not expose Layer III sound tracks
 

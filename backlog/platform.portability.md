@@ -36,6 +36,31 @@ new platform implements capabilities rather than copies policy.
 The following entries implement the target backends and remove the Windows-bound behavior exposed
 by portable modules and products. The earlier entries prepare and enforce the same boundaries.
 
+### platform.portability.090 — A COM object's ABI header is held first by a comment, not by the language
+
+- Recorded: 2026-09-08 18:59
+- Updated: 2026-09-12 06:57 — Move the Windows OLE header contract to the platform integration owner.
+- Historical provenance: moved from retired compiler.safety.022.
+- Area: `std/gui`, Windows OLE bindings
+- Evidence: the four OLE objects in `gui/dragdrop.win32.swg` each open with the interface header
+  OLE calls through, and each says so in a comment - `lpVtbl: *IDropTargetVtbl?  // Interface
+  header OLE calls through; must stay first.` Recovering the Swag object is then C's `container_of`:
+  `cast(*SurfaceDropTarget) itf`. Nothing checks the invariant the comment states, so inserting a
+  field above `lpVtbl` silently breaks every callback OLE makes.
+- The fix the language already offers, and why it did not land with compiler.safety.006: writing
+  `using base: IDropTarget` instead of the copied field makes the composition real, the recovery a
+  checked descent, and the offset computed rather than assumed. It was built and reverted the same
+  day: `IDropTarget.lpVtbl` is non-nullable, so composing it leaves `SurfaceDropTarget` with no
+  valid implicit default, and `Memory.new'DragFormatEnum()` and `Memory.new'Surface()` stop
+  compiling. The blocker is a zero-initialized struct owning a non-nullable pointer, not the
+  composition itself.
+- Next: decide how a composed ABI header reaches its vtable pointer under zero-initialization -
+  a nullable `lpVtbl` in the four `ole32.swg` interface structs, a `late` field, or an explicit
+  constructor at each creation site - then compose the four objects and delete their `cast(*void)`.
+- Complete when: the four OLE objects compose their interface, the recovery is a checked descent,
+  and no comment in the file asks a field to stay first.
+- Related: compiler.safety.006 counts these among its 32 residual reinterpretation sites.
+
 ### platform.portability.089 — Allocator stress is not run under Windows heap instrumentation
 
 - Recorded: 2026-08-09 11:30

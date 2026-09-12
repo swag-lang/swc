@@ -508,6 +508,86 @@ private func auditBacklogIndex(fileName: string, readme: string, domains: const 
 }
 
 // Checks the permanent backlog contract before every repository test campaign.
+private func collectHeadingIdentifiers(text: string, prefix: string, result: *HashSet'String)
+{
+    for line in Tokenize.splitLines(text)
+    {
+        if not Utf8.startsWith(cast(const [..] u8) line, prefix) do
+            continue
+        let heading = line[prefix.count to]
+        let end = Utf8.indexOf(cast(const [..] u8) heading, " ")
+        if end != Swag.U64.Max and isBacklogIdentifier(heading[0 until end]) do
+            result.add(String.from(heading[0 until end]))
+    }
+}
+
+private func captureBacklogGit(context: *Context, arguments: Arguments, allowNoMatches = false)->String fail
+{
+    var command: Arguments
+    command.add(["-C", context.root.toString()])
+    command.addAll(arguments)
+    let commandLine = joinArguments(command.toSlice())
+    let process = try Env.runProcess("git", commandLine.toString())
+    if process.exitCode() != 0 and not (allowNoMatches and process.exitCode() == 1)
+    {
+        Console.print(process.standardOutput())
+        Console.print(process.standardError())
+        fail Swag.SystemError{"cannot read backlog allocation history", errorID: cast(u32) process.exitCode()}
+    }
+    return String.from(process.standardOutput())
+}
+
+// Compare new working-tree entries with every suffix allocated on the checked-out branch.
+// Removed entries still reserve their suffix. Source archives have no Git history to consult.
+private func auditBacklogAllocations(context: *Context, seen: *HashSet'String, domains: const [..] Domain)->u32 fail
+{
+    let gitPath = Path.combine(context.root.toString(), ".git")
+    if not File.exists(gitPath.toString()) and not Directory.exists(gitPath.toString()) do
+        return 0
+
+    var headCommand: Arguments
+    headCommand.add(["grep", "-h", "--no-color", "-e", "^### ", "HEAD", "--"])
+    for domain in domains do
+        headCommand.add([Format.toString("backlog/%", domain.name.toString()).toString()])
+    let head = try captureBacklogGit(context, headCommand, true)
+    var previous: HashSet'String
+    collectHeadingIdentifiers(head.toString(), "### ", &previous)
+
+    var added: Array'String
+    for identifier in seen[] where not previous.contains(identifier) do
+        added.add(identifier)
+    if added.count == 0 do
+        return 0
+    added.sort()
+
+    var historyCommand: Arguments
+    historyCommand.add(["log", "--format=", "--no-ext-diff", "--no-textconv", "--no-renames", "-p", "--"])
+    for domain in domains do
+        historyCommand.add([Format.toString("backlog/%", domain.name.toString()).toString()])
+    let history = try captureBacklogGit(context, historyCommand)
+    var allocated: HashSet'String
+    collectHeadingIdentifiers(history.toString(), "+### ", &allocated)
+
+    var errors: u32
+    for identifier in added
+    {
+        let text = identifier.toString()
+        let prefix = text[0 until text.count - 3]
+        var maximum: u32
+        for old in allocated where Utf8.startsWith(cast(const [..] u8) old.toString(), prefix) do
+            maximum = Math.max(maximum, parseDecimal(old.toString(), prefix.count).value)
+        let suffix = parseDecimal(text, prefix.count).value
+        if suffix != maximum + 1
+        {
+            Console.println("error: backlog identifier '", text, "' must use suffix ", maximum + 1, "; retired suffixes stay allocated")
+            errors += 1
+        }
+        else do
+            allocated.add(identifier)
+    }
+    return errors
+}
+
 public func auditBacklog(context: *Context)->s32 fail
 {
     let backlogDir = Path.combine(context.root.toString(), "backlog")
@@ -562,6 +642,8 @@ public func auditBacklog(context: *Context)->s32 fail
     }
 
     errors += auditBacklogIndex(readmeFile.toString(), readme.toString(), domains.toSlice())
+    if errors == 0 do
+        errors += try auditBacklogAllocations(context, &seen, domains.toSlice())
 
     if errors != 0
     {

@@ -35,8 +35,10 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-12 06:57 |
+| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-12 06:57 |
+| [std.video.md](std.video.md) | `std/video` | 2026-09-12 06:47 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-12 06:43 |
-| [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-12 06:42 |
 | [app.scope.indesign.md](app.scope.indesign.md) | The Swag Scope InDesign viewer | 2026-09-12 06:37 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-12 06:31 |
 | [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers | 2026-09-12 06:24 |
@@ -51,12 +53,10 @@ the latest entry was removed. The removal itself lives in Git.
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-11 23:34 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-11 22:39 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-11 22:31 |
-| [std.video.md](std.video.md) | `std/video` | 2026-09-11 22:20 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-11 22:17 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-11 22:14 |
 | [app.scope.midi.md](app.scope.midi.md) | The Swag Scope MIDI viewer | 2026-09-11 22:08 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-11 21:18 |
-| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-11 16:33 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-10 21:00 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-10 21:00 |
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` | 2026-09-10 20:42 |

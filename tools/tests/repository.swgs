@@ -35,6 +35,49 @@ func checkRelated(root: string, related: string, expectedExit: s32) fail
     try checkBacklog(root, content.toString(), expectedExit, diagnostic)
 }
 
+func runBacklogGit(root: string, tokens: const [..] string) fail
+{
+    var arguments: Tool.Arguments
+    arguments.add(["-C", root])
+    arguments.add(tokens)
+    let commandLine = Tool.joinArguments(arguments.toSlice())
+    let process = try Env.runProcess("git", commandLine.toString())
+    Swag.assert(process.exitCode() == 0, process.standardError())
+}
+
+func checkBacklogAllocationHistory(root: string) fail
+{
+    let first = sampleEntry("")
+    var second = sampleEntry("")
+    var third = sampleEntry("")
+    var fourth = sampleEntry("")
+    second.replace("repo.sample.001", "repo.sample.002")
+    third.replace("repo.sample.001", "repo.sample.003")
+    fourth.replace("repo.sample.001", "repo.sample.004")
+    try checkBacklog(root, Format.toString("%%", first.toString(), second.toString()).toString(), 0)
+    try runBacklogGit(root, ["init", "--template=", "--initial-branch=main"])
+    try runBacklogGit(root, ["config", "user.name", "Repository test"])
+    try runBacklogGit(root, ["config", "user.email", "repository-test@example.invalid"])
+    try runBacklogGit(root, ["config", "commit.gpgsign", "false"])
+    try runBacklogGit(root, ["config", "core.hooksPath", "missing-test-hooks"])
+    try runBacklogGit(root, ["add", "backlog"])
+    try runBacklogGit(root, ["commit", "-m", "Allocate two backlog entries"])
+    try checkBacklog(root, first.toString(), 0)
+    try runBacklogGit(root, ["commit", "-am", "Retire the second entry"])
+
+    // A deleted suffix stays reserved, including when its replacement is staged.
+    try checkBacklog(root, Format.toString("%%", first.toString(), second.toString()).toString(), 1, "retired suffixes stay allocated")
+    try runBacklogGit(root, ["add", "backlog"])
+    try checkBacklog(root, Format.toString("%%", first.toString(), second.toString()).toString(), 1, "must use suffix 3")
+    try checkBacklog(root, Format.toString("%%", first.toString(), fourth.toString()).toString(), 1, "must use suffix 3")
+    try checkBacklog(root, Format.toString("%%", first.toString(), third.toString()).toString(), 0)
+    // Position is chronological, so allocation checking must sort new suffixes independently.
+    try checkBacklog(root, Format.toString("%%%", first.toString(), fourth.toString(), third.toString()).toString(), 0)
+    var renamed = first
+    renamed.replace("— Sample", "— Renamed sample")
+    try checkBacklog(root, renamed.toString(), 0)
+}
+
 #main
 {
     let args = Env.arguments()
@@ -166,5 +209,6 @@ func checkRelated(root: string, related: string, expectedExit: s32) fail
     Swag.assert(Utf8.contains(captured.standardOutput(), "CAPTURE_MARKER"))
     Swag.assert(Utf8.contains(captured.standardOutput(), "CAPTURE_DIAGNOSTIC"))
     Swag.assert(Utf8.contains(captured.standardOutput(), "capture failure was detected"))
+    expect checkBacklogAllocationHistory(root.toString())
     Console.println("repository tooling regression checks passed")
 }

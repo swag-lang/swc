@@ -48,8 +48,8 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
 
 struct ClassificationRetirementGate
 {
-    entered: Sync.Event
-    release: Sync.Event
+    entered:  Sync.Event
+    release:  Sync.Event
     finished: u32
 }
 
@@ -69,7 +69,7 @@ func holdClassificationStatistics(thread: Threading.Thread)
     expect Directory.create(folder.toString())
     defer discard catch Directory.delete(folder.toString(), recurse: true)
     let first = Path.combine(folder.toString(), "first.txt")
-    let next = Path.combine(folder.toString(), "next.txt")
+    let next  = Path.combine(folder.toString(), "next.txt")
     discard expect File.writeAllBytes(first.toString(), cast(const [..] u8) "The first document.\n")
     discard expect File.writeAllBytes(next.toString(), cast(const [..] u8) "The next document.\n")
 
@@ -86,7 +86,7 @@ func holdClassificationStatistics(thread: Threading.Thread)
     completeQueuedViewerFile(&host, window)
     Swag.assert(window.choices[window.activeChoiceIndex].key == TextViewerKey)
     let previousView = window.currentView!
-    let previous = cast(*TextView) previousView
+    let previous     = cast(*TextView) previousView
     Swag.assert(previous.loadTimer == null)
 
     // Replace completed statistics with a worker whose lifetime is controlled by this test.
@@ -99,6 +99,7 @@ func holdClassificationStatistics(thread: Threading.Thread)
         previous.removeTimer(previous.statisticsTimer)
         previous.statisticsTimer = null
     }
+
     expect previous.statisticsThread.init(&holdClassificationStatistics, &gate)
     defer gate.release.signal()
     expect previous.statisticsThread.start()

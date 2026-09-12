@@ -558,7 +558,7 @@ private func collectDomainIdentifiers(text: string, headingPrefix: string, stem:
 // suffix, title, and Recorded stamp, and the match is unique in both directions.
 private struct BacklogIdentity
 {
-    path: String
+    path:    String
     entries: HashSet'String
 }
 
@@ -608,6 +608,7 @@ private func readBacklogIdentity(context: *Context, revision: string, path: stri
             heading.clear()
         }
     }
+
     return result
 }
 
@@ -619,9 +620,9 @@ private func findBacklogPredecessor(context: *Context, before: string, after: st
         command.add([after])
     command.add(["--", "backlog"])
     let changes = try captureBacklogGit(context, command)
-    var sourcePaths: Array'String
+    var sourcePaths:      Array'String
     var destinationPaths: HashSet'String
-    var hasDestination: bool
+    var hasDestination:   bool
     for line in Tokenize.splitLines(changes.toString())
     {
         let fields = Tokenize.split(line, "\t")
@@ -638,6 +639,7 @@ private func findBacklogPredecessor(context: *Context, before: string, after: st
             hasDestination = hasDestination or fields[1] == path
         }
     }
+
     if sourcePaths.count == 0 do
         return String{}
 
@@ -657,10 +659,11 @@ private func findBacklogPredecessor(context: *Context, before: string, after: st
             hasDestination = hasDestination or candidate == path
         }
     }
+
     if not hasDestination do
         return String{}
 
-    var sources: Array'BacklogIdentity
+    var sources:      Array'BacklogIdentity
     var destinations: Array'BacklogIdentity
     for source in sourcePaths do
         sources.add(try readBacklogIdentity(context, before, source.toString()))
@@ -682,6 +685,7 @@ private func findBacklogPredecessor(context: *Context, before: string, after: st
             result = source.path
         }
     }
+
     return result
 }
 
@@ -729,7 +733,7 @@ private func collectBacklogAllocationHistory(context: *Context, revision: string
         var parentCommand: Arguments
         parentCommand.add(["rev-list", "--parents", "-n", "1", commit.toString()])
         let parentText = try captureBacklogGit(context, parentCommand)
-        let parents = Tokenize.split(Latin1.trim(parentText.toString()), " ")
+        let parents    = Tokenize.split(Latin1.trim(parentText.toString()), " ")
         for i in 1 until parents.count
         {
             let source = try findBacklogPredecessor(context, parents[i], commit.toString(), line)
@@ -764,6 +768,7 @@ private func auditDomainAllocations(context: *Context, seen: *HashSet'String, do
             head = try captureBacklogGit(context, predecessorCommand, true)
         }
     }
+
     let previous = collectDomainIdentifiers(head.toString(), "### ", stem)
 
     var added: Array'String
@@ -779,7 +784,7 @@ private func auditDomainAllocations(context: *Context, seen: *HashSet'String, do
     added.sort()
 
     var allocated: HashSet'String
-    var visited: HashSet'String
+    var visited:   HashSet'String
     try collectBacklogAllocationHistory(context, "HEAD", historyPath.toString(), stem, &visited, &allocated)
 
     var errors: u32

@@ -55,9 +55,10 @@ func deleteBacklogFixture(root: string) fail
         var arguments: Tool.Arguments
         arguments.add(["-R", Path.combine(gitPath.toString(), "*").toString(), "/S", "/D"])
         let commandLine = Tool.joinArguments(arguments.toSlice())
-        let process = try Env.runProcess("attrib.exe", commandLine.toString())
+        let process     = try Env.runProcess("attrib.exe", commandLine.toString())
         Swag.assert(process.exitCode() == 0, process.standardError())
     }
+
     try Directory.delete(root, recurse: true)
 }
 
@@ -76,7 +77,7 @@ func checkBacklogRenameLineage(parentRoot: string) fail
     try Directory.create(root.toString())
     defer expect deleteBacklogFixture(root.toString())
     try Directory.create(Path.combine(root.toString(), "backlog").toString())
-    let first = sampleEntry("")
+    let first  = sampleEntry("")
     var fourth = first
     fourth.replace("repo.sample.001", "repo.sample.004")
     try checkBacklog(root.toString(), Format.toString("%\n%", first.toString(), fourth.toString()).toString(), 0)
@@ -130,7 +131,7 @@ func checkBacklogRenameAmbiguity(parentRoot: string) fail
     try Directory.create(root.toString())
     defer expect deleteBacklogFixture(root.toString())
     try Directory.create(Path.combine(root.toString(), "backlog").toString())
-    let first = sampleEntry("")
+    let first  = sampleEntry("")
     var fourth = first
     fourth.replace("repo.sample.001", "repo.sample.004")
     try checkBacklog(root.toString(), Format.toString("%\n%", first.toString(), fourth.toString()).toString(), 0)
@@ -154,7 +155,7 @@ func checkBacklogRenameAmbiguity(parentRoot: string) fail
     var readme = String.from(SampleReadme)
     readme.replace("repo.sample", "repo.destination")
     let destinationPath = Path.combine(root.toString(), "backlog", "repo.destination.md")
-    let entries = Format.toString("%\n%", destination.toString(), fifth.toString())
+    let entries         = Format.toString("%\n%", destination.toString(), fifth.toString())
     discard try File.writeAllBytes(destinationPath.toString(), cast(const [..] u8) entries.toString())
     try runBacklogGit(root.toString(), ["add", "backlog"])
     try checkBacklog(root.toString(), entries.toString(), 1, "backlog identifier 'repo.destination.005' must use suffix 2", readme.toString(), "repo.destination.md")
@@ -177,7 +178,7 @@ func checkBacklogAllocationHistory(root: string) fail
     var second = sampleEntry("")
     var third  = sampleEntry("")
     var fourth = sampleEntry("")
-    var fifth = sampleEntry("")
+    var fifth  = sampleEntry("")
     second.replace("repo.sample.001", "repo.sample.002")
     third.replace("repo.sample.001", "repo.sample.003")
     fourth.replace("repo.sample.001", "repo.sample.004")
@@ -190,9 +191,9 @@ func checkBacklogAllocationHistory(root: string) fail
     try runBacklogGit(root, ["commit", "-am", "Retire the second entry"])
 
     // Parent and child domains own distinct counters even though their prefixes overlap.
-    let childPath = Path.combine(root, "backlog", "repo.sample.child.md")
+    let childPath   = Path.combine(root, "backlog", "repo.sample.child.md")
     let childReadme = Format.toString("%| [repo.sample.child.md](repo.sample.child.md) | Child | % |\n", SampleReadme, SampleStamp)
-    var child = first
+    var child       = first
     child.replace("repo.sample.001", "repo.sample.child.001")
     discard try File.writeAllBytes(childPath.toString(), cast(const [..] u8) child.toString())
     try checkBacklog(root, first.toString(), 0, "", childReadme.toString())

@@ -46,6 +46,7 @@ void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, M
     SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint64_t));
     MicroRelocation& reloc = context.builder->codeRelocations()[found->second];
     reloc.codeOffset       = codeEndOffset - sizeof(uint64_t);
+    boundRelocations_.insert(found->second);
 }
 
 void MicroEmitPass::bindRel32RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const
@@ -64,6 +65,7 @@ void MicroEmitPass::bindRel32RelocationOffset(const MicroPassContext& context, M
     // so whoever patches it needs to know where that is. Nothing else in the
     // record carries the instruction's extent.
     reloc.relativeEndOffset = codeEndOffset;
+    boundRelocations_.insert(found->second);
 }
 
 void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInstrRef instructionRef, const MicroInstr& inst)
@@ -423,6 +425,7 @@ Result MicroEmitPass::run(MicroPassContext& context)
 
         labelOffsets_.clear();
         pendingLabelJumps_.clear();
+        boundRelocations_.clear();
 
         // Emit with the short branches already proved by the preceding layout.
         for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
@@ -453,6 +456,18 @@ Result MicroEmitPass::run(MicroPassContext& context)
         if (!foundShorterJump)
             break;
     }
+
+    // Every relocation the code still carries names an instruction that was
+    // encoded, and encoding that instruction is what writes its patch site
+    // down. One that nothing bound keeps the offset it was created with -
+    // zero, the first bytes of the function - and the image writer patches
+    // there, corrupting code that has nothing to do with the constant. That
+    // is a silent wrong image, so it stops the compiler here instead: a rule
+    // that rewrites a relocated access into an encoding whose displacement
+    // this pass does not bind is a defect in the rule, and this is where it
+    // becomes visible.
+    for (const uint32_t index : relocationByInstructionRef_ | std::views::values)
+        SWC_INTERNAL_CHECK(boundRelocations_.contains(index));
 
     return Result::Continue;
 }

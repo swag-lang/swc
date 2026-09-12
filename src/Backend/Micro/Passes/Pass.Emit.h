@@ -27,6 +27,7 @@ private:
     std::unordered_map<MicroLabelRef, uint64_t> labelOffsets_;
     std::vector<PendingLabelJump>               pendingLabelJumps_;
     std::unordered_map<MicroInstrRef, uint32_t> relocationByInstructionRef_;
+    mutable std::unordered_set<uint32_t>        boundRelocations_;
     std::unordered_set<MicroInstrRef>           shortJumps_;
 };
 

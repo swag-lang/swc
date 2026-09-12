@@ -56,6 +56,20 @@ namespace
     constexpr MicroReg XMM9  = MicroReg::floatReg(9);
     constexpr MicroReg XMM10 = MicroReg::floatReg(10);
 
+    // An instruction-pointer-relative access carries the relocation whose
+    // displacement the emitter binds; a case building one by hand registers it
+    // the way the address fold does.
+    void emitRipConstantRelocation(MicroBuilder& builder)
+    {
+        MicroRelocation relocation;
+        relocation.kind           = MicroRelocation::Kind::ConstantAddress;
+        relocation.form           = MicroRelocation::Form::Relative32;
+        relocation.constantShard  = 0;
+        relocation.constantOffset = 0;
+        relocation.instructionRef = builder.instructions().lastInstructionRef();
+        builder.addRelocation(relocation);
+    }
+
 #define ENCODE_CASE(__name, __hex, ...)                                     \
     do                                                                      \
     {                                                                       \
@@ -154,6 +168,16 @@ namespace
         ENCODE_CASE("load_reg_mem_r8_rbp_neg80_b64", "4C 8B 45 80", b.emitLoadRegMem(R8, RBP, 0xFFFFFFFFFFFFFF80, MicroOpBits::B64););
         ENCODE_CASE("load_reg_mem_xmm0_rsp_1234_b64", "F2 0F 10 84 24 34 12 00 00", b.emitLoadRegMem(XMM0, RSP, 0x1234, MicroOpBits::B64););
         ENCODE_CASE("load_reg_mem_xmm3_r8_b128", "41 0F 10 18", b.emitLoadRegMem(XMM3, R8, 0, MicroOpBits::B128););
+        // A vector constant read straight from the pool: MOVUPS with the
+        // instruction pointer as the base, whose four displacement bytes the
+        // relocation the access carries fills in once the segment has an
+        // address.
+        ENCODE_CASE("load_reg_mem_xmm1_rip_b128", "0F 10 0D 00 00 00 00",
+                    b.emitLoadRegMem(XMM1, MicroReg::instructionPointer(), 0, MicroOpBits::B128);
+                    emitRipConstantRelocation(b););
+        ENCODE_CASE("load_reg_mem_xmm9_rip_b128", "44 0F 10 0D 00 00 00 00",
+                    b.emitLoadRegMem(XMM9, MicroReg::instructionPointer(), 0, MicroOpBits::B128);
+                    emitRipConstantRelocation(b););
         ENCODE_CASE("load_reg_mem_r10_r13_40_b16", "66 45 8B 55 40", b.emitLoadRegMem(R10, R13, 0x40, MicroOpBits::B16););
 
         ENCODE_CASE("load_sext_reg_mem_b8", "4D 0F BE 5C 24 10", b.emitLoadSignedExtendRegMem(R11, R12, 0x10, MicroOpBits::B64, MicroOpBits::B8););

@@ -656,6 +656,7 @@ namespace InstructionCombine
         switch (inst.op)
         {
             case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadVecRegMem:
                 baseIdx = 1;
                 offIdx  = 3;
                 break;
@@ -668,7 +669,17 @@ namespace InstructionCombine
         }
 
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
-        if (!ops || ops[2].opBits == MicroOpBits::B128)
+        if (!ops)
+            return false;
+
+        // Sixteen bytes read into a vector register are the one wide form the
+        // instruction-pointer-relative encoding covers, and the form every
+        // vector constant arrives in: a broadcast lane, a rounding term, a
+        // mask, each built once in the constant pool and read through an
+        // address a general register had to hold. A sixteen-byte store keeps
+        // its address register.
+        const bool isVectorLoad = ops[2].opBits == MicroOpBits::B128 && inst.op != MicroInstrOpcode::LoadMemReg;
+        if (ops[2].opBits == MicroOpBits::B128 && !isVectorLoad)
             return false;
 
         const MicroReg base = ops[baseIdx].reg;
@@ -695,23 +706,19 @@ namespace InstructionCombine
             return false;
         const bool isGlobal = sourceReloc->kind == MicroRelocation::Kind::GlobalZeroAddress || sourceReloc->kind == MicroRelocation::Kind::GlobalInitAddress;
 
-        // Folding a constant address into a RIP-relative access is proven correct for executable
-        // and JIT targets (the full native suite exercises it), but it miscompiles a shared- or
-        // static-library target: a folded constant load inside a module DLL corrupts that module's
-        // rendered output even though the load itself reads the right bytes. The cause is not yet
-        // understood - see compiler.optimization.026 - so restrict the constant case to artifacts
-        // that do not emit a library image. Globals are unaffected and keep folding everywhere.
-        bool artifactFoldsConstants = true;
-        if (ctx.builder->ctx().hasCompiler())
-        {
-            const auto backendKind = ctx.builder->ctx().compiler().buildCfg().backendKind;
-            artifactFoldsConstants = backendKind != Runtime::BuildCfgBackendKind::SharedLibrary &&
-                                     backendKind != Runtime::BuildCfgBackendKind::StaticLibrary;
-        }
-        const bool isConstant = artifactFoldsConstants && sourceReloc->kind == MicroRelocation::Kind::ConstantAddress && sourceReloc->hasConstantSource();
+        // Constants fold in every artifact, library images included. They were
+        // gated out of those for a year after a module DLL came back rendering
+        // black: the hazard was never the address arithmetic but the
+        // relocation the fold hands to the access, which another rule could
+        // then rewrite into an encoding the emitter does not bind - leaving
+        // the patch site at zero, and the image writer overwriting the first
+        // bytes of a function. Every rewriting pass now refuses a relocated
+        // access, and the emitter fails the build if a relocation it still
+        // carries goes unbound.
+        const bool isConstant = sourceReloc->kind == MicroRelocation::Kind::ConstantAddress && sourceReloc->hasConstantSource();
         if (!isGlobal && !isConstant)
             return false;
-        if (isConstant && inst.op != MicroInstrOpcode::LoadRegMem)
+        if (isConstant && inst.op == MicroInstrOpcode::LoadMemReg)
             return false;
 
         const uint64_t accessOffset = ops[offIdx].valueU64;
@@ -753,12 +760,23 @@ namespace InstructionCombine
         newReloc.relativeEndOffset = 0;
         ctx.builder->addRelocation(newReloc);
 
+        // The access now carries a relocation, so it is opaque to every rule
+        // for the rest of this run as well: the set the pass built at entry
+        // knows nothing of a relocation made since.
+        ctx.relocated.insert(ref.get());
+
         MicroInstrOperand newOps[4];
         for (uint8_t i = 0; i < 4; ++i)
             newOps[i] = ops[i];
         newOps[baseIdx].reg     = MicroReg::instructionPointer();
         newOps[offIdx].valueU64 = 0;
-        ctx.emitRewrite(ref, inst.op, newOps);
+
+        // Both loads move the same sixteen bytes into the same register; the
+        // general form is the one whose displacement the emitter binds, and it
+        // encodes the unaligned vector move when its destination is a vector
+        // register.
+        const MicroInstrOpcode newOp = inst.op == MicroInstrOpcode::LoadVecRegMem ? MicroInstrOpcode::LoadRegMem : inst.op;
+        ctx.emitRewrite(ref, newOp, newOps);
         return true;
     }
 

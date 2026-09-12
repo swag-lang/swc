@@ -438,11 +438,8 @@ public impl Font
             }
         }
 
-        #static if #os == Swag.TargetOs.Windows
-        {
-            if not face and .owner.useSystemFallback do
-                face = FontFamily.findSystemFallback(c, .cache.typeFace.isBold() or .cache.typeFace.forceBold or .forceBold, .cache.typeFace.isItalic() or .cache.typeFace.forceItalic or .forceItalic)
-        }
+        if not face and .owner.useSystemFallback do
+            face = FontFamily.findSystemFallback(c, .cache.typeFace.isBold() or .cache.typeFace.forceBold or .forceBold, .cache.typeFace.isItalic() or .cache.typeFace.forceItalic or .forceItalic)
 
         let resolved = face ? .withTypeFace(face) : me
         .fallbackFonts.add(c, resolved)

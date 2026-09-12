@@ -12,16 +12,13 @@ using Core, Pixel, Gui, Gui.Testing
     let absentAgain = markdownSystemFaces(["Swag Scope unavailable font family 794501"])
     Swag.assert(absent == absentAgain)
 
-    #static if #os == Swag.TargetOs.Windows
+    let installed = FontFamily.enumerateSystemFonts()
+    if not installed.isEmpty()
     {
-        let installed = FontFamily.enumerateSystemFonts()
-        if not installed.isEmpty()
-        {
-            let name     = installed[0].name.toString()
-            let direct   = markdownSystemFaces([name])
-            let fallback = markdownSystemFaces(["Swag Scope unavailable font family 794501", name])
-            Swag.assert(direct == fallback)
-        }
+        let name     = installed[0].name.toString()
+        let direct   = markdownSystemFaces([name])
+        let fallback = markdownSystemFaces(["Swag Scope unavailable font family 794501", name])
+        Swag.assert(direct == fallback)
     }
 }
 

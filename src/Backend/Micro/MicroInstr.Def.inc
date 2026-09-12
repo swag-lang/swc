@@ -763,3 +763,21 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+
+// dst = the thread-local slot `index` of the calling thread, read straight from
+// the thread environment block: the platform keeps the first slots of a thread
+// at a fixed place in it, and one instruction reaches them. What needs it is
+// the error state a fallible call leaves behind, read after every such call:
+// through the runtime it is an opaque call, which spills everything the caller
+// holds. Layout [dst, index]. Does not touch the CPU flags.
+SWC_MICRO_INSTR_DEF(
+    LoadRegTlsSlot,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })

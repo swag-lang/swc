@@ -275,6 +275,7 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
             case MicroInstrOpcode::LoadRegImm:
             case MicroInstrOpcode::LoadRegPtrImm:
             case MicroInstrOpcode::LoadRegPtrReloc:
+            case MicroInstrOpcode::LoadRegTlsSlot:
             case MicroInstrOpcode::LoadRegMem:
             case MicroInstrOpcode::LoadAmcRegMem:
             case MicroInstrOpcode::LoadSignedExtRegMem:

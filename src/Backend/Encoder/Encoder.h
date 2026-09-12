@@ -111,6 +111,12 @@ protected:
     virtual void encodePatchJump(const MicroJump& jump)                                                                                                                                       = 0;
     virtual void encodeJumpReg(MicroReg reg)                                                                                                                                                  = 0;
     virtual void encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)                                                                                      = 0;
+    virtual void encodeLoadRegTlsSlot(MicroReg regDst, MicroReg indexReg)
+    {
+        SWC_UNUSED(regDst);
+        SWC_UNUSED(indexReg);
+    }
+
     virtual void encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)                                                                                = 0;
     virtual void encodeVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)                                                                   = 0;
     virtual void encodeVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, MicroOpBits opBits) = 0;

@@ -555,6 +555,14 @@ void MicroBuilder::emitLoadRegPtrImm(MicroReg reg, uint64_t value)
     ops[2].valueU64         = value;
 }
 
+void MicroBuilder::emitLoadRegTlsSlot(MicroReg dstReg, MicroReg indexReg)
+{
+    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::LoadRegTlsSlot, 2);
+    MicroInstrOperand* ops = inst.ops(operands_);
+    ops[0].reg             = dstReg;
+    ops[1].reg             = indexReg;
+}
+
 void MicroBuilder::emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef constantRef, const Symbol* targetSymbol)
 {
     const bool hasFunctionTarget = targetSymbol && targetSymbol->isFunction();

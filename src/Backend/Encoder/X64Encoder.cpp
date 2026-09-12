@@ -2244,6 +2244,27 @@ void X64Encoder::encodeCmpAmcImm(MicroReg regBase, MicroReg regMul, uint64_t mul
 // ============================================================================
 
 // movdqu xmm, m128   (F3 0F 6F /r) : unaligned 128-bit packed load.
+// mov dst, gs:[index * 8 + K_TEB_TLS_SLOTS]: the thread's slot array lives at a
+// fixed offset of the thread environment block, which the GS segment addresses.
+// The index operand carries the slot number plus one, so the displacement is
+// one slot short of the array - what the caller holds is what the runtime
+// stores, and no instruction is spent bringing it back.
+void X64Encoder::encodeLoadRegTlsSlot(MicroReg regDst, MicroReg indexReg)
+{
+    SWC_ASSERT(!regDst.isFloat() && !indexReg.isFloat());
+
+    constexpr uint32_t K_TEB_TLS_SLOTS_MINUS_ONE = 0x1478;
+
+    store_.pushU8(0x65); // GS segment override
+    const auto x64Dst   = microRegToX64Reg(regDst);
+    const auto x64Index = microRegToX64Reg(indexReg);
+    store_.pushU8(getRex(true, isExtendedReg(x64Dst), isExtendedReg(x64Index), false));
+    emitCpuOp(store_, 0x8B);
+    emitModRm(store_, ModRmMode::Memory, regDst, MODRM_RM_SIB);
+    emitSib(store_, 3, encodeReg(x64Index), SIB_NO_BASE); // scale eight, no base register
+    store_.pushU32(K_TEB_TLS_SLOTS_MINUS_ONE);
+}
+
 void X64Encoder::encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
 {
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && !memReg.isFloat());

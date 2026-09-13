@@ -73,40 +73,40 @@ compiler rather than somebody's hash table. All ports print the same checksum.
 
 Milliseconds, lower is better. `swc` in `release`, `clang-cl /O2`,
 `rustc -C opt-level=3 -C codegen-units=1`, one campaign on a Windows laptop
-([`20260912-183805`](bench/results/20260912-183805.json)).
+([`20260913-172451`](bench/results/20260913-172451.json)).
 
 **Execution.** The same program compiled natively, then run again through the compiler's JIT, then
 against the other runtimes:
 
 | program | swc | swc JIT | clang-cl | rustc | LuaJIT | Node 20 | CPython 3.12 |
 |---|---|---|---|---|---|---|---|
-| `wordfreq` | 55.3 | 55.3 | 47.9 | 49.4 | 118.0 | 164.3 | 1994.4 |
-| `csvagg` | 18.5 | 19.6 | 16.8 | 21.4 | 74.0 | 73.9 | 2388.5 |
-| `sha256` | 38.1 | 78.9 | 37.8 | 36.2 | 509.0 | 549.3 | 21680.1 |
-| `dijkstra` | 34.4 | 37.6 | 41.7 | 47.3 | 140.0 | 137.5 | 2104.2 |
-| `raytrace` | 11.4 | 11.9 | 10.0 | 11.5 | 30.0 | 41.6 | 867.6 |
-| `leven` | 14.5 | 15.0 | 13.4 | 13.9 | 57.0 | 73.2 | 3169.6 |
-| `chacha` | 23.6 | 23.5 | 20.2 | 29.7 | 1192.0 | 241.0 | 23659.6 |
+| `wordfreq` | 61.1 | 60.6 | 53.2 | 54.6 | 134.0 | 184.3 | 2187.2 |
+| `csvagg` | 19.1 | 20.1 | 16.5 | 21.8 | 80.0 | 75.0 | 2513.8 |
+| `sha256` | 38.1 | 76.8 | 37.4 | 36.3 | 505.0 | 591.1 | 21641.9 |
+| `dijkstra` | 35.2 | 37.6 | 41.7 | 46.2 | 139.0 | 140.2 | 2126.0 |
+| `raytrace` | 11.8 | 11.8 | 10.2 | 11.6 | 29.0 | 41.0 | 820.8 |
+| `leven` | 13.7 | 14.5 | 13.2 | 13.4 | 55.0 | 69.0 | 2883.1 |
+| `chacha` | 24.6 | 24.5 | 21.9 | 30.3 | 1114.0 | 263.8 | 23975.6 |
 
 **Compilation**, from source to a linked executable:
 
 | program | swc | clang-cl | rustc |
 |---|---|---|---|
-| `wordfreq` | 142.0 | 396.0 | 302.2 |
-| `csvagg` | 151.4 | 434.1 | 386.9 |
-| `sha256` | 134.7 | 399.2 | 234.8 |
-| `dijkstra` | 146.2 | 333.1 | 223.6 |
-| `raytrace` | 151.9 | 393.2 | 229.6 |
-| `leven` | 151.7 | 401.8 | 322.3 |
-| `chacha` | 159.1 | 372.0 | 258.8 |
+| `wordfreq` | 126.0 | 408.0 | 318.5 |
+| `csvagg` | 124.6 | 419.1 | 409.6 |
+| `sha256` | 124.8 | 402.9 | 248.7 |
+| `dijkstra` | 120.8 | 345.6 | 248.9 |
+| `raytrace` | 129.1 | 384.1 | 237.2 |
+| `leven` | 126.2 | 394.0 | 324.2 |
+| `chacha` | 137.4 | 394.9 | 254.9 |
 
 Native code runs within about **1.1x of clang-cl** on those seven programs (geometric mean), while the
-compiler produces them roughly **2.6x faster** than `clang-cl` and **1.9x faster** than `rustc`, linker
-included. A hello world compiles and links in 139 ms.
+compiler produces them roughly **3.1x faster** than `clang-cl` and **2.3x faster** than `rustc`, linker
+included. A hello world compiles and links in 138 ms.
 
-The JIT lands **within 14 percent of the native backend** here, which is what makes compile-time
+The JIT lands **within 13 percent of the native backend** here, which is what makes compile-time
 execution, `#test`, and script mode usable rather than a slow mode you avoid: on the same programs it
-is about **5.1x faster than LuaJIT**, **4.7x faster than Node**, and **140x faster than CPython**.
+is about **5.1x faster than LuaJIT**, **4.8x faster than Node**, and **138x faster than CPython**.
 
 > [!NOTE]
 > Raw milliseconds are not comparable between campaigns — the same machine drifts by more than ten

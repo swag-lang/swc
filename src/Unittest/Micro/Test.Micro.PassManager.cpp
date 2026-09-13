@@ -110,6 +110,60 @@ SWC_TEST_BEGIN(MicroPassManager_PostRa_RechecksSuffixWhenFirstSweepPolicyChanges
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroBuilder_PruneRelocationsBeforeRecyclingSlots)
+{
+    MicroBuilder builder(ctx);
+    builder.emitNop();
+    const auto first = builder.instructions().lastInstructionRef();
+    builder.emitNop();
+    const auto dead = builder.instructions().lastInstructionRef();
+    builder.emitNop();
+    const auto       last = builder.instructions().lastInstructionRef();
+    const std::array refs{first, dead, MicroInstrRef::invalid(), first, last, MicroInstrRef(1000)};
+    for (uint32_t i = 0; i < refs.size(); ++i)
+    {
+        MicroRelocation reloc;
+        reloc.instructionRef = refs[i];
+        reloc.targetAddress  = i;
+        builder.codeRelocations().push_back(reloc);
+    }
+
+    builder.instructions().erase(dead);
+    builder.emitNop();
+    if (builder.instructions().lastInstructionRef() == dead)
+        return Result::Error;
+    if (!builder.pruneDeadRelocations())
+        return Result::Error;
+    const auto& relocs = builder.codeRelocations();
+    if (relocs.size() != 3 || relocs[0].targetAddress != 0 || relocs[1].targetAddress != 3 || relocs[2].targetAddress != 4)
+        return Result::Error;
+    if (builder.pruneDeadRelocations())
+        return Result::Error;
+
+    builder.emitNop();
+    if (builder.instructions().lastInstructionRef() != dead)
+        return Result::Error;
+    for (const auto& reloc : relocs)
+    {
+        if (reloc.instructionRef == dead)
+            return Result::Error;
+    }
+    builder.instructions().erase(first);
+    builder.instructions().erase(last);
+    if (!builder.pruneDeadRelocations() || !relocs.empty())
+        return Result::Error;
+
+    // Even an empty relocation list must release newly quarantined slots.
+    builder.instructions().erase(dead);
+    if (builder.pruneDeadRelocations())
+        return Result::Error;
+    builder.emitNop();
+    if (builder.instructions().lastInstructionRef() != dead)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

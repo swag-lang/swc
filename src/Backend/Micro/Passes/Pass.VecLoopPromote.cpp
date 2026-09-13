@@ -389,6 +389,8 @@ namespace
                 known = known || root == access.rootReg;
             if (!known)
             {
+                if (roots.size() == 2)
+                    return false;
                 roots.push_back(access.rootReg);
                 if (access.rootReg == fn.stackPointer)
                     hasStackRoot = true;
@@ -396,8 +398,6 @@ namespace
                     hasParamRoot = true;
             }
         }
-        if (roots.size() > 2)
-            return false;
         if (roots.size() == 2 && (!hasStackRoot || !hasParamRoot))
             return false;
 

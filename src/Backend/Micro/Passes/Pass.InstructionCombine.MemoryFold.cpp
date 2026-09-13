@@ -88,20 +88,6 @@ namespace InstructionCombine
             ctx.emitErase(storeRef);
         }
 
-        bool findAnchorPosition(MicroStorage::Iterator& outIter, MicroStorage& storage, MicroInstrRef anchor)
-        {
-            const auto view  = storage.view();
-            const auto endIt = view.end();
-            for (auto it = view.begin(); it != endIt; ++it)
-            {
-                if (it.current == anchor)
-                {
-                    outIter = it;
-                    return true;
-                }
-            }
-            return false;
-        }
     }
 
     bool tryMemoryFoldTriple(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
@@ -122,9 +108,9 @@ namespace InstructionCombine
         if (keepAccessScalar(ctx, loadRef, base))
             return false;
 
-        MicroStorage::Iterator walker;
-        if (!findAnchorPosition(walker, *ctx.storage, loadRef))
+        if (!ctx.storage->ptr(loadRef))
             return false;
+        MicroStorage::Iterator walker{ctx.storage, loadRef};
         ++walker;
 
         const auto endIt = ctx.storage->view().end();

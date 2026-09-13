@@ -143,22 +143,8 @@ bool MicroBuilder::invalidateRelocationForInstruction(MicroInstrRef instructionR
 
 bool MicroBuilder::pruneDeadRelocations()
 {
-    bool changed = false;
-    for (MicroRelocation& reloc : relocations_)
-    {
-        if (reloc.instructionRef.isInvalid())
-            continue;
-
-        if (instructions_.ptr(reloc.instructionRef))
-            continue;
-
-        reloc.instructionRef = MicroInstrRef::invalid();
-        changed              = true;
-    }
-
-    const auto beforeSize = relocations_.size();
-    std::erase_if(relocations_, [](const MicroRelocation& reloc) {
-        return reloc.instructionRef.isInvalid();
+    const auto removed = std::erase_if(relocations_, [this](const MicroRelocation& reloc) {
+        return !instructions_.ptr(reloc.instructionRef);
     });
 
     // Nothing is keyed by an erased instruction any more, so its slot can be
@@ -167,7 +153,7 @@ bool MicroBuilder::pruneDeadRelocations()
     // instruction - a wrong patch target, not a crash at the point of reuse.
     instructions_.releaseErasedRefs();
 
-    return changed || beforeSize != relocations_.size();
+    return removed != 0;
 }
 
 void MicroBuilder::addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg)

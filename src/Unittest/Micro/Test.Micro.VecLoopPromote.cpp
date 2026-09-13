@@ -106,6 +106,50 @@ SWC_TEST_BEGIN(VecLoopPromote_LoadStorePair_HoistsAndSinks)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(VecLoopPromote_StackAndOneParameterAreTheRootLimit)
+{
+    for (const bool secondParameter : {false, true})
+    {
+        const MicroReg     sp      = CallConv::get(CallConvKind::Swag).stackPointer;
+        constexpr MicroReg counter = MicroReg::virtualIntReg(1);
+        constexpr MicroReg first   = MicroReg::virtualIntReg(2);
+        constexpr MicroReg second  = MicroReg::virtualIntReg(3);
+        constexpr MicroReg scalar  = MicroReg::virtualIntReg(4);
+        constexpr MicroReg packed  = MicroReg::virtualFloatReg(1);
+        MicroBuilder       builder(ctx);
+        const auto         header = builder.createLabel();
+        builder.emitLoadRegReg(first, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(second, MicroReg::intReg(3), MicroOpBits::B64);
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(header);
+        builder.emitLoadVecRegMem(packed, sp, 0x40, MicroOpBits::B128);
+        const auto bodyLoad = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegMem(scalar, first, 0, MicroOpBits::B32);
+        builder.emitLoadRegMem(scalar, first, 4, MicroOpBits::B32);
+        if (secondParameter)
+            builder.emitLoadRegMem(scalar, second, 0, MicroOpBits::B32);
+        builder.emitStoreVecMemReg(sp, 0x40, packed, MicroOpBits::B128);
+        const auto bodyStore = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(10, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
+        builder.emitRet();
+
+        SWC_RESULT(runVecLoopPromotePass(builder));
+        const auto expectedLoad  = secondParameter ? MicroInstrOpcode::LoadVecRegMem : MicroInstrOpcode::LoadRegReg;
+        const auto expectedStore = secondParameter ? MicroInstrOpcode::StoreVecMemReg : MicroInstrOpcode::LoadRegReg;
+        if (builder.instructions().ptr(bodyLoad)->op != expectedLoad || builder.instructions().ptr(bodyStore)->op != expectedStore)
+            return Result::Error;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != 1 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 1)
+            return Result::Error;
+        if ((firstPosition(builder, MicroInstrOpcode::LoadVecRegMem) < firstPosition(builder, MicroInstrOpcode::Label)) == secondParameter)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A scalar store into the middle of the chunk makes the packed pair
 // non-exclusive: nothing may move.
 SWC_TEST_BEGIN(VecLoopPromote_OverlappingScalarStore_Blocks)

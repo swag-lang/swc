@@ -211,6 +211,44 @@ SWC_TEST_BEGIN(InstCombine_RelocatedLoad_UsesExactTargetAndLiveMemory)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_RipForwardingInitializesBeforeFirstMatchedRelocation)
+{
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(MicroReg::virtualIntReg(10), MicroReg::intReg(8), 0, MicroOpBits::B64);
+    builder.emitLoadRegMem(MicroReg::virtualIntReg(11), MicroReg::intReg(8), 0, MicroOpBits::B64);
+    // Ordinary forwarding precedes the first RIP access. That access has no
+    // relocation, but the snapshot must still include all later relocations.
+    builder.emitLoadRegMem(MicroReg::virtualIntReg(12), MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+    std::array<MicroInstrRef, 3> relocated;
+    for (uint32_t i = 0; i < relocated.size(); ++i)
+    {
+        builder.emitLoadRegMem(MicroReg::virtualIntReg(i + 1), MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+        relocated[i] = builder.instructions().lastInstructionRef();
+        MicroRelocation relocation;
+        relocation.kind           = MicroRelocation::Kind::GlobalInitAddress;
+        relocation.form           = MicroRelocation::Form::Relative32;
+        relocation.targetAddress  = 8;
+        relocation.instructionRef = relocated[i];
+        builder.addRelocation(relocation);
+    }
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 3 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 3)
+        return Result::Error;
+    for (uint32_t i = 1; i < relocated.size(); ++i)
+    {
+        const MicroInstr* inst = builder.instructions().ptr(relocated[i]);
+        if (!inst || inst->op != MicroInstrOpcode::LoadRegReg || inst->ops(builder.operands())[1].reg != MicroReg::virtualIntReg(1))
+            return Result::Error;
+    }
+    if (builder.codeRelocations().size() != 1 || builder.codeRelocations()[0].instructionRef != relocated[0])
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // and v, 0  -> ClearReg.
 SWC_TEST_BEGIN(InstCombine_Absorbing_AndZero_BecomesClear)
 {

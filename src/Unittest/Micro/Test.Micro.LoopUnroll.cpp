@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -48,6 +49,69 @@ SWC_TEST_BEGIN(LoopUnroll_MultipleLoops_RebuildsIncomingJumpRanges)
         return Result::Error;
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 6)
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(LoopUnroll_FreshRegisterFilesRespectRenamingEligibility)
+{
+    // Integer-only temporaries, then a renamable and a preserved float temporary.
+    for (uint32_t floatMode = 0; floatMode < 3; ++floatMode)
+    {
+        const MicroReg     sp        = CallConv::get(CallConvKind::Swag).stackPointer;
+        constexpr MicroReg counter   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg integer   = MicroReg::virtualIntReg(2);
+        constexpr MicroReg packed    = MicroReg::virtualFloatReg(2);
+        constexpr MicroReg highFloat = MicroReg::virtualFloatReg(900);
+        MicroBuilder       builder(ctx);
+        const auto         header = builder.createLabel();
+        builder.emitLoadRegImm(MicroReg::virtualIntReg(1000), ApInt(7, 64), MicroOpBits::B64);
+        builder.emitClearReg(highFloat, MicroOpBits::B128);
+        if (floatMode == 2)
+            builder.preserveVirtualCopy(packed);
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(header);
+        builder.emitLoadRegReg(integer, counter, MicroOpBits::B64);
+        builder.emitLoadMemReg(sp, 0x40, integer, MicroOpBits::B64);
+        if (floatMode != 0)
+        {
+            builder.emitLoadRegReg(packed, highFloat, MicroOpBits::B128);
+            builder.emitStoreVecMemReg(sp, 0x60, packed, MicroOpBits::B128);
+        }
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
+        builder.emitRet();
+
+        SWC_RESULT(runLoopUnrollPass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
+            return Result::Error;
+        uint32_t integerCopies = 0;
+        uint32_t floatCopies   = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadRegReg)
+                continue;
+            const auto* ops = inst.ops(builder.operands());
+            if (ops[0].reg.isVirtualFloat())
+            {
+                const uint32_t expected = floatCopies == 0 || floatMode == 2 ? 2 : 900 + floatCopies;
+                if (ops[0].reg.index() != expected || ops[1].reg != highFloat)
+                    return Result::Error;
+                ++floatCopies;
+            }
+            else
+            {
+                const uint32_t expectedDst = integerCopies == 0 ? 2 : 1002 + integerCopies;
+                const uint32_t expectedSrc = integerCopies == 0 ? 1 : 1000 + integerCopies;
+                if (ops[0].reg.index() != expectedDst || ops[1].reg.index() != expectedSrc)
+                    return Result::Error;
+                ++integerCopies;
+            }
+        }
+        if (integerCopies != 3 || floatCopies != (floatMode == 0 ? 0u : 3u))
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

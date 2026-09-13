@@ -114,15 +114,7 @@ namespace InstructionCombine
         // same target can forward to each other: their (base, off) pair is
         // always ([ip], 0) and only the relocation tells two targets apart.
         std::unordered_map<uint32_t, const MicroRelocation*> relocationByRef;
-        if (ctx.builder)
-        {
-            for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
-            {
-                if (!reloc.instructionRef.isValid())
-                    continue;
-                relocationByRef[reloc.instructionRef.get()] = &reloc;
-            }
-        }
+        bool                                                 relocationsReady = false;
 
         Cache cache;
 
@@ -141,6 +133,21 @@ namespace InstructionCombine
                 const MicroRelocation* relocation = nullptr;
                 if (ops[1].reg.isInstructionPointer())
                 {
+                    if (!relocationsReady)
+                    {
+                        // Only forwarding a RIP load can invalidate a relocation
+                        // in this scan. The first such load still sees the original
+                        // snapshot, including relocations added by earlier patterns.
+                        if (ctx.builder)
+                        {
+                            for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
+                            {
+                                if (reloc.instructionRef.isValid())
+                                    relocationByRef[reloc.instructionRef.get()] = &reloc;
+                            }
+                        }
+                        relocationsReady = true;
+                    }
                     const auto relocIt = relocationByRef.find(it.current.get());
                     if (relocIt == relocationByRef.end() || relocIt->second->form != MicroRelocation::Form::Relative32)
                     {

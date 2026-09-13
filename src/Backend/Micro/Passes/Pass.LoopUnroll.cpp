@@ -325,6 +325,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // linear renaming wrong at a join, so a body with labels keeps
             // every name.
             std::unordered_set<MicroReg> renamable;
+            bool                         hasRenamableFloat = false;
             if (internalLabels.empty())
             {
                 std::unordered_set<MicroReg> seenInBody;
@@ -365,13 +366,16 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     renamable.erase(reg);
                 renamable.erase(counter);
                 std::erase_if(renamable, [&](const MicroReg reg) {
-                    return builder.virtualRegForbiddenPhysRegs().contains(reg) || builder.shouldPreserveVirtualCopy(reg);
+                    if (builder.virtualRegForbiddenPhysRegs().contains(reg) || builder.shouldPreserveVirtualCopy(reg))
+                        return true;
+                    hasRenamableFloat = hasRenamableFloat || reg.isVirtualFloat();
+                    return false;
                 });
             }
 
             std::unordered_map<MicroReg, MicroReg> currentName;
             uint32_t                               nextFreshInt   = firstFreshVirtual + static_cast<uint32_t>(trips) - 1;
-            uint32_t                               nextFreshFloat = renamable.empty() ? 0 : MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
+            uint32_t                               nextFreshFloat = hasRenamableFloat ? MicroPassHelpers::computeNextVirtualFloatRegIndex(context) : 0;
 
             for (uint64_t k = 1; k < trips; ++k)
             {

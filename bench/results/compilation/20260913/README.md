@@ -28,6 +28,22 @@ measurements remain deferred until the final campaign.
 | 20 | 550 | 763 passed | 3,131 / 3,131 passed | [Early header and multiplier rejection](batch20.md) |
 | 21 | 551 | 763 passed | 3,131 / 3,131 passed | [Rotation preparation without jumps](batch21.md) |
 
+## Final integration
+
+All 21 validated batches are integrated into local master. The final source change is
+`b21cf2263` (build 551); the tested DevMode compiler is the checkout-local
+`bin/swc.dm.exe` in `C:/Perso/swag-lang/swc-compile-perf`. Each source batch was built
+and passed the C++ suite plus native tests in both program configurations before merging.
+No optimization rule or iteration budget was weakened to obtain these static reductions.
+
+The remaining SSA invalidation work is narrowed in
+[`compiler.optimization.029`](../../../../backlog/compiler.optimization.md): an isolated
+constant rewrite preserves topology but removes a use edge, so reuse requires an explicit
+mutation contract and metadata repair. The [final repository validator](final-repository.log)
+passed with exit code 0 after that backlog update. `git diff --check` passed, and the only
+`.output` directory under the validation worktree's test sources is `bin/unittests/.output`.
+Build and test logs are archived here; their temporary duplicates were removed individually.
+
 ## Worker count and deferred comparison
 
 Benchmark compilation is not capped at six workers by default. `--cores` in

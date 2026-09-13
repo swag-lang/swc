@@ -506,7 +506,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     }
 
     std::unordered_set<MicroReg> frameDerivedRegs;
-    collectFrameDerivedRegs(frameDerivedRegs, storage, operands, CallConv::get(context.callConvKind).stackPointer);
+    bool                         frameDerivedRegsReady = false;
 
     std::unordered_map<uint64_t, SmallVector<NumberingEntry, 2>> table;
     std::vector<PlannedRewrite>                                  rewrites;
@@ -561,8 +561,20 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
         // A load through the frame is mem2reg's, and a RIP-relative one reads
         // an address the relocation binds rather than the base register.
-        if (shape.readsMemory && (frameDerivedRegs.contains(ops[shape.useSlots[0]].reg) || relocationByInstruction.contains(instRef)))
-            continue;
+        if (shape.readsMemory)
+        {
+            if (relocationByInstruction.contains(instRef))
+                continue;
+            if (!frameDerivedRegsReady)
+            {
+                // Rewrites are queued, so even a late first load sees the same
+                // whole-function closure, including definitions after the load.
+                collectFrameDerivedRegs(frameDerivedRegs, storage, operands, CallConv::get(context.callConvKind).stackPointer);
+                frameDerivedRegsReady = true;
+            }
+            if (frameDerivedRegs.contains(ops[shape.useSlots[0]].reg))
+                continue;
+        }
         if (shape.addrBitsSlot != K_NO_SLOT && ops[shape.addrBitsSlot].opBits != MicroOpBits::B64)
             continue;
 

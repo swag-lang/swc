@@ -345,6 +345,60 @@ SWC_TEST_BEGIN(MicroSsa_RebuildAddsFrontierAfterLinearBlocks)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroSsa_RebuildForgetsErasedAndRecycledSlots)
+{
+    constexpr MicroReg value = MicroReg::virtualIntReg(1);
+    constexpr MicroReg copy  = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegImm(value, ApInt(7, 64), MicroOpBits::B64);
+    const auto initial = builder.instructions().lastInstructionRef();
+    builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto removed = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+    const auto end = builder.instructions().lastInstructionRef();
+
+    MicroSsaState ssa;
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    if (ssa.reachingDef(value, end).instRef != removed || !ssa.isRegUsedAfter(value, initial))
+        return Result::Error;
+
+    builder.instructions().erase(removed);
+    builder.invalidateControlFlowGraph();
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+    if (ssa.reachingDef(value, removed).valid() || ssa.instrUseDef(removed) || ssa.defValue(value, removed, valueId))
+        return Result::Error;
+    if (ssa.reachingDef(value, end).instRef != initial || ssa.isRegUsedAfter(value, initial))
+        return Result::Error;
+
+    builder.instructions().releaseErasedRefs();
+    std::array<MicroInstrOperand, 3> ops;
+    ops[0].reg          = copy;
+    ops[1].reg          = value;
+    ops[2].opBits       = MicroOpBits::B64;
+    const auto recycled = builder.instructions().insertSyntheticBefore(builder.operands(), end, MicroInstrOpcode::LoadRegReg, ops);
+    if (recycled != removed)
+        return Result::Error;
+    builder.invalidateControlFlowGraph();
+
+    // Repeated builds must neither retain the old definition nor duplicate uses.
+    for (uint32_t rebuild = 0; rebuild < 3; ++rebuild)
+    {
+        ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+        if (ssa.defValue(value, recycled, valueId) || !ssa.defValue(copy, recycled, valueId))
+            return Result::Error;
+        if (ssa.reachingDef(value, recycled).instRef != initial || ssa.reachingDef(copy, end).instRef != recycled)
+            return Result::Error;
+        if (!ssa.defValue(value, initial, valueId))
+            return Result::Error;
+        const auto* info = ssa.valueInfo(valueId);
+        if (!info || info->uses.size() != 1 || info->uses.front().instRef != recycled)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

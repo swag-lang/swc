@@ -95,8 +95,7 @@ namespace
         if (!conv.framePointer.isValid() || !conv.stackPointer.isValid())
             return false;
 
-        bool  foundInit = false;
-        auto& operands  = *context.operands;
+        auto& operands = *context.operands;
         for (const auto& inst : context.instructions->view())
         {
             SmallVector<MicroInstrRegOperandRef> refs;
@@ -119,9 +118,9 @@ namespace
                     framePointerDef = true;
             }
 
-            if (framePointerUsed && !foundInit)
+            if (framePointerUsed)
                 return false;
-            if (!framePointerDef || foundInit)
+            if (!framePointerDef)
                 continue;
 
             if (inst.op != MicroInstrOpcode::LoadRegReg)
@@ -137,10 +136,10 @@ namespace
             if (ops[2].opBits != MicroOpBits::B64)
                 return false;
 
-            foundInit = true;
+            return true;
         }
 
-        return foundInit;
+        return false;
     }
 
     bool isRegDefinedBeforeAnyUse(const MicroPassContext& context, MicroReg reg)
@@ -196,7 +195,7 @@ namespace
         return true;
     }
 
-    bool tryPickUnusedTransientIntReg(const CallConv& conv, const std::unordered_set<MicroReg>& usedRegs, const std::unordered_set<MicroReg>& pickedTransientRegs, MicroReg& outReg)
+    bool tryPickUnusedTransientIntReg(const CallConv& conv, const std::unordered_set<MicroReg>& usedRegs, MicroReg& outReg)
     {
         for (const MicroReg reg : conv.intTransientRegs)
         {
@@ -205,8 +204,6 @@ namespace
             if (!isSafeTransientReplacementIntReg(conv, reg))
                 continue;
             if (usedRegs.contains(reg))
-                continue;
-            if (pickedTransientRegs.contains(reg))
                 continue;
 
             outReg = reg;
@@ -333,19 +330,16 @@ namespace
         if (remapCandidates.empty())
             return false;
 
-        std::unordered_set<MicroReg>           pickedTransientRegs;
         std::unordered_map<MicroReg, MicroReg> remap;
-        pickedTransientRegs.reserve(remapCandidates.size() * 2 + 1);
         remap.reserve(remapCandidates.size() * 2 + 1);
 
         for (const MicroReg persistentReg : remapCandidates)
         {
             MicroReg replacementReg;
-            if (!tryPickUnusedTransientIntReg(conv, usedRegs, pickedTransientRegs, replacementReg))
+            if (!tryPickUnusedTransientIntReg(conv, usedRegs, replacementReg))
                 continue;
 
             remap[persistentReg] = replacementReg;
-            pickedTransientRegs.insert(replacementReg);
             usedRegs.insert(replacementReg);
         }
 

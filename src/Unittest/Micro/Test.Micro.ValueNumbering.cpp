@@ -414,6 +414,37 @@ SWC_TEST_BEGIN(ValueNumbering_KeepsFrameLoadsForMemToReg)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ValueNumbering_FrameClassificationIncludesLaterDefinitions)
+{
+    for (const bool attachToFrame : {false, true})
+    {
+        const MicroReg sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+        const MicroReg base   = MicroReg::virtualIntReg(10);
+        const MicroReg middle = MicroReg::virtualIntReg(11);
+        const MicroReg tail   = MicroReg::virtualIntReg(12);
+        const MicroReg first  = MicroReg::virtualIntReg(13);
+        const MicroReg second = MicroReg::virtualIntReg(14);
+        MicroBuilder   builder(ctx);
+        builder.emitLoadRegImm(base, ApInt(0x1000, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(middle, ApInt(0x2000, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(tail, ApInt(0x3000, 64), MicroOpBits::B64);
+        builder.emitLoadRegMem(first, base, 8, MicroOpBits::B64);
+        builder.emitLoadRegMem(second, base, 8, MicroOpBits::B64);
+        // Classification is flow-insensitive: this reversed chain must keep
+        // both earlier loads when its final source is the stack pointer.
+        builder.emitLoadRegReg(base, middle, MicroOpBits::B64);
+        builder.emitLoadRegReg(middle, tail, MicroOpBits::B64);
+        builder.emitLoadRegReg(tail, attachToFrame ? sp : base, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runValueNumberingPass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != (attachToFrame ? 2 : 1))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ValueNumbering_SharesScalarFloatLiteralBits)
 {
     for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})

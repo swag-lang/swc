@@ -70,6 +70,13 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
 
         instructionIndexBySlot_[slot] = instructionIndex;
         InstrInfo& info               = instrInfos_[slot];
+        // Reset SSA bookkeeping only for live instructions during the existing
+        // collection walk. Removed slots are excluded by instructionIndexBySlot_.
+        // Keep the use/def cache across rebuilds, including when slots are reused.
+        info.defValues.clear();
+        info.useRegIndices.clear();
+        info.defRegIndices.clear();
+        info.renamePosition = K_INVALID_VALUE;
 
         const MicroInstr* inst = storage.ptr(instRef);
         SWC_ASSERT(inst != nullptr);
@@ -179,25 +186,8 @@ void MicroSsaState::resetForBuild(MicroBuilder& builder, MicroStorage& storage, 
     valueInfoCount_  = 0;
     phiInfoCount_    = 0;
 
-    resetInstructionInfos(storage.slotCount());
-}
-
-void MicroSsaState::resetInstructionInfos(const uint32_t slotCount)
-{
-    if (instrInfos_.size() < slotCount)
-        instrInfos_.resize(slotCount);
-
-    for (uint32_t slot = 0; slot < slotCount; ++slot)
-    {
-        InstrInfo& info = instrInfos_[slot];
-        // info.useDef and the cachedOp/cachedOperandWords/useDefCached fields are kept
-        // on purpose: they form the cross-rebuild use/def cache (see InstrInfo). Only
-        // the per-build SSA bookkeeping is cleared here.
-        info.defValues.clear();
-        info.useRegIndices.clear();
-        info.defRegIndices.clear();
-        info.renamePosition = K_INVALID_VALUE;
-    }
+    if (instrInfos_.size() < storage.slotCount())
+        instrInfos_.resize(storage.slotCount());
 }
 
 void MicroSsaState::clear()
@@ -714,7 +704,6 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
                                     });
         }
 
-        info.defValues.clear();
         for (const uint32_t regIndex : info.defRegIndices)
         {
             SWC_ASSERT(regIndex < regs.size());

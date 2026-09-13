@@ -837,6 +837,61 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_NoNeed)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(RegAlloc_LeafRemapPreservesFramePriorityAndDistinctReplacements)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::WindowsX64);
+    constexpr auto rbx  = MicroReg::intReg(1);
+    constexpr auto rsi  = MicroReg::intReg(6);
+    constexpr auto r10  = MicroReg::intReg(10);
+    constexpr auto r11  = MicroReg::intReg(11);
+
+    for (const bool readFrameBeforeInit : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        if (readFrameBeforeInit)
+            builder.emitLoadRegReg(conv.intReturn, conv.framePointer, MicroOpBits::B64);
+        builder.emitLoadRegReg(conv.framePointer, conv.stackPointer, MicroOpBits::B64);
+        const auto frameInit = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegImm(conv.framePointer, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+        const auto frameUse = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegImm(rbx, ApInt(7, 64), MicroOpBits::B64);
+        const auto firstPersistent = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegImm(rsi, ApInt(9, 64), MicroOpBits::B64);
+        const auto secondPersistent = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegReg(rbx, rsi, MicroOp::Add, MicroOpBits::B64);
+        const auto combine = builder.instructions().lastInstructionRef();
+        builder.emitRet();
+
+        MicroPrologEpilogPass pass;
+        MicroPassManager     passes;
+        passes.addStartPass(pass);
+        MicroPassContext passCtx;
+        passCtx.callConvKind           = CallConvKind::WindowsX64;
+        passCtx.preservePersistentRegs = true;
+        passCtx.debugStackBasePhysReg  = conv.framePointer;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+
+        // The frame candidate has priority only after a valid first definition.
+        // Each chosen transient must then remain unavailable to later candidates.
+        const auto  expectedFrame  = readFrameBeforeInit ? conv.framePointer : r10;
+        const auto  expectedFirst  = readFrameBeforeInit ? r10 : r11;
+        const auto  expectedSecond = readFrameBeforeInit ? r11 : rsi;
+        const auto& operands       = builder.operands();
+        if (builder.instructions().ptr(frameInit)->ops(operands)[0].reg != expectedFrame ||
+            builder.instructions().ptr(frameUse)->ops(operands)[0].reg != expectedFrame ||
+            passCtx.debugStackBasePhysReg != expectedFrame)
+            return Result::Error;
+        if (builder.instructions().ptr(firstPersistent)->ops(operands)[0].reg != expectedFirst ||
+            builder.instructions().ptr(secondPersistent)->ops(operands)[0].reg != expectedSecond)
+            return Result::Error;
+        const auto* combineOps = builder.instructions().ptr(combine)->ops(operands);
+        if (combineOps[0].reg != expectedFirst || combineOps[1].reg != expectedSecond)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(RegAlloc_Spill_IntPressureAcrossCall)
 {
     for (const auto callConvKind : testedCallConvs())

@@ -741,18 +741,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         // outside every known variable, the whole unknown part of the frame is
         // reachable through it and only slots inside known variables remain
         // promotable.
-        bool touchesPoisoned = false;
-        for (const SlotAccess& acc : slot.accesses)
-        {
-            const uint64_t lo = acc.offset;
-            const uint64_t hi = acc.offset + getNumBytes(acc.bits);
-            if (overlapsPoisonedVariable(lo, hi) || (unknownSpaceEscaped && !insideKnownVariable(lo, hi)))
-            {
-                touchesPoisoned = true;
-                break;
-            }
-        }
-        if (touchesPoisoned)
+        // All accesses have this offset. Both rejection predicates are monotonic
+        // in the computed endpoint, so the largest one covers every access.
+        if (overlapsPoisonedVariable(offset, slot.maxAccessEnd) || (unknownSpaceEscaped && !insideKnownVariable(offset, slot.maxAccessEnd)))
             continue;
 
         MicroOpBits bits = slot.accesses[0].bits;

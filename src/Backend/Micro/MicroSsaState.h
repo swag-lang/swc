@@ -154,7 +154,6 @@ private:
     static uint32_t findRegValue(std::span<const RegValueEntry> entries, MicroReg reg);
 
     void            resetForBuild(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder);
-    void            resetInstructionInfos(uint32_t slotCount);
     void            buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
     bool            computeDominators(); // true when any dominance frontier exists
     void            placePhiNodes();

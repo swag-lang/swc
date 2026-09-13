@@ -758,8 +758,7 @@ namespace
 
         const bool     operandIsDst              = issue.operandIndex == 0;
         const bool     conflict                  = operandIsDst ? originalSrcReg == requiredReg : originalDstReg == requiredReg;
-        const bool     mustPreserveRequiredReg   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
-        const bool     shouldPreserveRequiredReg = mustPreserveRequiredReg && requiredReg != originalDstReg;
+        const bool     shouldPreserveRequiredReg = requiredReg != originalDstReg && mustPreserveRegAfterInstruction(context, instRef, requiredReg);
         const MicroReg nonFixedOperandReg        = operandIsDst ? originalSrcReg : originalDstReg;
 
         if (nonFixedOperandReg.isVirtual())
@@ -825,8 +824,7 @@ namespace
         const MicroReg    requiredReg    = issue.requiredReg;
         SWC_ASSERT(requiredReg.isValid());
 
-        const bool mustPreserveRequiredReg   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
-        const bool shouldPreserveRequiredReg = mustPreserveRequiredReg && requiredReg != originalDstReg;
+        const bool shouldPreserveRequiredReg = requiredReg != originalDstReg && mustPreserveRegAfterInstruction(context, instRef, requiredReg);
         MicroReg   savedRequiredReg          = MicroReg::invalid();
         if (shouldPreserveRequiredReg)
         {
@@ -918,8 +916,7 @@ namespace
         const MicroInstrOperand tail3          = ops[3];
         const MicroInstrOperand tail4          = ops[4];
         const MicroReg          requiredReg    = issue.requiredReg;
-        const bool              mustPreserve   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
-        const bool              shouldPreserve = mustPreserve && requiredReg != originalReg0;
+        const bool              shouldPreserve = requiredReg != originalReg0 && mustPreserveRegAfterInstruction(context, instRef, requiredReg);
         SWC_ASSERT(requiredReg.isValid());
 
         addVirtualForbiddenRegIfNeeded(context, originalReg1, requiredReg);

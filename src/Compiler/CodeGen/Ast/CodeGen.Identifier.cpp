@@ -993,7 +993,8 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
             MicroReg                  baseAddress = MicroReg::invalid();
             materializeAggregateSourceAddress(codeGen, codeGen.curNodeRef(), initView.typeRef(), initPayload, baseAddress);
 
-            size_t symbolIndex = 0;
+            CodeGenStructHelpers::StructLikeFieldLayoutCursor layoutCursor;
+            size_t                                           symbolIndex = 0;
             for (size_t i = 0; i < tokNames.size(); ++i)
             {
                 if (tokNames[i].isInvalid())
@@ -1002,7 +1003,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
                 const size_t fieldIndex  = hasFlag(AstVarDeclFlagsE::NamedDestructuring)
                                                ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, initView.typeRef(), SourceCodeRef{srcViewRef(), fieldNames[i]})
                                                : i;
-                const auto   fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, initView.typeRef(), fieldIndex);
+                const auto   fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, initView.typeRef(), fieldIndex);
 
                 SWC_ASSERT(symbolIndex < symbols.size());
                 const SymbolVariable& symVar = symbols[symbolIndex++]->cast<SymbolVariable>();
@@ -1027,7 +1028,8 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     MicroReg                  baseAddress = MicroReg::invalid();
     materializeAggregateSourceAddress(codeGen, codeGen.curNodeRef(), initView.typeRef(), initPayload, baseAddress);
 
-    size_t symbolIndex = 0;
+    CodeGenStructHelpers::StructLikeFieldLayoutCursor layoutCursor;
+    size_t                                           symbolIndex = 0;
     for (size_t i = 0; i < tokNames.size(); ++i)
     {
         if (tokNames[i].isInvalid())
@@ -1037,7 +1039,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
         const size_t          fieldIndex  = hasFlag(AstVarDeclFlagsE::NamedDestructuring)
                                                 ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, initView.typeRef(), SourceCodeRef{srcViewRef(), fieldNames[i]})
                                                 : i;
-        const auto            fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, initView.typeRef(), fieldIndex);
+        const auto            fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, initView.typeRef(), fieldIndex);
         const SymbolVariable& symVar      = symbols[symbolIndex++]->cast<SymbolVariable>();
 
         CodeGenNodePayload fieldPayload;

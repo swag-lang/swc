@@ -187,7 +187,7 @@ void NodePayload::removePayloadFlags(AstNode& node, NodePayloadFlags value)
     node.updatePayloadBits(static_cast<uint16_t>(value), 0);
 }
 
-uint16_t NodePayload::applySymbolPayloadFlags(uint16_t bits, std::span<const Symbol*> symbols)
+uint16_t NodePayload::applySymbolPayloadFlags(uint16_t bits, std::span<const Symbol* const> symbols)
 {
     bits = static_cast<uint16_t>(bits & ~static_cast<uint16_t>(NodePayloadFlags::Value));
     bits = static_cast<uint16_t>(bits & ~static_cast<uint16_t>(NodePayloadFlags::LValue));
@@ -569,13 +569,9 @@ void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbo
     Shard*                 shard    = ensureShard(shardIdx);
     const std::scoped_lock lock(shard->storeMutex);
 
-    AstNode&                   node  = ast().node(nodeRef);
-    const Ref                  value = shard->store.pushSpanContiguous(symbols).get();
-    SmallVector<const Symbol*> tmp;
-    tmp.reserve(symbols.size());
-    for (const Symbol* s : symbols)
-        tmp.push_back(s);
-    const uint16_t symbolFlags = applySymbolPayloadFlags(0, std::span{tmp.data(), tmp.size()});
+    AstNode&       node        = ast().node(nodeRef);
+    const Ref      value       = shard->store.pushSpanContiguous(symbols).get();
+    const uint16_t symbolFlags = applySymbolPayloadFlags(0, symbols);
     const uint16_t clearMask   = NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK |
                                static_cast<uint16_t>(NodePayloadFlags::Value) | static_cast<uint16_t>(NodePayloadFlags::LValue);
     const uint16_t setBits = static_cast<uint16_t>(NodePayloadKind::SymbolList) |

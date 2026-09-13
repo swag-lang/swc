@@ -906,7 +906,16 @@ namespace
         if (dimIndex < dims.size() && !tryDeduceAggregateArrayDimension(sema, params, resolvedArgs, dims[dimIndex], aggregate.types.size(), argExprRef, callArgIndex, outFailure, mode))
             return Result::Error;
 
-        const bool hasNestedDims = dimIndex + 1 < dims.size();
+        const bool hasNestedDims     = dimIndex + 1 < dims.size();
+        bool       directTypeBinding = false;
+        if (!hasNestedDims && elemPatternRef.isValid())
+        {
+            const AstNode& elemPattern = sema.node(elemPatternRef);
+            const auto*    namedType   = elemPattern.safeCast<AstNamedType>();
+            directTypeBinding         = elemPattern.is(AstNodeId::Identifier) || (namedType && namedType->nodeIdentRef.isValid() && sema.node(namedType->nodeIdentRef).is(AstNodeId::Identifier));
+        }
+
+        TypeRef previousTypeRef = TypeRef::invalid();
         for (const TypeRef elemTypeRef : aggregate.types)
         {
             if (hasNestedDims)
@@ -918,9 +927,15 @@ namespace
                 continue;
             }
 
+            // A successful direct binding is idempotent for the same type. Composite
+            // patterns can roll back a partial deduction, so they must still run again.
+            if (directTypeBinding && previousTypeRef.isValid() && elemTypeRef == previousTypeRef)
+                continue;
+
             const Result elemResult = deduceFromTypePattern(sema, params, resolvedArgs, elemPatternRef, elemTypeRef, argExprRef, callArgIndex, outFailure, mode);
             if (elemResult != Result::Continue)
                 return elemResult;
+            previousTypeRef = elemTypeRef;
         }
 
         return Result::Continue;

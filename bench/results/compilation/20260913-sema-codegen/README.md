@@ -403,3 +403,56 @@ The forced workspace consumer rebuild passed with both the
 [Release compiler](release-compiler-workspace-consumer-543.log). Each rebuilt three standard
 dependencies and six local modules, executed the main entry point, and passed the cross-module
 initialization and destruction assertions.
+
+## Additional reductions in build 544
+
+Aggregate destructuring keeps a local layout cursor instead of recalculating offsets from the
+first field for every access. Increasing field indices, including skipped fields, visit each
+layout prefix once; a backwards named access restarts the cursor. Each cursor belongs to one
+traversal of one type, and assignment resets it before dropping unbound fields. Struct-symbol
+field offsets retain their existing direct lookup. Three new native tests cover padding,
+zero-sized and ignored fields, declarations, assignments, and reversed named access.
+
+Function-candidate probing borrows the published parameter list instead of copying it for every
+candidate. Aggregate-array generic deduction skips consecutive equal raw types only for a direct
+identifier binding. Nested dimensions and composite patterns still run in full: their partial
+transactional deductions are not generally idempotent. Three native tests cover 32 equal element
+types, unsized-to-sized refinement, alternating types, and identical multidimensional rows.
+Both new native fixtures passed on build 543 before compiling these production changes.
+
+Symbol-list payload flags consume the original pointer span instead of constructing a temporary
+const-pointer vector under the store lock. Narrowing invalidation compacts surviving facts in
+place while preserving their order, and skips empty input. Two C++ tests cover mutable/const
+symbol inputs, aliases, empty and large lists, copied storage, flag preservation, empty/no-match
+kills, same-name symbols, deep paths, and newest-proof/kill precedence.
+
+Generated API attribute normalization compacts disjoint shrinking edits in one pass. Each retained
+byte moves at most once rather than once per subsequent edit; no extra output buffer is allocated.
+The sorting and lexer logic are unchanged. Before rebuilding, 42 generated Swag source hashes
+were captured for comparison after a forced workspace rebuild.
+
+Build 544 uses the DevMode compiler: these changes add no shared lifetime, scheduling, or
+configuration-specific compiler path. Its build and all selected validations passed.
+
+| Build-544 validation | Result | Evidence |
+| --- | --- | --- |
+| C++ | 699 passed; 28 filesystem tests excluded | [Log](cpp-544.log) |
+| Semantic analysis | 278 valid and 293 expected-error inputs verified | [Log](sema-544.log) |
+| JIT | 1,402 passed | [Log](jit-544.log) |
+| Native, program configuration `devmode` | 3,147 passed; generated executable passed | [Log](native-devmode-544.log) |
+| Native, program configuration `release` | 3,147 passed; generated executable passed | [Log](native-release-544.log) |
+| Destructuring layout | 3 passed | [Log](native-destructuring_layout-544.log) |
+| Generic element-type runs | 3 passed | [Log](native-aggregate_type_runs-544.log) |
+| Existing destructuring assignments | 12 passed | [Log](native-assign_destruct-544.log) |
+| Existing temporary destruction | 17 passed | [Log](native-temporary_drop-544.log) |
+| Forced workspace consumer | Three standard dependencies and six local modules rebuilt; main passed | [Log](workspace-consumer-544.log) |
+
+The initial six-worker source-hash comparison was not identical. Repeating build 543 alone also
+changed `BorrowSummary` annotations, generated source numbering, and foreign-library ordering.
+The varying borrow summaries are already tracked in
+[compiler.core.032](../../../../backlog/compiler.core.md#compilercore032--repeated-module-builds-publish-different-borrow-summaries).
+This prevents treating the parallel byte comparison as a regression oracle. Separate forced
+single-worker workspace rebuilds with Release 543 and DevMode 544 produced exactly the same set
+of 40 generated Swag source files, with every SHA256 hash identical
+([comparison](api-source-comparison-544.log)). The normal six-worker functional validations above
+remain the evidence for parallel compilation; no timing comparison was performed.

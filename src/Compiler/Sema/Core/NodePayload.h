@@ -219,7 +219,7 @@ private:
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
     static void                    updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
     static void                    storePayload(AstNode& node, uint16_t bits, uint32_t ref);
-    static uint16_t                applySymbolPayloadFlags(uint16_t bits, std::span<const Symbol*> symbols);
+    static uint16_t                applySymbolPayloadFlags(uint16_t bits, std::span<const Symbol* const> symbols);
     PayloadInfo                    payloadInfo(const AstNode& node) const;
     std::span<const Symbol* const> symbolsFromInfo(const PayloadInfo& info) const;
     NodePayloadFlags               payloadFlagsStored(const AstNode& node) const;

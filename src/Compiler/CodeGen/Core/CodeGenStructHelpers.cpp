@@ -179,7 +179,7 @@ size_t CodeGenStructHelpers::structLikeFieldCount(CodeGen& codeGen, TypeRef type
     return typeInfo.payloadAggregate().types.size();
 }
 
-CodeGenStructHelpers::StructLikeFieldLayout CodeGenStructHelpers::structLikeFieldLayout(CodeGen& codeGen, TypeRef typeRef, size_t fieldIndex)
+CodeGenStructHelpers::StructLikeFieldLayout CodeGenStructHelpers::structLikeFieldLayout(CodeGen& codeGen, StructLikeFieldLayoutCursor& cursor, TypeRef typeRef, size_t fieldIndex)
 {
     const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
     if (typeInfo.isStruct())
@@ -193,8 +193,13 @@ CodeGenStructHelpers::StructLikeFieldLayout CodeGenStructHelpers::structLikeFiel
     const auto& fieldTypes = typeInfo.payloadAggregate().types;
     SWC_ASSERT(fieldIndex < fieldTypes.size());
 
-    uint64_t offset = 0;
-    for (size_t i = 0; i <= fieldIndex; i++)
+    // Named patterns may revisit an earlier field. Increasing indices, including
+    // skipped fields, continue from the prefix already laid out.
+    if (fieldIndex < cursor.nextFieldIndex)
+        cursor = {};
+
+    uint64_t offset = cursor.offset;
+    for (size_t i = cursor.nextFieldIndex; i <= fieldIndex; i++)
     {
         const TypeRef   fieldTypeRef = fieldTypes[i];
         const TypeInfo& fieldType    = codeGen.typeMgr().get(fieldTypeRef);
@@ -206,6 +211,8 @@ CodeGenStructHelpers::StructLikeFieldLayout CodeGenStructHelpers::structLikeFiel
         if (i == fieldIndex)
         {
             SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
+            cursor.nextFieldIndex = i + 1;
+            cursor.offset         = offset + fieldSize;
             return {.typeRef = fieldTypeRef, .offset = static_cast<uint32_t>(offset)};
         }
 

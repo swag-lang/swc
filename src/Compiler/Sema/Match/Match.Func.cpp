@@ -1787,7 +1787,7 @@ namespace
     // substitutions so failed candidates do not mutate the AST.
     Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail)
     {
-        const auto     params    = fn.parameters();
+        const auto&    params    = fn.parameters();
         const auto     numParams = static_cast<uint32_t>(params.size());
         const uint32_t numArgs   = countCallArgs(args, ufcsArg);
 

@@ -118,26 +118,15 @@ void SemaFrame::addNarrowKill(std::span<const Symbol* const> path)
 
 void SemaFrame::killNarrowFactsByRootId(std::span<const IdentifierRef> rootIds)
 {
-    SmallVector2<SemaNarrowFact> kept;
-    for (auto& fact : narrowFacts_)
-    {
+    if (rootIds.empty() || narrowFacts_.empty())
+        return;
+
+    const auto keptEnd = std::remove_if(narrowFacts_.begin(), narrowFacts_.end(), [&](const SemaNarrowFact& fact) {
         const IdentifierRef rootId = fact.path.empty() ? IdentifierRef::invalid() : fact.path.front()->idRef();
-
-        bool killed = false;
-        for (const IdentifierRef id : rootIds)
-        {
-            if (id == rootId)
-            {
-                killed = true;
-                break;
-            }
-        }
-
-        if (!killed)
-            kept.push_back(std::move(fact));
-    }
-
-    narrowFacts_ = std::move(kept);
+        return std::ranges::find(rootIds, rootId) != rootIds.end();
+    });
+    // Keep survivor order: the most recent matching proof or kill still wins.
+    narrowFacts_.resize(static_cast<size_t>(keptEnd - narrowFacts_.begin()));
 }
 
 bool SemaFrame::queryNarrowFact(std::span<const SemaNarrowFact> facts, std::span<const Symbol* const> path, SemaNarrowFactKind kind)

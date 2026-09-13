@@ -730,6 +730,7 @@ namespace
         SmallVector<bool> boundFields;
         boundFields.resize(fieldCount, false);
 
+        CodeGenStructHelpers::StructLikeFieldLayoutCursor layoutCursor;
         for (size_t i = 0; i < leftRefs.size(); i++)
         {
             const AstNodeRef leftRef = leftRefs[i];
@@ -741,7 +742,7 @@ namespace
             const size_t fieldIndex  = assignList.hasFlag(AstAssignListFlagsE::NamedDestructuring)
                                            ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, rightTypeRef, SourceCodeRef{assignList.srcViewRef(), fieldNames[i]})
                                            : i;
-            const auto   fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, rightTypeRef, fieldIndex);
+            const auto   fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, rightTypeRef, fieldIndex);
 
             SWC_ASSERT(fieldIndex < boundFields.size());
             boundFields[fieldIndex] = true;
@@ -766,12 +767,13 @@ namespace
         if (!movesTemporary)
             return Result::Continue;
 
+        layoutCursor = {};
         for (size_t fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++)
         {
             if (boundFields[fieldIndex])
                 continue;
 
-            const auto fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, rightTypeRef, fieldIndex);
+            const auto fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, rightTypeRef, fieldIndex);
             if (!codeGen.hasLifecycle(fieldLayout.typeRef, CodeGen::LifecycleKind::Drop))
                 continue;
 

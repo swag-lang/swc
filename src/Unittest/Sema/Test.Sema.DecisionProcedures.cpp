@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
@@ -619,6 +620,61 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
     // Completed return masks belong to parallel readers and must remain untouched.
     if (aliasWrapper->returnBorrowsParamsMask() || aliasWrapper->returnsStorageParamsMask())
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Sema_NarrowRootKillsPreserveSurvivorOrder)
+{
+    SymbolVariable kept(nullptr, TokenRef::invalid(), IdentifierRef{1}, {});
+    SymbolVariable killed(nullptr, TokenRef::invalid(), IdentifierRef{2}, {});
+    SymbolVariable sameRootName(nullptr, TokenRef::invalid(), IdentifierRef{2}, {});
+    SymbolVariable other(nullptr, TokenRef::invalid(), IdentifierRef{3}, {});
+    SymbolVariable field(nullptr, TokenRef::invalid(), IdentifierRef{4}, {});
+    const std::array<const Symbol*, 1> keptPath  = {&kept};
+    const std::array<const Symbol*, 1> otherPath = {&other};
+    const std::array<const Symbol*, 5> deepPath  = {&kept, &field, &field, &field, &field};
+    SemaFrame                         frame;
+    frame.addNarrowFact(keptPath, SemaNarrowFactKind::NonNull);
+    frame.addNarrowFact(std::array<const Symbol*, 1>{&killed}, SemaNarrowFactKind::NonNull);
+    frame.addNarrowKill(keptPath);
+    frame.addNarrowFact(std::array<const Symbol*, 1>{&sameRootName}, SemaNarrowFactKind::NonZero);
+    frame.addNarrowFact(keptPath, SemaNarrowFactKind::NonZero);
+    frame.addNarrowFact(otherPath, SemaNarrowFactKind::NonNull);
+    frame.addNarrowFact(deepPath, SemaNarrowFactKind::NonNull);
+    const std::vector<SemaNarrowFact> original(frame.narrowFacts().begin(), frame.narrowFacts().end());
+
+    const std::array absentRoot     = {IdentifierRef{99}};
+    const std::array unchangedRoots = {std::span<const IdentifierRef>{}, std::span<const IdentifierRef>(absentRoot)};
+    for (const auto roots : unchangedRoots)
+    {
+        frame.killNarrowFactsByRootId(roots);
+        const auto facts = frame.narrowFacts();
+        if (facts.size() != original.size())
+            return Result::Error;
+        for (size_t index = 0; index < facts.size(); ++index)
+            if (facts[index].kind != original[index].kind || facts[index].holds != original[index].holds || !std::ranges::equal(facts[index].path, original[index].path))
+                return Result::Error;
+    }
+
+    frame.killNarrowFactsByRootId(std::array{IdentifierRef{2}, IdentifierRef{2}});
+    const std::array<size_t, 5> survivors = {0, 2, 4, 5, 6};
+    const auto                  facts     = frame.narrowFacts();
+    if (facts.size() != survivors.size())
+        return Result::Error;
+    for (size_t index = 0; index < facts.size(); ++index)
+    {
+        const SemaNarrowFact& expected = original[survivors[index]];
+        if (facts[index].kind != expected.kind || facts[index].holds != expected.holds || !std::ranges::equal(facts[index].path, expected.path))
+            return Result::Error;
+    }
+    if (frame.queryNarrowFact(keptPath, SemaNarrowFactKind::NonNull) || !frame.queryNarrowFact(keptPath, SemaNarrowFactKind::NonZero))
+        return Result::Error;
+    if (!frame.queryNarrowFact(otherPath, SemaNarrowFactKind::NonNull) || !frame.queryNarrowFact(deepPath, SemaNarrowFactKind::NonNull))
+        return Result::Error;
+    frame.killNarrowFactsByRootId(std::array{IdentifierRef{1}, IdentifierRef{3}});
+    if (frame.hasNarrowFacts())
+        return Result::Error;
+    frame.killNarrowFactsByRootId(std::array{IdentifierRef{1}});
 }
 SWC_TEST_END()
 

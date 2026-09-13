@@ -458,8 +458,31 @@ namespace
         }
 
         std::ranges::sort(edits, {}, &ModuleApiTextEdit::start);
-        for (auto it = edits.rbegin(); it != edits.rend(); ++it)
-            ioContent.replace(it->start, it->end - it->start, it->replacement);
+        if (edits.empty())
+            return;
+
+        // These disjoint edits only shrink the text. Compact it once instead of moving the
+        // remaining suffix for every removed qualifier or joined attribute list.
+        size_t readOffset  = edits.front().start;
+        size_t writeOffset = readOffset;
+        for (const ModuleApiTextEdit& edit : edits)
+        {
+            SWC_ASSERT(edit.start >= readOffset && edit.end <= ioContent.size());
+            SWC_ASSERT(edit.replacement.size() <= edit.end - edit.start);
+            const size_t preservedSize = edit.start - readOffset;
+            if (preservedSize)
+                std::memmove(ioContent.data() + writeOffset, ioContent.data() + readOffset, preservedSize);
+            writeOffset += preservedSize;
+            if (!edit.replacement.empty())
+                std::memcpy(ioContent.data() + writeOffset, edit.replacement.data(), edit.replacement.size());
+            writeOffset += edit.replacement.size();
+            readOffset = edit.end;
+        }
+
+        const size_t suffixSize = ioContent.size() - readOffset;
+        if (suffixSize)
+            std::memmove(ioContent.data() + writeOffset, ioContent.data() + readOffset, suffixSize);
+        ioContent.resize(writeOffset + suffixSize);
     }
 
     void normalizeModuleApiAttributes(TaskContext& ctx, Utf8& ioContent)

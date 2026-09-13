@@ -16,6 +16,13 @@ namespace CodeGenStructHelpers
         uint32_t offset  = 0;
     };
 
+    // Reuse only within one traversal of the same aggregate type.
+    struct StructLikeFieldLayoutCursor
+    {
+        size_t   nextFieldIndex = 0;
+        uint64_t offset         = 0;
+    };
+
     const SymbolStruct*   variableOwnerStruct(const SymbolVariable& symVar);
     const SymbolStruct*   resolveRuntimeStructType(CodeGen& codeGen, TypeRef typeRef);
     const SymbolStruct*   resolveReceiverRuntimeStruct(CodeGen& codeGen);
@@ -25,7 +32,7 @@ namespace CodeGenStructHelpers
     const SymbolVariable* tryResolveSameGenericFamilyFieldSymbol(const SymbolStruct& runtimeStruct, const SymbolVariable& fieldSym);
     size_t                structLikeFieldIndex(CodeGen& codeGen, TypeRef typeRef, const SourceCodeRef& fieldNameRef);
     size_t                structLikeFieldCount(CodeGen& codeGen, TypeRef typeRef);
-    StructLikeFieldLayout structLikeFieldLayout(CodeGen& codeGen, TypeRef typeRef, size_t fieldIndex);
+    StructLikeFieldLayout structLikeFieldLayout(CodeGen& codeGen, StructLikeFieldLayoutCursor& cursor, TypeRef typeRef, size_t fieldIndex);
 }
 
 SWC_END_NAMESPACE();

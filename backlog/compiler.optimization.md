@@ -18,28 +18,24 @@ block, and the hot path keeps the register.
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13
-- Updated: 2026-09-13 09:41 — Narrow remaining rebuild work after repeated block-local SSA restores were removed and validated.
+- Updated: 2026-09-13 10:18 — Narrow remaining rebuild work after the validated SSA fast paths and block-construction reductions.
 - Area: compiler/backend, compilation time
 - Evidence: `MicroPassManager::runPass` still invalidates the shared SSA state whenever a pass
   sets `passChanged`; `MicroSsaState::ensureFor` then rebuilds it before the next query. Local
   instruction changes therefore still reconstruct dominators, phi nodes, and value uses for
   the whole function. The September 5–7 profiles established that these rebuilds were a major
   compilation cost, but their percentages no longer describe the current implementation.
-- Current boundary: build 535 replaces per-block snapshots of every active register and linear
-  reaching-definition scans with a per-register index over the dominator-tree rename walk.
-  Sink-to-use, LICM, and induction reduction now collect instruction-local use/def information
-  without building unused SSA. Graph construction also avoids repeated duplicate searches
-  and ancestor walks. DCE reuses one SSA snapshot across removal waves; SLP delays SSA
-  until a viable plan needs it. SSA skips phi setup when no dominance frontier exists;
-  value numbering builds its separate dominance tree only for matching candidates.
-  Phi predecessor lookups now use sorted block indices; bookkeeping resets only live
-  instruction slots during collection, and value numbering delays frame-derived classification
-  until a relevant memory load. Phi placement skips definition blocks and propagation
-  worklist entries whose dominance frontier is empty. Renaming saves each register's
-  block-entry value once, avoiding redundant restores after repeated definitions.
-  See the [third static batch](../bench/results/compilation/20260913/batch3.md), [second static batch](../bench/results/compilation/20260913/batch2.md) and [static follow-up](../bench/results/compilation/20260913/README.md).
-  The [compile-only comparison](../bench/results/compilation/20260912/README.md) records the
-  measurements, generated-microcode comparison, and validation of that change.
+- Current boundary: build 537 still rebuilds whole-function SSA after a mutating consumer.
+  The rebuild now retains instruction-local use/def caches and indexes reaching definitions
+  over the dominator rename walk. Consumers needing only local register effects avoid SSA;
+  DCE shares its snapshot across removal waves, and SLP delays it until a viable plan.
+  Rebuilds without virtual definitions stop after local collection. Other rebuilds skip phi
+  setup without a dominance frontier, count direct uses without traversal when no phi exists,
+  and construct block mappings and edges without redundant walks or duplicate searches.
+  These reductions do not yet distinguish the dependencies invalidated by each mutation.
+  The [static follow-up](../bench/results/compilation/20260913/README.md) records functional
+  evidence through build 537. The [compile-only comparison](../bench/results/compilation/20260912/README.md)
+  retains historical measurements; it does not quantify the current implementation.
 - Next: audit the remaining SSA consumers and rebuild dependencies. Distinguish operand-only
   changes, deleted definitions, and CFG edits; preserve analysis only when its dependencies
   are known to remain valid. Defer the full performance campaign until the shared CPU

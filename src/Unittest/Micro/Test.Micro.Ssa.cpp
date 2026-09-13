@@ -446,6 +446,63 @@ SWC_TEST_BEGIN(MicroSsa_PhiPropagationThroughNestedJoins)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroSsa_RepeatedDefinitionsRestoreBlockEntryValues)
+{
+    constexpr MicroReg value = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+    const auto         sibling = builder.createLabel();
+    const auto         child   = builder.createLabel();
+    const auto         join    = builder.createLabel();
+    builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(value, ApInt(2, 64), MicroOpBits::B64);
+    const auto parentDef = builder.instructions().lastInstructionRef();
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, sibling);
+    builder.emitLoadRegImm(value, ApInt(3, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(value, ApInt(4, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto leftDef = builder.instructions().lastInstructionRef();
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, child);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+    builder.placeLabel(child);
+    const auto childUse = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegImm(value, ApInt(5, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(value, ApInt(6, 64), MicroOpBits::B64);
+    const auto childDef = builder.instructions().lastInstructionRef();
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+    builder.placeLabel(sibling);
+    const auto siblingUse = builder.instructions().lastInstructionRef();
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+    builder.placeLabel(join);
+    const auto joinedUse = builder.instructions().lastInstructionRef();
+    builder.emitOpBinaryRegImm(value, ApInt(7, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(value, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitRet();
+    const auto end       = builder.instructions().lastInstructionRef();
+    const auto joinedDef = builder.instructions().findPreviousInstructionRef(end);
+    builder.emitLoadRegImm(value, ApInt(9, 64), MicroOpBits::B64);
+    const auto otherRoot = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    MicroSsaState ssa;
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    if (ssa.reachingDef(value, childUse).instRef != leftDef || ssa.reachingDef(value, siblingUse).instRef != parentDef)
+        return Result::Error;
+    const auto  joined = ssa.reachingDef(value, joinedUse);
+    const auto* phi    = ssa.phiInfoForValue(joined.valueId);
+    if (!joined.isPhi || !phi || phi->incomingValueIds.size() != 3)
+        return Result::Error;
+    const std::array expected{leftDef, childDef, parentDef};
+    for (uint32_t i = 0; i < expected.size(); ++i)
+    {
+        const auto* input = ssa.valueInfo(phi->incomingValueIds[i]);
+        if (!input || input->instRef != expected[i])
+            return Result::Error;
+    }
+    if (ssa.reachingDef(value, end).instRef != joinedDef || ssa.reachingDef(value, otherRoot).valid())
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

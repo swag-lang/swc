@@ -63,11 +63,13 @@ namespace PreRaPeephole
         const MicroInstr* secondInst = ctx.instruction(secondRef);
         if (!secondInst)
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, secondRef))
-            return false;
-
         Action rewrite;
         if (!buildRewrite(rewrite, firstInst, ctx.operandsFor(firstRef), *secondInst, ctx.operandsFor(secondRef)))
+            return false;
+
+        // Builders only prepare this local action. Scan the suffix only after
+        // a compatible pair exists, before claiming or mutating either instruction.
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, secondRef))
             return false;
 
         if (!ctx.claimAll({firstRef, secondRef}))

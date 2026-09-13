@@ -55,6 +55,58 @@ SWC_TEST_BEGIN(SlpVectorize_UnpackableStores_DoesNotBuildSsa)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SlpVectorize_SurvivingStoresRespectPackedLoadInsertion)
+{
+    // A preceding store blocks an overlapping load; a later one cannot block it.
+    for (uint32_t storeMode = 0; storeMode < 3; ++storeMode)
+    {
+        MicroBuilder   builder(ctx);
+        X64Encoder     encoder(ctx);
+        MicroSsaState  ssa;
+        const MicroReg sp = encoder.stackPointerReg();
+        for (uint32_t lane = 0; lane < 4; ++lane)
+            builder.emitLoadRegMem(MicroReg::virtualIntReg(lane + 1), sp, 0x40 + lane * 4, MicroOpBits::B32);
+
+        MicroInstrRef survivingStore = MicroInstrRef::invalid();
+        if (storeMode != 2)
+        {
+            builder.emitLoadMemImm(sp, storeMode == 0 ? 0x80 : 0x40, ApInt(7, 8), MicroOpBits::B8);
+            survivingStore = builder.instructions().lastInstructionRef();
+        }
+        for (uint32_t lane = 0; lane < 4; ++lane)
+        {
+            const MicroReg value = MicroReg::virtualIntReg(lane + 1);
+            builder.emitOpBinaryRegImm(value, ApInt(1, 8), MicroOp::ShiftLeft, MicroOpBits::B32);
+            builder.emitLoadMemReg(sp, 0x60 + lane * 4, value, MicroOpBits::B32);
+        }
+        if (storeMode == 2)
+        {
+            builder.emitLoadMemImm(sp, 0x40, ApInt(7, 8), MicroOpBits::B8);
+            survivingStore = builder.instructions().lastInstructionRef();
+        }
+        builder.emitClearReg(MicroReg::intReg(10), MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runSlpPass(builder, ssa, encoder));
+        const bool vectorized = storeMode != 1;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != (vectorized ? 1u : 0u) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != (vectorized ? 0u : 4u))
+            return Result::Error;
+        if (builder.instructions().ptr(survivingStore)->op != MicroInstrOpcode::LoadMemImm)
+            return Result::Error;
+        bool passedStore = false;
+        for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+        {
+            if (it.current == survivingStore)
+                passedStore = true;
+            if (it->op == MicroInstrOpcode::LoadVecRegMem && passedStore != (storeMode == 0))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(SlpVectorize_RejectedBlockKeepsFollowingBlockVectorizable)
 {
     // Reject a short store group, an unresolved read, and an unresolved write.

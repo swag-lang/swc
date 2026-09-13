@@ -1121,20 +1121,9 @@ Result MicroLegalizePass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands);
     const auto& encoder                  = *(context.encoder);
     uint64_t    stackScratchFrameSize    = 0;
-    uint32_t    nextVirtualIntRegIndex   = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
-    uint32_t    nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
-    {
-        const MicroInstr&        inst = *it;
-        const MicroInstrOperand* ops  = inst.ops(*context.operands);
-
-        MicroConformanceIssue issue;
-        if (!encoder.queryConformanceIssue(issue, inst, ops))
-            continue;
-
-        // Reserved for future scratch-frame requirements.
-        SWC_UNUSED(issue);
-    }
+    uint32_t    nextVirtualIntRegIndex   = 0;
+    uint32_t    nextVirtualFloatRegIndex = 0;
+    bool        virtualRegIndicesReady   = false;
 
     if (stackScratchFrameSize)
     {
@@ -1158,6 +1147,15 @@ Result MicroLegalizePass::run(MicroPassContext& context)
         MicroConformanceIssue issue;
         if (!encoder.queryConformanceIssue(issue, inst, ops))
             continue;
+
+        // Discover both register files before the first mutation, so later
+        // issues keep the same names even when high virtuals occur in the suffix.
+        if (!virtualRegIndicesReady)
+        {
+            nextVirtualIntRegIndex   = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+            nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
+            virtualRegIndicesReady   = true;
+        }
 
         for (;;)
         {

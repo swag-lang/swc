@@ -674,7 +674,7 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
 {
     BlockInfo&                 block = blocks_[blockIndex];
     SmallVector8<RestorePoint> restores;
-    restores.reserve(block.phis.size() + (block.instructionEnd - block.instructionBegin));
+    restores.reserve(std::min<size_t>(state.currentValues.size(), block.phis.size() + (block.instructionEnd - block.instructionBegin)));
 
     for (const uint32_t phiIndex : block.phis)
     {
@@ -768,7 +768,12 @@ void MicroSsaState::assignPhiInputs(const uint32_t predecessorBlock, const uint3
 void MicroSsaState::pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, const uint32_t regIndex, const uint32_t valueId)
 {
     SWC_ASSERT(regIndex < state.currentValues.size());
-    restores.push_back(RestorePoint{regIndex, state.currentValues[regIndex]});
+    const uint32_t previousId = state.currentValues[regIndex];
+    // All definitions in this block precede its dominator children. Only its
+    // first definition of a register must save the value visible on entry;
+    // intermediate restores would share one rename position and be overwritten.
+    if (previousId == K_INVALID_VALUE || valueInfos_[previousId].blockIndex != valueInfos_[valueId].blockIndex)
+        restores.push_back(RestorePoint{regIndex, previousId});
     setCurrentValue(state, regIndex, valueId);
 }
 

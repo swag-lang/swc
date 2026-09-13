@@ -1483,8 +1483,10 @@ namespace
         {
             for (const StoreRecord& record : scan.stores)
             {
-                if (record.pos >= firstDeletedPos || deletedStoreRefs.contains(record.instRef.get()))
-                    continue;
+                // Stores are in instruction order. Before the first deletion,
+                // every store survives; the remaining suffix cannot interfere.
+                if (record.pos >= firstDeletedPos)
+                    break;
                 if (record.rootKey != load.rootKey)
                     continue;
                 // Subtraction also handles a small range straddling displacement zero.

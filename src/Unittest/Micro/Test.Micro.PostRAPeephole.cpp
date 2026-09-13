@@ -252,6 +252,65 @@ SWC_TEST_BEGIN(PostRAPeephole_CopyForward_StopsAtEncoderImplicitDef)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Legalize_LateMixedIssuesPreserveScratchNames)
+{
+    constexpr auto r8   = MicroReg::intReg(8);
+    constexpr auto r9   = MicroReg::intReg(9);
+    constexpr auto r10  = MicroReg::intReg(10);
+    constexpr auto xmm3 = MicroReg::floatReg(3);
+    constexpr auto xmm4 = MicroReg::floatReg(4);
+    for (const bool floatFirst : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        for (uint32_t i = 0; i < 24; ++i)
+            builder.emitNop();
+        for (uint32_t pair = 0; pair < 2; ++pair)
+        {
+            for (uint32_t kind = 0; kind < 2; ++kind)
+            {
+                if ((kind == 0) == floatFirst)
+                    builder.emitOpBinaryMemReg(r10, pair * 8, xmm3, MicroOp::FloatAdd, MicroOpBits::B64);
+                else
+                    builder.emitOpBinaryRegImm(pair == 0 ? r8 : r9, ApInt(0x123456789ABCDEF0ull, 64), MicroOp::Add, MicroOpBits::B64);
+            }
+        }
+        // Both maxima occur after every issue, regardless of which register
+        // file needs the first scratch. Repeated issues must advance each file.
+        builder.emitLoadRegReg(MicroReg::virtualIntReg(1000), r10, MicroOpBits::B64);
+        builder.emitLoadRegReg(MicroReg::virtualFloatReg(2000), xmm4, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runLegalizePass(builder, encoder));
+        const auto& exclusions = builder.virtualRegForbiddenPhysRegs();
+        if (exclusions.size() != 4)
+            return Result::Error;
+        for (uint32_t pair = 0; pair < 2; ++pair)
+        {
+            const auto intScratch   = MicroReg::virtualIntReg(1001 + pair);
+            const auto floatScratch = MicroReg::virtualFloatReg(2001 + pair);
+            if (!exclusions.contains(intScratch) || !exclusions.contains(floatScratch))
+                return Result::Error;
+            if (!hasBinaryRegRegDst(builder, floatScratch, MicroOp::FloatAdd, MicroOpBits::B64))
+                return Result::Error;
+
+            bool foundIntUse = false;
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
+                    continue;
+                const auto* ops = inst.ops(builder.operands());
+                if (ops[0].reg == (pair == 0 ? r8 : r9) && ops[1].reg == intScratch && ops[3].microOp == MicroOp::Add)
+                    foundIntUse = true;
+            }
+            if (!foundIntUse)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Legalize_ScratchExcludesFirstReadsInAbiOrder)
 {
     constexpr MicroReg r8   = MicroReg::intReg(8);

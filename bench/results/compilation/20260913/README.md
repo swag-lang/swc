@@ -1,6 +1,6 @@
 # Static compilation-cost reductions, 2026-09-13
 
-Latest validated compiler: **build 551**. Each batch is functionally validated before
+Latest validated compiler: **build 552**. Each batch is functionally validated before
 integration into master. The load-admission waiver applies to this session; performance
 measurements remain deferred until the final campaign.
 
@@ -27,11 +27,12 @@ measurements remain deferred until the final campaign.
 | 19 | 549 | 763 passed | 3,131 / 3,131 passed | [Predecessors, returns and early load rejection](batch19.md) |
 | 20 | 550 | 763 passed | 3,131 / 3,131 passed | [Early header and multiplier rejection](batch20.md) |
 | 21 | 551 | 763 passed | 3,131 / 3,131 passed | [Rotation preparation without jumps](batch21.md) |
+| 22 | 552 | 766 passed | 3,131 / 3,131 passed | [Compact membership and shared analysis data](batch22.md) |
 
-## Final integration
+## Integration status
 
-All 21 validated batches are integrated into local master. The final source change is
-`b21cf2263` (build 551); the tested DevMode compiler is the checkout-local
+All 22 validated batches are integrated into local master. The latest source change is
+`35241cdef` (build 552); the tested DevMode compiler is the checkout-local
 `bin/swc.dm.exe` in `C:/Perso/swag-lang/swc-compile-perf`. Each source batch was built
 and passed the C++ suite plus native tests in both program configurations before merging.
 No optimization rule or iteration budget was weakened to obtain these static reductions.
@@ -39,7 +40,7 @@ No optimization rule or iteration budget was weakened to obtain these static red
 The remaining SSA invalidation work is narrowed in
 [`compiler.optimization.029`](../../../../backlog/compiler.optimization.md): an isolated
 constant rewrite preserves topology but removes a use edge, so reuse requires an explicit
-mutation contract and metadata repair. The [final repository validator](final-repository.log)
+mutation contract and metadata repair. The [repository validator after batch 21](final-repository.log)
 passed with exit code 0 after that backlog update. `git diff --check` passed, and the only
 `.output` directory under the validation worktree's test sources is `bin/unittests/.output`.
 Build and test logs are archived here; their temporary duplicates were removed individually.

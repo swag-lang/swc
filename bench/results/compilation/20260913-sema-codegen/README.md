@@ -1,7 +1,7 @@
 # Semantic analysis and code generation work reductions, 2026-09-13
 
 This change removes repeated work outside the micro passes. Functional validation targets
-compiler builds 532 through 534 on `1cb02fdaa` plus the changes below. Work is isolated on
+compiler builds 532 through 535 on `1cb02fdaa` plus the changes below. Work is isolated on
 `perf/sema-codegen-compile-time` in the `swc-sema-codegen-perf` worktree. Micro-pass work has its own
 [report](../20260913/README.md).
 
@@ -139,3 +139,46 @@ Focused evidence: [literal contexts](jit-literal-context-534.log),
 [Release-compiler indexing](release-compiler-index_list-534.log),
 [Release-compiler dispatch](release-compiler-switch_dispatch-534.log),
 and [Release-compiler binding growth](release-compiler-binding_visit_growth-534.log).
+
+## Additional reductions in build 535
+
+| Area | Removed work | Preserved contract |
+| --- | --- | --- |
+| Named literal binding | A named child resolves its own target member directly instead of rebuilding the assignment history of preceding children. | Positional binding and escape-analysis member mapping keep the existing ordered assignment algorithm. |
+| Large struct lookup | Completed structs with more than 32 fields reuse their existing symbol index. | The result must belong to the struct's field-index map; ignored, non-field, or synthetic cases fall back to the original scan. Small and incomplete structs keep that scan. |
+| Aggregate type storage | The unused source-reference vector is removed from aggregate type payloads. | Types and member names retain their ownership and copy/move/destruction behavior. Runtime reflection has a separate representation. |
+| Aggregate type hashing | The internal hash includes ordered type and name handles, replacing one hash per arity. | Exact equality still resolves collisions. Runtime hashes and structural shard selection in a configured compiler are unchanged. |
+| Constant assignment checks | Parenthesized expressions no longer build an unused semantic view; indexed sources avoid a duplicate inline-constant check. | The same recursive constness predicates and diagnostics remain active. |
+| Final executable dependencies | Call and constant traversals retain independent cursors, one function set, and one visited-allocation set across closure iterations. | This state is retained only after all lowering completes. Earlier lowering rounds still rescan with fresh state. Discovery order, duplicate roots, constant recursion, and final pruning are preserved. |
+
+The new type-interning regression checks 256 distinct same-arity inputs in each of three families,
+with independently varied types and names, temporary inputs, copying, moving, permutations, and
+retrieval after growth. It allows hash collisions while rejecting a single hash for the whole family.
+
+The native dependency regression verifies an alternating chain of direct calls and constant
+function tables. It checks actual `ConstantAddress` and `FunctionSymbol` relocations, duplicate
+global roots, unique retained functions, and an unreachable function that was lowered before pruning.
+The C++ fixture installs the lowered graph directly after semantic analysis; it does not depend on
+source-language constant folding of function addresses.
+The large-struct JIT fixture covers 34 fields, an ignored declaration, reversed named binding,
+partial initialization, inline cloning, and a positional prefix followed by reordered named fields.
+
+Both build-535 compiler configurations built successfully. The same 28 filesystem C++ tests remain
+outside this selection. Focused DevMode tests cover literal contexts, aggregate field order,
+constant slices, promoted field lookup, and constant assignment diagnostics. The Release compiler
+passed large-struct binding (2 JIT tests), constant slices (6 native tests), and constant-address
+storage (1 native test), with six workers.
+
+| Build-535 complete suite | Result | Evidence |
+| --- | --- | --- |
+| C++ | 684 passed | [Log](cpp-535.log) |
+| Semantic analysis | 278 valid inputs and 293 expected-error inputs verified | [Log](sema-535.log) |
+| JIT | 1,402 passed | [Log](jit-535.log) |
+| Native, program configuration `devmode` | 3,137 passed; generated executable passed | [Log](native-devmode-535.log) |
+| Native, program configuration `release` | 3,137 passed; generated executable passed | [Log](native-release-535.log) |
+
+Focused evidence: [large structs](jit-large_struct_named_binding-535.log),
+[JIT constant slices](jit-const_slice-535.log), [native constant slices](native-const_slice-535.log),
+[Release-compiler large structs](release-compiler-large-struct-535.log),
+[Release-compiler constant slices](release-compiler-const-slice-535.log), and
+[Release-compiler constant addresses](release-compiler-rdata-535.log).

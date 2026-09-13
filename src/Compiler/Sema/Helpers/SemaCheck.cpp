@@ -48,7 +48,7 @@ namespace
         }
     }
 
-    bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView);
+    bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef);
 
     Diagnostic reportReadOnlyAssignment(Sema& sema, AstNodeRef leftExprRef)
     {
@@ -285,7 +285,7 @@ namespace
             return false;
 
         const SemaNodeView sourceView = sema.viewNodeTypeConstantSymbol(sourceRef);
-        if (isInlineConstAssignmentTarget(sema, sourceRef) || isConstAssignmentTargetImpl(sema, sourceRef, sourceView))
+        if (isConstAssignmentTargetImpl(sema, sourceRef))
             return true;
         if (!sourceView.type())
             return false;
@@ -338,10 +338,8 @@ namespace
         return Result::Continue;
     }
 
-    bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView)
+    bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef)
     {
-        SWC_UNUSED(leftView);
-
         if (isInlineConstAssignmentTarget(sema, leftExprRef))
             return true;
 
@@ -354,18 +352,14 @@ namespace
         {
             const auto&        member     = node.cast<AstMemberAccessExpr>();
             const SemaNodeView sourceView = sema.viewNodeTypeConstantSymbol(member.nodeLeftRef);
-            return (!isSyntheticAutoMemberLeft(sema, member.nodeLeftRef) && isConstSourceViewImpl(sema, sourceView)) || isConstAssignmentTargetImpl(sema, member.nodeLeftRef, sourceView);
+            return (!isSyntheticAutoMemberLeft(sema, member.nodeLeftRef) && isConstSourceViewImpl(sema, sourceView)) || isConstAssignmentTargetImpl(sema, member.nodeLeftRef);
         }
         if (node.is(AstNodeId::IndexExpr) || node.is(AstNodeId::IndexListExpr))
             return isConstIndexedSource(sema, resolvedRef);
         if (node.is(AstNodeId::UnaryExpr))
             return isDerefConstSource(sema, node.cast<AstUnaryExpr>());
         if (node.is(AstNodeId::ParenExpr))
-        {
-            const AstNodeRef   exprRef  = node.cast<AstParenExpr>().nodeExprRef;
-            const SemaNodeView exprView = sema.viewNodeTypeConstantSymbol(exprRef);
-            return isConstAssignmentTargetImpl(sema, exprRef, exprView);
-        }
+            return isConstAssignmentTargetImpl(sema, node.cast<AstParenExpr>().nodeExprRef);
         // 'expr[as T]' writes through the source pointer like a plain dereference.
         if (node.is(AstNodeId::CastExpr) && node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::DerefPlace))
         {
@@ -874,7 +868,8 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNod
 
 bool SemaCheck::isConstAssignmentTarget(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView)
 {
-    return isConstAssignmentTargetImpl(sema, leftExprRef, leftView);
+    SWC_UNUSED(leftView);
+    return isConstAssignmentTargetImpl(sema, leftExprRef);
 }
 
 bool SemaCheck::isImmutableBinding(Sema& sema, AstNodeRef nodeRef)

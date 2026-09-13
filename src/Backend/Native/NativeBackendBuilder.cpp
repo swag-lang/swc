@@ -316,13 +316,12 @@ namespace
         return shouldPrepareSymbol(builder, fn) && (fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody));
     }
 
-    bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions)
+    bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, size_t& nextFunctionIndex)
     {
-        bool               changed = false;
-        std::unordered_set seenFunctions(functions.begin(), functions.end());
-        for (size_t idx = 0; idx < functions.size(); ++idx)
+        bool changed = false;
+        for (; nextFunctionIndex < functions.size(); ++nextFunctionIndex)
         {
-            const SymbolFunction* function = functions[idx];
+            const SymbolFunction* function = functions[nextFunctionIndex];
             SWC_ASSERT(function != nullptr);
 
             SmallVector<SymbolFunction*> deps;
@@ -340,6 +339,13 @@ namespace
         }
 
         return changed;
+    }
+
+    bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions)
+    {
+        std::unordered_set seenFunctions(functions.begin(), functions.end());
+        size_t             nextFunctionIndex = 0;
+        return appendCodeGenDependencies(builder, functions, seenFunctions, nextFunctionIndex);
     }
 
     bool appendConstantFunctionDependenciesRec(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, const uint32_t shardIndex, const uint32_t sourceOffset)
@@ -378,17 +384,15 @@ namespace
         return changed;
     }
 
-    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions)
+    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, size_t& nextFunctionIndex)
     {
-        std::unordered_set           seenFunctions(functions.begin(), functions.end());
-        std::unordered_set<uint64_t> visitedAllocations;
-        bool                         changed = false;
+        bool changed = false;
 
         // Newly discovered constant dependencies are appended to 'functions', so iterate by
         // index to keep traversal stable while still visiting the new entries in the same pass.
-        for (size_t idx = 0; idx < functions.size(); ++idx)
+        for (; nextFunctionIndex < functions.size(); ++nextFunctionIndex)
         {
-            const SymbolFunction* function = functions[idx];
+            const SymbolFunction* function = functions[nextFunctionIndex];
             if (!function)
                 continue;
 
@@ -407,6 +411,14 @@ namespace
         }
 
         return changed;
+    }
+
+    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions)
+    {
+        std::unordered_set           seenFunctions(functions.begin(), functions.end());
+        std::unordered_set<uint64_t> visitedAllocations;
+        size_t                      nextFunctionIndex = 0;
+        return appendConstantFunctionDependencies(builder, functions, seenFunctions, visitedAllocations, nextFunctionIndex);
     }
 
     bool appendGlobalFunctionInitDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, const std::span<SymbolVariable* const> globals)
@@ -1058,11 +1070,19 @@ Result NativeBackendBuilder::prepare()
             // function has therefore been lowered successfully.
             if (compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
             {
-                auto executableFunctions = collectExecutableFunctionRoots(*this);
+                auto                         executableFunctions = collectExecutableFunctionRoots(*this);
+                std::unordered_set           seenFunctions(executableFunctions.begin(), executableFunctions.end());
+                std::unordered_set<uint64_t> visitedAllocations;
+                size_t                      nextCallFunctionIndex     = 0;
+                size_t                      nextConstantFunctionIndex = 0;
+
+                // Lowering is complete, so each dependency source is now immutable. Keep
+                // independent cursors to preserve the call/constant discovery order while
+                // visiting only the suffix added by the preceding phase.
                 while (true)
                 {
-                    const bool addedCallDeps     = appendCodeGenDependencies(*this, executableFunctions);
-                    const bool addedConstantDeps = appendConstantFunctionDependencies(*this, executableFunctions);
+                    const bool addedCallDeps     = appendCodeGenDependencies(*this, executableFunctions, seenFunctions, nextCallFunctionIndex);
+                    const bool addedConstantDeps = appendConstantFunctionDependencies(*this, executableFunctions, seenFunctions, visitedAllocations, nextConstantFunctionIndex);
                     if (!addedCallDeps && !addedConstantDeps)
                         break;
                 }

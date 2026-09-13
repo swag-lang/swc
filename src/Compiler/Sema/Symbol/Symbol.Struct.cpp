@@ -855,6 +855,16 @@ bool SymbolStruct::tryGetFieldIndexByName(size_t& outIndex, const IdentifierRef 
 
 const SymbolVariable* SymbolStruct::findFieldByName(const IdentifierRef name) const noexcept
 {
+    if (fields_.size() > 32 && isSemaCompleted())
+    {
+        // Completed structs have removed ignored fields and checked duplicate names. Reuse
+        // their symbol index, but keep the scan for homonyms or synthetic, unregistered fields.
+        const Symbol* symbol = findFirstSymbol(name, true);
+        const auto* field = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
+        if (field && fieldIndexMap_.contains(field))
+            return field;
+    }
+
     for (const SymbolVariable* field : fields_)
     {
         if (field && field->idRef() == name)

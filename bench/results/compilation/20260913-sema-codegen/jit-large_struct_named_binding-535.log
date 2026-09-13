@@ -1,0 +1,14 @@
+  ◆  swag        run • tools • devmode
+  ✓  module      win32 • 31 files • 1 s 521 ms
+  ✓  module      xinput • 28 files • 1 s 328 ms
+  ✓  module      core • 349 files • core.dll • 44 s 31 ms
+  ✓  workspace   std [core] • 3 modules • 50 s 494 ms
+  ✓  checked     66 files • 181_150 tokens • 1 s 968 ms
+  ✓  tuned       458 functions • 2 s 298 ms
+  ◆  swag        test • bin/unittests/jit • devmode
+  ✓  checked     20 files • 40_772 tokens • 248 ms
+  ✓  tuned       192 functions • 126 ms
+  ✓  executed    2 passed • 141 ms
+  ✓  verified    18 us
+  ✓  tested      2 passed • 396 ms
+  ✓  clean       404 ms

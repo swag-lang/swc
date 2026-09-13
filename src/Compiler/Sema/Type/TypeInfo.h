@@ -414,7 +414,6 @@ private:
         {
             std::vector<TypeRef>       types;
             std::vector<IdentifierRef> names;
-            std::vector<SourceCodeRef> fieldRefs;
         } payloadAggregate_;
 
         struct

@@ -856,6 +856,28 @@ namespace
         return targetType.tryGetAggregateMemberIndexByName(outIndex, sema.ctx(), idRef);
     }
 
+    bool resolveAggregateMemberSlot(SemaHelpers::AggregateChildSlot& outSlot, const TypeInfo& targetType, size_t index)
+    {
+        if (targetType.isAggregateStruct())
+        {
+            const auto& types = targetType.payloadAggregate().types;
+            if (index >= types.size())
+                return false;
+            outSlot.index   = index;
+            outSlot.typeRef = types[index];
+            return true;
+        }
+
+        SWC_ASSERT(targetType.isStruct());
+        const auto& fields = targetType.payloadSymStruct().fields();
+        if (index >= fields.size() || !fields[index])
+            return false;
+        outSlot.field   = fields[index];
+        outSlot.index   = index;
+        outSlot.typeRef = fields[index]->typeRef();
+        return true;
+    }
+
     // Walks the literal's children in order, assigning each one its slot: a named argument
     // takes the member it names, a positional one takes the next slot no name has claimed.
     bool resolveAggregateChildIndex(Sema& sema, const TypeInfo& targetType, std::span<const AstNodeRef> children, AstNodeRef childRef, size_t memberCount, size_t& outIndex)
@@ -1093,21 +1115,7 @@ bool SemaHelpers::resolveAggregateChildSlot(Sema& sema, AggregateChildSlot& outS
     if (!resolveAggregateChildIndex(sema, targetType, children, childRef, memberCount, index) || index >= memberCount)
         return false;
 
-    if (!isStruct)
-    {
-        outSlot.index   = index;
-        outSlot.typeRef = targetType.payloadAggregate().types[index];
-        return true;
-    }
-
-    const SymbolVariable* field = targetType.payloadSymStruct().fields()[index];
-    if (!field)
-        return false;
-
-    outSlot.field   = field;
-    outSlot.index   = index;
-    outSlot.typeRef = field->typeRef();
-    return true;
+    return resolveAggregateMemberSlot(outSlot, targetType, index);
 }
 
 TypeRef SemaHelpers::structuralTypeRefFromTypeNode(Sema& sema, AstNodeRef typeNodeRef)
@@ -1210,6 +1218,16 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
         SWC_RESULT(sema.waitSemaCompleted(&targetType, childRef));
 
     AggregateChildSlot slot;
+    const IdentifierRef namedIdRef = namedArgumentIdentifier(sema, childRef);
+    if (namedIdRef.isValid())
+    {
+        // Binding callbacks already identify a literal child. Its named slot is independent
+        // of earlier arguments; only positional children need the assignment history.
+        size_t index = 0;
+        if (resolveNamedMemberIndex(sema, targetType, namedIdRef, index) && resolveAggregateMemberSlot(slot, targetType, index))
+            outTypeRef = slot.typeRef;
+        return Result::Continue;
+    }
     if (resolveAggregateChildSlot(sema, slot, targetType, children, childRef))
         outTypeRef = slot.typeRef;
     return Result::Continue;

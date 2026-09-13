@@ -246,6 +246,69 @@ SWC_TEST_BEGIN(Sema_GenericInstanceStoragePreservesIdentityAcrossGrowth)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Sema_AggregateTypeInterningUsesOrderedContents)
+{
+    // This manager needs only handle identity, so synthetic element and name refs suffice.
+    TypeManager                                      manager;
+    constexpr size_t                                 count = 256;
+    std::array<std::array<TypeRef, count>, 3>          refs;
+    std::array<std::unordered_set<uint32_t>, 3>       hashes;
+    const std::array                                 fixedTypes = {TypeRef{1}, TypeRef{2}, TypeRef{3}, TypeRef{4}};
+    const std::array                                 fixedNames = {IdentifierRef::invalid(), IdentifierRef{2}, IdentifierRef{3}, IdentifierRef{4}};
+
+    // Keep long common prefixes and vary types independently from names. The second
+    // pass checks that table growth and temporary input lifetimes preserve interning.
+    for (size_t pass = 0; pass < 2; ++pass)
+    {
+        for (uint32_t index = 0; index < count; ++index)
+        {
+            auto types   = fixedTypes;
+            auto names   = fixedNames;
+            types.back() = TypeRef{index + 4};
+            names.back() = IdentifierRef{index + 4};
+            const std::array candidates = {TypeInfo::makeAggregateArray(types), TypeInfo::makeAggregateStruct(fixedNames, types), TypeInfo::makeAggregateStruct(names, fixedTypes)};
+            for (size_t kind = 0; kind < candidates.size(); ++kind)
+            {
+                const TypeRef ref = manager.addType(candidates[kind]);
+                if (!(manager.get(ref) == candidates[kind]))
+                    return Result::Error;
+                if (!pass)
+                {
+                    refs[kind][index] = ref;
+                    hashes[kind].insert(candidates[kind].hash());
+                }
+                else if (refs[kind][index] != ref || manager.get(ref).hash() != candidates[kind].hash())
+                    return Result::Error;
+            }
+        }
+    }
+
+    for (size_t kind = 0; kind < refs.size(); ++kind)
+    {
+        const std::unordered_set<TypeRef> uniqueRefs(refs[kind].begin(), refs[kind].end());
+        // Allow hash collisions, while rejecting the old single bucket per arity.
+        if (uniqueRefs.size() != count || hashes[kind].size() < count / 2)
+            return Result::Error;
+    }
+
+    auto reversedTypes = fixedTypes;
+    auto reversedNames = fixedNames;
+    std::ranges::reverse(reversedTypes);
+    std::ranges::reverse(reversedNames);
+    if (manager.addType(TypeInfo::makeAggregateArray(reversedTypes)) == refs[0][0])
+        return Result::Error;
+    if (manager.addType(TypeInfo::makeAggregateStruct(fixedNames, reversedTypes)) == refs[1][0])
+        return Result::Error;
+    if (manager.addType(TypeInfo::makeAggregateStruct(reversedNames, fixedTypes)) == refs[2][0])
+        return Result::Error;
+
+    TypeInfo copy(manager.get(refs[1][count - 1]));
+    const TypeInfo moved(std::move(copy));
+    if (manager.addType(moved) != refs[1][count - 1])
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Sema_CastLegalityCoversScalarConversionKinds)
 {
     SemaDecisionFixture fixture(ctx, "CastLegalityCoversScalarConversionKinds");

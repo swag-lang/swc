@@ -158,7 +158,6 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::AggregateArray:
             std::construct_at(&payloadAggregate_.types, other.payloadAggregate_.types);
             std::construct_at(&payloadAggregate_.names, other.payloadAggregate_.names);
-            std::construct_at(&payloadAggregate_.fieldRefs, other.payloadAggregate_.fieldRefs);
             break;
 
         case TypeInfoKind::Enum:
@@ -231,7 +230,6 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
         case TypeInfoKind::AggregateArray:
             std::construct_at(&payloadAggregate_.types, std::move(other.payloadAggregate_.types));
             std::construct_at(&payloadAggregate_.names, std::move(other.payloadAggregate_.names));
-            std::construct_at(&payloadAggregate_.fieldRefs, std::move(other.payloadAggregate_.fieldRefs));
             break;
 
         case TypeInfoKind::Enum:
@@ -294,7 +292,6 @@ TypeInfo::~TypeInfo()
         case TypeInfoKind::AggregateArray:
             std::destroy_at(&payloadAggregate_.types);
             std::destroy_at(&payloadAggregate_.names);
-            std::destroy_at(&payloadAggregate_.fieldRefs);
             break;
         default:
             break;
@@ -467,9 +464,16 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::AggregateStruct:
             h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.types.size()));
             h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.names.size()));
+            for (size_t i = 0; i < payloadAggregate_.types.size(); ++i)
+            {
+                h = Math::hashCombine(h, payloadAggregate_.types[i].get());
+                h = Math::hashCombine(h, payloadAggregate_.names[i].get());
+            }
             return h;
         case TypeInfoKind::AggregateArray:
             h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.types.size()));
+            for (const TypeRef typeRef : payloadAggregate_.types)
+                h = Math::hashCombine(h, typeRef.get());
             return h;
         case TypeInfoKind::Enum:
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadEnum_.sym));
@@ -1009,7 +1013,6 @@ TypeInfo TypeInfo::makeAggregateStruct(const std::span<const IdentifierRef>& nam
     TypeInfo ti{TypeInfoKind::AggregateStruct, TypeInfoFlagsE::Const};
     std::construct_at(&ti.payloadAggregate_.types, types.begin(), types.end());
     std::construct_at(&ti.payloadAggregate_.names, names.begin(), names.end());
-    std::construct_at(&ti.payloadAggregate_.fieldRefs, types.size(), SourceCodeRef::invalid());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -1019,7 +1022,6 @@ TypeInfo TypeInfo::makeAggregateArray(const std::span<const TypeRef>& types)
     TypeInfo ti{TypeInfoKind::AggregateArray, TypeInfoFlagsE::Const};
     std::construct_at(&ti.payloadAggregate_.types, types.begin(), types.end());
     std::construct_at(&ti.payloadAggregate_.names);
-    std::construct_at(&ti.payloadAggregate_.fieldRefs, types.size(), SourceCodeRef::invalid());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }

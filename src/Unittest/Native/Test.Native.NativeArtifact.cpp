@@ -15,7 +15,9 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/SourceFile.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
@@ -1222,6 +1224,180 @@ var GHolder:  Holder
         return failNativeArtifactTest("NativeArtifact_ExecutablePrunesUnreachableGeneratedFunctions", "static function value target was pruned");
     if (std::ranges::any_of(nativeBuilder.functionInfos, [&](const NativeFunctionInfo& info) { return isHolderEquality(info.symbol); }))
         return failNativeArtifactTest("NativeArtifact_ExecutablePrunesUnreachableGeneratedFunctions", "unreachable generated equality was retained");
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(NativeArtifact_ExecutableClosesAlternatingDependencies)
+{
+    static constexpr std::string_view SOURCE = R"(#global public
+
+#[Swag.NoInline]
+func leaf()->s32 => 23
+
+#[Swag.NoInline]
+func secondTarget()->s32 => 23
+
+#[Swag.NoInline]
+func secondCaller()->s32 => 23
+
+#[Swag.NoInline]
+func firstTarget()->s32 => 23
+
+#[Swag.NoInline]
+func firstCaller()->s32 => 23
+
+#[Swag.NoInline]
+func neverCalled()->s32 => 99
+
+#main {}
+)";
+    static constexpr const char* TEST_NAME   = "NativeArtifact_ExecutableClosesAlternatingDependencies";
+    const fs::path                sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "ExecutableClosesAlternatingDependencies");
+
+    CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine("executable_closes_alternating_dependencies", Runtime::BuildCfgBackendKind::Executable);
+    cmdLine.directories.clear();
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return failNativeArtifactTest(TEST_NAME, "errors after sema");
+
+    TaskContext                             compilerCtx(compiler);
+    constexpr std::array                     names     = {"firstCaller", "firstTarget", "secondCaller", "secondTarget", "leaf", "neverCalled"};
+    std::array<SymbolFunction*, names.size()> functions = {};
+    const SymbolNamespace* moduleNamespace = nullptr;
+    for (const SourceFile* file : compiler.files())
+    {
+        if (file && file->path() == sourcePath)
+        {
+            moduleNamespace = file->moduleNamespace();
+            break;
+        }
+    }
+    if (!moduleNamespace)
+        return failNativeArtifactTest(TEST_NAME, "source module namespace is missing");
+
+    for (size_t idx = 0; idx < names.size(); ++idx)
+    {
+        const IdentifierRef idRef  = compilerCtx.idMgr().addIdentifier(names[idx]);
+        const Symbol*       symbol = moduleNamespace->findFirstSymbol(idRef, true);
+        if (symbol)
+            functions[idx] = const_cast<SymbolFunction*>(symbol->safeCast<SymbolFunction>());
+        if (!functions[idx])
+            return failNativeArtifactTest(TEST_NAME, std::format("source function '{}' is missing before artifact pruning", names[idx]).c_str());
+    }
+
+    // Install an already lowered graph so the test exercises artifact reachability directly.
+    // These non-const symbols belong to this fixture; no code generation job can mutate them.
+    for (SymbolFunction* function : functions)
+    {
+        auto& code = const_cast<MachineCode&>(function->loweredCode());
+        code       = {};
+        code.bytes.pushBack(std::byte{0xC3});
+    }
+    functions[1]->addCallDependency(functions[2]);
+    functions[3]->addCallDependency(functions[4]);
+
+    DataSegment& constantSegment = compiler.cstMgr().shardDataSegment(0);
+    for (const size_t ownerIdx : {0u, 2u})
+    {
+        const auto [tableOffset, tableStorage] = constantSegment.reserve<std::array<uint64_t, 2>>();
+        *tableStorage                         = {};
+        constantSegment.addFunctionRelocation(tableOffset, functions[ownerIdx + 1]);
+        constantSegment.addFunctionRelocation(tableOffset + sizeof(uint64_t), functions[ownerIdx + 1]);
+
+        ConstantValue value = ConstantValue::makeValuePointer(compilerCtx, compiler.typeMgr().typeVoid(), reinterpret_cast<uint64_t>(tableStorage), TypeInfoFlagsE::Const);
+        value.setDataSegmentRef({.shardIndex = 0, .offset = tableOffset});
+        const ConstantRef constantRef                             = compiler.cstMgr().addConstant(compilerCtx, value);
+        const_cast<MachineCode&>(functions[ownerIdx]->loweredCode()) = makeConstantAddressCode(constantRef, tableStorage);
+    }
+
+    // Both writable-data relocations remain independent roots before the final deduplication.
+    DataSegment& globalSegment            = compiler.globalInitSegment();
+    const auto [rootsOffset, rootsStorage] = globalSegment.reserve<std::array<uint64_t, 2>>();
+    *rootsStorage                         = {};
+    globalSegment.addFunctionRelocation(rootsOffset, functions[0]);
+    globalSegment.addFunctionRelocation(rootsOffset + sizeof(uint64_t), functions[0]);
+
+    const auto globalRelocations = compiler.globalInitSegment().copyRelocations();
+    const auto rootCount         = std::ranges::count_if(globalRelocations, [&](const DataSegmentRelocation& relocation) {
+        return relocation.kind == DataSegmentRelocationKind::FunctionSymbol && relocation.targetSymbol == functions[0];
+    });
+    if (rootCount != 2)
+        return failNativeArtifactTest(TEST_NAME, "global initializers need two function relocations to the shared root");
+
+    for (SymbolFunction* function : functions)
+    {
+        function->setSemaCompleted(compilerCtx);
+        function->setCodeGenCompleted(compilerCtx);
+        compiler.registerNativeCodeFunction(function);
+        if (std::ranges::find(compiler.nativeCodeSegment(), function) == compiler.nativeCodeSegment().end())
+            return failNativeArtifactTest(TEST_NAME, std::format("source function '{}' is missing from the native code segment", function->name(compilerCtx)).c_str());
+    }
+
+    NativeBackendBuilder nativeBuilder(compiler, false);
+    if (nativeBuilder.prepare() != Result::Continue)
+        return failNativeArtifactTest(TEST_NAME, "native builder cannot prepare the artifact");
+    if (functions.back()->loweredCode().bytes.empty())
+        return failNativeArtifactTest(TEST_NAME, "unreachable function has no lowered code before artifact pruning");
+
+    for (size_t idx = 0; idx < functions.size(); ++idx)
+    {
+        const auto count = std::ranges::count_if(nativeBuilder.functionInfos, [&](const NativeFunctionInfo& info) { return info.symbol == functions[idx]; });
+        if (count != (idx + 1 == functions.size() ? 0 : 1))
+            return failNativeArtifactTest(TEST_NAME, "prepared functions do not preserve reachability and uniqueness");
+    }
+
+    // The fixture needs two separate constant passes separated by direct-call discovery.
+    // Reject a lowered shortcut that would let the test pass without traversing that graph.
+    for (size_t idx = 0; idx < 5; ++idx)
+    {
+        SmallVector<SymbolFunction*> dependencies;
+        functions[idx]->appendCallDependencies(dependencies);
+        for (size_t targetIdx = 0; targetIdx < functions.size(); ++targetIdx)
+        {
+            const bool hasDependency   = std::ranges::find(dependencies, functions[targetIdx]) != dependencies.end();
+            const bool needsDependency = (idx == 1 && targetIdx == 2) || (idx == 3 && targetIdx == 4);
+            if (hasDependency != needsDependency)
+                return failNativeArtifactTest(TEST_NAME, "direct calls do not preserve the alternating dependency chain");
+        }
+    }
+
+    for (const size_t ownerIdx : {0u, 2u})
+    {
+        bool hasFunctionTable = false;
+        for (const MicroRelocation& relocation : functions[ownerIdx]->loweredCode().codeRelocations)
+        {
+            if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
+                continue;
+
+            DataSegmentRef sourceRef;
+            if (!nativeBuilder.tryResolveConstantSourceRef(sourceRef, relocation))
+                continue;
+
+            const DataSegment&    segment = compiler.cstMgr().shardDataSegment(sourceRef.shardIndex);
+            DataSegmentAllocation allocation;
+            if (!segment.findAllocation(allocation, sourceRef.offset))
+                continue;
+
+            std::vector<DataSegmentRelocation> tableRelocations;
+            segment.copyRelocations(tableRelocations, allocation.offset, allocation.size);
+            const bool hasOnlyTargets = std::ranges::all_of(tableRelocations, [&](const DataSegmentRelocation& tableRelocation) {
+                return tableRelocation.kind == DataSegmentRelocationKind::FunctionSymbol && tableRelocation.targetSymbol == functions[ownerIdx + 1];
+            });
+            if (tableRelocations.size() == 2 && hasOnlyTargets)
+            {
+                hasFunctionTable = true;
+                break;
+            }
+        }
+        if (!hasFunctionTable)
+            return failNativeArtifactTest(TEST_NAME, "constant table is missing its two function relocations");
+    }
 }
 SWC_TEST_END()
 

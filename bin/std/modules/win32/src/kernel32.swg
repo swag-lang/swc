@@ -551,6 +551,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
 {
     func VirtualUnlock(lpAddress: LPVOID, dwSize: SIZE_T)->BOOL
     func GetLastError()->DWORD
+    func SetLastError(dwErrCode: DWORD)
 
     // Converts a bounded code-page byte sequence to UTF-16; a zero output size queries capacity.
     func MultiByteToWideChar(CodePage: UINT, dwFlags: DWORD, lpMultiByteStr: LPCSTR, cbMultiByte: INT, lpWideCharStr: LPWSTR, cchWideChar: INT)->INT
@@ -1220,9 +1221,15 @@ internal namespace Win32Priv
             try failWinError(GetLastError())
     }
 
+    // The sentinel this call returns on failure is also a legal position, four gigabytes less one
+    // byte into the file, so the only thing separating the two is the thread's last error. That
+    // error is whatever the thread last left there until something sets it, which is why the
+    // documented sequence clears it first: without that, a successful seek to the sentinel
+    // position reports the failure of whatever ran before it.
     #[Discardable]
     func SetFilePointer(hFile: HANDLE, lDistanceToMove: LONG, lpDistanceToMoveHigh: PLONG, dwMoveMethod: DWORD)->DWORD fail
     {
+        SetLastError(ERROR_SUCCESS)
         let low = Win32Priv.SetFilePointer(hFile, lDistanceToMove, lpDistanceToMoveHigh, dwMoveMethod)
         if low == INVALID_SET_FILE_POINTER
         {
@@ -1240,8 +1247,11 @@ internal namespace Win32Priv
             try failWinError(GetLastError())
     }
 
+    // Same sentinel and same clearing as [[Win32.SetFilePointer]]: a file whose low size word is
+    // all ones answers the failure value on success.
     func GetFileSize(hFile: HANDLE, lpFileSizeHigh: LPDWORD)->DWORD fail
     {
+        SetLastError(ERROR_SUCCESS)
         let low = Win32Priv.GetFileSize(hFile, lpFileSizeHigh)
         if low == INVALID_FILE_SIZE
         {

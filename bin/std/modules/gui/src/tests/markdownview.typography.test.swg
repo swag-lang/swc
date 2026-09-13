@@ -6,33 +6,30 @@ using Core, Pixel
 // primary font's baseline. The text and its selection must agree after either layout or paint.
 #test
 {
-    #static if #os == Swag.TargetOs.Windows
-    {
-        var host: Testing.HeadlessHost
-        host.setup(640, 240)
-        defer host.shutdown()
-        let view  = Markdown.View.createText(&host.root, "A\u2192\u65E5\u672C\u8A9E")
-        var style = Markdown.Style.theme()
-        style.bodyTypeFaces[0] = host.theme.res.defaultFsTypeFaceR
-        view.setDocumentStyle(style)
-        view.resize(640, 240)
-        view.applyLayout()
-        let inline  = view.blocks[0].inline!
-        let font    = view.documentFont(.Paragraph, style.bodyFontSize)
-        let shaped  = Painter.shapeRun("A\u2192\u65E5\u672C\u8A9E", font)
-        let metrics = shaped.lineMetrics()
-        Swag.assert(inline.atoms[0].ascent == metrics.ascent)
-        Swag.assert(inline.atoms[0].descent == metrics.descent)
-        Swag.assert(inline.atoms[0].position.height == metrics.height)
-        Swag.assert(inline.lines[0].height >= metrics.height)
-        discard host.render(view)
-        Swag.assert(not inline.textBatches.isEmpty())
-        let batch = &inline.textBatches[0]
-        let expectedBaseline = inline.atoms[0].position.y + inline.atoms[0].ascent
-        Swag.assert(Math.isEqualEpsilon(batch.origin.y + font.ascent, expectedBaseline, 0.001))
-        for glyph in batch.shaped.glyphs do
-            Swag.assert(glyph.glyphIndex != 0)
-    }
+    var host: Testing.HeadlessHost
+    host.setup(640, 240)
+    defer host.shutdown()
+    let view  = Markdown.View.createText(&host.root, "A\u2192\u65E5\u672C\u8A9E")
+    var style = Markdown.Style.theme()
+    style.bodyTypeFaces[0] = host.theme.res.defaultFsTypeFaceR
+    view.setDocumentStyle(style)
+    view.resize(640, 240)
+    view.applyLayout()
+    let inline  = view.blocks[0].inline!
+    let font    = view.documentFont(.Paragraph, style.bodyFontSize)
+    let shaped  = Painter.shapeRun("A\u2192\u65E5\u672C\u8A9E", font)
+    let metrics = shaped.lineMetrics()
+    Swag.assert(inline.atoms[0].ascent == metrics.ascent)
+    Swag.assert(inline.atoms[0].descent == metrics.descent)
+    Swag.assert(inline.atoms[0].position.height == metrics.height)
+    Swag.assert(inline.lines[0].height >= metrics.height)
+    discard host.render(view)
+    Swag.assert(not inline.textBatches.isEmpty())
+    let batch = &inline.textBatches[0]
+    let expectedBaseline = inline.atoms[0].position.y + inline.atoms[0].ascent
+    Swag.assert(Math.isEqualEpsilon(batch.origin.y + font.ascent, expectedBaseline, 0.001))
+    for glyph in batch.shaped.glyphs do
+        Swag.assert(glyph.glyphIndex != 0)
 }
 
 // Typeface overrides affect measured text and survive a zoom; empty slots resume the GUI font.

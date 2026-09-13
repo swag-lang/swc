@@ -21,18 +21,15 @@ func markdownSystemFaces(names: const [..] string)->[FontFamilyStyle.count] (*Ty
         return found.value
 
     var result: retval
-    #static if #os == Swag.TargetOs.Windows
+    for name in names
     {
-        for name in names
-        {
-            let family = FontFamily.findSystemFont(name)
-            if family.name.isEmpty() do
-                continue
-            for index in FontFamilyStyle.count do
-                result[index] = catch FontFamily.createTypeFace(family, cast(FontFamilyStyle) index)
-            if result[0] != null do
-                break
-        }
+        let family = FontFamily.findSystemFont(name)
+        if family.name.isEmpty() do
+            continue
+        for index in FontFamilyStyle.count do
+            result[index] = catch FontFamily.createTypeFace(family, cast(FontFamilyStyle) index)
+        if result[0] != null do
+            break
     }
 
     g_MarkdownFontFamilies.add(key, result)

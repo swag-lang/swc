@@ -2335,9 +2335,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     }
 
     tempOutVirtual_.assign(virtualWordCount, 0);
-    tempInVirtual_.assign(virtualWordCount, 0);
     tempOutConcrete_.assign(concreteWordCount, 0);
-    tempInConcrete_.assign(concreteWordCount, 0);
 
     while (!worklist_.empty())
     {
@@ -2364,25 +2362,25 @@ void MicroRegisterAllocationPass::analyzeLiveness()
                 tempOutConcrete_[word] |= succInConcrete[word];
         }
 
-        tempInVirtual_  = tempOutVirtual_;
-        tempInConcrete_ = tempOutConcrete_;
+        // Only live-in is published during the fixed point. Consume the
+        // temporary live-out in place; later live-out queries rebuild it.
         {
-            const std::span inVirtual = tempInVirtual_;
+            const std::span inVirtual = tempOutVirtual_;
             for (const uint32_t bitIndex : defVirtualIndices_[instructionIndex])
                 DenseBits::clear(inVirtual, bitIndex);
             for (const uint32_t bitIndex : useVirtualIndices_[instructionIndex])
                 DenseBits::set(inVirtual, bitIndex);
         }
         {
-            const std::span inConcrete = tempInConcrete_;
+            const std::span inConcrete = tempOutConcrete_;
             for (const uint32_t bitIndex : defConcreteIndices_[instructionIndex])
                 DenseBits::clear(inConcrete, bitIndex);
             for (const uint32_t bitIndex : useConcreteIndices_[instructionIndex])
                 DenseBits::set(inConcrete, bitIndex);
         }
 
-        const bool changedVirtual  = DenseBits::copyIfChanged(DenseBits::row(liveInVirtualBits_, instructionIndex, virtualWordCount), tempInVirtual_);
-        const bool changedConcrete = DenseBits::copyIfChanged(DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount), tempInConcrete_);
+        const bool changedVirtual  = DenseBits::copyIfChanged(DenseBits::row(liveInVirtualBits_, instructionIndex, virtualWordCount), tempOutVirtual_);
+        const bool changedConcrete = DenseBits::copyIfChanged(DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount), tempOutConcrete_);
         if (!changedVirtual && !changedConcrete)
             continue;
 
@@ -4468,9 +4466,7 @@ void MicroRegisterAllocationPass::clearState()
     worklist_.clear();
     inWorklist_.clear();
     tempOutVirtual_.clear();
-    tempInVirtual_.clear();
     tempOutConcrete_.clear();
-    tempInConcrete_.clear();
     definitionCounts_.clear();
     liveStampByDenseIndex_.clear();
     callSpillFlags_.clear();

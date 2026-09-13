@@ -220,6 +220,77 @@ SWC_TEST_BEGIN(LICM_RetargetsDuplicateRelocationsAndKeepsUnhoistedOnes)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LICM_FramePrivacyResolvesBackwardLayoutChainsBeforeEscapeChecks)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg count  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg value  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg acc    = MicroReg::virtualIntReg(4);
+    constexpr MicroReg root   = MicroReg::virtualIntReg(5);
+    constexpr MicroReg middle = MicroReg::virtualIntReg(6);
+    constexpr MicroReg leaf   = MicroReg::virtualIntReg(7);
+    const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+    for (const bool escape : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        const auto   leafBlock   = builder.createLabel();
+        const auto   middleBlock = builder.createLabel();
+        const auto   rootBlock   = builder.createLabel();
+        const auto   preheader   = builder.createLabel();
+        const auto   loop        = builder.createLabel();
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(acc, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, rootBlock);
+        // Execution follows root -> middle -> leaf, opposite to their listing
+        // order, so closure must revisit unresolved chains before escape checks.
+        builder.placeLabel(leafBlock);
+        builder.emitLoadRegReg(leaf, middle, MicroOpBits::B64);
+        if (escape)
+            builder.emitLoadMemReg(sp, 0x80, leaf, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, preheader);
+        builder.placeLabel(middleBlock);
+        builder.emitLoadRegReg(middle, root, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, leafBlock);
+        builder.placeLabel(rootBlock);
+        builder.emitLoadAddressRegMem(root, sp, 0x40, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, middleBlock);
+        builder.placeLabel(preheader);
+        builder.emitNop();
+        builder.placeLabel(loop);
+        const auto headerRef = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+        const auto loadRef = builder.instructions().lastInstructionRef();
+        builder.emitLoadMemReg(leaf, 0, acc, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(acc, value, MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.emitLoadRegReg(CallConv::get(CallConvKind::Swag).intReturn, acc, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runLicmPass(builder));
+        if ((builder.instructions().ptr(loadRef) != nullptr) != escape)
+            return Result::Error;
+        bool     insideLoop = false;
+        uint32_t loadCount  = 0;
+        for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+        {
+            if (it.current == headerRef)
+                insideLoop = true;
+            if (it->op != MicroInstrOpcode::LoadRegMem)
+                continue;
+            if (insideLoop != escape || it->ops(builder.operands())[1].reg != base)
+                return Result::Error;
+            ++loadCount;
+        }
+        if (loadCount != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // Control: a load nothing in the loop can alias moves to the preheader.
 SWC_TEST_BEGIN(LICM_HoistsInvariantLoad)
 {

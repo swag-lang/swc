@@ -398,9 +398,7 @@ private:
     std::vector<uint32_t>                 worklist_;
     std::vector<uint8_t>                  inWorklist_;
     std::vector<uint64_t>                 tempOutVirtual_;
-    std::vector<uint64_t>                 tempInVirtual_;
     std::vector<uint64_t>                 tempOutConcrete_;
-    std::vector<uint64_t>                 tempInConcrete_;
     std::vector<uint32_t>                 definitionCounts_;
     std::vector<uint32_t>                 liveStampByDenseIndex_;
     std::vector<uint8_t>                  vregsLiveAcrossCall_;

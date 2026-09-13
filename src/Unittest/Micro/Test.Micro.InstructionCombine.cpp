@@ -1606,6 +1606,63 @@ SWC_TEST_BEGIN(InstCombine_RangeProvedCompare_NarrowWriteKept)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_CompareRereadsKeepOriginalAddressValues)
+{
+    constexpr MicroReg base       = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index      = MicroReg::virtualIntReg(2);
+    constexpr MicroReg savedBase  = MicroReg::virtualIntReg(4);
+    constexpr MicroReg savedIndex = MicroReg::virtualIntReg(6);
+    constexpr MicroReg otherBase  = MicroReg::virtualIntReg(7);
+    constexpr MicroReg otherIndex = MicroReg::virtualIntReg(8);
+    constexpr MicroReg loaded     = MicroReg::virtualIntReg(20);
+    for (const bool sameCell : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegImm(base, ApInt(0x1000, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(index, ApInt(3, 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(MicroReg::virtualIntReg(3), base, MicroOpBits::B64);
+        builder.emitLoadRegReg(savedBase, MicroReg::virtualIntReg(3), MicroOpBits::B64);
+        builder.emitLoadRegReg(MicroReg::virtualIntReg(5), index, MicroOpBits::B64);
+        builder.emitLoadRegReg(savedIndex, MicroReg::virtualIntReg(5), MicroOpBits::B64);
+        builder.emitLoadRegImm(otherBase, ApInt(0x2000, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(otherIndex, ApInt(5, 64), MicroOpBits::B64);
+        builder.emitLoadAmcRegMem(loaded, MicroOpBits::B32, savedBase, savedIndex, 4, 0, MicroOpBits::B64);
+        const auto loadRef = builder.instructions().lastInstructionRef();
+        builder.emitCmpRegImm(loaded, ApInt(7, 32), MicroOpBits::B32);
+        const auto compareRef = builder.instructions().lastInstructionRef();
+        // A failed base match must not resolve the index at the candidate,
+        // and a failed index match must not replace the original base value.
+        builder.emitLoadAmcRegMem(MicroReg::virtualIntReg(21), MicroOpBits::B32, otherBase, savedIndex, 4, 0, MicroOpBits::B64);
+        builder.emitLoadAmcRegMem(MicroReg::virtualIntReg(22), MicroOpBits::B32, savedBase, otherIndex, 4, 0, MicroOpBits::B64);
+        builder.emitLoadRegImm(base, ApInt(0x3000, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(index, ApInt(9, 64), MicroOpBits::B64);
+        builder.emitLoadAmcRegMem(MicroReg::virtualIntReg(23), MicroOpBits::B32, base, index, 4, 0, MicroOpBits::B64);
+        builder.emitLoadAmcRegMem(MicroReg::virtualIntReg(24), MicroOpBits::B32, savedBase, sameCell ? savedIndex : index, 4, 0, MicroOpBits::B64);
+        builder.emitRet();
+
+        MicroSsaState ssa;
+        ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+        InstructionCombine::Context context;
+        context.builder   = &builder;
+        context.storage   = &builder.instructions();
+        context.operands  = &builder.operands();
+        context.ssa       = &ssa;
+        const bool folded = InstructionCombine::tryFoldAmcLoadIntoCompare(context, loadRef, *builder.instructions().ptr(loadRef));
+        if (folded == sameCell || context.actions.size() != (sameCell ? 0 : 2))
+            return Result::Error;
+        if (!sameCell)
+        {
+            const auto& rewrite = context.actions[0];
+            const auto& erase   = context.actions[1];
+            if (rewrite.ref != compareRef || rewrite.newOp != MicroInstrOpcode::CmpAmcImm || rewrite.ops[0].reg != savedBase || rewrite.ops[1].reg != savedIndex ||
+                rewrite.ops[2].opBits != MicroOpBits::B32 || erase.ref != loadRef || !erase.erase)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_LoadFoldWindowStartsAfterAnchor)
 {
     for (const uint32_t gap : {15u, 16u})

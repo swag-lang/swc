@@ -461,9 +461,8 @@ namespace InstructionCombine
         // local both read — two reloads of one frame slot with nothing written
         // in between, which is how every use of `p` is spelled on the first
         // sweep, while the compare fold is already eligible.
-        bool sameAddressValue(const Context& ctx, MicroReg regA, MicroInstrRef atA, MicroReg regB, MicroInstrRef atB)
+        bool sameAddressValue(const Context& ctx, const MicroSsaState::ReachingDef& a, MicroReg regB, MicroInstrRef atB)
         {
-            const MicroSsaState::ReachingDef a = rootAddressValue(ctx, regA, atA);
             const MicroSsaState::ReachingDef b = rootAddressValue(ctx, regB, atB);
             if (!a.valid() || !b.valid())
                 return false;
@@ -558,7 +557,9 @@ namespace InstructionCombine
         // body it protects until branch simplification threads it.
         bool cellReadAgainInStraightLine(const Context& ctx, MicroInstrRef loadRef, MicroInstrRef fromRef, MicroReg base, MicroReg index, uint64_t mulValue, uint64_t addValue, MicroOpBits cellBits)
         {
-            MicroInstrRef ref = ctx.storage->findNextInstructionRef(fromRef);
+            MicroSsaState::ReachingDef baseValue;
+            MicroSsaState::ReachingDef indexValue;
+            MicroInstrRef              ref = ctx.storage->findNextInstructionRef(fromRef);
             for (uint32_t step = 0; step < K_MAX_REREAD_WINDOW && ref.isValid(); ++step, ref = ctx.storage->findNextInstructionRef(ref))
             {
                 const MicroInstr&    inst = *ctx.storage->ptr(ref);
@@ -580,7 +581,23 @@ namespace InstructionCombine
                     continue;
                 if (read.cellBits != cellBits || read.mulValue != mulValue || read.addValue != addValue)
                     continue;
-                if (sameAddressValue(ctx, base, loadRef, read.base, read.atRef) && sameAddressValue(ctx, index, loadRef, read.index, read.atRef))
+                // Only the candidate position changes during this read-only
+                // scan. Resolve each original copy chain once, when needed.
+                if (!baseValue.valid())
+                {
+                    baseValue = rootAddressValue(ctx, base, loadRef);
+                    if (!baseValue.valid())
+                        return false;
+                }
+                if (!sameAddressValue(ctx, baseValue, read.base, read.atRef))
+                    continue;
+                if (!indexValue.valid())
+                {
+                    indexValue = rootAddressValue(ctx, index, loadRef);
+                    if (!indexValue.valid())
+                        return false;
+                }
+                if (sameAddressValue(ctx, indexValue, read.index, read.atRef))
                     return true;
             }
 

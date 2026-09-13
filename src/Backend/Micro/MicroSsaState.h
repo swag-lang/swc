@@ -172,11 +172,12 @@ private:
     MicroDenseRegIndex         trackedRegs_;
     std::vector<InstrInfo>     instrInfos_;
     std::vector<MicroInstrRef> instructionRefs_;
-    std::vector<uint32_t>      instructionIndexBySlot_;
-    std::vector<uint32_t>      instructionToBlock_;
-    std::vector<BlockInfo>     blocks_;
-    std::vector<ValueInfo>     valueInfos_;
-    std::vector<PhiInfo>       phiInfos_;
+    // Snapshot membership stays valid across erasures until the next build.
+    std::vector<uint8_t>   liveInstructionSlots_;
+    std::vector<uint32_t>  instructionToBlock_;
+    std::vector<BlockInfo> blocks_;
+    std::vector<ValueInfo> valueInfos_;
+    std::vector<PhiInfo>   phiInfos_;
     // Changes to each register's value along the dominator-tree rename walk.
     // Restores delimit sibling scopes without copying every live value per block.
     std::vector<SmallVector4<ReachingValue>> reachingValuesByReg_;

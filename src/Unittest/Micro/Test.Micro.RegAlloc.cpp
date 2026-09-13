@@ -6,6 +6,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/MicroPrinter.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
@@ -1084,6 +1085,73 @@ SWC_TEST_BEGIN(RegAlloc_ReusedPassRebuildsConcreteClaimsForChangedLiveRanges)
         if (!passCtx.intervalAllocated || builder.instructions().count() != 7 ||
             !use || use->op != MicroInstrOpcode::LoadMemReg || use->ops(builder.operands())[1].reg != freeReg)
             return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_ReusedPassBorrowsCurrentCfgAcrossDifferentControlFlow)
+{
+    const CallConv&    conv    = CallConv::get(CallConvKind::WindowsX64);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg counter = MicroReg::virtualIntReg(2);
+    for (const bool allowInterval : {false, true})
+    {
+        MicroRegisterAllocationPass reusedPass;
+        // Every run destroys its builder afterwards. Reuse must replace the
+        // borrowed CFG rows, including when the next listing has fewer rows.
+        for (const uint32_t shape : {0u, 2u, 1u, 0u})
+        {
+            std::array<Utf8, 2> listings;
+            std::array<bool, 2> intervalAllocated{};
+            for (uint32_t run = 0; run < listings.size(); ++run)
+            {
+                MicroBuilder builder(ctx);
+                builder.setBackendBuildCfg({.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2});
+                const auto header    = builder.createLabel();
+                const auto alternate = builder.createLabel();
+                const auto join      = builder.createLabel();
+                builder.emitLoadRegImm(value, ApInt(17, 64), MicroOpBits::B64);
+                builder.emitLoadRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
+                if (shape)
+                    builder.placeLabel(header);
+                if (shape == 2)
+                {
+                    builder.emitCmpRegImm(counter, ApInt(2, 64), MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, alternate);
+                    builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+                    builder.placeLabel(alternate);
+                    builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+                    builder.placeLabel(join);
+                }
+                builder.emitOpBinaryRegReg(value, counter, MicroOp::Add, MicroOpBits::B64);
+                builder.emitLoadMemReg(conv.stackPointer, 32, value, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+                if (shape)
+                {
+                    builder.emitCmpRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Greater, MicroOpBits::B32, header);
+                }
+                builder.emitLoadRegReg(conv.intReturn, value, MicroOpBits::B64);
+                builder.emitRet();
+
+                MicroRegisterAllocationPass freshPass;
+                MicroPassContext            passContext;
+                passContext.taskContext            = &ctx;
+                passContext.builder                = &builder;
+                passContext.instructions           = &builder.instructions();
+                passContext.operands               = &builder.operands();
+                passContext.callConvKind           = CallConvKind::WindowsX64;
+                passContext.isFirstAllocationSweep = allowInterval;
+                SWC_RESULT((run ? freshPass : reusedPass).run(passContext));
+                SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+                listings[run]          = MicroPrinter::format(ctx, builder.instructions(), builder.operands());
+                intervalAllocated[run] = passContext.intervalAllocated;
+            }
+            if (listings[0] != listings[1] || intervalAllocated[0] != intervalAllocated[1])
+                return Result::Error;
+        }
     }
     return Result::Continue;
 }

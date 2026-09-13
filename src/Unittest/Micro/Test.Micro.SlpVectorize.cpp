@@ -169,6 +169,71 @@ SWC_TEST_BEGIN(SlpVectorize_PermutationsKeepTheFirstMaterializedTuple)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SlpVectorize_PermutedLeafLoadsKeepCanonicalLaneOrder)
+{
+    for (const bool foldedRead : {false, true})
+    {
+        MicroBuilder                      builder(ctx);
+        X64Encoder                        encoder(ctx);
+        MicroSsaState                     ssa;
+        const MicroReg                    sp    = encoder.stackPointerReg();
+        constexpr std::array<uint32_t, 4> order = {2, 0, 3, 1};
+        for (uint32_t lane = 0; lane < order.size(); ++lane)
+        {
+            const MicroReg value  = MicroReg::virtualIntReg(lane + 1);
+            const uint64_t offset = 0x40 + order[lane] * 4;
+            if (foldedRead)
+            {
+                builder.emitLoadRegMem(value, sp, 0x80 + lane * 4, MicroOpBits::B32);
+                builder.emitOpBinaryRegMem(value, sp, offset, MicroOp::Add, MicroOpBits::B32);
+            }
+            else
+            {
+                builder.emitLoadRegMem(value, sp, offset, MicroOpBits::B32);
+                builder.emitOpBinaryRegImm(value, ApInt(1, 8), MicroOp::ShiftLeft, MicroOpBits::B32);
+            }
+            builder.emitLoadMemReg(sp, 0x100 + lane * 4, value, MicroOpBits::B32);
+        }
+        builder.emitClearReg(MicroReg::intReg(10), MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runSlpPass(builder, ssa, encoder));
+        MicroReg permutedLoad = MicroReg::invalid();
+        uint32_t loads        = 0;
+        uint32_t shuffles     = 0;
+        uint32_t stores       = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadVecRegMem)
+            {
+                const uint64_t expectedOffset = foldedRead && loads == 0 ? 0x80 : 0x40;
+                if (loads >= (foldedRead ? 2u : 1u) || ops[1].reg != sp || ops[3].valueU64 != expectedOffset)
+                    return Result::Error;
+                if (expectedOffset == 0x40)
+                    permutedLoad = ops[0].reg;
+                ++loads;
+            }
+            else if (inst.op == MicroInstrOpcode::VecShuffleRegRegImm)
+            {
+                // Recreate lanes 2,0,3,1 from the canonical packed load.
+                if (shuffles++ != 0 || !permutedLoad.isValid() || ops[1].reg != permutedLoad || ops[3].valueU64 != 0x72)
+                    return Result::Error;
+            }
+            else if (inst.op == MicroInstrOpcode::StoreVecMemReg)
+            {
+                if (stores++ != 0 || ops[0].reg != sp || ops[3].valueU64 != 0x100)
+                    return Result::Error;
+            }
+        }
+        if (loads != (foldedRead ? 2u : 1u) || shuffles != 1 || stores != 1 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(SlpVectorize_StackAndOneParameterAreTheRootLimit)
 {
     for (const bool secondParameter : {false, true})

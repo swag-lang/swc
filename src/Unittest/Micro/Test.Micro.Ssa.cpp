@@ -364,6 +364,11 @@ SWC_TEST_BEGIN(MicroSsa_RebuildForgetsErasedAndRecycledSlots)
         return Result::Error;
 
     builder.instructions().erase(removed);
+    // DCE keeps this snapshot across erasure waves. Its original anchors stay
+    // queryable until the next build refreshes instruction membership.
+    uint32_t snapshotValue = MicroSsaState::K_INVALID_VALUE;
+    if (ssa.reachingDef(value, removed).instRef != initial || !ssa.instrUseDef(removed) || !ssa.defValue(value, removed, snapshotValue))
+        return Result::Error;
     builder.invalidateControlFlowGraph();
     ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
     uint32_t valueId = MicroSsaState::K_INVALID_VALUE;

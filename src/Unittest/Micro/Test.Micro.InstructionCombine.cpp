@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -208,6 +209,49 @@ SWC_TEST_BEGIN(InstCombine_RelocatedLoad_UsesExactTargetAndLiveMemory)
             if (!firstRelocation || secondRelocation != (test != Case::Same))
                 return Result::Error;
         }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_ForwardingCacheKeepsClaimedLoadsOut)
+{
+    constexpr MicroReg base = MicroReg::intReg(8);
+    for (const bool firstClaimed : {false, true})
+    {
+        MicroBuilder                 builder(ctx);
+        std::array<MicroInstrRef, 3> loads;
+        for (uint32_t i = 0; i < loads.size(); ++i)
+        {
+            builder.emitLoadRegMem(MicroReg::virtualIntReg(i + 1), base, 0, MicroOpBits::B64);
+            loads[i] = builder.instructions().lastInstructionRef();
+        }
+        builder.emitRet();
+
+        MicroSsaState ssa;
+        ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+        InstructionCombine::Context context;
+        context.builder  = &builder;
+        context.storage  = &builder.instructions();
+        context.operands = &builder.operands();
+        context.ssa      = &ssa;
+        // A per-instruction pattern may already own the first load when the
+        // whole-function forwarding scan begins.
+        if (firstClaimed && !context.claimAll({loads[0]}))
+            return Result::Error;
+        InstructionCombine::runStoreToLoadForwarding(context);
+
+        if (context.actions.size() != (firstClaimed ? 1 : 2))
+            return Result::Error;
+        for (uint32_t i = 0; i < context.actions.size(); ++i)
+        {
+            const auto&    action    = context.actions[i];
+            const uint32_t loadIndex = i + (firstClaimed ? 2 : 1);
+            if (action.ref != loads[loadIndex] || action.newOp != MicroInstrOpcode::LoadRegReg || action.ops[0].reg != MicroReg::virtualIntReg(loadIndex + 1) || action.ops[1].reg != MicroReg::virtualIntReg(firstClaimed ? 2 : 1))
+                return Result::Error;
+        }
+        if (context.isClaimed(loads[0]) != firstClaimed || context.isClaimed(loads[1]) == firstClaimed || !context.isClaimed(loads[2]))
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

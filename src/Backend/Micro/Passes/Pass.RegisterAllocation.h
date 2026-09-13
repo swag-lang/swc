@@ -367,15 +367,15 @@ private:
     std::vector<SmallVector<uint32_t, 4>> useConcreteIndices_;
     std::vector<SmallVector<uint32_t, 4>> defConcreteIndices_;
     std::vector<std::vector<uint32_t>>    usePositionsByDenseVirtual_;
-    std::vector<std::vector<uint32_t>>    concreteTouchPositionsByDenseIndex_;
-    std::vector<uint32_t>                 nextUsePositionCursor_;
-    std::vector<uint32_t>                 nextConcreteTouchCursor_;
-    std::vector<uint64_t>                 liveInVirtualBits_;
-    std::vector<uint64_t>                 liveInConcreteBits_;
-    std::vector<SmallVector<uint32_t, 2>> predecessors_;
-    std::vector<uint32_t>                 loopDepth_;
-    bool                                  functionHasLoop_ = false;
-    std::vector<uint8_t>                  concreteLoopCarried_;
+    std::vector<std::vector<uint32_t>>               concreteTouchPositionsByDenseIndex_;
+    std::vector<uint32_t>                            nextUsePositionCursor_;
+    std::vector<uint32_t>                            nextConcreteTouchCursor_;
+    std::vector<uint64_t>                            liveInVirtualBits_;
+    std::vector<uint64_t>                            liveInConcreteBits_;
+    std::span<const MicroControlFlowGraph::EdgeList> predecessors_;
+    std::vector<uint32_t>                            loopDepth_;
+    bool                                             functionHasLoop_ = false;
+    std::vector<uint8_t>                             concreteLoopCarried_;
 
     // The register each value held on the last control-flow edge that recorded one. Consulted
     // as a preference when a value is given a register again, so the two arms of a diamond

@@ -75,8 +75,10 @@ namespace InstructionCombine
 
             for (const CacheEntry& e : cache)
             {
+                if (e.base != base || e.off != off || e.bits != bits || !e.src.isValid() || e.src == dst)
+                    continue;
                 const bool sameTarget = e.relocation && relocation ? e.relocation->hasSameTarget(*relocation) : e.relocation == relocation;
-                if (sameTarget && e.base == base && e.off == off && e.bits == bits && e.src.isValid() && e.src != dst)
+                if (sameTarget)
                 {
                     if (!ctx.claimAll({loadRef}, relocation != nullptr))
                         return false;
@@ -150,8 +152,9 @@ namespace InstructionCombine
                     relocation = relocIt->second;
                 }
 
-                bool forwarded = false;
-                if (!ctx.isClaimed(it.current))
+                const bool claimed   = ctx.isClaimed(it.current);
+                bool       forwarded = false;
+                if (!claimed)
                     forwarded = forwardLoad(ctx, cache, it.current, ops, relocation);
                 // The load redefines its destination register; any cache entry
                 // whose `src` refers to it is now stale and must be dropped
@@ -167,7 +170,9 @@ namespace InstructionCombine
                 // A claimed load will be erased or rewritten by another pattern
                 // (e.g. folded into a following ALU op), so its destination may hold
                 // no live value; caching it would forward a later load to a dead reg.
-                if (!forwarded && !ctx.isClaimed(it.current) && ops[1].reg.isValid() && ops[1].reg != ops[0].reg)
+                // A failed forward leaves claims untouched; a successful one
+                // is excluded here regardless of the claim it just added.
+                if (!forwarded && !claimed && ops[1].reg.isValid() && ops[1].reg != ops[0].reg)
                 {
                     CacheEntry entry;
                     entry.base       = ops[1].reg;

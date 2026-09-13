@@ -157,7 +157,6 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
     defVirtualIndices_.reserve(instructionCount_);
     useConcreteIndices_.reserve(instructionCount_);
     defConcreteIndices_.reserve(instructionCount_);
-    predecessors_.reserve(instructionCount_);
     worklist_.reserve(instructionCount_);
     inWorklist_.reserve(instructionCount_);
 
@@ -2318,25 +2317,10 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     liveInVirtualBits_.assign(static_cast<size_t>(instructionCount_) * virtualWordCount, 0);
     liveInConcreteBits_.assign(static_cast<size_t>(instructionCount_) * concreteWordCount, 0);
 
-    // Clear every row before pushing any edge: clearing inside the push loop
-    // wipes the forward edges lower-indexed instructions already recorded, which
-    // leaves only back-edges in the lists. The liveness worklist then never
-    // reprocesses an instruction after its layout successor changes, and the
-    // fixpoint silently under-approximates around nested loops.
-    predecessors_.resize(instructionCount_);
-    for (uint32_t idx = 0; idx < instructionCount_; ++idx)
-        predecessors_[idx].clear();
-
-    for (uint32_t idx = 0; idx < instructionCount_; ++idx)
-    {
-        const auto& successors = controlFlowGraph.successors(idx);
-        for (const uint32_t succIdx : successors)
-        {
-            if (succIdx >= instructionCount_)
-                continue;
-            predecessors_[succIdx].push_back(idx);
-        }
-    }
+    // The CFG already inverted every edge in source-instruction order. Keep
+    // the same snapshot used by successors throughout allocation and rewriting;
+    // storage mutations do not rebuild the CFG during this pass.
+    predecessors_ = controlFlowGraph.predecessors();
 
     computeReachability();
     computeLoopDepth();
@@ -4468,7 +4452,7 @@ void MicroRegisterAllocationPass::clearState()
     nextConcreteTouchCursor_.clear();
     liveInVirtualBits_.clear();
     liveInConcreteBits_.clear();
-    predecessors_.clear();
+    predecessors_ = {};
     loopDepth_.clear();
     concreteLoopCarried_.clear();
     virtualSpanLo_.clear();

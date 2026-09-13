@@ -829,15 +829,13 @@ namespace
 
             // Build (or reuse) the straight in-memory-order tuple first, so
             // every permutation of the same chunk shares one packed load.
+            // The scan already interned these canonical loads. Their distinct
+            // contiguous offsets give each existing ID its exact memory lane.
             TupleKey straight;
             for (uint32_t lane = 0; lane < K_LANE_COUNT; ++lane)
             {
-                SlpValue v;
-                v.kind             = SlpValueKind::Load;
-                v.loadRootKey      = n0.loadRootKey;
-                v.loadOffset       = sorted[0] + static_cast<uint64_t>(lane) * K_LANE_BYTES;
-                v.loadEpoch        = 0;
-                straight.ids[lane] = scan_->values.intern(v);
+                const auto memoryLane    = static_cast<uint32_t>((offsets[lane] - sorted[0]) / K_LANE_BYTES);
+                straight.ids[memoryLane] = tuple.ids[lane];
             }
 
             uint32_t   straightReg = K_INVALID_ID;

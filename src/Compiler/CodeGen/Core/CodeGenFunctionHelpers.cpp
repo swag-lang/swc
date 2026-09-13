@@ -1110,6 +1110,21 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
         return emitTypeDefaultValue(codeGen, typeRef, dstAddressReg);
 
     const uint32_t sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
+    if (!typeInfo.isArray() && !typeInfo.isEnum())
+    {
+        if (SymbolStruct::typeRequiresExplicitInitialization(codeGen.sema(), typeRef))
+            return Result::Continue;
+
+        // These defaults only zero storage. Emit one contiguous fill instead of generating
+        // an address and a separate initialization for every element in a constant count.
+        const uint64_t totalSize = static_cast<uint64_t>(sizeOf) * count;
+        if (totalSize <= std::numeric_limits<uint32_t>::max())
+        {
+            CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(totalSize));
+            return Result::Continue;
+        }
+    }
+
     for (uint32_t i = 0; i < count; ++i)
     {
         const uint64_t offset = static_cast<uint64_t>(sizeOf) * i;

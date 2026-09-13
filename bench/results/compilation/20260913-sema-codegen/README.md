@@ -1,7 +1,7 @@
 # Semantic analysis and code generation work reductions, 2026-09-13
 
 This change removes repeated work outside the micro passes. Functional validation targets
-compiler builds 532 through 539 on `1cb02fdaa` plus the changes below. Work is isolated on
+compiler builds 532 through 540 on `1cb02fdaa` plus the changes below. Work is isolated on
 `perf/sema-codegen-compile-time` in the `swc-sema-codegen-perf` worktree. Micro-pass work has its own
 [report](../20260913/README.md).
 
@@ -289,3 +289,43 @@ The workspace consumer was rebuilt and executed by both the
 [Release compiler](release-compiler-workspace-consumer-539.log), with the same forced-rebuild
 command as build 537. Both runs rebuilt three standard dependencies and six local modules and
 passed initialization and destruction assertions across static libraries and a DLL.
+
+## Additional reduction in build 540
+
+Constant-count initialization of simple elements now emits one contiguous zero-fill operation
+instead of repeating type checks, address generation, and initialization for every element.
+The existing memory emitter chooses a bounded unroll or runtime loop for the complete block.
+Structs, nested arrays, enums, explicit-initialization requirements, zero/one counts, and sizes
+beyond the 32-bit memory-emitter limit keep their previous handling. No micro pass is changed.
+
+The new native fixture checks counts 0, 1, and 1,024 for `s32`, 1,023 bytes starting at an offset
+of one, nullable-pointer aliases, and the unoptimized memory-emitter path. Sentinels before and
+after each initialized range must remain unchanged. The first three cases also passed on build
+539 before the lowering change; this was a functional comparison, not a timing baseline.
+
+A new C++ constant-interning regression synchronizes two threads across 128 common aggregate
+insertions and 256 distinct ones. It verifies canonical references, diagnostic pointers, stable
+addresses, independent owned copies, and values after the input vectors have been destroyed.
+
+Both build-540 compiler configurations built successfully. The same 28 filesystem C++ tests remain
+excluded. The unoptimized helper explicitly carries `NoInline` as well as `Optimize(false)` so
+automatic inlining cannot remove the intended configuration boundary.
+
+| Build-540 validation | Result | Evidence |
+| --- | --- | --- |
+| C++ | 695 passed, including concurrent constant interning | [Log](cpp-540.log) |
+| JIT | 1,402 passed | [Log](jit-540.log) |
+| Native, program configuration `devmode` | 3,141 passed; generated executable passed | [Log](native-devmode-540.log) |
+| Native, program configuration `release` | 3,141 passed; generated executable passed | [Log](native-release-540.log) |
+| Bulk-default fixture, `devmode` | 4 passed; generated executable passed | [Log](native-bulk-default-540.log) |
+| Bulk-default fixture, `release` | 4 passed; generated executable passed | [Log](native-bulk-default-release-540.log) |
+| Existing lifecycle fixture, `devmode` | 42 passed; generated executable passed | [Log](native-lifecycle-540.log) |
+| Existing lifecycle fixture, `release` | 42 passed; generated executable passed | [Log](native-lifecycle-release-540.log) |
+| Release compiler, bulk-default fixture | 4 passed; generated executable passed | [Log](release-compiler-bulk-default-540.log) |
+
+The lifecycle filter is `intrinsics\lifecycle.swg`: the shorter filename also selected a
+workspace-dependent root fixture and initially failed for missing helpers. Correcting the filter
+required no compiler change. The first three bulk-default cases have a separate
+[pre-change functional log](native-bulk-default-539-baseline.log).
+Semantic analysis and the forced workspace consumer retain their build-539 evidence; build 540
+changes only the described lowering path and adds the concurrent C++ regression.

@@ -479,6 +479,107 @@ SWC_TEST_BEGIN(ConstantManager_EnrichesStorageReferencesWithoutMutatingInputs)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantManager_ConcurrentInterningKeepsCanonicalStorage)
+{
+    constexpr size_t NUM_WORKERS = 2;
+    constexpr size_t NUM_VALUES  = 128;
+    constexpr size_t NUM_FIELDS  = 32;
+
+    ConstantManager                                                     manager;
+    std::barrier                                                        rendezvous(NUM_WORKERS);
+    std::array<std::array<ConstantRef, NUM_VALUES>, NUM_WORKERS>           commonRefs;
+    std::array<std::array<ConstantRef, NUM_VALUES>, NUM_WORKERS>           uniqueRefs;
+    std::array<std::array<const ConstantValue*, NUM_VALUES>, NUM_WORKERS> addresses;
+    std::array<ConstantRef, NUM_VALUES * (NUM_WORKERS + 1)>                elements;
+    std::array<bool, NUM_WORKERS>                                        valid = {true, true};
+    for (size_t index = 0; index < elements.size(); ++index)
+        elements[index] = ctx.cstMgr().addInt(ctx, 35000 + index);
+
+    {
+        // Prepare types and owned inputs before the workers start. Each worker then
+        // copies its input locally; all source vectors die before the final checks.
+        std::vector<ConstantValue>                         commonInputs;
+        std::array<std::vector<ConstantValue>, NUM_WORKERS> uniqueInputs;
+        std::array<ConstantRef, NUM_FIELDS>                fields;
+        fields.fill(elements[0]);
+        commonInputs.reserve(NUM_VALUES);
+        for (auto& inputs : uniqueInputs)
+            inputs.reserve(NUM_VALUES);
+        for (size_t index = 0; index < NUM_VALUES; ++index)
+        {
+            fields.back() = elements[index];
+            commonInputs.push_back(ConstantValue::makeAggregateArray(ctx, fields));
+            for (size_t worker = 0; worker < NUM_WORKERS; ++worker)
+            {
+                fields.back() = elements[NUM_VALUES * (worker + 1) + index];
+                uniqueInputs[worker].push_back(ConstantValue::makeAggregateArray(ctx, fields));
+            }
+        }
+
+        std::array<std::thread, NUM_WORKERS> workers;
+        for (size_t worker = 0; worker < NUM_WORKERS; ++worker)
+        {
+            workers[worker] = std::thread([&, worker] {
+                TaskContext workerCtx(ctx);
+                for (size_t index = 0; index < NUM_VALUES; ++index)
+                {
+                    const ConstantValue common = commonInputs[index];
+                    const ConstantValue unique = uniqueInputs[worker][index];
+                    rendezvous.arrive_and_wait();
+                    const ConstantRef ref    = manager.addConstant(workerCtx, common);
+                    commonRefs[worker][index] = ref;
+                    addresses[worker][index]  = &manager.get(ref);
+                    uniqueRefs[worker][index] = manager.addConstant(workerCtx, unique);
+                    const ConstantRef hit = manager.addConstant(workerCtx, common);
+                    if (hit != ref || addresses[worker][index]->getAggregateArray().data() == common.getAggregateArray().data())
+                        valid[worker] = false;
+#if SWC_HAS_REF_DEBUG_INFO
+                    if (ref.dbgPtr != addresses[worker][index] || hit.dbgPtr != addresses[worker][index])
+                        valid[worker] = false;
+#endif
+                }
+            });
+        }
+        for (auto& worker : workers)
+            worker.join();
+    }
+
+    std::unordered_set<ConstantRef> allRefs;
+    for (size_t index = 0; index < NUM_VALUES; ++index)
+    {
+        if (commonRefs[0][index] != commonRefs[1][index])
+            return Result::Error;
+        allRefs.insert(commonRefs[0][index]);
+        for (size_t worker = 0; worker < NUM_WORKERS; ++worker)
+        {
+            if (!valid[worker])
+                return Result::Error;
+            const ConstantRef    ref    = commonRefs[worker][index];
+            const ConstantValue& stored = manager.get(ref);
+            const auto&          fields = stored.getAggregateArray();
+            if (&stored != addresses[worker][index] || fields.size() != NUM_FIELDS || fields.back() != elements[index])
+                return Result::Error;
+            for (size_t field = 0; field + 1 < fields.size(); ++field)
+                if (fields[field] != elements[0])
+                    return Result::Error;
+            const ConstantRef hit = manager.addConstant(ctx, stored);
+            if (hit != ref)
+                return Result::Error;
+#if SWC_HAS_REF_DEBUG_INFO
+            if (ref.dbgPtr != &stored || hit.dbgPtr != &stored)
+                return Result::Error;
+#endif
+            const ConstantRef unique = uniqueRefs[worker][index];
+            allRefs.insert(unique);
+            if (manager.get(unique).getAggregateArray().back() != elements[NUM_VALUES * (worker + 1) + index])
+                return Result::Error;
+        }
+    }
+    if (allRefs.size() != NUM_VALUES * (NUM_WORKERS + 1))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

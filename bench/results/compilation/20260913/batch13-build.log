@@ -1,0 +1,17 @@
+
+  Test.Micro.InductionVariable.cpp
+  Test.Micro.PrologEpilogSanitize.cpp
+  Test.Micro.SinkToUse.cpp
+  Test.Micro.SlpVectorize.cpp
+  DebugInfoCodeView.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  Pass.PrologEpilog.cpp
+  Pass.SinkToUse.cpp
+  Pass.SlpVectorize.cpp
+  Pass.InductionVariable.cpp
+  DocPage.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  Sema.Compiler.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe

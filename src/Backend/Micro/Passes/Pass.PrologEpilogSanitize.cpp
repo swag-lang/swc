@@ -402,50 +402,45 @@ namespace
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
-        std::vector<MicroInstrRef> retRefs;
+        bool changedAny = false;
         for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
         {
-            if (it->op == MicroInstrOpcode::Ret)
-                retRefs.push_back(it.current);
-        }
+            if (it->op != MicroInstrOpcode::Ret)
+                continue;
 
-        bool changedAny = false;
-        for (const MicroInstrRef retRef : retRefs)
-        {
-            bool retry = true;
-            while (retry)
+            // Merges erase only predecessors of this Ret, so its iterator and
+            // successor remain valid throughout the suffix rewrite.
+            const MicroInstrRef retRef   = it.current;
+            MicroInstrRef       firstRef = retRef;
+            for (MicroInstrRef ref = context.instructions->findPreviousInstructionRef(retRef); ref.isValid(); ref = context.instructions->findPreviousInstructionRef(ref))
             {
-                retry = false;
-                if (!context.instructions->ptr(retRef))
+                const MicroInstr* inst = context.instructions->ptr(ref);
+                if (!inst)
                     break;
 
-                std::vector<MicroInstrRef> epilogueRefs;
-                for (MicroInstrRef ref = context.instructions->findPreviousInstructionRef(retRef); ref.isValid(); ref = context.instructions->findPreviousInstructionRef(ref))
-                {
-                    const MicroInstr* inst = context.instructions->ptr(ref);
-                    if (!inst)
-                        break;
+                const MicroInstrOperand* ops = inst->ops(*context.operands);
+                if (!isEpilogueInstruction(*inst, ops, conv.stackPointer))
+                    break;
+                firstRef = ref;
+            }
 
-                    const MicroInstrOperand* ops = inst->ops(*context.operands);
-                    if (!isEpilogueInstruction(*inst, ops, conv.stackPointer))
-                        break;
-
-                    epilogueRefs.push_back(ref);
-                }
-
-                if (epilogueRefs.size() < 2)
+            // The first suffix instruction cannot be the erased second member
+            // of a pair. Survivors keep their opcode and remain in this suffix.
+            for (MicroInstrRef ref = firstRef; ref != retRef;)
+            {
+                const MicroInstrRef nextRef = context.instructions->findNextInstructionRef(ref);
+                if (nextRef == retRef)
                     break;
 
-                std::ranges::reverse(epilogueRefs);
-                for (size_t i = 0; i + 1 < epilogueRefs.size(); ++i)
+                if (tryMergeAdjacentStackAdjust(context, ref, nextRef, conv.stackPointer, MicroOp::Add))
                 {
-                    if (tryMergeAdjacentStackAdjust(context, epilogueRefs[i], epilogueRefs[i + 1], conv.stackPointer, MicroOp::Add))
-                    {
-                        changedAny = true;
-                        retry      = true;
-                        break;
-                    }
+                    changedAny = true;
+                    // Preserve retries of earlier rejected pairs after a
+                    // neighboring immediate changes, including conformance.
+                    ref = firstRef;
                 }
+                else
+                    ref = nextRef;
             }
         }
 

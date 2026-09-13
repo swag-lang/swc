@@ -387,6 +387,65 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotTouchFramePointerSetupAfterBodyS
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesMultipleReturnSuffixesAfterRejectedPairs)
+{
+    constexpr auto     rsp = MicroReg::intReg(4);
+    constexpr auto     rbx = MicroReg::intReg(3);
+    constexpr uint64_t max = std::numeric_limits<uint64_t>::max();
+    MicroBuilder       builder(ctx);
+    builder.emitNop();
+    std::array<MicroInstrRef, 5>      firstAdjusts;
+    constexpr std::array<uint64_t, 5> firstAmounts = {8, 16, 32, 4, 4};
+    for (uint32_t i = 0; i < firstAmounts.size(); ++i)
+    {
+        if (i == 3)
+            builder.emitPop(rbx);
+        builder.emitOpBinaryRegImm(rsp, ApInt(firstAmounts[i], 64), MicroOp::Add, MicroOpBits::B64);
+        firstAdjusts[i] = builder.instructions().lastInstructionRef();
+    }
+    builder.emitRet();
+    const auto firstRet = builder.instructions().lastInstructionRef();
+
+    // The overflowing first pair is rejected, then the later pair merges.
+    // Restarting must preserve that prefix and its original first reference.
+    builder.emitNop();
+    builder.emitOpBinaryRegImm(rsp, ApInt(max, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto overflow = builder.instructions().lastInstructionRef();
+    builder.emitOpBinaryRegImm(rsp, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto combined = builder.instructions().lastInstructionRef();
+    builder.emitOpBinaryRegImm(rsp, ApInt(2, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto erased = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+    const auto secondRet = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+    const auto emptyRet = builder.instructions().lastInstructionRef();
+
+    SWC_RESULT(runPrologEpilogSanitizePass(builder));
+    if (builder.instructions().count() != 10 || builder.instructions().ptr(firstAdjusts[1]) ||
+        builder.instructions().ptr(firstAdjusts[2]) || builder.instructions().ptr(firstAdjusts[4]) || builder.instructions().ptr(erased))
+        return Result::Error;
+
+    const std::array<MicroInstrRef, 4> survivors = {firstAdjusts[0], firstAdjusts[3], overflow, combined};
+    constexpr std::array<uint64_t, 4>  amounts   = {56, 8, max, 3};
+    for (uint32_t i = 0; i < survivors.size(); ++i)
+    {
+        const auto* inst = builder.instructions().ptr(survivors[i]);
+        if (!inst || !isStackAdjust(*inst, inst->ops(builder.operands()), rsp, MicroOp::Add, amounts[i]))
+            return Result::Error;
+    }
+    const std::array<MicroInstrRef, 3> returns     = {firstRet, secondRet, emptyRet};
+    uint32_t                           returnIndex = 0;
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+    {
+        if (it->op != MicroInstrOpcode::Ret)
+            continue;
+        if (returnIndex >= returns.size() || it.current != returns[returnIndex++])
+            return Result::Error;
+    }
+    return returnIndex == returns.size() ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

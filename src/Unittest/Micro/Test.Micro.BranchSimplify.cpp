@@ -915,6 +915,41 @@ SWC_TEST_BEGIN(BranchSimplify_SinksCompareBelowFlagWritingEarlyReturn)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(BranchSimplify_EarlyReturnChecksBothCompareInputs)
+{
+    constexpr MicroReg lhs     = MicroReg::virtualIntReg(10);
+    constexpr MicroReg rhs     = MicroReg::virtualIntReg(11);
+    constexpr MicroReg negated = MicroReg::virtualIntReg(12);
+    constexpr MicroReg scratch = MicroReg::virtualIntReg(13);
+    const MicroReg     result  = CallConv::get(CallConvKind::Swag).intReturn;
+    for (const MicroReg tailDef : {scratch, lhs, rhs})
+    {
+        MicroBuilder builder(ctx);
+        const auto   rest = builder.createLabel();
+        builder.emitCmpRegReg(lhs, rhs, MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, rest);
+        builder.emitLoadRegReg(negated, lhs, MicroOpBits::B32);
+        builder.emitOpUnaryReg(negated, MicroOp::Negate, MicroOpBits::B32);
+        builder.emitLoadRegReg(result, negated, MicroOpBits::B32);
+        builder.emitRet();
+        builder.placeLabel(rest);
+        builder.emitLoadRegImm(tailDef, ApInt(0, 64), MicroOpBits::B32);
+        builder.emitLoadRegReg(result, lhs, MicroOpBits::B32);
+        builder.emitRet();
+
+        SWC_RESULT(runBranchSimplifyPass(builder));
+        // The negation requires reissuing the compare. Either operand being
+        // overwritten by the tail prevents that, even if it is the second one.
+        const bool canConvert = tailDef == scratch;
+        if (countConditionalMoves(builder, MicroCond::Less) != (canConvert ? 1 : 0))
+            return Result::Error;
+        if (countInstructionsWithOpcode(builder, MicroInstrOpcode::JumpCond) != (canConvert ? 0 : 1))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(BranchSimplify_InvertsJumpPairAfterImmediateJumpErasure)
 {
     constexpr MicroReg  input = MicroReg::virtualIntReg(1);

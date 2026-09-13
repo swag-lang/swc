@@ -223,6 +223,57 @@ SWC_TEST_BEGIN(LoopUnroll_ExternalJumpToBody_PreservesLoop)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LoopUnroll_RejectedCandidateKeepsRelocationsForFollowingLoop)
+{
+    constexpr MicroReg counter = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+    const auto         rejectedHeader = builder.createLabel();
+    builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B64, rejectedHeader);
+    emitCountedLoop(builder, rejectedHeader);
+    const auto rejectedLatch = builder.instructions().lastInstructionRef();
+
+    const auto header = builder.createLabel();
+    builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+    builder.placeLabel(header);
+    builder.emitLoadRegMem(value, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+    const auto loadRef = builder.instructions().lastInstructionRef();
+    builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
+    const auto unrolledLatch = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    // A real RIP-relative global load exercises the shared index after the
+    // first backward candidate was rejected for its extra incoming jump.
+    MicroRelocation expected;
+    expected.kind           = MicroRelocation::Kind::GlobalInitAddress;
+    expected.form           = MicroRelocation::Form::Relative32;
+    expected.instructionRef = loadRef;
+    expected.targetAddress  = 0x1000;
+    builder.addRelocation(expected);
+
+    SWC_RESULT(runLoopUnrollPass(builder));
+    if (!builder.instructions().ptr(rejectedLatch) || builder.instructions().ptr(unrolledLatch) ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 2 || builder.codeRelocations().size() != 3)
+        return Result::Error;
+    size_t relocationIndex = 0;
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+    {
+        if (it->op != MicroInstrOpcode::LoadRegMem)
+            continue;
+        if (relocationIndex >= builder.codeRelocations().size())
+            return Result::Error;
+        const auto& relocation = builder.codeRelocations()[relocationIndex++];
+        if (relocation.instructionRef != it.current || !relocation.hasSameTarget(expected) || relocation.form != expected.form ||
+            it->ops(builder.operands())[1].reg != MicroReg::instructionPointer())
+            return Result::Error;
+    }
+    return relocationIndex == 3 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

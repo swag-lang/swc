@@ -114,19 +114,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
         // let clones keep the tables and constants the body reads.
         std::unordered_set<uint64_t>                                  relocLabels;
         std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>> relocsBySlot;
-        for (const MicroRelocation& reloc : builder.codeRelocations())
-        {
-            if (!reloc.instructionRef.isValid())
-                continue;
-            relocsBySlot[reloc.instructionRef.get()].push_back(reloc);
-            const MicroInstr* inst = storage.ptr(reloc.instructionRef);
-            if (inst && inst->op == MicroInstrOpcode::Label)
-            {
-                const MicroInstrOperand* ops = inst->ops(operands);
-                if (ops)
-                    relocLabels.insert(ops[0].valueU64);
-            }
-        }
+        bool                                                          relocationsIndexed = false;
 
         for (const auto& [jccOrdinal, headerId] : jumps)
         {
@@ -137,6 +125,25 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // Backward jump with room for add/cmp plus at least one body instruction.
             if (h + 4 > jccOrdinal)
                 continue;
+            // No candidate can use the tables before this point. The layout
+            // and relocations are unchanged until a successful unroll ends the sweep.
+            if (!relocationsIndexed)
+            {
+                for (const MicroRelocation& reloc : builder.codeRelocations())
+                {
+                    if (!reloc.instructionRef.isValid())
+                        continue;
+                    relocsBySlot[reloc.instructionRef.get()].push_back(reloc);
+                    const MicroInstr* inst = storage.ptr(reloc.instructionRef);
+                    if (inst && inst->op == MicroInstrOpcode::Label)
+                    {
+                        const MicroInstrOperand* ops = inst->ops(operands);
+                        if (ops)
+                            relocLabels.insert(ops[0].valueU64);
+                    }
+                }
+                relocationsIndexed = true;
+            }
             if (relocLabels.contains(headerId))
                 continue;
 

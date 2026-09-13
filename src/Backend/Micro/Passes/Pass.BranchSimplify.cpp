@@ -1759,17 +1759,6 @@ namespace
         return false;
     }
 
-    bool pathDefinesRegister(const ReturnPath& path, const DiamondScan& scan, const MicroReg reg)
-    {
-        for (const MicroInstrRef ref : path.refs)
-        {
-            const MicroInstrUseDef useDef = scan.storage->ptr(ref)->collectUseDef(*scan.operands, nullptr);
-            if (std::ranges::find(useDef.defs, reg) != useDef.defs.end())
-                return true;
-        }
-        return false;
-    }
-
     bool tryMatchEarlyReturn(EarlyReturn& out, const DiamondScan& scan, const CallConv& conv, const MicroInstrRef jumpRef, const MicroInstr& jumpInst, const MicroInstrOperand* jumpOps)
     {
         uint32_t labelId = 0;
@@ -1834,10 +1823,14 @@ namespace
         if (flagsInst->op != MicroInstrOpcode::CmpRegReg && flagsInst->op != MicroInstrOpcode::CmpRegImm)
             return false;
         const MicroInstrUseDef flagsUseDef = flagsInst->collectUseDef(*scan.operands, nullptr);
-        for (const MicroReg use : flagsUseDef.uses)
+        for (const MicroInstrRef ref : out.tail.refs)
         {
-            if (pathDefinesRegister(out.tail, scan, use))
-                return false;
+            const MicroInstrUseDef useDef = scan.storage->ptr(ref)->collectUseDef(*scan.operands, nullptr);
+            for (const MicroReg use : flagsUseDef.uses)
+            {
+                if (std::ranges::find(useDef.defs, use) != useDef.defs.end())
+                    return false;
+            }
         }
 
         return true;

@@ -1,0 +1,14 @@
+  ◆  swag        run • workspace [consumer_exe] • devmode
+  ✓  module      win32 • 31 files • 626 ms
+  ✓  module      xinput • 28 files • 692 ms
+  ✓  module      core • 349 files • core.dll • 40 s 142 ms
+  ✓  workspace   std [2 roots] • 3 modules • 44 s 150 ms
+  ✓  module      api_export_provider • 31 files • 801 ms
+  ✓  module      api_static_provider • 28 files • api_static_provider.lib • 961 ms
+  ✓  module      runtime_context_base_static • 20 files • runtime_context_base_static.lib • 935 ms
+  ✓  module      runtime_context_bridge_dll • 24 files • runtime_context_bridge_dll.dll • 1 s 96 ms
+  ✓  module      runtime_context_direct_static • 20 files • runtime_context_direct_static.lib • 1 s 553 ms
+  ✓  module      consumer_exe • 64 files • consumer_exe.exe • 3 s 313 ms
+SWAG_WORKSPACE_MAIN_RAN
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 56 s 808 ms
+  ✓  clean       56 s 818 ms

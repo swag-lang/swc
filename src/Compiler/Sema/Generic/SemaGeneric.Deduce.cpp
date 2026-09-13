@@ -1288,8 +1288,10 @@ namespace
             outMapping.paramArgs[0].allowImplicitAddressBinding = true;
         }
 
-        bool     seenNamed = false;
-        uint32_t nextPos   = paramStart;
+        bool                                                     seenNamed    = false;
+        uint32_t                                                 nextPos      = paramStart;
+        uint32_t                                                 namedLookups = 0;
+        std::optional<std::unordered_map<IdentifierRef, uint32_t>> namedParamIndices;
 
         for (uint32_t userIndex = 0; userIndex < args.size(); ++userIndex)
         {
@@ -1302,12 +1304,31 @@ namespace
 
                 const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
                 int32_t             found = -1;
-                for (uint32_t i = paramStart; i < numParams; ++i)
+                // Small calls keep the linear lookup. Long named-argument lists build one
+                // local index instead of rescanning every parameter for every argument.
+                if (++namedLookups > 8 && numParams > paramStart + 16 && !namedParamIndices)
                 {
-                    if (params[i].idRef == idRef)
+                    namedParamIndices.emplace();
+                    namedParamIndices->reserve(numParams - paramStart);
+                    for (uint32_t i = paramStart; i < numParams; ++i)
+                        namedParamIndices->try_emplace(params[i].idRef, i);
+                }
+
+                if (namedParamIndices)
+                {
+                    const auto it = namedParamIndices->find(idRef);
+                    if (it != namedParamIndices->end())
+                        found = static_cast<int32_t>(it->second);
+                }
+                else
+                {
+                    for (uint32_t i = paramStart; i < numParams; ++i)
                     {
-                        found = static_cast<int32_t>(i);
-                        break;
+                        if (params[i].idRef == idRef)
+                        {
+                            found = static_cast<int32_t>(i);
+                            break;
+                        }
                     }
                 }
 

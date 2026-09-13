@@ -1,0 +1,20 @@
+swc.dm.exe :
+Au caractère Ligne:2 : 509
++ ... w($false)); & .\bin\swc.dm.exe --num-cores 6 tools\unittests.swgs dm  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+  ◆  swag        run • tools • devmode
+  ✓  checked     66 files • 181_132 tokens • 1 s 460 ms
+  ✓  tuned       458 functions • 1 s 882 ms
+
+  ◆  swag        test • bin/unittests/native • devmode
+error: unknown symbol 'T'
+ --> C:\Perso\swag-lang\swc-sema-codegen-perf\bin\unittests\native\generics\named_argument_mapping.swg:2:32-33
+2 │ [38;2;204;204;204m[38;2;86;156;214mfunc([38;2;78;201;176mT) [38;2;255;116;17mpair(first: [38;2;78;201;176mT, second: [38;2;78;201;176mT)->[38;2;78;201;176mT => first + second
+  │                                ^
+
+  ✖  checking    20 files • 40_304 tokens • 368 ms
+  ✖  testing     0 tests • 375 ms
+  ✖  stopped     1 error • 382 ms

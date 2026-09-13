@@ -552,3 +552,79 @@ Focused native validation passed for [many string chunks](native-switch_many_chu
 [aggregate struct arrays](native-functions-aggregate_struct_array-556.log) (1),
 [numeric aggregate arrays](native-aggregate_numeric_array-556.log) (1), and
 [constant-address storage](native-address_constant_storage-556.log) (1).
+
+## Additional reductions in build 557
+
+Sanity attributes keep the set of overridden bits and their latest values instead of a vector
+of historical overrides. Effective-mask queries and copies of this part of a Sema frame become
+constant work; the vector's inline storage and any dynamic allocation disappear. A separate
+presence bit preserves the distinction between no override and an explicit zero-mask override.
+Runtime safety retains its history because inlining also consumes past disable operations.
+The C++ regression compares 39 override prefixes against the old sequential interpretation for
+20 build masks, including zero/all bits, nested frame copies, independent changes, and reset.
+
+Generic named-argument mapping builds a temporary parameter-name index only after eight named
+lookups and only for more than 16 eligible parameters. Large calls use expected O(P + A) work
+instead of O(P * A), where P is the parameter count and A the named-argument count. Small and
+positional calls retain linear lookup without constructing the map. The index retains the first
+parameter for duplicate names and excludes the UFCS receiver exactly as the old scan did.
+
+Interface implementation lookup reads the existing vector under its shared lock instead of
+allocating and copying the entire vector before every search. The loop only reads immutable
+identifiers and returns the first matching implementation; it invokes no callbacks or further
+locks. The owning symbols and writer synchronization are unchanged.
+
+COFF string-table construction borrows views of the final immutable symbol vector instead of
+copying every long name into both its offset map and its ordered entry vector. All views die
+inside serialization, before the owning symbols. Combined insertion/lookup also removes the
+second hash lookup for new table entries and undefined symbols. A C++ object-format test checks
+8/9-byte COFF names, 15/16-byte string-storage boundaries, container growth, and shared offsets
+for repeated short-storage and long-storage names, including the exact string-table size.
+
+No micro-pass source or test is changed. Functional validation uses both compiler executables
+because the interface lookup changes work performed under a shared lock. No benchmark or
+comparative timing is run.
+
+The new native mapping fixture checks all 20 parameter slots, with the generic type deduced
+from the first positional argument or UFCS receiver and the remaining concrete parameters
+named in reverse order. Both tests and the generated executable passed on the prior DevMode
+556 binary ([baseline](named-twenty-positional-generic-556.log)).
+
+An initial fixture also exposed an older inference defect: even two reordered named arguments
+whose contextual types are generic can produce `unknown symbol 'T'`. It reproduces with both
+[Release 555](named-two-inferred-release-555.log) and [DevMode 556](named-two-inferred-556.log);
+the same call with an [explicit type argument](named-two-explicit-556.log) succeeds. An explicit
+specialization can bypass the changed mapping, so it is not the retained regression fixture.
+The separate contextual-type problem is recorded as
+[compiler.core.043](../../../../backlog/compiler.core.md#compilercore043--resolve-inferred-generic-calls-with-named-arguments).
+
+Both build-557 compiler executables built successfully with MSBuild `/m:6 /p:SwcCompileJobs=6`.
+Swag validation uses six workers at the script and child levels. Tool-driven test commands are
+serialized so their standard-module dependency publication cannot overlap.
+
+| Build-557 validation | Result | Evidence |
+| --- | --- | --- |
+| C++, including filesystem tests (`--dev-full`) | 800 passed; none excluded | [Log](cpp-full-557.log) |
+| Semantic analysis | 278 valid and 293 expected-error inputs verified | [Log](sema-557.log) |
+| Sanity | 52 passed, including expected diagnostics | [Log](sanity-557.log) |
+| JIT | 1,402 passed | [Log](jit-557.log) |
+| Native, program configuration `devmode` | 3,150 passed; generated executable passed | [Log](native-devmode-557.log) |
+| Native, program configuration `release` | 3,150 passed; generated executable passed | [Log](native-release-557.log) |
+| Forced workspace consumer | Three standard dependencies and six local modules rebuilt; main and cross-module assertions passed | [Log](workspace-consumer-557.log) |
+| Repository/backlog contract | Passed | [Log](repository-557.log) |
+
+The DevMode compiler also passed focused native checks for
+[named generic mapping](native-named_argument_mapping-557.log) (2),
+[multiple interfaces](native-interfaces-multiple-557.log) (4),
+[using fields](native-interfaces-using-557.log) (2),
+[interface construction](native-mkinterface-557.log) (1),
+[qualified using](native-qualified_using-557.log) (1), and
+[dynamic interface presence](native-dynamic_presence-557.log) (5).
+
+The Release compiler passed the same focused native boundaries:
+[named generic mapping](release-compiler-named_argument_mapping-557.log) (2),
+[multiple interfaces](release-compiler-interfaces-multiple-557.log) (4),
+[using fields](release-compiler-interfaces-using-557.log) (2),
+[interface construction](release-compiler-mkinterface-557.log) (1),
+[qualified using](release-compiler-qualified_using-557.log) (1), and
+[dynamic interface presence](release-compiler-dynamic_presence-557.log) (5).

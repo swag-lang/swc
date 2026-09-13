@@ -6,6 +6,34 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.043 — Resolve inferred generic calls with named arguments
+
+- Recorded: 2026-09-13 17:46
+- Evidence: Release compiler 0.1.555 and DevMode compiler 0.1.556 both reject the reduced
+  call below with `unknown symbol 'T'`, pointing at the type of `second`. The same declaration
+  and arguments pass when the call explicitly supplies `pair'(s32)`. The failure therefore
+  predates the compilation-speed changes in build 557 and does not require a large parameter
+  list. The [Release failure](../bench/results/compilation/20260913-sema-codegen/named-two-inferred-release-555.log),
+  [DevMode failure](../bench/results/compilation/20260913-sema-codegen/named-two-inferred-556.log),
+  and [explicit-call success](../bench/results/compilation/20260913-sema-codegen/named-two-explicit-556.log)
+  preserve the observations. These runs used the native compiler test suite in `devmode`,
+  with six compiler workers and a source-file filter.
+
+```swag
+#global private
+func(T) pair(first: T, second: T)->T => first + second
+#test { Swag.assert(pair(second: 2's32, first: 1) == 3) }
+```
+
+- Next: trace contextual typing of `NamedArgument` values before generic deduction and check
+  the declaration scope and bindings used to resolve dependent parameter types. Compare the
+  inferred call with the explicitly specialized callee, which can be materialized before
+  overload matching. Do not suppress an unknown-type diagnostic without establishing that
+  the type belongs to the candidate's unresolved generic parameters.
+- Complete when: inferred generic calls support reordered named arguments and mixed
+  positional/named and UFCS calls, focused regressions pass with both compiler executables,
+  and unknown or duplicate argument names retain their existing diagnostics.
+
 ### compiler.core.042 — Protect generated module APIs from concurrent workspace rebuilds
 
 - Recorded: 2026-09-13 11:11

@@ -678,6 +678,62 @@ SWC_TEST_BEGIN(Sema_NarrowRootKillsPreserveSurvivorOrder)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Sema_SanityOverrideSummaryPreservesOrderAndFrameInheritance)
+{
+    std::vector<RuntimeSafetyOverride> overrides = {{0, true}, {0, false}, {UINT16_MAX, false}, {0x5555, true}, {0xAAAA, true}, {0x5555, false}, {UINT16_MAX, true}};
+    std::array<uint16_t, 20>           buildMasks = {0, UINT16_MAX, 0x5555, 0xAAAA};
+    for (uint32_t bit = 0; bit < 16; ++bit)
+    {
+        const auto mask = static_cast<uint16_t>(1u << bit);
+        buildMasks[bit + 4] = mask;
+        overrides.push_back({mask, false});
+        overrides.push_back({mask, true});
+    }
+
+    SemaFrame frame;
+    if (!frame.currentAttributes().empty())
+        return Result::Error;
+    for (size_t index = 0; index < overrides.size(); ++index)
+    {
+        const auto& current = overrides[index];
+        frame.currentAttributes().addSanityOverride(static_cast<Runtime::SafetyWhat>(current.whatMask), current.value);
+        // Even a zero-mask declaration is an attribute, despite changing no guard bits.
+        if (frame.currentAttributes().empty())
+            return Result::Error;
+
+        SemaFrame inherited = frame;
+        for (const uint16_t buildMask : buildMasks)
+        {
+            uint16_t expected = buildMask;
+            for (size_t applied = 0; applied <= index; ++applied)
+            {
+                const auto& entry = overrides[applied];
+                if (entry.value)
+                    expected |= entry.whatMask;
+                else
+                    expected &= ~entry.whatMask;
+            }
+
+            const auto buildCfgMask = static_cast<Runtime::SafetyWhat>(buildMask);
+            if (frame.currentAttributes().effectiveSanityMask(buildCfgMask) != expected || inherited.currentAttributes().effectiveSanityMask(buildCfgMask) != expected)
+                return Result::Error;
+            if (!inherited.currentAttributes().hasSanity(buildCfgMask, Runtime::SafetyWhat::None) || inherited.currentAttributes().hasSanity(buildCfgMask, Runtime::SafetyWhat::All) != (expected == UINT16_MAX))
+                return Result::Error;
+        }
+
+        inherited.currentAttributes().addSanityOverride(Runtime::SafetyWhat::All, false);
+        inherited.currentAttributes().addSanityOverride(static_cast<Runtime::SafetyWhat>(0x8000), true);
+        if (inherited.currentAttributes().effectiveSanityMask(Runtime::SafetyWhat::All) != 0x8000)
+            return Result::Error;
+        // Continuing the parent above must not inherit this nested scope's decisions.
+    }
+
+    frame.currentAttributes() = {};
+    if (!frame.currentAttributes().empty() || frame.currentAttributes().effectiveSanityMask(Runtime::SafetyWhat::All) != UINT16_MAX)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

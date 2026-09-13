@@ -47,24 +47,25 @@ private:
 
     struct CoffStringTable
     {
-        uint32_t add(const Utf8& name)
+        uint32_t add(const std::string_view name)
         {
             if (name.size() <= K_COFF_SHORT_NAME_SIZE)
                 return 0;
-            const auto it = offsets.find(name);
-            if (it != offsets.end())
+            const auto [it, inserted] = offsets.try_emplace(name, size);
+            if (!inserted)
                 return it->second;
 
             const uint32_t offset = size;
-            offsets.emplace(name, offset);
             entries.push_back(name);
             size += static_cast<uint32_t>(name.size()) + 1;
             return offset;
         }
 
-        uint32_t                           size = 4;
-        std::unordered_map<Utf8, uint32_t> offsets;
-        std::vector<Utf8>                  entries;
+        // buildCoffFile owns this table inside the lifetime of its immutable symbol vector.
+        // Names remain stable until both their offsets and bytes have been emitted.
+        uint32_t                                      size = 4;
+        std::unordered_map<std::string_view, uint32_t> offsets;
+        std::vector<std::string_view>                  entries;
     };
 
     Result        buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const;

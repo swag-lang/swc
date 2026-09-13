@@ -618,6 +618,65 @@ SWC_TEST_BEGIN(NativeArtifact_RDataKeepsGrowingCyclicDependencies)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NativeArtifact_CoffStringTablePreservesNamesAndSharedOffsets)
+{
+    const NativeArtifactTestFixture fixture(ctx.global(), makeNativeArtifactCmdLine());
+    std::vector<Utf8> names = {"tiny", "eight888", "nine99999", Utf8(15, 'a'), Utf8(16, 'b')};
+    for (size_t index = 0; index < 40; ++index)
+        names.push_back(std::format("long_symbol_name_with_shared_prefix_{}", index));
+
+    uint32_t expectedStringBytes = sizeof(uint32_t);
+    for (const Utf8& name : names)
+        if (name.size() > 8)
+            expectedStringBytes += static_cast<uint32_t>(name.size()) + 1;
+    names.push_back(names[2]);
+    names.push_back(names[5]);
+
+    MachineCode code;
+    code.bytes.pushBack(std::byte{0xC3});
+    for (const Utf8& name : names)
+        fixture.nativeBuilder->functionInfos.push_back({.machineCode = &code, .symbolName = name, .debugName = name});
+
+    NativeObjDescription description;
+    for (auto& info : fixture.nativeBuilder->functionInfos)
+        description.functions.push_back(&info);
+    const auto objectWriter = NativeObjFileWriter::create(*fixture.nativeBuilder);
+    ByteArray  bytes;
+    SWC_RESULT(objectWriter->buildObjectFile(bytes, description));
+
+    Diagnostic diag;
+    CoffObject object;
+    if (!readCoffObject(object, diag, bytes) || object.definedSymbols.size() != names.size())
+        return Result::Error;
+    for (size_t index = 0; index < names.size(); ++index)
+        if (object.definedSymbols[index].name != names[index])
+            return Result::Error;
+
+    IMAGE_FILE_HEADER header{};
+    if (!readBinaryRecord(header, bytes, 0) || header.NumberOfSymbols != names.size())
+        return Result::Error;
+    const size_t stringTableOffset = header.PointerToSymbolTable + names.size() * sizeof(IMAGE_SYMBOL);
+    uint32_t     stringBytes = 0;
+    if (!readBinaryRecord(stringBytes, bytes, stringTableOffset) || stringBytes != expectedStringBytes)
+        return Result::Error;
+    if (stringTableOffset + stringBytes != bytes.size())
+        return Result::Error;
+
+    // Both short-string storage and heap-backed names share one COFF entry when repeated.
+    for (size_t duplicateIndex = 0; duplicateIndex < 2; ++duplicateIndex)
+    {
+        const size_t originalIndex = duplicateIndex == 0 ? 2 : 5;
+        IMAGE_SYMBOL original{};
+        IMAGE_SYMBOL duplicate{};
+        if (!readBinaryRecord(original, bytes, header.PointerToSymbolTable + originalIndex * sizeof(IMAGE_SYMBOL)) ||
+            !readBinaryRecord(duplicate, bytes, header.PointerToSymbolTable + (names.size() - 2 + duplicateIndex) * sizeof(IMAGE_SYMBOL)))
+            return Result::Error;
+        if (original.N.Name.Short != 0 || original.N.Name.Long != duplicate.N.Name.Long)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_CoffWriterUsesExtendedRelocations)
 {
     static constexpr uint32_t RELOCATION_COUNT = 0xFFFF;

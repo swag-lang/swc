@@ -73,7 +73,6 @@ struct AttributeList
     SmallVector4<AttributeInstance>     attributes;
     RtAttributeFlags                    rtFlags = RtAttributeFlagsE::Zero;
     SmallVector4<RuntimeSafetyOverride> runtimeSafetyOverrides;
-    SmallVector4<RuntimeSafetyOverride> sanityOverrides;
     uint64_t                            returnBorrowsParamsMask  = 0;
     uint64_t                            storesParamsMask         = 0;
     uint64_t                            storesIntoParamPairs     = 0;
@@ -102,7 +101,7 @@ struct AttributeList
         return attributes.empty() &&
                rtFlags.none() &&
                runtimeSafetyOverrides.empty() &&
-               sanityOverrides.empty() &&
+               !hasSanityOverrides_ &&
                returnBorrowsParamsMask == 0 &&
                storesParamsMask == 0 &&
                storesIntoParamPairs == 0 &&
@@ -161,21 +160,18 @@ struct AttributeList
     // controlled by their own attribute ('Swag.Sanity') and build-config mask.
     void addSanityOverride(Runtime::SafetyWhat what, bool value)
     {
-        sanityOverrides.push_back({.whatMask = SemaSafety::mask(what), .value = value});
+        const uint16_t whatMask = SemaSafety::mask(what);
+        hasSanityOverrides_     = true;
+        sanityOverrideMask_ |= whatMask;
+        if (value)
+            sanityEnabledMask_ |= whatMask;
+        else
+            sanityEnabledMask_ &= ~whatMask;
     }
 
     uint16_t effectiveSanityMask(Runtime::SafetyWhat buildCfgMask) const
     {
-        uint16_t result = SemaSafety::mask(buildCfgMask);
-        for (const auto& overrideValue : sanityOverrides)
-        {
-            if (overrideValue.value)
-                result |= overrideValue.whatMask;
-            else
-                result &= ~overrideValue.whatMask;
-        }
-
-        return result;
+        return (SemaSafety::mask(buildCfgMask) & ~sanityOverrideMask_) | sanityEnabledMask_;
     }
 
     bool hasSanity(Runtime::SafetyWhat buildCfgMask, Runtime::SafetyWhat what) const
@@ -225,6 +221,14 @@ struct AttributeList
         foreignLinkModuleName = linkModuleName;
         foreignCallConvKind   = callConvKind;
     }
+
+private:
+    // Sanity has no history consumers: only the last decision for each bit matters.
+    // Preserve presence separately because an explicit zero-mask override still makes
+    // the attribute list nonempty. Copies into nested frames inherit the complete state.
+    uint16_t sanityOverrideMask_ = 0;
+    uint16_t sanityEnabledMask_  = 0;
+    bool     hasSanityOverrides_ = false;
 };
 
 SWC_END_NAMESPACE();

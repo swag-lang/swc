@@ -1000,7 +1000,8 @@ struct SymbolStruct::GenericData
 
 const SymbolImpl* SymbolStruct::findInterfaceImpl(IdentifierRef interfaceIdRef) const
 {
-    for (const auto* itfImpl : interfaces())
+    const std::shared_lock lk(mutexInterfaces_);
+    for (const auto* itfImpl : interfaces_)
     {
         if (itfImpl && itfImpl->idRef() == interfaceIdRef)
             return itfImpl;

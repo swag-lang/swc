@@ -1,0 +1,12 @@
+  ◆  swag        run • tools • devmode
+  ✓  checked     66 files • 181_132 tokens • 694 ms
+  ✓  tuned       458 functions • 1 s 248 ms
+  ◆  swag        test • bin/unittests/native • devmode
+error: unknown symbol 'T'
+ --> C:\Perso\swag-lang\swc-sema-codegen-perf\bin\unittests\native\generics\named_argument_mapping.swg:2:32-33
+2 │ [38;2;204;204;204m[38;2;86;156;214mfunc([38;2;78;201;176mT) [38;2;255;116;17mpair(first: [38;2;78;201;176mT, second: [38;2;78;201;176mT)->[38;2;78;201;176mT => first + second
+  │                                ^
+
+  ✖  checking    20 files • 40_304 tokens • 288 ms
+  ✖  testing     0 tests • 303 ms
+  ✖  stopped     1 error • 310 ms

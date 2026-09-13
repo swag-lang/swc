@@ -518,8 +518,10 @@ bool MicroSsaState::computeDominators(const bool acyclic)
         }
     }
 
+    bool hasJoin = false;
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {
+        hasJoin |= blocks_[blockIndex].predecessors.size() >= 2;
         blocks_[blockIndex].idom = idomValues[blockIndex];
         const uint32_t idom      = blocks_[blockIndex].idom;
         if (idom == K_INVALID_BLOCK || idom == blockIndex)
@@ -527,10 +529,18 @@ bool MicroSsaState::computeDominators(const bool acyclic)
         blocks_[idom].domChildren.push_back(blockIndex);
     }
 
+    // Frontier construction only visits joins. A fork with separate exits
+    // still needs its dominator tree, but no frontier workspace or second walk.
+    if (!hasJoin)
+        return false;
+
     // Each join is visited once. Once two predecessor walks meet, the remaining
     // dominator path has already contributed this join to every frontier on it.
-    bool                  hasFrontier = false;
-    std::vector<uint32_t> frontierVisit(blocks_.size(), K_INVALID_BLOCK);
+    // Immediate dominators now live on the blocks; reuse their scratch array
+    // for frontier stamps instead of allocating another row per block.
+    auto& frontierVisit = idomValues;
+    std::ranges::fill(frontierVisit, K_INVALID_BLOCK);
+    bool hasFrontier = false;
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {
         if (blocks_[blockIndex].predecessors.size() < 2)

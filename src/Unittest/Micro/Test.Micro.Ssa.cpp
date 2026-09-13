@@ -102,6 +102,46 @@ SWC_TEST_BEGIN(MicroSsa_Dominators_HandleEntryAndDescendantJoin)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroSsa_ForkWithoutJoinKeepsSiblingAndRootScopes)
+{
+    constexpr MicroReg value = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+    const auto         right = builder.createLabel();
+    builder.emitLoadRegImm(value, ApInt(7, 64), MicroOpBits::B64);
+    const auto entryDef = builder.instructions().lastInstructionRef();
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B32, right);
+    builder.emitLoadRegImm(value, ApInt(9, 64), MicroOpBits::B64);
+    const auto leftDef = builder.instructions().lastInstructionRef();
+    builder.emitLoadMemReg(MicroReg::intReg(2), 0, value, MicroOpBits::B64);
+    const auto leftUse = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+    builder.placeLabel(right);
+    builder.emitLoadMemReg(MicroReg::intReg(2), 0, value, MicroOpBits::B64);
+    const auto rightUse = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+    builder.emitLoadRegImm(value, ApInt(11, 64), MicroOpBits::B64);
+    const auto orphanDef = builder.instructions().lastInstructionRef();
+    builder.emitLoadMemReg(MicroReg::intReg(2), 0, value, MicroOpBits::B64);
+    const auto orphanUse = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    MicroSsaState ssa;
+    for (uint32_t rebuild = 0; rebuild < 2; ++rebuild)
+    {
+        ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+        if (!ssa.phis().empty() || ssa.values().size() != 3 || ssa.reachingDef(value, orphanDef).valid())
+            return Result::Error;
+        if (ssa.reachingDef(value, leftUse).instRef != leftDef || ssa.reachingDef(value, rightUse).instRef != entryDef ||
+            ssa.reachingDef(value, orphanUse).instRef != orphanDef)
+            return Result::Error;
+        uint32_t entryValue = MicroSsaState::K_INVALID_VALUE;
+        if (!ssa.defValue(value, entryDef, entryValue) || ssa.transitiveInstructionUseCount(entryValue, 2) != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroSsa_ReachingDef_BeforeWritesAndAtNonUses)
 {
     constexpr MicroReg v1 = MicroReg::virtualIntReg(1);

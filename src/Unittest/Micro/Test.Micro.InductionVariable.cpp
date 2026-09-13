@@ -158,6 +158,66 @@ SWC_TEST_BEGIN(InductionVariable_ProductsKeepPriorityWhenCarrierIsRejected)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InductionVariable_CopyThenOpUsesLiveLayoutAdjacency)
+{
+    constexpr MicroReg induction = MicroReg::virtualIntReg(1);
+    constexpr MicroReg base      = MicroReg::virtualIntReg(2);
+    constexpr MicroReg count     = MicroReg::virtualIntReg(3);
+    constexpr MicroReg address   = MicroReg::virtualIntReg(4);
+    const MicroReg     sp        = CallConv::get(CallConvKind::Swag).stackPointer;
+    for (const bool keepGap : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        const auto   header = builder.createLabel();
+        builder.emitLoadRegImm(induction, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitNop();
+        const auto preheaderHole = builder.instructions().lastInstructionRef();
+        builder.placeLabel(header);
+        builder.emitLoadRegReg(address, base, MicroOpBits::B64);
+        const auto copyRef = builder.instructions().lastInstructionRef();
+        builder.emitNop();
+        const auto gapRef = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegReg(address, induction, MicroOp::Add, MicroOpBits::B64);
+        const auto addRef = builder.instructions().lastInstructionRef();
+        builder.emitLoadMemReg(sp, 0x40, address, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(induction, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        const auto stepRef = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, header);
+        builder.emitRet();
+        // References are storage slots, while adjacency follows live links.
+        builder.instructions().erase(preheaderHole);
+        if (!keepGap)
+            builder.instructions().erase(gapRef);
+        const auto originalCount = builder.instructions().count();
+
+        MicroPassContext passContext;
+        passContext.builder      = &builder;
+        passContext.instructions = &builder.instructions();
+        passContext.operands     = &builder.operands();
+        passContext.callConvKind = CallConvKind::Swag;
+        MicroInductionVariablePass pass;
+        SWC_RESULT(pass.run(passContext));
+        const auto* copy = builder.instructions().ptr(copyRef);
+        if (!copy || copy->op != MicroInstrOpcode::LoadRegReg)
+            return Result::Error;
+        if (keepGap)
+        {
+            if (passContext.passChanged || builder.instructions().count() != originalCount ||
+                !builder.instructions().ptr(addRef) || !builder.instructions().ptr(stepRef) || copy->ops(builder.operands())[1].reg != base)
+                return Result::Error;
+        }
+        else if (!passContext.passChanged || builder.instructions().ptr(addRef) || builder.instructions().ptr(stepRef) ||
+                 copy->ops(builder.operands())[1].reg != MicroReg::virtualIntReg(5))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

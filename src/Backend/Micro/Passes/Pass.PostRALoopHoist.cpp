@@ -362,15 +362,7 @@ namespace
     // nothing outside the loop can observe the register we stopped writing.
     // Success means a redefinition was reached, which is what makes the load
     // dead rather than merely redundant.
-    bool redirectUsesToHoistedRegister(MicroStorage&                                 storage,
-                                       MicroOperandStorage&                          operands,
-                                       const MicroControlFlowGraph&                  cfg,
-                                       const MicroPhysLiveness&                      liveness,
-                                       const std::vector<uint8_t>&                   inBody,
-                                       const std::unordered_map<uint32_t, uint32_t>& refToIndex,
-                                       const uint32_t                                loadIndex,
-                                       const MicroReg                                hoisted,
-                                       const Encoder*                                encoder)
+    bool redirectUsesToHoistedRegister(MicroStorage& storage, MicroOperandStorage& operands, const MicroControlFlowGraph& cfg, const MicroPhysLiveness& liveness, const std::vector<uint8_t>& inBody, const uint32_t loadIndex, const MicroReg hoisted, const Encoder* encoder)
     {
         const auto     instrRefs = cfg.instructionRefs();
         const uint32_t n         = cfg.instructionCount();
@@ -797,11 +789,6 @@ namespace
         if (!liveness.valid)
             return false;
 
-        std::unordered_map<uint32_t, uint32_t> refToIndex;
-        refToIndex.reserve(n);
-        for (uint32_t i = 0; i < n; ++i)
-            refToIndex[instrRefs[i].get()] = i;
-
         // Innermost first, so a load leaves the loop it costs most in before the
         // enclosing one is considered.
         std::vector<const NaturalLoop*> loops;
@@ -845,8 +832,9 @@ namespace
             const MicroInstrRef prevRef = storage.findPreviousInstructionRef(headerRef);
             if (!prevRef.isValid())
                 continue;
-            const auto prevIdxIt = refToIndex.find(prevRef.get());
-            if (prevIdxIt == refToIndex.end() || inBody[prevIdxIt->second])
+            // The CFG keeps listing order, and this round defers every insertion
+            // and erasure until all loops have been analyzed.
+            if (!header || instrRefs[header - 1] != prevRef || inBody[header - 1])
                 continue;
             const MicroInstr* prevInst = storage.ptr(prevRef);
             if (!prevInst)
@@ -859,7 +847,7 @@ namespace
                 !prevFlags.has(MicroInstrFlagsE::ConditionalJump))
                 continue;
 
-            const uint32_t preheaderIndex = prevIdxIt->second;
+            const uint32_t preheaderIndex = header - 1;
 
             // Classify the body once: every frame slot it writes, and whether it
             // does anything the slot analysis cannot account for. Count definitions by
@@ -1024,7 +1012,7 @@ namespace
                         // else, which is the shape that makes the copy pure
                         // overhead — and freeing it is what lets a later pass
                         // keep a loop-carried value there.
-                        if (!redirectUsesToHoistedRegister(storage, operands, cfg, liveness, inBody, refToIndex, k, dst, context.encoder))
+                        if (!redirectUsesToHoistedRegister(storage, operands, cfg, liveness, inBody, k, dst, context.encoder))
                             rewrites.push_back({instrRefs[k], dst});
                         else
                             erasures.push_back(instrRefs[k]);

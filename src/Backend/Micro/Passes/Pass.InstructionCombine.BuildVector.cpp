@@ -547,17 +547,11 @@ namespace InstructionCombine
             return false;
         }
 
-        if (!ctx.claimAll({loadRef}))
-        {
-            ctx.nextVirtualFloatRegIndex = savedFloat;
-            ctx.nextVirtualIntRegIndex   = savedInt;
-            return false;
-        }
+        // These distinct references passed the claim and relocation guards
+        // above. Building the plan only changed its steps and register counters.
+        ctx.claimed.insert(loadRef.get());
         for (const MicroInstrRef ref : storeRefs)
-        {
-            if (!ctx.claimAll({ref}))
-                return false;
-        }
+            ctx.claimed.insert(ref.get());
 
         // Every step but the last goes before the load; the last becomes the
         // load, writing its register.

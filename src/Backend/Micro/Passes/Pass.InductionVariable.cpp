@@ -230,11 +230,9 @@ namespace
         if (loopsByHeader.empty())
             return false;
 
-        const auto                             instrRefs = cfg.instructionRefs();
-        std::unordered_map<uint32_t, uint32_t> refToIndex;
-        refToIndex.reserve(n);
-        for (uint32_t i = 0; i < n; ++i)
-            refToIndex[instrRefs[i].get()] = i;
+        const auto instrRefs = cfg.instructionRefs();
+        // Candidate discovery precedes every mutation, and a changed loop
+        // ends the round. Physical neighbors therefore keep their CFG indices.
 
         // Every loop reads the same unmodified instruction stream. Collect its
         // register effects and whole-function uses once, without constructing SSA.
@@ -277,8 +275,7 @@ namespace
             const MicroInstrRef prevRef = storage.findPreviousInstructionRef(headerRef);
             if (!prevRef.isValid())
                 continue;
-            const auto prevIt = refToIndex.find(prevRef.get());
-            if (prevIt == refToIndex.end() || inBody[prevIt->second])
+            if (header == 0 || instrRefs[header - 1] != prevRef || inBody[header - 1])
                 continue;
             const MicroInstr* prevInst = storage.ptr(prevRef);
             if (!prevInst)
@@ -466,9 +463,9 @@ namespace
                     bits = ops[2].opBits;
                     if (!ops[0].reg.isVirtualInt() || !isCounterBits(bits))
                         continue;
-                    const MicroInstrRef opRef = storage.findNextInstructionRef(ref);
-                    const auto          opIt  = refToIndex.find(opRef.get());
-                    if (!opRef.isValid() || opIt == refToIndex.end() || !inBody[opIt->second])
+                    const MicroInstrRef opRef   = storage.findNextInstructionRef(ref);
+                    const uint32_t      opIndex = i + 1;
+                    if (!opRef.isValid() || opIndex >= n || instrRefs[opIndex] != opRef || !inBody[opIndex])
                         continue;
                     const MicroInstr*        opInst = storage.ptr(opRef);
                     const MicroInstrOperand* opOps  = opInst ? opInst->ops(operands) : nullptr;
@@ -541,7 +538,7 @@ namespace
                     // may read them on any path out of it. A sum in a branch of
                     // the body ends its straight line at the join, so the
                     // check follows the graph.
-                    if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(cfg, storage, operands, opIt->second))
+                    if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(cfg, storage, operands, opIndex))
                         continue;
                 }
                 else if (inst->op == MicroInstrOpcode::OpBinaryRegRegReg)

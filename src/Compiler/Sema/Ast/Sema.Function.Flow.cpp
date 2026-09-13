@@ -1029,20 +1029,6 @@ namespace
         return param && param->type(sema.ctx()).isCodeBlock() ? param : nullptr;
     }
 
-    bool childCanConsumeLambdaBinding(const AstNode& node)
-    {
-        if (node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
-            return true;
-
-        if (node.is(AstNodeId::ParenExpr))
-            return true;
-
-        if (node.is(AstNodeId::NamedArgument))
-            return true;
-
-        return false;
-    }
-
     bool isLambdaBindingExpr(Sema& sema, AstNodeRef childRef)
     {
         if (childRef.isInvalid())
@@ -1137,9 +1123,10 @@ namespace
     template<typename T>
     Result resolveCallArgumentLambdaBindingType(Sema& sema, const T& call, AstNodeRef childRef, TypeRef& outBindingTypeRef)
     {
-        outBindingTypeRef        = TypeRef::invalid();
-        const AstNode& childNode = sema.node(childRef);
-        if (!childCanConsumeLambdaBinding(childNode))
+        outBindingTypeRef = TypeRef::invalid();
+        // Named and parenthesized values need lambda context only when they wrap a lambda.
+        // Resolving an ordinary value's dependent parameter type here precedes deduction.
+        if (!isLambdaBindingExpr(sema, childRef))
             return Result::Continue;
 
         const SemaNodeView   nodeCallee = sema.view(call.nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);

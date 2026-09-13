@@ -196,10 +196,15 @@ namespace
         ops[2].opBits    = bits;
     }
 
+    struct RegOccurrences
+    {
+        uint32_t      count    = 0;
+        MicroInstrRef firstRef = MicroInstrRef::invalid();
+    };
+
     struct LoopScan
     {
-        std::unordered_map<MicroReg, uint32_t>      defCount;  // definitions inside the body
-        std::unordered_map<MicroReg, MicroInstrRef> singleDef; // the one definition, when there is one
+        std::unordered_map<MicroReg, RegOccurrences> defs;
     };
 
     // One round over every natural loop. Returns true when it changed the IR.
@@ -225,17 +230,14 @@ namespace
         if (loopsByHeader.empty())
             return false;
 
-        const auto                             instrRefs = cfg.instructionRefs();
-        std::unordered_map<uint32_t, uint32_t> refToIndex;
-        refToIndex.reserve(n);
-        for (uint32_t i = 0; i < n; ++i)
-            refToIndex[instrRefs[i].get()] = i;
+        const auto instrRefs = cfg.instructionRefs();
+        // Candidate discovery precedes every mutation, and a changed loop
+        // ends the round. Physical neighbors therefore keep their CFG indices.
 
         // Every loop reads the same unmodified instruction stream. Collect its
         // register effects and whole-function uses once, without constructing SSA.
-        std::vector<MicroInstrUseDef>               useDefs(n);
-        std::unordered_map<MicroReg, uint32_t>      useCount;
-        std::unordered_map<MicroReg, MicroInstrRef> singleUse;
+        std::vector<MicroInstrUseDef>                useDefs(n);
+        std::unordered_map<MicroReg, RegOccurrences> uses;
         for (uint32_t i = 0; i < n; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
@@ -244,8 +246,9 @@ namespace
             useDefs[i] = inst->collectUseDef(operands, context.encoder);
             for (const MicroReg use : useDefs[i].uses)
             {
-                if (++useCount[use] == 1)
-                    singleUse[use] = instrRefs[i];
+                RegOccurrences& info = uses[use];
+                if (++info.count == 1)
+                    info.firstRef = instrRefs[i];
             }
         }
 
@@ -272,8 +275,7 @@ namespace
             const MicroInstrRef prevRef = storage.findPreviousInstructionRef(headerRef);
             if (!prevRef.isValid())
                 continue;
-            const auto prevIt = refToIndex.find(prevRef.get());
-            if (prevIt == refToIndex.end() || inBody[prevIt->second])
+            if (header == 0 || instrRefs[header - 1] != prevRef || inBody[header - 1])
                 continue;
             const MicroInstr* prevInst = storage.ptr(prevRef);
             if (!prevInst)
@@ -292,14 +294,15 @@ namespace
                     continue;
                 for (const MicroReg def : useDefs[i].defs)
                 {
-                    if (++scan.defCount[def] == 1)
-                        scan.singleDef[def] = instrRefs[i];
+                    RegOccurrences& info = scan.defs[def];
+                    if (++info.count == 1)
+                        info.firstRef = instrRefs[i];
                 }
             }
 
             // A register the loop never writes.
             auto isInvariantReg = [&](const MicroReg reg) {
-                return reg.isVirtualInt() && !scan.defCount.contains(reg);
+                return reg.isVirtualInt() && !scan.defs.contains(reg);
             };
 
             // The inductions: one in-loop definition, an add or a subtract of an
@@ -313,10 +316,10 @@ namespace
                         return k;
                 if (!reg.isVirtualInt())
                     return K_INVALID;
-                const auto countIt = scan.defCount.find(reg);
-                if (countIt == scan.defCount.end() || countIt->second != 1)
+                const auto countIt = scan.defs.find(reg);
+                if (countIt == scan.defs.end() || countIt->second.count != 1)
                     return K_INVALID;
-                const MicroInstrRef stepRef  = scan.singleDef[reg];
+                const MicroInstrRef stepRef  = countIt->second.firstRef;
                 const MicroInstr*   stepInst = storage.ptr(stepRef);
                 const auto*         stepOps  = stepInst ? stepInst->ops(operands) : nullptr;
                 if (!stepOps || stepOps[0].reg != reg)
@@ -384,9 +387,9 @@ namespace
                 const MicroInstrOperand* copyOps     = prevCopy ? prevCopy->ops(operands) : nullptr;
                 if (!copyOps || prevCopy->op != MicroInstrOpcode::LoadRegReg || copyOps[0].reg != reg || !isCounterBits(copyOps[2].opBits))
                     return reg;
-                const auto defIt = scan.defCount.find(reg);
-                const auto useIt = useCount.find(reg);
-                if (defIt == scan.defCount.end() || defIt->second != 1 || useIt == useCount.end() || useIt->second != 1)
+                const auto defIt = scan.defs.find(reg);
+                const auto useIt = uses.find(reg);
+                if (defIt == scan.defs.end() || defIt->second.count != 1 || useIt == uses.end() || useIt->second.count != 1)
                     return reg;
                 const uint32_t inductionIx = inductionIndexOf(copyOps[1].reg);
                 if (inductionIx == K_INVALID || inductions[inductionIx].bits != copyOps[2].opBits)
@@ -401,10 +404,10 @@ namespace
             // a shift costs one cycle like the step that would replace it, so
             // it is carried only when the pointer built on it dies with it.
             auto feedsCarriedSum = [&](const MicroReg reg) {
-                const auto useIt = useCount.find(reg);
-                if (useIt == useCount.end() || useIt->second != 1)
+                const auto useIt = uses.find(reg);
+                if (useIt == uses.end() || useIt->second.count != 1)
                     return false;
-                const MicroInstrRef      useRef  = singleUse[reg];
+                const MicroInstrRef      useRef  = useIt->second.firstRef;
                 const MicroInstr*        useInst = storage.ptr(useRef);
                 const MicroInstrOperand* useOps  = useInst ? useInst->ops(operands) : nullptr;
                 if (!useOps)
@@ -460,9 +463,9 @@ namespace
                     bits = ops[2].opBits;
                     if (!ops[0].reg.isVirtualInt() || !isCounterBits(bits))
                         continue;
-                    const MicroInstrRef opRef = storage.findNextInstructionRef(ref);
-                    const auto          opIt  = refToIndex.find(opRef.get());
-                    if (!opRef.isValid() || opIt == refToIndex.end() || !inBody[opIt->second])
+                    const MicroInstrRef opRef   = storage.findNextInstructionRef(ref);
+                    const uint32_t      opIndex = i + 1;
+                    if (!opRef.isValid() || opIndex >= n || instrRefs[opIndex] != opRef || !inBody[opIndex])
                         continue;
                     const MicroInstr*        opInst = storage.ptr(opRef);
                     const MicroInstrOperand* opOps  = opInst ? opInst->ops(operands) : nullptr;
@@ -535,7 +538,7 @@ namespace
                     // may read them on any path out of it. A sum in a branch of
                     // the body ends its straight line at the join, so the
                     // check follows the graph.
-                    if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(cfg, storage, operands, opIt->second))
+                    if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(cfg, storage, operands, opIndex))
                         continue;
                 }
                 else if (inst->op == MicroInstrOpcode::OpBinaryRegRegReg)
@@ -585,7 +588,11 @@ namespace
                 if (bits != induction.bits || candidate.dstReg == induction.reg || candidate.dstReg == candidate.otherReg)
                     continue;
 
-                (candidate.isSum ? sums : products).push_back(candidate);
+                // A product selects its family for this round, even when its
+                // eventual carrier cannot be emitted. Keep analyzing later sums
+                // in the same order, but no longer retain unused candidates.
+                if (!candidate.isSum || products.empty())
+                    (candidate.isSum ? sums : products).push_back(candidate);
             }
 
             // Products first; the sums over the accumulators they make are for
@@ -605,10 +612,10 @@ namespace
                 for (const Candidate& candidate : sums)
                 {
                     const Induction& induction = inductions[candidate.inductionIx];
-                    const auto       useIt     = useCount.find(induction.reg);
-                    const uint32_t   uses      = useIt == useCount.end() ? 0 : useIt->second;
+                    const auto       useIt     = uses.find(induction.reg);
+                    const uint32_t   useCount  = useIt == uses.end() ? 0 : useIt->second.count;
                     // The step reads the induction once itself.
-                    if (uses == sumsPerInduction[candidate.inductionIx] + 1)
+                    if (useCount == sumsPerInduction[candidate.inductionIx] + 1)
                         chosen.push_back(candidate);
                 }
             }

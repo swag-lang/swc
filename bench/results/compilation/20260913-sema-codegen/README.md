@@ -456,3 +456,39 @@ single-worker workspace rebuilds with Release 543 and DevMode 544 produced exact
 of 40 generated Swag source files, with every SHA256 hash identical
 ([comparison](api-source-comparison-544.log)). The normal six-worker functional validations above
 remain the evidence for parallel compilation; no timing comparison was performed.
+
+## Integration with master
+
+The user requested that every validated batch be merged into `master`. The integration combines
+performance commit `a88072995` and all its preceding batches with master commit `d86e691fa`
+(the twenty-fourth validated micro-compilation batch). Only the build identity and backlog
+inventory conflicted; both domain rows and their latest timestamps are retained. The project
+file merged automatically, preserving both sets of build inputs. Build 555 is newer than both
+parents (544 and 554), preventing cache reuse across the combined compiler.
+
+The micro-pass sources and tests are byte-identical to the master parent. Integration validation
+checks the combined compiler, without modifying those passes.
+
+Both build-555 compiler configurations built successfully. The complete integration results are:
+
+| Build-555 validation | Result | Evidence |
+| --- | --- | --- |
+| C++ | 768 passed; 28 filesystem tests excluded | [Log](cpp-555.log) |
+| Semantic analysis | 278 valid and 293 expected-error inputs verified | [Log](sema-555.log) |
+| JIT | 1,402 passed | [Log](jit-555.log) |
+| Native, program configuration `devmode` | 3,147 passed; generated executable passed | [Log](native-devmode-555.log) |
+| Native, program configuration `release` | 3,147 passed; generated executable passed | [Log](native-release-555.log) |
+| Forced workspace, DevMode compiler | Three standard dependencies and six local modules rebuilt; main passed | [Log](workspace-consumer-555.log) |
+| Forced workspace, Release compiler | Same rebuild and main assertions passed | [Log](release-compiler-workspace-consumer-555.log) |
+| Repository/backlog contract | Passed | [Log](repository-555.log) |
+
+The DevMode compiler also passed focused native tests for
+[destructuring layout](native-destructuring_layout-555.log) (3),
+[generic element-type runs](native-aggregate_type_runs-555.log) (3),
+[destructuring assignment](native-assign_destruct-555.log) (12), and
+[temporary destruction](native-temporary_drop-555.log) (17).
+The Release compiler passed [attribute parameters](release-compiler-typeinfo_attribute_param-555.log)
+(1), [generic function metadata](release-compiler-typeinfo_function_generics-555.log) (1),
+[string literals](release-compiler-literals-string-555.log) (19), and
+[deferred re-emission](release-compiler-defer_reemission-555.log) (2).
+These are functional integration results, not a timing comparison.

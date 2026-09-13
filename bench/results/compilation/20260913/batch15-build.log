@@ -1,0 +1,15 @@
+
+  DebugInfoCodeView.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  MicroSsaState.cpp
+  Pass.ConstantFolding.cpp
+  Pass.StackAdjustNormalize.cpp
+  Sema.Compiler.cpp
+  DocPage.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  Test.Micro.ConstantFolding.cpp
+  Test.Micro.Ssa.cpp
+  Test.Micro.StackAdjustNormalize.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe

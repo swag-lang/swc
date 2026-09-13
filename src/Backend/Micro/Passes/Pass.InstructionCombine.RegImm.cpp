@@ -324,11 +324,6 @@ namespace InstructionCombine
         // that dropping the mask cannot perturb another consumer.
         // Exactly one real instruction consumer (dead loop-header phis ignored, as
         // in tryFuseInPlaceUpdate) so dropping the mask cannot perturb anyone else.
-        const auto singleRealUse = [&](MicroReg reg, MicroInstrRef defRef) {
-            uint32_t vId = 0;
-            return ctx.ssa->defValue(reg, defRef, vId) && ctx.ssa->transitiveInstructionUseCount(vId, 2) == 1;
-        };
-
         MicroReg      cur    = dst;
         MicroInstrRef curRef = ref;
         for (int depth = 0; depth < 8; ++depth)
@@ -336,7 +331,7 @@ namespace InstructionCombine
             const auto reach = ctx.ssa->reachingDef(cur, curRef);
             if (!reach.valid() || reach.isPhi || !reach.inst)
                 return false;
-            if (!singleRealUse(cur, reach.instRef))
+            if (ctx.ssa->transitiveInstructionUseCount(reach.valueId, 2) != 1)
                 return false;
 
             const MicroInstr*        defInst = reach.inst;

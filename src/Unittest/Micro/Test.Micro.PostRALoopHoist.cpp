@@ -297,38 +297,48 @@ SWC_TEST_END()
 // iteration outside the load/store window. Promoting it would lose that value.
 SWC_TEST_BEGIN(PostRALoopHoist_CarriedRegisterReusedElsewhere_Blocks)
 {
-    const CallConv& conv = CallConv::get(CallConvKind::Swag);
-    const MicroReg  sp   = conv.stackPointer;
-    const MicroReg  acc  = conv.intTransientRegs[3];
-    const MicroReg  cnt  = conv.intTransientRegs[4];
-    MicroBuilder    builder(ctx);
+    for (const bool beforeLoad : {false, true})
+    {
+        const CallConv& conv = CallConv::get(CallConvKind::Swag);
+        const MicroReg  sp   = conv.stackPointer;
+        const MicroReg  acc  = conv.intTransientRegs[3];
+        const MicroReg  cnt  = conv.intTransientRegs[4];
+        MicroBuilder    builder(ctx);
 
-    const MicroLabelRef top  = builder.createLabel();
-    const MicroLabelRef done = builder.createLabel();
-    builder.emitLoadRegImm(cnt, ApInt(0, 64), MicroOpBits::B64);
-    builder.placeLabel(top);
-    builder.emitCmpRegImm(cnt, ApInt(10, 64), MicroOpBits::B64);
-    builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B64, done);
-    builder.emitLoadRegMem(acc, sp, 0x40, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(acc, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
-    builder.emitLoadMemReg(sp, 0x40, acc, MicroOpBits::B64);
-    // After the store, the register is reused as scratch for the counter.
-    builder.emitLoadRegImm(acc, ApInt(1, 64), MicroOpBits::B64);
-    builder.emitOpBinaryRegReg(cnt, acc, MicroOp::Add, MicroOpBits::B64);
-    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
-    builder.placeLabel(done);
-    builder.emitRet();
+        const MicroLabelRef top  = builder.createLabel();
+        const MicroLabelRef done = builder.createLabel();
+        builder.emitLoadRegImm(cnt, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(top);
+        builder.emitCmpRegImm(cnt, ApInt(10, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B64, done);
+        // The scratch lifetime sits immediately outside either boundary.
+        if (beforeLoad)
+        {
+            builder.emitLoadRegImm(acc, ApInt(1, 64), MicroOpBits::B64);
+            builder.emitOpBinaryRegReg(cnt, acc, MicroOp::Add, MicroOpBits::B64);
+        }
+        builder.emitLoadRegMem(acc, sp, 0x40, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(acc, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(sp, 0x40, acc, MicroOpBits::B64);
+        if (!beforeLoad)
+        {
+            builder.emitLoadRegImm(acc, ApInt(1, 64), MicroOpBits::B64);
+            builder.emitOpBinaryRegReg(cnt, acc, MicroOp::Add, MicroOpBits::B64);
+        }
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
+        builder.placeLabel(done);
+        builder.emitRet();
 
-    SWC_RESULT(runPostRaLoopHoistPass(builder));
+        SWC_RESULT(runPostRaLoopHoistPass(builder));
 
-    // The load and the store stay where they were, inside the loop.
-    const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
-    const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
-    if (posLoad < posLabel)
-        return Result::Error;
-    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 1)
-        return Result::Error;
-
+        // The load and the store stay where they were, inside the loop.
+        const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
+        const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
+        if (posLoad < posLabel)
+            return Result::Error;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 1)
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

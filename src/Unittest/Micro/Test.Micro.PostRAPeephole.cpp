@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Support/Core/DataSegment.h"
@@ -248,6 +249,179 @@ SWC_TEST_BEGIN(PostRAPeephole_CopyForward_StopsAtEncoderImplicitDef)
 
     if (!hasLoadRegReg(builder, rdx, r9))
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroPassHelpers_PhysicalLivenessReuseReplacesInstructionEffectsAndExitRoots)
+{
+    using MicroPassHelpers::MicroPhysLiveness;
+    const CallConv&   conv = CallConv::get(CallConvKind::WindowsX64);
+    MicroPhysLiveness reused;
+    const std::array  bodyLengths = {12u, 0u, 20u, 20u};
+    for (uint32_t round = 0; round < bodyLengths.size(); ++round)
+    {
+        MicroBuilder builder(ctx);
+        for (uint32_t i = 0; i < bodyLengths[round]; ++i)
+        {
+            if (i == 0)
+            {
+                if (round % 2 == 0)
+                    builder.emitCallReg(conv.intReturn, CallConvKind::WindowsX64);
+                else
+                    builder.emitNop();
+            }
+            else if (round % 2 == 0)
+                builder.emitLoadRegReg(MicroReg::intReg(8), MicroReg::intReg(9), MicroOpBits::B64);
+            else
+                builder.emitLoadRegReg(MicroReg::floatReg(8), MicroReg::floatReg(9), MicroOpBits::B64);
+        }
+        builder.emitRet();
+
+        MicroPassContext passCtx;
+        passCtx.builder                 = &builder;
+        passCtx.instructions            = &builder.instructions();
+        passCtx.operands                = &builder.operands();
+        passCtx.callConvKind            = CallConvKind::WindowsX64;
+        passCtx.usesIntReturnRegOnRet   = round == 0 || round == 2;
+        passCtx.usesFloatReturnRegOnRet = round == 0 || round == 3;
+        MicroPassHelpers::computePhysicalLiveness(reused, passCtx);
+        MicroPhysLiveness fresh;
+        MicroPassHelpers::computePhysicalLiveness(fresh, passCtx);
+        if (!reused.valid || !fresh.valid || reused.useDefs.size() != bodyLengths[round] + 1 ||
+            reused.liveIn != fresh.liveIn || reused.liveOut != fresh.liveOut)
+            return Result::Error;
+        for (size_t i = 0; i < reused.useDefs.size(); ++i)
+        {
+            const MicroInstrUseDef& actual   = reused.useDefs[i];
+            const MicroInstrUseDef& expected = fresh.useDefs[i];
+            if (actual.isCall != expected.isCall || actual.callConv != expected.callConv ||
+                !std::ranges::equal(actual.uses, expected.uses) || !std::ranges::equal(actual.defs, expected.defs))
+                return Result::Error;
+        }
+
+        uint64_t exitRoots = (1ull << MicroPhysLiveness::bitOf(conv.stackPointer)) |
+                             (1ull << MicroPhysLiveness::bitOf(conv.framePointer));
+        for (const MicroReg reg : conv.intPersistentRegs)
+            exitRoots |= 1ull << MicroPhysLiveness::bitOf(reg);
+        for (const MicroReg reg : conv.floatPersistentRegs)
+            exitRoots |= 1ull << MicroPhysLiveness::bitOf(reg);
+        if (passCtx.usesIntReturnRegOnRet)
+            exitRoots |= 1ull << MicroPhysLiveness::bitOf(conv.intReturn);
+        if (passCtx.usesFloatReturnRegOnRet)
+            exitRoots |= 1ull << MicroPhysLiveness::bitOf(conv.floatReturn);
+        if (reused.liveOut.back() != exitRoots || reused.liveIn.back() != exitRoots)
+            return Result::Error;
+
+        // A failed request must not expose the previously valid result.
+        MicroPassHelpers::computePhysicalLiveness(reused, MicroPassContext{});
+        if (reused.valid || !reused.isLiveOut(0, conv.intReturn))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroPassHelpers_CombinedFreshIndicesMatchSingleClassBounds)
+{
+    MicroBuilder     builder(ctx);
+    MicroPassContext passCtx;
+    passCtx.instructions = &builder.instructions();
+    passCtx.operands     = &builder.operands();
+    const auto matches = [&](uint32_t expectedInt, uint32_t expectedFloat) {
+        uint32_t nextInt   = 42;
+        uint32_t nextFloat = 43;
+        MicroPassHelpers::computeNextVirtualRegIndices(passCtx, nextInt, nextFloat);
+        return nextInt == expectedInt && nextFloat == expectedFloat &&
+               nextInt == MicroPassHelpers::computeNextVirtualIntRegIndex(passCtx) &&
+               nextFloat == MicroPassHelpers::computeNextVirtualFloatRegIndex(passCtx);
+    };
+    if (!matches(1, 1))
+        return Result::Error;
+
+    builder.emitLoadRegReg(MicroReg::virtualIntReg(123456), MicroReg::intReg(MicroReg::K_MAX_INDEX), MicroOpBits::B64);
+    builder.emitLoadRegReg(MicroReg::virtualFloatReg(345678), MicroReg::floatReg(3), MicroOpBits::B64);
+    if (!matches(123457, 345679))
+        return Result::Error;
+
+    passCtx.builder = &builder;
+    builder.addVirtualRegForbiddenPhysReg(MicroReg::virtualIntReg(900000), MicroReg::intReg(10));
+    builder.addVirtualRegForbiddenPhysReg(MicroReg::virtualFloatReg(950000), MicroReg::floatReg(3));
+    // Only integer allocation observes the builder's hint, including virtuals
+    // that have restrictions but do not yet appear in the instruction stream.
+    if (!matches(900001, 345679))
+        return Result::Error;
+    builder.addVirtualRegForbiddenPhysReg(MicroReg::virtualIntReg(MicroReg::K_MAX_INDEX), MicroReg::intReg(10));
+    if (!matches(MicroReg::K_MAX_INDEX, 345679))
+        return Result::Error;
+
+    passCtx.builder = nullptr;
+    builder.emitLoadRegReg(MicroReg::virtualIntReg(MicroReg::K_MAX_INDEX - 1), MicroReg::intReg(10), MicroOpBits::B64);
+    builder.emitLoadRegReg(MicroReg::virtualFloatReg(MicroReg::K_MAX_INDEX), MicroReg::floatReg(3), MicroOpBits::B64);
+    if (!matches(MicroReg::K_MAX_INDEX, MicroReg::K_MAX_INDEX))
+        return Result::Error;
+    builder.emitLoadRegReg(MicroReg::virtualIntReg(MicroReg::K_MAX_INDEX), MicroReg::intReg(10), MicroOpBits::B64);
+    if (!matches(MicroReg::K_MAX_INDEX, MicroReg::K_MAX_INDEX))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Legalize_LateMixedIssuesPreserveScratchNames)
+{
+    constexpr auto r8   = MicroReg::intReg(8);
+    constexpr auto r9   = MicroReg::intReg(9);
+    constexpr auto r10  = MicroReg::intReg(10);
+    constexpr auto xmm3 = MicroReg::floatReg(3);
+    constexpr auto xmm4 = MicroReg::floatReg(4);
+    for (const bool floatFirst : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        for (uint32_t i = 0; i < 24; ++i)
+            builder.emitNop();
+        for (uint32_t pair = 0; pair < 2; ++pair)
+        {
+            for (uint32_t kind = 0; kind < 2; ++kind)
+            {
+                if ((kind == 0) == floatFirst)
+                    builder.emitOpBinaryMemReg(r10, pair * 8, xmm3, MicroOp::FloatAdd, MicroOpBits::B64);
+                else
+                    builder.emitOpBinaryRegImm(pair == 0 ? r8 : r9, ApInt(0x123456789ABCDEF0ull, 64), MicroOp::Add, MicroOpBits::B64);
+            }
+        }
+        // Both maxima occur after every issue, regardless of which register
+        // file needs the first scratch. Repeated issues must advance each file.
+        builder.emitLoadRegReg(MicroReg::virtualIntReg(1000), r10, MicroOpBits::B64);
+        builder.emitLoadRegReg(MicroReg::virtualFloatReg(2000), xmm4, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runLegalizePass(builder, encoder));
+        const auto& exclusions = builder.virtualRegForbiddenPhysRegs();
+        if (exclusions.size() != 4)
+            return Result::Error;
+        for (uint32_t pair = 0; pair < 2; ++pair)
+        {
+            const auto intScratch   = MicroReg::virtualIntReg(1001 + pair);
+            const auto floatScratch = MicroReg::virtualFloatReg(2001 + pair);
+            if (!exclusions.contains(intScratch) || !exclusions.contains(floatScratch))
+                return Result::Error;
+            if (!hasBinaryRegRegDst(builder, floatScratch, MicroOp::FloatAdd, MicroOpBits::B64))
+                return Result::Error;
+
+            bool foundIntUse = false;
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
+                    continue;
+                const auto* ops = inst.ops(builder.operands());
+                if (ops[0].reg == (pair == 0 ? r8 : r9) && ops[1].reg == intScratch && ops[3].microOp == MicroOp::Add)
+                    foundIntUse = true;
+            }
+            if (!foundIntUse)
+                return Result::Error;
+        }
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

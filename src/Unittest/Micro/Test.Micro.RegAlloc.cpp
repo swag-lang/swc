@@ -6,6 +6,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/MicroPrinter.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
@@ -834,6 +835,325 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_NoNeed)
         if (hasFrameOps)
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_LeafRemapPreservesFramePriorityAndDistinctReplacements)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::WindowsX64);
+    constexpr auto rbx  = MicroReg::intReg(1);
+    constexpr auto rsi  = MicroReg::intReg(6);
+    constexpr auto r10  = MicroReg::intReg(10);
+    constexpr auto r11  = MicroReg::intReg(11);
+
+    for (const bool readFrameBeforeInit : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        if (readFrameBeforeInit)
+            builder.emitLoadRegReg(conv.intReturn, conv.framePointer, MicroOpBits::B64);
+        builder.emitLoadRegReg(conv.framePointer, conv.stackPointer, MicroOpBits::B64);
+        const auto frameInit = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegImm(conv.framePointer, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+        const auto frameUse = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegImm(rbx, ApInt(7, 64), MicroOpBits::B64);
+        const auto firstPersistent = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegImm(rsi, ApInt(9, 64), MicroOpBits::B64);
+        const auto secondPersistent = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegReg(rbx, rsi, MicroOp::Add, MicroOpBits::B64);
+        const auto combine = builder.instructions().lastInstructionRef();
+        builder.emitRet();
+
+        MicroPrologEpilogPass pass;
+        MicroPassManager     passes;
+        passes.addStartPass(pass);
+        MicroPassContext passCtx;
+        passCtx.callConvKind           = CallConvKind::WindowsX64;
+        passCtx.preservePersistentRegs = true;
+        passCtx.debugStackBasePhysReg  = conv.framePointer;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+
+        // The frame candidate has priority only after a valid first definition.
+        // Each chosen transient must then remain unavailable to later candidates.
+        const auto  expectedFrame  = readFrameBeforeInit ? conv.framePointer : r10;
+        const auto  expectedFirst  = readFrameBeforeInit ? r10 : r11;
+        const auto  expectedSecond = readFrameBeforeInit ? r11 : rsi;
+        const auto& operands       = builder.operands();
+        if (builder.instructions().ptr(frameInit)->ops(operands)[0].reg != expectedFrame ||
+            builder.instructions().ptr(frameUse)->ops(operands)[0].reg != expectedFrame ||
+            passCtx.debugStackBasePhysReg != expectedFrame)
+            return Result::Error;
+        if (builder.instructions().ptr(firstPersistent)->ops(operands)[0].reg != expectedFirst ||
+            builder.instructions().ptr(secondPersistent)->ops(operands)[0].reg != expectedSecond)
+            return Result::Error;
+        const auto* combineOps = builder.instructions().ptr(combine)->ops(operands);
+        if (combineOps[0].reg != expectedFirst || combineOps[1].reg != expectedSecond)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_LeafRemapUsesFirstInstructionReadBeforeWrite)
+{
+    constexpr auto rbx = MicroReg::intReg(1);
+    constexpr auto rsi = MicroReg::intReg(6);
+    constexpr auto r12 = MicroReg::intReg(12);
+    constexpr auto r13 = MicroReg::intReg(13);
+    constexpr auto r14 = MicroReg::intReg(14);
+    MicroBuilder   builder(ctx);
+    builder.emitOpBinaryRegImm(rbx, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto readModifyWrite = builder.instructions().lastInstructionRef();
+    // The destination is enumerated before the source in a self-copy.
+    builder.emitLoadRegReg(rsi, rsi, MicroOpBits::B64);
+    const auto selfCopy = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegReg(MicroReg::intReg(0), r13, MicroOpBits::B64);
+    builder.emitLoadRegImm(r13, ApInt(5, 64), MicroOpBits::B64);
+    const auto lateDefinition = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegImm(r12, ApInt(7, 64), MicroOpBits::B64);
+    const auto firstCandidate = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegImm(r14, ApInt(9, 64), MicroOpBits::B64);
+    const auto secondCandidate = builder.instructions().lastInstructionRef();
+    builder.emitOpBinaryRegReg(r12, r14, MicroOp::Add, MicroOpBits::B64);
+    const auto candidateUses = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    MicroPrologEpilogPass pass;
+    MicroPassManager     passes;
+    passes.addStartPass(pass);
+    MicroPassContext passCtx;
+    passCtx.callConvKind           = CallConvKind::WindowsX64;
+    passCtx.preservePersistentRegs = true;
+    SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+
+    const auto& operands = builder.operands();
+    if (builder.instructions().ptr(readModifyWrite)->ops(operands)[0].reg != rbx ||
+        builder.instructions().ptr(selfCopy)->ops(operands)[0].reg != rsi ||
+        builder.instructions().ptr(selfCopy)->ops(operands)[1].reg != rsi ||
+        builder.instructions().ptr(lateDefinition)->ops(operands)[0].reg != r13)
+        return Result::Error;
+    if (builder.instructions().ptr(firstCandidate)->ops(operands)[0].reg != MicroReg::intReg(10) ||
+        builder.instructions().ptr(secondCandidate)->ops(operands)[0].reg != MicroReg::intReg(11))
+        return Result::Error;
+    const auto* uses = builder.instructions().ptr(candidateUses)->ops(operands);
+    if (uses[0].reg != MicroReg::intReg(10) || uses[1].reg != MicroReg::intReg(11))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_PrologRetainsEntryBoundaryAfterLongStackRelease)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::WindowsX64);
+    for (const bool adjustAfterReturn : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
+        for (uint32_t i = 0; i < 32; ++i)
+        {
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitNop();
+        }
+        builder.emitRet();
+        if (adjustAfterReturn)
+        {
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitRet();
+        }
+
+        MicroPrologEpilogPass pass;
+        MicroPassManager     passes;
+        passes.addStartPass(pass);
+        MicroPassContext passCtx;
+        passCtx.callConvKind           = CallConvKind::WindowsX64;
+        passCtx.preservePersistentRegs = true;
+        passCtx.forceFramePointer     = true;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+        // The add/Nop suffix is harmless, but its Ret must still close the
+        // entry run before any later instruction in storage order is examined.
+        if (passCtx.forceFramePointer != adjustAfterReturn)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_BorrowRestoresKeepOrderAfterMiddleRequestExpires)
+{
+    const CallConv&      conv      = CallConv::get(CallConvKind::WindowsX64);
+    constexpr auto       base      = MicroReg::intReg(12);
+    constexpr std::array virtuals  = {MicroReg::virtualIntReg(1), MicroReg::virtualIntReg(2), MicroReg::virtualIntReg(3)};
+    constexpr std::array physicals = {MicroReg::intReg(8), MicroReg::intReg(9), MicroReg::intReg(10)};
+    MicroBuilder         builder(ctx);
+    for (uint32_t i = 0; i < virtuals.size(); ++i)
+    {
+        for (const MicroReg reg : conv.intRegs)
+        {
+            if (reg != physicals[i])
+                builder.addVirtualRegForbiddenPhysReg(virtuals[i], reg);
+        }
+        builder.emitLoadRegMem(virtuals[i], base, i * 8, MicroOpBits::B64);
+    }
+    builder.emitOpBinaryMemReg(base, 32, virtuals[1], MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(virtuals[0], virtuals[2], MicroOp::Add, MicroOpBits::B64);
+    const auto finalUse = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    // A later sweep cannot allocate any reserved register normally. Each
+    // constrained value therefore borrows its sole permitted register.
+    MicroPassContext passCtx;
+    passCtx.taskContext            = &ctx;
+    passCtx.builder                = &builder;
+    passCtx.instructions           = &builder.instructions();
+    passCtx.operands               = &builder.operands();
+    passCtx.callConvKind           = CallConvKind::WindowsX64;
+    passCtx.globalReservedRegs     = conv.intRegs;
+    passCtx.isFirstAllocationSweep = false;
+    MicroRegisterAllocationPass pass;
+    SWC_RESULT(pass.run(passCtx));
+    SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+
+    std::array<uint64_t, 3> savedOffsets{};
+    uint32_t                saves    = 0;
+    uint32_t                restores = 0;
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+    {
+        const auto* ops = it->ops(builder.operands());
+        if (it->op == MicroInstrOpcode::LoadMemReg && ops[0].reg == conv.stackPointer)
+        {
+            if (saves >= physicals.size() || ops[1].reg != physicals[saves])
+                return Result::Error;
+            savedOffsets[saves++] = ops[3].valueU64;
+        }
+        if (it.current == finalUse && restores != 1)
+            return Result::Error;
+        if (it->op != MicroInstrOpcode::LoadRegMem || ops[1].reg != conv.stackPointer)
+            continue;
+        // The middle request expires first. Its two surviving neighbors then
+        // expire together and must reload in their original r8, r10 order.
+        constexpr std::array order = {1u, 0u, 2u};
+        if (restores >= order.size() || saves != physicals.size())
+            return Result::Error;
+        const uint32_t savedIndex = order[restores++];
+        if (ops[0].reg != physicals[savedIndex] || ops[3].valueU64 != savedOffsets[savedIndex])
+            return Result::Error;
+    }
+    if (saves != 3 || restores != 3)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_ReusedPassRebuildsConcreteClaimsForChangedLiveRanges)
+{
+    const CallConv&             conv = CallConv::get(CallConvKind::WindowsX64);
+    constexpr MicroReg          r8   = MicroReg::intReg(8);
+    constexpr MicroReg          r9   = MicroReg::intReg(9);
+    constexpr MicroReg          temp = MicroReg::virtualIntReg(1);
+    MicroRegisterAllocationPass pass;
+    for (const MicroReg liveReg : {r8, r9, r8})
+    {
+        const MicroReg freeReg = liveReg == r8 ? r9 : r8;
+        MicroBuilder   builder(ctx);
+        builder.setBackendBuildCfg({.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2});
+        for (const MicroReg reg : conv.intRegs)
+        {
+            if (reg != r8 && reg != r9)
+                builder.addVirtualRegForbiddenPhysReg(temp, reg);
+        }
+
+        // Keep dense register numbering and instruction counts fixed while
+        // exchanging which concrete value lives across the virtual interval.
+        builder.emitLoadRegImm(r8, ApInt(8, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(r9, ApInt(9, 64), MicroOpBits::B64);
+        builder.emitLoadMemReg(conv.stackPointer, 32, freeReg, MicroOpBits::B64);
+        builder.emitLoadRegMem(temp, conv.stackPointer, 40, MicroOpBits::B64);
+        builder.emitLoadMemReg(conv.stackPointer, 48, temp, MicroOpBits::B64);
+        const auto tempUse = builder.instructions().lastInstructionRef();
+        builder.emitLoadMemReg(conv.stackPointer, 56, liveReg, MicroOpBits::B64);
+        builder.emitRet();
+
+        MicroPassContext passCtx;
+        passCtx.taskContext  = &ctx;
+        passCtx.builder      = &builder;
+        passCtx.instructions = &builder.instructions();
+        passCtx.operands     = &builder.operands();
+        passCtx.callConvKind = CallConvKind::WindowsX64;
+        SWC_RESULT(pass.run(passCtx));
+        SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+        const MicroInstr* use = builder.instructions().ptr(tempUse);
+        if (!passCtx.intervalAllocated || builder.instructions().count() != 7 ||
+            !use || use->op != MicroInstrOpcode::LoadMemReg || use->ops(builder.operands())[1].reg != freeReg)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_ReusedPassBorrowsCurrentCfgAcrossDifferentControlFlow)
+{
+    const CallConv&    conv    = CallConv::get(CallConvKind::WindowsX64);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg counter = MicroReg::virtualIntReg(2);
+    for (const bool allowInterval : {false, true})
+    {
+        MicroRegisterAllocationPass reusedPass;
+        // Every run destroys its builder afterwards. Reuse must replace the
+        // borrowed CFG rows, including when the next listing has fewer rows.
+        for (const uint32_t shape : {0u, 2u, 1u, 0u})
+        {
+            std::array<Utf8, 2> listings;
+            std::array<bool, 2> intervalAllocated{};
+            for (uint32_t run = 0; run < listings.size(); ++run)
+            {
+                MicroBuilder builder(ctx);
+                builder.setBackendBuildCfg({.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2});
+                const auto header    = builder.createLabel();
+                const auto alternate = builder.createLabel();
+                const auto join      = builder.createLabel();
+                builder.emitLoadRegImm(value, ApInt(17, 64), MicroOpBits::B64);
+                builder.emitLoadRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
+                if (shape)
+                    builder.placeLabel(header);
+                if (shape == 2)
+                {
+                    builder.emitCmpRegImm(counter, ApInt(2, 64), MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, alternate);
+                    builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+                    builder.placeLabel(alternate);
+                    builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+                    builder.placeLabel(join);
+                }
+                builder.emitOpBinaryRegReg(value, counter, MicroOp::Add, MicroOpBits::B64);
+                builder.emitLoadMemReg(conv.stackPointer, 32, value, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+                if (shape)
+                {
+                    builder.emitCmpRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Greater, MicroOpBits::B32, header);
+                }
+                builder.emitLoadRegReg(conv.intReturn, value, MicroOpBits::B64);
+                builder.emitRet();
+
+                MicroRegisterAllocationPass freshPass;
+                MicroPassContext            passContext;
+                passContext.taskContext            = &ctx;
+                passContext.builder                = &builder;
+                passContext.instructions           = &builder.instructions();
+                passContext.operands               = &builder.operands();
+                passContext.callConvKind           = CallConvKind::WindowsX64;
+                passContext.isFirstAllocationSweep = allowInterval;
+                SWC_RESULT((run ? freshPass : reusedPass).run(passContext));
+                SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+                listings[run]          = MicroPrinter::format(ctx, builder.instructions(), builder.operands());
+                intervalAllocated[run] = passContext.intervalAllocated;
+            }
+            if (listings[0] != listings[1] || intervalAllocated[0] != intervalAllocated[1])
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
 }
 SWC_TEST_END()
 

@@ -499,14 +499,10 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     // Relocation-bearing loads are keyed by what they point at, so the pass
     // needs to reach a relocation from its instruction.
     std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstruction;
-    for (const MicroRelocation& reloc : context.builder->codeRelocations())
-    {
-        if (reloc.instructionRef.isValid())
-            relocationByInstruction[reloc.instructionRef] = &reloc;
-    }
+    bool                                                      relocationsReady = false;
 
     std::unordered_set<MicroReg> frameDerivedRegs;
-    collectFrameDerivedRegs(frameDerivedRegs, storage, operands, CallConv::get(context.callConvKind).stackPointer);
+    bool                         frameDerivedRegsReady = false;
 
     std::unordered_map<uint64_t, SmallVector<NumberingEntry, 2>> table;
     std::vector<PlannedRewrite>                                  rewrites;
@@ -559,13 +555,41 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         if (shape.hasImmediate && ops[shape.immediateSlot].valueInt.bitWidth() > 64)
             continue;
 
-        // A load through the frame is mem2reg's, and a RIP-relative one reads
-        // an address the relocation binds rather than the base register.
-        if (shape.readsMemory && (frameDerivedRegs.contains(ops[shape.useSlots[0]].reg) || relocationByInstruction.contains(instRef)))
+        // Every memory key needs its base's SSA value. Physical bases cannot
+        // participate, so they need neither relocation nor frame preparation.
+        if (shape.readsMemory && !isNumberableReg(ops[shape.useSlots[0]].reg))
             continue;
         if (shape.addrBitsSlot != K_NO_SLOT && ops[shape.addrBitsSlot].opBits != MicroOpBits::B64)
             continue;
 
+        if (!relocationsReady && (shape.readsMemory || shape.keyedByRelocationToo))
+        {
+            // Both lookups below need the same snapshot. Relocations remain
+            // untouched until the queued rewrites are applied after this scan.
+            for (const MicroRelocation& reloc : context.builder->codeRelocations())
+            {
+                if (reloc.instructionRef.isValid())
+                    relocationByInstruction[reloc.instructionRef] = &reloc;
+            }
+            relocationsReady = true;
+        }
+
+        // A load through the frame is mem2reg's, and a RIP-relative one reads
+        // an address the relocation binds rather than the base register.
+        if (shape.readsMemory)
+        {
+            if (relocationByInstruction.contains(instRef))
+                continue;
+            if (!frameDerivedRegsReady)
+            {
+                // Rewrites are queued, so even a late first load sees the same
+                // whole-function closure, including definitions after the load.
+                collectFrameDerivedRegs(frameDerivedRegs, storage, operands, CallConv::get(context.callConvKind).stackPointer);
+                frameDerivedRegsReady = true;
+            }
+            if (frameDerivedRegs.contains(ops[shape.useSlots[0]].reg))
+                continue;
+        }
         const MicroOpBits movBits = ops[shape.movBitsSlot].opBits;
         const MicroOpBits useBits = shape.readsMemory ? MicroOpBits::B64 : movBits;
         const MicroOpBits srcBits = shape.readsMemory ? ops[shape.srcBitsSlot].opBits : movBits;
@@ -696,7 +720,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         }
 
         if (!replaced)
-            bucket.push_back({.index = i, .defReg = dstReg, .defValueId = myValueId, .epoch = memoryEpoch, .op = inst->op, .movBits = movBits, .key = key});
+            bucket.push_back({.index = i, .defReg = dstReg, .defValueId = myValueId, .epoch = memoryEpoch, .op = inst->op, .movBits = movBits, .key = std::move(key)});
     }
 
     if (rewrites.empty())

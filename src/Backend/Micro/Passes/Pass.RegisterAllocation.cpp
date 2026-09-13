@@ -153,13 +153,10 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
     hasVirtualRegs_   = false;
     controlFlowGraph_ = nullptr;
 
-    instructionUseDefs_.clear();
-    instructionUseDefs_.resize(instructionCount_);
     useVirtualIndices_.reserve(instructionCount_);
     defVirtualIndices_.reserve(instructionCount_);
     useConcreteIndices_.reserve(instructionCount_);
     defConcreteIndices_.reserve(instructionCount_);
-    predecessors_.reserve(instructionCount_);
     worklist_.reserve(instructionCount_);
     inWorklist_.reserve(instructionCount_);
 
@@ -695,12 +692,18 @@ void MicroRegisterAllocationPass::computeVirtualLiveSpans()
 
 void MicroRegisterAllocationPass::computeConcreteClaimPositions()
 {
+    // An unsuccessful interval allocation leaves these inputs unchanged for
+    // the fallback allocator. clearState invalidates the claims on every run.
+    if (!concreteClaimPositionsByDenseIndex_.empty() || denseConcreteRegs_.regs().empty())
+        return;
+
     // Every instruction at which a fixed register is spoken for: named as an
     // operand, defined by an ABI shuffle, clobbered by a call, or merely live
     // between two of those. A global may not take a register over any of them.
-    concreteClaimPositionsByDenseIndex_.clear();
     concreteClaimPositionsByDenseIndex_.resize(denseConcreteRegs_.regs().size());
 
+    // Ascending instruction indices and adjacent duplicate suppression keep
+    // every register's positions strictly ordered without a separate sort.
     const uint32_t wordCount = denseConcreteRegs_.wordCount();
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
@@ -724,9 +727,6 @@ void MicroRegisterAllocationPass::computeConcreteClaimPositions()
             }
         }
     }
-
-    for (auto& positions : concreteClaimPositionsByDenseIndex_)
-        std::ranges::sort(positions);
 }
 
 void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& outBenefit) const
@@ -2104,27 +2104,21 @@ void MicroRegisterAllocationPass::advanceCurrentPositionCursors(const uint32_t i
 
 bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copyRef, const MicroReg dstReg) const
 {
-    if (copyRef.isInvalid())
+    if (!instructions_->ptr(copyRef))
         return false;
 
-    auto it = instructions_->view().begin();
-    while (it != instructions_->view().end() && it.current != copyRef)
-        ++it;
-    if (it == instructions_->view().end())
-        return false;
-
-    ++it;
-    for (; it != instructions_->view().end(); ++it)
+    for (MicroInstrRef ref = instructions_->findNextInstructionRef(copyRef); ref.isValid(); ref = instructions_->findNextInstructionRef(ref))
     {
-        const MicroInstrUseDef useDef = it->collectUseDef(*operands_, context_->encoder);
+        const MicroInstr&      inst   = *instructions_->ptr(ref);
+        const MicroInstrUseDef useDef = inst.collectUseDef(*operands_, context_->encoder);
         if (containsKey(useDef.uses, dstReg))
             return false;
         if (containsKey(useDef.defs, dstReg))
             return true;
-        if (!MicroInstrInfo::isLocalDataflowBarrier(*it, useDef))
+        if (!MicroInstrInfo::isLocalDataflowBarrier(inst, useDef))
             continue;
 
-        return it->op == MicroInstrOpcode::Ret;
+        return inst.op == MicroInstrOpcode::Ret;
     }
 
     return true;
@@ -2323,25 +2317,10 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     liveInVirtualBits_.assign(static_cast<size_t>(instructionCount_) * virtualWordCount, 0);
     liveInConcreteBits_.assign(static_cast<size_t>(instructionCount_) * concreteWordCount, 0);
 
-    // Clear every row before pushing any edge: clearing inside the push loop
-    // wipes the forward edges lower-indexed instructions already recorded, which
-    // leaves only back-edges in the lists. The liveness worklist then never
-    // reprocesses an instruction after its layout successor changes, and the
-    // fixpoint silently under-approximates around nested loops.
-    predecessors_.resize(instructionCount_);
-    for (uint32_t idx = 0; idx < instructionCount_; ++idx)
-        predecessors_[idx].clear();
-
-    for (uint32_t idx = 0; idx < instructionCount_; ++idx)
-    {
-        const auto& successors = controlFlowGraph.successors(idx);
-        for (const uint32_t succIdx : successors)
-        {
-            if (succIdx >= instructionCount_)
-                continue;
-            predecessors_[succIdx].push_back(idx);
-        }
-    }
+    // The CFG already inverted every edge in source-instruction order. Keep
+    // the same snapshot used by successors throughout allocation and rewriting;
+    // storage mutations do not rebuild the CFG during this pass.
+    predecessors_ = controlFlowGraph.predecessors();
 
     computeReachability();
     computeLoopDepth();
@@ -2356,9 +2335,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     }
 
     tempOutVirtual_.assign(virtualWordCount, 0);
-    tempInVirtual_.assign(virtualWordCount, 0);
     tempOutConcrete_.assign(concreteWordCount, 0);
-    tempInConcrete_.assign(concreteWordCount, 0);
 
     while (!worklist_.empty())
     {
@@ -2385,25 +2362,25 @@ void MicroRegisterAllocationPass::analyzeLiveness()
                 tempOutConcrete_[word] |= succInConcrete[word];
         }
 
-        tempInVirtual_  = tempOutVirtual_;
-        tempInConcrete_ = tempOutConcrete_;
+        // Only live-in is published during the fixed point. Consume the
+        // temporary live-out in place; later live-out queries rebuild it.
         {
-            const std::span inVirtual = tempInVirtual_;
+            const std::span inVirtual = tempOutVirtual_;
             for (const uint32_t bitIndex : defVirtualIndices_[instructionIndex])
                 DenseBits::clear(inVirtual, bitIndex);
             for (const uint32_t bitIndex : useVirtualIndices_[instructionIndex])
                 DenseBits::set(inVirtual, bitIndex);
         }
         {
-            const std::span inConcrete = tempInConcrete_;
+            const std::span inConcrete = tempOutConcrete_;
             for (const uint32_t bitIndex : defConcreteIndices_[instructionIndex])
                 DenseBits::clear(inConcrete, bitIndex);
             for (const uint32_t bitIndex : useConcreteIndices_[instructionIndex])
                 DenseBits::set(inConcrete, bitIndex);
         }
 
-        const bool changedVirtual  = DenseBits::copyIfChanged(DenseBits::row(liveInVirtualBits_, instructionIndex, virtualWordCount), tempInVirtual_);
-        const bool changedConcrete = DenseBits::copyIfChanged(DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount), tempInConcrete_);
+        const bool changedVirtual  = DenseBits::copyIfChanged(DenseBits::row(liveInVirtualBits_, instructionIndex, virtualWordCount), tempOutVirtual_);
+        const bool changedConcrete = DenseBits::copyIfChanged(DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount), tempOutConcrete_);
         if (!changedVirtual && !changedConcrete)
             continue;
 
@@ -3174,7 +3151,9 @@ bool MicroRegisterAllocationPass::isStraightLineRange(const uint32_t lo, const u
     uint32_t idx = 0;
     for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
     {
-        if (idx < lo || idx > hi)
+        if (idx > hi)
+            break;
+        if (idx < lo)
             continue;
         if (it->op == MicroInstrOpcode::Label || MicroInstrInfo::isTerminatorInstruction(*it))
             return false;
@@ -3942,12 +3921,15 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         // value that borrowed it is past its last use. The range was checked to
         // be straight-line, so this reload runs exactly once for its save, and
         // at the same stack depth.
-        for (size_t restoreIndex = 0; restoreIndex < pendingBorrowRestores_.size();)
+        size_t retainedRestores = 0;
+        for (size_t restoreIndex = 0; restoreIndex < pendingBorrowRestores_.size(); ++restoreIndex)
         {
             const BorrowRestore& restore = pendingBorrowRestores_[restoreIndex];
             if (restore.atIndex != idx)
             {
-                ++restoreIndex;
+                if (retainedRestores != restoreIndex)
+                    pendingBorrowRestores_[retainedRestores] = restore;
+                ++retainedRestores;
                 continue;
             }
 
@@ -3960,8 +3942,9 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             reload.ops[3].valueU64 = spillMemOffset(restore.slotOffset, stackDepth);
             noteSpillAccess(reload.ops[3].valueU64, restore.slotBits);
             insertPending(instructionRef, reload);
-            pendingBorrowRestores_.erase(pendingBorrowRestores_.begin() + restoreIndex);
         }
+        // Both reload emission and retained requests keep their original order.
+        pendingBorrowRestores_.resize(retainedRestores);
 
         // With globals assigned, this is expected to spill nothing: a value
         // still live here either owns a register for its whole range or kept a
@@ -4467,7 +4450,7 @@ void MicroRegisterAllocationPass::clearState()
     nextConcreteTouchCursor_.clear();
     liveInVirtualBits_.clear();
     liveInConcreteBits_.clear();
-    predecessors_.clear();
+    predecessors_ = {};
     loopDepth_.clear();
     concreteLoopCarried_.clear();
     virtualSpanLo_.clear();
@@ -4483,9 +4466,7 @@ void MicroRegisterAllocationPass::clearState()
     worklist_.clear();
     inWorklist_.clear();
     tempOutVirtual_.clear();
-    tempInVirtual_.clear();
     tempOutConcrete_.clear();
-    tempInConcrete_.clear();
     definitionCounts_.clear();
     liveStampByDenseIndex_.clear();
     callSpillFlags_.clear();

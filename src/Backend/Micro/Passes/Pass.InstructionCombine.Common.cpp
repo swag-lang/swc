@@ -261,15 +261,18 @@ namespace InstructionCombine
                 const uint32_t               entry = MicroPassHelpers::findSingleCfgEntry(cfg);
                 if (entry != MicroPassHelpers::MicroDomTree::K_INVALID_NODE && !cfg.hasUnsupportedControlFlowForCfgLiveness())
                 {
-                    const MicroPassHelpers::MicroDomTree dom   = MicroPassHelpers::computeInstructionDominators(cfg, entry);
-                    const auto                           loops = MicroPassHelpers::findNaturalLoops(cfg, dom);
-                    const auto                           refs  = cfg.instructionRefs();
-                    for (const auto& loop : loops | std::views::values)
+                    if (cfg.hasLoop())
                     {
-                        for (uint32_t i = 0; i < loop.inBody.size() && i < refs.size(); ++i)
+                        const MicroPassHelpers::MicroDomTree dom   = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+                        const auto                           loops = MicroPassHelpers::findNaturalLoops(cfg, dom);
+                        const auto                           refs  = cfg.instructionRefs();
+                        for (const auto& loop : loops | std::views::values)
                         {
-                            if (loop.inBody[i])
-                                loopSlots.insert(refs[i].get());
+                            for (uint32_t i = 0; i < loop.inBody.size() && i < refs.size(); ++i)
+                            {
+                                if (loop.inBody[i])
+                                    loopSlots.insert(refs[i].get());
+                            }
                         }
                     }
                     loopSlotsAll = false;

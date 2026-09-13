@@ -177,6 +177,31 @@ uint32_t MicroPassHelpers::computeNextVirtualFloatRegIndex(const MicroPassContex
     return computeNextVirtualRegIndex(context, true, 1);
 }
 
+void MicroPassHelpers::computeNextVirtualRegIndices(const MicroPassContext& context, uint32_t& outIntIndex, uint32_t& outFloatIndex)
+{
+    SWC_ASSERT(context.instructions);
+    SWC_ASSERT(context.operands);
+
+    outIntIndex   = context.builder ? std::max(1u, context.builder->nextVirtualIntRegIndexHint()) : 1;
+    outFloatIndex = 1;
+    for (const MicroInstr& inst : context.instructions->view())
+    {
+        SmallVector<MicroInstrRegOperandRef> refs;
+        inst.collectRegOperands(*context.operands, refs, context.encoder);
+        for (const auto& ref : refs)
+        {
+            if (!ref.reg || !ref.reg->isVirtual())
+                continue;
+            const MicroReg reg       = *ref.reg;
+            uint32_t&      nextIndex = reg.isVirtualFloat() ? outFloatIndex : outIntIndex;
+            if (reg.index() < MicroReg::K_MAX_INDEX)
+                nextIndex = std::max(nextIndex, reg.index() + 1);
+            else
+                nextIndex = MicroReg::K_MAX_INDEX;
+        }
+    }
+}
+
 bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef afterRef)
 {
     for (MicroInstrRef scanRef = storage.findNextInstructionRef(afterRef); scanRef.isValid(); scanRef = storage.findNextInstructionRef(scanRef))
@@ -528,7 +553,7 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         return bit < MicroPhysLiveness::K_INVALID_BIT ? 1ull << bit : 0ull;
     };
 
-    out.useDefs.assign(instCount, {});
+    out.useDefs.resize(instCount);
     for (uint32_t i = 0; i < instCount; ++i)
     {
         const MicroInstr* inst = context.instructions->ptr(instructionRefs[i]);
@@ -551,12 +576,9 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         exitLiveOut |= maskOf(reg);
 
     out.liveIn.assign(instCount, 0);
-    out.liveOut.assign(instCount, 0);
-    for (uint32_t i = 0; i < instCount; ++i)
-    {
-        if (successors[i].empty())
-            out.liveOut[i] = exitLiveOut;
-    }
+    // Every node enters the worklist below. Its live-out is overwritten on
+    // its first visit; propagation reads only live-in, so no seed is needed.
+    out.liveOut.resize(instCount);
 
     std::vector<uint8_t>  inWorklist(instCount, 1);
     std::vector<uint32_t> worklist;
@@ -748,6 +770,10 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
                 changed    = true;
             }
         }
+        // With only forward edges, RPO is topological and every reachable
+        // predecessor was finalized before its successors in this sweep.
+        if (!cfg.hasLoop())
+            break;
     }
 
     // Reuse the CFG traversal buffers for dominator-tree child links. The

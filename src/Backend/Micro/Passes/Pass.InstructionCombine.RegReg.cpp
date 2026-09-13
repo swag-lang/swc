@@ -47,7 +47,7 @@ namespace InstructionCombine
             {
                 const MicroInstrOperand* copied = defs[0].inst->ops(*ctx.operands);
                 if (!copied || copied[2].opBits != bits || !copied[1].reg.isVirtualInt() ||
-                    !valueHasSingleUse(*ctx.ssa, regs[0], defs[0].instRef))
+                    ctx.ssa->transitiveInstructionUseCount(defs[0].valueId, 2) != 1)
                     return false;
                 lhsCopy = defs[0].instRef;
                 regs[0] = copied[1].reg;
@@ -64,7 +64,7 @@ namespace InstructionCombine
                     return false;
                 andOps[i] = defs[i].inst->ops(*ctx.operands);
                 if (!andOps[i] || andOps[i][2].opBits != bits || andOps[i][3].microOp != MicroOp::And ||
-                    !valueHasSingleUse(*ctx.ssa, regs[i], defs[i].instRef))
+                    ctx.ssa->transitiveInstructionUseCount(defs[i].valueId, 2) != 1)
                     return false;
                 initial[i] = ctx.ssa->reachingDef(regs[i], defs[i].instRef);
                 if (!initial[i].valid() || initial[i].isPhi || !initial[i].inst || initial[i].inst->op != MicroInstrOpcode::LoadRegReg)
@@ -206,13 +206,8 @@ namespace InstructionCombine
         // between the op and the writeback — the rewrite defines A at the op's
         // position, earlier than the original writeback, so an intervening reader
         // of A would otherwise observe the new value instead of the old one.
-        const auto view  = ctx.storage->view();
-        const auto endIt = view.end();
-        auto       it    = view.begin();
-        while (it != endIt && it.current != initRef)
-            ++it;
-        if (it == endIt)
-            return false;
+        const auto             endIt = ctx.storage->view().end();
+        MicroStorage::Iterator it{ctx.storage, initRef};
 
         bool seenOp    = false;
         bool reachedWb = false;
@@ -347,7 +342,7 @@ namespace InstructionCombine
         const MicroReg src = copyOps[1].reg;
         if (!src.isVirtualInt() || src == count || src == dst)
             return false;
-        if (!valueHasSingleUse(*ctx.ssa, dst, reaching.instRef))
+        if (ctx.ssa->transitiveInstructionUseCount(reaching.valueId, 2) != 1)
             return false;
 
         // The legacy shift writes the flags and this form does not.

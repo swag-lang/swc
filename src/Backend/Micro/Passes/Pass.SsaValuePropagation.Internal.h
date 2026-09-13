@@ -95,6 +95,12 @@ void computeSsaValueFixedPoint(std::vector<T_VALUE>& outValues, std::vector<uint
             outFlags[valueId]  = 1;
             changed            = true;
         }
+
+        // SSA creates instruction values in dominator order, with each read
+        // preceding the instruction's writes. Without phis all dependencies
+        // have already been considered, so another sweep cannot infer more.
+        if (ssaState.phis().empty())
+            break;
     }
 }
 

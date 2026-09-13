@@ -699,8 +699,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             pushUnhandled(walk, nodeIndex);
     }
 
-    std::vector<uint32_t> freeUntilPos(poolCount);
-    std::vector<uint32_t> nextUsePos(poolCount);
+    SmallVector<uint32_t, 32> electionPositions(poolCount);
 
     // A livelock backstop: a legitimate walk processes each node once, plus
     // one requeue per split. Anything far beyond that is the walk arguing
@@ -764,6 +763,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         };
 
         // tryAllocateFreeReg
+        auto& freeUntilPos = electionPositions;
         for (size_t i = 0; i < poolCount; ++i)
             freeUntilPos[i] = poolRegs[i].isAnyFloat() == isFloat && !forbiddenForCurrent(i) ? std::numeric_limits<uint32_t>::max() : 0;
         for (const uint32_t activeIndex : walk.active)
@@ -797,27 +797,30 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         // The hint register wins ties, and wins outright when it serves the
         // whole interval: coming back to the register an earlier node held -
         // or taking the copy source's register - erases a move.
-        MicroReg hint = out.nodes[currentIndex].hintPhys;
-        if (!hint.isValid() && out.nodes[currentIndex].hintDense != std::numeric_limits<uint32_t>::max())
+        if (bestFree < poolCount)
         {
-            const uint32_t at = out.nodes[currentIndex].start() & ~1u;
-            for (const LiveInterval& other : out.nodes)
+            MicroReg hint = out.nodes[currentIndex].hintPhys;
+            if (!hint.isValid() && out.nodes[currentIndex].hintDense != std::numeric_limits<uint32_t>::max())
             {
-                if (other.denseIndex == out.nodes[currentIndex].hintDense &&
-                    !other.spilled && other.assignedReg.isValid() && other.covers(at))
+                const uint32_t at = out.nodes[currentIndex].start() & ~1u;
+                for (const LiveInterval& other : out.nodes)
                 {
-                    hint = other.assignedReg;
-                    break;
+                    if (other.denseIndex == out.nodes[currentIndex].hintDense &&
+                        !other.spilled && other.assignedReg.isValid() && other.covers(at))
+                    {
+                        hint = other.assignedReg;
+                        break;
+                    }
                 }
             }
-        }
-        if (hint.isValid() && bestFree < poolCount)
-        {
-            const size_t hintIdx = poolIndexOf(hint);
-            if (hintIdx < poolCount && freeUntilPos[hintIdx] &&
-                (freeUntilPos[hintIdx] >= out.nodes[currentIndex].end() ||
-                 freeUntilPos[hintIdx] >= freeUntilPos[bestFree]))
-                bestFree = hintIdx;
+            if (hint.isValid())
+            {
+                const size_t hintIdx = poolIndexOf(hint);
+                if (hintIdx < poolCount && freeUntilPos[hintIdx] &&
+                    (freeUntilPos[hintIdx] >= out.nodes[currentIndex].end() ||
+                     freeUntilPos[hintIdx] >= freeUntilPos[bestFree]))
+                    bestFree = hintIdx;
+            }
         }
 
         // Usable only when the register serves the whole interval, or the
@@ -845,6 +848,8 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         // INPUT slot: an owner the very same instruction still reads must
         // never win the election, since its register cannot be vacated
         // between the read and the write.
+        // The free election is finished; this phase overwrites every position.
+        auto&          nextUsePos   = electionPositions;
         const uint32_t electionFrom = position & ~1u;
         for (size_t i = 0; i < poolCount; ++i)
             nextUsePos[i] = poolRegs[i].isAnyFloat() == isFloat && !forbiddenForCurrent(i) ? std::numeric_limits<uint32_t>::max() : 0;
@@ -895,16 +900,27 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             bool feasible = true;
             for (const uint32_t activeIndex : walk.active)
             {
-                if (out.nodes[activeIndex].assignedReg == poolRegs[best])
-                    feasible = feasible && canSplitAndSpillOwner(walk, activeIndex, position);
+                if (out.nodes[activeIndex].assignedReg == poolRegs[best] &&
+                    !canSplitAndSpillOwner(walk, activeIndex, position))
+                {
+                    feasible = false;
+                    break;
+                }
             }
-            for (const uint32_t inactiveIndex : walk.inactive)
+            if (feasible)
             {
-                if (out.nodes[inactiveIndex].assignedReg != poolRegs[best])
-                    continue;
-                const uint32_t intersection = out.nodes[inactiveIndex].nextIntersection(out.nodes[currentIndex], position);
-                if (intersection != std::numeric_limits<uint32_t>::max())
-                    feasible = feasible && canSplitAndSpillOwner(walk, inactiveIndex, intersection);
+                for (const uint32_t inactiveIndex : walk.inactive)
+                {
+                    if (out.nodes[inactiveIndex].assignedReg != poolRegs[best])
+                        continue;
+                    const uint32_t intersection = out.nodes[inactiveIndex].nextIntersection(out.nodes[currentIndex], position);
+                    if (intersection != std::numeric_limits<uint32_t>::max() &&
+                        !canSplitAndSpillOwner(walk, inactiveIndex, intersection))
+                    {
+                        feasible = false;
+                        break;
+                    }
+                }
             }
             if (feasible)
             {

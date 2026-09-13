@@ -320,7 +320,7 @@ namespace InstructionCombine
             return false;
         // A frame slot belongs to slot promotion, a global to its own
         // instruction-pointer form.
-        if (keepAccessScalar(ctx, loadRef, address.base) || isFrameDerivedAddress(ctx, address.base, loadRef) || isRelocatedAddress(ctx, address.base, loadRef))
+        if (isFrameDerivedAddress(ctx, address.base, loadRef) || isRelocatedAddress(ctx, address.base, loadRef))
             return false;
 
         uint32_t valueId = 0;

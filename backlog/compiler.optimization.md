@@ -18,28 +18,35 @@ block, and the hot path keeps the register.
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13
-- Updated: 2026-09-13 08:13 — Narrow remaining rebuild work after four static batches passed C++ and native validation.
+- Updated: 2026-09-13 11:51 — Bound the remaining SSA rebuild to changed use edges after topology-preserving rewrites.
 - Area: compiler/backend, compilation time
 - Evidence: `MicroPassManager::runPass` still invalidates the shared SSA state whenever a pass
   sets `passChanged`; `MicroSsaState::ensureFor` then rebuilds it before the next query. Local
   instruction changes therefore still reconstruct dominators, phi nodes, and value uses for
   the whole function. The September 5–7 profiles established that these rebuilds were a major
   compilation cost, but their percentages no longer describe the current implementation.
-- Current boundary: build 531 replaces per-block snapshots of every active register and linear
-  reaching-definition scans with a per-register index over the dominator-tree rename walk.
-  Sink-to-use, LICM, and induction reduction now collect instruction-local use/def information
-  without building unused SSA. Graph construction also avoids repeated duplicate searches
-  and ancestor walks. DCE reuses one SSA snapshot across removal waves; SLP delays SSA
-  until a viable plan needs it. SSA skips phi setup when no dominance frontier exists;
-  value numbering builds its separate dominance tree only for matching candidates.
-  Phi predecessor lookups now use sorted block indices.
-  See the [third static batch](../bench/results/compilation/20260913/batch3.md), [second static batch](../bench/results/compilation/20260913/batch2.md) and [static follow-up](../bench/results/compilation/20260913/README.md).
-  The [compile-only comparison](../bench/results/compilation/20260912/README.md) records the
-  measurements, generated-microcode comparison, and validation of that change.
-- Next: audit the remaining SSA consumers and rebuild dependencies. Distinguish operand-only
-  changes, deleted definitions, and CFG edits; preserve analysis only when its dependencies
-  are known to remain valid. Defer the full performance campaign until the shared CPU
-  is quiet; the current batches establish functional correctness, not a measured gain.
+- Current boundary: whole-function SSA still rebuilds after a mutating consumer.
+  Rebuilds reuse instruction-local use/def caches and index reaching definitions over
+  the rename walk; effects-only consumers avoid SSA, DCE shares its snapshot across
+  removal waves, and SLP delays preparation until a viable plan. Rebuilds skip unnecessary
+  dominator, phi, terminal-restore and use-traversal work, while scalar consumers reuse
+  already inferred results. These reductions do not classify the dependencies of a mutation.
+  The [static follow-up](../bench/results/compilation/20260913/README.md) records the latest
+  functionally validated batches. The [compile-only comparison](../bench/results/compilation/20260912/README.md)
+  retains historical measurements; it does not quantify the current implementation.
+- Concrete remaining case: folding an isolated virtual-integer `OpBinaryRegImm Add B64`
+  into `LoadRegImm` preserves its instruction reference, definition and CFG, but removes
+  its read of the preceding register value. The manager already preserves the CFG when
+  the storage revision is unchanged, yet invalidates all SSA. The following CopyElimination
+  query therefore rebuilds blocks, dominance and phis as well as uses. Keeping SSA valid
+  without repair would leave the old use edge and instruction-use metadata visible to
+  copy elimination and DCE. This case applies only when no accompanying rewrite changes
+  instruction layout or definitions; ConstantFolding can perform those changes too.
+- Next: define a mutation contract for that bounded rewrite and refresh its local use/def
+  metadata and SSA use edges. Preserve topology-dependent state only under that contract;
+  retain full invalidation for mixed or unclassified changes. Defer the full performance
+  campaign until the shared CPU is quiet; current evidence establishes functional behavior,
+  not a measured gain.
 - Complete when: remaining redundant rebuilds are removed with a sound invalidation contract,
   unchanged optimization decisions, and passing SSA/native tests.
 - Related: compiler.core.004, compiler.core.030.

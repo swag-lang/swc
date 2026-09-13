@@ -36,13 +36,10 @@ namespace InstructionCombine
 
         void dropEntriesReferencing(Cache& cache, MicroReg reg)
         {
-            for (uint32_t i = 0; i < cache.size();)
-            {
-                if (cache[i].base == reg || cache[i].src == reg)
-                    cache.erase(cache.begin() + i);
-                else
-                    ++i;
-            }
+            const auto end = std::remove_if(cache.begin(), cache.end(), [reg](const CacheEntry& entry) {
+                return entry.base == reg || entry.src == reg;
+            });
+            cache.resize(static_cast<size_t>(end - cache.begin()));
         }
 
         // Byte-range overlap test. Only meaningful when the two accesses
@@ -61,16 +58,12 @@ namespace InstructionCombine
         // and survive; everything else we can't disprove gets evicted.
         void invalidateAliasedEntries(Cache& cache, MicroReg base, uint64_t off, MicroOpBits bits)
         {
-            for (uint32_t i = 0; i < cache.size();)
-            {
-                const CacheEntry& e        = cache[i];
-                const bool        sameBase = e.base == base;
-                const bool        disjoint = sameBase && !rangesOverlap(e.off, e.bits, off, bits);
-                if (!sameBase || !disjoint)
-                    cache.erase(cache.begin() + i);
-                else
-                    ++i;
-            }
+            const auto end = std::remove_if(cache.begin(), cache.end(), [base, off, bits](const CacheEntry& entry) {
+                const bool sameBase = entry.base == base;
+                const bool disjoint = sameBase && !rangesOverlap(entry.off, entry.bits, off, bits);
+                return !sameBase || !disjoint;
+            });
+            cache.resize(static_cast<size_t>(end - cache.begin()));
         }
 
         bool forwardLoad(Context& ctx, const Cache& cache, MicroInstrRef loadRef, const MicroInstrOperand* ops, const MicroRelocation* relocation = nullptr)
@@ -82,8 +75,10 @@ namespace InstructionCombine
 
             for (const CacheEntry& e : cache)
             {
+                if (e.base != base || e.off != off || e.bits != bits || !e.src.isValid() || e.src == dst)
+                    continue;
                 const bool sameTarget = e.relocation && relocation ? e.relocation->hasSameTarget(*relocation) : e.relocation == relocation;
-                if (sameTarget && e.base == base && e.off == off && e.bits == bits && e.src.isValid() && e.src != dst)
+                if (sameTarget)
                 {
                     if (!ctx.claimAll({loadRef}, relocation != nullptr))
                         return false;
@@ -114,15 +109,7 @@ namespace InstructionCombine
         // same target can forward to each other: their (base, off) pair is
         // always ([ip], 0) and only the relocation tells two targets apart.
         std::unordered_map<uint32_t, const MicroRelocation*> relocationByRef;
-        if (ctx.builder)
-        {
-            for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
-            {
-                if (!reloc.instructionRef.isValid())
-                    continue;
-                relocationByRef[reloc.instructionRef.get()] = &reloc;
-            }
-        }
+        bool                                                 relocationsReady = false;
 
         Cache cache;
 
@@ -141,6 +128,21 @@ namespace InstructionCombine
                 const MicroRelocation* relocation = nullptr;
                 if (ops[1].reg.isInstructionPointer())
                 {
+                    if (!relocationsReady)
+                    {
+                        // Only forwarding a RIP load can invalidate a relocation
+                        // in this scan. The first such load still sees the original
+                        // snapshot, including relocations added by earlier patterns.
+                        if (ctx.builder)
+                        {
+                            for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
+                            {
+                                if (reloc.instructionRef.isValid())
+                                    relocationByRef[reloc.instructionRef.get()] = &reloc;
+                            }
+                        }
+                        relocationsReady = true;
+                    }
                     const auto relocIt = relocationByRef.find(it.current.get());
                     if (relocIt == relocationByRef.end() || relocIt->second->form != MicroRelocation::Form::Relative32)
                     {
@@ -150,8 +152,9 @@ namespace InstructionCombine
                     relocation = relocIt->second;
                 }
 
-                bool forwarded = false;
-                if (!ctx.isClaimed(it.current))
+                const bool claimed   = ctx.isClaimed(it.current);
+                bool       forwarded = false;
+                if (!claimed)
                     forwarded = forwardLoad(ctx, cache, it.current, ops, relocation);
                 // The load redefines its destination register; any cache entry
                 // whose `src` refers to it is now stale and must be dropped
@@ -167,7 +170,9 @@ namespace InstructionCombine
                 // A claimed load will be erased or rewritten by another pattern
                 // (e.g. folded into a following ALU op), so its destination may hold
                 // no live value; caching it would forward a later load to a dead reg.
-                if (!forwarded && !ctx.isClaimed(it.current) && ops[1].reg.isValid() && ops[1].reg != ops[0].reg)
+                // A failed forward leaves claims untouched; a successful one
+                // is excluded here regardless of the claim it just added.
+                if (!forwarded && !claimed && ops[1].reg.isValid() && ops[1].reg != ops[0].reg)
                 {
                     CacheEntry entry;
                     entry.base       = ops[1].reg;

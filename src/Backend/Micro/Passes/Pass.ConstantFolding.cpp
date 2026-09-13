@@ -155,10 +155,11 @@ namespace
     // materialization and the load: copies, `lea [base + K]`, `add/sub K`.
     struct ConstantMemoryContext
     {
-        const MicroSsaState*                   ssaState    = nullptr;
-        const MicroStorage*                    storage     = nullptr;
-        const MicroOperandStorage*             operands    = nullptr;
-        const TaskContext*                     taskContext = nullptr;
+        const MicroSsaState*                   ssaState      = nullptr;
+        const MicroStorage*                    storage       = nullptr;
+        const MicroOperandStorage*             operands      = nullptr;
+        const TaskContext*                     taskContext   = nullptr;
+        const MicroBuilder*                    addressSource = nullptr;
         std::unordered_map<uint32_t, uint64_t> constantAddressByInstruction;
     };
 
@@ -537,20 +538,21 @@ namespace
         if (!ops[0].reg.isVirtualInt())
             return false;
 
-        KnownValue inputValue;
-        if (!tryGetKnownReachingValue(inputValue, ssaState, knownValues, knownFlags, ops[0].reg, instRef))
+        uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+        if (!ssaState.defValue(ops[0].reg, instRef, valueId))
+            return false;
+
+        // Inference already evaluated this definition with the same operands
+        // and width. Flags still depend on the current instruction stream.
+        KnownValue resultValue;
+        if (!tryGetSsaValue<KnownValue, KnownValueTraits>(resultValue, knownValues, knownFlags, valueId))
             return false;
 
         if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
             return false;
 
-        uint64_t   foldedValue = 0;
-        const auto status      = MicroPassHelpers::foldBinaryImmediate(foldedValue, inputValue.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
-        if (status != Math::FoldStatus::Ok)
-            return false;
-
         inst.op          = MicroInstrOpcode::LoadRegImm;
-        ops[2].valueU64  = foldedValue;
+        ops[2].valueU64  = resultValue.value;
         inst.numOperands = 3;
         return true;
     }
@@ -594,24 +596,20 @@ namespace
         if (!ops[0].reg.isVirtualInt() || !ops[1].reg.isVirtualInt())
             return false;
 
-        KnownValue lhs;
-        KnownValue rhs;
-        if (!tryGetKnownReachingValue(lhs, ssaState, knownValues, knownFlags, ops[0].reg, instRef))
+        uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+        if (!ssaState.defValue(ops[0].reg, instRef, valueId))
             return false;
-        if (!tryGetKnownReachingValue(rhs, ssaState, knownValues, knownFlags, ops[1].reg, instRef))
+
+        KnownValue resultValue;
+        if (!tryGetSsaValue<KnownValue, KnownValueTraits>(resultValue, knownValues, knownFlags, valueId))
             return false;
 
         if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
             return false;
 
-        uint64_t   foldedValue = 0;
-        const auto status      = MicroPassHelpers::foldBinaryImmediate(foldedValue, lhs.value, rhs.value, ops[3].microOp, ops[2].opBits);
-        if (status != Math::FoldStatus::Ok)
-            return false;
-
         inst.op          = MicroInstrOpcode::LoadRegImm;
         ops[1].opBits    = ops[2].opBits;
-        ops[2].valueU64  = foldedValue;
+        ops[2].valueU64  = resultValue.value;
         inst.numOperands = 3;
         return true;
     }
@@ -625,18 +623,17 @@ namespace
         if (!ops[0].reg.isVirtualInt() || !ops[1].reg.isVirtualInt())
             return false;
 
-        KnownValue src;
-        if (!tryGetKnownReachingValue(src, ssaState, knownValues, knownFlags, ops[1].reg, instRef))
+        uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+        if (!ssaState.defValue(ops[0].reg, instRef, valueId))
             return false;
 
-        const bool        isSigned = inst.op == MicroInstrOpcode::LoadSignedExtRegReg;
-        const MicroOpBits dstBits  = ops[2].opBits;
-        const MicroOpBits srcBits  = ops[3].opBits;
-        const uint64_t    extended = extendBits(src.value, srcBits, dstBits, isSigned);
+        KnownValue resultValue;
+        if (!tryGetSsaValue<KnownValue, KnownValueTraits>(resultValue, knownValues, knownFlags, valueId))
+            return false;
 
         inst.op          = MicroInstrOpcode::LoadRegImm;
-        ops[1].opBits    = dstBits;
-        ops[2].valueU64  = extended;
+        ops[1].opBits    = ops[2].opBits;
+        ops[2].valueU64  = resultValue.value;
         inst.numOperands = 3;
         return true;
     }
@@ -645,9 +642,9 @@ namespace
     // displacement the sweep has already made literal, is the constant's own
     // bytes. Plain, sign-extending and zero-extending loads all become the
     // immediate they would have produced; a packed load is left alone.
-    bool tryFoldLoadFromConstant(const ConstantMemoryContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
+    bool tryFoldLoadFromConstant(ConstantMemoryContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
-        if (!ops || !context.taskContext || context.constantAddressByInstruction.empty())
+        if (!ops || !context.taskContext)
             return false;
 
         MicroOpBits dstBits    = MicroOpBits::Zero;
@@ -674,6 +671,19 @@ namespace
 
         if (!ops[0].reg.isVirtual() || loadBits == MicroOpBits::Zero || loadBits == MicroOpBits::B128 || dstBits == MicroOpBits::B128)
             return false;
+
+        // Rewrites leave relocations unchanged. Collect their original order
+        // once, only when a scalar load can use the address table.
+        if (context.addressSource)
+        {
+            collectConstantAddresses(context, *context.addressSource);
+            context.addressSource = nullptr;
+            if (context.constantAddressByInstruction.empty())
+            {
+                context.taskContext = nullptr;
+                return false;
+            }
+        }
 
         uint64_t baseAddress = 0;
         if (!resolveConstantAddress(baseAddress, context, ops[1].reg, instRef, K_MAX_ADDRESS_CHAIN_DEPTH))
@@ -829,10 +839,10 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     memoryContext.ssaState = ssaState;
     memoryContext.storage  = &storage;
     memoryContext.operands = &operands;
-    if (context.builder && context.taskContext && context.taskContext->hasCompiler())
+    if (context.builder && !context.builder->codeRelocations().empty() && context.taskContext && context.taskContext->hasCompiler())
     {
-        memoryContext.taskContext = context.taskContext;
-        collectConstantAddresses(memoryContext, *context.builder);
+        memoryContext.taskContext   = context.taskContext;
+        memoryContext.addressSource = context.builder;
     }
 
     FloatFoldContext floatContext;

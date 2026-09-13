@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 
@@ -36,6 +37,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    using MicroPhysLiveness = MicroPassHelpers::MicroPhysLiveness;
+
     void insertStackAdjust(const MicroPassContext& context, MicroInstrRef insertBeforeRef, MicroReg stackPointerReg, MicroOp op, uint64_t value)
     {
         MicroInstrOperand ops[4];
@@ -62,17 +65,28 @@ namespace
         return false;
     }
 
-    void collectUsedConcreteRegs(const MicroPassContext& context, std::unordered_set<MicroReg>& outUsedRegs)
+    void collectUsedConcreteRegs(const MicroPassContext& context, const CallConv& conv, std::unordered_set<MicroReg>& outUsedRegs, uint64_t& outDefinedBeforeUse)
     {
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
         outUsedRegs.clear();
+        outDefinedBeforeUse  = 0;
+        uint64_t pendingRegs = 0;
+        for (const MicroReg reg : conv.intPersistentRegs)
+        {
+            const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+            if (reg != conv.framePointer && bit < MicroPhysLiveness::K_INVALID_BIT)
+                pendingRegs |= 1ull << bit;
+        }
+
         auto& operands = *context.operands;
         for (const auto& inst : context.instructions->view())
         {
             SmallVector<MicroInstrRegOperandRef> refs;
             inst.collectRegOperands(operands, refs, context.encoder);
+            uint64_t usedRegs    = 0;
+            uint64_t definedRegs = 0;
             for (const MicroInstrRegOperandRef& microInstrRef : refs)
             {
                 if (!microInstrRef.reg)
@@ -83,7 +97,21 @@ namespace
                     continue;
 
                 outUsedRegs.insert(reg);
+                if (!pendingRegs)
+                    continue;
+                const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+                if (bit >= MicroPhysLiveness::K_INVALID_BIT)
+                    continue;
+                const uint64_t mask = (1ull << bit) & pendingRegs;
+                if (microInstrRef.use)
+                    usedRegs |= mask;
+                if (microInstrRef.def)
+                    definedRegs |= mask;
             }
+            // Aggregate the entire instruction before resolving first touches:
+            // a read wins over a definition even when its operand appears later.
+            outDefinedBeforeUse |= pendingRegs & definedRegs & ~usedRegs;
+            pendingRegs &= ~(usedRegs | definedRegs);
         }
     }
 
@@ -95,8 +123,7 @@ namespace
         if (!conv.framePointer.isValid() || !conv.stackPointer.isValid())
             return false;
 
-        bool  foundInit = false;
-        auto& operands  = *context.operands;
+        auto& operands = *context.operands;
         for (const auto& inst : context.instructions->view())
         {
             SmallVector<MicroInstrRegOperandRef> refs;
@@ -119,9 +146,9 @@ namespace
                     framePointerDef = true;
             }
 
-            if (framePointerUsed && !foundInit)
+            if (framePointerUsed)
                 return false;
-            if (!framePointerDef || foundInit)
+            if (!framePointerDef)
                 continue;
 
             if (inst.op != MicroInstrOpcode::LoadRegReg)
@@ -137,10 +164,10 @@ namespace
             if (ops[2].opBits != MicroOpBits::B64)
                 return false;
 
-            foundInit = true;
+            return true;
         }
 
-        return foundInit;
+        return false;
     }
 
     bool isRegDefinedBeforeAnyUse(const MicroPassContext& context, MicroReg reg)
@@ -196,7 +223,7 @@ namespace
         return true;
     }
 
-    bool tryPickUnusedTransientIntReg(const CallConv& conv, const std::unordered_set<MicroReg>& usedRegs, const std::unordered_set<MicroReg>& pickedTransientRegs, MicroReg& outReg)
+    bool tryPickUnusedTransientIntReg(const CallConv& conv, const std::unordered_set<MicroReg>& usedRegs, MicroReg& outReg)
     {
         for (const MicroReg reg : conv.intTransientRegs)
         {
@@ -205,8 +232,6 @@ namespace
             if (!isSafeTransientReplacementIntReg(conv, reg))
                 continue;
             if (usedRegs.contains(reg))
-                continue;
-            if (pickedTransientRegs.contains(reg))
                 continue;
 
             outReg = reg;
@@ -282,6 +307,10 @@ namespace
                     ++nextIt;
                 if (nextIt == endIt || nextIt->op != MicroInstrOpcode::Ret)
                     return true;
+                // This entire add/Nop run is validated. Resume at the Ret so
+                // its entry-run effect is still handled by the main walk.
+                it = nextIt;
+                --it;
                 continue;
             }
 
@@ -301,7 +330,8 @@ namespace
             return false;
 
         std::unordered_set<MicroReg> usedRegs;
-        collectUsedConcreteRegs(context, usedRegs);
+        uint64_t                     definedBeforeUse = 0;
+        collectUsedConcreteRegs(context, conv, usedRegs, definedBeforeUse);
         if (usedRegs.empty())
             return false;
 
@@ -324,7 +354,9 @@ namespace
                 continue;
             if (!usedRegs.contains(persistentReg))
                 continue;
-            if (!isRegDefinedBeforeAnyUse(context, persistentReg))
+            const uint32_t bit        = MicroPhysLiveness::bitOf(persistentReg);
+            const bool     firstIsDef = bit < MicroPhysLiveness::K_INVALID_BIT ? (definedBeforeUse & (1ull << bit)) != 0 : isRegDefinedBeforeAnyUse(context, persistentReg);
+            if (!firstIsDef)
                 continue;
 
             remapCandidates.push_back(persistentReg);
@@ -333,19 +365,16 @@ namespace
         if (remapCandidates.empty())
             return false;
 
-        std::unordered_set<MicroReg>           pickedTransientRegs;
         std::unordered_map<MicroReg, MicroReg> remap;
-        pickedTransientRegs.reserve(remapCandidates.size() * 2 + 1);
         remap.reserve(remapCandidates.size() * 2 + 1);
 
         for (const MicroReg persistentReg : remapCandidates)
         {
             MicroReg replacementReg;
-            if (!tryPickUnusedTransientIntReg(conv, usedRegs, pickedTransientRegs, replacementReg))
+            if (!tryPickUnusedTransientIntReg(conv, usedRegs, replacementReg))
                 continue;
 
             remap[persistentReg] = replacementReg;
-            pickedTransientRegs.insert(replacementReg);
             usedRegs.insert(replacementReg);
         }
 
@@ -398,7 +427,6 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
     if (!context.preservePersistentRegs)
     {
         pushedRegs_.clear();
-        retRefs_.clear();
         savedRegSlots_.clear();
         savedRegsStackSubSize_ = 0;
         useFramePointer_       = false;
@@ -414,22 +442,20 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
         return Result::Continue;
     }
 
-    MicroInstrRef firstRef = MicroInstrRef::invalid();
-    retRefs_.clear();
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+    const auto beginIt = context.instructions->view().begin();
+    if (beginIt != context.instructions->view().end())
     {
-        if (firstRef.isInvalid())
-            firstRef = it.current;
-        if (it->op == MicroInstrOpcode::Ret)
-            retRefs_.push_back(it.current);
+        insertSavedRegsPrologue(context, conv, beginIt.current);
+        // Insertions before a Ret preserve its successor. Walk from the
+        // original first instruction to skip the newly inserted prologue.
+        for (auto it = beginIt; it != context.instructions->view().end(); ++it)
+        {
+            if (it->op == MicroInstrOpcode::Ret)
+                insertSavedRegsEpilogue(context, conv, it.current);
+        }
     }
 
-    if (firstRef.isValid())
-        insertSavedRegsPrologue(context, conv, firstRef);
-    for (const MicroInstrRef retRef : retRefs_)
-        insertSavedRegsEpilogue(context, conv, retRef);
-
-    context.passChanged = firstRef.isValid() || remappedPersistentRegsToTransient;
+    context.passChanged = beginIt.current.isValid() || remappedPersistentRegsToTransient;
     return Result::Continue;
 }
 
@@ -461,9 +487,10 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
 
     pushedRegs_.clear();
     savedRegSlots_.clear();
-    savedRegsStackSubSize_ = 0;
-    useFramePointer_       = context.forceFramePointer;
-    bool framePointerNamed = false;
+    savedRegsStackSubSize_     = 0;
+    useFramePointer_           = context.forceFramePointer;
+    bool     framePointerNamed = false;
+    uint64_t classifiedRegs    = 0;
 
     // Scan concrete register operands and collect only ABI-persistent regs that are used.
     auto& storeOps = *context.operands;
@@ -480,19 +507,32 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
             if (!reg.isValid() || reg.isVirtual())
                 continue;
 
-            if (reg.isInt())
+            // Merely naming the frame pointer requests its setup. Every
+            // other register matters only at its first definition.
+            if (reg.isInt() && reg == conv.framePointer)
             {
-                if (!conv.isIntPersistentReg(reg))
-                    continue;
-
-                if (reg == conv.framePointer)
+                if (conv.isIntPersistentReg(reg))
                 {
                     useFramePointer_  = true;
                     framePointerNamed = true;
-                    continue;
                 }
+                continue;
+            }
+            if (!microInstrRef.def)
+                continue;
 
-                if (!microInstrRef.def)
+            const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+            if (bit < MicroPhysLiveness::K_INVALID_BIT)
+            {
+                const uint64_t mask = 1ull << bit;
+                if (classifiedRegs & mask)
+                    continue;
+                classifiedRegs |= mask;
+            }
+
+            if (reg.isInt())
+            {
+                if (!conv.isIntPersistentReg(reg))
                     continue;
 
                 if (!containsPushedReg(reg))
@@ -501,8 +541,6 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
             else if (reg.isFloat())
             {
                 if (!conv.isFloatPersistentReg(reg))
-                    continue;
-                if (!microInstrRef.def)
                     continue;
 
                 if (!containsSavedSlot(reg))

@@ -237,6 +237,11 @@ namespace
             }
         }
 
+        // Without derived registers, every operand in the escape scan would
+        // be ignored; the stack pointer itself never escapes through this rule.
+        if (fp.frameDerived.empty())
+            return fp;
+
         // Escape scan: any frame-derived register that appears as something other
         // than an explained base / propagation marks the frame as non-private.
         for (uint32_t i = 0; i < n && fp.framePrivate; ++i)
@@ -333,11 +338,6 @@ namespace
         if (loopsByHeader.empty())
             return false;
 
-        std::unordered_map<uint32_t, uint32_t> refToIndex;
-        refToIndex.reserve(n);
-        for (uint32_t i = 0; i < n; ++i)
-            refToIndex[instrRefs[i].get()] = i;
-
         // Hoisting needs instruction-local effects, not SSA values or phis.
         // Collect these only after finding a natural loop worth analyzing.
         std::vector<MicroInstrUseDef>          useDefs(n);
@@ -353,11 +353,24 @@ namespace
                 ++defCount[def];
         }
 
-        std::unordered_set<uint32_t> relocRefs;
-        for (const MicroRelocation& reloc : context.builder->codeRelocations())
+        auto&                                relocations   = context.builder->codeRelocations();
+        const size_t                         relocationEnd = relocations.size();
+        std::unordered_map<uint32_t, size_t> firstRelocation;
+        std::vector<size_t>                  nextRelocation(relocationEnd, relocationEnd);
+        // One compact chain per instruction, preserving relocation order and
+        // duplicates without allocating a separate vector for every key.
+        for (size_t index = relocationEnd; index != 0;)
         {
-            if (reloc.instructionRef.isValid())
-                relocRefs.insert(reloc.instructionRef.get());
+            --index;
+            const MicroInstrRef ref = relocations[index].instructionRef;
+            if (ref.isInvalid())
+                continue;
+            const auto [it, inserted] = firstRelocation.try_emplace(ref.get(), index);
+            if (!inserted)
+            {
+                nextRelocation[index] = it->second;
+                it->second            = index;
+            }
         }
 
         const MicroReg     stackPointer = CallConv::get(context.callConvKind).stackPointer;
@@ -395,8 +408,9 @@ namespace
             const MicroInstrRef prevRef = storage.findPreviousInstructionRef(headerRef);
             if (!prevRef.isValid())
                 continue;
-            const auto prevIdxIt = refToIndex.find(prevRef.get());
-            if (prevIdxIt == refToIndex.end() || inBody[prevIdxIt->second])
+            // The CFG snapshot follows storage order, and planning does not
+            // mutate instructions until every loop has been considered.
+            if (header == 0 || instrRefs[header - 1] != prevRef || inBody[header - 1])
                 continue;
             const MicroInstr* prevInst = storage.ptr(prevRef);
             if (!prevInst)
@@ -586,7 +600,7 @@ namespace
                         // clone of a relocated load or address materialization
                         // takes the relocation over when it is emitted; any
                         // other relocated instruction stays where it is.
-                        if (relocRefs.contains(ref.get()) && !isRelocatableHoist(inst->op))
+                        if (firstRelocation.contains(ref.get()) && !isRelocatableHoist(inst->op))
                             continue;
 
                         const MicroReg destReg = slotDefReg[i];
@@ -703,19 +717,9 @@ namespace
             };
 
             // Loop exits, for the web-consistency rule below: a slot inside the
-            // body with a successor outside it.
+            // body with a successor outside it. Only multi-def webs need them.
             SmallVector<uint32_t> exitSlots;
-            for (const uint32_t i : bodyIndices)
-            {
-                for (const uint32_t succ : cfg.successors(i))
-                {
-                    if (succ < n && !inBody[succ])
-                    {
-                        exitSlots.push_back(i);
-                        break;
-                    }
-                }
-            }
+            bool                  collectedExitSlots = false;
 
             // Accept optimistically, filter for profit, then enforce web
             // integrity on what remains: a register with any hoisted def needs
@@ -841,6 +845,21 @@ namespace
                     // the first def (the register then held the previous
                     // iteration's final, which hoisting preserves) or be
                     // dominated by the last def (the final of this iteration).
+                    if (!violated && !collectedExitSlots)
+                    {
+                        for (const uint32_t i : bodyIndices)
+                        {
+                            for (const uint32_t succ : cfg.successors(i))
+                            {
+                                if (succ < n && !inBody[succ])
+                                {
+                                    exitSlots.push_back(i);
+                                    break;
+                                }
+                            }
+                        }
+                        collectedExitSlots = true;
+                    }
                     for (const uint32_t e : exitSlots)
                     {
                         if (violated)
@@ -914,14 +933,14 @@ namespace
         {
             for (const Clone& clone : plan.clones)
             {
-                const MicroInstrRef hoistedRef = storage.insertDerivedBefore(operands, plan.headerRef, clone.op, clone.ops);
-                if (!relocRefs.contains(clone.original.get()))
+                const MicroInstrRef hoistedRef   = storage.insertDerivedBefore(operands, plan.headerRef, clone.op, clone.ops);
+                const auto          relocationIt = firstRelocation.find(clone.original.get());
+                if (relocationIt == firstRelocation.end())
                     continue;
-                for (MicroRelocation& reloc : context.builder->codeRelocations())
-                {
-                    if (reloc.instructionRef.get() == clone.original.get())
-                        reloc.instructionRef = hoistedRef;
-                }
+                // Cloning only changes MicroStorage; the relocation array and
+                // its index chains remain fixed until all retargeting is done.
+                for (size_t index = relocationIt->second; index != relocationEnd; index = nextRelocation[index])
+                    relocations[index].instructionRef = hoistedRef;
             }
         }
         for (const HoistPlan& plan : plans)

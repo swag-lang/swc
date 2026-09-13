@@ -414,6 +414,123 @@ SWC_TEST_BEGIN(ValueNumbering_KeepsFrameLoadsForMemToReg)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ValueNumbering_PhysicalBasesStayOpaqueBeforeVirtualLoads)
+{
+    MicroBuilder                 builder(ctx);
+    const auto                   sp = CallConv::get(CallConvKind::Swag).stackPointer;
+    const std::array             bases{sp, MicroReg::intReg(3), MicroReg::instructionPointer()};
+    std::array<MicroInstrRef, 6> opaqueLoads;
+    uint32_t                     loadIndex = 0;
+    for (const auto base : bases)
+    {
+        for (uint32_t i = 0; i < 2; ++i)
+        {
+            builder.emitLoadRegMem(MicroReg::virtualIntReg(loadIndex + 1), base, 0, MicroOpBits::B64);
+            opaqueLoads[loadIndex++] = builder.instructions().lastInstructionRef();
+            if (base.isInstructionPointer())
+            {
+                MicroRelocation relocation;
+                relocation.kind           = MicroRelocation::Kind::GlobalInitAddress;
+                relocation.form           = MicroRelocation::Form::Relative32;
+                relocation.instructionRef = opaqueLoads[loadIndex - 1];
+                relocation.targetAddress  = 8;
+                builder.addRelocation(relocation);
+            }
+        }
+    }
+    constexpr MicroReg base   = MicroReg::virtualIntReg(10);
+    constexpr MicroReg first  = MicroReg::virtualIntReg(11);
+    constexpr MicroReg second = MicroReg::virtualIntReg(12);
+    builder.emitLoadRegImm(base, ApInt(0x1000, 64), MicroOpBits::B64);
+    builder.emitLoadRegMem(first, base, 8, MicroOpBits::B64);
+    builder.emitLoadRegMem(second, base, 8, MicroOpBits::B64);
+    const auto duplicate = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    SWC_RESULT(runValueNumberingPass(builder));
+    for (uint32_t i = 0; i < opaqueLoads.size(); ++i)
+    {
+        const auto* inst = builder.instructions().ptr(opaqueLoads[i]);
+        if (!inst || inst->op != MicroInstrOpcode::LoadRegMem || inst->ops(builder.operands())[1].reg != bases[i / 2])
+            return Result::Error;
+    }
+    const auto* copy = builder.instructions().ptr(duplicate);
+    if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || copy->ops(builder.operands())[0].reg != second || copy->ops(builder.operands())[1].reg != first)
+        return Result::Error;
+    const auto& relocations = builder.codeRelocations();
+    if (relocations.size() != 2 || relocations[0].instructionRef != opaqueLoads[4] || relocations[1].instructionRef != opaqueLoads[5])
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 7 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ValueNumbering_AddressWidthsStayDistinctBeforeAcceptedLoads)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(10);
+    constexpr MicroReg index = MicroReg::virtualIntReg(11);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegImm(base, ApInt(0x1000, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(index, ApInt(2, 64), MicroOpBits::B64);
+    std::array<MicroInstrRef, 4> loads;
+    for (uint32_t i = 0; i < loads.size(); ++i)
+    {
+        builder.emitLoadAmcRegMem(MicroReg::virtualIntReg(i + 1), MicroOpBits::B32, base, index, 4, 0, i < 2 ? MicroOpBits::B32 : MicroOpBits::B64);
+        loads[i] = builder.instructions().lastInstructionRef();
+    }
+    builder.emitRet();
+
+    SWC_RESULT(runValueNumberingPass(builder));
+    for (uint32_t i = 0; i < loads.size(); ++i)
+    {
+        const auto* inst = builder.instructions().ptr(loads[i]);
+        if (!inst)
+            return Result::Error;
+        const auto* ops = inst->ops(builder.operands());
+        if (i < 3)
+        {
+            if (inst->op != MicroInstrOpcode::LoadAmcRegMem || ops[3].opBits != MicroOpBits::B32 || ops[4].opBits != (i < 2 ? MicroOpBits::B32 : MicroOpBits::B64))
+                return Result::Error;
+        }
+        else if (inst->op != MicroInstrOpcode::LoadRegReg || ops[0].reg != MicroReg::virtualIntReg(4) || ops[1].reg != MicroReg::virtualIntReg(3) || ops[2].opBits != MicroOpBits::B32)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ValueNumbering_FrameClassificationIncludesLaterDefinitions)
+{
+    for (const bool attachToFrame : {false, true})
+    {
+        const MicroReg sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+        const MicroReg base   = MicroReg::virtualIntReg(10);
+        const MicroReg middle = MicroReg::virtualIntReg(11);
+        const MicroReg tail   = MicroReg::virtualIntReg(12);
+        const MicroReg first  = MicroReg::virtualIntReg(13);
+        const MicroReg second = MicroReg::virtualIntReg(14);
+        MicroBuilder   builder(ctx);
+        builder.emitLoadRegImm(base, ApInt(0x1000, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(middle, ApInt(0x2000, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(tail, ApInt(0x3000, 64), MicroOpBits::B64);
+        builder.emitLoadRegMem(first, base, 8, MicroOpBits::B64);
+        builder.emitLoadRegMem(second, base, 8, MicroOpBits::B64);
+        // Classification is flow-insensitive: this reversed chain must keep
+        // both earlier loads when its final source is the stack pointer.
+        builder.emitLoadRegReg(base, middle, MicroOpBits::B64);
+        builder.emitLoadRegReg(middle, tail, MicroOpBits::B64);
+        builder.emitLoadRegReg(tail, attachToFrame ? sp : base, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runValueNumberingPass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != (attachToFrame ? 2 : 1))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ValueNumbering_SharesScalarFloatLiteralBits)
 {
     for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
@@ -513,6 +630,82 @@ SWC_TEST_BEGIN(ValueNumbering_KeepsSiblingComputesAndReusesJoinDefinition)
     const auto* ops = copy->ops(builder.operands());
     if (ops[0].reg != MicroReg::virtualIntReg(5) || ops[1].reg != MicroReg::virtualIntReg(4))
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ValueNumbering_LazyRelocationsPreserveBothLookupsAndLastTarget)
+{
+    for (const bool memoryFirst : {false, true})
+    {
+        constexpr MicroReg base = MicroReg::virtualIntReg(10);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegImm(base, ApInt(0x1000, 64), MicroOpBits::B64);
+        std::array<MicroInstrRef, 4> pointers;
+        std::array<MicroInstrRef, 4> loads;
+        for (uint32_t phase = 0; phase < 2; ++phase)
+        {
+            if ((phase == 0) == memoryFirst)
+            {
+                for (uint32_t i = 0; i < loads.size(); ++i)
+                {
+                    builder.emitLoadRegMem(MicroReg::virtualIntReg(i + 11), base, 8, MicroOpBits::B64);
+                    loads[i] = builder.instructions().lastInstructionRef();
+                    if (i >= 2)
+                    {
+                        MicroRelocation relocation;
+                        relocation.kind           = MicroRelocation::Kind::GlobalInitAddress;
+                        relocation.form           = MicroRelocation::Form::Relative32;
+                        relocation.instructionRef = loads[i];
+                        relocation.targetAddress  = i;
+                        builder.addRelocation(relocation);
+                    }
+                }
+            }
+            else
+            {
+                for (uint32_t i = 0; i < pointers.size(); ++i)
+                {
+                    builder.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(i + 1), DataSegmentKind::GlobalInit, 32);
+                    pointers[i] = builder.instructions().lastInstructionRef();
+                    if (i < 2)
+                    {
+                        // The final relocation wins, while the instruction's
+                        // raw target word remains identical across all four keys.
+                        MicroRelocation relocation = builder.codeRelocations().back();
+                        relocation.targetAddress   = 48;
+                        builder.addRelocation(relocation);
+                    }
+                }
+            }
+        }
+        builder.emitRet();
+
+        // These synthetic relocation keys include duplicates and non-RIP
+        // memory anchors to exercise the collector independently of verification.
+        MicroPassContext passContext;
+        passContext.taskContext  = &ctx;
+        passContext.builder      = &builder;
+        passContext.instructions = &builder.instructions();
+        passContext.operands     = &builder.operands();
+        passContext.callConvKind = CallConvKind::Swag;
+        MicroValueNumberingPass pass;
+        SWC_RESULT(pass.run(passContext));
+        for (uint32_t i = 0; i < pointers.size(); ++i)
+        {
+            const MicroInstr* inst = builder.instructions().ptr(pointers[i]);
+            if (!inst || inst->op != (i % 2 ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegPtrReloc))
+                return Result::Error;
+            if (i % 2 && inst->ops(builder.operands())[1].reg != MicroReg::virtualIntReg(i))
+                return Result::Error;
+        }
+        for (uint32_t i = 0; i < loads.size(); ++i)
+        {
+            const MicroInstr* inst = builder.instructions().ptr(loads[i]);
+            if (!inst || inst->op != (i == 1 ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
+                return Result::Error;
+        }
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

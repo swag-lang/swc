@@ -758,8 +758,7 @@ namespace
 
         const bool     operandIsDst              = issue.operandIndex == 0;
         const bool     conflict                  = operandIsDst ? originalSrcReg == requiredReg : originalDstReg == requiredReg;
-        const bool     mustPreserveRequiredReg   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
-        const bool     shouldPreserveRequiredReg = mustPreserveRequiredReg && requiredReg != originalDstReg;
+        const bool     shouldPreserveRequiredReg = requiredReg != originalDstReg && mustPreserveRegAfterInstruction(context, instRef, requiredReg);
         const MicroReg nonFixedOperandReg        = operandIsDst ? originalSrcReg : originalDstReg;
 
         if (nonFixedOperandReg.isVirtual())
@@ -825,8 +824,7 @@ namespace
         const MicroReg    requiredReg    = issue.requiredReg;
         SWC_ASSERT(requiredReg.isValid());
 
-        const bool mustPreserveRequiredReg   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
-        const bool shouldPreserveRequiredReg = mustPreserveRequiredReg && requiredReg != originalDstReg;
+        const bool shouldPreserveRequiredReg = requiredReg != originalDstReg && mustPreserveRegAfterInstruction(context, instRef, requiredReg);
         MicroReg   savedRequiredReg          = MicroReg::invalid();
         if (shouldPreserveRequiredReg)
         {
@@ -918,8 +916,7 @@ namespace
         const MicroInstrOperand tail3          = ops[3];
         const MicroInstrOperand tail4          = ops[4];
         const MicroReg          requiredReg    = issue.requiredReg;
-        const bool              mustPreserve   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
-        const bool              shouldPreserve = mustPreserve && requiredReg != originalReg0;
+        const bool              shouldPreserve = requiredReg != originalReg0 && mustPreserveRegAfterInstruction(context, instRef, requiredReg);
         SWC_ASSERT(requiredReg.isValid());
 
         addVirtualForbiddenRegIfNeeded(context, originalReg1, requiredReg);
@@ -1124,20 +1121,9 @@ Result MicroLegalizePass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands);
     const auto& encoder                  = *(context.encoder);
     uint64_t    stackScratchFrameSize    = 0;
-    uint32_t    nextVirtualIntRegIndex   = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
-    uint32_t    nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
-    {
-        const MicroInstr&        inst = *it;
-        const MicroInstrOperand* ops  = inst.ops(*context.operands);
-
-        MicroConformanceIssue issue;
-        if (!encoder.queryConformanceIssue(issue, inst, ops))
-            continue;
-
-        // Reserved for future scratch-frame requirements.
-        SWC_UNUSED(issue);
-    }
+    uint32_t    nextVirtualIntRegIndex   = 0;
+    uint32_t    nextVirtualFloatRegIndex = 0;
+    bool        virtualRegIndicesReady   = false;
 
     if (stackScratchFrameSize)
     {
@@ -1161,6 +1147,14 @@ Result MicroLegalizePass::run(MicroPassContext& context)
         MicroConformanceIssue issue;
         if (!encoder.queryConformanceIssue(issue, inst, ops))
             continue;
+
+        // Discover both register files before the first mutation, so later
+        // issues keep the same names even when high virtuals occur in the suffix.
+        if (!virtualRegIndicesReady)
+        {
+            MicroPassHelpers::computeNextVirtualRegIndices(context, nextVirtualIntRegIndex, nextVirtualFloatRegIndex);
+            virtualRegIndicesReady   = true;
+        }
 
         for (;;)
         {

@@ -165,11 +165,15 @@ namespace
             return outValue.valid();
         }
 
-        CanonicalValue srcValue;
-        if (!tryGetCanonicalReachingValue(srcValue, context, canonicalValues, canonicalFlags, ops[1].reg, valueInfo.instRef))
+        const auto sourceReachingDef = context.ssaState->reachingDef(ops[1].reg, valueInfo.instRef);
+        if (!sourceReachingDef.valid())
             return false;
 
-        const auto rootReachingDef = context.ssaState->reachingDef(srcValue.reg, valueInfo.instRef);
+        CanonicalValue srcValue;
+        if (!tryGetSsaValue<CanonicalValue, CanonicalValueTraits>(srcValue, canonicalValues, canonicalFlags, sourceReachingDef.valueId))
+            return false;
+
+        const auto rootReachingDef = srcValue.reg == ops[1].reg ? sourceReachingDef : context.ssaState->reachingDef(srcValue.reg, valueInfo.instRef);
         if (!rootReachingDef.valid() || rootReachingDef.valueId != srcValue.valueId)
             return false;
 
@@ -193,6 +197,8 @@ namespace
     {
         const CanonicalValueContext context{&ssaState, &storage, &operands};
         computeSsaValueFixedPoint<CanonicalValue, CanonicalValueTraits>(outValues, outFlags, ssaState, context, tryInferInstructionCanonical);
+        if (ssaState.phis().empty())
+            return;
 
         // A phi whose incoming values disagree is a value of its own, like any
         // instruction that is not a copy: the pointer a loop carries, at its

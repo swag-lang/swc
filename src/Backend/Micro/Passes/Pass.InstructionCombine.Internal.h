@@ -58,6 +58,15 @@ namespace InstructionCombine
         uint32_t nextVirtualFloatRegIndex = 0;
         uint32_t nextVirtualIntRegIndex   = 0;
 
+        enum class FloatReadFit : uint8_t
+        {
+            Unknown,
+            Fits,
+            DoesNotFit,
+        };
+        std::array<FloatReadFit, 2> floatReadFits{};
+        bool                        allFloatReadsFit(MicroOpBits bits);
+
         // Queues a new instruction to be inserted before `ref`, in queue
         // order with the other insertions before the same instruction.
         void emitInsertBefore(MicroInstrRef ref, MicroInstrOpcode op, std::span<const MicroInstrOperand> newOps)

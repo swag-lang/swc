@@ -4,8 +4,10 @@
 
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -207,6 +209,126 @@ SWC_TEST_BEGIN(InstCombine_RelocatedLoad_UsesExactTargetAndLiveMemory)
             if (!firstRelocation || secondRelocation != (test != Case::Same))
                 return Result::Error;
         }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_ForwardingCacheKeepsClaimedLoadsOut)
+{
+    constexpr MicroReg base = MicroReg::intReg(8);
+    for (const bool firstClaimed : {false, true})
+    {
+        MicroBuilder                 builder(ctx);
+        std::array<MicroInstrRef, 3> loads;
+        for (uint32_t i = 0; i < loads.size(); ++i)
+        {
+            builder.emitLoadRegMem(MicroReg::virtualIntReg(i + 1), base, 0, MicroOpBits::B64);
+            loads[i] = builder.instructions().lastInstructionRef();
+        }
+        builder.emitRet();
+
+        MicroSsaState ssa;
+        ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+        InstructionCombine::Context context;
+        context.builder  = &builder;
+        context.storage  = &builder.instructions();
+        context.operands = &builder.operands();
+        context.ssa      = &ssa;
+        // A per-instruction pattern may already own the first load when the
+        // whole-function forwarding scan begins.
+        if (firstClaimed && !context.claimAll({loads[0]}))
+            return Result::Error;
+        InstructionCombine::runStoreToLoadForwarding(context);
+
+        if (context.actions.size() != (firstClaimed ? 1 : 2))
+            return Result::Error;
+        for (uint32_t i = 0; i < context.actions.size(); ++i)
+        {
+            const auto&    action    = context.actions[i];
+            const uint32_t loadIndex = i + (firstClaimed ? 2 : 1);
+            if (action.ref != loads[loadIndex] || action.newOp != MicroInstrOpcode::LoadRegReg || action.ops[0].reg != MicroReg::virtualIntReg(loadIndex + 1) || action.ops[1].reg != MicroReg::virtualIntReg(firstClaimed ? 2 : 1))
+                return Result::Error;
+        }
+        if (context.isClaimed(loads[0]) != firstClaimed || context.isClaimed(loads[1]) == firstClaimed || !context.isClaimed(loads[2]))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_ForwardingCacheKeepsSurvivingProducers)
+{
+    constexpr MicroReg base   = MicroReg::intReg(8);
+    constexpr MicroReg first  = MicroReg::intReg(10);
+    constexpr MicroReg second = MicroReg::intReg(11);
+    for (const bool overlappingStore : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        for (uint32_t i = 0; i < 12; ++i)
+            builder.emitLoadMemReg(base, i, i % 2 == 0 ? first : second, MicroOpBits::B8);
+        // Cross the cache's inline capacity, then remove either alternating
+        // producers or eight consecutive overlapping byte entries.
+        if (overlappingStore)
+            builder.emitLoadMemReg(base, 2, MicroReg::intReg(12), MicroOpBits::B64);
+        else
+            builder.emitClearReg(first, MicroOpBits::B64);
+        std::array<MicroInstrRef, 12> loads;
+        for (uint32_t i = 0; i < loads.size(); ++i)
+        {
+            builder.emitLoadRegMem(MicroReg::virtualIntReg(i + 1), base, i, MicroOpBits::B8);
+            loads[i] = builder.instructions().lastInstructionRef();
+        }
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+        for (uint32_t i = 0; i < loads.size(); ++i)
+        {
+            const bool        survives = overlappingStore ? (i < 2 || i >= 10) : i % 2 != 0;
+            const MicroInstr* inst     = builder.instructions().ptr(loads[i]);
+            if (!inst || inst->op != (survives ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
+                return Result::Error;
+            if (survives && inst->ops(builder.operands())[1].reg != (i % 2 == 0 ? first : second))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_RipForwardingInitializesBeforeFirstMatchedRelocation)
+{
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(MicroReg::virtualIntReg(10), MicroReg::intReg(8), 0, MicroOpBits::B64);
+    builder.emitLoadRegMem(MicroReg::virtualIntReg(11), MicroReg::intReg(8), 0, MicroOpBits::B64);
+    // Ordinary forwarding precedes the first RIP access. That access has no
+    // relocation, but the snapshot must still include all later relocations.
+    builder.emitLoadRegMem(MicroReg::virtualIntReg(12), MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+    std::array<MicroInstrRef, 3> relocated;
+    for (uint32_t i = 0; i < relocated.size(); ++i)
+    {
+        builder.emitLoadRegMem(MicroReg::virtualIntReg(i + 1), MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+        relocated[i] = builder.instructions().lastInstructionRef();
+        MicroRelocation relocation;
+        relocation.kind           = MicroRelocation::Kind::GlobalInitAddress;
+        relocation.form           = MicroRelocation::Form::Relative32;
+        relocation.targetAddress  = 8;
+        relocation.instructionRef = relocated[i];
+        builder.addRelocation(relocation);
+    }
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 3 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 3)
+        return Result::Error;
+    for (uint32_t i = 1; i < relocated.size(); ++i)
+    {
+        const MicroInstr* inst = builder.instructions().ptr(relocated[i]);
+        if (!inst || inst->op != MicroInstrOpcode::LoadRegReg || inst->ops(builder.operands())[1].reg != MicroReg::virtualIntReg(1))
+            return Result::Error;
+    }
+    if (builder.codeRelocations().size() != 1 || builder.codeRelocations()[0].instructionRef != relocated[0])
+        return Result::Error;
     return Result::Continue;
 }
 SWC_TEST_END()
@@ -898,6 +1020,57 @@ SWC_TEST_BEGIN(InstCombine_MemoryFoldTriple_LeavesLoopFrameSlot)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_MemoryFoldTriple_FrameWithoutBackEdgesKeepsCfgGuards)
+{
+    enum class Case
+    {
+        Linear,
+        MultipleRoots,
+        IndirectExit,
+    };
+    const MicroReg     stack = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg key   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg word  = MicroReg::virtualIntReg(3);
+    for (const Case test : {Case::Linear, Case::MultipleRoots, Case::IndirectExit})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadAddressRegMem(base, stack, 16, MicroOpBits::B64);
+        builder.emitLoadRegImm(key, ApInt(0x5A, 32), MicroOpBits::B32);
+        builder.emitLoadRegMem(word, base, 0, MicroOpBits::B32);
+        const auto load = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegReg(word, key, MicroOp::Xor, MicroOpBits::B32);
+        builder.emitLoadMemReg(base, 0, word, MicroOpBits::B32);
+        const auto store = builder.instructions().lastInstructionRef();
+        if (test == Case::IndirectExit)
+            builder.emitJumpReg(MicroReg::intReg(0));
+        else
+        {
+            builder.emitRet();
+            if (test == Case::MultipleRoots)
+                builder.emitRet();
+        }
+
+        const auto& cfg = builder.controlFlowGraph();
+        if (cfg.hasLoop() || cfg.hasUnsupportedControlFlowForCfgLiveness() != (test == Case::IndirectExit))
+            return Result::Error;
+        uint32_t roots = 0;
+        for (uint32_t i = 0; i < cfg.instructionCount(); ++i)
+            roots += cfg.predecessors(i).empty();
+        if (roots != (test == Case::MultipleRoots ? 2u : 1u))
+            return Result::Error;
+
+        SWC_RESULT(runInstCombinePass(builder));
+        const bool folded = test == Case::Linear;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != (folded ? 1u : 0u))
+            return Result::Error;
+        if ((builder.instructions().ptr(load) != nullptr) == folded || (builder.instructions().ptr(store) != nullptr) == folded)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A loop-carried 32-bit accumulator: every input of its phi is a 32-bit write,
 // so the widening at the top of the body is a copy, and the masked addition
 // that feeds the back edge narrows.
@@ -1125,6 +1298,55 @@ SWC_TEST_BEGIN(InstCombine_SqrtResultCopy_PreservesPackedDestination)
         SWC_RESULT(runInstCombinePass(builder));
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
             return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_SqrtResultCopy_ReusesGlobalReadCheckByWidth)
+{
+    for (const bool mixedWidths : {false, true})
+    {
+        for (uint32_t blockingRead = 0; blockingRead < 3; ++blockingRead)
+        {
+            constexpr MicroReg           base = MicroReg::intReg(8);
+            MicroBuilder                 builder(ctx);
+            std::array<MicroInstrRef, 4> roots;
+            std::array<MicroInstrRef, 4> copies;
+            for (uint32_t i = 0; i < roots.size(); ++i)
+            {
+                const MicroOpBits bits   = mixedWidths && i % 2 ? MicroOpBits::B64 : MicroOpBits::B32;
+                const MicroReg    src    = MicroReg::virtualFloatReg(i * 3 + 1);
+                const MicroReg    result = MicroReg::virtualFloatReg(i * 3 + 2);
+                const MicroReg    copied = MicroReg::virtualFloatReg(i * 3 + 3);
+                if (i == 2)
+                    builder.placeLabel(builder.createLabel());
+                builder.emitLoadRegMem(src, base, i * 16, bits);
+                builder.emitOpBinaryRegReg(result, src, MicroOp::FloatSqrt, bits);
+                roots[i] = builder.instructions().lastInstructionRef();
+                builder.emitLoadRegReg(copied, result, bits);
+                copies[i] = builder.instructions().lastInstructionRef();
+                builder.emitLoadMemReg(base, 0x100 + i * 16, copied, bits);
+            }
+            // A later packed or unclassified read must reject every earlier
+            // candidate, even across blocks and after the first cached answer.
+            if (blockingRead == 1)
+                builder.emitLoadRegReg(MicroReg::virtualFloatReg(21), MicroReg::virtualFloatReg(3), MicroOpBits::B128);
+            else if (blockingRead == 2)
+                builder.emitStoreVecMemReg(base, 0x200, MicroReg::virtualFloatReg(3), MicroOpBits::B128);
+            builder.emitRet();
+
+            SWC_RESULT(runInstCombinePass(builder));
+            for (uint32_t i = 0; i < roots.size(); ++i)
+            {
+                const bool        folded = blockingRead == 0 && (!mixedWidths || i % 2 != 0);
+                const MicroInstr* inst   = builder.instructions().ptr(roots[i]);
+                if (!inst || inst->ops(builder.operands())[0].reg != MicroReg::virtualFloatReg(i * 3 + (folded ? 3 : 2)))
+                    return Result::Error;
+                if ((builder.instructions().ptr(copies[i]) == nullptr) != folded)
+                    return Result::Error;
+            }
+        }
     }
     return Result::Continue;
 }
@@ -1380,6 +1602,121 @@ SWC_TEST_BEGIN(InstCombine_RangeProvedCompare_NarrowWriteKept)
         return Result::Error;
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 1)
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_CompareRereadsKeepOriginalAddressValues)
+{
+    constexpr MicroReg base       = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index      = MicroReg::virtualIntReg(2);
+    constexpr MicroReg savedBase  = MicroReg::virtualIntReg(4);
+    constexpr MicroReg savedIndex = MicroReg::virtualIntReg(6);
+    constexpr MicroReg otherBase  = MicroReg::virtualIntReg(7);
+    constexpr MicroReg otherIndex = MicroReg::virtualIntReg(8);
+    constexpr MicroReg loaded     = MicroReg::virtualIntReg(20);
+    for (const bool sameCell : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegImm(base, ApInt(0x1000, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(index, ApInt(3, 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(MicroReg::virtualIntReg(3), base, MicroOpBits::B64);
+        builder.emitLoadRegReg(savedBase, MicroReg::virtualIntReg(3), MicroOpBits::B64);
+        builder.emitLoadRegReg(MicroReg::virtualIntReg(5), index, MicroOpBits::B64);
+        builder.emitLoadRegReg(savedIndex, MicroReg::virtualIntReg(5), MicroOpBits::B64);
+        builder.emitLoadRegImm(otherBase, ApInt(0x2000, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(otherIndex, ApInt(5, 64), MicroOpBits::B64);
+        builder.emitLoadAmcRegMem(loaded, MicroOpBits::B32, savedBase, savedIndex, 4, 0, MicroOpBits::B64);
+        const auto loadRef = builder.instructions().lastInstructionRef();
+        builder.emitCmpRegImm(loaded, ApInt(7, 32), MicroOpBits::B32);
+        const auto compareRef = builder.instructions().lastInstructionRef();
+        // A failed base match must not resolve the index at the candidate,
+        // and a failed index match must not replace the original base value.
+        builder.emitLoadAmcRegMem(MicroReg::virtualIntReg(21), MicroOpBits::B32, otherBase, savedIndex, 4, 0, MicroOpBits::B64);
+        builder.emitLoadAmcRegMem(MicroReg::virtualIntReg(22), MicroOpBits::B32, savedBase, otherIndex, 4, 0, MicroOpBits::B64);
+        builder.emitLoadRegImm(base, ApInt(0x3000, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(index, ApInt(9, 64), MicroOpBits::B64);
+        builder.emitLoadAmcRegMem(MicroReg::virtualIntReg(23), MicroOpBits::B32, base, index, 4, 0, MicroOpBits::B64);
+        builder.emitLoadAmcRegMem(MicroReg::virtualIntReg(24), MicroOpBits::B32, savedBase, sameCell ? savedIndex : index, 4, 0, MicroOpBits::B64);
+        builder.emitRet();
+
+        MicroSsaState ssa;
+        ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+        InstructionCombine::Context context;
+        context.builder   = &builder;
+        context.storage   = &builder.instructions();
+        context.operands  = &builder.operands();
+        context.ssa       = &ssa;
+        const bool folded = InstructionCombine::tryFoldAmcLoadIntoCompare(context, loadRef, *builder.instructions().ptr(loadRef));
+        if (folded == sameCell || context.actions.size() != (sameCell ? 0 : 2))
+            return Result::Error;
+        if (!sameCell)
+        {
+            const auto& rewrite = context.actions[0];
+            const auto& erase   = context.actions[1];
+            if (rewrite.ref != compareRef || rewrite.newOp != MicroInstrOpcode::CmpAmcImm || rewrite.ops[0].reg != savedBase || rewrite.ops[1].reg != savedIndex ||
+                rewrite.ops[2].opBits != MicroOpBits::B32 || erase.ref != loadRef || !erase.erase)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_LoadFoldWindowStartsAfterAnchor)
+{
+    for (const uint32_t gap : {15u, 16u})
+    {
+        const MicroReg accumulator = MicroReg::virtualIntReg(1);
+        const MicroReg loaded      = MicroReg::virtualIntReg(2);
+        MicroBuilder   builder(ctx);
+        for (uint32_t i = 0; i < 24; ++i)
+            builder.emitNop();
+        const MicroInstrRef erasedPrefix = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegReg(accumulator, MicroReg::intReg(9), MicroOpBits::B64);
+        builder.emitLoadRegMem(loaded, MicroReg::intReg(8), 0, MicroOpBits::B64);
+        const MicroInstrRef load = builder.instructions().lastInstructionRef();
+        for (uint32_t i = 0; i < gap; ++i)
+            builder.emitNop();
+        builder.emitOpBinaryRegReg(accumulator, loaded, MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(MicroReg::intReg(10), 0, accumulator, MicroOpBits::B64);
+        builder.emitRet();
+        // Live layout differs from slot order and contains an erased prefix.
+        builder.instructions().erase(erasedPrefix);
+        builder.instructions().insertSyntheticBefore(builder.operands(), load, MicroInstrOpcode::Nop, {});
+
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != (gap == 15 ? 1 : 0))
+            return Result::Error;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != (gap == 15 ? 0 : 1))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_InPlaceWindowIncludesAnchor)
+{
+    for (const uint32_t gap : {29u, 30u})
+    {
+        const MicroReg accumulator = MicroReg::virtualIntReg(1);
+        const MicroReg temporary   = MicroReg::virtualIntReg(2);
+        MicroBuilder   builder(ctx);
+        for (uint32_t i = 0; i < 24; ++i)
+            builder.emitNop();
+        builder.emitLoadRegReg(accumulator, MicroReg::intReg(9), MicroOpBits::B64);
+        builder.emitLoadRegReg(temporary, accumulator, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(temporary, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+        for (uint32_t i = 0; i < gap; ++i)
+            builder.emitNop();
+        builder.emitLoadRegReg(accumulator, temporary, MicroOpBits::B64);
+        builder.emitLoadMemReg(MicroReg::intReg(8), 0, accumulator, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != (gap == 29 ? 1 : 3))
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

@@ -1,0 +1,21 @@
+
+  DebugInfoCodeView.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  MicroSsaState.cpp
+  Pass.Legalize.cpp
+  Pass.PreRAPeephole.AddressForward.cpp
+  Pass.PreRAPeephole.Common.cpp
+  Pass.PreRAPeephole.ConstForward.cpp
+  Pass.PreRAPeephole.CopyForward.cpp
+  Pass.PreRAPeephole.RegImm.cpp
+  Pass.PreRAPeephole.cpp
+  Pass.SlpVectorize.cpp
+  Sema.Compiler.cpp
+  DocPage.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  Test.Micro.PostRAPeephole.cpp
+  Test.Micro.SlpVectorize.cpp
+  Test.Micro.Ssa.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe

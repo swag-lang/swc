@@ -1,0 +1,20 @@
+
+  DebugInfoCodeView.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  Pass.BranchSimplify.cpp
+  Pass.ConstantFolding.cpp
+  Pass.CopyElimination.cpp
+  Pass.DeadCodeElimination.cpp
+  Pass.LoopInvariantCodeMotion.cpp
+  Pass.ValueNumbering.cpp
+  Sema.Compiler.cpp
+  DocPage.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  Test.Micro.ConstantFolding.cpp
+  Test.Micro.CopyElimination.cpp
+  Test.Micro.DeadCodeElimination.cpp
+  Test.Micro.LoopInvariantCodeMotion.cpp
+  Test.Micro.ValueNumbering.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe

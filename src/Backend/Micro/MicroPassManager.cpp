@@ -3,7 +3,6 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
-#include "Backend/Micro/MicroUseDefMap.h"
 #include "Backend/Micro/MicroVerify.h"
 #include "Backend/Micro/Passes/Pass.BranchSimplify.h"
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
@@ -254,8 +253,6 @@ namespace
         if (context.passChanged && context.builder)
             context.builder->pruneDeadRelocations();
 
-        if (context.passChanged && context.useDefMap)
-            context.useDefMap->invalidate();
         if (context.passChanged && context.ssaState)
             context.ssaState->invalidate();
 
@@ -441,12 +438,10 @@ namespace
 
         if (!reachedFixedPoint)
         {
-            context.useDefMap = nullptr;
-            context.ssaState  = nullptr;
+            context.ssaState = nullptr;
             return MicroVerify::reportError(context, settings.name, std::format("fixed point not reached after {} iterations", settings.maxIterations));
         }
 
-        context.useDefMap              = nullptr;
         context.ssaState               = nullptr;
         context.isFirstAllocationSweep = true;
         return Result::Continue;

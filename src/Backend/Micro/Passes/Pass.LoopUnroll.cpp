@@ -114,19 +114,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
         // let clones keep the tables and constants the body reads.
         std::unordered_set<uint64_t>                                  relocLabels;
         std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>> relocsBySlot;
-        for (const MicroRelocation& reloc : builder.codeRelocations())
-        {
-            if (!reloc.instructionRef.isValid())
-                continue;
-            relocsBySlot[reloc.instructionRef.get()].push_back(reloc);
-            const MicroInstr* inst = storage.ptr(reloc.instructionRef);
-            if (inst && inst->op == MicroInstrOpcode::Label)
-            {
-                const MicroInstrOperand* ops = inst->ops(operands);
-                if (ops)
-                    relocLabels.insert(ops[0].valueU64);
-            }
-        }
+        bool                                                          relocationsIndexed = false;
 
         for (const auto& [jccOrdinal, headerId] : jumps)
         {
@@ -137,6 +125,25 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // Backward jump with room for add/cmp plus at least one body instruction.
             if (h + 4 > jccOrdinal)
                 continue;
+            // No candidate can use the tables before this point. The layout
+            // and relocations are unchanged until a successful unroll ends the sweep.
+            if (!relocationsIndexed)
+            {
+                for (const MicroRelocation& reloc : builder.codeRelocations())
+                {
+                    if (!reloc.instructionRef.isValid())
+                        continue;
+                    relocsBySlot[reloc.instructionRef.get()].push_back(reloc);
+                    const MicroInstr* inst = storage.ptr(reloc.instructionRef);
+                    if (inst && inst->op == MicroInstrOpcode::Label)
+                    {
+                        const MicroInstrOperand* ops = inst->ops(operands);
+                        if (ops)
+                            relocLabels.insert(ops[0].valueU64);
+                    }
+                }
+                relocationsIndexed = true;
+            }
             if (relocLabels.contains(headerId))
                 continue;
 
@@ -309,8 +316,6 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             const MicroInstrRef cmpRef = order[jccOrdinal - 1];
             const MicroInstrRef jccRef = order[jccOrdinal];
 
-            const uint32_t firstFreshVirtual = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
-
             // A copy defines the body's temporaries anew. A register the body
             // writes outright before it reads it, and nothing outside the body
             // reads, is a temporary of one trip: it takes a fresh name at each
@@ -325,26 +330,17 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // linear renaming wrong at a join, so a body with labels keeps
             // every name.
             std::unordered_set<MicroReg> renamable;
+            bool                         hasRenamableFloat = false;
             if (internalLabels.empty())
             {
                 std::unordered_set<MicroReg> seenInBody;
-                std::unordered_set<MicroReg> readOutside;
-                for (uint32_t o = 0; o < order.size(); ++o)
+                for (uint32_t o = bodyBegin; o < bodyEnd; ++o)
                 {
                     MicroInstr* inst = storage.ptr(order[o]);
                     if (!inst || !inst->numOperands)
                         continue;
                     SmallVector<MicroInstrRegOperandRef> regOps;
                     inst->collectRegOperands(operands, regOps, context.encoder);
-                    const bool inBody = o >= bodyBegin && o < bodyEnd;
-                    if (!inBody)
-                    {
-                        for (const MicroInstrRegOperandRef& regOp : regOps)
-                            if (regOp.reg && regOp.use && regOp.reg->isVirtual())
-                                readOutside.insert(*regOp.reg);
-                        continue;
-                    }
-
                     // The reads of an instruction come before its writes: a
                     // register first met as a read, or as an in-place update,
                     // is carried; one first met as an outright write is a
@@ -361,17 +357,43 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     }
                 }
 
-                for (const MicroReg reg : readOutside)
-                    renamable.erase(reg);
+                // Only the body's candidates matter outside it. Remove them
+                // directly instead of recording every unrelated register read.
+                const auto excludeOutsideReads = [&](uint32_t begin, uint32_t end) {
+                    for (uint32_t o = begin; o < end && !renamable.empty(); ++o)
+                    {
+                        const MicroInstr* inst = storage.ptr(order[o]);
+                        if (!inst || !inst->numOperands)
+                            continue;
+                        SmallVector<MicroInstrRegOperandRef> regOps;
+                        inst->collectRegOperands(operands, regOps, context.encoder);
+                        for (const MicroInstrRegOperandRef& regOp : regOps)
+                            if (regOp.reg && regOp.use && regOp.reg->isVirtual())
+                                renamable.erase(*regOp.reg);
+                    }
+                };
+                excludeOutsideReads(0, bodyBegin);
+                excludeOutsideReads(bodyEnd, static_cast<uint32_t>(order.size()));
                 renamable.erase(counter);
                 std::erase_if(renamable, [&](const MicroReg reg) {
-                    return builder.virtualRegForbiddenPhysRegs().contains(reg) || builder.shouldPreserveVirtualCopy(reg);
+                    if (builder.virtualRegForbiddenPhysRegs().contains(reg) || builder.shouldPreserveVirtualCopy(reg))
+                        return true;
+                    hasRenamableFloat = hasRenamableFloat || reg.isVirtualFloat();
+                    return false;
                 });
             }
 
+            // The renaming analysis is read-only, so both files can share one
+            // scan here while still observing the original instruction stream.
+            uint32_t firstFreshVirtual = 0;
+            uint32_t nextFreshFloat    = 0;
+            if (hasRenamableFloat)
+                MicroPassHelpers::computeNextVirtualRegIndices(context, firstFreshVirtual, nextFreshFloat);
+            else
+                firstFreshVirtual = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+
             std::unordered_map<MicroReg, MicroReg> currentName;
-            uint32_t                               nextFreshInt   = firstFreshVirtual + static_cast<uint32_t>(trips) - 1;
-            uint32_t                               nextFreshFloat = renamable.empty() ? 0 : MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
+            uint32_t                               nextFreshInt = firstFreshVirtual + static_cast<uint32_t>(trips) - 1;
 
             for (uint64_t k = 1; k < trips; ++k)
             {

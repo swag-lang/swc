@@ -389,6 +389,8 @@ namespace
                 known = known || root == access.rootReg;
             if (!known)
             {
+                if (roots.size() == 2)
+                    return false;
                 roots.push_back(access.rootReg);
                 if (access.rootReg == fn.stackPointer)
                     hasStackRoot = true;
@@ -396,8 +398,6 @@ namespace
                     hasParamRoot = true;
             }
         }
-        if (roots.size() > 2)
-            return false;
         if (roots.size() == 2 && (!hasStackRoot || !hasParamRoot))
             return false;
 
@@ -582,8 +582,15 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
     if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
         return Result::Continue;
 
+    const MicroPassHelpers::MicroDomTree      dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+    std::unordered_map<uint32_t, NaturalLoop> loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
+    if (loopsByHeader.empty())
+        return Result::Continue;
+
     const auto instrRefs = cfg.instructionRefs();
 
+    // The backward-edge flag is conservative. Only an actual natural loop
+    // needs whole-function definitions and address-root classification.
     FunctionModel fn;
     fn.storage      = &storage;
     fn.operands     = &operands;
@@ -611,12 +618,6 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
             info.defIndex = i;
         }
     }
-
-    const MicroPassHelpers::MicroDomTree dom = MicroPassHelpers::computeInstructionDominators(cfg, entry);
-
-    std::unordered_map<uint32_t, NaturalLoop> loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
-    if (loopsByHeader.empty())
-        return Result::Continue;
 
     std::vector<NaturalLoop*> loops;
     loops.reserve(loopsByHeader.size());

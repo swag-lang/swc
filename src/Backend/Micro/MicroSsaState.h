@@ -153,10 +153,9 @@ private:
     static bool     isTrackedReg(MicroReg reg);
     static uint32_t findRegValue(std::span<const RegValueEntry> entries, MicroReg reg);
 
-    void            resetForBuild(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder);
-    void            resetInstructionInfos(uint32_t slotCount);
+    void            resetForBuild(MicroStorage& storage);
     void            buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
-    bool            computeDominators(); // true when any dominance frontier exists
+    bool            computeDominators(bool acyclic); // true when any dominance frontier exists
     void            placePhiNodes();
     void            renameIntoSsa();
     void            renameBlock(uint32_t blockIndex, RenameState& state);
@@ -169,18 +168,16 @@ private:
     void            appendValueUse(uint32_t valueId, const UseSite& useSite);
     bool            isValueTransitivelyUsed(uint32_t valueId) const;
 
-    MicroBuilder*              builder_  = nullptr;
-    MicroStorage*              storage_  = nullptr;
-    MicroOperandStorage*       operands_ = nullptr;
-    const Encoder*             encoder_  = nullptr;
+    MicroStorage*              storage_ = nullptr;
     MicroDenseRegIndex         trackedRegs_;
     std::vector<InstrInfo>     instrInfos_;
     std::vector<MicroInstrRef> instructionRefs_;
-    std::vector<uint32_t>      instructionIndexBySlot_;
-    std::vector<uint32_t>      instructionToBlock_;
-    std::vector<BlockInfo>     blocks_;
-    std::vector<ValueInfo>     valueInfos_;
-    std::vector<PhiInfo>       phiInfos_;
+    // Snapshot membership stays valid across erasures until the next build.
+    std::vector<uint8_t>   liveInstructionSlots_;
+    std::vector<uint32_t>  instructionToBlock_;
+    std::vector<BlockInfo> blocks_;
+    std::vector<ValueInfo> valueInfos_;
+    std::vector<PhiInfo>   phiInfos_;
     // Changes to each register's value along the dominator-tree rename walk.
     // Restores delimit sibling scopes without copying every live value per block.
     std::vector<SmallVector4<ReachingValue>> reachingValuesByReg_;

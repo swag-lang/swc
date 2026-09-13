@@ -585,8 +585,8 @@ namespace
         uint32_t arithmeticOps = 0;
 
         std::unordered_map<TupleKey, uint32_t, TupleKeyHash> tupleRegs;
-        // Sorted-id key -> tuples already materialized, for permutation reuse.
-        std::unordered_map<TupleKey, std::vector<TupleKey>, TupleKeyHash> tuplesBySortedKey;
+        // Equal sorted IDs make every permutation reusable from the first tuple.
+        std::unordered_map<TupleKey, TupleKey, TupleKeyHash> firstTupleBySortedKey;
 
         size_t totalInstrs() const { return loads.size() + ops.size() + stores.size(); }
     };
@@ -644,18 +644,17 @@ namespace
 
             // A permutation of an already-built tuple is one shuffle.
             const TupleKey sorted = sortedKeyOf(tuple);
-            const auto     permIt = plan_->tuplesBySortedKey.find(sorted);
-            if (permIt != plan_->tuplesBySortedKey.end())
+            const auto     permIt = plan_->firstTupleBySortedKey.find(sorted);
+            if (permIt != plan_->firstTupleBySortedKey.end())
             {
-                for (const TupleKey& candidate : permIt->second)
+                uint8_t control = 0;
+                if (shuffleControlFor(tuple, permIt->second, control))
                 {
-                    uint8_t control = 0;
-                    if (!shuffleControlFor(tuple, candidate, control))
-                        continue;
-                    const uint32_t srcReg = plan_->tupleRegs.at(candidate);
+                    const uint32_t srcReg = plan_->tupleRegs.at(permIt->second);
                     const uint32_t dstReg = allocReg();
                     plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Shuffle, .dst = dstReg, .src = srcReg, .imm = control});
-                    remember(tuple, dstReg);
+                    // This sorted class already has its first tuple.
+                    plan_->tupleRegs.emplace(tuple, dstReg);
                     return dstReg;
                 }
             }
@@ -670,7 +669,7 @@ namespace
             switch (n0.kind)
             {
                 case SlpValueKind::Load:
-                    return buildLoad(tuple, n0, n1, n2, n3);
+                    return buildLoad(tuple, sorted, n0, n1, n2, n3);
 
                 case SlpValueKind::BinaryRegReg:
                 {
@@ -720,7 +719,7 @@ namespace
                         plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = dstReg, .src = rhsReg, .op = vecOp});
                     }
                     plan_->arithmeticOps++;
-                    remember(tuple, dstReg);
+                    remember(tuple, sorted, dstReg);
                     return dstReg;
                 }
 
@@ -745,7 +744,7 @@ namespace
                             const uint32_t dstReg  = allocReg();
                             emitShift(dstReg, lhsReg, shiftOp, n0.imm);
                             plan_->arithmeticOps++;
-                            remember(tuple, dstReg);
+                            remember(tuple, sorted, dstReg);
                             return dstReg;
                         }
 
@@ -765,12 +764,12 @@ namespace
                                 const uint32_t orReg = allocReg();
                                 plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegReg, .dst = orReg, .src = leftReg, .src2 = rightReg, .op = MicroOp::VecOr});
                                 plan_->arithmeticOps += 3;
-                                remember(tuple, orReg);
+                                remember(tuple, sorted, orReg);
                                 return orReg;
                             }
                             plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = leftReg, .src = rightReg, .op = MicroOp::VecOr});
                             plan_->arithmeticOps += 3;
-                            remember(tuple, leftReg);
+                            remember(tuple, sorted, leftReg);
                             return leftReg;
                         }
 
@@ -804,13 +803,13 @@ namespace
             plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegImm, .dst = dstReg, .op = shiftOp, .imm = imm});
         }
 
-        void remember(const TupleKey& tuple, uint32_t reg) const
+        void remember(const TupleKey& tuple, const TupleKey& sorted, uint32_t reg) const
         {
             plan_->tupleRegs.emplace(tuple, reg);
-            plan_->tuplesBySortedKey[sortedKeyOf(tuple)].push_back(tuple);
+            plan_->firstTupleBySortedKey.try_emplace(sorted, tuple);
         }
 
-        uint32_t buildLoad(const TupleKey& tuple, const SlpValue& n0, const SlpValue& n1, const SlpValue& n2, const SlpValue& n3) const
+        uint32_t buildLoad(const TupleKey& tuple, const TupleKey& sortedTuple, const SlpValue& n0, const SlpValue& n1, const SlpValue& n2, const SlpValue& n3) const
         {
             // Four loads of block-entry memory covering one contiguous chunk,
             // in any lane order.
@@ -830,15 +829,13 @@ namespace
 
             // Build (or reuse) the straight in-memory-order tuple first, so
             // every permutation of the same chunk shares one packed load.
+            // The scan already interned these canonical loads. Their distinct
+            // contiguous offsets give each existing ID its exact memory lane.
             TupleKey straight;
             for (uint32_t lane = 0; lane < K_LANE_COUNT; ++lane)
             {
-                SlpValue v;
-                v.kind             = SlpValueKind::Load;
-                v.loadRootKey      = n0.loadRootKey;
-                v.loadOffset       = sorted[0] + static_cast<uint64_t>(lane) * K_LANE_BYTES;
-                v.loadEpoch        = 0;
-                straight.ids[lane] = scan_->values.intern(v);
+                const auto memoryLane    = static_cast<uint32_t>((offsets[lane] - sorted[0]) / K_LANE_BYTES);
+                straight.ids[memoryLane] = tuple.ids[lane];
             }
 
             uint32_t   straightReg = K_INVALID_ID;
@@ -851,7 +848,7 @@ namespace
             {
                 straightReg = allocReg();
                 plan_->loads.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadVec, .dst = straightReg, .rootKey = n0.loadRootKey, .baseOffset = sorted[0]});
-                remember(straight, straightReg);
+                remember(straight, sortedKeyOf(straight), straightReg);
             }
 
             if (straight == tuple)
@@ -863,7 +860,7 @@ namespace
 
             const uint32_t dstReg = allocReg();
             plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Shuffle, .dst = dstReg, .src = straightReg, .imm = control});
-            remember(tuple, dstReg);
+            remember(tuple, sortedTuple, dstReg);
             return dstReg;
         }
 
@@ -1334,7 +1331,9 @@ namespace
         for (const BlockInstr& blockInstr : blockInstrs)
             scanInstruction(fn, scan, blockInstr);
 
-        if (scan.stores.empty())
+        // Finish scanning before rejecting a block: resolving its addresses also
+        // registers roots used by later blocks. Four locations need four stores.
+        if (scan.stores.size() < K_LANE_COUNT || scan.hasUnresolvedMemRead || scan.hasUnresolvedMemWrite)
             return false;
 
         // Candidate locations: final write is a plain aligned 32-bit store and
@@ -1364,17 +1363,26 @@ namespace
         // cannot address it - which is why a parameter is the only foreign
         // root ever paired with the frame. Two roots of unknown provenance
         // are never assumed disjoint.
-        if (scan.hasUnresolvedMemRead || scan.hasUnresolvedMemWrite)
-            return false;
-
-        std::unordered_set<uint32_t> touchedRoots;
+        SmallVector<uint32_t, 2> touchedRoots;
+        const auto               touchRoot = [&](uint32_t rootKey) {
+            if (std::ranges::find(touchedRoots, rootKey) != touchedRoots.end())
+                return true;
+            if (touchedRoots.size() == 2)
+                return false;
+            touchedRoots.push_back(rootKey);
+            return true;
+        };
         for (const StoreRecord& record : scan.stores)
-            touchedRoots.insert(record.rootKey);
+        {
+            if (!touchRoot(record.rootKey))
+                return false;
+        }
         for (const LoadRecord& record : scan.loads)
-            touchedRoots.insert(record.rootKey);
+        {
+            if (!touchRoot(record.rootKey))
+                return false;
+        }
 
-        if (touchedRoots.size() > 2)
-            return false;
         if (touchedRoots.size() == 2)
         {
             bool hasStack     = false;
@@ -1391,7 +1399,7 @@ namespace
         // Build the seed groups: complete 16-byte chunks of candidates.
         VectorPlan             plan;
         TreeBuilder            builder(scan, plan, fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary());
-        std::vector<SeedGroup> groups;
+        std::vector<SeedGroup> vectorized;
 
         for (auto& [rootKey, candidates] : candidatesByRoot)
         {
@@ -1421,22 +1429,28 @@ namespace
                 group.offset  = candidates[index].offset;
                 for (uint32_t lane = 0; lane < K_LANE_COUNT; ++lane)
                     group.tuple.ids[lane] = candidates[index + lane].valueId;
-                groups.push_back(group);
+                vectorized.push_back(group);
                 index += K_LANE_COUNT;
             }
         }
 
-        if (groups.empty())
+        if (vectorized.empty())
             return false;
 
         // Grow the trees; a group that fails simply keeps its scalar stores.
-        std::vector<SeedGroup> vectorized;
-        for (SeedGroup& group : groups)
+        size_t retainedGroups = 0;
+        for (size_t groupIndex = 0; groupIndex < vectorized.size(); ++groupIndex)
         {
-            group.planReg = builder.build(group.tuple, 0);
+            SeedGroup& group = vectorized[groupIndex];
+            group.planReg    = builder.build(group.tuple, 0);
             if (group.planReg != K_INVALID_ID)
-                vectorized.push_back(group);
+            {
+                if (retainedGroups != groupIndex)
+                    vectorized[retainedGroups] = group;
+                ++retainedGroups;
+            }
         }
+        vectorized.resize(retainedGroups);
 
         if (vectorized.empty() || plan.arithmeticOps == 0)
             return false;
@@ -1484,8 +1498,10 @@ namespace
         {
             for (const StoreRecord& record : scan.stores)
             {
-                if (record.pos >= firstDeletedPos || deletedStoreRefs.contains(record.instRef.get()))
-                    continue;
+                // Stores are in instruction order. Before the first deletion,
+                // every store survives; the remaining suffix cannot interfere.
+                if (record.pos >= firstDeletedPos)
+                    break;
                 if (record.rootKey != load.rootKey)
                     continue;
                 // Subtraction also handles a small range straddling displacement zero.

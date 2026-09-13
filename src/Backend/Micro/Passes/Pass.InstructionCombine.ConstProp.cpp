@@ -237,14 +237,12 @@ namespace InstructionCombine
 
         bool collectFlagConsumersForSwap(SmallVector<FlagConsumer, 4>& out, const Context& ctx, MicroInstrRef cmpRef)
         {
-            auto       walker = ctx.storage->view().begin();
-            const auto endIt  = ctx.storage->view().end();
-            while (walker != endIt && walker.current != cmpRef)
-                ++walker;
-            if (walker == endIt)
+            if (!ctx.storage->ptr(cmpRef))
                 return false;
+            MicroStorage::Iterator walker{ctx.storage, cmpRef};
             ++walker;
 
+            const auto endIt = ctx.storage->view().end();
             for (uint32_t step = 0; step < 16 && walker != endIt; ++step, ++walker)
             {
                 const MicroInstr&    inst = *walker;
@@ -933,15 +931,13 @@ namespace InstructionCombine
         };
         SmallVector<ResolvedUse, 4> uses;
 
-        auto       walker = ctx.storage->view().begin();
-        const auto endIt  = ctx.storage->view().end();
-        while (walker != endIt && walker.current != cmpRef)
-            ++walker;
-        if (walker == endIt)
+        if (!ctx.storage->ptr(cmpRef))
             return false;
+        MicroStorage::Iterator walker{ctx.storage, cmpRef};
         ++walker;
 
-        bool windowClosed = false;
+        const auto endIt        = ctx.storage->view().end();
+        bool       windowClosed = false;
         for (uint32_t step = 0; step < 16 && walker != endIt; ++step, ++walker)
         {
             const MicroInstr&    inst = *walker;

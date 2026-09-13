@@ -741,18 +741,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         // outside every known variable, the whole unknown part of the frame is
         // reachable through it and only slots inside known variables remain
         // promotable.
-        bool touchesPoisoned = false;
-        for (const SlotAccess& acc : slot.accesses)
-        {
-            const uint64_t lo = acc.offset;
-            const uint64_t hi = acc.offset + getNumBytes(acc.bits);
-            if (overlapsPoisonedVariable(lo, hi) || (unknownSpaceEscaped && !insideKnownVariable(lo, hi)))
-            {
-                touchesPoisoned = true;
-                break;
-            }
-        }
-        if (touchesPoisoned)
+        // All accesses have this offset. Both rejection predicates are monotonic
+        // in the computed endpoint, so the largest one covers every access.
+        if (overlapsPoisonedVariable(offset, slot.maxAccessEnd) || (unknownSpaceEscaped && !insideKnownVariable(offset, slot.maxAccessEnd)))
             continue;
 
         MicroOpBits bits = slot.accesses[0].bits;
@@ -947,15 +938,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
     }
 
-    std::unordered_map<uint64_t, MicroReg> slotReg;
-    for (const Promotion& p : promotions)
-        slotReg[p.offset] = p.isFloat ? MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++)
-                                      : MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
-
     // ---- Rewrite all accesses of the promoted slots to register ops. ----
     for (const Promotion& p : promotions)
     {
-        const MicroReg vreg = slotReg[p.offset];
+        const MicroReg vreg = p.isFloat ? MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++)
+                                        : MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
 
         for (const SlotAccess& acc : slots[p.offset].accesses)
         {

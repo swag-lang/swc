@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Unittest/Unittest.h"
 
@@ -100,6 +101,132 @@ namespace
         return true;
     }
 }
+
+SWC_TEST_BEGIN(MicroPrologEpilog_FirstDefinitionsPreserveSaveOrderAcrossRegisterClasses)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::WindowsX64);
+    MicroBuilder    builder(ctx);
+
+    // A call keeps the leaf-remapping stage out of this saved-register plan.
+    builder.emitCallReg(conv.intReturn, CallConvKind::WindowsX64);
+    builder.emitLoadRegReg(conv.intReturn, MicroReg::intReg(7), MicroOpBits::B64);
+    builder.emitLoadRegReg(conv.floatReturn, MicroReg::floatReg(7), MicroOpBits::B64);
+    builder.emitLoadRegReg(conv.intReturn, MicroReg::intReg(12), MicroOpBits::B64);
+    builder.emitLoadRegReg(conv.intReturn, conv.framePointer, MicroOpBits::B64);
+    for (uint32_t repetition = 0; repetition < 3; ++repetition)
+    {
+        for (uint32_t index = 6; index <= 7; ++index)
+        {
+            builder.emitLoadRegMem(MicroReg::intReg(index), conv.stackPointer, 64, MicroOpBits::B64);
+            builder.emitLoadRegMem(MicroReg::floatReg(index), conv.stackPointer, 64, MicroOpBits::B64);
+        }
+    }
+    builder.emitRet();
+
+    MicroPrologEpilogPass pass;
+    MicroPassManager      passManager;
+    passManager.addStartPass(pass);
+    MicroPassContext passContext;
+    passContext.callConvKind           = CallConvKind::WindowsX64;
+    passContext.preservePersistentRegs = true;
+    SWC_RESULT(builder.runPasses(passManager, nullptr, passContext));
+
+    const std::array expectedPushes = {conv.framePointer, MicroReg::intReg(6), MicroReg::intReg(7)};
+    uint32_t         pushes         = 0;
+    uint32_t         pops           = 0;
+    uint32_t         floatSaves     = 0;
+    uint32_t         floatRestores  = 0;
+    uint32_t         frameSetups    = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::Push)
+        {
+            if (pushes >= expectedPushes.size() || ops[0].reg != expectedPushes[pushes++])
+                return Result::Error;
+        }
+        else if (inst.op == MicroInstrOpcode::Pop)
+        {
+            if (pops >= expectedPushes.size() || ops[0].reg != expectedPushes[expectedPushes.size() - 1 - pops++])
+                return Result::Error;
+        }
+        else if (inst.op == MicroInstrOpcode::LoadMemReg && ops[2].opBits == MicroOpBits::B128)
+        {
+            if (floatSaves >= 2 || ops[0].reg != conv.stackPointer || ops[1].reg != MicroReg::floatReg(6 + floatSaves) || ops[3].valueU64 != floatSaves * 16)
+                return Result::Error;
+            ++floatSaves;
+        }
+        else if (inst.op == MicroInstrOpcode::LoadRegMem && ops[2].opBits == MicroOpBits::B128)
+        {
+            if (floatRestores >= 2 || ops[0].reg != MicroReg::floatReg(6 + floatRestores) || ops[1].reg != conv.stackPointer || ops[3].valueU64 != floatRestores * 16)
+                return Result::Error;
+            ++floatRestores;
+        }
+        else if (isFramePointerSetup(inst, ops, conv.framePointer, conv.stackPointer))
+            ++frameSetups;
+    }
+    if (pushes != 3 || pops != 3 || floatSaves != 2 || floatRestores != 2 || frameSetups != 1)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroPrologEpilog_RestoresEveryReturnFromOriginalAnchors)
+{
+    const CallConv& conv  = CallConv::get(CallConvKind::WindowsX64);
+    constexpr auto  saved = MicroReg::intReg(7);
+    MicroBuilder    builder(ctx);
+    const auto      alternate = builder.createLabel();
+    // A call prevents leaf remapping from removing the persistent register.
+    builder.emitCallReg(conv.intReturn, CallConvKind::WindowsX64);
+    const auto originalFirst = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegImm(saved, ApInt(17, 64), MicroOpBits::B64);
+    builder.emitCmpRegImm(conv.intReturn, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, alternate);
+    builder.emitRet();
+    const auto firstRet = builder.instructions().lastInstructionRef();
+    builder.placeLabel(alternate);
+    builder.emitRet();
+    const auto secondRet = builder.instructions().lastInstructionRef();
+
+    MicroPrologEpilogPass pass;
+    MicroPassManager      manager;
+    manager.addStartPass(pass);
+    MicroPassContext context;
+    context.callConvKind           = CallConvKind::WindowsX64;
+    context.preservePersistentRegs = true;
+    SWC_RESULT(builder.runPasses(manager, nullptr, context));
+    if (builder.instructions().count() != 13)
+        return Result::Error;
+
+    const auto& operands = builder.operands();
+    const auto  first    = builder.instructions().view().begin();
+    if (first->op != MicroInstrOpcode::Push || first->ops(operands)[0].reg != saved)
+        return Result::Error;
+    const auto  subtractRef = builder.instructions().findNextInstructionRef(first.current);
+    const auto* subtract    = builder.instructions().ptr(subtractRef);
+    if (!subtract || !isStackAdjust(*subtract, subtract->ops(operands), conv.stackPointer, MicroOp::Subtract, 8) ||
+        builder.instructions().findNextInstructionRef(subtractRef) != originalFirst)
+        return Result::Error;
+
+    uint32_t returns = 0;
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+    {
+        if (it->op != MicroInstrOpcode::Ret)
+            continue;
+        if (returns >= 2 || it.current != (returns ? secondRet : firstRet))
+            return Result::Error;
+        const auto  popRef = builder.instructions().findPreviousInstructionRef(it.current);
+        const auto* pop    = builder.instructions().ptr(popRef);
+        if (!pop || pop->op != MicroInstrOpcode::Pop || pop->ops(operands)[0].reg != saved)
+            return Result::Error;
+        const auto* add = builder.instructions().ptr(builder.instructions().findPreviousInstructionRef(popRef));
+        if (!add || !isStackAdjust(*add, add->ops(operands), conv.stackPointer, MicroOp::Add, 8))
+            return Result::Error;
+        ++returns;
+    }
+    return returns == 2 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesAdjacentStackAdjustments)
 {
@@ -315,6 +442,65 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotTouchFramePointerSetupAfterBodyS
         return Result::Error;
     if (!isFramePointerSetup(*secondSetup, secondSetup->ops(operands), rbp, rsp))
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesMultipleReturnSuffixesAfterRejectedPairs)
+{
+    constexpr auto     rsp = MicroReg::intReg(4);
+    constexpr auto     rbx = MicroReg::intReg(3);
+    constexpr uint64_t max = std::numeric_limits<uint64_t>::max();
+    MicroBuilder       builder(ctx);
+    builder.emitNop();
+    std::array<MicroInstrRef, 5>      firstAdjusts;
+    constexpr std::array<uint64_t, 5> firstAmounts = {8, 16, 32, 4, 4};
+    for (uint32_t i = 0; i < firstAmounts.size(); ++i)
+    {
+        if (i == 3)
+            builder.emitPop(rbx);
+        builder.emitOpBinaryRegImm(rsp, ApInt(firstAmounts[i], 64), MicroOp::Add, MicroOpBits::B64);
+        firstAdjusts[i] = builder.instructions().lastInstructionRef();
+    }
+    builder.emitRet();
+    const auto firstRet = builder.instructions().lastInstructionRef();
+
+    // The overflowing first pair is rejected, then the later pair merges.
+    // Restarting must preserve that prefix and its original first reference.
+    builder.emitNop();
+    builder.emitOpBinaryRegImm(rsp, ApInt(max, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto overflow = builder.instructions().lastInstructionRef();
+    builder.emitOpBinaryRegImm(rsp, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto combined = builder.instructions().lastInstructionRef();
+    builder.emitOpBinaryRegImm(rsp, ApInt(2, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto erased = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+    const auto secondRet = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+    const auto emptyRet = builder.instructions().lastInstructionRef();
+
+    SWC_RESULT(runPrologEpilogSanitizePass(builder));
+    if (builder.instructions().count() != 10 || builder.instructions().ptr(firstAdjusts[1]) ||
+        builder.instructions().ptr(firstAdjusts[2]) || builder.instructions().ptr(firstAdjusts[4]) || builder.instructions().ptr(erased))
+        return Result::Error;
+
+    const std::array<MicroInstrRef, 4> survivors = {firstAdjusts[0], firstAdjusts[3], overflow, combined};
+    constexpr std::array<uint64_t, 4>  amounts   = {56, 8, max, 3};
+    for (uint32_t i = 0; i < survivors.size(); ++i)
+    {
+        const auto* inst = builder.instructions().ptr(survivors[i]);
+        if (!inst || !isStackAdjust(*inst, inst->ops(builder.operands()), rsp, MicroOp::Add, amounts[i]))
+            return Result::Error;
+    }
+    const std::array<MicroInstrRef, 3> returns     = {firstRet, secondRet, emptyRet};
+    uint32_t                           returnIndex = 0;
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+    {
+        if (it->op != MicroInstrOpcode::Ret)
+            continue;
+        if (returnIndex >= returns.size() || it.current != returns[returnIndex++])
+            return Result::Error;
+    }
+    return returnIndex == returns.size() ? Result::Continue : Result::Error;
 }
 SWC_TEST_END()
 

@@ -1,0 +1,28 @@
+
+  DebugInfoCodeView.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  Pass.InstructionCombine.AddressMode.cpp
+  Pass.InstructionCombine.BuildVector.cpp
+  Pass.InstructionCombine.Common.cpp
+  Pass.InstructionCombine.CommuteConst.cpp
+  Pass.InstructionCombine.ConstProp.cpp
+  Pass.InstructionCombine.FloatOrderedCompare.cpp
+  Pass.InstructionCombine.LoadFold.cpp
+  Pass.InstructionCombine.MemoryFold.cpp
+  Pass.InstructionCombine.NarrowExtend.cpp
+  Pass.InstructionCombine.RegImm.cpp
+  Pass.InstructionCombine.RegReg.cpp
+  Pass.InstructionCombine.StoreToLoad.cpp
+  Pass.InstructionCombine.VecLoadFold.cpp
+  Pass.InstructionCombine.ZeroExtend.cpp
+  Pass.InstructionCombine.cpp
+  Pass.LoopUnroll.cpp
+  Pass.RegisterAllocation.cpp
+  Sema.Compiler.cpp
+  DocPage.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  Test.Micro.InstructionCombine.cpp
+  Test.Micro.RegAlloc.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe

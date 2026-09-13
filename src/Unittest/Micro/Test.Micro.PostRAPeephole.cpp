@@ -253,6 +253,75 @@ SWC_TEST_BEGIN(PostRAPeephole_CopyForward_StopsAtEncoderImplicitDef)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroPassHelpers_PhysicalLivenessReuseReplacesInstructionEffectsAndExitRoots)
+{
+    using MicroPassHelpers::MicroPhysLiveness;
+    const CallConv&   conv = CallConv::get(CallConvKind::WindowsX64);
+    MicroPhysLiveness reused;
+    const std::array  bodyLengths = {12u, 0u, 20u, 20u};
+    for (uint32_t round = 0; round < bodyLengths.size(); ++round)
+    {
+        MicroBuilder builder(ctx);
+        for (uint32_t i = 0; i < bodyLengths[round]; ++i)
+        {
+            if (i == 0)
+            {
+                if (round % 2 == 0)
+                    builder.emitCallReg(conv.intReturn, CallConvKind::WindowsX64);
+                else
+                    builder.emitNop();
+            }
+            else if (round % 2 == 0)
+                builder.emitLoadRegReg(MicroReg::intReg(8), MicroReg::intReg(9), MicroOpBits::B64);
+            else
+                builder.emitLoadRegReg(MicroReg::floatReg(8), MicroReg::floatReg(9), MicroOpBits::B64);
+        }
+        builder.emitRet();
+
+        MicroPassContext passCtx;
+        passCtx.builder                 = &builder;
+        passCtx.instructions            = &builder.instructions();
+        passCtx.operands                = &builder.operands();
+        passCtx.callConvKind            = CallConvKind::WindowsX64;
+        passCtx.usesIntReturnRegOnRet   = round == 0 || round == 2;
+        passCtx.usesFloatReturnRegOnRet = round == 0 || round == 3;
+        MicroPassHelpers::computePhysicalLiveness(reused, passCtx);
+        MicroPhysLiveness fresh;
+        MicroPassHelpers::computePhysicalLiveness(fresh, passCtx);
+        if (!reused.valid || !fresh.valid || reused.useDefs.size() != bodyLengths[round] + 1 ||
+            reused.liveIn != fresh.liveIn || reused.liveOut != fresh.liveOut)
+            return Result::Error;
+        for (size_t i = 0; i < reused.useDefs.size(); ++i)
+        {
+            const MicroInstrUseDef& actual   = reused.useDefs[i];
+            const MicroInstrUseDef& expected = fresh.useDefs[i];
+            if (actual.isCall != expected.isCall || actual.callConv != expected.callConv ||
+                !std::ranges::equal(actual.uses, expected.uses) || !std::ranges::equal(actual.defs, expected.defs))
+                return Result::Error;
+        }
+
+        uint64_t exitRoots = (1ull << MicroPhysLiveness::bitOf(conv.stackPointer)) |
+                             (1ull << MicroPhysLiveness::bitOf(conv.framePointer));
+        for (const MicroReg reg : conv.intPersistentRegs)
+            exitRoots |= 1ull << MicroPhysLiveness::bitOf(reg);
+        for (const MicroReg reg : conv.floatPersistentRegs)
+            exitRoots |= 1ull << MicroPhysLiveness::bitOf(reg);
+        if (passCtx.usesIntReturnRegOnRet)
+            exitRoots |= 1ull << MicroPhysLiveness::bitOf(conv.intReturn);
+        if (passCtx.usesFloatReturnRegOnRet)
+            exitRoots |= 1ull << MicroPhysLiveness::bitOf(conv.floatReturn);
+        if (reused.liveOut.back() != exitRoots || reused.liveIn.back() != exitRoots)
+            return Result::Error;
+
+        // A failed request must not expose the previously valid result.
+        MicroPassHelpers::computePhysicalLiveness(reused, MicroPassContext{});
+        if (reused.valid || !reused.isLiveOut(0, conv.intReturn))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroPassHelpers_CombinedFreshIndicesMatchSingleClassBounds)
 {
     MicroBuilder     builder(ctx);

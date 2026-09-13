@@ -136,7 +136,7 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
     buildBlocks(controlFlowGraph);
     // Without a dominance frontier, phi placement has no possible destination.
     // Avoid collecting per-register definition blocks and allocating worklists.
-    if (computeDominators())
+    if (computeDominators(!controlFlowGraph.hasLoop()))
         placePhiNodes();
     renameIntoSsa();
 
@@ -374,7 +374,7 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
     }
 }
 
-bool MicroSsaState::computeDominators()
+bool MicroSsaState::computeDominators(const bool acyclic)
 {
     // A single block dominates itself, with no frontier. Avoid setting up the
     // general DFS and fixed-point workspaces for straight-line functions.
@@ -512,6 +512,10 @@ bool MicroSsaState::computeDominators()
                     changed                = true;
                 }
             }
+            // In a DAG, RPO is topological within this stamped component.
+            // Every admissible predecessor already has its final dominator.
+            if (acyclic)
+                break;
         }
     }
 
@@ -702,6 +706,11 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
 
     for (const uint32_t childBlock : block.domChildren)
         renameBlock(childBlock, state);
+
+    // No instruction query observes position N, and all phi inputs were
+    // assigned before descending. Final scope restores cannot be observed.
+    if (state.position == instructionRefs_.size())
+        return;
 
     for (const auto& restore : std::views::reverse(restores))
         setCurrentValue(state, restore.regIndex, restore.previousId);

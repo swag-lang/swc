@@ -155,7 +155,7 @@ private:
 
     void            resetForBuild(MicroStorage& storage);
     void            buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
-    bool            computeDominators(); // true when any dominance frontier exists
+    bool            computeDominators(bool acyclic); // true when any dominance frontier exists
     void            placePhiNodes();
     void            renameIntoSsa();
     void            renameBlock(uint32_t blockIndex, RenameState& state);

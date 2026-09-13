@@ -553,7 +553,7 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         return bit < MicroPhysLiveness::K_INVALID_BIT ? 1ull << bit : 0ull;
     };
 
-    out.useDefs.assign(instCount, {});
+    out.useDefs.resize(instCount);
     for (uint32_t i = 0; i < instCount; ++i)
     {
         const MicroInstr* inst = context.instructions->ptr(instructionRefs[i]);
@@ -576,12 +576,9 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         exitLiveOut |= maskOf(reg);
 
     out.liveIn.assign(instCount, 0);
-    out.liveOut.assign(instCount, 0);
-    for (uint32_t i = 0; i < instCount; ++i)
-    {
-        if (successors[i].empty())
-            out.liveOut[i] = exitLiveOut;
-    }
+    // Every node enters the worklist below. Its live-out is overwritten on
+    // its first visit; propagation reads only live-in, so no seed is needed.
+    out.liveOut.resize(instCount);
 
     std::vector<uint8_t>  inWorklist(instCount, 1);
     std::vector<uint32_t> worklist;
@@ -773,6 +770,10 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
                 changed    = true;
             }
         }
+        // With only forward edges, RPO is topological and every reachable
+        // predecessor was finalized before its successors in this sweep.
+        if (!cfg.hasLoop())
+            break;
     }
 
     // Reuse the CFG traversal buffers for dominator-tree child links. The

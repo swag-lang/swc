@@ -734,6 +734,74 @@ SWC_TEST_BEGIN(Sema_SanityOverrideSummaryPreservesOrderAndFrameInheritance)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Sema_RuntimeSafetySummaryPreservesHistoricalInlineDisables)
+{
+    const std::array<RuntimeSafetyOverride, 10> overrides = {{{0, true}, {0, false}, {1, false}, {1, true}, {0xAAAA, false}, {0x5555, true}, {0x8000, false}, {UINT16_MAX, true}, {0x5555, false}, {0, false}}};
+    const std::array<uint16_t, 5>              buildMasks = {0, UINT16_MAX, 0x5555, 0xAAAA, 0x8000};
+    for (size_t callerCount = 0; callerCount <= overrides.size(); ++callerCount)
+    {
+        SemaFrame               caller;
+        std::optional<uint16_t> callerDisables;
+        for (size_t index = 0; index < callerCount; ++index)
+        {
+            const auto& entry = overrides[index];
+            caller.currentAttributes().addRuntimeSafetyOverride(static_cast<Runtime::SafetyWhat>(entry.whatMask), entry.value);
+            if (!entry.value)
+                callerDisables = callerDisables.value_or(0) | entry.whatMask;
+        }
+        if (caller.currentAttributes().hasRuntimeSafetyOverrides() != (callerCount != 0) || caller.currentAttributes().empty() != (callerCount == 0) || caller.currentAttributes().runtimeSafetyDisables() != callerDisables)
+            return Result::Error;
+
+        for (size_t calleeCount = 0; calleeCount <= overrides.size(); ++calleeCount)
+        {
+            SemaFrame               callee;
+            std::optional<uint16_t> combinedDisables = callerDisables;
+            for (size_t index = 0; index < calleeCount; ++index)
+            {
+                const auto& entry = overrides[index];
+                callee.currentAttributes().addRuntimeSafetyOverride(static_cast<Runtime::SafetyWhat>(entry.whatMask), entry.value);
+                if (!entry.value)
+                    combinedDisables = combinedDisables.value_or(0) | entry.whatMask;
+            }
+
+            SemaFrame inlined = caller;
+            const auto disables = inlined.currentAttributes().runtimeSafetyDisables();
+            inlined.currentAttributes() = callee.currentAttributes();
+            if (disables)
+                inlined.currentAttributes().addRuntimeSafetyOverride(static_cast<Runtime::SafetyWhat>(*disables), false);
+            if (inlined.currentAttributes().runtimeSafetyDisables() != combinedDisables || inlined.currentAttributes().empty() != (calleeCount == 0 && !callerDisables))
+                return Result::Error;
+
+            for (const uint16_t buildMask : buildMasks)
+            {
+                uint16_t expectedCaller = buildMask;
+                uint16_t expectedCallee = buildMask;
+                // Reference the original ordered history, including caller disables
+                // whose bits a later caller enable switched back on.
+                for (size_t index = 0; index < overrides.size(); ++index)
+                {
+                    const auto& entry = overrides[index];
+                    if (index < callerCount)
+                        expectedCaller = entry.value ? expectedCaller | entry.whatMask : expectedCaller & ~entry.whatMask;
+                    if (index < calleeCount)
+                        expectedCallee = entry.value ? expectedCallee | entry.whatMask : expectedCallee & ~entry.whatMask;
+                }
+                uint16_t expectedInline = expectedCallee;
+                for (size_t index = 0; index < callerCount; ++index)
+                    if (!overrides[index].value)
+                        expectedInline &= ~overrides[index].whatMask;
+
+                const auto buildCfgMask = static_cast<Runtime::SafetyWhat>(buildMask);
+                if (caller.currentAttributes().effectiveRuntimeSafetyMask(buildCfgMask) != expectedCaller || callee.currentAttributes().effectiveRuntimeSafetyMask(buildCfgMask) != expectedCallee || inlined.currentAttributes().effectiveRuntimeSafetyMask(buildCfgMask) != expectedInline)
+                    return Result::Error;
+                if (!inlined.currentAttributes().hasRuntimeSafety(buildCfgMask, Runtime::SafetyWhat::None) || inlined.currentAttributes().hasRuntimeSafety(buildCfgMask, Runtime::SafetyWhat::All) != (expectedInline == UINT16_MAX))
+                    return Result::Error;
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

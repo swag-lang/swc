@@ -628,3 +628,64 @@ The Release compiler passed the same focused native boundaries:
 [interface construction](release-compiler-mkinterface-557.log) (1),
 [qualified using](release-compiler-qualified_using-557.log) (1), and
 [dynamic interface presence](release-compiler-dynamic_presence-557.log) (5).
+
+## Additional reductions in build 558
+
+Runtime safety attributes now retain their effective override mask and values, plus the union
+of every historical disable. Ordinary inlining still inherits disables even when the caller
+later enabled the same bits. An optional union distinguishes no disable from an explicit
+zero-mask disable, and a separate presence bit preserves parameter materialization decisions.
+Queries, copies of this part of the frame, and inline propagation no longer traverse or allocate
+an override history. A differential C++ test compares 121 caller/callee prefix combinations on
+five build masks against the previous ordered replay, including nested-copy independence.
+
+Generic instantiation collects namespace identifiers directly into their final temporary vector,
+reverses it in place, and derives default access during the same owner-chain walk. This removes
+one owner traversal and one intermediate path vector per reconstructed context. Impl owners,
+module namespace filtering, caller fallback, and the snapshot before frame replacement remain
+unchanged.
+
+Sparse default-value emission keeps the four discovered nonzero chunk offsets on the stack.
+After zeroing the destination, it reads only those chunks to generate stores instead of scanning
+the entire payload again. The two existing callers share the same emitter. Classification,
+thresholds, store order/width/value, zero-only handling, and dense fallback are unchanged; the
+second scan is bounded by 32 bytes rather than the payload size. A new native test checks all
+zero fields and four separated nonzero chunks in a payload larger than 16 KiB, plus the fifth
+chunk that selects the fallback. It passed with the previous compiler before rebuilding
+([build-557 baseline](native-sparse-baseline-557-558.log)).
+
+After identical archive functions have been identified, the linker walks candidates in their
+existing object-index order and compacts surviving objects in place. This changes the retention
+step from O(N * C) searches to O(N + C), where N is the object count and C the candidate count,
+and removes the second object vector. Canonical relocation names are consumed as temporary
+views in hashing and comparison, avoiding repeated owning string copies. Neither folding
+criteria, canonical selection, alias order, nor surviving object order changes.
+
+Validation uses the DevMode compiler: the batch changes no shared lifetime, scheduling, locking,
+or compiler-configuration branch. Native program checks cover `devmode` and `release`, including
+inline safety behavior. Linker validation includes native filesystem tests and a rebuilt real
+workspace consumer with static and shared dependencies. Micro-pass sources and tests remain
+unchanged. No timing comparison is performed.
+
+The DevMode build succeeded with MSBuild `/m:6 /p:SwcCompileJobs=6`. Swag commands use six
+workers at both script and child levels; tool-driven validations run serially.
+
+| Build-558 validation | Result | Evidence |
+| --- | --- | --- |
+| C++, including filesystem tests (`--dev-full`) | 801 passed; none excluded | [Log](cpp-full-558.log) |
+| Semantic analysis | 278 valid and 293 expected-error inputs verified | [Log](sema-558.log) |
+| Sanity | 52 passed, including expected diagnostics | [Log](sanity-558.log) |
+| Safety | 137 passed | [Log](safety-558.log) |
+| JIT | 1,402 passed | [Log](jit-558.log) |
+| Native, program configuration `devmode` | 3,151 passed; generated executable passed | [Log](native-devmode-558.log) |
+| Native, program configuration `release` | 3,151 passed; generated executable passed | [Log](native-release-558.log) |
+| Forced workspace consumer | Three standard dependencies and six local modules rebuilt; main and cross-module assertions passed | [Log](workspace-consumer-558.log) |
+| Cross-module constant-pool reads (`--no-test-jit --test-file constant_pool_reads.test.swg`) | 1 native test passed | [Log](workspace-constant-pool-558.log) |
+
+Focused native checks also passed for [sparse defaults](native-sparse_default_chunks-558.log)
+(1), [inline lifecycle and safety](native-inline_lifecycle_safety-558.log) (3),
+[qualified generic lookup](native-qualified_lookup_-558.log) (1),
+[generic local context](native-local_context-558.log) (3), and
+[implicit generic receivers](native-methods_implicit_receiver-558.log) (1).
+The inline safety attribute fixture passed two tests in each program configuration:
+[devmode](inline-safety-devmode-558.log) and [release](inline-safety-release-558.log).

@@ -1041,6 +1041,64 @@ void CodeGenMemoryHelpers::emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32
     emitMemZeroLoop(builder, dstRegTmp, sizeInBytes, chunkSize, zeroReg, zero128Reg, countReg);
 }
 
+bool CodeGenMemoryHelpers::emitZeroOrSparsePayloadBytes(CodeGen& codeGen, MicroReg dstAddressReg, std::span<const std::byte> rawBytes, bool allowNonZeroStores)
+{
+    if (rawBytes.empty())
+        return true;
+
+    if (std::ranges::all_of(rawBytes, [](const std::byte value) { return value == std::byte{}; }))
+    {
+        CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(rawBytes.size()));
+        return true;
+    }
+    if (!allowNonZeroStores)
+        return false;
+
+    constexpr uint32_t sparseChunkSize  = 8;
+    constexpr uint32_t sparseStoreLimit = 4;
+    if (rawBytes.size() >= sparseChunkSize * 2ull && (rawBytes.size() % sparseChunkSize) == 0)
+    {
+        std::array<uint32_t, sparseStoreLimit> nonZeroOffsets{};
+        uint32_t                              nonZeroChunks = 0;
+        for (uint32_t off = 0; off < rawBytes.size(); off += sparseChunkSize)
+        {
+            for (uint32_t i = 0; i < sparseChunkSize; ++i)
+            {
+                if (rawBytes[off + i] != std::byte{})
+                {
+                    if (nonZeroChunks < sparseStoreLimit)
+                        nonZeroOffsets[nonZeroChunks] = off;
+                    ++nonZeroChunks;
+                    break;
+                }
+            }
+
+            if (nonZeroChunks > sparseStoreLimit)
+                break;
+        }
+
+        if (nonZeroChunks <= sparseStoreLimit)
+        {
+            MicroBuilder& builder = codeGen.builder();
+            CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(rawBytes.size()));
+            // Classification already located every store. Read only those chunks
+            // instead of scanning the mostly zero payload again.
+            for (uint32_t index = 0; index < nonZeroChunks; ++index)
+            {
+                const uint32_t off   = nonZeroOffsets[index];
+                uint64_t       value = 0;
+                for (uint32_t i = 0; i < sparseChunkSize; ++i)
+                    value |= static_cast<uint64_t>(static_cast<uint8_t>(rawBytes[off + i])) << (i * 8);
+                builder.emitLoadMemImm(dstAddressReg, off, ApInt(value, 64), MicroOpBits::B64);
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void CodeGenMemoryHelpers::emitMemMove(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes)
 {
     if (!sizeInBytes)

@@ -98,36 +98,28 @@ namespace
         return next;
     }
 
-    void collectSymbolMapNamespacePath(const SymbolMap* symMap, SmallVector<IdentifierRef>& outPath)
+    SymbolAccess collectSymbolMapNamespacePath(const SymbolMap* symMap, SmallVector<IdentifierRef>& outPath)
     {
         // Rebuilding a sema context for generic instantiation must restore the
         // namespace path as source code would see it. Impl maps are transparent and
         // route through their owning type's namespace.
-        SmallVector<IdentifierRef> reversedPath;
+        outPath.clear();
+        SymbolAccess access = SymbolAccess::Private;
         for (const SymbolMap* current = symMap; current;)
         {
             const SymbolMap* owner = current->ownerSymMap();
             if (current->isNamespace() && (!owner || !owner->isModule()))
-                reversedPath.push_back(current->idRef());
+                outPath.push_back(current->idRef());
+            if (current->isModule())
+                access = SymbolAccess::Internal;
 
             current = namespacePathOwner(current);
         }
 
-        outPath.clear();
-        outPath.reserve(reversedPath.size());
-        for (auto& it : std::views::reverse(reversedPath))
-            outPath.push_back(it);
-    }
-
-    SymbolAccess accessForSymbolMap(const SymbolMap* symMap)
-    {
-        for (const SymbolMap* current = symMap; current; current = namespacePathOwner(current))
-        {
-            if (current->isModule())
-                return SymbolAccess::Internal;
-        }
-
-        return SymbolAccess::Private;
+        // Namespace order and default access describe the same declaration context;
+        // collect both before the instantiation worker replaces its current frames.
+        std::ranges::reverse(outPath);
+        return access;
     }
 
     void appendCollectedGenericParam(Sema& sema, const AstNode& paramNode, AstNodeRef paramRef, SmallVector<SemaGeneric::GenericParamDesc>& outParams)
@@ -196,15 +188,16 @@ namespace SemaGeneric
         // reconstructs just the declaration environment required for lookup and
         // diagnostics. Runtime state from the caller must not leak into the clone.
         SmallVector<IdentifierRef> nsPath;
+        SymbolAccess               access;
         if (startSymMap)
-            collectSymbolMapNamespacePath(startSymMap, nsPath);
+            access = collectSymbolMapNamespacePath(startSymMap, nsPath);
         else
         {
             for (const IdentifierRef idRef : sema.frame().nsPath())
                 nsPath.push_back(idRef);
+            access = sema.frame().currentAccess();
         }
-        const SymbolAccess access                  = startSymMap ? accessForSymbolMap(startSymMap) : sema.frame().currentAccess();
-        const bool         globalCompilerIfEnabled = sema.frame().globalCompilerIfEnabled();
+        const bool globalCompilerIfEnabled = sema.frame().globalCompilerIfEnabled();
 
         sema.scopes_.clear();
         SemaScopeFlags scopeFlags = SemaScopeFlagsE::TopLevel;

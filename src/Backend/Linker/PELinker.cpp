@@ -220,12 +220,12 @@ namespace
         return true;
     }
 
-    Utf8 canonicalRelocationTarget(const Utf8& target, const Utf8& selfSymbol, const std::unordered_map<Utf8, Utf8>& knownAliases)
+    std::string_view canonicalRelocationTarget(const Utf8& target, const Utf8& selfSymbol, const std::unordered_map<Utf8, Utf8>& knownAliases)
     {
         if (target == selfSymbol)
-            return Utf8("$self");
+            return "$self";
         const auto it = knownAliases.find(target);
-        return it == knownAliases.end() ? target : it->second;
+        return it == knownAliases.end() ? target.view() : it->second.view();
     }
 
     uint32_t readOnlyDataFoldHash(const CoffInputSection& section, const Utf8& selfSymbol, const std::unordered_map<Utf8, Utf8>& knownAliases)
@@ -235,7 +235,7 @@ namespace
         {
             hash = Math::hashCombine(hash, relocation.offset);
             hash = Math::hashCombine(hash, static_cast<uint32_t>(relocation.type));
-            hash = Math::hashCombine(hash, Math::hash(canonicalRelocationTarget(relocation.symbolName, selfSymbol, knownAliases).view()));
+            hash = Math::hashCombine(hash, Math::hash(canonicalRelocationTarget(relocation.symbolName, selfSymbol, knownAliases)));
         }
         return hash;
     }
@@ -265,7 +265,7 @@ namespace
         {
             hash = Math::hashCombine(hash, relocation.offset);
             hash = Math::hashCombine(hash, static_cast<uint32_t>(relocation.type));
-            hash = Math::hashCombine(hash, Math::hash(canonicalRelocationTarget(relocation.symbolName, candidate.symbolName, knownAliases).view()));
+            hash = Math::hashCombine(hash, Math::hash(canonicalRelocationTarget(relocation.symbolName, candidate.symbolName, knownAliases)));
         }
         return hash;
     }
@@ -400,16 +400,23 @@ namespace
         for (const LinkSymbolAlias& alias : outAliases)
             foldedSymbols.insert(alias.name);
 
-        std::vector<CoffObject> retained;
-        retained.reserve(objects.size() - outAliases.size());
+        // Candidates retain their original, unique object indices. Walk the two ordered
+        // sequences together and compact survivors without allocating another object vector.
+        size_t nextCandidate = 0;
+        size_t retainedCount = 0;
         for (size_t objectIndex = 0; objectIndex < objects.size(); ++objectIndex)
         {
-            const auto candidate = std::ranges::find(candidates, objectIndex, &FunctionFoldCandidate::objectIndex);
-            if (candidate != candidates.end() && foldedSymbols.contains(candidate->symbolName))
-                continue;
-            retained.push_back(std::move(objects[objectIndex]));
+            if (nextCandidate < candidates.size() && candidates[nextCandidate].objectIndex == objectIndex)
+            {
+                const auto& candidate = candidates[nextCandidate++];
+                if (foldedSymbols.contains(candidate.symbolName))
+                    continue;
+            }
+            if (retainedCount != objectIndex)
+                objects[retainedCount] = std::move(objects[objectIndex]);
+            ++retainedCount;
         }
-        objects = std::move(retained);
+        objects.resize(retainedCount);
     }
 
     void collectUndefined(std::unordered_set<Utf8>& outUndefined, const LinkImage& image, const std::unordered_set<Utf8>& defined)

@@ -1853,7 +1853,7 @@ namespace
         // materialization; this restores that route.
         const bool forReceiverHome = mat.homesAddress && !isCaptured && !sema.isLValue(binding.exprRef) && !sema.viewConstant(binding.exprRef).hasConstant();
 
-        mat.forRuntimeSafety = !isCaptured && !context.fn->attributes().runtimeSafetyOverrides.empty() && !mat.bindsByAddress && !paramType.isAnyVariadic();
+        mat.forRuntimeSafety = !isCaptured && context.fn->attributes().hasRuntimeSafetyOverrides() && !mat.bindsByAddress && !paramType.isAnyVariadic();
         mat.forVariadic      = !isCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, use);
         mat.forAddress       = !isCaptured && mat.hasAddressUse && (!mat.bindsByAddress || !sema.isLValue(binding.exprRef));
         mat.forNarrowFact    = mat.narrowDependent && !mat.bindsByAddress;
@@ -2963,8 +2963,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         // the non-inlined call). Callee-origin references use the callee's own symbols,
         // which never match caller fact paths, so the body itself is not narrowed.
 
-        const auto callerSafetyOverrides = frame.currentAttributes().runtimeSafetyOverrides;
-        frame.currentAttributes()        = fn.attributes();
+        const auto callerSafetyDisables = frame.currentAttributes().runtimeSafetyDisables();
+        frame.currentAttributes()       = fn.attributes();
         // Inlining is transparent to the call site's disabled safety guards: a guard turned OFF at
         // the call site (e.g. an `#[Swag.Safety(.Overflow, false)]` caller) must stay off in the
         // materialized body, otherwise an inlined helper re-introduces overflow/bound checks the
@@ -2973,9 +2973,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         // overrides on top of the callee attributes - the union of disabled guards. The callee's
         // own deliberate disables are preserved untouched; enables are not propagated so a wrapping
         // callee body never starts trapping when inlined into a safety-on caller.
-        for (const auto& ov : callerSafetyOverrides)
-            if (!ov.value)
-                frame.currentAttributes().runtimeSafetyOverrides.push_back(ov);
+        if (callerSafetyDisables)
+            frame.currentAttributes().addRuntimeSafetyOverride(static_cast<Runtime::SafetyWhat>(*callerSafetyDisables), false);
         frame.setCurrentImpl(fn.declImplContext());
         frame.setCurrentInterface(fn.declInterfaceContext());
     }

@@ -1,0 +1,10 @@
+  ◆  swag        run • tools • devmode
+  ✓  checked     66 files • 181_150 tokens • 1 s 800 ms
+  ✓  tuned       458 functions • 2 s 340 ms
+  ◆  swag        test • bin/unittests/safety • devmode
+  ✓  checked     20 files • 41_093 tokens • 471 ms
+  ✓  tuned       191 functions • 206 ms
+  ✓  executed    2 passed • 217 ms
+  ✓  verified    15 us
+  ✓  tested      2 passed • 697 ms
+  ✓  clean       707 ms

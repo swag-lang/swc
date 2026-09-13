@@ -72,7 +72,6 @@ struct AttributeList
 {
     SmallVector4<AttributeInstance>     attributes;
     RtAttributeFlags                    rtFlags = RtAttributeFlagsE::Zero;
-    SmallVector4<RuntimeSafetyOverride> runtimeSafetyOverrides;
     uint64_t                            returnBorrowsParamsMask  = 0;
     uint64_t                            storesParamsMask         = 0;
     uint64_t                            storesIntoParamPairs     = 0;
@@ -100,7 +99,7 @@ struct AttributeList
     {
         return attributes.empty() &&
                rtFlags.none() &&
-               runtimeSafetyOverrides.empty() &&
+               !hasRuntimeSafetyOverrides_ &&
                !hasSanityOverrides_ &&
                returnBorrowsParamsMask == 0 &&
                storesParamsMask == 0 &&
@@ -133,21 +132,27 @@ struct AttributeList
 
     void addRuntimeSafetyOverride(Runtime::SafetyWhat what, bool value)
     {
-        runtimeSafetyOverrides.push_back({.whatMask = SemaSafety::mask(what), .value = value});
+        const uint16_t whatMask    = SemaSafety::mask(what);
+        hasRuntimeSafetyOverrides_ = true;
+        runtimeSafetyOverrideMask_ |= whatMask;
+        if (value)
+            runtimeSafetyEnabledMask_ |= whatMask;
+        else
+        {
+            runtimeSafetyEnabledMask_ &= ~whatMask;
+            runtimeSafetyDisableMask_ = runtimeSafetyDisableMask_.value_or(0) | whatMask;
+        }
     }
+
+    bool hasRuntimeSafetyOverrides() const { return hasRuntimeSafetyOverrides_; }
+
+    // Ordinary inlining inherits every caller disable, including bits enabled again
+    // later in that caller. Presence also preserves an explicit zero-mask disable.
+    std::optional<uint16_t> runtimeSafetyDisables() const { return runtimeSafetyDisableMask_; }
 
     uint16_t effectiveRuntimeSafetyMask(Runtime::SafetyWhat buildCfgMask) const
     {
-        uint16_t result = SemaSafety::mask(buildCfgMask);
-        for (const auto& overrideValue : runtimeSafetyOverrides)
-        {
-            if (overrideValue.value)
-                result |= overrideValue.whatMask;
-            else
-                result &= ~overrideValue.whatMask;
-        }
-
-        return result;
+        return (SemaSafety::mask(buildCfgMask) & ~runtimeSafetyOverrideMask_) | runtimeSafetyEnabledMask_;
     }
 
     bool hasRuntimeSafety(Runtime::SafetyWhat buildCfgMask, Runtime::SafetyWhat what) const
@@ -223,6 +228,11 @@ struct AttributeList
     }
 
 private:
+    uint16_t                runtimeSafetyOverrideMask_ = 0;
+    uint16_t                runtimeSafetyEnabledMask_  = 0;
+    std::optional<uint16_t> runtimeSafetyDisableMask_;
+    bool                    hasRuntimeSafetyOverrides_ = false;
+
     // Sanity has no history consumers: only the last decision for each bit matters.
     // Preserve presence separately because an explicit zero-mask override still makes
     // the attribute list nonempty. Copies into nested frames inherit the complete state.

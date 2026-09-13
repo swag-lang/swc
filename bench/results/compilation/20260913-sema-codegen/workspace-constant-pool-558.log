@@ -1,0 +1,17 @@
+  ◆  swag        test • workspace [consumer_exe] • devmode
+  ↻  module      api_export_provider • up-to-date • 35 us
+  ↻  module      api_static_provider • up-to-date • api_static_provider.lib • 39 us
+  ↻  module      runtime_context_base_static • up-to-date • runtime_context_base_static.lib • 42 us
+  ↻  module      runtime_context_bridge_dll • up-to-date • runtime_context_bridge_dll.dll • 40 us
+  ↻  module      runtime_context_direct_static • up-to-date • runtime_context_direct_static.lib • 39 us
+  ↻  module      consumer_exe • up-to-date • consumer_exe.exe • 42 us
+  ✓  workspace   workspace [consumer_exe] • 6 modules • 7 s 600 ms
+  ✓  checked     64 files • 168_072 tokens • 6 s 18 ms
+  ✓  tuned       322 functions • 1 s 90 ms
+  ✓  forged      611 functions • consumer_exe.test.exe • 2 s 34 ms
+  ✓  ran         741 ms
+  ✓  verified    46 us
+  ✓  tested      1 passed • 8 s 884 ms
+  ✓  module      consumer_exe • 64 files • 1 passed • consumer_exe.test.exe • 9 s 34 ms
+  ✓  workspace   workspace [consumer_exe] • 1 module • 1 passed • 23 s 631 ms
+  ✓  clean       23 s 655 ms

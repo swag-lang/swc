@@ -83,23 +83,46 @@ namespace
             return it != nameIndices_.end() && cyclic_[it->second];
         }
 
-        bool callsAny(const std::string_view name, const std::unordered_set<std::string_view>& targets) const
+        void findBlockedCalls(const std::unordered_set<std::string_view>& metaNames, const std::unordered_set<std::string_view>* unsupportedNames)
         {
-            const auto sourceIt = nameIndices_.find(name);
-            if (sourceIt == nameIndices_.end())
-                return false;
+            blockedCalls_.clear();
+            if (metaNames.empty() && (!unsupportedNames || unsupportedNames->empty()))
+                return;
 
-            for (const std::string_view target : targets)
+            blockedCalls_.resize(edges_.size(), 0);
+            for (const auto& [name, index] : nameIndices_)
             {
-                const auto targetIt = nameIndices_.find(target);
-                if (targetIt != nameIndices_.end() &&
-                    std::ranges::find(edges_[sourceIt->second], targetIt->second) != edges_[sourceIt->second].end())
-                    return true;
+                if (metaNames.contains(name) || (unsupportedNames && unsupportedNames->contains(name)))
+                    blockedCalls_[index] = BLOCKED_TARGET;
             }
-            return false;
+
+            for (size_t source = 0; source < edges_.size(); ++source)
+            {
+                for (const uint32_t target : edges_[source])
+                {
+                    // Only direct edges count. A blocked caller does not itself become
+                    // an unsupported target for the next wrapper in a call chain.
+                    if (blockedCalls_[target] & BLOCKED_TARGET)
+                    {
+                        blockedCalls_[source] |= BLOCKED_CALLER;
+                        break;
+                    }
+                }
+            }
+        }
+
+        bool callsBlockedFunction(const std::string_view name) const
+        {
+            if (blockedCalls_.empty())
+                return false;
+            const auto it = nameIndices_.find(name);
+            return it != nameIndices_.end() && (blockedCalls_[it->second] & BLOCKED_CALLER);
         }
 
     private:
+        static constexpr uint8_t BLOCKED_TARGET = 1;
+        static constexpr uint8_t BLOCKED_CALLER = 2;
+
         uint32_t indexOf(const std::string_view name)
         {
             const auto [it, inserted] = nameIndices_.try_emplace(name, static_cast<uint32_t>(edges_.size()));
@@ -155,6 +178,7 @@ namespace
         std::vector<uint32_t>                          lowLinks_;
         std::vector<bool>                              onStack_;
         std::vector<bool>                              cyclic_;
+        std::vector<uint8_t>                           blockedCalls_;
         SmallVector<uint32_t>                          stack_;
         uint32_t                                       nextIndex_ = 0;
     };
@@ -252,14 +276,19 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
     // would therefore turn a legal recursive call graph into a sema wait cycle. Detect it from the
     // immutable parsed graph and leave every member out of line. Cross-Ast calls cannot auto-inline,
     // so each Ast has its own graph; keeping unrelated names apart also avoids false cycles.
-    for (auto& [_, callGraph] : callGraphs)
+    for (auto& [ast, callGraph] : callGraphs)
+    {
         callGraph.findCycles();
+        const auto unsupportedIt = unsupportedFunctionNames.find(ast);
+        callGraph.findBlockedCalls(metaFunctionNames, unsupportedIt == unsupportedFunctionNames.end() ? nullptr : &unsupportedIt->second);
+    }
 
     for (Ast* ast : moduleAsts)
     {
         if (!ast || ast->root().isInvalid())
             continue;
 
+        const auto callGraphIt = callGraphs.find(ast);
         Ast::visit(*ast, ast->root(), [&](AstNodeRef nodeRef, const AstNode& node) {
             const auto* decl = node.safeCast<AstFunctionDecl>();
             if (!decl || decl->autoInlineCost > K_AUTO_INLINE_LAST_CALL_COST || decl->tokNameRef.isInvalid())
@@ -268,16 +297,12 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             const std::string_view name        = ast->srcView().tokenString(decl->tokNameRef);
             auto*                  mutableDecl = ast->node<AstNodeId::FunctionDecl>(nodeRef);
             const bool             bodyHasCall = decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls);
-            const auto             callGraphIt = callGraphs.find(ast);
-            if (bodyHasCall && callGraphIt != callGraphs.end() && callGraphIt->second.callsAny(name, metaFunctionNames))
-                return Ast::VisitResult::Continue;
-            const auto unsupportedIt = unsupportedFunctionNames.find(ast);
-            // Re-sema of an inlined wrapper can itself expand an explicitly-inline callee. If that
+            // Calls to macros and mixins keep their existing expansion context. Re-sema of an
+            // inlined wrapper can also expand an explicitly-inline callee. If that
             // callee owns a closure, local function, error-management scope, or another construct
             // the parser already rejected, moving the wrapper merely hides the same unsupported
             // materialization one call deeper.
-            if (bodyHasCall && callGraphIt != callGraphs.end() && unsupportedIt != unsupportedFunctionNames.end() &&
-                callGraphIt->second.callsAny(name, unsupportedIt->second))
+            if (bodyHasCall && callGraphIt != callGraphs.end() && callGraphIt->second.callsBlockedFunction(name))
                 return Ast::VisitResult::Continue;
             if (callGraphIt != callGraphs.end() && callGraphIt->second.isCyclic(name) && bodyHasCall)
             {

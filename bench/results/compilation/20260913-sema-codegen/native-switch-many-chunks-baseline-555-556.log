@@ -1,0 +1,12 @@
+  ◆  swag        run • tools • devmode
+  ✓  checked     66 files • 181_132 tokens • 2 s 194 ms
+  ✓  tuned       458 functions • 2 s 708 ms
+  ◆  swag        test • bin/unittests/native • devmode
+  ✓  checked     20 files • 40_699 tokens • 551 ms
+  ✓  tuned       192 functions • 250 ms
+  ✓  executed    1 passed • 291 ms
+  ✓  forged      441 functions • native.test.exe • 80 ms
+  ✓  ran         235 ms
+  ✓  verified    20 us
+  ✓  tested      1 passed • 1 s 198 ms
+  ✓  clean       1 s 214 ms

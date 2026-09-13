@@ -37,8 +37,7 @@ Result NativeRDataCollector::collectFunctionRoots()
         if (!info.machineCode)
             continue;
 
-        const Utf8 ownerName = info.symbol ? info.symbol->getFullScopedName(builder_->ctx()) : info.debugName;
-        SWC_RESULT(collectCodeRoots(ownerName, info.machineCode->codeRelocations));
+        SWC_RESULT(collectCodeRoots(info.debugName, info.machineCode->codeRelocations));
     }
 
     return Result::Continue;
@@ -157,6 +156,7 @@ Result NativeRDataCollector::emitReachableAllocations()
     }
 
     std::vector<DataSegmentRelocation> allocationRelocations;
+    Utf8                              rdataBaseName;
     for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
     {
         const DataSegment& segment     = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
@@ -180,16 +180,18 @@ Result NativeRDataCollector::emitReachableAllocations()
                     if (!builder_->tryMapRDataSourceOffset(targetOffset, targetShardIndex, relocation.targetOffset))
                         return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, allocations[i]->ownerName);
 
-                    record.symbolName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL);
+                    if (rdataBaseName.empty())
+                        rdataBaseName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL);
+                    record.symbolName = rdataBaseName;
                     record.addend     = targetOffset;
-                    builder_->mergedRData.relocations.push_back(record);
+                    builder_->mergedRData.relocations.push_back(std::move(record));
                     continue;
                 }
 
                 SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
                 SWC_RESULT(builder_->resolveFunctionSymbolName(record.symbolName, relocation.targetSymbol));
                 record.addend = 0;
-                builder_->mergedRData.relocations.push_back(record);
+                builder_->mergedRData.relocations.push_back(std::move(record));
             }
         }
     }

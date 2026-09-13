@@ -167,6 +167,7 @@ Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& se
     // Visit only this allocation's range instead of scanning the entire module for every object.
     const auto& relocations = builder_->mergedRData.relocations;
     const auto  first       = std::ranges::lower_bound(relocations, allocation.emittedOffset, {}, &NativeSectionRelocation::offset);
+    Utf8        rdataBaseName;
     for (auto it = first; it != relocations.end(); ++it)
     {
         const NativeSectionRelocation& sourceRelocation = *it;
@@ -175,7 +176,9 @@ Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& se
 
         NativeSectionRelocation relocation = sourceRelocation;
         relocation.offset -= allocation.emittedOffset;
-        if (relocation.symbolName == nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL))
+        if (rdataBaseName.empty())
+            rdataBaseName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL);
+        if (relocation.symbolName == rdataBaseName)
         {
             const auto* targetAllocation = builder_->tryFindRDataEmittedAllocation(static_cast<uint32_t>(relocation.addend));
             if (!targetAllocation)
@@ -231,7 +234,7 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
 
 Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& section)
 {
-    for (const auto& relocation : section.data.relocations)
+    for (auto& relocation : section.data.relocations)
     {
         switch (relocation.type)
         {
@@ -256,7 +259,7 @@ Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& sectio
                 SWC_UNREACHABLE();
         }
 
-        section.relocations.push_back(relocation);
+        section.relocations.push_back(std::move(relocation));
     }
 
     section.data.relocations.clear();

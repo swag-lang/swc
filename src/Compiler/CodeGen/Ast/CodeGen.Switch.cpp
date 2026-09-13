@@ -715,16 +715,26 @@ namespace
     // its own value is the best split there is; one they all share is no split at all.
     size_t countDistinctChunkValues(std::span<const SwitchStringCase> cases, const StringCompareChunk& chunk)
     {
-        SmallVector<uint64_t> values;
+        constexpr size_t K_LINEAR_DISTINCT_LIMIT = 16;
+        SmallVector<uint64_t, K_LINEAR_DISTINCT_LIMIT> values;
         values.reserve(cases.size());
-        for (const SwitchStringCase& stringCase : cases)
+        size_t index = 0;
+        for (; index < cases.size() && values.size() <= K_LINEAR_DISTINCT_LIMIT; ++index)
         {
-            const uint64_t value = stringChunkValue(stringCase.text, chunk);
+            const uint64_t value = stringChunkValue(cases[index].text, chunk);
             if (std::ranges::find(values, value) == values.end())
                 values.push_back(value);
         }
 
-        return values.size();
+        if (index == cases.size())
+            return values.size();
+
+        // Shared prefixes stay cheap with a small distinct set. Once it grows,
+        // sort the remaining keys instead of searching an ever longer prefix.
+        for (; index < cases.size(); ++index)
+            values.push_back(stringChunkValue(cases[index].text, chunk));
+        std::sort(values.begin(), values.end());
+        return static_cast<size_t>(std::unique(values.begin(), values.end()) - values.begin());
     }
 
     // Emits the cases of one length group, separating them on the chunk that tells the most of them

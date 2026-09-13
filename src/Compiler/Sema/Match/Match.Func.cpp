@@ -2112,6 +2112,7 @@ namespace
         outAttempts.clear();
         outFunctionSymbols.clear();
 
+        bool hasGenericRoot = false;
         for (Symbol* s : symbols)
         {
             if (!s)
@@ -2153,12 +2154,14 @@ namespace
                 continue;
 
             outFunctionSymbols.push_back(fn);
+            hasGenericRoot |= fn->isGenericRoot();
         }
 
         // Only overloads that accept the call shape can make instantiation speculative.
         // An unrelated arity must not hide an error inside the only possible generic body.
+        // Concrete overload sets never instantiate a root, so they need no shape prepass.
         uint32_t matchingShapes = 0;
-        if (outFunctionSymbols.size() > 1)
+        if (hasGenericRoot && outFunctionSymbols.size() > 1)
         {
             for (const SymbolFunction* fn : outFunctionSymbols)
             {

@@ -715,13 +715,16 @@ Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataColle
         compiler.globalInitSegment().copyToPreserveOffsets(std::span{builder_->mergedData.bytes.data(), dataSize});
 
         const std::vector<DataSegmentRelocation> relocations = compiler.globalInitSegment().copyRelocations();
+        Utf8                                    dataBaseName;
         for (const auto& relocation : relocations)
         {
             NativeSectionRelocation record;
             record.offset = relocation.offset;
             if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
             {
-                record.symbolName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_DATA_BASE_SYMBOL);
+                if (dataBaseName.empty())
+                    dataBaseName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_DATA_BASE_SYMBOL);
+                record.symbolName = dataBaseName;
                 record.addend     = relocation.targetOffset;
             }
             else
@@ -731,7 +734,7 @@ Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataColle
                 record.addend = 0;
             }
 
-            builder_->mergedData.relocations.push_back(record);
+            builder_->mergedData.relocations.push_back(std::move(record));
         }
 
         for (const SymbolVariable* symbol : builder_->regularGlobals)
@@ -754,7 +757,7 @@ Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataColle
             record.offset = symbol->offset();
             SWC_RESULT(builder_->resolveFunctionSymbolName(record.symbolName, targetFunction));
             record.addend = 0;
-            builder_->mergedData.relocations.push_back(record);
+            builder_->mergedData.relocations.push_back(std::move(record));
         }
     }
 

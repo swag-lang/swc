@@ -783,6 +783,144 @@ SWC_TEST_BEGIN(Compiler_SymbolLocationSortKeepsCompositeKeysAcrossFiles)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_AstVisitKeepsDepthFirstOrderWithPendingSiblings)
+{
+    CommandLine      cmdLine;
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext      compilerCtx(compiler);
+    SourceFile&      source = Unittest::addTestSource(compilerCtx, "Compiler", "AstVisitPendingSiblings", "");
+    Ast&             ast    = source.ast();
+    std::array<AstNodeRef, 5> refs;
+    for (AstNodeRef& ref : refs)
+        ref = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first;
+    const auto [root, branch, skipped, skippedLeaf, last] = refs;
+
+    std::vector<AstNodeRef> leaves;
+    for (size_t index = 0; index < 48; ++index)
+        leaves.push_back(ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first);
+    ast.node<AstNodeId::ArrayLiteral>(branch)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(leaves));
+    const std::array skippedChildren = {skippedLeaf};
+    ast.node<AstNodeId::ArrayLiteral>(skipped)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(skippedChildren));
+    // A repeated child is visited again; an invalid span entry is ignored when popped.
+    const std::array rootChildren = {branch, AstNodeRef::invalid(), skipped, last, branch};
+    ast.node<AstNodeId::ArrayLiteral>(root)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(rootChildren));
+
+    std::vector<AstNodeRef> visited;
+    Ast::visit(ast, root, [&](AstNodeRef ref, const AstNode&) {
+        visited.push_back(ref);
+        return ref == skipped ? Ast::VisitResult::Skip : Ast::VisitResult::Continue;
+    });
+    std::vector<AstNodeRef> expected = {root, branch};
+    expected.insert(expected.end(), leaves.begin(), leaves.end());
+    expected.insert(expected.end(), {skipped, last, branch});
+    expected.insert(expected.end(), leaves.begin(), leaves.end());
+    if (visited != expected)
+        return Result::Error;
+
+    visited.clear();
+    Ast::visit(ast, root, [&](AstNodeRef ref, const AstNode&) {
+        visited.push_back(ref);
+        if (ref == last)
+            return Ast::VisitResult::Stop;
+        return ref == skipped ? Ast::VisitResult::Skip : Ast::VisitResult::Continue;
+    });
+    expected.resize(2 + leaves.size() + 2);
+    if (visited != expected)
+        return Result::Error;
+
+    visited.clear();
+    Ast::visit(ast, root, [&](AstNodeRef ref, const AstNode&) {
+        visited.push_back(ref);
+        return Ast::VisitResult::Skip;
+    });
+    if (visited != std::vector{root})
+        return Result::Error;
+    Ast::visit(ast, AstNodeRef::invalid(), [&](AstNodeRef ref, const AstNode&) {
+        visited.push_back(ref);
+        return Ast::VisitResult::Continue;
+    });
+    if (visited != std::vector{root})
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_AutoInlineBlockedCallsUseDirectEdgesAndOriginalNameScopes)
+{
+    static constexpr std::string_view SOURCE = R"(#global private
+func directExternal() { foreignMeta() }
+func transitive() { directExternal() }
+func absentTarget() { unresolvedCall() }
+func overloaded()->s32 => 1
+func overloaded(value: s32)->func||()->s32
+{
+    return func|value|()->s32 { return value }
+}
+func callsOverload() { overloaded() }
+func localOnly() { foreignUnsupported() }
+func useCandidates()
+{
+    transitive()
+    absentTarget()
+    callsOverload()
+    localOnly()
+}
+)";
+    std::string otherSource = R"(#global private
+#[Swag.Macro]
+func foreignMeta() {}
+func foreignUnsupported()->func||()->s32
+{
+    return func||()->s32 { return 1 }
+}
+)";
+    for (size_t index = 0; index < 80; ++index)
+        otherSource += std::format("#[Swag.Mixin]\nfunc unusedMeta{}() {{}}\n", index);
+
+    CommandLine      cmdLine;
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext      compilerCtx(compiler);
+    SourceFile&      source = Unittest::addTestSource(compilerCtx, "Compiler", "AutoInlineBlockedCalls", SOURCE);
+    SourceFile&      other  = Unittest::addTestSource(compilerCtx, "Compiler", "AutoInlineBlockedCallTargets", otherSource);
+    Lexer            lexer;
+    Parser           parser;
+    const std::array moduleAsts = {&source.ast(), &other.ast()};
+    for (Ast* ast : moduleAsts)
+    {
+        lexer.tokenize(compilerCtx, ast->srcView(), LexerFlagsE::Default);
+        if (ast->srcView().mustSkip())
+            return Result::Error;
+        parser.parse(compilerCtx, *ast);
+    }
+    Parser::finalizeAutoInlineCandidates(moduleAsts);
+
+    for (const std::string_view name : {"directExternal", "callsOverload"})
+    {
+        const AstFunctionDecl* decl = findFunctionDecl(source.ast(), name);
+        if (!decl || decl->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+            return Result::Error;
+    }
+    // Blocking is not transitive, absent names are harmless, and unsupported bodies
+    // in another Ast do not become local targets. Meta-function names remain global.
+    for (const std::string_view name : {"transitive", "absentTarget", "localOnly"})
+    {
+        const AstFunctionDecl* decl = findFunctionDecl(source.ast(), name);
+        if (!decl || !decl->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+            return Result::Error;
+    }
+
+    SourceFile& clean = Unittest::addTestSource(compilerCtx, "Compiler", "AutoInlineWithoutBlockedTargets", "func leaf() {}\nfunc wrapper() { leaf() }\nfunc useWrapper() { wrapper() }\n");
+    lexer.tokenize(compilerCtx, clean.ast().srcView(), LexerFlagsE::Default);
+    if (clean.ast().srcView().mustSkip())
+        return Result::Error;
+    parser.parse(compilerCtx, clean.ast());
+    const std::array cleanAsts = {&clean.ast()};
+    Parser::finalizeAutoInlineCandidates(cleanAsts);
+    const AstFunctionDecl* wrapper = findFunctionDecl(clean.ast(), "wrapper");
+    if (!wrapper || !wrapper->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

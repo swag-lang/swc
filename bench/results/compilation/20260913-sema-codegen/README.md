@@ -492,3 +492,63 @@ The Release compiler passed [attribute parameters](release-compiler-typeinfo_att
 [string literals](release-compiler-literals-string-555.log) (19), and
 [deferred re-emission](release-compiler-defer_reemission-555.log) (2).
 These are functional integration results, not a timing comparison.
+
+## Additional reductions in build 556
+
+Auto-inline eligibility precomputes blocked direct callers once per parsed call graph. It marks
+macro/mixin names from the module and unsupported function names from the current Ast, then
+examines each edge at most once. Eligibility queries use a name lookup and one flag instead of
+searching target sets and outgoing edges again for every candidate. Separate target/caller bits
+preserve direct-call semantics without introducing transitive blocking. Expected preprocessing
+cost is O(V + E); the temporary byte vector is omitted when both target sets are empty.
+
+The general Ast visitor appends children directly to its pending stack and reverses only that
+new suffix. This removes the temporary child vector and its allocation while preserving DFS
+order, pending siblings, invalid references, Skip, Stop, and repeated DAG nodes. A C++ regression
+test covers those contracts across vector growth. A second test covers direct versus transitive
+auto-inline blocking, homonyms, cross-Ast name scopes, absent targets, and empty target sets.
+
+String-switch chunk scoring retains linear lookup while there are at most 16 distinct keys,
+then sorts the accumulated keys and remaining suffix. Its worst case becomes O(N log N) instead
+of O(N squared), with the same distinct count and unchanged case ordering. A runtime fixture
+checks all 40 cases with repeated chunks and five misses; it also passed on build 555 before
+the implementation changed ([baseline](native-switch-many-chunks-baseline-555-556.log)).
+
+Concrete-only overload sets skip the call-shape prepass used solely to control speculative
+generic-instantiation diagnostics. The actual candidate matching and ordering are unchanged.
+Aggregate type deduction passes the existing field-name span to the owning type factory and
+reuses two column buffers between fields. For arrays exceeding their inline capacity, this
+reduces temporary buffer allocations from up to twice the field count to at most two.
+
+Native artifact collection reuses each function's already computed scoped debug name and
+lazily computes section-base symbol names once per relevant relocation loop. Relocation records
+move into their final owning vectors after their last local use; COFF section application moves
+from a separate source vector that is immediately cleared. No shared ownership or borrowed
+lifetime is added. The filesystem C++ tests are included because they inspect the affected
+native sections, relocation records, and COFF serialization.
+
+The compiler used for this batch is DevMode; no scheduling, shared lifetime, or compiler-mode
+branch changed. Native program validation includes `release` because its auto-inline decisions
+exercise the modified parser analysis. Micro-pass sources and tests are unchanged by this batch.
+No timing comparison was performed.
+
+The build-556 DevMode compiler built successfully with MSBuild `/m:6 /p:SwcCompileJobs=6`.
+Every Swag validation command caps both script and child compilation at six workers. Tool-driven
+validations run sequentially to avoid the previously recorded dependency-publication race.
+
+| Build-556 validation | Result | Evidence |
+| --- | --- | --- |
+| C++, including filesystem tests (`--dev-full`) | 798 passed; none excluded | [Log](cpp-full-556.log) |
+| Semantic analysis | 278 valid and 293 expected-error inputs verified | [Log](sema-556.log) |
+| JIT | 1,402 passed | [Log](jit-556.log) |
+| Native, program configuration `devmode` | 3,148 passed; generated executable passed | [Log](native-devmode-556.log) |
+| Native, program configuration `release` | 3,148 passed; generated executable passed | [Log](native-release-556.log) |
+| Forced workspace consumer | Three standard dependencies and six local modules rebuilt; main and cross-module assertions passed | [Log](workspace-consumer-556.log) |
+
+Focused native validation passed for [many string chunks](native-switch_many_chunks-556.log)
+(1), [switch dispatch](native-switch_dispatch-556.log) (17),
+[overloads](native-functions-overload-556.log) (6),
+[extended overloads](native-overload_extended-556.log) (7), [UFCS](native-ufcs-556.log) (8),
+[aggregate struct arrays](native-functions-aggregate_struct_array-556.log) (1),
+[numeric aggregate arrays](native-aggregate_numeric_array-556.log) (1), and
+[constant-address storage](native-address_constant_storage-556.log) (1).

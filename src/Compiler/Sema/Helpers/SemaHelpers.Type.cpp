@@ -297,12 +297,7 @@ namespace
         if (!changed)
             return typeRef;
 
-        SmallVector<IdentifierRef> fieldNames;
-        fieldNames.reserve(aggregate.names.size());
-        for (const IdentifierRef fieldName : aggregate.names)
-            fieldNames.push_back(fieldName);
-
-        return typeMgr.addType(TypeInfo::makeAggregateStruct(fieldNames, concreteFieldTypes));
+        return typeMgr.addType(TypeInfo::makeAggregateStruct(aggregate.names, concreteFieldTypes));
     }
 
     bool constantFitsArrayTarget(Sema& sema, ConstantRef cstRef, std::span<const uint64_t> dims, TypeRef elementTypeRef);
@@ -405,13 +400,15 @@ namespace
         mergedFieldTypes.reserve(firstAggregate.types.size());
         bool changed = false;
 
+        SmallVector<TypeRef>     fieldTypes;
+        SmallVector<ConstantRef> fieldValues;
         for (size_t fieldIndex = 0; fieldIndex < firstAggregate.types.size(); ++fieldIndex)
         {
-            SmallVector<TypeRef> fieldTypes;
+            fieldTypes.clear();
             fieldTypes.reserve(elemTypes.size());
 
-            SmallVector<ConstantRef> fieldValues;
-            bool                     hasFieldValues = !values.empty();
+            fieldValues.clear();
+            bool hasFieldValues = !values.empty();
             if (!values.empty())
                 fieldValues.reserve(elemTypes.size());
 

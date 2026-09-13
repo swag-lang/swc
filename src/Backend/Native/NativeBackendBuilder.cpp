@@ -837,7 +837,7 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
             SWC_UNREACHABLE();
     }
 
-    target.relocations->push_back(record);
+    target.relocations->push_back(std::move(record));
     return Result::Continue;
 }
 

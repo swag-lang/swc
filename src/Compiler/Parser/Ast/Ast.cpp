@@ -289,7 +289,6 @@ bool Ast::collectReachableNodePath(SmallVector<AstNodeRef>& outPath, const AstNo
 
 void Ast::visit(const Ast& ast, AstNodeRef root, const Visitor& f)
 {
-    SmallVector<AstNodeRef> children;
     SmallVector<AstNodeRef> stack;
     stack.push_back(root);
 
@@ -307,10 +306,11 @@ void Ast::visit(const Ast& ast, AstNodeRef root, const Visitor& f)
         if (res == VisitResult::Skip)
             continue;
 
-        children.clear();
-        nodeIdInfos(node.id()).collectChildren(children, ast, node);
-        for (const AstNodeRef it : std::ranges::reverse_view(children))
-            stack.push_back(it);
+        // Collectors append without touching pending siblings. Reverse only the new
+        // suffix so the LIFO walk still visits children in their declaration order.
+        const size_t firstChild = stack.size();
+        nodeIdInfos(node.id()).collectChildren(stack, ast, node);
+        std::reverse(stack.begin() + firstChild, stack.end());
     }
 }
 

@@ -84,3 +84,5 @@ Evidence: [build](integration-build.log), [C++](integration-cpp.log),
 The repository backlog validator also passed. These are functional checks, not performance measurements.
 
 The [second batch](batch2.md) records the next static reductions and build 527 validation.
+
+The [third batch](batch3.md) records lazy dominance, phi setup, and legalization probes (build 529).

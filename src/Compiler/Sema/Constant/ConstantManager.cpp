@@ -86,7 +86,6 @@ ConstantRef ConstantManager::addZeroPayloadConstant(TaskContext& ctx, const Type
 
     SmallVector<std::byte> bytes;
     bytes.resize(sizeOf);
-    std::memset(bytes.data(), 0, bytes.size());
 
     ConstantValue value;
     if (storageType.isArray())
@@ -223,10 +222,12 @@ namespace
         }
 
         localIndex = shard.dataSegment.add(stored);
+        ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-        result = ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
-        stripe.map.emplace(stored, result);
-        return addCstFinalize(manager, result);
+        result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
+        const auto [it, inserted] = stripe.map.emplace(std::move(canonical), result);
+        SWC_ASSERT(inserted);
+        return it->second;
     }
 
     ConstantRef addCstString(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
@@ -254,12 +255,16 @@ namespace
                 strValue.setTypeRef(value.typeRef());
             strValue.setDataSegmentRef({.shardIndex = shardIndex, .offset = res.second});
             localIndex = shard.dataSegment.add(strValue);
+            ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
             SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-            result = ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
-            stripe.map.emplace(strValue, result);
+            result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
+            // Alias inputs normalize to the string type above, so their original lookup can
+            // miss even when the normalized value already exists in this stripe.
+            const auto insertedIt = stripe.map.emplace(std::move(canonical), result).first;
+            result = insertedIt->second;
         }
 
-        return addCstFinalize(manager, result);
+        return result;
     }
 
     void updateStoredDataSegmentRef(ConstantManager::Shard& shard, const ConstantRef cstRef, const DataSegmentRef ref)
@@ -348,18 +353,21 @@ namespace
             if (canDeduplicateByValue)
             {
                 const std::unique_lock lk(stripe->mutex);
-                auto [it, inserted] = stripe->map.try_emplace(stored, ConstantRef{});
-                if (!inserted)
+                const auto it = stripe->map.find(stored);
+                if (it != stripe->map.end())
                 {
                     updateStoredDataSegmentRef(shard, it->second, dataRef);
                     return it->second;
                 }
 
                 localIndex = shard.dataSegment.add(stored);
+                ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
                 SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-                shard.dataSegment.ptr<ConstantValue>(localIndex)->setDataSegmentRef(dataRef);
-                result     = ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
-                it->second = result;
+                canonical->setDataSegmentRef(dataRef);
+                result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
+                const auto [insertedIt, inserted] = stripe->map.emplace(std::move(canonical), result);
+                SWC_ASSERT(inserted);
+                return insertedIt->second;
             }
             else
             {

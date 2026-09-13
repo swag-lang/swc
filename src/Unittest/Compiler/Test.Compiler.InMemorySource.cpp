@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/Native/SymbolSort.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SourceView.h"
@@ -26,6 +27,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct LocationSortTestSymbol
+    {
+        SourceViewRef sourceRef;
+        TokenRef      tokenRef;
+
+        SourceViewRef srcViewRef() const { return sourceRef; }
+        TokenRef      tokRef() const { return tokenRef; }
+    };
+
     struct RestoreErrorCount
     {
         uint64_t saved = 0;
@@ -695,6 +705,80 @@ SWC_TEST_BEGIN(Compiler_AstVisitResolvesChildrenWithoutFollowingActiveAncestors)
     }
     const std::array expected = {root, identity, replacement, cyclic, unresolved};
     if (!stopped || !std::ranges::equal(entered, expected))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_SymbolLocationSortKeepsStableTokenOrderWithinOneFile)
+{
+    CommandLine      cmdLine;
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext      compilerCtx(compiler);
+    SourceFile&      source = Unittest::addTestSource(compilerCtx, "Compiler", "SymbolLocationSort", "");
+    const std::array views = {
+        std::array{source.ast().srcView().ref(), compiler.addSourceView(source.ref()).ref()},
+        std::array{compiler.addSourceView().ref(), compiler.addSourceView().ref()},
+    };
+
+    for (const auto& pair : views)
+    {
+        std::array symbols = {
+            LocationSortTestSymbol{pair[0], TokenRef{9}},
+            LocationSortTestSymbol{pair[1], TokenRef{9}},
+            LocationSortTestSymbol{pair[0], TokenRef{10}},
+            LocationSortTestSymbol{pair[1], TokenRef{0}},
+            LocationSortTestSymbol{pair[0], TokenRef::invalid()},
+            LocationSortTestSymbol{pair[1], TokenRef{1000000000}},
+        };
+        std::vector<LocationSortTestSymbol*> values = {nullptr, &symbols[2], &symbols[0], &symbols[0], &symbols[1], &symbols[0], &symbols[3], &symbols[4], &symbols[2], &symbols[5], nullptr};
+        auto reference = values;
+        SymbolSort::sortAndUnique(reference, SymbolSort::LocationKeyFactory<LocationSortTestSymbol>{.compiler = &compiler});
+        SymbolSort::sortAndUniqueByLocation(values, compiler);
+        const std::array expected = {&symbols[3], &symbols[0], &symbols[1], &symbols[0], &symbols[2], &symbols[5], &symbols[4]};
+        if (values != reference || !std::ranges::equal(values, expected))
+            return Result::Error;
+
+        const std::array smallInputs = {
+            std::vector<LocationSortTestSymbol*>{},
+            std::vector<LocationSortTestSymbol*>{nullptr, nullptr},
+            std::vector<LocationSortTestSymbol*>{nullptr, &symbols[0], nullptr},
+        };
+        for (const auto& input : smallInputs)
+        {
+            values    = input;
+            reference = input;
+            SymbolSort::sortAndUnique(reference, SymbolSort::LocationKeyFactory<LocationSortTestSymbol>{.compiler = &compiler});
+            SymbolSort::sortAndUniqueByLocation(values, compiler);
+            if (values != reference)
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_SymbolLocationSortKeepsCompositeKeysAcrossFiles)
+{
+    CommandLine      cmdLine;
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext      compilerCtx(compiler);
+    const fs::path   path      = Unittest::makeTestSourcePath("Compiler", "SymbolLocationSortPrefixes");
+    SourceFile&      first     = Unittest::addTestSource(compilerCtx, path, "");
+    SourceFile&      longer    = Unittest::addTestSource(compilerCtx, fs::path(path.string() + "a"), "");
+    SourceFile&      equalPath = Unittest::addTestSource(compilerCtx, path, "");
+    std::array symbols = {
+        LocationSortTestSymbol{first.ast().srcView().ref(), TokenRef{9}},
+        LocationSortTestSymbol{equalPath.ast().srcView().ref(), TokenRef{9}},
+        LocationSortTestSymbol{longer.ast().srcView().ref(), TokenRef::invalid()},
+        LocationSortTestSymbol{compiler.addSourceView().ref(), TokenRef{0}},
+    };
+    std::vector<LocationSortTestSymbol*> values = {nullptr, &symbols[0], &symbols[0], &symbols[1], &symbols[0], &symbols[2], &symbols[3], nullptr};
+    auto reference = values;
+    SymbolSort::sortAndUnique(reference, SymbolSort::LocationKeyFactory<LocationSortTestSymbol>{.compiler = &compiler});
+    SymbolSort::sortAndUniqueByLocation(values, compiler);
+    if (values != reference)
+        return Result::Error;
+    // The longer path's 'a' precedes the shorter path's '|' delimiter.
+    if (std::ranges::find(values, &symbols[2]) >= std::ranges::find(values, &symbols[0]))
         return Result::Error;
 }
 SWC_TEST_END()

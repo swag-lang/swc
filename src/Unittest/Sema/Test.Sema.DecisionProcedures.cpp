@@ -16,55 +16,15 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
-#include "Support/Memory/mimalloc/include/mimalloc.h"
 #include "Support/Report/Diagnostic.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHeap.h"
 #include "Unittest/UnittestSource.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    class TypeManagerTestHeap
-    {
-    public:
-        TypeManagerTestHeap() :
-            heap_(mi_heap_new())
-        {
-            if (heap_)
-                previous_ = mi_theap_set_default(mi_heap_theap(heap_));
-        }
-
-        ~TypeManagerTestHeap()
-        {
-            if (heap_)
-            {
-                mi_theap_set_default(previous_);
-                mi_heap_destroy(heap_);
-            }
-        }
-
-        bool empty() const
-        {
-            if (!heap_)
-                return false;
-            mi_heap_collect(heap_, true);
-            size_t count = 0;
-            return mi_heap_visit_blocks(heap_, true, countLiveBlocks, &count) && count == 0;
-        }
-
-    private:
-        static bool countLiveBlocks(const mi_heap_t*, const mi_heap_area_t*, void* block, size_t, void* data)
-        {
-            if (block)
-                ++*static_cast<size_t*>(data);
-            return true;
-        }
-
-        mi_heap_t*  heap_     = nullptr;
-        mi_theap_t* previous_ = nullptr;
-    };
-
     class CompletedFreesFixture
     {
     public:
@@ -425,7 +385,7 @@ SWC_TEST_BEGIN(Sema_TypeManagerReleasesOwnedPayloads)
 {
     // Observe only this thread's isolated allocations, including the vectors inside
     // arena objects. Releasing arena pages alone must not make this test pass.
-    TypeManagerTestHeap heap;
+    Unittest::ScopedHeap heap;
     if (!heap.empty())
         return Result::Error;
     {

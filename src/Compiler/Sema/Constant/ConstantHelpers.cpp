@@ -400,7 +400,6 @@ uint64_t ConstantHelpers::materializeConstantStorageAndGetAddress(Sema& sema, co
 
     SmallVector<std::byte> storage(sizeOf);
     const std::span        storageSpan{storage.data(), storage.size()};
-    std::memset(storageSpan.data(), 0, storageSpan.size());
     SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), storageTypeRef) == Result::Continue);
 
     // Preserve alignment and register embedded pointer relocations. Interning raw

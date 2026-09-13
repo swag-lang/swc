@@ -72,6 +72,23 @@ namespace SymbolSort
     template<typename T>
     void sortAndUniqueByLocation(std::vector<T*>& values, const CompilerInstance& compiler)
     {
+        values.erase(std::remove(values.begin(), values.end(), nullptr), values.end());
+        if (values.size() < 2)
+            return;
+
+        const SourceFile* file     = compiler.srcView(values.front()->srcViewRef()).file();
+        const bool        sameFile = std::all_of(values.begin() + 1, values.end(), [&](const T* symbol) {
+            return compiler.srcView(symbol->srcViewRef()).file() == file;
+        });
+        if (sameFile)
+        {
+            // Equal path prefixes leave only the ten-digit, zero-padded uint32 token.
+            // Numeric order is identical, including the invalid token's UINT32_MAX value.
+            std::ranges::stable_sort(values, {}, [](const T* symbol) { return symbol->tokRef().get(); });
+            values.erase(std::unique(values.begin(), values.end()), values.end());
+            return;
+        }
+
         sortAndUnique(values, LocationKeyFactory<T>{.compiler = &compiler});
     }
 }

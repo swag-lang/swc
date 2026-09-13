@@ -238,7 +238,7 @@ namespace
             return failArrayConst(args, DiagnosticId::sema_err_array_cast_expected_aggregate_constant);
 
         const auto&              values = cst.getAggregateArray();
-        SmallVector<ConstantRef> newValues;
+        std::vector<ConstantRef> newValues;
         newValues.reserve(values.size());
 
         for (size_t i = 0; i < values.size(); ++i)
@@ -254,8 +254,7 @@ namespace
             newValues.push_back(castedRef);
         }
 
-        const std::vector valuesForArray(newValues.begin(), newValues.end());
-        args.castRequest->outConstRef = makeArrayConstantFromValues(args, valuesForArray);
+        args.castRequest->outConstRef = makeArrayConstantFromValues(args, newValues);
         return Result::Continue;
     }
 
@@ -338,7 +337,7 @@ namespace
         if (!args.castRequest->materializeConstantResult())
             return Result::Continue;
 
-        SmallVector<ConstantRef> newValues;
+        std::vector<ConstantRef> newValues;
         newValues.reserve(srcValues->size());
 
         for (size_t i = 0; i < srcValues->size(); ++i)
@@ -354,8 +353,7 @@ namespace
             newValues.push_back(castedRef);
         }
 
-        const std::vector valuesForArray(newValues.begin(), newValues.end());
-        args.castRequest->outConstRef = makeArrayConstantFromValues(args, valuesForArray);
+        args.castRequest->outConstRef = makeArrayConstantFromValues(args, newValues);
         return Result::Continue;
     }
 

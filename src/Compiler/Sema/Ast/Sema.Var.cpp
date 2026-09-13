@@ -162,7 +162,6 @@ namespace
         if (hasInitializerData)
         {
             loweredBytes.resize(size);
-            std::memset(loweredBytes.data(), 0, loweredBytes.size());
             SWC_RESULT(ConstantLower::lowerToBytes(sema, loweredBytes.span(), symVar.cstRef(), storageTypeRef));
 
             if (!isCompilerGlobal && !loweredBytes.allZero())

@@ -1,7 +1,7 @@
 # Semantic analysis and code generation work reductions, 2026-09-13
 
 This change removes repeated work outside the micro passes. Functional validation targets
-compiler builds 532 through 537 on `1cb02fdaa` plus the changes below. Work is isolated on
+compiler builds 532 through 539 on `1cb02fdaa` plus the changes below. Work is isolated on
 `perf/sema-codegen-compile-time` in the `swc-sema-codegen-perf` worktree. Micro-pass work has its own
 [report](../20260913/README.md).
 
@@ -234,3 +234,58 @@ and passed initialization and destruction assertions across static libraries and
 [DevMode compiler](workspace-consumer-537.log), [Release compiler](release-compiler-workspace-consumer-537.log).
 This focused consumer exercises the changed runtime order; the broader workspace command campaign
 was not run.
+
+## Additional reductions in build 539
+
+| Area | Removed work | Preserved contract |
+| --- | --- | --- |
+| Constant interning | The intern table owns the arena-resident constant instead of retaining another deep key copy. | Transparent lookup retains value equality, shard and stripe routing, stable addresses, and the shared/exclusive locking protocol. Owning aggregate payloads are destroyed before their segment pages are freed. |
+| Constant publication | References are finalized before their canonical entries become visible. | Both insertions and later hits carry the diagnostic pointer. Atomic storage-location enrichment remains outside hash/equality and does not mutate caller inputs. |
+| Same-file symbol order | Symbols from one source file are sorted directly by token index without allocating textual location keys. | Numeric order matches the old ten-digit token suffix. Stable ties, adjacent pointer deduplication, null filtering, and the complete multi-file fallback are preserved. |
+| Constant array conversion | Two conversion paths build their final element vector directly. | Element casts, failure handling, and lowering order are unchanged; the intermediate vector copy is removed. |
+| Zero initialization | Three explicit whole-buffer zeroing passes are removed. | Each fresh byte buffer was already value-initialized to zero by its constructor or resize, including padding bytes. |
+
+The isolated constant-payload destruction test first ran against build 538, before the owning-table
+change. It was the only failing test: 691 passed and one failed. Like build 536, build 538 was an
+intermediate functional baseline, not a retained implementation or a timing baseline. The shared
+test helper checks live blocks in a dedicated mimalloc heap, without measuring process memory.
+
+Additional tests retain constant references across 4,096 insertions and verify canonical hits,
+stable addresses, payload contents, and diagnostic pointers. Repeated string inputs cover alias
+normalization and nullable types. Alias inputs can miss the initial lookup and then normalize to
+an existing string entry; this path returns that existing reference and destroys the rejected copy.
+The stored value and normalized type remain unchanged.
+
+Symbol-order tests compare explicit expected results and the original textual-key algorithm for
+same-file views, missing files, token-width boundaries, invalid tokens, stable equal-key symbols,
+and multi-file path-prefix cases.
+
+Both build-539 compiler configurations built successfully. The same constant-payload destruction
+test that failed on build 538 now passes. The C++ selection still excludes the 28 filesystem tests.
+
+| Build-539 complete suite | Result | Evidence |
+| --- | --- | --- |
+| C++ | 694 passed | [Log](cpp-539.log) |
+| Semantic analysis | 278 valid inputs and 293 expected-error inputs verified | [Log](sema-539.log) |
+| JIT | 1,402 passed | [Log](jit-539.log) |
+| Native, program configuration `devmode` | 3,137 passed; generated executable passed | [Log](native-devmode-539.log) |
+| Native, program configuration `release` | 3,137 passed; generated executable passed | [Log](native-release-539.log) |
+
+Focused JIT checks passed for aggregate numeric arrays (1), compiler globals (1), non-null values
+(3), large-struct binding (2), constant slices (6), and aggregate constant assignment (4). Native
+checks passed for temporary receiver lifetime (2), caller-expression arguments (1), automatic macro
+receivers (1), indexed macro receivers (1), deferred re-emission (2), constant slices (6), array
+casts (2), array literals (14), globals (1), struct defaults (6), and null/default initialization (10).
+The initial `array.swg` filter also selected an example without its allocator helper; it was
+replaced with the self-contained `casts\array.swg` and `literals\array.swg` filters. No compiler
+source change was needed for that selection error.
+
+The Release compiler passed [large-struct binding](release-compiler-large-struct-539.log) (2 JIT
+tests), [constant slices](release-compiler-const-slice-539.log) (6 native tests),
+[constant-address storage](release-compiler-rdata-539.log) (1 native test), and
+[aggregate numeric arrays](release-compiler-array-539.log) (1 JIT test).
+The workspace consumer was rebuilt and executed by both the
+[DevMode compiler](workspace-consumer-539.log) and the
+[Release compiler](release-compiler-workspace-consumer-539.log), with the same forced-rebuild
+command as build 537. Both runs rebuilt three standard dependencies and six local modules and
+passed initialization and destruction assertions across static libraries and a DLL.

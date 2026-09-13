@@ -4,8 +4,10 @@
 
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHeap.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -324,6 +326,116 @@ SWC_TEST_BEGIN(ConstantManager_OwnsAggregateElementsAfterInputsAreDestroyed)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantManager_ReleasesOwnedAggregatePayloads)
+{
+    // Construct inputs and their interned types before tracking allocations. They belong to
+    // the outer compiler and must survive destruction of the isolated constant manager.
+    std::vector<ConstantValue> prototypes;
+    prototypes.reserve(128);
+    const std::array names = {IdentifierRef::invalid(), IdentifierRef::invalid(), IdentifierRef::invalid()};
+    for (uint32_t index = 0; index < 64; ++index)
+    {
+        const std::array elements = {ctx.cstMgr().addInt(ctx, 31001), ctx.cstMgr().addInt(ctx, 31002), ctx.cstMgr().addInt(ctx, 32000 + index)};
+        prototypes.push_back(ConstantValue::makeAggregateArray(ctx, elements));
+        prototypes.push_back(ConstantValue::makeAggregateStruct(ctx, names, elements));
+    }
+
+    Unittest::ScopedHeap heap;
+    if (!heap.empty())
+        return Result::Error;
+    {
+        ConstantManager manager;
+        for (const ConstantValue& prototype : prototypes)
+        {
+            const ConstantValue input = prototype;
+            const ConstantRef   ref   = manager.addConstant(ctx, input);
+            if (manager.addConstant(ctx, input) != ref || manager.addConstant(ctx, manager.get(ref)) != ref)
+                return Result::Error;
+        }
+    }
+    if (!heap.empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantManager_PreservesStringNormalizationOnRepeatedInputs)
+{
+    ConstantManager manager;
+    auto* aliasSymbol = Symbol::make<SymbolAlias>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), {});
+    aliasSymbol->setUnderlyingTypeRef(ctx.typeMgr().typeString());
+    const TypeRef aliasType = ctx.typeMgr().addType(TypeInfo::makeAlias(aliasSymbol));
+    aliasSymbol->setTypeRef(aliasType);
+    const TypeRef nullableType = ctx.typeMgr().addType(TypeInfo::makeString(TypeInfoFlagsE::Nullable));
+
+    for (const TypeRef inputType : {aliasType, nullableType})
+    {
+        ConstantValue value = ConstantValue::makeString(ctx, "normalized-canonical-string");
+        value.setTypeRef(inputType);
+        const ConstantRef first = manager.addConstant(ctx, value);
+        const ConstantValue& stored = manager.get(first);
+        const TypeRef expectedType = inputType == aliasType ? ctx.typeMgr().typeString() : nullableType;
+        if (stored.typeRef() != expectedType || stored.getString() != value.getString() || value.typeRef() != inputType)
+            return Result::Error;
+        for (uint32_t repeat = 0; repeat < 8; ++repeat)
+        {
+            const ConstantRef hit = manager.addConstant(ctx, value);
+            if (hit != first || &manager.get(hit) != &stored)
+                return Result::Error;
+#if SWC_HAS_REF_DEBUG_INFO
+            if (first.dbgPtr != &stored || hit.dbgPtr != &stored)
+                return Result::Error;
+#endif
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantManager_PublishesCanonicalReferencesAcrossGrowth)
+{
+    ConstantManager manager;
+    const std::array bytes = {std::byte{0x31}, std::byte{0x52}, std::byte{0x73}};
+    const std::array<uint64_t, 1> dims = {bytes.size()};
+    const TypeRef arrayType = ctx.typeMgr().addType(TypeInfo::makeArray(dims, ctx.typeMgr().typeU8()));
+    const std::array elements = {ctx.cstMgr().addInt(ctx, 34001), ctx.cstMgr().addInt(ctx, 34002)};
+    const std::array values = {
+        ConstantValue::makeString(ctx, "canonical-reference"),
+        ConstantValue::makeArrayBorrowed(ctx, arrayType, bytes),
+        ConstantValue::makeAggregateArray(ctx, elements),
+    };
+    std::array<ConstantRef, values.size()> refs;
+    std::array<const ConstantValue*, values.size()> pointers;
+    for (size_t index = 0; index < values.size(); ++index)
+    {
+        refs[index] = manager.addConstant(ctx, values[index]);
+        pointers[index] = &manager.get(refs[index]);
+#if SWC_HAS_REF_DEBUG_INFO
+        if (refs[index].dbgPtr != pointers[index])
+            return Result::Error;
+#endif
+    }
+
+    for (uint32_t index = 0; index < 4096; ++index)
+    {
+        const std::string text = std::format("canonical-growth-{}", index);
+        manager.addConstant(ctx, ConstantValue::makeString(ctx, text));
+    }
+
+    for (size_t index = 0; index < values.size(); ++index)
+    {
+        const ConstantRef inputHit = manager.addConstant(ctx, values[index]);
+        const ConstantRef storedHit = manager.addConstant(ctx, *pointers[index]);
+        if (inputHit != refs[index] || storedHit != refs[index] || &manager.get(refs[index]) != pointers[index])
+            return Result::Error;
+        if (!(*pointers[index] == values[index]))
+            return Result::Error;
+#if SWC_HAS_REF_DEBUG_INFO
+        if (inputHit.dbgPtr != pointers[index] || storedHit.dbgPtr != pointers[index])
+            return Result::Error;
+#endif
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ConstantManager_EnrichesStorageReferencesWithoutMutatingInputs)
 {
     ConstantManager    manager;
@@ -351,8 +463,14 @@ SWC_TEST_BEGIN(ConstantManager_EnrichesStorageReferencesWithoutMutatingInputs)
         const DataSegmentRef storedRef = stored.dataSegmentRef();
         if (storedRef.shardIndex != shardIndex || storedRef.offset != offset)
             return Result::Error;
-        if (!(stored == value) || manager.addConstant(ctx, value) != ref || manager.addConstant(ctx, stored) != ref)
+        const ConstantRef inputHit = manager.addConstant(ctx, value);
+        const ConstantRef storedHit = manager.addConstant(ctx, stored);
+        if (!(stored == value) || inputHit != ref || storedHit != ref)
             return Result::Error;
+#if SWC_HAS_REF_DEBUG_INFO
+        if (ref.dbgPtr != &stored || inputHit.dbgPtr != &stored || storedHit.dbgPtr != &stored)
+            return Result::Error;
+#endif
         if (value.dataSegmentRef().isValid())
             return Result::Error;
         if (value.isArray() && ((ref.get() >> ConstantManager::LOCAL_BITS) != shardIndex || stored.getArray().data() != payload.data()))

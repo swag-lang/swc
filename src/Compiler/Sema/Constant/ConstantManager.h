@@ -115,14 +115,37 @@ public:
     static constexpr uint32_t INTERN_STRIPE_BITS  = 4;
     static constexpr uint32_t INTERN_STRIPE_COUNT = 1u << INTERN_STRIPE_BITS;
 
+    struct StoredConstantDeleter
+    {
+        // The segment owns the bytes; the intern table owns the aggregate payload's lifetime.
+        void operator()(ConstantValue* value) const noexcept { std::destroy_at(value); }
+    };
+    using StoredConstant = std::unique_ptr<ConstantValue, StoredConstantDeleter>;
+
+    struct StoredConstantHash
+    {
+        using is_transparent = void;
+        size_t operator()(const StoredConstant& value) const noexcept { return ConstantValueHash{}(*value); }
+        size_t operator()(const ConstantValue& value) const noexcept { return ConstantValueHash{}(value); }
+    };
+
+    struct StoredConstantEqual
+    {
+        using is_transparent = void;
+        bool operator()(const StoredConstant& lhs, const StoredConstant& rhs) const noexcept { return *lhs == *rhs; }
+        bool operator()(const StoredConstant& lhs, const ConstantValue& rhs) const noexcept { return *lhs == rhs; }
+        bool operator()(const ConstantValue& lhs, const StoredConstant& rhs) const noexcept { return lhs == *rhs; }
+    };
+
     struct InternStripe
     {
-        std::unordered_map<ConstantValue, ConstantRef, ConstantValueHash> map;
-        mutable std::shared_mutex                                         mutex;
+        std::unordered_map<StoredConstant, ConstantRef, StoredConstantHash, StoredConstantEqual> map;
+        mutable std::shared_mutex                                                               mutex;
     };
 
     struct Shard
     {
+        // Keep storage alive until the intern tables have destroyed their canonical values.
         DataSegment                                                                                                                           dataSegment;
         std::array<InternStripe, INTERN_STRIPE_COUNT>                                                                                         internStripes;
         std::unordered_map<TypeRef, ConstantRef>                                                                                              typeInfoMap;

@@ -1,0 +1,15 @@
+
+  DebugInfoCodeView.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  MicroSsaState.cpp
+  Pass.InductionVariable.cpp
+  Pass.InstructionCombine.BuildVector.cpp
+  Pass.PostRALoopHoist.cpp
+  Sema.Compiler.cpp
+  DocPage.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  Test.Micro.InductionVariable.cpp
+  Test.Micro.Ssa.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe

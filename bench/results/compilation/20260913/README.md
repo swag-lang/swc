@@ -1,6 +1,6 @@
 # Static compilation-cost reductions, 2026-09-13
 
-Latest validated compiler: **build 533**. Each batch is functionally validated before
+Latest validated compiler: **build 534**. Each batch is functionally validated before
 integration into master. The load-admission waiver applies to this session; performance
 measurements remain deferred until the final campaign.
 
@@ -12,6 +12,7 @@ measurements remain deferred until the final campaign.
 | 4 | 531 | 701 passed | 3,131 / 3,131 passed | [Conditional scratch-register scan](batch4.md) |
 | 5 | 532 | 705 passed | 3,131 / 3,131 passed | [Frame analysis and live instruction scans](batch5.md) |
 | 6 | 533 | 712 passed | 3,131 / 3,131 passed | [Phi worklists and ordered stack depths](batch6.md) |
+| 7 | 534 | 716 passed | 3,131 / 3,131 passed | [Allocation, aliases and relocations](batch7.md) |
 
 The remaining sections document the first batch and its integration.
 

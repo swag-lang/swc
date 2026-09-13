@@ -1,0 +1,20 @@
+
+  DebugInfoCodeView.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  MicroBuilder.cpp
+  Pass.InstructionCombine.ConstProp.cpp
+  Pass.InstructionCombine.MemoryFold.cpp
+  Pass.InstructionCombine.StoreToLoad.cpp
+  Pass.LoopUnroll.cpp
+  Pass.RegisterAllocation.Interval.cpp
+  Pass.VecLoopPromote.cpp
+  Sema.Compiler.cpp
+  DocPage.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  Test.Micro.InstructionCombine.cpp
+  Test.Micro.LoopUnroll.cpp
+  Test.Micro.PassManager.cpp
+  Test.Micro.VecLoopPromote.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe

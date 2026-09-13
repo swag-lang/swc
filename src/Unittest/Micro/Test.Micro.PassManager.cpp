@@ -4,6 +4,7 @@
 
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Unittest/Unittest.h"
@@ -159,6 +160,60 @@ SWC_TEST_BEGIN(MicroBuilder_PruneRelocationsBeforeRecyclingSlots)
         return Result::Error;
     builder.emitNop();
     if (builder.instructions().lastInstructionRef() != dead)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroControlFlowGraph_KeepsEdgeOrderAcrossRebuilds)
+{
+    MicroBuilder builder(ctx);
+    const auto   entry  = builder.createLabel();
+    const auto   middle = builder.createLabel();
+    const auto   end    = builder.createLabel();
+    builder.placeLabel(entry);
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, middle);
+    builder.emitNop();
+    const std::array targets{end, middle, end, entry};
+    builder.emitJumpReg(MicroReg::virtualIntReg(1), targets);
+    const auto backJump = builder.instructions().lastInstructionRef();
+    builder.placeLabel(middle);
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, end);
+    builder.placeLabel(end);
+    builder.emitRet();
+
+    // The indirect jump keeps first-target order and deduplicates end. The
+    // second conditional's explicit target equals its fallthrough destination.
+    const std::vector<std::vector<uint32_t>> successors{{1}, {4, 2}, {3}, {6, 4, 0}, {5}, {6}, {7}, {}};
+    const std::vector<std::vector<uint32_t>> predecessors{{3}, {0}, {1}, {2}, {1, 3}, {4}, {3, 5}, {6}};
+    const auto&                              cfg = builder.controlFlowGraph();
+    if (cfg.instructionCount() != successors.size() || !cfg.hasLoop() || !cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+        return Result::Error;
+    for (uint32_t i = 0; i < successors.size(); ++i)
+    {
+        if (!std::ranges::equal(cfg.successors(i), successors[i]) || !std::ranges::equal(cfg.predecessors(i), predecessors[i]))
+            return Result::Error;
+    }
+
+    builder.instructions().erase(backJump);
+    const std::vector<std::vector<uint32_t>> linearSuccessors{{1}, {3, 2}, {3}, {4}, {5}, {6}, {}};
+    const std::vector<std::vector<uint32_t>> linearPredecessors{{}, {0}, {1}, {1, 2}, {3}, {4}, {5}};
+    const auto&                              rebuilt = builder.controlFlowGraph();
+    if (rebuilt.instructionCount() != linearSuccessors.size() || rebuilt.hasLoop())
+        return Result::Error;
+    for (uint32_t i = 0; i < linearSuccessors.size(); ++i)
+    {
+        if (!std::ranges::equal(rebuilt.successors(i), linearSuccessors[i]) || !std::ranges::equal(rebuilt.predecessors(i), linearPredecessors[i]))
+            return Result::Error;
+    }
+
+    builder.emitJumpReg(MicroReg::virtualIntReg(1));
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, builder.createLabel());
+    builder.emitRet();
+    const auto& unsupported = builder.controlFlowGraph();
+    if (!unsupported.hasUnsupportedControlFlowForCfgLiveness() || unsupported.supportsDeadCodeLiveness() || unsupported.hasLoop())
+        return Result::Error;
+    if (!unsupported.successors(7).empty() || unsupported.successors(8).size() != 1 || unsupported.successors(8)[0] != 9)
         return Result::Error;
     return Result::Continue;
 }

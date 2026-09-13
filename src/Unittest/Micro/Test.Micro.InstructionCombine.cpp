@@ -211,6 +211,45 @@ SWC_TEST_BEGIN(InstCombine_RelocatedLoad_UsesExactTargetAndLiveMemory)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_ForwardingCacheKeepsSurvivingProducers)
+{
+    constexpr MicroReg base   = MicroReg::intReg(8);
+    constexpr MicroReg first  = MicroReg::intReg(10);
+    constexpr MicroReg second = MicroReg::intReg(11);
+    for (const bool overlappingStore : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        for (uint32_t i = 0; i < 12; ++i)
+            builder.emitLoadMemReg(base, i, i % 2 == 0 ? first : second, MicroOpBits::B8);
+        // Cross the cache's inline capacity, then remove either alternating
+        // producers or eight consecutive overlapping byte entries.
+        if (overlappingStore)
+            builder.emitLoadMemReg(base, 2, MicroReg::intReg(12), MicroOpBits::B64);
+        else
+            builder.emitClearReg(first, MicroOpBits::B64);
+        std::array<MicroInstrRef, 12> loads;
+        for (uint32_t i = 0; i < loads.size(); ++i)
+        {
+            builder.emitLoadRegMem(MicroReg::virtualIntReg(i + 1), base, i, MicroOpBits::B8);
+            loads[i] = builder.instructions().lastInstructionRef();
+        }
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+        for (uint32_t i = 0; i < loads.size(); ++i)
+        {
+            const bool        survives = overlappingStore ? (i < 2 || i >= 10) : i % 2 != 0;
+            const MicroInstr* inst     = builder.instructions().ptr(loads[i]);
+            if (!inst || inst->op != (survives ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
+                return Result::Error;
+            if (survives && inst->ops(builder.operands())[1].reg != (i % 2 == 0 ? first : second))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_RipForwardingInitializesBeforeFirstMatchedRelocation)
 {
     MicroBuilder builder(ctx);

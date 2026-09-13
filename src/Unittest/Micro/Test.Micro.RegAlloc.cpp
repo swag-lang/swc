@@ -892,6 +892,91 @@ SWC_TEST_BEGIN(RegAlloc_LeafRemapPreservesFramePriorityAndDistinctReplacements)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(RegAlloc_LeafRemapUsesFirstInstructionReadBeforeWrite)
+{
+    constexpr auto rbx = MicroReg::intReg(1);
+    constexpr auto rsi = MicroReg::intReg(6);
+    constexpr auto r12 = MicroReg::intReg(12);
+    constexpr auto r13 = MicroReg::intReg(13);
+    constexpr auto r14 = MicroReg::intReg(14);
+    MicroBuilder   builder(ctx);
+    builder.emitOpBinaryRegImm(rbx, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto readModifyWrite = builder.instructions().lastInstructionRef();
+    // The destination is enumerated before the source in a self-copy.
+    builder.emitLoadRegReg(rsi, rsi, MicroOpBits::B64);
+    const auto selfCopy = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegReg(MicroReg::intReg(0), r13, MicroOpBits::B64);
+    builder.emitLoadRegImm(r13, ApInt(5, 64), MicroOpBits::B64);
+    const auto lateDefinition = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegImm(r12, ApInt(7, 64), MicroOpBits::B64);
+    const auto firstCandidate = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegImm(r14, ApInt(9, 64), MicroOpBits::B64);
+    const auto secondCandidate = builder.instructions().lastInstructionRef();
+    builder.emitOpBinaryRegReg(r12, r14, MicroOp::Add, MicroOpBits::B64);
+    const auto candidateUses = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    MicroPrologEpilogPass pass;
+    MicroPassManager     passes;
+    passes.addStartPass(pass);
+    MicroPassContext passCtx;
+    passCtx.callConvKind           = CallConvKind::WindowsX64;
+    passCtx.preservePersistentRegs = true;
+    SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+
+    const auto& operands = builder.operands();
+    if (builder.instructions().ptr(readModifyWrite)->ops(operands)[0].reg != rbx ||
+        builder.instructions().ptr(selfCopy)->ops(operands)[0].reg != rsi ||
+        builder.instructions().ptr(selfCopy)->ops(operands)[1].reg != rsi ||
+        builder.instructions().ptr(lateDefinition)->ops(operands)[0].reg != r13)
+        return Result::Error;
+    if (builder.instructions().ptr(firstCandidate)->ops(operands)[0].reg != MicroReg::intReg(10) ||
+        builder.instructions().ptr(secondCandidate)->ops(operands)[0].reg != MicroReg::intReg(11))
+        return Result::Error;
+    const auto* uses = builder.instructions().ptr(candidateUses)->ops(operands);
+    if (uses[0].reg != MicroReg::intReg(10) || uses[1].reg != MicroReg::intReg(11))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_PrologRetainsEntryBoundaryAfterLongStackRelease)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::WindowsX64);
+    for (const bool adjustAfterReturn : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
+        for (uint32_t i = 0; i < 32; ++i)
+        {
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitNop();
+        }
+        builder.emitRet();
+        if (adjustAfterReturn)
+        {
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitRet();
+        }
+
+        MicroPrologEpilogPass pass;
+        MicroPassManager     passes;
+        passes.addStartPass(pass);
+        MicroPassContext passCtx;
+        passCtx.callConvKind           = CallConvKind::WindowsX64;
+        passCtx.preservePersistentRegs = true;
+        passCtx.forceFramePointer     = true;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+        // The add/Nop suffix is harmless, but its Ret must still close the
+        // entry run before any later instruction in storage order is examined.
+        if (passCtx.forceFramePointer != adjustAfterReturn)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(RegAlloc_Spill_IntPressureAcrossCall)
 {
     for (const auto callConvKind : testedCallConvs())

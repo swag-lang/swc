@@ -329,23 +329,13 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             if (internalLabels.empty())
             {
                 std::unordered_set<MicroReg> seenInBody;
-                std::unordered_set<MicroReg> readOutside;
-                for (uint32_t o = 0; o < order.size(); ++o)
+                for (uint32_t o = bodyBegin; o < bodyEnd; ++o)
                 {
                     MicroInstr* inst = storage.ptr(order[o]);
                     if (!inst || !inst->numOperands)
                         continue;
                     SmallVector<MicroInstrRegOperandRef> regOps;
                     inst->collectRegOperands(operands, regOps, context.encoder);
-                    const bool inBody = o >= bodyBegin && o < bodyEnd;
-                    if (!inBody)
-                    {
-                        for (const MicroInstrRegOperandRef& regOp : regOps)
-                            if (regOp.reg && regOp.use && regOp.reg->isVirtual())
-                                readOutside.insert(*regOp.reg);
-                        continue;
-                    }
-
                     // The reads of an instruction come before its writes: a
                     // register first met as a read, or as an in-place update,
                     // is carried; one first met as an outright write is a
@@ -362,8 +352,23 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     }
                 }
 
-                for (const MicroReg reg : readOutside)
-                    renamable.erase(reg);
+                // Only the body's candidates matter outside it. Remove them
+                // directly instead of recording every unrelated register read.
+                const auto excludeOutsideReads = [&](uint32_t begin, uint32_t end) {
+                    for (uint32_t o = begin; o < end && !renamable.empty(); ++o)
+                    {
+                        const MicroInstr* inst = storage.ptr(order[o]);
+                        if (!inst || !inst->numOperands)
+                            continue;
+                        SmallVector<MicroInstrRegOperandRef> regOps;
+                        inst->collectRegOperands(operands, regOps, context.encoder);
+                        for (const MicroInstrRegOperandRef& regOp : regOps)
+                            if (regOp.reg && regOp.use && regOp.reg->isVirtual())
+                                renamable.erase(*regOp.reg);
+                    }
+                };
+                excludeOutsideReads(0, bodyBegin);
+                excludeOutsideReads(bodyEnd, static_cast<uint32_t>(order.size()));
                 renamable.erase(counter);
                 std::erase_if(renamable, [&](const MicroReg reg) {
                     if (builder.virtualRegForbiddenPhysRegs().contains(reg) || builder.shouldPreserveVirtualCopy(reg))

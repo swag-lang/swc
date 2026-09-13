@@ -36,13 +36,10 @@ namespace InstructionCombine
 
         void dropEntriesReferencing(Cache& cache, MicroReg reg)
         {
-            for (uint32_t i = 0; i < cache.size();)
-            {
-                if (cache[i].base == reg || cache[i].src == reg)
-                    cache.erase(cache.begin() + i);
-                else
-                    ++i;
-            }
+            const auto end = std::remove_if(cache.begin(), cache.end(), [reg](const CacheEntry& entry) {
+                return entry.base == reg || entry.src == reg;
+            });
+            cache.resize(static_cast<size_t>(end - cache.begin()));
         }
 
         // Byte-range overlap test. Only meaningful when the two accesses
@@ -61,16 +58,12 @@ namespace InstructionCombine
         // and survive; everything else we can't disprove gets evicted.
         void invalidateAliasedEntries(Cache& cache, MicroReg base, uint64_t off, MicroOpBits bits)
         {
-            for (uint32_t i = 0; i < cache.size();)
-            {
-                const CacheEntry& e        = cache[i];
-                const bool        sameBase = e.base == base;
-                const bool        disjoint = sameBase && !rangesOverlap(e.off, e.bits, off, bits);
-                if (!sameBase || !disjoint)
-                    cache.erase(cache.begin() + i);
-                else
-                    ++i;
-            }
+            const auto end = std::remove_if(cache.begin(), cache.end(), [base, off, bits](const CacheEntry& entry) {
+                const bool sameBase = entry.base == base;
+                const bool disjoint = sameBase && !rangesOverlap(entry.off, entry.bits, off, bits);
+                return !sameBase || !disjoint;
+            });
+            cache.resize(static_cast<size_t>(end - cache.begin()));
         }
 
         bool forwardLoad(Context& ctx, const Cache& cache, MicroInstrRef loadRef, const MicroInstrOperand* ops, const MicroRelocation* relocation = nullptr)

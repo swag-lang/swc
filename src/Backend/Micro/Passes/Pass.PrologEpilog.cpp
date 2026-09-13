@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 
@@ -36,6 +37,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    using MicroPhysLiveness = MicroPassHelpers::MicroPhysLiveness;
+
     void insertStackAdjust(const MicroPassContext& context, MicroInstrRef insertBeforeRef, MicroReg stackPointerReg, MicroOp op, uint64_t value)
     {
         MicroInstrOperand ops[4];
@@ -62,17 +65,28 @@ namespace
         return false;
     }
 
-    void collectUsedConcreteRegs(const MicroPassContext& context, std::unordered_set<MicroReg>& outUsedRegs)
+    void collectUsedConcreteRegs(const MicroPassContext& context, const CallConv& conv, std::unordered_set<MicroReg>& outUsedRegs, uint64_t& outDefinedBeforeUse)
     {
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
         outUsedRegs.clear();
+        outDefinedBeforeUse  = 0;
+        uint64_t pendingRegs = 0;
+        for (const MicroReg reg : conv.intPersistentRegs)
+        {
+            const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+            if (reg != conv.framePointer && bit < MicroPhysLiveness::K_INVALID_BIT)
+                pendingRegs |= 1ull << bit;
+        }
+
         auto& operands = *context.operands;
         for (const auto& inst : context.instructions->view())
         {
             SmallVector<MicroInstrRegOperandRef> refs;
             inst.collectRegOperands(operands, refs, context.encoder);
+            uint64_t usedRegs    = 0;
+            uint64_t definedRegs = 0;
             for (const MicroInstrRegOperandRef& microInstrRef : refs)
             {
                 if (!microInstrRef.reg)
@@ -83,7 +97,21 @@ namespace
                     continue;
 
                 outUsedRegs.insert(reg);
+                if (!pendingRegs)
+                    continue;
+                const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+                if (bit >= MicroPhysLiveness::K_INVALID_BIT)
+                    continue;
+                const uint64_t mask = (1ull << bit) & pendingRegs;
+                if (microInstrRef.use)
+                    usedRegs |= mask;
+                if (microInstrRef.def)
+                    definedRegs |= mask;
             }
+            // Aggregate the entire instruction before resolving first touches:
+            // a read wins over a definition even when its operand appears later.
+            outDefinedBeforeUse |= pendingRegs & definedRegs & ~usedRegs;
+            pendingRegs &= ~(usedRegs | definedRegs);
         }
     }
 
@@ -279,6 +307,10 @@ namespace
                     ++nextIt;
                 if (nextIt == endIt || nextIt->op != MicroInstrOpcode::Ret)
                     return true;
+                // This entire add/Nop run is validated. Resume at the Ret so
+                // its entry-run effect is still handled by the main walk.
+                it = nextIt;
+                --it;
                 continue;
             }
 
@@ -298,7 +330,8 @@ namespace
             return false;
 
         std::unordered_set<MicroReg> usedRegs;
-        collectUsedConcreteRegs(context, usedRegs);
+        uint64_t                     definedBeforeUse = 0;
+        collectUsedConcreteRegs(context, conv, usedRegs, definedBeforeUse);
         if (usedRegs.empty())
             return false;
 
@@ -321,7 +354,9 @@ namespace
                 continue;
             if (!usedRegs.contains(persistentReg))
                 continue;
-            if (!isRegDefinedBeforeAnyUse(context, persistentReg))
+            const uint32_t bit        = MicroPhysLiveness::bitOf(persistentReg);
+            const bool     firstIsDef = bit < MicroPhysLiveness::K_INVALID_BIT ? (definedBeforeUse & (1ull << bit)) != 0 : isRegDefinedBeforeAnyUse(context, persistentReg);
+            if (!firstIsDef)
                 continue;
 
             remapCandidates.push_back(persistentReg);

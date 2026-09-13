@@ -53,6 +53,67 @@ SWC_TEST_BEGIN(LoopUnroll_MultipleLoops_RebuildsIncomingJumpRanges)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LoopUnroll_OutsideReadsAndCarriedValuesKeepTheirNames)
+{
+    for (const bool hasPrivateTemporary : {false, true})
+    {
+        const MicroReg     sp      = CallConv::get(CallConvKind::Swag).stackPointer;
+        constexpr MicroReg counter = MicroReg::virtualIntReg(1);
+        constexpr MicroReg before  = MicroReg::virtualIntReg(2);
+        constexpr MicroReg after   = MicroReg::virtualIntReg(3);
+        constexpr MicroReg carried = MicroReg::virtualIntReg(4);
+        constexpr MicroReg local   = MicroReg::virtualIntReg(5);
+        MicroBuilder       builder(ctx);
+        const auto         header = builder.createLabel();
+        builder.emitLoadRegImm(MicroReg::virtualIntReg(1000), ApInt(7, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(before, ApInt(9, 64), MicroOpBits::B64);
+        builder.emitLoadMemReg(sp, 0x20, before, MicroOpBits::B64);
+        builder.emitLoadRegImm(carried, ApInt(7, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(header);
+        builder.emitLoadRegReg(before, counter, MicroOpBits::B64);
+        builder.emitLoadRegReg(after, counter, MicroOpBits::B64);
+        if (hasPrivateTemporary)
+            builder.emitLoadRegReg(local, counter, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(carried, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(sp, 0x40, before, MicroOpBits::B64);
+        builder.emitLoadMemReg(sp, 0x48, after, MicroOpBits::B64);
+        builder.emitLoadMemReg(sp, 0x50, carried, MicroOpBits::B64);
+        if (hasPrivateTemporary)
+            builder.emitLoadMemReg(sp, 0x58, local, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
+        builder.emitLoadMemReg(sp, 0x70, after, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runLoopUnrollPass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
+            return Result::Error;
+        std::array<uint32_t, 4> copies{};
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadMemReg)
+                continue;
+            const auto*    ops    = inst.ops(builder.operands());
+            const uint64_t offset = ops[3].valueU64;
+            if (offset < 0x40 || offset > 0x58)
+                continue;
+            const auto slot     = static_cast<uint32_t>((offset - 0x40) / 8);
+            uint32_t   expected = slot + 2;
+            if (slot == 3 && copies[slot] != 0)
+                expected = 1002 + copies[slot];
+            if (ops[1].reg != MicroReg::virtualIntReg(expected))
+                return Result::Error;
+            ++copies[slot];
+        }
+        if (copies[0] != 3 || copies[1] != 3 || copies[2] != 3 || copies[3] != (hasPrivateTemporary ? 3u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(LoopUnroll_FreshRegisterFilesRespectRenamingEligibility)
 {
     // Integer-only temporaries, then a renamable and a preserved float temporary.

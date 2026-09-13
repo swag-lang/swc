@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -19,6 +20,17 @@ void MicroControlFlowGraph::clear()
     hasLoop_                                 = false;
 }
 
+void MicroControlFlowGraph::addEdge(const uint32_t source, const uint32_t target)
+{
+    SWC_ASSERT(source < successors_.size());
+    SWC_ASSERT(target < predecessors_.size());
+    successors_[source].push_back(target);
+    predecessors_[target].push_back(source);
+    // A cycle requires an edge pointing backward in instruction order.
+    if (target <= source)
+        hasLoop_ = true;
+}
+
 void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperandStorage& operands)
 {
     clear();
@@ -26,6 +38,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
     const uint32_t instructionCount = storage.count();
     instructionRefs_.reserve(instructionCount);
     successors_.resize(instructionCount);
+    predecessors_.resize(instructionCount);
     std::vector<uint32_t> labelToInstructionIndex;
     labelToInstructionIndex.reserve(instructionCount / 4 + 1);
 
@@ -54,7 +67,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
         }
     }
 
-    for (size_t instructionIndex = 0; instructionIndex < instructionRefs_.size(); ++instructionIndex)
+    for (uint32_t instructionIndex = 0; instructionIndex < instructionRefs_.size(); ++instructionIndex)
     {
         const MicroInstr* inst = storage.ptr(instructionRefs_[instructionIndex]);
         if (!inst)
@@ -78,7 +91,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
                 if (targetLabelIndex < labelToInstructionIndex.size() &&
                     labelToInstructionIndex[targetLabelIndex] != K_INVALID_INSTRUCTION_INDEX)
                 {
-                    successors.push_back(labelToInstructionIndex[targetLabelIndex]);
+                    addEdge(instructionIndex, labelToInstructionIndex[targetLabelIndex]);
                 }
                 else
                 {
@@ -90,7 +103,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
             {
                 const uint32_t fallthrough = static_cast<uint32_t>(instructionIndex + 1);
                 if (successors.empty() || successors.back() != fallthrough)
-                    successors.push_back(fallthrough);
+                    addEdge(instructionIndex, fallthrough);
             }
 
             continue;
@@ -119,7 +132,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
 
                 const uint32_t targetInstructionIndex = labelToInstructionIndex[targetLabelIndex];
                 if (std::ranges::find(successors, targetInstructionIndex) == successors.end())
-                    successors.push_back(targetInstructionIndex);
+                    addEdge(instructionIndex, targetInstructionIndex);
             }
 
             continue;
@@ -135,23 +148,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
         }
 
         if (hasFallthrough)
-            successors.push_back(static_cast<uint32_t>(instructionIndex + 1));
-    }
-
-    // Build predecessors from successors, and detect back-edges along the way.
-    // An edge whose target index is <= its source index points backward in the
-    // instruction layout; a cycle requires at least one such edge, so this is a
-    // sound (conservative) loop-presence test.
-    predecessors_.resize(instructionRefs_.size());
-    for (size_t idx = 0; idx < instructionRefs_.size(); ++idx)
-    {
-        for (const uint32_t succIdx : successors_[idx])
-        {
-            if (succIdx <= idx)
-                hasLoop_ = true;
-            if (succIdx < predecessors_.size())
-                predecessors_[succIdx].push_back(static_cast<uint32_t>(idx));
-        }
+            addEdge(instructionIndex, instructionIndex + 1);
     }
 }
 

@@ -900,16 +900,27 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             bool feasible = true;
             for (const uint32_t activeIndex : walk.active)
             {
-                if (out.nodes[activeIndex].assignedReg == poolRegs[best])
-                    feasible = feasible && canSplitAndSpillOwner(walk, activeIndex, position);
+                if (out.nodes[activeIndex].assignedReg == poolRegs[best] &&
+                    !canSplitAndSpillOwner(walk, activeIndex, position))
+                {
+                    feasible = false;
+                    break;
+                }
             }
-            for (const uint32_t inactiveIndex : walk.inactive)
+            if (feasible)
             {
-                if (out.nodes[inactiveIndex].assignedReg != poolRegs[best])
-                    continue;
-                const uint32_t intersection = out.nodes[inactiveIndex].nextIntersection(out.nodes[currentIndex], position);
-                if (intersection != std::numeric_limits<uint32_t>::max())
-                    feasible = feasible && canSplitAndSpillOwner(walk, inactiveIndex, intersection);
+                for (const uint32_t inactiveIndex : walk.inactive)
+                {
+                    if (out.nodes[inactiveIndex].assignedReg != poolRegs[best])
+                        continue;
+                    const uint32_t intersection = out.nodes[inactiveIndex].nextIntersection(out.nodes[currentIndex], position);
+                    if (intersection != std::numeric_limits<uint32_t>::max() &&
+                        !canSplitAndSpillOwner(walk, inactiveIndex, intersection))
+                    {
+                        feasible = false;
+                        break;
+                    }
+                }
             }
             if (feasible)
             {

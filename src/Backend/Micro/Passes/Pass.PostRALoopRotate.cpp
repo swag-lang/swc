@@ -157,6 +157,10 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         incoming.ordinal = ordinal;
     }
 
+    // Every rotation needs an incoming jump to its header.
+    if (jumpsByTarget.empty())
+        return Result::Continue;
+
     // Copying an instruction that carries a relocation would need the
     // relocation cloned onto both copies; no test shape observed here does, so
     // such a header is left alone rather than handled.

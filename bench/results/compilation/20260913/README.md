@@ -1,6 +1,6 @@
 # Static compilation-cost reductions, 2026-09-13
 
-Latest validated compiler: **build 547**. Each batch is functionally validated before
+Latest validated compiler: **build 548**. Each batch is functionally validated before
 integration into master. The load-admission waiver applies to this session; performance
 measurements remain deferred until the final campaign.
 
@@ -23,6 +23,7 @@ measurements remain deferred until the final campaign.
 | 15 | 545 | 754 passed | 3,131 / 3,131 passed | [Inferred constants and restore bookkeeping](batch15.md) |
 | 16 | 546 | 757 passed | 3,131 / 3,131 passed | [Copies, branches, epilogues and relocations](batch16.md) |
 | 17 | 547 | 759 passed | 3,131 / 3,131 passed | [Integer results and SLP permutation roots](batch17.md) |
+| 18 | 548 | 760 passed | 3,131 / 3,131 passed | [Extensions, tuple keys and coalescing setup](batch18.md) |
 
 The remaining sections document the first batch and its integration.
 

@@ -6,6 +6,7 @@
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
+#include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Parser/Parser/Parser.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -545,6 +546,156 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Compiler_GenericUnionDeductionRemainsStableForHistoricalRandomSeed1143)
 {
     return runGenericUnionDeductionRandomizedSeed(ctx, 1143);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_AstVisitPreservesSiblingsAcrossPauseSkipAndRestart)
+{
+    CommandLine      cmdLine;
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext      compilerCtx(compiler);
+    SourceFile&      source = Unittest::addTestSource(compilerCtx, "Compiler", "AstVisitPauseSkipRestart", "");
+    Ast&             ast = source.ast();
+
+    std::array<AstNodeRef, 8> refs;
+    for (AstNodeRef& ref : refs)
+        ref = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first;
+    const auto [root, skipped, original, oldLeaf, replacement, nested, last, unvisited] = refs;
+    const std::array rootChildren = {skipped, original, last};
+    ast.node<AstNodeId::ArrayLiteral>(root)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(rootChildren));
+    const std::array skippedChildren = {unvisited};
+    ast.node<AstNodeId::ArrayLiteral>(skipped)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(skippedChildren));
+    const std::array originalChildren = {oldLeaf};
+    ast.node<AstNodeId::ArrayLiteral>(original)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(originalChildren));
+    const std::array replacementChildren = {nested};
+    ast.node<AstNodeId::ArrayLiteral>(replacement)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(replacementChildren));
+
+    std::array<AstNodeRef, 32> leaves;
+    for (AstNodeRef& ref : leaves)
+        ref = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first;
+    ast.node<AstNodeId::ArrayLiteral>(nested)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(leaves));
+
+    AstVisit visit;
+    std::vector<AstNodeRef> entered;
+    bool pausedPreChild = false;
+    bool pausedPreNode = false;
+    bool pausedPostNode = false;
+    bool pausedPostChild = false;
+    visit.setPreNodeVisitor([&](AstNode&) {
+        const AstNodeRef ref = visit.currentNodeRef();
+        if (visit.enteringState())
+            entered.push_back(ref);
+        if (ref == skipped)
+            return Result::SkipChildren;
+        if (ref == oldLeaf && !pausedPreNode)
+        {
+            pausedPreNode = true;
+            return Result::Pause;
+        }
+        return Result::Continue;
+    });
+    visit.setPreChildVisitor([&](AstNode&, AstNodeRef& childRef) {
+        const auto children = visit.currentChildren();
+        const uint32_t index = visit.preChildIndex();
+        if (index >= children.size() || children[index] != childRef)
+            return Result::Error;
+        if (visit.currentNodeRef() == root && !std::ranges::equal(children, rootChildren))
+            return Result::Error;
+        if (visit.currentNodeRef() == root && index == 1 && !pausedPreChild)
+        {
+            pausedPreChild = true;
+            return Result::Pause;
+        }
+        return Result::Continue;
+    });
+    visit.setPostNodeVisitor([&](AstNode&) {
+        if (visit.currentNodeRef() == skipped && !visit.currentChildren().empty())
+            return Result::Error;
+        if (visit.currentNodeRef() == original)
+        {
+            if (!pausedPostNode)
+            {
+                pausedPostNode = true;
+                return Result::Pause;
+            }
+            visit.restartCurrentNode(replacement);
+        }
+        return Result::Continue;
+    });
+    visit.setPostChildVisitor([&](AstNode&, AstNodeRef& childRef) {
+        if (visit.currentNodeRef() == root && childRef == original && !pausedPostChild)
+        {
+            pausedPostChild = true;
+            return Result::Pause;
+        }
+        return Result::Continue;
+    });
+    visit.start(ast, root);
+    bool stopped = false;
+    for (size_t step = 0; step < 1000 && !stopped; ++step)
+    {
+        const AstVisitResult result = visit.step(compilerCtx);
+        if (result == AstVisitResult::Error)
+            return Result::Error;
+        stopped = result == AstVisitResult::Stop;
+    }
+
+    std::vector<AstNodeRef> expected = {root, skipped, original, oldLeaf, replacement, nested};
+    expected.insert(expected.end(), leaves.begin(), leaves.end());
+    expected.push_back(last);
+    if (!stopped || entered != expected || !pausedPreChild || !pausedPreNode || !pausedPostNode || !pausedPostChild)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_AstVisitResolvesChildrenWithoutFollowingActiveAncestors)
+{
+    CommandLine      cmdLine;
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext      compilerCtx(compiler);
+    SourceFile&      source = Unittest::addTestSource(compilerCtx, "Compiler", "AstVisitResolvedChildren", "");
+    Ast&             ast = source.ast();
+    std::array<AstNodeRef, 6> refs;
+    for (AstNodeRef& ref : refs)
+        ref = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first;
+    const auto [root, identity, substituted, replacement, cyclic, unresolved] = refs;
+    const std::array children = {identity, substituted, cyclic, unresolved};
+    ast.node<AstNodeId::ArrayLiteral>(root)->spanChildrenRef = ast.pushSpan(std::span<const AstNodeRef>(children));
+
+    AstVisit visit;
+    visit.setMode(AstVisitMode::ResolveBeforeCallbacks);
+    visit.setNodeRefResolver([&](AstNodeRef ref) {
+        if (ref == substituted)
+            return replacement;
+        if (ref == cyclic)
+            return root;
+        if (ref == unresolved)
+            return AstNodeRef::invalid();
+        return ref;
+    });
+    std::vector<AstNodeRef> entered;
+    visit.setPreNodeVisitor([&](AstNode&) {
+        entered.push_back(visit.currentNodeRef());
+        return Result::Continue;
+    });
+    const std::array resolvedChildren = {identity, replacement, cyclic, unresolved};
+    visit.setPreChildVisitor([&](AstNode&, AstNodeRef& childRef) {
+        if (!std::ranges::equal(visit.currentChildren(), resolvedChildren) || childRef != resolvedChildren[visit.preChildIndex()])
+            return Result::Error;
+        return Result::Continue;
+    });
+    visit.start(ast, root);
+    bool stopped = false;
+    for (size_t step = 0; step < 100 && !stopped; ++step)
+    {
+        const AstVisitResult result = visit.step(compilerCtx);
+        if (result == AstVisitResult::Error)
+            return Result::Error;
+        stopped = result == AstVisitResult::Stop;
+    }
+    const std::array expected = {root, identity, replacement, cyclic, unresolved};
+    if (!stopped || !std::ranges::equal(entered, expected))
+        return Result::Error;
 }
 SWC_TEST_END()
 

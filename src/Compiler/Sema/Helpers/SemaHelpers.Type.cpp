@@ -97,7 +97,7 @@ namespace
         return !vCheck.gt(maxSignedU);
     }
 
-    TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values);
+    TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, std::span<const ConstantRef> values);
     TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
 
     bool isAggregateTypeLikeElement(Sema& sema, TypeRef typeRef)
@@ -360,7 +360,7 @@ namespace
         return true;
     }
 
-    TypeRef deduceConcretizedAggregateStructArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values)
+    TypeRef deduceConcretizedAggregateStructArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, std::span<const ConstantRef> values)
     {
         if (elemTypes.empty())
             return TypeRef::invalid();
@@ -411,8 +411,8 @@ namespace
             fieldTypes.reserve(elemTypes.size());
 
             SmallVector<ConstantRef> fieldValues;
-            bool                     hasFieldValues = values != nullptr;
-            if (values)
+            bool                     hasFieldValues = !values.empty();
+            if (!values.empty())
                 fieldValues.reserve(elemTypes.size());
 
             for (size_t elemIndex = 0; elemIndex < elemTypes.size(); ++elemIndex)
@@ -420,10 +420,10 @@ namespace
                 const TypeInfo& aggregateType = typeMgr.get(elemTypes[elemIndex]);
                 fieldTypes.push_back(aggregateType.payloadAggregate().types[fieldIndex]);
 
-                if (!values)
+                if (values.empty())
                     continue;
 
-                const ConstantRef elemCstRef = elemIndex < values->size() ? (*values)[elemIndex] : ConstantRef::invalid();
+                const ConstantRef elemCstRef = elemIndex < values.size() ? values[elemIndex] : ConstantRef::invalid();
                 if (!elemCstRef.isValid())
                 {
                     hasFieldValues = false;
@@ -440,15 +440,8 @@ namespace
                 fieldValues.push_back(elemCst.getAggregateStruct()[fieldIndex]);
             }
 
-            const std::vector<ConstantRef>* fieldValuesPtr = nullptr;
-            std::vector<ConstantRef>        fieldValuesStorage;
-            if (values && hasFieldValues && fieldValues.size() == elemTypes.size())
-            {
-                fieldValuesStorage.assign(fieldValues.begin(), fieldValues.end());
-                fieldValuesPtr = &fieldValuesStorage;
-            }
-
-            const TypeRef mergedFieldTypeRef = deduceConcretizedAggregateArrayElementType(sema, fieldTypes.span(), fieldValuesPtr);
+            const std::span<const ConstantRef> fieldConstants = hasFieldValues && fieldValues.size() == elemTypes.size() ? fieldValues.span() : std::span<const ConstantRef>{};
+            const TypeRef mergedFieldTypeRef = deduceConcretizedAggregateArrayElementType(sema, fieldTypes.span(), fieldConstants);
             if (!mergedFieldTypeRef.isValid())
                 return TypeRef::invalid();
 
@@ -492,18 +485,14 @@ namespace
             return TypeRef::invalid();
 
         const std::array elementTypes      = {leftType.payloadArrayElemTypeRef(), rightType.payloadArrayElemTypeRef()};
-        const TypeRef    mergedElemTypeRef = deduceConcretizedAggregateArrayElementType(sema, elementTypes, nullptr);
+        const TypeRef    mergedElemTypeRef = deduceConcretizedAggregateArrayElementType(sema, elementTypes, {});
         if (!mergedElemTypeRef.isValid())
             return TypeRef::invalid();
 
-        SmallVector<uint64_t> dims;
-        dims.reserve(leftType.payloadArrayDims().size());
-        for (const uint64_t dim : leftType.payloadArrayDims())
-            dims.push_back(dim);
-        return typeMgr.addType(TypeInfo::makeArray(dims.span(), mergedElemTypeRef, TypeInfoFlagsE::Zero, leftType.payloadArrayIndexTypeRefs()));
+        return typeMgr.addType(TypeInfo::makeArray(leftType.payloadArrayDims(), mergedElemTypeRef, TypeInfoFlagsE::Zero, leftType.payloadArrayIndexTypeRefs()));
     }
 
-    TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values)
+    TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, std::span<const ConstantRef> values)
     {
         const TypeManager&   typeMgr = sema.typeMgr();
         SmallVector<TypeRef> concreteElemTypes;
@@ -512,7 +501,7 @@ namespace
         TypeRef resultTypeRef = TypeRef::invalid();
         for (size_t i = 0; i < elemTypes.size(); ++i)
         {
-            const ConstantRef elemCstRef  = values && i < values->size() ? (*values)[i] : ConstantRef::invalid();
+            const ConstantRef elemCstRef  = i < values.size() ? values[i] : ConstantRef::invalid();
             const TypeRef     elemTypeRef = normalizeAggregateTypeLikeElementType(sema, deduceConcretizedAggregateLiteralTypeImpl(sema, elemTypes[i], elemCstRef), elemCstRef);
             concreteElemTypes.push_back(elemTypeRef);
 
@@ -538,7 +527,7 @@ namespace
 
         for (size_t i = 0; i < elemTypes.size(); ++i)
         {
-            const ConstantRef elemCstRef  = values && i < values->size() ? (*values)[i] : ConstantRef::invalid();
+            const ConstantRef elemCstRef  = i < values.size() ? values[i] : ConstantRef::invalid();
             const TypeRef     elemTypeRef = concreteElemTypes[i];
             if (!resultTypeRef.isValid())
             {
@@ -606,12 +595,12 @@ TypeRef SemaHelpers::deduceConcretizedAggregateArrayType(Sema& sema, TypeRef typ
     if (elemTypes.empty())
         return typeRef;
 
-    const std::vector<ConstantRef>* values = nullptr;
+    std::span<const ConstantRef> values;
     if (cstRef.isValid())
     {
         const ConstantValue& cst = sema.cstMgr().get(cstRef);
         if (cst.isAggregateArray())
-            values = &cst.getAggregateArray();
+            values = cst.getAggregateArray();
     }
 
     const TypeRef elemTypeRef = deduceConcretizedAggregateArrayElementType(sema, elemTypes, values);
@@ -1226,18 +1215,13 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
     return Result::Continue;
 }
 
-Result SemaHelpers::resolveArrayLikeChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outTypeRef)
+Result SemaHelpers::resolveArrayLikeChildBindingType(Sema& sema, size_t childIndex, TypeRef targetTypeRef, TypeRef& outTypeRef)
 {
     outTypeRef              = TypeRef::invalid();
     const TypeRef targetRef = unwrapBindingType(sema.ctx(), targetTypeRef);
     if (!targetRef.isValid())
         return Result::Continue;
 
-    const auto childIt = std::ranges::find(children, childRef);
-    if (childIt == children.end())
-        return Result::Continue;
-
-    const size_t    childIndex = static_cast<size_t>(std::distance(children.begin(), childIt));
     const TypeInfo& targetType = sema.typeMgr().get(targetRef);
     if (targetType.isArray())
     {

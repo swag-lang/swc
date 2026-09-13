@@ -216,7 +216,33 @@ namespace
         return &sym->cast<SymbolFunction>();
     }
 
-    Result validateInlineBindingOuterScopeVariables(Sema& sema, const SymbolFunction& currentFn, AstNodeRef exprRef, SmallVector<AstNodeRef>& visited)
+    struct InlineBindingVisitedNodes
+    {
+        SmallVector<AstNodeRef>                         small;
+        std::optional<std::unordered_set<AstNodeRef>> large;
+
+        bool insert(AstNodeRef nodeRef)
+        {
+            if (large)
+                return large->insert(nodeRef).second;
+            if (std::ranges::find(small, nodeRef) != small.end())
+                return false;
+            if (small.size() < small.capacity())
+            {
+                small.push_back(nodeRef);
+                return true;
+            }
+
+            // The vector has only used its inline storage. At the first overflow,
+            // switch to membership lookup instead of growing a quadratic visited scan.
+            large.emplace();
+            large->reserve(small.size() * 2);
+            large->insert(small.begin(), small.end());
+            return large->insert(nodeRef).second;
+        }
+    };
+
+    Result validateInlineBindingOuterScopeVariables(Sema& sema, const SymbolFunction& currentFn, AstNodeRef exprRef, InlineBindingVisitedNodes& visited)
     {
         if (exprRef.isInvalid())
             return Result::Continue;
@@ -232,9 +258,8 @@ namespace
             pending.pop_back();
             if (nodeRef.isInvalid())
                 continue;
-            if (std::ranges::find(visited, nodeRef) != visited.end())
+            if (!visited.insert(nodeRef))
                 continue;
-            visited.push_back(nodeRef);
 
             const AstNode& node = sema.node(nodeRef);
             if (node.is(AstNodeId::Identifier))
@@ -300,7 +325,7 @@ namespace
         if (!currentFn)
             return Result::Continue;
 
-        SmallVector<AstNodeRef> visited;
+        InlineBindingVisitedNodes visited;
         return validateInlineBindingOuterScopeVariables(sema, *currentFn, exprRef, visited);
     }
 

@@ -758,6 +758,10 @@ namespace
             {
                 splitCount = count;
                 splitIndex = index;
+                // No later chunk can improve on one distinct value per case. Ties
+                // already keep the first chunk, so the selected split is unchanged.
+                if (count == cases.size())
+                    break;
             }
         }
 

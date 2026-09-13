@@ -46,6 +46,15 @@ public:
     AstNodeRef     currentNodeRef() const { return stack_.back().nodeRef; }
     bool           enteringState() const { return stack_.back().firstPass; }
 
+    // The view remains valid only until traversal advances or the current node restarts.
+    std::span<const AstNodeRef> currentChildren() const { return children_.span().subspan(stack_.back().firstChildIx, stack_.back().numChildren); }
+    uint32_t preChildIndex() const
+    {
+        const Frame& frame = stack_.back();
+        SWC_ASSERT(frame.stage == Frame::Stage::Children && !frame.pendingPostChild && frame.nextChildIx < frame.numChildren);
+        return frame.nextChildIx;
+    }
+
     AstNodeRef root() const { return rootRef_; }
     const Ast& ast() const { return *(ast_); }
     Ast&       ast() { return *(ast_); }

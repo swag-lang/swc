@@ -445,9 +445,9 @@ namespace
                 baseReg = copyAddressBaseReg(codeGen, baseReg);
         }
 
-        // Multidimensional indexing is just repeated address computation with the stride of the current
-        // element type.
-        const uint64_t resultSize = resolveIndexStrideSize(codeGen, indexedType);
+        // The caller already resolved the element type, including any remaining array
+        // dimensions. Reuse it instead of constructing and interning that type again.
+        const uint64_t resultSize = codeGen.typeMgr().get(resultTypeRef).sizeOf(codeGen.ctx());
         SWC_ASSERT(resultSize > 0);
 
         outPayload.typeRef = resultTypeRef;

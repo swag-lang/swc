@@ -45,6 +45,9 @@ void AstVisit::restartCurrentNode(AstNodeRef nodeRef)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(!stack_.empty());
+    const Frame& frame = stack_.back();
+    if (frame.numChildren)
+        children_.resize(frame.firstChildIx);
     resetFrame(stack_.back(), nodeRef);
 }
 
@@ -247,6 +250,9 @@ AstVisitResult AstVisit::stepPostStage(Frame& frame)
         frame.postNodeState = Frame::CallState::Done;
     }
 
+    // Only collected, nonempty frames own a suffix; SkipChildren leaves firstChildIx at zero.
+    if (frame.numChildren)
+        children_.resize(frame.firstChildIx);
     stack_.pop_back();
     if (stack_.empty())
         return AstVisitResult::Stop;
@@ -274,7 +280,7 @@ void AstVisit::collectChildren(Frame& frame)
             continue;
 
         const AstNodeRef resolvedRef = nodeRefResolver_(childRef);
-        if (resolvedRef.isInvalid())
+        if (resolvedRef.isInvalid() || resolvedRef == childRef)
             continue;
 
         bool resolvesToActiveFrame = false;

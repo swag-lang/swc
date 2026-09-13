@@ -1,7 +1,7 @@
 # Semantic analysis and code generation work reductions, 2026-09-13
 
 This change removes repeated work outside the micro passes. Functional validation targets
-compiler builds 532 and 533 on `1cb02fdaa` plus the changes below. Work is isolated on
+compiler builds 532 through 534 on `1cb02fdaa` plus the changes below. Work is isolated on
 `perf/sema-codegen-compile-time` in the `swc-sema-codegen-perf` worktree. Micro-pass work has its own
 [report](../20260913/README.md).
 
@@ -97,3 +97,45 @@ Focused evidence: [JIT bindings](jit-binding-533.log), [native bindings](native-
 [move elision](native-move-533.log), [return move](native-return-533.log),
 [static use-after-free checks](sanity-free-533.log), [Release-compiler bindings](release-compiler-binding-533.log),
 and [Release-compiler constant addresses](release-compiler-rdata-533.log).
+
+## Additional reductions in build 534
+
+| Area | Removed work | Preserved contract |
+| --- | --- | --- |
+| AST traversal | Completed child ranges are retired from the traversal stack. Identity resolutions skip the active-ancestor scan. | Pause, skip, restart, replacement, and active-ancestor handling retain their callback order. Borrowed child views last only until traversal advances. |
+| Literal contexts | Child callbacks borrow the visitor's collected range; array binding uses the current child index. | Struct member mapping and contextual sibling inference retain their previous behavior. |
+| Aggregate concretization | Constant values and dimensions are passed through spans instead of copied into intermediate vectors. | Scalar promotion, constant fitting, and nested array shape deduction are unchanged. |
+| Inline binding validation | Visited sets stay inline for up to 16 nodes, then switch to hashed membership. | Nested function validation shares the same visited identity and traversal order. |
+| Generic aggregate matching | An extra assigned-entry buffer is removed. | Named entries are already excluded from the monotonically advancing positional cursor. Duplicate and missing members retain their checks. |
+| Index and string-switch lowering | Index addressing reuses the computed result type. A switch split search stops once every case is distinguishable. | Array, pointer, SIMD, string, and variadic element sizes are unchanged; split ties still retain the first candidate. |
+| Native preparation | Function names and artifact lookup tables are built once after lowering and executable pruning stabilize. | Code generation uses the same symbol order and completion barriers. JIT retains the complete lowered segment. Missing-code diagnostics construct their metadata on demand. |
+
+Two C++ visitor regressions exercise pauses at each callback boundary, skipped children, restarted
+nodes, sibling preservation, substituted children, and ancestor-resolution rejection. New JIT
+fixtures cover contextual literals and closure binding traversal beyond inline visited storage;
+the latter also runs natively. The literal test keeps the existing `s32` concretization of an
+unannotated scalar field and the existing constant-fitting behavior of nested `u8` arrays.
+
+Both build-534 compiler configurations built successfully. The full C++ selection passed 682
+tests, with the same 28 filesystem tests excluded. Semantic analysis verified 278 valid and 293
+expected-error inputs. The full JIT suite passed 1,400 tests.
+
+Focused DevMode checks passed for literal context (2 JIT tests), binding growth (1 JIT and 1
+native test), aggregate field order, union deduction, array sibling binding, index lists (3),
+dereferenced indexing (9), collection casts (1), untyped variadics (2), typed variadics (4), SIMD
+lanes (1), and switch dispatch (17). The Release compiler passed the native index-list (3),
+switch-dispatch (17), and binding-growth (1) fixtures, all with six workers.
+
+| Build-534 complete suite | Result | Evidence |
+| --- | --- | --- |
+| C++ | 682 passed | [Log](cpp-534.log) |
+| Semantic analysis | 278 valid inputs and 293 expected-error inputs verified | [Log](sema-534.log) |
+| JIT | 1,400 passed | [Log](jit-534.log) |
+| Native, program configuration `devmode` | 3,137 passed; generated executable passed | [Log](native-devmode-534.log) |
+| Native, program configuration `release` | 3,137 passed; generated executable passed | [Log](native-release-534.log) |
+
+Focused evidence: [literal contexts](jit-literal-context-534.log),
+[JIT binding growth](jit-binding-growth-534.log), [native binding growth](native-binding-growth-534.log),
+[Release-compiler indexing](release-compiler-index_list-534.log),
+[Release-compiler dispatch](release-compiler-switch_dispatch-534.log),
+and [Release-compiler binding growth](release-compiler-binding_visit_growth-534.log).

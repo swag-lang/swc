@@ -208,7 +208,7 @@ namespace SemaHelpers
     TypeRef            deduceConcretizedAggregateArrayType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
     TypeRef            deduceConcretizedAggregateLiteralType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
     Result             resolveStructLikeChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outTypeRef);
-    Result             resolveArrayLikeChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outTypeRef);
+    Result             resolveArrayLikeChildBindingType(Sema& sema, size_t childIndex, TypeRef targetTypeRef, TypeRef& outTypeRef);
     void               handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym);
     void               ensureCurrentLocalScopeSymbol(Sema& sema, Symbol* sym);
     void               ensureCurrentLocalScopeSymbols(Sema& sema, std::span<Symbol* const> symbols);

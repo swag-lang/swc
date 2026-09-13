@@ -484,28 +484,34 @@ namespace
         return functions;
     }
 
+    NativeFunctionInfo makeFunctionInfo(NativeBackendBuilder& builder, SymbolFunction& symbol, const uint32_t ordinal)
+    {
+        NativeFunctionInfo info;
+        info.symbol                   = &symbol;
+        info.machineCode              = &symbol.loweredCode();
+        info.sortKey                  = SymbolSort::locationKey(builder.compiler(), symbol);
+        const bool exportPublicSymbol = supportsExportedPublicFunctionSymbols(builder) && symbol.isPublic() && !isCompilerFunction(symbol) && symbol.supportsPublicApiForeignExport();
+        if (exportPublicSymbol)
+            info.symbolName = symbol.computePublicApiSymbolName(builder.ctx());
+        else
+            info.symbolName = buildLocalFunctionSymbolName(builder, info, ordinal);
+        info.debugName  = symbol.getFullScopedName(builder.ctx());
+        info.exported   = exportPublicSymbol;
+        info.compilerFn = isCompilerFunction(symbol);
+        return info;
+    }
+
     void rebuildFunctionInfos(NativeBackendBuilder& builder, const std::vector<SymbolFunction*>& functions)
     {
         builder.functionInfos.clear();
         builder.functionBySymbol.clear();
+        builder.functionInfos.reserve(functions.size());
+        builder.functionBySymbol.reserve(functions.size());
 
         for (SymbolFunction* symbol : functions)
         {
             SWC_ASSERT(symbol != nullptr);
-
-            NativeFunctionInfo info;
-            info.symbol                   = symbol;
-            info.machineCode              = &symbol->loweredCode();
-            info.sortKey                  = SymbolSort::locationKey(builder.compiler(), *symbol);
-            const bool exportPublicSymbol = supportsExportedPublicFunctionSymbols(builder) && symbol->isPublic() && !isCompilerFunction(*symbol) && symbol->supportsPublicApiForeignExport();
-            if (exportPublicSymbol)
-                info.symbolName = symbol->computePublicApiSymbolName(builder.ctx());
-            else
-                info.symbolName = buildLocalFunctionSymbolName(builder, info, static_cast<uint32_t>(builder.functionInfos.size()));
-            info.debugName  = symbol->getFullScopedName(builder.ctx());
-            info.exported   = exportPublicSymbol;
-            info.compilerFn = isCompilerFunction(*symbol);
-            builder.functionInfos.push_back(std::move(info));
+            builder.functionInfos.push_back(makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(builder.functionInfos.size())));
         }
 
         for (const auto& info : builder.functionInfos)
@@ -549,9 +555,9 @@ namespace
         return true;
     }
 
-    Result scheduleCodeGen(NativeBackendBuilder& builder)
+    Result scheduleCodeGen(NativeBackendBuilder& builder, const std::span<SymbolFunction* const> functions)
     {
-        if (builder.functionInfos.empty())
+        if (functions.empty())
             return Result::Continue;
 
         SourceFile* firstFile = nullptr;
@@ -569,19 +575,23 @@ namespace
 
         Sema        baseSema(builder.ctx(), firstFile->nodePayloadContext(), false);
         JobManager& jobMgr = builder.ctx().global().jobMgr();
-        for (const auto& info : builder.functionInfos)
+        for (size_t index = 0; index < functions.size(); ++index)
         {
-            SWC_ASSERT(info.symbol != nullptr);
-            if (info.symbol->isCodeGenCompleted() || !info.symbol->loweredCode().bytes.empty())
+            SymbolFunction* symbol = functions[index];
+            SWC_ASSERT(symbol != nullptr);
+            if (symbol->isCodeGenCompleted() || !symbol->loweredCode().bytes.empty())
                 continue;
-            if (!info.symbol->tryMarkCodeGenJobScheduled())
+            if (!symbol->tryMarkCodeGenJobScheduled())
                 continue;
 
-            const AstNodeRef root = info.symbol->declNodeRef();
+            const AstNodeRef root = symbol->declNodeRef();
             if (root.isInvalid())
+            {
+                const auto info = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(index));
                 return builder.reportError(DiagnosticId::cmd_err_native_codegen_decl_missing, Diagnostic::ARG_SYM, info.symbolName);
+            }
 
-            auto* job = builder.compiler().makeJob<CodeGenJob>(builder.ctx(), baseSema, *info.symbol, root);
+            auto* job = builder.compiler().makeJob<CodeGenJob>(builder.ctx(), baseSema, *symbol, root);
             jobMgr.enqueue(*job, JobPriority::Normal, builder.compiler().jobClientId());
         }
 
@@ -589,21 +599,20 @@ namespace
         if (Stats::hasError())
             return Result::Error;
 
-        for (const auto& info : builder.functionInfos)
+        for (size_t index = 0; index < functions.size(); ++index)
         {
-            if (!info.machineCode || info.machineCode->bytes.empty())
+            SymbolFunction* symbol = functions[index];
+            if (symbol->loweredCode().bytes.empty())
             {
                 // A function that reported an error during codegen (e.g. the static null
                 // dereference analysis) legitimately produces no machine code. Don't
                 // re-report it as missing — the primary error already failed the build
                 // (or was matched by a test's expected-error marker).
-                if (info.symbol)
-                {
-                    const SourceFile* file = builder.compiler().ownerSourceFile(info.symbol->srcViewRef());
-                    if (file && file->hasError())
-                        continue;
-                }
+                const SourceFile* file = builder.compiler().ownerSourceFile(symbol->srcViewRef());
+                if (file && file->hasError())
+                    continue;
 
+                const auto  info         = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(index));
                 const Utf8& reportedName = info.debugName.empty() ? info.symbolName : info.debugName;
                 return builder.reportError(DiagnosticId::cmd_err_native_codegen_machine_code_missing, Diagnostic::ARG_SYM, reportedName);
             }
@@ -1028,8 +1037,7 @@ Result NativeBackendBuilder::prepare()
     {
         appendCodeGenDependencies(*this, functions);
         SymbolSort::sortAndUniqueByLocation(functions, *compiler_);
-        rebuildFunctionInfos(*this, functions);
-        SWC_RESULT(scheduleCodeGen(*this));
+        SWC_RESULT(scheduleCodeGen(*this, functions));
 
         const bool addedCallDeps     = appendCodeGenDependencies(*this, functions);
         const bool addedConstantDeps = appendConstantFunctionDependencies(*this, functions);
@@ -1043,7 +1051,6 @@ Result NativeBackendBuilder::prepare()
                 filterPreparedSymbols(preMainFunctions, *this);
                 filterPreparedSymbols(dropFunctions, *this);
                 filterPreparedSymbols(mainFunctions, *this);
-                rebuildFunctionInfos(*this, functions);
             }
 
             // Preparing native code also serves the JIT, which must keep the complete lowered
@@ -1060,9 +1067,12 @@ Result NativeBackendBuilder::prepare()
                         break;
                 }
                 SymbolSort::sortAndUniqueByLocation(executableFunctions, *compiler_);
-                rebuildFunctionInfos(*this, executableFunctions);
+                functions = std::move(executableFunctions);
             }
 
+            // Code generation only needs symbols. Build artifact names and lookup tables
+            // once the dependency set and executable reachability have stopped changing.
+            rebuildFunctionInfos(*this, functions);
             if (microStage)
                 microStage->setStat(ScopedTimedLog::formatStatCount(ctx_, functionInfos.size(), "function"));
             return Result::Continue;

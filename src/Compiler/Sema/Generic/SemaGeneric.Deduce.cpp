@@ -526,7 +526,6 @@ namespace
         outOrder.resize(patternFields.size());
         for (size_t& index : outOrder)
             index = SIZE_MAX;
-        SmallVector<bool> usedActualEntries(actualAggregate.types.size(), false);
 
         for (size_t actualIndex = 0; actualIndex < actualAggregate.types.size(); ++actualIndex)
         {
@@ -544,8 +543,7 @@ namespace
             if (patternIndex == patternFields.size() || outOrder[patternIndex] != SIZE_MAX)
                 return false;
 
-            outOrder[patternIndex]         = actualIndex;
-            usedActualEntries[actualIndex] = true;
+            outOrder[patternIndex] = actualIndex;
         }
 
         size_t nextUnnamedActualIndex = 0;
@@ -557,7 +555,7 @@ namespace
             while (nextUnnamedActualIndex < actualAggregate.types.size())
             {
                 const IdentifierRef actualIdRef = nextUnnamedActualIndex < actualAggregate.names.size() ? actualAggregate.names[nextUnnamedActualIndex] : IdentifierRef::invalid();
-                if (!usedActualEntries[nextUnnamedActualIndex] && !actualIdRef.isValid())
+                if (!actualIdRef.isValid())
                     break;
                 ++nextUnnamedActualIndex;
             }
@@ -569,8 +567,7 @@ namespace
                 return false;
             }
 
-            outOrder[patternIndex]                    = nextUnnamedActualIndex;
-            usedActualEntries[nextUnnamedActualIndex] = true;
+            outOrder[patternIndex] = nextUnnamedActualIndex;
             ++nextUnnamedActualIndex;
         }
 

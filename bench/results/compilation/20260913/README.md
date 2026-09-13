@@ -72,3 +72,13 @@ No misplaced `.output` directory was found under the test sources; only the cano
 No Release compiler rebuild or further timing campaign was needed for this continuation.
 The previous build 523 measurements and microcode comparison remain historical evidence
 in the September 12 report; they do not measure build 524.
+
+## Integration with master
+
+Build 525 combines the validated static changes with master `516cc0531`.
+Only the version and backlog index needed conflict resolution; the micro-pass changes
+were unchanged. The DevMode build, all 685 C++ tests, and all 3,131 native tests in each
+of `devmode` and `release` passed again on the combined sources, with six workers.
+Evidence: [build](integration-build.log), [C++](integration-cpp.log),
+[native devmode](integration-native-devmode.log), [native release](integration-native-release.log).
+The repository backlog validator also passed. These are functional checks, not performance measurements.

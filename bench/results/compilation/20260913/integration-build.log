@@ -1,0 +1,10 @@
+
+  DebugInfoCodeView.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  Sema.Compiler.cpp
+  SemaInline.cpp
+  DocPage.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe

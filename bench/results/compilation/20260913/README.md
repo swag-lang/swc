@@ -1,6 +1,6 @@
 # Static compilation-cost reductions, 2026-09-13
 
-Latest validated compiler: **build 549**. Each batch is functionally validated before
+Latest validated compiler: **build 550**. Each batch is functionally validated before
 integration into master. The load-admission waiver applies to this session; performance
 measurements remain deferred until the final campaign.
 
@@ -25,6 +25,40 @@ measurements remain deferred until the final campaign.
 | 17 | 547 | 759 passed | 3,131 / 3,131 passed | [Integer results and SLP permutation roots](batch17.md) |
 | 18 | 548 | 760 passed | 3,131 / 3,131 passed | [Extensions, tuple keys and coalescing setup](batch18.md) |
 | 19 | 549 | 763 passed | 3,131 / 3,131 passed | [Predecessors, returns and early load rejection](batch19.md) |
+| 20 | 550 | 763 passed | 3,131 / 3,131 passed | [Early header and multiplier rejection](batch20.md) |
+
+## Worker count and deferred comparison
+
+Benchmark compilation is not capped at six workers by default. `--cores` in
+[`bench/compile.py`](../../../compile.py) and `--swc-cores` in
+[`bench/driver.py`](../../../driver.py) default to zero. The
+[workload builder](../../../toolchains.py) then omits `--num-cores`, and compiler
+processes use [`winproc.run`](../../../winproc.py) with its default `pin=False`.
+The driver's six-performance-core affinity applies to executing timed benchmark
+programs. The six-worker limits in this report apply only to validation.
+
+The pending campaign must compare Release compiler binaries built from recorded
+baseline and final revisions, using identical workload sources and build settings.
+Keep their paths and hashes with the results, force rebuilds, alternate candidate
+and baseline order, and retain per-round wall time, CPU time and memory samples.
+Report paired ratios and the observed spread; the September 12 figures remain
+historical and do not quantify the additional static changes recorded here.
+
+The existing [compile-only comparison script](../20260912/compare.py) compiles the
+seven native benchmark inputs and core without running generated benchmark programs.
+After preparing fresh `bin/swc.baseline.exe` and `bin/swc.candidate.exe`, these are
+commands for that future campaign, not commands run in this continuation:
+
+```text
+python bench/results/compilation/20260912/compare.py --label final-native-release --cfg release --cores 0 --reps 7
+python bench/results/compilation/20260912/compare.py --label final-core-devmode --cfg devmode --tasks core --cores 0 --reps 7
+```
+
+Run them when the shared CPU is quiet. The script retains its own admission checks;
+this session's validation waiver does not turn noisy timing samples into useful evidence.
+Its JSON output is under `.tmp/compile-perf`; archive that output with the exact revisions
+and common source identity before drawing conclusions. No benchmark or timing campaign
+was launched for these static batches.
 
 The remaining sections document the first batch and its integration.
 
@@ -49,7 +83,6 @@ those numbers do not measure this additional change.
 | Single-block SSA skips general dominator and phi setup | DFS, fixed-point workspaces, definition-block collection, phi worklists | The only block dominates itself; no two-predecessor join exists inside this block representation. |
 | Trivial SSA use queries return before preparing traversal scratch | Visit stamps and traversal-stack operations for empty use lists or a first direct instruction use | These cases directly answer the existing boolean or capped-count query. |
 | The rename position replaces an unread instruction-reference field | Enlarging every SSA instruction record and writing the unused reference | The removed field had no readers; instruction references remain in the slot/order mapping and SSA value records. |
-
 | Dominance queries use dominator-tree DFS intervals | Walking the ancestor chain for every dominance test | A node dominates exactly the nodes in its subtree interval. The conversion reuses existing construction buffers; unreachable nodes retain invalid markers. |
 | DCE shares one SSA snapshot across removal waves | Rebuilding CFG, dominators, phis, and SSA for every level of a dead chain | Erasing a dead definition cannot change a surviving use's reaching value. Per-wave usage propagates backwards from surviving instruction consumers through phis, including cycles. Erasure order and live flag checks remain unchanged. |
 | Constant folding checks viable operands before flag scans | Scanning suffixes for operations whose values are unknown; scanning for constant-memory loads without any constant relocation | These early exits apply only when the original fold could not succeed. |

@@ -309,8 +309,6 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             const MicroInstrRef cmpRef = order[jccOrdinal - 1];
             const MicroInstrRef jccRef = order[jccOrdinal];
 
-            const uint32_t firstFreshVirtual = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
-
             // A copy defines the body's temporaries anew. A register the body
             // writes outright before it reads it, and nothing outside the body
             // reads, is a temporary of one trip: it takes a fresh name at each
@@ -378,9 +376,17 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 });
             }
 
+            // The renaming analysis is read-only, so both files can share one
+            // scan here while still observing the original instruction stream.
+            uint32_t firstFreshVirtual = 0;
+            uint32_t nextFreshFloat    = 0;
+            if (hasRenamableFloat)
+                MicroPassHelpers::computeNextVirtualRegIndices(context, firstFreshVirtual, nextFreshFloat);
+            else
+                firstFreshVirtual = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+
             std::unordered_map<MicroReg, MicroReg> currentName;
-            uint32_t                               nextFreshInt   = firstFreshVirtual + static_cast<uint32_t>(trips) - 1;
-            uint32_t                               nextFreshFloat = hasRenamableFloat ? MicroPassHelpers::computeNextVirtualFloatRegIndex(context) : 0;
+            uint32_t                               nextFreshInt = firstFreshVirtual + static_cast<uint32_t>(trips) - 1;
 
             for (uint64_t k = 1; k < trips; ++k)
             {

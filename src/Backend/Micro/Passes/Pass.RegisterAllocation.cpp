@@ -695,12 +695,18 @@ void MicroRegisterAllocationPass::computeVirtualLiveSpans()
 
 void MicroRegisterAllocationPass::computeConcreteClaimPositions()
 {
+    // An unsuccessful interval allocation leaves these inputs unchanged for
+    // the fallback allocator. clearState invalidates the claims on every run.
+    if (!concreteClaimPositionsByDenseIndex_.empty() || denseConcreteRegs_.regs().empty())
+        return;
+
     // Every instruction at which a fixed register is spoken for: named as an
     // operand, defined by an ABI shuffle, clobbered by a call, or merely live
     // between two of those. A global may not take a register over any of them.
-    concreteClaimPositionsByDenseIndex_.clear();
     concreteClaimPositionsByDenseIndex_.resize(denseConcreteRegs_.regs().size());
 
+    // Ascending instruction indices and adjacent duplicate suppression keep
+    // every register's positions strictly ordered without a separate sort.
     const uint32_t wordCount = denseConcreteRegs_.wordCount();
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
@@ -724,9 +730,6 @@ void MicroRegisterAllocationPass::computeConcreteClaimPositions()
             }
         }
     }
-
-    for (auto& positions : concreteClaimPositionsByDenseIndex_)
-        std::ranges::sort(positions);
 }
 
 void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& outBenefit) const
@@ -3174,7 +3177,9 @@ bool MicroRegisterAllocationPass::isStraightLineRange(const uint32_t lo, const u
     uint32_t idx = 0;
     for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
     {
-        if (idx < lo || idx > hi)
+        if (idx > hi)
+            break;
+        if (idx < lo)
             continue;
         if (it->op == MicroInstrOpcode::Label || MicroInstrInfo::isTerminatorInstruction(*it))
             return false;
@@ -3942,12 +3947,15 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         // value that borrowed it is past its last use. The range was checked to
         // be straight-line, so this reload runs exactly once for its save, and
         // at the same stack depth.
-        for (size_t restoreIndex = 0; restoreIndex < pendingBorrowRestores_.size();)
+        size_t retainedRestores = 0;
+        for (size_t restoreIndex = 0; restoreIndex < pendingBorrowRestores_.size(); ++restoreIndex)
         {
             const BorrowRestore& restore = pendingBorrowRestores_[restoreIndex];
             if (restore.atIndex != idx)
             {
-                ++restoreIndex;
+                if (retainedRestores != restoreIndex)
+                    pendingBorrowRestores_[retainedRestores] = restore;
+                ++retainedRestores;
                 continue;
             }
 
@@ -3960,8 +3968,9 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             reload.ops[3].valueU64 = spillMemOffset(restore.slotOffset, stackDepth);
             noteSpillAccess(reload.ops[3].valueU64, restore.slotBits);
             insertPending(instructionRef, reload);
-            pendingBorrowRestores_.erase(pendingBorrowRestores_.begin() + restoreIndex);
         }
+        // Both reload emission and retained requests keep their original order.
+        pendingBorrowRestores_.resize(retainedRestores);
 
         // With globals assigned, this is expected to spill nothing: a value
         // still live here either owns a register for its whole range or kept a

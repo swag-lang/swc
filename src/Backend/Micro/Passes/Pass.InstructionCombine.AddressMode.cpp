@@ -507,6 +507,37 @@ namespace InstructionCombine
         return false;
     }
 
+    bool Context::allFloatReadsFit(const MicroOpBits bits)
+    {
+        SWC_ASSERT(ssa);
+        SWC_ASSERT(bits == MicroOpBits::B32 || bits == MicroOpBits::B64);
+        FloatReadFit& cached = floatReadFits[bits == MicroOpBits::B64 ? 1 : 0];
+        if (cached != FloatReadFit::Unknown)
+            return cached == FloatReadFit::Fits;
+
+        // Rewrites are queued, so every candidate of this width asks the same
+        // question. Cache separately by width to retain each scan's early exit.
+        cached          = FloatReadFit::DoesNotFit;
+        const auto view = storage->view();
+        for (auto it = view.begin(); it != view.end(); ++it)
+        {
+            const auto* useDef = ssa->instrUseDef(it.current);
+            if (!useDef)
+                return false;
+            const MicroInstrOperand* useOps = it->ops(*operands);
+            for (const MicroReg used : useDef->uses)
+            {
+                if (!used.isVirtualFloat())
+                    continue;
+                const MicroOpBits readBits = it->op == MicroInstrOpcode::OpBinaryRegRegReg && useOps ? useOps[3].opBits : useReadBits(*it, useOps, used);
+                if (readBits == MicroOpBits::Zero || getNumBytes(readBits) > getNumBytes(bits))
+                    return false;
+            }
+        }
+        cached = FloatReadFit::Fits;
+        return true;
+    }
+
     // A pure result copied straight into an accumulator can define that
     // accumulator itself. Indexed addresses, three-operand arithmetic and
     // packed square roots read their explicit inputs before writing the destination.
@@ -538,30 +569,18 @@ namespace InstructionCombine
         if (ctx.builder &&
             (ctx.builder->shouldPreserveVirtualCopy(copyOps[0].reg) || ctx.builder->shouldPreserveVirtualCopy(copyOps[1].reg)))
             return false;
+        if (!valueHasSingleUse(*ctx.ssa, ops[0].reg, ref))
+            return false;
         if (sqrt)
         {
             // MOVSS/MOVSD retain the copy destination's higher lanes, while
             // SQRTPS/SQRTPD replace them. Retarget only when every floating
             // read in the function stays within the scalar width; unknown or
             // wider consumers keep the original copy and its preserved lanes.
-            const auto view = ctx.storage->view();
-            for (auto it = view.begin(); it != view.end(); ++it)
-            {
-                const auto* useDef = ctx.ssa->instrUseDef(it.current);
-                if (!useDef)
-                    return false;
-                const MicroInstrOperand* useOps = it->ops(*ctx.operands);
-                for (const MicroReg used : useDef->uses)
-                {
-                    if (!used.isVirtualFloat())
-                        continue;
-                    const MicroOpBits readBits = it->op == MicroInstrOpcode::OpBinaryRegRegReg && useOps ? useOps[3].opBits : useReadBits(*it, useOps, used);
-                    if (readBits == MicroOpBits::Zero || getNumBytes(readBits) > getNumBytes(bits))
-                        return false;
-                }
-            }
+            if (!ctx.allFloatReadsFit(bits))
+                return false;
         }
-        if (!valueHasSingleUse(*ctx.ssa, ops[0].reg, ref) || !ctx.claimAll({ref, copyRef}))
+        if (!ctx.claimAll({ref, copyRef}))
             return false;
 
         MicroInstrOperand rewritten[8] = {};

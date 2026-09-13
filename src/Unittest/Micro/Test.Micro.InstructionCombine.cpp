@@ -1207,6 +1207,55 @@ SWC_TEST_BEGIN(InstCombine_SqrtResultCopy_PreservesPackedDestination)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_SqrtResultCopy_ReusesGlobalReadCheckByWidth)
+{
+    for (const bool mixedWidths : {false, true})
+    {
+        for (uint32_t blockingRead = 0; blockingRead < 3; ++blockingRead)
+        {
+            constexpr MicroReg           base = MicroReg::intReg(8);
+            MicroBuilder                 builder(ctx);
+            std::array<MicroInstrRef, 4> roots;
+            std::array<MicroInstrRef, 4> copies;
+            for (uint32_t i = 0; i < roots.size(); ++i)
+            {
+                const MicroOpBits bits   = mixedWidths && i % 2 ? MicroOpBits::B64 : MicroOpBits::B32;
+                const MicroReg    src    = MicroReg::virtualFloatReg(i * 3 + 1);
+                const MicroReg    result = MicroReg::virtualFloatReg(i * 3 + 2);
+                const MicroReg    copied = MicroReg::virtualFloatReg(i * 3 + 3);
+                if (i == 2)
+                    builder.placeLabel(builder.createLabel());
+                builder.emitLoadRegMem(src, base, i * 16, bits);
+                builder.emitOpBinaryRegReg(result, src, MicroOp::FloatSqrt, bits);
+                roots[i] = builder.instructions().lastInstructionRef();
+                builder.emitLoadRegReg(copied, result, bits);
+                copies[i] = builder.instructions().lastInstructionRef();
+                builder.emitLoadMemReg(base, 0x100 + i * 16, copied, bits);
+            }
+            // A later packed or unclassified read must reject every earlier
+            // candidate, even across blocks and after the first cached answer.
+            if (blockingRead == 1)
+                builder.emitLoadRegReg(MicroReg::virtualFloatReg(21), MicroReg::virtualFloatReg(3), MicroOpBits::B128);
+            else if (blockingRead == 2)
+                builder.emitStoreVecMemReg(base, 0x200, MicroReg::virtualFloatReg(3), MicroOpBits::B128);
+            builder.emitRet();
+
+            SWC_RESULT(runInstCombinePass(builder));
+            for (uint32_t i = 0; i < roots.size(); ++i)
+            {
+                const bool        folded = blockingRead == 0 && (!mixedWidths || i % 2 != 0);
+                const MicroInstr* inst   = builder.instructions().ptr(roots[i]);
+                if (!inst || inst->ops(builder.operands())[0].reg != MicroReg::virtualFloatReg(i * 3 + (folded ? 3 : 2)))
+                    return Result::Error;
+                if ((builder.instructions().ptr(copies[i]) == nullptr) != folded)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_SqrtResultCopy_KeepsOtherUses)
 {
     for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})

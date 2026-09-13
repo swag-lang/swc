@@ -166,6 +166,7 @@ SWC_TEST_BEGIN(LICM_RetargetsDuplicateRelocationsAndKeepsUnhoistedOnes)
     for (size_t index = 0; index < expected.size(); ++index)
     {
         auto& reloc          = expected[index];
+        reloc.kind           = MicroRelocation::Kind::GlobalInitAddress;
         reloc.instructionRef = originalRefs[index];
         reloc.targetAddress  = 0x1000 + index * 0x100;
         reloc.form           = index == 1 ? MicroRelocation::Form::Absolute64 : MicroRelocation::Form::Relative32;

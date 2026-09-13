@@ -493,7 +493,9 @@ namespace
                 }
             }
 
-            if (MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+            // An XMM clear shares its opcode with integer XOR, but preserves the
+            // comparison flags a fused boolean branch still observes.
+            if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, ops))
                 currentFlagDef = instRef;
 
             if (MicroInstrInfo::isTerminatorInstruction(inst))

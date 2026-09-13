@@ -185,6 +185,71 @@ SWC_TEST_BEGIN(BranchSimplify_FoldsKnownFalseBranch)
 }
 SWC_TEST_END()
 
+// Clearing an XMM register preserves the dynamic comparison's integer flags.
+SWC_TEST_BEGIN(BranchSimplify_KeepsDynamicBranchAcrossFloatClear)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64, MicroOpBits::B128})
+    {
+        const MicroReg vA    = MicroReg::virtualIntReg(1);
+        const MicroReg vB    = MicroReg::virtualIntReg(2);
+        const MicroReg vZero = MicroReg::virtualFloatReg(1);
+        MicroBuilder   builder(ctx);
+
+        const MicroLabelRef skip = builder.createLabel();
+        builder.emitCmpRegReg(vA, vB, MicroOpBits::B64);
+        builder.emitClearReg(vZero, bits);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, skip);
+        // A guarded store cannot be converted to a conditional move or speculated.
+        builder.emitLoadMemImm(vA, 0, ApInt(17, 64), MicroOpBits::B64);
+        builder.placeLabel(skip);
+        builder.emitRet();
+
+        SWC_RESULT(runBranchSimplifyPass(builder));
+
+        if (countConditionalJumps(builder) != 1)
+            return Result::Error;
+        if (!anyJumpTargetsLabel(builder, skip))
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// An integer clear does replace the comparison's flags with the known zero result.
+SWC_TEST_BEGIN(BranchSimplify_FoldsKnownBranchAfterIntegerClear)
+{
+    const MicroReg vA    = MicroReg::virtualIntReg(1);
+    const MicroReg vB    = MicroReg::virtualIntReg(2);
+    const MicroReg vZero = MicroReg::virtualIntReg(3);
+    const MicroReg vOut  = MicroReg::virtualIntReg(4);
+    MicroBuilder   builder(ctx);
+
+    const MicroLabelRef labelThen = builder.createLabel();
+    const MicroLabelRef labelJoin = builder.createLabel();
+    builder.emitCmpRegReg(vA, vB, MicroOpBits::B64);
+    builder.emitClearReg(vZero, MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, labelThen);
+    builder.emitLoadRegImm(vOut, ApInt(17, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, labelJoin);
+    builder.placeLabel(labelThen);
+    builder.emitLoadRegImm(vOut, ApInt(23, 64), MicroOpBits::B64);
+    builder.placeLabel(labelJoin);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 0)
+        return Result::Error;
+    if (countLoadImmValue(builder, 17) != 0)
+        return Result::Error;
+    if (countLoadImmValue(builder, 23) != 1)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // cmp -1, 0 ; jl Neg -> signed compare must fold to taken path.
 SWC_TEST_BEGIN(BranchSimplify_FoldsKnownSignedLessBranch)
 {

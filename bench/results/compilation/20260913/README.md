@@ -1,6 +1,6 @@
 # Static compilation-cost reductions, 2026-09-13
 
-Latest validated compiler: **build 538**. Each batch is functionally validated before
+Latest validated compiler: **build 541**. Each batch is functionally validated before
 integration into master. The load-admission waiver applies to this session; performance
 measurements remain deferred until the final campaign.
 
@@ -17,6 +17,7 @@ measurements remain deferred until the final campaign.
 | 9 | 536 | 724 passed | 3,131 / 3,131 passed | [CFG, forwarding and register scans](batch9.md) |
 | 10 | 537 | 730 passed | 3,131 / 3,131 passed | [SSA fast paths and register discovery](batch10.md) |
 | 11 | 538 | 733 passed | 3,131 / 3,131 passed | [Register claims, restores and float reads](batch11.md) |
+| 12 | 541 | 738 passed | 3,131 / 3,131 passed | [SSA inference and relocation collectors](batch12.md) |
 
 The remaining sections document the first batch and its integration.
 

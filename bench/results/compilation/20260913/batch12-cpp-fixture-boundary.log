@@ -1,0 +1,22 @@
+bin/swc.dm.exe :
+Au caractère Ligne:2 : 1
++ bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm cpp --num-cores  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+  ◆  swag        run • tools • devmode
+  ✓  module      win32 • 31 files • 429 ms
+  ✓  module      xinput • 28 files • 452 ms
+  ✓  module      core • 349 files • core.dll • 27 s 73 ms
+  ✓  workspace   std [core] • 3 modules • 29 s 745 ms
+  ✓  checked     66 files • 181_168 tokens • 1 s 911 ms
+  ✓  tuned       458 functions • 2 s 727 ms
+
+  ◆  swag        unittest • sources
+[micro-verify] pre-licm [<unknown-symbol> @ <unknown-file>:0]: relocation #1 points to non-relocatable opcode 16
+  Test-LICM_RetargetsDuplicateRelocationsAndKeepsUnhoistedOnes  fail (72 us)
+[micro-verify] pre-value-numbering [<unknown-symbol> @ <unknown-file>:0]: relocation #6 names a memory access whose base is not the instruction pointer
+  Test-ValueNumbering_LazyRelocationsPreserveBothLookupsAndLastTarget  fail (66 us)
+  ✖  testing     736 passed • 2 did not pass • 1 min 9 s
+  ✓  clean       1 min 9 s

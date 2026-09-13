@@ -1,0 +1,30 @@
+bin/swc.dm.exe :
+Au caractère Ligne:2 : 1
++ bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm cpp --num-cores  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+  ◆  swag        run • tools • devmode
+  ✓  module      win32 • 31 files • 408 ms
+  ✓  module      xinput • 28 files • 438 ms
+  ✓  module      core • 349 files • core.dll • 27 s 497 ms
+  ✓  workspace   std [core] • 3 modules • 30 s 117 ms
+  ✓  checked     66 files • 181_132 tokens • 1 s 709 ms
+  ✓  tuned       458 functions • 2 s 328 ms
+
+  ◆  swag        unittest • sources
+panic: compiler assertion does not hold
+file: C:\Perso\swag-lang\swc-compile-perf\src\Backend\Micro\MicroBuilder.cpp:122
+expression: relocation.kind == MicroRelocation::Kind::CompilerAddress || relocation.kind ==
+MicroRelocation::Kind::GlobalZeroAddress || relocation.kind == MicroRelocation::Kind::GlobalInitAddress
+stack trace:
+  [00] 0x00007FF78254DFB6 C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe
+  [01] 0x00007FF7820AC86D C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe
+  [02] 0x00007FF78217BE6E C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe
+  [03] 0x00007FF781FE2515 C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe
+  [04] 0x00007FF7823DC8A9 C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe
+  [05] 0x00007FF78275924C C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe
+  [06] 0x00007FFED60BCD87 C:\WINDOWS\System32\KERNEL32.DLL | BaseThreadInitThunk + 0x17
+  [07] 0x00007FFED6ECCAEC C:\WINDOWS\SYSTEM32\ntdll.dll | RtlUserThreadStart + 0x2C
+

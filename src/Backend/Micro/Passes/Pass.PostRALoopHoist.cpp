@@ -395,8 +395,8 @@ namespace
             if (inst->op == MicroInstrOpcode::Label)
                 return false;
 
-            const MicroInstrDef&   info   = MicroInstr::info(inst->op);
-            const MicroInstrUseDef useDef = liveness.useDefs[k];
+            const MicroInstrDef&    info   = MicroInstr::info(inst->op);
+            const MicroInstrUseDef& useDef = liveness.useDefs[k];
             if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || useDef.isCall)
                 return false;
 
@@ -856,9 +856,12 @@ namespace
             const uint32_t preheaderIndex = prevIdxIt->second;
 
             // Classify the body once: every frame slot it writes, and whether it
-            // does anything the slot analysis cannot account for.
+            // does anything the slot analysis cannot account for. Count definitions by
+            // instruction in two masks, so reload candidates need no body scan.
             bool                  bodyOpaque          = false;
             bool                  hasUnplaceableWrite = false;
+            uint64_t              definedRegs         = 0;
+            uint64_t              multiplyDefinedRegs = 0;
             std::vector<FrameRef> writes;
             for (uint32_t i = 0; i < n && !bodyOpaque; ++i)
             {
@@ -882,11 +885,17 @@ namespace
                     break;
                 }
                 // The frame base must mean the same thing on every iteration.
+                uint64_t instructionDefs = 0;
                 for (const MicroReg def : liveness.useDefs[i].defs)
                 {
+                    const uint32_t bit = MicroPhysLiveness::bitOf(def);
+                    if (bit < MicroPhysLiveness::K_INVALID_BIT)
+                        instructionDefs |= 1ull << bit;
                     if (isFrameBaseRegister(def, conv) || (reach.localBaseReg.isValid() && def == reach.localBaseReg))
                         bodyOpaque = true;
                 }
+                multiplyDefinedRegs |= definedRegs & instructionDefs;
+                definedRegs |= instructionDefs;
                 if (bodyOpaque)
                     break;
                 if (!info.flags.has(MicroInstrFlagsE::WritesMemory))
@@ -963,23 +972,12 @@ namespace
                 // The destination must be written by nothing else in the body,
                 // or the value carried across iterations is not this one, and
                 // it must hold nothing live where the load is about to land.
-                bool otherDef = false;
-                for (uint32_t k = 0; k < n && !otherDef; ++k)
-                {
-                    if (!inBody[k] || k == i)
-                        continue;
-                    for (const MicroReg def : liveness.useDefs[k].defs)
-                    {
-                        if (def == dst)
-                        {
-                            otherDef = true;
-                            break;
-                        }
-                    }
-                }
-                if (otherDef)
-                    continue;
                 if (liveness.isLiveOut(preheaderIndex, dst))
+                    continue;
+                // Unrepresentable registers are always live in the shared analysis.
+                const uint32_t dstBit = MicroPhysLiveness::bitOf(dst);
+                SWC_ASSERT(dstBit < MicroPhysLiveness::K_INVALID_BIT);
+                if (multiplyDefinedRegs & (1ull << dstBit))
                     continue;
 
                 // The hoisted register now holds this slot for the whole body:

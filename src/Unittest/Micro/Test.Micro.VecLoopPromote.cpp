@@ -72,6 +72,8 @@ SWC_TEST_BEGIN(VecLoopPromote_LoadStorePair_HoistsAndSinks)
     MicroBuilder       builder(ctx);
 
     const MicroLabelRef top = builder.createLabel();
+    // A frame adjustment outside the loop must not prevent promotion.
+    builder.emitOpBinaryRegImm(sp, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitLoadRegImm(vCnt, ApInt(0, 64), MicroOpBits::B64);
     builder.placeLabel(top);
     builder.emitLoadVecRegMem(vVec, sp, 0x40, MicroOpBits::B128);
@@ -173,6 +175,32 @@ SWC_TEST_BEGIN(VecLoopPromote_LoadOnlyChunk_HoistsWithoutStore)
     if (posLastLoad > posLabel)
         return Result::Error;
 
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(VecLoopPromote_StackPointerDefinitionInBody_Blocks)
+{
+    const MicroReg      sp      = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg  counter = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  packed  = MicroReg::virtualFloatReg(1);
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef top = builder.createLabel();
+    builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+    builder.placeLabel(top);
+    builder.emitLoadVecRegMem(packed, sp, 0x40, MicroOpBits::B128);
+    builder.emitOpBinaryRegImm(sp, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitStoreVecMemReg(sp, 0x40, packed, MicroOpBits::B128);
+    builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegImm(counter, ApInt(10, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, top);
+    builder.emitRet();
+
+    SWC_RESULT(runVecLoopPromotePass(builder));
+    if (firstPosition(builder, MicroInstrOpcode::LoadVecRegMem) < firstPosition(builder, MicroInstrOpcode::Label))
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+        return Result::Error;
     return Result::Continue;
 }
 SWC_TEST_END()

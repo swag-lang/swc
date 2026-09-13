@@ -1,0 +1,499 @@
+[
+  {
+    "task": "chacha",
+    "equal": true,
+    "functions": 9,
+    "hashes": {
+      "baseline": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "Chacha.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\chacha.swg:28": [
+          "e914c9624a176e0bc9e3b30ad7a374c489fa33df60809a82ffade461f8a0e5d7"
+        ],
+        "Chacha.add32 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\chacha.swg:9": [
+          "63d3dfed575cc71be6afc60e81b03c367ae06cf4681e49a7ede6a9ef7d395064"
+        ],
+        "Chacha.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "ef5e05aab77c0176b14c051f56fab5a9361fe8664e6af86e67fc895ab395dbdf"
+        ],
+        "Chacha.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "ec1ab0b0059d889424f52ba0b2c08e257878020f84819661378374e1c96dcbdf"
+        ],
+        "Chacha.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "65bf0b161eb956ccb1e0e582cb668f1e2628480e5debe4a6f3191405e1eb0796"
+        ],
+        "Chacha.quarterRound @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\chacha.swg:12": [
+          "1e1a9e76bddde2d8f37e6de2a5d6206f5b55f0e539ef1e96a3042a904973b31c"
+        ],
+        "Chacha.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "71b2c6346629878d4e2091b5944f1c3d3958cafcbb91960873017a25175b0ff3"
+        ],
+        "Chacha.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "0d4d1eba65cf12c04bd2584a18864caa4b220f41bb9ccac876a290a9cac0ff5b"
+        ]
+      },
+      "candidate": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "Chacha.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\chacha.swg:28": [
+          "e914c9624a176e0bc9e3b30ad7a374c489fa33df60809a82ffade461f8a0e5d7"
+        ],
+        "Chacha.add32 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\chacha.swg:9": [
+          "63d3dfed575cc71be6afc60e81b03c367ae06cf4681e49a7ede6a9ef7d395064"
+        ],
+        "Chacha.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "ef5e05aab77c0176b14c051f56fab5a9361fe8664e6af86e67fc895ab395dbdf"
+        ],
+        "Chacha.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "ec1ab0b0059d889424f52ba0b2c08e257878020f84819661378374e1c96dcbdf"
+        ],
+        "Chacha.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "65bf0b161eb956ccb1e0e582cb668f1e2628480e5debe4a6f3191405e1eb0796"
+        ],
+        "Chacha.quarterRound @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\chacha.swg:12": [
+          "1e1a9e76bddde2d8f37e6de2a5d6206f5b55f0e539ef1e96a3042a904973b31c"
+        ],
+        "Chacha.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "71b2c6346629878d4e2091b5944f1c3d3958cafcbb91960873017a25175b0ff3"
+        ],
+        "Chacha.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "0d4d1eba65cf12c04bd2584a18864caa4b220f41bb9ccac876a290a9cac0ff5b"
+        ]
+      }
+    }
+  },
+  {
+    "task": "csvagg",
+    "equal": true,
+    "functions": 14,
+    "hashes": {
+      "baseline": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "ByteMap.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:5": [
+          "e3c0d66425d5f41d6bdae208a76ea44be4c60ededcccfe9d1d1f99f19627dd44"
+        ],
+        "Csvagg.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\csvagg.swg:43": [
+          "1633bc84f7e6f1c3a3b611b424d7e8734d3da265ea0ea26edd7f01f810f5e506"
+        ],
+        "Csvagg.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "4056fc60abb9cb886f34bd5a2b383932b02a7b3f3149a2f7dba53934d5bd6c30"
+        ],
+        "Csvagg.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "d6463a3d0431aa16632987f64f72042da295bb8707eb27e6d68839c128c41d14"
+        ],
+        "Csvagg.mapClaim @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:60": [
+          "58141e9032f2b5661ad68f10917de7678602488f13124f4243ddfc9694f2d116"
+        ],
+        "Csvagg.mapFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:31": [
+          "3fe581c9658f2acce41b03591749384d735857a8ca79b61b2a72d9f0a834666e"
+        ],
+        "Csvagg.mapInit @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:19": [
+          "bb901d78481f0fd7cb2480920167b32cf6473e251ee02b9d6b73376b7c251afc"
+        ],
+        "Csvagg.mapProbe @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:40": [
+          "9fd2dae3897615945041b7edac3bfafedf8ba56329ab7f21ba5543c484d0ba44"
+        ],
+        "Csvagg.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "c5bcc313136df6c432c48ecc527b5db0be286431956ccdb05add3b3931937a03"
+        ],
+        "Csvagg.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "33ffd418aaef2e145fa7b1a66c6a1bc3698bee4d8b6e9028e5225acf0b22a59c"
+        ],
+        "Csvagg.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "97120f3fa737e30fa17c15098f916ccd9004be8ed0f23191bc332412da5fb9b1"
+        ],
+        "Csvagg.writeUInt @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\csvagg.swg:6": [
+          "ddf6bf0e95024a0d497d2481ba41a4b97a18a7676985e553830758031572e718"
+        ],
+        "Csvagg.writeUInt2 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\csvagg.swg:36": [
+          "7ff594254e9eb8ef5acf77e874cc137d2c0794d2f9729272721c43e3579f085a"
+        ]
+      },
+      "candidate": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "ByteMap.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:5": [
+          "e3c0d66425d5f41d6bdae208a76ea44be4c60ededcccfe9d1d1f99f19627dd44"
+        ],
+        "Csvagg.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\csvagg.swg:43": [
+          "1633bc84f7e6f1c3a3b611b424d7e8734d3da265ea0ea26edd7f01f810f5e506"
+        ],
+        "Csvagg.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "4056fc60abb9cb886f34bd5a2b383932b02a7b3f3149a2f7dba53934d5bd6c30"
+        ],
+        "Csvagg.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "d6463a3d0431aa16632987f64f72042da295bb8707eb27e6d68839c128c41d14"
+        ],
+        "Csvagg.mapClaim @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:60": [
+          "58141e9032f2b5661ad68f10917de7678602488f13124f4243ddfc9694f2d116"
+        ],
+        "Csvagg.mapFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:31": [
+          "3fe581c9658f2acce41b03591749384d735857a8ca79b61b2a72d9f0a834666e"
+        ],
+        "Csvagg.mapInit @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:19": [
+          "bb901d78481f0fd7cb2480920167b32cf6473e251ee02b9d6b73376b7c251afc"
+        ],
+        "Csvagg.mapProbe @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:40": [
+          "9fd2dae3897615945041b7edac3bfafedf8ba56329ab7f21ba5543c484d0ba44"
+        ],
+        "Csvagg.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "c5bcc313136df6c432c48ecc527b5db0be286431956ccdb05add3b3931937a03"
+        ],
+        "Csvagg.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "33ffd418aaef2e145fa7b1a66c6a1bc3698bee4d8b6e9028e5225acf0b22a59c"
+        ],
+        "Csvagg.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "97120f3fa737e30fa17c15098f916ccd9004be8ed0f23191bc332412da5fb9b1"
+        ],
+        "Csvagg.writeUInt @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\csvagg.swg:6": [
+          "ddf6bf0e95024a0d497d2481ba41a4b97a18a7676985e553830758031572e718"
+        ],
+        "Csvagg.writeUInt2 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\csvagg.swg:36": [
+          "7ff594254e9eb8ef5acf77e874cc137d2c0794d2f9729272721c43e3579f085a"
+        ]
+      }
+    }
+  },
+  {
+    "task": "dijkstra",
+    "equal": true,
+    "functions": 9,
+    "hashes": {
+      "baseline": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "Dijkstra.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\dijkstra.swg:65": [
+          "dbde26dae971e8b9c03b3c417b99cb532493be11fb5b4ffe7ec59d06197324dd"
+        ],
+        "Dijkstra.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "45e8d60c8dc71a6360cf0b833fe3e0675f88846e2304e6671529f56926cd861d"
+        ],
+        "Dijkstra.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "1d3ee00d00a7d46e89c79236cdcc3cbbd1a66f8966559aae8c8b7c98f17d76ea"
+        ],
+        "Dijkstra.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "6b8a12392bdf672b8dd381b5f5447ca2fb11a45556cfebf9d1c2bb695e9df1e2"
+        ],
+        "Dijkstra.pop @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\dijkstra.swg:35": [
+          "f22a7e1179e0645b967fcb9c4b8d65cd8a389f3582fe0675da7f4e0e7af3bee3"
+        ],
+        "Dijkstra.push @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\dijkstra.swg:13": [
+          "8175ed70850b2b67d167633d5ad7bbf82f25bfb26eb48280a924f0ca934d3275"
+        ],
+        "Dijkstra.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "70a404e55074cacf7abb611588e8f3adfb12ba85215c283b8c712d6a2858cf3c"
+        ],
+        "Dijkstra.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "400a771741b997b8365ee9daa4426bbad47d7133802e6473d307d5c3cec9eef2"
+        ]
+      },
+      "candidate": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "Dijkstra.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\dijkstra.swg:65": [
+          "dbde26dae971e8b9c03b3c417b99cb532493be11fb5b4ffe7ec59d06197324dd"
+        ],
+        "Dijkstra.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "45e8d60c8dc71a6360cf0b833fe3e0675f88846e2304e6671529f56926cd861d"
+        ],
+        "Dijkstra.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "1d3ee00d00a7d46e89c79236cdcc3cbbd1a66f8966559aae8c8b7c98f17d76ea"
+        ],
+        "Dijkstra.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "6b8a12392bdf672b8dd381b5f5447ca2fb11a45556cfebf9d1c2bb695e9df1e2"
+        ],
+        "Dijkstra.pop @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\dijkstra.swg:35": [
+          "f22a7e1179e0645b967fcb9c4b8d65cd8a389f3582fe0675da7f4e0e7af3bee3"
+        ],
+        "Dijkstra.push @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\dijkstra.swg:13": [
+          "8175ed70850b2b67d167633d5ad7bbf82f25bfb26eb48280a924f0ca934d3275"
+        ],
+        "Dijkstra.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "70a404e55074cacf7abb611588e8f3adfb12ba85215c283b8c712d6a2858cf3c"
+        ],
+        "Dijkstra.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "400a771741b997b8365ee9daa4426bbad47d7133802e6473d307d5c3cec9eef2"
+        ]
+      }
+    }
+  },
+  {
+    "task": "leven",
+    "equal": true,
+    "functions": 7,
+    "hashes": {
+      "baseline": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "Leven.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\leven.swg:14": [
+          "fdc4e720d57e72a4afced3f1f502fe659224f0fb20214d9fb25d465f046b92cf"
+        ],
+        "Leven.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "7ea1a6725400f398e32cc3ef038113ec0f666003c7e75ea137bbe667f127a579"
+        ],
+        "Leven.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "5628c225a7856c5378e196aaf7f0145aed521818d2722e0e49b583622a0f2c65"
+        ],
+        "Leven.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "a345404755748ba6f91b9ed464b026d0e47d553791e76d558716dcdf0982a31d"
+        ],
+        "Leven.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "654312f0a319da2018a02fa77d8f915c1d37f09c036c47cf2dccf1594edad0ad"
+        ],
+        "Leven.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "1a7ab621f263806afddc12267bf1b3f69d03ffaa696b28eb4279243a4ca40fe5"
+        ]
+      },
+      "candidate": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "Leven.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\leven.swg:14": [
+          "fdc4e720d57e72a4afced3f1f502fe659224f0fb20214d9fb25d465f046b92cf"
+        ],
+        "Leven.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "7ea1a6725400f398e32cc3ef038113ec0f666003c7e75ea137bbe667f127a579"
+        ],
+        "Leven.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "5628c225a7856c5378e196aaf7f0145aed521818d2722e0e49b583622a0f2c65"
+        ],
+        "Leven.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "a345404755748ba6f91b9ed464b026d0e47d553791e76d558716dcdf0982a31d"
+        ],
+        "Leven.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "654312f0a319da2018a02fa77d8f915c1d37f09c036c47cf2dccf1594edad0ad"
+        ],
+        "Leven.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "1a7ab621f263806afddc12267bf1b3f69d03ffaa696b28eb4279243a4ca40fe5"
+        ]
+      }
+    }
+  },
+  {
+    "task": "raytrace",
+    "equal": true,
+    "functions": 9,
+    "hashes": {
+      "baseline": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "Raytrace.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\raytrace.swg:120": [
+          "80aac9e5813fc4021c0221d809ed3275bb94f1f06dffe6eb0d737156ceb814e1"
+        ],
+        "Raytrace.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "d74573252214b660900218897672d7d2213d268299b839bb4d1af860b8826e78"
+        ],
+        "Raytrace.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "8de0117f0f0fd1e2cca9a1d05fe759771257c31d59c3175bc61ce577998ed2e8"
+        ],
+        "Raytrace.intersect @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\raytrace.swg:27": [
+          "d51af859bbf8ab5f1cb581d66adea6a626c3423c89ba27dc4904459b5e543ade"
+        ],
+        "Raytrace.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "01c2fa4d65314d81edcafadeadee7a7ba1f029222078e4e680227b87c4a131d9"
+        ],
+        "Raytrace.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "ec2bd9352509e15470d36554e9a9913f0f58c50d7e97b2e13c84d30abd6a3232"
+        ],
+        "Raytrace.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "81da038ba57608e14875ff909bc9ff7904a5d40e726f7ccf09a6bbd0e8ebd144"
+        ],
+        "Raytrace.trace @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\raytrace.swg:58": [
+          "6f77feb46c6d8f374096eead3b1508ba148c1d3d136eacd43fbb1580eb3cd079"
+        ]
+      },
+      "candidate": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "Raytrace.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\raytrace.swg:120": [
+          "80aac9e5813fc4021c0221d809ed3275bb94f1f06dffe6eb0d737156ceb814e1"
+        ],
+        "Raytrace.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "d74573252214b660900218897672d7d2213d268299b839bb4d1af860b8826e78"
+        ],
+        "Raytrace.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "8de0117f0f0fd1e2cca9a1d05fe759771257c31d59c3175bc61ce577998ed2e8"
+        ],
+        "Raytrace.intersect @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\raytrace.swg:27": [
+          "d51af859bbf8ab5f1cb581d66adea6a626c3423c89ba27dc4904459b5e543ade"
+        ],
+        "Raytrace.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "01c2fa4d65314d81edcafadeadee7a7ba1f029222078e4e680227b87c4a131d9"
+        ],
+        "Raytrace.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "ec2bd9352509e15470d36554e9a9913f0f58c50d7e97b2e13c84d30abd6a3232"
+        ],
+        "Raytrace.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "81da038ba57608e14875ff909bc9ff7904a5d40e726f7ccf09a6bbd0e8ebd144"
+        ],
+        "Raytrace.trace @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\raytrace.swg:58": [
+          "6f77feb46c6d8f374096eead3b1508ba148c1d3d136eacd43fbb1580eb3cd079"
+        ]
+      }
+    }
+  },
+  {
+    "task": "sha256",
+    "equal": true,
+    "functions": 8,
+    "hashes": {
+      "baseline": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "Sha256.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\sha256.swg:17": [
+          "bfdea924e4bae92cbfd1324ed4ce492b90d81f384a5baf7f68a878173f706077"
+        ],
+        "Sha256.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "ef5e05aab77c0176b14c051f56fab5a9361fe8664e6af86e67fc895ab395dbdf"
+        ],
+        "Sha256.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "ec1ab0b0059d889424f52ba0b2c08e257878020f84819661378374e1c96dcbdf"
+        ],
+        "Sha256.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "14d42ad0e2a1c0fd33db19d8ec77e4b976a8d958c44d01d334da27fcaa48f5fb"
+        ],
+        "Sha256.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "71b2c6346629878d4e2091b5944f1c3d3958cafcbb91960873017a25175b0ff3"
+        ],
+        "Sha256.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "0d4d1eba65cf12c04bd2584a18864caa4b220f41bb9ccac876a290a9cac0ff5b"
+        ],
+        "Sha256.rotr @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\sha256.swg:15": [
+          "1c898c8a443dc109540c2e38ea3f79dfe58f08ebe3e85c1cd0a069c5ca19f77b"
+        ]
+      },
+      "candidate": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "Sha256.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\sha256.swg:17": [
+          "bfdea924e4bae92cbfd1324ed4ce492b90d81f384a5baf7f68a878173f706077"
+        ],
+        "Sha256.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "ef5e05aab77c0176b14c051f56fab5a9361fe8664e6af86e67fc895ab395dbdf"
+        ],
+        "Sha256.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "ec1ab0b0059d889424f52ba0b2c08e257878020f84819661378374e1c96dcbdf"
+        ],
+        "Sha256.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "14d42ad0e2a1c0fd33db19d8ec77e4b976a8d958c44d01d334da27fcaa48f5fb"
+        ],
+        "Sha256.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "71b2c6346629878d4e2091b5944f1c3d3958cafcbb91960873017a25175b0ff3"
+        ],
+        "Sha256.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "0d4d1eba65cf12c04bd2584a18864caa4b220f41bb9ccac876a290a9cac0ff5b"
+        ],
+        "Sha256.rotr @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\sha256.swg:15": [
+          "1c898c8a443dc109540c2e38ea3f79dfe58f08ebe3e85c1cd0a069c5ca19f77b"
+        ]
+      }
+    }
+  },
+  {
+    "task": "wordfreq",
+    "equal": true,
+    "functions": 14,
+    "hashes": {
+      "baseline": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "ByteMap.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:5": [
+          "e3c0d66425d5f41d6bdae208a76ea44be4c60ededcccfe9d1d1f99f19627dd44"
+        ],
+        "Wordfreq.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\wordfreq.swg:59": [
+          "9840f088fb1e1c6bf3973251477c8b95d41d69fade8ad067b5683a47bca488c3"
+        ],
+        "Wordfreq.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "45e8d60c8dc71a6360cf0b833fe3e0675f88846e2304e6671529f56926cd861d"
+        ],
+        "Wordfreq.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "1d3ee00d00a7d46e89c79236cdcc3cbbd1a66f8966559aae8c8b7c98f17d76ea"
+        ],
+        "Wordfreq.less @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\wordfreq.swg:13": [
+          "c6847ac21fba05663370c7d0e02a73fde867c72fda0f6d37e588025b47606054"
+        ],
+        "Wordfreq.mapClaim @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:60": [
+          "58141e9032f2b5661ad68f10917de7678602488f13124f4243ddfc9694f2d116"
+        ],
+        "Wordfreq.mapFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:31": [
+          "7299616862e2cc9f941f6cd618baa350cf218c398c8935852e2393d43676efc5"
+        ],
+        "Wordfreq.mapInit @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:19": [
+          "95a0149a1f8f8a84f0c39efa7020e56e8e7e6cd1d0b8163da676e28279bfe561"
+        ],
+        "Wordfreq.mapProbe @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:40": [
+          "9fd2dae3897615945041b7edac3bfafedf8ba56329ab7f21ba5543c484d0ba44"
+        ],
+        "Wordfreq.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "68f8b261c99568bd3e1a20105a5df5da534cda9c19e7fcdde8d5edc5ef56fcdb"
+        ],
+        "Wordfreq.qsort @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\wordfreq.swg:27": [
+          "a294c306e7daaf12be3088c8509d70f5c9429fd7a5727e9429ec106fdd4e0f45"
+        ],
+        "Wordfreq.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "70a404e55074cacf7abb611588e8f3adfb12ba85215c283b8c712d6a2858cf3c"
+        ],
+        "Wordfreq.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "400a771741b997b8365ee9daa4426bbad47d7133802e6473d307d5c3cec9eef2"
+        ]
+      },
+      "candidate": {
+        "BenchAllocationHeader.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:5": [
+          "3ef40498303f342682760f5c6246b079e1ce7027f4515b41abeb3bd46af0ffdb"
+        ],
+        "ByteMap.swagLifecycleInitWrapper @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:5": [
+          "e3c0d66425d5f41d6bdae208a76ea44be4c60ededcccfe9d1d1f99f19627dd44"
+        ],
+        "Wordfreq.__main_0 @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\wordfreq.swg:59": [
+          "9840f088fb1e1c6bf3973251477c8b95d41d69fade8ad067b5683a47bca488c3"
+        ],
+        "Wordfreq.benchAlloc @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:12": [
+          "45e8d60c8dc71a6360cf0b833fe3e0675f88846e2304e6671529f56926cd861d"
+        ],
+        "Wordfreq.benchFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:31": [
+          "1d3ee00d00a7d46e89c79236cdcc3cbbd1a66f8966559aae8c8b7c98f17d76ea"
+        ],
+        "Wordfreq.less @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\wordfreq.swg:13": [
+          "c6847ac21fba05663370c7d0e02a73fde867c72fda0f6d37e588025b47606054"
+        ],
+        "Wordfreq.mapClaim @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:60": [
+          "58141e9032f2b5661ad68f10917de7678602488f13124f4243ddfc9694f2d116"
+        ],
+        "Wordfreq.mapFree @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:31": [
+          "7299616862e2cc9f941f6cd618baa350cf218c398c8935852e2393d43676efc5"
+        ],
+        "Wordfreq.mapInit @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:19": [
+          "95a0149a1f8f8a84f0c39efa7020e56e8e7e6cd1d0b8163da676e28279bfe561"
+        ],
+        "Wordfreq.mapProbe @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\bytemap.swg:40": [
+          "9fd2dae3897615945041b7edac3bfafedf8ba56329ab7f21ba5543c484d0ba44"
+        ],
+        "Wordfreq.now @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:50": [
+          "68f8b261c99568bd3e1a20105a5df5da534cda9c19e7fcdde8d5edc5ef56fcdb"
+        ],
+        "Wordfreq.qsort @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\wordfreq.swg:27": [
+          "a294c306e7daaf12be3088c8509d70f5c9429fd7a5727e9429ec106fdd4e0f45"
+        ],
+        "Wordfreq.report @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:67": [
+          "70a404e55074cacf7abb611588e8f3adfb12ba85215c283b8c712d6a2858cf3c"
+        ],
+        "Wordfreq.rnd @ C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\capture\\src\\common.swg:61": [
+          "400a771741b997b8365ee9daa4426bbad47d7133802e6473d307d5c3cec9eef2"
+        ]
+      }
+    }
+  }
+]

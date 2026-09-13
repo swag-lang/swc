@@ -15,6 +15,31 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
+
+- Recorded: 2026-09-05 22:13
+- Updated: 2026-09-13 07:25 — Narrow remaining rebuild work after build 524 passed C++ and native validation.
+- Area: compiler/backend, compilation time
+- Evidence: `MicroPassManager::runPass` still invalidates the shared SSA state whenever a pass
+  sets `passChanged`; `MicroSsaState::ensureFor` then rebuilds it before the next query. Local
+  instruction changes therefore still reconstruct dominators, phi nodes, and value uses for
+  the whole function. The September 5–7 profiles established that these rebuilds were a major
+  compilation cost, but their percentages no longer describe the current implementation.
+- Current boundary: build 524 replaces per-block snapshots of every active register and linear
+  reaching-definition scans with a per-register index over the dominator-tree rename walk.
+  Sink-to-use, LICM, and induction reduction now collect instruction-local use/def information
+  without building unused SSA. Graph construction also avoids repeated duplicate searches
+  and ancestor walks. DCE reuses one SSA snapshot across removal waves; SLP delays SSA
+  until a viable plan needs it. See the [static follow-up](../bench/results/compilation/20260913/README.md).
+  The [compile-only comparison](../bench/results/compilation/20260912/README.md) records the
+  measurements, generated-microcode comparison, and validation of that change.
+- Next: audit the remaining SSA consumers and rebuild dependencies. Distinguish operand-only
+  changes, deleted definitions, and CFG edits; preserve analysis only when its dependencies
+  are known to remain valid.
+- Complete when: remaining redundant rebuilds are removed with a sound invalidation contract,
+  unchanged optimization decisions, and passing SSA/native tests.
+- Related: compiler.core.004, compiler.core.030.
+
 ### compiler.optimization.038 — A vector wrapper three helpers deep stops being inlined
 
 - Recorded: 2026-09-12 22:10
@@ -105,46 +130,6 @@ block, and the hot path keeps the register.
   drop the reserve entirely and re-measure the kernels.
 - Complete when: no allocation holds a register back for legalization, `pixel` and `gui` compile,
   and the kernel frame traffic drops by the measured amount.
-
-### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
-
-- Recorded: 2026-09-05 22:13
-- Updated: 2026-09-11 22:17 — Use the current benchmark entry points for core and hello-world measurements.
-- Area: compiler/backend, compilation time
-- Found while: the compile-speed campaign, profiling `bench/compile.py core_rebuild` (std/core in
-  `devmode`, six worker cores, Release 0.1.367 with a PDB, a user-mode sampling profiler).
-- Observation: `runLoopPasses` is the largest single item of a full rebuild — 13.9 % of all
-  thread samples, about 40 % of the CPU actually spent (a third of the samples are workers
-  parked on the job queue) — and it is the largest item of a hello world build too (22 %) and of
-  `swc sema` on an empty file (14 %, the JIT lowering of the prelude's `#run`). Inside it the
-  SSA state is the cost: `MicroSsaState::build`, `ensureFor`, `renameBlock`, `reachingDef` and
-  `createPhi` add up to about 8.5 % of samples, more than any transform. `runPass` invalidates the
-  whole shared SSA state as soon as a pass reports `passChanged`, so every sweep of the fixed
-  point rebuilds it from scratch for the next pass that asks, however local the mutation was.
-  `devmode` is `O1`, "everything that does not cost compilation time", and this does.
-- Updated evidence (2026-09-06): external sampling of Release compiler 0.1.383 rebuilding a
-  private copy of tracked `bin/std` sources, six workers, still finds SSA construction prominent.
-  For `core` in `devmode`, 30 of 151 samples inside `JobManager::executeJob` include
-  `MicroSsaState::build`; in `release`, 25 of 131 do. The corresponding `CodeGenJob` counts are
-  110 and 99. These are inclusive stack counts, with each sample counted once per function;
-  they are attribution evidence, not independent percentages to add or unprofiled timings.
-  Repeated builds by the same baseline compiler also produce different raw PE `.text` hashes,
-  so a whole-section hash alone cannot establish whether an SSA change preserves code quality.
-- Updated evidence (2026-09-07): Release compiler 0.1.390, six workers, an isolated Pixel rebuild
-  gave 518 CPU-weighted external stack samples. SSA construction accounted for 22.15% of the
-  sampled CPU, renaming for 11.63%, and the entry-snapshot call in `renameBlock` for 5.82%.
-  The corresponding GUI-only profile attributed 12.94% to SSA construction. These are inclusive
-  shares, not costs to add together. Each block snapshots every active tracked register, and
-  each mutating pass can repeat the work. Reusing block scratch storage alone did not establish
-  a consistent speed/memory improvement and was removed; `repo.tooling.008` records that trial.
-- Next: trace rebuilds and mutating passes externally on GUI and Pixel to size the win, then keep the
-  SSA state valid across the mutations that preserve it — a deleted instruction, a renamed
-  operand, a folded constant — and rebuild only the blocks a pass touched otherwise. Measure `core_rebuild` with
-  `bench/compile.py --against`; `hello_build` belongs to the full `tools/bench.swgs` campaign,
-  which also checks generated code across the seven benchmark tasks.
-- Complete when: `core_rebuild` and `hello_build` move by the share the profile attributes to SSA
-  rebuilds, at identical generated code on the seven bench tasks, and the `native` suite is green.
-- Related: compiler.core.004, compiler.core.030.
 
 ### compiler.optimization.006 — A hot loop's loop-carried locals all live in stack slots
 

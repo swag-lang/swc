@@ -674,11 +674,10 @@ std::unordered_map<uint32_t, MicroPassHelpers::NaturalLoop> MicroPassHelpers::fi
 MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(const MicroControlFlowGraph& cfg, const uint32_t entry)
 {
     const uint32_t n = cfg.instructionCount();
-    MicroDomTree   dom;
-    dom.idom.assign(n, MicroDomTree::K_INVALID_NODE);
-    dom.rpoPos.assign(n, MicroDomTree::K_INVALID_NODE);
     if (entry >= n)
-        return dom;
+        return {};
+    std::vector<uint32_t> idom(n, MicroDomTree::K_INVALID_NODE);
+    std::vector<uint32_t> rpoPosition(n, MicroDomTree::K_INVALID_NODE);
 
     std::vector<uint32_t> postorder;
     postorder.reserve(n);
@@ -713,23 +712,23 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
     for (uint32_t i = count; i-- > 0;)
     {
         const uint32_t node = postorder[i];
-        dom.rpoPos[node]    = static_cast<uint32_t>(rpo.size());
+        rpoPosition[node]   = static_cast<uint32_t>(rpo.size());
         rpo.push_back(node);
     }
 
     auto intersect = [&](uint32_t a, uint32_t b) {
         while (a != b)
         {
-            while (dom.rpoPos[a] > dom.rpoPos[b])
-                a = dom.idom[a];
-            while (dom.rpoPos[b] > dom.rpoPos[a])
-                b = dom.idom[b];
+            while (rpoPosition[a] > rpoPosition[b])
+                a = idom[a];
+            while (rpoPosition[b] > rpoPosition[a])
+                b = idom[b];
         }
         return a;
     };
 
-    dom.idom[entry] = entry;
-    bool changed    = true;
+    idom[entry]  = entry;
+    bool changed = true;
     while (changed)
     {
         changed = false;
@@ -740,19 +739,62 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
             uint32_t newIdom = MicroDomTree::K_INVALID_NODE;
             for (const uint32_t pred : cfg.predecessors(node))
             {
-                if (pred >= n || dom.idom[pred] == MicroDomTree::K_INVALID_NODE)
+                if (pred >= n || idom[pred] == MicroDomTree::K_INVALID_NODE)
                     continue;
                 newIdom = (newIdom == MicroDomTree::K_INVALID_NODE) ? pred : intersect(pred, newIdom);
             }
-            if (newIdom != MicroDomTree::K_INVALID_NODE && newIdom != dom.idom[node])
+            if (newIdom != MicroDomTree::K_INVALID_NODE && newIdom != idom[node])
             {
-                dom.idom[node] = newIdom;
-                changed        = true;
+                idom[node] = newIdom;
+                changed    = true;
             }
         }
     }
 
-    return dom;
+    // Reuse the CFG traversal buffers for dominator-tree child links. The
+    // result still retains only two arrays; no ancestor table is needed.
+    auto& firstChild  = childCursor;
+    auto& nextSibling = postorder;
+    std::ranges::fill(firstChild, MicroDomTree::K_INVALID_NODE);
+    nextSibling.assign(n, MicroDomTree::K_INVALID_NODE);
+    for (const uint32_t node : rpo)
+    {
+        if (node == entry)
+            continue;
+        const uint32_t parent = idom[node];
+        nextSibling[node]     = firstChild[parent];
+        firstChild[parent]    = node;
+    }
+
+    // Immediate dominators and RPO positions are no longer queried. Their
+    // buffers become the subtree intervals returned to the optimization passes.
+    auto& subtreeBegin = rpoPosition;
+    auto& subtreeEnd   = idom;
+    std::ranges::fill(subtreeBegin, MicroDomTree::K_INVALID_NODE);
+    std::ranges::fill(subtreeEnd, MicroDomTree::K_INVALID_NODE);
+    auto& pending = rpo;
+    pending.clear();
+    pending.push_back(entry);
+    uint32_t position   = 0;
+    subtreeBegin[entry] = position++;
+    while (!pending.empty())
+    {
+        const uint32_t node  = pending.back();
+        const uint32_t child = firstChild[node];
+        if (child != MicroDomTree::K_INVALID_NODE)
+        {
+            firstChild[node]    = nextSibling[child];
+            subtreeBegin[child] = position++;
+            pending.push_back(child);
+        }
+        else
+        {
+            subtreeEnd[node] = position;
+            pending.pop_back();
+        }
+    }
+
+    return {.subtreeBegin = std::move(subtreeBegin), .subtreeEnd = std::move(subtreeEnd)};
 }
 
 bool MicroPassHelpers::amcLayoutFor(AmcLayout& out, MicroInstrOpcode op)

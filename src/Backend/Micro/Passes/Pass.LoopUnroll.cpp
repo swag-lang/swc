@@ -45,6 +45,13 @@ namespace
     // unrolled only while the whole stays small.
     constexpr uint32_t K_MAX_TOTAL_INSTR_WITH_BRANCHES = 96;
 
+    struct LabelInfo
+    {
+        uint32_t ordinal   = std::numeric_limits<uint32_t>::max();
+        uint32_t firstJump = std::numeric_limits<uint32_t>::max();
+        uint32_t lastJump  = std::numeric_limits<uint32_t>::max();
+    };
+
     bool defsRegister(const MicroInstr& inst, const MicroOperandStorage& operands, const Encoder* encoder, const MicroReg reg)
     {
         const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
@@ -73,7 +80,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
         // Program layout: ordinals, label positions, and every jump with its target.
         std::vector<MicroInstrRef>                 order;
-        std::unordered_map<uint64_t, uint32_t>     labelOrdinal;
+        std::unordered_map<uint64_t, LabelInfo>    labels;
         std::vector<std::pair<uint32_t, uint64_t>> jumps;
         order.reserve(storage.count());
 
@@ -92,9 +99,15 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             if (!ops)
                 continue;
             if (inst.op == MicroInstrOpcode::Label)
-                labelOrdinal[ops[0].valueU64] = ord;
+                labels[ops[0].valueU64].ordinal = ord;
             else if (inst.op == MicroInstrOpcode::JumpCond && inst.numOperands >= 3)
+            {
                 jumps.emplace_back(ord, ops[2].valueU64);
+                LabelInfo& target = labels[ops[2].valueU64];
+                if (target.firstJump == std::numeric_limits<uint32_t>::max())
+                    target.firstJump = ord;
+                target.lastJump = ord;
+            }
         }
 
         // Labels a relocation points at are pinned; relocations by owning slot
@@ -117,10 +130,10 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
         for (const auto& [jccOrdinal, headerId] : jumps)
         {
-            const auto labelIt = labelOrdinal.find(headerId);
-            if (labelIt == labelOrdinal.end())
+            const LabelInfo& label = labels.at(headerId);
+            if (label.ordinal == std::numeric_limits<uint32_t>::max())
                 continue;
-            const uint32_t h = labelIt->second;
+            const uint32_t h = label.ordinal;
             // Backward jump with room for add/cmp plus at least one body instruction.
             if (h + 4 > jccOrdinal)
                 continue;
@@ -136,13 +149,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 continue;
 
             // The back-edge must be the header's only way in besides fall-through.
-            uint32_t headerJumpCount = 0;
-            for (const auto& t : jumps | std::views::values)
-            {
-                if (t == headerId)
-                    ++headerJumpCount;
-            }
-            if (headerJumpCount != 1)
+            if (label.firstJump != label.lastJump)
                 continue;
 
             // The latch: add %i, step / cmp %i, N / jcc H.
@@ -244,13 +251,13 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                             ok = false;
                             break;
                         }
-                        const auto targetIt = labelOrdinal.find(ops[2].valueU64);
-                        if (targetIt == labelOrdinal.end())
+                        const auto targetIt = labels.find(ops[2].valueU64);
+                        if (targetIt == labels.end() || targetIt->second.ordinal == std::numeric_limits<uint32_t>::max())
                         {
                             ok = false;
                             break;
                         }
-                        const uint32_t targetOrdinal = targetIt->second;
+                        const uint32_t targetOrdinal = targetIt->second.ordinal;
                         // Internal target or forward exit past the latch; anything
                         // aimed at the header, the latch, or behind the loop bails.
                         if (targetOrdinal <= h || (targetOrdinal >= bodyEnd && targetOrdinal <= jccOrdinal))
@@ -279,9 +286,13 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 continue;
 
             // No jump from outside the body may land on an internal label.
-            for (const auto& [o, t] : jumps)
+            // The layout is ordered, so its first and last incoming jumps
+            // bound every source without rescanning all function jumps.
+            for (const uint64_t target : internalLabels)
             {
-                if (internalLabels.contains(t) && (o < bodyBegin || o >= bodyEnd))
+                const LabelInfo& internal = labels.at(target);
+                if (internal.firstJump != std::numeric_limits<uint32_t>::max() &&
+                    (internal.firstJump < bodyBegin || internal.lastJump >= bodyEnd))
                 {
                     ok = false;
                     break;

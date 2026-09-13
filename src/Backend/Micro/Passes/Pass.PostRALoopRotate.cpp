@@ -135,10 +135,27 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
 
-    std::vector<MicroInstrRef> order;
+    // Recognition does not mutate the listing. Index all incoming jumps once;
+    // every header can then check its unique back edge without rescanning the function.
+    struct JumpTarget
+    {
+        uint32_t count   = 0;
+        uint32_t ordinal = 0;
+    };
+    std::unordered_map<uint32_t, JumpTarget> jumpsByTarget;
+    std::vector<MicroInstrRef>               order;
     order.reserve(storage.count());
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+    {
+        const auto ordinal = static_cast<uint32_t>(order.size());
         order.push_back(it.current);
+        uint32_t target = 0;
+        if (!tryGetJumpTargetLabelId(target, *it, it->ops(operands)))
+            continue;
+        auto& incoming = jumpsByTarget[target];
+        ++incoming.count;
+        incoming.ordinal = ordinal;
+    }
 
     // Copying an instruction that carries a relocation would need the
     // relocation cloned onto both copies; no test shape observed here does, so
@@ -208,26 +225,16 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         // The back edge must be the only jump aimed at this label, and
         // unconditional. A second one would keep re-entering above the test
         // this rotation stops re-running.
-        MicroInstrRef backRef      = MicroInstrRef::invalid();
-        uint32_t      backOrdinal  = 0;
-        uint32_t      jumpsToLabel = 0;
-        for (uint32_t scan = 0; scan < order.size(); ++scan)
-        {
-            const MicroInstr* cand = storage.ptr(order[scan]);
-            if (!cand)
-                continue;
-            uint32_t target = 0;
-            if (!tryGetJumpTargetLabelId(target, *cand, cand->ops(operands)) || target != labelId)
-                continue;
-            ++jumpsToLabel;
-            const MicroInstrOperand* candOps = cand->ops(operands);
-            if (scan > testEnd && candOps && candOps[0].cpuCond == MicroCond::Unconditional)
-            {
-                backRef     = order[scan];
-                backOrdinal = scan;
-            }
-        }
-        if (!backRef.isValid() || jumpsToLabel != 1)
+        const auto incoming = jumpsByTarget.find(labelId);
+        if (incoming == jumpsByTarget.end() || incoming->second.count != 1)
+            continue;
+        const uint32_t backOrdinal = incoming->second.ordinal;
+        if (backOrdinal <= testEnd)
+            continue;
+        const MicroInstrRef      backRef  = order[backOrdinal];
+        const MicroInstr*        backInst = storage.ptr(backRef);
+        const MicroInstrOperand* backOps  = backInst->ops(operands);
+        if (backOps[0].cpuCond != MicroCond::Unconditional)
             continue;
 
         // Falling out of the rotated back edge must land where the header test

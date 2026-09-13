@@ -59,7 +59,45 @@ namespace
         return !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, instRef);
     }
 
-    bool allDefsAreDeadVirtualRegs(const MicroInstrUseDef& useDef, const MicroSsaState& ssaState, MicroInstrRef instRef)
+    void collectUsedValues(std::vector<uint8_t>& usedValues, std::vector<uint32_t>& worklist, const MicroStorage& storage, const MicroSsaState& ssaState)
+    {
+        const auto values = ssaState.values();
+        usedValues.assign(values.size(), 0);
+        worklist.clear();
+        for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
+        {
+            for (const auto& use : values[valueId].uses)
+            {
+                if (use.kind != MicroSsaState::UseSite::Kind::Instruction || !storage.ptr(use.instRef))
+                    continue;
+                usedValues[valueId] = 1;
+                if (values[valueId].isPhi())
+                    worklist.push_back(valueId);
+                break;
+            }
+        }
+
+        // Only instruction consumers make a phi live. Walking backwards from them
+        // also handles phi cycles with no consumer, without revisiting every cycle
+        // separately for every definition queried by the elimination sweep.
+        while (!worklist.empty())
+        {
+            const uint32_t valueId = worklist.back();
+            worklist.pop_back();
+            const auto* phi = ssaState.phiInfoForValue(valueId);
+            SWC_ASSERT(phi != nullptr);
+            for (const uint32_t incomingValueId : phi->incomingValueIds)
+            {
+                if (incomingValueId == MicroSsaState::K_INVALID_VALUE || usedValues[incomingValueId])
+                    continue;
+                usedValues[incomingValueId] = 1;
+                if (values[incomingValueId].isPhi())
+                    worklist.push_back(incomingValueId);
+            }
+        }
+    }
+
+    bool allDefsAreDeadVirtualRegs(const MicroInstrUseDef& useDef, const MicroSsaState& ssaState, const std::vector<uint8_t>& usedValues, MicroInstrRef instRef)
     {
         if (useDef.defs.empty())
             return false;
@@ -68,22 +106,23 @@ namespace
         {
             if (!def.isVirtual())
                 return false;
-            if (ssaState.isRegUsedAfter(def, instRef))
+            uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+            if (ssaState.defValue(def, instRef, valueId) && usedValues[valueId])
                 return false;
         }
 
         return true;
     }
 
-    bool canEraseInstruction(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstr& inst, const MicroInstrUseDef& useDef, const MicroSsaState& ssaState, MicroInstrRef instRef)
+    bool canEraseInstruction(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstr& inst, const MicroInstrUseDef& useDef, const MicroSsaState& ssaState, const std::vector<uint8_t>& usedValues, MicroInstrRef instRef)
     {
-        if (hasObservableSideEffect(storage, operands, inst, useDef, instRef))
+        if (!allDefsAreDeadVirtualRegs(useDef, ssaState, usedValues, instRef))
             return false;
 
-        return allDefsAreDeadVirtualRegs(useDef, ssaState, instRef);
+        return !hasObservableSideEffect(storage, operands, inst, useDef, instRef);
     }
 
-    bool eliminateDeadInstructions(MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState& ssaState)
+    bool eliminateDeadInstructions(MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<uint8_t>& usedValues)
     {
         bool       changed = false;
         const auto view    = storage.view();
@@ -98,7 +137,7 @@ namespace
             if (!useDef)
                 continue;
 
-            if (!canEraseInstruction(storage, operands, inst, *useDef, ssaState, instRef))
+            if (!canEraseInstruction(storage, operands, inst, *useDef, ssaState, usedValues, instRef))
                 continue;
 
             changed |= storage.erase(instRef);
@@ -120,28 +159,29 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
 
-    MicroOperandStorage& operands = *context.operands;
+    MicroOperandStorage&  operands = *context.operands;
+    std::vector<uint8_t>  usedValues;
+    std::vector<uint32_t> worklist;
+    bool                  changed = false;
 
-    if (!eliminateDeadInstructions(storage, operands, *ssaState))
-        return Result::Continue;
-
-    context.passChanged = true;
-
-    // Each erasure may free up further candidates; iterate on a freshly
-    // rebuilt SSA until the set of dead instructions stabilises.
+    // Erasing a dead definition cannot change the reaching value of a surviving
+    // use. Keep this SSA graph for the entire fixed point and ignore erased
+    // instruction consumers, instead of rebuilding CFG, dominators and SSA after
+    // each level of a dead chain. Snapshot usage once per sweep to preserve the
+    // original erasure order, including its CPU-flag redefinition checks.
     while (true)
     {
+        collectUsedValues(usedValues, worklist, storage, *ssaState);
+        if (!eliminateDeadInstructions(storage, operands, *ssaState, usedValues))
+            break;
+        changed = true;
+    }
+
+    if (changed)
+    {
+        context.passChanged = true;
         if (context.ssaState)
             context.ssaState->invalidate();
-        else
-            localSsaState.invalidate();
-
-        ssaState = MicroSsaState::ensureFor(context, localSsaState);
-        if (!ssaState || !ssaState->isValid())
-            break;
-
-        if (!eliminateDeadInstructions(storage, operands, *ssaState))
-            break;
     }
 
     return Result::Continue;

@@ -145,6 +145,43 @@ SWC_TEST_BEGIN(ConstantFolding_FoldAcrossJoinSameConstant)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantFolding_BinaryRequiresKnownInputsAndDeadFlags)
+{
+    for (const bool regOperand : {false, true})
+    {
+        for (const bool known : {false, true})
+        {
+            for (const bool liveFlags : {false, true})
+            {
+                constexpr MicroReg lhs = MicroReg::virtualIntReg(1);
+                constexpr MicroReg rhs = MicroReg::virtualIntReg(2);
+                MicroBuilder       builder(ctx);
+                if (known)
+                    builder.emitLoadRegImm(lhs, ApInt(5, 64), MicroOpBits::B64);
+                else
+                    builder.emitLoadRegReg(lhs, MicroReg::intReg(1), MicroOpBits::B64);
+                if (regOperand)
+                {
+                    builder.emitLoadRegImm(rhs, ApInt(3, 64), MicroOpBits::B64);
+                    builder.emitOpBinaryRegReg(lhs, rhs, MicroOp::Add, MicroOpBits::B64);
+                }
+                else
+                    builder.emitOpBinaryRegImm(lhs, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+                if (liveFlags)
+                    builder.emitSetCondReg(MicroReg::virtualIntReg(3), MicroCond::Zero);
+                builder.emitRet();
+
+                SWC_RESULT(runConstantFoldingPass(builder));
+                const auto opcode = regOperand ? MicroInstrOpcode::OpBinaryRegReg : MicroInstrOpcode::OpBinaryRegImm;
+                if (Backend::Unittest::countOpcode(builder, opcode) != (known && !liveFlags ? 0 : 1))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

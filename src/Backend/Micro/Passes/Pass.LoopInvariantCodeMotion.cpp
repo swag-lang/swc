@@ -195,13 +195,7 @@ namespace
         }
     };
 
-    FramePrivacy analyzeFramePrivacy(MicroStorage&                                 storage,
-                                     MicroOperandStorage&                          operands,
-                                     std::span<const MicroInstrRef>                instrRefs,
-                                     const MicroSsaState&                          ssaState,
-                                     MicroReg                                      stackPointer,
-                                     const std::unordered_map<MicroReg, uint32_t>& defCount,
-                                     const Encoder*                                encoder)
+    FramePrivacy analyzeFramePrivacy(MicroStorage& storage, MicroOperandStorage& operands, std::span<const MicroInstrRef> instrRefs, std::span<const MicroInstrUseDef> useDefs, MicroReg stackPointer, const std::unordered_map<MicroReg, uint32_t>& defCount, const Encoder* encoder)
     {
         FramePrivacy   fp;
         const uint32_t n = static_cast<uint32_t>(instrRefs.size());
@@ -228,8 +222,8 @@ namespace
                 const MicroInstr* inst = storage.ptr(instrRefs[i]);
                 if (!inst || !isAddressPropagation(inst->op))
                     continue;
-                const MicroInstrUseDef* ud = ssaState.instrUseDef(instrRefs[i]);
-                if (!ud || ud->defs.size() != 1 || ud->uses.empty())
+                const MicroInstrUseDef* ud = &useDefs[i];
+                if (ud->defs.size() != 1 || ud->uses.empty())
                     continue;
                 const MicroReg dst = ud->defs[0];
                 const MicroReg src = ud->uses[0];
@@ -250,9 +244,7 @@ namespace
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
             if (!inst)
                 continue;
-            const MicroInstrUseDef* ud = ssaState.instrUseDef(instrRefs[i]);
-            if (!ud)
-                continue;
+            const MicroInstrUseDef* ud = &useDefs[i];
 
             MicroReg explainedBase = MicroReg::invalid();
             MicroReg explainedSrc  = MicroReg::invalid();
@@ -311,11 +303,6 @@ namespace
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
 
-        MicroSsaState        localSsaState;
-        const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
-        if (!ssaState || !ssaState->isValid())
-            return false;
-
         const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
         if (cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
             return false;
@@ -325,11 +312,6 @@ namespace
             return false;
 
         const auto instrRefs = cfg.instructionRefs();
-
-        std::unordered_map<uint32_t, uint32_t> refToIndex;
-        refToIndex.reserve(n);
-        for (uint32_t i = 0; i < n; ++i)
-            refToIndex[instrRefs[i].get()] = i;
 
         uint32_t entry      = K_INVALID;
         bool     multiEntry = false;
@@ -351,13 +333,22 @@ namespace
         if (loopsByHeader.empty())
             return false;
 
-        // Whole-function virtual-register def counts.
+        std::unordered_map<uint32_t, uint32_t> refToIndex;
+        refToIndex.reserve(n);
+        for (uint32_t i = 0; i < n; ++i)
+            refToIndex[instrRefs[i].get()] = i;
+
+        // Hoisting needs instruction-local effects, not SSA values or phis.
+        // Collect these only after finding a natural loop worth analyzing.
+        std::vector<MicroInstrUseDef>          useDefs(n);
         std::unordered_map<MicroReg, uint32_t> defCount;
         for (uint32_t i = 0; i < n; ++i)
         {
-            const MicroInstrUseDef* useDef = ssaState->instrUseDef(instrRefs[i]);
-            if (!useDef)
-                continue;
+            const MicroInstr* inst = storage.ptr(instrRefs[i]);
+            if (!inst)
+                return false;
+            useDefs[i]                     = inst->collectUseDef(operands, context.encoder);
+            const MicroInstrUseDef* useDef = &useDefs[i];
             for (const MicroReg def : useDef->defs)
                 ++defCount[def];
         }
@@ -370,7 +361,7 @@ namespace
         }
 
         const MicroReg     stackPointer = CallConv::get(context.callConvKind).stackPointer;
-        const FramePrivacy frame        = analyzeFramePrivacy(storage, operands, instrRefs, *ssaState, stackPointer, defCount, context.encoder);
+        const FramePrivacy frame        = analyzeFramePrivacy(storage, operands, instrRefs, useDefs, stackPointer, defCount, context.encoder);
 
         std::vector<NaturalLoop*> loops;
         loops.reserve(loopsByHeader.size());
@@ -428,17 +419,25 @@ namespace
             // Classify the loop's memory writers. A call or an opaque pointer
             // store may alias anything and blocks load hoisting; a store to a
             // private frame slot only aliases frame-derived loads.
-            bool loopHasCall         = false;
-            bool loopHasPointerStore = false;
-            bool loopHasFrameStore   = false;
+            // Keep the body's listing order once; acceptance retries must not
+            // rescan the rest of the function for each loop.
+            std::vector<uint32_t> bodyIndices;
+            bodyIndices.reserve(loop->bodySize);
+            std::unordered_set<MicroReg> defsInLoop;
+            bool                         loopHasCall         = false;
+            bool                         loopHasPointerStore = false;
+            bool                         loopHasFrameStore   = false;
             for (uint32_t i = 0; i < n; ++i)
             {
                 if (!inBody[i])
                     continue;
+                bodyIndices.push_back(i);
                 const MicroInstr*       inst   = storage.ptr(instrRefs[i]);
-                const MicroInstrUseDef* useDef = ssaState->instrUseDef(instrRefs[i]);
-                if (!inst || !useDef)
+                const MicroInstrUseDef* useDef = &useDefs[i];
+                if (!inst)
                     continue;
+                for (const MicroReg def : useDef->defs)
+                    defsInLoop.insert(def);
                 if (useDef->isCall || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
                 {
                     loopHasCall = true;
@@ -463,18 +462,6 @@ namespace
                     loopHasPointerStore = true;
             }
 
-            std::unordered_set<MicroReg> defsInLoop;
-            for (uint32_t i = 0; i < n; ++i)
-            {
-                if (!inBody[i])
-                    continue;
-                const MicroInstrUseDef* useDef = ssaState->instrUseDef(instrRefs[i]);
-                if (!useDef)
-                    continue;
-                for (const MicroReg def : useDef->defs)
-                    defsInLoop.insert(def);
-            }
-
             // Webs: the unit LLVM's MachineLICM gets for free from SSA. The
             // lowering reuses one virtual register through two-address chains,
             // so a register may carry several values in sequence; each full
@@ -495,13 +482,13 @@ namespace
             std::vector<MicroReg>                slotDefReg(n, MicroReg::invalid());
             std::vector<uint8_t>                 slotIsFullDef(n, 0);
             std::vector<uint8_t>                 slotIsCompute(n, 0);
-            for (uint32_t i = 0; i < n; ++i)
+            for (const uint32_t i : bodyIndices)
             {
-                if (!inBody[i] || i == header)
+                if (i == header)
                     continue;
                 const MicroInstr*       inst   = storage.ptr(instrRefs[i]);
-                const MicroInstrUseDef* useDef = ssaState->instrUseDef(instrRefs[i]);
-                if (!inst || !useDef)
+                const MicroInstrUseDef* useDef = &useDefs[i];
+                if (!inst)
                     continue;
 
                 if (useDef->defs.size() != 1 || !useDef->defs[0].isVirtual() || useDef->isCall)
@@ -581,9 +568,9 @@ namespace
                 while (progress)
                 {
                     progress = false;
-                    for (uint32_t i = 0; i < n; ++i)
+                    for (const uint32_t i : bodyIndices)
                     {
-                        if (!inBody[i] || i == header || hoistSet.contains(i))
+                        if (i == header || hoistSet.contains(i))
                             continue;
 
                         const MicroInstrRef ref = instrRefs[i];
@@ -591,8 +578,8 @@ namespace
                             continue;
 
                         const MicroInstr*       inst   = storage.ptr(ref);
-                        const MicroInstrUseDef* useDef = ssaState->instrUseDef(ref);
-                        if (!inst || !useDef)
+                        const MicroInstrUseDef* useDef = &useDefs[i];
+                        if (!inst)
                             continue;
 
                         // A relocation names the instruction it patches. The
@@ -718,10 +705,8 @@ namespace
             // Loop exits, for the web-consistency rule below: a slot inside the
             // body with a successor outside it.
             SmallVector<uint32_t> exitSlots;
-            for (uint32_t i = 0; i < n; ++i)
+            for (const uint32_t i : bodyIndices)
             {
-                if (!inBody[i])
-                    continue;
                 for (const uint32_t succ : cfg.successors(i))
                 {
                     if (succ < n && !inBody[succ])
@@ -741,6 +726,8 @@ namespace
             // preserves; reads between defs see an intermediate, which it does
             // not. A violating register is banned and the whole pipeline reruns
             // without it, cascading until stable.
+            std::unordered_map<MicroReg, uint32_t> inLoopUse;
+            bool                                   countedLoopUses = false;
             for (;;)
             {
                 runAcceptance();
@@ -754,16 +741,15 @@ namespace
                 // hoisted webs that feed them.
                 if (!hoistSet.empty())
                 {
-                    std::unordered_map<MicroReg, uint32_t> inLoopUse;
-                    for (uint32_t i = 0; i < n; ++i)
+                    // Acceptance changes only the hoist plan, not the IR or its uses.
+                    if (!countedLoopUses)
                     {
-                        if (!inBody[i])
-                            continue;
-                        const MicroInstrUseDef* ud = ssaState->instrUseDef(instrRefs[i]);
-                        if (!ud)
-                            continue;
-                        for (const MicroReg use : ud->uses)
-                            ++inLoopUse[use];
+                        for (const uint32_t i : bodyIndices)
+                        {
+                            for (const MicroReg use : useDefs[i].uses)
+                                ++inLoopUse[use];
+                        }
+                        countedLoopUses = true;
                     }
 
                     std::unordered_set<uint32_t> keep;
@@ -771,8 +757,8 @@ namespace
                     for (const uint32_t i : hoistSet)
                     {
                         const MicroInstr*       inst = storage.ptr(instrRefs[i]);
-                        const MicroInstrUseDef* ud   = ssaState->instrUseDef(instrRefs[i]);
-                        if (!inst || !ud || ud->defs.size() != 1)
+                        const MicroInstrUseDef* ud   = &useDefs[i];
+                        if (!inst || ud->defs.size() != 1)
                             continue;
                         const auto uc           = inLoopUse.find(ud->defs[0]);
                         const bool multiplyUsed = uc != inLoopUse.end() && uc->second >= 2;
@@ -791,9 +777,7 @@ namespace
                         // operands pull the producing webs whole: keeping a
                         // compute without the defs before it would compound the
                         // two-address update across iterations.
-                        const MicroInstrUseDef* ud = ssaState->instrUseDef(instrRefs[i]);
-                        if (!ud)
-                            continue;
+                        const MicroInstrUseDef* ud = &useDefs[i];
 
                         SmallVector<MicroReg> pullRegs;
                         if (ud->defs.size() == 1)
@@ -840,13 +824,13 @@ namespace
                     const uint32_t firstDef = defSlots.front();
                     const uint32_t lastDef  = defSlots.back();
                     bool           violated = false;
-                    for (uint32_t s = 0; s <= lastDef && !violated; ++s)
+                    for (const uint32_t s : bodyIndices)
                     {
-                        if (!inBody[s] || hoistSet.contains(s))
+                        if (s > lastDef || violated)
+                            break;
+                        if (hoistSet.contains(s))
                             continue;
-                        const MicroInstrUseDef* ud = ssaState->instrUseDef(instrRefs[s]);
-                        if (!ud)
-                            continue;
+                        const MicroInstrUseDef* ud = &useDefs[s];
                         for (const MicroReg use : ud->uses)
                             violated = violated || use == reg;
                     }
@@ -960,7 +944,7 @@ Result MicroLoopInvariantCodeMotionPass::run(MicroPassContext& context)
 
     // Loop-invariant code motion is meaningless without loops. A cheap back-edge
     // test on the (cached) CFG lets the overwhelmingly common loop-free functions
-    // skip the SSA build, dominator-tree construction and map allocations this
+    // skip the dominator-tree construction and map allocations this
     // pass would otherwise perform every time it runs.
     if (!context.builder->controlFlowGraph().hasLoop())
         return Result::Continue;

@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Support/Report/Assert.h"
 
@@ -20,37 +21,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using RegSet = SmallVector<MicroReg, 8>;
-
-    void addRegUnique(RegSet& set, MicroReg reg)
-    {
-        if (!reg.isValid())
-            return;
-        for (const MicroReg existing : set)
-            if (existing == reg)
-                return;
-        set.push_back(reg);
-    }
-
-    bool contains(const RegSet& set, MicroReg reg)
-    {
-        for (const MicroReg existing : set)
-            if (existing == reg)
-                return true;
-        return false;
-    }
-
-    // Did the second set grow relative to the first? Called after merging
-    // successor live-in into this block's live-out to detect fixed-point.
-    bool setChanged(const RegSet& before, const RegSet& after)
-    {
-        if (after.size() != before.size())
-            return true;
-        for (const MicroReg reg : after)
-            if (!contains(before, reg))
-                return true;
-        return false;
-    }
+    using MicroPassHelpers::MicroPhysLiveness;
 
     // An instruction we must never erase, regardless of its defs' liveness.
     // Defining CPU flags is treated conservatively as a side effect: flag
@@ -64,51 +35,19 @@ namespace
                inst.op == MicroInstrOpcode::Pop;
     }
 
-    bool allDefsAreDead(const MicroInstrUseDef& useDef, const RegSet& liveOut)
+    bool allDefsAreDead(const MicroPhysLiveness& liveness, uint32_t index)
     {
+        const MicroInstrUseDef& useDef = liveness.useDefs[index];
         if (useDef.defs.empty())
             return false;
 
         for (const MicroReg def : useDef.defs)
         {
-            if (contains(liveOut, def))
+            if (liveness.isLiveOut(index, def))
                 return false;
         }
 
         return true;
-    }
-
-    RegSet buildExitLiveOut(const CallConv& conv, const MicroPassContext& context)
-    {
-        RegSet live;
-        if (context.usesIntReturnRegOnRet)
-            addRegUnique(live, conv.intReturn);
-        if (context.usesFloatReturnRegOnRet)
-            addRegUnique(live, conv.floatReturn);
-        addRegUnique(live, conv.stackPointer);
-        addRegUnique(live, conv.framePointer);
-        for (const MicroReg reg : conv.intPersistentRegs)
-            addRegUnique(live, reg);
-        for (const MicroReg reg : conv.floatPersistentRegs)
-            addRegUnique(live, reg);
-        return live;
-    }
-
-    void applyTransfer(RegSet& inOutLive, const MicroInstrUseDef& useDef)
-    {
-        // live_in = (live_out \ defs) | uses
-        for (const MicroReg def : useDef.defs)
-        {
-            for (uint32_t i = 0; i < inOutLive.size();)
-            {
-                if (inOutLive[i] == def)
-                    inOutLive.erase(inOutLive.begin() + i);
-                else
-                    ++i;
-            }
-        }
-        for (const MicroReg use : useDef.uses)
-            addRegUnique(inOutLive, use);
     }
 }
 
@@ -118,95 +57,23 @@ Result MicroPostRaDeadCodeElimPass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands != nullptr);
     SWC_ASSERT(context.builder != nullptr);
 
-    MicroStorage&              storage  = *context.instructions;
-    const MicroOperandStorage& operands = *context.operands;
+    MicroStorage& storage = *context.instructions;
 
     const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
     if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
         return Result::Continue;
 
     const auto instructionRefs = cfg.instructionRefs();
-    const auto successors      = cfg.successors();
-    const auto predecessors    = cfg.predecessors();
     const auto instCount       = static_cast<uint32_t>(instructionRefs.size());
     if (instCount == 0)
         return Result::Continue;
 
-    // Per-instruction use/def cache. Computed once; the IR isn't mutated
-    // until the final erase pass so these stay valid.
-    std::vector<MicroInstrUseDef> useDefs(instCount);
-    for (uint32_t i = 0; i < instCount; ++i)
-    {
-        const MicroInstr* inst = storage.ptr(instructionRefs[i]);
-        if (!inst)
-            return Result::Continue;
-        useDefs[i] = inst->collectUseDef(operands, context.encoder);
-    }
-
-    const CallConv& conv        = CallConv::get(context.callConvKind);
-    const RegSet    exitLiveOut = buildExitLiveOut(conv, context);
-
-    // Iterative backward dataflow.
-    //   liveIn[i]  = (liveOut[i] \ defs[i]) | uses[i]
-    //   liveOut[i] = union of liveIn[s] for s in successors[i]
-    // Seed: at instructions with no successors (Ret and unresolved computed
-    // control flow handled earlier), liveOut is the ABI exit set.
-    std::vector<RegSet> liveIn(instCount);
-    std::vector<RegSet> liveOut(instCount);
-    for (uint32_t i = 0; i < instCount; ++i)
-    {
-        if (successors[i].empty())
-            liveOut[i] = exitLiveOut;
-    }
-
-    std::vector<uint8_t>  inWorklist(instCount, 0);
-    std::vector<uint32_t> worklist;
-    worklist.reserve(instCount);
-    for (uint32_t i = 0; i < instCount; ++i)
-    {
-        worklist.push_back(i);
-        inWorklist[i] = 1;
-    }
-
-    while (!worklist.empty())
-    {
-        const uint32_t i = worklist.back();
-        worklist.pop_back();
-        inWorklist[i] = 0;
-
-        RegSet newOut;
-        if (successors[i].empty())
-        {
-            newOut = exitLiveOut;
-        }
-        else
-        {
-            for (const uint32_t succ : successors[i])
-            {
-                for (const MicroReg reg : liveIn[succ])
-                    addRegUnique(newOut, reg);
-            }
-        }
-
-        if (setChanged(liveOut[i], newOut))
-            liveOut[i] = newOut;
-
-        RegSet newIn = liveOut[i];
-        applyTransfer(newIn, useDefs[i]);
-
-        if (setChanged(liveIn[i], newIn))
-        {
-            liveIn[i] = newIn;
-            for (const uint32_t pred : predecessors[i])
-            {
-                if (!inWorklist[pred])
-                {
-                    worklist.push_back(pred);
-                    inWorklist[pred] = 1;
-                }
-            }
-        }
-    }
+    // The shared physical-register analysis computes the same backward fixed point,
+    // using one machine word per set instead of repeatedly scanning register vectors.
+    MicroPhysLiveness liveness;
+    MicroPassHelpers::computePhysicalLiveness(liveness, context);
+    if (!liveness.valid)
+        return Result::Continue;
 
     // Sweep: erase instructions whose every defined reg is dead in liveOut
     // and which have no observable side effect. Instructions with no defs
@@ -221,8 +88,7 @@ Result MicroPostRaDeadCodeElimPass::run(MicroPassContext& context)
         if (hasObservableSideEffect(*inst))
             continue;
 
-        const MicroInstrUseDef& useDef = useDefs[i];
-        if (!allDefsAreDead(useDef, liveOut[i]))
+        if (!allDefsAreDead(liveness, i))
             continue;
 
         if (storage.erase(instructionRefs[i]))

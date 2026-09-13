@@ -43,12 +43,13 @@ namespace
 
     struct SinkScratch
     {
-        std::vector<uint32_t>        blockIds;
-        MicroDenseRegIndex           virtualRegs;
-        std::vector<RegCounts>       regCounts;
-        std::unordered_set<uint32_t> relocationRefs;
-        std::vector<Move>            moves;
-        std::unordered_set<uint32_t> movedRefs;
+        std::vector<uint32_t>         blockIds;
+        std::vector<MicroInstrUseDef> useDefs;
+        MicroDenseRegIndex            virtualRegs;
+        std::vector<RegCounts>        regCounts;
+        std::unordered_set<uint32_t>  relocationRefs;
+        std::vector<Move>             moves;
+        std::unordered_set<uint32_t>  movedRefs;
     };
 
     thread_local SinkScratch sinkScratch;
@@ -116,11 +117,6 @@ namespace
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
 
-        MicroSsaState        localSsaState;
-        const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
-        if (!ssaState || !ssaState->isValid())
-            return false;
-
         const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
         const uint32_t               n   = cfg.instructionCount();
         if (!n)
@@ -132,6 +128,10 @@ namespace
         // Block ids from the linear listing: a label opens a block, a
         // terminator closes one.
         scratch.blockIds.assign(n, 0);
+        // Sinking only needs instruction-local register effects. Building SSA
+        // here would also compute dominators, phis and reaching values on each
+        // round, none of which participates in the movement checks below.
+        scratch.useDefs.resize(n);
         {
             uint32_t current   = 0;
             bool     openBlock = true;
@@ -140,6 +140,7 @@ namespace
                 const MicroInstr* inst = storage.ptr(instrRefs[i]);
                 if (!inst)
                     return false;
+                scratch.useDefs[i]        = inst->collectUseDef(operands, context.encoder);
                 const MicroInstrDef& info = MicroInstr::info(inst->op);
                 if (inst->op == MicroInstrOpcode::Label || !openBlock)
                 {
@@ -160,9 +161,7 @@ namespace
         scratch.regCounts.reserve(n / 2);
         for (uint32_t i = 0; i < n; ++i)
         {
-            const MicroInstrUseDef* useDef = ssaState->instrUseDef(instrRefs[i]);
-            if (!useDef)
-                return false;
+            const MicroInstrUseDef* useDef = &scratch.useDefs[i];
             for (const MicroReg def : useDef->defs)
             {
                 if (!def.isVirtual())
@@ -202,8 +201,8 @@ namespace
             if (!inst || scratch.relocationRefs.contains(instrRefs[i].get()))
                 continue;
 
-            const MicroInstrUseDef* useDef = ssaState->instrUseDef(instrRefs[i]);
-            if (!useDef || !isSinkableDefinition(*inst, *useDef))
+            const MicroInstrUseDef* useDef = &scratch.useDefs[i];
+            if (!isSinkableDefinition(*inst, *useDef))
                 continue;
 
             const MicroReg value           = useDef->defs[0];
@@ -233,8 +232,8 @@ namespace
             for (uint32_t k = i + 1; k < useIdx && !blocked; ++k)
             {
                 const MicroInstr*       between       = storage.ptr(instrRefs[k]);
-                const MicroInstrUseDef* betweenUseDef = ssaState->instrUseDef(instrRefs[k]);
-                if (!between || !betweenUseDef)
+                const MicroInstrUseDef* betweenUseDef = &scratch.useDefs[k];
+                if (!between)
                 {
                     blocked = true;
                     break;

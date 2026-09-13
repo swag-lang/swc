@@ -1,0 +1,211 @@
+{
+  "arguments": {
+    "binaries": [
+      "baseline",
+      "candidate"
+    ],
+    "tasks": [
+      "core"
+    ],
+    "reps": 3,
+    "label": "devmode-all-workers-loaded",
+    "cfg": "devmode",
+    "cores": 0,
+    "max_cpu": 65
+  },
+  "logical_processors": 22,
+  "samples": [
+    {
+      "exit": 0,
+      "wall_ms": 5464.6373,
+      "cpu_ms": 38171.875,
+      "peak_job_bytes": 804589568,
+      "peak_proc_bytes": 803311616,
+      "peak_working_set_bytes": 740159488,
+      "stdout": "  \u25c6  swag        build \u2022 std [core] \u2022 devmode\r\n  \u2713  module      win32 \u2022 31 files \u2022 128 ms\r\n  \u2713  module      xinput \u2022 28 files \u2022 142 ms\r\n  \u2713  module      core \u2022 349 files \u2022 core.dll \u2022 4 s 186 ms\r\n  \u2713  workspace   std [core] \u2022 3 modules \u2022 5 s 275 ms\r\n  \u2713  clean       5 s 276 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 48.1045413378186,
+      "tag": "baseline",
+      "task": "core",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\swc.baseline.exe",
+        "build",
+        "--build-cfg",
+        "devmode",
+        "--rebuild",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\std",
+        "--workspace-module",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 4671.7709,
+      "cpu_ms": 38343.75,
+      "peak_job_bytes": 874909696,
+      "peak_proc_bytes": 873639936,
+      "peak_working_set_bytes": 804028416,
+      "stdout": "  \u25c6  swag        build \u2022 std [core] \u2022 devmode\r\n  \u2713  module      win32 \u2022 31 files \u2022 126 ms\r\n  \u2713  module      xinput \u2022 28 files \u2022 142 ms\r\n  \u2713  module      core \u2022 349 files \u2022 core.dll \u2022 3 s 574 ms\r\n  \u2713  workspace   std [core] \u2022 3 modules \u2022 4 s 506 ms\r\n  \u2713  clean       4 s 507 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 32.249773208345935,
+      "tag": "candidate",
+      "task": "core",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\swc.candidate.exe",
+        "build",
+        "--build-cfg",
+        "devmode",
+        "--rebuild",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\std",
+        "--workspace-module",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 4373.7737,
+      "cpu_ms": 37718.75,
+      "peak_job_bytes": 903811072,
+      "peak_proc_bytes": 902561792,
+      "peak_working_set_bytes": 836001792,
+      "stdout": "  \u25c6  swag        build \u2022 std [core] \u2022 devmode\r\n  \u2713  module      win32 \u2022 31 files \u2022 124 ms\r\n  \u2713  module      xinput \u2022 28 files \u2022 129 ms\r\n  \u2713  module      core \u2022 349 files \u2022 core.dll \u2022 3 s 303 ms\r\n  \u2713  workspace   std [core] \u2022 3 modules \u2022 4 s 210 ms\r\n  \u2713  clean       4 s 211 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 30.862403100775193,
+      "tag": "candidate",
+      "task": "core",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\swc.candidate.exe",
+        "build",
+        "--build-cfg",
+        "devmode",
+        "--rebuild",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\std",
+        "--workspace-module",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 7432.0234,
+      "cpu_ms": 49937.5,
+      "peak_job_bytes": 837165056,
+      "peak_proc_bytes": 835878912,
+      "peak_working_set_bytes": 772030464,
+      "stdout": "  \u25c6  swag        build \u2022 std [core] \u2022 devmode\r\n  \u2713  module      win32 \u2022 31 files \u2022 191 ms\r\n  \u2713  module      xinput \u2022 28 files \u2022 435 ms\r\n  \u2713  module      core \u2022 349 files \u2022 core.dll \u2022 5 s 462 ms\r\n  \u2713  workspace   std [core] \u2022 3 modules \u2022 7 s 213 ms\r\n  \u2713  clean       7 s 214 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 48.806012748549136,
+      "tag": "baseline",
+      "task": "core",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\swc.baseline.exe",
+        "build",
+        "--build-cfg",
+        "devmode",
+        "--rebuild",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\std",
+        "--workspace-module",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 4717.4409,
+      "cpu_ms": 38078.125,
+      "peak_job_bytes": 811958272,
+      "peak_proc_bytes": 810704896,
+      "peak_working_set_bytes": 750084096,
+      "stdout": "  \u25c6  swag        build \u2022 std [core] \u2022 devmode\r\n  \u2713  module      win32 \u2022 31 files \u2022 128 ms\r\n  \u2713  module      xinput \u2022 28 files \u2022 134 ms\r\n  \u2713  module      core \u2022 349 files \u2022 core.dll \u2022 3 s 676 ms\r\n  \u2713  workspace   std [core] \u2022 3 modules \u2022 4 s 555 ms\r\n  \u2713  clean       4 s 556 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 31.900554141081322,
+      "tag": "baseline",
+      "task": "core",
+      "round": 2,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\swc.baseline.exe",
+        "build",
+        "--build-cfg",
+        "devmode",
+        "--rebuild",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\std",
+        "--workspace-module",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 5143.1923,
+      "cpu_ms": 39406.25,
+      "peak_job_bytes": 832872448,
+      "peak_proc_bytes": 831598592,
+      "peak_working_set_bytes": 762302464,
+      "stdout": "  \u25c6  swag        build \u2022 std [core] \u2022 devmode\r\n  \u2713  module      win32 \u2022 31 files \u2022 128 ms\r\n  \u2713  module      xinput \u2022 28 files \u2022 153 ms\r\n  \u2713  module      core \u2022 349 files \u2022 core.dll \u2022 3 s 937 ms\r\n  \u2713  workspace   std [core] \u2022 3 modules \u2022 4 s 959 ms\r\n  \u2713  clean       4 s 959 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 34.70313358988455,
+      "tag": "candidate",
+      "task": "core",
+      "round": 2,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\swc.candidate.exe",
+        "build",
+        "--build-cfg",
+        "devmode",
+        "--rebuild",
+        "--workspace",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\std",
+        "--workspace-module",
+        "core"
+      ]
+    }
+  ],
+  "admissions": [
+    {
+      "time": "2026-09-12 21:26:46",
+      "exit": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 29\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 14\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,9\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:26:57",
+      "exit": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 30\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 15,7\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 14,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:27:08",
+      "exit": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 28\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 15,5\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 14,6\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:27:19",
+      "exit": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 35\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 17\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 16,2\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:27:33",
+      "exit": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 27\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 16,3\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 15,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:27:44",
+      "exit": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 32\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 15,9\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 15,3\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    }
+  ],
+  "binaries": {
+    "baseline": {
+      "path": "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\swc.baseline.exe",
+      "sha256": "5424f35db0260731bd3f2120ed8d2cff1a73a4a4d5aeacac665f54bbc38fde0c"
+    },
+    "candidate": {
+      "path": "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\swc.candidate.exe",
+      "sha256": "af2ef646f965021a10e989cefcb0e81fba4e150aadaadc261dd134e1be30c8a0"
+    }
+  }
+}

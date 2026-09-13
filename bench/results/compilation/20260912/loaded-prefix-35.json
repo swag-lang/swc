@@ -1,0 +1,159 @@
+{
+  "arguments": {
+    "binaries": [
+      "baseline",
+      "candidate"
+    ],
+    "tasks": [
+      "wordfreq",
+      "csvagg",
+      "sha256",
+      "dijkstra",
+      "raytrace",
+      "leven",
+      "chacha",
+      "core"
+    ],
+    "reps": 3,
+    "label": "release-all-workers-35",
+    "cfg": "release",
+    "cores": 0,
+    "max_cpu": 35
+  },
+  "logical_processors": 22,
+  "samples": [
+    {
+      "exit": 0,
+      "wall_ms": 361.2871,
+      "cpu_ms": 843.75,
+      "peak_job_bytes": 115613696,
+      "peak_proc_bytes": 114364416,
+      "peak_working_set_bytes": 86949888,
+      "stdout": "  \u25c6  swag        build \u2022 3 files \u2022 release\r\nwarning: '!' asserts a value of type '[*] void' that cannot be null here\r\n  --> C:\\Perso\\swag-lang\\swc-compile-perf\\bench\\src\\swagnat\\common.swg:35:61-64\r\n35 \u2502 \u001b[38;2;204;204;204m    \u001b[38;2;86;156;214mlet header = \u001b[38;2;86;156;214mcast(*\u001b[38;2;78;201;176mBenchAllocationHeader) (\u001b[38;2;86;156;214mcast([*] \u001b[38;2;246;204;134mu8) ptr! - \u001b[38;2;220;220;170m#sizeof(\u001b[38;2;78;201;176mBenchAllocationHeader))\r\n   \u2502                                                             ^^^\r\n  help: remove the '!'\r\n\r\n  \u26a0  checked     22 files \u2022 42_006 tokens \u2022 48 ms\r\n  \u2713  tuned       183 functions \u2022 172 ms\r\n  \u2713  forged      454 functions \u2022 wordfreq.exe \u2022 193 ms\r\n  \u26a0  passed      1 warning \u2022 244 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 26.08695652173913,
+      "tag": "baseline",
+      "task": "wordfreq",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\swc.baseline.exe",
+        "build",
+        "--build-cfg",
+        "release",
+        "--rebuild",
+        "-n",
+        "wordfreq",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\output\\baseline\\wordfreq",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\output\\baseline\\wordfreq",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bench\\src\\swagnat\\bytemap.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bench\\src\\swagnat\\wordfreq.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 242.8357,
+      "cpu_ms": 1046.875,
+      "peak_job_bytes": 114589696,
+      "peak_proc_bytes": 113324032,
+      "peak_working_set_bytes": 84660224,
+      "stdout": "  \u25c6  swag        build \u2022 3 files \u2022 release\r\nwarning: '!' asserts a value of type '[*] void' that cannot be null here\r\n  --> C:\\Perso\\swag-lang\\swc-compile-perf\\bench\\src\\swagnat\\common.swg:35:61-64\r\n35 \u2502 \u001b[38;2;204;204;204m    \u001b[38;2;86;156;214mlet header = \u001b[38;2;86;156;214mcast(*\u001b[38;2;78;201;176mBenchAllocationHeader) (\u001b[38;2;86;156;214mcast([*] \u001b[38;2;246;204;134mu8) ptr! - \u001b[38;2;220;220;170m#sizeof(\u001b[38;2;78;201;176mBenchAllocationHeader))\r\n   \u2502                                                             ^^^\r\n  help: remove the '!'\r\n\r\n  \u26a0  checked     22 files \u2022 42_006 tokens \u2022 47 ms\r\n  \u2713  tuned       183 functions \u2022 82 ms\r\n  \u2713  forged      454 functions \u2022 wordfreq.exe \u2022 111 ms\r\n  \u26a0  passed      1 warning \u2022 165 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 42.03655352480418,
+      "tag": "candidate",
+      "task": "wordfreq",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\swc.candidate.exe",
+        "build",
+        "--build-cfg",
+        "release",
+        "--rebuild",
+        "-n",
+        "wordfreq",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\output\\candidate\\wordfreq",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\.tmp\\compile-perf\\output\\candidate\\wordfreq",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bench\\src\\swagnat\\bytemap.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-compile-perf\\bench\\src\\swagnat\\wordfreq.swg"
+      ]
+    }
+  ],
+  "admissions": [
+    {
+      "time": "2026-09-12 21:17:35",
+      "exit": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 15\nMaximumCpuPercent         : 35\nAvailablePhysicalGiB      : 15,5\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 14,5\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:17:42",
+      "exit": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 54\nMaximumCpuPercent         : 35\nAvailablePhysicalGiB      : 15,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 14,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:17:59",
+      "exit": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 62\nMaximumCpuPercent         : 35\nAvailablePhysicalGiB      : 14,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 13,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:18:15",
+      "exit": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 56\nMaximumCpuPercent         : 35\nAvailablePhysicalGiB      : 14,9\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 13,9\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:18:31",
+      "exit": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 64\nMaximumCpuPercent         : 35\nAvailablePhysicalGiB      : 14,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 13,6\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:18:48",
+      "exit": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 43\nMaximumCpuPercent         : 35\nAvailablePhysicalGiB      : 15,7\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 14,9\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:19:05",
+      "exit": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 36\nMaximumCpuPercent         : 35\nAvailablePhysicalGiB      : 13,9\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,9\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:19:21",
+      "exit": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 62\nMaximumCpuPercent         : 35\nAvailablePhysicalGiB      : 13,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,5\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:19:37",
+      "exit": 0,
+      "output": "\n\nStatus                    : ready\nAverageCpuPercent         : 28\nMaximumCpuPercent         : 35\nAvailablePhysicalGiB      : 16,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 15,5\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:19:44",
+      "exit": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 37\nMaximumCpuPercent         : 35\nAvailablePhysicalGiB      : 16,4\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 15,4\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    },
+    {
+      "time": "2026-09-12 21:20:00",
+      "exit": 2,
+      "output": "\n\nStatus                    : wait\nAverageCpuPercent         : 39\nMaximumCpuPercent         : 35\nAvailablePhysicalGiB      : 15,9\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 14,9\nRequiredCommitHeadroomGiB : 8\n\n\n\n"
+    }
+  ],
+  "binaries": {
+    "baseline": {
+      "path": "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\swc.baseline.exe",
+      "sha256": "5424f35db0260731bd3f2120ed8d2cff1a73a4a4d5aeacac665f54bbc38fde0c"
+    },
+    "candidate": {
+      "path": "C:\\Perso\\swag-lang\\swc-compile-perf\\bin\\swc.candidate.exe",
+      "sha256": "af2ef646f965021a10e989cefcb0e81fba4e150aadaadc261dd134e1be30c8a0"
+    }
+  }
+}

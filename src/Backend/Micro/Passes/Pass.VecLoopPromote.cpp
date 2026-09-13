@@ -70,6 +70,7 @@ namespace
         MicroReg             stackPointer;
 
         std::unordered_map<uint32_t, RegDefInfo> regDefs;
+        std::vector<uint32_t>                    stackPointerDefs;
         uint32_t                                 firstCallIndex = K_INVALID;
 
         RootKind classifyRoot(MicroReg reg, const RegDefInfo* def) const
@@ -356,6 +357,11 @@ namespace
         //      disqualifies the whole loop (the promoted load and store are
         //      re-addressed off the stack pointer, so its value must be the
         //      same at the preheader, inside the body, and at the exit). ----
+        for (const uint32_t i : fn.stackPointerDefs)
+        {
+            if (loop.inBody[i])
+                return false;
+        }
         SmallVector<MemAccess> accesses;
         for (uint32_t i = 0; i < n; ++i)
         {
@@ -366,12 +372,6 @@ namespace
                 return false;
             if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return false;
-            const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
-            for (const MicroReg def : useDef.defs)
-            {
-                if (def == fn.stackPointer)
-                    return false;
-            }
             if (!classifyMemAccess(fn, *inst, i, accesses))
                 return false;
         }
@@ -601,6 +601,8 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
         const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
         for (const MicroReg reg : useDef.defs)
         {
+            if (reg == stackPointer)
+                fn.stackPointerDefs.push_back(i);
             if (!reg.isVirtual())
                 continue;
             RegDefInfo& info = fn.regDefs[reg.packed];

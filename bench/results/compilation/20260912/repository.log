@@ -1,0 +1,10 @@
+
+  ◆  swag        run • tests • devmode
+  ✓  module      win32 • 31 files • 141 ms
+  ✓  module      xinput • 28 files • 138 ms
+  ✓  module      core • 349 files • core.dll • 3 s 890 ms
+  ✓  workspace   std [core] • 3 modules • 4 s 808 ms
+  ✓  checked     66 files • 185_760 tokens • 652 ms
+  ✓  tuned       358 functions • 1 s 155 ms
+error: ./backlog/README.md:39: inventory row for 'cpu.simd.md' says 2026-09-12 22:10 but the latest stamp in that file is 2026-09-12 18:05
+error: backlog validation found 1 problem

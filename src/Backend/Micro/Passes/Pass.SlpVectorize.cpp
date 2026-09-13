@@ -1325,7 +1325,7 @@ namespace
         return false;
     }
 
-    bool vectorizeBlock(SlpFunctionContext& fn, std::span<const BlockInstr> blockInstrs)
+    bool vectorizeBlock(SlpFunctionContext& fn, MicroSsaState& localSsa, std::span<const BlockInstr> blockInstrs)
     {
         if (blockInstrs.size() < static_cast<size_t>(K_LANE_COUNT) * 2)
             return false;
@@ -1496,6 +1496,14 @@ namespace
 
         // Deleting a store is only sound when every later read of the
         // location dies with the scalar chain.
+        // Build the shared snapshot only once a block has a viable packed
+        // plan, still before any block can mutate the instruction stream.
+        if (!fn.ssa)
+        {
+            fn.ssa = MicroSsaState::ensureFor(*fn.context, localSsa);
+            if (!fn.ssa)
+                return false;
+        }
         DeletionOracle oracle(fn, deletedStoreRefs);
         for (const LoadRecord& load : scan.loads)
         {
@@ -1546,6 +1554,8 @@ namespace
             return false;
 
         // ----- Materialize.
+        if (!fn.nextVirtualFloatRegIndex)
+            fn.nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(*fn.context);
         std::vector<MicroReg> planRegs(plan.nextPlanReg);
         for (uint32_t planReg = 0; planReg < plan.nextPlanReg; ++planReg)
         {
@@ -1696,13 +1706,7 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
         }
     }
 
-    MicroSsaState        localSsa;
-    const MicroSsaState* ssa = MicroSsaState::ensureFor(context, localSsa);
-    if (!ssa)
-        return Result::Continue;
-    fn.ssa = ssa;
-
-    fn.nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
+    MicroSsaState localSsa;
 
     // Walk the straight-line blocks.
     bool changed = false;
@@ -1710,7 +1714,7 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
     blockInstrs.clear();
 
     const auto flushBlock = [&]() {
-        if (!blockInstrs.empty() && vectorizeBlock(fn, blockInstrs))
+        if (!blockInstrs.empty() && vectorizeBlock(fn, localSsa, blockInstrs))
             changed = true;
         blockInstrs.clear();
     };

@@ -18,21 +18,18 @@ namespace MicroPassHelpers
     {
         static constexpr uint32_t K_INVALID_NODE = std::numeric_limits<uint32_t>::max();
 
-        std::vector<uint32_t> idom;   // idom[entry] == entry; K_INVALID_NODE if unreachable
-        std::vector<uint32_t> rpoPos; // position in reverse-postorder; K_INVALID_NODE if unreachable
+        // DFS intervals in the dominator tree. A subtree is a contiguous range;
+        // querying ancestry needs no walk through the immediate dominators.
+        std::vector<uint32_t> subtreeBegin;
+        std::vector<uint32_t> subtreeEnd;
 
-        bool reachable(uint32_t node) const { return node < idom.size() && idom[node] != K_INVALID_NODE; }
+        bool reachable(uint32_t node) const { return node < subtreeBegin.size() && subtreeBegin[node] != K_INVALID_NODE; }
 
         bool dominates(uint32_t a, uint32_t b) const
         {
             if (!reachable(a) || !reachable(b))
                 return false;
-            uint32_t x = b;
-            // Strict dominators precede their descendants in reverse postorder. Once the
-            // walk reaches or passes a's position, no earlier ancestor can be a.
-            while (rpoPos[x] > rpoPos[a] && x != idom[x])
-                x = idom[x];
-            return x == a;
+            return subtreeBegin[a] <= subtreeBegin[b] && subtreeBegin[b] < subtreeEnd[a];
         }
     };
 

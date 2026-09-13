@@ -16,14 +16,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    std::vector<uint8_t> reachableWithoutInstruction(const MicroControlFlowGraph& cfg, const uint32_t excluded)
+    std::vector<uint8_t> reachableWithoutInstruction(const MicroControlFlowGraph& cfg, const uint32_t excluded, const uint32_t entry = 0)
     {
         std::vector<uint8_t>  reachable(cfg.instructionCount(), 0);
         std::vector<uint32_t> pending;
-        if (excluded != 0 && !reachable.empty())
+        if (excluded != entry && entry < reachable.size())
         {
-            reachable[0] = 1;
-            pending.push_back(0);
+            reachable[entry] = 1;
+            pending.push_back(entry);
         }
         while (!pending.empty())
         {
@@ -354,36 +354,30 @@ SWC_TEST_BEGIN(MicroDomTree_MatchesPathsThroughDiamondAndLoop)
     builder.emitRet();
 
     const auto& cfg = builder.controlFlowGraph();
-    const auto  dom = MicroPassHelpers::computeInstructionDominators(cfg, 0);
     const auto  n   = cfg.instructionCount();
-    for (uint32_t a = 0; a < n; ++a)
+    for (uint32_t entry = 0; entry < n; ++entry)
     {
-        // A dominates B precisely when removing A leaves no entry-to-B path.
-        std::vector<uint8_t>  visited(n, 0);
-        std::vector<uint32_t> pending;
-        if (a != 0)
-            pending.push_back(0);
-        while (!pending.empty())
+        const auto dom       = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+        const auto reachable = reachableWithoutInstruction(cfg, n, entry);
+        for (uint32_t a = 0; a < n; ++a)
         {
-            const uint32_t node = pending.back();
-            pending.pop_back();
-            if (visited[node])
-                continue;
-            visited[node] = 1;
-            for (const uint32_t successor : cfg.successors(node))
+            // A dominates B precisely when removing A leaves no entry-to-B path.
+            // Try every entry, including roots after unreachable instructions.
+            const auto without = reachableWithoutInstruction(cfg, a, entry);
+            if (dom.reachable(a) != (reachable[a] != 0))
+                return Result::Error;
+            for (uint32_t b = 0; b < n; ++b)
             {
-                if (successor != a && successor < n && !visited[successor])
-                    pending.push_back(successor);
+                const bool expected = reachable[a] && reachable[b] && !without[b];
+                if (dom.dominates(a, b) != expected)
+                    return Result::Error;
             }
         }
-        for (uint32_t b = 0; b < n; ++b)
-        {
-            const bool expected = dom.reachable(a) && dom.reachable(b) && !visited[b];
-            if (dom.dominates(a, b) != expected)
-                return Result::Error;
-        }
+        if (dom.dominates(n, entry) || dom.dominates(entry, n))
+            return Result::Error;
     }
-    if (dom.dominates(n, 0) || dom.dominates(0, n))
+    const auto invalid = MicroPassHelpers::computeInstructionDominators(cfg, n);
+    if (invalid.reachable(0) || invalid.dominates(0, 0))
         return Result::Error;
     return Result::Continue;
 }

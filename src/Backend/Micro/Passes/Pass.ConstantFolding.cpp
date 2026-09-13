@@ -536,11 +536,12 @@ namespace
             return false;
         if (!ops[0].reg.isVirtualInt())
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
-            return false;
 
         KnownValue inputValue;
         if (!tryGetKnownReachingValue(inputValue, ssaState, knownValues, knownFlags, ops[0].reg, instRef))
+            return false;
+
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
             return false;
 
         uint64_t   foldedValue = 0;
@@ -560,8 +561,6 @@ namespace
             return false;
         if (!ops)
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
-            return false;
 
         // cvtf2f(const) path.
         if (ops[3].microOp == MicroOp::ConvertFloatToFloat && ops[0].reg.isVirtualFloat())
@@ -572,6 +571,9 @@ namespace
 
             const MicroOpBits srcBits = ops[2].opBits;
             if (srcValue.opBits != srcBits)
+                return false;
+
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
                 return false;
 
             uint64_t converted = 0;
@@ -597,6 +599,9 @@ namespace
         if (!tryGetKnownReachingValue(lhs, ssaState, knownValues, knownFlags, ops[0].reg, instRef))
             return false;
         if (!tryGetKnownReachingValue(rhs, ssaState, knownValues, knownFlags, ops[1].reg, instRef))
+            return false;
+
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
             return false;
 
         uint64_t   foldedValue = 0;
@@ -642,7 +647,7 @@ namespace
     // immediate they would have produced; a packed load is left alone.
     bool tryFoldLoadFromConstant(const ConstantMemoryContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
-        if (!ops || !context.taskContext)
+        if (!ops || !context.taskContext || context.constantAddressByInstruction.empty())
             return false;
 
         MicroOpBits dstBits    = MicroOpBits::Zero;

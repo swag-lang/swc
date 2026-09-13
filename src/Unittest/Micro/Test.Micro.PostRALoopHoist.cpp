@@ -333,6 +333,31 @@ SWC_TEST_BEGIN(PostRALoopHoist_CarriedRegisterReusedElsewhere_Blocks)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRALoopHoist_SecondDefinitionOfDestinationBlocks)
+{
+    const CallConv&     conv    = CallConv::get(CallConvKind::Swag);
+    const MicroReg      base    = conv.intTransientRegs[3];
+    const MicroReg      counter = conv.intTransientRegs[4];
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef top = builder.createLabel();
+    builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+    builder.placeLabel(top);
+    builder.emitLoadRegMem(base, conv.stackPointer, 0x40, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(counter, base, MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadRegImm(base, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitCmpRegImm(counter, ApInt(10, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, top);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaLoopHoistPass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
+        return Result::Error;
+    if (firstPosition(builder, MicroInstrOpcode::LoadRegMem) < firstPosition(builder, MicroInstrOpcode::Label))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

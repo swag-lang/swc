@@ -70,7 +70,6 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
 
         instructionIndexBySlot_[slot] = instructionIndex;
         InstrInfo& info               = instrInfos_[slot];
-        info.instRef                  = instRef;
 
         const MicroInstr* inst = storage.ptr(instRef);
         SWC_ASSERT(inst != nullptr);
@@ -197,13 +196,13 @@ void MicroSsaState::resetInstructionInfos(const uint32_t slotCount)
     for (uint32_t slot = 0; slot < slotCount; ++slot)
     {
         InstrInfo& info = instrInfos_[slot];
-        info.instRef    = MicroInstrRef::invalid();
         // info.useDef and the cachedOp/cachedOperandWords/useDefCached fields are kept
         // on purpose: they form the cross-rebuild use/def cache (see InstrInfo). Only
         // the per-build SSA bookkeeping is cleared here.
         info.defValues.clear();
         info.useRegIndices.clear();
         info.defRegIndices.clear();
+        info.renamePosition = K_INVALID_VALUE;
     }
 }
 
@@ -221,6 +220,7 @@ void MicroSsaState::clear()
     blocks_.clear();
     valueInfos_.clear();
     phiInfos_.clear();
+    reachingValuesByReg_.clear();
     useVisitStamps_.clear();
     useVisitStack_.clear();
     trackedDefCount_ = 0;
@@ -250,23 +250,16 @@ MicroSsaState::ReachingDef MicroSsaState::reachingDef(const MicroReg reg, const 
     if (instructionIndex == K_INVALID || instructionIndex >= instructionToBlock_.size())
         return {};
 
-    const uint32_t blockIndex = instructionToBlock_[instructionIndex];
-    if (blockIndex == K_INVALID_BLOCK || blockIndex >= blocks_.size())
+    const uint32_t regIndex = trackedRegs_.find(reg);
+    if (regIndex == MicroDenseRegIndex::K_INVALID_INDEX)
         return {};
 
-    const BlockInfo& block   = blocks_[blockIndex];
-    uint32_t         valueId = K_INVALID_VALUE;
-    for (uint32_t scanIndex = instructionIndex; scanIndex > block.instructionBegin; --scanIndex)
-    {
-        const MicroInstrRef scanRef = instructionRefs_[scanIndex - 1];
-        const InstrInfo&    info    = instrInfos_[scanRef.get()];
-        valueId                     = findRegValue(info.defValues, reg);
-        if (valueId != K_INVALID_VALUE)
-            break;
-    }
-
-    if (valueId == K_INVALID_VALUE)
-        valueId = findRegValue(block.entryValues, reg);
+    const uint32_t position = instrInfos_[slot].renamePosition;
+    const auto&    values   = reachingValuesByReg_[regIndex];
+    const auto     after    = std::ranges::upper_bound(values, position, {}, &ReachingValue::position);
+    if (after == values.begin())
+        return {};
+    const uint32_t valueId = (after - 1)->valueId;
     if (valueId == K_INVALID_VALUE)
         return {};
 
@@ -408,12 +401,20 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {
         for (const uint32_t successorBlock : blocks_[blockIndex].successors)
-            appendUniqueIndex(blocks_[successorBlock].predecessors, blockIndex);
+            blocks_[successorBlock].predecessors.push_back(blockIndex);
     }
 }
 
 void MicroSsaState::computeDominators()
 {
+    // A single block dominates itself, with no frontier. Avoid setting up the
+    // general DFS and fixed-point workspaces for straight-line functions.
+    if (blocks_.size() == 1)
+    {
+        blocks_[0].idom = 0;
+        return;
+    }
+
     std::vector idomValues(blocks_.size(), K_INVALID_BLOCK);
     for (BlockInfo& block : blocks_)
     {
@@ -447,7 +448,8 @@ void MicroSsaState::computeDominators()
     dfsIter.reserve(blocks_.size());
     postOrder.reserve(blocks_.size());
 
-    size_t rootCursor = 0;
+    size_t   rootCursor      = 0;
+    uint32_t unvisitedCursor = 0;
     while (true)
     {
         uint32_t rootBlock = K_INVALID;
@@ -462,14 +464,12 @@ void MicroSsaState::computeDominators()
         }
         if (rootBlock == K_INVALID)
         {
-            for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
-            {
-                if (!visited[blockIndex])
-                {
-                    rootBlock = blockIndex;
-                    break;
-                }
-            }
+            // Visited blocks never become unvisited. Do not rescan the prefix
+            // for every disconnected component (including unreachable cycles).
+            while (unvisitedCursor < blocks_.size() && visited[unvisitedCursor])
+                ++unvisitedCursor;
+            if (unvisitedCursor < blocks_.size())
+                rootBlock = unvisitedCursor;
         }
         if (rootBlock == K_INVALID)
             break;
@@ -557,9 +557,12 @@ void MicroSsaState::computeDominators()
         const uint32_t idom      = blocks_[blockIndex].idom;
         if (idom == K_INVALID_BLOCK || idom == blockIndex)
             continue;
-        appendUniqueIndex(blocks_[idom].domChildren, blockIndex);
+        blocks_[idom].domChildren.push_back(blockIndex);
     }
 
+    // Each join is visited once. Once two predecessor walks meet, the remaining
+    // dominator path has already contributed this join to every frontier on it.
+    std::vector<uint32_t> frontierVisit(blocks_.size(), K_INVALID_BLOCK);
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {
         if (blocks_[blockIndex].predecessors.size() < 2)
@@ -570,7 +573,10 @@ void MicroSsaState::computeDominators()
             uint32_t runner = predecessorBlock;
             while (runner != K_INVALID_BLOCK && runner != blocks_[blockIndex].idom)
             {
-                appendUniqueIndex(blocks_[runner].dominanceFrontier, blockIndex);
+                if (frontierVisit[runner] == blockIndex)
+                    break;
+                frontierVisit[runner] = blockIndex;
+                blocks_[runner].dominanceFrontier.push_back(blockIndex);
                 const uint32_t runnerIdom = blocks_[runner].idom;
                 if (runnerIdom == runner)
                     break;
@@ -582,6 +588,9 @@ void MicroSsaState::computeDominators()
 
 void MicroSsaState::placePhiNodes()
 {
+    if (blocks_.size() < 2)
+        return;
+
     std::vector<SmallVector4<uint32_t>> defBlocksByReg(trackedRegs_.regs().size());
 
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
@@ -660,8 +669,9 @@ void MicroSsaState::renameIntoSsa()
     RenameState  state;
     const size_t trackedRegCount = trackedRegs_.regs().size();
     state.currentValues.assign(trackedRegCount, K_INVALID_VALUE);
-    state.activePositions.assign(trackedRegCount, K_INVALID);
-    state.activeRegIndices.reserve(trackedRegCount);
+    reachingValuesByReg_.resize(trackedRegCount);
+    for (auto& values : reachingValuesByReg_)
+        values.clear();
 
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {
@@ -683,13 +693,16 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
         pushCurrentValue(restores, state, phi.regIndex, phi.resultValueId);
     }
 
-    captureCurrentValues(block.entryValues, state);
-
     const auto& regs = trackedRegs_.regs();
     for (uint32_t instructionIndex = block.instructionBegin; instructionIndex < block.instructionEnd; ++instructionIndex)
     {
         const MicroInstrRef instRef = instructionRefs_[instructionIndex];
         InstrInfo&          info    = instrInfos_[instRef.get()];
+
+        // Queries observe the state before this instruction's writes. Its defs,
+        // and any scope restores before the next instruction, take effect at the
+        // next position in the rename walk, independently of physical IR order.
+        info.renamePosition = state.position++;
 
         for (const uint32_t regIndex : info.useRegIndices)
         {
@@ -722,41 +735,7 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
         renameBlock(childBlock, state);
 
     for (const auto& restore : std::views::reverse(restores))
-    {
-        if (!restore.hadPrevious)
-        {
-            SWC_ASSERT(restore.regIndex < state.currentValues.size());
-            state.currentValues[restore.regIndex] = K_INVALID_VALUE;
-            const uint32_t activePosition         = state.activePositions[restore.regIndex];
-            SWC_ASSERT(activePosition < state.activeRegIndices.size());
-            const uint32_t lastRegIndex            = state.activeRegIndices.back();
-            state.activeRegIndices[activePosition] = lastRegIndex;
-            state.activePositions[lastRegIndex]    = activePosition;
-            state.activeRegIndices.pop_back();
-            state.activePositions[restore.regIndex] = K_INVALID;
-        }
-        else
-        {
-            SWC_ASSERT(restore.regIndex < state.currentValues.size());
-            state.currentValues[restore.regIndex] = restore.previousId;
-        }
-    }
-}
-
-void MicroSsaState::captureCurrentValues(SmallVector8<RegValueEntry>& out, const RenameState& state) const
-{
-    out.clear();
-    out.reserve(state.activeRegIndices.size());
-
-    const auto& regs = trackedRegs_.regs();
-    for (const uint32_t regIndex : state.activeRegIndices)
-    {
-        SWC_ASSERT(regIndex < regs.size());
-        SWC_ASSERT(regIndex < state.currentValues.size());
-        const uint32_t valueId = state.currentValues[regIndex];
-        if (valueId != K_INVALID_VALUE)
-            out.push_back(RegValueEntry{regs[regIndex], valueId});
-    }
+        setCurrentValue(state, restore.regIndex, restore.previousId);
 }
 
 uint32_t MicroSsaState::currentValue(const RenameState& state, const uint32_t regIndex)
@@ -804,26 +783,22 @@ void MicroSsaState::assignPhiInputs(const uint32_t predecessorBlock, const uint3
 void MicroSsaState::pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, const uint32_t regIndex, const uint32_t valueId)
 {
     SWC_ASSERT(regIndex < state.currentValues.size());
-    SWC_ASSERT(regIndex < state.activePositions.size());
+    restores.push_back(RestorePoint{regIndex, state.currentValues[regIndex]});
+    setCurrentValue(state, regIndex, valueId);
+}
 
-    RestorePoint restore;
-    restore.regIndex = regIndex;
-
-    const uint32_t previous = state.currentValues[regIndex];
-    if (previous != K_INVALID_VALUE)
-    {
-        restore.hadPrevious = true;
-        restore.previousId  = previous;
-    }
-    else
-    {
-        SWC_ASSERT(state.activePositions[regIndex] == K_INVALID);
-        state.activePositions[regIndex] = static_cast<uint32_t>(state.activeRegIndices.size());
-        state.activeRegIndices.push_back(regIndex);
-    }
-
-    restores.push_back(restore);
+void MicroSsaState::setCurrentValue(RenameState& state, const uint32_t regIndex, const uint32_t valueId)
+{
+    SWC_ASSERT(regIndex < state.currentValues.size());
     state.currentValues[regIndex] = valueId;
+
+    auto& values = reachingValuesByReg_[regIndex];
+    // No instruction can observe intermediate restores or phi definitions at
+    // the same position. Retain only the final value visible there.
+    if (!values.empty() && values.back().position == state.position)
+        values.back().valueId = valueId;
+    else
+        values.push_back(ReachingValue{state.position, valueId});
 }
 
 uint32_t MicroSsaState::createValue(const MicroReg reg, const uint32_t blockIndex, const MicroInstrRef instRef, const uint32_t phiIndex)
@@ -872,6 +847,12 @@ uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, co
 {
     if (valueId >= valueInfoCount_ || cap == 0)
         return 0;
+
+    const auto& uses = valueInfos_[valueId].uses;
+    if (uses.empty())
+        return 0;
+    if (cap == 1 && uses.front().kind == UseSite::Kind::Instruction)
+        return 1;
 
     if (useVisitStamps_.size() < valueInfoCount_)
         useVisitStamps_.resize(valueInfoCount_, 0);
@@ -924,6 +905,12 @@ bool MicroSsaState::isValueTransitivelyUsed(const uint32_t valueId) const
 {
     if (valueId >= valueInfoCount_)
         return false;
+
+    const auto& uses = valueInfos_[valueId].uses;
+    if (uses.empty())
+        return false;
+    if (uses.front().kind == UseSite::Kind::Instruction)
+        return true;
 
     if (useVisitStamps_.size() < valueInfoCount_)
         useVisitStamps_.resize(valueInfoCount_, 0);

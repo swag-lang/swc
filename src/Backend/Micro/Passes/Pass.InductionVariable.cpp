@@ -200,8 +200,6 @@ namespace
     {
         std::unordered_map<MicroReg, uint32_t>      defCount;  // definitions inside the body
         std::unordered_map<MicroReg, MicroInstrRef> singleDef; // the one definition, when there is one
-        std::unordered_map<MicroReg, uint32_t>      useCount;  // uses in the whole function
-        std::unordered_map<MicroReg, MicroInstrRef> singleUse; // the one use, when there is one
     };
 
     // One round over every natural loop. Returns true when it changed the IR.
@@ -209,11 +207,6 @@ namespace
     {
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
-
-        MicroSsaState        localSsaState;
-        const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
-        if (!ssaState || !ssaState->isValid())
-            return false;
 
         const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
         if (cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
@@ -237,6 +230,24 @@ namespace
         refToIndex.reserve(n);
         for (uint32_t i = 0; i < n; ++i)
             refToIndex[instrRefs[i].get()] = i;
+
+        // Every loop reads the same unmodified instruction stream. Collect its
+        // register effects and whole-function uses once, without constructing SSA.
+        std::vector<MicroInstrUseDef>               useDefs(n);
+        std::unordered_map<MicroReg, uint32_t>      useCount;
+        std::unordered_map<MicroReg, MicroInstrRef> singleUse;
+        for (uint32_t i = 0; i < n; ++i)
+        {
+            const MicroInstr* inst = storage.ptr(instrRefs[i]);
+            if (!inst)
+                return false;
+            useDefs[i] = inst->collectUseDef(operands, context.encoder);
+            for (const MicroReg use : useDefs[i].uses)
+            {
+                if (++useCount[use] == 1)
+                    singleUse[use] = instrRefs[i];
+            }
+        }
 
         uint32_t nextVirtualIntRegIndex = 0;
         bool     changed                = false;
@@ -277,17 +288,9 @@ namespace
             LoopScan scan;
             for (uint32_t i = 0; i < n; ++i)
             {
-                const MicroInstrUseDef* useDef = ssaState->instrUseDef(instrRefs[i]);
-                if (!useDef)
-                    continue;
-                for (const MicroReg use : useDef->uses)
-                {
-                    if (++scan.useCount[use] == 1)
-                        scan.singleUse[use] = instrRefs[i];
-                }
                 if (!inBody[i])
                     continue;
-                for (const MicroReg def : useDef->defs)
+                for (const MicroReg def : useDefs[i].defs)
                 {
                     if (++scan.defCount[def] == 1)
                         scan.singleDef[def] = instrRefs[i];
@@ -382,8 +385,8 @@ namespace
                 if (!copyOps || prevCopy->op != MicroInstrOpcode::LoadRegReg || copyOps[0].reg != reg || !isCounterBits(copyOps[2].opBits))
                     return reg;
                 const auto defIt = scan.defCount.find(reg);
-                const auto useIt = scan.useCount.find(reg);
-                if (defIt == scan.defCount.end() || defIt->second != 1 || useIt == scan.useCount.end() || useIt->second != 1)
+                const auto useIt = useCount.find(reg);
+                if (defIt == scan.defCount.end() || defIt->second != 1 || useIt == useCount.end() || useIt->second != 1)
                     return reg;
                 const uint32_t inductionIx = inductionIndexOf(copyOps[1].reg);
                 if (inductionIx == K_INVALID || inductions[inductionIx].bits != copyOps[2].opBits)
@@ -398,10 +401,10 @@ namespace
             // a shift costs one cycle like the step that would replace it, so
             // it is carried only when the pointer built on it dies with it.
             auto feedsCarriedSum = [&](const MicroReg reg) {
-                const auto useIt = scan.useCount.find(reg);
-                if (useIt == scan.useCount.end() || useIt->second != 1)
+                const auto useIt = useCount.find(reg);
+                if (useIt == useCount.end() || useIt->second != 1)
                     return false;
-                const MicroInstrRef      useRef  = scan.singleUse[reg];
+                const MicroInstrRef      useRef  = singleUse[reg];
                 const MicroInstr*        useInst = storage.ptr(useRef);
                 const MicroInstrOperand* useOps  = useInst ? useInst->ops(operands) : nullptr;
                 if (!useOps)
@@ -602,8 +605,8 @@ namespace
                 for (const Candidate& candidate : sums)
                 {
                     const Induction& induction = inductions[candidate.inductionIx];
-                    const auto       useIt     = scan.useCount.find(induction.reg);
-                    const uint32_t   uses      = useIt == scan.useCount.end() ? 0 : useIt->second;
+                    const auto       useIt     = useCount.find(induction.reg);
+                    const uint32_t   uses      = useIt == useCount.end() ? 0 : useIt->second;
                     // The step reads the induction once itself.
                     if (uses == sumsPerInduction[candidate.inductionIx] + 1)
                         chosen.push_back(candidate);
@@ -751,7 +754,7 @@ Result MicroInductionVariablePass::run(MicroPassContext& context)
         return Result::Continue;
 
     // Loop-free functions are the common case: the cached back-edge test lets
-    // them skip the SSA and dominator work.
+    // them skip the dominator work.
     if (!context.builder->controlFlowGraph().hasLoop())
         return Result::Continue;
 

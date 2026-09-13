@@ -310,6 +310,7 @@ namespace
         if (passes.empty())
             return Result::Continue;
 
+        size_t passesToRun = passes.size();
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
             // Forwarding transforms that are only sound on the freshly
@@ -317,15 +318,26 @@ namespace
             // are restricted to the monotonic erase/DCE cleanups.
             context.isFirstOptimizationSweep = iteration == 0;
 
-            bool iterationMutated = false;
-            for (MicroPass* pass : passes)
+            bool   iterationMutated   = false;
+            size_t lastChangedPassEnd = 0;
+            for (size_t passIndex = 0; passIndex < passesToRun; ++passIndex)
             {
-                SWC_RESULT(runPass(context, *pass, verifyCache));
-                iterationMutated = iterationMutated || context.passChanged;
+                SWC_RESULT(runPass(context, *passes[passIndex], verifyCache));
+                if (context.passChanged)
+                {
+                    iterationMutated   = true;
+                    lastChangedPassEnd = passIndex + 1;
+                    passesToRun        = passes.size();
+                }
             }
 
             if (!iterationMutated)
                 break;
+
+            // The second sweep changes the forwarding policy, so every pass
+            // must see it. Later unchanged suffixes already saw this exact IR;
+            // recheck them only if a preceding pass mutates it again.
+            passesToRun = iteration == 0 ? passes.size() : lastChangedPassEnd;
         }
 
         context.isFirstOptimizationSweep = true;

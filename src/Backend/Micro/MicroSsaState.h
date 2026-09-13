@@ -98,7 +98,7 @@ public:
 private:
     struct InstrInfo
     {
-        MicroInstrRef               instRef = MicroInstrRef::invalid();
+        uint32_t                    renamePosition = K_INVALID_VALUE;
         MicroInstrUseDef            useDef;
         SmallVector4<RegValueEntry> defValues;
         SmallVector4<uint32_t>      useRegIndices;
@@ -120,29 +120,32 @@ private:
 
     struct BlockInfo
     {
-        uint32_t                    instructionBegin = 0;
-        uint32_t                    instructionEnd   = 0;
-        SmallVector<uint32_t, 2>    predecessors;
-        SmallVector<uint32_t, 2>    successors;
-        SmallVector<uint32_t, 2>    domChildren;
-        SmallVector<uint32_t, 2>    dominanceFrontier;
-        SmallVector<uint32_t, 2>    phis;
-        SmallVector8<RegValueEntry> entryValues;
-        uint32_t                    idom = std::numeric_limits<uint32_t>::max();
+        uint32_t                 instructionBegin = 0;
+        uint32_t                 instructionEnd   = 0;
+        SmallVector<uint32_t, 2> predecessors;
+        SmallVector<uint32_t, 2> successors;
+        SmallVector<uint32_t, 2> domChildren;
+        SmallVector<uint32_t, 2> dominanceFrontier;
+        SmallVector<uint32_t, 2> phis;
+        uint32_t                 idom = std::numeric_limits<uint32_t>::max();
     };
 
     struct RenameState
     {
         std::vector<uint32_t> currentValues;
-        std::vector<uint32_t> activeRegIndices;
-        std::vector<uint32_t> activePositions;
+        uint32_t              position = 0;
+    };
+
+    struct ReachingValue
+    {
+        uint32_t position;
+        uint32_t valueId;
     };
 
     struct RestorePoint
     {
-        uint32_t regIndex    = K_INVALID_VALUE;
-        uint32_t previousId  = K_INVALID_VALUE;
-        bool     hadPrevious = false;
+        uint32_t regIndex   = K_INVALID_VALUE;
+        uint32_t previousId = K_INVALID_VALUE;
     };
 
     static constexpr uint32_t K_INVALID_BLOCK = std::numeric_limits<uint32_t>::max();
@@ -157,34 +160,37 @@ private:
     void            placePhiNodes();
     void            renameIntoSsa();
     void            renameBlock(uint32_t blockIndex, RenameState& state);
-    void            captureCurrentValues(SmallVector8<RegValueEntry>& out, const RenameState& state) const;
     static uint32_t currentValue(const RenameState& state, uint32_t regIndex);
     void            assignPhiInputs(uint32_t predecessorBlock, uint32_t successorBlock, const RenameState& state);
-    static void     pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, uint32_t regIndex, uint32_t valueId);
+    void            pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, uint32_t regIndex, uint32_t valueId);
+    void            setCurrentValue(RenameState& state, uint32_t regIndex, uint32_t valueId);
     uint32_t        createValue(MicroReg reg, uint32_t blockIndex, MicroInstrRef instRef, uint32_t phiIndex);
     uint32_t        createPhi(uint32_t blockIndex, MicroReg reg, uint32_t regIndex);
     void            appendValueUse(uint32_t valueId, const UseSite& useSite);
     bool            isValueTransitivelyUsed(uint32_t valueId) const;
 
-    MicroBuilder*                 builder_  = nullptr;
-    MicroStorage*                 storage_  = nullptr;
-    MicroOperandStorage*          operands_ = nullptr;
-    const Encoder*                encoder_  = nullptr;
-    MicroDenseRegIndex            trackedRegs_;
-    std::vector<InstrInfo>        instrInfos_;
-    std::vector<MicroInstrRef>    instructionRefs_;
-    std::vector<uint32_t>         instructionIndexBySlot_;
-    std::vector<uint32_t>         instructionToBlock_;
-    std::vector<BlockInfo>        blocks_;
-    std::vector<ValueInfo>        valueInfos_;
-    std::vector<PhiInfo>          phiInfos_;
-    mutable std::vector<uint32_t> useVisitStamps_;
-    mutable std::vector<uint32_t> useVisitStack_;
-    uint32_t                      trackedDefCount_ = 0;
-    uint32_t                      valueInfoCount_  = 0;
-    uint32_t                      phiInfoCount_    = 0;
-    mutable uint32_t              useVisitStamp_   = 1;
-    bool                          valid_           = false;
+    MicroBuilder*              builder_  = nullptr;
+    MicroStorage*              storage_  = nullptr;
+    MicroOperandStorage*       operands_ = nullptr;
+    const Encoder*             encoder_  = nullptr;
+    MicroDenseRegIndex         trackedRegs_;
+    std::vector<InstrInfo>     instrInfos_;
+    std::vector<MicroInstrRef> instructionRefs_;
+    std::vector<uint32_t>      instructionIndexBySlot_;
+    std::vector<uint32_t>      instructionToBlock_;
+    std::vector<BlockInfo>     blocks_;
+    std::vector<ValueInfo>     valueInfos_;
+    std::vector<PhiInfo>       phiInfos_;
+    // Changes to each register's value along the dominator-tree rename walk.
+    // Restores delimit sibling scopes without copying every live value per block.
+    std::vector<SmallVector4<ReachingValue>> reachingValuesByReg_;
+    mutable std::vector<uint32_t>            useVisitStamps_;
+    mutable std::vector<uint32_t>            useVisitStack_;
+    uint32_t                                 trackedDefCount_ = 0;
+    uint32_t                                 valueInfoCount_  = 0;
+    uint32_t                                 phiInfoCount_    = 0;
+    mutable uint32_t                         useVisitStamp_   = 1;
+    bool                                     valid_           = false;
 };
 
 SWC_END_NAMESPACE();

@@ -1,0 +1,20 @@
+bin/swc.dm.exe :
+Au caractère Ligne:10 : 1
++ bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native -bc relea ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+  ◆  swag        run • tools • devmode
+  ✓  checked     66 files • 181_150 tokens • 5 s 763 ms
+  ✓  tuned       458 functions • 8 s 15 ms
+
+  ◆  swag        test • bin/unittests/native • release
+  ✓  checked     679 files • 542_171 tokens • 30 s 97 ms
+  ✓  tuned       9_652 functions • 1 min 54 s
+  ✓  executed    3_131 passed • 2 min 7 s
+  ✓  forged      5_582 functions • native.test.exe • 4 s 113 ms
+  ✓  ran         1 s 518 ms
+  ✓  verified    249 us
+  ✓  tested      3_131 passed • 2 min 43 s
+  ✓  clean       2 min 44 s

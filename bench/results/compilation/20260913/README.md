@@ -1,6 +1,6 @@
 # Static compilation-cost reductions, 2026-09-13
 
-Latest validated compiler: **build 550**. Each batch is functionally validated before
+Latest validated compiler: **build 551**. Each batch is functionally validated before
 integration into master. The load-admission waiver applies to this session; performance
 measurements remain deferred until the final campaign.
 
@@ -26,6 +26,7 @@ measurements remain deferred until the final campaign.
 | 18 | 548 | 760 passed | 3,131 / 3,131 passed | [Extensions, tuple keys and coalescing setup](batch18.md) |
 | 19 | 549 | 763 passed | 3,131 / 3,131 passed | [Predecessors, returns and early load rejection](batch19.md) |
 | 20 | 550 | 763 passed | 3,131 / 3,131 passed | [Early header and multiplier rejection](batch20.md) |
+| 21 | 551 | 763 passed | 3,131 / 3,131 passed | [Rotation preparation without jumps](batch21.md) |
 
 ## Worker count and deferred comparison
 

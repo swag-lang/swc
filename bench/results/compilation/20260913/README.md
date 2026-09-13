@@ -1,5 +1,18 @@
 # Static compilation-cost reductions, 2026-09-13
 
+Latest validated compiler: **build 531**. Each batch is functionally validated before
+integration into master. The load-admission waiver applies to this session; performance
+measurements remain deferred until the final campaign.
+
+| Batch | Compiler build | C++ tests | Native tests (`devmode` / `release`) | Details |
+| --- | --- | --- | --- | --- |
+| 1, including current-master integration | 525 | 685 passed | 3,131 / 3,131 passed | Sections below |
+| 2 | 527 | 696 passed | 3,131 / 3,131 passed | [Repeated scans and layouts](batch2.md) |
+| 3 | 529 | 700 passed | 3,131 / 3,131 passed | [Lazy analyses and legalization](batch3.md) |
+| 4 | 531 | 701 passed | 3,131 / 3,131 passed | [Conditional scratch-register scan](batch4.md) |
+
+The remaining sections document the first batch and its integration.
+
 Continuation in `perf/micro-compile-time`, based on `f23cfb69a`, compiler build 524.
 The user requested further static improvements without waiting for timing measurements.
 The [September 12 report](../20260912/README.md) retains the earlier measurements;
@@ -81,7 +94,7 @@ were unchanged. The DevMode build, all 685 C++ tests, and all 3,131 native tests
 of `devmode` and `release` passed again on the combined sources, with six workers.
 Evidence: [build](integration-build.log), [C++](integration-cpp.log),
 [native devmode](integration-native-devmode.log), [native release](integration-native-release.log).
-The repository backlog validator also passed. These are functional checks, not performance measurements.
+The [repository backlog validator](integration-repository.log) also passed. These are functional checks, not performance measurements.
 
 The [second batch](batch2.md) records the next static reductions and build 527 validation.
 

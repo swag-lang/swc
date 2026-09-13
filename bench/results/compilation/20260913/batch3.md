@@ -25,4 +25,4 @@ All functional validation passed; each command exited with code 0:
 The checkout-local `tools/unittests.swgs dm` commands are the same as in the first batch. All compiler commands use six
 workers under the user's load-admission waiver; no benchmark or timing comparison runs.
 
-The repository backlog validator and `git diff --check` passed.
+The [repository backlog validator](batch3-repository.log) and `git diff --check` passed.

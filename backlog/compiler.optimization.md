@@ -18,14 +18,14 @@ block, and the hot path keeps the register.
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13
-- Updated: 2026-09-13 08:05 — Narrow remaining rebuild work after the third static batch passed C++ and native validation.
+- Updated: 2026-09-13 08:13 — Narrow remaining rebuild work after four static batches passed C++ and native validation.
 - Area: compiler/backend, compilation time
 - Evidence: `MicroPassManager::runPass` still invalidates the shared SSA state whenever a pass
   sets `passChanged`; `MicroSsaState::ensureFor` then rebuilds it before the next query. Local
   instruction changes therefore still reconstruct dominators, phi nodes, and value uses for
   the whole function. The September 5–7 profiles established that these rebuilds were a major
   compilation cost, but their percentages no longer describe the current implementation.
-- Current boundary: build 529 replaces per-block snapshots of every active register and linear
+- Current boundary: build 531 replaces per-block snapshots of every active register and linear
   reaching-definition scans with a per-register index over the dominator-tree rename walk.
   Sink-to-use, LICM, and induction reduction now collect instruction-local use/def information
   without building unused SSA. Graph construction also avoids repeated duplicate searches
@@ -38,7 +38,8 @@ block, and the hot path keeps the register.
   measurements, generated-microcode comparison, and validation of that change.
 - Next: audit the remaining SSA consumers and rebuild dependencies. Distinguish operand-only
   changes, deleted definitions, and CFG edits; preserve analysis only when its dependencies
-  are known to remain valid.
+  are known to remain valid. Defer the full performance campaign until the shared CPU
+  is quiet; the current batches establish functional correctness, not a measured gain.
 - Complete when: remaining redundant rebuilds are removed with a sound invalidation contract,
   unchanged optimization decisions, and passing SSA/native tests.
 - Related: compiler.core.004, compiler.core.030.

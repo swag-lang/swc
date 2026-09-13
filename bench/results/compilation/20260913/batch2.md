@@ -32,4 +32,4 @@ recorded for the first batch, with the corresponding program configurations.
 The executable and test commands use six workers; the user waived load admission for
 this session. No benchmark or timing comparison is run.
 
-The repository backlog validator and `git diff --check` also passed.
+The [repository backlog validator](batch2-repository.log) and `git diff --check` also passed.

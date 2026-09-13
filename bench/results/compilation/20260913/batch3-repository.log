@@ -1,0 +1,10 @@
+swc.dm.exe :
+Au caractère Ligne:35 : 1
++ & bin/swc.dm.exe --num-cores 6 tools/tests/repository.swgs . *> .tmp/ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+  ◆  swag        run • tests • devmode
+  ✓  checked     66 files • 185_775 tokens • 1 s 730 ms
+  ✓  tuned       358 functions • 2 s 921 ms

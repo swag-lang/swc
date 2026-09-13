@@ -240,6 +240,54 @@ SWC_TEST_BEGIN(ConstantFolding_RegImmResultsKeepWidthsFailuresAndFlags)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantFolding_RegRegResultsKeepAliasesWidthsAndUnknownInputs)
+{
+    constexpr MicroReg lhs = MicroReg::virtualIntReg(1);
+    constexpr MicroReg rhs = MicroReg::virtualIntReg(2);
+    for (const auto bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        enum class Mode
+        {
+            DistinctSource,
+            AliasedSource,
+            DivisionByZero,
+            UnknownSource,
+        };
+        for (const auto mode : {Mode::DistinctSource, Mode::AliasedSource, Mode::DivisionByZero, Mode::UnknownSource})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegImm(lhs, ApInt(0x123, 64), MicroOpBits::B64);
+            if (mode == Mode::UnknownSource)
+                builder.emitLoadRegReg(rhs, MicroReg::intReg(1), MicroOpBits::B64);
+            else if (mode != Mode::AliasedSource)
+                builder.emitLoadRegImm(rhs, ApInt(mode == Mode::DivisionByZero ? 0 : 3, 64), MicroOpBits::B64);
+            const auto source = mode == Mode::AliasedSource ? lhs : rhs;
+            const auto op     = mode == Mode::DivisionByZero ? MicroOp::DivideUnsigned : MicroOp::Add;
+            builder.emitOpBinaryRegReg(lhs, source, op, bits);
+            const auto result = builder.instructions().lastInstructionRef();
+            builder.emitRet();
+
+            SWC_RESULT(runConstantFoldingPass(builder));
+            const auto* inst = builder.instructions().ptr(result);
+            if (!inst)
+                return Result::Error;
+            const auto* ops = inst->ops(builder.operands());
+            if (mode == Mode::DivisionByZero || mode == Mode::UnknownSource)
+            {
+                if (inst->op != MicroInstrOpcode::OpBinaryRegReg || ops[0].reg != lhs || ops[1].reg != source || ops[2].opBits != bits || ops[3].microOp != op)
+                    return Result::Error;
+                continue;
+            }
+            const uint64_t input    = bits == MicroOpBits::B8 ? 0x23 : 0x123;
+            const uint64_t expected = mode == Mode::AliasedSource ? input * 2 : input + 3;
+            if (inst->op != MicroInstrOpcode::LoadRegImm || ops[0].reg != lhs || ops[1].opBits != bits || ops[2].valueU64 != expected)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ConstantFolding_PropagatesInDominatorOrderWithoutPhis)
 {
     constexpr MicroReg source = MicroReg::virtualIntReg(1);

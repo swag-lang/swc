@@ -585,8 +585,8 @@ namespace
         uint32_t arithmeticOps = 0;
 
         std::unordered_map<TupleKey, uint32_t, TupleKeyHash> tupleRegs;
-        // Sorted-id key -> tuples already materialized, for permutation reuse.
-        std::unordered_map<TupleKey, std::vector<TupleKey>, TupleKeyHash> tuplesBySortedKey;
+        // Equal sorted IDs make every permutation reusable from the first tuple.
+        std::unordered_map<TupleKey, TupleKey, TupleKeyHash> firstTupleBySortedKey;
 
         size_t totalInstrs() const { return loads.size() + ops.size() + stores.size(); }
     };
@@ -644,15 +644,13 @@ namespace
 
             // A permutation of an already-built tuple is one shuffle.
             const TupleKey sorted = sortedKeyOf(tuple);
-            const auto     permIt = plan_->tuplesBySortedKey.find(sorted);
-            if (permIt != plan_->tuplesBySortedKey.end())
+            const auto     permIt = plan_->firstTupleBySortedKey.find(sorted);
+            if (permIt != plan_->firstTupleBySortedKey.end())
             {
-                for (const TupleKey& candidate : permIt->second)
+                uint8_t control = 0;
+                if (shuffleControlFor(tuple, permIt->second, control))
                 {
-                    uint8_t control = 0;
-                    if (!shuffleControlFor(tuple, candidate, control))
-                        continue;
-                    const uint32_t srcReg = plan_->tupleRegs.at(candidate);
+                    const uint32_t srcReg = plan_->tupleRegs.at(permIt->second);
                     const uint32_t dstReg = allocReg();
                     plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Shuffle, .dst = dstReg, .src = srcReg, .imm = control});
                     remember(tuple, dstReg);
@@ -807,7 +805,7 @@ namespace
         void remember(const TupleKey& tuple, uint32_t reg) const
         {
             plan_->tupleRegs.emplace(tuple, reg);
-            plan_->tuplesBySortedKey[sortedKeyOf(tuple)].push_back(tuple);
+            plan_->firstTupleBySortedKey.try_emplace(sortedKeyOf(tuple), tuple);
         }
 
         uint32_t buildLoad(const TupleKey& tuple, const SlpValue& n0, const SlpValue& n1, const SlpValue& n2, const SlpValue& n3) const

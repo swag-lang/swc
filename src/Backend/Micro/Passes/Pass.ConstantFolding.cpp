@@ -596,24 +596,20 @@ namespace
         if (!ops[0].reg.isVirtualInt() || !ops[1].reg.isVirtualInt())
             return false;
 
-        KnownValue lhs;
-        KnownValue rhs;
-        if (!tryGetKnownReachingValue(lhs, ssaState, knownValues, knownFlags, ops[0].reg, instRef))
+        uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+        if (!ssaState.defValue(ops[0].reg, instRef, valueId))
             return false;
-        if (!tryGetKnownReachingValue(rhs, ssaState, knownValues, knownFlags, ops[1].reg, instRef))
+
+        KnownValue resultValue;
+        if (!tryGetSsaValue<KnownValue, KnownValueTraits>(resultValue, knownValues, knownFlags, valueId))
             return false;
 
         if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
             return false;
 
-        uint64_t   foldedValue = 0;
-        const auto status      = MicroPassHelpers::foldBinaryImmediate(foldedValue, lhs.value, rhs.value, ops[3].microOp, ops[2].opBits);
-        if (status != Math::FoldStatus::Ok)
-            return false;
-
         inst.op          = MicroInstrOpcode::LoadRegImm;
         ops[1].opBits    = ops[2].opBits;
-        ops[2].valueU64  = foldedValue;
+        ops[2].valueU64  = resultValue.value;
         inst.numOperands = 3;
         return true;
     }

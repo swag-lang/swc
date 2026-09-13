@@ -112,6 +112,63 @@ SWC_TEST_BEGIN(SlpVectorize_KeepsSeedOrderAcrossRejectedMiddleGroup)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SlpVectorize_PermutationsKeepTheFirstMaterializedTuple)
+{
+    MicroBuilder   builder(ctx);
+    X64Encoder     encoder(ctx);
+    MicroSsaState  ssa;
+    const MicroReg sp = encoder.stackPointerReg();
+    for (uint32_t lane = 0; lane < 4; ++lane)
+    {
+        const MicroReg value = MicroReg::virtualIntReg(lane + 1);
+        builder.emitLoadRegMem(value, sp, 0x40 + lane * 4, MicroOpBits::B32);
+        builder.emitOpBinaryRegImm(value, ApInt(1, 8), MicroOp::ShiftLeft, MicroOpBits::B32);
+    }
+    constexpr std::array<std::array<uint32_t, 4>, 3> permutations = {{{0, 1, 2, 3}, {1, 0, 3, 2}, {3, 2, 1, 0}}};
+    for (uint32_t group = 0; group < permutations.size(); ++group)
+    {
+        for (uint32_t lane = 0; lane < 4; ++lane)
+            builder.emitLoadMemReg(sp, 0x100 + group * 16 + lane * 4, MicroReg::virtualIntReg(permutations[group][lane] + 1), MicroOpBits::B32);
+    }
+    builder.emitClearReg(MicroReg::intReg(10), MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runSlpPass(builder, ssa, encoder));
+    std::array<MicroReg, 3>           storedRegs;
+    std::array<MicroReg, 2>           shuffledRegs;
+    uint32_t                          stores     = 0;
+    uint32_t                          shuffles   = 0;
+    MicroReg                          firstTuple = MicroReg::invalid();
+    constexpr std::array<uint64_t, 2> controls   = {0xB1, 0x1B};
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const auto* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::VecShuffleRegRegImm)
+        {
+            if (shuffles >= controls.size() || ops[3].valueU64 != controls[shuffles])
+                return Result::Error;
+            if (shuffles == 0)
+                firstTuple = ops[1].reg;
+            else if (ops[1].reg != firstTuple)
+                return Result::Error;
+            shuffledRegs[shuffles++] = ops[0].reg;
+        }
+        else if (inst.op == MicroInstrOpcode::StoreVecMemReg)
+        {
+            if (stores >= storedRegs.size() || ops[3].valueU64 != 0x100 + stores * 16)
+                return Result::Error;
+            storedRegs[stores++] = ops[1].reg;
+        }
+    }
+    if (stores != 3 || shuffles != 2 || storedRegs[0] != firstTuple || storedRegs[1] != shuffledRegs[0] || storedRegs[2] != shuffledRegs[1])
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(SlpVectorize_StackAndOneParameterAreTheRootLimit)
 {
     for (const bool secondParameter : {false, true})

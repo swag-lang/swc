@@ -66,17 +66,12 @@ namespace
         if (!reg.isValid())
             return false;
 
-        const MicroStorage::View view = context.instructions->view();
-        auto                     it   = view.begin();
-        while (it != view.end() && it.current != instRef)
-            ++it;
-        if (it == view.end())
+        if (!context.instructions->ptr(instRef))
             return fallbackResult;
 
-        ++it;
-        for (; it != view.end(); ++it)
+        for (MicroInstrRef ref = context.instructions->findNextInstructionRef(instRef); ref.isValid(); ref = context.instructions->findNextInstructionRef(ref))
         {
-            const MicroInstr&      scanInst = *it;
+            const MicroInstr&      scanInst = *context.instructions->ptr(ref);
             const MicroInstrUseDef useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
             if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return fallbackResult;
@@ -157,17 +152,63 @@ namespace
     void addLiveConcreteForbiddenRegsAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg virtualReg)
     {
         SWC_ASSERT(virtualReg.isVirtual());
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+        if (!context.instructions->ptr(instRef))
+            return;
 
-        const CallConv& conv = CallConv::get(context.callConvKind);
-        for (const MicroReg reg : conv.intRegs)
+        using MicroPassHelpers::MicroPhysLiveness;
+        const CallConv& conv        = CallConv::get(context.callConvKind);
+        uint64_t        pendingRegs = 0;
+        for (const MicroRegSpan regs : {conv.intRegs.span(), conv.floatRegs.span()})
         {
-            if (isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(context, instRef, reg))
-                addVirtualForbiddenReg(context, virtualReg, reg);
+            for (const MicroReg reg : regs)
+            {
+                const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+                if (bit < MicroPhysLiveness::K_INVALID_BIT)
+                    pendingRegs |= 1ull << bit;
+            }
         }
-        for (const MicroReg reg : conv.floatRegs)
+
+        // Every register asks the same first-touch question over this suffix.
+        // Resolve them together, retaining the local probe's barrier-before-touch
+        // and use-before-definition rules.
+        uint64_t liveRegs = 0;
+        for (MicroInstrRef ref = context.instructions->findNextInstructionRef(instRef); pendingRegs && ref.isValid(); ref = context.instructions->findNextInstructionRef(ref))
         {
-            if (isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(context, instRef, reg))
-                addVirtualForbiddenReg(context, virtualReg, reg);
+            const MicroInstr&      scanInst = *context.instructions->ptr(ref);
+            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
+            if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                break;
+
+            for (const MicroReg reg : useDef.uses)
+            {
+                const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+                if (bit >= MicroPhysLiveness::K_INVALID_BIT)
+                    continue;
+                const uint64_t mask = 1ull << bit;
+                liveRegs |= pendingRegs & mask;
+                pendingRegs &= ~mask;
+            }
+            for (const MicroReg reg : useDef.defs)
+            {
+                const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+                if (bit < MicroPhysLiveness::K_INVALID_BIT)
+                    pendingRegs &= ~(1ull << bit);
+            }
+        }
+
+        // Preserve ABI-list insertion order. Registers outside the mask retain
+        // the original local query rather than silently losing an exclusion.
+        for (const MicroRegSpan regs : {conv.intRegs.span(), conv.floatRegs.span()})
+        {
+            for (const MicroReg reg : regs)
+            {
+                const uint32_t bit  = MicroPhysLiveness::bitOf(reg);
+                const bool     live = bit < MicroPhysLiveness::K_INVALID_BIT ? (liveRegs & (1ull << bit)) != 0 : isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(context, instRef, reg);
+                if (live)
+                    addVirtualForbiddenReg(context, virtualReg, reg);
+            }
         }
     }
 

@@ -483,6 +483,40 @@ SWC_TEST_BEGIN(ValueNumbering_KeepsCheapOrDistinctLiterals)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ValueNumbering_KeepsSiblingComputesAndReusesJoinDefinition)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+    const auto         right = builder.createLabel();
+    const auto         join  = builder.createLabel();
+    builder.emitLoadRegImm(base, ApInt(0x1000, 64), MicroOpBits::B64);
+    builder.emitCmpRegImm(MicroReg::intReg(0), ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, right);
+    builder.emitLoadAddressRegMem(MicroReg::virtualIntReg(2), base, 0x40, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+    builder.placeLabel(right);
+    // The first matching key comes from the other branch and does not dominate.
+    builder.emitLoadAddressRegMem(MicroReg::virtualIntReg(3), base, 0x40, MicroOpBits::B64);
+    builder.placeLabel(join);
+    builder.emitLoadAddressRegMem(MicroReg::virtualIntReg(4), base, 0x40, MicroOpBits::B64);
+    builder.emitLoadAddressRegMem(MicroReg::virtualIntReg(5), base, 0x40, MicroOpBits::B64);
+    const auto duplicate = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    SWC_RESULT(runValueNumberingPass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 3 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+        return Result::Error;
+    const auto* copy = builder.instructions().ptr(duplicate);
+    if (!copy || copy->op != MicroInstrOpcode::LoadRegReg)
+        return Result::Error;
+    const auto* ops = copy->ops(builder.operands());
+    if (ops[0].reg != MicroReg::virtualIntReg(5) || ops[1].reg != MicroReg::virtualIntReg(4))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -252,6 +252,85 @@ SWC_TEST_BEGIN(PostRAPeephole_CopyForward_StopsAtEncoderImplicitDef)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Legalize_ScratchExcludesFirstReadsInAbiOrder)
+{
+    constexpr MicroReg r8   = MicroReg::intReg(8);
+    constexpr MicroReg r9   = MicroReg::intReg(9);
+    constexpr MicroReg r10  = MicroReg::intReg(10);
+    constexpr MicroReg r11  = MicroReg::intReg(11);
+    constexpr MicroReg r12  = MicroReg::intReg(12);
+    constexpr MicroReg xmm3 = MicroReg::floatReg(3);
+    constexpr MicroReg xmm4 = MicroReg::floatReg(4);
+    const MicroReg     sp   = CallConv::get(CallConvKind::Swag).stackPointer;
+    MicroBuilder       builder(ctx);
+    builder.emitNop();
+    builder.emitOpBinaryRegImm(r8, ApInt(0x123456789ABCDEF0ull, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r10, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadRegReg(r12, r9, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(MicroReg::intReg(0), r9, MicroOp::DivideUnsigned, MicroOpBits::B64);
+    builder.emitLoadRegReg(xmm4, xmm3, MicroOpBits::B64);
+    builder.emitLoadRegImm(r11, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitLoadMemReg(sp, 0, r11, MicroOpBits::B64);
+    builder.emitLoadMemReg(sp, 8, r12, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runLegalizePass(builder, encoder));
+
+    const auto& exclusions = builder.virtualRegForbiddenPhysRegs();
+    if (exclusions.size() != 1)
+        return Result::Error;
+    const auto& regs = exclusions.begin()->second;
+    // r10's read-modify-write needs its incoming value. r11/r12/xmm4 have
+    // a definition first. r9 precedes r10 in ABI order despite the read order.
+    // Division also consumes RDX implicitly through the encoder use/def contract.
+    const MicroReg expected[] = {r8, MicroReg::intReg(0), MicroReg::intReg(3), r9, r10, xmm3};
+    if (regs.size() != std::size(expected))
+        return Result::Error;
+    for (uint32_t i = 0; i < regs.size(); ++i)
+    {
+        if (regs[i] != expected[i])
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Legalize_ScratchExclusionsStopBeforeBarrierUses)
+{
+    constexpr MicroReg r8 = MicroReg::intReg(8);
+    constexpr MicroReg r9 = MicroReg::intReg(9);
+    for (const MicroInstrOpcode barrier : {MicroInstrOpcode::Label, MicroInstrOpcode::JumpCond, MicroInstrOpcode::CallIndirect})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef target = builder.createLabel();
+        builder.emitOpBinaryRegImm(r8, ApInt(0x123456789ABCDEF0ull, 64), MicroOp::Add, MicroOpBits::B64);
+        if (barrier == MicroInstrOpcode::Label)
+            builder.placeLabel(target);
+        else if (barrier == MicroInstrOpcode::JumpCond)
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, target);
+        else
+            builder.emitCallReg(r9, CallConvKind::Swag);
+        builder.emitOpBinaryRegImm(r9, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        if (barrier == MicroInstrOpcode::JumpCond)
+            builder.placeLabel(target);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runLegalizePass(builder, encoder));
+
+        const auto& exclusions = builder.virtualRegForbiddenPhysRegs();
+        if (exclusions.size() != 1)
+            return Result::Error;
+        const auto& regs = exclusions.begin()->second;
+        // Even the call's target and implicit ABI arguments are behind the barrier.
+        if (regs.size() != 1 || regs[0] != r8)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Legalize_DoesNotPreserveDeadShiftRegisterAcrossJump)
 {
     constexpr MicroReg rcx = MicroReg::intReg(2);

@@ -491,7 +491,8 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
         return Result::Continue;
 
-    const MicroPassHelpers::MicroDomTree dom = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+    MicroPassHelpers::MicroDomTree dom;
+    bool                           dominatorsReady = false;
 
     const auto instrRefs = cfg.instructionRefs();
 
@@ -630,6 +631,13 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
                 continue;
             if (shape.readsMemory && cand.epoch != memoryEpoch)
                 continue;
+            // Only matching expressions need dominance. All rewrites are still
+            // queued, so this sees the same CFG as an eager construction would.
+            if (!dominatorsReady)
+            {
+                dom             = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+                dominatorsReady = true;
+            }
             if (!dom.dominates(cand.index, i))
                 continue;
 

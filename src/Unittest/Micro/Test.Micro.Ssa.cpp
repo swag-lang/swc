@@ -295,6 +295,56 @@ SWC_TEST_BEGIN(MicroSsa_PhiInputsFollowManyPredecessors)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroSsa_RebuildAddsFrontierAfterLinearBlocks)
+{
+    constexpr MicroReg value = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegImm(value, ApInt(7, 64), MicroOpBits::B64);
+    const auto initialDef   = builder.instructions().lastInstructionRef();
+    const auto linearTarget = builder.createLabel();
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, linearTarget);
+    builder.emitRet();
+    builder.placeLabel(linearTarget);
+    builder.emitLoadMemReg(MicroReg::intReg(2), 0, value, MicroOpBits::B64);
+    const auto initialUse = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    MicroSsaState ssa;
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    if (!ssa.phis().empty() || ssa.reachingDef(value, initialUse).instRef != initialDef)
+        return Result::Error;
+
+    // A new disconnected component introduces a frontier on the next build.
+    const auto right = builder.createLabel();
+    const auto join  = builder.createLabel();
+    builder.placeLabel(builder.createLabel());
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, right);
+    builder.emitLoadRegImm(value, ApInt(11, 64), MicroOpBits::B64);
+    const auto leftDef = builder.instructions().lastInstructionRef();
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+    builder.placeLabel(right);
+    builder.emitLoadRegImm(value, ApInt(13, 64), MicroOpBits::B64);
+    const auto rightDef = builder.instructions().lastInstructionRef();
+    builder.placeLabel(join);
+    builder.emitLoadMemReg(MicroReg::intReg(2), 0, value, MicroOpBits::B64);
+    const auto joinedUse = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    const auto  reaching = ssa.reachingDef(value, joinedUse);
+    const auto* phi      = ssa.phiInfoForValue(reaching.valueId);
+    if (!reaching.isPhi || !phi || phi->incomingValueIds.size() != 2 || ssa.phis().size() != 1)
+        return Result::Error;
+    uint32_t leftValue  = MicroSsaState::K_INVALID_VALUE;
+    uint32_t rightValue = MicroSsaState::K_INVALID_VALUE;
+    if (!ssa.defValue(value, leftDef, leftValue) || !ssa.defValue(value, rightDef, rightValue))
+        return Result::Error;
+    if (phi->incomingValueIds[0] != leftValue || phi->incomingValueIds[1] != rightValue)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

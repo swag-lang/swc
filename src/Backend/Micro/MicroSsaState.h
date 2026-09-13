@@ -156,7 +156,7 @@ private:
     void            resetForBuild(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder);
     void            resetInstructionInfos(uint32_t slotCount);
     void            buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
-    void            computeDominators();
+    bool            computeDominators(); // true when any dominance frontier exists
     void            placePhiNodes();
     void            renameIntoSsa();
     void            renameBlock(uint32_t blockIndex, RenameState& state);

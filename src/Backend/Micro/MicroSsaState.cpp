@@ -129,18 +129,12 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         }
     }
 
-    {
-        buildBlocks(controlFlowGraph);
-    }
-    {
-        computeDominators();
-    }
-    {
+    buildBlocks(controlFlowGraph);
+    // Without a dominance frontier, phi placement has no possible destination.
+    // Avoid collecting per-register definition blocks and allocating worklists.
+    if (computeDominators())
         placePhiNodes();
-    }
-    {
-        renameIntoSsa();
-    }
+    renameIntoSsa();
 
     valid_ = true;
 }
@@ -405,14 +399,14 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
     }
 }
 
-void MicroSsaState::computeDominators()
+bool MicroSsaState::computeDominators()
 {
     // A single block dominates itself, with no frontier. Avoid setting up the
     // general DFS and fixed-point workspaces for straight-line functions.
     if (blocks_.size() == 1)
     {
         blocks_[0].idom = 0;
-        return;
+        return false;
     }
 
     std::vector idomValues(blocks_.size(), K_INVALID_BLOCK);
@@ -424,7 +418,7 @@ void MicroSsaState::computeDominators()
     }
 
     if (blocks_.empty())
-        return;
+        return false;
 
     // Seed roots: entry block plus any predecessor-less block (covers unreachable
     // sub-graphs). Fall back to scanning unvisited blocks for cycles unreachable
@@ -562,6 +556,7 @@ void MicroSsaState::computeDominators()
 
     // Each join is visited once. Once two predecessor walks meet, the remaining
     // dominator path has already contributed this join to every frontier on it.
+    bool                  hasFrontier = false;
     std::vector<uint32_t> frontierVisit(blocks_.size(), K_INVALID_BLOCK);
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {
@@ -577,6 +572,7 @@ void MicroSsaState::computeDominators()
                     break;
                 frontierVisit[runner] = blockIndex;
                 blocks_[runner].dominanceFrontier.push_back(blockIndex);
+                hasFrontier               = true;
                 const uint32_t runnerIdom = blocks_[runner].idom;
                 if (runnerIdom == runner)
                     break;
@@ -584,6 +580,7 @@ void MicroSsaState::computeDominators()
             }
         }
     }
+    return hasFrontier;
 }
 
 void MicroSsaState::placePhiNodes()

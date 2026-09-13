@@ -658,13 +658,20 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
 {
     BlockInfo&                 block = blocks_[blockIndex];
     SmallVector8<RestorePoint> restores;
-    restores.reserve(std::min<size_t>(state.currentValues.size(), block.phis.size() + (block.instructionEnd - block.instructionBegin)));
+    // Every block contains instructions. If this block consumes the rest of
+    // the rename walk, no later block can observe its scope restores.
+    const bool needsRestore = block.instructionEnd - block.instructionBegin != instructionRefs_.size() - state.position;
+    if (needsRestore)
+        restores.reserve(std::min<size_t>(state.currentValues.size(), block.phis.size() + (block.instructionEnd - block.instructionBegin)));
 
     for (const uint32_t phiIndex : block.phis)
     {
         PhiInfo& phi      = phiInfos_[phiIndex];
         phi.resultValueId = createValue(phi.reg, blockIndex, MicroInstrRef::invalid(), phiIndex);
-        pushCurrentValue(restores, state, phi.regIndex, phi.resultValueId);
+        if (needsRestore)
+            pushCurrentValue(restores, state, phi.regIndex, phi.resultValueId);
+        else
+            setCurrentValue(state, phi.regIndex, phi.resultValueId);
     }
 
     const auto& regs = trackedRegs_.regs();
@@ -697,7 +704,10 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
             const MicroReg reg     = regs[regIndex];
             const uint32_t valueId = createValue(reg, blockIndex, instRef, K_INVALID_PHI);
             info.defValues.push_back(RegValueEntry{reg, valueId});
-            pushCurrentValue(restores, state, regIndex, valueId);
+            if (needsRestore)
+                pushCurrentValue(restores, state, regIndex, valueId);
+            else
+                setCurrentValue(state, regIndex, valueId);
         }
     }
 

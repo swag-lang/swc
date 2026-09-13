@@ -512,6 +512,72 @@ SWC_TEST_BEGIN(MicroSsa_RepeatedDefinitionsRestoreBlockEntryValues)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroSsa_FinalBlockKeepsRepeatedDefinitionsAndBackedgeInputs)
+{
+    constexpr uint32_t count = 16;
+    for (const bool withBackedge : {false, true})
+    {
+        MicroBuilder                     builder(ctx);
+        const auto                       loop = builder.createLabel();
+        std::array<MicroInstrRef, count> seeds;
+        std::array<MicroInstrRef, count> firstUpdates;
+        std::array<MicroInstrRef, count> lastUpdates;
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            builder.emitLoadRegImm(MicroReg::virtualIntReg(i + 1), ApInt(i, 64), MicroOpBits::B64);
+            seeds[i] = builder.instructions().lastInstructionRef();
+        }
+        if (withBackedge)
+            builder.placeLabel(loop);
+        for (auto* updates : {&firstUpdates, &lastUpdates})
+        {
+            for (uint32_t i = 0; i < count; ++i)
+            {
+                builder.emitOpBinaryRegImm(MicroReg::virtualIntReg(i + 1), ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+                (*updates)[i] = builder.instructions().lastInstructionRef();
+            }
+        }
+        if (withBackedge)
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, loop);
+        else
+            builder.emitRet();
+        const auto end = builder.instructions().lastInstructionRef();
+
+        MicroSsaState ssa;
+        for (uint32_t rebuild = 0; rebuild < 2; ++rebuild)
+        {
+            ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+            if (ssa.phis().size() != (withBackedge ? count : 0) || ssa.values().size() != count * (withBackedge ? 4 : 3))
+                return Result::Error;
+            for (uint32_t i = 0; i < count; ++i)
+            {
+                const auto reg = MicroReg::virtualIntReg(i + 1);
+                if (ssa.reachingDef(reg, seeds[i]).valid() || ssa.reachingDef(reg, lastUpdates[i]).instRef != firstUpdates[i])
+                    return Result::Error;
+                const auto final   = ssa.reachingDef(reg, end);
+                uint32_t   finalId = MicroSsaState::K_INVALID_VALUE;
+                if (final.instRef != lastUpdates[i] || !ssa.defValue(reg, lastUpdates[i], finalId) || final.valueId != finalId)
+                    return Result::Error;
+                const auto first = ssa.reachingDef(reg, firstUpdates[i]);
+                if (!withBackedge)
+                {
+                    if (first.instRef != seeds[i])
+                        return Result::Error;
+                    continue;
+                }
+                const auto* phi = ssa.phiInfoForValue(first.valueId);
+                if (!first.isPhi || !phi || phi->incomingValueIds.size() != 2 || phi->incomingValueIds[1] != finalId)
+                    return Result::Error;
+                const auto* initial = ssa.valueInfo(phi->incomingValueIds[0]);
+                if (!initial || initial->instRef != seeds[i])
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroSsa_RebuildWithOnlyPhysicalDefinitions)
 {
     constexpr MicroReg value    = MicroReg::virtualIntReg(1);

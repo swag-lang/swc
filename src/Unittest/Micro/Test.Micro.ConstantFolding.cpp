@@ -185,6 +185,61 @@ SWC_TEST_BEGIN(ConstantFolding_BinaryRequiresKnownInputsAndDeadFlags)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantFolding_RegImmResultsKeepWidthsFailuresAndFlags)
+{
+    constexpr MicroReg value = MicroReg::virtualIntReg(1);
+    for (const auto bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool liveFlags : {false, true})
+        {
+            MicroBuilder builder(ctx);
+            // A narrow operation must use its own width, even though the
+            // incoming definition was loaded at full width.
+            builder.emitLoadRegImm(value, ApInt(0x123, 64), MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(value, ApInt(3, 64), MicroOp::Add, bits);
+            const auto add = builder.instructions().lastInstructionRef();
+            if (liveFlags)
+                builder.emitSetCondReg(MicroReg::virtualIntReg(2), MicroCond::Zero);
+            builder.emitOpBinaryRegImm(value, ApInt(2, 64), MicroOp::MultiplySigned, bits);
+            const auto multiply = builder.instructions().lastInstructionRef();
+            builder.emitOpBinaryRegImm(value, ApInt(0, 64), MicroOp::DivideUnsigned, bits);
+            const auto divide = builder.instructions().lastInstructionRef();
+            builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, bits);
+            const auto unknown = builder.instructions().lastInstructionRef();
+            builder.emitRet();
+
+            SWC_RESULT(runConstantFoldingPass(builder));
+            const auto* addInst      = builder.instructions().ptr(add);
+            const auto* multiplyInst = builder.instructions().ptr(multiply);
+            const auto* divideInst   = builder.instructions().ptr(divide);
+            const auto* unknownInst  = builder.instructions().ptr(unknown);
+            if (!addInst || !multiplyInst || !divideInst || !unknownInst)
+                return Result::Error;
+            const auto*    addOps      = addInst->ops(builder.operands());
+            const auto*    multiplyOps = multiplyInst->ops(builder.operands());
+            const uint64_t sum         = bits == MicroOpBits::B8 ? 0x26 : 0x126;
+            if (addOps[1].opBits != bits || multiplyOps[1].opBits != bits)
+                return Result::Error;
+            if (liveFlags)
+            {
+                if (addInst->op != MicroInstrOpcode::OpBinaryRegImm || addOps[2].microOp != MicroOp::Add || addOps[3].valueU64 != 3)
+                    return Result::Error;
+            }
+            else if (addInst->op != MicroInstrOpcode::LoadRegImm || addOps[2].valueU64 != sum)
+                return Result::Error;
+            if (multiplyInst->op != MicroInstrOpcode::LoadRegImm || multiplyOps[2].valueU64 != sum * 2)
+                return Result::Error;
+            // Division by zero is not a known result, and neither is its user.
+            if (divideInst->op != MicroInstrOpcode::OpBinaryRegImm || divideInst->ops(builder.operands())[2].microOp != MicroOp::DivideUnsigned)
+                return Result::Error;
+            if (unknownInst->op != MicroInstrOpcode::OpBinaryRegImm || unknownInst->ops(builder.operands())[2].microOp != MicroOp::Add)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ConstantFolding_PropagatesInDominatorOrderWithoutPhis)
 {
     constexpr MicroReg source = MicroReg::virtualIntReg(1);

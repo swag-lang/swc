@@ -412,6 +412,50 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_HandlesMaximumDepthWithAndWithoutCalls)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroStackAdjustNormalize_RestoresEveryReturnInOriginalOrder)
+{
+    constexpr auto rsp = MicroReg::intReg(4);
+    constexpr auto rax = MicroReg::intReg(0);
+    MicroBuilder   builder(ctx);
+    const auto     alternate = builder.createLabel();
+
+    builder.emitOpBinaryRegImm(rsp, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitCmpRegReg(rax, rax, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, alternate);
+    builder.emitOpBinaryRegImm(rsp, ApInt(32, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitRet();
+    const auto firstRet = builder.instructions().lastInstructionRef();
+    builder.placeLabel(alternate);
+    builder.emitOpBinaryRegImm(rsp, ApInt(32, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitRet();
+    const auto secondRet = builder.instructions().lastInstructionRef();
+
+    SWC_RESULT(runStackAdjustNormalizePass(builder));
+    if (builder.instructions().count() != 8)
+        return Result::Error;
+
+    const auto& operands = builder.operands();
+    const auto  first    = builder.instructions().view().begin();
+    if (!isStackAdjust(*first, first->ops(operands), rsp, MicroOp::Subtract, 32))
+        return Result::Error;
+
+    uint32_t returnCount = 0;
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+    {
+        if (it->op != MicroInstrOpcode::Ret)
+            continue;
+        if (returnCount >= 2 || it.current != (returnCount ? secondRet : firstRet))
+            return Result::Error;
+        const auto  restoreRef = builder.instructions().findPreviousInstructionRef(it.current);
+        const auto* restore    = builder.instructions().ptr(restoreRef);
+        if (!restore || !isStackAdjust(*restore, restore->ops(operands), rsp, MicroOp::Add, 32))
+            return Result::Error;
+        ++returnCount;
+    }
+    return returnCount == 2 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

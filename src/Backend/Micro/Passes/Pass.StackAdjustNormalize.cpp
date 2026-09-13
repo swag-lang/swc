@@ -343,13 +343,6 @@ Result MicroStackAdjustNormalizePass::run(MicroPassContext& context)
     if (beginIt == context.instructions->view().end())
         return Result::Continue;
 
-    std::vector<MicroInstrRef> retRefs;
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
-    {
-        if (it->op == MicroInstrOpcode::Ret)
-            retRefs.push_back(it.current);
-    }
-
     MicroInstrOperand stackAdjustOps[4];
     stackAdjustOps[0].reg      = conv.stackPointer;
     stackAdjustOps[1].opBits   = MicroOpBits::B64;
@@ -358,11 +351,13 @@ Result MicroStackAdjustNormalizePass::run(MicroPassContext& context)
     context.instructions->insertSyntheticBefore(*context.operands, beginIt.current, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps);
 
     stackAdjustOps[2].microOp = MicroOp::Add;
-    for (const MicroInstrRef retRef : retRefs)
+    // Iterators hold references, so inserting before the current Ret leaves
+    // its successor unchanged, even when instruction storage reallocates.
+    for (auto it = beginIt; it != context.instructions->view().end(); ++it)
     {
-        if (!context.instructions->ptr(retRef))
+        if (it->op != MicroInstrOpcode::Ret)
             continue;
-        context.instructions->insertSyntheticBefore(*context.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps);
+        context.instructions->insertSyntheticBefore(*context.operands, it.current, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps);
     }
 
     context.passChanged = true;

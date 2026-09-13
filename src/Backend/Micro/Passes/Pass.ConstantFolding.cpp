@@ -538,20 +538,21 @@ namespace
         if (!ops[0].reg.isVirtualInt())
             return false;
 
-        KnownValue inputValue;
-        if (!tryGetKnownReachingValue(inputValue, ssaState, knownValues, knownFlags, ops[0].reg, instRef))
+        uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+        if (!ssaState.defValue(ops[0].reg, instRef, valueId))
+            return false;
+
+        // Inference already evaluated this definition with the same operands
+        // and width. Flags still depend on the current instruction stream.
+        KnownValue resultValue;
+        if (!tryGetSsaValue<KnownValue, KnownValueTraits>(resultValue, knownValues, knownFlags, valueId))
             return false;
 
         if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
             return false;
 
-        uint64_t   foldedValue = 0;
-        const auto status      = MicroPassHelpers::foldBinaryImmediate(foldedValue, inputValue.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
-        if (status != Math::FoldStatus::Ok)
-            return false;
-
         inst.op          = MicroInstrOpcode::LoadRegImm;
-        ops[2].valueU64  = foldedValue;
+        ops[2].valueU64  = resultValue.value;
         inst.numOperands = 3;
         return true;
     }

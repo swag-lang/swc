@@ -623,18 +623,17 @@ namespace
         if (!ops[0].reg.isVirtualInt() || !ops[1].reg.isVirtualInt())
             return false;
 
-        KnownValue src;
-        if (!tryGetKnownReachingValue(src, ssaState, knownValues, knownFlags, ops[1].reg, instRef))
+        uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+        if (!ssaState.defValue(ops[0].reg, instRef, valueId))
             return false;
 
-        const bool        isSigned = inst.op == MicroInstrOpcode::LoadSignedExtRegReg;
-        const MicroOpBits dstBits  = ops[2].opBits;
-        const MicroOpBits srcBits  = ops[3].opBits;
-        const uint64_t    extended = extendBits(src.value, srcBits, dstBits, isSigned);
+        KnownValue resultValue;
+        if (!tryGetSsaValue<KnownValue, KnownValueTraits>(resultValue, knownValues, knownFlags, valueId))
+            return false;
 
         inst.op          = MicroInstrOpcode::LoadRegImm;
-        ops[1].opBits    = dstBits;
-        ops[2].valueU64  = extended;
+        ops[1].opBits    = ops[2].opBits;
+        ops[2].valueU64  = resultValue.value;
         inst.numOperands = 3;
         return true;
     }

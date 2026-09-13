@@ -153,8 +153,6 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
     hasVirtualRegs_   = false;
     controlFlowGraph_ = nullptr;
 
-    instructionUseDefs_.clear();
-    instructionUseDefs_.resize(instructionCount_);
     useVirtualIndices_.reserve(instructionCount_);
     defVirtualIndices_.reserve(instructionCount_);
     useConcreteIndices_.reserve(instructionCount_);
@@ -2107,27 +2105,21 @@ void MicroRegisterAllocationPass::advanceCurrentPositionCursors(const uint32_t i
 
 bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copyRef, const MicroReg dstReg) const
 {
-    if (copyRef.isInvalid())
+    if (!instructions_->ptr(copyRef))
         return false;
 
-    auto it = instructions_->view().begin();
-    while (it != instructions_->view().end() && it.current != copyRef)
-        ++it;
-    if (it == instructions_->view().end())
-        return false;
-
-    ++it;
-    for (; it != instructions_->view().end(); ++it)
+    for (MicroInstrRef ref = instructions_->findNextInstructionRef(copyRef); ref.isValid(); ref = instructions_->findNextInstructionRef(ref))
     {
-        const MicroInstrUseDef useDef = it->collectUseDef(*operands_, context_->encoder);
+        const MicroInstr&      inst   = *instructions_->ptr(ref);
+        const MicroInstrUseDef useDef = inst.collectUseDef(*operands_, context_->encoder);
         if (containsKey(useDef.uses, dstReg))
             return false;
         if (containsKey(useDef.defs, dstReg))
             return true;
-        if (!MicroInstrInfo::isLocalDataflowBarrier(*it, useDef))
+        if (!MicroInstrInfo::isLocalDataflowBarrier(inst, useDef))
             continue;
 
-        return it->op == MicroInstrOpcode::Ret;
+        return inst.op == MicroInstrOpcode::Ret;
     }
 
     return true;

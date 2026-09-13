@@ -288,6 +288,74 @@ SWC_TEST_BEGIN(ConstantFolding_RegRegResultsKeepAliasesWidthsAndUnknownInputs)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantFolding_ExtendResultsKeepSignWidthAndAliases)
+{
+    struct TestCase
+    {
+        MicroOpBits srcBits;
+        MicroOpBits dstBits;
+        uint64_t    input;
+        uint64_t    signedResult;
+        uint64_t    unsignedResult;
+    };
+    constexpr TestCase cases[] = {
+        {MicroOpBits::B8, MicroOpBits::B32, 0x180, 0xFFFFFF80, 0x80},
+        {MicroOpBits::B8, MicroOpBits::B64, 0x180, 0xFFFFFFFFFFFFFF80, 0x80},
+        {MicroOpBits::B16, MicroOpBits::B32, 0x18001, 0xFFFF8001, 0x8001},
+        {MicroOpBits::B16, MicroOpBits::B64, 0x18001, 0xFFFFFFFFFFFF8001, 0x8001},
+        {MicroOpBits::B32, MicroOpBits::B64, 0x180000001, 0xFFFFFFFF80000001, 0x80000001},
+        {MicroOpBits::B8, MicroOpBits::B64, 0x101, 1, 1},
+    };
+    enum class Mode
+    {
+        Distinct,
+        Aliased,
+        Unknown,
+    };
+    constexpr MicroReg source = MicroReg::virtualIntReg(1);
+    for (const auto& test : cases)
+    {
+        for (const bool isSigned : {false, true})
+        {
+            for (const auto mode : {Mode::Distinct, Mode::Aliased, Mode::Unknown})
+            {
+                MicroBuilder builder(ctx);
+                const auto   dst = mode == Mode::Aliased ? source : MicroReg::virtualIntReg(2);
+                if (mode == Mode::Unknown)
+                    builder.emitLoadRegReg(source, MicroReg::intReg(1), MicroOpBits::B64);
+                else
+                    builder.emitLoadRegImm(source, ApInt(test.input, 64), MicroOpBits::B64);
+                builder.emitCmpRegImm(MicroReg::intReg(1), ApInt(0, 64), MicroOpBits::B64);
+                if (isSigned)
+                    builder.emitLoadSignedExtendRegReg(dst, source, test.dstBits, test.srcBits);
+                else
+                    builder.emitLoadZeroExtendRegReg(dst, source, test.dstBits, test.srcBits);
+                const auto result = builder.instructions().lastInstructionRef();
+                // Extensions preserve the compare's live flags, as does the
+                // immediate load that replaces them.
+                builder.emitSetCondReg(MicroReg::virtualIntReg(3), MicroCond::Zero);
+                builder.emitRet();
+
+                SWC_RESULT(runConstantFoldingPass(builder));
+                const auto* inst = builder.instructions().ptr(result);
+                if (!inst)
+                    return Result::Error;
+                const auto* ops = inst->ops(builder.operands());
+                if (mode == Mode::Unknown)
+                {
+                    const auto opcode = isSigned ? MicroInstrOpcode::LoadSignedExtRegReg : MicroInstrOpcode::LoadZeroExtRegReg;
+                    if (inst->op != opcode || ops[0].reg != dst || ops[1].reg != source || ops[2].opBits != test.dstBits || ops[3].opBits != test.srcBits)
+                        return Result::Error;
+                }
+                else if (inst->op != MicroInstrOpcode::LoadRegImm || ops[0].reg != dst || ops[1].opBits != test.dstBits || ops[2].valueU64 != (isSigned ? test.signedResult : test.unsignedResult))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ConstantFolding_PropagatesInDominatorOrderWithoutPhis)
 {
     constexpr MicroReg source = MicroReg::virtualIntReg(1);

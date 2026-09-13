@@ -653,7 +653,8 @@ namespace
                     const uint32_t srcReg = plan_->tupleRegs.at(permIt->second);
                     const uint32_t dstReg = allocReg();
                     plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Shuffle, .dst = dstReg, .src = srcReg, .imm = control});
-                    remember(tuple, dstReg);
+                    // This sorted class already has its first tuple.
+                    plan_->tupleRegs.emplace(tuple, dstReg);
                     return dstReg;
                 }
             }
@@ -668,7 +669,7 @@ namespace
             switch (n0.kind)
             {
                 case SlpValueKind::Load:
-                    return buildLoad(tuple, n0, n1, n2, n3);
+                    return buildLoad(tuple, sorted, n0, n1, n2, n3);
 
                 case SlpValueKind::BinaryRegReg:
                 {
@@ -718,7 +719,7 @@ namespace
                         plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = dstReg, .src = rhsReg, .op = vecOp});
                     }
                     plan_->arithmeticOps++;
-                    remember(tuple, dstReg);
+                    remember(tuple, sorted, dstReg);
                     return dstReg;
                 }
 
@@ -743,7 +744,7 @@ namespace
                             const uint32_t dstReg  = allocReg();
                             emitShift(dstReg, lhsReg, shiftOp, n0.imm);
                             plan_->arithmeticOps++;
-                            remember(tuple, dstReg);
+                            remember(tuple, sorted, dstReg);
                             return dstReg;
                         }
 
@@ -763,12 +764,12 @@ namespace
                                 const uint32_t orReg = allocReg();
                                 plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegReg, .dst = orReg, .src = leftReg, .src2 = rightReg, .op = MicroOp::VecOr});
                                 plan_->arithmeticOps += 3;
-                                remember(tuple, orReg);
+                                remember(tuple, sorted, orReg);
                                 return orReg;
                             }
                             plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = leftReg, .src = rightReg, .op = MicroOp::VecOr});
                             plan_->arithmeticOps += 3;
-                            remember(tuple, leftReg);
+                            remember(tuple, sorted, leftReg);
                             return leftReg;
                         }
 
@@ -802,13 +803,13 @@ namespace
             plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegImm, .dst = dstReg, .op = shiftOp, .imm = imm});
         }
 
-        void remember(const TupleKey& tuple, uint32_t reg) const
+        void remember(const TupleKey& tuple, const TupleKey& sorted, uint32_t reg) const
         {
             plan_->tupleRegs.emplace(tuple, reg);
-            plan_->firstTupleBySortedKey.try_emplace(sortedKeyOf(tuple), tuple);
+            plan_->firstTupleBySortedKey.try_emplace(sorted, tuple);
         }
 
-        uint32_t buildLoad(const TupleKey& tuple, const SlpValue& n0, const SlpValue& n1, const SlpValue& n2, const SlpValue& n3) const
+        uint32_t buildLoad(const TupleKey& tuple, const TupleKey& sortedTuple, const SlpValue& n0, const SlpValue& n1, const SlpValue& n2, const SlpValue& n3) const
         {
             // Four loads of block-entry memory covering one contiguous chunk,
             // in any lane order.
@@ -849,7 +850,7 @@ namespace
             {
                 straightReg = allocReg();
                 plan_->loads.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadVec, .dst = straightReg, .rootKey = n0.loadRootKey, .baseOffset = sorted[0]});
-                remember(straight, straightReg);
+                remember(straight, sortedKeyOf(straight), straightReg);
             }
 
             if (straight == tuple)
@@ -861,7 +862,7 @@ namespace
 
             const uint32_t dstReg = allocReg();
             plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Shuffle, .dst = dstReg, .src = straightReg, .imm = control});
-            remember(tuple, dstReg);
+            remember(tuple, sortedTuple, dstReg);
             return dstReg;
         }
 

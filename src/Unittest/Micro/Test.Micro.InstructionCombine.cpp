@@ -4,6 +4,7 @@
 
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
@@ -971,6 +972,57 @@ SWC_TEST_BEGIN(InstCombine_MemoryFoldTriple_LeavesLoopFrameSlot)
         return Result::Error;
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_MemoryFoldTriple_FrameWithoutBackEdgesKeepsCfgGuards)
+{
+    enum class Case
+    {
+        Linear,
+        MultipleRoots,
+        IndirectExit,
+    };
+    const MicroReg     stack = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg key   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg word  = MicroReg::virtualIntReg(3);
+    for (const Case test : {Case::Linear, Case::MultipleRoots, Case::IndirectExit})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadAddressRegMem(base, stack, 16, MicroOpBits::B64);
+        builder.emitLoadRegImm(key, ApInt(0x5A, 32), MicroOpBits::B32);
+        builder.emitLoadRegMem(word, base, 0, MicroOpBits::B32);
+        const auto load = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegReg(word, key, MicroOp::Xor, MicroOpBits::B32);
+        builder.emitLoadMemReg(base, 0, word, MicroOpBits::B32);
+        const auto store = builder.instructions().lastInstructionRef();
+        if (test == Case::IndirectExit)
+            builder.emitJumpReg(MicroReg::intReg(0));
+        else
+        {
+            builder.emitRet();
+            if (test == Case::MultipleRoots)
+                builder.emitRet();
+        }
+
+        const auto& cfg = builder.controlFlowGraph();
+        if (cfg.hasLoop() || cfg.hasUnsupportedControlFlowForCfgLiveness() != (test == Case::IndirectExit))
+            return Result::Error;
+        uint32_t roots = 0;
+        for (uint32_t i = 0; i < cfg.instructionCount(); ++i)
+            roots += cfg.predecessors(i).empty();
+        if (roots != (test == Case::MultipleRoots ? 2u : 1u))
+            return Result::Error;
+
+        SWC_RESULT(runInstCombinePass(builder));
+        const bool folded = test == Case::Linear;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != (folded ? 1u : 0u))
+            return Result::Error;
+        if ((builder.instructions().ptr(load) != nullptr) == folded || (builder.instructions().ptr(store) != nullptr) == folded)
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

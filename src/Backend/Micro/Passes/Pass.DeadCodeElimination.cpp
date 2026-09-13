@@ -59,6 +59,22 @@ namespace
         return !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, instRef);
     }
 
+    void collectDirectUseCursors(std::vector<uint8_t>& usedValues, std::vector<uint32_t>& cursors, const MicroStorage& storage, const MicroSsaState& ssaState)
+    {
+        SWC_ASSERT(ssaState.phis().empty());
+        const auto values = ssaState.values();
+        cursors.resize(values.size());
+        for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
+        {
+            const auto& uses   = values[valueId].uses;
+            uint32_t&   cursor = cursors[valueId];
+            cursor             = 0;
+            while (cursor < uses.size() && !storage.ptr(uses[cursor].instRef))
+                ++cursor;
+            usedValues[valueId] = cursor < uses.size();
+        }
+    }
+
     void collectUsedValues(std::vector<uint8_t>& usedValues, std::vector<uint32_t>& worklist, const MicroStorage& storage, const MicroSsaState& ssaState)
     {
         const auto values = ssaState.values();
@@ -122,7 +138,7 @@ namespace
         return !hasObservableSideEffect(storage, operands, inst, useDef, instRef);
     }
 
-    bool eliminateDeadInstructions(MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<uint8_t>& usedValues)
+    bool eliminateDeadInstructions(MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<uint8_t>& usedValues, std::vector<uint32_t>* directUseCursors)
     {
         bool       changed = false;
         const auto view    = storage.view();
@@ -140,7 +156,29 @@ namespace
             if (!canEraseInstruction(storage, operands, inst, *useDef, ssaState, usedValues, instRef))
                 continue;
 
-            changed |= storage.erase(instRef);
+            if (!storage.erase(instRef))
+                continue;
+            changed = true;
+
+            if (!directUseCursors)
+                continue;
+            for (const MicroReg input : useDef->uses)
+            {
+                const auto reaching = ssaState.reachingDef(input, instRef);
+                if (!reaching.valid())
+                    continue;
+                const auto& uses   = ssaState.values()[reaching.valueId].uses;
+                uint32_t&   cursor = (*directUseCursors)[reaching.valueId];
+                if (cursor >= uses.size() || uses[cursor].instRef != instRef)
+                    continue;
+
+                // Only deleting the current witness can change whether this
+                // value is used. Skipped dead readers never become live again,
+                // including repeated operands naming this same instruction.
+                do
+                    ++cursor;
+                while (cursor < uses.size() && !storage.ptr(uses[cursor].instRef));
+            }
         }
 
         return changed;
@@ -165,19 +203,36 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     MicroOperandStorage&  operands = *context.operands;
     std::vector<uint8_t>  usedValues;
     std::vector<uint32_t> worklist;
-    bool                  changed = false;
+    bool                  changed               = false;
+    bool                  directUseCursorsReady = false;
 
     // Erasing a dead definition cannot change the reaching value of a surviving
     // use. Keep this SSA graph for the entire fixed point and ignore erased
     // instruction consumers, instead of rebuilding CFG, dominators and SSA after
     // each level of a dead chain. Snapshot usage once per sweep to preserve the
     // original erasure order, including its CPU-flag redefinition checks.
-    while (true)
+    collectUsedValues(usedValues, worklist, storage, *ssaState);
+    while (eliminateDeadInstructions(storage, operands, *ssaState, usedValues, directUseCursorsReady ? &worklist : nullptr))
     {
-        collectUsedValues(usedValues, worklist, storage, *ssaState);
-        if (!eliminateDeadInstructions(storage, operands, *ssaState, usedValues))
-            break;
         changed = true;
+        if (!ssaState->phis().empty())
+            collectUsedValues(usedValues, worklist, storage, *ssaState);
+        else if (!directUseCursorsReady)
+        {
+            // The first changed sweep already requires another collection.
+            // Reuse the idle phi worklist for its first-live-reader cursors;
+            // an unchanged pass pays neither allocation nor input lookups.
+            collectDirectUseCursors(usedValues, worklist, storage, *ssaState);
+            directUseCursorsReady = true;
+        }
+        else
+        {
+            // Publish usage only between sweeps. Flag checks still observe
+            // mutations immediately, but register liveness keeps its snapshot.
+            const auto values = ssaState->values();
+            for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
+                usedValues[valueId] = worklist[valueId] < values[valueId].uses.size();
+        }
     }
 
     if (changed)

@@ -4,6 +4,7 @@
 
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.VecLoopPromote.h"
@@ -102,6 +103,40 @@ SWC_TEST_BEGIN(VecLoopPromote_LoadStorePair_HoistsAndSinks)
     if (posStore + 1 != posRet)
         return Result::Error;
 
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(VecLoopPromote_BackwardJumpWithoutCycleLeavesPackedAccesses)
+{
+    const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg packed = MicroReg::virtualFloatReg(1);
+    MicroBuilder       builder(ctx);
+    const auto         body = builder.createLabel();
+    const auto         exit = builder.createLabel();
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, body);
+    builder.placeLabel(exit);
+    builder.emitRet();
+    builder.placeLabel(body);
+    builder.emitLoadVecRegMem(packed, sp, 0x40, MicroOpBits::B128);
+    const auto load = builder.instructions().lastInstructionRef();
+    builder.emitStoreVecMemReg(sp, 0x40, packed, MicroOpBits::B128);
+    const auto store = builder.instructions().lastInstructionRef();
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, exit);
+    // Execution jumps forward into the body, then backward to a return. The
+    // conservative flag sees a backward edge, although no node repeats.
+    if (!builder.controlFlowGraph().hasLoop())
+        return Result::Error;
+    const uint32_t count = builder.instructions().count();
+
+    SWC_RESULT(runVecLoopPromotePass(builder));
+    if (builder.instructions().count() != count ||
+        builder.instructions().ptr(load)->op != MicroInstrOpcode::LoadVecRegMem ||
+        builder.instructions().ptr(store)->op != MicroInstrOpcode::StoreVecMemReg)
+        return Result::Error;
+    if (firstPosition(builder, MicroInstrOpcode::LoadVecRegMem) != 4 ||
+        firstPosition(builder, MicroInstrOpcode::StoreVecMemReg) != 5)
+        return Result::Error;
     return Result::Continue;
 }
 SWC_TEST_END()

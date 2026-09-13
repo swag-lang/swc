@@ -696,7 +696,7 @@ namespace InstructionCombine
         const MicroReg base = copyOps[1].reg;
         if (!base.isVirtualInt() || base == dst)
             return false;
-        if (!valueHasSingleUse(*ctx.ssa, dst, copy.instRef) || !sameValueAt(ctx, base, copy.instRef, ref))
+        if (ctx.ssa->transitiveInstructionUseCount(copy.valueId, 2) != 1 || !sameValueAt(ctx, base, copy.instRef, ref))
             return false;
 
         // The sum is an address: its one reader is a memory access, or a lea,

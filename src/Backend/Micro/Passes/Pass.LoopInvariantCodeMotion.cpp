@@ -237,6 +237,11 @@ namespace
             }
         }
 
+        // Without derived registers, every operand in the escape scan would
+        // be ignored; the stack pointer itself never escapes through this rule.
+        if (fp.frameDerived.empty())
+            return fp;
+
         // Escape scan: any frame-derived register that appears as something other
         // than an explained base / propagation marks the frame as non-private.
         for (uint32_t i = 0; i < n && fp.framePrivate; ++i)
@@ -716,19 +721,9 @@ namespace
             };
 
             // Loop exits, for the web-consistency rule below: a slot inside the
-            // body with a successor outside it.
+            // body with a successor outside it. Only multi-def webs need them.
             SmallVector<uint32_t> exitSlots;
-            for (const uint32_t i : bodyIndices)
-            {
-                for (const uint32_t succ : cfg.successors(i))
-                {
-                    if (succ < n && !inBody[succ])
-                    {
-                        exitSlots.push_back(i);
-                        break;
-                    }
-                }
-            }
+            bool                  collectedExitSlots = false;
 
             // Accept optimistically, filter for profit, then enforce web
             // integrity on what remains: a register with any hoisted def needs
@@ -854,6 +849,21 @@ namespace
                     // the first def (the register then held the previous
                     // iteration's final, which hoisting preserves) or be
                     // dominated by the last def (the final of this iteration).
+                    if (!violated && !collectedExitSlots)
+                    {
+                        for (const uint32_t i : bodyIndices)
+                        {
+                            for (const uint32_t succ : cfg.successors(i))
+                            {
+                                if (succ < n && !inBody[succ])
+                                {
+                                    exitSlots.push_back(i);
+                                    break;
+                                }
+                            }
+                        }
+                        collectedExitSlots = true;
+                    }
                     for (const uint32_t e : exitSlots)
                     {
                         if (violated)

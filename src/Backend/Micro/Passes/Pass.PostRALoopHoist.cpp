@@ -692,17 +692,23 @@ namespace
             bool usable = true;
             for (uint32_t k = 0; k < n && usable; ++k)
             {
-                if (!inBody[k] || k == use.loadIndex || k == use.storeIndex)
+                // All touches from the load through the store belong to this
+                // accumulator. The next iteration checks the first index after it.
+                if (k == use.loadIndex)
+                {
+                    k = use.storeIndex;
                     continue;
-                const bool inside = k > use.loadIndex && k < use.storeIndex;
+                }
+                if (!inBody[k])
+                    continue;
                 for (const MicroReg def : liveness.useDefs[k].defs)
                 {
-                    if (def == use.reg && !inside)
+                    if (def == use.reg)
                         usable = false;
                 }
                 for (const MicroReg used : liveness.useDefs[k].uses)
                 {
-                    if (used == use.reg && !inside)
+                    if (used == use.reg)
                         usable = false;
                 }
             }

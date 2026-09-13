@@ -155,10 +155,11 @@ namespace
     // materialization and the load: copies, `lea [base + K]`, `add/sub K`.
     struct ConstantMemoryContext
     {
-        const MicroSsaState*                   ssaState    = nullptr;
-        const MicroStorage*                    storage     = nullptr;
-        const MicroOperandStorage*             operands    = nullptr;
-        const TaskContext*                     taskContext = nullptr;
+        const MicroSsaState*                   ssaState      = nullptr;
+        const MicroStorage*                    storage       = nullptr;
+        const MicroOperandStorage*             operands      = nullptr;
+        const TaskContext*                     taskContext   = nullptr;
+        const MicroBuilder*                    addressSource = nullptr;
         std::unordered_map<uint32_t, uint64_t> constantAddressByInstruction;
     };
 
@@ -645,9 +646,9 @@ namespace
     // displacement the sweep has already made literal, is the constant's own
     // bytes. Plain, sign-extending and zero-extending loads all become the
     // immediate they would have produced; a packed load is left alone.
-    bool tryFoldLoadFromConstant(const ConstantMemoryContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
+    bool tryFoldLoadFromConstant(ConstantMemoryContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
-        if (!ops || !context.taskContext || context.constantAddressByInstruction.empty())
+        if (!ops || !context.taskContext)
             return false;
 
         MicroOpBits dstBits    = MicroOpBits::Zero;
@@ -674,6 +675,19 @@ namespace
 
         if (!ops[0].reg.isVirtual() || loadBits == MicroOpBits::Zero || loadBits == MicroOpBits::B128 || dstBits == MicroOpBits::B128)
             return false;
+
+        // Rewrites leave relocations unchanged. Collect their original order
+        // once, only when a scalar load can use the address table.
+        if (context.addressSource)
+        {
+            collectConstantAddresses(context, *context.addressSource);
+            context.addressSource = nullptr;
+            if (context.constantAddressByInstruction.empty())
+            {
+                context.taskContext = nullptr;
+                return false;
+            }
+        }
 
         uint64_t baseAddress = 0;
         if (!resolveConstantAddress(baseAddress, context, ops[1].reg, instRef, K_MAX_ADDRESS_CHAIN_DEPTH))
@@ -829,10 +843,10 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     memoryContext.ssaState = ssaState;
     memoryContext.storage  = &storage;
     memoryContext.operands = &operands;
-    if (context.builder && context.taskContext && context.taskContext->hasCompiler())
+    if (context.builder && !context.builder->codeRelocations().empty() && context.taskContext && context.taskContext->hasCompiler())
     {
-        memoryContext.taskContext = context.taskContext;
-        collectConstantAddresses(memoryContext, *context.builder);
+        memoryContext.taskContext   = context.taskContext;
+        memoryContext.addressSource = context.builder;
     }
 
     FloatFoldContext floatContext;

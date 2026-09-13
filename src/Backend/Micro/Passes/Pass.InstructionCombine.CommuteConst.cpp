@@ -75,7 +75,7 @@ namespace InstructionCombine
             return false;
         if (immOps[1].opBits != opBits)
             return false;
-        if (!valueHasSingleUse(*ctx.ssa, dst, dstReach.instRef))
+        if (ctx.ssa->transitiveInstructionUseCount(dstReach.valueId, 2) != 1)
             return false;
 
         // The copy that replaces the materialization reads `src` earlier than

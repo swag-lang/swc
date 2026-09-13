@@ -6,6 +6,9 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -221,6 +224,113 @@ SWC_TEST_BEGIN(ConstantFolding_PropagatesInDominatorOrderWithoutPhis)
     const auto* unresolved = builder.instructions().ptr(orphanCopy);
     if (!unresolved || unresolved->op != MicroInstrOpcode::LoadRegReg || unresolved->ops(builder.operands())[1].reg != source)
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantFolding_LazyAddressesKeepFilteredRelocationOrder)
+{
+    enum class Case
+    {
+        KnownAddress,
+        RejectedRelocations,
+        NoRelocations,
+    };
+    std::array<std::byte, 16> source{};
+    source[0] = std::byte{0x11};
+    source[4] = std::byte{0x80};
+    source[5] = std::byte{0x12};
+    source[6] = std::byte{0x34};
+    source[7] = std::byte{0x56};
+    source[8] = std::byte{0x22};
+    std::array           dims{source.size()};
+    const TypeRef        arrayType    = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
+    const ConstantRef    constantRef  = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayType, std::span{source.data(), source.size()}));
+    const ConstantValue& constant     = ctx.cstMgr().get(constantRef);
+    const uint64_t       addressValue = reinterpret_cast<uint64_t>(constant.getArray().data());
+    constexpr MicroReg   address      = MicroReg::virtualIntReg(1);
+
+    for (const Case test : {Case::KnownAddress, Case::RejectedRelocations, Case::NoRelocations})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegImm(MicroReg::virtualIntReg(10), ApInt(42, 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(MicroReg::virtualIntReg(11), MicroReg::virtualIntReg(10), MicroOpBits::B64);
+        const auto copy = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegPtrReloc(address, addressValue, constantRef);
+        MicroRelocation relocation = builder.codeRelocations().back();
+        relocation.targetAddress += 4;
+        relocation.constantOffset += 4;
+        builder.addRelocation(relocation);
+        // Later entries rejected by the collector must not replace offset 4.
+        relocation.targetAddress += 4;
+        relocation.constantOffset += 4;
+        relocation.form = MicroRelocation::Form::Relative32;
+        builder.addRelocation(relocation);
+        relocation.form          = MicroRelocation::Form::Absolute64;
+        relocation.targetAddress = 0;
+        builder.addRelocation(relocation);
+        if (test == Case::RejectedRelocations)
+        {
+            for (auto& entry : builder.codeRelocations())
+                entry.form = MicroRelocation::Form::Relative32;
+        }
+        else if (test == Case::NoRelocations)
+            builder.codeRelocations().clear();
+
+        builder.emitLoadRegMem(MicroReg::virtualFloatReg(1), address, 0, MicroOpBits::B128);
+        const auto packed = builder.instructions().lastInstructionRef();
+        // The first admissible load has no constant address. Later loads must
+        // still see the table initialized at this failed candidate.
+        builder.emitLoadRegMem(MicroReg::virtualIntReg(12), MicroReg::intReg(2), 0, MicroOpBits::B32);
+        const auto unknown = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegMem(MicroReg::virtualIntReg(2), address, 0, MicroOpBits::B8);
+        const auto byte = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegMem(MicroReg::virtualIntReg(3), address, 0, MicroOpBits::B32);
+        const auto dword = builder.instructions().lastInstructionRef();
+        builder.emitLoadSignedExtendRegMem(MicroReg::virtualIntReg(4), address, 0, MicroOpBits::B64, MicroOpBits::B8);
+        const auto signedByte = builder.instructions().lastInstructionRef();
+        builder.emitLoadZeroExtendRegMem(MicroReg::virtualIntReg(5), address, 0, MicroOpBits::B32, MicroOpBits::B8);
+        const auto unsignedByte = builder.instructions().lastInstructionRef();
+        builder.emitRet();
+
+        // Duplicate and absent relocations deliberately exercise the collector;
+        // they do not satisfy the full pipeline's one-relocation invariant.
+        MicroPassContext passContext;
+        passContext.taskContext  = &ctx;
+        passContext.builder      = &builder;
+        passContext.instructions = &builder.instructions();
+        passContext.operands     = &builder.operands();
+        passContext.callConvKind = CallConvKind::Swag;
+        MicroConstantFoldingPass pass;
+        SWC_RESULT(pass.run(passContext));
+        const auto* copyInst = builder.instructions().ptr(copy);
+        if (!copyInst || copyInst->op != MicroInstrOpcode::LoadRegImm || copyInst->ops(builder.operands())[2].valueU64 != 42)
+            return Result::Error;
+        const auto* packedInst  = builder.instructions().ptr(packed);
+        const auto* unknownInst = builder.instructions().ptr(unknown);
+        if (!packedInst || packedInst->op != MicroInstrOpcode::LoadRegMem || packedInst->ops(builder.operands())[2].opBits != MicroOpBits::B128 ||
+            !unknownInst || unknownInst->op != MicroInstrOpcode::LoadRegMem)
+            return Result::Error;
+
+        const std::array              refs{byte, dword, signedByte, unsignedByte};
+        const std::array              widths{MicroOpBits::B8, MicroOpBits::B32, MicroOpBits::B64, MicroOpBits::B32};
+        const std::array<uint64_t, 4> expected{0x80, 0x56341280, 0xFFFFFFFFFFFFFF80, 0x80};
+        const std::array              originalOps{MicroInstrOpcode::LoadRegMem, MicroInstrOpcode::LoadRegMem, MicroInstrOpcode::LoadSignedExtRegMem, MicroInstrOpcode::LoadZeroExtRegMem};
+        for (size_t i = 0; i < refs.size(); ++i)
+        {
+            const auto* inst = builder.instructions().ptr(refs[i]);
+            if (!inst)
+                return Result::Error;
+            if (test == Case::KnownAddress)
+            {
+                const auto* ops = inst->ops(builder.operands());
+                if (inst->op != MicroInstrOpcode::LoadRegImm || ops[1].opBits != widths[i] || ops[2].valueU64 != expected[i])
+                    return Result::Error;
+            }
+            else if (inst->op != originalOps[i])
+                return Result::Error;
+        }
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

@@ -591,7 +591,11 @@ namespace
                 if (bits != induction.bits || candidate.dstReg == induction.reg || candidate.dstReg == candidate.otherReg)
                     continue;
 
-                (candidate.isSum ? sums : products).push_back(candidate);
+                // A product selects its family for this round, even when its
+                // eventual carrier cannot be emitted. Keep analyzing later sums
+                // in the same order, but no longer retain unused candidates.
+                if (!candidate.isSum || products.empty())
+                    (candidate.isSum ? sums : products).push_back(candidate);
             }
 
             // Products first; the sums over the accumulators they make are for

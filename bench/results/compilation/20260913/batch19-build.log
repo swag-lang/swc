@@ -1,0 +1,16 @@
+
+  DebugInfoCodeView.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  MicroPassManager.cpp
+  Pass.LoopInvariantCodeMotion.cpp
+  Pass.PrologEpilog.cpp
+  Pass.ValueNumbering.cpp
+  Sema.Compiler.cpp
+  DocPage.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  Test.Micro.PrologEpilogSanitize.cpp
+  Test.Micro.RegAlloc.cpp
+  Test.Micro.ValueNumbering.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe

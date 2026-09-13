@@ -18,21 +18,23 @@ block, and the hot path keeps the register.
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13
-- Updated: 2026-09-13 08:13 — Narrow remaining rebuild work after four static batches passed C++ and native validation.
+- Updated: 2026-09-13 08:57 — Narrow remaining rebuild work after live-slot SSA reset and lazy frame analysis passed validation.
 - Area: compiler/backend, compilation time
 - Evidence: `MicroPassManager::runPass` still invalidates the shared SSA state whenever a pass
   sets `passChanged`; `MicroSsaState::ensureFor` then rebuilds it before the next query. Local
   instruction changes therefore still reconstruct dominators, phi nodes, and value uses for
   the whole function. The September 5–7 profiles established that these rebuilds were a major
   compilation cost, but their percentages no longer describe the current implementation.
-- Current boundary: build 531 replaces per-block snapshots of every active register and linear
+- Current boundary: build 532 replaces per-block snapshots of every active register and linear
   reaching-definition scans with a per-register index over the dominator-tree rename walk.
   Sink-to-use, LICM, and induction reduction now collect instruction-local use/def information
   without building unused SSA. Graph construction also avoids repeated duplicate searches
   and ancestor walks. DCE reuses one SSA snapshot across removal waves; SLP delays SSA
   until a viable plan needs it. SSA skips phi setup when no dominance frontier exists;
   value numbering builds its separate dominance tree only for matching candidates.
-  Phi predecessor lookups now use sorted block indices.
+  Phi predecessor lookups now use sorted block indices; bookkeeping resets only live
+  instruction slots during collection, and value numbering delays frame-derived classification
+  until a relevant memory load.
   See the [third static batch](../bench/results/compilation/20260913/batch3.md), [second static batch](../bench/results/compilation/20260913/batch2.md) and [static follow-up](../bench/results/compilation/20260913/README.md).
   The [compile-only comparison](../bench/results/compilation/20260912/README.md) records the
   measurements, generated-microcode comparison, and validation of that change.

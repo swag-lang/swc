@@ -139,13 +139,12 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     const MicroSsaState* ssa = MicroSsaState::ensureFor(context, localSsa);
 
     Context ctx;
-    ctx.storage                  = context.instructions;
-    ctx.operands                 = context.operands;
-    ctx.ssa                      = ssa;
-    ctx.builder                  = context.builder;
-    ctx.stackPointer             = CallConv::get(context.callConvKind).stackPointer;
-    ctx.nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
-    ctx.nextVirtualIntRegIndex   = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+    ctx.passContext  = &context;
+    ctx.storage      = context.instructions;
+    ctx.operands     = context.operands;
+    ctx.ssa          = ssa;
+    ctx.builder      = context.builder;
+    ctx.stackPointer = CallConv::get(context.callConvKind).stackPointer;
     if (ctx.builder)
     {
         ctx.relocated.reserve(ctx.builder->codeRelocations().size());

@@ -1,9 +1,9 @@
 #include "pch.h"
+#include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Support/Core/DenseBits.h"
 
@@ -47,9 +47,6 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
     out.assign(virtualCount, LiveInterval{});
 
     const uint32_t wordCount = denseVirtualRegs_.wordCount();
-
-    std::vector<uint8_t> defHere(virtualCount, 0);
-    std::vector<uint8_t> useHere(virtualCount, 0);
 
     for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
         out[denseIndex].denseIndex = denseIndex;
@@ -181,35 +178,30 @@ uint32_t MicroRegisterAllocationPass::LiveInterval::nextIntersection(const LiveI
 uint32_t MicroRegisterAllocationPass::LiveInterval::firstUseAfter(const uint32_t pos) const
 {
     // Every access is must-have-register in Micro: reads at input slots and
-    // writes at output slots both name a register.
-    uint32_t best = std::numeric_limits<uint32_t>::max();
-    for (const uint32_t use : usePositions)
-    {
-        if (use >= pos)
-        {
-            best = use;
-            break;
-        }
-    }
-    for (const uint32_t def : defPositions)
-    {
-        if (def >= pos)
-        {
-            best = std::min(best, def);
-            break;
-        }
-    }
-    return best;
+    // writes at output slots both name a register. Build and split preserve
+    // the sorted event lists, so repeated elections need not rescan their prefix.
+    const auto     use     = std::ranges::lower_bound(usePositions, pos);
+    const auto     def     = std::ranges::lower_bound(defPositions, pos);
+    const uint32_t nextUse = use == usePositions.end() ? std::numeric_limits<uint32_t>::max() : *use;
+    const uint32_t nextDef = def == defPositions.end() ? std::numeric_limits<uint32_t>::max() : *def;
+    return std::min(nextUse, nextDef);
+}
+
+uint32_t MicroRegisterAllocationPass::LiveInterval::lastAccessBefore(const uint32_t pos) const
+{
+    const auto use = std::ranges::lower_bound(usePositions, pos);
+    const auto def = std::ranges::lower_bound(defPositions, pos);
+    if (use == usePositions.begin())
+        return def == defPositions.begin() ? std::numeric_limits<uint32_t>::max() : *(def - 1);
+    if (def == defPositions.begin())
+        return *(use - 1);
+    return std::max(*(use - 1), *(def - 1));
 }
 
 uint32_t MicroRegisterAllocationPass::LiveInterval::firstRangeStartAfter(const uint32_t pos) const
 {
-    for (const IntervalRange& range : ranges)
-    {
-        if (range.from >= pos)
-            return range.from;
-    }
-    return std::numeric_limits<uint32_t>::max();
+    const auto range = std::ranges::lower_bound(ranges, pos, {}, &IntervalRange::from);
+    return range == ranges.end() ? std::numeric_limits<uint32_t>::max() : range->from;
 }
 
 void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>& outByPoolIndex, SmallVector<MicroReg>& outPoolRegs) const
@@ -448,9 +440,7 @@ namespace
         }
 
         const auto moveTail = [pos](auto& fromList, auto& toList) {
-            size_t keep = 0;
-            while (keep < fromList.size() && fromList[keep] < pos)
-                ++keep;
+            const auto keep = static_cast<size_t>(std::ranges::lower_bound(fromList, pos) - fromList.begin());
             toList.append(fromList.begin() + static_cast<ptrdiff_t>(keep),
                           static_cast<uint32_t>(fromList.size() - keep));
             fromList.resize(keep);
@@ -509,9 +499,7 @@ namespace
             return K_IV_INVALID;
 
         const auto moveTail = [pos](auto& fromList, auto& toList) {
-            size_t keep = 0;
-            while (keep < fromList.size() && fromList[keep] < pos)
-                ++keep;
+            const auto keep = static_cast<size_t>(std::ranges::lower_bound(fromList, pos) - fromList.begin());
             toList.append(fromList.begin() + static_cast<ptrdiff_t>(keep),
                           static_cast<uint32_t>(fromList.size() - keep));
             fromList.resize(keep);
@@ -521,26 +509,6 @@ namespace
 
         nodes.push_back(std::move(child));
         return static_cast<uint32_t>(nodes.size() - 1);
-    }
-
-    // The last access strictly before `pos`, or K_IV_INVALID when the node
-    // has none there.
-    uint32_t lastAccessBefore(const MicroRegisterAllocationPass::LiveInterval& node, const uint32_t pos)
-    {
-        uint32_t best = K_IV_INVALID;
-        for (const uint32_t use : node.usePositions)
-        {
-            if (use >= pos)
-                break;
-            best = best == K_IV_INVALID ? use : std::max(best, use);
-        }
-        for (const uint32_t def : node.defPositions)
-        {
-            if (def >= pos)
-                break;
-            best = best == K_IV_INVALID ? def : std::max(best, def);
-        }
-        return best;
     }
 
     // The next access of an owner as the election must see it. Linear order
@@ -567,7 +535,7 @@ namespace
                 continue;
             if (!node.covers(headPos) || !node.covers(tailPos))
                 continue;
-            const uint32_t lastAccess = lastAccessBefore(node, from);
+            const uint32_t lastAccess = node.lastAccessBefore(from);
             if (lastAccess == K_IV_INVALID || lastAccess < headPos)
                 continue;
             next = tailPos;
@@ -581,7 +549,7 @@ namespace
     {
         const auto&    nodes    = *walk.nodes;
         const uint32_t splitPos = pos & ~1u;
-        const uint32_t lastUse  = lastAccessBefore(nodes[ownerIndex], splitPos + 1);
+        const uint32_t lastUse  = nodes[ownerIndex].lastAccessBefore(splitPos + 1);
         if (splitPos <= nodes[ownerIndex].start() || splitPos >= nodes[ownerIndex].end())
             return false;
         if (lastUse != K_IV_INVALID && splitPos <= lastUse)
@@ -604,7 +572,7 @@ namespace
         const uint32_t splitPos = pos & ~1u;
         // No access may sit at or beyond the cut on the register side: the
         // spilled child re-earns a register only from its first access on.
-        const uint32_t lastUse = lastAccessBefore(nodes[ownerIndex], splitPos + 1);
+        const uint32_t lastUse = nodes[ownerIndex].lastAccessBefore(splitPos + 1);
         if (splitPos <= nodes[ownerIndex].start())
             return false;
         if (lastUse != K_IV_INVALID && splitPos <= lastUse)

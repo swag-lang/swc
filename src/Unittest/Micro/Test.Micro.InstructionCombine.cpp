@@ -1384,6 +1384,65 @@ SWC_TEST_BEGIN(InstCombine_RangeProvedCompare_NarrowWriteKept)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_VectorPlans_KeepFreshRegistersAcrossRollback)
+{
+    for (const bool rejectedPrefix : {false, true})
+    {
+        constexpr MicroReg base = MicroReg::virtualIntReg(1);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegReg(base, CallConv::get(CallConvKind::Swag).stackPointer, MicroOpBits::B64);
+        if (rejectedPrefix)
+        {
+            // Four different immediates require more instructions than their
+            // stores and load. The rejected plan must release its scratch names.
+            for (uint32_t lane = 0; lane < 4; ++lane)
+                builder.emitLoadMemImm(base, 0x20 + lane * 4, ApInt(lane + 1, 32), MicroOpBits::B32);
+            builder.emitLoadVecRegMem(MicroReg::virtualFloatReg(3), base, 0x20, MicroOpBits::B128);
+        }
+        for (uint32_t group = 0; group < 2; ++group)
+        {
+            for (uint32_t lane = 0; lane < 4; ++lane)
+                builder.emitLoadMemImm(base, 0x40 + group * 0x20 + lane * 4, ApInt(7 + group * 2, 32), MicroOpBits::B32);
+            builder.emitLoadVecRegMem(MicroReg::virtualFloatReg(group + 1), base, 0x40 + group * 0x20, MicroOpBits::B128);
+        }
+        // The first plan must also respect registers occurring later in the IR.
+        builder.emitLoadRegImm(MicroReg::virtualIntReg(900), ApInt(1234, 64), MicroOpBits::B64);
+        builder.emitClearReg(MicroReg::virtualFloatReg(800), MicroOpBits::B128);
+        builder.emitRet();
+
+        std::unordered_set<uint32_t> originalRefs;
+        for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+            originalRefs.insert(it.current.get());
+        SWC_RESULT(runInstCombinePass(builder));
+
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) != (rejectedPrefix ? 4 : 0) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != (rejectedPrefix ? 1 : 0) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecShuffleRegRegImm) != 2)
+            return Result::Error;
+
+        std::unordered_set<uint32_t> generatedInts;
+        std::unordered_set<uint32_t> generatedFloats;
+        for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+        {
+            if (originalRefs.contains(it.current.get()))
+                continue;
+            const auto useDef = it->collectUseDef(builder.operands(), nullptr);
+            for (const MicroReg reg : useDef.defs)
+            {
+                if (reg.isVirtualInt() && (reg.index() <= 900 || !generatedInts.insert(reg.index()).second))
+                    return Result::Error;
+                if (reg.isVirtualFloat() && (reg.index() <= 800 || !generatedFloats.insert(reg.index()).second))
+                    return Result::Error;
+            }
+        }
+        if (generatedInts.size() != 2 || !generatedInts.contains(901) || !generatedInts.contains(902) ||
+            generatedFloats.size() != 2 || !generatedFloats.contains(801))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

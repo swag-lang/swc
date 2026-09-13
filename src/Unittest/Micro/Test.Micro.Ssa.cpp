@@ -254,6 +254,47 @@ SWC_TEST_BEGIN(MicroSsa_PhiAtJoinWithSharedPredecessorDominator)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroSsa_PhiInputsFollowManyPredecessors)
+{
+    constexpr uint32_t               count = 32;
+    constexpr MicroReg               value = MicroReg::virtualIntReg(1);
+    MicroBuilder                     builder(ctx);
+    const MicroLabelRef              join = builder.createLabel();
+    std::array<MicroInstrRef, count> definitions;
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        const MicroLabelRef alternate = builder.createLabel();
+        if (i + 1 < count)
+            builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, alternate);
+        builder.emitLoadRegImm(value, ApInt(i, 64), MicroOpBits::B64);
+        definitions[i] = builder.instructions().lastInstructionRef();
+        if (i + 1 < count)
+        {
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+            builder.placeLabel(alternate);
+        }
+    }
+    builder.placeLabel(join);
+    builder.emitLoadMemReg(MicroReg::intReg(2), 0, value, MicroOpBits::B64);
+    const auto use = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    MicroSsaState ssa;
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    const auto  reaching = ssa.reachingDef(value, use);
+    const auto* phi      = ssa.phiInfoForValue(reaching.valueId);
+    if (!reaching.isPhi || !phi || phi->incomingValueIds.size() != count)
+        return Result::Error;
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        uint32_t expected = MicroSsaState::K_INVALID_VALUE;
+        if (!ssa.defValue(value, definitions[i], expected) || phi->incomingValueIds[i] != expected)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

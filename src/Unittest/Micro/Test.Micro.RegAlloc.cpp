@@ -1249,6 +1249,102 @@ SWC_TEST_BEGIN(MicroInstr_FloatToIntKeepsOnlyLiveFlagInitialization)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(RegAlloc_LiveIntervalAccessSearchBoundaries)
+{
+    constexpr uint32_t                        invalid = std::numeric_limits<uint32_t>::max();
+    MicroRegisterAllocationPass::LiveInterval interval;
+    interval.usePositions = {2, 8, 32, 48, 64, 96, 128, 256, 512};
+    interval.defPositions = {1, 9, 17, 49, 99};
+    struct Query
+    {
+        uint32_t position;
+        uint32_t next;
+        uint32_t previous;
+    };
+    const Query queries[] = {
+        {0, 1, invalid},
+        {1, 1, invalid},
+        {2, 2, 1},
+        {3, 8, 2},
+        {8, 8, 2},
+        {9, 9, 8},
+        {10, 17, 9},
+        {17, 17, 9},
+        {18, 32, 17},
+        {48, 48, 32},
+        {49, 49, 48},
+        {50, 64, 49},
+        {98, 99, 96},
+        {99, 99, 96},
+        {100, 128, 99},
+        {256, 256, 128},
+        {257, 512, 256},
+        {512, 512, 256},
+        {513, invalid, 512},
+        {invalid, invalid, 512},
+    };
+    for (const Query& query : queries)
+    {
+        if (interval.firstUseAfter(query.position) != query.next || interval.lastAccessBefore(query.position) != query.previous)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_LiveIntervalEmptyAndSingleAccess)
+{
+    constexpr uint32_t                        invalid = std::numeric_limits<uint32_t>::max();
+    MicroRegisterAllocationPass::LiveInterval interval;
+    if (interval.firstUseAfter(0) != invalid || interval.lastAccessBefore(invalid) != invalid || interval.firstRangeStartAfter(0) != invalid)
+        return Result::Error;
+
+    interval.usePositions.push_back(0);
+    if (interval.firstUseAfter(0) != 0 || interval.firstUseAfter(1) != invalid || interval.lastAccessBefore(0) != invalid || interval.lastAccessBefore(1) != 0)
+        return Result::Error;
+
+    interval.usePositions.clear();
+    interval.defPositions.push_back(1);
+    if (interval.firstUseAfter(0) != 1 || interval.firstUseAfter(1) != 1 || interval.firstUseAfter(2) != invalid || interval.lastAccessBefore(1) != invalid || interval.lastAccessBefore(2) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_LiveIntervalRangeStartSearchBoundaries)
+{
+    constexpr uint32_t                        invalid = std::numeric_limits<uint32_t>::max();
+    MicroRegisterAllocationPass::LiveInterval interval;
+    interval.ranges = {{2, 4}, {8, 12}, {20, 21}, {32, 64}, {96, 112}};
+    struct Query
+    {
+        uint32_t position;
+        uint32_t next;
+    };
+    const Query queries[] = {
+        {0, 2},
+        {2, 2},
+        {3, 8},
+        {4, 8},
+        {8, 8},
+        {12, 20},
+        {20, 20},
+        {21, 32},
+        {32, 32},
+        {64, 96},
+        {96, 96},
+        {97, invalid},
+        {invalid, invalid},
+    };
+    for (const Query& query : queries)
+    {
+        if (interval.firstRangeStartAfter(query.position) != query.next)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -41,9 +41,11 @@ namespace
     // the high half is non-zero, `imul` when the signed product does not fit.
     // The arithmetic-overflow safety check reads exactly that, so the rewrite
     // only applies where the flags provably die first.
-    bool tryUseSignedMultiply(MicroInstrOperand* ops, const uint8_t microOpSlot)
+    bool tryUseSignedMultiply(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef instRef, MicroInstrOperand* ops, const uint8_t microOpSlot)
     {
         if (ops[microOpSlot].microOp != MicroOp::MultiplyUnsigned)
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, instRef))
             return false;
 
         ops[microOpSlot].microOp = MicroOp::MultiplySigned;
@@ -108,20 +110,6 @@ namespace
         ops[2].microOp  = MicroOp::And;
         ops[3].valueU64 = immediate - 1;
         return true;
-    }
-
-    bool tryReduceAddSubZero(const MicroInstrOperand* ops, MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef instRef, const MicroSsaState& ssaState)
-    {
-        // The erase drops the flag write too; a dead result does not imply
-        // dead flags once constant folding has rewritten the consumers.
-        if (!ssaState.isRegUsedAfter(ops[0].reg, instRef) &&
-            MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
-        {
-            storage.erase(instRef);
-            return true;
-        }
-
-        return false;
     }
 
     ///////////////////////////////////////////
@@ -481,12 +469,10 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
         // Changing which condition the flags describe needs the strict window:
         // a fused branch keeps them live across a jump, which the relaxed
         // "dead after" contract does not see.
-        if (MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, instRef))
-        {
-            // ops: RegImm is [1] opBits [2] microOp [3] imm, RegReg is [2] opBits [3] microOp.
-            if (tryUseSignedMultiply(ops, isRegImm ? 2 : 3))
-                context.passChanged = true;
-        }
+        // Test the operation before scanning the flags: only unsigned multiply
+        // has a signed replacement. RegImm keeps the operation in slot 2, RegReg in 3.
+        if (tryUseSignedMultiply(storage, operands, instRef, ops, isRegImm ? 2 : 3))
+            context.passChanged = true;
 
         if (!isRegImm)
             continue;
@@ -494,14 +480,13 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
         const MicroOpBits opBits    = ops[1].opBits;
         const MicroOp     microOp   = ops[2].microOp;
         const uint64_t    immediate = ops[3].valueU64;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
-            continue;
-
-        bool changed = false;
+        bool              changed   = false;
         switch (microOp)
         {
             case MicroOp::MultiplySigned:
             case MicroOp::MultiplyUnsigned:
+                if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
+                    break;
                 changed = tryReduceMultiplyByZero(ops, immediate) ||
                           tryReduceMultiplyByOne(ops, immediate) ||
                           tryReduceMultiplyToShift(ops, opBits, immediate);
@@ -509,27 +494,33 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
 
             case MicroOp::Add:
             case MicroOp::Subtract:
-                if (immediate == 0)
+                if (immediate == 0 && MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
                 {
                     if (!ssaState)
                         ssaState = MicroSsaState::ensureFor(context, localSsaState);
-                    if (ssaState && ssaState->isValid())
-                        changed = tryReduceAddSubZero(ops, storage, operands, instRef, *ssaState);
+                    if (ssaState && ssaState->isValid() && !ssaState->isRegUsedAfter(ops[0].reg, instRef))
+                        changed = storage.erase(instRef);
                 }
                 break;
 
             case MicroOp::DivideUnsigned:
+                if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
+                    break;
                 changed = tryReduceUnsignedDivideToShift(ops, opBits, immediate) ||
                           tryExpandDivisionByConstant(context, storage, operands, instRef, ops, nextVirtualIntRegIndex);
                 break;
 
             case MicroOp::ModuloUnsigned:
+                if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
+                    break;
                 changed = tryReduceUnsignedModuloToMask(ops, opBits, immediate) ||
                           tryExpandDivisionByConstant(context, storage, operands, instRef, ops, nextVirtualIntRegIndex);
                 break;
 
             case MicroOp::DivideSigned:
             case MicroOp::ModuloSigned:
+                if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
+                    break;
                 changed = tryExpandDivisionByConstant(context, storage, operands, instRef, ops, nextVirtualIntRegIndex);
                 break;
 

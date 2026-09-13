@@ -750,18 +750,14 @@ void MicroSsaState::assignPhiInputs(const uint32_t predecessorBlock, const uint3
 {
     SWC_ASSERT(successorBlock < blocks_.size());
     BlockInfo& successor = blocks_[successorBlock];
-    uint32_t   predSlot  = K_INVALID;
-    for (uint32_t idx = 0; idx < successor.predecessors.size(); ++idx)
-    {
-        if (successor.predecessors[idx] == predecessorBlock)
-        {
-            predSlot = idx;
-            break;
-        }
-    }
-
-    if (predSlot == K_INVALID)
+    if (successor.phis.empty())
         return;
+
+    // buildBlocks appends predecessors in increasing block-index order.
+    // Large joins need no linear search for every incoming edge.
+    const auto pred = std::ranges::lower_bound(successor.predecessors, predecessorBlock);
+    SWC_ASSERT(pred != successor.predecessors.end() && *pred == predecessorBlock);
+    const auto predSlot = static_cast<uint32_t>(pred - successor.predecessors.begin());
 
     for (const uint32_t phiIndex : successor.phis)
     {

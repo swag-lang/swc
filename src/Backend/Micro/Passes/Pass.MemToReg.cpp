@@ -45,7 +45,8 @@ namespace
 
     struct SlotInfo
     {
-        bool                    hasWrite = false;
+        uint64_t                maxAccessEnd = 0;
+        bool                    hasWrite     = false;
         SmallVector<SlotAccess> accesses;
     };
 
@@ -697,6 +698,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         {
             SlotInfo& slot = slots[pending.offset];
             slot.accesses.push_back(pending);
+            // Compare computed ends, not widths: displacement addition can wrap.
+            slot.maxAccessEnd = std::max(slot.maxAccessEnd, pending.offset + getNumBytes(pending.bits));
             if (pending.isWrite)
                 slot.hasWrite = true;
         }
@@ -901,18 +904,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         {
             if (otherOffset == p.offset)
                 continue;
-            for (const SlotAccess& acc : otherSlot.accesses)
+            // All accesses at this key share their start. The largest end
+            // answers whether any of them overlaps, including rejected slots.
+            if (!(otherSlot.maxAccessEnd <= pStart || pEnd <= otherOffset))
             {
-                const uint64_t aStart = acc.offset;
-                const uint64_t aEnd   = acc.offset + getNumBytes(acc.bits);
-                if (!(aEnd <= pStart || pEnd <= aStart))
-                {
-                    overlap = true;
-                    break;
-                }
-            }
-            if (overlap)
+                overlap = true;
                 break;
+            }
         }
         if (!overlap)
             filtered.push_back(p);

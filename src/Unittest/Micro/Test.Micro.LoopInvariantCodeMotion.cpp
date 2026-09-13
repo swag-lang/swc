@@ -383,6 +383,37 @@ SWC_TEST_BEGIN(MicroDomTree_MatchesPathsThroughDiamondAndLoop)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NaturalLoop_CollectBody_CountsMembersOnceAcrossTailsAndRebuilds)
+{
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef header = builder.createLabel();
+    builder.placeLabel(header);
+    builder.emitCmpRegImm(MicroReg::virtualIntReg(1), ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B64, header);
+    builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
+    builder.emitRet();
+
+    const MicroControlFlowGraph&  cfg = builder.controlFlowGraph();
+    MicroPassHelpers::NaturalLoop loop;
+    loop.header = 0;
+    loop.tails.push_back(2);
+    loop.tails.push_back(3);
+    loop.tails.push_back(2);
+    for (uint32_t rebuild = 0; rebuild < 2; ++rebuild)
+    {
+        loop.collectBody(cfg);
+        if (loop.bodySize != 4 || loop.inBody.size() != 5)
+            return Result::Error;
+        for (uint32_t i = 0; i < loop.inBody.size(); ++i)
+        {
+            if (loop.inBody[i] != (i < 4))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

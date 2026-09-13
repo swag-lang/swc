@@ -414,6 +414,65 @@ SWC_TEST_BEGIN(StrengthReduction_RemoveAddZeroDeadAcrossJoin)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(StrengthReduction_UnsignedMultiplyRequiresLocalFlagRedefinition)
+{
+    for (const bool regOperand : {false, true})
+    {
+        for (uint32_t boundary = 0; boundary < 4; ++boundary)
+        {
+            MicroBuilder builder(ctx);
+            if (regOperand)
+                builder.emitOpBinaryRegReg(MicroReg::intReg(8), MicroReg::intReg(9), MicroOp::MultiplyUnsigned, MicroOpBits::B64);
+            else
+                builder.emitOpBinaryRegImm(MicroReg::intReg(8), ApInt(3, 64), MicroOp::MultiplyUnsigned, MicroOpBits::B64);
+            const auto multiply = builder.instructions().lastInstructionRef();
+            if (boundary == 1)
+                builder.placeLabel(builder.createLabel());
+            if (boundary == 2)
+                builder.emitSetCondReg(MicroReg::virtualIntReg(1), MicroCond::Overflow);
+            if (boundary != 3)
+                builder.emitCmpRegImm(MicroReg::intReg(10), ApInt(0, 64), MicroOpBits::B64);
+            builder.emitRet();
+
+            SWC_RESULT(runStrengthReductionPass(builder));
+            const auto* inst = builder.instructions().ptr(multiply);
+            if (!inst || inst->ops(builder.operands())[regOperand ? 3 : 2].microOp !=
+                             (boundary == 0 ? MicroOp::MultiplySigned : MicroOp::MultiplyUnsigned))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(StrengthReduction_AddSubZeroPreservesLiveResultsAndFlags)
+{
+    for (const MicroOp op : {MicroOp::Add, MicroOp::Subtract})
+    {
+        for (const bool liveResult : {false, true})
+        {
+            for (const bool liveFlags : {false, true})
+            {
+                constexpr MicroReg value = MicroReg::virtualIntReg(1);
+                MicroBuilder       builder(ctx);
+                builder.emitLoadRegImm(value, ApInt(17, 64), MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(value, ApInt(0, 64), op, MicroOpBits::B64);
+                if (liveFlags)
+                    builder.emitSetCondReg(MicroReg::virtualIntReg(2), MicroCond::Zero);
+                if (liveResult)
+                    builder.emitLoadMemReg(MicroReg::intReg(8), 0, value, MicroOpBits::B64);
+                builder.emitRet();
+
+                SWC_RESULT(runStrengthReductionPass(builder));
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != (liveResult || liveFlags ? 1 : 0))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

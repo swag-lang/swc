@@ -891,11 +891,8 @@ namespace
         return changed;
     }
 
-    bool redirectJumpChains(MicroStorage& storage, MicroOperandStorage& operands)
+    bool redirectJumpChains(MicroStorage& storage, MicroOperandStorage& operands, const ProgramLayout& layout)
     {
-        ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
-
         bool changed = false;
         for (MicroInstr& inst : storage.view())
         {
@@ -923,11 +920,8 @@ namespace
         return changed;
     }
 
-    bool eraseJumpsToImmediateLabels(MicroStorage& storage, MicroOperandStorage& operands)
+    bool eraseJumpsToImmediateLabels(MicroStorage& storage, MicroOperandStorage& operands, const ProgramLayout& layout)
     {
-        ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
-
         bool changed = false;
         for (auto it = storage.view().begin(); it != storage.view().end();)
         {
@@ -967,11 +961,8 @@ namespace
     // the fold the hot path pays a taken jump on every iteration. Flag
     // conditions come in exact complement pairs (unordered float compares
     // included), so the inversion is semantics-preserving at the flags level.
-    bool invertJumpOverAdjacentJump(MicroStorage& storage, MicroOperandStorage& operands)
+    bool invertJumpOverAdjacentJump(MicroStorage& storage, MicroOperandStorage& operands, const ProgramLayout& layout)
     {
-        ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
-
         bool changed = false;
         for (auto it = storage.view().begin(); it != storage.view().end();)
         {
@@ -2113,9 +2104,18 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     {
         structuralChanged = false;
 
-        structuralChanged |= redirectJumpChains(storage, operands);
-        structuralChanged |= eraseJumpsToImmediateLabels(storage, operands);
-        structuralChanged |= invertJumpOverAdjacentJump(storage, operands);
+        {
+            ProgramLayout layout;
+            buildProgramLayout(layout, storage, operands);
+            structuralChanged |= redirectJumpChains(storage, operands, layout);
+            const bool erasedImmediateJumps = eraseJumpsToImmediateLabels(storage, operands, layout);
+            structuralChanged |= erasedImmediateJumps;
+            // Retargeting preserves layout; erasing jumps leaves holes that the
+            // adjacent-label query deliberately rejects, so rebuild only then.
+            if (erasedImmediateJumps)
+                buildProgramLayout(layout, storage, operands);
+            structuralChanged |= invertJumpOverAdjacentJump(storage, operands, layout);
+        }
         structuralChanged |= eraseDeadInstructionsAfterTerminators(storage, operands);
 
         if (structuralChanged && context.builder)

@@ -9,6 +9,7 @@ SWC_BEGIN_NAMESPACE();
 class MicroStorage;
 class MicroOperandStorage;
 class MicroBuilder;
+struct MicroPassContext;
 
 namespace InstructionCombine
 {
@@ -37,8 +38,9 @@ namespace InstructionCombine
     // struct stays assignable and matches project conventions.
     struct Context : MicroPeephole::RewriteQueue<Action>
     {
-        const MicroSsaState* ssa     = nullptr;
-        MicroBuilder*        builder = nullptr;
+        const MicroPassContext* passContext = nullptr;
+        const MicroSsaState*    ssa         = nullptr;
+        MicroBuilder*           builder     = nullptr;
         // Instructions that carry a relocation. Rewriting or erasing one
         // drops the relocation binding - the patch then lands wherever
         // codeOffset zero points - so claimAll refuses them unless a rule
@@ -52,7 +54,7 @@ namespace InstructionCombine
         MicroReg stackPointer = MicroReg::invalid();
 
         // The next free virtual register of each file, for rules that build
-        // new values; set by the pass from the function's registers.
+        // new values; initialized only when a vector construction needs them.
         uint32_t nextVirtualFloatRegIndex = 0;
         uint32_t nextVirtualIntRegIndex   = 0;
 

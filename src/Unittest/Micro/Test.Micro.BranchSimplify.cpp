@@ -915,6 +915,39 @@ SWC_TEST_BEGIN(BranchSimplify_SinksCompareBelowFlagWritingEarlyReturn)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(BranchSimplify_InvertsJumpPairAfterImmediateJumpErasure)
+{
+    constexpr MicroReg  input = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  base  = MicroReg::virtualIntReg(2);
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef next = builder.createLabel();
+    const MicroLabelRef far  = builder.createLabel();
+    builder.emitCmpRegImm(input, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B64, next);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, far);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B64, next);
+    builder.placeLabel(next);
+    builder.emitLoadMemImm(base, 0, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitRet();
+    builder.placeLabel(far);
+    builder.emitLoadMemImm(base, 0, ApInt(2, 64), MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+    if (countConditionalJumps(builder) != 1 || anyJumpTargetsLabel(builder, next))
+        return Result::Error;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::JumpCond)
+            continue;
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (ops[0].cpuCond != MicroCond::NotEqual || ops[2].valueU64 != far.get())
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

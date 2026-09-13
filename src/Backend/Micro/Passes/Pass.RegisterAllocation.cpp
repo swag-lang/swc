@@ -2419,11 +2419,13 @@ void MicroRegisterAllocationPass::analyzeLiveness()
 
     computeConcreteLoopCarried();
 
+    // Only calls contribute to these summaries; their concrete live-out set is unused.
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
+        if (!instructionUseDefs_[idx].isCall)
+            continue;
+
         for (uint64_t& value : tempOutVirtual_)
-            value = 0;
-        for (uint64_t& value : tempOutConcrete_)
             value = 0;
 
         const auto& successors = controlFlowGraph.successors(idx);
@@ -2432,16 +2434,10 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             if (succIdx >= instructionCount_)
                 continue;
 
-            const std::span<const uint64_t> succInVirtual  = DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount);
-            const std::span<const uint64_t> succInConcrete = DenseBits::row(liveInConcreteBits_, succIdx, concreteWordCount);
+            const std::span<const uint64_t> succInVirtual = DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount);
             for (size_t word = 0; word < tempOutVirtual_.size(); ++word)
                 tempOutVirtual_[word] |= succInVirtual[word];
-            for (size_t word = 0; word < tempOutConcrete_.size(); ++word)
-                tempOutConcrete_[word] |= succInConcrete[word];
         }
-
-        if (!instructionUseDefs_[idx].isCall)
-            continue;
 
         for (size_t wordIndex = 0; wordIndex < tempOutVirtual_.size(); ++wordIndex)
         {

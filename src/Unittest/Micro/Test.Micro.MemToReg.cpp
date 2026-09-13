@@ -93,6 +93,58 @@ SWC_TEST_BEGIN(MemToReg_RedefinedAddressRegister_BailsFunction)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MemToReg_UnwrittenWideAccess_BlocksOverlapButNotAdjacentSlot)
+{
+    const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg frame  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg packed = MicroReg::virtualFloatReg(1);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+    builder.emitLoadRegMem(value, frame, 0x20, MicroOpBits::B8);
+    builder.emitLoadVecRegMem(packed, frame, 0x20, MicroOpBits::B128);
+    builder.emitLoadRegMem(value, frame, 0x20, MicroOpBits::B8);
+    builder.emitLoadMemImm(frame, 0x28, ApInt(7, 64), MicroOpBits::B64);
+    const MicroInstrRef overlappingStore = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegMem(value, frame, 0x28, MicroOpBits::B64);
+    builder.emitLoadMemImm(frame, 0x30, ApInt(9, 64), MicroOpBits::B64);
+    const MicroInstrRef adjacentStore = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegMem(value, frame, 0x30, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runMemToRegPass(builder));
+    if (builder.instructions().ptr(overlappingStore)->op != MicroInstrOpcode::LoadMemImm)
+        return Result::Error;
+    if (builder.instructions().ptr(adjacentStore)->op != MicroInstrOpcode::LoadRegImm)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MemToReg_WrappingWideAccess_KeepsNarrowOverlap)
+{
+    const MicroReg     sp     = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg frame  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg packed = MicroReg::virtualFloatReg(1);
+    constexpr uint64_t start  = std::numeric_limits<uint64_t>::max() - 7;
+    MicroBuilder       builder(ctx);
+    builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+    builder.emitLoadRegMem(value, frame, start, MicroOpBits::B32);
+    builder.emitLoadVecRegMem(packed, frame, start, MicroOpBits::B128);
+    builder.emitLoadMemImm(frame, start + 2, ApInt(7, 32), MicroOpBits::B32);
+    const MicroInstrRef overlappingStore = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegMem(value, frame, start + 2, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runMemToRegPass(builder));
+    // The widest access wraps its endpoint; the narrower one still overlaps.
+    if (builder.instructions().ptr(overlappingStore)->op != MicroInstrOpcode::LoadMemImm)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

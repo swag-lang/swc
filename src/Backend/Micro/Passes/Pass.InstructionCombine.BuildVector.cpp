@@ -528,6 +528,15 @@ namespace InstructionCombine
         if (slotHasOtherReaders(ctx, base, slotOffset, loadRef, storeRefs))
             return false;
 
+        // The queue has not mutated the IR, so these are the same indices an
+        // eager function scan would find. Initialize before saving the counters:
+        // a rejected plan rolls back allocations without repeating the scans.
+        if (!ctx.nextVirtualFloatRegIndex)
+        {
+            SWC_ASSERT(ctx.passContext != nullptr);
+            ctx.nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(*ctx.passContext);
+            ctx.nextVirtualIntRegIndex   = MicroPassHelpers::computeNextVirtualIntRegIndex(*ctx.passContext);
+        }
         const uint32_t savedFloat = ctx.nextVirtualFloatRegIndex;
         const uint32_t savedInt   = ctx.nextVirtualIntRegIndex;
         Plan           plan{ctx, laneBytes};

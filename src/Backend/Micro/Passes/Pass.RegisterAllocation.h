@@ -199,7 +199,8 @@ public:
         uint32_t end() const { return ranges.empty() ? 0 : ranges.back().to; }
         bool     covers(uint32_t pos) const;
         uint32_t nextIntersection(const LiveInterval& other, uint32_t from) const;
-        uint32_t firstUseAfter(uint32_t pos) const;
+        uint32_t firstUseAfter(uint32_t pos) const;    // first access at or after pos
+        uint32_t lastAccessBefore(uint32_t pos) const; // last access strictly before pos
         uint32_t firstRangeStartAfter(uint32_t pos) const;
     };
     struct IntervalWalkResult
@@ -354,13 +355,13 @@ private:
     bool     hasControlFlow_   = false;
     bool     hasVirtualRegs_   = false;
 
-    std::vector<MicroInstrUseDef>         instructionUseDefs_;
-    MicroDenseRegIndex                    denseVirtualRegs_;
-    MicroDenseRegIndex                    denseConcreteRegs_;
+    std::vector<MicroInstrUseDef> instructionUseDefs_;
+    MicroDenseRegIndex            denseVirtualRegs_;
+    MicroDenseRegIndex            denseConcreteRegs_;
     // Whether this walk holds one callee-saved integer register back for the
     // legalization that runs on its output. Only a function whose first walk
     // left nothing free pays it.
-    bool intervalHoldsLegalizeReserve_ = false;
+    bool                                  intervalHoldsLegalizeReserve_ = false;
     std::vector<SmallVector<uint32_t, 4>> useVirtualIndices_;
     std::vector<SmallVector<uint32_t, 4>> defVirtualIndices_;
     std::vector<SmallVector<uint32_t, 4>> useConcreteIndices_;

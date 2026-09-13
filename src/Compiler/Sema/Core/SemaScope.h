@@ -50,12 +50,19 @@ public:
     SemaScope(SemaScopeFlags flags, SemaScope* parent) :
         parent_(parent),
         lookupParent_(parent),
-        flags_(flags)
+        flags_(flags),
+        depth_(parent ? parent->depth() + 1 : 1)
     {
     }
 
     SemaScope* parent() const { return parent_; }
-    void       setParent(SemaScope* parent) { parent_ = parent; }
+    void       setParent(SemaScope* parent)
+    {
+        parent_ = parent;
+        depth_  = parent ? parent->depth() + 1 : 1;
+    }
+    // Physical scope depth is independent of redirected macro/mixin lookup parents.
+    uint32_t   depth() const { return depth_; }
     SemaScope* lookupParent() const { return lookupParent_ ? lookupParent_ : parent_; }
     void       setLookupParent(SemaScope* parent) { lookupParent_ = parent; }
 
@@ -102,6 +109,7 @@ private:
     SemaScope*                            parent_       = nullptr;
     SemaScope*                            lookupParent_ = nullptr;
     SemaScopeFlags                        flags_        = SemaScopeFlagsE::Zero;
+    uint32_t                              depth_        = 1;
     SymbolMap*                            symMap_       = nullptr;
     SmallVector<SymbolMap*>               usingSymMaps_;
     SmallVector<Symbol*>                  symbols_;

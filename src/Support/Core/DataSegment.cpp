@@ -15,28 +15,23 @@ namespace
 
     std::byte* findLargeBlockPtr(std::vector<DataSegment::LargeBlock>& blocks, const Ref ref, const uint32_t size) noexcept
     {
-        for (DataSegment::LargeBlock& block : blocks)
-        {
-            if (ref < block.offset)
-                break;
-            if (containsLargeBlockRange(block, ref, size))
-                return block.storage.get() + (ref - block.offset);
-        }
+        // Page-backed addresses precede these append-only, offset-ordered blocks.
+        if (ref < blocks.front().offset)
+            return nullptr;
 
-        return nullptr;
+        const auto it = std::ranges::upper_bound(blocks, ref, {}, &DataSegment::LargeBlock::offset);
+        auto&      block = *std::prev(it);
+        return containsLargeBlockRange(block, ref, size) ? block.storage.get() + (ref - block.offset) : nullptr;
     }
 
     const std::byte* findLargeBlockPtr(const std::vector<DataSegment::LargeBlock>& blocks, const Ref ref, const uint32_t size) noexcept
     {
-        for (const DataSegment::LargeBlock& block : blocks)
-        {
-            if (ref < block.offset)
-                break;
-            if (containsLargeBlockRange(block, ref, size))
-                return block.storage.get() + (ref - block.offset);
-        }
+        if (ref < blocks.front().offset)
+            return nullptr;
 
-        return nullptr;
+        const auto  it = std::ranges::upper_bound(blocks, ref, {}, &DataSegment::LargeBlock::offset);
+        const auto& block = *std::prev(it);
+        return containsLargeBlockRange(block, ref, size) ? block.storage.get() + (ref - block.offset) : nullptr;
     }
 
     struct RelocationOffsetProjection
@@ -269,6 +264,7 @@ void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outR
 {
     const RelocationOffsetProjection projection{.relocations = &relocations_};
     const auto                       begin = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
+    bool                             repeatedOffset = false;
 
     for (auto it = begin; it != relocationsByOffset_.end(); ++it)
     {
@@ -276,10 +272,13 @@ void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outR
         if (relocation.offset - offset >= size)
             break;
 
+        if (!outRelocations.empty() && outRelocations.back().offset == relocation.offset)
+            repeatedOffset = true;
         outRelocations.push_back(relocation);
     }
 
     // Scan the unsorted tail (relocations appended since the sorted index was last built).
+    const size_t indexedCount = outRelocations.size();
     for (uint32_t index = relocationsIndexedCount_; index < relocations_.size(); ++index)
     {
         const DataSegmentRelocation& relocation = relocations_[index];
@@ -287,8 +286,10 @@ void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outR
             outRelocations.push_back(relocation);
     }
 
-    // Preserve the historical offset-sorted output regardless of prefix/tail split.
-    std::ranges::sort(outRelocations, {}, &DataSegmentRelocation::offset);
+    // The index already supplies sorted output. Only matching tail entries need a sort;
+    // retain the historical tie ordering when several relocations share an offset.
+    if (repeatedOffset || outRelocations.size() != indexedCount)
+        std::ranges::sort(outRelocations, {}, &DataSegmentRelocation::offset);
 }
 
 bool DataSegment::findRelocationLocked(DataSegmentRelocation& outRelocation, const uint32_t offset, const DataSegmentRelocationKind kind) const

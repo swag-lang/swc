@@ -137,3 +137,22 @@ impl Tracked
     Swag.assert(DropCount == 4)
     Swag.assert(DropTrace == 6072523)
 }
+
+// Leaving a nested block restores the declaration owner of later locals.
+#test
+{
+    resetHooks()
+    {
+        {
+            var innerSource = Tracked{1}
+            var innerTarget = #move innerSource
+            g_sink = innerTarget.value
+        }
+        var source = Tracked{3}
+        var target = #move source
+        g_sink = target.value
+    }
+    Swag.assert(g_sink == 23)
+    Swag.assert(DropCount == 2)
+    Swag.assert(DropTrace == 2123)
+}

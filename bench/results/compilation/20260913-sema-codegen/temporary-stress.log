@@ -1,0 +1,9 @@
+  ◆  swag        test • .tmp/compile-speed/temporary_history.swg • devmode
+  ✓  checked     20 files • 56_799 tokens • 4 s 893 ms
+  ✓  tuned       193 functions • 7 s 194 ms
+  ✓  executed    1 passed • 7 s 220 ms
+  ✓  forged      443 functions • temporary_history.test.exe • 232 ms
+  ✓  ran         97 ms
+  ✓  verified    42 us
+  ✓  tested      1 passed • 12 s 468 ms
+  ✓  clean       12 s 487 ms

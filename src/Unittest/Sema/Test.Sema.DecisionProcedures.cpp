@@ -6,11 +6,16 @@
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Generic/GenericInstanceStorage.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Compiler/Sema/Match/MatchContext.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Report/Diagnostic.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
@@ -19,6 +24,40 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    class CompletedFreesFixture
+    {
+    public:
+        explicit CompletedFreesFixture(TaskContext& ctx) :
+            ctx_(&ctx),
+            savedEdges_(ctx.compiler().takeEscapeSummaryEdges())
+        {
+        }
+
+        ~CompletedFreesFixture()
+        {
+            ctx_->compiler().takeEscapeSummaryEdges();
+            for (const SemaEscapeSummaryEdge& edge : savedEdges_)
+                ctx_->compiler().addEscapeSummaryEdge(edge);
+        }
+
+        SymbolFunction* addFunction(bool completed = true)
+        {
+            const SymbolFlags flags = completed ? SymbolFlagsE::SemaCompleted : SymbolFlagsE::Zero;
+            auto*             function = Symbol::make<SymbolFunction>(*ctx_, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), flags);
+            if (completed)
+                completed_.push_back(function);
+            return function;
+        }
+
+        void addEdge(const SemaEscapeSummaryEdge& edge) { ctx_->compiler().addEscapeSummaryEdge(edge); }
+        void propagate() const { SemaEscape::propagateCompletedFreesSummaries(*ctx_, completed_); }
+
+    private:
+        TaskContext*                       ctx_;
+        std::vector<SemaEscapeSummaryEdge> savedEdges_;
+        std::vector<SymbolFunction*>       completed_;
+    };
+
     class SemaDecisionFixture
     {
     public:
@@ -105,6 +144,105 @@ SWC_TEST_BEGIN(Sema_OverloadRankingUsesOrderedConversionCriteria)
                 return Result::Error;
         }
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Sema_MatchCandidateCollectionPreservesUniqueDiscoveryOrder)
+{
+    constexpr MatchContext::Priority local{0, MatchContext::VisibilityTier::LocalScope};
+    constexpr MatchContext::Priority outer{1, MatchContext::VisibilityTier::LocalScope};
+
+    MatchContext               match;
+    SmallVector<const Symbol*> collected;
+    std::vector<const Symbol*> functions;
+
+    for (uint32_t index = 0; index < 64; ++index)
+    {
+        const Symbol* function = Symbol::make<SymbolFunction>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        functions.push_back(function);
+        match.addSymbol(function, outer);
+        match.addSymbol(function, outer);
+    }
+    // Rediscovering the outer candidates at a better priority must not reorder them.
+    for (auto it = functions.rbegin(); it != functions.rend(); ++it)
+        match.addSymbol(*it, local);
+    match.collectCallFallbackSymbols(collected);
+    if (!std::ranges::equal(collected, functions))
+        return Result::Error;
+    match.collectCallableSymbols(collected);
+    if (!std::ranges::equal(collected, functions))
+        return Result::Error;
+
+    const Symbol* namespaceSymbol = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    match.addSymbol(namespaceSymbol, local);
+    match.collectCallFallbackSymbols(collected);
+    if (!collected.empty())
+        return Result::Error;
+    match.collectCallableSymbols(collected);
+    if (!std::ranges::equal(collected, functions))
+        return Result::Error;
+
+    match.replaceWithSingleSymbol(functions.back());
+    match.collectCallFallbackSymbols(collected);
+    if (collected.size() != 1 || collected.front() != functions.back())
+        return Result::Error;
+    match.clear();
+    match.collectCallableSymbols(collected);
+    if (!collected.empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Sema_GenericInstanceStoragePreservesIdentityAcrossGrowth)
+{
+    GenericInstanceStorage         storage;
+    std::vector<Symbol*>            instances;
+    SmallVector<GenericInstanceKey> args;
+    SmallVector<GenericInstanceKey> recovered;
+
+    // Alternate inline and allocated argument lists while forcing several rehashes.
+    for (uint32_t index = 0; index < 512; ++index)
+    {
+        Symbol* instance = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        args.clear();
+        const uint32_t count = index % 2 ? 20 : 2;
+        for (uint32_t arg = 0; arg < count; ++arg)
+            args.push_back({TypeRef(index), ConstantRef(arg)});
+
+        if (storage.find(args.span()) || storage.add(args.span(), instance) != instance)
+            return Result::Error;
+        instances.push_back(instance);
+    }
+
+    for (uint32_t index = 0; index < instances.size(); ++index)
+    {
+        args.clear();
+        const uint32_t count = index % 2 ? 20 : 2;
+        for (uint32_t arg = 0; arg < count; ++arg)
+            args.push_back({TypeRef(index), ConstantRef(arg)});
+
+        if (storage.find(args.span()) != instances[index])
+            return Result::Error;
+        if (!storage.tryGetArgs(*instances[index], recovered) || !std::ranges::equal(args, recovered))
+            return Result::Error;
+        // An existing argument list wins even when the supplied symbol is already
+        // associated with a different list. Reusing a symbol never adds an alias key.
+        if (storage.add(args.span(), instances.front()) != instances[index])
+            return Result::Error;
+    }
+
+    args = {{TypeRef(900), ConstantRef(1)}, {TypeRef(900), ConstantRef(0)}};
+    if (storage.add(args.span(), instances.front()) != instances.front() || storage.find(args.span()))
+        return Result::Error;
+    args = {{TypeRef(0), ConstantRef(1)}, {TypeRef(0), ConstantRef(0)}};
+    if (storage.find(args.span()))
+        return Result::Error;
+
+    Symbol* emptyInstance = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    if (storage.add({}, emptyInstance) != emptyInstance || storage.find({}) != emptyInstance)
+        return Result::Error;
+    if (!storage.tryGetArgs(*emptyInstance, recovered) || !recovered.empty())
+        return Result::Error;
 }
 SWC_TEST_END()
 
@@ -250,6 +388,76 @@ SWC_TEST_BEGIN(Sema_GenericDeductionBindingHandlesConflictsAndDefaults)
         if (!resolvedArgs[0].present)
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Sema_CompletedFreesSummariesKeepDirectForwardingTransitive)
+{
+    CompletedFreesFixture fixture(ctx);
+    auto* outer   = fixture.addFunction();
+    auto* middle  = fixture.addFunction();
+    auto* leaf    = fixture.addFunction();
+    auto* owned   = fixture.addFunction();
+    auto* carried = fixture.addFunction();
+    auto* pending = fixture.addFunction(false);
+    leaf->addFreesParam(2);
+
+    // Reverse dependency order requires another frees iteration after middle grows.
+    fixture.addEdge({.caller = outer, .callee = middle, .callerParamIndex = 0, .calleeParamIndex = 1, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
+    fixture.addEdge({.caller = middle, .callee = leaf, .callerParamIndex = 1, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
+    fixture.addEdge({.caller = owned, .callee = leaf, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .viaOwnedPayload = true});
+    fixture.addEdge({.caller = carried, .callee = leaf, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .viaStoredField = true});
+    fixture.addEdge({.caller = pending, .callee = leaf, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
+    fixture.propagate();
+
+    if (outer->freesParamsMask() != 1 || middle->freesParamsMask() != 2 || leaf->freesParamsMask() != 4)
+        return Result::Error;
+    if (owned->freesParamsMask() || carried->freesParamsMask() || pending->freesParamsMask())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
+{
+    CompletedFreesFixture fixture(ctx);
+    auto* outer           = fixture.addFunction();
+    auto* middle          = fixture.addFunction();
+    auto* leaf            = fixture.addFunction();
+    auto* aliasWrapper    = fixture.addFunction();
+    auto* aliasLeaf       = fixture.addFunction();
+    auto* payloadAlias    = fixture.addFunction();
+    auto* borrowOnly      = fixture.addFunction();
+    auto* incompleteAlias = fixture.addFunction();
+    auto* unresolved      = fixture.addFunction(false);
+    auto* payloadOwner    = fixture.addFunction();
+    auto* nonAliasOwner   = fixture.addFunction();
+    auto* unresolvedOwner = fixture.addFunction();
+    leaf->addFreesParam(2);
+    aliasLeaf->addReturnBorrowsParam(2);
+    aliasLeaf->addReturnsStorageParam(2);
+    payloadAlias->addReturnBorrowsParam(0);
+    payloadAlias->addReturnsStorageParam(0);
+    payloadAlias->addReturnsPayloadParam(0);
+    borrowOnly->addReturnBorrowsParam(0);
+    incompleteAlias->addReturnBorrowsParam(0);
+    incompleteAlias->addReturnsStorageParam(0);
+
+    fixture.addEdge({.caller = outer, .callee = middle, .calleeParamIndex = 1, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
+    fixture.addEdge({.caller = middle, .callee = leaf, .callerParamIndex = 1, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{aliasWrapper, 1}}});
+    fixture.addEdge({.caller = payloadOwner, .callee = leaf, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{aliasWrapper, 1}, {payloadAlias, 0}}});
+    fixture.addEdge({.caller = nonAliasOwner, .callee = leaf, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{borrowOnly, 0}}});
+    fixture.addEdge({.caller = unresolvedOwner, .callee = leaf, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{incompleteAlias, 0}}});
+    fixture.addEdge({.caller = aliasWrapper, .callee = aliasLeaf, .callerParamIndex = 1, .calleeParamIndex = 2});
+    fixture.addEdge({.caller = incompleteAlias, .callee = unresolved});
+    fixture.propagate();
+
+    if (outer->freesParamsMask() != 1 || middle->freesParamsMask() != 2)
+        return Result::Error;
+    if (payloadOwner->freesParamsMask() || nonAliasOwner->freesParamsMask() || unresolvedOwner->freesParamsMask())
+        return Result::Error;
+    // Completed return masks belong to parallel readers and must remain untouched.
+    if (aliasWrapper->returnBorrowsParamsMask() || aliasWrapper->returnsStorageParamsMask())
+        return Result::Error;
 }
 SWC_TEST_END()
 

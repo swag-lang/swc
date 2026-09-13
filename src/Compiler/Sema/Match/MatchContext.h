@@ -92,6 +92,7 @@ private:
     };
 
     SmallVector<const Symbol*>   symbols_;
+    // Unique symbols in first-discovery order, including candidates below the best priority.
     SmallVector<CandidateSymbol> allSymbols_;
 
     Priority bestPriority_        = {};

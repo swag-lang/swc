@@ -41,24 +41,6 @@ namespace
         return nullptr;
     }
 
-    bool hasMatchingInlineFrame(std::span<const CodeGenFrame> frames, AstNodeRef rootNodeRef, const SemaInlinePayload* payload)
-    {
-        if (!payload || rootNodeRef.isInvalid())
-            return false;
-
-        for (size_t frameIndex = frames.size(); frameIndex != 0; --frameIndex)
-        {
-            const CodeGenFrame& frame = frames[frameIndex - 1];
-            if (!frame.hasCurrentInlineContext())
-                continue;
-            const CodeGenFrame::InlineContext& inlineCtx = frame.currentInlineContext();
-            if (inlineCtx.rootNodeRef == rootNodeRef && inlineCtx.payload == payload)
-                return true;
-        }
-
-        return false;
-    }
-
     bool isTemporaryDropBlock(const AstNodeId id)
     {
         return id == AstNodeId::FunctionBody || id == AstNodeId::EmbeddedBlock || id == AstNodeId::TopLevelBlock || id == AstNodeId::SwitchCaseBody;
@@ -1064,6 +1046,9 @@ Result CodeGen::emitLifecycle(const TypeRef typeRef, const LifecycleKind lifecyc
 
 void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const SymbolVariable& storage)
 {
+    if (hasTemporaryDrop(storage))
+        return;
+
     const auto isAncestorRef = [this](const AstNodeRef candidateRef) {
         for (size_t up = 0;; ++up)
         {
@@ -1136,12 +1121,6 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
         flushRootRef = parentRef;
     }
 
-    for (const CodeGenTemporaryDrop& drop : temporaryDrops_)
-    {
-        if (drop.storageSym == &storage)
-            return;
-    }
-
     temporaryDrops_.push_back({flushRootRef, &storage, typeRef});
 }
 
@@ -1161,8 +1140,14 @@ void CodeGen::cancelTemporaryDrop(const SymbolVariable& storage)
     for (CodeGenTemporaryDrop& drop : temporaryDrops_)
     {
         if (drop.storageSym == &storage)
+        {
             drop.storageSym = nullptr;
+            break;
+        }
     }
+
+    while (!temporaryDrops_.empty() && !temporaryDrops_.back().storageSym)
+        temporaryDrops_.pop_back();
 }
 
 Result CodeGen::flushTemporaryDrops(const AstNodeRef rootRef)
@@ -1178,6 +1163,13 @@ Result CodeGen::flushTemporaryDrops(const AstNodeRef rootRef)
         const CodeGenNodePayload storagePayload = resolveLocalStackPayload(*storageSym, false);
         SWC_RESULT(emitLifecycle(drop.typeRef, LifecycleKind::Drop, storagePayload.reg));
     }
+
+    // A statement normally retires a suffix. Keep inner canceled entries until the
+    // later temporaries finish, preserving drop order without moving live entries.
+    // Retaining this suffix would make every later AST node scan the function's
+    // entire temporary history, even after all those values were dropped.
+    while (!temporaryDrops_.empty() && !temporaryDrops_.back().storageSym)
+        temporaryDrops_.pop_back();
 
     return Result::Continue;
 }
@@ -1860,7 +1852,7 @@ Result CodeGen::preNode(AstNode& node)
             // compiled function (e.g., a local function inside a macro expansion). In that
             // case, any doneLabel created by emitInlineReturn must be placed at this boundary
             // since the outer expansion won't do it.
-            frame.currentInlineContextRef().noOuterDoneLabel = !hasMatchingInlineFrame(frames(), targetInlinePayload->inlineRootRef, targetInlinePayload);
+            frame.currentInlineContextRef().noOuterDoneLabel = matchingInlineCtx == nullptr;
         }
         else
         {

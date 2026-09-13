@@ -108,6 +108,57 @@ SWC_TEST_BEGIN(DataSegment_RelocationIndexRebuildsAfterOutOfOrderAdd)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(DataSegment_RelocationRangesPreserveIndexedAndTailEntries)
+{
+    DataSegment segment;
+    for (uint32_t i = 0; i < 128; ++i)
+        segment.addRelocation(i * 16, i);
+
+    std::vector<DataSegmentRelocation> relocations;
+    segment.copyRelocations(relocations, 32, 64);
+    if (relocations.size() != 4)
+        return Result::Error;
+    for (uint32_t i = 0; i < relocations.size(); ++i)
+    {
+        if (relocations[i].offset != (i + 2) * 16 || relocations[i].targetOffset != i + 2)
+            return Result::Error;
+    }
+
+    // An unsorted tail outside the query must not disturb the indexed range.
+    segment.addRelocation(8, 500);
+    segment.copyRelocations(relocations, 32, 64);
+    if (relocations.size() != 4 || relocations.front().offset != 32 || relocations.back().offset != 80)
+        return Result::Error;
+
+    segment.addRelocation(56, 501);
+    segment.copyRelocations(relocations, 32, 64);
+    constexpr std::array expectedOffsets{32u, 48u, 56u, 64u, 80u};
+    if (relocations.size() != expectedOffsets.size())
+        return Result::Error;
+    for (size_t i = 0; i < relocations.size(); ++i)
+        if (relocations[i].offset != expectedOffsets[i])
+            return Result::Error;
+    if (relocations[2].targetOffset != 501)
+        return Result::Error;
+
+    DataSegment repeated;
+    for (uint32_t i = 0; i < 64; ++i)
+        repeated.addRelocation(16, i);
+    auto expected = repeated.copyRelocations();
+    std::ranges::sort(expected, {}, &DataSegmentRelocation::offset);
+    repeated.copyRelocations(relocations, 16, 1);
+    if (relocations.size() != expected.size())
+        return Result::Error;
+    for (size_t i = 0; i < relocations.size(); ++i)
+        if (relocations[i].targetOffset != expected[i].targetOffset)
+            return Result::Error;
+
+    segment.copyRelocations(relocations, 32, 0);
+    if (!relocations.empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(DataSegment_FindAllocationUsesPublishedAllocations)
 {
     DataSegment segment;
@@ -121,6 +172,49 @@ SWC_TEST_BEGIN(DataSegment_FindAllocationUsesPublishedAllocations)
         return Result::Error;
     if (allocation.offset != offset || allocation.size != static_cast<uint32_t>(bytes.size()))
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DataSegment_LargeBlockPointersPreservePagedPrefixAndAlignedAllocations)
+{
+    DataSegment segment;
+    const auto [prefixOffset, prefix] = segment.reserveBytes(32, 8, false);
+    prefix[0] = std::byte{0x71};
+    prefix[31] = std::byte{0x72};
+
+    struct Allocation
+    {
+        uint32_t   offset;
+        uint32_t   size;
+        std::byte* bytes;
+    };
+    std::vector<Allocation> allocations;
+    for (uint32_t i = 0; i < 128; ++i)
+    {
+        const uint32_t size = i ? 17 + i % 23 : PagedStore::K_DEFAULT_PAGE_SIZE + 1;
+        const auto [offset, bytes] = segment.reserveBytes(size, 64, false);
+        bytes[0] = std::byte{0x31};
+        bytes[size - 1] = std::byte{0x32};
+        allocations.push_back({offset, size, bytes});
+    }
+
+    const DataSegment& constSegment = segment;
+    if (segment.ptr<std::byte>(prefixOffset) != prefix || constSegment.ptr<std::byte>(prefixOffset + 31) != prefix + 31)
+        return Result::Error;
+    if (prefix[0] != std::byte{0x71} || prefix[31] != std::byte{0x72})
+        return Result::Error;
+
+    for (const Allocation& allocation : allocations)
+    {
+        if (segment.ptr<std::byte>(allocation.offset) != allocation.bytes)
+            return Result::Error;
+        if (constSegment.ptr<std::byte>(allocation.offset + allocation.size - 1) != allocation.bytes + allocation.size - 1)
+            return Result::Error;
+        if (segment.findRef(allocation.bytes + allocation.size / 2) != allocation.offset + allocation.size / 2)
+            return Result::Error;
+        if (allocation.bytes[0] != std::byte{0x31} || allocation.bytes[allocation.size - 1] != std::byte{0x32})
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

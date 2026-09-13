@@ -55,13 +55,11 @@ Result NativeRDataCollector::collectPendingAllocations()
     std::vector<DataSegmentRelocation> allocationRelocations;
     while (!pending_.empty())
     {
-        PendingRDataAllocation pending = std::move(pending_.back());
+        const PendingRDataAllocation pending = pending_.back();
         pending_.pop_back();
 
-        const DataSegment&    segment = builder_->compiler().cstMgr().shardDataSegment(pending.shardIndex);
-        DataSegmentAllocation allocation;
-        if (!segment.findAllocation(allocation, pending.sourceOffset) || allocation.offset != pending.sourceOffset)
-            return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, pending.ownerName);
+        const DataSegment&           segment    = builder_->compiler().cstMgr().shardDataSegment(pending.shardIndex);
+        const DataSegmentAllocation& allocation = pending.allocation->source;
 
         segment.copyRelocations(allocationRelocations, allocation.offset, allocation.size);
         for (const DataSegmentRelocation& relocation : allocationRelocations)
@@ -70,7 +68,7 @@ Result NativeRDataCollector::collectPendingAllocations()
                 continue;
 
             const uint32_t targetShardIndex = relocation.targetShardIndex == INVALID_REF ? pending.shardIndex : relocation.targetShardIndex;
-            SWC_RESULT(enqueueSourceOffset(pending.ownerName, targetShardIndex, relocation.targetOffset));
+            SWC_RESULT(enqueueSourceOffset(pending.allocation->ownerName, targetShardIndex, relocation.targetOffset));
         }
     }
 
@@ -105,43 +103,35 @@ Result NativeRDataCollector::enqueueSourceOffset(const Utf8& ownerName, const ui
     if (!segment.findAllocation(allocation, sourceOffset))
         return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
 
-    if (!seen_[shardIndex].insert(allocation.offset).second)
+    const auto [it, inserted] = allocations_[shardIndex].try_emplace(allocation.offset);
+    if (!inserted)
         return Result::Continue;
 
-    reachableOffsets_[shardIndex].push_back(allocation.offset);
-    owners_[shardIndex].emplace(allocation.offset, ownerName);
-    PendingRDataAllocation entry;
-    entry.shardIndex   = shardIndex;
-    entry.sourceOffset = allocation.offset;
-    entry.ownerName    = ownerName;
-    pending_.push_back(entry);
+    // Allocation extents are immutable even while startup appends to the segment.
+    // Relocations are deliberately read later, when the pending allocation is visited.
+    ReachableRDataAllocation& reachable = it->second;
+    reachable.source                    = allocation;
+    reachable.ownerName                 = ownerName;
+    reachableAllocations_[shardIndex].push_back(&reachable);
+    pending_.push_back({shardIndex, &reachable});
     return Result::Continue;
 }
 
 Result NativeRDataCollector::emitReachableAllocations()
 {
-    std::array<std::vector<DataSegmentAllocation>, ConstantManager::SHARD_COUNT> emittedAllocations;
-
     for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
     {
-        auto& reachable = reachableOffsets_[shardIndex];
-        std::ranges::sort(reachable);
+        auto& reachable = reachableAllocations_[shardIndex];
+        std::ranges::sort(reachable, {}, [](const ReachableRDataAllocation* allocation) { return allocation->source.offset; });
 
         const DataSegment& segment  = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
         auto&              mappings = builder_->rdataAllocationMap[shardIndex];
         mappings.clear();
-        emittedAllocations[shardIndex].reserve(reachable.size());
         mappings.reserve(reachable.size());
 
-        for (const uint32_t sourceOffset : reachable)
+        for (const ReachableRDataAllocation* entry : reachable)
         {
-            DataSegmentAllocation allocation;
-            if (!segment.findAllocation(allocation, sourceOffset) || allocation.offset != sourceOffset)
-            {
-                const auto ownerIt   = owners_[shardIndex].find(sourceOffset);
-                const Utf8 ownerName = ownerIt != owners_[shardIndex].end() ? ownerIt->second : Utf8("<rdata>");
-                return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
-            }
+            const DataSegmentAllocation& allocation = entry->source;
 
             const uint32_t emittedOffset = Math::alignUpU32(static_cast<uint32_t>(builder_->mergedRData.bytes.size()), std::max(allocation.align, 1u));
             if (builder_->mergedRData.bytes.size() < emittedOffset)
@@ -155,7 +145,6 @@ Result NativeRDataCollector::emitReachableAllocations()
             SWC_ASSERT(sourceBytes != nullptr);
             std::memcpy(builder_->mergedRData.bytes.data() + insertOffset, sourceBytes, allocation.size);
 
-            emittedAllocations[shardIndex].push_back(allocation);
             NativeRDataAllocationMapEntry mapEntry;
             mapEntry.shardIndex    = shardIndex;
             mapEntry.sourceOffset  = allocation.offset;
@@ -170,14 +159,13 @@ Result NativeRDataCollector::emitReachableAllocations()
     std::vector<DataSegmentRelocation> allocationRelocations;
     for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
     {
-        const DataSegment& segment          = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
-        const auto&        allocations      = emittedAllocations[shardIndex];
-        const auto&        allocationOwners = owners_[shardIndex];
+        const DataSegment& segment     = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
+        const auto&        allocations = reachableAllocations_[shardIndex];
 
         for (size_t i = 0; i < allocations.size(); ++i)
         {
-            const DataSegmentAllocation&        allocation = allocations[i];
-            const NativeRDataAllocationMapEntry mapping    = builder_->rdataAllocationMap[shardIndex][i];
+            const DataSegmentAllocation&         allocation = allocations[i]->source;
+            const NativeRDataAllocationMapEntry& mapping    = builder_->rdataAllocationMap[shardIndex][i];
 
             segment.copyRelocations(allocationRelocations, allocation.offset, allocation.size);
             for (const DataSegmentRelocation& relocation : allocationRelocations)
@@ -190,11 +178,7 @@ Result NativeRDataCollector::emitReachableAllocations()
                     const uint32_t targetShardIndex = relocation.targetShardIndex == INVALID_REF ? shardIndex : relocation.targetShardIndex;
                     uint32_t       targetOffset     = 0;
                     if (!builder_->tryMapRDataSourceOffset(targetOffset, targetShardIndex, relocation.targetOffset))
-                    {
-                        const auto ownerIt   = allocationOwners.find(allocation.offset);
-                        const Utf8 ownerName = ownerIt != allocationOwners.end() ? ownerIt->second : Utf8("<rdata>");
-                        return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
-                    }
+                        return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, allocations[i]->ownerName);
 
                     record.symbolName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL);
                     record.addend     = targetOffset;

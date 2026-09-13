@@ -14,6 +14,8 @@ class NativeRDataCollector
 {
 public:
     explicit NativeRDataCollector(NativeBackendBuilder& builder);
+    NativeRDataCollector(const NativeRDataCollector&)            = delete;
+    NativeRDataCollector& operator=(const NativeRDataCollector&) = delete;
 
     Result collectAndEmit();
     Result collectStartupRoots();
@@ -21,11 +23,16 @@ public:
     Result emitCollectedRoots();
 
 private:
+    struct ReachableRDataAllocation
+    {
+        DataSegmentAllocation source;
+        Utf8                  ownerName;
+    };
+
     struct PendingRDataAllocation
     {
-        uint32_t shardIndex   = 0;
-        uint32_t sourceOffset = 0;
-        Utf8     ownerName;
+        uint32_t                        shardIndex = 0;
+        const ReachableRDataAllocation* allocation = nullptr;
     };
 
     Result collectPendingAllocations();
@@ -34,11 +41,11 @@ private:
     Result enqueueSourceOffset(const Utf8& ownerName, uint32_t shardIndex, uint32_t sourceOffset);
     Result emitReachableAllocations();
 
-    NativeBackendBuilder*                                                        builder_ = nullptr;
-    std::array<std::vector<uint32_t>, ConstantManager::SHARD_COUNT>              reachableOffsets_;
-    std::array<std::unordered_set<uint32_t>, ConstantManager::SHARD_COUNT>       seen_;
-    std::array<std::unordered_map<uint32_t, Utf8>, ConstantManager::SHARD_COUNT> owners_;
-    std::vector<PendingRDataAllocation>                                          pending_;
+    NativeBackendBuilder* builder_ = nullptr;
+    // Map values remain stable across rehashes; work lists borrow them until emission ends.
+    std::array<std::unordered_map<uint32_t, ReachableRDataAllocation>, ConstantManager::SHARD_COUNT> allocations_;
+    std::array<std::vector<const ReachableRDataAllocation*>, ConstantManager::SHARD_COUNT>           reachableAllocations_;
+    std::vector<PendingRDataAllocation>                                                              pending_;
 };
 
 SWC_END_NAMESPACE();

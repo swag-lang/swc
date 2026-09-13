@@ -107,21 +107,8 @@ namespace
         }
     }
 
-    void recordDeclaredSymbols(CodeGen& codeGen, const AstVisit& walker)
+    void recordDeclaredSymbols(CodeGen& codeGen, const AstVisit& walker, const AstNodeRef blockRef)
     {
-        AstNodeRef blockRef = AstNodeRef::invalid();
-        for (size_t up = 0;; ++up)
-        {
-            const AstNode* parent = walker.parentNode(up);
-            if (!parent)
-                break;
-            if (isPlainBlock(parent->id()))
-            {
-                blockRef = walker.parentNodeRef(up);
-                break;
-            }
-        }
-
         if (blockRef.isInvalid())
             return;
 
@@ -161,7 +148,7 @@ namespace
             info.escaped      = true;
             info.deferEscaped = true;
         }
-        else if (useEscapes(codeGen, walker))
+        else if (!info.escaped && useEscapes(codeGen, walker))
             info.escaped = true;
     }
 
@@ -178,16 +165,25 @@ namespace
         if (rootRef.isInvalid())
             return;
 
-        AstVisit walker;
-        int      escapeDepth = 0;
+        AstVisit                walker;
+        SmallVector<AstNodeRef> blockRefs;
+        int                     escapeDepth = 0;
         walker.setMode(AstVisitMode::ResolveBeforeCallbacks);
         walker.setNodeRefResolver([&codeGen](const AstNodeRef nodeRef) { return codeGen.sema().viewZero(nodeRef).nodeRef(); });
-        walker.setPreNodeVisitor([&codeGen, &walker, &escapeDepth](const AstNode& node) {
+        walker.setPreNodeVisitor([&codeGen, &walker, &blockRefs, &escapeDepth](const AstNode& node) {
             if (isEscapeContext(node.id()))
                 escapeDepth++;
 
             switch (node.id())
             {
+                case AstNodeId::FunctionBody:
+                case AstNodeId::EmbeddedBlock:
+                case AstNodeId::TopLevelBlock:
+                    // Declarations share this lexical owner; do not rediscover it
+                    // through the ancestor chain for every local in the block.
+                    blockRefs.push_back(walker.currentNodeRef());
+                    break;
+
                 case AstNodeId::Identifier:
                     recordUse(codeGen, walker, escapeDepth);
                     break;
@@ -197,7 +193,7 @@ namespace
                 case AstNodeId::VarDeclDestructuring:
                 case AstNodeId::IfVarDecl:
                 case AstNodeId::WithVarDecl:
-                    recordDeclaredSymbols(codeGen, walker);
+                    recordDeclaredSymbols(codeGen, walker, blockRefs.empty() ? AstNodeRef::invalid() : blockRefs.back());
                     break;
 
                 default:
@@ -206,9 +202,11 @@ namespace
 
             return Result::Continue;
         });
-        walker.setPostNodeVisitor([&escapeDepth](const AstNode& node) {
+        walker.setPostNodeVisitor([&blockRefs, &escapeDepth](const AstNode& node) {
             if (isEscapeContext(node.id()))
                 escapeDepth--;
+            if (isPlainBlock(node.id()))
+                blockRefs.pop_back();
             return Result::Continue;
         });
 

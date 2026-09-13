@@ -116,8 +116,7 @@ void MatchContext::collectCallFallbackSymbols(SmallVector<const Symbol*>& outSym
         if (!symbol || !symbol->acceptOverloads())
             continue;
 
-        if (std::ranges::find(outSymbols, symbol) == outSymbols.end())
-            outSymbols.push_back(symbol);
+        outSymbols.push_back(symbol);
     }
 }
 
@@ -131,8 +130,7 @@ void MatchContext::collectCallableSymbols(SmallVector<const Symbol*>& outSymbols
         if (!symbol || !symbol->isFunction())
             continue;
 
-        if (std::ranges::find(outSymbols, symbol) == outSymbols.end())
-            outSymbols.push_back(symbol);
+        outSymbols.push_back(symbol);
     }
 }
 

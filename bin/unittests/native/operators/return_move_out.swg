@@ -129,6 +129,16 @@ func makeTrackedDeferred()->Tracked
     return result
 }
 
+#[Swag.NoInline]
+func makeTrackedEscapedThenDeferred()->Tracked
+{
+    var result: Tracked
+    let pointer = &result
+    pointer.value = g_seed
+    defer g_sink = result.value
+    return result
+}
+
 func makeSmallTracked()->SmallTracked
 {
     var result: SmallTracked
@@ -310,4 +320,18 @@ func readTemplateInline()->Tracked
         g_sink += x.id
     }
     Swag.assert(DropCount == 8)
+}
+
+// A known address escape must not hide a later deferred observer of the local.
+#test
+{
+    resetHooks(29)
+    g_sink = 0
+    {
+        var value = makeTrackedEscapedThenDeferred()
+        Swag.assert(value.value == 29)
+    }
+    Swag.assert(g_sink == 29)
+    Swag.assert(PostCopyCount == 1)
+    Swag.assert(DropCount == 2)
 }

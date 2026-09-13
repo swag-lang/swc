@@ -1261,71 +1261,83 @@ namespace
         return false;
     }
 
-    bool inlineBindingHasNonCountOfUse(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef, AstNodeRef parentRef = AstNodeRef::invalid())
+    struct InlineBindingUse
+    {
+        uint8_t count        = 0;
+        bool    nonCountOf   = false;
+        bool    address      = false;
+        bool    mutableUse   = false;
+        bool    indexOrFor   = false;
+        bool    pointerLevel = false;
+    };
+
+    using InlineBindingUses = std::unordered_map<IdentifierRef, InlineBindingUse>;
+
+    struct InlineBindingUseContext
+    {
+        const AstNode* parent     = nullptr;
+        bool           mutableUse = false;
+        bool           foreachUse = false;
+    };
+
+    void collectInlineBindingUses(Sema& sema, InlineBindingUses& outUses, const Ast& sourceAst, AstNodeRef nodeRef, const InlineBindingUseContext& context = {})
     {
         const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
-        if (!nodeAst || !idRef.isValid())
-            return false;
+        if (!nodeAst)
+            return;
 
         const AstNode& node = nodeAst->node(nodeRef);
-        if (node.is(AstNodeId::Identifier) &&
-            sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef)
+        if (node.is(AstNodeId::Identifier))
         {
-            const Ast* parentAst = resolveInlineAnalysisNodeAst(sema, sourceAst, parentRef);
-            if (!parentAst)
-                return true;
+            const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), node.codeRef());
+            const auto          it    = outUses.find(idRef);
+            if (it != outUses.end())
+            {
+                InlineBindingUse& use = it->second;
+                // Only the distinction between one and repeated use affects materialization.
+                if (use.count < 2)
+                    ++use.count;
+                use.mutableUse |= context.mutableUse;
+                use.indexOrFor |= context.foreachUse;
 
-            const AstNode& parentNode = parentAst->node(parentRef);
-            if (parentNode.is(AstNodeId::CountOfExpr))
-                return false;
-            if (const auto* member = parentNode.safeCast<AstMemberAccessExpr>())
-                return member->nodeLeftRef != nodeRef || member->projectionId != TokenId::IntrinsicCountOf;
-            return true;
+                bool countOf = false;
+                if (context.parent)
+                {
+                    const AstNode& parent     = *context.parent;
+                    const auto*    member     = parent.safeCast<AstMemberAccessExpr>();
+                    const bool     memberBase = member && member->nodeLeftRef == nodeRef;
+                    countOf                   = parent.is(AstNodeId::CountOfExpr) || (memberBase && member->projectionId == TokenId::IntrinsicCountOf);
+                    use.address |= parent.is(AstNodeId::UnaryExpr) && parent.codeRef().isValid() && sema.token(parent.codeRef()).id == TokenId::SymAmpersand;
+                    use.indexOrFor |= parent.is(AstNodeId::IndexExpr);
+                    use.pointerLevel |= !memberBase;
+                }
+                use.nonCountOf |= !countOf;
+            }
         }
+
+        const auto* assignStmt  = node.safeCast<AstAssignStmt>();
+        const auto* foreachStmt = node.safeCast<AstForeachStmt>();
+        const auto* unary       = node.safeCast<AstUnaryExpr>();
+        const bool takesAddress = unary && sema.token(node.codeRef()).id == TokenId::SymAmpersand;
 
         SmallVector<AstNodeRef> children;
         collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
         for (const AstNodeRef childRef : children)
         {
-            if (inlineBindingHasNonCountOfUse(sema, sourceAst, childRef, idRef, nodeRef))
-                return true;
+            // Assignment and address-taking apply to the whole operand subtree; an
+            // index expression in that subtree can itself refer to another parameter.
+            InlineBindingUseContext childContext;
+            childContext.parent     = &node;
+            childContext.mutableUse = context.mutableUse || (assignStmt && assignStmt->nodeLeftRef == childRef) || (takesAddress && unary->nodeExprRef == childRef);
+            childContext.foreachUse = context.foreachUse || (foreachStmt && foreachStmt->nodeExprRef == childRef);
+            collectInlineBindingUses(sema, outUses, sourceAst, childRef, childContext);
         }
-
-        return false;
     }
 
-    // A pack the body only measures with '.count' answers from the binding's type and
-    // needs no home; any other use consumes the pack itself. The body scan is the costly
-    // part, so it runs after the cheap tests.
-    bool forceMaterializeInlineVariadicBinding(Sema& sema, const Ast& sourceAst, AstNodeRef bodyRef, const SemaClone::ParamBinding& binding, const TypeInfo& paramType)
+    // Count-only packs answer from their type and need no runtime home.
+    bool forceMaterializeInlineVariadicBinding(const SemaClone::ParamBinding& binding, const TypeInfo& paramType, const InlineBindingUse& use)
     {
-        if (!binding.forceMaterialize || !binding.exprRef.isValid() || !binding.typeRef.isValid())
-            return false;
-        if (!paramType.isAnyVariadic())
-            return false;
-        return inlineBindingHasNonCountOfUse(sema, sourceAst, bodyRef, binding.idRef);
-    }
-
-    uint32_t inlineBindingUseCount(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef)
-    {
-        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
-        if (!nodeAst || !idRef.isValid())
-            return 0;
-
-        uint32_t       count = 0;
-        const AstNode& node  = nodeAst->node(nodeRef);
-        if (node.is(AstNodeId::Identifier) &&
-            sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef)
-        {
-            count += 1;
-        }
-
-        SmallVector<AstNodeRef> children;
-        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
-        for (const AstNodeRef childRef : children)
-            count += inlineBindingUseCount(sema, sourceAst, childRef, idRef);
-
-        return count;
+        return binding.forceMaterialize && binding.exprRef.isValid() && binding.typeRef.isValid() && paramType.isAnyVariadic() && use.nonCountOf;
     }
 
     // Resolves through transparent cast/paren wrappers to decide whether an expression is
@@ -1360,7 +1372,7 @@ namespace
         return false;
     }
 
-    bool inlineBindingNeedsRepeatedRValueMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, const SemaClone::ParamBinding& binding)
+    bool inlineBindingNeedsRepeatedRValueMaterialization(Sema& sema, const SemaClone::ParamBinding& binding, const InlineBindingUse& use)
     {
         if (!binding.exprRef.isValid() || !binding.idRef.isValid())
             return false;
@@ -1383,7 +1395,7 @@ namespace
                 return false;
         }
 
-        return inlineBindingUseCount(sema, sourceAst, nodeRef, binding.idRef) > 1;
+        return use.count > 1;
     }
 
     bool inlineBindingExprIsDirectStableLValue(Sema& sema, AstNodeRef exprRef)
@@ -1438,7 +1450,7 @@ namespace
         return false;
     }
 
-    bool inlineBindingNeedsRepeatedLValueMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, const SemaClone::ParamBinding& binding)
+    bool inlineBindingNeedsRepeatedLValueMaterialization(Sema& sema, const SemaClone::ParamBinding& binding, const InlineBindingUse& use)
     {
         if (!binding.exprRef.isValid() || !binding.idRef.isValid())
             return false;
@@ -1446,126 +1458,7 @@ namespace
             return false;
         if (inlineBindingExprIsDirectStableLValue(sema, binding.exprRef))
             return false;
-        return inlineBindingUseCount(sema, sourceAst, nodeRef, binding.idRef) > 1;
-    }
-
-    bool sourceSubtreeUsesIdentifier(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef)
-    {
-        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
-        if (!nodeAst || !idRef.isValid())
-            return false;
-
-        const AstNode& node = nodeAst->node(nodeRef);
-        if (node.is(AstNodeId::Identifier) &&
-            sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef)
-        {
-            return true;
-        }
-
-        SmallVector<AstNodeRef> children;
-        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
-        for (const AstNodeRef childRef : children)
-        {
-            if (sourceSubtreeUsesIdentifier(sema, sourceAst, childRef, idRef))
-                return true;
-        }
-
-        return false;
-    }
-
-    bool inlineBindingNeedsMutableMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef)
-    {
-        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
-        if (!nodeAst || !idRef.isValid())
-            return false;
-
-        const AstNode& node = nodeAst->node(nodeRef);
-        if (const auto* assignStmt = node.safeCast<AstAssignStmt>())
-        {
-            if (sourceSubtreeUsesIdentifier(sema, sourceAst, assignStmt->nodeLeftRef, idRef))
-                return true;
-        }
-        if (const auto* unary = node.safeCast<AstUnaryExpr>();
-            unary && sema.token(node.codeRef()).id == TokenId::SymAmpersand &&
-            sourceSubtreeUsesIdentifier(sema, sourceAst, unary->nodeExprRef, idRef))
-        {
-            // Taking the address of a member or indexed element must preserve the
-            // parameter's mutable storage just as taking its own address does.
-            return true;
-        }
-
-        SmallVector<AstNodeRef> children;
-        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
-        for (const AstNodeRef childRef : children)
-        {
-            if (inlineBindingNeedsMutableMaterialization(sema, sourceAst, childRef, idRef))
-                return true;
-        }
-
-        return false;
-    }
-
-    bool inlineBindingNeedsIndexOrForeachMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef, AstNodeRef parentRef = AstNodeRef::invalid())
-    {
-        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
-        if (!nodeAst || !idRef.isValid())
-            return false;
-
-        const AstNode& node = nodeAst->node(nodeRef);
-        if (const auto* foreachStmt = node.safeCast<AstForeachStmt>())
-        {
-            if (sourceSubtreeUsesIdentifier(sema, sourceAst, foreachStmt->nodeExprRef, idRef))
-                return true;
-        }
-
-        if (node.is(AstNodeId::Identifier) &&
-            sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef &&
-            parentRef.isValid())
-        {
-            const Ast* parentAst = resolveInlineAnalysisNodeAst(sema, sourceAst, parentRef);
-            return parentAst && parentAst->node(parentRef).is(AstNodeId::IndexExpr);
-        }
-
-        SmallVector<AstNodeRef> children;
-        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
-        for (const AstNodeRef childRef : children)
-        {
-            if (inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, childRef, idRef, nodeRef))
-                return true;
-        }
-
-        return false;
-    }
-
-    bool inlineBindingNeedsAddressMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef, AstNodeRef parentRef = AstNodeRef::invalid())
-    {
-        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
-        if (!nodeAst || !idRef.isValid())
-            return false;
-
-        const AstNode& node = nodeAst->node(nodeRef);
-        if (node.is(AstNodeId::Identifier) &&
-            sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef &&
-            parentRef.isValid())
-        {
-            const Ast* parentAst = resolveInlineAnalysisNodeAst(sema, sourceAst, parentRef);
-            if (parentAst)
-            {
-                const AstNode& parentNode = parentAst->node(parentRef);
-                if (parentNode.is(AstNodeId::UnaryExpr) && parentNode.codeRef().isValid())
-                    return sema.token(parentNode.codeRef()).id == TokenId::SymAmpersand;
-            }
-        }
-
-        SmallVector<AstNodeRef> children;
-        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
-        for (const AstNodeRef childRef : children)
-        {
-            if (inlineBindingNeedsAddressMaterialization(sema, sourceAst, childRef, idRef, nodeRef))
-                return true;
-        }
-
-        return false;
+        return use.count > 1;
     }
 
     // A by-address parameter bound to an expression that types as its POINTEE: the call
@@ -1581,44 +1474,6 @@ namespace
         const TypeRef   resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
         const TypeInfo& resolvedSourceType     = sema.typeMgr().get(resolvedSourceTypeRef);
         return !resolvedSourceType.isPointerOrReference() && !resolvedSourceType.isNull();
-    }
-
-    // Whether the body consumes the binding's POINTER LEVEL itself: a whole-value deref
-    // ('id[]', 'id[as T]'), the identifier handed to a call or an intrinsic, a return, a
-    // comparison. Member and method access re-apply the implicit address at their own
-    // site, so a use as a member-access base stays safe under raw pointee substitution;
-    // every other use consumes the pointer, and the binding must home the address.
-    bool inlineBindingNeedsPointerLevelMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef, AstNodeRef parentRef = AstNodeRef::invalid())
-    {
-        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
-        if (!nodeAst || !idRef.isValid())
-            return false;
-
-        const AstNode& node = nodeAst->node(nodeRef);
-        if (node.is(AstNodeId::Identifier) &&
-            sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef &&
-            parentRef.isValid())
-        {
-            const Ast* parentAst = resolveInlineAnalysisNodeAst(sema, sourceAst, parentRef);
-            if (parentAst)
-            {
-                const AstNode& parentNode = parentAst->node(parentRef);
-                const bool     memberBase = parentNode.is(AstNodeId::MemberAccessExpr) &&
-                                        parentNode.cast<AstMemberAccessExpr>().nodeLeftRef == nodeRef;
-                if (!memberBase)
-                    return true;
-            }
-        }
-
-        SmallVector<AstNodeRef> children;
-        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
-        for (const AstNodeRef childRef : children)
-        {
-            if (inlineBindingNeedsPointerLevelMaterialization(sema, sourceAst, childRef, idRef, nodeRef))
-                return true;
-        }
-
-        return false;
     }
 
     // A subtree whose resolved typing carries a flow proof: a variable or member access
@@ -1868,11 +1723,12 @@ namespace
     // The callee side of an expansion: what every binding is classified against.
     struct InlineBindingContext
     {
-        const SymbolFunction*  fn        = nullptr;
-        const Ast*             sourceAst = nullptr;
-        const AstFunctionDecl* decl      = nullptr;
-        InlineBodyIdentifiers  identifiers;
-        bool                   isOrdinaryInline = false;
+        const SymbolFunction*           fn        = nullptr;
+        const Ast*                      sourceAst = nullptr;
+        const AstFunctionDecl*          decl      = nullptr;
+        InlineBodyIdentifiers           identifiers;
+        std::optional<InlineBindingUses> uses;
+        bool                            isOrdinaryInline = false;
     };
 
     void collectInlineBodyIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef bodyRef, InlineBodyIdentifiers& outIdentifiers)
@@ -1921,18 +1777,19 @@ namespace
 
     InlineBindingMaterialization classifyInlineBinding(Sema& sema, const InlineBindingContext& context, const SemaClone::ParamBinding& binding, const SymbolVariable& param)
     {
-        const Ast&       sourceAst  = *context.sourceAst;
-        const AstNodeRef bodyRef    = context.decl->nodeBodyRef;
-        const TypeInfo&  paramType  = param.type(sema.ctx());
-        const bool       isCaptured = inlineBindingIsCaptured(binding.idRef, context.identifiers.captured);
+        const TypeInfo& paramType  = param.type(sema.ctx());
+        const bool      isCaptured = inlineBindingIsCaptured(binding.idRef, context.identifiers.captured);
         SWC_ASSERT(!paramType.isCodeBlock());
+
+        const auto             useIt = context.uses->find(binding.idRef);
+        const InlineBindingUse use   = useIt != context.uses->end() ? useIt->second : InlineBindingUse{};
 
         InlineBindingMaterialization mat;
         mat.capturedByRef = inlineBindingIsCaptured(binding.idRef, context.identifiers.capturedByRef);
         // A non-null pointer parameter binds by address exactly like a reference did:
         // its binding aliases the caller's storage and must not be re-homed.
         mat.bindsByAddress = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
-        mat.hasAddressUse  = inlineBindingNeedsAddressMaterialization(sema, sourceAst, bodyRef, binding.idRef);
+        mat.hasAddressUse  = use.address;
         // A non-null pointer parameter CAN bind a flow-narrowed nullable argument. A
         // by-address binding is pinned in place with a typed cast instead of being
         // re-homed into a local.
@@ -1972,7 +1829,7 @@ namespace
         const bool forReceiverHome = mat.homesAddress && !isCaptured && !sema.isLValue(binding.exprRef) && !sema.viewConstant(binding.exprRef).hasConstant();
 
         mat.forRuntimeSafety = !isCaptured && !context.fn->attributes().runtimeSafetyOverrides.empty() && !mat.bindsByAddress && !paramType.isAnyVariadic();
-        mat.forVariadic      = !isCaptured && forceMaterializeInlineVariadicBinding(sema, sourceAst, bodyRef, binding, paramType);
+        mat.forVariadic      = !isCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, use);
         mat.forAddress       = !isCaptured && mat.hasAddressUse && (!mat.bindsByAddress || !sema.isLValue(binding.exprRef));
         mat.forNarrowFact    = mat.narrowDependent && !mat.bindsByAddress;
         mat.forContextLambda = isInlineContextualLambdaArg(sema, binding.exprRef);
@@ -1981,8 +1838,6 @@ namespace
         // stands; every other such use needs a home.
         const bool canBindReferenceDirectly = mat.bindsByAddress && inlineBindingExprIsDirectStableLValue(sema, binding.exprRef);
 
-        // The reasons below feed nothing but this disjunction, so they scan the body only
-        // until one of them answers.
         // Generated source can read, repeat, or modify a parameter without naming it
         // in the template AST. Give ordinary inline parameters real local homes so
         // these later name lookups never reach the callee's original ABI parameters.
@@ -1995,14 +1850,14 @@ namespace
                             mat.forNarrowFact ||
                             mat.forContextLambda ||
                             (!isCaptured && binding.forceMaterialize && !paramType.isAnyVariadic()) ||
-                            (!isCaptured && !canBindReferenceDirectly && inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, bodyRef, binding.idRef)) ||
-                            (!isCaptured && inlineBindingNeedsRepeatedRValueMaterialization(sema, sourceAst, bodyRef, binding)) ||
-                            (!isCaptured && inlineBindingNeedsRepeatedLValueMaterialization(sema, sourceAst, bodyRef, binding)) ||
-                            (!isCaptured && bindsPointeeByAddress && inlineBindingNeedsPointerLevelMaterialization(sema, sourceAst, bodyRef, binding.idRef));
+                            (!isCaptured && !canBindReferenceDirectly && use.indexOrFor) ||
+                            (!isCaptured && inlineBindingNeedsRepeatedRValueMaterialization(sema, binding, use)) ||
+                            (!isCaptured && inlineBindingNeedsRepeatedLValueMaterialization(sema, binding, use)) ||
+                            (!isCaptured && bindsPointeeByAddress && use.pointerLevel);
 
         mat.required = forced || isCaptured || inlineBindingNeedsMaterialization(sema, binding.exprRef, context.identifiers.locals);
         if (mat.required)
-            mat.needsMutableHome = forGeneratedCode || inlineBindingNeedsMutableMaterialization(sema, sourceAst, bodyRef, binding.idRef);
+            mat.needsMutableHome = forGeneratedCode || use.mutableUse;
         return mat;
     }
 
@@ -2093,7 +1948,7 @@ namespace
         if (ioBindings.empty())
             return Result::Continue;
 
-        InlineBindingContext context{&fn, &sourceAst, &decl, {}, isOrdinaryInline};
+        InlineBindingContext context{&fn, &sourceAst, &decl, {}, {}, isOrdinaryInline};
         collectInlineBodyIdentifiers(sema, sourceAst, decl.nodeBodyRef, context.identifiers);
 
         SmallVector<SemaClone::ParamBinding> remainingBindings;
@@ -2118,6 +1973,20 @@ namespace
             {
                 remainingBindings.push_back(binding);
                 continue;
+            }
+
+            // Code-only expansions need no usage scan. Before the first argument home,
+            // gather the body's syntax facts once for all bindings that may need one.
+            if (!context.uses)
+            {
+                context.uses.emplace();
+                context.uses->reserve(ioBindings.size());
+                for (const SemaClone::ParamBinding& candidate : ioBindings)
+                {
+                    if (candidate.idRef.isValid() && candidate.exprRef.isValid())
+                        context.uses->try_emplace(candidate.idRef);
+                }
+                collectInlineBindingUses(sema, *context.uses, sourceAst, decl.nodeBodyRef);
             }
 
             const InlineBindingMaterialization mat = classifyInlineBinding(sema, context, binding, *param);

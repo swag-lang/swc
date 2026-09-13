@@ -10,6 +10,7 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeObjFileWriter.h"
+#include "Backend/Native/NativeRDataCollector.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -513,6 +514,67 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataAllowsInteriorConstantAddresses)
         return Result::Error;
     if (fixture.nativeBuilder->mergedRData.relocations.size() != 1)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(NativeArtifact_RDataKeepsGrowingCyclicDependencies)
+{
+    const NativeArtifactTestFixture fixture(ctx.global(), makeNativeArtifactCmdLine());
+
+    constexpr uint32_t childCount        = 128;
+    constexpr uint32_t pointerSize       = sizeof(uint64_t);
+    DataSegment&       rootSegment       = fixture.compiler->cstMgr().shardDataSegment(0);
+    const auto [rootOffset, rootStorage] = rootSegment.reserveSpan<uint64_t>(childCount);
+
+    ConstantValue value = ConstantValue::makeValuePointer(*fixture.compilerCtx, fixture.compiler->typeMgr().typeU8(), reinterpret_cast<uint64_t>(rootStorage), TypeInfoFlagsE::Const);
+    value.setDataSegmentRef({.shardIndex = 0, .offset = rootOffset});
+    const ConstantRef rootRef = fixture.compiler->cstMgr().addConstant(*fixture.compilerCtx, value);
+    MachineCode       code    = makeConstantAddressCode(rootRef, rootStorage);
+    addNativeFunctionInfo(*fixture.nativeBuilder, *fixture.compilerCtx, code, "rdata_owner_of_growing_cyclic_dependencies");
+
+    NativeRDataCollector collector(*fixture.nativeBuilder);
+    SWC_RESULT(collector.collectFunctionRoots());
+
+    // Startup can append allocations and relocations after function roots were collected.
+    // A wide cyclic graph also grows the collector's maps while their entries are pending.
+    std::array<DataSegmentRef, childCount> children;
+    for (uint32_t i = 0; i < childCount; ++i)
+    {
+        const uint32_t shardIndex    = i % 2;
+        DataSegment&   segment       = fixture.compiler->cstMgr().shardDataSegment(shardIndex);
+        const auto [offset, storage] = segment.reserveSpan<uint64_t>(2);
+        children[i]                  = {.shardIndex = shardIndex, .offset = offset};
+        storage[0]                   = reinterpret_cast<uint64_t>(rootStorage + 1);
+        storage[1]                   = i;
+        segment.addRelocation(offset, DataSegmentRef{.shardIndex = 0, .offset = rootOffset + pointerSize});
+        rootStorage[i] = reinterpret_cast<uint64_t>(storage + 1);
+        rootSegment.addRelocation(rootOffset + i * pointerSize, DataSegmentRef{.shardIndex = shardIndex, .offset = offset + pointerSize});
+    }
+
+    SWC_RESULT(collector.emitCollectedRoots());
+
+    if (fixture.nativeBuilder->rdataAllocations.size() != childCount + 1 || fixture.nativeBuilder->mergedRData.relocations.size() != childCount * 2)
+        return Result::Error;
+
+    uint32_t emittedRootOffset = 0;
+    if (!fixture.nativeBuilder->tryMapRDataSourceOffset(emittedRootOffset, 0, rootOffset))
+        return Result::Error;
+
+    const auto& relocations = fixture.nativeBuilder->mergedRData.relocations;
+    if (!std::ranges::is_sorted(relocations, {}, &NativeSectionRelocation::offset))
+        return Result::Error;
+    for (uint32_t i = 0; i < childCount; ++i)
+    {
+        uint32_t emittedChildOffset = 0;
+        if (!fixture.nativeBuilder->tryMapRDataSourceOffset(emittedChildOffset, children[i].shardIndex, children[i].offset))
+            return Result::Error;
+        const auto rootRelocation  = std::ranges::find(relocations, emittedRootOffset + i * pointerSize, &NativeSectionRelocation::offset);
+        const auto childRelocation = std::ranges::find(relocations, emittedChildOffset, &NativeSectionRelocation::offset);
+        if (rootRelocation == relocations.end() || rootRelocation->addend != emittedChildOffset + pointerSize)
+            return Result::Error;
+        if (childRelocation == relocations.end() || childRelocation->addend != emittedRootOffset + pointerSize)
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

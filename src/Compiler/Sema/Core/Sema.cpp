@@ -61,11 +61,11 @@ namespace
         if (!oldScope)
             return nullptr;
 
-        for (size_t i = 0; i < parentScopes.size(); ++i)
-        {
-            if (parentScopes[i].get() == oldScope)
-                return childScopes[i].get();
-        }
+        // Owned scopes occupy their physical depth in the active stack. An inline
+        // caller can have the same depth, so ownership still needs pointer identity.
+        const size_t index = oldScope->depth() - 1;
+        if (index < parentScopes.size() && parentScopes[index].get() == oldScope)
+            return childScopes[index].get();
 
         return nullptr;
     }
@@ -230,6 +230,7 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
     setVisitors();
     compilerAstExpansions_ = parent.compilerAstExpansions_;
 
+    scopes_.reserve(parent.scopes_.size());
     for (const auto& scope : parent.scopes_)
     {
         scopes_.emplace_back(std::make_unique<SemaScope>(*scope));
@@ -414,10 +415,7 @@ void Sema::setVariableScopeDepth(const SymbolVariable& symVar, uint32_t depth)
 
 uint32_t Sema::currentScopeDepth() const
 {
-    uint32_t depth = 0;
-    for (const SemaScope* scope = curScopePtr(); scope; scope = scope->parent())
-        depth++;
-    return depth;
+    return curScope_ ? curScope_->depth() : 0;
 }
 
 bool Sema::localStorageOutlives(const SymbolVariable& destination, const SymbolVariable& source) const
@@ -756,14 +754,9 @@ SemaScope* Sema::pushScope(SemaScopeFlags flags)
 
     if (const SemaScope* lookupScope = frame().lookupScope())
     {
-        for (const SemaScope* it = parent; it; it = it->parent())
-        {
-            if (it != lookupScope)
-                continue;
-
+        const size_t index = lookupScope->depth() - 1;
+        if (index + 1 < scopes_.size() && scopes_[index].get() == lookupScope)
             frame().setLookupScope(scope);
-            break;
-        }
     }
 
     return scope;
@@ -1369,34 +1362,30 @@ Result Sema::preNode(AstNode& node)
     if (result != Result::Continue)
         return result;
 
-    bool      pushContextFrame = false;
-    SemaFrame frame            = this->frame();
-    if (node.is(AstNodeId::FunctionBody) || node.is(AstNodeId::EmbeddedBlock))
+    const bool syntaxScope       = node.is(AstNodeId::FunctionBody) || node.is(AstNodeId::EmbeddedBlock);
+    const bool compilerEval      = SemaRuntime::isCompilerEvalContextNode(*this, node);
+    const bool generatedTopLevel = !compilerAstExpansions_.empty() && node.is(AstNodeId::TopLevelBlock);
+    if (syntaxScope || compilerEval || generatedTopLevel)
     {
+        // Most nodes inherit the current context unchanged. Copy the frame only
+        // when this node introduces context, directly into its scoped destination.
+        pushFramePopOnPostNode(frame());
+
         // `__uniq` is scoped to the nearest syntactic body/block, so cache that root
         // once at entry instead of rediscovering it through parent walks on demand.
-        frame.setSyntaxScopeNodeRef(curNodeRef());
-        pushContextFrame = true;
-    }
+        if (syntaxScope)
+            frame().setSyntaxScopeNodeRef(curNodeRef());
 
-    if (SemaRuntime::isCompilerEvalContextNode(*this, node))
-    {
         // Compiler-eval availability is part of sema's dynamic context. Push it once
         // at node entry so descendants do not have to rescan the AST parent chain.
-        frame.addContextFlag(SemaFrameContextFlagsE::CompilerEval);
-        pushContextFrame = true;
-    }
+        if (compilerEval)
+            frame().addContextFlag(SemaFrameContextFlagsE::CompilerEval);
 
-    if (!compilerAstExpansions_.empty() && node.is(AstNodeId::TopLevelBlock))
-    {
         // Nested compiler-ast expansions need to know when they already run inside
         // a generated top-level subtree, without rediscovering that ancestor on demand.
-        frame.addContextFlag(SemaFrameContextFlagsE::GeneratedTopLevel);
-        pushContextFrame = true;
+        if (generatedTopLevel)
+            frame().addContextFlag(SemaFrameContextFlagsE::GeneratedTopLevel);
     }
-
-    if (pushContextFrame)
-        pushFramePopOnPostNode(frame);
 
     const SemaNodeView view = viewSymbol(curNodeRef());
     if (view.hasSymbol() && view.sym() && view.sym()->isIgnored())

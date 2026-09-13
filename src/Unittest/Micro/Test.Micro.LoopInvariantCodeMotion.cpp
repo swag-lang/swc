@@ -174,7 +174,15 @@ SWC_TEST_BEGIN(LICM_RetargetsDuplicateRelocationsAndKeepsUnhoistedOnes)
         builder.addRelocation(reloc);
     }
 
-    SWC_RESULT(runLicmPass(builder));
+    // Exercise relocation collection directly with synthetic duplicate metadata.
+    MicroLoopInvariantCodeMotionPass pass;
+    MicroPassContext                 passContext;
+    passContext.taskContext  = &ctx;
+    passContext.builder      = &builder;
+    passContext.instructions = &builder.instructions();
+    passContext.operands     = &builder.operands();
+    passContext.callConvKind = CallConvKind::Swag;
+    SWC_RESULT(pass.run(passContext));
     MicroInstrRef firstHoisted  = MicroInstrRef::invalid();
     MicroInstrRef secondHoisted = MicroInstrRef::invalid();
     bool          inLoop        = false;

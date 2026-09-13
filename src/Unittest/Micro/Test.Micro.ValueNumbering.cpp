@@ -595,7 +595,16 @@ SWC_TEST_BEGIN(ValueNumbering_LazyRelocationsPreserveBothLookupsAndLastTarget)
         }
         builder.emitRet();
 
-        SWC_RESULT(runValueNumberingPass(builder));
+        // These synthetic relocation keys include duplicates and non-RIP
+        // memory anchors to exercise the collector independently of verification.
+        MicroPassContext passContext;
+        passContext.taskContext  = &ctx;
+        passContext.builder      = &builder;
+        passContext.instructions = &builder.instructions();
+        passContext.operands     = &builder.operands();
+        passContext.callConvKind = CallConvKind::Swag;
+        MicroValueNumberingPass pass;
+        SWC_RESULT(pass.run(passContext));
         for (uint32_t i = 0; i < pointers.size(); ++i)
         {
             const MicroInstr* inst = builder.instructions().ptr(pointers[i]);

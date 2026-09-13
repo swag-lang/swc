@@ -156,6 +156,8 @@ namespace MicroPassHelpers
     // builder's hint. Passes that synthesize registers allocate upward from here.
     uint32_t computeNextVirtualIntRegIndex(const MicroPassContext& context);
     uint32_t computeNextVirtualFloatRegIndex(const MicroPassContext& context);
+    // One operand walk when a pass needs fresh registers from both files.
+    void computeNextVirtualRegIndices(const MicroPassContext& context, uint32_t& outIntIndex, uint32_t& outFloatIndex);
 
     // Replace all uses of 'fromReg' with 'toReg' in instructions after 'afterInstRef',
     // within the same local flow region (stops at redefinition of either register, calls,

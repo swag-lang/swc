@@ -55,6 +55,44 @@ SWC_TEST_BEGIN(SlpVectorize_UnpackableStores_DoesNotBuildSsa)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SlpVectorize_StackAndOneParameterAreTheRootLimit)
+{
+    for (const bool secondParameter : {false, true})
+    {
+        MicroBuilder   builder(ctx);
+        X64Encoder     encoder(ctx);
+        MicroSsaState  ssa;
+        const MicroReg sp     = encoder.stackPointerReg();
+        const MicroReg first  = MicroReg::virtualIntReg(100);
+        const MicroReg second = MicroReg::virtualIntReg(101);
+        builder.emitLoadRegReg(first, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(second, MicroReg::intReg(3), MicroOpBits::B64);
+        for (uint32_t lane = 0; lane < 4; ++lane)
+        {
+            const MicroReg value = MicroReg::virtualIntReg(lane + 1);
+            builder.emitLoadRegMem(value, first, lane * 4, MicroOpBits::B32);
+            builder.emitOpBinaryRegImm(value, ApInt(1, 8), MicroOp::ShiftLeft, MicroOpBits::B32);
+            builder.emitLoadMemReg(sp, 0x60 + lane * 4, value, MicroOpBits::B32);
+        }
+        // This read does not feed the packed plan, but its root still counts.
+        builder.emitLoadRegMem(MicroReg::virtualIntReg(99), secondParameter ? second : first, 0x80, MicroOpBits::B32);
+        const auto extraRead = builder.instructions().lastInstructionRef();
+        builder.emitClearReg(MicroReg::intReg(10), MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runSlpPass(builder, ssa, encoder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != (secondParameter ? 0u : 1u) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != (secondParameter ? 4u : 0u))
+            return Result::Error;
+        const auto* extraInst = builder.instructions().ptr(extraRead);
+        if (!extraInst || extraInst->op != MicroInstrOpcode::LoadRegMem ||
+            extraInst->ops(builder.operands())[1].reg != (secondParameter ? second : first))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(SlpVectorize_SurvivingStoresRespectPackedLoadInsertion)
 {
     // A preceding store blocks an overlapping load; a later one cannot block it.

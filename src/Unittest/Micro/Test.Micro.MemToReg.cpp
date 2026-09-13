@@ -58,6 +58,56 @@ SWC_TEST_BEGIN(MemToReg_PlainSlot_Promotes)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MemToReg_MixedSlotsKeepDistinctFreshRegisters)
+{
+    const MicroReg     sp    = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg frame = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+    std::array<MicroInstrRef, 4> stores;
+    std::array<MicroInstrRef, 4> loads;
+    std::array<MicroReg, 4>      sources;
+    for (uint32_t slot = 0; slot < stores.size(); ++slot)
+    {
+        const bool isFloat = slot % 2 != 0;
+        sources[slot]      = isFloat ? MicroReg::virtualFloatReg(slot + 1) : MicroReg::virtualIntReg(slot + 2);
+        builder.emitClearReg(sources[slot], MicroOpBits::B64);
+        builder.emitLoadMemReg(frame, 0x10 + slot * 16, sources[slot], MicroOpBits::B64);
+        stores[slot]   = builder.instructions().lastInstructionRef();
+        const auto dst = isFloat ? MicroReg::virtualFloatReg(slot + 10) : MicroReg::virtualIntReg(slot + 10);
+        builder.emitLoadRegMem(dst, frame, 0x10 + slot * 16, MicroOpBits::B64);
+        loads[slot] = builder.instructions().lastInstructionRef();
+    }
+    // The register maxima are in the suffix, after all accesses to all slots.
+    builder.emitLoadRegReg(MicroReg::virtualIntReg(1000), sources[0], MicroOpBits::B64);
+    builder.emitLoadRegReg(MicroReg::virtualFloatReg(2000), sources[1], MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runMemToRegPass(builder));
+    std::unordered_set<MicroReg> promoted;
+    for (uint32_t slot = 0; slot < stores.size(); ++slot)
+    {
+        const auto* store = builder.instructions().ptr(stores[slot]);
+        const auto* load  = builder.instructions().ptr(loads[slot]);
+        if (store->op != MicroInstrOpcode::LoadRegReg || load->op != MicroInstrOpcode::LoadRegReg)
+            return Result::Error;
+        const auto* storeOps = store->ops(builder.operands());
+        const auto* loadOps  = load->ops(builder.operands());
+        const auto  reg      = storeOps[0].reg;
+        if (storeOps[1].reg != sources[slot] || loadOps[1].reg != reg || !promoted.insert(reg).second)
+            return Result::Error;
+        if (slot % 2 != 0)
+        {
+            if (!reg.isVirtualFloat() || reg.index() < 2001 || reg.index() > 2002)
+                return Result::Error;
+        }
+        else if (!reg.isVirtualInt() || reg.index() < 1001 || reg.index() > 1002)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // F-028: an address register minted by `lea ar, [fb + off]` and then redefined
 // by plain arithmetic no longer points at its recorded offset, so nothing may
 // resolve through it. Without local-variable extents (none here) the whole

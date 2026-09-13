@@ -1152,8 +1152,7 @@ Result MicroLegalizePass::run(MicroPassContext& context)
         // issues keep the same names even when high virtuals occur in the suffix.
         if (!virtualRegIndicesReady)
         {
-            nextVirtualIntRegIndex   = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
-            nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
+            MicroPassHelpers::computeNextVirtualRegIndices(context, nextVirtualIntRegIndex, nextVirtualFloatRegIndex);
             virtualRegIndicesReady   = true;
         }
 

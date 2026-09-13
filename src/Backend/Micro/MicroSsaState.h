@@ -153,7 +153,7 @@ private:
     static bool     isTrackedReg(MicroReg reg);
     static uint32_t findRegValue(std::span<const RegValueEntry> entries, MicroReg reg);
 
-    void            resetForBuild(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder);
+    void            resetForBuild(MicroStorage& storage);
     void            buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
     bool            computeDominators(); // true when any dominance frontier exists
     void            placePhiNodes();
@@ -168,10 +168,7 @@ private:
     void            appendValueUse(uint32_t valueId, const UseSite& useSite);
     bool            isValueTransitivelyUsed(uint32_t valueId) const;
 
-    MicroBuilder*              builder_  = nullptr;
-    MicroStorage*              storage_  = nullptr;
-    MicroOperandStorage*       operands_ = nullptr;
-    const Encoder*             encoder_  = nullptr;
+    MicroStorage*              storage_ = nullptr;
     MicroDenseRegIndex         trackedRegs_;
     std::vector<InstrInfo>     instrInfos_;
     std::vector<MicroInstrRef> instructionRefs_;

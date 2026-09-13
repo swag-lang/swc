@@ -177,6 +177,31 @@ uint32_t MicroPassHelpers::computeNextVirtualFloatRegIndex(const MicroPassContex
     return computeNextVirtualRegIndex(context, true, 1);
 }
 
+void MicroPassHelpers::computeNextVirtualRegIndices(const MicroPassContext& context, uint32_t& outIntIndex, uint32_t& outFloatIndex)
+{
+    SWC_ASSERT(context.instructions);
+    SWC_ASSERT(context.operands);
+
+    outIntIndex   = context.builder ? std::max(1u, context.builder->nextVirtualIntRegIndexHint()) : 1;
+    outFloatIndex = 1;
+    for (const MicroInstr& inst : context.instructions->view())
+    {
+        SmallVector<MicroInstrRegOperandRef> refs;
+        inst.collectRegOperands(*context.operands, refs, context.encoder);
+        for (const auto& ref : refs)
+        {
+            if (!ref.reg || !ref.reg->isVirtual())
+                continue;
+            const MicroReg reg       = *ref.reg;
+            uint32_t&      nextIndex = reg.isVirtualFloat() ? outFloatIndex : outIntIndex;
+            if (reg.index() < MicroReg::K_MAX_INDEX)
+                nextIndex = std::max(nextIndex, reg.index() + 1);
+            else
+                nextIndex = MicroReg::K_MAX_INDEX;
+        }
+    }
+}
+
 bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef afterRef)
 {
     for (MicroInstrRef scanRef = storage.findNextInstructionRef(afterRef); scanRef.isValid(); scanRef = storage.findNextInstructionRef(scanRef))

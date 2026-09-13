@@ -11,18 +11,6 @@ namespace
 {
     constexpr uint32_t K_INVALID = std::numeric_limits<uint32_t>::max();
 
-    template<uint32_t N>
-    void appendUniqueIndex(SmallVector<uint32_t, N>& values, const uint32_t value)
-    {
-        for (const uint32_t existing : values)
-        {
-            if (existing == value)
-                return;
-        }
-
-        values.push_back(value);
-    }
-
     // Cooper-Harvey-Kennedy finger-walk over the dom tree.
     uint32_t intersectIdom(uint32_t lhs, uint32_t rhs, const std::vector<uint32_t>& idom, const std::vector<uint32_t>& rpoPosition)
     {
@@ -56,7 +44,7 @@ uint32_t MicroSsaState::findRegValue(const std::span<const RegValueEntry> entrie
 
 void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder)
 {
-    resetForBuild(builder, storage, operands, encoder);
+    resetForBuild(storage);
 
     const MicroControlFlowGraph& controlFlowGraph = builder.controlFlowGraph();
     const auto                   instructionRefs  = controlFlowGraph.instructionRefs();
@@ -122,6 +110,15 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         }
     }
 
+    // Without virtual definitions no tracked use, SSA value or phi can exist.
+    // Instruction-local use/def queries are already fully populated above.
+    if (trackedRegs_.regs().empty())
+    {
+        reachingValuesByReg_.clear();
+        valid_ = true;
+        return;
+    }
+
     for (const MicroInstrRef instRef : instructionRefs_)
     {
         InstrInfo& info = instrInfos_[instRef.get()];
@@ -169,13 +166,10 @@ const MicroSsaState* MicroSsaState::ensureFor(const MicroPassContext& context, M
     return &localState;
 }
 
-void MicroSsaState::resetForBuild(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder)
+void MicroSsaState::resetForBuild(MicroStorage& storage)
 {
-    valid_    = false;
-    builder_  = &builder;
-    storage_  = &storage;
-    operands_ = &operands;
-    encoder_  = encoder;
+    valid_   = false;
+    storage_ = &storage;
 
     trackedRegs_.clear();
     instructionRefs_.clear();
@@ -192,10 +186,7 @@ void MicroSsaState::resetForBuild(MicroBuilder& builder, MicroStorage& storage, 
 
 void MicroSsaState::clear()
 {
-    builder_  = nullptr;
-    storage_  = nullptr;
-    operands_ = nullptr;
-    encoder_  = nullptr;
+    storage_ = nullptr;
     trackedRegs_.clear();
     instrInfos_.clear();
     instructionRefs_.clear();
@@ -355,21 +346,18 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
         BlockInfo block;
         block.instructionBegin = instructionIndex;
 
-        uint32_t instructionEnd = instructionIndex + 1;
-        while (instructionEnd < instructionRefs_.size() && !leaders[instructionEnd])
-            ++instructionEnd;
-        block.instructionEnd = instructionEnd;
-
         const uint32_t blockIndex = static_cast<uint32_t>(blocks_.size());
+        do
+        {
+            instructionToBlock_[instructionIndex++] = blockIndex;
+        } while (instructionIndex < instructionRefs_.size() && !leaders[instructionIndex]);
+        block.instructionEnd = instructionIndex;
         blocks_.push_back(std::move(block));
-        for (uint32_t idx = instructionIndex; idx < instructionEnd; ++idx)
-            instructionToBlock_[idx] = blockIndex;
-
-        instructionIndex = instructionEnd;
     }
 
-    for (auto& block : blocks_)
+    for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {
+        auto& block = blocks_[blockIndex];
         SWC_ASSERT(block.instructionEnd > block.instructionBegin);
         const uint32_t lastInstruction = block.instructionEnd - 1;
         const auto&    successors      = controlFlowGraph.successors(lastInstruction);
@@ -378,14 +366,11 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
             SWC_ASSERT(successorIndex < instructionToBlock_.size());
             const uint32_t successorBlock = instructionToBlock_[successorIndex];
             SWC_ASSERT(successorBlock != K_INVALID_BLOCK);
-            appendUniqueIndex(block.successors, successorBlock);
-        }
-    }
-
-    for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
-    {
-        for (const uint32_t successorBlock : blocks_[blockIndex].successors)
+            // CFG targets are unique. With multiple successors, every target
+            // is a leader, so distinct instruction targets name distinct blocks.
+            block.successors.push_back(successorBlock);
             blocks_[successorBlock].predecessors.push_back(blockIndex);
+        }
     }
 }
 
@@ -399,13 +384,8 @@ bool MicroSsaState::computeDominators()
         return false;
     }
 
+    // buildBlocks created fresh blocks with invalid dominators and empty trees.
     std::vector idomValues(blocks_.size(), K_INVALID_BLOCK);
-    for (BlockInfo& block : blocks_)
-    {
-        block.idom = K_INVALID_BLOCK;
-        block.domChildren.clear();
-        block.dominanceFrontier.clear();
-    }
 
     if (blocks_.empty())
         return false;
@@ -841,6 +821,9 @@ uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, co
     const auto& uses = valueInfos_[valueId].uses;
     if (uses.empty())
         return 0;
+    // With no phis every use is direct; no graph traversal or visit scratch is needed.
+    if (!phiInfoCount_)
+        return static_cast<uint32_t>(std::min<size_t>(cap, uses.size()));
     if (cap == 1 && uses.front().kind == UseSite::Kind::Instruction)
         return 1;
 

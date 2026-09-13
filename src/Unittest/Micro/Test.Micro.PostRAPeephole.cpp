@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Support/Core/DataSegment.h"
@@ -247,6 +248,51 @@ SWC_TEST_BEGIN(PostRAPeephole_CopyForward_StopsAtEncoderImplicitDef)
     SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
 
     if (!hasLoadRegReg(builder, rdx, r9))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroPassHelpers_CombinedFreshIndicesMatchSingleClassBounds)
+{
+    MicroBuilder     builder(ctx);
+    MicroPassContext passCtx;
+    passCtx.instructions = &builder.instructions();
+    passCtx.operands     = &builder.operands();
+    const auto matches = [&](uint32_t expectedInt, uint32_t expectedFloat) {
+        uint32_t nextInt   = 42;
+        uint32_t nextFloat = 43;
+        MicroPassHelpers::computeNextVirtualRegIndices(passCtx, nextInt, nextFloat);
+        return nextInt == expectedInt && nextFloat == expectedFloat &&
+               nextInt == MicroPassHelpers::computeNextVirtualIntRegIndex(passCtx) &&
+               nextFloat == MicroPassHelpers::computeNextVirtualFloatRegIndex(passCtx);
+    };
+    if (!matches(1, 1))
+        return Result::Error;
+
+    builder.emitLoadRegReg(MicroReg::virtualIntReg(123456), MicroReg::intReg(MicroReg::K_MAX_INDEX), MicroOpBits::B64);
+    builder.emitLoadRegReg(MicroReg::virtualFloatReg(345678), MicroReg::floatReg(3), MicroOpBits::B64);
+    if (!matches(123457, 345679))
+        return Result::Error;
+
+    passCtx.builder = &builder;
+    builder.addVirtualRegForbiddenPhysReg(MicroReg::virtualIntReg(900000), MicroReg::intReg(10));
+    builder.addVirtualRegForbiddenPhysReg(MicroReg::virtualFloatReg(950000), MicroReg::floatReg(3));
+    // Only integer allocation observes the builder's hint, including virtuals
+    // that have restrictions but do not yet appear in the instruction stream.
+    if (!matches(900001, 345679))
+        return Result::Error;
+    builder.addVirtualRegForbiddenPhysReg(MicroReg::virtualIntReg(MicroReg::K_MAX_INDEX), MicroReg::intReg(10));
+    if (!matches(MicroReg::K_MAX_INDEX, 345679))
+        return Result::Error;
+
+    passCtx.builder = nullptr;
+    builder.emitLoadRegReg(MicroReg::virtualIntReg(MicroReg::K_MAX_INDEX - 1), MicroReg::intReg(10), MicroOpBits::B64);
+    builder.emitLoadRegReg(MicroReg::virtualFloatReg(MicroReg::K_MAX_INDEX), MicroReg::floatReg(3), MicroOpBits::B64);
+    if (!matches(MicroReg::K_MAX_INDEX, MicroReg::K_MAX_INDEX))
+        return Result::Error;
+    builder.emitLoadRegReg(MicroReg::virtualIntReg(MicroReg::K_MAX_INDEX), MicroReg::intReg(10), MicroOpBits::B64);
+    if (!matches(MicroReg::K_MAX_INDEX, MicroReg::K_MAX_INDEX))
         return Result::Error;
     return Result::Continue;
 }

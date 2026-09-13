@@ -503,6 +503,141 @@ SWC_TEST_BEGIN(MicroSsa_RepeatedDefinitionsRestoreBlockEntryValues)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroSsa_RebuildWithOnlyPhysicalDefinitions)
+{
+    constexpr MicroReg value    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg physical = MicroReg::intReg(0);
+    MicroBuilder       builder(ctx);
+    const auto         right = builder.createLabel();
+    const auto         join  = builder.createLabel();
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, right);
+    builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
+    const auto leftDef = builder.instructions().lastInstructionRef();
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+    builder.placeLabel(right);
+    builder.emitLoadRegImm(value, ApInt(2, 64), MicroOpBits::B64);
+    const auto rightDef = builder.instructions().lastInstructionRef();
+    builder.placeLabel(join);
+    builder.emitOpBinaryRegReg(physical, value, MicroOp::Add, MicroOpBits::B64);
+    const auto use = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    MicroSsaState ssa;
+    for (const bool virtualDefs : {true, false, true, false})
+    {
+        builder.instructions().ptr(leftDef)->ops(builder.operands())[0].reg  = virtualDefs ? value : physical;
+        builder.instructions().ptr(rightDef)->ops(builder.operands())[0].reg = virtualDefs ? value : physical;
+        ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+        const auto* info = ssa.instrUseDef(use);
+        if (!ssa.isValid() || !info || !microRegSpanContains(info->uses, value) || !microRegSpanContains(info->defs, physical))
+            return Result::Error;
+        uint32_t defId = MicroSsaState::K_INVALID_VALUE;
+        if (virtualDefs)
+        {
+            if (!ssa.reachingDef(value, use).isPhi || ssa.phis().size() != 1 || !ssa.defValue(value, leftDef, defId))
+                return Result::Error;
+        }
+        else if (!ssa.values().empty() || !ssa.phis().empty() || ssa.reachingDef(value, use).valid() ||
+                 ssa.defValue(value, leftDef, defId) || ssa.isRegUsedAfter(value, leftDef))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroSsa_DirectUseCountsAfterPhiRebuild)
+{
+    constexpr MicroReg value = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+    const auto         right = builder.createLabel();
+    const auto         join  = builder.createLabel();
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, right);
+    builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
+    const auto first = builder.instructions().lastInstructionRef();
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+    builder.placeLabel(right);
+    builder.emitLoadRegImm(value, ApInt(2, 64), MicroOpBits::B64);
+    builder.placeLabel(join);
+    builder.emitLoadMemReg(MicroReg::intReg(2), 0, value, MicroOpBits::B64);
+    builder.emitRet();
+
+    MicroSsaState ssa;
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    uint32_t initial = MicroSsaState::K_INVALID_VALUE;
+    if (ssa.phis().empty() || !ssa.defValue(value, first, initial) || ssa.transitiveInstructionUseCount(initial, 16) != 1)
+        return Result::Error;
+
+    builder.instructions().clear();
+    builder.operands().clear();
+    std::array<MicroInstrRef, 3> defs;
+    for (uint32_t i = 0; i < defs.size(); ++i)
+    {
+        builder.emitLoadRegImm(MicroReg::virtualIntReg(i + 1), ApInt(i, 64), MicroOpBits::B64);
+        defs[i] = builder.instructions().lastInstructionRef();
+    }
+    for (uint32_t i = 0; i < defs.size(); ++i)
+    {
+        for (uint32_t use = 0; use < i; ++use)
+            builder.emitLoadMemReg(MicroReg::intReg(2), use * 8, MicroReg::virtualIntReg(i + 1), MicroOpBits::B64);
+    }
+    builder.emitRet();
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    if (!ssa.phis().empty())
+        return Result::Error;
+    for (uint32_t i = 0; i < defs.size(); ++i)
+    {
+        uint32_t id = MicroSsaState::K_INVALID_VALUE;
+        if (!ssa.defValue(MicroReg::virtualIntReg(i + 1), defs[i], id))
+            return Result::Error;
+        for (const uint32_t cap : {0u, 1u, 2u, 16u})
+            if (ssa.transitiveInstructionUseCount(id, cap) != std::min(i, cap))
+                return Result::Error;
+    }
+    if (ssa.transitiveInstructionUseCount(MicroSsaState::K_INVALID_VALUE, 16) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroSsa_IndirectTargetsKeepDistinctAdjacentBlocks)
+{
+    constexpr MicroReg value = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+    const auto         first  = builder.createLabel();
+    const auto         second = builder.createLabel();
+    const auto         other  = builder.createLabel();
+    const auto         join   = builder.createLabel();
+    builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
+    const std::array targets{first, second, first, other, second};
+    builder.emitJumpReg(MicroReg::virtualIntReg(2), targets);
+    builder.placeLabel(first);
+    builder.placeLabel(second);
+    builder.emitOpBinaryRegImm(value, ApInt(2, 64), MicroOp::Add, MicroOpBits::B64);
+    const auto adjacentDef = builder.instructions().lastInstructionRef();
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+    builder.placeLabel(other);
+    builder.emitLoadRegImm(value, ApInt(3, 64), MicroOpBits::B64);
+    const auto otherDef = builder.instructions().lastInstructionRef();
+    builder.placeLabel(join);
+    const auto joined = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    MicroSsaState ssa;
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    const auto  reaching = ssa.reachingDef(value, joined);
+    const auto* phi      = ssa.phiInfoForValue(reaching.valueId);
+    if (!reaching.isPhi || !phi || phi->incomingValueIds.size() != 2 || ssa.phis().size() != 1)
+        return Result::Error;
+    if (phi->blockIndex != 4 || phi->predecessorBlocks.size() != 2 || phi->predecessorBlocks[0] != 2 || phi->predecessorBlocks[1] != 3)
+        return Result::Error;
+    const auto* left  = ssa.valueInfo(phi->incomingValueIds[0]);
+    const auto* right = ssa.valueInfo(phi->incomingValueIds[1]);
+    if (!left || !right || left->instRef != adjacentDef || right->instRef != otherDef)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -938,15 +938,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
     }
 
-    std::unordered_map<uint64_t, MicroReg> slotReg;
-    for (const Promotion& p : promotions)
-        slotReg[p.offset] = p.isFloat ? MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++)
-                                      : MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
-
     // ---- Rewrite all accesses of the promoted slots to register ops. ----
     for (const Promotion& p : promotions)
     {
-        const MicroReg vreg = slotReg[p.offset];
+        const MicroReg vreg = p.isFloat ? MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++)
+                                        : MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
 
         for (const SlotAccess& acc : slots[p.offset].accesses)
         {

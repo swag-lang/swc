@@ -1366,14 +1366,26 @@ namespace
         // cannot address it - which is why a parameter is the only foreign
         // root ever paired with the frame. Two roots of unknown provenance
         // are never assumed disjoint.
-        std::unordered_set<uint32_t> touchedRoots;
+        SmallVector<uint32_t, 2> touchedRoots;
+        const auto               touchRoot = [&](uint32_t rootKey) {
+            if (std::ranges::find(touchedRoots, rootKey) != touchedRoots.end())
+                return true;
+            if (touchedRoots.size() == 2)
+                return false;
+            touchedRoots.push_back(rootKey);
+            return true;
+        };
         for (const StoreRecord& record : scan.stores)
-            touchedRoots.insert(record.rootKey);
+        {
+            if (!touchRoot(record.rootKey))
+                return false;
+        }
         for (const LoadRecord& record : scan.loads)
-            touchedRoots.insert(record.rootKey);
+        {
+            if (!touchRoot(record.rootKey))
+                return false;
+        }
 
-        if (touchedRoots.size() > 2)
-            return false;
         if (touchedRoots.size() == 2)
         {
             bool hasStack     = false;

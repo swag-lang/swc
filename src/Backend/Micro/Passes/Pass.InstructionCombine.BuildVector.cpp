@@ -534,8 +534,7 @@ namespace InstructionCombine
         if (!ctx.nextVirtualFloatRegIndex)
         {
             SWC_ASSERT(ctx.passContext != nullptr);
-            ctx.nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(*ctx.passContext);
-            ctx.nextVirtualIntRegIndex   = MicroPassHelpers::computeNextVirtualIntRegIndex(*ctx.passContext);
+            MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
         }
         const uint32_t savedFloat = ctx.nextVirtualFloatRegIndex;
         const uint32_t savedInt   = ctx.nextVirtualIntRegIndex;

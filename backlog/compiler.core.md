@@ -6,6 +6,27 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.042 — Protect generated module APIs from concurrent workspace rebuilds
+
+- Recorded: 2026-09-13 11:11
+- Evidence: two DevMode 0.1.537 processes concurrently bootstrapped `tools/unittests.swgs`
+  (`dm sema` and `dm jit --file-filter large_struct_named_binding.swg`, each with six workers)
+  after the Release compiler had built the standard dependencies. Both reported rebuilding
+  `win32`; the semantic command then failed while reading eight generated API files under
+  `bin/std/.output/win32/export/devmode/x86_64`, including `kernel32.swg` and `win32.swg`.
+  The other command completed its `win32`, `xinput`, and `core` builds and its tests. A serialized
+  retry passed all 278 valid and 293 expected-error semantic inputs without a source change.
+  The [failure log](../bench/results/compilation/20260913-sema-codegen/sema-537-concurrent-bootstrap-failure.log)
+  preserves the missing-file reports. This observation identifies overlapping publication as a
+  lead; the exact interleaving has not been isolated and this is not yet attributed to a compiler
+  version change.
+- Next: reduce two processes rebuilding the same export directory to a deterministic workspace
+  test, then protect the complete publication/read contract across processes. Serializing agent
+  validation avoids the collision but does not fix concurrent compiler use.
+- Complete when: readers cannot observe a partial or disappearing generated API during a competing
+  rebuild, both processes retain actionable failure reporting, and the reduced concurrency test
+  passes with the DevMode and Release compilers.
+
 ### compiler.core.031 — Reject silent semantic failure before reporting success
 
 - Recorded: 2026-09-06 21:14

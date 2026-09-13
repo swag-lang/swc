@@ -291,6 +291,76 @@ SWC_TEST_BEGIN(ConstantManager_DoesNotDeduplicateMaterializedArrayPayloadsWithDi
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantManager_OwnsAggregateElementsAfterInputsAreDestroyed)
+{
+    ConstantManager manager;
+    const std::array elements = {ctx.cstMgr().addInt(ctx, 31001), ctx.cstMgr().addInt(ctx, 31002), ctx.cstMgr().addInt(ctx, 31003)};
+    const std::array names    = {IdentifierRef::invalid(), IdentifierRef::invalid(), IdentifierRef::invalid()};
+    ConstantRef     arrayRef;
+    ConstantRef     structRef;
+    {
+        const ConstantValue arrayValue  = ConstantValue::makeAggregateArray(ctx, elements);
+        const ConstantValue structValue = ConstantValue::makeAggregateStruct(ctx, names, elements);
+        arrayRef                        = manager.addConstant(ctx, arrayValue);
+        structRef                       = manager.addConstant(ctx, structValue);
+        if (manager.addConstant(ctx, arrayValue) != arrayRef || manager.addConstant(ctx, structValue) != structRef)
+            return Result::Error;
+        if (manager.get(arrayRef).getAggregateArray().data() == arrayValue.getAggregateArray().data())
+            return Result::Error;
+        if (manager.get(structRef).getAggregateStruct().data() == structValue.getAggregateStruct().data())
+            return Result::Error;
+    }
+
+    if (!std::ranges::equal(manager.get(arrayRef).getAggregateArray(), elements))
+        return Result::Error;
+    if (!std::ranges::equal(manager.get(structRef).getAggregateStruct(), elements))
+        return Result::Error;
+    if (manager.addConstant(ctx, manager.get(arrayRef)) != arrayRef || manager.addConstant(ctx, manager.get(structRef)) != structRef)
+        return Result::Error;
+    if (manager.addConstant(ctx, ConstantValue::makeAggregateArray(ctx, elements)) != arrayRef)
+        return Result::Error;
+    if (manager.addConstant(ctx, ConstantValue::makeAggregateStruct(ctx, names, elements)) != structRef)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantManager_EnrichesStorageReferencesWithoutMutatingInputs)
+{
+    ConstantManager    manager;
+    constexpr uint32_t shardIndex = 3;
+    const std::array    bytes      = {std::byte{0x37}, std::byte{0x61}, std::byte{0x94}, std::byte{0xA2}};
+    DataSegment&       segment    = manager.shardDataSegment(shardIndex);
+    const auto [payload, offset] = segment.addSpan(std::span<const std::byte>(bytes));
+    const std::array<uint64_t, 1> dims      = {bytes.size()};
+    const TypeRef                 arrayType = ctx.typeMgr().addType(TypeInfo::makeArray(dims, ctx.typeMgr().typeU8()));
+    const uint64_t                address   = reinterpret_cast<uint64_t>(payload.data());
+    const std::array              values    = {
+        ConstantValue::makeArrayBorrowed(ctx, arrayType, payload),
+        ConstantValue::makeValuePointer(ctx, ctx.typeMgr().typeU8(), address),
+        ConstantValue::makeBlockPointer(ctx, ctx.typeMgr().typeU8(), address),
+    };
+
+    for (const ConstantValue& value : values)
+    {
+        if (value.dataSegmentRef().isValid())
+            return Result::Error;
+        const ConstantRef ref = manager.addConstant(ctx, value);
+        if (value.dataSegmentRef().isValid())
+            return Result::Error;
+        const ConstantValue& stored    = manager.get(ref);
+        const DataSegmentRef storedRef = stored.dataSegmentRef();
+        if (storedRef.shardIndex != shardIndex || storedRef.offset != offset)
+            return Result::Error;
+        if (!(stored == value) || manager.addConstant(ctx, value) != ref || manager.addConstant(ctx, stored) != ref)
+            return Result::Error;
+        if (value.dataSegmentRef().isValid())
+            return Result::Error;
+        if (value.isArray() && ((ref.get() >> ConstantManager::LOCAL_BITS) != shardIndex || stored.getArray().data() != payload.data()))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

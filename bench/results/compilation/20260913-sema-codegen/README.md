@@ -1,7 +1,7 @@
 # Semantic analysis and code generation work reductions, 2026-09-13
 
 This change removes repeated work outside the micro passes. Functional validation targets
-compiler builds 532 through 535 on `1cb02fdaa` plus the changes below. Work is isolated on
+compiler builds 532 through 537 on `1cb02fdaa` plus the changes below. Work is isolated on
 `perf/sema-codegen-compile-time` in the `swc-sema-codegen-perf` worktree. Micro-pass work has its own
 [report](../20260913/README.md).
 
@@ -182,3 +182,55 @@ Focused evidence: [large structs](jit-large_struct_named_binding-535.log),
 [Release-compiler large structs](release-compiler-large-struct-535.log),
 [Release-compiler constant slices](release-compiler-const-slice-535.log), and
 [Release-compiler constant addresses](release-compiler-rdata-535.log).
+
+## Additional reductions in build 537
+
+| Area | Removed work | Preserved contract |
+| --- | --- | --- |
+| Type interning | The intern table owns the single arena-resident type instead of keeping another full key copy. | Transparent lookup retains exact hash/equality, shard selection, stable addresses, and the shared/exclusive locking protocol. The complete reference, including its diagnostic pointer, is published before readers can observe it. |
+| Type payload lifetime | The canonical table destroys owned type payloads before arena pages are freed. | Array dimensions, index types, and aggregate vectors are released exactly once; direct handle-to-arena access is unchanged. |
+| Constant preparation | Aggregate hits no longer copy their element vectors twice before lookup. | Mutable preparation remains local for pointers and borrowed spans. One atomic location snapshot governs lookup, enrichment, and publication. Relocatable borrowed payloads remain distinct. |
+| Inline temporary ownership | Inherited frames carrying the same inline payload do not repeat argument and ancestor searches. | A different nonempty payload is still examined in frame order. No frame state or persistent cache is added. |
+| Runtime module order | A minimum heap replaces a full scan for every next ready module. | The lowest eligible input index still wins. Cycles and their blocked dependents retain the original input-order fallback; destruction reverses initialization. |
+| Executable roots | The existing dependency set also compacts repeated roots before traversal. | First occurrences and subsequent dependency discovery order are stable, including distinct symbols with equal source locations. |
+
+The isolated type-payload destruction test first ran against build 536, before the owning-table
+change. It was the only failing test: 684 passed and one failed. Build 536 was an intermediate
+validation binary, not a retained implementation or a timing baseline. The test counts live blocks
+in a dedicated mimalloc heap; it does not compare process memory or compilation time.
+
+Additional regressions race two type-interning threads across table and arena growth, retain pointers
+to old entries, and check references returned by later hits. Constant tests destroy their temporary
+aggregate inputs and verify that storage enrichment does not mutate borrowed-span or pointer inputs.
+The runtime-order regression covers priority changes, repeated imports, absent and self imports,
+cycles, blocked modules, reverse destruction, and a second preparation with no imports.
+
+Both build-537 compiler configurations built successfully. The C++ suite passed 689 tests,
+including the unchanged type-payload test that failed before the owning-table correction.
+The same 28 filesystem tests remain excluded. Focused native checks passed for temporary receiver
+lifetime (2), caller-expression arguments (1), automatic macro receivers (1), indexed macro
+receivers (1), deferred re-emission (2), and constant slices (6). The deferred test requires both
+`defer_reemission.swg` and `defer_reemission_provider.swg`; the filter is `defer_reemission`.
+The Release compiler passed large-struct binding (2 JIT tests), constant slices (6 native tests),
+and constant-address storage (1 native test).
+
+| Build-537 complete suite | Result | Evidence |
+| --- | --- | --- |
+| C++ | 689 passed | [Log](cpp-537.log) |
+| Semantic analysis | 278 valid inputs and 293 expected-error inputs verified | [Log](sema-537.log) |
+| JIT | 1,402 passed | [Log](jit-537.log) |
+| Native, program configuration `devmode` | 3,137 passed; generated executable passed | [Log](native-devmode-537.log) |
+| Native, program configuration `release` | 3,137 passed; generated executable passed | [Log](native-release-537.log) |
+
+The first semantic command collided with another process rebuilding the tool's standard-library
+dependencies. Its serialized retry passed without a source change. The missing generated API files
+and the remaining investigation are recorded as [compiler.core.042](../../../../backlog/compiler.core.md#compilercore042--protect-generated-module-apis-from-concurrent-workspace-rebuilds).
+Subsequent tool-driven validation is serialized to avoid overlapping writes to those shared outputs.
+
+The workspace consumer was rebuilt and run separately by each compiler with
+`run --workspace bin/unittests/workspace --workspace-module consumer_exe --rebuild --num-cores 6`.
+Both runs rebuilt three standard dependencies and six local modules, executed the consumer's main,
+and passed initialization and destruction assertions across static libraries and a DLL:
+[DevMode compiler](workspace-consumer-537.log), [Release compiler](release-compiler-workspace-consumer-537.log).
+This focused consumer exercises the changed runtime order; the broader workspace command campaign
+was not run.

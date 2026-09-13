@@ -16,6 +16,7 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Memory/mimalloc/include/mimalloc.h"
 #include "Support/Report/Diagnostic.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
@@ -24,6 +25,46 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    class TypeManagerTestHeap
+    {
+    public:
+        TypeManagerTestHeap() :
+            heap_(mi_heap_new())
+        {
+            if (heap_)
+                previous_ = mi_theap_set_default(mi_heap_theap(heap_));
+        }
+
+        ~TypeManagerTestHeap()
+        {
+            if (heap_)
+            {
+                mi_theap_set_default(previous_);
+                mi_heap_destroy(heap_);
+            }
+        }
+
+        bool empty() const
+        {
+            if (!heap_)
+                return false;
+            mi_heap_collect(heap_, true);
+            size_t count = 0;
+            return mi_heap_visit_blocks(heap_, true, countLiveBlocks, &count) && count == 0;
+        }
+
+    private:
+        static bool countLiveBlocks(const mi_heap_t*, const mi_heap_area_t*, void* block, size_t, void* data)
+        {
+            if (block)
+                ++*static_cast<size_t*>(data);
+            return true;
+        }
+
+        mi_heap_t*  heap_     = nullptr;
+        mi_theap_t* previous_ = nullptr;
+    };
+
     class CompletedFreesFixture
     {
     public:
@@ -305,6 +346,102 @@ SWC_TEST_BEGIN(Sema_AggregateTypeInterningUsesOrderedContents)
     TypeInfo copy(manager.get(refs[1][count - 1]));
     const TypeInfo moved(std::move(copy));
     if (manager.addType(moved) != refs[1][count - 1])
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Sema_TypeManagerConcurrentInterningKeepsCanonicalStorage)
+{
+    constexpr size_t NUM_WORKERS = 2;
+    constexpr size_t NUM_TYPES   = 256;
+    constexpr size_t NUM_FIELDS  = 32;
+
+    TypeManager                                                  manager;
+    std::barrier                                                 rendezvous(NUM_WORKERS);
+    std::array<std::thread, NUM_WORKERS>                           workers;
+    std::array<std::array<TypeRef, NUM_TYPES>, NUM_WORKERS>         commonRefs;
+    std::array<std::array<TypeRef, NUM_TYPES>, NUM_WORKERS>         uniqueRefs;
+    std::array<std::array<const TypeInfo*, NUM_TYPES>, NUM_WORKERS> addresses;
+
+    for (size_t worker = 0; worker < NUM_WORKERS; ++worker)
+    {
+        workers[worker] = std::thread([&, worker] {
+            std::array<TypeRef, NUM_FIELDS> types;
+            types.fill(TypeRef{1});
+            for (uint32_t index = 0; index < NUM_TYPES; ++index)
+            {
+                // Race equal insertions, then grow other stripes while readers retain
+                // pointers into earlier pages. Each source array is temporary input.
+                types.back() = TypeRef{index + 1000};
+                rendezvous.arrive_and_wait();
+                commonRefs[worker][index] = manager.addType(TypeInfo::makeAggregateArray(types));
+                addresses[worker][index]  = &manager.get(commonRefs[worker][index]);
+                types.back()             = TypeRef{static_cast<uint32_t>(2000 + worker * NUM_TYPES + index)};
+                uniqueRefs[worker][index] = manager.addType(TypeInfo::makeAggregateArray(types));
+            }
+        });
+    }
+    for (auto& worker : workers)
+        worker.join();
+
+    std::unordered_set<TypeRef> allRefs;
+    for (size_t index = 0; index < NUM_TYPES; ++index)
+    {
+        if (commonRefs[0][index] != commonRefs[1][index])
+            return Result::Error;
+        allRefs.insert(commonRefs[0][index]);
+        for (size_t worker = 0; worker < NUM_WORKERS; ++worker)
+        {
+            const TypeRef   ref  = commonRefs[worker][index];
+            const TypeInfo& type = manager.get(ref);
+            if (&type != addresses[worker][index] || type.typeRef() != ref)
+                return Result::Error;
+            const auto& elements = type.payloadAggregate().types;
+            if (elements.size() != NUM_FIELDS || elements.back() != TypeRef{static_cast<uint32_t>(index + 1000)})
+                return Result::Error;
+            for (size_t field = 0; field + 1 < elements.size(); ++field)
+                if (elements[field] != TypeRef{1})
+                    return Result::Error;
+
+            const TypeRef duplicate = manager.addType(type);
+            if (duplicate != ref)
+                return Result::Error;
+#if SWC_HAS_REF_DEBUG_INFO
+            if (ref.dbgPtr != &type || type.typeRef().dbgPtr != &type || duplicate.dbgPtr != &type)
+                return Result::Error;
+#endif
+            const TypeRef unique = uniqueRefs[worker][index];
+            allRefs.insert(unique);
+            if (manager.get(unique).payloadAggregate().types.back() != TypeRef{static_cast<uint32_t>(2000 + worker * NUM_TYPES + index)})
+                return Result::Error;
+        }
+    }
+    if (allRefs.size() != NUM_TYPES * (NUM_WORKERS + 1))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Sema_TypeManagerReleasesOwnedPayloads)
+{
+    // Observe only this thread's isolated allocations, including the vectors inside
+    // arena objects. Releasing arena pages alone must not make this test pass.
+    TypeManagerTestHeap heap;
+    if (!heap.empty())
+        return Result::Error;
+    {
+        TypeManager      manager;
+        const std::array names = {IdentifierRef{1}, IdentifierRef{2}, IdentifierRef{3}};
+        for (uint32_t index = 0; index < 64; ++index)
+        {
+            const std::array types      = {TypeRef{1}, TypeRef{2}, TypeRef{index + 3}};
+            const std::array dims       = {uint64_t{index + 1}, uint64_t{2}};
+            const std::array indexTypes = {TypeRef{1}, TypeRef{2}};
+            manager.addType(TypeInfo::makeAggregateStruct(names, types));
+            manager.addType(TypeInfo::makeAggregateArray(types));
+            manager.addType(TypeInfo::makeArray(dims, types.back(), TypeInfoFlagsE::Zero, indexTypes));
+        }
+    }
+    if (!heap.empty())
         return Result::Error;
 }
 SWC_TEST_END()

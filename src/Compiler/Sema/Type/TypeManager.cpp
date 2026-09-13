@@ -284,13 +284,13 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
         const std::shared_lock lk(stripe.mutex);
         const auto             it = stripe.map.find(typeInfo);
         if (it != stripe.map.end())
-            return it->second;
+            return (*it)->typeRef();
     }
 
     const std::unique_lock lk(stripe.mutex);
-    const auto [it, inserted] = stripe.map.try_emplace(typeInfo, TypeRef{});
-    if (!inserted)
-        return it->second;
+    const auto             existing = stripe.map.find(typeInfo);
+    if (existing != stripe.map.end())
+        return (*existing)->typeRef();
 
     uint32_t  localIndex = INVALID_REF;
     TypeInfo* ptr        = nullptr;
@@ -300,18 +300,20 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
         SWC_ASSERT(localIndex < LOCAL_MASK);
         ptr = shard.store.ptr<TypeInfo>(localIndex);
     }
+    StoredType stored(ptr);
 
     // TypeRef encodes shard + local index. The TypeInfo stores its own TypeRef so
     // callers that only hold a payload pointer can still recover stable identity.
     TypeRef result{(shardIndex << LOCAL_BITS) | localIndex};
-    ptr->typeRef_ = result;
 
 #if SWC_HAS_REF_DEBUG_INFO
     result.dbgPtr = ptr;
 #endif
+    ptr->typeRef_ = result;
 
-    it->second = result;
-    return result;
+    const auto [it, inserted] = stripe.map.insert(std::move(stored));
+    SWC_ASSERT(inserted);
+    return (*it)->typeRef();
 }
 
 const TypeInfo& TypeManager::get(TypeRef typeRef) const

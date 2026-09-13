@@ -1,0 +1,29 @@
+  ◆  swag        run • tools • devmode
+  ✓  module      win32 • 31 files • 262 ms
+error: cannot open file: 'C:\Perso\swag-lang\swc-sema-codegen-perf\bin\std\.output\win32\export\devmode\x86_64\advapi32.swg'
+note: the system cannot find the file specified
+
+error: cannot open file: 'C:\Perso\swag-lang\swc-sema-codegen-perf\bin\std\.output\win32\export\devmode\x86_64\errors.swg'
+note: the system cannot find the file specified
+
+error: cannot open file: 'C:\Perso\swag-lang\swc-sema-codegen-perf\bin\std\.output\win32\export\devmode\x86_64\ole32.swg'
+note: the system cannot find the file specified
+
+error: cannot open file: 'C:\Perso\swag-lang\swc-sema-codegen-perf\bin\std\.output\win32\export\devmode\x86_64\kernel32.swg'
+note: the system cannot find the file specified
+
+error: cannot open file: 'C:\Perso\swag-lang\swc-sema-codegen-perf\bin\std\.output\win32\export\devmode\x86_64\iphlpapi.swg'
+note: the system cannot find the file specified
+
+error: cannot open file: 'C:\Perso\swag-lang\swc-sema-codegen-perf\bin\std\.output\win32\export\devmode\x86_64\shell32.swg'
+note: the system cannot find the file specified
+
+error: cannot open file: 'C:\Perso\swag-lang\swc-sema-codegen-perf\bin\std\.output\win32\export\devmode\x86_64\user32.swg'
+note: the system cannot find the file specified
+
+error: cannot open file: 'C:\Perso\swag-lang\swc-sema-codegen-perf\bin\std\.output\win32\export\devmode\x86_64\win32.swg'
+note: the system cannot find the file specified
+
+  ✖  compiling   xinput • 28 files • 8 ms
+  ✖  building    std [core] • 1/3 modules • 886 ms
+  ✖  stopped     8 errors • 1 s 112 ms

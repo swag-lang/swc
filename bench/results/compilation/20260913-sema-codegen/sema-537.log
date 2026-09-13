@@ -1,0 +1,13 @@
+  ◆  swag        run • tools • devmode
+  ✓  checked     66 files • 181_168 tokens • 544 ms
+  ✓  tuned       458 functions • 723 ms
+  ◆  swag        test • bin/unittests/sema • devmode
+  ✓  checked     278 files • 152_561 tokens • 949 ms
+  ✓  verified    26 us
+  ✓  tested      0 tests • 961 ms
+  ✓  clean       985 ms
+  ◆  swag        test • bin/unittests/errors/sema • devmode
+  ✓  checked     293 files • 74_727 tokens • 451 ms
+  ✓  verified    90 us
+  ✓  tested      0 tests • 463 ms
+  ✓  clean       481 ms

@@ -1060,7 +1060,8 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
         }
     };
 
-    AstNodeRef callerInlineRootRef = AstNodeRef::invalid();
+    AstNodeRef               callerInlineRootRef = AstNodeRef::invalid();
+    const SemaInlinePayload* lastExaminedPayload = nullptr;
     for (size_t i = frames_.size(); i != 0 && callerInlineRootRef.isInvalid(); --i)
     {
         const CodeGenFrame& candidateFrame = frames_[i - 1];
@@ -1069,6 +1070,12 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
 
         const SemaInlinePayload* inlinePayload = candidateFrame.currentInlineContext().payload;
         SWC_ASSERT(inlinePayload != nullptr);
+        // Loop and switch frames inherit this payload. Rechecking it cannot change the
+        // ancestor match while the visitor remains at the same node.
+        if (inlinePayload == lastExaminedPayload || inlinePayload->materializedArgRefs.empty())
+            continue;
+        lastExaminedPayload = inlinePayload;
+
         for (const AstNodeRef materializedArgRef : inlinePayload->materializedArgRefs)
         {
             if (isAncestorRef(materializedArgRef))

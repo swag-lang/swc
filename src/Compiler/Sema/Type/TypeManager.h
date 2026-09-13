@@ -179,14 +179,37 @@ private:
     static constexpr uint32_t INTERN_STRIPE_BITS  = 4;
     static constexpr uint32_t INTERN_STRIPE_COUNT = 1u << INTERN_STRIPE_BITS;
 
+    struct StoredTypeDeleter
+    {
+        // The shard owns the bytes; the intern table owns the payload's lifetime.
+        void operator()(TypeInfo* type) const noexcept { std::destroy_at(type); }
+    };
+    using StoredType = std::unique_ptr<TypeInfo, StoredTypeDeleter>;
+
+    struct StoredTypeHash
+    {
+        using is_transparent = void;
+        size_t operator()(const StoredType& type) const noexcept { return type->hash(); }
+        size_t operator()(const TypeInfo& type) const noexcept { return type.hash(); }
+    };
+
+    struct StoredTypeEqual
+    {
+        using is_transparent = void;
+        bool operator()(const StoredType& lhs, const StoredType& rhs) const noexcept { return *lhs == *rhs; }
+        bool operator()(const StoredType& lhs, const TypeInfo& rhs) const noexcept { return *lhs == rhs; }
+        bool operator()(const TypeInfo& lhs, const StoredType& rhs) const noexcept { return lhs == *rhs; }
+    };
+
     struct InternStripe
     {
-        std::unordered_map<TypeInfo, TypeRef, TypeInfoHash> map;
-        mutable std::shared_mutex                           mutex;
+        std::unordered_set<StoredType, StoredTypeHash, StoredTypeEqual> map;
+        mutable std::shared_mutex                                      mutex;
     };
 
     struct Shard
     {
+        // Keep storage alive until all interned payloads have been destroyed.
         PagedStore                                    store;
         std::array<InternStripe, INTERN_STRIPE_COUNT> internStripes;
         mutable std::mutex                            storeMutex;

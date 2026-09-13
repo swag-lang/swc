@@ -198,38 +198,39 @@ namespace
         }
 
         builder.runtimeDependencyInitOrder.reserve(builder.runtimeDependencies.size());
-        std::vector scheduled(builder.runtimeDependencies.size(), false);
-        while (builder.runtimeDependencyInitOrder.size() < builder.runtimeDependencies.size())
+        std::vector<uint32_t> ready;
+        ready.reserve(builder.runtimeDependencies.size());
+        for (uint32_t i = 0; i < indegree.size(); ++i)
         {
-            bool progressed = false;
-            for (uint32_t i = 0; i < builder.runtimeDependencies.size(); ++i)
-            {
-                if (scheduled[i] || indegree[i] != 0)
-                    continue;
+            if (indegree[i] == 0)
+                ready.push_back(i);
+        }
 
-                scheduled[i] = true;
-                builder.runtimeDependencyInitOrder.push_back(i);
-                for (const uint32_t dependentIndex : outgoing[i])
+        // Preserve the lowest-index choice when completing a dependency unlocks an earlier module.
+        std::ranges::make_heap(ready, std::greater{});
+        while (!ready.empty())
+        {
+            std::ranges::pop_heap(ready, std::greater{});
+            const uint32_t index = ready.back();
+            ready.pop_back();
+            builder.runtimeDependencyInitOrder.push_back(index);
+            for (const uint32_t dependentIndex : outgoing[index])
+            {
+                SWC_ASSERT(indegree[dependentIndex] != 0);
+                indegree[dependentIndex] -= 1;
+                if (indegree[dependentIndex] == 0)
                 {
-                    SWC_ASSERT(indegree[dependentIndex] != 0);
-                    indegree[dependentIndex] -= 1;
+                    ready.push_back(dependentIndex);
+                    std::ranges::push_heap(ready, std::greater{});
                 }
-
-                progressed = true;
-                break;
             }
+        }
 
-            if (progressed)
-                continue;
-
-            for (uint32_t i = 0; i < builder.runtimeDependencies.size(); ++i)
-            {
-                if (scheduled[i])
-                    continue;
-
-                scheduled[i] = true;
+        // Cycles and modules blocked by them retain the historical input-order fallback.
+        for (uint32_t i = 0; i < indegree.size(); ++i)
+        {
+            if (indegree[i] != 0)
                 builder.runtimeDependencyInitOrder.push_back(i);
-            }
         }
 
         builder.runtimeDependencyDropOrder = builder.runtimeDependencyInitOrder;
@@ -1070,8 +1071,16 @@ Result NativeBackendBuilder::prepare()
             // function has therefore been lowered successfully.
             if (compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
             {
-                auto                         executableFunctions = collectExecutableFunctionRoots(*this);
-                std::unordered_set           seenFunctions(executableFunctions.begin(), executableFunctions.end());
+                auto                                executableFunctions = collectExecutableFunctionRoots(*this);
+                std::unordered_set<SymbolFunction*> seenFunctions;
+                seenFunctions.reserve(executableFunctions.size());
+                size_t uniqueRootCount = 0;
+                for (auto* function : executableFunctions)
+                {
+                    if (seenFunctions.insert(function).second)
+                        executableFunctions[uniqueRootCount++] = function;
+                }
+                executableFunctions.resize(uniqueRootCount);
                 std::unordered_set<uint64_t> visitedAllocations;
                 size_t                      nextCallFunctionIndex     = 0;
                 size_t                      nextConstantFunctionIndex = 0;

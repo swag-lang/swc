@@ -257,6 +257,44 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(NativeArtifact_RuntimeDependencyOrderPreservesPriorityAndCycleFallback)
+{
+    const NativeArtifactTestFixture fixture(ctx.global(), makeNativeArtifactCmdLine());
+    auto& imports = const_cast<std::vector<CompilerInstance::NativeRuntimeImport>&>(fixture.compiler->nativeRuntimeImports());
+    imports = {
+        {.moduleName = "a", .linkModuleName = "a", .transitiveImports = {"c", "c", "a", "absent"}},
+        {.moduleName = "b", .linkModuleName = "b"},
+        {.moduleName = "c", .linkModuleName = "c"},
+        {.moduleName = "d", .linkModuleName = "d", .transitiveImports = {"a", "b"}},
+        {.moduleName = "e", .linkModuleName = "e"},
+    };
+    SWC_RESULT(fixture.nativeBuilder->prepare());
+    const std::vector<uint32_t> expectedInit = {1, 2, 0, 3, 4};
+    const std::vector<uint32_t> expectedDrop = {4, 3, 0, 2, 1};
+    if (fixture.nativeBuilder->runtimeDependencyInitOrder != expectedInit || fixture.nativeBuilder->runtimeDependencyDropOrder != expectedDrop)
+        return Result::Error;
+
+    imports = {
+        {.moduleName = "a", .linkModuleName = "a", .transitiveImports = {"b"}},
+        {.moduleName = "b", .linkModuleName = "b", .transitiveImports = {"a"}},
+        {.moduleName = "c", .linkModuleName = "c", .transitiveImports = {"a"}},
+        {.moduleName = "d", .linkModuleName = "d"},
+        {.moduleName = "e", .linkModuleName = "e", .transitiveImports = {"d"}},
+        {.moduleName = "f", .linkModuleName = "f"},
+    };
+    SWC_RESULT(fixture.nativeBuilder->prepare());
+    const std::vector<uint32_t> expectedCycleInit = {3, 4, 5, 0, 1, 2};
+    const std::vector<uint32_t> expectedCycleDrop = {2, 1, 0, 5, 4, 3};
+    if (fixture.nativeBuilder->runtimeDependencyInitOrder != expectedCycleInit || fixture.nativeBuilder->runtimeDependencyDropOrder != expectedCycleDrop)
+        return Result::Error;
+
+    imports.clear();
+    SWC_RESULT(fixture.nativeBuilder->prepare());
+    if (!fixture.nativeBuilder->runtimeDependencyInitOrder.empty() || !fixture.nativeBuilder->runtimeDependencyDropOrder.empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NativeArtifact_DefaultsToLocalOutputTree)
 {
     const CommandLine cmdLine   = makeNativeArtifactCmdLine();

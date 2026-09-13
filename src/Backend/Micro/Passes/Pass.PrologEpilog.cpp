@@ -427,7 +427,6 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
     if (!context.preservePersistentRegs)
     {
         pushedRegs_.clear();
-        retRefs_.clear();
         savedRegSlots_.clear();
         savedRegsStackSubSize_ = 0;
         useFramePointer_       = false;
@@ -443,22 +442,20 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
         return Result::Continue;
     }
 
-    MicroInstrRef firstRef = MicroInstrRef::invalid();
-    retRefs_.clear();
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+    const auto beginIt = context.instructions->view().begin();
+    if (beginIt != context.instructions->view().end())
     {
-        if (firstRef.isInvalid())
-            firstRef = it.current;
-        if (it->op == MicroInstrOpcode::Ret)
-            retRefs_.push_back(it.current);
+        insertSavedRegsPrologue(context, conv, beginIt.current);
+        // Insertions before a Ret preserve its successor. Walk from the
+        // original first instruction to skip the newly inserted prologue.
+        for (auto it = beginIt; it != context.instructions->view().end(); ++it)
+        {
+            if (it->op == MicroInstrOpcode::Ret)
+                insertSavedRegsEpilogue(context, conv, it.current);
+        }
     }
 
-    if (firstRef.isValid())
-        insertSavedRegsPrologue(context, conv, firstRef);
-    for (const MicroInstrRef retRef : retRefs_)
-        insertSavedRegsEpilogue(context, conv, retRef);
-
-    context.passChanged = firstRef.isValid() || remappedPersistentRegsToTransient;
+    context.passChanged = beginIt.current.isValid() || remappedPersistentRegsToTransient;
     return Result::Continue;
 }
 

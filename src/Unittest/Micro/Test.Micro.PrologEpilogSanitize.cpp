@@ -170,6 +170,64 @@ SWC_TEST_BEGIN(MicroPrologEpilog_FirstDefinitionsPreserveSaveOrderAcrossRegister
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroPrologEpilog_RestoresEveryReturnFromOriginalAnchors)
+{
+    const CallConv& conv  = CallConv::get(CallConvKind::WindowsX64);
+    constexpr auto  saved = MicroReg::intReg(7);
+    MicroBuilder    builder(ctx);
+    const auto      alternate = builder.createLabel();
+    // A call prevents leaf remapping from removing the persistent register.
+    builder.emitCallReg(conv.intReturn, CallConvKind::WindowsX64);
+    const auto originalFirst = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegImm(saved, ApInt(17, 64), MicroOpBits::B64);
+    builder.emitCmpRegImm(conv.intReturn, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, alternate);
+    builder.emitRet();
+    const auto firstRet = builder.instructions().lastInstructionRef();
+    builder.placeLabel(alternate);
+    builder.emitRet();
+    const auto secondRet = builder.instructions().lastInstructionRef();
+
+    MicroPrologEpilogPass pass;
+    MicroPassManager      manager;
+    manager.addStartPass(pass);
+    MicroPassContext context;
+    context.callConvKind           = CallConvKind::WindowsX64;
+    context.preservePersistentRegs = true;
+    SWC_RESULT(builder.runPasses(manager, nullptr, context));
+    if (builder.instructions().count() != 13)
+        return Result::Error;
+
+    const auto& operands = builder.operands();
+    const auto  first    = builder.instructions().view().begin();
+    if (first->op != MicroInstrOpcode::Push || first->ops(operands)[0].reg != saved)
+        return Result::Error;
+    const auto  subtractRef = builder.instructions().findNextInstructionRef(first.current);
+    const auto* subtract    = builder.instructions().ptr(subtractRef);
+    if (!subtract || !isStackAdjust(*subtract, subtract->ops(operands), conv.stackPointer, MicroOp::Subtract, 8) ||
+        builder.instructions().findNextInstructionRef(subtractRef) != originalFirst)
+        return Result::Error;
+
+    uint32_t returns = 0;
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+    {
+        if (it->op != MicroInstrOpcode::Ret)
+            continue;
+        if (returns >= 2 || it.current != (returns ? secondRet : firstRet))
+            return Result::Error;
+        const auto  popRef = builder.instructions().findPreviousInstructionRef(it.current);
+        const auto* pop    = builder.instructions().ptr(popRef);
+        if (!pop || pop->op != MicroInstrOpcode::Pop || pop->ops(operands)[0].reg != saved)
+            return Result::Error;
+        const auto* add = builder.instructions().ptr(builder.instructions().findPreviousInstructionRef(popRef));
+        if (!add || !isStackAdjust(*add, add->ops(operands), conv.stackPointer, MicroOp::Add, 8))
+            return Result::Error;
+        ++returns;
+    }
+    return returns == 2 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesAdjacentStackAdjustments)
 {
     constexpr MicroReg rsp = MicroReg::intReg(4);

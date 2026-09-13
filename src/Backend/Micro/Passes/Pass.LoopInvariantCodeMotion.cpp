@@ -338,11 +338,6 @@ namespace
         if (loopsByHeader.empty())
             return false;
 
-        std::unordered_map<uint32_t, uint32_t> refToIndex;
-        refToIndex.reserve(n);
-        for (uint32_t i = 0; i < n; ++i)
-            refToIndex[instrRefs[i].get()] = i;
-
         // Hoisting needs instruction-local effects, not SSA values or phis.
         // Collect these only after finding a natural loop worth analyzing.
         std::vector<MicroInstrUseDef>          useDefs(n);
@@ -413,8 +408,9 @@ namespace
             const MicroInstrRef prevRef = storage.findPreviousInstructionRef(headerRef);
             if (!prevRef.isValid())
                 continue;
-            const auto prevIdxIt = refToIndex.find(prevRef.get());
-            if (prevIdxIt == refToIndex.end() || inBody[prevIdxIt->second])
+            // The CFG snapshot follows storage order, and planning does not
+            // mutate instructions until every loop has been considered.
+            if (header == 0 || instrRefs[header - 1] != prevRef || inBody[header - 1])
                 continue;
             const MicroInstr* prevInst = storage.ptr(prevRef);
             if (!prevInst)

@@ -555,6 +555,13 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         if (shape.hasImmediate && ops[shape.immediateSlot].valueInt.bitWidth() > 64)
             continue;
 
+        // Every memory key needs its base's SSA value. Physical bases cannot
+        // participate, so they need neither relocation nor frame preparation.
+        if (shape.readsMemory && !isNumberableReg(ops[shape.useSlots[0]].reg))
+            continue;
+        if (shape.addrBitsSlot != K_NO_SLOT && ops[shape.addrBitsSlot].opBits != MicroOpBits::B64)
+            continue;
+
         if (!relocationsReady && (shape.readsMemory || shape.keyedByRelocationToo))
         {
             // Both lookups below need the same snapshot. Relocations remain
@@ -583,9 +590,6 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             if (frameDerivedRegs.contains(ops[shape.useSlots[0]].reg))
                 continue;
         }
-        if (shape.addrBitsSlot != K_NO_SLOT && ops[shape.addrBitsSlot].opBits != MicroOpBits::B64)
-            continue;
-
         const MicroOpBits movBits = ops[shape.movBitsSlot].opBits;
         const MicroOpBits useBits = shape.readsMemory ? MicroOpBits::B64 : movBits;
         const MicroOpBits srcBits = shape.readsMemory ? ops[shape.srcBitsSlot].opBits : movBits;

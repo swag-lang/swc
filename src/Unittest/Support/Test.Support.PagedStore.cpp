@@ -306,6 +306,94 @@ SWC_TEST_BEGIN(PagedStore_ReserveRangeSupportsOversizedZeroedBlocks)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(DataSegment_StringPoolOwnsInputsAndPreservesViewsAcrossGrowth)
+{
+    DataSegment      segment;
+    std::string_view stored;
+    Ref              storedRef = INVALID_REF;
+    {
+        std::array input      = {'x', 'A', '\0', 'B', 'z'};
+        const auto [view, ref] = segment.addString(std::string_view(input.data() + 1, 3));
+        stored                = view;
+        storedRef             = ref;
+        if (stored.data() == input.data() + 1)
+            return Result::Error;
+        input.fill('!');
+    }
+    const std::string_view expected{"A\0B", 3};
+    if (stored != expected || stored.data()[stored.size()] != '\0')
+        return Result::Error;
+
+    const auto [empty, emptyRef] = segment.addString(std::string_view{});
+    if (emptyRef == INVALID_REF || !empty.empty() || !empty.data() || empty.data()[0] != '\0')
+        return Result::Error;
+    if (segment.addString(Utf8{}).second != emptyRef)
+        return Result::Error;
+
+    const auto [subview, subviewRef] = segment.addString(stored.substr(1));
+    if (subview != expected.substr(1) || subview.data() == stored.data() + 1 || subviewRef == storedRef)
+        return Result::Error;
+    if (subview.data()[subview.size()] != '\0')
+        return Result::Error;
+
+    for (uint32_t index = 0; index < 192; ++index)
+    {
+        std::string text = std::format("string-pool-growth-{}-", index);
+        text.append(128, 'g');
+        const auto [view, ref] = segment.addString(text);
+        if (view != text || view.data()[view.size()] != '\0' || ref == INVALID_REF)
+            return Result::Error;
+    }
+    const std::string large(PagedStore::K_DEFAULT_PAGE_SIZE + 17, 'L');
+    const auto [largeView, largeRef] = segment.addString(large);
+    if (largeView != large || largeView.data()[largeView.size()] != '\0' || largeRef == INVALID_REF)
+        return Result::Error;
+
+    const uint32_t extent   = segment.extentSize();
+    const auto [hit, hitRef] = segment.addString(expected);
+    if (hitRef != storedRef || hit.data() != stored.data() || hit != expected || segment.extentSize() != extent)
+        return Result::Error;
+    if (segment.addString(stored).second != storedRef || segment.addString(subview).second != subviewRef)
+        return Result::Error;
+    if (segment.addString(large).second != largeRef || segment.addString("").second != emptyRef)
+        return Result::Error;
+    if (segment.extentSize() != extent)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DataSegment_StringPoolRelocationsRetainIndependentKeysAcrossRestore)
+{
+    DataSegment segment;
+    const auto [baseOffset, slots] = segment.reserveSpan<const char*>(2);
+    const std::string_view value{"field\0value", 11};
+    constexpr uint32_t     fieldOffset = sizeof(const char*);
+    const uint32_t         length      = segment.addString(baseOffset, fieldOffset, value);
+    const auto [stored, storedRef] = segment.addString(value);
+    if (length != value.size() || slots[0] != nullptr || slots[1] != stored.data() || stored != value)
+        return Result::Error;
+    if (stored.data()[stored.size()] != '\0')
+        return Result::Error;
+    DataSegmentRelocation relocation;
+    if (!segment.findRelocation(relocation, baseOffset + fieldOffset, DataSegmentRelocationKind::DataSegmentOffset))
+        return Result::Error;
+    if (relocation.targetOffset != storedRef || relocation.targetShardIndex != INVALID_REF)
+        return Result::Error;
+
+    std::vector<std::byte> snapshot(segment.extentSize());
+    segment.copyToPreserveOffsets(snapshot);
+    snapshot[storedRef] = std::byte{0x58};
+    segment.restoreFromPreserveOffsets(snapshot);
+    const uint32_t extent   = segment.extentSize();
+    const auto [hit, hitRef] = segment.addString(value);
+    // Restoring mutable payload bytes does not rewrite the pool's owned lookup key.
+    if (hitRef != storedRef || hit.data() != stored.data() || hit.front() != 'X' || segment.extentSize() != extent)
+        return Result::Error;
+    if (slots[1] != hit.data() || segment.copyRelocations().size() != 1)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

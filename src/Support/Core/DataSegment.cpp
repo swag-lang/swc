@@ -74,26 +74,28 @@ std::pair<std::span<const std::byte>, Ref> DataSegment::addSpan(std::span<const 
     return {{ptr, value.size()}, offset};
 }
 
-std::pair<std::string_view, Ref> DataSegment::addString(const Utf8& value)
+std::pair<std::string_view, Ref> DataSegment::addString(const std::string_view value)
 {
     const std::unique_lock lock(mutex_);
     const auto             it = stringMap_.find(value);
     if (it != stringMap_.end())
         return it->second;
 
-    Utf8 zeroTerminated = value;
-    zeroTerminated.push_back('\0');
-
-    const auto [offset, ptr] = allocateStorageLocked(static_cast<uint32_t>(zeroTerminated.size()), alignof(std::byte), false);
-    std::memcpy(ptr, zeroTerminated.data(), zeroTerminated.size());
-    recordAllocation(offset, static_cast<uint32_t>(zeroTerminated.size()), alignof(std::byte));
+    SWC_ASSERT(value.size() < std::numeric_limits<uint32_t>::max());
+    const uint32_t size = static_cast<uint32_t>(value.size()) + 1;
+    const auto [offset, ptr] = allocateStorageLocked(size, alignof(std::byte), false);
+    if (!value.empty())
+        std::memcpy(ptr, value.data(), value.size());
+    ptr[value.size()] = std::byte{0};
+    recordAllocation(offset, size, alignof(std::byte));
     const std::string_view view{reinterpret_cast<const char*>(ptr), value.size()};
-    stringMap_[value] = {view, offset};
+    // The key stays independently owned: segment bytes can be restored by test snapshots.
+    stringMap_.emplace(std::string(value), std::pair{view, offset});
 
     return {view, offset};
 }
 
-uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value)
+uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const std::string_view value)
 {
     const std::pair<std::string_view, Ref> res = addString(value);
     addRelocation(baseOffset + fieldOffset, res.second);

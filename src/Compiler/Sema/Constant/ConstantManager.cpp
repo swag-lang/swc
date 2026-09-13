@@ -249,18 +249,28 @@ namespace
             if (it != stripe.map.end())
                 return it->second;
 
-            const std::pair<std::string_view, Ref> res      = shard.dataSegment.addString(value.getString());
-            ConstantValue                          strValue = ConstantValue::makeString(ctx, res.first);
-            if (ctx.typeMgr().get(value.typeRef()).isString())
+            const bool preserveType = ctx.typeMgr().get(value.typeRef()).isString();
+            if (!preserveType)
+            {
+                // Alias inputs can miss with their original type but normalize to an existing key.
+                // Check before allocating a constant that would be discarded at insertion.
+                const ConstantValue normalizedValue = ConstantValue::makeString(ctx, value.getString());
+                const auto          normalized      = stripe.map.find(normalizedValue);
+                if (normalized != stripe.map.end())
+                    return normalized->second;
+            }
+
+            const std::pair<std::string_view, Ref> res = shard.dataSegment.addString(value.getString());
+            ConstantValue strValue = ConstantValue::makeString(ctx, res.first);
+            if (preserveType)
                 strValue.setTypeRef(value.typeRef());
             strValue.setDataSegmentRef({.shardIndex = shardIndex, .offset = res.second});
             localIndex = shard.dataSegment.add(strValue);
             ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
             SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
             result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
-            // Alias inputs normalize to the string type above, so their original lookup can
-            // miss even when the normalized value already exists in this stripe.
-            const auto insertedIt = stripe.map.emplace(std::move(canonical), result).first;
+            const auto [insertedIt, inserted] = stripe.map.emplace(std::move(canonical), result);
+            SWC_ASSERT(inserted);
             result = insertedIt->second;
         }
 

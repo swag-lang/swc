@@ -342,3 +342,64 @@ Both compiler configurations built successfully, and [all 695 C++ tests passed](
 with the same 28 filesystem tests excluded. This final change only enlarges the test and updates
 the compiler cache identity. The production algorithms are unchanged from build 540, whose JIT
 and native results remain the final language-suite evidence above.
+
+## Additional reductions in build 543
+
+String interning accepts a borrowed `string_view` for lookup and copies directly into its final
+NUL-terminated segment storage on a miss. The map still owns independent string keys: restoring
+mutable segment bytes must not change their identity. This removes implicit input conversion,
+the temporary terminated-string buffer, and explicit name copies in type metadata generation.
+Empty views, embedded NUL bytes, stable storage, relocation layout, and locking are preserved.
+
+Repeated alias-string constants now check their normalized key under the original stripe's
+exclusive lock before allocating a new arena object. The original input still selects the shard
+and stripe, and nullable string types retain their type. The repeated-input regression now also
+requires the segment extent to remain unchanged on canonical hits.
+
+Local declarations first compare the last registered symbol, or the exact suffix for a group.
+The usual register/ensure sequence consequently avoids rescanning all previously declared locals.
+Older-symbol lookups and reentry keep the existing complete search, including redirected scopes.
+Two code-generation traversals append children directly to their DFS stack, removing an
+intermediate child vector and copy at each visited node while preserving valid-node LIFO order.
+No micro pass is changed.
+
+Two new C++ tests cover destroyed or modified input buffers, non-terminated subviews, embedded
+NULs, null-data empty views, page and oversized-block growth, stable interned references,
+relocations, and lookup keys independent of restored payload bytes.
+Both build-543 compiler configurations built successfully. All tool-driven validations were
+serialized. The same 28 filesystem C++ tests remain excluded. No timing comparison was performed.
+
+| Build-543 complete suite | Result | Evidence |
+| --- | --- | --- |
+| C++ | 697 passed | [Log](cpp-543.log) |
+| Semantic analysis | 278 valid inputs and 293 expected-error inputs verified | [Log](sema-543.log) |
+| JIT | 1,402 passed | [Log](jit-543.log) |
+| Native, program configuration `devmode` | 3,141 passed; generated executable passed | [Log](native-devmode-543.log) |
+| Native, program configuration `release` | 3,141 passed; generated executable passed | [Log](native-release-543.log) |
+
+Focused JIT checks passed for [attribute parameter names](jit-typeinfo_attribute_param-543.log)
+(1), [aggregate metadata](jit-typeinfo_aggregate-543.log) (5),
+[generic function metadata](jit-typeinfo_function_generics-543.log) (1),
+[inline binding usage](jit-binding_usage_summary-543.log) (3), and
+[binding visitor growth](jit-binding_visit_growth-543.log) (1).
+Native checks passed for [string literals](native-literals-string-543.log) (19),
+[string variants](native-string_variants-543.log) (13),
+[deferred re-emission](native-defer_reemission-543.log) (2),
+[defer control flow](native-compiler-defer-543.log) (5),
+[cross-file injected macro payloads](native-code-payload-543.log) (1),
+[struct field metadata](native-typeinfo_struct_fields-543.log) (6), and
+[function metadata](native-typeinfo_function-543.log) (1).
+The initial `code_payload_macro.swg` selection was only a provider and executed zero tests;
+it is not counted as functional evidence. The corrected `code_payload` filter includes the
+provider, container, and executable caller test.
+
+The Release compiler passed native checks for
+[attribute parameters](release-compiler-typeinfo_attribute_param-543.log) (1),
+[generic functions](release-compiler-typeinfo_function_generics-543.log) (1),
+[string literals](release-compiler-literals-string-543.log) (19), and
+[deferred re-emission](release-compiler-defer_reemission-543.log) (2).
+The forced workspace consumer rebuild passed with both the
+[DevMode compiler](workspace-consumer-543.log) and the
+[Release compiler](release-compiler-workspace-consumer-543.log). Each rebuilt three standard
+dependencies and six local modules, executed the main entry point, and passed the cross-module
+initialization and destruction assertions.

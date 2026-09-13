@@ -85,8 +85,8 @@ public:
 
     std::pair<std::span<const std::byte>, Ref> addSpan(std::span<const std::byte> value);
     std::pair<std::span<const std::byte>, Ref> addSpan(std::span<const std::byte> value, uint32_t align);
-    std::pair<std::string_view, Ref>           addString(const Utf8& value);
-    uint32_t                                   addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value);
+    std::pair<std::string_view, Ref>           addString(std::string_view value);
+    uint32_t                                   addString(uint32_t baseOffset, uint32_t fieldOffset, std::string_view value);
     void                                       addRelocation(uint32_t offset, uint32_t targetOffset);
     void                                       addRelocation(uint32_t offset, DataSegmentRef targetRef);
     void                                       addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol, bool allowUnresolvedFunction = false);
@@ -165,6 +165,12 @@ public:
     }
 
 private:
+    struct StringHash
+    {
+        using is_transparent = void;
+        size_t operator()(std::string_view value) const noexcept { return std::hash<std::string_view>{}(value); }
+    };
+
     uint32_t                                                               currentExtentLocked() const noexcept;
     std::pair<uint32_t, std::byte*>                                        allocateStorageLocked(uint32_t size, uint32_t align, bool zeroInit);
     std::byte*                                                             findPtrLocked(Ref ref, uint32_t size) noexcept;
@@ -179,7 +185,7 @@ private:
     PagedStore                                                             store_;
     std::vector<LargeBlock>                                                largeBlocks_;
     std::map<uintptr_t, LargeBlockRange>                                   largeBlockRanges_;
-    std::unordered_map<std::string, std::pair<std::string_view, uint32_t>> stringMap_;
+    std::unordered_map<std::string, std::pair<std::string_view, uint32_t>, StringHash, std::equal_to<>> stringMap_;
     std::vector<DataSegmentRelocation>                                     relocations_;
     // Sorted-by-offset index over the first `relocationsIndexedCount_` relocations. Relocations beyond
     // that count form an unsorted tail. Readers query the sorted prefix (binary search) plus the tail

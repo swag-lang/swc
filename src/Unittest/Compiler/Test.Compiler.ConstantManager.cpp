@@ -371,15 +371,17 @@ SWC_TEST_BEGIN(ConstantManager_PreservesStringNormalizationOnRepeatedInputs)
     {
         ConstantValue value = ConstantValue::makeString(ctx, "normalized-canonical-string");
         value.setTypeRef(inputType);
-        const ConstantRef first = manager.addConstant(ctx, value);
-        const ConstantValue& stored = manager.get(first);
-        const TypeRef expectedType = inputType == aliasType ? ctx.typeMgr().typeString() : nullableType;
+        const ConstantRef    first        = manager.addConstant(ctx, value);
+        const ConstantValue& stored       = manager.get(first);
+        const DataSegment&   segment      = manager.shardDataSegment(first.get() >> ConstantManager::LOCAL_BITS);
+        const uint32_t       extent       = segment.extentSize();
+        const TypeRef        expectedType = inputType == aliasType ? ctx.typeMgr().typeString() : nullableType;
         if (stored.typeRef() != expectedType || stored.getString() != value.getString() || value.typeRef() != inputType)
             return Result::Error;
         for (uint32_t repeat = 0; repeat < 8; ++repeat)
         {
             const ConstantRef hit = manager.addConstant(ctx, value);
-            if (hit != first || &manager.get(hit) != &stored)
+            if (hit != first || &manager.get(hit) != &stored || segment.extentSize() != extent)
                 return Result::Error;
 #if SWC_HAS_REF_DEBUG_INFO
             if (first.dbgPtr != &stored || hit.dbgPtr != &stored)

@@ -132,7 +132,7 @@ namespace
             if (i < genericParams.size() && genericParams[i].idRef.isValid())
             {
                 const auto& id = ctx.idMgr().get(genericParams[i].idRef);
-                tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{id.name});
+                tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), id.name);
                 tv.crc         = Math::crc32(id.name);
             }
 
@@ -535,7 +535,7 @@ namespace
             if (srcParam.nameIdRef.isValid())
             {
                 const auto& id       = ctx.idMgr().get(srcParam.nameIdRef);
-                dstParam.name.length = storage.addString(paramOffset, offsetof(Runtime::AttributeParam, name.ptr), Utf8{id.name});
+                dstParam.name.length = storage.addString(paramOffset, offsetof(Runtime::AttributeParam, name.ptr), id.name);
             }
 
             if (srcParam.valueCstRef.isValid())
@@ -734,7 +734,7 @@ namespace
                 if (aggregate.names.size() > i && aggregate.names[i].isValid())
                 {
                     const auto& id = ctx.idMgr().get(aggregate.names[i]);
-                    tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{id.name});
+                    tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), id.name);
                     tv.crc         = Math::crc32(id.name);
                 }
 
@@ -1014,11 +1014,11 @@ namespace
 
                 Runtime::TypeValue& tv = paramsPtr[i];
 
-                Utf8 paramName;
+                std::string_view paramName;
                 if (symParam->idRef().isValid())
                 {
                     const auto& id = ctx.idMgr().get(symParam->idRef());
-                    paramName      = Utf8{id.name};
+                    paramName      = id.name;
                 }
 
                 const uint32_t elemOffset = paramsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));

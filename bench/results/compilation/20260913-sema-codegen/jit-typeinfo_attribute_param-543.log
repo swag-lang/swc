@@ -1,0 +1,10 @@
+  ◆  swag        run • tools • devmode
+  ✓  checked     66 files • 181_132 tokens • 1 s 79 ms
+  ✓  tuned       458 functions • 2 s 348 ms
+  ◆  swag        test • bin/unittests/jit • devmode
+  ✓  checked     20 files • 40_363 tokens • 181 ms
+  ✓  tuned       190 functions • 93 ms
+  ✓  executed    1 passed • 99 ms
+  ✓  verified    3 us
+  ✓  tested      1 passed • 289 ms
+  ✓  clean       296 ms

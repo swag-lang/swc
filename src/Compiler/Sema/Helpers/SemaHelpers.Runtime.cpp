@@ -547,6 +547,10 @@ void SemaHelpers::ensureCurrentLocalScopeSymbol(Sema& sema, Symbol* sym)
     if (!sym || !scope)
         return;
 
+    // A newly declared local was just appended by registerSymbol.
+    if (!scope->symbols().empty() && scope->symbols().back() == sym)
+        return;
+
     for (const Symbol* existing : scope->symbols())
     {
         if (existing == sym)
@@ -559,8 +563,16 @@ void SemaHelpers::ensureCurrentLocalScopeSymbol(Sema& sema, Symbol* sym)
 
 void SemaHelpers::ensureCurrentLocalScopeSymbols(Sema& sema, std::span<Symbol* const> symbols)
 {
-    if (!sema.curScope().isLocal())
+    if (!sema.curScope().isLocal() || symbols.empty())
         return;
+
+    // Multiple declarations append their symbols together, in this same order.
+    if (const SemaScope* scope = currentLocalSymbolScope(sema))
+    {
+        const auto scopeSymbols = scope->symbols().span();
+        if (scopeSymbols.size() >= symbols.size() && std::ranges::equal(scopeSymbols.last(symbols.size()), symbols))
+            return;
+    }
 
     for (Symbol* sym : symbols)
         ensureCurrentLocalScopeSymbol(sema, sym);

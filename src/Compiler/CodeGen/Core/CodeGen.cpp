@@ -1622,6 +1622,8 @@ void CodeGen::invalidateNodePayloadRegs(AstNodeRef nodeRef)
     {
         const AstNodeRef rawRef = stack.back();
         stack.pop_back();
+        if (rawRef.isInvalid())
+            continue;
 
         const AstNodeRef currentRef = resolvedNodeRef(rawRef);
         if (currentRef.isInvalid() || !visited.insert(currentRef).second)
@@ -1630,13 +1632,7 @@ void CodeGen::invalidateNodePayloadRegs(AstNodeRef nodeRef)
         if (CodeGenNodePayload* payload = safePayload(currentRef))
             payload->reg = MicroReg::invalid();
 
-        SmallVector<AstNodeRef> children;
-        node(currentRef).collectChildrenFromAst(children, ast());
-        for (const AstNodeRef childRef : children)
-        {
-            if (childRef.isValid())
-                stack.push_back(childRef);
-        }
+        node(currentRef).collectChildrenFromAst(stack, ast());
     }
 }
 
@@ -1652,6 +1648,8 @@ bool CodeGen::containsNodeId(AstNodeRef nodeRef, const AstNodeId nodeId)
     {
         const AstNodeRef rawRef = stack.back();
         stack.pop_back();
+        if (rawRef.isInvalid())
+            continue;
 
         // The root is the function being emitted. Its value can be wrapped in a conversion at
         // the enclosing call site; following that substitution would hide its body and defers.
@@ -1665,13 +1663,7 @@ bool CodeGen::containsNodeId(AstNodeRef nodeRef, const AstNodeId nodeId)
         if (currentNode.id() == nodeId)
             return true;
 
-        SmallVector<AstNodeRef> children;
-        currentNode.collectChildrenFromAst(children, ast());
-        for (const AstNodeRef childRef : children)
-        {
-            if (childRef.isValid())
-                stack.push_back(childRef);
-        }
+        currentNode.collectChildrenFromAst(stack, ast());
     }
 
     return false;

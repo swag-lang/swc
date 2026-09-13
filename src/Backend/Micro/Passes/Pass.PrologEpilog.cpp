@@ -490,9 +490,10 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
 
     pushedRegs_.clear();
     savedRegSlots_.clear();
-    savedRegsStackSubSize_ = 0;
-    useFramePointer_       = context.forceFramePointer;
-    bool framePointerNamed = false;
+    savedRegsStackSubSize_     = 0;
+    useFramePointer_           = context.forceFramePointer;
+    bool     framePointerNamed = false;
+    uint64_t classifiedRegs    = 0;
 
     // Scan concrete register operands and collect only ABI-persistent regs that are used.
     auto& storeOps = *context.operands;
@@ -509,19 +510,32 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
             if (!reg.isValid() || reg.isVirtual())
                 continue;
 
-            if (reg.isInt())
+            // Merely naming the frame pointer requests its setup. Every
+            // other register matters only at its first definition.
+            if (reg.isInt() && reg == conv.framePointer)
             {
-                if (!conv.isIntPersistentReg(reg))
-                    continue;
-
-                if (reg == conv.framePointer)
+                if (conv.isIntPersistentReg(reg))
                 {
                     useFramePointer_  = true;
                     framePointerNamed = true;
-                    continue;
                 }
+                continue;
+            }
+            if (!microInstrRef.def)
+                continue;
 
-                if (!microInstrRef.def)
+            const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+            if (bit < MicroPhysLiveness::K_INVALID_BIT)
+            {
+                const uint64_t mask = 1ull << bit;
+                if (classifiedRegs & mask)
+                    continue;
+                classifiedRegs |= mask;
+            }
+
+            if (reg.isInt())
+            {
+                if (!conv.isIntPersistentReg(reg))
                     continue;
 
                 if (!containsPushedReg(reg))
@@ -530,8 +544,6 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
             else if (reg.isFloat())
             {
                 if (!conv.isFloatPersistentReg(reg))
-                    continue;
-                if (!microInstrRef.def)
                     continue;
 
                 if (!containsSavedSlot(reg))

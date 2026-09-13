@@ -196,10 +196,15 @@ namespace
         ops[2].opBits    = bits;
     }
 
+    struct RegOccurrences
+    {
+        uint32_t      count    = 0;
+        MicroInstrRef firstRef = MicroInstrRef::invalid();
+    };
+
     struct LoopScan
     {
-        std::unordered_map<MicroReg, uint32_t>      defCount;  // definitions inside the body
-        std::unordered_map<MicroReg, MicroInstrRef> singleDef; // the one definition, when there is one
+        std::unordered_map<MicroReg, RegOccurrences> defs;
     };
 
     // One round over every natural loop. Returns true when it changed the IR.
@@ -233,9 +238,8 @@ namespace
 
         // Every loop reads the same unmodified instruction stream. Collect its
         // register effects and whole-function uses once, without constructing SSA.
-        std::vector<MicroInstrUseDef>               useDefs(n);
-        std::unordered_map<MicroReg, uint32_t>      useCount;
-        std::unordered_map<MicroReg, MicroInstrRef> singleUse;
+        std::vector<MicroInstrUseDef>                useDefs(n);
+        std::unordered_map<MicroReg, RegOccurrences> uses;
         for (uint32_t i = 0; i < n; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
@@ -244,8 +248,9 @@ namespace
             useDefs[i] = inst->collectUseDef(operands, context.encoder);
             for (const MicroReg use : useDefs[i].uses)
             {
-                if (++useCount[use] == 1)
-                    singleUse[use] = instrRefs[i];
+                RegOccurrences& info = uses[use];
+                if (++info.count == 1)
+                    info.firstRef = instrRefs[i];
             }
         }
 
@@ -292,14 +297,15 @@ namespace
                     continue;
                 for (const MicroReg def : useDefs[i].defs)
                 {
-                    if (++scan.defCount[def] == 1)
-                        scan.singleDef[def] = instrRefs[i];
+                    RegOccurrences& info = scan.defs[def];
+                    if (++info.count == 1)
+                        info.firstRef = instrRefs[i];
                 }
             }
 
             // A register the loop never writes.
             auto isInvariantReg = [&](const MicroReg reg) {
-                return reg.isVirtualInt() && !scan.defCount.contains(reg);
+                return reg.isVirtualInt() && !scan.defs.contains(reg);
             };
 
             // The inductions: one in-loop definition, an add or a subtract of an
@@ -313,10 +319,10 @@ namespace
                         return k;
                 if (!reg.isVirtualInt())
                     return K_INVALID;
-                const auto countIt = scan.defCount.find(reg);
-                if (countIt == scan.defCount.end() || countIt->second != 1)
+                const auto countIt = scan.defs.find(reg);
+                if (countIt == scan.defs.end() || countIt->second.count != 1)
                     return K_INVALID;
-                const MicroInstrRef stepRef  = scan.singleDef[reg];
+                const MicroInstrRef stepRef  = countIt->second.firstRef;
                 const MicroInstr*   stepInst = storage.ptr(stepRef);
                 const auto*         stepOps  = stepInst ? stepInst->ops(operands) : nullptr;
                 if (!stepOps || stepOps[0].reg != reg)
@@ -384,9 +390,9 @@ namespace
                 const MicroInstrOperand* copyOps     = prevCopy ? prevCopy->ops(operands) : nullptr;
                 if (!copyOps || prevCopy->op != MicroInstrOpcode::LoadRegReg || copyOps[0].reg != reg || !isCounterBits(copyOps[2].opBits))
                     return reg;
-                const auto defIt = scan.defCount.find(reg);
-                const auto useIt = useCount.find(reg);
-                if (defIt == scan.defCount.end() || defIt->second != 1 || useIt == useCount.end() || useIt->second != 1)
+                const auto defIt = scan.defs.find(reg);
+                const auto useIt = uses.find(reg);
+                if (defIt == scan.defs.end() || defIt->second.count != 1 || useIt == uses.end() || useIt->second.count != 1)
                     return reg;
                 const uint32_t inductionIx = inductionIndexOf(copyOps[1].reg);
                 if (inductionIx == K_INVALID || inductions[inductionIx].bits != copyOps[2].opBits)
@@ -401,10 +407,10 @@ namespace
             // a shift costs one cycle like the step that would replace it, so
             // it is carried only when the pointer built on it dies with it.
             auto feedsCarriedSum = [&](const MicroReg reg) {
-                const auto useIt = useCount.find(reg);
-                if (useIt == useCount.end() || useIt->second != 1)
+                const auto useIt = uses.find(reg);
+                if (useIt == uses.end() || useIt->second.count != 1)
                     return false;
-                const MicroInstrRef      useRef  = singleUse[reg];
+                const MicroInstrRef      useRef  = useIt->second.firstRef;
                 const MicroInstr*        useInst = storage.ptr(useRef);
                 const MicroInstrOperand* useOps  = useInst ? useInst->ops(operands) : nullptr;
                 if (!useOps)
@@ -605,10 +611,10 @@ namespace
                 for (const Candidate& candidate : sums)
                 {
                     const Induction& induction = inductions[candidate.inductionIx];
-                    const auto       useIt     = useCount.find(induction.reg);
-                    const uint32_t   uses      = useIt == useCount.end() ? 0 : useIt->second;
+                    const auto       useIt     = uses.find(induction.reg);
+                    const uint32_t   useCount  = useIt == uses.end() ? 0 : useIt->second.count;
                     // The step reads the induction once itself.
-                    if (uses == sumsPerInduction[candidate.inductionIx] + 1)
+                    if (useCount == sumsPerInduction[candidate.inductionIx] + 1)
                         chosen.push_back(candidate);
                 }
             }

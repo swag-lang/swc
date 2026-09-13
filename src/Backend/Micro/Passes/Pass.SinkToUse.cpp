@@ -12,8 +12,8 @@
 
 // See the header for why this exists. One round finds every definition that
 // can legally sit just before its single consumer and moves it there; chains
-// resolve over the optimization loop's iterations, since a moved consumer is
-// left alone in the round that moves its producer.
+// resolve over successive rounds when a consumer moves farther than its
+// producer's destination in the current instruction listing.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -49,7 +49,6 @@ namespace
         std::vector<RegCounts>        regCounts;
         std::unordered_set<uint32_t>  relocationRefs;
         std::vector<Move>             moves;
-        std::unordered_set<uint32_t>  movedRefs;
     };
 
     thread_local SinkScratch sinkScratch;
@@ -90,12 +89,6 @@ namespace
 
         if (useDef.defs.size() != 1 || !useDef.defs[0].isVirtual())
             return false;
-        for (const MicroReg used : useDef.uses)
-        {
-            if (!used.isVirtual() && !used.isInt() && !used.isFloat())
-                return false;
-        }
-
         // Sinking a definition to its reader ends its result's live range
         // there but stretches every register it reads down to the same
         // point. A materialization reads nothing, a load one base register:
@@ -108,6 +101,8 @@ namespace
         {
             if (used.isVirtual())
                 ++virtualReads;
+            else if (!used.isInt() && !used.isFloat())
+                return false;
         }
         return virtualReads <= 1;
     }
@@ -127,11 +122,15 @@ namespace
 
         // Block ids from the linear listing: a label opens a block, a
         // terminator closes one.
-        scratch.blockIds.assign(n, 0);
+        scratch.blockIds.resize(n);
         // Sinking only needs instruction-local register effects. Building SSA
         // here would also compute dominators, phis and reaching values on each
         // round, none of which participates in the movement checks below.
         scratch.useDefs.resize(n);
+        scratch.virtualRegs.clear();
+        scratch.virtualRegs.reserve(n / 2);
+        scratch.regCounts.clear();
+        scratch.regCounts.reserve(n / 2);
         {
             uint32_t current   = 0;
             bool     openBlock = true;
@@ -150,38 +149,31 @@ namespace
                 scratch.blockIds[i] = current;
                 if (info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                     openBlock = false;
-            }
-        }
 
-        // Whole-function def and use counts per virtual register, and the one
-        // use's position when there is exactly one.
-        scratch.virtualRegs.clear();
-        scratch.virtualRegs.reserve(n / 2);
-        scratch.regCounts.clear();
-        scratch.regCounts.reserve(n / 2);
-        for (uint32_t i = 0; i < n; ++i)
-        {
-            const MicroInstrUseDef* useDef = &scratch.useDefs[i];
-            for (const MicroReg def : useDef->defs)
-            {
-                if (!def.isVirtual())
-                    continue;
+                // Counts span the whole function even though each move stays
+                // inside one block. Preserve definition-before-use indexing.
+                const MicroInstrUseDef& useDef = scratch.useDefs[i];
+                for (const MicroReg def : useDef.defs)
+                {
+                    if (!def.isVirtual())
+                        continue;
 
-                const uint32_t denseIndex = scratch.virtualRegs.ensure(def);
-                if (denseIndex == scratch.regCounts.size())
-                    scratch.regCounts.emplace_back();
-                ++scratch.regCounts[denseIndex].definitions;
-            }
-            for (const MicroReg used : useDef->uses)
-            {
-                if (!used.isVirtual())
-                    continue;
+                    const uint32_t denseIndex = scratch.virtualRegs.ensure(def);
+                    if (denseIndex == scratch.regCounts.size())
+                        scratch.regCounts.emplace_back();
+                    ++scratch.regCounts[denseIndex].definitions;
+                }
+                for (const MicroReg used : useDef.uses)
+                {
+                    if (!used.isVirtual())
+                        continue;
 
-                const uint32_t denseIndex = scratch.virtualRegs.ensure(used);
-                if (denseIndex == scratch.regCounts.size())
-                    scratch.regCounts.emplace_back();
-                ++scratch.regCounts[denseIndex].uses;
-                scratch.regCounts[denseIndex].onlyUseIndex = i;
+                    const uint32_t denseIndex = scratch.virtualRegs.ensure(used);
+                    if (denseIndex == scratch.regCounts.size())
+                        scratch.regCounts.emplace_back();
+                    ++scratch.regCounts[denseIndex].uses;
+                    scratch.regCounts[denseIndex].onlyUseIndex = i;
+                }
             }
         }
 
@@ -193,7 +185,6 @@ namespace
         }
 
         scratch.moves.clear();
-        scratch.movedRefs.clear();
 
         for (uint32_t i = 0; i < n; ++i)
         {
@@ -268,11 +259,6 @@ namespace
             if (blocked || !meaningfulGap)
                 continue;
 
-            // A consumer that is itself moved this round loses its slot; its
-            // producer sinks on the next round instead.
-            if (scratch.movedRefs.contains(instrRefs[useIdx].get()))
-                continue;
-
             const MicroInstrOperand* ops = inst->ops(operands);
             Move                     move;
             move.ref       = instrRefs[i];
@@ -280,13 +266,15 @@ namespace
             move.op        = inst->op;
             if (ops && inst->numOperands)
                 move.ops.assign(ops, ops + inst->numOperands);
-            scratch.movedRefs.insert(instrRefs[i].get());
             scratch.moves.push_back(std::move(move));
         }
 
         if (scratch.moves.empty())
             return false;
 
+        // Moves follow the original instruction order, and every destination
+        // lies after its producer. A destination therefore still exists when
+        // its producer moves, even if the destination itself moves later.
         for (const Move& move : scratch.moves)
         {
             storage.insertDerivedBefore(operands, move.beforeRef, move.op, move.ops);

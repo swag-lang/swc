@@ -1402,7 +1402,7 @@ namespace
         // Build the seed groups: complete 16-byte chunks of candidates.
         VectorPlan             plan;
         TreeBuilder            builder(scan, plan, fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary());
-        std::vector<SeedGroup> groups;
+        std::vector<SeedGroup> vectorized;
 
         for (auto& [rootKey, candidates] : candidatesByRoot)
         {
@@ -1432,22 +1432,28 @@ namespace
                 group.offset  = candidates[index].offset;
                 for (uint32_t lane = 0; lane < K_LANE_COUNT; ++lane)
                     group.tuple.ids[lane] = candidates[index + lane].valueId;
-                groups.push_back(group);
+                vectorized.push_back(group);
                 index += K_LANE_COUNT;
             }
         }
 
-        if (groups.empty())
+        if (vectorized.empty())
             return false;
 
         // Grow the trees; a group that fails simply keeps its scalar stores.
-        std::vector<SeedGroup> vectorized;
-        for (SeedGroup& group : groups)
+        size_t retainedGroups = 0;
+        for (size_t groupIndex = 0; groupIndex < vectorized.size(); ++groupIndex)
         {
-            group.planReg = builder.build(group.tuple, 0);
+            SeedGroup& group = vectorized[groupIndex];
+            group.planReg    = builder.build(group.tuple, 0);
             if (group.planReg != K_INVALID_ID)
-                vectorized.push_back(group);
+            {
+                if (retainedGroups != groupIndex)
+                    vectorized[retainedGroups] = group;
+                ++retainedGroups;
+            }
         }
+        vectorized.resize(retainedGroups);
 
         if (vectorized.empty() || plan.arithmeticOps == 0)
             return false;

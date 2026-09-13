@@ -55,6 +55,63 @@ SWC_TEST_BEGIN(SlpVectorize_UnpackableStores_DoesNotBuildSsa)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SlpVectorize_KeepsSeedOrderAcrossRejectedMiddleGroup)
+{
+    MicroBuilder   builder(ctx);
+    X64Encoder     encoder(ctx);
+    MicroSsaState  ssa;
+    const MicroReg sp = encoder.stackPointerReg();
+    builder.emitClearReg(MicroReg::virtualFloatReg(100), MicroOpBits::B128);
+    for (uint32_t group = 0; group < 3; ++group)
+    {
+        for (uint32_t lane = 0; lane < 4; ++lane)
+        {
+            const MicroReg value = MicroReg::virtualIntReg(1 + group * 4 + lane);
+            if (group == 1)
+                builder.emitLoadRegImm(value, ApInt(lane + 1, 32), MicroOpBits::B32);
+            else
+            {
+                builder.emitLoadRegMem(value, sp, 0x40 + group * 16 + lane * 4, MicroOpBits::B32);
+                builder.emitOpBinaryRegImm(value, ApInt(1, 8), MicroOp::ShiftLeft, MicroOpBits::B32);
+            }
+            builder.emitLoadMemReg(sp, 0x100 + group * 16 + lane * 4, value, MicroOpBits::B32);
+        }
+    }
+    builder.emitClearReg(MicroReg::intReg(10), MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runSlpPass(builder, ssa, encoder));
+    uint32_t packedStores = 0;
+    uint32_t scalarStores = 0;
+    uint32_t packedLoads  = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const auto* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadVecRegMem)
+        {
+            if (packedLoads >= 2 || ops[3].valueU64 != 0x40 + packedLoads * 32 || ops[0].reg.index() <= 100)
+                return Result::Error;
+            ++packedLoads;
+        }
+        if (inst.op == MicroInstrOpcode::StoreVecMemReg)
+        {
+            if (packedStores >= 2 || ops[3].valueU64 != 0x100 + packedStores * 32)
+                return Result::Error;
+            ++packedStores;
+        }
+        if (inst.op == MicroInstrOpcode::LoadMemReg)
+        {
+            if (scalarStores >= 4 || ops[3].valueU64 != 0x110 + scalarStores * 4)
+                return Result::Error;
+            ++scalarStores;
+        }
+    }
+    if (packedStores != 2 || packedLoads != 2 || scalarStores != 4)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(SlpVectorize_StackAndOneParameterAreTheRootLimit)
 {
     for (const bool secondParameter : {false, true})

@@ -486,6 +486,8 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
         {
             case MicroOp::MultiplySigned:
             case MicroOp::MultiplyUnsigned:
+                if (immediate > 1 && !canRewriteShift(opBits, immediate))
+                    break;
                 // A successful signed rewrite already found a flags definition
                 // before any use or boundary in this unchanged suffix.
                 if (!usedSignedMultiply && !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))

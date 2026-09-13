@@ -178,6 +178,12 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         if (!tryGetLabelId(labelId, *labelInst, labelInst->ops(operands)))
             continue;
 
+        // A header without one incoming jump cannot rotate, regardless of
+        // its test run. The incoming-jump index stays fixed during recognition.
+        const auto incoming = jumpsByTarget.find(labelId);
+        if (incoming == jumpsByTarget.end() || incoming->second.count != 1)
+            continue;
+
         // The test run: one duplicable compare, possibly surrounded by
         // connectors, closed by the conditional jump.
         const uint32_t testBegin = ordinal + 1;
@@ -225,9 +231,6 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         // The back edge must be the only jump aimed at this label, and
         // unconditional. A second one would keep re-entering above the test
         // this rotation stops re-running.
-        const auto incoming = jumpsByTarget.find(labelId);
-        if (incoming == jumpsByTarget.end() || incoming->second.count != 1)
-            continue;
         const uint32_t backOrdinal = incoming->second.ordinal;
         if (backOrdinal <= testEnd)
             continue;

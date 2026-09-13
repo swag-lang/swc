@@ -1,0 +1,18 @@
+swc.dm.exe :
+Au caractère Ligne:2 : 1
++ & bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm cpp --num-core ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+  ◆  swag        run • tools • devmode
+  ✓  module      win32 • 31 files • 310 ms
+  ✓  module      xinput • 28 files • 355 ms
+  ✓  module      core • 349 files • core.dll • 37 s 606 ms
+  ✓  workspace   std [core] • 3 modules • 42 s 840 ms
+  ✓  checked     66 files • 181_114 tokens • 14 s 859 ms
+  ✓  tuned       458 functions • 26 s 3 ms
+
+  ◆  swag        unittest • sources
+  ✓  tested      696 passed • 2 min 21 s
+  ✓  clean       2 min 21 s

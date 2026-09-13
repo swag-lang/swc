@@ -1,0 +1,18 @@
+
+  DebugInfoCodeView.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  MicroPassManager.cpp
+  Pass.InstructionCombine.LoadFold.cpp
+  Pass.RegisterAllocation.Interval.cpp
+  Pass.RegisterAllocation.cpp
+  Sema.Compiler.cpp
+  DocPage.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  Test.Encoder.EncodeX64.cpp
+  Test.Micro.InstructionCombine.cpp
+  Test.Micro.LoopInvariantCodeMotion.cpp
+  Test.Micro.RegAlloc.cpp
+  UnittestHelpers.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-compile-perf\bin\swc.dm.exe

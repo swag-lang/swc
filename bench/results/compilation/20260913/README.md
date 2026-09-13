@@ -1,6 +1,6 @@
 # Static compilation-cost reductions, 2026-09-13
 
-Latest validated compiler: **build 553**. Each batch is functionally validated before
+Latest validated compiler: **build 554**. Each batch is functionally validated before
 integration into master. The load-admission waiver applies to this session; performance
 measurements remain deferred until the final campaign.
 
@@ -29,11 +29,12 @@ measurements remain deferred until the final campaign.
 | 21 | 551 | 763 passed | 3,131 / 3,131 passed | [Rotation preparation without jumps](batch21.md) |
 | 22 | 552 | 766 passed | 3,131 / 3,131 passed | [Compact membership and shared analysis data](batch22.md) |
 | 23 | 553 | 768 passed | 3,131 / 3,131 passed | [Dominance scratch, loop indices and vector claims](batch23.md) |
+| 24 | 554 | 770 passed | 3,131 / 3,131 passed | [Liveness buffers and address roots](batch24.md) |
 
 ## Integration status
 
-All 23 validated batches are integrated into local master. The latest source change is
-`ed84fffb0` (build 553); the tested DevMode compiler is the checkout-local
+All 24 validated batches are integrated into local master. The latest source change is
+`8ccfd4f2c` (build 554); the tested DevMode compiler is the checkout-local
 `bin/swc.dm.exe` in `C:/Perso/swag-lang/swc-compile-perf`. Each source batch was built
 and passed the C++ suite plus native tests in both program configurations before merging.
 No optimization rule or iteration budget was weakened to obtain these static reductions.

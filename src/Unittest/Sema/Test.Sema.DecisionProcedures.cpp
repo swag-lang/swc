@@ -313,7 +313,8 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Sema_TypeManagerConcurrentInterningKeepsCanonicalStorage)
 {
     constexpr size_t NUM_WORKERS = 2;
-    constexpr size_t NUM_TYPES   = 256;
+    // The three families exceed one default storage page per shard, even when evenly spread.
+    constexpr size_t NUM_TYPES   = 1024;
     constexpr size_t NUM_FIELDS  = 32;
 
     TypeManager                                                  manager;
@@ -336,7 +337,7 @@ SWC_TEST_BEGIN(Sema_TypeManagerConcurrentInterningKeepsCanonicalStorage)
                 rendezvous.arrive_and_wait();
                 commonRefs[worker][index] = manager.addType(TypeInfo::makeAggregateArray(types));
                 addresses[worker][index]  = &manager.get(commonRefs[worker][index]);
-                types.back()             = TypeRef{static_cast<uint32_t>(2000 + worker * NUM_TYPES + index)};
+                types.back()             = TypeRef{static_cast<uint32_t>(1000 + (worker + 1) * NUM_TYPES + index)};
                 uniqueRefs[worker][index] = manager.addType(TypeInfo::makeAggregateArray(types));
             }
         });
@@ -372,7 +373,7 @@ SWC_TEST_BEGIN(Sema_TypeManagerConcurrentInterningKeepsCanonicalStorage)
 #endif
             const TypeRef unique = uniqueRefs[worker][index];
             allRefs.insert(unique);
-            if (manager.get(unique).payloadAggregate().types.back() != TypeRef{static_cast<uint32_t>(2000 + worker * NUM_TYPES + index)})
+            if (manager.get(unique).payloadAggregate().types.back() != TypeRef{static_cast<uint32_t>(1000 + (worker + 1) * NUM_TYPES + index)})
                 return Result::Error;
         }
     }

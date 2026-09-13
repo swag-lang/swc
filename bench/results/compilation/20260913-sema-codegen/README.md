@@ -1,7 +1,7 @@
 # Semantic analysis and code generation work reductions, 2026-09-13
 
 This change removes repeated work outside the micro passes. Functional validation targets
-compiler builds 532 through 540 on `1cb02fdaa` plus the changes below. Work is isolated on
+compiler builds 532 through 542 on `1cb02fdaa` plus the changes below. Work is isolated on
 `perf/sema-codegen-compile-time` in the `swc-sema-codegen-perf` worktree. Micro-pass work has its own
 [report](../20260913/README.md).
 
@@ -199,7 +199,7 @@ change. It was the only failing test: 684 passed and one failed. Build 536 was a
 validation binary, not a retained implementation or a timing baseline. The test counts live blocks
 in a dedicated mimalloc heap; it does not compare process memory or compilation time.
 
-Additional regressions race two type-interning threads across table and arena growth, retain pointers
+Additional regressions race two type-interning threads across table growth, retain pointers
 to old entries, and check references returned by later hits. Constant tests destroy their temporary
 aggregate inputs and verify that storage enrichment does not mutate borrowed-span or pointer inputs.
 The runtime-order regression covers priority changes, repeated imports, absent and self imports,
@@ -329,3 +329,16 @@ required no compiler change. The first three bulk-default cases have a separate
 [pre-change functional log](native-bulk-default-539-baseline.log).
 Semantic analysis and the forced workspace consumer retain their build-539 evidence; build 540
 changes only the described lowering path and adds the concurrent C++ regression.
+
+## Final validation strengthening in build 542
+
+The concurrent type-interning test now uses three disjoint families of 1,024 types, rather than
+256. Their 3,072 distinct arena objects exceed the combined capacity of one default 16 KiB page
+in each of the eight shards. This guarantees physical page growth, independently of hash
+distribution, while both threads retain references to earlier entries. The final checks cover
+canonical identity, payload contents, stable addresses, and diagnostic references after growth.
+
+Both compiler configurations built successfully, and [all 695 C++ tests passed](cpp-542.log),
+with the same 28 filesystem tests excluded. This final change only enlarges the test and updates
+the compiler cache identity. The production algorithms are unchanged from build 540, whose JIT
+and native results remain the final language-suite evidence above.

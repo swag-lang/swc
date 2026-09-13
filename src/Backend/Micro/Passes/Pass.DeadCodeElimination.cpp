@@ -158,6 +158,9 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
+    // Every removable instruction defines a virtual value.
+    if (ssaState->values().empty())
+        return Result::Continue;
 
     MicroOperandStorage&  operands = *context.operands;
     std::vector<uint8_t>  usedValues;

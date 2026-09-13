@@ -499,11 +499,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     // Relocation-bearing loads are keyed by what they point at, so the pass
     // needs to reach a relocation from its instruction.
     std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstruction;
-    for (const MicroRelocation& reloc : context.builder->codeRelocations())
-    {
-        if (reloc.instructionRef.isValid())
-            relocationByInstruction[reloc.instructionRef] = &reloc;
-    }
+    bool                                                      relocationsReady = false;
 
     std::unordered_set<MicroReg> frameDerivedRegs;
     bool                         frameDerivedRegsReady = false;
@@ -558,6 +554,18 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         // A >64-bit immediate would need extra key words; too rare to matter.
         if (shape.hasImmediate && ops[shape.immediateSlot].valueInt.bitWidth() > 64)
             continue;
+
+        if (!relocationsReady && (shape.readsMemory || shape.keyedByRelocationToo))
+        {
+            // Both lookups below need the same snapshot. Relocations remain
+            // untouched until the queued rewrites are applied after this scan.
+            for (const MicroRelocation& reloc : context.builder->codeRelocations())
+            {
+                if (reloc.instructionRef.isValid())
+                    relocationByInstruction[reloc.instructionRef] = &reloc;
+            }
+            relocationsReady = true;
+        }
 
         // A load through the frame is mem2reg's, and a RIP-relative one reads
         // an address the relocation binds rather than the base register.
@@ -708,7 +716,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         }
 
         if (!replaced)
-            bucket.push_back({.index = i, .defReg = dstReg, .defValueId = myValueId, .epoch = memoryEpoch, .op = inst->op, .movBits = movBits, .key = key});
+            bucket.push_back({.index = i, .defReg = dstReg, .defValueId = myValueId, .epoch = memoryEpoch, .op = inst->op, .movBits = movBits, .key = std::move(key)});
     }
 
     if (rewrites.empty())

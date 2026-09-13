@@ -135,6 +135,82 @@ SWC_TEST_BEGIN(MicroDominators_MatchReachabilityWithANodeRemoved)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LICM_RetargetsDuplicateRelocationsAndKeepsUnhoistedOnes)
+{
+    constexpr MicroReg count  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg acc    = MicroReg::virtualIntReg(2);
+    constexpr MicroReg first  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg second = MicroReg::virtualIntReg(4);
+    constexpr MicroReg kept   = MicroReg::virtualIntReg(5);
+    MicroBuilder       builder(ctx);
+    const auto         header = builder.createLabel();
+    builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(acc, ApInt(0, 64), MicroOpBits::B64);
+    builder.placeLabel(header);
+    builder.emitLoadRegMem(first, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+    const auto firstRef = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegMem(second, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+    const auto secondRef = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegPtrImm(kept, 0x3000);
+    const auto keptRef = builder.instructions().lastInstructionRef();
+    for (const auto value : {first, second, kept})
+        builder.emitOpBinaryRegReg(acc, value, MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, header);
+    builder.emitLoadRegReg(MicroReg::intReg(0), acc, MicroOpBits::B64);
+    builder.emitRet();
+
+    const std::array               originalRefs{firstRef, keptRef, secondRef, firstRef, secondRef};
+    std::array<MicroRelocation, 5> expected;
+    for (size_t index = 0; index < expected.size(); ++index)
+    {
+        auto& reloc          = expected[index];
+        reloc.instructionRef = originalRefs[index];
+        reloc.targetAddress  = 0x1000 + index * 0x100;
+        reloc.form           = index == 1 ? MicroRelocation::Form::Absolute64 : MicroRelocation::Form::Relative32;
+        reloc.codeOffset     = static_cast<uint32_t>(index * 8);
+        builder.addRelocation(reloc);
+    }
+
+    SWC_RESULT(runLicmPass(builder));
+    MicroInstrRef firstHoisted  = MicroInstrRef::invalid();
+    MicroInstrRef secondHoisted = MicroInstrRef::invalid();
+    bool          inLoop        = false;
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+    {
+        if (it->op == MicroInstrOpcode::Label)
+            inLoop = true;
+        if (it->op != MicroInstrOpcode::LoadRegMem)
+            continue;
+        if (inLoop)
+            return Result::Error;
+        const auto reg = it->ops(builder.operands())[0].reg;
+        if (reg == first)
+            firstHoisted = it.current;
+        else if (reg == second)
+            secondHoisted = it.current;
+    }
+    const auto* keptInst = builder.instructions().ptr(keptRef);
+    if (firstHoisted.isInvalid() || secondHoisted.isInvalid() || firstHoisted == secondHoisted ||
+        builder.instructions().ptr(firstRef) || builder.instructions().ptr(secondRef) ||
+        !keptInst || keptInst->op != MicroInstrOpcode::LoadRegPtrImm)
+        return Result::Error;
+    const auto&      relocations = builder.codeRelocations();
+    const std::array finalRefs{firstHoisted, keptRef, secondHoisted, firstHoisted, secondHoisted};
+    if (relocations.size() != expected.size())
+        return Result::Error;
+    for (size_t index = 0; index < expected.size(); ++index)
+    {
+        const auto& reloc = relocations[index];
+        if (reloc.instructionRef != finalRefs[index] || !reloc.hasSameTarget(expected[index]) ||
+            reloc.form != expected[index].form || reloc.codeOffset != expected[index].codeOffset)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // Control: a load nothing in the loop can alias moves to the preheader.
 SWC_TEST_BEGIN(LICM_HoistsInvariantLoad)
 {
@@ -337,48 +413,54 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroDomTree_MatchesPathsThroughDiamondAndLoop)
 {
-    MicroBuilder        builder(ctx);
-    const MicroLabelRef loop  = builder.createLabel();
-    const MicroLabelRef right = builder.createLabel();
-    const MicroLabelRef join  = builder.createLabel();
-    builder.placeLabel(loop);
-    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, right);
-    builder.emitClearReg(MicroReg::virtualIntReg(1), MicroOpBits::B64);
-    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
-    builder.placeLabel(right);
-    builder.emitClearReg(MicroReg::virtualIntReg(2), MicroOpBits::B64);
-    builder.placeLabel(join);
-    builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B64, loop);
-    builder.emitRet();
-    builder.emitClearReg(MicroReg::virtualIntReg(3), MicroOpBits::B64);
-    builder.emitRet();
-
-    const auto& cfg = builder.controlFlowGraph();
-    const auto  n   = cfg.instructionCount();
-    for (uint32_t entry = 0; entry < n; ++entry)
+    for (const bool withLoop : {false, true})
     {
-        const auto dom       = MicroPassHelpers::computeInstructionDominators(cfg, entry);
-        const auto reachable = reachableWithoutInstruction(cfg, n, entry);
-        for (uint32_t a = 0; a < n; ++a)
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef loop  = builder.createLabel();
+        const MicroLabelRef right = builder.createLabel();
+        const MicroLabelRef join  = builder.createLabel();
+        builder.placeLabel(loop);
+        builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, right);
+        builder.emitClearReg(MicroReg::virtualIntReg(1), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+        builder.placeLabel(right);
+        builder.emitClearReg(MicroReg::virtualIntReg(2), MicroOpBits::B64);
+        builder.placeLabel(join);
+        if (withLoop)
+            builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B64, loop);
+        builder.emitRet();
+        builder.emitClearReg(MicroReg::virtualIntReg(3), MicroOpBits::B64);
+        builder.emitRet();
+
+        const auto& cfg = builder.controlFlowGraph();
+        const auto  n   = cfg.instructionCount();
+        if (cfg.hasLoop() != withLoop)
+            return Result::Error;
+        for (uint32_t entry = 0; entry < n; ++entry)
         {
-            // A dominates B precisely when removing A leaves no entry-to-B path.
-            // Try every entry, including roots after unreachable instructions.
-            const auto without = reachableWithoutInstruction(cfg, a, entry);
-            if (dom.reachable(a) != (reachable[a] != 0))
-                return Result::Error;
-            for (uint32_t b = 0; b < n; ++b)
+            const auto dom       = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+            const auto reachable = reachableWithoutInstruction(cfg, n, entry);
+            for (uint32_t a = 0; a < n; ++a)
             {
-                const bool expected = reachable[a] && reachable[b] && !without[b];
-                if (dom.dominates(a, b) != expected)
+                // A dominates B precisely when removing A leaves no entry-to-B path.
+                // Try every entry, including roots after unreachable instructions.
+                const auto without = reachableWithoutInstruction(cfg, a, entry);
+                if (dom.reachable(a) != (reachable[a] != 0))
                     return Result::Error;
+                for (uint32_t b = 0; b < n; ++b)
+                {
+                    const bool expected = reachable[a] && reachable[b] && !without[b];
+                    if (dom.dominates(a, b) != expected)
+                        return Result::Error;
+                }
             }
+            if (dom.dominates(n, entry) || dom.dominates(entry, n))
+                return Result::Error;
         }
-        if (dom.dominates(n, entry) || dom.dominates(entry, n))
+        const auto invalid = MicroPassHelpers::computeInstructionDominators(cfg, n);
+        if (invalid.reachable(0) || invalid.dominates(0, 0))
             return Result::Error;
     }
-    const auto invalid = MicroPassHelpers::computeInstructionDominators(cfg, n);
-    if (invalid.reachable(0) || invalid.dominates(0, 0))
-        return Result::Error;
     return Result::Continue;
 }
 SWC_TEST_END()

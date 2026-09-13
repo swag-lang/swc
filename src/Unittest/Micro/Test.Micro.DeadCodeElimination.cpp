@@ -125,6 +125,21 @@ SWC_TEST_BEGIN(DeadCodeElimination_DeadFlagConsumerExposesArithmetic)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(DeadCodeElimination_PreservesStreamsWithoutVirtualDefinitions)
+{
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegImm(MicroReg::intReg(0), ApInt(17, 64), MicroOpBits::B64);
+    builder.emitLoadRegReg(MicroReg::intReg(1), MicroReg::virtualIntReg(1), MicroOpBits::B64);
+    builder.emitLoadMemReg(MicroReg::intReg(2), 0, MicroReg::virtualFloatReg(1), MicroOpBits::B64);
+    builder.emitRet();
+    const auto revision = builder.instructions().revision();
+    SWC_RESULT(runDeadCodeEliminationPass(builder));
+    if (builder.instructions().revision() != revision || builder.instructions().count() != 4)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

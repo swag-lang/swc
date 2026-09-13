@@ -193,6 +193,8 @@ namespace
     {
         const CanonicalValueContext context{&ssaState, &storage, &operands};
         computeSsaValueFixedPoint<CanonicalValue, CanonicalValueTraits>(outValues, outFlags, ssaState, context, tryInferInstructionCanonical);
+        if (ssaState.phis().empty())
+            return;
 
         // A phi whose incoming values disagree is a value of its own, like any
         // instruction that is not a copy: the pointer a loop carries, at its

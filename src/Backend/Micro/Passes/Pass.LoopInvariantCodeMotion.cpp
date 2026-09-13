@@ -353,11 +353,24 @@ namespace
                 ++defCount[def];
         }
 
-        std::unordered_set<uint32_t> relocRefs;
-        for (const MicroRelocation& reloc : context.builder->codeRelocations())
+        auto&                                relocations   = context.builder->codeRelocations();
+        const size_t                         relocationEnd = relocations.size();
+        std::unordered_map<uint32_t, size_t> firstRelocation;
+        std::vector<size_t>                  nextRelocation(relocationEnd, relocationEnd);
+        // One compact chain per instruction, preserving relocation order and
+        // duplicates without allocating a separate vector for every key.
+        for (size_t index = relocationEnd; index != 0;)
         {
-            if (reloc.instructionRef.isValid())
-                relocRefs.insert(reloc.instructionRef.get());
+            --index;
+            const MicroInstrRef ref = relocations[index].instructionRef;
+            if (ref.isInvalid())
+                continue;
+            const auto [it, inserted] = firstRelocation.try_emplace(ref.get(), index);
+            if (!inserted)
+            {
+                nextRelocation[index] = it->second;
+                it->second            = index;
+            }
         }
 
         const MicroReg     stackPointer = CallConv::get(context.callConvKind).stackPointer;
@@ -586,7 +599,7 @@ namespace
                         // clone of a relocated load or address materialization
                         // takes the relocation over when it is emitted; any
                         // other relocated instruction stays where it is.
-                        if (relocRefs.contains(ref.get()) && !isRelocatableHoist(inst->op))
+                        if (firstRelocation.contains(ref.get()) && !isRelocatableHoist(inst->op))
                             continue;
 
                         const MicroReg destReg = slotDefReg[i];
@@ -914,14 +927,14 @@ namespace
         {
             for (const Clone& clone : plan.clones)
             {
-                const MicroInstrRef hoistedRef = storage.insertDerivedBefore(operands, plan.headerRef, clone.op, clone.ops);
-                if (!relocRefs.contains(clone.original.get()))
+                const MicroInstrRef hoistedRef   = storage.insertDerivedBefore(operands, plan.headerRef, clone.op, clone.ops);
+                const auto          relocationIt = firstRelocation.find(clone.original.get());
+                if (relocationIt == firstRelocation.end())
                     continue;
-                for (MicroRelocation& reloc : context.builder->codeRelocations())
-                {
-                    if (reloc.instructionRef.get() == clone.original.get())
-                        reloc.instructionRef = hoistedRef;
-                }
+                // Cloning only changes MicroStorage; the relocation array and
+                // its index chains remain fixed until all retargeting is done.
+                for (size_t index = relocationIt->second; index != relocationEnd; index = nextRelocation[index])
+                    relocations[index].instructionRef = hoistedRef;
             }
         }
         for (const HoistPlan& plan : plans)

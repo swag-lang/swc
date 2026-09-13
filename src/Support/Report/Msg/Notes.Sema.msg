@@ -4,7 +4,7 @@ SWC_DIAG_DEF(sema_note_cast_explicit, Note, "consider an explicit cast if this c
 SWC_DIAG_DEF(sema_note_enum_underlying_cast, Note, "the enum's underlying type is '{opt-type}'")
 SWC_DIAG_DEF(sema_note_other_definition, Note, "previous definition of '{tok}' is here")
 SWC_DIAG_DEF(sema_note_previous_capture, Note, "previous capture of '{tok}' is here")
-SWC_DIAG_DEF(sema_note_previous_named_argument, Note, "previous named argument '{value}' is here")
+SWC_DIAG_DEF(sema_note_previous_named_argument, Note, "previous argument for '{value}' is here")
 SWC_DIAG_DEF(sema_note_generic_previous_deduction, Note, "generic parameter '{value}' was previously deduced from argument {prev-index} here")
 SWC_DIAG_DEF(sema_note_generic_instantiated_with, Note, "generic arguments: {values}")
 SWC_DIAG_DEF(sema_note_generic_requested_here, Note, "this specialization originates here")

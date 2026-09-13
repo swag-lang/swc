@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/MatchContext.h"
+#include "Compiler/Sema/Match/NamedArgumentLookup.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -363,9 +364,10 @@ namespace
 
     struct GenericRootCallParam
     {
-        bool hasDefault = false;
-        bool isVariadic = false;
-        bool isReceiver = false;
+        IdentifierRef idRef      = IdentifierRef::invalid();
+        bool          hasDefault = false;
+        bool          isVariadic = false;
+        bool          isReceiver = false;
     };
 
     struct CandidateAttempts
@@ -573,21 +575,20 @@ namespace
         failBadType(outFail, callArgIndex, paramIndex == UINT32_MAX ? callArgIndex : paramIndex, cf);
     }
 
-    Utf8 formatNamedParameters(const Sema& sema, std::span<SymbolVariable* const> params, uint32_t paramStart, uint32_t numParams)
+    Utf8 formatNamedParameters(const Sema& sema, std::span<const IdentifierRef> params)
     {
         Utf8 result;
         bool first = true;
-        for (uint32_t i = paramStart; i < numParams; ++i)
+        for (const IdentifierRef idRef : params)
         {
-            const SymbolVariable* param = params[i];
-            if (!param || !param->idRef().isValid())
+            if (!idRef.isValid())
                 continue;
 
             if (!first)
                 result += ", ";
             first = false;
             result += '\'';
-            result += param->name(sema.ctx());
+            result += sema.idMgr().get(idRef).name;
             result += '\'';
         }
 
@@ -632,7 +633,13 @@ namespace
                 size_t found = 0;
                 if (!fn.tryGetParameterIndexByName(found, idRef, paramStart))
                 {
-                    const Utf8 namedParams = formatNamedParameters(sema, params, paramStart, numParams);
+                    SmallVector<IdentifierRef> namedIds;
+                    for (uint32_t i = paramStart; i < numParams; ++i)
+                    {
+                        if (params[i])
+                            namedIds.push_back(params[i]->idRef());
+                    }
+                    const Utf8 namedParams = formatNamedParameters(sema, namedIds.span());
                     recordCallArgFailure(sema, fn, outFail, ufcsArg, userIndex, argRef, DiagnosticId::sema_err_named_argument_unknown, idRef, UINT32_MAX, namedParams.empty() ? DiagnosticId::sema_note_call_has_no_named_arguments : DiagnosticId::sema_note_available_named_arguments, AstNodeRef::invalid(), namedParams);
                     return false;
                 }
@@ -1592,7 +1599,7 @@ namespace
         return isVariadicTypeRefOrAlias(sema, typeRef);
     }
 
-    void appendGenericRootCallParams(Sema& sema, AstNodeRef paramRef, SmallVector<GenericRootCallParam>& outParams)
+    void appendGenericRootCallParams(Sema& sema, AstNodeRef paramRef, SmallVector<GenericRootCallParam>& outParams, bool captureNames)
     {
         if (paramRef.isInvalid())
             return;
@@ -1609,14 +1616,15 @@ namespace
             SmallVector<AstNodeRef> vars;
             sema.ast().appendNodes(vars, paramNode->cast<AstVarDeclList>().spanChildrenRef);
             for (const AstNodeRef varRef : vars)
-                appendGenericRootCallParams(sema, varRef, outParams);
+                appendGenericRootCallParams(sema, varRef, outParams, captureNames);
             return;
         }
 
         if (const auto* varDecl = paramNode->safeCast<AstSingleVarDecl>())
         {
-            const AstNodeRef typeRef = varDecl->typeOrInitRef();
-            outParams.push_back({.hasDefault = varDecl->nodeInitRef.isValid(), .isVariadic = isVariadicTypeNode(sema, typeRef, false)});
+            const AstNodeRef    typeRef = varDecl->typeOrInitRef();
+            const IdentifierRef idRef   = captureNames ? SemaHelpers::resolveIdentifier(sema, {varDecl->srcViewRef(), varDecl->tokNameRef}) : IdentifierRef::invalid();
+            outParams.push_back({.idRef = idRef, .hasDefault = varDecl->nodeInitRef.isValid(), .isVariadic = isVariadicTypeNode(sema, typeRef, false)});
             return;
         }
 
@@ -1627,13 +1635,16 @@ namespace
             const AstNodeRef typeRef    = multiVar->typeOrInitRef();
             const bool       hasDefault = multiVar->nodeInitRef.isValid();
             const bool       isVariadic = isVariadicTypeNode(sema, typeRef, false);
-            for ([[maybe_unused]] const TokenRef tokNameRef : tokNames)
-                outParams.push_back({.hasDefault = hasDefault, .isVariadic = isVariadic});
+            for (const TokenRef tokNameRef : tokNames)
+            {
+                const IdentifierRef idRef = captureNames ? SemaHelpers::resolveIdentifier(sema, {multiVar->srcViewRef(), tokNameRef}) : IdentifierRef::invalid();
+                outParams.push_back({.idRef = idRef, .hasDefault = hasDefault, .isVariadic = isVariadic});
+            }
             return;
         }
 
         if (paramNode->is(AstNodeId::FunctionParamMe))
-            outParams.push_back({.isReceiver = true});
+            outParams.push_back({.idRef = captureNames ? sema.idMgr().predefined(IdentifierManager::PredefinedName::Me) : IdentifierRef::invalid(), .isReceiver = true});
     }
 
     bool genericRootParamsExposeReceiver(std::span<const GenericRootCallParam> params)
@@ -1655,6 +1666,58 @@ namespace
         }
 
         return required;
+    }
+
+    bool checkGenericNamedCallArguments(Sema& sema, MatchFailure& outFail, const SymbolFunction& fn, std::span<const GenericRootCallParam> params, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    {
+        const uint32_t          paramStart = ufcsArg.isValid() ? 1u : 0u;
+        SmallVector<AstNodeRef> assignedArgs(params.size(), AstNodeRef::invalid());
+        if (paramStart && !params.empty())
+            assignedArgs[0] = ufcsArg;
+
+        bool                       seenNamed = false;
+        uint32_t                   nextPos   = paramStart;
+        Match::NamedArgumentLookup namedParamLookup;
+        for (uint32_t userIndex = 0; userIndex < args.size(); ++userIndex)
+        {
+            const AstNodeRef argRef  = args[userIndex];
+            const AstNode&   argNode = sema.node(argRef);
+            if (argNode.is(AstNodeId::NamedArgument))
+            {
+                seenNamed                 = true;
+                const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
+                uint32_t            found = 0;
+                if (!namedParamLookup.tryFind(found, params, idRef, paramStart))
+                {
+                    SmallVector<IdentifierRef> namedIds;
+                    for (uint32_t i = paramStart; i < params.size(); ++i)
+                        namedIds.push_back(params[i].idRef);
+                    const Utf8 namedParams = formatNamedParameters(sema, namedIds.span());
+                    recordCallArgFailure(sema, fn, outFail, ufcsArg, userIndex, argRef, DiagnosticId::sema_err_named_argument_unknown, idRef, UINT32_MAX, namedParams.empty() ? DiagnosticId::sema_note_call_has_no_named_arguments : DiagnosticId::sema_note_available_named_arguments, AstNodeRef::invalid(), namedParams);
+                    return false;
+                }
+                if (assignedArgs[found].isValid())
+                {
+                    recordCallArgFailure(sema, fn, outFail, ufcsArg, userIndex, argRef, DiagnosticId::sema_err_named_argument_duplicate, idRef, found, DiagnosticId::sema_note_previous_named_argument, assignedArgs[found]);
+                    return false;
+                }
+                assignedArgs[found] = argRef;
+                continue;
+            }
+
+            // The concrete signature validates a trailing implicit code block, including aliases.
+            if (isImplicitTrailingCodeBlockArg(sema, argRef))
+                continue;
+            if (seenNamed)
+            {
+                recordCallArgFailure(sema, fn, outFail, ufcsArg, userIndex, argRef, DiagnosticId::sema_err_unnamed_parameter);
+                return false;
+            }
+            if (nextPos < params.size())
+                assignedArgs[nextPos++] = argRef;
+        }
+
+        return true;
     }
 
     Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail);
@@ -1680,14 +1743,21 @@ namespace
             else
                 paramsNode.collectChildrenFromAst(paramNodes, declSema->ast());
 
+            const bool                        hasNamedArgs = std::ranges::any_of(args, [&](AstNodeRef argRef) { return sema.node(argRef).is(AstNodeId::NamedArgument); });
             SmallVector<GenericRootCallParam> params;
             for (const AstNodeRef paramRef : paramNodes)
-                appendGenericRootCallParams(*declSema, paramRef, params);
+                appendGenericRootCallParams(*declSema, paramRef, params, hasNamedArgs);
 
             const uint32_t numParams      = static_cast<uint32_t>(params.size());
             const bool     prependUfcsArg = ufcsArg.isValid() && (!fn.isMethod() || genericRootParamsExposeReceiver(params.span()));
             const uint32_t numArgs        = static_cast<uint32_t>(args.size()) + (prependUfcsArg ? 1u : 0u);
             const bool     variadic       = !params.empty() && params.back().isVariadic;
+
+            // Parameter names are available before their dependent types. Reject a malformed
+            // mapping here so deduction cannot replace it with a missing generic parameter.
+            const AstNodeRef mappedUfcsArg = prependUfcsArg ? ufcsArg : AstNodeRef::invalid();
+            if (hasNamedArgs && !checkGenericNamedCallArguments(sema, outFail, fn, params.span(), args, mappedUfcsArg))
+                return Result::Continue;
 
             if (!variadic && numArgs > numParams)
             {

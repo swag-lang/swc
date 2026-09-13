@@ -200,7 +200,9 @@ result with 'try', or design the failure-handling boundary to return a type
 that can represent absence.
 
 Inside '#test', 'try' is equivalent to 'expect', so both forms keep the
-success path concise when failure is not expected.
+success path concise when failure is not expected. An inlined function keeps
+its own error propagation: 'try' in its body still passes failures to the
+caller's handler.
 */
 #test
 {

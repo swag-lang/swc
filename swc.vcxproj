@@ -834,6 +834,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSafety.h"/>
         <ClInclude Include="src\Compiler\Sema\Match\Match.h"/>
         <ClInclude Include="src\Compiler\Sema\Match\MatchContext.h"/>
+        <ClInclude Include="src\Compiler\Sema\Match\NamedArgumentLookup.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\IdentifierManager.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Alias.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Constant.h"/>

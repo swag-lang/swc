@@ -237,7 +237,19 @@ namespace
         if (!decl || decl->id() != AstNodeId::CompilerFunc)
             return false;
 
-        return sema.token(decl->codeRef()).id == TokenId::CompilerFuncTest;
+        if (sema.token(decl->codeRef()).id != TokenId::CompilerFuncTest)
+            return false;
+
+        // Only caller-owned 'try' becomes 'expect' in a test. An ordinary inline keeps
+        // its callee's propagation semantics, including through nested textual expansions.
+        for (const auto* payload = SemaHelpers::effectiveInlinePayload(sema); payload; payload = payload->parentInlinePayload)
+        {
+            const auto* sourceFunction = payload->sourceFunction;
+            if (sourceFunction && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+                return false;
+        }
+
+        return true;
     }
 
     TokenId effectiveErrorManagementTokenId(const Sema& sema, TokenId tokenId)

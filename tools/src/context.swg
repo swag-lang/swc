@@ -216,32 +216,57 @@ public struct ArtifactPaths
 //
 // A compiler left to detect its core count takes the whole machine, and a campaign that starts
 // one compiler after another starves everything else running on it. A few cores are therefore
-// kept free by default, while an explicit '--num-cores' or '-j' anywhere in the arguments
-// still wins.
+// kept free by default. A script's forwarded choice also bounds its hosting compiler unless
+// the compiler prefix already specifies a choice of its own.
 private func withCoreBound(arguments: Arguments)->Arguments
 {
-    for value in arguments.values
+    let scriptInvocation    = isScriptInvocation(arguments)
+    var scriptFound         = false
+    var forwardedIndex      = Swag.U64.Max
+    var forwardedCount: u64 = 0
+    for i in 0 until arguments.count()
     {
-        let text = value.toString()
-        if text == "--num-cores" or text == "-j" or value.startsWith("--num-cores=") or value.startsWith("-j=") do
+        let value = arguments.values[i]
+        let text  = value.toString()
+        if scriptInvocation and not value.startsWith("-") and value.endsWith(".swgs", .Latin1NoCase) do
+            scriptFound = true
+
+        let separateValue = text == "--num-cores" or text == "-j"
+        if not separateValue and not value.startsWith("--num-cores=") and not value.startsWith("-j=") do
+            continue
+        if not scriptFound do
             return arguments
+
+        forwardedIndex = i
+        forwardedCount = separateValue and i + 1 < arguments.count() ? 2 : 1
     }
 
     var result: retval
-    let bound = Format.toString("%", defaultCoreCount())
+    var bound:  Arguments
+    if forwardedIndex != Swag.U64.Max
+    {
+        // The script still receives its original arguments; the host needs its own copy.
+        for i in forwardedIndex until forwardedIndex + forwardedCount do
+            bound.add([arguments.values[i].toString()])
+    }
+    else
+    {
+        let count = Format.toString("%", defaultCoreCount())
+        bound.add(["--num-cores", count.toString()])
+    }
 
     // A script names itself on the command line, and everything after the script path is the
     // script's own command line, so the bound goes in front there. After a command, every token
     // is an option, so the end is always safe.
-    if isScriptInvocation(arguments)
+    if scriptInvocation
     {
-        result.add(["--num-cores", bound.toString()])
+        result.addAll(bound)
         result.addAll(arguments)
         return result
     }
 
     result.addAll(arguments)
-    result.add(["--num-cores", bound.toString()])
+    result.addAll(bound)
     return result
 }
 

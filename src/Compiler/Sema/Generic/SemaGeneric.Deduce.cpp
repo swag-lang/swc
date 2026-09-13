@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
+#include "Compiler/Sema/Match/NamedArgumentLookup.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -912,7 +913,7 @@ namespace
         {
             const AstNode& elemPattern = sema.node(elemPatternRef);
             const auto*    namedType   = elemPattern.safeCast<AstNamedType>();
-            directTypeBinding         = elemPattern.is(AstNodeId::Identifier) || (namedType && namedType->nodeIdentRef.isValid() && sema.node(namedType->nodeIdentRef).is(AstNodeId::Identifier));
+            directTypeBinding          = elemPattern.is(AstNodeId::Identifier) || (namedType && namedType->nodeIdentRef.isValid() && sema.node(namedType->nodeIdentRef).is(AstNodeId::Identifier));
         }
 
         TypeRef previousTypeRef = TypeRef::invalid();
@@ -1288,10 +1289,9 @@ namespace
             outMapping.paramArgs[0].allowImplicitAddressBinding = true;
         }
 
-        bool                                                     seenNamed    = false;
-        uint32_t                                                 nextPos      = paramStart;
-        uint32_t                                                 namedLookups = 0;
-        std::optional<std::unordered_map<IdentifierRef, uint32_t>> namedParamIndices;
+        bool                       seenNamed = false;
+        uint32_t                   nextPos   = paramStart;
+        Match::NamedArgumentLookup namedParamLookup;
 
         for (uint32_t userIndex = 0; userIndex < args.size(); ++userIndex)
         {
@@ -1303,36 +1303,8 @@ namespace
                 seenNamed = true;
 
                 const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
-                int32_t             found = -1;
-                // Small calls keep the linear lookup. Long named-argument lists build one
-                // local index instead of rescanning every parameter for every argument.
-                if (++namedLookups > 8 && numParams > paramStart + 16 && !namedParamIndices)
-                {
-                    namedParamIndices.emplace();
-                    namedParamIndices->reserve(numParams - paramStart);
-                    for (uint32_t i = paramStart; i < numParams; ++i)
-                        namedParamIndices->try_emplace(params[i].idRef, i);
-                }
-
-                if (namedParamIndices)
-                {
-                    const auto it = namedParamIndices->find(idRef);
-                    if (it != namedParamIndices->end())
-                        found = static_cast<int32_t>(it->second);
-                }
-                else
-                {
-                    for (uint32_t i = paramStart; i < numParams; ++i)
-                    {
-                        if (params[i].idRef == idRef)
-                        {
-                            found = static_cast<int32_t>(i);
-                            break;
-                        }
-                    }
-                }
-
-                if (found < 0 || outMapping.paramArgs[found].argRef.isValid())
+                uint32_t            found = 0;
+                if (!namedParamLookup.tryFind(found, params, idRef, paramStart) || outMapping.paramArgs[found].argRef.isValid())
                     return false;
 
                 outMapping.paramArgs[found].argRef       = argRef;

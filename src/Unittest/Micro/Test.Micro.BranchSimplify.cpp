@@ -948,6 +948,63 @@ SWC_TEST_BEGIN(BranchSimplify_InvertsJumpPairAfterImmediateJumpErasure)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(BranchSimplify_TriangleScratchPreservesAcceptedPlanOrder)
+{
+    for (const bool includeImmediate : {false, true})
+    {
+        constexpr MicroReg input = MicroReg::virtualIntReg(1);
+        MicroBuilder       builder(ctx);
+        const auto         rejected = builder.createLabel();
+        builder.emitCmpRegImm(input, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B64, rejected);
+        // An 8-bit immediate body is not a cmov candidate.
+        builder.emitLoadRegImm(MicroReg::virtualIntReg(900), ApInt(17, 8), MicroOpBits::B8);
+        builder.placeLabel(rejected);
+
+        const auto copied = builder.createLabel();
+        builder.emitCmpRegImm(input, ApInt(1, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B64, copied);
+        builder.emitLoadRegReg(MicroReg::virtualIntReg(11), MicroReg::virtualIntReg(12), MicroOpBits::B64);
+        builder.placeLabel(copied);
+        if (includeImmediate)
+        {
+            const auto loaded = builder.createLabel();
+            builder.emitCmpRegImm(input, ApInt(2, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B64, loaded);
+            builder.emitLoadRegImm(MicroReg::virtualIntReg(13), ApInt(23, 64), MicroOpBits::B64);
+            builder.placeLabel(loaded);
+        }
+        builder.emitLoadRegImm(MicroReg::virtualIntReg(1000), ApInt(99, 64), MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runBranchSimplifyPass(builder));
+        if (countConditionalMoves(builder, MicroCond::NotEqual) != (includeImmediate ? 2 : 1))
+            return Result::Error;
+        bool foundScratch = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadCondRegReg)
+            {
+                if (ops[0].reg == MicroReg::virtualIntReg(11) && ops[1].reg != MicroReg::virtualIntReg(12))
+                    return Result::Error;
+                if (ops[0].reg == MicroReg::virtualIntReg(13) && ops[1].reg != MicroReg::virtualIntReg(1001))
+                    return Result::Error;
+            }
+            if (inst.op == MicroInstrOpcode::LoadRegImm && ops[0].reg.isVirtualInt() && ops[0].reg.index() > 1000)
+            {
+                if (foundScratch || ops[0].reg != MicroReg::virtualIntReg(1001) || ops[2].valueU64 != 23)
+                    return Result::Error;
+                foundScratch = true;
+            }
+        }
+        if (foundScratch != includeImmediate)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

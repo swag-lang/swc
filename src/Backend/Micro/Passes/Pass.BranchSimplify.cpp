@@ -1045,6 +1045,7 @@ namespace
         };
 
         SmallVector<Conversion> conversions;
+        bool                    needsScratch = false;
 
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
         {
@@ -1107,12 +1108,15 @@ namespace
                 continue;
 
             conversions.push_back({.jumpRef = it.current, .bodyRef = bodyRef, .labelRef = labelRef, .cond = inverted, .fromImm = fromImm});
+            needsScratch = needsScratch || fromImm;
         }
 
         if (conversions.empty())
             return false;
 
-        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        // Copies keep their existing registers. Mixed plans still reserve names
+        // from the original instruction stream, before any conversion mutates it.
+        uint32_t nextVirtualIntRegIndex = needsScratch ? MicroPassHelpers::computeNextVirtualIntRegIndex(context) : 0;
 
         for (const Conversion& conversion : conversions)
         {

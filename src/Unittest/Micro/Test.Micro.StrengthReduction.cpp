@@ -445,6 +445,36 @@ SWC_TEST_BEGIN(StrengthReduction_UnsignedMultiplyRequiresLocalFlagRedefinition)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(StrengthReduction_UnsignedPowerOfTwoKeepsBothFlagPolicies)
+{
+    for (uint32_t boundary = 0; boundary < 4; ++boundary)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitOpBinaryRegImm(MicroReg::intReg(8), ApInt(8, 64), MicroOp::MultiplyUnsigned, MicroOpBits::B64);
+        const MicroInstrRef multiply = builder.instructions().lastInstructionRef();
+        if (boundary == 1)
+            builder.placeLabel(builder.createLabel());
+        if (boundary == 2)
+            builder.emitSetCondReg(MicroReg::virtualIntReg(1), MicroCond::Overflow);
+        if (boundary != 3)
+            builder.emitCmpRegImm(MicroReg::intReg(10), ApInt(0, 64), MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runStrengthReductionPass(builder));
+        const MicroInstr* inst = builder.instructions().ptr(multiply);
+        if (!inst)
+            return Result::Error;
+        const MicroInstrOperand* ops = inst->ops(builder.operands());
+        // Labels and the end of the function reject the signed rewrite, but
+        // still allow the existing relaxed flags check to reduce the multiply.
+        if (ops[2].microOp != (boundary == 2 ? MicroOp::MultiplyUnsigned : MicroOp::ShiftLeft) ||
+            ops[3].valueU64 != (boundary == 2 ? 8 : 3))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(StrengthReduction_AddSubZeroPreservesLiveResultsAndFlags)
 {
     for (const MicroOp op : {MicroOp::Add, MicroOp::Subtract})

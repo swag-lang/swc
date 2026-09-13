@@ -48,17 +48,10 @@ namespace InstructionCombine
 
         bool findAnchorPosition(MicroStorage::Iterator& outIter, MicroStorage& storage, MicroInstrRef anchor)
         {
-            const auto view  = storage.view();
-            const auto endIt = view.end();
-            for (auto it = view.begin(); it != endIt; ++it)
-            {
-                if (it.current == anchor)
-                {
-                    outIter = it;
-                    return true;
-                }
-            }
-            return false;
+            if (!storage.ptr(anchor))
+                return false;
+            outIter = {&storage, anchor};
+            return true;
         }
     }
 
@@ -391,14 +384,12 @@ namespace InstructionCombine
         // ends flag liveness in this IR, and an unknown flags reader blocks.
         bool allCmpFlagConsumersSatisfy(const Context& ctx, const MicroInstrRef cmpRef, bool (*condOk)(MicroCond))
         {
-            auto       walker = ctx.storage->view().begin();
-            const auto endIt  = ctx.storage->view().end();
-            while (walker != endIt && walker.current != cmpRef)
-                ++walker;
-            if (walker == endIt)
+            MicroStorage::Iterator walker;
+            if (!findAnchorPosition(walker, *ctx.storage, cmpRef))
                 return false;
             ++walker;
 
+            const auto endIt = ctx.storage->view().end();
             for (uint32_t step = 0; step < K_MAX_LOADFOLD_WINDOW && walker != endIt; ++step, ++walker)
             {
                 const MicroInstr&    inst = *walker;

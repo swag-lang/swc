@@ -55,6 +55,60 @@ SWC_TEST_BEGIN(SlpVectorize_UnpackableStores_DoesNotBuildSsa)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SlpVectorize_RejectedBlockKeepsFollowingBlockVectorizable)
+{
+    // Reject a short store group, an unresolved read, and an unresolved write.
+    for (uint32_t rejection = 0; rejection < 3; ++rejection)
+    {
+        MicroBuilder   builder(ctx);
+        X64Encoder     encoder(ctx);
+        MicroSsaState  ssa;
+        const MicroReg sp        = encoder.stackPointerReg();
+        const MicroReg parameter = MicroReg::virtualIntReg(100);
+        builder.emitLoadRegReg(parameter, MicroReg::intReg(2), MicroOpBits::B64);
+
+        const uint32_t             laneCount = rejection == 0 ? 3 : 4;
+        std::vector<MicroInstrRef> rejectedStores;
+        for (uint32_t lane = 0; lane < laneCount; ++lane)
+        {
+            const MicroReg value = MicroReg::virtualIntReg(lane + 1);
+            builder.emitLoadRegMem(value, parameter, 0x40 + lane * 4, MicroOpBits::B32);
+            builder.emitOpBinaryRegImm(value, ApInt(1, 8), MicroOp::ShiftLeft, MicroOpBits::B32);
+            builder.emitLoadMemReg(parameter, 0x60 + lane * 4, value, MicroOpBits::B32);
+            rejectedStores.push_back(builder.instructions().lastInstructionRef());
+        }
+        if (rejection == 1)
+            builder.emitLoadRegMem(MicroReg::virtualIntReg(99), MicroReg::intReg(10), 0, MicroOpBits::B32);
+        else if (rejection == 2)
+            builder.emitLoadMemReg(MicroReg::intReg(10), 0, MicroReg::virtualIntReg(1), MicroOpBits::B32);
+        builder.emitClearReg(MicroReg::intReg(10), MicroOpBits::B64);
+        builder.placeLabel(builder.createLabel());
+
+        for (uint32_t lane = 0; lane < 4; ++lane)
+        {
+            const MicroReg value = MicroReg::virtualIntReg(lane + 10);
+            builder.emitLoadRegMem(value, sp, 0x40 + lane * 4, MicroOpBits::B32);
+            builder.emitOpBinaryRegImm(value, ApInt(1, 8), MicroOp::ShiftLeft, MicroOpBits::B32);
+            builder.emitLoadMemReg(sp, 0x60 + lane * 4, value, MicroOpBits::B32);
+        }
+        builder.emitClearReg(MicroReg::intReg(10), MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runSlpPass(builder, ssa, encoder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 1 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != laneCount + (rejection == 2 ? 1 : 0))
+            return Result::Error;
+        for (const MicroInstrRef storeRef : rejectedStores)
+        {
+            const MicroInstr* inst = builder.instructions().ptr(storeRef);
+            if (!inst || inst->op != MicroInstrOpcode::LoadMemReg || inst->ops(builder.operands())[0].reg != parameter)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(SlpVectorize_MultipleBlocks_PreservesSnapshotAndFreshRegisters)
 {
     MicroBuilder   builder(ctx);

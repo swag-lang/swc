@@ -471,7 +471,8 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
         // "dead after" contract does not see.
         // Test the operation before scanning the flags: only unsigned multiply
         // has a signed replacement. RegImm keeps the operation in slot 2, RegReg in 3.
-        if (tryUseSignedMultiply(storage, operands, instRef, ops, isRegImm ? 2 : 3))
+        const bool usedSignedMultiply = tryUseSignedMultiply(storage, operands, instRef, ops, isRegImm ? 2 : 3);
+        if (usedSignedMultiply)
             context.passChanged = true;
 
         if (!isRegImm)
@@ -485,7 +486,9 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
         {
             case MicroOp::MultiplySigned:
             case MicroOp::MultiplyUnsigned:
-                if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
+                // A successful signed rewrite already found a flags definition
+                // before any use or boundary in this unchanged suffix.
+                if (!usedSignedMultiply && !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
                     break;
                 changed = tryReduceMultiplyByZero(ops, immediate) ||
                           tryReduceMultiplyByOne(ops, immediate) ||

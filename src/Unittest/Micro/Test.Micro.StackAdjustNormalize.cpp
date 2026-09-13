@@ -342,6 +342,76 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_SkipsCallsBelowMaxDepth)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroStackAdjustNormalize_RebasesAdjacentCopiesWithRecycledRefs)
+{
+    constexpr auto rsp = MicroReg::intReg(4);
+    constexpr auto rax = MicroReg::intReg(0);
+    constexpr auto r10 = MicroReg::intReg(10);
+    constexpr auto r11 = MicroReg::intReg(11);
+    MicroBuilder   builder(ctx);
+
+    builder.emitLoadRegImm(rax, ApInt(0, 64), MicroOpBits::B64);
+    const auto removed = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegReg(r10, rsp, MicroOpBits::B64);
+    const auto firstCopy = builder.instructions().lastInstructionRef();
+    builder.instructions().erase(removed);
+    builder.instructions().releaseErasedRefs();
+    builder.emitLoadRegReg(r11, rsp, MicroOpBits::B64);
+    const auto secondCopy = builder.instructions().lastInstructionRef();
+    if (secondCopy != removed)
+        return Result::Error;
+    builder.emitOpBinaryRegImm(rsp, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitCallReg(rax, CallConvKind::Swag);
+    builder.emitCallReg(rax, CallConvKind::Swag);
+    builder.emitOpBinaryRegImm(rsp, ApInt(32, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runStackAdjustNormalizePass(builder));
+    if (builder.instructions().count() != 9)
+        return Result::Error;
+
+    // Original order differs from slot order, and each copy needs exactly one
+    // compensation before its original successor, including the adjacent copy.
+    const auto firstAdd = builder.instructions().findNextInstructionRef(firstCopy);
+    const auto secondAdd = builder.instructions().findNextInstructionRef(secondCopy);
+    const auto& operands = builder.operands();
+    if (!isStackAdjust(*builder.instructions().ptr(firstAdd), builder.instructions().ptr(firstAdd)->ops(operands), r10, MicroOp::Add, 32) ||
+        !isStackAdjust(*builder.instructions().ptr(secondAdd), builder.instructions().ptr(secondAdd)->ops(operands), r11, MicroOp::Add, 32))
+        return Result::Error;
+    if (builder.instructions().findNextInstructionRef(firstAdd) != secondCopy)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroStackAdjustNormalize_HandlesMaximumDepthWithAndWithoutCalls)
+{
+    constexpr auto     rsp      = MicroReg::intReg(4);
+    constexpr auto     rax      = MicroReg::intReg(0);
+    constexpr uint64_t maxDepth = std::numeric_limits<uint64_t>::max();
+    for (const bool hasCall : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitOpBinaryRegImm(rsp, ApInt(maxDepth, 64), MicroOp::Subtract, MicroOpBits::B64);
+        const auto originalAdjust = builder.instructions().lastInstructionRef();
+        if (hasCall)
+            builder.emitCallReg(rax, CallConvKind::Swag);
+        builder.emitOpBinaryRegImm(rsp, ApInt(maxDepth, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runStackAdjustNormalizePass(builder));
+        if (builder.instructions().ptr(originalAdjust))
+            return Result::Error;
+        const auto first = builder.instructions().view().begin();
+        if (!isStackAdjust(*first, first->ops(builder.operands()), rsp, MicroOp::Subtract, maxDepth))
+            return Result::Error;
+        if (builder.instructions().count() != (hasCall ? 4u : 3u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

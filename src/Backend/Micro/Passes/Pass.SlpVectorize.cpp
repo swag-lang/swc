@@ -1334,7 +1334,9 @@ namespace
         for (const BlockInstr& blockInstr : blockInstrs)
             scanInstruction(fn, scan, blockInstr);
 
-        if (scan.stores.empty())
+        // Finish scanning before rejecting a block: resolving its addresses also
+        // registers roots used by later blocks. Four locations need four stores.
+        if (scan.stores.size() < K_LANE_COUNT || scan.hasUnresolvedMemRead || scan.hasUnresolvedMemWrite)
             return false;
 
         // Candidate locations: final write is a plain aligned 32-bit store and
@@ -1364,9 +1366,6 @@ namespace
         // cannot address it - which is why a parameter is the only foreign
         // root ever paired with the frame. Two roots of unknown provenance
         // are never assumed disjoint.
-        if (scan.hasUnresolvedMemRead || scan.hasUnresolvedMemWrite)
-            return false;
-
         std::unordered_set<uint32_t> touchedRoots;
         for (const StoreRecord& record : scan.stores)
             touchedRoots.insert(record.rootKey);

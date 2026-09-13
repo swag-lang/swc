@@ -18,12 +18,10 @@
 //   analyzeFunctionStackAdjustments  : symbolically execute SP, recording
 //                                      the depth at every instruction, the
 //                                      list of inline sub/add SP sites, and
-//                                      the maximum depth reached.
-//
-//   hasCallAtNonFrameDepth           : abort if any call happens at a depth
-//                                      different from the function frame —
-//                                      hoisting would move stack-passed
-//                                      arguments to wrong ABI slots.
+//                                      maximum depth reached, and minimum
+//                                      depth at calls. Calls below the frame
+//                                      depth prevent normalization because
+//                                      their stack arguments would move.
 //
 //   validateOffsetRebase             : dry-run rewrite; checks that no
 //                                      [sp + off] reference would overflow
@@ -53,11 +51,18 @@ namespace
         uint64_t amount = 0;
     };
 
+    struct InstructionDepth
+    {
+        MicroInstrRef instRef;
+        uint64_t      depth = 0;
+    };
+
     struct AnalyzeResult
     {
-        std::unordered_map<uint32_t, uint64_t> depthBeforeByRef;
-        std::vector<MicroInstrRef>             stackAdjustRefs;
-        uint64_t                               frameSize = 0;
+        std::vector<InstructionDepth> instructionDepths;
+        std::vector<MicroInstrRef>    stackAdjustRefs;
+        uint64_t                      frameSize    = 0;
+        uint64_t                      minCallDepth = std::numeric_limits<uint64_t>::max();
     };
 
     bool tryParseStackAdjust(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg stackPointer, StackAdjustInfo& outInfo)
@@ -101,7 +106,7 @@ namespace
     // If the same label is reached from multiple sites at different depths
     // we leave the first observation untouched: such control flow already
     // disqualifies the function from normalization (validateOffsetRebase
-    // will see the inconsistency through the per-instruction depth map).
+    // will see the inconsistency through the per-instruction depths).
     void mergeLabelDepth(std::unordered_map<uint32_t, uint64_t>& labelDepthById, uint32_t labelId, uint64_t depth)
     {
         labelDepthById.try_emplace(labelId, depth);
@@ -179,7 +184,7 @@ namespace
         SWC_ASSERT(context.operands);
 
         outResult = {};
-        outResult.depthBeforeByRef.reserve(context.instructions->count() * 2 + 1);
+        outResult.instructionDepths.reserve(context.instructions->count());
         outResult.stackAdjustRefs.reserve(context.instructions->count() / 4 + 1);
 
         std::unordered_map<uint32_t, uint64_t> labelDepthById;
@@ -198,8 +203,10 @@ namespace
                     depth = labelIt->second;
             }
 
-            outResult.depthBeforeByRef[it.current.get()] = depth;
-            outResult.frameSize                          = std::max(outResult.frameSize, depth);
+            outResult.instructionDepths.push_back({it.current, depth});
+            outResult.frameSize = std::max(outResult.frameSize, depth);
+            if (MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                outResult.minCallDepth = std::min(outResult.minCallDepth, depth);
 
             StackAdjustInfo adjustInfo;
             if (tryParseStackAdjust(*it, ops, conv.stackPointer, adjustInfo))
@@ -235,58 +242,29 @@ namespace
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
-        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        for (size_t index = 0; index < analysisResult.instructionDepths.size(); ++index)
         {
-            const auto depthIt = analysisResult.depthBeforeByRef.find(it.current.get());
-            if (depthIt == analysisResult.depthBeforeByRef.end())
-                continue;
-            if (analysisResult.frameSize < depthIt->second)
+            const InstructionDepth& entry = analysisResult.instructionDepths[index];
+            if (analysisResult.frameSize < entry.depth)
                 return false;
 
-            const uint64_t delta = analysisResult.frameSize - depthIt->second;
+            const uint64_t delta = analysisResult.frameSize - entry.depth;
             if (!delta)
                 continue;
 
-            auto nextIt = it;
-            ++nextIt;
-
-            MicroInstrOperand* ops = it->ops(*context.operands);
-            if (!rebaseInstructionStackOffsets(*it, ops, conv.stackPointer, delta, false))
+            const MicroInstr&  inst = *context.instructions->ptr(entry.instRef);
+            MicroInstrOperand* ops  = inst.ops(*context.operands);
+            if (!rebaseInstructionStackOffsets(inst, ops, conv.stackPointer, delta, false))
                 return false;
 
             MicroReg copiedStackReg = MicroReg::invalid();
-            if (!parseStackPointerCopyForRebase(*it, ops, conv.stackPointer, copiedStackReg))
+            if (!parseStackPointerCopyForRebase(inst, ops, conv.stackPointer, copiedStackReg))
                 return false;
-            if (copiedStackReg.isValid() && nextIt == context.instructions->view().end())
+            if (copiedStackReg.isValid() && index + 1 == analysisResult.instructionDepths.size())
                 return false;
         }
 
         return true;
-    }
-
-    bool hasCallAtNonFrameDepth(const MicroPassContext& context, const AnalyzeResult& analysisResult)
-    {
-        SWC_ASSERT(context.instructions);
-
-        if (!analysisResult.frameSize)
-            return false;
-
-        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
-        {
-            const MicroInstr& inst = *it;
-            if (!MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::IsCallInstruction))
-                continue;
-
-            const auto depthIt = analysisResult.depthBeforeByRef.find(it.current.get());
-            SWC_ASSERT(depthIt != analysisResult.depthBeforeByRef.end());
-            if (depthIt == analysisResult.depthBeforeByRef.end())
-                return true;
-
-            if (depthIt->second != analysisResult.frameSize)
-                return true;
-        }
-
-        return false;
     }
 
     void applyOffsetRebase(const MicroPassContext& context, const AnalyzeResult& analysisResult, const CallConv& conv)
@@ -294,38 +272,32 @@ namespace
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
-        auto it = context.instructions->view().begin();
-        while (it != context.instructions->view().end())
+        // Visit only original instructions: compensation adds inserted before the
+        // next original ref must not acquire a depth or be rebased themselves.
+        for (size_t index = 0; index < analysisResult.instructionDepths.size(); ++index)
         {
-            auto currentIt = it;
-            ++it;
-
-            auto nextIt = currentIt;
-            ++nextIt;
-
-            const auto depthIt = analysisResult.depthBeforeByRef.find(currentIt.current.get());
-            if (depthIt == analysisResult.depthBeforeByRef.end())
-                continue;
-            if (analysisResult.frameSize < depthIt->second)
+            const InstructionDepth& entry = analysisResult.instructionDepths[index];
+            if (analysisResult.frameSize < entry.depth)
                 continue;
 
-            const uint64_t delta = analysisResult.frameSize - depthIt->second;
+            const uint64_t delta = analysisResult.frameSize - entry.depth;
             if (!delta)
                 continue;
 
-            MicroInstrOperand* ops = currentIt->ops(*context.operands);
-            SWC_ASSERT(rebaseInstructionStackOffsets(*currentIt, ops, conv.stackPointer, delta, true));
+            const MicroInstr&  inst = *context.instructions->ptr(entry.instRef);
+            MicroInstrOperand* ops  = inst.ops(*context.operands);
+            SWC_ASSERT(rebaseInstructionStackOffsets(inst, ops, conv.stackPointer, delta, true));
 
             MicroReg   copiedStackReg = MicroReg::invalid();
-            const bool parseOk        = parseStackPointerCopyForRebase(*currentIt, ops, conv.stackPointer, copiedStackReg);
+            const bool parseOk        = parseStackPointerCopyForRebase(inst, ops, conv.stackPointer, copiedStackReg);
             SWC_ASSERT(parseOk);
             if (!parseOk)
                 continue;
             if (!copiedStackReg.isValid())
                 continue;
 
-            SWC_ASSERT(nextIt != context.instructions->view().end());
-            if (nextIt == context.instructions->view().end())
+            SWC_ASSERT(index + 1 < analysisResult.instructionDepths.size());
+            if (index + 1 == analysisResult.instructionDepths.size())
                 continue;
 
             MicroInstrOperand addOps[4];
@@ -333,7 +305,7 @@ namespace
             addOps[1].opBits   = MicroOpBits::B64;
             addOps[2].microOp  = MicroOp::Add;
             addOps[3].valueU64 = delta;
-            context.instructions->insertSyntheticBefore(*context.operands, nextIt.current, MicroInstrOpcode::OpBinaryRegImm, addOps);
+            context.instructions->insertSyntheticBefore(*context.operands, analysisResult.instructionDepths[index + 1].instRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
         }
     }
 }
@@ -355,7 +327,9 @@ Result MicroStackAdjustNormalizePass::run(MicroPassContext& context)
     // Outgoing call frames are interpreted relative to the call-time stack pointer.
     // If we hoist a smaller call frame to a larger function-wide frame, stack-passed
     // arguments would move to the wrong ABI slots.
-    if (hasCallAtNonFrameDepth(context, analysisResult))
+    // Every observed depth is <= frameSize, so its minimum suffices. With no
+    // calls the UINT64_MAX sentinel never rejects, including a maximal frame.
+    if (analysisResult.minCallDepth < analysisResult.frameSize)
         return Result::Continue;
     if (!validateOffsetRebase(context, analysisResult, conv))
         return Result::Continue;

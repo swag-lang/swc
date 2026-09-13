@@ -206,13 +206,8 @@ namespace InstructionCombine
         // between the op and the writeback — the rewrite defines A at the op's
         // position, earlier than the original writeback, so an intervening reader
         // of A would otherwise observe the new value instead of the old one.
-        const auto view  = ctx.storage->view();
-        const auto endIt = view.end();
-        auto       it    = view.begin();
-        while (it != endIt && it.current != initRef)
-            ++it;
-        if (it == endIt)
-            return false;
+        const auto             endIt = ctx.storage->view().end();
+        MicroStorage::Iterator it{ctx.storage, initRef};
 
         bool seenOp    = false;
         bool reachedWb = false;

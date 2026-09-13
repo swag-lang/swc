@@ -399,6 +399,53 @@ SWC_TEST_BEGIN(MicroSsa_RebuildForgetsErasedAndRecycledSlots)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroSsa_PhiPropagationThroughNestedJoins)
+{
+    constexpr MicroReg value    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg terminal = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+    const auto         right     = builder.createLabel();
+    const auto         innerJoin = builder.createLabel();
+    const auto         outerJoin = builder.createLabel();
+    builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
+    const auto initial = builder.instructions().lastInstructionRef();
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, outerJoin);
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, right);
+    builder.emitLoadRegImm(value, ApInt(2, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, innerJoin);
+    builder.placeLabel(right);
+    builder.emitLoadRegImm(value, ApInt(3, 64), MicroOpBits::B64);
+    builder.placeLabel(innerJoin);
+    const auto inner = builder.instructions().lastInstructionRef();
+    builder.emitLoadMemReg(MicroReg::intReg(2), 0, value, MicroOpBits::B64);
+    builder.placeLabel(outerJoin);
+    const auto outer = builder.instructions().lastInstructionRef();
+    builder.emitLoadMemReg(MicroReg::intReg(2), 8, value, MicroOpBits::B64);
+    // Definitions in the terminal block have no frontier to propagate through.
+    builder.emitLoadRegImm(value, ApInt(4, 64), MicroOpBits::B64);
+    const auto finalValue = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegImm(terminal, ApInt(5, 64), MicroOpBits::B64);
+    builder.emitRet();
+    const auto end = builder.instructions().lastInstructionRef();
+
+    MicroSsaState ssa;
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    const auto innerValue = ssa.reachingDef(value, inner);
+    const auto outerValue = ssa.reachingDef(value, outer);
+    if (!innerValue.isPhi || !outerValue.isPhi || innerValue.valueId == outerValue.valueId || ssa.phis().size() != 2)
+        return Result::Error;
+    const auto* outerPhi     = ssa.phiInfoForValue(outerValue.valueId);
+    uint32_t    initialValue = MicroSsaState::K_INVALID_VALUE;
+    if (!ssa.defValue(value, initial, initialValue) || !outerPhi || outerPhi->incomingValueIds.size() != 2)
+        return Result::Error;
+    if (outerPhi->incomingValueIds[0] != initialValue || outerPhi->incomingValueIds[1] != innerValue.valueId)
+        return Result::Error;
+    if (ssa.reachingDef(value, end).instRef != finalValue || !ssa.reachingDef(terminal, end).valid())
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -583,6 +583,9 @@ void MicroSsaState::placePhiNodes()
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {
         const BlockInfo& block = blocks_[blockIndex];
+        // A definition in a block with no frontier cannot seed any phi.
+        if (block.dominanceFrontier.empty())
+            continue;
         for (uint32_t instructionIndex = block.instructionBegin; instructionIndex < block.instructionEnd; ++instructionIndex)
         {
             const MicroInstrRef instRef = instructionRefs_[instructionIndex];
@@ -638,7 +641,7 @@ void MicroSsaState::placePhiNodes()
                 createPhi(frontierBlock, reg, regIndex);
                 hasPhiStamp[frontierBlock] = currentStamp;
 
-                if (inWorkStamp[frontierBlock] != currentStamp)
+                if (!blocks_[frontierBlock].dominanceFrontier.empty() && inWorkStamp[frontierBlock] != currentStamp)
                 {
                     inWorkStamp[frontierBlock] = currentStamp;
                     workList.push_back(frontierBlock);

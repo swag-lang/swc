@@ -1384,6 +1384,64 @@ SWC_TEST_BEGIN(InstCombine_RangeProvedCompare_NarrowWriteKept)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_LoadFoldWindowStartsAfterAnchor)
+{
+    for (const uint32_t gap : {15u, 16u})
+    {
+        const MicroReg accumulator = MicroReg::virtualIntReg(1);
+        const MicroReg loaded      = MicroReg::virtualIntReg(2);
+        MicroBuilder   builder(ctx);
+        for (uint32_t i = 0; i < 24; ++i)
+            builder.emitNop();
+        const MicroInstrRef erasedPrefix = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegReg(accumulator, MicroReg::intReg(9), MicroOpBits::B64);
+        builder.emitLoadRegMem(loaded, MicroReg::intReg(8), 0, MicroOpBits::B64);
+        const MicroInstrRef load = builder.instructions().lastInstructionRef();
+        for (uint32_t i = 0; i < gap; ++i)
+            builder.emitNop();
+        builder.emitOpBinaryRegReg(accumulator, loaded, MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(MicroReg::intReg(10), 0, accumulator, MicroOpBits::B64);
+        builder.emitRet();
+        // Live layout differs from slot order and contains an erased prefix.
+        builder.instructions().erase(erasedPrefix);
+        builder.instructions().insertSyntheticBefore(builder.operands(), load, MicroInstrOpcode::Nop, {});
+
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != (gap == 15 ? 1 : 0))
+            return Result::Error;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != (gap == 15 ? 0 : 1))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_InPlaceWindowIncludesAnchor)
+{
+    for (const uint32_t gap : {29u, 30u})
+    {
+        const MicroReg accumulator = MicroReg::virtualIntReg(1);
+        const MicroReg temporary   = MicroReg::virtualIntReg(2);
+        MicroBuilder   builder(ctx);
+        for (uint32_t i = 0; i < 24; ++i)
+            builder.emitNop();
+        builder.emitLoadRegReg(accumulator, MicroReg::intReg(9), MicroOpBits::B64);
+        builder.emitLoadRegReg(temporary, accumulator, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(temporary, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+        for (uint32_t i = 0; i < gap; ++i)
+            builder.emitNop();
+        builder.emitLoadRegReg(accumulator, temporary, MicroOpBits::B64);
+        builder.emitLoadMemReg(MicroReg::intReg(8), 0, accumulator, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != (gap == 29 ? 1 : 3))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_VectorPlans_KeepFreshRegistersAcrossRollback)
 {
     for (const bool rejectedPrefix : {false, true})

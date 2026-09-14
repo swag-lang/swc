@@ -1176,6 +1176,109 @@ SWC_TEST_BEGIN(BranchSimplify_TriangleScratchPreservesAcceptedPlanOrder)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(BranchSimplify_BooleanFusionChecksTakenFlags)
+{
+    for (const bool readsFlags : {false, true})
+    {
+        MicroBuilder       builder(ctx);
+        constexpr MicroReg input   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg boolean = MicroReg::virtualIntReg(2);
+        constexpr MicroReg output  = MicroReg::virtualIntReg(3);
+        const auto         target  = builder.createLabel();
+        const auto         next    = builder.createLabel();
+        builder.emitCmpRegImm(input, ApInt(7, 64), MicroOpBits::B64);
+        builder.emitSetCondReg(boolean, MicroCond::Below);
+        builder.emitCmpRegImm(boolean, ApInt(0, 8), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B64, target);
+        builder.emitRet();
+        builder.placeLabel(target);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, next);
+        builder.placeLabel(next);
+        if (!readsFlags)
+            builder.emitCmpRegImm(input, ApInt(9, 64), MicroOpBits::B64);
+        builder.emitSetCondReg(output, MicroCond::Above);
+        builder.emitRet();
+
+        SWC_RESULT(runBranchSimplifyPass(builder));
+        bool hasBooleanCompare = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::CmpRegImm && inst.ops(builder.operands())[0].reg == boolean)
+                hasBooleanCompare = true;
+        }
+        if (hasBooleanCompare != readsFlags)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(BranchSimplify_BooleanMoveFusionPreservesLaterFlags)
+{
+    for (const bool readsFlags : {false, true})
+    {
+        MicroBuilder       builder(ctx);
+        constexpr MicroReg input   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg boolean = MicroReg::virtualIntReg(2);
+        constexpr MicroReg output  = MicroReg::virtualIntReg(3);
+        builder.emitCmpRegImm(input, ApInt(7, 64), MicroOpBits::B64);
+        builder.emitSetCondReg(boolean, MicroCond::Below);
+        builder.emitCmpRegImm(boolean, ApInt(0, 8), MicroOpBits::B8);
+        builder.emitLoadCondRegReg(output, input, MicroCond::NotEqual, MicroOpBits::B64);
+        if (!readsFlags)
+            builder.emitCmpRegImm(input, ApInt(9, 64), MicroOpBits::B64);
+        builder.emitSetCondReg(MicroReg::virtualIntReg(4), MicroCond::Above);
+        builder.emitRet();
+
+        SWC_RESULT(runBranchSimplifyPass(builder));
+        bool hasBooleanCompare = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::CmpRegImm && ops[0].reg == boolean)
+                hasBooleanCompare = true;
+            if (inst.op == MicroInstrOpcode::LoadCondRegReg &&
+                ops[2].cpuCond != (readsFlags ? MicroCond::NotEqual : MicroCond::Below))
+                return Result::Error;
+        }
+        if (hasBooleanCompare != readsFlags)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(BranchSimplify_RepeatedBooleanMovesStillFuse)
+{
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg input   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg boolean = MicroReg::virtualIntReg(2);
+    builder.emitCmpRegImm(input, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitSetCondReg(boolean, MicroCond::Below);
+    for (uint32_t i = 0; i < 3; ++i)
+    {
+        builder.emitCmpRegImm(boolean, ApInt(0, 8), MicroOpBits::B8);
+        builder.emitLoadCondRegReg(MicroReg::virtualIntReg(3 + i), input, MicroCond::NotEqual, MicroOpBits::B64);
+    }
+    builder.emitRet();
+    SWC_RESULT(runBranchSimplifyPass(builder));
+    uint32_t moves = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const auto* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::CmpRegImm && ops[0].reg == boolean)
+            return Result::Error;
+        if (inst.op == MicroInstrOpcode::LoadCondRegReg)
+        {
+            ++moves;
+            if (ops[2].cpuCond != MicroCond::Below)
+                return Result::Error;
+        }
+    }
+    return moves == 3 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

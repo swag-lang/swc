@@ -138,7 +138,11 @@ commands returned success. The new C++ fixture exercises the sparse path directl
 The memory-margin waiver remains in effect; each command retains fresh CPU admission and
 six-worker limits. No timing benchmark or new Release compiler build is selected.
 
-The final integration includes d2672787e and compiler build 596. The integrated DevMode
+The first integration includes d2672787e and compiler build 596. The integrated DevMode
 compiler built successfully and passed all 806 C++ fast tests plus the 20 native devmode
 tests selected by --file-filter regalloc (regalloc_divmod.swg and regalloc_shift.swg).
 The earlier complete native result remains applicable to the reserve changes.
+
+A subsequent master integration includes e612280d7 and increments the compiler to build 600.
+The integrated DevMode compiler built successfully and passed 817 C++ fast tests and the
+same 20 native devmode register-allocation cases. The only merge conflict was the build number.

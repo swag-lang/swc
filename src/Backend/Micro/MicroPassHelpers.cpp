@@ -133,6 +133,56 @@ bool MicroPassHelpers::instructionActuallyDefinesCpuFlags(const MicroInstr& inst
     }
 }
 
+bool MicroPassHelpers::instructionOverwritesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops)
+{
+    if (!ops || !instructionActuallyDefinesCpuFlags(inst, ops))
+        return false;
+
+    MicroOp                  op;
+    MicroOpBits              bits;
+    const MicroInstrOperand* count = nullptr;
+    switch (inst.op)
+    {
+        case MicroInstrOpcode::OpBinaryRegImm:
+        case MicroInstrOpcode::OpBinaryMemImm:
+            op    = ops[2].microOp;
+            bits  = ops[1].opBits;
+            count = &ops[inst.op == MicroInstrOpcode::OpBinaryRegImm ? 3 : 4];
+            break;
+        case MicroInstrOpcode::OpUnaryReg:
+        case MicroInstrOpcode::OpUnaryMem:
+            op   = ops[2].microOp;
+            bits = ops[1].opBits;
+            break;
+        case MicroInstrOpcode::OpBinaryRegReg:
+        case MicroInstrOpcode::OpBinaryRegMem:
+        case MicroInstrOpcode::OpBinaryMemReg:
+            op   = ops[3].microOp;
+            bits = ops[2].opBits;
+            break;
+        default:
+            return true;
+    }
+
+    switch (op)
+    {
+        case MicroOp::RotateLeft:
+        case MicroOp::RotateRight:
+            // Rotates preserve ZF, SF and PF regardless of the count.
+            return false;
+        case MicroOp::ShiftLeft:
+        case MicroOp::ShiftArithmeticLeft:
+        case MicroOp::ShiftRight:
+        case MicroOp::ShiftArithmeticRight:
+            // A register count may be zero. Immediate counts use the same
+            // five/six-bit mask as x64; a masked zero preserves all flags.
+            return count && !count->hasWideImmediateValue() &&
+                   (count->valueU64 & (bits == MicroOpBits::B64 ? 63ull : 31ull)) != 0;
+        default:
+            return true;
+    }
+}
+
 namespace
 {
     uint32_t computeNextVirtualRegIndex(const MicroPassContext& context, bool isFloat, uint32_t nextIndex)
@@ -202,7 +252,7 @@ void MicroPassHelpers::computeNextVirtualRegIndices(const MicroPassContext& cont
     }
 }
 
-bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef afterRef)
+bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef afterRef, MicroBuilder* builder)
 {
     for (MicroInstrRef scanRef = storage.findNextInstructionRef(afterRef); scanRef.isValid(); scanRef = storage.findNextInstructionRef(scanRef))
     {
@@ -215,10 +265,13 @@ bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const M
             return false;
 
         const MicroInstrDef& info = MicroInstr::info(scanInst->op);
-        if (instructionActuallyDefinesCpuFlags(*scanInst, scanOps) ||
+        // A jump preserves the flags. Its destination can read them even if
+        // the jump itself is unconditional; only a CFG walk can prove otherwise.
+        if (info.flags.has(MicroInstrFlagsE::JumpInstruction))
+            return builder && areCpuFlagsDeadAfterInCfg(*builder, scanRef);
+        if (instructionOverwritesCpuFlags(*scanInst, scanOps) ||
             info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-            info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
-            info.flags.has(MicroInstrFlagsE::JumpInstruction))
+            info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
         {
             return true;
         }
@@ -246,11 +299,23 @@ bool MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(const MicroStorage& st
             scanInfo.flags.has(MicroInstrFlagsE::IsCallInstruction))
             return false;
 
-        if (instructionActuallyDefinesCpuFlags(*scanInst, scanOps))
+        if (instructionOverwritesCpuFlags(*scanInst, scanOps))
             return true;
     }
 
     return false;
+}
+
+bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(MicroBuilder& builder, MicroInstrRef afterRef)
+{
+    const auto& cfg = builder.controlFlowGraph();
+    if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+        return false;
+    const auto refs  = cfg.instructionRefs();
+    const auto found = std::ranges::find(refs, afterRef);
+    if (found == refs.end())
+        return false;
+    return areCpuFlagsDeadAfterInCfg(cfg, builder.instructions(), builder.operands(), static_cast<uint32_t>(found - refs.begin()));
 }
 
 bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cfg, const MicroStorage& storage, const MicroOperandStorage& operands, const uint32_t index)
@@ -278,7 +343,7 @@ bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cf
         const MicroInstrOperand* ops = inst->ops(operands);
         if (instructionActuallyUsesCpuFlags(*inst, ops))
             return false;
-        if (instructionActuallyDefinesCpuFlags(*inst, ops) || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+        if (instructionOverwritesCpuFlags(*inst, ops) || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
             continue;
         for (const uint32_t successor : cfg.successors(i))
             worklist.push_back(successor);
@@ -499,8 +564,11 @@ bool MicroPassHelpers::tryReassociateBinaryImmediate(MicroOp firstOp, uint64_t f
         case MicroOp::ShiftRight:
         case MicroOp::ShiftArithmeticRight:
         {
+            const uint32_t width = getNumBits(opBits);
+            if (firstImm >= width || secondImm >= width)
+                return false;
             const uint64_t sum = firstImm + secondImm;
-            if (sum >= getNumBits(opBits))
+            if (sum >= width)
                 return false;
             outOp  = firstOp;
             outImm = sum;

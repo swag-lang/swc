@@ -32,7 +32,7 @@ func benchFree(ptr: [*] void?)
     if not ptr do
         return
 
-    let header = cast(*BenchAllocationHeader) (cast([*] u8) ptr! - #sizeof(BenchAllocationHeader))
+    let header = cast(*BenchAllocationHeader) (cast([*] u8) ptr - #sizeof(BenchAllocationHeader))
     var request: Swag.AllocatorRequest
     request.address = header
     request.size    = header.totalSize

@@ -529,7 +529,7 @@ namespace
         return true;
     }
 
-    bool tryFoldBinaryRegImm(const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
+    bool tryFoldBinaryRegImm(const MicroSsaState& ssaState, const MicroPassContext& context, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
             return false;
@@ -548,7 +548,7 @@ namespace
         if (!tryGetSsaValue<KnownValue, KnownValueTraits>(resultValue, knownValues, knownFlags, valueId))
             return false;
 
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*context.instructions, *context.operands, instRef, context.builder))
             return false;
 
         inst.op          = MicroInstrOpcode::LoadRegImm;
@@ -557,7 +557,7 @@ namespace
         return true;
     }
 
-    bool tryFoldBinaryRegReg(const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
+    bool tryFoldBinaryRegReg(const MicroSsaState& ssaState, const MicroPassContext& context, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
             return false;
@@ -575,7 +575,7 @@ namespace
             if (srcValue.opBits != srcBits)
                 return false;
 
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*context.instructions, *context.operands, instRef, context.builder))
                 return false;
 
             uint64_t converted = 0;
@@ -604,7 +604,7 @@ namespace
         if (!tryGetSsaValue<KnownValue, KnownValueTraits>(resultValue, knownValues, knownFlags, valueId))
             return false;
 
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*context.instructions, *context.operands, instRef, context.builder))
             return false;
 
         inst.op          = MicroInstrOpcode::LoadRegImm;
@@ -863,8 +863,8 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
         MicroInstrOperand*  ops     = inst.ops(operands);
 
         const bool changed = tryFoldCopyFromKnown(*ssaState, knownValues, knownFlags, instRef, inst, ops) ||
-                             tryFoldBinaryRegImm(*ssaState, storage, operands, knownValues, knownFlags, instRef, inst, ops) ||
-                             tryFoldBinaryRegReg(*ssaState, storage, operands, knownValues, knownFlags, instRef, inst, ops) ||
+                             tryFoldBinaryRegImm(*ssaState, context, knownValues, knownFlags, instRef, inst, ops) ||
+                             tryFoldBinaryRegReg(*ssaState, context, knownValues, knownFlags, instRef, inst, ops) ||
                              tryFoldExtend(*ssaState, knownValues, knownFlags, instRef, inst, ops) ||
                              tryFoldLoadFromConstant(memoryContext, instRef, inst, ops) ||
                              tryFoldFloatBinaryRegReg(floatContext, toErase, instRef, inst, ops);

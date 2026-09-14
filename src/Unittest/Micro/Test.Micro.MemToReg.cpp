@@ -246,6 +246,47 @@ SWC_TEST_BEGIN(MemToReg_WidestAccessRespectsEscapedVariableExtents)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MemToReg_ModifiedFrameAddressCanReachAnotherLocal)
+{
+    SymbolFunction function(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolVariable first(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolVariable second(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    for (SymbolVariable* local : {&first, &second})
+    {
+        local->setTypeRef(ctx.typeMgr().typeU64());
+        local->addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+        local->setCodeGenLocalSize(8);
+        function.addLocalVariable(ctx, local);
+    }
+    first.setOffset(0);
+    second.setOffset(8);
+
+    const MicroReg     sp    = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg frame = MicroReg::virtualIntReg(1);
+    constexpr MicroReg addr  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg value = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+    builder.emitLoadMemImm(frame, 8, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitLoadRegReg(addr, frame, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(addr, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemImm(addr, 0, ApInt(42, 64), MicroOpBits::B64);
+    const MicroInstrRef store = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegMem(value, frame, 8, MicroOpBits::B64);
+    const MicroInstrRef load = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    SWC_RESULT(runMemToRegPass(builder, &function));
+    const MicroInstr* stored = builder.instructions().ptr(store);
+    const MicroInstr* loaded = builder.instructions().ptr(load);
+    if (stored->op != MicroInstrOpcode::LoadRegImm || loaded->op != MicroInstrOpcode::LoadRegReg)
+        return Result::Error;
+    if (stored->ops(builder.operands())[0].reg != loaded->ops(builder.operands())[1].reg)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

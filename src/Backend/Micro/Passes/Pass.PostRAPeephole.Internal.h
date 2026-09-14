@@ -8,6 +8,7 @@ SWC_BEGIN_NAMESPACE();
 class MicroStorage;
 class MicroOperandStorage;
 class Encoder;
+class MicroBuilder;
 
 namespace PostRaPeephole
 {
@@ -26,6 +27,7 @@ namespace PostRaPeephole
     struct Context : MicroPeephole::RewriteQueue<Action>
     {
         const Encoder* encoder        = nullptr;
+        MicroBuilder*  builder        = nullptr;
         MicroReg       stackPointer   = MicroReg::invalid();
         MicroReg       framePointer   = MicroReg::invalid();
         MicroReg       localStackBase = MicroReg::invalid();

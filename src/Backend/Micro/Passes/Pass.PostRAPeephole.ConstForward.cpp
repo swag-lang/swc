@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 // Post-RA variant of the pre-RA ConstProp rules. Register allocation and
@@ -97,30 +98,6 @@ namespace PostRaPeephole
                     return false;
             }
             return false;
-        }
-
-        // True iff the CPU flags are dead at the instruction after `fromRef`:
-        // no reader observes them before they are overwritten or a barrier.
-        bool cpuFlagsDeadAfter(const Context& ctx, MicroInstrRef fromRef)
-        {
-            for (MicroInstrRef cur = ctx.nextRef(fromRef); cur.isValid(); cur = ctx.nextRef(cur))
-            {
-                const MicroInstr* inst = ctx.instruction(cur);
-                if (!inst)
-                    return false;
-
-                const MicroInstrOperand* ops = inst->ops(*ctx.operands);
-                if (instructionActuallyUsesCpuFlags(*inst, ops))
-                    return false;
-
-                const MicroInstrDef& info = MicroInstr::info(inst->op);
-                if (instructionActuallyDefinesCpuFlags(*inst, ops) ||
-                    info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                    info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
-                    info.flags.has(MicroInstrFlagsE::JumpInstruction))
-                    return true;
-            }
-            return true;
         }
 
         struct ConsumerRewrite
@@ -351,7 +328,7 @@ namespace PostRaPeephole
 
         if (!regUsedBeforeRedef(ctx, defRef, dst))
             return false;
-        if (!cpuFlagsDeadAfter(ctx, defRef))
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defRef, ctx.builder))
             return false;
 
         if (!ctx.claimAll({defRef}))

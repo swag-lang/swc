@@ -685,8 +685,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             // Replacing a flag-defining compute with a copy removes its flags
             // definition outright, so the strict straight-line criterion
             // applies: the flags must be redefined before any control-flow
-            // boundary (branch fusion keeps flags live across jumps, which
-            // the relaxed areCpuFlagsDeadAfter contract does not see).
+            // boundary, including a label that may join another flag chain.
             if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
                 !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, instRef))
                 break;

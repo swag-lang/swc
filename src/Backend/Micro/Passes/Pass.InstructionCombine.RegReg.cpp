@@ -73,7 +73,7 @@ namespace InstructionCombine
                 if (!copyOps[i] || copyOps[i][2].opBits != bits || !copyOps[i][1].reg.isVirtualInt() ||
                     andOps[i][1].reg == regs[0] || andOps[i][1].reg == regs[1] || andOps[i][1].reg == ops[0].reg)
                     return false;
-                if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defs[i].instRef))
+                if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defs[i].instRef, ctx.builder))
                     return false;
             }
 
@@ -346,7 +346,7 @@ namespace InstructionCombine
             return false;
 
         // The legacy shift writes the flags and this form does not.
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref))
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
             return false;
 
         if (!ctx.claimAll({ref, reaching.instRef}))

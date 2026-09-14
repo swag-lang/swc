@@ -150,8 +150,7 @@ private impl FileBrowserCtrl
             return
         }
 
-        let sr     = .historyButton.surfaceRect()
-        let sel    = menu.doModal({sr.x, sr.bottom()}, .TopLeft, autoDestroy: true)
+        let sel    = menu.doModal(.historyButton, autoDestroy: true)
         let chosen = sel orelse ""
         if chosen.count do
             .setCurrentFolder(chosen)

@@ -6,9 +6,8 @@ using Swag, Core, File
 // The file browser composite builds its sub-controls and resolves selections
 // independently of any dialog/surface.
 //
-// We do not point it at a real folder here: listing a folder builds per-file
-// icons through the renderer, which is absent in headless mode. The selection
-// logic (name + filter extension) is pure and is what we validate.
+// The selection checks do not enumerate a real folder: they exercise name and filter
+// resolution independently of the files present on the test machine.
 #test
 {
     var host: Testing.HeadlessHost
@@ -139,6 +138,28 @@ using Swag, Core, File
     // A folder that does not exist is never recorded.
     fb.recordRecentFolder("Z:/this-folder-does-not-exist")
     Swag.assert(state.recentFolders.count == 1)
+
+    // The real history trigger must join its menu to the button, just like an options menu.
+    host.root.applyLayout()
+    host.pump()
+    var checked: bool
+    host.app.sigFrame += func|host = &host, fb, checked = &checked|(app)
+    {
+        discard app
+        if checked[] do
+            return
+        let popup  = host.capturedPopupMenu()!
+        let anchor = fb.historyButton.surfaceRect()
+        Swag.assert(popup.popupAnchorButton == fb.historyButton)
+        Swag.assert(popup.popupBarItemSurfaceRect == anchor)
+        Swag.assert(popup.surfaceRect().y + popup.getPopupBodyRect().y == anchor.bottom())
+        Swag.assert(popup.items.count == 1)
+        checked[] = true
+        popup.setEndModal(null)
+    }
+
+    fb.historyButton.sigPressed.call(fb.historyButton)
+    Swag.assert(checked)
 
     // The name editor targets a folder only when its content names an existing one.
     fb.setFileName(temp.toString())

@@ -286,6 +286,23 @@ much by what it leaves empty as by the cut, the voltage, and the ink — clean f
 The size ceilings that hold that line in an application live in
 [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md).
 
+## Join An Icon Menu To Its Button
+
+A menu opened by an `IconButton` incorporates that button into its outline as the opening tab.
+The button and the menu share one continuous ground and border; the trigger must not remain
+outside a detached popup. This applies inside dialogs and property editors as well as toolbars.
+
+Use `MenuCtrl.doModal(button, autoDestroy: true)` with the actual `IconButton`. Do not replace the
+button with a point computed from `surfaceRect()`: that selects the context-menu path and loses
+both the attachment and its placement rules. `RightUpward` opens above the button; other arrow
+positions open below it. The shared menu owns fitting against the presentation-layer edges,
+including a trigger aligned to the right edge. Do not compensate with caller-owned offsets.
+
+[`menu.test.swg`](../../../bin/std/modules/gui/src/tests/menu.test.swg) protects the joined outline
+and edge placement; [`properties.test.swg`](../../../bin/std/modules/gui/src/tests/properties.test.swg)
+checks the property editor's actual trigger in light and dark palettes. When adding a new trigger,
+test its opening path, not only a menu constructed directly by the test.
+
 ## Match Every Syntax Surface
 
 `vscode/themes/swag-dark.json`, the generated documentation colorizer, and

@@ -2278,6 +2278,55 @@ struct PropAlignData
     Swag.assert(count.line.isVisible() and enabled.line.isVisible())
 }
 
+// The property editor's options menu keeps its right-aligned trigger inside the popup outline.
+func assertPropertyViewMenuAnchor(light: bool)
+{
+    var host: Testing.HeadlessHost
+    host.setup(520, 360)
+    defer host.shutdown()
+    if light do
+        host.theme.setLight()
+    else do
+        host.theme.setDark()
+    host.notify(.ThemeChanged)
+
+    let panel = Wnd.create'Wnd(&host.root, {36, 40, 440, 280})
+    let ctrl  = PropertiesCtrl.create(panel, flags: .SearchBar)
+    ctrl.dockStyle = .Center
+    host.root.applyLayout()
+    host.pump()
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, ctrl, light, checked = &checked|(app)
+    {
+        discard app
+        if checked[] do
+            return
+        let popup  = host.capturedPopupMenu()!
+        let anchor = ctrl.viewButton.surfaceRect()
+        let body   = popup.getPopupBodyRect()
+        let origin = popup.surfaceRect()
+        Swag.assert(popup.popupAnchorButton == ctrl.viewButton)
+        Swag.assert(popup.popupBarItemSurfaceRect == anchor)
+        Swag.assert(origin.y + body.y == anchor.bottom())
+        Swag.assert(origin.x + body.x <= anchor.x)
+        Swag.assert(origin.x + body.right() >= anchor.right())
+        let image = host.render()
+        Pixel.Testing.assertImageGolden(&image, light ? "properties.menu.light" : "properties.menu.dark")
+        checked[] = true
+        popup.setEndModal("property-view-modified-only")
+    }
+
+    ctrl.viewButton.sigPressed.call(ctrl.viewButton)
+    Swag.assert(checked and ctrl.properties.modifiedOnly)
+    host.pump()
+}
+
+#[Swag.TestTag("golden")]
+#test { assertPropertyViewMenuAnchor(false) }
+#[Swag.TestTag("golden")]
+#test { assertPropertyViewMenuAnchor(true) }
+
 enum PropGoldenChoice
 {
     Automatic

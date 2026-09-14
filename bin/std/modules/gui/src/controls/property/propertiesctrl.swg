@@ -84,7 +84,7 @@ impl PropertiesCtrl
                 .dockStyle  = .Right
                 .margin.x   = 8
                 .toolTip    = strings().prop_ViewOptions
-                .sigPressed += func|ed|(btn) { ed.openViewMenu(btn); }
+                .sigPressed += func|ed|(btn) { discard btn; ed.openViewMenu(); }
             }
 
             with ed.search = EditBox.create(bar, "")
@@ -154,7 +154,7 @@ impl PropertiesCtrl
         }
     }
 
-    private mtd openViewMenu(button: *Button)
+    private mtd openViewMenu()
     {
         const ExpandAll      = "property-view-expand-all"
         const CollapseAll    = "property-view-collapse-all"
@@ -169,8 +169,7 @@ impl PropertiesCtrl
         menu.addSeparator()
         menu.addItem(strings().prop_ShowModifiedOnly, ModifiedOnly, .theme().icon(.Filter), checked: .properties.modifiedOnly)
 
-        let rect = button.surfaceRect()
-        let sel  = menu.doModal({rect.x, rect.bottom()}, .TopLeft, autoDestroy: true)
+        let sel = menu.doModal(.viewButton, autoDestroy: true)
         switch sel
         {
         case ExpandAll:      .properties.expandAll()

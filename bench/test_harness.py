@@ -15,6 +15,34 @@ import toolchains as tc
 
 
 class HarnessTests(unittest.TestCase):
+    def test_installed_toolchains_are_found_without_path_or_overrides(self):
+        with tempfile.TemporaryDirectory(prefix="bench programs ") as folder:
+            installed = {"zig": "Zig/zig.exe", "ldc2": "LDC/bin/ldc2.exe", "odin": "Odin/odin.exe"}
+            for relative in installed.values():
+                exe = Path(folder, "Programs", relative)
+                exe.parent.mkdir(parents=True, exist_ok=True)
+                exe.touch()
+            with (patch.dict(os.environ, {"LOCALAPPDATA": folder, "BENCH_ZIG": "", "BENCH_LDC2": "", "BENCH_ODIN": ""}),
+                  patch.object(tc.shutil, "which", return_value=None)):
+                tools = tc.discover()
+            for key, relative in installed.items():
+                self.assertEqual(tools[key], str(Path(folder, "Programs", relative)))
+            self.assertTrue({"zig", "d-ldc", "odin"}.isdisjoint(tc.missing(tools)))
+
+            path_exe = Path(folder, "path compiler.exe")
+            path_exe.touch()
+            override_exe = Path(folder, "override compiler.exe")
+            override_exe.touch()
+            with (patch.dict(os.environ, {"LOCALAPPDATA": folder, "BENCH_ZIG": "", "BENCH_LDC2": "", "BENCH_ODIN": ""}),
+                  patch.object(tc.shutil, "which", return_value=str(path_exe))):
+                tools = tc.discover()
+                for key in installed:
+                    self.assertEqual(tools[key], str(path_exe))
+                with patch.dict(os.environ, dict.fromkeys(("BENCH_ZIG", "BENCH_LDC2", "BENCH_ODIN"), str(override_exe))):
+                    tools = tc.discover()
+                for key in installed:
+                    self.assertEqual(tools[key], str(override_exe))
+
     def test_compiler_overrides_and_missing_toolchains(self):
         with tempfile.TemporaryDirectory(prefix="bench tools ") as folder:
             exe = Path(folder, "compiler.exe")

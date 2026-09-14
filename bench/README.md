@@ -263,7 +263,11 @@ MSVC and clang-cl come from Visual Studio; the others are looked up under the us
 Any of them can be overridden when it lives somewhere unusual: `BENCH_VS_ROOT`, `BENCH_RUSTC`,
 `BENCH_DOTNET`, `BENCH_SWIFTC`, `BENCH_SWIFT_ROOT`, `BENCH_NODE`, `BENCH_LUA`, `BENCH_LUAJIT`,
 `BENCH_PY`, `BENCH_ZIG`, `BENCH_LDC2`, `BENCH_ODIN`, and `BENCH_SWC` for the compiler under test.
-Zig, LDC and Odin are also discovered on `PATH`. Point each override at its compiler executable.
+Zig, LDC and Odin are discovered through their override first, then `PATH`, then the
+per-user installations at `%LOCALAPPDATA%\Programs\Zig\zig.exe`,
+`%LOCALAPPDATA%\Programs\LDC\bin\ldc2.exe`, and `%LOCALAPPDATA%\Programs\Odin\odin.exe`.
+Extract each complete compiler distribution into that directory, keeping its libraries and
+support files beside it. Point each override at its compiler executable.
 The new ports have been checked with Zig 0.15.2, LDC 1.43.0 and Odin dev-2026-09.
 A toolchain that cannot be found is
 named and skipped, never guessed at, and the report records which ones were absent.

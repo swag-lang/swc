@@ -36,6 +36,7 @@ def worktree():
 
 def discover():
     home = os.path.expanduser("~")
+    programs = os.path.join(os.environ.get("LOCALAPPDATA") or os.path.join(home, "AppData", "Local"), "Programs")
     vs = _env("BENCH_VS_ROOT", _first(r"C:\Program Files\Microsoft Visual Studio\*\*"))
     swift_root = _env("BENCH_SWIFT_ROOT", os.path.join(home, r"AppData\Local\Programs\Swift"))
     swift_tc = _first(os.path.join(swift_root, "Toolchains", "*", "usr", "bin", "swiftc.exe"))
@@ -49,9 +50,9 @@ def discover():
         "clang_cl": os.path.join(vs, "VC", "Tools", "Llvm", "x64", "bin", "clang-cl.exe") if vs else None,
         "vswhere": r"C:\Program Files (x86)\Microsoft Visual Studio\Installer",
         "rustc": _env("BENCH_RUSTC", os.path.join(home, r".cargo\bin\rustc.exe")),
-        "zig": _env("BENCH_ZIG", shutil.which("zig")),
-        "ldc2": _env("BENCH_LDC2", shutil.which("ldc2")),
-        "odin": _env("BENCH_ODIN", shutil.which("odin")),
+        "zig": _env("BENCH_ZIG", shutil.which("zig") or os.path.join(programs, "Zig", "zig.exe")),
+        "ldc2": _env("BENCH_LDC2", shutil.which("ldc2") or os.path.join(programs, "LDC", "bin", "ldc2.exe")),
+        "odin": _env("BENCH_ODIN", shutil.which("odin") or os.path.join(programs, "Odin", "odin.exe")),
         "dotnet": _env("BENCH_DOTNET", r"C:\Program Files\dotnet\dotnet.exe"),
         "swiftc": _env("BENCH_SWIFTC", swift_tc),
         "swift_rt": swift_rt,

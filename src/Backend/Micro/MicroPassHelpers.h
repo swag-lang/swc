@@ -8,6 +8,7 @@ SWC_BEGIN_NAMESPACE();
 
 struct MicroPassContext;
 class MicroControlFlowGraph;
+class MicroBuilder;
 
 namespace MicroPassHelpers
 {
@@ -134,15 +135,13 @@ namespace MicroPassHelpers
     // micro-op decides: an exchange, a lea, a `not`, a byte swap, and every
     // float, conversion and packed operation leave the flags alone.
     bool instructionActuallyDefinesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);
-    bool areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef afterRef);
+    // A straight-line proof, ending at a flag overwrite, call, or return.
+    // Jumps preserve flags and require the CFG variant to prove their successors.
+    bool areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef afterRef, MicroBuilder* builder = nullptr);
 
     // True when the CPU flags are redefined after 'instRef' before any label,
-    // jump, call, or terminator. Stricter than areCpuFlagsDeadAfter, whose
-    // callers replace one flag definition with another in place: a transform
-    // that REMOVES a flag definition outright must not lean on the "no flags
-    // across control flow" convention — branch fusion does keep flags live
-    // across a jump to the branches it fused — so only the straight-line
-    // window up to the next boundary is trusted.
+    // jump, call, or terminator. Unlike areCpuFlagsDeadAfter, this also stops
+    // at labels and requires an actual overwrite rather than an ABI boundary.
     bool areCpuFlagsRedefinedBeforeBoundary(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef instRef);
 
     // True when no path out of the instruction at 'index' reads the CPU flags
@@ -151,6 +150,7 @@ namespace MicroPassHelpers
     // for a transform that removes a flag definition inside a branch. A call
     // ends a path like a definition does.
     bool areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cfg, const MicroStorage& storage, const MicroOperandStorage& operands, uint32_t index);
+    bool areCpuFlagsDeadAfterInCfg(MicroBuilder& builder, MicroInstrRef afterRef);
 
     // First virtual register index not used by any operand, starting above the
     // builder's hint. Passes that synthesize registers allocate upward from here.

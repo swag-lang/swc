@@ -575,7 +575,7 @@ namespace
         return MicroInstrRef::invalid();
     }
 
-    bool fuseMaterializedBoolBranches(MicroStorage& storage, MicroOperandStorage& operands)
+    bool fuseMaterializedBoolBranches(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder)
     {
         bool changed = false;
         for (auto it = storage.view().begin(); it != storage.view().end();)
@@ -625,12 +625,12 @@ namespace
             if (!boolReg.isVirtual())
                 continue;
 
-            // The fall-through path keeps observing the flags at the jump, so
+            // Both successors keep observing the flags at the jump, so
             // the compare can only go when nothing downstream reads them. A
             // conditional move leaves the flags it read untouched, so a later
             // reader of the same comparison is served by the comparison
             // itself once this test is gone.
-            if (!isConditionalMove && !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, jumpRef))
+            if (!isConditionalMove && (!builder || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*builder, jumpRef)))
                 continue;
 
             // Readers between the setcc and the compare still see the original
@@ -1296,6 +1296,7 @@ namespace
 
     struct DiamondScan
     {
+        MicroBuilder*                         builder  = nullptr;
         const MicroSsaState*                   ssa      = nullptr;
         const MicroStorage*                    storage  = nullptr;
         const MicroOperandStorage*             operands = nullptr;
@@ -1536,7 +1537,7 @@ namespace
 
         // After the join the flags used to be whichever arm last wrote them;
         // now they are the compare's. Nothing may depend on either.
-        return MicroPassHelpers::areCpuFlagsDeadAfter(*scan.storage, *scan.operands, diamond.joinLabelRef);
+        return MicroPassHelpers::areCpuFlagsDeadAfter(*scan.storage, *scan.operands, diamond.joinLabelRef, scan.builder);
     }
 
     // The label reference counts and the relocated instructions every
@@ -1546,6 +1547,7 @@ namespace
     {
         scan.storage  = &storage;
         scan.operands = &operands;
+        scan.builder  = context.builder;
 
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
         {
@@ -2087,9 +2089,14 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     if (ssaState && ssaState->isValid())
         changed |= foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags);
 
-    changed |= fuseMaterializedBoolBranches(storage, operands);
+    if (changed && context.builder)
+        context.builder->invalidateControlFlowGraph();
+    changed |= fuseMaterializedBoolBranches(storage, operands, context.builder);
     changed |= threadShortCircuitExits(storage, operands);
     changed |= eraseUnreferencedLabels(storage, operands, context);
+
+    if (changed && context.builder)
+        context.builder->invalidateControlFlowGraph();
 
     if (convertBranchesToConditionalMoves(storage, operands, context))
     {

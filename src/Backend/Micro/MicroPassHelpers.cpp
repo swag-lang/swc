@@ -202,7 +202,7 @@ void MicroPassHelpers::computeNextVirtualRegIndices(const MicroPassContext& cont
     }
 }
 
-bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef afterRef)
+bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef afterRef, MicroBuilder* builder)
 {
     for (MicroInstrRef scanRef = storage.findNextInstructionRef(afterRef); scanRef.isValid(); scanRef = storage.findNextInstructionRef(scanRef))
     {
@@ -215,10 +215,13 @@ bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const M
             return false;
 
         const MicroInstrDef& info = MicroInstr::info(scanInst->op);
+        // A jump preserves the flags. Its destination can read them even if
+        // the jump itself is unconditional; only a CFG walk can prove otherwise.
+        if (info.flags.has(MicroInstrFlagsE::JumpInstruction))
+            return builder && areCpuFlagsDeadAfterInCfg(*builder, scanRef);
         if (instructionActuallyDefinesCpuFlags(*scanInst, scanOps) ||
             info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-            info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
-            info.flags.has(MicroInstrFlagsE::JumpInstruction))
+            info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
         {
             return true;
         }
@@ -251,6 +254,18 @@ bool MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(const MicroStorage& st
     }
 
     return false;
+}
+
+bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(MicroBuilder& builder, MicroInstrRef afterRef)
+{
+    const auto& cfg = builder.controlFlowGraph();
+    if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+        return false;
+    const auto refs  = cfg.instructionRefs();
+    const auto found = std::ranges::find(refs, afterRef);
+    if (found == refs.end())
+        return false;
+    return areCpuFlagsDeadAfterInCfg(cfg, builder.instructions(), builder.operands(), static_cast<uint32_t>(found - refs.begin()));
 }
 
 bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cfg, const MicroStorage& storage, const MicroOperandStorage& operands, const uint32_t index)
@@ -499,8 +514,11 @@ bool MicroPassHelpers::tryReassociateBinaryImmediate(MicroOp firstOp, uint64_t f
         case MicroOp::ShiftRight:
         case MicroOp::ShiftArithmeticRight:
         {
+            const uint32_t width = getNumBits(opBits);
+            if (firstImm >= width || secondImm >= width)
+                return false;
             const uint64_t sum = firstImm + secondImm;
-            if (sum >= getNumBits(opBits))
+            if (sum >= width)
                 return false;
             outOp  = firstOp;
             outImm = sum;

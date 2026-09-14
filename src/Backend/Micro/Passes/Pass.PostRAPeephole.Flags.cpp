@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -200,10 +201,15 @@ namespace PostRaPeephole
             }
 
             const MicroInstrDef& info = MicroInstr::info(scanInst->op);
+            if (info.flags.has(MicroInstrFlagsE::JumpInstruction))
+            {
+                if (!ctx.builder || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*ctx.builder, scanRef))
+                    return false;
+                break;
+            }
             if (instructionActuallyDefinesCpuFlags(*scanInst, scanOps) ||
                 info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
-                info.flags.has(MicroInstrFlagsE::JumpInstruction))
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                 break;
         }
 
@@ -238,6 +244,8 @@ namespace PostRaPeephole
             }
 
             const MicroInstrDef& info = MicroInstr::info(scanInst->op);
+            if (info.flags.has(MicroInstrFlagsE::JumpInstruction) && (!ctx.builder || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*ctx.builder, scanRef)))
+                return false;
             if (instructionActuallyDefinesCpuFlags(*scanInst, scanOps) ||
                 info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||

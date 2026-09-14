@@ -79,6 +79,34 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(PostRAPeephole_CompareFlagsAcrossJump_Preserved)
+{
+    constexpr MicroReg value = MicroReg::intReg(0);
+    constexpr MicroReg flag  = MicroReg::intReg(1);
+    constexpr MicroReg base  = MicroReg::intReg(2);
+    for (const bool reusableProducer : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        const auto target = builder.createLabel();
+        builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+        if (reusableProducer)
+            builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, target);
+        builder.emitRet();
+        builder.placeLabel(target);
+        builder.emitSetCondReg(flag, MicroCond::Above);
+        builder.emitLoadMemReg(base, 8, flag, MicroOpBits::B8);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaPeepholePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_Nop_Erased)
 {
     MicroBuilder builder(ctx);

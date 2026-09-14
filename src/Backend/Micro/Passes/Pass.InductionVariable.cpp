@@ -284,7 +284,7 @@ namespace
             if ((prevFlags.has(MicroInstrFlagsE::JumpInstruction) || prevFlags.has(MicroInstrFlagsE::TerminatorInstruction)) &&
                 !prevFlags.has(MicroInstrFlagsE::ConditionalJump))
                 continue;
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, prevRef))
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, prevRef, context.builder))
                 continue;
 
             LoopScan scan;

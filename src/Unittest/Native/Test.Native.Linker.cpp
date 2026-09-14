@@ -180,6 +180,64 @@ SWC_TEST_BEGIN(Linker_ArchiveNamesPreserveInlineBoundariesAndOffsets)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Linker_ImportLibraryNamesSurviveAliasedOutput)
+{
+    std::vector<Utf8> exports = {"short"};
+    for (uint32_t index = 0; index < 32; ++index)
+        exports.push_back(std::format("export_name_longer_than_inline_storage_{}", index));
+
+    for (const Utf8& dll : {Utf8("a.dll"), Utf8("12345678901.dll"), Utf8("long_library_name_that_must_survive_output_reallocation.dll")})
+    {
+        ByteArray bytes;
+        bytes.append(dll.view());
+        const std::string_view aliasedDll{reinterpret_cast<const char*>(bytes.data()), bytes.size()};
+        buildCoffImportLibrary(bytes, aliasedDll, exports);
+        if (bytes.readBe32(68) != exports.size() * 2)
+            return Result::Error;
+
+        if (dll.size() > 15)
+        {
+            const size_t namesSize   = (dll.size() + 1) * exports.size();
+            const size_t firstOffset = bytes.readBe32(72);
+            const size_t paddedSize  = (namesSize + 1) & ~size_t{1};
+            if (firstOffset < paddedSize + 60)
+                return Result::Error;
+            const size_t tableOffset = firstOffset - paddedSize - 60;
+            if (!matchesArchiveHeader(bytes, tableOffset, "//", static_cast<uint32_t>(namesSize)) || !bytes.containsRange(tableOffset + 60, namesSize))
+                return Result::Error;
+            for (size_t index = 0; index < exports.size(); ++index)
+            {
+                const size_t offset = tableOffset + 60 + index * (dll.size() + 1);
+                if (std::memcmp(bytes.data() + offset, dll.data(), dll.size()) != 0 || bytes[offset + dll.size()] != std::byte{'\n'})
+                    return Result::Error;
+            }
+        }
+
+        for (size_t index = 0; index < exports.size(); ++index)
+        {
+            const uint32_t offset     = bytes.readBe32(72 + index * 8);
+            const Utf8     headerName = dll.size() <= 15 ? dll + "/" : std::format("/{}", index * (dll.size() + 1));
+            const uint32_t recordSize = static_cast<uint32_t>(20 + exports[index].size() + 1 + dll.size() + 1);
+            if (bytes.readBe32(76 + index * 8) != offset || !matchesArchiveHeader(bytes, offset, headerName.view(), recordSize))
+                return Result::Error;
+        }
+
+        Diagnostic diag;
+        Archive    archive;
+        if (!archive.load(diag, std::move(bytes)))
+            return Result::Error;
+        for (const Utf8& name : exports)
+        {
+            const uint32_t offset = archive.memberOffsetForSymbol(name);
+            ArchiveImport  imported;
+            if (!offset || archive.memberOffsetForSymbol("__imp_" + name) != offset || !archive.tryReadImport(imported, diag, offset) ||
+                imported.dll != dll || imported.importName != name || imported.byOrdinal || imported.isData)
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Linker_ArchiveSymbolViewsFollowOwnership)
 {
     static_assert(!std::is_copy_constructible_v<Archive>);

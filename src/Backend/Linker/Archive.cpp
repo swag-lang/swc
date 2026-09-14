@@ -209,7 +209,8 @@ namespace
 
     struct ArchiveMemberBuild
     {
-        Utf8                       name;
+        // Names borrow the input object name or the reserved import-record buffer until emission ends.
+        std::string_view           name;
         std::span<const std::byte> data;
         std::vector<Utf8>          symbols;
         uint32_t                   headerOffset = 0;
@@ -272,7 +273,7 @@ namespace
             {
                 if (member.name.size() <= 15)
                     continue;
-                outBytes.append(member.name.view());
+                outBytes.append(member.name);
                 outBytes.pushBack(static_cast<std::byte>('\n'));
             }
             if (longNamesSize & 1)
@@ -317,7 +318,7 @@ bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std:
             return false;
 
         ArchiveMemberBuild member;
-        member.name = inputMember.name;
+        member.name = inputMember.name.view();
         member.data = inputMember.bytes.span();
         if (&outBytes == &inputMember.bytes)
         {
@@ -359,11 +360,14 @@ void buildCoffImportLibrary(ByteArray& outBytes, std::string_view dllFileName, c
         importRecords.appendLe16(0);                                                               // OrdinalOrHint
         importRecords.appendLe16(1 << 2);                                                          // NameType=NAME(1), Type=CODE(0)
         importRecords.appendCString(name.view());
+        const size_t dllOffset = importRecords.size();
         importRecords.appendCString(dllFileName);
 
         ArchiveMemberBuild member;
-        member.name = Utf8(dllFileName);
+        // Use the record's copy: the caller's DLL name may alias the output that emission replaces.
+        member.name = {reinterpret_cast<const char*>(importRecords.data() + dllOffset), dllFileName.size()};
         member.data = importRecords.span().subspan(recordOffset);
+        member.symbols.reserve(2);
         member.symbols.push_back(name);               // the thunk symbol
         member.symbols.emplace_back("__imp_" + name); // the IAT symbol
         members.push_back(std::move(member));

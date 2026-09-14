@@ -73,46 +73,46 @@ compiler rather than somebody's hash table. All ports print the same checksum.
 
 Milliseconds, lower is better. `swc` in `release`, `clang-cl /O2`,
 `rustc -C opt-level=3 -C codegen-units=1`, one campaign on a Windows laptop
-([`20260914-104606`](bench/results/20260914-104606.json)).
+([`20260914-192224`](bench/results/20260914-192224.json)).
 
 **Execution.** The same program compiled natively, then run again through the compiler's JIT, then
 against the other runtimes:
 
-| program | swc | swc JIT | clang-cl | rustc | LuaJIT | Node 20 | CPython 3.12 |
-|---|---|---|---|---|---|---|---|
-| `wordfreq` | 68.6 | 69.7 | 57.5 | 62.0 | 150.0 | 201.2 | 2522.4 |
-| `csvagg` | 20.4 | 21.6 | 18.4 | 23.4 | 93.0 | 91.9 | 2739.2 |
-| `sha256` | 38.8 | 85.1 | 39.1 | 36.7 | 524.0 | 651.0 | 23486.7 |
-| `dijkstra` | 37.6 | 37.3 | 42.0 | 47.1 | 140.0 | 142.9 | 2149.9 |
-| `raytrace` | 11.6 | 12.4 | 10.2 | 11.9 | 30.0 | 42.1 | 883.1 |
-| `leven` | 15.0 | 15.4 | 13.5 | 14.1 | 60.0 | 74.2 | 3213.0 |
-| `chacha` | 26.0 | 24.9 | 22.1 | 31.8 | 1203.0 | 286.8 | 24876.4 |
+| program | swc | swc JIT | clang-cl | rustc | Zig | D (LDC) | Odin | LuaJIT | Node 20 | CPython 3.12 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `wordfreq` | 53.2 | 56.7 | 48.0 | 50.4 | 54.5 | 47.9 | 54.8 | 128.0 | 177.1 | 2052.6 |
+| `csvagg` | 20.4 | 22.3 | 18.0 | 23.6 | 19.1 | 22.3 | 18.9 | 89.0 | 95.6 | 2781.8 |
+| `sha256` | 36.2 | 93.1 | 38.9 | 38.3 | 36.4 | 38.8 | 41.8 | 532.0 | 697.3 | 23861.6 |
+| `dijkstra` | 39.0 | 43.5 | 46.5 | 52.1 | 49.2 | 54.7 | 47.9 | 160.0 | 167.4 | 2625.9 |
+| `raytrace` | 12.9 | 13.3 | 11.6 | 12.4 | 11.1 | 10.7 | 9.8 | 33.0 | 48.3 | 1174.3 |
+| `leven` | 15.0 | 15.9 | 14.8 | 16.0 | 14.0 | 14.6 | 13.1 | 61.0 | 73.9 | 3455.1 |
+| `chacha` | 25.7 | 26.7 | 21.7 | 31.2 | 23.0 | 32.5 | 22.6 | 1244.0 | 282.8 | 25900.0 |
 
 **Compilation**, from source to a linked executable:
 
-| program | swc | clang-cl | rustc |
-|---|---|---|---|
-| `wordfreq` | 133.3 | 451.1 | 326.3 |
-| `csvagg` | 141.8 | 458.4 | 417.6 |
-| `sha256` | 138.1 | 429.0 | 269.0 |
-| `dijkstra` | 121.4 | 377.0 | 262.2 |
-| `raytrace` | 134.0 | 408.3 | 241.3 |
-| `leven` | 131.2 | 419.3 | 330.4 |
-| `chacha` | 140.2 | 411.8 | 281.1 |
+| program | swc | clang-cl | rustc | Zig | D (LDC) | Odin |
+|---|---|---|---|---|---|---|
+| `wordfreq` | 119.8 | 317.8 | 262.9 | 5904.2 | 272.4 | 328.3 |
+| `csvagg` | 119.2 | 467.2 | 445.5 | 4199.8 | 491.3 | 502.3 |
+| `sha256` | 134.5 | 447.7 | 257.0 | 3969.6 | 333.7 | 376.9 |
+| `dijkstra` | 116.4 | 414.2 | 247.1 | 3310.7 | 311.4 | 362.8 |
+| `raytrace` | 122.7 | 435.3 | 244.3 | 3811.7 | 328.3 | 423.2 |
+| `leven` | 122.6 | 384.0 | 261.0 | 3011.4 | 275.9 | 305.9 |
+| `chacha` | 140.8 | 452.2 | 296.9 | 3894.5 | 326.4 | 397.2 |
 
-Native code runs within about **1.1x of clang-cl** on those seven programs (geometric mean), while the
-compiler produces them roughly **3.1x faster** than `clang-cl` and **2.2x faster** than `rustc`, linker
-included. A hello world compiles and links in 125 ms.
+Native code runs within about **1.0x of clang-cl** on those seven programs (geometric mean), while the
+compiler produces them roughly **3.3x faster** than `clang-cl` and **2.3x faster** than `rustc`, linker
+included. A hello world compiles and links in 157 ms.
 
-The JIT lands **within 14 percent of the native backend** here, which is what makes compile-time
+The JIT lands **within 21 percent of the native backend** here, which is what makes compile-time
 execution, `#test`, and script mode usable rather than a slow mode you avoid: on the same programs it
-is about **5.2x faster than LuaJIT**, **4.9x faster than Node**, and **141x faster than CPython**.
+is about **5.1x faster than LuaJIT**, **4.9x faster than Node**, and **144x faster than CPython**.
 
 > [!NOTE]
 > Raw milliseconds are not comparable between campaigns — the same machine drifts by more than ten
-> percent between sessions — so the recorded history normalizes every measurement against ten control
+> percent between sessions — so the recorded history normalizes every measurement against the measured control
 > runtimes, and states the resolution below which it can see nothing at all. See [bench/](bench) for
-> the method, the fourteen runtimes, and the rules that keep the numbers honest.
+> the method, the supported runtimes, and the rules that keep the numbers honest.
 <!-- bench:end -->
 
 # One binary

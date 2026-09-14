@@ -124,6 +124,7 @@ SWC_TEST_BEGIN(CoffReader_DefinedSymbolsPreserveObjectSemantics)
         Diagnostic                   diag;
         if (!readCoffObject(object, diag, bytes) || !readCoffDefinedSymbols(symbols, diag, bytes.span()))
             return Result::Error;
+        std::ranges::fill(bytes, std::byte{0xCC});
         bytes = ByteArray{};
 
         if (symbols.size() != 3 || object.definedSymbols.size() != symbols.size() || object.sections.size() != 2)
@@ -143,6 +144,55 @@ SWC_TEST_BEGIN(CoffReader_DefinedSymbolsPreserveObjectSemantics)
             text.relocs[0].symbolName != "external" || text.relocs[1].symbolName != "defined_function_name" ||
             text.relocs[0].offset != 1 || text.relocs[0].type != IMAGE_REL_AMD64_REL32 ||
             bss.name != ".bss" || !bss.isBss || bss.bssSize != 64 || !bss.bytes.empty() || !bss.relocs.empty())
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(CoffReader_SymbolViewsPreserveClassificationAndBounds)
+{
+    const ByteArray valid     = makeCoffReaderObject(false);
+    const size_t    symbolsAt = valid.readLe32(offsetof(IMAGE_FILE_HEADER, PointerToSymbolTable));
+    for (const int16_t sectionNumber : std::array<int16_t, 5>{-2, -1, 0, 3, 0x7FFF})
+    {
+        ByteArray bytes = valid;
+        bytes.writeLe16(symbolsAt + offsetof(IMAGE_SYMBOL, SectionNumber), static_cast<uint16_t>(sectionNumber));
+        // An undefined record can reference the same long name as a non-section definition.
+        bytes.writeLe32(symbolsAt + 3 * sizeof(IMAGE_SYMBOL), 0);
+        bytes.writeLe32(symbolsAt + 3 * sizeof(IMAGE_SYMBOL) + 4, 4);
+        CoffObject                   object;
+        std::vector<CoffInputSymbol> symbols;
+        Diagnostic                   diag;
+        if (!readCoffObject(object, diag, bytes) || !readCoffDefinedSymbols(symbols, diag, bytes.span()))
+            return Result::Error;
+        std::ranges::fill(bytes, std::byte{0xCC});
+        if (object.definedSymbols.size() != 2 || symbols.size() != 2 || symbols[0].name != "bss" || symbols[1].name != "local" ||
+            object.sections[0].relocs[0].symbolName != "defined_function_name" || object.sections[0].relocs[1].symbolName != "defined_function_name")
+            return Result::Error;
+    }
+
+    // Keep the reader's bounded handling of missing and unterminated long names.
+    for (const bool missingName : {false, true})
+    {
+        ByteArray bytes = valid;
+        if (missingName)
+            bytes.writeLe32(symbolsAt + 4, static_cast<uint32_t>(bytes.size()));
+        else
+            bytes.resize(bytes.size() - 1);
+        CoffObject                   object;
+        std::vector<CoffInputSymbol> symbols;
+        Diagnostic                   diag;
+        if (!readCoffObject(object, diag, bytes) || !readCoffDefinedSymbols(symbols, diag, bytes.span()))
+            return Result::Error;
+        const size_t expectedCount = missingName ? 2 : 3;
+        if (object.definedSymbols.size() != expectedCount || symbols.size() != expectedCount)
+            return Result::Error;
+        if (missingName)
+        {
+            if (!object.sections[0].relocs[1].symbolName.empty() || symbols[0].name != "bss")
+                return Result::Error;
+        }
+        else if (object.sections[0].relocs[1].symbolName != "defined_function_name" || symbols[0].name != "defined_function_name")
             return Result::Error;
     }
 }

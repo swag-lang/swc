@@ -24,7 +24,7 @@ namespace
         return true;
     }
 
-    Utf8 readStringTableName(std::span<const std::byte> bytes, size_t stringTableOffset, uint32_t nameOffset)
+    std::string_view readStringTableNameView(std::span<const std::byte> bytes, size_t stringTableOffset, uint32_t nameOffset)
     {
         const size_t start = stringTableOffset + nameOffset;
         if (start >= bytes.size())
@@ -33,7 +33,7 @@ namespace
         size_t      len   = 0;
         while (start + len < bytes.size() && begin[len] != '\0')
             ++len;
-        return Utf8{std::string_view{begin, len}};
+        return {begin, len};
     }
 
     uint32_t alignmentFromCharacteristics(uint32_t characteristics)
@@ -44,17 +44,18 @@ namespace
         return 1u << (field - 1);
     }
 
-    Utf8 symbolName(const IMAGE_SYMBOL& record, std::span<const std::byte> bytes, size_t stringTableOffset)
+    std::string_view symbolNameView(const IMAGE_SYMBOL& record, std::span<const std::byte> bytes, size_t symbolOffset, size_t stringTableOffset)
     {
         if (record.N.Name.Short != 0)
         {
-            const auto* shortName = reinterpret_cast<const char*>(record.N.ShortName);
+            // Borrow from the input image, not the temporary IMAGE_SYMBOL copy.
+            const auto* shortName = reinterpret_cast<const char*>(bytes.data() + symbolOffset + offsetof(IMAGE_SYMBOL, N));
             size_t      len       = 0;
             while (len < IMAGE_SIZEOF_SHORT_NAME && shortName[len] != '\0')
                 ++len;
-            return Utf8{std::string_view{shortName, len}};
+            return {shortName, len};
         }
-        return readStringTableName(bytes, stringTableOffset, record.N.Name.Long);
+        return readStringTableNameView(bytes, stringTableOffset, record.N.Name.Long);
     }
 }
 
@@ -94,6 +95,13 @@ bool linkRelocKindFromCoffType(LinkRelocKind& outKind, uint16_t type)
 
 namespace
 {
+    struct CoffSymbolRecordView
+    {
+        std::string_view name;
+        int32_t          sectionNumber = 0;
+        uint32_t         value         = 0;
+    };
+
     bool readCoffContent(std::vector<CoffInputSymbol>& outSymbols, std::vector<CoffInputSection>* outSections, Diagnostic& outDiag, const std::span<const std::byte> bytes)
     {
         IMAGE_FILE_HEADER fileHeader{};
@@ -115,23 +123,22 @@ namespace
         const size_t symbolCount        = fileHeader.NumberOfSymbols;
         const size_t stringTableOffset  = symbolTableOffset + symbolCount * sizeof(IMAGE_SYMBOL);
 
-        // Decode the symbol table first: relocations reference symbols by record index, and we want their
-        // names. Auxiliary records keep the index space contiguous but carry no name of their own.
-        std::vector<Utf8>     recordNames(symbolCount);
-        std::vector           recordSectionNumber(symbolCount, 0);
-        std::vector<uint32_t> recordValue(symbolCount, 0);
+        // Views stay within this call; copy names only when they become owned output symbols or
+        // relocations. Auxiliary records retain their index but have no name of their own.
+        std::vector<CoffSymbolRecordView> records(symbolCount);
         for (size_t i = 0; i < symbolCount;)
         {
+            const size_t symbolOffset = symbolTableOffset + i * sizeof(IMAGE_SYMBOL);
             IMAGE_SYMBOL record{};
-            if (!tryReadValue(record, bytes, symbolTableOffset + i * sizeof(IMAGE_SYMBOL)))
+            if (!tryReadValue(record, bytes, symbolOffset))
             {
                 outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_symbols);
                 return false;
             }
 
-            recordNames[i]         = symbolName(record, bytes, stringTableOffset);
-            recordSectionNumber[i] = record.SectionNumber;
-            recordValue[i]         = record.Value;
+            records[i].name          = symbolNameView(record, bytes, symbolOffset, stringTableOffset);
+            records[i].sectionNumber = record.SectionNumber;
+            records[i].value         = record.Value;
 
             const size_t step = 1 + record.NumberOfAuxSymbols;
             i += step;
@@ -207,7 +214,7 @@ namespace
                     return false;
                 }
 
-                if (reloc.SymbolTableIndex >= recordNames.size())
+                if (reloc.SymbolTableIndex >= records.size())
                 {
                     outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_reloc_symbol_out_of_range);
                     return false;
@@ -217,7 +224,7 @@ namespace
                 {
                     CoffInputReloc out;
                     out.offset     = reloc.VirtualAddress;
-                    out.symbolName = recordNames[reloc.SymbolTableIndex];
+                    out.symbolName = Utf8{records[reloc.SymbolTableIndex].name};
                     out.type       = reloc.Type;
                     section->relocs.push_back(std::move(out));
                 }
@@ -225,18 +232,18 @@ namespace
         }
 
         // Collect the symbols this object defines (those bound to one of its sections).
-        for (size_t i = 0; i < symbolCount; ++i)
+        for (const CoffSymbolRecordView& record : records)
         {
-            const int32_t sectionNumber = recordSectionNumber[i];
+            const int32_t sectionNumber = record.sectionNumber;
             if (sectionNumber <= 0 || std::cmp_greater(sectionNumber, sectionCount))
                 continue;
-            if (recordNames[i].empty())
+            if (record.name.empty())
                 continue;
 
             CoffInputSymbol symbol;
-            symbol.name         = std::move(recordNames[i]);
+            symbol.name         = Utf8{record.name};
             symbol.sectionIndex = static_cast<uint32_t>(sectionNumber - 1);
-            symbol.value        = recordValue[i];
+            symbol.value        = record.value;
             outSymbols.push_back(std::move(symbol));
         }
 

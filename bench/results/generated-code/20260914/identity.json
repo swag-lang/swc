@@ -1,0 +1,51 @@
+{
+  "baseline_commit": "b3ae86a4a",
+  "baseline_compiler": "DevMode 0.1.590",
+  "program_configuration": "release",
+  "swag_baseline_sha256": {
+    "bytemap.swg": "e550a0b785602c4e7cbcdc39eb83d60ef4df1c8b2afbaabb146bd179b4171a3b",
+    "chacha.swg": "3fce9d8bbec4f283a7566663fdc6d0757c739af96d0e80463545b986f6b2576f",
+    "common.swg": "d8d6491d0e3c5491728567afb114a901129643306df6d1086ff2d80bbcd7088f",
+    "csvagg.swg": "086f081d5dad8ea45d7cbe59de93134c105f3de3084368902a08f4f5c13a9154",
+    "dijkstra.swg": "8f762de03b036566a4aff954ae2d55562bc162e711e081740f99d965bcd5b35c",
+    "leven.swg": "721d46147fa7c71cae49bb94a9dd8931dcffc6cef46afc818e4cd50fd10c2f0a",
+    "raytrace.swg": "1fb3aa87ab5e099d6700fb9c46a206fed7b3760442b7ceb7e0128fd82cf4f9b0",
+    "sha256.swg": "3ee1b66636be504d3e4e220c0ce97e238ccbb5881bdc62bd9e6ac994297a6e26",
+    "wordfreq.swg": "c41ef1d4cc9f5fa2a5b43a5af4d439fc0607f9afe8eae7b4eb3d5a7232626eb8",
+    "compiler": "d0cd39b65037d74280910954784b0c13e7476c76581044c8de9662ea217bbe5f"
+  },
+  "clang_version": [
+    "clang version 20.1.8",
+    "Target: x86_64-pc-windows-msvc",
+    "Thread model: posix"
+  ],
+  "cpp_sources_sha256": {
+    "bytemap.h": "36f4a53c368997916a2f395e50cf2b89d65a12f69fc3faffd23afa051f3044ff",
+    "chacha.cpp": "542874330957a594e70db5cf371ea373a7784314d3db337baf3cb0ef888694fd",
+    "common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670",
+    "csvagg.cpp": "99cc48e86fbb4ae5ddbdf41121180701f5b957254212bdfe8e99423753483bbc",
+    "dijkstra.cpp": "e3fa78aaaa2ac788741f111556b7733b79967883436b60b82bd53fb899731952",
+    "leven.cpp": "747615e90cd9e25535bf95df661cd57e1c31c2963c211ba8b42041f323d2f418",
+    "raytrace.cpp": "ee81d2a1b4582a725b2cac2da5fe27f69b5e715f61e1e5209985e30a45a01b98",
+    "sha256.cpp": "ce2742f53331d05619decc7207e51aa0f95fe37aff9d7180ea5313d4e1a862ff",
+    "wordfreq.cpp": "2b935b3891cf0b5db1bfe857c8f383e32c4d151376cc66cb44b4c410a40595a1"
+  },
+  "baseline_dump_sha256": {
+    "chacha.txt": "9544418e5ad3315b13ab0cfdbd67a57f6d74688ce64c6e73c5cadc2d0338e4ef",
+    "csvagg.txt": "1978213f2857da154faea114fab7dec7d40c5e3b0a070613246c5821ffff959a",
+    "dijkstra.txt": "b337f7101decd07eaeb6db84c610cb1a0474644e1df0abefb8f88ab888dc0ad0",
+    "leven.txt": "a9afedcc63425dc54d91c3f2d1284edd3448da8607aa8d4fff01d76caf0b760f",
+    "raytrace.txt": "b7abcce082768502351d7b2af37b39a2f71a649c3ebe6a5d20eb892676edee2f",
+    "sha256.txt": "6e1e9d60d33ce65c5476f89c568fd7a8e559fb3b6bfa606b4d198e8dbc030a40",
+    "wordfreq.txt": "2127b5949f9578cc25cc8d8ee9cbf8a92cc440a2f35565907b84a8b0837ae447"
+  },
+  "clang_assembly_sha256": {
+    "chacha.asm": "dd46448500b78c21c99a839f76dfd3f098ddbd0aa2bb7fd86bf963e9b520936a",
+    "csvagg.asm": "e640eadbf55023226e682db2dfd86c32d59ac154c5cd8373d4beb82c252fbd76",
+    "dijkstra.asm": "25780b70e05c409df9bf90ca241c572b8f2be23bb85e68b1102ecc9cea1ea671",
+    "leven.asm": "a1d6b734dcf3d7bbfa3ce987d35d93eab8e3a0ff29aab6c22dfa46cac8161de9",
+    "raytrace.asm": "a8c95a4bea0e86050235b0c4131f568f418c0b81cf962b51dac9a59bf5118965",
+    "sha256.asm": "9bdc0d50bb23bb1880708836c170122e80238b0f5451a969c87e0c91cccd964a",
+    "wordfreq.asm": "bc312a75c1d1e1f89460157fbd4fbdf12286cf4aa1f6b5c848e2545e56bf5bc8"
+  }
+}

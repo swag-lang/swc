@@ -1,0 +1,1270 @@
+{
+  "status": "Candidate validation pending; no final counts yet.",
+  "swag_baseline": {
+    "chacha/Chacha.add32": {
+      "instructions": 6,
+      "memory": 0,
+      "stack_memory": 0,
+      "loops": []
+    },
+    "chacha/Chacha.quarterRound": {
+      "instructions": 57,
+      "memory": 25,
+      "stack_memory": 1,
+      "loops": []
+    },
+    "chacha/Chacha.__main_0": {
+      "instructions": 222,
+      "memory": 70,
+      "stack_memory": 14,
+      "loops": [
+        {
+          "start_row": 18,
+          "end_row": 26,
+          "instructions": 8,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 122,
+          "end_row": 181,
+          "instructions": 59,
+          "memory": 0,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 188,
+          "end_row": 198,
+          "instructions": 10,
+          "memory": 3,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 106,
+          "end_row": 202,
+          "instructions": 94,
+          "memory": 20,
+          "stack_memory": 8
+        },
+        {
+          "start_row": 207,
+          "end_row": 213,
+          "instructions": 6,
+          "memory": 1,
+          "stack_memory": 0
+        }
+      ]
+    },
+    "csvagg/Csvagg.writeUInt2": {
+      "instructions": 27,
+      "memory": 2,
+      "stack_memory": 0,
+      "loops": []
+    },
+    "csvagg/Csvagg.writeUInt": {
+      "instructions": 64,
+      "memory": 6,
+      "stack_memory": 0,
+      "loops": [
+        {
+          "start_row": 24,
+          "end_row": 47,
+          "instructions": 23,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 52,
+          "end_row": 62,
+          "instructions": 10,
+          "memory": 2,
+          "stack_memory": 0
+        }
+      ]
+    },
+    "csvagg/Csvagg.__main_0": {
+      "instructions": 676,
+      "memory": 145,
+      "stack_memory": 70,
+      "loops": [
+        {
+          "start_row": 113,
+          "end_row": 121,
+          "instructions": 8,
+          "memory": 3,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 23,
+          "end_row": 223,
+          "instructions": 197,
+          "memory": 25,
+          "stack_memory": 5
+        },
+        {
+          "start_row": 268,
+          "end_row": 273,
+          "instructions": 5,
+          "memory": 0,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 278,
+          "end_row": 283,
+          "instructions": 5,
+          "memory": 0,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 290,
+          "end_row": 295,
+          "instructions": 5,
+          "memory": 0,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 303,
+          "end_row": 308,
+          "instructions": 5,
+          "memory": 0,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 316,
+          "end_row": 326,
+          "instructions": 10,
+          "memory": 0,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 333,
+          "end_row": 343,
+          "instructions": 10,
+          "memory": 0,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 350,
+          "end_row": 358,
+          "instructions": 8,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 258,
+          "end_row": 481,
+          "instructions": 189,
+          "memory": 33,
+          "stack_memory": 17
+        },
+        {
+          "start_row": 488,
+          "end_row": 492,
+          "instructions": 4,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 498,
+          "end_row": 502,
+          "instructions": 4,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 507,
+          "end_row": 518,
+          "instructions": 10,
+          "memory": 3,
+          "stack_memory": 1
+        },
+        {
+          "start_row": 522,
+          "end_row": 526,
+          "instructions": 4,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 549,
+          "end_row": 618,
+          "instructions": 64,
+          "memory": 25,
+          "stack_memory": 10
+        },
+        {
+          "start_row": 538,
+          "end_row": 637,
+          "instructions": 90,
+          "memory": 35,
+          "stack_memory": 16
+        },
+        {
+          "start_row": 654,
+          "end_row": 721,
+          "instructions": 63,
+          "memory": 13,
+          "stack_memory": 6
+        }
+      ]
+    },
+    "dijkstra/Dijkstra.push": {
+      "instructions": 41,
+      "memory": 21,
+      "stack_memory": 0,
+      "loops": [
+        {
+          "start_row": 15,
+          "end_row": 41,
+          "instructions": 26,
+          "memory": 15,
+          "stack_memory": 0
+        }
+      ]
+    },
+    "dijkstra/Dijkstra.pop": {
+      "instructions": 60,
+      "memory": 35,
+      "stack_memory": 0,
+      "loops": [
+        {
+          "start_row": 19,
+          "end_row": 60,
+          "instructions": 40,
+          "memory": 20,
+          "stack_memory": 0
+        }
+      ]
+    },
+    "dijkstra/Dijkstra.__main_0": {
+      "instructions": 261,
+      "memory": 84,
+      "stack_memory": 22,
+      "loops": [
+        {
+          "start_row": 17,
+          "end_row": 32,
+          "instructions": 15,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 41,
+          "end_row": 46,
+          "instructions": 5,
+          "memory": 2,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 84,
+          "end_row": 125,
+          "instructions": 40,
+          "memory": 20,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 62,
+          "end_row": 132,
+          "instructions": 67,
+          "memory": 40,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 62,
+          "end_row": 222,
+          "instructions": 151,
+          "memory": 69,
+          "stack_memory": 20
+        },
+        {
+          "start_row": 62,
+          "end_row": 229,
+          "instructions": 158,
+          "memory": 71,
+          "stack_memory": 20
+        },
+        {
+          "start_row": 62,
+          "end_row": 233,
+          "instructions": 162,
+          "memory": 72,
+          "stack_memory": 20
+        }
+      ]
+    },
+    "leven/Leven.__main_0": {
+      "instructions": 380,
+      "memory": 101,
+      "stack_memory": 44,
+      "loops": [
+        {
+          "start_row": 57,
+          "end_row": 84,
+          "instructions": 27,
+          "memory": 2,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 29,
+          "end_row": 88,
+          "instructions": 57,
+          "memory": 6,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 128,
+          "end_row": 136,
+          "instructions": 8,
+          "memory": 3,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 173,
+          "end_row": 181,
+          "instructions": 8,
+          "memory": 2,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 190,
+          "end_row": 196,
+          "instructions": 6,
+          "memory": 2,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 140,
+          "end_row": 204,
+          "instructions": 55,
+          "memory": 6,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 214,
+          "end_row": 223,
+          "instructions": 9,
+          "memory": 3,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 108,
+          "end_row": 230,
+          "instructions": 108,
+          "memory": 26,
+          "stack_memory": 4
+        },
+        {
+          "start_row": 239,
+          "end_row": 243,
+          "instructions": 4,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 248,
+          "end_row": 252,
+          "instructions": 4,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 296,
+          "end_row": 300,
+          "instructions": 4,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 318,
+          "end_row": 340,
+          "instructions": 22,
+          "memory": 5,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 345,
+          "end_row": 351,
+          "instructions": 6,
+          "memory": 2,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 307,
+          "end_row": 360,
+          "instructions": 49,
+          "memory": 15,
+          "stack_memory": 5
+        },
+        {
+          "start_row": 277,
+          "end_row": 385,
+          "instructions": 95,
+          "memory": 33,
+          "stack_memory": 18
+        },
+        {
+          "start_row": 264,
+          "end_row": 400,
+          "instructions": 121,
+          "memory": 48,
+          "stack_memory": 31
+        }
+      ]
+    },
+    "raytrace/Raytrace.intersect": {
+      "instructions": 93,
+      "memory": 30,
+      "stack_memory": 21,
+      "loops": [
+        {
+          "start_row": 27,
+          "end_row": 82,
+          "instructions": 52,
+          "memory": 4,
+          "stack_memory": 0
+        }
+      ]
+    },
+    "raytrace/Raytrace.__main_0": {
+      "instructions": 118,
+      "memory": 30,
+      "stack_memory": 21,
+      "loops": [
+        {
+          "start_row": 41,
+          "end_row": 93,
+          "instructions": 52,
+          "memory": 6,
+          "stack_memory": 3
+        },
+        {
+          "start_row": 30,
+          "end_row": 96,
+          "instructions": 65,
+          "memory": 6,
+          "stack_memory": 3
+        }
+      ]
+    },
+    "raytrace/Raytrace.trace": {
+      "instructions": 213,
+      "memory": 73,
+      "stack_memory": 42,
+      "loops": []
+    },
+    "sha256/Sha256.rotr": {
+      "instructions": 9,
+      "memory": 0,
+      "stack_memory": 0,
+      "loops": []
+    },
+    "sha256/Sha256.__main_0": {
+      "instructions": 311,
+      "memory": 66,
+      "stack_memory": 44,
+      "loops": [
+        {
+          "start_row": 19,
+          "end_row": 27,
+          "instructions": 8,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 38,
+          "end_row": 44,
+          "instructions": 6,
+          "memory": 2,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 47,
+          "end_row": 54,
+          "instructions": 7,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 88,
+          "end_row": 92,
+          "instructions": 4,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 113,
+          "end_row": 129,
+          "instructions": 16,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 134,
+          "end_row": 172,
+          "instructions": 38,
+          "memory": 5,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 189,
+          "end_row": 261,
+          "instructions": 72,
+          "memory": 5,
+          "stack_memory": 3
+        },
+        {
+          "start_row": 107,
+          "end_row": 293,
+          "instructions": 181,
+          "memory": 37,
+          "stack_memory": 29
+        }
+      ]
+    },
+    "wordfreq/Wordfreq.less": {
+      "instructions": 63,
+      "memory": 18,
+      "stack_memory": 0,
+      "loops": []
+    },
+    "wordfreq/Wordfreq.qsort": {
+      "instructions": 69,
+      "memory": 12,
+      "stack_memory": 0,
+      "loops": [
+        {
+          "start_row": 28,
+          "end_row": 38,
+          "instructions": 10,
+          "memory": 2,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 40,
+          "end_row": 50,
+          "instructions": 10,
+          "memory": 2,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 25,
+          "end_row": 53,
+          "instructions": 24,
+          "memory": 4,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 25,
+          "end_row": 63,
+          "instructions": 34,
+          "memory": 10,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 13,
+          "end_row": 70,
+          "instructions": 51,
+          "memory": 12,
+          "stack_memory": 0
+        }
+      ]
+    },
+    "wordfreq/Wordfreq.__main_0": {
+      "instructions": 308,
+      "memory": 60,
+      "stack_memory": 10,
+      "loops": [
+        {
+          "start_row": 49,
+          "end_row": 76,
+          "instructions": 27,
+          "memory": 1,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 28,
+          "end_row": 83,
+          "instructions": 53,
+          "memory": 5,
+          "stack_memory": 2
+        },
+        {
+          "start_row": 110,
+          "end_row": 121,
+          "instructions": 11,
+          "memory": 3,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 94,
+          "end_row": 144,
+          "instructions": 46,
+          "memory": 9,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 165,
+          "end_row": 216,
+          "instructions": 46,
+          "memory": 6,
+          "stack_memory": 1
+        },
+        {
+          "start_row": 271,
+          "end_row": 296,
+          "instructions": 24,
+          "memory": 15,
+          "stack_memory": 0
+        },
+        {
+          "start_row": 305,
+          "end_row": 314,
+          "instructions": 9,
+          "memory": 2,
+          "stack_memory": 0
+        }
+      ]
+    }
+  },
+  "clang": {
+    "chacha": [
+      {
+        "label": ".LBB0_2",
+        "instructions": 25,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_5",
+        "instructions": 106,
+        "memory": 9
+      },
+      {
+        "label": ".LBB0_4",
+        "instructions": 184,
+        "memory": 51
+      },
+      {
+        "label": ".LBB0_8",
+        "instructions": 23,
+        "memory": 4
+      }
+    ],
+    "csvagg": [
+      {
+        "label": ".LBB0_8",
+        "instructions": 13,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_11",
+        "instructions": 6,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_14",
+        "instructions": 28,
+        "memory": 4
+      },
+      {
+        "label": ".LBB0_17",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_22",
+        "instructions": 17,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_27",
+        "instructions": 28,
+        "memory": 4
+      },
+      {
+        "label": ".LBB0_30",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_32",
+        "instructions": 17,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_37",
+        "instructions": 28,
+        "memory": 4
+      },
+      {
+        "label": ".LBB0_40",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_42",
+        "instructions": 17,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_2",
+        "instructions": 415,
+        "memory": 50
+      },
+      {
+        "label": ".LBB0_47",
+        "instructions": 28,
+        "memory": 4
+      },
+      {
+        "label": ".LBB0_3",
+        "instructions": 458,
+        "memory": 55
+      },
+      {
+        "label": ".LBB0_50",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_3",
+        "instructions": 466,
+        "memory": 57
+      },
+      {
+        "label": ".LBB0_64",
+        "instructions": 5,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_68",
+        "instructions": 5,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_74",
+        "instructions": 5,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_78",
+        "instructions": 6,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_82",
+        "instructions": 9,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_90",
+        "instructions": 10,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_102",
+        "instructions": 29,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_97",
+        "instructions": 16,
+        "memory": 4
+      },
+      {
+        "label": ".LBB0_100",
+        "instructions": 7,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_106",
+        "instructions": 15,
+        "memory": 4
+      },
+      {
+        "label": ".LBB0_109",
+        "instructions": 6,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_61",
+        "instructions": 225,
+        "memory": 39
+      },
+      {
+        "label": ".LBB0_61",
+        "instructions": 231,
+        "memory": 40
+      },
+      {
+        "label": ".LBB0_113",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_113",
+        "instructions": 15,
+        "memory": 5
+      },
+      {
+        "label": ".LBB0_62",
+        "instructions": 235,
+        "memory": 38
+      },
+      {
+        "label": ".LBB0_62",
+        "instructions": 237,
+        "memory": 39
+      },
+      {
+        "label": ".LBB0_120",
+        "instructions": 9,
+        "memory": 3
+      },
+      {
+        "label": ".LBB0_120",
+        "instructions": 13,
+        "memory": 4
+      },
+      {
+        "label": ".LBB0_129",
+        "instructions": 8,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_131",
+        "instructions": 4,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_134",
+        "instructions": 14,
+        "memory": 4
+      },
+      {
+        "label": ".LBB0_137",
+        "instructions": 5,
+        "memory": 0
+      },
+      {
+        "label": ".LBB0_136",
+        "instructions": 23,
+        "memory": 9
+      },
+      {
+        "label": ".LBB0_137",
+        "instructions": 24,
+        "memory": 9
+      },
+      {
+        "label": ".LBB0_136",
+        "instructions": 27,
+        "memory": 9
+      },
+      {
+        "label": ".LBB0_137",
+        "instructions": 27,
+        "memory": 9
+      },
+      {
+        "label": ".LBB0_143",
+        "instructions": 42,
+        "memory": 7
+      }
+    ],
+    "dijkstra": [
+      {
+        "label": ".LBB0_2",
+        "instructions": 37,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_5",
+        "instructions": 13,
+        "memory": 10
+      },
+      {
+        "label": ".LBB0_14",
+        "instructions": 22,
+        "memory": 10
+      },
+      {
+        "label": ".LBB0_10",
+        "instructions": 40,
+        "memory": 17
+      },
+      {
+        "label": ".LBB0_24",
+        "instructions": 16,
+        "memory": 8
+      },
+      {
+        "label": ".LBB0_31",
+        "instructions": 16,
+        "memory": 8
+      },
+      {
+        "label": ".LBB0_28",
+        "instructions": 34,
+        "memory": 13
+      },
+      {
+        "label": ".LBB0_40",
+        "instructions": 16,
+        "memory": 8
+      },
+      {
+        "label": ".LBB0_10",
+        "instructions": 144,
+        "memory": 56
+      },
+      {
+        "label": ".LBB0_10",
+        "instructions": 147,
+        "memory": 58
+      },
+      {
+        "label": ".LBB0_9",
+        "instructions": 162,
+        "memory": 63
+      },
+      {
+        "label": ".LBB0_47",
+        "instructions": 16,
+        "memory": 8
+      },
+      {
+        "label": ".LBB0_9",
+        "instructions": 172,
+        "memory": 69
+      },
+      {
+        "label": ".LBB0_11",
+        "instructions": 171,
+        "memory": 69
+      },
+      {
+        "label": ".LBB0_10",
+        "instructions": 176,
+        "memory": 69
+      },
+      {
+        "label": ".LBB0_44",
+        "instructions": 33,
+        "memory": 13
+      }
+    ],
+    "leven": [
+      {
+        "label": ".LBB0_5",
+        "instructions": 16,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_4",
+        "instructions": 45,
+        "memory": 4
+      },
+      {
+        "label": ".LBB0_34",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_26",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_21",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_23",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_56",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_50",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_45",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_47",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_61",
+        "instructions": 283,
+        "memory": 28
+      },
+      {
+        "label": ".LBB0_61",
+        "instructions": 290,
+        "memory": 29
+      },
+      {
+        "label": ".LBB0_80",
+        "instructions": 41,
+        "memory": 16
+      },
+      {
+        "label": ".LBB0_79",
+        "instructions": 11,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_88",
+        "instructions": 8,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_86",
+        "instructions": 4,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_97",
+        "instructions": 54,
+        "memory": 13
+      },
+      {
+        "label": ".LBB0_100",
+        "instructions": 16,
+        "memory": 3
+      },
+      {
+        "label": ".LBB0_103",
+        "instructions": 26,
+        "memory": 6
+      },
+      {
+        "label": ".LBB0_103",
+        "instructions": 31,
+        "memory": 6
+      },
+      {
+        "label": ".LBB0_105",
+        "instructions": 3,
+        "memory": 0
+      },
+      {
+        "label": ".LBB0_96",
+        "instructions": 93,
+        "memory": 22
+      },
+      {
+        "label": ".LBB0_94",
+        "instructions": 3,
+        "memory": 0
+      },
+      {
+        "label": ".LBB0_96",
+        "instructions": 99,
+        "memory": 22
+      },
+      {
+        "label": ".LBB0_80",
+        "instructions": 140,
+        "memory": 34
+      },
+      {
+        "label": ".LBB0_76",
+        "instructions": 6,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_75",
+        "instructions": 31,
+        "memory": 4
+      },
+      {
+        "label": ".LBB0_75",
+        "instructions": 42,
+        "memory": 5
+      },
+      {
+        "label": ".LBB0_75",
+        "instructions": 44,
+        "memory": 6
+      }
+    ],
+    "raytrace": [
+      {
+        "label": ".LBB0_2",
+        "instructions": 46,
+        "memory": 6
+      },
+      {
+        "label": ".LBB0_1",
+        "instructions": 58,
+        "memory": 6
+      }
+    ],
+    "sha256": [
+      {
+        "label": ".LBB0_2",
+        "instructions": 25,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_6",
+        "instructions": 37,
+        "memory": 4
+      },
+      {
+        "label": ".LBB0_8",
+        "instructions": 74,
+        "memory": 5
+      },
+      {
+        "label": ".LBB0_5",
+        "instructions": 205,
+        "memory": 65
+      }
+    ],
+    "wordfreq": [
+      {
+        "label": ".LBB0_5",
+        "instructions": 16,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_4",
+        "instructions": 38,
+        "memory": 3
+      },
+      {
+        "label": ".LBB0_11",
+        "instructions": 44,
+        "memory": 3
+      },
+      {
+        "label": ".LBB0_11",
+        "instructions": 54,
+        "memory": 5
+      },
+      {
+        "label": ".LBB0_20",
+        "instructions": 12,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_39",
+        "instructions": 11,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_32",
+        "instructions": 15,
+        "memory": 4
+      },
+      {
+        "label": ".LBB0_27",
+        "instructions": 6,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_36",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_36",
+        "instructions": 15,
+        "memory": 6
+      },
+      {
+        "label": ".LBB0_39",
+        "instructions": 85,
+        "memory": 19
+      },
+      {
+        "label": ".LBB0_39",
+        "instructions": 97,
+        "memory": 26
+      },
+      {
+        "label": ".LBB0_55",
+        "instructions": 15,
+        "memory": 4
+      },
+      {
+        "label": ".LBB0_46",
+        "instructions": 6,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_52",
+        "instructions": 6,
+        "memory": 2
+      },
+      {
+        "label": ".LBB0_52",
+        "instructions": 16,
+        "memory": 6
+      },
+      {
+        "label": ".LBB0_65",
+        "instructions": 5,
+        "memory": 1
+      },
+      {
+        "label": ".LBB0_65",
+        "instructions": 15,
+        "memory": 9
+      },
+      {
+        "label": ".LBB1_4",
+        "instructions": 5,
+        "memory": 2
+      },
+      {
+        "label": ".LBB1_15",
+        "instructions": 21,
+        "memory": 10
+      },
+      {
+        "label": ".LBB1_15",
+        "instructions": 24,
+        "memory": 10
+      },
+      {
+        "label": ".LBB1_6",
+        "instructions": 5,
+        "memory": 2
+      },
+      {
+        "label": ".LBB1_19",
+        "instructions": 29,
+        "memory": 12
+      },
+      {
+        "label": ".LBB1_19",
+        "instructions": 36,
+        "memory": 13
+      },
+      {
+        "label": ".LBB1_3",
+        "instructions": 69,
+        "memory": 25
+      },
+      {
+        "label": ".LBB1_2",
+        "instructions": 96,
+        "memory": 39
+      }
+    ]
+  }
+}

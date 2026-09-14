@@ -1,0 +1,183 @@
+Sha256.__main_0: 72 micro instructions / 5 explicit memory operations
+189 531  
+190 533                  load_reg_reg rdx, r13, b64               | rdx = r13
+191 535             op_binary_reg_imm shr, rdx, 0x6, b64          | rdx >>= 0x6
+192 537                  load_reg_reg rcx, r13, b64               | rcx = r13
+193 539             op_binary_reg_imm shl, rcx, 0x1A, b64         | rcx <<= 0x1A
+194 542             op_binary_reg_reg or, rdx, rcx, b32           | rdx |= rcx
+195 555                  load_reg_reg rcx, r13, b64               | rcx = r13
+196 557             op_binary_reg_imm shr, rcx, 0xB, b64          | rcx >>= 0xB
+197 559                  load_reg_reg rsi, r13, b64               | rsi = r13
+198 561             op_binary_reg_imm shl, rsi, 0x15, b64         | rsi <<= 0x15
+199 564             op_binary_reg_reg or, rcx, rsi, b32           | rcx |= rsi
+200 578             op_binary_reg_reg xor, rdx, rcx, b64          | rdx ^= rcx
+201 580                  load_reg_reg rcx, r13, b64               | rcx = r13
+202 582             op_binary_reg_imm shr, rcx, 0x19, b64         | rcx >>= 0x19
+203 584                  load_reg_reg rsi, r13, b64               | rsi = r13
+204 586             op_binary_reg_imm shl, rsi, 0x7, b64          | rsi <<= 0x7
+205 589             op_binary_reg_reg or, rcx, rsi, b32           | rcx |= rsi
+206 603             op_binary_reg_reg xor, rdx, rcx, b64          | rdx ^= rcx
+207 607                  load_reg_reg rcx, r13, b64               | rcx = r13
+208 609             op_binary_reg_reg and, rcx, r12, b64          | rcx &= r12
+209 610                  load_reg_reg rsi, r13, b64               | rsi = r13
+210 611                  op_unary_reg not, rsi, b64               | rsi = not rsi
+211 615         load_zero_ext_reg_reg rsi, rsi, b64 <- b32        | rsi = zero_extend(rsi, b64 <- b32)
+212 618             op_binary_reg_reg and, rsi, r9, b64           | rsi &= r9
+213 621             op_binary_reg_reg xor, rcx, rsi, b64          | rcx ^= rsi
+214 627             op_binary_reg_reg add, r8, rdx, b64           | r8 += rdx
+215 630             op_binary_reg_reg add, r8, rcx, b64           | r8 += rcx
+216 631            load_reg_ptr_reloc rcx, b64, <0x282731BCD60>   | rcx = [64] u64 = <array>
+217 634              load_amc_reg_mem rcx, [rcx + rdi * 0x8], b64 | rcx = [rcx + rdi * 0x8]
+218 635             op_binary_reg_reg add, r8, rcx, b64           | r8 += rcx
+219 637                  load_reg_reg rcx, r8, b64                | rcx = r8
+220 638              load_amc_reg_mem rdx, [r14 + rdi * 0x8], b64 | rdx = [r14 + rdi * 0x8]
+221 639             op_binary_reg_reg add, rcx, rdx, b32          | rcx += rdx
+222 648                  load_reg_reg rdx, rax, b64               | rdx = rax
+223 650             op_binary_reg_imm shr, rdx, 0x2, b64          | rdx >>= 0x2
+224 652                  load_reg_reg r8, rax, b64                | r8 = rax
+225 654             op_binary_reg_imm shl, r8, 0x1E, b64          | r8 <<= 0x1E
+226 657             op_binary_reg_reg or, rdx, r8, b32            | rdx |= r8
+227 670                  load_reg_reg r8, rax, b64                | r8 = rax
+228 672             op_binary_reg_imm shr, r8, 0xD, b64           | r8 >>= 0xD
+229 674                  load_reg_reg rsi, rax, b64               | rsi = rax
+230 676             op_binary_reg_imm shl, rsi, 0x13, b64         | rsi <<= 0x13
+231 679             op_binary_reg_reg or, r8, rsi, b32            | r8 |= rsi
+232 693             op_binary_reg_reg xor, rdx, r8, b64           | rdx ^= r8
+233 695                  load_reg_reg r8, rax, b64                | r8 = rax
+234 697             op_binary_reg_imm shr, r8, 0x16, b64          | r8 >>= 0x16
+235 699                  load_reg_reg rsi, rax, b64               | rsi = rax
+236 701             op_binary_reg_imm shl, rsi, 0xA, b64          | rsi <<= 0xA
+237 704             op_binary_reg_reg or, r8, rsi, b32            | r8 |= rsi
+238 718             op_binary_reg_reg xor, rdx, r8, b64           | rdx ^= r8
+239 724                  load_reg_reg r8, r10, b64                | r8 = r10
+240 727             op_binary_reg_reg xor, r8, r11, b64           | r8 ^= r11
+241 730             op_binary_reg_reg and, r8, rax, b64           | r8 &= rax
+242 731                  load_reg_reg rsi, r10, b64               | rsi = r10
+243 733             op_binary_reg_reg and, rsi, r11, b64          | rsi &= r11
+244 736             op_binary_reg_reg xor, r8, rsi, b64           | r8 ^= rsi
+245 742             op_binary_reg_reg add, rdx, r8, b32           | rdx += r8
+246 752                  load_reg_reg r8, r9, b64                 | r8 = r9
+247 755                  load_reg_reg r9, r12, b64                | r9 = r12
+248 758                  load_reg_reg r12, r13, b64               | r12 = r13
+249 218                  load_reg_mem rsi, [rsp + 0x438], b64     | rsi = [rsp + 0x438]
+250 761             op_binary_reg_reg add, rsi, rcx, b32          | rsi += rcx
+251 767                  load_reg_reg r13, rsi, b64               | r13 = rsi
+252 632                  load_mem_reg [rsp + 0x440], rsi, b64     | [rsp + 0x440] = rsi
+253 770                  load_reg_reg rsi, r11, b64               | rsi = r11
+254 675                  load_mem_reg [rsp + 0x438], rsi, b64     | [rsp + 0x438] = rsi
+255 773                  load_reg_reg r11, r10, b64               | r11 = r10
+256 776                  load_reg_reg r10, rax, b64               | r10 = rax
+257 779             op_binary_reg_reg add, rcx, rdx, b32          | rcx += rdx
+258 785                  load_reg_reg rax, rcx, b64               | rax = rcx
+259 787             op_binary_reg_imm add, rdi, 0x1, b64          | rdi += 0x1
+260 788                   cmp_reg_imm rdi, 0x40, b64              | cmp(rdi, 0x40)
+261 789                     jump_cond b, b32 531                  | if b jump 531
+
+Leven.__main_0: 22 micro instructions / 5 explicit memory operations
+318 610  
+319 616                  load_reg_reg r11, r9, b64                | r11 = r9
+320 618             op_binary_reg_reg add, r11, rsi, b64          | r11 += rsi
+321 622              load_amc_reg_mem r11, [r13 + r11], b8        | r11 = [r13 + r11]
+322 623                   cmp_reg_reg r8, r11, b8                 | cmp(r8, r11)
+323 142                  set_cond_reg r11, ne                     | r11 = setne
+324 634              load_amc_reg_mem rdi, [rax + rsi * 0x8], b64 | rdi = [rax + rsi * 0x8]
+325 380         load_zero_ext_reg_reg r11, r11, b64 <- b8         | r11 = zero_extend(r11, b64 <- b8)
+326 636             op_binary_reg_reg add, rdi, r11, b64          | rdi += r11
+327 639                  load_reg_reg r11, rdi, b64               | r11 = rdi
+328 641             load_addr_reg_mem r12, [rsi + 0x1], b64       | r12 = &[rsi + 0x1]
+329 646              load_amc_reg_mem r14, [rax + rsi * 0x8 + 0x8], b64 | r14 = [rax + rsi * 0x8 + 0x8]
+330 648             op_binary_reg_imm add, r14, 0x1, b64          | r14 += 0x1
+331 654                   cmp_reg_reg r14, rdi, b64               | cmp(r14, rdi)
+332 122             load_cond_reg_reg r11, r14, b, b64            | r11 = r14 if b
+333 666              load_amc_reg_mem rdi, [rcx + rsi * 0x8], b64 | rdi = [rcx + rsi * 0x8]
+334 668             op_binary_reg_imm add, rdi, 0x1, b64          | rdi += 0x1
+335 673                   cmp_reg_reg rdi, r11, b64               | cmp(rdi, r11)
+336 022             load_cond_reg_reg r11, rdi, b, b64            | r11 = rdi if b
+337 690              load_amc_mem_reg [rcx + rsi * 0x8 + 0x8], r11, b64 <- b64 | [rcx + rsi * 0x8 + 0x8] = r11
+338 692                  load_reg_reg rsi, r12, b64               | rsi = r12
+339 693                   cmp_reg_reg r12, rdx, b64               | cmp(r12, rdx)
+340 694                     jump_cond b, b32 610                  | if b jump 610
+
+Dijkstra.push: 26 micro instructions / 15 explicit memory operations
+015 043  
+016 039             load_addr_reg_mem rax, [r9 + 0xFFFFFFFFFFFFFFFF], b64 | rax = &[r9 + 0xFFFFFFFFFFFFFFFF]
+017 045             op_binary_reg_imm shr, rax, 0x1, b64          | rax >>= 0x1
+018 051                  load_reg_mem rcx, [rip], b64             | rcx = [rip]  // reloc = global-zero = global_zero+0x7D8
+019 052         load_addr_amc_reg_mem rdx, [rcx + rax * 0x8], b64 | rdx = &[rcx + rax * 0x8]
+020 056         load_addr_amc_reg_mem rcx, [rcx + r9 * 0x8], b64  | rcx = &[rcx + r9 * 0x8]
+021 057                  load_reg_mem rdx, [rdx], b64             | rdx = [rdx]
+022 058                  load_reg_mem rcx, [rcx], b64             | rcx = [rcx]
+023 059                   cmp_reg_reg rdx, rcx, b64               | cmp(rdx, rcx)
+024 064                     jump_cond be, b32 127                 | if be jump 127
+025 069                  load_reg_mem rcx, [rip], b64             | rcx = [rip]  // reloc = global-zero = global_zero+0x7D8
+026 070         load_addr_amc_reg_mem rdx, [rcx + rax * 0x8], b64 | rdx = &[rcx + rax * 0x8]
+027 075              load_amc_reg_mem r8, [rcx + rax * 0x8], b64  | r8 = [rcx + rax * 0x8]
+028 085              load_amc_reg_mem rcx, [rcx + r9 * 0x8], b64  | rcx = [rcx + r9 * 0x8]
+029 087                  load_mem_reg [rdx], rcx, b64             | [rdx] = rcx
+030 090                  load_reg_mem rcx, [rip], b64             | rcx = [rip]  // reloc = global-zero = global_zero+0x7D8
+031 094              load_amc_mem_reg [rcx + r9 * 0x8], r8, b64 <- b64 | [rcx + r9 * 0x8] = r8
+032 097                  load_reg_mem rcx, [rip], b64             | rcx = [rip]  // reloc = global-zero = global_zero+0x7E0
+033 098         load_addr_amc_reg_mem rdx, [rcx + rax * 0x8], b64 | rdx = &[rcx + rax * 0x8]
+034 103              load_amc_reg_mem r8, [rcx + rax * 0x8], b64  | r8 = [rcx + rax * 0x8]
+035 113              load_amc_reg_mem rcx, [rcx + r9 * 0x8], b64  | rcx = [rcx + r9 * 0x8]
+036 115                  load_mem_reg [rdx], rcx, b64             | [rdx] = rcx
+037 118                  load_reg_mem rcx, [rip], b64             | rcx = [rip]  // reloc = global-zero = global_zero+0x7E0
+038 122              load_amc_mem_reg [rcx + r9 * 0x8], r8, b64 <- b64 | [rcx + r9 * 0x8] = r8
+039 125                  load_reg_reg r9, rax, b64                | r9 = rax
+040 111                   cmp_reg_imm r9, 0x0, b64                | cmp(r9, 0x0)
+041 126                     jump_cond a, b32 043                  | if a jump 043
+
+Raytrace.__main_0: 52 micro instructions / 6 explicit memory operations
+041 028  
+042 030                     clear_reg xmm0, b64                   | xmm0 = 0
+043 109       load_signed_ext_reg_reg rax, r12, b64 <- b32        | rax = sign_extend(r12, b64 <- b32)
+044 031             op_binary_reg_reg cvti2f, xmm0, rax, b64      | xmm0 = cvti2f(rax)
+045 035         op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm7, b64 | xmm0 = xmm0 + xmm7
+046 039         op_binary_reg_reg_reg fdiv, xmm0, xmm0, xmm8, b64 | xmm0 = xmm0 / xmm8
+047 043         op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm0, b64 | xmm0 = xmm0 + xmm0
+048 047         op_binary_reg_reg_reg fsub, xmm0, xmm0, xmm9, b64 | xmm0 = xmm0 - xmm9
+049 051         op_binary_reg_reg_reg fmul, xmm0, xmm0, xmm10, b64 | xmm0 = xmm0 * xmm10
+050 084         op_binary_reg_reg_reg fmul, xmm1, xmm0, xmm0, b64 | xmm1 = xmm0 * xmm0
+051 090         op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm14, b64 | xmm1 = xmm1 + xmm14
+052 094         op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm9, b64 | xmm1 = xmm1 + xmm9
+053 096             op_binary_reg_reg fsqrt, xmm1, xmm1, b64      | xmm1 = fsqrt(xmm1, xmm1)
+054 102         op_binary_reg_reg_reg fdiv, xmm1, xmm9, xmm1, b64 | xmm1 = xmm9 / xmm1
+055 111         op_binary_reg_reg_reg fmul, xmm3, xmm0, xmm1, b64 | xmm3 = xmm0 * xmm1
+056 114         op_binary_reg_reg_reg fmul, xmm0, xmm13, xmm1, b64 | xmm0 = xmm13 * xmm1
+057 124             op_binary_reg_imm sub, rsp, 0x38, b64         | rsp -= 0x38
+058 125                  load_mem_reg [rsp + 0x20], xmm0, b64     | [rsp + 0x20] = xmm0
+059 126                  load_mem_reg [rsp + 0x28], xmm1, b64     | [rsp + 0x28] = xmm1
+060 127                  load_mem_imm [rsp + 0x30], 0x0, b64      | [rsp + 0x30] = 0x0
+061 060                     clear_reg xmm0, b64                   | xmm0 = 0
+062 041                     clear_reg xmm1, b64                   | xmm1 = 0
+063 244                     clear_reg xmm2, b64                   | xmm2 = 0
+064 132                    call_local swag, <0x0>                 | call Raytrace.trace
+065 133             op_binary_reg_imm add, rsp, 0x38, b64         | rsp += 0x38
+066 136                  load_reg_mem xmm0, [rip], b64            | xmm0 = [rip]  // reloc = global-zero = global_zero+0x7D8
+067 138             op_binary_reg_reg fmul, xmm0, xmm12, b64      | xmm0 *= xmm12
+068 140             op_binary_reg_reg cvtf2i, rax, xmm0, b64      | rax = cvtf2i(xmm0)
+069 143                  load_reg_reg rcx, rax, b64               | rcx = rax
+070 146                  load_reg_mem xmm0, [rip], b64            | xmm0 = [rip]  // reloc = global-zero = global_zero+0x7E0
+071 148             op_binary_reg_reg fmul, xmm0, xmm12, b64      | xmm0 *= xmm12
+072 150             op_binary_reg_reg cvtf2i, rdx, xmm0, b64      | rdx = cvtf2i(xmm0)
+073 153                  load_reg_reg r8, rdx, b64                | r8 = rdx
+074 156                  load_reg_mem xmm0, [rip], b64            | xmm0 = [rip]  // reloc = global-zero = global_zero+0x7E8
+075 158             op_binary_reg_reg fmul, xmm0, xmm12, b64      | xmm0 *= xmm12
+076 160             op_binary_reg_reg cvtf2i, r9, xmm0, b64       | r9 = cvtf2i(xmm0)
+077 163                  load_reg_reg r10, r9, b64                | r10 = r9
+078 167                   cmp_reg_imm rax, 0xFF, b64              | cmp(rax, 0xFF)
+079 001                  load_reg_imm rax, b64, 0xFF              | rax = 0xFF
+080 236             load_cond_reg_reg rcx, rax, g, b64            | rcx = rax if g
+081 180                   cmp_reg_imm rdx, 0xFF, b64              | cmp(rdx, 0xFF)
+082 210                  load_reg_imm rax, b64, 0xFF              | rax = 0xFF
+083 203             load_cond_reg_reg r8, rax, g, b64             | r8 = rax if g
+084 193                   cmp_reg_imm r9, 0xFF, b64               | cmp(r9, 0xFF)
+085 200                  load_reg_imm rax, b64, 0xFF              | rax = 0xFF
+086 199             load_cond_reg_reg r10, rax, g, b64            | r10 = rax if g
+087 209         load_addr_amc_reg_mem rax, [rcx + r8 * 0x2], b64  | rax = &[rcx + r8 * 0x2]
+088 213         load_addr_amc_reg_mem rcx, [r10 + r10 * 0x2], b64 | rcx = &[r10 + r10 * 0x2]
+089 216             op_binary_reg_reg add, rax, rcx, b64          | rax += rcx
+090 220             op_binary_reg_reg add, rsi, rax, b64          | rsi += rax
+091 223             op_binary_reg_imm add, r12, 0x1, b64          | r12 += 0x1
+092 224                   cmp_reg_imm r12, 0x1E0, b64             | cmp(r12, 0x1E0)
+093 225                     jump_cond l, b32 028                  | if l jump 028

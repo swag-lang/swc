@@ -30,6 +30,22 @@ func returnCopiedSelfStorage()->SelfStorage
     return copy     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
+func returnCopiedSelfStorageField()->*s32?
+{
+    var source = SelfStorage{}
+    source.cursor = &source.values[0]
+    let copy = source
+    return copy.cursor     // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func returnSelfAssignedStorage()->SelfStorage
+{
+    var source = SelfStorage{}
+    source.cursor = &source.values[0]
+    source        = source
+    return source     // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
 func returnReboundSelfStorage(pointer: *s32)->SelfStorage
 {
     var source = SelfStorage{}

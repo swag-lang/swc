@@ -2710,11 +2710,63 @@ namespace
         return Result::Continue;
     }
 
-    Result bindAggregateLiteralProjectionChildren(Sema& sema, const SymbolVariable& dstVar, const SemaEscapeProjection& baseProjection, AstNodeRef exprRef, TypeRef targetTypeRef, std::string_view what)
+    struct AggregateBorrowBinding
+    {
+        SemaEscapeProjection projection;
+        SemaEscapeInfo       info;
+        AstNodeRef           sourceRef;
+    };
+
+    bool collectAggregateCopyBorrows(Sema& sema, SmallVector<AggregateBorrowBinding>& outBindings, const SemaEscapeProjection& destination, AstNodeRef exprRef, TypeRef targetTypeRef)
+    {
+        if (sema.projectionEscapeInfos().empty())
+            return false;
+
+        const TypeRef targetRef = SemaHelpers::unwrapBindingType(sema.ctx(), targetTypeRef);
+        const TypeRef sourceRef = SemaHelpers::unwrapBindingType(sema.ctx(), expressionTypeRef(sema, exprRef));
+        if (targetRef.isInvalid() || targetRef != sourceRef)
+            return false;
+        const TypeInfo& type = sema.typeMgr().get(targetRef);
+        if (!type.isStruct() && !type.isArray())
+            return false;
+
+        SemaEscapeProjection source;
+        if (!storageProjection(sema, exprRef, source) || !source.root)
+            return false;
+        // A whole-value borrow can describe fields whose provenance is opaque. A
+        // few explicit field writes do not replace that incomplete description.
+        if (sema.variableEscapeInfo(*source.root))
+            return false;
+        if (!source.components.empty() && sema.projectionEscapeInfoIncludingWildcards(source).hasBorrow())
+            return false;
+
+        bool handled = false;
+        for (const auto& [projection, info] : sema.projectionEscapeInfos())
+        {
+            if (projection.components.size() <= source.components.size() || !projectionIsPrefixOf(source, projection))
+                continue;
+
+            AggregateBorrowBinding binding{.projection = destination, .info = info, .sourceRef = exprRef};
+            for (size_t i = source.components.size(); i < projection.components.size(); ++i)
+                binding.projection.components.push_back(projection.components[i]);
+
+            // A dynamic element read can bring several source elements to the same
+            // destination field. Retain every possible lifetime at that join.
+            const auto existing = std::ranges::find_if(outBindings, [&binding](const auto& other) { return other.projection == binding.projection; });
+            if (existing != outBindings.end())
+                sema.mergeEscapeInfo(existing->info, binding.info);
+            else
+                outBindings.push_back(std::move(binding));
+            handled = true;
+        }
+        return handled;
+    }
+
+    bool collectAggregateBorrows(Sema& sema, SmallVector<AggregateBorrowBinding>& outBindings, const SemaEscapeProjection& baseProjection, AstNodeRef exprRef, TypeRef targetTypeRef)
     {
         SmallVector<AstNodeRef> children;
         if (!aggregateLiteralChildren(sema, children, exprRef))
-            return Result::Continue;
+            return collectAggregateCopyBorrows(sema, outBindings, baseProjection, exprRef, targetTypeRef);
 
         for (const AstNodeRef childRef : children)
         {
@@ -2729,36 +2781,37 @@ namespace
             SemaEscapeProjection projection = baseProjection;
             projection.components.push_back(component);
 
-            const AstNodeRef        childValueRef = argumentValueRef(sema, childRef);
-            SmallVector<AstNodeRef> nestedChildren;
-            if (aggregateLiteralChildren(sema, nestedChildren, childValueRef))
-            {
-                SWC_RESULT(bindAggregateLiteralProjectionChildren(sema, dstVar, projection, childValueRef, childTypeRef, what));
+            const AstNodeRef childValueRef = argumentValueRef(sema, childRef);
+            if (collectAggregateBorrows(sema, outBindings, projection, childValueRef, childTypeRef))
                 continue;
-            }
 
-            uint32_t             budget = K_EXPR_BUDGET;
-            const SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, childValueRef, childTypeRef, budget);
+            uint32_t       budget = K_EXPR_BUDGET;
+            SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, childValueRef, childTypeRef, budget);
+            if (!info.hasBorrow() && typeCanCarryBorrowImpl(sema, childTypeRef))
+                info = deferredCallBorrowInfo(sema, childValueRef);
             if (info.hasBorrow())
-                SWC_RESULT(storeOrReportDestinationInfo(sema, dstVar, childRef, info, what, &projection));
-            else if (typeCanCarryBorrowImpl(sema, childTypeRef))
-                bindDeferredCallBorrow(sema, dstVar, childValueRef, &projection);
+                outBindings.push_back({.projection = projection, .info = std::move(info), .sourceRef = childRef});
         }
 
-        return Result::Continue;
+        return true;
     }
 
-    Result bindAggregateLiteralProjections(Sema& sema, bool& outHandled, const SymbolVariable& dstVar, AstNodeRef exprRef, TypeRef targetTypeRef, std::string_view what)
+    Result bindAggregateProjections(Sema& sema, bool& outHandled, const SemaEscapeProjection& destination, AstNodeRef exprRef, TypeRef targetTypeRef, std::string_view what)
     {
-        SmallVector<AstNodeRef> children;
-        if (!aggregateLiteralChildren(sema, children, exprRef))
+        // The right side reads the old value, including in 'x = {field: x.field}'.
+        // Snapshot every borrow before replacing any part of the destination.
+        SmallVector<AggregateBorrowBinding> bindings;
+        outHandled = collectAggregateBorrows(sema, bindings, destination, exprRef, targetTypeRef);
+        if (!outHandled)
             return Result::Continue;
 
-        outHandled = true;
-        sema.clearVariableEscapeInfo(dstVar);
-        SemaEscapeProjection rootProjection;
-        rootProjection.root = &dstVar;
-        return bindAggregateLiteralProjectionChildren(sema, dstVar, rootProjection, exprRef, targetTypeRef, what);
+        if (destination.components.empty())
+            sema.clearVariableEscapeInfo(*destination.root);
+        else
+            sema.clearProjectionEscapeInfo(destination);
+        for (const auto& binding : bindings)
+            SWC_RESULT(storeOrReportDestinationInfo(sema, *destination.root, binding.sourceRef, binding.info, what, &binding.projection));
+        return Result::Continue;
     }
 
     bool variableInitializerCanEscape(const SymbolVariable& symVar)
@@ -3815,7 +3868,7 @@ namespace SemaEscape
         }
 
         bool aggregateHandled = false;
-        SWC_RESULT(bindAggregateLiteralProjections(sema, aggregateHandled, symVar, initRef, targetTypeRef, "an initializer"));
+        SWC_RESULT(bindAggregateProjections(sema, aggregateHandled, {.root = &symVar}, initRef, targetTypeRef, "an initializer"));
         if (aggregateHandled)
             return Result::Continue;
 
@@ -4010,7 +4063,8 @@ namespace SemaEscape
         if (dstVar)
         {
             bool aggregateHandled = false;
-            SWC_RESULT(bindAggregateLiteralProjections(sema, aggregateHandled, *dstVar, rightRef, targetTypeRef, "an assignment"));
+            const SemaEscapeProjection destination = hasProjection ? projection : SemaEscapeProjection{.root = dstVar};
+            SWC_RESULT(bindAggregateProjections(sema, aggregateHandled, destination, rightRef, targetTypeRef, "an assignment"));
             if (aggregateHandled)
                 return Result::Continue;
         }

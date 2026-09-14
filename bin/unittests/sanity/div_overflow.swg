@@ -33,6 +33,27 @@
     discard x
 }
 
+// A nonzero guard must retain the exact dividend, including when its low byte is zero.
+#test
+{
+    var a = -2147483648's32
+    if a != 0
+    {
+        var d = -1's32
+        discard a / d     // swc-expected-error {{sanity_err_integer_overflow}}
+    }
+}
+
+#test
+{
+    var a = -9223372036854775808's64
+    if a != 0
+    {
+        var d = -1's64
+        discard a % d     // swc-expected-error {{sanity_err_integer_overflow}}
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Valid programs: none of these must be flagged.
 // ---------------------------------------------------------------------------

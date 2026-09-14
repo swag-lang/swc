@@ -125,6 +125,10 @@ private:
     static const SanitizerRegInfo* findReg(const SanitizerState& state, MicroReg reg);
     static void                    setReg(SanitizerState& state, MicroReg reg, const SanitizerRegInfo& info);
     static void                    setRegValue(SanitizerState& state, MicroReg reg, const SanitizerValue& value);
+    static SanitizerValue          getUpperReg(const SanitizerState& state, MicroReg reg);
+    static void                    setUpperReg(SanitizerState& state, MicroReg reg, const SanitizerValue& value);
+    static SanitizerValue          getStackLane(const SanitizerState& state, int64_t slot);
+    static void                    setStackValue(SanitizerState& state, int64_t slot, SanitizerValue value, uint8_t size);
     // The pointer-provenance fact of one register, taken out before its destination entry is
     // rewritten and put back afterwards.
     struct PointerOrigin

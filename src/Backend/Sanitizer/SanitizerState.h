@@ -101,6 +101,11 @@ struct SanitizerState
     std::unordered_map<uint32_t, SanitizerRegInfo> regs;  // key: MicroReg.packed
     std::unordered_map<int64_t, SanitizerValue>    stack; // key: stack slot offset
 
+    // The upper eight bytes of a 128-bit register copy. Keep this sparse instead of
+    // widening every scalar register's information. Loads snapshot both lanes before
+    // subsequent stores can change the source memory.
+    std::unordered_map<uint32_t, SanitizerValue> upperRegValues;
+
     // Frame ranges abandoned by a '#move'/'#relocate' (moved-from, not reset), set by a
     // 'SanityInvalidate' marker: key = slot offset. A range is moved-from only when it
     // is on *every* path (join = intersection); any store into the range revalidates

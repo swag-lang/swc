@@ -20,19 +20,22 @@ struct SanitizerValue
 {
     static constexpr int64_t K_NO_ORIGIN = INT64_MIN;
 
-    SanitizerValueKind kind        = SanitizerValueKind::Unknown;
-    uint64_t           constant    = 0; // Constant
-    int64_t            stackOffset = 0; // StackAddr
+    SanitizerValueKind kind = SanitizerValueKind::Unknown;
+    // Stack facts remember how many bytes were written. Zero means a guard-derived
+    // fact with no known storage width; a wide copy must not promote it to eight bytes.
+    uint8_t  storedBytes = 0;
+    uint64_t constant    = 0; // Constant
+    int64_t  stackOffset = 0; // StackAddr
     // StackAddr only: frame offset the address was FORMED from (the start of the
     // object an indexing/lea derived it from). K_NO_ORIGIN when not tracked (the raw
     // stack base register). Lets the bound check compare a derived access against the
     // extents of the variable it provably indexes.
     int64_t stackOrigin = K_NO_ORIGIN;
 
-    static SanitizerValue makeConstant(uint64_t value) { return {SanitizerValueKind::Constant, value, 0, K_NO_ORIGIN}; }
-    static SanitizerValue makeNonZero() { return {SanitizerValueKind::NonZero, 0, 0, K_NO_ORIGIN}; }
-    static SanitizerValue makeStackAddr(int64_t offset, int64_t origin = K_NO_ORIGIN) { return {SanitizerValueKind::StackAddr, 0, offset, origin}; }
-    static SanitizerValue makeGlobalAddr() { return {SanitizerValueKind::GlobalAddr, 0, 0, K_NO_ORIGIN}; }
+    static SanitizerValue makeConstant(uint64_t value) { return {.kind = SanitizerValueKind::Constant, .constant = value}; }
+    static SanitizerValue makeNonZero() { return {.kind = SanitizerValueKind::NonZero}; }
+    static SanitizerValue makeStackAddr(int64_t offset, int64_t origin = K_NO_ORIGIN) { return {.kind = SanitizerValueKind::StackAddr, .stackOffset = offset, .stackOrigin = origin}; }
+    static SanitizerValue makeGlobalAddr() { return {.kind = SanitizerValueKind::GlobalAddr}; }
 
     bool hasStackOrigin() const
     {
@@ -64,8 +67,10 @@ struct SanitizerValue
 
     bool operator==(const SanitizerValue& o) const
     {
-        return kind == o.kind && constant == o.constant && stackOffset == o.stackOffset && stackOrigin == o.stackOrigin;
+        return kind == o.kind && storedBytes == o.storedBytes && constant == o.constant && stackOffset == o.stackOffset && stackOrigin == o.stackOrigin;
     }
 };
+
+static_assert(sizeof(SanitizerValue) == 32);
 
 SWC_END_NAMESPACE();

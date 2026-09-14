@@ -136,6 +136,7 @@ void Sanitizer::markEscapesFromValueOperands(SanitizerState& state, const MicroI
         if (modes[r] == MicroInstrRegMode::None || (hasBase && r == baseIndex))
             continue;
         markFrameObjectEscaped(state, getReg(state, ops[r].reg));
+        markFrameObjectEscaped(state, getUpperReg(state, ops[r].reg));
     }
 }
 
@@ -380,11 +381,59 @@ void Sanitizer::setReg(SanitizerState& state, MicroReg reg, const SanitizerRegIn
     if (!reg.isValid())
         return;
 
+    if (reg.isAnyFloat())
+        state.upperRegValues.erase(reg.packed);
+
     // Missing entries already mean Unknown; keep provenance even without a known value.
     if (info == SanitizerRegInfo{})
         state.regs.erase(reg.packed);
     else
         state.regs[reg.packed] = info;
+}
+
+SanitizerValue Sanitizer::getUpperReg(const SanitizerState& state, MicroReg reg)
+{
+    if (!reg.isAnyFloat())
+        return {};
+    const auto it = state.upperRegValues.find(reg.packed);
+    return it == state.upperRegValues.end() ? SanitizerValue{} : it->second;
+}
+
+void Sanitizer::setUpperReg(SanitizerState& state, MicroReg reg, const SanitizerValue& value)
+{
+    if (value.kind == SanitizerValueKind::Unknown)
+        state.upperRegValues.erase(reg.packed);
+    else
+        state.upperRegValues[reg.packed] = value;
+}
+
+SanitizerValue Sanitizer::getStackLane(const SanitizerState& state, int64_t slot)
+{
+    const auto it = state.stack.find(slot);
+    if (it == state.stack.end() || it->second.storedBytes != 8)
+        return {};
+    SanitizerValue value = it->second;
+    value.storedBytes    = 0;
+    return value;
+}
+
+void Sanitizer::setStackValue(SanitizerState& state, int64_t slot, SanitizerValue value, uint8_t size)
+{
+    SWC_ASSERT(size && size <= 8);
+    if (size < 8)
+    {
+        if (value.isConstant())
+            value.constant &= (1ULL << (size * 8)) - 1;
+        else
+            value = {};
+    }
+    if (value.kind == SanitizerValueKind::Unknown)
+        state.stack.erase(slot);
+    else
+    {
+        value.storedBytes = size;
+        state.stack[slot] = value;
+    }
 }
 
 // Reads the pointer provenance of a register before its destination is rewritten. Writing a
@@ -539,6 +588,18 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
 {
     bool changed = false;
 
+    for (auto it = into.upperRegValues.begin(); it != into.upperRegValues.end();)
+    {
+        const auto other = from.upperRegValues.find(it->first);
+        if (other == from.upperRegValues.end() || other->second != it->second)
+        {
+            it      = into.upperRegValues.erase(it);
+            changed = true;
+        }
+        else
+            ++it;
+    }
+
     for (auto it = into.stack.begin(); it != into.stack.end();)
     {
         const auto f = from.stack.find(it->first);
@@ -659,6 +720,23 @@ namespace
     // conservative maximal store size.
     constexpr uint64_t K_ASSUMED_STORE_SIZE = 16;
 
+    uint64_t memoryWriteSize(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadMemReg:
+            case MicroInstrOpcode::StoreVecMemReg:
+                return getNumBits(ops[2].opBits) / 8;
+            case MicroInstrOpcode::LoadMemImm:
+                return getNumBits(ops[1].opBits) / 8;
+            case MicroInstrOpcode::LoadAmcMemReg:
+            case MicroInstrOpcode::LoadAmcMemImm:
+                return getNumBits(ops[4].opBits) / 8;
+            default:
+                return K_ASSUMED_STORE_SIZE;
+        }
+    }
+
     void clearMovedFromOverlaps(SanitizerState& state, const int64_t slot)
     {
         for (auto it = state.movedFrom.begin(); it != state.movedFrom.end();)
@@ -758,6 +836,42 @@ void Sanitizer::appendAliasClass(SmallVector<int64_t>& out, const SanitizerState
 
 void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
 {
+    if (!state.stack.empty() && def.flags.has(MicroInstrFlagsE::WritesMemory) && !def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+    {
+        int64_t slot = 0;
+        if (resolveAccessStackSlot(slot, state, inst, def, ops))
+        {
+            const uint64_t size     = memoryWriteSize(inst, ops);
+            const auto     overlaps = [slot, size](const auto& entry) {
+                const uint64_t storedSize = entry.second.storedBytes ? entry.second.storedBytes : 8;
+                if (entry.first <= slot)
+                    return static_cast<uint64_t>(slot) - static_cast<uint64_t>(entry.first) < storedSize;
+                return static_cast<uint64_t>(entry.first) - static_cast<uint64_t>(slot) < size;
+            };
+            // A fact covers at most eight bytes. Large frames need only a bounded
+            // number of hash probes, not a scan of every local on every store.
+            if (state.stack.size() <= size + 7)
+                std::erase_if(state.stack, overlaps);
+            else
+            {
+                for (uint64_t offset = 0; offset < size + 7; ++offset)
+                {
+                    const int64_t candidate = std::bit_cast<int64_t>(static_cast<uint64_t>(slot) - 7 + offset);
+                    const auto    it        = state.stack.find(candidate);
+                    if (it != state.stack.end() && overlaps(*it))
+                        state.stack.erase(it);
+                }
+            }
+        }
+        else
+        {
+            uint8_t baseIndex = 0;
+            if (!MicroPassHelpers::dereferenceBaseOperandIndex(baseIndex, inst.op, def) ||
+                getReg(state, ops[baseIndex].reg).kind != SanitizerValueKind::GlobalAddr)
+                state.stack.clear();
+        }
+    }
+
     if (!state.movedFrom.empty() && inst.op != MicroInstrOpcode::SanityInvalidate)
     {
         if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
@@ -830,6 +944,8 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
 
         case MicroInstrOpcode::ClearReg:
             setRegValue(state, ops[0].reg, SanitizerValue::makeConstant(0));
+            if (ops[1].opBits == MicroOpBits::B128)
+                setUpperReg(state, ops[0].reg, SanitizerValue::makeConstant(0));
             return;
 
         case MicroInstrOpcode::LoadRegPtrReloc:
@@ -860,7 +976,11 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 info.originReg    = ops[1].reg;
             }
 
+            const bool           wide  = inst.op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B128;
+            const SanitizerValue upper = wide ? getUpperReg(state, ops[1].reg) : SanitizerValue{};
             setReg(state, ops[0].reg, info);
+            if (wide)
+                setUpperReg(state, ops[0].reg, upper);
             return;
         }
 
@@ -937,6 +1057,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         }
 
         case MicroInstrOpcode::LoadRegMem:
+        case MicroInstrOpcode::LoadVecRegMem:
         case MicroInstrOpcode::LoadSignedExtRegMem:
         case MicroInstrOpcode::LoadZeroExtRegMem:
         {
@@ -949,12 +1070,16 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 const auto       it = state.stack.find(slot);
                 SanitizerRegInfo info;
                 info.value                = it != state.stack.end() ? it->second : SanitizerValue{};
+                info.value.storedBytes    = 0;
                 info.hasOriginSlot        = true;
                 info.originSlot           = slot;
                 info.hasPointerOriginSlot = true;
                 info.pointerOriginSlot    = slot;
 
-                if (info.value.isConstant() && inst.op != MicroInstrOpcode::LoadRegMem)
+                const bool wide = (inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadVecRegMem) && ops[2].opBits == MicroOpBits::B128;
+                if (wide)
+                    info.value = getStackLane(state, slot);
+                if (info.value.isConstant() && (inst.op == MicroInstrOpcode::LoadSignedExtRegMem || inst.op == MicroInstrOpcode::LoadZeroExtRegMem))
                 {
                     const uint32_t srcBits = getNumBits(ops[3].opBits);
                     if (srcBits && srcBits < 64)
@@ -967,7 +1092,10 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                     }
                 }
 
+                const SanitizerValue upper = wide ? getStackLane(state, slot + 8) : SanitizerValue{};
                 setReg(state, ops[0].reg, info);
+                if (wide)
+                    setUpperReg(state, ops[0].reg, upper);
                 return;
             }
 
@@ -1013,34 +1141,39 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         case MicroInstrOpcode::LoadAmcMemReg:
         {
             const SanitizerValue value = getReg(state, ops[2].reg);
+            const bool           wide  = ops[4].opBits == MicroOpBits::B128;
+            const SanitizerValue upper = wide ? getUpperReg(state, ops[2].reg) : SanitizerValue{};
             markFrameObjectEscaped(state, value);
+            markFrameObjectEscaped(state, upper);
 
             int64_t slot = 0;
             if (resolveAccessStackSlot(slot, state, inst, def, ops))
             {
-                if (value.kind == SanitizerValueKind::Unknown)
-                    state.stack.erase(slot);
-                else
-                    state.stack[slot] = value;
+                setStackValue(state, slot, value, wide ? 8 : static_cast<uint8_t>(getNumBits(ops[4].opBits) / 8));
+                if (wide)
+                    setStackValue(state, slot + 8, upper, 8);
                 recordSlotCopy(state, slot, ops[2].reg, ops[4].opBits);
             }
             return;
         }
 
         case MicroInstrOpcode::LoadMemReg:
+        case MicroInstrOpcode::StoreVecMemReg:
         {
             // Whatever the destination is, an address written to memory can be read back
             // anywhere, so the object it names stops being out of reach.
             const SanitizerValue value = getReg(state, ops[1].reg);
+            const bool           wide  = ops[2].opBits == MicroOpBits::B128;
+            const SanitizerValue upper = wide ? getUpperReg(state, ops[1].reg) : SanitizerValue{};
             markFrameObjectEscaped(state, value);
+            markFrameObjectEscaped(state, upper);
 
             int64_t slot = 0;
             if (resolveStackSlot(state, ops[0].reg, ops[3].valueU64, slot))
             {
-                if (value.kind == SanitizerValueKind::Unknown)
-                    state.stack.erase(slot);
-                else
-                    state.stack[slot] = value;
+                setStackValue(state, slot, value, wide ? 8 : static_cast<uint8_t>(getNumBits(ops[2].opBits) / 8));
+                if (wide)
+                    setStackValue(state, slot + 8, upper, 8);
                 recordSlotCopy(state, slot, ops[1].reg, ops[2].opBits);
             }
             return;
@@ -1050,7 +1183,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         {
             int64_t slot = 0;
             if (resolveStackSlot(state, ops[0].reg, ops[2].valueU64, slot))
-                state.stack[slot] = SanitizerValue::makeConstant(ops[3].valueU64);
+                setStackValue(state, slot, SanitizerValue::makeConstant(ops[3].valueU64), static_cast<uint8_t>(getNumBits(ops[1].opBits) / 8));
             return;
         }
 
@@ -1228,6 +1361,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         // clobbered, and what a register said about the CONTENT of a slot no longer holds
         // once the callee may have written it.
         std::erase_if(state.regs, [](const auto& entry) { return !MicroReg::fromPacked(entry.first).isVirtual() || (!entry.second.value.isStackAddr() && !entry.second.releasedPointer); });
+        std::erase_if(state.upperRegValues, [](const auto& entry) { return !MicroReg::fromPacked(entry.first).isVirtual() || !entry.second.isStackAddr(); });
         for (auto& [reg, info] : state.regs)
             info = SanitizerRegInfo{.value = info.value, .releasedPointer = info.releasedPointer, .releasedOrigin = info.releasedOrigin};
 
@@ -1389,8 +1523,11 @@ void Sanitizer::queueRefined(const SanitizerState& state, uint32_t index, int64_
         return; // infeasible
 
     SanitizerState edge = state;
-    edge.stack[slot]    = slotIsZero ? SanitizerValue::makeConstant(0) : SanitizerValue::makeNonZero();
-    edge.flagsSubject   = MicroReg::invalid();
+    // A guard narrows an unknown value, but must retain any value already known,
+    // including its storage width: later reloads and wide copies need the same fact.
+    if (current.kind == SanitizerValueKind::Unknown)
+        edge.stack[slot] = slotIsZero ? SanitizerValue::makeConstant(0) : SanitizerValue::makeNonZero();
+    edge.flagsSubject = MicroReg::invalid();
     propagate(edge, index, worklist);
 }
 
@@ -1406,6 +1543,7 @@ void Sanitizer::dropZeros(SanitizerState& state)
             ++it;
     }
     std::erase_if(state.stack, [](const auto& entry) { return entry.second.isZero(); });
+    std::erase_if(state.upperRegValues, [](const auto& entry) { return entry.second.isZero(); });
 }
 
 bool Sanitizer::resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state) const

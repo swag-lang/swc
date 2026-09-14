@@ -15,7 +15,7 @@ __gshared u64* g_QLen;
 
 int main()
 {
-    
+
     g_Bytes   = cast(u8*) xalloc(DICT * 16);
     g_WordOff = cast(u64*) xalloc(DICT * u64.sizeof);
     g_WordLen = cast(u64*) xalloc(DICT * u64.sizeof);
@@ -92,7 +92,7 @@ int main()
         }
     }
 
-    
+    // Timed work starts after data generation.
     double t0 = now();
 
     u64[64] row0 = void;

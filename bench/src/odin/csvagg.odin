@@ -75,6 +75,7 @@ main :: proc() {
         n += 1
         n = writeUInt2(text, n, (cents % 100))
     }
+    // Timed work starts after data generation.
     t0: f64 = common.now()
     agg: bytemap.ByteMap
     bytemap.mapInit(&agg, 64, text)

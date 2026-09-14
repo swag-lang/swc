@@ -43,7 +43,7 @@ u64 writeUInt2(u8* buf, u64 pos, u64 v)
 
 int main()
 {
-    
+
     u8* text = cast(u8*) xalloc(ROWS * 48);
     u64 n    = 0;
 
@@ -91,7 +91,7 @@ int main()
         n = writeUInt2(text, n, cents % 100);
     }
 
-    
+    // Timed work starts after data generation.
     double t0 = now();
 
     ByteMap agg;
@@ -111,25 +111,21 @@ int main()
         while (eol < n && text[eol] != '\n')
             eol += 1;
 
-        
         u64 p = pos;
         while (p < eol && text[p] != ',')
             p += 1;
         p += 1;
 
-        
         u64 rs = p;
         while (p < eol && text[p] != ',')
             p += 1;
         u64 rlen = p - rs;
         p += 1;
 
-        
         while (p < eol && text[p] != ',')
             p += 1;
         p += 1;
 
-        
         u64 qty = 0;
         while (p < eol && text[p] != ',')
         {
@@ -138,7 +134,6 @@ int main()
         }
         p += 1;
 
-        
         u64 ip = 0;
         while (p < eol && text[p] != '.')
         {
@@ -178,7 +173,6 @@ int main()
         pos = eol + 1;
     }
 
-    
     u64[64] order = void;
     u64[64] keyIdx = void;
     u64 nk = 0;

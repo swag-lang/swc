@@ -53,6 +53,7 @@ pub fn main() void {
             nonce[i] = @as(u32, @intCast((rnd() & M32)));
         }
     }
+    // Timed work starts after data generation.
     const t0: f64 = now();
     var initial: [16]u32 = undefined;
     initial[0] = 0x61707865;

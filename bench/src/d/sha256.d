@@ -21,12 +21,12 @@ immutable u64[64] KTAB = [
 
 int main()
 {
-    
+
     u8* msg = cast(u8*) xalloc(MSGSIZE);
     for (u64 i = 0; i < MSGSIZE; i++)
         msg[i] = cast(u8) (rnd() % 256);
 
-    
+    // Timed work starts after data generation.
     double t0 = now();
 
     u64 totalBits = MSGSIZE * 8;

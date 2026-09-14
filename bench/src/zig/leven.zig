@@ -93,6 +93,7 @@ pub fn main() void {
             }
         }
     }
+    // Timed work starts after data generation.
     const t0: f64 = now();
     var row0: [64]u64 = undefined;
     var row1: [64]u64 = undefined;

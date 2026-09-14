@@ -86,6 +86,7 @@ main :: proc() {
         }
         n += 1
     }
+    // Timed work starts after data generation.
     t0: f64 = common.now()
     counts: bytemap.ByteMap
     bytemap.mapInit(&counts, CAP, g_Text)

@@ -40,6 +40,7 @@ main :: proc() {
     for i: u64 = 0; (i < 3); i += 1 {
         nonce[i] = u32((common.rnd() & M32))
     }
+    // Timed work starts after data generation.
     t0: f64 = common.now()
     initial: [16]u32
     initial[0] = 0x61707865

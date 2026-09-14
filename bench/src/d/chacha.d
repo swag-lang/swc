@@ -1,22 +1,20 @@
 module chacha;
 
 import common;
-immutable u64 NWORDS = 4194304; 
+immutable u64 NWORDS = 4194304;
 immutable u64 M32  = 0xFFFFFFFF;
 
-
-
- u32 add32(u32 left, u32 right)
+u32 add32(u32 left, u32 right)
 {
     return cast(u32) (((cast(u64) left) + right) & M32);
 }
 
- u32 rol(u32 x, int k)
+u32 rol(u32 x, int k)
 {
     return cast(u32) (((x << k) | (x >> (32 - k))) & M32);
 }
 
- void quarterRound(u32* state, int a, int b, int c, int d)
+void quarterRound(u32* state, int a, int b, int c, int d)
 {
     state[a] = add32(state[a], state[b]);
     state[d] ^= state[a];
@@ -34,7 +32,7 @@ immutable u64 M32  = 0xFFFFFFFF;
 
 int main()
 {
-    
+
     u32* data = cast(u32*) xalloc(NWORDS * 4);
     for (u64 i = 0; i < NWORDS; i++)
         data[i] = cast(u32) (rnd() & M32);
@@ -47,7 +45,7 @@ int main()
     for (u64 i = 0; i < 3; i++)
         nonce[i] = cast(u32) (rnd() & M32);
 
-    
+    // Timed work starts after data generation.
     double t0 = now();
 
     u32[16] initial = void;

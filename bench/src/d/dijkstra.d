@@ -66,12 +66,12 @@ void pop()
 
 int main()
 {
-    
+
     u64* weight = cast(u64*) xalloc(NN * u64.sizeof);
     for (u64 i = 0; i < NN; i++)
         weight[i] = 1 + (rnd() % 9);
 
-    
+    // Timed work starts after data generation.
     double t0 = now();
 
     u64* dist = cast(u64*) xalloc(NN * u64.sizeof);

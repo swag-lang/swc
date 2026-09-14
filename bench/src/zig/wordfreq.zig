@@ -106,6 +106,7 @@ pub fn main() void {
             n += 1;
         }
     }
+    // Timed work starts after data generation.
     const t0: f64 = now();
     var counts: ByteMap = undefined;
     mapInit(&counts, CAP, g_Text);

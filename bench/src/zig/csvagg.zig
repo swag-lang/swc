@@ -56,12 +56,12 @@ pub fn main() void {
             const y: u64 = (2024 + (rnd() % 3));
             const m: u64 = (1 + (rnd() % 12));
             const d: u64 = (1 + (rnd() % 28));
-            var qty: u64 = (1 + (rnd() % 50));
+            const qty: u64 = (1 + (rnd() % 50));
             const cents: u64 = (100 + (rnd() % 99900));
             n = writeUInt(text, n, j);
             text[n] = ',';
             n += 1;
-            const rl: u64 = @import("std").mem.len(region);
+            const rl: u64 = region.len;
             {
                 var i: u64 = 0;
                 while ((i < rl)) : (i += 1) {
@@ -89,6 +89,7 @@ pub fn main() void {
             n = writeUInt2(text, n, (cents % 100));
         }
     }
+    // Timed work starts after data generation.
     const t0: f64 = now();
     var agg: ByteMap = undefined;
     mapInit(&agg, 64, text);

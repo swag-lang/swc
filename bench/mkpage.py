@@ -769,7 +769,8 @@ def main():
         "{{skipped}}": (", ".join(R.get("skipped") or []) or "aucune"),
     }
 
-    html = open(TEMPLATE, encoding="utf-8").read()
+    with open(TEMPLATE, encoding="utf-8") as template:
+        html = template.read()
     for k, v in subs.items():
         html = html.replace(k, v)
     import re

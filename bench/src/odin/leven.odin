@@ -72,6 +72,7 @@ main :: proc() {
             qp += 1
         }
     }
+    // Timed work starts after data generation.
     t0: f64 = common.now()
     row0: [64]u64
     row1: [64]u64

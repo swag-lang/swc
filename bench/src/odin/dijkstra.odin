@@ -65,6 +65,7 @@ main :: proc() {
     for i: u64 = 0; (i < NN); i += 1 {
         weight[i] = (1 + (common.rnd() % 9))
     }
+    // Timed work starts after data generation.
     t0: f64 = common.now()
     dist: [^]u64 = ([^]u64)(common.xalloc((NN * size_of(u64))))
     for i: u64 = 0; (i < NN); i += 1 {

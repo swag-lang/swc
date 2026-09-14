@@ -191,6 +191,27 @@ def spread_pct(samples):
     return (max(samples) / min(samples) - 1.0) * 100.0 if samples else 0.0
 
 
+def campaign_errors(results):
+    """Do not publish a comparison when an available port failed or disagreed."""
+    errors = []
+    for family in ("hello_build", "loop"):
+        for name, entry in results.get(family, {}).items():
+            if entry.get("error"):
+                errors.append("%s/%s: %s" % (family, name, entry["error"]))
+    for task, entries in results["tasks"].items():
+        seen = {}
+        for name, entry in entries.items():
+            for family in ("build", "run"):
+                if entry.get(family, {}).get("error"):
+                    errors.append("%s/%s/%s: %s" % (task, name, family, entry[family]["error"]))
+            check = entry.get("run", {}).get("check")
+            if check is not None:
+                seen.setdefault(check, []).append(name)
+        if len(seen) > 1:
+            errors.append("%s: %s" % (task, seen))
+    return errors
+
+
 def wait_for_quiet():
     """Refuse to start until the machine belongs to us. Returns the settled load."""
     deadline = time.time() + QUIET_WAIT_S
@@ -528,22 +549,7 @@ def main():
     print("drift over the sweep: %+.1f %%" % results["calibration"]["drift_pct"])
 
     # --------------------------------------------------------------- checksums
-    bad = []
-    for family in ("hello_build", "loop"):
-        for name, entry in results[family].items():
-            if entry.get("error"):
-                bad.append("%s/%s: %s" % (family, name, entry["error"]))
-    for task in tasks:
-        seen = {}
-        for name, entry in results["tasks"][task].items():
-            for family in ("build", "run"):
-                if entry.get(family, {}).get("error"):
-                    bad.append("%s/%s/%s: %s" % (task, name, family, entry[family]["error"]))
-            c = entry.get("run", {}).get("check")
-            if c is not None:
-                seen.setdefault(c, []).append(name)
-        if len(seen) > 1:
-            bad.append("%s: %s" % (task, seen))
+    bad = campaign_errors(results)
     if bad:
         print("campaign contains build, run or checksum errors: %s" % "; ".join(bad))
         print("campaign stopped before recording results")

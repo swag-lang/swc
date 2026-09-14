@@ -12,7 +12,6 @@ __gshared u64* g_Off;
 __gshared u64* g_Len;
 __gshared u64* g_Idx;
 
-
 bool less(u64 a, u64 b)
 {
     if (g_Cnt[a] != g_Cnt[b])
@@ -61,7 +60,7 @@ void qsortIdx(s64 lowIn, s64 highIn)
 
 int main()
 {
-    
+
     u8*  vocabBytes = cast(u8*) xalloc(VOCAB * 16);
     u64* vocabOff   = cast(u64*) xalloc(VOCAB * u64.sizeof);
     u64* vocabLen   = cast(u64*) xalloc(VOCAB * u64.sizeof);
@@ -100,7 +99,7 @@ int main()
         n += 1;
     }
 
-    
+    // Timed work starts after data generation.
     double t0 = now();
 
     ByteMap counts;

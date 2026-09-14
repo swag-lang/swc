@@ -72,6 +72,7 @@ pub fn main() void {
             weight[i] = (1 + (rnd() % 9));
         }
     }
+    // Timed work starts after data generation.
     const t0: f64 = now();
     const dist: [*]u64 = @ptrCast(@alignCast(xalloc((NN * @sizeOf(u64)))));
     {

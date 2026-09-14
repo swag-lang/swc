@@ -1,5 +1,5 @@
 Sha256.__main_0: 72 micro instructions / 5 explicit memory operations
-189 531  
+189 531
 190 533                  load_reg_reg rdx, r13, b64               | rdx = r13
 191 535             op_binary_reg_imm shr, rdx, 0x6, b64          | rdx >>= 0x6
 192 537                  load_reg_reg rcx, r13, b64               | rcx = r13
@@ -74,7 +74,7 @@ Sha256.__main_0: 72 micro instructions / 5 explicit memory operations
 261 789                     jump_cond b, b32 531                  | if b jump 531
 
 Leven.__main_0: 22 micro instructions / 5 explicit memory operations
-318 610  
+318 610
 319 616                  load_reg_reg r11, r9, b64                | r11 = r9
 320 618             op_binary_reg_reg add, r11, rsi, b64          | r11 += rsi
 321 622              load_amc_reg_mem r11, [r13 + r11], b8        | r11 = [r13 + r11]
@@ -99,7 +99,7 @@ Leven.__main_0: 22 micro instructions / 5 explicit memory operations
 340 694                     jump_cond b, b32 610                  | if b jump 610
 
 Dijkstra.push: 26 micro instructions / 15 explicit memory operations
-015 043  
+015 043
 016 039             load_addr_reg_mem rax, [r9 + 0xFFFFFFFFFFFFFFFF], b64 | rax = &[r9 + 0xFFFFFFFFFFFFFFFF]
 017 045             op_binary_reg_imm shr, rax, 0x1, b64          | rax >>= 0x1
 018 051                  load_reg_mem rcx, [rip], b64             | rcx = [rip]  // reloc = global-zero = global_zero+0x7D8
@@ -128,7 +128,7 @@ Dijkstra.push: 26 micro instructions / 15 explicit memory operations
 041 126                     jump_cond a, b32 043                  | if a jump 043
 
 Raytrace.__main_0: 52 micro instructions / 6 explicit memory operations
-041 028  
+041 028
 042 030                     clear_reg xmm0, b64                   | xmm0 = 0
 043 109       load_signed_ext_reg_reg rax, r12, b64 <- b32        | rax = sign_extend(r12, b64 <- b32)
 044 031             op_binary_reg_reg cvti2f, xmm0, rax, b64      | xmm0 = cvti2f(rax)

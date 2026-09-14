@@ -70,5 +70,28 @@
     "sha256.txt": "960595d3b91e8c3cf423667118328d7f6d52972360d315999f4628e2ed377164",
     "wordfreq.txt": "5ff8b68ea939b33abc6924b450aa4ed9beb920aff5cf5594af53a64de770a6dd"
   },
-  "benchmark_source_difference": "common.swg: remove redundant ptr! after the null guard; task algorithms unchanged."
+  "benchmark_source_difference": "common.swg: remove redundant ptr! after the null guard; task algorithms unchanged.",
+  "campaign1_integrated_compiler": "DevMode 0.1.598",
+  "campaign1_integrated_master": "dd4c85b05",
+  "swag_campaign1_integrated_sha256": {
+    "bytemap.swg": "e550a0b785602c4e7cbcdc39eb83d60ef4df1c8b2afbaabb146bd179b4171a3b",
+    "chacha.swg": "3fce9d8bbec4f283a7566663fdc6d0757c739af96d0e80463545b986f6b2576f",
+    "common.swg": "f00396da17449961049088dad2b699fdea30640065bad8b9f5d83c1db60bbfa2",
+    "csvagg.swg": "086f081d5dad8ea45d7cbe59de93134c105f3de3084368902a08f4f5c13a9154",
+    "dijkstra.swg": "8f762de03b036566a4aff954ae2d55562bc162e711e081740f99d965bcd5b35c",
+    "leven.swg": "721d46147fa7c71cae49bb94a9dd8931dcffc6cef46afc818e4cd50fd10c2f0a",
+    "raytrace.swg": "1fb3aa87ab5e099d6700fb9c46a206fed7b3760442b7ceb7e0128fd82cf4f9b0",
+    "sha256.swg": "3ee1b66636be504d3e4e220c0ce97e238ccbb5881bdc62bd9e6ac994297a6e26",
+    "wordfreq.swg": "c41ef1d4cc9f5fa2a5b43a5af4d439fc0607f9afe8eae7b4eb3d5a7232626eb8",
+    "compiler": "f40d853e3226e39eb5944085f4a1631ed418eda03e5339d4f0cb1f873fa8fc98"
+  },
+  "campaign1_integrated_dump_sha256": {
+    "chacha.txt": "c704f4a87b9e51e4479feb128fcef0109fa0fd4fa1be31703d8b6c47e663aea4",
+    "csvagg.txt": "0d4a2807f0887d4c9717ced709ca3730037207ae954aa6e9cf7bfa977c2e8730",
+    "dijkstra.txt": "a732ad5d5fd7dfe2b0d7d5ab37cab95f59f5b3f4003907030a099bb0e43b4625",
+    "leven.txt": "cc00a536faf0150fb79b19e4a7418e60efe642dc7b9403fd44ac1a954bdb2d35",
+    "raytrace.txt": "4f87fc92d2d8137fc6f8837bd86d7a74a33c1d7fa119c2a00d7bfcf2b75341bf",
+    "sha256.txt": "4abe1aa25970b70635f0cb5166749cf22ed9c7c643a5417f27fa473e9c8e6098",
+    "wordfreq.txt": "fea52f2271b716a5ac3b9704e4ba4e0676539d9e62010d840bccbcb213f215d2"
+  }
 }

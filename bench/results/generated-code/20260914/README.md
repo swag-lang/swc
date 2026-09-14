@@ -52,6 +52,11 @@ semantic input sets (279 valid-source files and 294 expected-error files,
 including compiler runtime inputs). All selected commands exited successfully.
 The seven benchmark programs were built in `release` and never executed.
 
+After integrating master `dd4c85b05`, DevMode build 598 passed 847 C++ tests,
+3,168 native tests, both semantic suites and 1,410 JIT tests. All seven release
+static dumps were regenerated: every function count and loop span still matches
+the build-597 campaign result exactly. The hashes identify both compiler builds.
+
 The user waived memory admission margins during this session. Fresh CPU
 admission checks and the six-worker bound remained active.
 

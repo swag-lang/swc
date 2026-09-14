@@ -1005,6 +1005,27 @@ void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) c
         out.push_back(dep);
 }
 
+void SymbolFunction::addLifecycleDependency(const SymbolFunction* sym)
+{
+    if (!sym || sym == this)
+        return;
+    auto* const            mutableSym = const_cast<SymbolFunction*>(sym);
+    const std::unique_lock lock(callDependenciesMutex_);
+    if (!lifecycleDependencies_)
+        lifecycleDependencies_ = std::make_unique<std::vector<SymbolFunction*>>();
+    if (std::ranges::find(*lifecycleDependencies_, mutableSym) == lifecycleDependencies_->end())
+        lifecycleDependencies_->push_back(mutableSym);
+}
+
+void SymbolFunction::appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const
+{
+    const std::shared_lock lock(callDependenciesMutex_);
+    if (!lifecycleDependencies_)
+        return;
+    for (SymbolFunction* dependency : *lifecycleDependencies_)
+        out.push_back(dependency);
+}
+
 SymbolFunction::GenericData* SymbolFunction::genericData() const noexcept
 {
     return genericData_.load(std::memory_order_acquire);

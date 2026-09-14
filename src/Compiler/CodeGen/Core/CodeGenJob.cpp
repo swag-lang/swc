@@ -132,6 +132,22 @@ JobResult CodeGenJob::execImpl()
 #endif
     SWC_ASSERT(!symbolFunc_->hasUnmaterializedGenericBody());
 
+    // Lifecycle intrinsics select operators after conditional impls have settled. A
+    // rejected candidate means there is no hook; it is not a failed ordinary call.
+    SmallVector<SymbolFunction*> lifecycleDependencies;
+    symbolFunc_->appendLifecycleDependencies(lifecycleDependencies);
+    for (const SymbolFunction* dependency : lifecycleDependencies)
+    {
+        if (dependency->isIgnored())
+            continue;
+        const Result waitResult = sema().waitSemaCompleted(dependency, dependency->codeRef());
+        if (dependency->isIgnored())
+            continue;
+        if (waitResult != Result::Continue)
+            return abortCodeGen(ctx(), *symbolFunc_, waitResult);
+        symbolFunc_->addCallDependency(dependency);
+    }
+
     SmallVector<SymbolFunction*> deps;
     symbolFunc_->appendCallDependencies(deps);
 

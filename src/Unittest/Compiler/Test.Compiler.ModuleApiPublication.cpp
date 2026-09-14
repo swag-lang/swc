@@ -73,6 +73,7 @@ namespace
         command.silent         = true;
         command.numCores       = 6;
         command.moduleFilePath = script;
+        command.modulePath     = script.parent_path();
         command.files.insert(script);
         CommandLineParser::refreshBuildCfg(command);
 
@@ -260,6 +261,8 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ScriptCacheDistinguishesEqualSizeAndTimestam
     fs::path    firstPath;
     std::string firstContent;
     SWC_RESULT(loadScriptCachedApi(firstPath, firstContent, ctx, script));
+    if (!fs::exists(directory.path() / ".tmp" / ".swc-setup-devmode"))
+        return Result::Error;
     if (firstPath == source || firstContent != API_SOURCE)
         return Result::Error;
 

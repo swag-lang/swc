@@ -66,7 +66,9 @@ namespace
         if (operandType.isValuePointer())
             return SemaError::raisePointerArithmeticValuePointer(sema, nodeRef, operandRef, operandView.typeRef());
 
-        return Result::Continue;
+        // A pointer's own type is complete before its pointee layout. Both binary and compound
+        // arithmetic need that layout for their element stride before code generation can start.
+        return sema.waitSemaCompleted(&sema.typeMgr().get(payloadTypeRef), operandRef);
     }
 
     bool blockPointerPayloadsMatch(Sema& sema, const SemaNodeView& leftOperandView, const SemaNodeView& rightOperandView)

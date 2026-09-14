@@ -132,6 +132,45 @@ namespace
         return false;
     }
 
+    Result addLifecycleCallDependenciesRec(Sema& sema, TypeRef typeRef, const SpecOpKind kind, std::unordered_set<TypeRef>& visited)
+    {
+        typeRef = sema.typeMgr().unwrapAlias(sema.ctx(), typeRef);
+        if (typeRef.isInvalid() || !visited.insert(typeRef).second)
+            return Result::Continue;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (type.isArray())
+        {
+            for (const uint64_t dimension : type.payloadArrayDims())
+            {
+                if (!dimension)
+                    return Result::Continue;
+            }
+            return addLifecycleCallDependenciesRec(sema, type.payloadArrayElemTypeRef(), kind, visited);
+        }
+        if (!type.isStruct())
+            return Result::Continue;
+
+        const SymbolStruct& owner = type.payloadSymStruct();
+        SWC_RESULT(sema.waitSemaCompleted(&owner, sema.node(sema.curNodeRef()).codeRef()));
+        const SymbolFunction* direct = nullptr;
+        switch (kind)
+        {
+            case SpecOpKind::OpDrop: direct = owner.opDrop(); break;
+            case SpecOpKind::OpPostCopy: direct = owner.opPostCopy(); break;
+            case SpecOpKind::OpPostMove: direct = owner.opPostMove(); break;
+            default: SWC_UNREACHABLE();
+        }
+        if (direct && sema.isCurrentFunction())
+            sema.currentFunction()->addLifecycleDependency(direct);
+        for (const SymbolVariable* field : owner.fields())
+        {
+            if (field)
+                SWC_RESULT(addLifecycleCallDependenciesRec(sema, field->typeRef(), kind, visited));
+        }
+        return Result::Continue;
+    }
+
     SourceCodeRef operatorGenerationErrorCodeRef(const SymbolStruct& ownerStruct)
     {
         const AttributeList& attributes = ownerStruct.attributes();
@@ -1201,6 +1240,14 @@ bool SemaSpecOp::typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind 
 {
     std::unordered_set<TypeRef> visiting;
     return typeHasLifecycleRec(ctx, typeRef, kind, visiting);
+}
+
+Result SemaSpecOp::addLifecycleCallDependencies(Sema& sema, TypeRef typeRef, SpecOpKind kind)
+{
+    // A conditional operator may disappear when its impl finishes. Record the candidates
+    // now; CodeGenJob resolves them before publishing ordinary calls and emitting the caller.
+    std::unordered_set<TypeRef> visited;
+    return addLifecycleCallDependenciesRec(sema, typeRef, kind, visited);
 }
 
 Result SemaSpecOp::ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& ownerStruct)

@@ -364,9 +364,28 @@ namespace
         return fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
     }
 
+    bool isIncludableOptionalConstantJitRoot(const SymbolFunction& root)
+    {
+        // A metadata pointer may remain unpublished while its runtime call graph is
+        // still being analyzed. Pulling a completed interface method into #ast can
+        // otherwise wait on the enclosing function that needs that #ast to finish.
+        SmallVector<SymbolFunction*> dependencies;
+        root.appendJitOrder(dependencies);
+        for (const SymbolFunction* dependency : dependencies)
+        {
+            if (dependency->isForeign() || dependency->isEmpty() || dependency->isAttribute())
+                continue;
+            if (dependency->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || dependency->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+                continue;
+            if (!isIncludableConstantJitDependency(*dependency))
+                return false;
+        }
+        return true;
+    }
+
     bool appendConstantFunctionJitRootsInAllocation(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, uint32_t shardIndex, uint32_t sourceOffset)
     {
-        SmallVector<DataSegmentRef>         pending{{.shardIndex = shardIndex, .offset = sourceOffset}};
+        SmallVector<DataSegmentRef>        pending{{.shardIndex = shardIndex, .offset = sourceOffset}};
         bool                               changed = false;
         std::vector<DataSegmentRelocation> relocations;
         while (!pending.empty())
@@ -397,8 +416,11 @@ namespace
                     auto target = const_cast<SymbolFunction*>(relocation.targetSymbol);
                     if (!target || !isIncludableConstantJitDependency(*target))
                         continue;
-                    if (!seenFunctions.insert(target).second)
+                    if (seenFunctions.contains(target))
                         continue;
+                    if (relocation.allowUnresolvedFunction && !isIncludableOptionalConstantJitRoot(*target))
+                        continue;
+                    seenFunctions.insert(target);
 
                     roots.push_back(target);
                     changed = true;

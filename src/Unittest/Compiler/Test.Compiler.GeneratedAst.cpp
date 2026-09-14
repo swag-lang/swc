@@ -4,6 +4,9 @@
 
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/Ast.h"
+#include "Compiler/Parser/Ast/AstVisit.h"
+#include "Compiler/Sema/Core/NodePayload.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -202,6 +205,13 @@ func touch()
         static constexpr std::string_view SOURCE = R"(#global private
 using Swag
 
+func repair(value: *Tracked)
+{
+    Swag.postCopy(value)
+    Swag.postMove(value)
+    Swag.drop(value)
+}
+
 struct Tracked
 {
     value: s32 = 1
@@ -320,6 +330,39 @@ func touch()
                 return Result::Error;
         }
 
+        // Lifecycle intrinsics emit ordinary calls later. Their direct operators must
+        // already be candidates after sema, including operators on nested fields.
+        const SourceFile* source = findFileByPath(compiler, sourcePath);
+        if (!source)
+            return Result::Error;
+        TaskContext compilerCtx(compiler);
+        for (const std::string_view callerName : {"touch", "repair"})
+        {
+            const SymbolFunction* caller = nullptr;
+            Ast::visit(source->ast(), source->ast().root(), [&](AstNodeRef ref, const AstNode& node) {
+                const auto* decl = node.safeCast<AstFunctionDecl>();
+                if (!decl || decl->tokNameRef.isInvalid() || source->ast().srcView().tokenString(decl->tokNameRef) != callerName)
+                    return Ast::VisitResult::Continue;
+                const Symbol* symbol = source->nodePayloadContext().viewStored(compilerCtx, ref).sym;
+                caller               = symbol ? symbol->safeCast<SymbolFunction>() : nullptr;
+                return Ast::VisitResult::Stop;
+            });
+            if (!caller)
+                return Result::Error;
+            SmallVector<SymbolFunction*> dependencies;
+            caller->appendLifecycleDependencies(dependencies);
+            for (const std::string_view name : {"opDrop", "opPostCopy", "opPostMove"})
+            {
+                bool found = false;
+                for (const SymbolFunction* dependency : dependencies)
+                    found |= dependency->name(compilerCtx) == name;
+                if (!found)
+                {
+                    std::println(stderr, "[lifecycle dependencies] {} does not include {}", callerName, name);
+                    return Result::Error;
+                }
+            }
+        }
         return Result::Continue;
     }
 }

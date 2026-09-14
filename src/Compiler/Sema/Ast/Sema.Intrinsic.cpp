@@ -47,7 +47,7 @@ namespace
         return typeRef;
     }
 
-    TypeRef intrinsicInitFillTypeRef(Sema& sema, TypeRef whatTypeRef)
+    TypeRef intrinsicLifecycleTargetTypeRef(Sema& sema, TypeRef whatTypeRef, const bool flattenArrays)
     {
         whatTypeRef = normalizeIntrinsicInitTypeRef(sema, whatTypeRef);
         if (!whatTypeRef.isValid())
@@ -56,6 +56,9 @@ namespace
         const TypeInfo& whatType = sema.typeMgr().get(whatTypeRef);
         if (whatType.isReference() || whatType.isAnyPointer())
             whatTypeRef = normalizeIntrinsicInitTypeRef(sema, whatType.payloadTypeRef());
+
+        if (!flattenArrays)
+            return whatTypeRef;
 
         while (whatTypeRef.isValid())
         {
@@ -133,7 +136,7 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef));
 
-    const TypeRef fillTypeRef = intrinsicInitFillTypeRef(sema, sema.viewType(nodeWhatRef).typeRef());
+    const TypeRef fillTypeRef = intrinsicLifecycleTargetTypeRef(sema, sema.viewType(nodeWhatRef).typeRef(), true);
     SWC_ASSERT(fillTypeRef.isValid());
     if (fillTypeRef.isInvalid())
         return Result::Error;
@@ -188,17 +191,20 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
 
 Result AstIntrinsicDrop::semaPostNode(Sema& sema) const
 {
-    return semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef);
+    SWC_RESULT(semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef));
+    return SemaSpecOp::addLifecycleCallDependencies(sema, intrinsicLifecycleTargetTypeRef(sema, sema.viewType(nodeWhatRef).typeRef(), nodeCountRef.isValid()), SpecOpKind::OpDrop);
 }
 
 Result AstIntrinsicPostCopy::semaPostNode(Sema& sema) const
 {
-    return semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef);
+    SWC_RESULT(semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef));
+    return SemaSpecOp::addLifecycleCallDependencies(sema, intrinsicLifecycleTargetTypeRef(sema, sema.viewType(nodeWhatRef).typeRef(), nodeCountRef.isValid()), SpecOpKind::OpPostCopy);
 }
 
 Result AstIntrinsicPostMove::semaPostNode(Sema& sema) const
 {
-    return semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef);
+    SWC_RESULT(semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef));
+    return SemaSpecOp::addLifecycleCallDependencies(sema, intrinsicLifecycleTargetTypeRef(sema, sema.viewType(nodeWhatRef).typeRef(), nodeCountRef.isValid()), SpecOpKind::OpPostMove);
 }
 
 namespace

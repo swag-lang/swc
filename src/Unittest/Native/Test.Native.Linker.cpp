@@ -35,6 +35,12 @@ namespace
         return bytes;
     }
 
+    bool matchesArchiveHeader(const ByteArray& bytes, const size_t offset, const std::string_view name, const uint32_t dataSize)
+    {
+        const std::string expected = std::format("{:<16}{:<12}{:<6}{:<6}{:<8}{:<10}`\n", name, 0, 0, 0, 0, dataSize);
+        return bytes.containsRange(offset, expected.size()) && std::memcmp(bytes.data() + offset, expected.data(), expected.size()) == 0;
+    }
+
     class LinkerTestDirectory
     {
     public:
@@ -111,6 +117,31 @@ SWC_TEST_BEGIN(Linker_ArchivePreservesObjectBytes)
     if (!buildCoffStaticArchive(members[0].bytes, diag, members) || !archive.load(diag, std::move(members[0].bytes)))
         return Result::Error;
     if (!std::ranges::equal(archive.memberData(diag, archive.memberOffsetForSymbol("first")), firstObject) || !std::ranges::equal(archive.memberData(diag, archive.memberOffsetForSymbol("second")), members[1].bytes))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Linker_ArchivePreservesMemberLayout)
+{
+    Diagnostic diag;
+    ByteArray  bytes;
+    if (!buildCoffStaticArchive(bytes, diag, {}) || bytes.size() != 72 || bytes.readBe32(68) != 0 || !matchesArchiveHeader(bytes, 8, "/", 4))
+        return Result::Error;
+
+    const std::vector<LinkArchiveMember> shortMembers = {{.name = "f.obj", .bytes = makeArchiveTestObject("a", std::byte{0xC3})}};
+    if (!buildCoffStaticArchive(bytes, diag, shortMembers) || bytes.size() != 222 || !bytes.contains("!<arch>\n") ||
+        !matchesArchiveHeader(bytes, 8, "/", 10) || !matchesArchiveHeader(bytes, 78, "f.obj/", 83) ||
+        bytes.readBe32(68) != 1 || bytes.readBe32(72) != 78 || bytes[76] != std::byte{'a'} || bytes[77] != std::byte{0} || bytes[221] != std::byte{'\n'} ||
+        !std::ranges::equal(bytes.span().subspan(138, 83), shortMembers[0].bytes))
+        return Result::Error;
+
+    // The linker member, long-names table and object all need an alignment byte.
+    const std::vector<LinkArchiveMember> longMembers = {{.name = "0123456789abcdef", .bytes = makeArchiveTestObject("bb", std::byte{0x90})}};
+    if (!buildCoffStaticArchive(bytes, diag, longMembers) || bytes.size() != 302 ||
+        !matchesArchiveHeader(bytes, 8, "/", 11) || !matchesArchiveHeader(bytes, 80, "//", 17) || !matchesArchiveHeader(bytes, 158, "/0", 83) ||
+        bytes.readBe32(68) != 1 || bytes.readBe32(72) != 158 || bytes[76] != std::byte{'b'} || bytes[77] != std::byte{'b'} || bytes[78] != std::byte{0} ||
+        bytes[79] != std::byte{'\n'} || bytes[157] != std::byte{'\n'} || bytes[301] != std::byte{'\n'} ||
+        std::memcmp(bytes.data() + 140, "0123456789abcdef\n", 17) != 0 || !std::ranges::equal(bytes.span().subspan(218, 83), longMembers[0].bytes))
         return Result::Error;
 }
 SWC_TEST_END()

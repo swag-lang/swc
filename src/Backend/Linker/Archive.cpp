@@ -4,6 +4,7 @@
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
+#include <charconv>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -177,7 +178,7 @@ bool Archive::tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint3
 
 namespace
 {
-    void appendHeaderField(std::string& outHeader, std::string_view value, size_t offset, size_t width)
+    void appendHeaderField(const std::span<char> outHeader, std::string_view value, size_t offset, size_t width)
     {
         std::memcpy(outHeader.data() + offset, value.data(), std::min(value.size(), width));
     }
@@ -185,16 +186,18 @@ namespace
     // Writes a 60-byte archive member header. Numeric fields are left-justified, space-padded.
     void appendMemberHeader(ByteArray& out, std::string_view name, uint32_t dataSize)
     {
-        std::string header(MEMBER_HEADER_SIZE, ' ');
+        std::array<char, MEMBER_HEADER_SIZE> header;
+        header.fill(' ');
         appendHeaderField(header, name, 0, 16);
         appendHeaderField(header, "0", 16, 12); // date
         appendHeaderField(header, "0", 28, 6);  // uid
         appendHeaderField(header, "0", 34, 6);  // gid
         appendHeaderField(header, "0", 40, 8);  // mode
-        appendHeaderField(header, std::to_string(dataSize), 48, 10);
+        const auto result = std::to_chars(header.data() + 48, header.data() + 58, dataSize);
+        SWC_ASSERT(result.ec == std::errc{});
         header[58] = '\x60';
         header[59] = '\n';
-        out.append(header);
+        out.append(std::string_view{header.data(), header.size()});
     }
 
     void appendArchiveMember(ByteArray& outBytes, std::string_view name, std::span<const std::byte> data)
@@ -260,26 +263,24 @@ namespace
             cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(member.data.size());
         }
 
-        // Linker member data: big-endian symbol count, parallel member offsets, then symbol names.
-        ByteArray linkerData;
-        linkerData.reserve(linkerDataSize);
-        linkerData.appendBe32(symbolCount);
-        for (const ArchiveMemberBuild& member : members)
-            for (size_t s = 0; s < member.symbols.size(); ++s)
-                linkerData.appendBe32(member.headerOffset);
-        for (const ArchiveMemberBuild& member : members)
-        {
-            for (const Utf8& symbol : member.symbols)
-            {
-                linkerData.appendCString(symbol.view());
-            }
-        }
-
         outBytes.clear();
         outBytes.reserve(cursor);
         outBytes.append(ARCHIVE_MAGIC);
 
-        appendArchiveMember(outBytes, "/", linkerData.span());
+        // Emit the linker directory directly into the final archive buffer.
+        appendMemberHeader(outBytes, "/", static_cast<uint32_t>(linkerDataSize));
+        outBytes.appendBe32(symbolCount);
+        for (const ArchiveMemberBuild& member : members)
+            for (size_t s = 0; s < member.symbols.size(); ++s)
+                outBytes.appendBe32(member.headerOffset);
+        for (const ArchiveMemberBuild& member : members)
+        {
+            for (const Utf8& symbol : member.symbols)
+                outBytes.appendCString(symbol.view());
+        }
+        if (linkerDataSize & 1)
+            outBytes.pushBack(static_cast<std::byte>('\n'));
+
         if (hasLongNames)
             appendArchiveMember(outBytes, "//", longNames.span());
         for (size_t i = 0; i < members.size(); ++i)

@@ -67,3 +67,45 @@ campaign or performance benchmark was run.
 
 The final integration incorporates `a0e214fd1` and increments the compiler to build 593.
 Both integrated compilers built successfully. The integrated DevMode compiler passed the complete JIT suite (1,410 tests) and native devmode suite (3,166 tests plus recovery probes). The integrated Release compiler passed the native optimize_constexpr.swg regression (one test). Earlier independent C++ and native release evidence remains applicable.
+
+## Campaign 2: constant-call metadata and argument preparation
+
+The stability query now accepts all allocation roots of one argument or function-constant
+check. It shares allocation membership and traversal buffers across those roots, scanning
+their union once. Roots retain their original order, and the worklist holds only the current
+graph frontier. Empty queries return before constructing traversal containers. No query state
+persists across semantic pauses, JIT preparation, metadata publication, or compiler instances.
+
+Known code relocations retain their shard/offset references instead of converting them to
+pointers and rediscovering their storage through up to 16 shards. Unknown raw addresses still
+use the existing resolver. Each caller collects a temporary root list; this replaces repeated
+per-root traversal scratch and repeated visits to shared allocations.
+
+`ConstantManager_ChecksSharedRelocationGraphsPerQuery` supplies 128 roots to a two-allocation
+cycle spanning two shards, including an interior address. The old per-root traversal copies
+256 relocation lists; the batched query copies two. The test then adds an unpublished function
+relocation and checks that a new query finds it. A subsequent foreign-target update verifies
+that the next query observes the changed eligibility. Empty roots and cycle termination are
+covered as well.
+
+Ordinary and receiver-setting constant-call preparation borrow immutable `ConstantValue`
+objects from stable manager storage instead of copying them. No reference escapes argument
+construction; JIT requests continue to own their materialized argument bytes. This removes
+one object copy/destruction per inspected argument and a vector allocation/copy for each
+non-empty aggregate argument. Ordinary call arity and unsupported-variadic checks also precede
+payload allocation, avoiding that allocation for rejected shapes while retaining the same
+checks on successful shapes.
+
+### Validation
+
+DevMode compiler build 594 succeeded. It passed the C++ fast tests (798 tests),
+the complete JIT suite in devmode (1,410 tests), and native optimize_constexpr.swg
+in devmode (one test, still 210 functions in the optimizer stage).
+The implementation has no compiler-build-mode branch or new cross-phase state, so no new
+Release compiler build is selected. No timing benchmark was run.
+
+The build received the repository's full load admission. During validation, the owner explicitly
+waived memory margins for the rest of this session. Later commands retain the same five-second
+CPU sample, 65% CPU admission threshold, and six-worker limits. A temporary PowerShell launcher
+initially treated native stderr output as a terminating script error; it was corrected to retain
+that output and check the native exit status. The successful C++ run used the corrected launcher.

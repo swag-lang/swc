@@ -879,36 +879,42 @@ bool ConstantManager::resolveDataSegmentRef(DataSegmentRef& outRef, const void* 
     return false;
 }
 
-bool ConstantManager::hasUnpublishedFunctionRelocations(const void* ptr) const
+bool ConstantManager::hasUnpublishedFunctionRelocations(const std::span<const DataSegmentRef> roots) const
 {
-    DataSegmentRef root;
-    if (!resolveDataSegmentRef(root, ptr))
+    if (roots.empty())
         return false;
 
-    SmallVector<DataSegmentRef>        pending{root};
+    SmallVector<DataSegmentRef>        pending;
     std::unordered_set<uint64_t>       visited;
     std::vector<DataSegmentRelocation> relocations;
-    while (!pending.empty())
+
+    // Roots commonly share runtime type graphs. Scan their union once, and keep
+    // this state local so a later query observes newly published metadata.
+    for (const DataSegmentRef root : roots)
     {
-        const DataSegmentRef current = pending.back();
-        pending.pop_back();
-        const DataSegment&    segment = shardDataSegment(current.shardIndex);
-        DataSegmentAllocation allocation;
-        if (!segment.findAllocation(allocation, current.offset))
-            continue;
-        const uint64_t key = (static_cast<uint64_t>(current.shardIndex) << 32) | allocation.offset;
-        if (!visited.insert(key).second)
-            continue;
-        segment.copyRelocations(relocations, allocation.offset, allocation.size);
-        for (const DataSegmentRelocation& relocation : relocations)
+        pending.push_back(root);
+        while (!pending.empty())
         {
-            if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
+            const DataSegmentRef current = pending.back();
+            pending.pop_back();
+            const DataSegment&    segment = shardDataSegment(current.shardIndex);
+            DataSegmentAllocation allocation;
+            if (!segment.findAllocation(allocation, current.offset))
+                continue;
+            const uint64_t key = (static_cast<uint64_t>(current.shardIndex) << 32) | allocation.offset;
+            if (!visited.insert(key).second)
+                continue;
+            segment.copyRelocations(relocations, allocation.offset, allocation.size);
+            for (const DataSegmentRelocation& relocation : relocations)
             {
-                const uint32_t shard = relocation.targetShardIndex == INVALID_REF ? current.shardIndex : relocation.targetShardIndex;
-                pending.push_back({.shardIndex = shard, .offset = relocation.targetOffset});
+                if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
+                {
+                    const uint32_t shard = relocation.targetShardIndex == INVALID_REF ? current.shardIndex : relocation.targetShardIndex;
+                    pending.push_back({.shardIndex = shard, .offset = relocation.targetOffset});
+                }
+                else if (relocation.targetSymbol && !relocation.targetSymbol->isForeign() && !relocation.targetSymbol->jitEntryAddress())
+                    return true;
             }
-            else if (relocation.targetSymbol && !relocation.targetSymbol->isForeign() && !relocation.targetSymbol->jitEntryAddress())
-                return true;
         }
     }
     return false;

@@ -42,7 +42,7 @@ public:
     DataSegment&         shardDataSegment(uint32_t index);
     const DataSegment&   shardDataSegment(uint32_t index) const;
     bool                 resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept;
-    bool                 hasUnpublishedFunctionRelocations(const void* ptr) const;
+    bool                 hasUnpublishedFunctionRelocations(std::span<const DataSegmentRef> roots) const;
     bool                 resolveConstantDataSegmentRef(DataSegmentRef& outRef, ConstantRef cstRef, const void* ptr) const noexcept;
     DataSegmentRef       findConstantStorage(ConstantRef cstRef, TypeRef storageTypeRef) const;
     DataSegmentRef       publishConstantStorage(ConstantRef cstRef, TypeRef storageTypeRef, DataSegmentRef dataRef);

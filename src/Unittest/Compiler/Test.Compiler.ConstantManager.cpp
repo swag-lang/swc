@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHeap.h"
@@ -578,6 +579,43 @@ SWC_TEST_BEGIN(ConstantManager_ConcurrentInterningKeepsCanonicalStorage)
         }
     }
     if (allRefs.size() != NUM_VALUES * (NUM_WORKERS + 1))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantManager_ChecksSharedRelocationGraphsPerQuery)
+{
+    ConstantManager manager;
+    auto&           leftSegment            = manager.shardDataSegment(0);
+    auto&           rightSegment           = manager.shardDataSegment(1);
+    const auto [leftOffset, leftStorage]   = leftSegment.reserveSpan<uint64_t>(2);
+    const auto [rightOffset, rightStorage] = rightSegment.reserveSpan<uint64_t>(2);
+    SWC_UNUSED(leftStorage);
+    SWC_UNUSED(rightStorage);
+    const DataSegmentRef left{.shardIndex = 0, .offset = leftOffset};
+    const DataSegmentRef right{.shardIndex = 1, .offset = rightOffset};
+    leftSegment.addRelocation(leftOffset, right);
+    rightSegment.addRelocation(rightOffset, left);
+
+    std::array<DataSegmentRef, 128> roots;
+    for (uint32_t i = 0; i < roots.size(); ++i)
+        roots[i] = i % 2 ? left : right;
+    // Interior addresses identify the same allocations as their base addresses.
+    roots.back().offset += sizeof(uint64_t);
+    if (manager.hasUnpublishedFunctionRelocations({}) || manager.hasUnpublishedFunctionRelocations(roots))
+        return Result::Error;
+
+    auto* function = Symbol::make<SymbolFunction>(ctx, nullptr, TokenRef::invalid(), ctx.idMgr().addIdentifier("relocation_query_target"), SymbolFlagsE::Zero);
+    rightSegment.addFunctionRelocation(rightOffset + sizeof(uint64_t), function, true);
+    if (!manager.hasUnpublishedFunctionRelocations(roots))
+        return Result::Error;
+
+    // Query-local membership must not hide changes between checks. Foreign
+    // targets are stable external addresses and do not need a compiler JIT entry.
+    AttributeList attributes;
+    attributes.hasForeign = true;
+    function->setAttributes(ctx, attributes);
+    if (manager.hasUnpublishedFunctionRelocations(roots))
         return Result::Error;
 }
 SWC_TEST_END()

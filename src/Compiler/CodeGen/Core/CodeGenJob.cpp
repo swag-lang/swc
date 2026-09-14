@@ -138,14 +138,21 @@ JobResult CodeGenJob::execImpl()
     symbolFunc_->appendLifecycleDependencies(lifecycleDependencies);
     for (const SymbolFunction* dependency : lifecycleDependencies)
     {
-        if (dependency->isIgnored())
+        if (dependency->isExcludedByCondition())
             continue;
         const Result waitResult = sema().waitSemaCompleted(dependency, dependency->codeRef());
-        if (dependency->isIgnored())
+        if (dependency->isExcludedByCondition())
+        {
+            ctx().state().setNone();
             continue;
+        }
         if (waitResult != Result::Continue)
             return abortCodeGen(ctx(), *symbolFunc_, waitResult);
-        symbolFunc_->addCallDependency(dependency);
+    }
+    for (const SymbolFunction* dependency : lifecycleDependencies)
+    {
+        if (!dependency->isExcludedByCondition())
+            symbolFunc_->addCallDependency(dependency);
     }
 
     SmallVector<SymbolFunction*> deps;

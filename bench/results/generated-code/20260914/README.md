@@ -52,6 +52,21 @@ candidate. The required next checks are the DevMode compiler build, C++ tests,
 focused native and semantic regressions, the native suite, and final static
 dumps of the seven release benchmark programs.
 
+The initial negative C++ run passed 797 cases and failed the four new regressions
+for intermediate arithmetic flags, flags across jumps, overflowing shift counts,
+and PostRA compare preservation. A subsequent intermediate build passed all 801
+internal cases. A fuller intermediate run passed 838 cases but the linked native
+test `Linker_NativeTestsDiscardRejectedCallees` did not complete successfully.
+These runs preceded the final frame-alias and partial-flag corrections.
+
+Inspection of the stalled core initializer and the reduced enum loop located a
+register-promotion error: a frame pointer adjusted to another local slot could
+leave the stores in memory while promoting the corresponding loads. The loop
+index then became constant. The reduced source also exposed a semantic crash
+when an enum-indexed array used `.First` inside a call argument. Both findings
+have candidate fixes and permanent regressions; successful execution of those
+regressions is still required before this campaign can be merged.
+
 ## Reproduction
 
 Preserve the baseline compiler outside every checkout. Copy benchmark sources

@@ -32,6 +32,7 @@ private:
     void build(const MicroStorage& storage, const MicroOperandStorage& operands);
 
     std::vector<MicroInstrRef> instructionRefs_;
+    std::vector<uint32_t>      labelToInstructionIndex_;
     std::vector<EdgeList>      successors_;
     std::vector<EdgeList>      predecessors_;
     bool                       hasUnsupportedControlFlowForCfgLiveness_ = false;

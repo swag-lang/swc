@@ -1060,12 +1060,17 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         case MicroInstrOpcode::LoadVecRegMem:
         case MicroInstrOpcode::LoadSignedExtRegMem:
         case MicroInstrOpcode::LoadZeroExtRegMem:
+        case MicroInstrOpcode::LoadAmcRegMem:
+        case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+        case MicroInstrOpcode::LoadZeroExtAmcRegMem:
         {
-            // Widening slot loads keep the tracked value: extensions only widen, so
-            // zero-ness, constants and the slot-origin fact are preserved. A tracked
-            // constant is extended from the source width so signed values stay exact.
-            int64_t slot = 0;
-            if (resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, slot))
+            // A known indexed address names the same slot as a plain address. Both
+            // forms retain its value, pointer provenance and wide-copy lanes.
+            const bool indexed         = inst.op == MicroInstrOpcode::LoadAmcRegMem || inst.op == MicroInstrOpcode::LoadSignedExtAmcRegMem || inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem;
+            const bool signedExtension = inst.op == MicroInstrOpcode::LoadSignedExtRegMem || inst.op == MicroInstrOpcode::LoadSignedExtAmcRegMem;
+            const bool extension       = signedExtension || inst.op == MicroInstrOpcode::LoadZeroExtRegMem || inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem;
+            int64_t    slot            = 0;
+            if (resolveAccessStackSlot(slot, state, inst, def, ops))
             {
                 const auto       it = state.stack.find(slot);
                 SanitizerRegInfo info;
@@ -1076,17 +1081,17 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 info.hasPointerOriginSlot = true;
                 info.pointerOriginSlot    = slot;
 
-                const bool wide = (inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadVecRegMem) && ops[2].opBits == MicroOpBits::B128;
+                const bool wide = !extension && ops[indexed ? 3 : 2].opBits == MicroOpBits::B128;
                 if (wide)
                     info.value = getStackLane(state, slot);
-                if (info.value.isConstant() && (inst.op == MicroInstrOpcode::LoadSignedExtRegMem || inst.op == MicroInstrOpcode::LoadZeroExtRegMem))
+                if (info.value.isConstant() && extension)
                 {
-                    const uint32_t srcBits = getNumBits(ops[3].opBits);
+                    const uint32_t srcBits = getNumBits(ops[indexed ? 4 : 3].opBits);
                     if (srcBits && srcBits < 64)
                     {
                         const uint64_t mask = (1ULL << srcBits) - 1;
                         uint64_t       v    = info.value.constant & mask;
-                        if (inst.op == MicroInstrOpcode::LoadSignedExtRegMem && (v >> (srcBits - 1)) & 1)
+                        if (signedExtension && (v >> (srcBits - 1)) & 1)
                             v |= ~mask;
                         info.value = SanitizerValue::makeConstant(v);
                     }
@@ -1096,6 +1101,12 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 setReg(state, ops[0].reg, info);
                 if (wide)
                     setUpperReg(state, ops[0].reg, upper);
+                return;
+            }
+
+            if (indexed)
+            {
+                setRegValue(state, ops[0].reg, {});
                 return;
             }
 
@@ -1111,30 +1122,6 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             }
 
             setReg(state, ops[0].reg, locationInfo);
-            return;
-        }
-
-        case MicroInstrOpcode::LoadAmcRegMem:
-        case MicroInstrOpcode::LoadSignedExtAmcRegMem:
-        case MicroInstrOpcode::LoadZeroExtAmcRegMem:
-        {
-            // An element of a local table is a slot like any other once the index is
-            // known, and it is where a program keeps the pointers it owns. Only the
-            // provenance is taken: the value would have to be re-extended per width, and
-            // no check needs it here.
-            int64_t slot = 0;
-            if (!resolveAccessStackSlot(slot, state, inst, def, ops))
-            {
-                setRegValue(state, ops[0].reg, {});
-                return;
-            }
-
-            SanitizerRegInfo info;
-            info.hasOriginSlot        = true;
-            info.originSlot           = slot;
-            info.hasPointerOriginSlot = true;
-            info.pointerOriginSlot    = slot;
-            setReg(state, ops[0].reg, info);
             return;
         }
 

@@ -1,7 +1,8 @@
 # Generated-code static audit - 2026-09-14
 
-Candidate validation is pending. This record currently contains the baseline
-and C++ reference, not a verified performance improvement. No benchmark
+Campaign 1 is verified with DevMode compiler build 597. All 18 functions
+across the seven benchmarks retain their baseline instruction and memory counts.
+This correctness campaign does not establish a performance improvement. No benchmark
 executable was run and no runtime timing or speed ratio was measured.
 
 The isolated worktree is `swc-generated-code-sept14`, branch
@@ -33,24 +34,26 @@ the previous `row0[y + 1]` supplies the next `row0[y]`, and the previous
 shift/OR expressions that may admit rotate instructions when source width and
 flag dependencies are proved. These are leads from the static audit.
 
-## Candidate and verification
+## Campaign 1 and verification
 
-The current candidate repairs flag-liveness checks across jumps and partial
+Campaign 1 repairs flag-liveness checks across jumps and partial
 flag writers, arithmetic reassociation with intermediate flag readers,
 frame-address alias tracking during register promotion, and contextual enum
 array indices. Compiler and source regressions accompany these changes.
 The two Swag benchmark preludes also drop a redundant `ptr!` after the null
 guard in `benchFree`. This removes the observed warning without changing the
-algorithm. The baseline hashes retain the original prelude; final hashes must
+algorithm. The baseline hashes retain the original prelude; the campaign hashes
 record this one source difference explicitly.
-The integrated candidate has not yet passed its selected validations, so it
-has not been merged into master and no subsequent campaign has started.
+Validation completed with the checkout-local DevMode 597 compiler and at most
+six workers: 846 C++ tests with `unittest --dev-full`; both focused native enum
+regressions; the focused invalid-index diagnostic; the full native suite
+(3,168 tests, including its expected-failure recovery probes); and both full
+semantic input sets (279 valid-source files and 294 expected-error files,
+including compiler runtime inputs). All selected commands exited successfully.
+The seven benchmark programs were built in `release` and never executed.
 
-The shared machine's memory admission check currently prevents the final build
-and tests. Earlier intermediate checks are not treated as validation of this
-candidate. The required next checks are the DevMode compiler build, C++ tests,
-focused native and semantic regressions, the native suite, and final static
-dumps of the seven release benchmark programs.
+The user waived memory admission margins during this session. Fresh CPU
+admission checks and the six-worker bound remained active.
 
 The initial negative C++ run passed 797 cases and failed the four new regressions
 for intermediate arithmetic flags, flags across jumps, overflowing shift counts,
@@ -64,8 +67,8 @@ register-promotion error: a frame pointer adjusted to another local slot could
 leave the stores in memory while promoting the corresponding loads. The loop
 index then became constant. The reduced source also exposed a semantic crash
 when an enum-indexed array used `.First` inside a call argument. Both findings
-have candidate fixes and permanent regressions; successful execution of those
-regressions is still required before this campaign can be merged.
+are fixed and their permanent regressions pass. The rebuilt core initializer
+also completes through the standard tool entry point.
 
 ## Reproduction
 
@@ -83,5 +86,5 @@ Do not execute the resulting benchmark programs. Strip ANSI escapes, reset the
 instruction-reference map at each function, and count each selected backward
 branch span from its target label through the branch. Build C++ sources to
 assembly/object files only with the flags above and separate `/Fa` and `/Fo`
-paths. Every new compiler invocation must first pass the repository's current
-machine-load admission check.
+paths. Every new compiler invocation must first pass the CPU admission check;
+memory margins were explicitly waived by the user for this session.

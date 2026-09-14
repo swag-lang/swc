@@ -47,5 +47,28 @@
     "raytrace.asm": "a8c95a4bea0e86050235b0c4131f568f418c0b81cf962b51dac9a59bf5118965",
     "sha256.asm": "9bdc0d50bb23bb1880708836c170122e80238b0f5451a969c87e0c91cccd964a",
     "wordfreq.asm": "bc312a75c1d1e1f89460157fbd4fbdf12286cf4aa1f6b5c848e2545e56bf5bc8"
-  }
+  },
+  "campaign1_compiler": "DevMode 0.1.597",
+  "swag_campaign1_sha256": {
+    "bytemap.swg": "e550a0b785602c4e7cbcdc39eb83d60ef4df1c8b2afbaabb146bd179b4171a3b",
+    "chacha.swg": "3fce9d8bbec4f283a7566663fdc6d0757c739af96d0e80463545b986f6b2576f",
+    "common.swg": "f00396da17449961049088dad2b699fdea30640065bad8b9f5d83c1db60bbfa2",
+    "csvagg.swg": "086f081d5dad8ea45d7cbe59de93134c105f3de3084368902a08f4f5c13a9154",
+    "dijkstra.swg": "8f762de03b036566a4aff954ae2d55562bc162e711e081740f99d965bcd5b35c",
+    "leven.swg": "721d46147fa7c71cae49bb94a9dd8931dcffc6cef46afc818e4cd50fd10c2f0a",
+    "raytrace.swg": "1fb3aa87ab5e099d6700fb9c46a206fed7b3760442b7ceb7e0128fd82cf4f9b0",
+    "sha256.swg": "3ee1b66636be504d3e4e220c0ce97e238ccbb5881bdc62bd9e6ac994297a6e26",
+    "wordfreq.swg": "c41ef1d4cc9f5fa2a5b43a5af4d439fc0607f9afe8eae7b4eb3d5a7232626eb8",
+    "compiler": "91c70194e3c7bd0937f97d84680218aa96e7e0132038d7a8e42f4cce563170ea"
+  },
+  "campaign1_dump_sha256": {
+    "chacha.txt": "ca8e779a9c4b0410a66328f72dc53a47af22fd5e9702b4db29e31b3ff1d11fd1",
+    "csvagg.txt": "8249c22b6b90264a6ce495a80b4c406753746f63c4b040f1ad4d21eb215e3c39",
+    "dijkstra.txt": "6efe94798252178b0a7f124a17a0f65c18ec050f4e20c984f8be4e5dce349812",
+    "leven.txt": "9538f27681c481ffa842fa71fa12e23e1e7daa35c1ea3d1f1295c8980b367ba3",
+    "raytrace.txt": "0ae5b75f726e4398aa68552d4473b40b4564c3a6c0183dfedb34107ce0234402",
+    "sha256.txt": "960595d3b91e8c3cf423667118328d7f6d52972360d315999f4628e2ed377164",
+    "wordfreq.txt": "5ff8b68ea939b33abc6924b450aa4ed9beb920aff5cf5594af53a64de770a6dd"
+  },
+  "benchmark_source_difference": "common.swg: remove redundant ptr! after the null guard; task algorithms unchanged."
 }

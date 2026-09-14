@@ -16,7 +16,7 @@
 204 621             op_binary_reg_reg xor, rcx, rsi, b64          | rcx ^= rsi
 205 627             op_binary_reg_reg add, r8, rdx, b64           | r8 += rdx
 206 630             op_binary_reg_reg add, r8, rcx, b64           | r8 += rcx
-207 631            load_reg_ptr_reloc rcx, b64, <0x1F2F4E90E50>   | rcx = [64] u64 = <array>
+207 631            load_reg_ptr_reloc rcx, b64, <0x1C0CA2C8E08>   | rcx = [64] u64 = <array>
 208 634              load_amc_reg_mem rcx, [rcx + rdi * 0x8], b64 | rcx = [rcx + rdi * 0x8]
 209 635             op_binary_reg_reg add, r8, rcx, b64           | r8 += rcx
 210 637                  load_reg_reg rcx, r8, b64                | rcx = r8

@@ -1,5 +1,5 @@
 {
-  "status": "Campaign 1 merged. Campaign 2 has static gains and DevMode evidence; closure-binding fix still requires completed integration and Release validation.",
+  "status": "Both campaigns verified. Campaign 2 final integration passes with DevMode and Release compiler build 604; static counts only, no benchmark execution.",
   "swag_baseline": {
     "chacha/Chacha.add32": {
       "instructions": 6,
@@ -2304,20 +2304,6 @@
         }
       ]
     },
-    "raytrace/Raytrace.intersect": {
-      "instructions": 93,
-      "memory": 30,
-      "stack_memory": 21,
-      "loops": [
-        {
-          "start_row": 27,
-          "end_row": 82,
-          "instructions": 52,
-          "memory": 4,
-          "stack_memory": 0
-        }
-      ]
-    },
     "raytrace/Raytrace.__main_0": {
       "instructions": 118,
       "memory": 30,
@@ -2336,6 +2322,20 @@
           "instructions": 65,
           "memory": 6,
           "stack_memory": 3
+        }
+      ]
+    },
+    "raytrace/Raytrace.intersect": {
+      "instructions": 93,
+      "memory": 30,
+      "stack_memory": 21,
+      "loops": [
+        {
+          "start_row": 27,
+          "end_row": 82,
+          "instructions": 52,
+          "memory": 4,
+          "stack_memory": 0
         }
       ]
     },

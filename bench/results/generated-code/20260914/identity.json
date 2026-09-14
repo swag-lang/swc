@@ -94,8 +94,30 @@
     "sha256.txt": "4abe1aa25970b70635f0cb5166749cf22ed9c7c643a5417f27fa473e9c8e6098",
     "wordfreq.txt": "fea52f2271b716a5ac3b9704e4ba4e0676539d9e62010d840bccbcb213f215d2"
   },
-  "campaign2_compiler": "DevMode 0.1.601",
+  "campaign2_compiler": "DevMode 0.1.604",
   "swag_campaign2_sha256": {
+    "bytemap.swg": "e550a0b785602c4e7cbcdc39eb83d60ef4df1c8b2afbaabb146bd179b4171a3b",
+    "chacha.swg": "3fce9d8bbec4f283a7566663fdc6d0757c739af96d0e80463545b986f6b2576f",
+    "common.swg": "f00396da17449961049088dad2b699fdea30640065bad8b9f5d83c1db60bbfa2",
+    "csvagg.swg": "086f081d5dad8ea45d7cbe59de93134c105f3de3084368902a08f4f5c13a9154",
+    "dijkstra.swg": "8f762de03b036566a4aff954ae2d55562bc162e711e081740f99d965bcd5b35c",
+    "leven.swg": "721d46147fa7c71cae49bb94a9dd8931dcffc6cef46afc818e4cd50fd10c2f0a",
+    "raytrace.swg": "1fb3aa87ab5e099d6700fb9c46a206fed7b3760442b7ceb7e0128fd82cf4f9b0",
+    "sha256.swg": "3ee1b66636be504d3e4e220c0ce97e238ccbb5881bdc62bd9e6ac994297a6e26",
+    "wordfreq.swg": "c41ef1d4cc9f5fa2a5b43a5af4d439fc0607f9afe8eae7b4eb3d5a7232626eb8",
+    "compiler": "a7c9abc2dd02f7ed012d5ad72d346ef92a2770366ead166aa8374fee4bc6e8a8"
+  },
+  "campaign2_dump_sha256": {
+    "chacha.txt": "44847a7aa4c089c65ae77a70e6c60d62132acecf0a103570c02719d38c1c0b43",
+    "csvagg.txt": "f097ad5cada65b57ff8a430acbc8a33ccd2a5a1c195dacf44659c2586040d926",
+    "dijkstra.txt": "398a48a069781391ce5ef75939768c0b884e2de09f706df5c21b684f032d14d4",
+    "leven.txt": "78795a6e8b99d7e81c518449d41acaa2fc7e61d7c063323a3e2e2aff401abd2f",
+    "raytrace.txt": "1896be2c5e150c34d0927817e261678b57653b05cb7e99a5ba3bca570edeed32",
+    "sha256.txt": "e4345fcc1f5472124cfb550f72cee165370d7843d1d5b56e0916630a4f53b129",
+    "wordfreq.txt": "c48ba26fbf6808c60cf7c9ca1aae76000f208619b0fed0949bddeff64ed5e9ec"
+  },
+  "campaign2_preintegration_compiler": "DevMode 0.1.601",
+  "swag_campaign2_preintegration_sha256": {
     "bytemap.swg": "e550a0b785602c4e7cbcdc39eb83d60ef4df1c8b2afbaabb146bd179b4171a3b",
     "chacha.swg": "3fce9d8bbec4f283a7566663fdc6d0757c739af96d0e80463545b986f6b2576f",
     "common.swg": "f00396da17449961049088dad2b699fdea30640065bad8b9f5d83c1db60bbfa2",
@@ -107,7 +129,7 @@
     "wordfreq.swg": "c41ef1d4cc9f5fa2a5b43a5af4d439fc0607f9afe8eae7b4eb3d5a7232626eb8",
     "compiler": "5ef4446f9d9d466e1542913639ecaae6313dfaa36ed1500ddf9c2fcf813d91d8"
   },
-  "campaign2_dump_sha256": {
+  "campaign2_preintegration_dump_sha256": {
     "chacha.txt": "402535cd825ffbdd340400146e7aa3198aaf4d277cba78533af0b4d7381bf0d7",
     "csvagg.txt": "7d27fbd18abb598e4b58d32d654ea5f7eba42ee91ba88370b04b4effe5180f26",
     "dijkstra.txt": "edae0adc28b21436cee72f86c3c0ba483173fac69115d4c4620acbb9c21b48c0",
@@ -115,5 +137,51 @@
     "raytrace.txt": "8a3edfe9d96e6e483c6edcf6d1aa38e50159019ecc700aa073611189da7eb7ad",
     "sha256.txt": "a9d5b56b695a4794f73b307673b640d0cd5da5cce0006c83c2a8a93fae3dfcb1",
     "wordfreq.txt": "c2fb4ff84693c485a0744e691d5d7ef70e1d9b770127f43efb29490aee43f7e7"
+  },
+  "campaign2_integrated_master": "8acd66674",
+  "campaign2_release_compiler_sha256": "cd75ffb064a03885a4250a4d3d48fe83b3b40d52bcad409cfd8f4a9d1e34eb83",
+  "campaign2_validation": {
+    "build_603": {
+      "cpp": 856,
+      "native_each_compiler": 3170,
+      "sema_valid_files": 279,
+      "sema_expected_error_files": 294,
+      "jit": 1410,
+      "sanity": 56,
+      "binding_tests_per_run": 5,
+      "binding_repetitions_each_compiler": 3
+    },
+    "build_604": {
+      "cpp": 859,
+      "native_each_compiler": 3170,
+      "sanity": 57,
+      "release_focused_binding_tests": 5,
+      "static_program_builds": 7
+    },
+    "program_configuration_for_tests": "devmode",
+    "program_configuration_for_static_builds": "release",
+    "workers": 6,
+    "benchmark_executions": 0,
+    "successful_log_sha256": {
+      "final603-dm-cpp": "8fa5da8848c7875e023473f32cd26273591c6e4713edba8c6f310194b06458af",
+      "final603-dm-native": "24bb3ae2ed00844fcd0897855fbee578334a89b701c962c60cea7d1470c6222d",
+      "final603-dm-sema": "e17c5c54524e3f8234e240029f50dad95909171a7dbadf34b1ba0590c860ec1a",
+      "final603-dm-jit": "3a0b3bf0a53db2f1b25f0a751a2a31b91c3f11be55be01d6566cad482db07903",
+      "final603-dm-sanity": "41c73eb9ea57afa5b26234c06f6495c161da27d6c1a4b0217e4ae519e5b385ed",
+      "final603-release-native": "4eb3f48a6f154da0b85d2a2769c1db4de54e27879697e58ea49d825562ca2f07",
+      "final604-build-dm": "bc363a4d3d336c666e89fb84776c60cfe266d8e6bf5680dbae797d6f59054853",
+      "final604-build-release": "99f6d9fd1e4ecbf0b94f672eb9d5e80634e041a4e4d3cc6e202e513ee24f9560",
+      "final604-dm-cpp": "8c36cdc9043f85ba7f33b99dd4d7000001a346e84fba70ea28863a0f85be102b",
+      "final604-dm-native": "888e543ac1c51d406479e91b3c7446062fdad02b9d462b110b14979529035b5a",
+      "final604-dm-sanity": "eb851ea0761624745f5d7a04f9d40d8e23341960237481d6de6ba32270621200",
+      "final604-release-bindings": "e3c3eaa3ec15532932a6828739de73f0d435fd200e4f78bebfc4c866912ce27c",
+      "final604-release-native": "098d35971d1170d2b5314fc5d5c6bec0d4715c69e4841bb009667be031d21a85",
+      "final603-dm-bindings-1": "e54721a471d9b294bc321a5d61f1eb2365338b6ba1dc029ef3bdd8991c4b23ac",
+      "final603-dm-bindings-2": "7e82a38d0c771d68bf1d52511c0f40fd9fefce5f74fdbc13582d158e9e4db7a9",
+      "final603-dm-bindings-3": "bc5681e96af0cfc5e0f17f535988d0e89c8c0ffe2db87c832c7fae7647bda7da",
+      "final603-release-bindings-1": "a7e5e4d160a40da82cd29e2a1a768bf0cc684f5fd0a16fb0ea4d7ecfb849eb98",
+      "final603-release-bindings-2": "4269b7a3d4d8e19086375f558c5ed065ea215b73dff464da579cae254a047924",
+      "final603-release-bindings-3": "912d312195a5ffb4b31928c825bca23abdfef091690991bed6315d9125e47ffd"
+    }
   }
 }

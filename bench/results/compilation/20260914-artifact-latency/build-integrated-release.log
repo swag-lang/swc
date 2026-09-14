@@ -1,0 +1,267 @@
+"C:/Program Files/Microsoft Visual Studio/18/Enterprise/MSBuild/Current/Bin/amd64/MSBuild.exe" .tmp/baseline-build/swc.vcxproj /nologo /v:minimal /m:6 /p:SwcCompileJobs=6 /p:Configuration=Release /p:Platform=x64
+
+
+
+Status                    : wait
+AverageCpuPercent         : 77
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 16,1
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 10,3
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 88
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 16,3
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 10,7
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 90
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 16,2
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 10,7
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 91
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 16,1
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 10,4
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 91
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 14,6
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 8,1
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 91
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 14,9
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 8,7
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 91
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 14,6
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 8,1
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 91
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 14,8
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 8
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 89
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 14,3
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 7,3
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 90
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 14,9
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 8,2
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 90
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 15,1
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 8,6
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 90
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 14,6
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 7,6
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 90
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 14,5
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 7,5
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 91
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 15,5
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 9,5
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 90
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 15,1
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 8,6
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 90
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 15,4
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 9,4
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 90
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 14,8
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 9,3
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 91
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 15
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 9,7
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 91
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 15,1
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 9,1
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 82
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 15,1
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 8,9
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 87
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 14,6
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 8,6
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 91
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 14,9
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 9
+RequiredCommitHeadroomGiB : 8
+
+
+
+Cancelled before MSBuild started: the retained Archive source was already validated with Release; final integration validation uses DevMode.

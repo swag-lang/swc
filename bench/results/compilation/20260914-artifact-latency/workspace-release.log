@@ -1,0 +1,31 @@
+bin/swc.exe run -w bin/unittests/workspace -m consumer_exe -bc devmode --rebuild --num-cores 6 --log-ascii
+
+
+
+Status                    : ready
+AverageCpuPercent         : 8
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 16,6
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 11,6
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+  >  swag        run * workspace [consumer_exe] * devmode
+  *  module      win32 * 31 files * 86 ms
+  *  module      xinput * 28 files * 88 ms
+  *  module      core * 349 files * core.dll * 3 s 127 ms
+  *  workspace   std [2 roots] * 3 modules * 4 s 116 ms
+  *  module      api_export_provider * 31 files * 266 ms
+  *  module      api_static_provider * 28 files * api_static_provider.lib * 422 ms
+  *  module      runtime_context_base_static * 20 files * runtime_context_base_static.lib * 394 ms
+  *  module      runtime_context_bridge_dll * 24 files * runtime_context_bridge_dll.dll * 595 ms
+  *  module      runtime_context_direct_static * 20 files * runtime_context_direct_static.lib * 528 ms
+  *  module      consumer_exe * 64 files * consumer_exe.exe * 1 s 955 ms
+SWAG_WORKSPACE_MAIN_RAN
+  *  workspace   workspace [consumer_exe] * 6 modules * 9 s 369 ms
+  *  clean       9 s 370 ms
+
+Exit code: 0

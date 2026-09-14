@@ -1,0 +1,7 @@
+bin/swc.dm.exe unittest --dev-full --num-cores 6 --log-ascii
+
+  >  swag        unittest * sources
+  *  tested      809 passed * 1 min 4 s
+  *  clean       1 min 4 s
+
+Exit code: 0

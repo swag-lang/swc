@@ -1,0 +1,62 @@
+"C:/Program Files/Microsoft Visual Studio/18/Enterprise/MSBuild/Current/Bin/amd64/MSBuild.exe" swc.vcxproj /nologo /v:minimal /m:6 /p:SwcCompileJobs=6 /p:Configuration=DevMode /p:Platform=x64
+
+
+
+Status                    : wait
+AverageCpuPercent         : 82
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 16,6
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 11,8
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : wait
+AverageCpuPercent         : 72
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 16
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 10,8
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : ready
+AverageCpuPercent         : 15
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 17,7
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 13,3
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+  DebugInfoCodeView.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  MicroPrinter.cpp
+  LangSpec.cpp
+  Lexer.cpp
+  Sema.Block.cpp
+  Sema.Compiler.cpp
+  Sema.Identifier.cpp
+  Sema.Literal.cpp
+  SemaSpecOp.cpp
+  Verify.cpp
+  DocPage.cpp
+  Command.New.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  Global.cpp
+  Utf8Helper.cpp
+  SyntaxColor.cpp
+  Test.Compiler.InMemorySource.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-artifact-latency\bin\swc.dm.exe
+
+Exit code: 0

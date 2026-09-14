@@ -1,0 +1,22 @@
+bin/swc.dm.exe test --artifact-kind executable -d bin/unittests/lexer --module-namespace Lexer --out-dir bin/unittests/.output/artifact-latency/lexer-valid --work-dir bin/unittests/.output/artifact-latency/lexer-valid -bc devmode --lex-only --num-cores 6 --log-ascii
+
+
+
+Status                    : ready
+AverageCpuPercent         : 51
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 15,5
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 9,5
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+  >  swag        test * bin/unittests/lexer * devmode
+  *  checked     24 files * 37_632 tokens * 76 ms
+  *  verified    22 us
+  *  tested      0 tests * 79 ms
+  *  clean       81 ms
+
+Exit code: 0

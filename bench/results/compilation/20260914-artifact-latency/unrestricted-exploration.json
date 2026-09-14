@@ -1,0 +1,1081 @@
+{
+  "rounds": 3,
+  "cores": 6,
+  "max_cpu": 20,
+  "affinity": "unrestricted",
+  "samples": [
+    {
+      "exit": 0,
+      "wall_ms": 145.7178,
+      "cpu_ms": 453.125,
+      "peak_job_bytes": 67457024,
+      "peak_proc_bytes": 66203648,
+      "peak_working_set_bytes": 61804544,
+      "stdout": "  >  swag        build * bench/src/hello/hello.swg * devmode\r\n  *  checked     20 files * 40_269 tokens * 59 ms\r\n  *  tuned       175 functions * 35 ms\r\n  *  forged      441 functions * hello.exe * 46 ms\r\n  *  clean       107 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 8.411214953271028,
+      "task": "hello",
+      "tag": "baseline",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "--rebuild",
+        "-n",
+        "hello",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\.tmp\\artifact-latency\\baseline",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\.tmp\\artifact-latency\\baseline",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bench\\src\\hello\\hello.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 154.997,
+      "cpu_ms": 468.75,
+      "peak_job_bytes": 66543616,
+      "peak_proc_bytes": 65277952,
+      "peak_working_set_bytes": 60989440,
+      "stdout": "  >  swag        build * bench/src/hello/hello.swg * devmode\r\n  *  checked     20 files * 40_269 tokens * 67 ms\r\n  *  tuned       175 functions * 37 ms\r\n  *  forged      441 functions * hello.exe * 47 ms\r\n  *  clean       117 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 7.142857142857143,
+      "task": "hello",
+      "tag": "candidate",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "--rebuild",
+        "-n",
+        "hello",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\.tmp\\artifact-latency\\candidate",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\.tmp\\artifact-latency\\candidate",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bench\\src\\hello\\hello.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 1355.4959,
+      "cpu_ms": 578.125,
+      "peak_job_bytes": 91021312,
+      "peak_proc_bytes": 89743360,
+      "peak_working_set_bytes": 75264000,
+      "stdout": "  >  swag        test * bin/std/modules * devmode\r\n  *  checked     1_054 files * 2_003_681 tokens * 1 s 295 ms\r\n  *  verified    34 us\r\n  *  tested      0 tests * 1 s 314 ms\r\n  *  clean       1 s 316 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 29.846804014791335,
+      "task": "lex_std",
+      "tag": "baseline",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+        "test",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "--lex-only",
+        "-d",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std\\modules"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 115.4506,
+      "cpu_ms": 328.125,
+      "peak_job_bytes": 91197440,
+      "peak_proc_bytes": 89939968,
+      "peak_working_set_bytes": 74477568,
+      "stdout": "  >  swag        test * bin/std/modules * devmode\r\n  *  checked     1_054 files * 2_003_681 tokens * 59 ms\r\n  *  verified    36 us\r\n  *  tested      0 tests * 79 ms\r\n  *  clean       80 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 10.909090909090908,
+      "task": "lex_std",
+      "tag": "candidate",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "test",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "--lex-only",
+        "-d",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std\\modules"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 2662.8478,
+      "cpu_ms": 12359.375,
+      "peak_job_bytes": 744992768,
+      "peak_proc_bytes": 743735296,
+      "peak_working_set_bytes": 692514816,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  *  module      win32 * 31 files * 83 ms\r\n  *  module      xinput * 28 files * 85 ms\r\n  *  module      core * 349 files * core.dll * 1 s 993 ms\r\n  *  workspace   std [core] * 3 modules * 2 s 588 ms\r\n  *  clean       2 s 588 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 16.97761194029851,
+      "task": "core_rebuild",
+      "tag": "baseline",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core",
+        "--rebuild"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 2982.1861,
+      "cpu_ms": 13609.375,
+      "peak_job_bytes": 738222080,
+      "peak_proc_bytes": 736964608,
+      "peak_working_set_bytes": 687333376,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  *  module      win32 * 31 files * 100 ms\r\n  *  module      xinput * 28 files * 90 ms\r\n  *  module      core * 349 files * core.dll * 2 s 221 ms\r\n  *  workspace   std [core] * 3 modules * 2 s 881 ms\r\n  *  clean       2 s 882 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 17.458801050871745,
+      "task": "core_rebuild",
+      "tag": "candidate",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core",
+        "--rebuild"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 54.7558,
+      "cpu_ms": 46.875,
+      "peak_job_bytes": 7446528,
+      "peak_proc_bytes": 6189056,
+      "peak_working_set_bytes": 10358784,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 5 us\r\n  =  module      xinput * up-to-date * 3 us\r\n  =  module      core * up-to-date * core.dll * 5 us\r\n  *  workspace   std [core] * 3 modules * 22 ms\r\n  *  clean       23 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 14.864864864864865,
+      "task": "core_noop",
+      "tag": "baseline",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 57.752,
+      "cpu_ms": 62.5,
+      "peak_job_bytes": 7413760,
+      "peak_proc_bytes": 6152192,
+      "peak_working_set_bytes": 10338304,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 6 us\r\n  =  module      xinput * up-to-date * 7 us\r\n  =  module      core * up-to-date * core.dll * 7 us\r\n  *  workspace   std [core] * 3 modules * 21 ms\r\n  *  clean       21 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 13.636363636363637,
+      "task": "core_noop",
+      "tag": "candidate",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 2994.9117,
+      "cpu_ms": 13234.375,
+      "peak_job_bytes": 694087680,
+      "peak_proc_bytes": 692830208,
+      "peak_working_set_bytes": 657252352,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 5 us\r\n  =  module      xinput * up-to-date * 3 us\r\n  *  module      core * 349 files * core.dll * 2 s 648 ms\r\n  *  workspace   std [core] * 3 modules * 2 s 901 ms\r\n  *  clean       2 s 902 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 10.823641110847378,
+      "task": "core_touch",
+      "tag": "baseline",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 2842.5714,
+      "cpu_ms": 12937.5,
+      "peak_job_bytes": 685326336,
+      "peak_proc_bytes": 684048384,
+      "peak_working_set_bytes": 652627968,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 7 us\r\n  =  module      xinput * up-to-date * 3 us\r\n  *  module      core * 349 files * core.dll * 2 s 511 ms\r\n  *  workspace   std [core] * 3 modules * 2 s 751 ms\r\n  *  clean       2 s 752 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 11.468461730241835,
+      "task": "core_touch",
+      "tag": "candidate",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 164.278,
+      "cpu_ms": 687.5,
+      "peak_job_bytes": 66244608,
+      "peak_proc_bytes": 64970752,
+      "peak_working_set_bytes": 60817408,
+      "stdout": "  >  swag        build * bench/src/hello/hello.swg * devmode\r\n  *  checked     20 files * 40_269 tokens * 72 ms\r\n  *  tuned       175 functions * 43 ms\r\n  *  forged      441 functions * hello.exe * 54 ms\r\n  *  clean       128 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 13.025210084033613,
+      "task": "hello",
+      "tag": "candidate",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "--rebuild",
+        "-n",
+        "hello",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\.tmp\\artifact-latency\\candidate",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\.tmp\\artifact-latency\\candidate",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bench\\src\\hello\\hello.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 159.9755,
+      "cpu_ms": 546.875,
+      "peak_job_bytes": 63901696,
+      "peak_proc_bytes": 62648320,
+      "peak_working_set_bytes": 59551744,
+      "stdout": "  >  swag        build * bench/src/hello/hello.swg * devmode\r\n  *  checked     20 files * 40_269 tokens * 69 ms\r\n  *  tuned       175 functions * 39 ms\r\n  *  forged      441 functions * hello.exe * 51 ms\r\n  *  clean       123 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 14.912280701754385,
+      "task": "hello",
+      "tag": "baseline",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "--rebuild",
+        "-n",
+        "hello",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\.tmp\\artifact-latency\\baseline",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\.tmp\\artifact-latency\\baseline",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bench\\src\\hello\\hello.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 151.4323,
+      "cpu_ms": 484.375,
+      "peak_job_bytes": 92262400,
+      "peak_proc_bytes": 91004928,
+      "peak_working_set_bytes": 75534336,
+      "stdout": "  >  swag        test * bin/std/modules * devmode\r\n  *  checked     1_054 files * 2_003_681 tokens * 82 ms\r\n  *  verified    86 us\r\n  *  tested      0 tests * 103 ms\r\n  *  clean       104 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 20.524017467248907,
+      "task": "lex_std",
+      "tag": "candidate",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "test",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "--lex-only",
+        "-d",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std\\modules"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 130.7677,
+      "cpu_ms": 421.875,
+      "peak_job_bytes": 90808320,
+      "peak_proc_bytes": 89546752,
+      "peak_working_set_bytes": 74358784,
+      "stdout": "  >  swag        test * bin/std/modules * devmode\r\n  *  checked     1_054 files * 2_003_681 tokens * 67 ms\r\n  *  verified    38 us\r\n  *  tested      0 tests * 86 ms\r\n  *  clean       87 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 11.737089201877934,
+      "task": "lex_std",
+      "tag": "baseline",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+        "test",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "--lex-only",
+        "-d",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std\\modules"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 3749.305,
+      "cpu_ms": 16218.75,
+      "peak_job_bytes": 712540160,
+      "peak_proc_bytes": 711282688,
+      "peak_working_set_bytes": 661897216,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  *  module      win32 * 31 files * 91 ms\r\n  *  module      xinput * 28 files * 96 ms\r\n  *  module      core * 349 files * core.dll * 2 s 661 ms\r\n  *  workspace   std [core] * 3 modules * 3 s 647 ms\r\n  *  clean       3 s 648 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 18.900602409638555,
+      "task": "core_rebuild",
+      "tag": "candidate",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core",
+        "--rebuild"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 3618.052,
+      "cpu_ms": 15171.875,
+      "peak_job_bytes": 749780992,
+      "peak_proc_bytes": 748527616,
+      "peak_working_set_bytes": 695480320,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  *  module      win32 * 31 files * 86 ms\r\n  *  module      xinput * 28 files * 93 ms\r\n  *  module      core * 349 files * core.dll * 2 s 547 ms\r\n  *  workspace   std [core] * 3 modules * 3 s 513 ms\r\n  *  clean       3 s 514 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 17.410889150019585,
+      "task": "core_rebuild",
+      "tag": "baseline",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core",
+        "--rebuild"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 60.7397,
+      "cpu_ms": 46.875,
+      "peak_job_bytes": 7405568,
+      "peak_proc_bytes": 6152192,
+      "peak_working_set_bytes": 10354688,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 7 us\r\n  =  module      xinput * up-to-date * 4 us\r\n  =  module      core * up-to-date * core.dll * 6 us\r\n  *  workspace   std [core] * 3 modules * 17 ms\r\n  *  clean       18 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 32.773109243697476,
+      "task": "core_noop",
+      "tag": "candidate",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 49.5885,
+      "cpu_ms": 31.25,
+      "peak_job_bytes": 7417856,
+      "peak_proc_bytes": 6160384,
+      "peak_working_set_bytes": 10358784,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 5 us\r\n  =  module      xinput * up-to-date * 3 us\r\n  =  module      core * up-to-date * core.dll * 7 us\r\n  *  workspace   std [core] * 3 modules * 20 ms\r\n  *  clean       20 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 29.62962962962963,
+      "task": "core_noop",
+      "tag": "baseline",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 2834.8994,
+      "cpu_ms": 13109.375,
+      "peak_job_bytes": 692514816,
+      "peak_proc_bytes": 691257344,
+      "peak_working_set_bytes": 658542592,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 7 us\r\n  =  module      xinput * up-to-date * 4 us\r\n  *  module      core * 349 files * core.dll * 2 s 490 ms\r\n  *  workspace   std [core] * 3 modules * 2 s 737 ms\r\n  *  clean       2 s 738 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 30.189620758483034,
+      "task": "core_touch",
+      "tag": "candidate",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    }
+  ],
+  "preparations": [
+    {
+      "exit": 0,
+      "wall_ms": 359.9011,
+      "cpu_ms": 1546.875,
+      "peak_job_bytes": 87793664,
+      "peak_proc_bytes": 86528000,
+      "peak_working_set_bytes": 70885376,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 9 us\r\n  =  module      xinput * up-to-date * 3 us\r\n  =  module      core * up-to-date * core.dll * 6 us\r\n  *  workspace   std [core] * 3 modules * 303 ms\r\n  *  clean       304 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 10.246679316888045,
+      "task": "core_noop",
+      "tag": "baseline",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 343.4048,
+      "cpu_ms": 1359.375,
+      "peak_job_bytes": 91955200,
+      "peak_proc_bytes": 90697728,
+      "peak_working_set_bytes": 74559488,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 4 us\r\n  =  module      xinput * up-to-date * 3 us\r\n  =  module      core * up-to-date * core.dll * 9 us\r\n  *  workspace   std [core] * 3 modules * 286 ms\r\n  *  clean       287 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 9.330628803245435,
+      "task": "core_noop",
+      "tag": "candidate",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 342.4472,
+      "cpu_ms": 1343.75,
+      "peak_job_bytes": 89194496,
+      "peak_proc_bytes": 87941120,
+      "peak_working_set_bytes": 72642560,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 9 us\r\n  =  module      xinput * up-to-date * 3 us\r\n  =  module      core * up-to-date * core.dll * 10 us\r\n  *  workspace   std [core] * 3 modules * 300 ms\r\n  *  clean       300 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 12.5,
+      "task": "core_touch",
+      "tag": "baseline",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 361.2267,
+      "cpu_ms": 1640.625,
+      "peak_job_bytes": 88195072,
+      "peak_proc_bytes": 86933504,
+      "peak_working_set_bytes": 70565888,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 6 us\r\n  =  module      xinput * up-to-date * 4 us\r\n  =  module      core * up-to-date * core.dll * 10 us\r\n  *  workspace   std [core] * 3 modules * 305 ms\r\n  *  clean       305 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 13.398058252427184,
+      "task": "core_touch",
+      "tag": "candidate",
+      "round": 0,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 304.7857,
+      "cpu_ms": 1250.0,
+      "peak_job_bytes": 90337280,
+      "peak_proc_bytes": 89059328,
+      "peak_working_set_bytes": 74018816,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 5 us\r\n  =  module      xinput * up-to-date * 4 us\r\n  =  module      core * up-to-date * core.dll * 7 us\r\n  *  workspace   std [core] * 3 modules * 263 ms\r\n  *  clean       264 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 12.723214285714286,
+      "task": "core_noop",
+      "tag": "candidate",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 315.2594,
+      "cpu_ms": 953.125,
+      "peak_job_bytes": 92270592,
+      "peak_proc_bytes": 91004928,
+      "peak_working_set_bytes": 74227712,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 12 us\r\n  =  module      xinput * up-to-date * 5 us\r\n  =  module      core * up-to-date * core.dll * 16 us\r\n  *  workspace   std [core] * 3 modules * 269 ms\r\n  *  clean       269 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 19.789473684210527,
+      "task": "core_noop",
+      "tag": "baseline",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 281.9577,
+      "cpu_ms": 1234.375,
+      "peak_job_bytes": 86441984,
+      "peak_proc_bytes": 85188608,
+      "peak_working_set_bytes": 69939200,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 5 us\r\n  =  module      xinput * up-to-date * 3 us\r\n  =  module      core * up-to-date * core.dll * 6 us\r\n  *  workspace   std [core] * 3 modules * 242 ms\r\n  *  clean       243 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 14.427860696517413,
+      "task": "core_touch",
+      "tag": "candidate",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 373.8156,
+      "cpu_ms": 1515.625,
+      "peak_job_bytes": 93192192,
+      "peak_proc_bytes": 91934720,
+      "peak_working_set_bytes": 75833344,
+      "stdout": "  >  swag        build * std [core] * devmode\r\n  =  module      win32 * up-to-date * 17 us\r\n  =  module      xinput * up-to-date * 6 us\r\n  =  module      core * up-to-date * core.dll * 13 us\r\n  *  workspace   std [core] * 3 modules * 317 ms\r\n  *  clean       317 ms\r\n",
+      "stderr": "\r\n",
+      "background_cpu_pct": 44.18181818181818,
+      "task": "core_touch",
+      "tag": "baseline",
+      "round": 1,
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--log-ascii",
+        "-bc",
+        "devmode",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\std",
+        "-m",
+        "core"
+      ]
+    }
+  ],
+  "admissions": [
+    {
+      "time": "2026-09-14 07:37:25",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 8\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 16,5\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,5\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:37:31",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 8\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 16,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:37:36",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 9\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 16,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:37:43",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 8\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 16,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:37:49",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 10\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 16,7\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:37:58",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 9\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 16,2\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,3\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:38:06",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 15\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,6\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:38:12",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 7\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,7\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:38:18",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 8\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:38:24",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 11\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,9\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:38:30",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 8\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,9\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:38:36",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 9\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:38:45",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 8\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,9\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:38:53",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 21\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:39:14",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 52\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,7\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:39:38",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 70\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 16,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,9\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:40:05",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 90\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 16\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,5\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:40:21",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 74\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,1\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 9,5\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:40:37",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 62\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,2\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 9,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:40:54",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 50\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,2\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 9,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:41:10",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 57\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,1\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 9,6\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:41:28",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 65\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,4\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,5\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:41:45",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 67\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,5\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 9,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:42:01",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 88\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,5\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,3\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:42:18",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 64\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,1\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:42:35",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 76\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,3\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 9,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:42:52",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 66\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 13,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:43:08",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 56\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 13\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 7,3\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:43:25",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 54\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 13,3\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 7,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:43:41",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 74\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 14\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8,5\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:43:57",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 15\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,3\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:44:06",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 22\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,1\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,4\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:44:21",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 25\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 14,9\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:44:37",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 26\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,4\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:44:53",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 34\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,2\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,4\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:45:09",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 15\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,5\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:45:15",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 13\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,7\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:45:21",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 16\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 16\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,8\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:45:27",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 12\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,6\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:45:33",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 11\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,6\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:45:43",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 12\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,5\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,4\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:45:53",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 9\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,7\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,5\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:45:59",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 10\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:46:05",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 12\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,7\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:46:12",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 27\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,1\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,1\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:46:34",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 62\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,1\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:46:56",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 52\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,4\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,4\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:47:17",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 65\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:47:38",
+      "exit": 2,
+      "stdout": "\n\nStatus                    : wait\nAverageCpuPercent         : 29\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,2\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,2\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:47:54",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 10\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,1\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:47:59",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 11\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15,1\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,1\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:48:06",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 12\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    },
+    {
+      "time": "2026-09-14 07:48:14",
+      "exit": 0,
+      "stdout": "\n\nStatus                    : ready\nAverageCpuPercent         : 15\nMaximumCpuPercent         : 20\nAvailablePhysicalGiB      : 15\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 10,1\nRequiredCommitHeadroomGiB : 8\n\n\n\n",
+      "stderr": ""
+    }
+  ],
+  "binaries": {
+    "baseline": {
+      "path": "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.baseline.exe",
+      "sha256": "9c280d155bef947c242a31c12d2f29efa036259193bc8bbc08c5044398e7939e"
+    },
+    "candidate": {
+      "path": "C:\\Perso\\swag-lang\\swc-artifact-latency\\bin\\swc.exe",
+      "sha256": "03205d7596ce9fc59126e7d477366d01c4359053950c5ea4dd2c71ea9989a51d"
+    }
+  }
+}

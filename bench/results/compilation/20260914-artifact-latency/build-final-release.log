@@ -1,0 +1,49 @@
+"C:/Program Files/Microsoft Visual Studio/18/Enterprise/MSBuild/Current/Bin/amd64/MSBuild.exe" .tmp/baseline-build/swc.vcxproj /nologo /v:minimal /m:6 /p:SwcCompileJobs=6 /p:Configuration=Release /p:Platform=x64
+
+
+
+Status                    : wait
+AverageCpuPercent         : 73
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 16,3
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 11
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+
+Status                    : ready
+AverageCpuPercent         : 60
+MaximumCpuPercent         : 65
+AvailablePhysicalGiB      : 16,4
+RequiredPhysicalGiB       : 8
+CommitHeadroomGiB         : 11,3
+RequiredCommitHeadroomGiB : 8
+
+
+
+
+  DebugInfoCodeView.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  MicroPrinter.cpp
+  LangSpec.cpp
+  Lexer.cpp
+  Sema.Block.cpp
+  Sema.Compiler.cpp
+  Sema.Identifier.cpp
+  Sema.Literal.cpp
+  SemaSpecOp.cpp
+  Verify.cpp
+  DocPage.cpp
+  Command.New.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  Global.cpp
+  Utf8Helper.cpp
+  SyntaxColor.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-artifact-latency\.tmp\baseline-build\bin\swc.exe
+
+Exit code: 0

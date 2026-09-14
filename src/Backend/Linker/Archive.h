@@ -24,6 +24,12 @@ struct ArchiveImport
 class Archive
 {
 public:
+    Archive()                             = default;
+    Archive(const Archive&)                = delete;
+    Archive& operator=(const Archive&)     = delete;
+    Archive(Archive&&) noexcept            = default;
+    Archive& operator=(Archive&&) noexcept = default;
+
     // Takes ownership of the archive bytes. Returns false and fills outDiag on a malformed archive.
     bool load(Diagnostic& outDiag, ByteArray bytes);
 
@@ -38,8 +44,9 @@ public:
     bool tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint32_t headerOffset) const;
 
 private:
-    ByteArray                          bytes_;
-    std::unordered_map<Utf8, uint32_t> symbolToMember_;
+    // Symbol names borrow the immutable byte buffer, which moves together with the index.
+    ByteArray                                     bytes_;
+    std::unordered_map<std::string_view, uint32_t> symbolToMember_;
 };
 
 // Builds a COFF static library (`!<arch>`) from prepared object members: a symbol-directory linker

@@ -48,8 +48,8 @@ namespace
 
 bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
 {
-    bytes_ = std::move(bytes);
     symbolToMember_.clear();
+    bytes_ = std::move(bytes);
 
     if (!bytes_.containsRange(0, ARCHIVE_MAGIC.size()) || std::memcmp(bytes_.data(), ARCHIVE_MAGIC.data(), ARCHIVE_MAGIC.size()) != 0)
     {
@@ -88,6 +88,7 @@ bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
         return false;
     }
 
+    symbolToMember_.reserve(symbolCount);
     size_t       nameCursor = namesAt;
     const size_t memberEnd  = dataOffset + memberSize;
     for (uint32_t i = 0; i < symbolCount; ++i)
@@ -103,7 +104,7 @@ bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
             ++nameLen;
 
         const uint32_t memberOffset = bytes_.readBe32(offsetsAt + static_cast<size_t>(i) * 4);
-        symbolToMember_.emplace(Utf8{std::string_view{nameStart, nameLen}}, memberOffset);
+        symbolToMember_.emplace(std::string_view{nameStart, nameLen}, memberOffset);
         nameCursor += nameLen + 1;
     }
 
@@ -112,7 +113,7 @@ bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
 
 uint32_t Archive::memberOffsetForSymbol(const Utf8& symbol) const
 {
-    const auto it = symbolToMember_.find(symbol);
+    const auto it = symbolToMember_.find(symbol.view());
     return it == symbolToMember_.end() ? 0 : it->second;
 }
 
@@ -196,7 +197,7 @@ namespace
         out.append(header);
     }
 
-    void appendArchiveMember(ByteArray& outBytes, std::string_view name, const ByteArray& data)
+    void appendArchiveMember(ByteArray& outBytes, std::string_view name, std::span<const std::byte> data)
     {
         appendMemberHeader(outBytes, name, static_cast<uint32_t>(data.size()));
         outBytes.append(data);
@@ -206,10 +207,10 @@ namespace
 
     struct ArchiveMemberBuild
     {
-        Utf8              name;
-        ByteArray         data;
-        std::vector<Utf8> symbols;
-        uint32_t          headerOffset = 0;
+        Utf8                       name;
+        std::span<const std::byte> data;
+        std::vector<Utf8>          symbols;
+        uint32_t                   headerOffset = 0;
     };
 
     // Assembles a COFF archive from prepared members: the linker symbol directory, an optional
@@ -261,6 +262,7 @@ namespace
 
         // Linker member data: big-endian symbol count, parallel member offsets, then symbol names.
         ByteArray linkerData;
+        linkerData.reserve(linkerDataSize);
         linkerData.appendBe32(symbolCount);
         for (const ArchiveMemberBuild& member : members)
             for (size_t s = 0; s < member.symbols.size(); ++s)
@@ -274,11 +276,12 @@ namespace
         }
 
         outBytes.clear();
+        outBytes.reserve(cursor);
         outBytes.append(ARCHIVE_MAGIC);
 
-        appendArchiveMember(outBytes, "/", linkerData);
+        appendArchiveMember(outBytes, "/", linkerData.span());
         if (hasLongNames)
-            appendArchiveMember(outBytes, "//", longNames);
+            appendArchiveMember(outBytes, "//", longNames.span());
         for (size_t i = 0; i < members.size(); ++i)
             appendArchiveMember(outBytes, nameField[i].view(), members[i].data);
     }
@@ -286,6 +289,7 @@ namespace
 
 bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& inputMembers)
 {
+    ByteArray aliasedMemberBytes;
     std::vector<ArchiveMemberBuild> members;
     members.reserve(inputMembers.size());
 
@@ -297,7 +301,13 @@ bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std:
 
         ArchiveMemberBuild member;
         member.name = inputMember.name;
-        member.data = inputMember.bytes;
+        member.data = inputMember.bytes.span();
+        if (&outBytes == &inputMember.bytes)
+        {
+            // Emission replaces the output buffer; retain only the input member it would overwrite.
+            aliasedMemberBytes = inputMember.bytes;
+            member.data        = aliasedMemberBytes.span();
+        }
         for (const CoffInputSymbol& symbol : object.definedSymbols)
             member.symbols.push_back(symbol.name);
         members.push_back(std::move(member));
@@ -309,27 +319,33 @@ bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std:
 
 void buildCoffImportLibrary(ByteArray& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames)
 {
+    // Reserve the complete buffer before borrowing spans so later records cannot invalidate them.
+    size_t recordsSize = 0;
+    for (const Utf8& name : exportNames)
+        recordsSize += IMPORT_HEADER_SIZE + name.size() + 1 + dllFileName.size() + 1;
+    ByteArray importRecords;
+    importRecords.reserve(recordsSize);
     std::vector<ArchiveMemberBuild> members;
     members.reserve(exportNames.size());
 
     for (const Utf8& name : exportNames)
     {
         // A short-import record: IMPORT_OBJECT_HEADER followed by importName\0 dllName\0.
-        ByteArray data;
-        data.appendLe16(0); // Sig1
-        data.appendLe16(IMPORT_SIG2);
-        data.appendLe16(0); // Version
-        data.appendLe16(IMPORT_MACHINE_AMD64);
-        data.appendLe32(0);                                                               // TimeDateStamp
-        data.appendLe32(static_cast<uint32_t>(name.size() + 1 + dllFileName.size() + 1)); // SizeOfData
-        data.appendLe16(0);                                                               // OrdinalOrHint
-        data.appendLe16(1 << 2);                                                          // NameType=NAME(1), Type=CODE(0)
-        data.appendCString(name.view());
-        data.appendCString(dllFileName);
+        const size_t recordOffset = importRecords.size();
+        importRecords.appendLe16(0); // Sig1
+        importRecords.appendLe16(IMPORT_SIG2);
+        importRecords.appendLe16(0); // Version
+        importRecords.appendLe16(IMPORT_MACHINE_AMD64);
+        importRecords.appendLe32(0);                                                               // TimeDateStamp
+        importRecords.appendLe32(static_cast<uint32_t>(name.size() + 1 + dllFileName.size() + 1)); // SizeOfData
+        importRecords.appendLe16(0);                                                               // OrdinalOrHint
+        importRecords.appendLe16(1 << 2);                                                          // NameType=NAME(1), Type=CODE(0)
+        importRecords.appendCString(name.view());
+        importRecords.appendCString(dllFileName);
 
         ArchiveMemberBuild member;
         member.name = Utf8(dllFileName);
-        member.data = std::move(data);
+        member.data = importRecords.span().subspan(recordOffset);
         member.symbols.push_back(name);               // the thunk symbol
         member.symbols.emplace_back("__imp_" + name); // the IAT symbol
         members.push_back(std::move(member));

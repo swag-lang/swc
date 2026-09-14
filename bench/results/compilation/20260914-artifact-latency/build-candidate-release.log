@@ -1,0 +1,26 @@
+
+  DebugInfoCodeView.cpp
+  Archive.cpp
+  PELinker.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  MicroPrinter.cpp
+  LangSpec.cpp
+  Lexer.cpp
+  Sema.Block.cpp
+  Sema.Compiler.cpp
+  Sema.Identifier.cpp
+  Sema.Literal.cpp
+  SemaSpecOp.cpp
+  Verify.cpp
+  DocPage.cpp
+  Command.New.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  Global.cpp
+  Utf8Helper.cpp
+  SyntaxColor.cpp
+  Test.Compiler.InMemorySource.cpp
+  Test.Compiler.Workspace.cpp
+  Test.Native.Linker.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-artifact-latency\.tmp\baseline-build\bin\swc.exe

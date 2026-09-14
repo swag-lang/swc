@@ -146,3 +146,26 @@ The earlier complete native result remains applicable to the reserve changes.
 A subsequent master integration includes e612280d7 and increments the compiler to build 600.
 The integrated DevMode compiler built successfully and passed 817 C++ fast tests and the
 same 20 native devmode register-allocation cases. The only merge conflict was the build number.
+
+## Campaign 4: construct the sparse register fallback only when needed
+
+The fallback map in `MicroDenseRegIndex` is now optional. Direct register lookups and insertions
+still return before accessing it. A missing lookup returns immediately when no fallback exists;
+the first exceptional insertion constructs the map. Once constructed, clear/reuse retains its
+storage as before.
+
+The installed MSVC 14.50.35717 headers give the static evidence: `xhash` constructs an empty
+table by allocating 16 bucket-boundary cells, and its `list` storage allocates a sentinel node.
+Both constructions are deferred for register indexes that never need sparse storage. The
+tradeoff is the optional discriminator/padding and checks on clear and fallback paths. There
+is no new heap allocation beyond the map's existing storage and no cross-owner state.
+
+The mixed direct/sparse regression added in campaign 3 covers initial empty lookup/clear,
+first fallback construction, growth, and repeated reuse. No timing benchmark is used.
+
+### Validation
+
+DevMode compiler build 601 succeeded and passed all 817 C++ fast tests plus the 20 native
+devmode cases selected by --file-filter regalloc. Each command received fresh CPU admission;
+the memory-margin waiver and six-worker caps remain as described above. No Release compiler
+rebuild was required for this local container-construction change.

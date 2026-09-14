@@ -93,3 +93,36 @@ branch span from its target label through the branch. Build C++ sources to
 assembly/object files only with the flags above and separate `/Fa` and `/Fo`
 paths. Every new compiler invocation must first pass the CPU admission check;
 memory margins were explicitly waived by the user for this session.
+
+## Campaign 2 - retained in the isolated branch at the 17:00 cutoff
+
+Campaign 1 was merged into master as `e612280d7` before this campaign began.
+Complementary shifts and OR now fold into a rotate when SSA proves the shared
+input, exclusive result uses, widths, and dead flags. A mixed 64/32-bit pattern
+additionally requires a zero-extended input; the proof follows copies, constants
+and bounded phi chains.
+
+| Static span | Before | Candidate build 601 | Explicit memory operations |
+| --- | ---: | ---: | ---: |
+| SHA-256 compression loop | 72 | 54 | 5, unchanged |
+| SHA-256 main function | 311 | 293 | 66, unchanged |
+| ChaCha add32 | 6 | 5 | 0, unchanged |
+| ChaCha quarterRound | 57 | 55 | 25, unchanged |
+
+The other function counts and loop shapes remain unchanged across all seven
+programs. These are static micro-instruction counts, not measured speedups.
+
+Build 600 passed 855 C++ tests (including 84 rotate pattern combinations) and
+the focused native rotate test. The full native suite then exposed an assertion
+in `inline/binding_visit_growth.swg`: a cloned closure could retain identifiers
+bound to the source closure's local symbols. The candidate fix preserves fresh
+local/capture bindings inside cloned callable bodies instead of sharing mutable
+code-generation storage metadata. Build 601 passes the full native suite
+(3,169 tests and expected-failure recovery probes) and all 56 sanity tests.
+All seven release benchmark programs build successfully without execution.
+
+This second campaign has NOT been merged. The late closure-binding correction
+still needs repeated parallel reproduction, Release-compiler validation required
+for the possible shared-metadata race, and integration of master's later changes
+(master had advanced to `8e63e8e99` at the cutoff). The DevMode evidence above
+does not stand in for those remaining checks. No third campaign was started.

@@ -39,6 +39,10 @@ The current candidate repairs flag-liveness checks across jumps and partial
 flag writers, arithmetic reassociation with intermediate flag readers,
 frame-address alias tracking during register promotion, and contextual enum
 array indices. Compiler and source regressions accompany these changes.
+The two Swag benchmark preludes also drop a redundant `ptr!` after the null
+guard in `benchFree`. This removes the observed warning without changing the
+algorithm. The baseline hashes retain the original prelude; final hashes must
+record this one source difference explicitly.
 The integrated candidate has not yet passed its selected validations, so it
 has not been merged into master and no subsequent campaign has started.
 

@@ -702,6 +702,58 @@ SWC_TEST_BEGIN(NativeArtifact_UnwindRecordsDoNotRequireCodeViewMetadata)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NativeArtifact_CoffSectionRelocationsPreserveAddendsAndSource)
+{
+    const NativeArtifactTestFixture fixture(ctx.global(), makeNativeArtifactCmdLine());
+    auto& source           = fixture.nativeBuilder->mergedData;
+    source.name            = ".data";
+    source.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
+    source.bytes.resize(40, std::byte{0xAA});
+    source.relocations = {
+        {.offset = 0, .symbolName = "long_external_address64", .addend = 0x123456789ABCDEF0, .type = IMAGE_REL_AMD64_ADDR64},
+        {.offset = 8, .symbolName = "short", .addend = 0xFEDCBA9876543210, .type = IMAGE_REL_AMD64_ADDR32NB},
+        {.offset = 16, .symbolName = "long_external_section_relative", .addend = 0x8877665544332211, .type = IMAGE_REL_AMD64_SECREL},
+        {.offset = 24, .symbolName = "short", .addend = 0xFFFFFFFFFFFFFFFC, .type = IMAGE_REL_AMD64_REL32},
+        {.offset = 32, .symbolName = "long_external_section", .addend = 0x123456789ABCDEF0, .type = IMAGE_REL_AMD64_SECTION},
+    };
+    const NativeSectionData original = source;
+
+    NativeObjDescription description;
+    description.includeData = true;
+    const auto writer       = NativeObjFileWriter::create(*fixture.nativeBuilder);
+    ByteArray  previousBytes;
+    for (size_t iteration = 0; iteration < 2; ++iteration)
+    {
+        ByteArray bytes;
+        SWC_RESULT(writer->buildObjectFile(bytes, description));
+        Diagnostic diag;
+        CoffObject object;
+        if (!readCoffObject(object, diag, bytes))
+            return Result::Error;
+        const auto data = std::ranges::find(object.sections, Utf8(".data"), &CoffInputSection::name);
+        if (data == object.sections.end() || data->bytes.size() != 40 || data->relocs.size() != original.relocations.size())
+            return Result::Error;
+        if (data->bytes.readLe64(0) != 0x123456789ABCDEF0 || data->bytes.readLe32(8) != 0x76543210 ||
+            data->bytes.readLe32(16) != 0x44332211 || data->bytes.readLe32(24) != 0xFFFFFFFC || data->bytes.readLe16(32) != 0xDEF0)
+            return Result::Error;
+        if (source.bytes != original.bytes || source.relocations.size() != original.relocations.size())
+            return Result::Error;
+        for (size_t index = 0; index < original.relocations.size(); ++index)
+        {
+            const auto& expected = original.relocations[index];
+            const auto& emitted  = data->relocs[index];
+            const auto& retained = source.relocations[index];
+            if (emitted.offset != expected.offset || emitted.type != expected.type || emitted.symbolName != expected.symbolName ||
+                retained.offset != expected.offset || retained.type != expected.type || retained.symbolName != expected.symbolName || retained.addend != expected.addend)
+                return Result::Error;
+        }
+        if (iteration && bytes != previousBytes)
+            return Result::Error;
+        previousBytes = std::move(bytes);
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NativeArtifact_CoffStringTablePreservesNamesAndSharedOffsets)
 {
     const NativeArtifactTestFixture fixture(ctx.global(), makeNativeArtifactCmdLine());

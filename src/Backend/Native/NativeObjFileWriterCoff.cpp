@@ -234,7 +234,8 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
 
 Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& section)
 {
-    for (auto& relocation : section.data.relocations)
+    SWC_ASSERT(section.relocations.empty());
+    for (const auto& relocation : section.data.relocations)
     {
         switch (relocation.type)
         {
@@ -258,11 +259,10 @@ Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& sectio
             default:
                 SWC_UNREACHABLE();
         }
-
-        section.relocations.push_back(std::move(relocation));
     }
 
-    section.data.relocations.clear();
+    // Non-code sections already own the complete relocation table. Keep its allocation.
+    section.relocations.swap(section.data.relocations);
 
     return Result::Continue;
 }

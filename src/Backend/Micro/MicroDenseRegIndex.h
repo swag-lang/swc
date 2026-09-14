@@ -18,7 +18,8 @@ public:
 
     void reserve(const size_t regCountHint)
     {
-        regToIndex_.reserve(regCountHint);
+        // Ordinary registers use direct tables. Grow the sparse fallback only
+        // for the exceptional registers that actually need it.
         regs_.reserve(regCountHint);
     }
 

@@ -109,3 +109,36 @@ waived memory margins for the rest of this session. Later commands retain the sa
 CPU sample, 65% CPU admission threshold, and six-worker limits. A temporary PowerShell launcher
 initially treated native stderr output as a terminating script error; it was corrected to retain
 that output and check the native exit status. The successful C++ run used the corrected launcher.
+
+## Campaign 3: size register-index reserves by their actual role
+
+`MicroDenseRegIndex::reserve` no longer reserves the sparse fallback map from the total
+register hint. Ordinary registers use direct tables and never insert into that map. Its
+exceptional path now grows with the sparse entries actually inserted. The standard library's
+minimum empty-map storage remains; this change removes excess bucket reservations, not the
+map's construction. Sparse inputs use the container's amortized growth instead of preallocating
+for all registers, including those served by direct tables.
+
+Register allocation also reserves its concrete-register list from the ABI's integer and float
+pools plus stack/frame roles. The former hint was `2 * instructionCount + 8`. With the current
+ABI and 10,000 instructions, the requested capacity drops from 20,008 `MicroReg` entries to 33
+(80,032 versus 132 bytes of element storage). These are requested sizes from the source, not
+measured allocations; a reused vector can retain a larger capacity.
+
+`MicroDenseRegIndex_ReusesMixedDirectAndSparseRegisters` exercises overlapping indices across
+integer/float and concrete/virtual kinds, reserved register roles, large sparse indices, duplicate
+insertion, map growth, insertion-order lookup, bitset word counts, missing keys, and three
+clear/reserve/reuse cycles. No per-index field, per-register branch, or lookup indirection is added.
+
+### Validation
+
+Candidate DevMode compiler build 595, based on dd4c85b05, succeeded. The C++ fast tests passed (799 tests), followed by
+the complete native devmode suite (3,166 tests) and its expected recovery probes. Both
+commands returned success. The new C++ fixture exercises the sparse path directly.
+The memory-margin waiver remains in effect; each command retains fresh CPU admission and
+six-worker limits. No timing benchmark or new Release compiler build is selected.
+
+The final integration includes d2672787e and compiler build 596. The integrated DevMode
+compiler built successfully and passed all 806 C++ fast tests plus the 20 native devmode
+tests selected by --file-filter regalloc (regalloc_divmod.swg and regalloc_shift.swg).
+The earlier complete native result remains applicable to the reserve changes.

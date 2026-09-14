@@ -37,6 +37,7 @@ enum class JobPriority : std::uint8_t
 enum class JobResult : std::uint8_t
 {
     Done,
+    Error,
     Sleep
 };
 

@@ -8,13 +8,27 @@ var g_TestThreadId:   u64
 var g_TestsExecuted:  u32
 var g_TestsFailedCnt: u32
 
+private func resumeFailedTest()
+{
+    // Context recovery skips task destructors and deferred gate releases. Any unfinished node
+    // may still borrow the failed frame, so neither another test nor a drain may run afterward.
+    if schedulerInstance().accepted.load() != 0
+    {
+        Swag.print("#test cannot resume while submitted work is unfinished; stopping this test process\n")
+        __hostTestAbort()
+        return
+    }
+
+    __hostTestResume()
+}
+
 func __testPanicHandler(message: string?, loc: Swag.SourceCodeLocation)
 {
     // Drop the hook first so a panic raised while printing takes the default path.
     Swag.getContext().panic = null
     __printPanicReport(message, loc)
     g_TestFailed = true
-    __hostTestResume()
+    resumeFailedTest()
 }
 
 // Records a hardware exception delivered by the host for the active test thread.
@@ -34,7 +48,7 @@ func __testHardwareException(code: u32, instructionAddress: u64, accessKind: u64
     }
 
     g_TestFailed = true
-    __hostTestResume()
+    resumeFailedTest()
 }
 
 // A test executable launched without the `swag.test` run argument behaves like an application:
@@ -116,6 +130,10 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
     g_TestThreadId  = __hostCurrentThreadId()
 
     let cxt = Swag.getContext()
+
+    // Resolve the process-wide pool before a failure can enter recovery. This starts no workers,
+    // covers work submitted from imported modules, and keeps allocation/locking out of recovery.
+    discard schedulerInstance()
     let previousPanic  = cxt.panic
     let previousFilter = __hostTestInstallHardwareFilter()
     cxt.panic = cast() &__testPanicHandler

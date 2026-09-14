@@ -151,7 +151,7 @@ public:
     bool isExcludedByCondition() const noexcept { return flags_.has(SymbolFlagsE::ExcludedByCondition); }
     void setExcludedByCondition(TaskContext& ctx) noexcept;
 
-    SymbolExtraFlagsStorage extraFlags() const noexcept { return extraFlags_.load(std::memory_order_relaxed); }
+    SymbolExtraFlagsStorage extraFlags() const noexcept { return extraFlags_.load(std::memory_order_acquire); }
 
     bool                 hasAttributes() const noexcept { return attributes_ != nullptr; }
     const AttributeList& attributes() const;
@@ -275,14 +275,21 @@ struct SymbolExtraFlagsT : BASE
     {
     }
 
-    FlagsType& extraFlags()
+    FlagsType extraFlags() const noexcept
     {
-        return *reinterpret_cast<FlagsType*>(&this->extraFlags_);
+        const auto bits = this->extraFlags_.load(std::memory_order_acquire);
+        if constexpr (std::is_void_v<E>)
+            return bits;
+        else
+            return FlagsType{static_cast<E>(bits)};
     }
 
-    const FlagsType& extraFlags() const
+    void assignExtraFlags(FlagsType flags) noexcept
     {
-        return *reinterpret_cast<const FlagsType*>(&this->extraFlags_);
+        if constexpr (std::is_void_v<E>)
+            this->extraFlags_.store(flags, std::memory_order_release);
+        else
+            this->extraFlags_.store(static_cast<SymbolExtraFlagsStorage>(flags.get()), std::memory_order_release);
     }
 
     template<typename T = E>
@@ -297,14 +304,14 @@ struct SymbolExtraFlagsT : BASE
     void addExtraFlag(T flag)
     {
         if constexpr (!std::is_void_v<E>)
-            extraFlags().add(flag);
+            this->extraFlags_.fetch_or(static_cast<SymbolExtraFlagsStorage>(FlagsType{flag}.get()), std::memory_order_acq_rel);
     }
 
     template<typename T = E>
     void removeExtraFlag(T flag)
     {
         if constexpr (!std::is_void_v<E>)
-            extraFlags().remove(flag);
+            this->extraFlags_.fetch_and(static_cast<SymbolExtraFlagsStorage>(~FlagsType{flag}.get()), std::memory_order_acq_rel);
     }
 };
 

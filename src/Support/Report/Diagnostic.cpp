@@ -335,6 +335,9 @@ void Diagnostic::report(TaskContext& ctx) const
     if (!reportedDiagnostic.applyWarningPolicy(ctx))
         return;
 
+    if (ctx.hasCompiler() && reportedDiagnostic.elements_.front()->severity() == DiagnosticSeverity::Error)
+        ctx.compiler().recordErrorDiagnostic();
+
     addGeneratedSourceOrigin(ctx, reportedDiagnostic);
 
     DiagnosticBuilder eng(ctx, reportedDiagnostic);

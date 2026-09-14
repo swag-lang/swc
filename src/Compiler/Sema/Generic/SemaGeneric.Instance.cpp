@@ -297,8 +297,8 @@ namespace SemaGeneric
                 auto& cloneDecl                = sema.node(cloneRef).cast<AstFunctionDecl>();
                 cloneDecl.spanGenericParamsRef = SpanRef::invalid();
 
-                auto* instance         = Symbol::make<SymbolFunction>(sema.ctx(), &cloneDecl, cloneDecl.tokNameRef, function->idRef(), clonedGenericSymbolFlags(root));
-                instance->extraFlags() = function->semanticFlags();
+                auto* instance = Symbol::make<SymbolFunction>(sema.ctx(), &cloneDecl, cloneDecl.tokNameRef, function->idRef(), clonedGenericSymbolFlags(root));
+                instance->assignExtraFlags(function->semanticFlags());
                 instance->setAttributes(sema.ctx(), function->attributes());
                 instance->setRtAttributeFlags(function->rtAttributeFlags());
                 instance->setSpecOpKind(function->specOpKind());
@@ -316,8 +316,8 @@ namespace SemaGeneric
                 cloneDecl->spanGenericParamsRef = SpanRef::invalid();
                 cloneDecl->spanWhereRef         = SpanRef::invalid();
 
-                auto* instance         = Symbol::make<SymbolStruct>(sema.ctx(), cloneDecl, cloneDecl->tokNameRef, st.idRef(), clonedGenericSymbolFlags(root));
-                instance->extraFlags() = clonedGenericStructFlags(st);
+                auto* instance = Symbol::make<SymbolStruct>(sema.ctx(), cloneDecl, cloneDecl->tokNameRef, st.idRef(), clonedGenericSymbolFlags(root));
+                instance->assignExtraFlags(clonedGenericStructFlags(st));
                 instance->setAttributes(sema.ctx(), st.attributes());
                 instance->setOwnerSymMap(st.ownerSymMap());
                 instance->setDeclNodeRef(cloneRef);
@@ -329,8 +329,8 @@ namespace SemaGeneric
             cloneDecl.spanGenericParamsRef = SpanRef::invalid();
             cloneDecl.spanWhereRef         = SpanRef::invalid();
 
-            auto* instance         = Symbol::make<SymbolStruct>(sema.ctx(), &cloneDecl, cloneDecl.tokNameRef, st.idRef(), clonedGenericSymbolFlags(root));
-            instance->extraFlags() = clonedGenericStructFlags(st);
+            auto* instance = Symbol::make<SymbolStruct>(sema.ctx(), &cloneDecl, cloneDecl.tokNameRef, st.idRef(), clonedGenericSymbolFlags(root));
+            instance->assignExtraFlags(clonedGenericStructFlags(st));
             instance->setAttributes(sema.ctx(), st.attributes());
             instance->setOwnerSymMap(st.ownerSymMap());
             instance->setDeclNodeRef(cloneRef);

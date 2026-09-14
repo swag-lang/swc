@@ -94,7 +94,7 @@ JobResult CodeGenJob::exec()
     // A completed job stays owned by the compiler until the module ends, so what it drops here
     // is what the module stops paying for: the lowering Sema and the CodeGen it fed, with every
     // map and stack they grew. A sleeping job keeps both, since it resumes where it stopped.
-    if (result == JobResult::Done)
+    if (result != JobResult::Sleep)
         releaseSemaAndCodeGen();
     return result;
 }

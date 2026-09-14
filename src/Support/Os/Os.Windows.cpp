@@ -828,6 +828,63 @@ namespace
 
 namespace Os
 {
+    DirectoryLock::~DirectoryLock()
+    {
+        if (mutex_)
+        {
+            ReleaseMutex(mutex_);
+            CloseHandle(mutex_);
+        }
+        if (directory_)
+            CloseHandle(directory_);
+    }
+
+    bool DirectoryLock::lock(Utf8& outBecause, const fs::path& directory)
+    {
+        SWC_ASSERT(!directory_ && !mutex_);
+
+        // Keep the directory identity alive until unlock. Omitting FILE_SHARE_DELETE prevents
+        // a cleaner from replacing it while another process is waiting on its mutex.
+        const HANDLE directoryHandle = CreateFileW(directory.c_str(), FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+        if (directoryHandle == INVALID_HANDLE_VALUE)
+        {
+            outBecause = systemError();
+            return false;
+        }
+
+        BY_HANDLE_FILE_INFORMATION info = {};
+        if (!GetFileInformationByHandle(directoryHandle, &info))
+        {
+            outBecause = systemError();
+            CloseHandle(directoryHandle);
+            return false;
+        }
+
+        // File identity makes case changes, junctions and alternate spellings converge. A
+        // global name also coordinates compiler processes in different Windows sessions.
+        const std::wstring name        = std::format(L"Global\\Swag.Api.{:08x}.{:08x}{:08x}", info.dwVolumeSerialNumber, info.nFileIndexHigh, info.nFileIndexLow);
+        const HANDLE       mutexHandle = CreateMutexW(nullptr, FALSE, name.c_str());
+        if (!mutexHandle)
+        {
+            outBecause = systemError();
+            CloseHandle(directoryHandle);
+            return false;
+        }
+
+        const DWORD waitResult = WaitForSingleObject(mutexHandle, INFINITE);
+        if (waitResult != WAIT_OBJECT_0 && waitResult != WAIT_ABANDONED)
+        {
+            outBecause = systemError();
+            CloseHandle(mutexHandle);
+            CloseHandle(directoryHandle);
+            return false;
+        }
+
+        directory_ = directoryHandle;
+        mutex_     = mutexHandle;
+        return true;
+    }
+
     const char* hostOsName()
     {
         return "windows";

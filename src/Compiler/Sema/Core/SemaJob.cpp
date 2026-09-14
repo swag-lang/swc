@@ -33,10 +33,10 @@ SemaJob::SemaJob(const TaskContext& ctx, Sema& parentSema, NodePayload& nodePayl
 JobResult SemaJob::exec()
 {
     const JobResult result = sema_->exec();
-    if (result != JobResult::Done)
+    if (result == JobResult::Sleep)
         return result;
 
-    if (enqueueFullPassAfterDecl_ && sema_->isDeclPass())
+    if (result == JobResult::Done && enqueueFullPassAfterDecl_ && sema_->isDeclPass())
     {
         auto* fullPassJob = sema_->compiler().makeJob<SemaJob>(ctx(), sema_->nodePayloadContext(), false);
         sema_->compiler().global().jobMgr().enqueue(*fullPassJob, JobPriority::Normal, sema_->compiler().jobClientId());

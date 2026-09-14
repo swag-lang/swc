@@ -65,6 +65,7 @@ namespace __Win32RT
         func GetCurrentThreadId()->DWORD
         func SetUnhandledExceptionFilter(lpTopLevelExceptionFilter: *void?)->*void?
         func ExitProcess(uExitCode: u32)
+        func TerminateProcess(hProcess: HANDLE, uExitCode: u32)->BOOL
         func RaiseException(dwExceptionCode: u32, dwExceptionFlags: u32, nNumberOfArguments: u32, lpArguments: *const *void)
         func DebugBreak()
         func LoadLibraryA(name: const *u8)->*void?
@@ -521,6 +522,15 @@ private func __hostTestResumeContext()->*void
 func __hostTestResume()
 {
     __Win32RT.RtlRestoreContext(__hostTestResumeContext(), null)
+}
+
+func __hostTestAbort()
+{
+    // ExitProcess runs DLL detach hooks, which can wait for the very tasks whose owning frames
+    // recovery would abandon. Stop all threads without callbacks or runtime shutdown instead.
+    discard __Win32RT.TerminateProcess(__Win32RT.GetCurrentProcess(), cast #bit (u32) -666)
+    for do
+        __Win32RT.Sleep(__Win32RT.INFINITE)
 }
 
 // Keeps the captured frame alive while a test runs. A panic or hardware fault restores this

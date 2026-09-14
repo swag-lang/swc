@@ -1,4 +1,5 @@
 SWC_DIAG_DEF(cmdline_err_invalid_arg, Error, "unknown command-line argument '{arg}'")
+SWC_DIAG_DEF(cmd_err_job_failed_silently, Error, "internal compiler error: job '{what}' returned an error without a diagnostic; [help] report this compiler error with the source and command line")
 SWC_DIAG_DEF(cmdline_err_invalid_cmd_arg, Error, "command '{command}' does not accept argument '{arg}'")
 SWC_DIAG_DEF(cmdline_err_invalid_enum, Error, "argument '{arg}' does not accept value '{value}'; '{long}' accepts one of '{values}'")
 SWC_DIAG_DEF(cmdline_err_invalid_int, Error, "argument '{arg}' needs an integer value, found '{value}'")

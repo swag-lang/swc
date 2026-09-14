@@ -23,7 +23,7 @@ public:
     void          getAllSymbols(std::vector<Symbol*>& out, bool includeIgnored = false) const;
     void          getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
     bool          empty() const noexcept;
-    uint32_t      count() const noexcept { return count_; }
+    uint32_t      count() const noexcept { return count_.load(std::memory_order_relaxed); }
 
 protected:
     struct Entry
@@ -49,7 +49,8 @@ protected:
     mutable std::shared_mutex                  mutex_;
     SmallVector<SymbolMap*>                    usingSymMaps_;
     uint32_t                                   smallSize_ = 0;
-    uint32_t                                   count_     = 0;
+    // Different shards publish symbols concurrently; their locks do not protect this total.
+    std::atomic<uint32_t> count_ = 0;
 
     bool isBig() const noexcept { return smallSize_ > SMALL_CAP; }
     bool isSharded() const noexcept { return shards_.load(std::memory_order_acquire) != nullptr; }

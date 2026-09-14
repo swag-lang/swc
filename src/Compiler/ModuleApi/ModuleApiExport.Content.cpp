@@ -942,7 +942,11 @@ namespace ModuleApiExport
         // instead, they become undefined symbols of that link, and nothing the consumer wrote names
         // the library defining them: 'gui' calling 'DwmSetWindowAttribute' is what an executable
         // ends up having to resolve against 'dwmapi'.
-        for (const Utf8& foreignLib : ctx.compiler().foreignLibs())
+        // Registration follows parallel semantic completion; the published interface has a
+        // stable order regardless of which worker first encountered each library.
+        auto foreignLibs = ctx.compiler().foreignLibs();
+        std::ranges::sort(foreignLibs);
+        for (const Utf8& foreignLib : foreignLibs)
         {
             outContent += "#foreignlib(\"";
             outContent += foreignLib;

@@ -5,6 +5,7 @@
 #include <windows.h>
 #endif
 #include "Support/Core/Utf8.h"
+#include "Support/Os/DirectoryLock.h"
 
 SWC_BEGIN_NAMESPACE();
 

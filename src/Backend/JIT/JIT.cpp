@@ -1018,7 +1018,10 @@ namespace
                 return Result::Error;
             SymbolFunction& targetFunction = *const_cast<SymbolFunction*>(relocation.targetSymbol);
             if (shouldLeaveOptionalFunctionRelocationUnresolved(relocation, targetFunction))
+            {
+                ctx.compiler().registerDeferredJitConstantFunction(targetFunction, {.shardIndex = shardIndex, .offset = relocation.offset});
                 continue;
+            }
 
             uint64_t                 targetAddress = 0;
             RelocationResolveFailure failure;
@@ -1028,7 +1031,10 @@ namespace
             if (resolveResult != Result::Continue)
             {
                 if (relocation.allowUnresolvedFunction && failure.kind == RelocationResolveFailureKind::LocalTargetUnavailable)
+                {
+                    ctx.compiler().registerDeferredJitConstantFunction(targetFunction, {.shardIndex = shardIndex, .offset = relocation.offset});
                     continue;
+                }
                 return reportRelocationFailure(ctx, relocationDiagnosticId(targetFunction.isForeign()), "<jit-constant>", failure);
             }
 

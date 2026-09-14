@@ -215,6 +215,8 @@ public:
     void                                registerNativeGlobalVariable(SymbolVariable* symbol);
     void                                registerNativeGlobalFunctionInitTarget(SymbolFunction* symbol);
     void                                registerPreparedJitFunction(SymbolFunction* symbol);
+    void                                registerDeferredJitConstantFunction(SymbolFunction& symbol, DataSegmentRef storage);
+    void                                patchDeferredJitConstantFunctions(SymbolFunction& symbol);
     void                                invalidateGlobalFunctionBindings();
     Result                              ensurePatchedGlobalFunctionBindings(TaskContext& ctx);
     void                                resetPreparedJitFunctions();
@@ -254,6 +256,8 @@ public:
     void                                 registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
     SymbolFunction*                      runtimeFunctionSymbol(IdentifierRef idRef) const;
     bool                                 tryRegisterReportedDiagnostic(std::string_view message);
+    bool                                 hasErrorDiagnostic() const { return hasErrorDiagnostic_.load(std::memory_order_acquire); }
+    void                                 recordErrorDiagnostic() { hasErrorDiagnostic_.store(true, std::memory_order_release); }
     void                                 addDeferredEscapeCheck(SemaEscapeDeferredCheck&& check);
     std::vector<SemaEscapeDeferredCheck> takeDeferredEscapeChecks();
     void                                 addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge);
@@ -355,6 +359,7 @@ private:
     struct ModuleSetupSnapshot
     {
         Runtime::BuildCfg                  buildCfg{};
+        fs::file_time_type                 inputsReadTime{};
         std::vector<ModuleSetupImport>     imports;
         std::set<fs::path>                 loadedFiles;
         std::set<fs::path>                 compilerInputFiles;
@@ -383,12 +388,17 @@ private:
 
     struct ResolvedDependencyNode
     {
-        Utf8                         moduleName;
-        Utf8                         location;
-        Utf8                         version;
-        Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None;
-        ResolvedDependencyPaths      paths;
-        std::vector<size_t>          dependencies;
+        Utf8                                   moduleName;
+        Utf8                                   location;
+        Utf8                                   version;
+        Runtime::BuildCfgBackendKind           linkBackendKind = Runtime::BuildCfgBackendKind::None;
+        ResolvedDependencyPaths                paths;
+        ResolvedDependencyPaths                sourcePaths;
+        fs::file_time_type                     nativeReadTime{};
+        fs::file_time_type                     apiReadTime{};
+        fs::path                               apiSourceDir;
+        std::vector<ModuleApi::SourceSnapshot> apiFiles;
+        std::vector<size_t>                    dependencies;
     };
 
     struct ResolvedDependencyBinding
@@ -444,7 +454,8 @@ private:
     SourceFile&       addResolvedLoadedFile(fs::path path, FileFlags flags, std::string_view content);
     void              appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags, std::string_view apiModuleName = {});
     void              collectFolderFiles(const fs::path& folder, FileFlags flags, bool canFilter);
-    void              collectImportedApiFolderFiles(const fs::path& folder, std::string_view moduleName);
+    Result            collectImportedApiFolderFiles(TaskContext& ctx, const fs::path& folder, std::string_view moduleName);
+    void              appendImportedApiSnapshot(std::span<const ModuleApi::SourceSnapshot> files, std::string_view moduleName);
     static Utf8       apiModuleNameFromPath(const fs::path& file);
     Result            collectImportedApiFiles(TaskContext& ctx);
     Result            resolveModuleInputPaths(TaskContext& ctx);
@@ -505,6 +516,9 @@ private:
     std::vector<ModuleSetupImport>                 moduleSetupImports_;
     std::vector<NativeRuntimeImport>               nativeRuntimeImports_;
     std::set<fs::path>                             moduleSetupLoadedFiles_;
+    std::map<fs::path, fs::file_time_type>         moduleApiReadTimes_;
+    std::map<fs::path, fs::file_time_type>         moduleNativeReadTimes_;
+    std::vector<fs::path>                          moduleApiInputs_;
     mutable std::mutex                             moduleInputsMutex_;
     std::set<fs::path>                             compilerInputFiles_;
     std::vector<fs::path>                          importedDependencyLinkDirs_;
@@ -514,38 +528,40 @@ private:
     // module at compile time, and it stays known even when the executable links the module's code
     // in instead: publication reads it to take a DLL an earlier build left beside the executable
     // back out.
-    std::vector<fs::path>                   importedDependencySharedDirs_;
-    std::unordered_set<fs::path>            importedDependencySharedDirSet_;
-    std::vector<std::unique_ptr<Utf8>>      ownedBuildCfgStrings_;
-    const ModuleSetupSnapshot*              precomputedModuleSetup_    = nullptr;
-    const DependencyPlan*                   precomputedDependencyPlan_ = nullptr;
-    std::unique_ptr<DependencyPlan>         ownedDependencyPlan_;
-    bool                                    deferNativeLink_ = false;
-    std::unique_ptr<NativeBackendBuilder>   deferredBuilder_;
-    Utf8                                    lastArtifactLabel_;
-    bool                                    nativeArtifactBuilt_ = false;
-    WorkspaceBuildLogState                  workspaceBuildLogState_{};
-    std::optional<WorkspaceModuleLogState>  workspaceModuleLogState_;
-    bool                                    suppressBuildConfigurationLog_ = false;
-    uint64_t                                commandWallTimeNs_             = 0;
-    Runtime::ICompiler                      runtimeCompiler_{};
-    Runtime::IAllocator                     runtimeAllocator_{};
-    Runtime::CompilerMessage                runtimeCompilerMessage_{};
-    mutable std::unique_ptr<JITExecManager> jitExecMgr_;
-    mutable std::once_flag                  jitExecMgrOnce_;
-    void*                                   runtimeCompilerITable_[4]{};
-    mutable std::shared_mutex               sourceStorageMutex_;
-    mutable std::shared_mutex               nativeCodeSegmentMutex_;
-    mutable std::shared_mutex               nativeSpecialFunctionsMutex_;
-    mutable std::shared_mutex               nativeGlobalFunctionInitTargetsMutex_;
-    mutable std::shared_mutex               nativeGlobalVariablesMutex_;
-    mutable std::shared_mutex               jitPreparedFunctionsMutex_;
-    mutable std::mutex                      foreignLibsMutex_;
-    std::atomic<bool>                       changed_{true};
-    std::mutex                              globalFunctionBindingsMutex_;
-    std::atomic<uint64_t>                   globalFunctionBindingsVersion_{1};
-    std::atomic<uint64_t>                   patchedGlobalFunctionBindingsVersion_{0};
-    std::atomic<uint64_t>                   nativeGlobalFunctionInitTargetsVersion_{1};
+    std::vector<fs::path>                                            importedDependencySharedDirs_;
+    std::unordered_set<fs::path>                                     importedDependencySharedDirSet_;
+    std::vector<std::unique_ptr<Utf8>>                               ownedBuildCfgStrings_;
+    const ModuleSetupSnapshot*                                       precomputedModuleSetup_    = nullptr;
+    const DependencyPlan*                                            precomputedDependencyPlan_ = nullptr;
+    std::unique_ptr<DependencyPlan>                                  ownedDependencyPlan_;
+    bool                                                             deferNativeLink_ = false;
+    std::unique_ptr<NativeBackendBuilder>                            deferredBuilder_;
+    Utf8                                                             lastArtifactLabel_;
+    bool                                                             nativeArtifactBuilt_ = false;
+    WorkspaceBuildLogState                                           workspaceBuildLogState_{};
+    std::optional<WorkspaceModuleLogState>                           workspaceModuleLogState_;
+    bool                                                             suppressBuildConfigurationLog_ = false;
+    uint64_t                                                         commandWallTimeNs_             = 0;
+    Runtime::ICompiler                                               runtimeCompiler_{};
+    Runtime::IAllocator                                              runtimeAllocator_{};
+    Runtime::CompilerMessage                                         runtimeCompilerMessage_{};
+    mutable std::unique_ptr<JITExecManager>                          jitExecMgr_;
+    mutable std::once_flag                                           jitExecMgrOnce_;
+    void*                                                            runtimeCompilerITable_[4]{};
+    mutable std::shared_mutex                                        sourceStorageMutex_;
+    mutable std::shared_mutex                                        nativeCodeSegmentMutex_;
+    mutable std::shared_mutex                                        nativeSpecialFunctionsMutex_;
+    mutable std::shared_mutex                                        nativeGlobalFunctionInitTargetsMutex_;
+    mutable std::shared_mutex                                        nativeGlobalVariablesMutex_;
+    mutable std::shared_mutex                                        jitPreparedFunctionsMutex_;
+    std::mutex                                                       deferredJitConstantFunctionsMutex_;
+    std::unordered_map<SymbolFunction*, std::vector<DataSegmentRef>> deferredJitConstantFunctions_;
+    mutable std::mutex                                               foreignLibsMutex_;
+    std::atomic<bool>                                                changed_{true};
+    std::mutex                                                       globalFunctionBindingsMutex_;
+    std::atomic<uint64_t>                                            globalFunctionBindingsVersion_{1};
+    std::atomic<uint64_t>                                            patchedGlobalFunctionBindingsVersion_{0};
+    std::atomic<uint64_t>                                            nativeGlobalFunctionInitTargetsVersion_{1};
 
     std::vector<PerThreadData>                                                                                   perThreadData_;
     std::atomic<uint32_t>                                                                                        atomicId_ = 0;
@@ -558,6 +574,7 @@ private:
     mutable std::shared_mutex                                                                                    pendingImplRegistrationsMutex_;
     std::unordered_map<IdentifierRef, uint32_t>                                                                  pendingImplRegistrations_;
     std::mutex                                                                                                   reportedDiagnosticsMutex_;
+    std::atomic<bool>                                                                                            hasErrorDiagnostic_ = false;
     std::unordered_set<Utf8>                                                                                     reportedDiagnostics_;
     mutable std::mutex                                                                                           deferredEscapeChecksMutex_;
     std::vector<SemaEscapeDeferredCheck>                                                                         deferredEscapeChecks_;

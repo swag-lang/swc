@@ -623,6 +623,14 @@ namespace
             lookUpCxt.symMapHint    = candidate.symMap;
 
             SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+            if (lookUpCxt.empty() && candidates.size() > 1 && candidate.symMap->isStruct())
+            {
+                // Missing candidates can still gain a member from another impl. Settle that
+                // publication before choosing a different scope or reporting no match.
+                SWC_RESULT(candidate.symMap->cast<SymbolStruct>().waitPendingImplMembers(sema, codeRef));
+                // Completion may have raced the first lookup without requiring a pause.
+                SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+            }
             if (!lookUpCxt.empty())
             {
                 AutoMemberMatch m;

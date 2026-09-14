@@ -556,6 +556,8 @@ Result SymbolFunction::jitPatch(TaskContext& ctx)
     if (patchResult == Result::Continue)
     {
         jitPatchedAddress_.store(jitExecMemory_.entryPoint(), std::memory_order_release);
+        // Publish deferred constant slots before this function can become callable.
+        ctx.compiler().patchDeferredJitConstantFunctions(*this);
         ctx.compiler().notifyAlive();
     }
     if (patchResult == Result::Error)

@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Support/Thread/Job.h"
 #include "Support/Report/Assert.h"
 

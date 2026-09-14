@@ -137,6 +137,9 @@
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Doc.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.GeneratedAst.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.InMemorySource.cpp"/>
+        <ClCompile Include="src\Unittest\Compiler\Test.Compiler.SymbolMap.cpp"/>
+        <ClCompile Include="src\Unittest\Compiler\Test.Compiler.ModuleApiPublication.cpp"/>
+        <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Failure.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Messages.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.NodePayload.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Tags.cpp"/>
@@ -730,6 +733,7 @@
         <ClInclude Include="src\Support\Memory\Allocator.h"/>
         <ClInclude Include="src\Support\Memory\Arena.h"/>
         <ClInclude Include="src\Support\Memory\Heap.h"/>
+        <ClInclude Include="src\Support\Os\DirectoryLock.h"/>
         <ClInclude Include="src\Support\Os\Os.h"/>
         <ClInclude Include="src\Compiler\Parser\Ast\Ast.h"/>
         <ClInclude Include="src\Compiler\Parser\Ast\AstNode.h"/>

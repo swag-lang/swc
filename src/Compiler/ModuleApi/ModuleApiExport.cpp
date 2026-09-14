@@ -123,12 +123,6 @@ namespace
         return Result::Continue;
     }
 
-    bool isGeneratedModuleApiFile(const fs::path& path)
-    {
-        const fs::path extension = path.extension();
-        return extension == ".swg" || extension == ".swgsrc" || extension == ".deps" || path.filename() == ".swc-deps";
-    }
-
     Result reportModuleApiDirectoryClearError(TaskContext& ctx, const fs::path& path, const Utf8& because)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_dir_clear_failed);
@@ -161,7 +155,7 @@ namespace
                 return reportModuleApiDirectoryClearError(ctx, path, FileSystem::normalizeSystemMessage(ec));
 
             const fs::path entryPath = it->path();
-            if (!isGeneratedModuleApiFile(entryPath))
+            if (!ModuleApi::isPublishedFile(entryPath))
                 continue;
 
             std::error_code removeEc;
@@ -253,6 +247,113 @@ namespace ModuleApiExport
 
 namespace ModuleApi
 {
+    bool isPublishedFile(const fs::path& path)
+    {
+        // Per-worker .swgsrc dumps are diagnostic artifacts, flushed independently after
+        // compilation. They travel with native artifacts, not the imported source snapshot.
+        const fs::path extension = path.extension();
+        return extension == ".swg" || extension == ".swgs" || extension == ".deps" || path.filename() == ".swc-deps";
+    }
+
+    Result writeSnapshot(TaskContext& ctx, const std::span<const SourceSnapshot> files, const fs::path& sourceDirectory, const fs::path& destinationDirectory)
+    {
+        std::unordered_set<fs::path> paths;
+        for (const SourceSnapshot& file : files)
+            paths.insert((destinationDirectory / file.path.lexically_relative(sourceDirectory)).lexically_normal());
+
+        // Mutable mirrors hold DirectoryAccess here; cache staging is private until rename.
+        // Never reread the source: its publisher can already be writing another generation.
+        std::error_code ec;
+        for (fs::recursive_directory_iterator it(destinationDirectory, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                return reportInvalidFolder(ctx, destinationDirectory, FileSystem::normalizeSystemMessage(ec));
+            if (!isPublishedFile(it->path()) || paths.contains(it->path().lexically_normal()))
+                continue;
+            fs::remove(it->path(), ec);
+            if (ec)
+                return reportInvalidFolder(ctx, it->path(), FileSystem::normalizeSystemMessage(ec));
+        }
+        if (ec)
+            return reportInvalidFolder(ctx, destinationDirectory, FileSystem::normalizeSystemMessage(ec));
+
+        for (const SourceSnapshot& file : files)
+        {
+            const fs::path path = (destinationDirectory / file.path.lexically_relative(sourceDirectory)).lexically_normal();
+            const auto     size = fs::file_size(path, ec);
+            if (!ec && size == file.content.size())
+            {
+                const auto writeTime = fs::last_write_time(path, ec);
+                if (!ec && writeTime == file.writeTime)
+                    continue;
+            }
+            SWC_RESULT(ensureModuleApiDirectory(ctx, path.parent_path()));
+            SWC_RESULT(ModuleApiExport::writeModuleApiFile(ctx, path, file.content));
+            fs::last_write_time(path, file.writeTime, ec);
+            if (ec)
+                return reportInvalidFolder(ctx, path, FileSystem::normalizeSystemMessage(ec));
+        }
+        return Result::Continue;
+    }
+
+    Result DirectoryAccess::openRead(Utf8& outBecause, const fs::path& directory)
+    {
+        if (!lock_.lock(outBecause, directory))
+            return Result::Error;
+
+        std::error_code ec;
+        const bool      incomplete = fs::exists(directory / ".swc-api-incomplete", ec);
+        if (ec)
+        {
+            outBecause = FileSystem::normalizeSystemMessage(ec);
+            return Result::Error;
+        }
+        if (incomplete)
+        {
+            outBecause = "module API publication did not complete; rebuild the exporting module";
+            return Result::Error;
+        }
+        return Result::Continue;
+    }
+
+    Result DirectoryAccess::beginPublication(Utf8& outBecause, const fs::path& directory)
+    {
+        if (!lock_.lock(outBecause, directory))
+            return Result::Error;
+
+        incompletePath_ = directory / ".swc-api-incomplete";
+        FileSystem::IoErrorInfo    ioError;
+        constexpr std::string_view marker = "module API publication in progress\n";
+        if (FileSystem::writeBinaryFile(incompletePath_, marker.data(), marker.size(), ioError) != Result::Continue)
+        {
+            outBecause = FileSystem::describeIoFailure(ioError);
+            return Result::Error;
+        }
+        return Result::Continue;
+    }
+
+    Result DirectoryAccess::completePublication(Utf8& outBecause)
+    {
+        SWC_ASSERT(!incompletePath_.empty());
+        std::error_code ec;
+        fs::remove(incompletePath_, ec);
+        if (ec)
+        {
+            outBecause = FileSystem::normalizeSystemMessage(ec);
+            return Result::Error;
+        }
+        incompletePath_.clear();
+        return Result::Continue;
+    }
+
+    static Result finishPublication(TaskContext& ctx, DirectoryAccess& publication, const fs::path& directory)
+    {
+        Utf8 because;
+        if (publication.completePublication(because) != Result::Continue)
+            return reportInvalidFolder(ctx, directory, because);
+        return Result::Continue;
+    }
+
     Result exportFiles(TaskContext& ctx)
     {
         using ModuleApiExport::appendGeneratedRootsForFile;
@@ -289,9 +390,13 @@ namespace ModuleApi
             return Result::Continue;
 
         SWC_RESULT(ensureModuleApiDirectory(ctx, exportApiDir));
+        DirectoryAccess publication;
+        Utf8            because;
+        if (publication.beginPublication(because, exportApiDir) != Result::Continue)
+            return reportInvalidFolder(ctx, exportApiDir, because);
         SWC_RESULT(clearGeneratedModuleApiFiles(ctx, exportApiDir));
         if (suppressExport)
-            return Result::Continue;
+            return finishPublication(ctx, publication, exportApiDir);
 
         const Utf8        moduleNamespace  = buildModuleNamespaceName(compiler);
         const SourceFile* firstSourceFile  = nullptr;
@@ -315,7 +420,7 @@ namespace ModuleApi
         }
 
         if (!hasModuleSources)
-            return Result::Continue;
+            return finishPublication(ctx, publication, exportApiDir);
 
         // Extract each file's generated roots in parallel (independent per file), then merge
         // sequentially in file order. The merge feeds appendGeneratedRootUnique in exactly the
@@ -383,11 +488,11 @@ namespace ModuleApi
                 return Result::Error;
 
         if (!firstSourceFile)
-            return Result::Continue;
+            return finishPublication(ctx, publication, exportApiDir);
 
         SWC_RESULT(writeGeneratedModuleImports(ctx, exportApiDir, preferredLineEnding(*firstSourceFile)));
         if (generatedRoots.empty())
-            return Result::Continue;
+            return finishPublication(ctx, publication, exportApiDir);
 
         sortGeneratedModuleApiRoots(ctx, generatedRoots);
 
@@ -403,7 +508,7 @@ namespace ModuleApi
         SWC_RESULT(buildGeneratedModuleApiSingleFileContent(ctx, generatedRoots, moduleNamespace.view(), preferredLineEnding(*firstSourceFile), content));
         if (writeModuleApiFile(ctx, generatedDstPath, content.view()) != Result::Continue)
             return Result::Error;
-        return Result::Continue;
+        return finishPublication(ctx, publication, exportApiDir);
     }
 }
 

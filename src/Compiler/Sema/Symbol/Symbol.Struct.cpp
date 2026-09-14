@@ -142,11 +142,14 @@ namespace
         // one exists, then fall back to the registered pointer.
         for (const SymbolFunction* symFunc : ownerStruct.declaredMethods())
         {
-            if (!symFunc || symFunc->isIgnored() || symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
+            if (!symFunc || symFunc->isIgnored())
+                continue;
+            // Attributes and the declaration context are published by semantic completion.
+            if (!symFunc->isDeclared() || !symFunc->isTyped() || !symFunc->isSemaCompleted())
+                continue;
+            if (symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
                 continue;
             if (const SymbolImpl* symImpl = symFunc->declImplContext(); symImpl && symImpl->isForInterface())
-                continue;
-            if (!symFunc->isDeclared() || !symFunc->isTyped() || !symFunc->isSemaCompleted())
                 continue;
             if (symFunc->specOpKind() == kind)
                 return symFunc;
@@ -740,6 +743,25 @@ std::vector<SymbolFunction*> SymbolStruct::declaredMethods() const
     return result;
 }
 
+Result SymbolStruct::waitPendingImplMembers(Sema& sema, const SourceCodeRef& codeRef) const
+{
+    if (sema.compiler().pendingImplRegistrations(idRef()) != 0)
+        return sema.waitImplRegistrations(idRef(), codeRef);
+
+    // A completed struct has its impls registered, but their generated members may still
+    // be pending. The current impl cannot wait for its own body to finish.
+    const SymbolImpl* currentImpl = sema.frame().currentImpl();
+    for (const SymbolImpl* symImpl : impls())
+    {
+        if (!symImpl || symImpl->isIgnored() || symImpl == currentImpl)
+            continue;
+        if (!symImpl->isSemaCompleted())
+            return sema.waitSemaCompleted(symImpl, codeRef);
+    }
+
+    return Result::Continue;
+}
+
 std::vector<SymbolFunction*> SymbolStruct::methods() const
 {
     // Generic roots are marked sema-complete before their impl methods are specialized.
@@ -860,7 +882,7 @@ const SymbolVariable* SymbolStruct::findFieldByName(const IdentifierRef name) co
         // Completed structs have removed ignored fields and checked duplicate names. Reuse
         // their symbol index, but keep the scan for homonyms or synthetic, unregistered fields.
         const Symbol* symbol = findFirstSymbol(name, true);
-        const auto* field = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
+        const auto*   field  = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
         if (field && fieldIndexMap_.contains(field))
             return field;
     }
@@ -1276,15 +1298,15 @@ Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
     {
         case SpecOpKind::OpDrop:
             SWC_ASSERT(!opDrop());
-            opDrop_ = &symFunc;
+            opDrop_.store(&symFunc, std::memory_order_release);
             break;
         case SpecOpKind::OpPostCopy:
             SWC_ASSERT(!opPostCopy());
-            opPostCopy_ = &symFunc;
+            opPostCopy_.store(&symFunc, std::memory_order_release);
             break;
         case SpecOpKind::OpPostMove:
             SWC_ASSERT(!opPostMove());
-            opPostMove_ = &symFunc;
+            opPostMove_.store(&symFunc, std::memory_order_release);
             break;
         default:
             break;
@@ -1297,32 +1319,38 @@ Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
 // Every lifecycle consumer must observe the selected method set.
 SymbolFunction* SymbolStruct::opDrop()
 {
-    return opDrop_ && !opDrop_->isIgnored() ? opDrop_ : nullptr;
+    auto* function = opDrop_.load(std::memory_order_acquire);
+    return function && !function->isIgnored() ? function : nullptr;
 }
 
 const SymbolFunction* SymbolStruct::opDrop() const
 {
-    return opDrop_ && !opDrop_->isIgnored() ? opDrop_ : nullptr;
+    const auto* function = opDrop_.load(std::memory_order_acquire);
+    return function && !function->isIgnored() ? function : nullptr;
 }
 
 SymbolFunction* SymbolStruct::opPostCopy()
 {
-    return opPostCopy_ && !opPostCopy_->isIgnored() ? opPostCopy_ : nullptr;
+    auto* function = opPostCopy_.load(std::memory_order_acquire);
+    return function && !function->isIgnored() ? function : nullptr;
 }
 
 const SymbolFunction* SymbolStruct::opPostCopy() const
 {
-    return opPostCopy_ && !opPostCopy_->isIgnored() ? opPostCopy_ : nullptr;
+    const auto* function = opPostCopy_.load(std::memory_order_acquire);
+    return function && !function->isIgnored() ? function : nullptr;
 }
 
 SymbolFunction* SymbolStruct::opPostMove()
 {
-    return opPostMove_ && !opPostMove_->isIgnored() ? opPostMove_ : nullptr;
+    auto* function = opPostMove_.load(std::memory_order_acquire);
+    return function && !function->isIgnored() ? function : nullptr;
 }
 
 const SymbolFunction* SymbolStruct::opPostMove() const
 {
-    return opPostMove_ && !opPostMove_->isIgnored() ? opPostMove_ : nullptr;
+    const auto* function = opPostMove_.load(std::memory_order_acquire);
+    return function && !function->isIgnored() ? function : nullptr;
 }
 
 const SymbolFunction* SymbolStruct::effectiveOpInit(const TaskContext& ctx) const

@@ -67,6 +67,7 @@ public:
     void                         addImpl(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*>     impls() const;
     std::vector<SymbolFunction*> declaredMethods() const;
+    Result                       waitPendingImplMembers(Sema& sema, const SourceCodeRef& codeRef) const;
     std::vector<SymbolFunction*> methods() const;
 
     void                     addInterface(SymbolImpl& symImpl);
@@ -164,9 +165,9 @@ private:
     std::unordered_set<SymbolFunction*>               specOpsSet_;
     mutable std::once_flag                            implicitDefaultFlagsOnce_;
     std::once_flag                                    defaultStructOnce_;
-    SymbolFunction*                                   opDrop_     = nullptr;
-    SymbolFunction*                                   opPostCopy_ = nullptr;
-    SymbolFunction*                                   opPostMove_ = nullptr;
+    std::atomic<SymbolFunction*>                      opDrop_     = nullptr;
+    std::atomic<SymbolFunction*>                      opPostCopy_ = nullptr;
+    std::atomic<SymbolFunction*>                      opPostMove_ = nullptr;
     mutable std::mutex                                generatedLifecycleMutex_;
     mutable std::mutex                                generatedOperatorsMutex_;
     mutable std::mutex                                generatedEqualityMutex_;

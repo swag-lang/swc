@@ -2,9 +2,11 @@
 #include "Support/Thread/JobManager.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
+#include "Support/Report/Diagnostic.h"
 #include "Support/Report/HardwareException.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -510,6 +512,18 @@ void JobManager::growWorkersForLoadLocked()
 
 namespace
 {
+    void reportSilentJobFailure(Job& job, JobResult result)
+    {
+        // Expected source errors are recorded even when the test harness suppresses them.
+        TaskContext& ctx = job.ctx();
+        if (result != JobResult::Error || ctx.hasError() || ctx.silentDiagnostic() || Stats::hasError() || (ctx.hasCompiler() && ctx.compiler().hasErrorDiagnostic()))
+            return;
+
+        auto diagnostic = Diagnostic::get(DiagnosticId::cmd_err_job_failed_silently);
+        diagnostic.addArgument(Diagnostic::ARG_WHAT, Job::kindName(job.kind()));
+        diagnostic.report(ctx);
+    }
+
     int exceptionHandler(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
         uint32_t    exceptionCode    = 0;
@@ -534,6 +548,7 @@ JobResult JobManager::executeJob(Job& job)
     SWC_TRY
     {
         res = job.exec();
+        reportSilentJobFailure(job, res);
     }
     SWC_EXCEPT(exceptionHandler(job, SWC_GET_EXCEPTION_INFOS()))
     {
@@ -551,6 +566,7 @@ void JobManager::handleJobResult(JobRecord* rec, const JobResult res)
     switch (res)
     {
         case JobResult::Done:
+        case JobResult::Error:
         {
             rec->state = JobRecord::State::Done;
             bumpClientCountLocked(rec->clientId, -1);

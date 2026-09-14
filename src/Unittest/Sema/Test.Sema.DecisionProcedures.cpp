@@ -9,10 +9,12 @@
 #include "Compiler/Sema/Generic/GenericInstanceStorage.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
@@ -44,7 +46,7 @@ namespace
 
         SymbolFunction* addFunction(bool completed = true)
         {
-            const SymbolFlags flags = completed ? SymbolFlagsE::SemaCompleted : SymbolFlagsE::Zero;
+            const SymbolFlags flags    = completed ? SymbolFlagsE::SemaCompleted : SymbolFlagsE::Zero;
             auto*             function = Symbol::make<SymbolFunction>(*ctx_, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), flags);
             if (completed)
                 completed_.push_back(function);
@@ -149,6 +151,183 @@ SWC_TEST_BEGIN(Sema_OverloadRankingUsesOrderedConversionCriteria)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Sema_ConcurrentSymbolExtraFlagsPreserveIndependentUpdates)
+{
+    SWC_UNUSED(ctx);
+
+    constexpr size_t NUM_WORKERS = 6;
+    constexpr size_t NUM_ROUNDS  = 4096;
+    constexpr auto   ALL_FLAGS   = static_cast<SymbolFunctionFlagsE>((1u << NUM_WORKERS) - 1);
+
+    SymbolFunction                       function(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    bool                                 expectAll = true;
+    bool                                 failed    = false;
+    std::barrier                         rendezvous(NUM_WORKERS, [&]() noexcept {
+        const auto expected = expectAll ? ALL_FLAGS : SymbolFunctionFlagsE::Zero;
+        failed              = failed || function.semanticFlags() != SymbolFunctionFlags{expected};
+        expectAll           = !expectAll;
+    });
+    std::array<std::thread, NUM_WORKERS> workers;
+    for (size_t worker = 0; worker < NUM_WORKERS; ++worker)
+    {
+        workers[worker] = std::thread([&, worker] {
+            const auto flag = static_cast<SymbolFunctionFlagsE>(1u << worker);
+            for (size_t round = 0; round < NUM_ROUNDS; ++round)
+            {
+                // Each worker owns one bit, while the symbol is shared by all workers.
+                function.addExtraFlag(flag);
+                rendezvous.arrive_and_wait();
+                function.removeExtraFlag(flag);
+                rendezvous.arrive_and_wait();
+            }
+        });
+    }
+    for (auto& worker : workers)
+        worker.join();
+    if (failed)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Sema_GlobalStoragePublicationSurvivesConcurrentFlags)
+{
+    SWC_UNUSED(ctx);
+
+    constexpr size_t NUM_WORKERS = 6;
+    constexpr size_t NUM_ROUNDS  = 4096;
+    SymbolVariable   variable(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    variable.setDeclaredGlobal(true);
+
+    bool                                 expectPublished = true;
+    bool                                 failed          = false;
+    uint32_t                             expectedOffset  = 8;
+    std::barrier                         rendezvous(NUM_WORKERS, [&]() noexcept {
+        if (expectPublished)
+        {
+            failed = failed || !variable.hasGlobalStorage() || !variable.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+            failed = failed || variable.globalStorageKind() != DataSegmentKind::GlobalZero || variable.offset() != expectedOffset;
+        }
+        else
+        {
+            failed = failed || variable.hasGlobalStorage() || variable.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+            expectedOffset += 8;
+        }
+        expectPublished = !expectPublished;
+    });
+    std::array<std::thread, NUM_WORKERS> workers;
+    for (size_t worker = 0; worker < NUM_WORKERS; ++worker)
+    {
+        workers[worker] = std::thread([&, worker] {
+            for (size_t round = 0; round < NUM_ROUNDS; ++round)
+            {
+                // Publishing storage must survive other users requesting an address
+                // for the same symbol; losing GlobalStorage selects local codegen.
+                if (worker == 0)
+                    variable.setGlobalStorage(DataSegmentKind::GlobalZero, static_cast<uint32_t>((round + 1) * 8));
+                else
+                    variable.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+                rendezvous.arrive_and_wait();
+                variable.removeExtraFlag(worker == 0 ? SymbolVariableFlagsE::GlobalStorage : SymbolVariableFlagsE::NeedsAddressableStorage);
+                rendezvous.arrive_and_wait();
+            }
+        });
+    }
+    for (auto& worker : workers)
+        worker.join();
+    if (failed)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Sema_GenericMethodSignaturePublishesLazyBody)
+{
+    SemaDecisionFixture fixture(ctx, "GenericMethodSignaturePublishesLazyBody");
+    Sema&               sema = fixture.sema();
+    auto [declRef, decl]     = sema.ast().makeNode<AstNodeId::FunctionDecl>(TokenRef::invalid());
+    auto [paramsRef, params] = sema.ast().makeNode<AstNodeId::FunctionParamList>(TokenRef::invalid());
+    auto [bodyRef, body]     = sema.ast().makeNode<AstNodeId::EmbeddedBlock>(TokenRef::invalid());
+    SWC_UNUSED(params);
+    SWC_UNUSED(body);
+    decl->nodeParamsRef = paramsRef;
+    decl->nodeBodyRef   = bodyRef;
+
+    constexpr SymbolFlags ownerFlags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
+    const IdentifierRef   ownerId    = ctx.idMgr().addIdentifierOwned("LazySignatureOwner");
+    const IdentifierRef   methodId   = ctx.idMgr().addIdentifierOwned("lazySignatureMethod");
+    auto*                 root       = Symbol::make<SymbolStruct>(ctx, nullptr, TokenRef::invalid(), ownerId, ownerFlags);
+    auto*                 owner      = Symbol::make<SymbolStruct>(ctx, nullptr, TokenRef::invalid(), ownerId, ownerFlags);
+    owner->setGenericInstance(root, {});
+
+    auto* function = Symbol::make<SymbolFunction>(ctx, decl, TokenRef::invalid(), methodId, SymbolFlagsE::Declared);
+    function->addExtraFlag(SymbolFunctionFlagsE::Method);
+    function->setDeclNodeRef(declRef);
+    function->setDeclNodePayloadContext(&sema.currentNodePayloadContext());
+    owner->addSingleSymbol(ctx, function);
+    sema.setSymbol(declRef, function);
+
+    // Stop exactly where signature-only preparation publishes the callable symbol.
+    // The declaring walk has not visited the body, so a caller must already know
+    // that it needs to complete that body before using its borrow summary.
+    Sema functionSema(ctx, sema, declRef);
+    SWC_RESULT(decl->semaPostNodeChild(functionSema, paramsRef));
+    if (!function->isTyped() || function->isSemaCompleted())
+        return Result::Error;
+    if (!function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Sema_DeclarationReplayPreservesPublishedAttributeStorage)
+{
+    SemaDecisionFixture fixture(ctx, "DeclarationReplayPreservesPublishedAttributeStorage");
+    Sema&               sema = fixture.sema();
+    auto [declRef, decl]     = sema.ast().makeNode<AstNodeId::FunctionDecl>(TokenRef::invalid());
+    auto [paramsRef, params] = sema.ast().makeNode<AstNodeId::FunctionParamList>(TokenRef::invalid());
+    auto [bodyRef, body]     = sema.ast().makeNode<AstNodeId::EmbeddedBlock>(TokenRef::invalid());
+    SWC_UNUSED(params);
+    SWC_UNUSED(body);
+    decl->nodeParamsRef = paramsRef;
+    decl->nodeBodyRef   = bodyRef;
+
+    constexpr SymbolFlags ownerFlags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
+    const IdentifierRef   ownerId    = ctx.idMgr().addIdentifierOwned("AttributeReplayOwner");
+    const IdentifierRef   methodId   = ctx.idMgr().addIdentifierOwned("attributeReplayFunction");
+    auto*                 owner      = Symbol::make<SymbolStruct>(ctx, nullptr, TokenRef::invalid(), ownerId, ownerFlags);
+    auto*                 function   = Symbol::make<SymbolFunction>(ctx, decl, TokenRef::invalid(), methodId, SymbolFlagsE::Zero);
+    function->setDeclNodeRef(declRef);
+    function->setDeclNodePayloadContext(&sema.currentNodePayloadContext());
+    owner->addSingleSymbol(ctx, function);
+    sema.setSymbol(declRef, function);
+
+    // More than four parameters give the attribute owned storage. Even assigning
+    // an identical list destroys and rebuilds that storage through SmallVector.
+    AttributeInstance attribute;
+    attribute.params.resize(8);
+    sema.frame().currentAttributes().attributes.push_back(std::move(attribute));
+    sema.frame().currentAttributes().addRtFlag(RtAttributeFlagsE::Inline);
+    SWC_RESULT(sema.prepareFunctionSignature(declRef));
+    if (!function->isDeclared() || !function->isTyped())
+        return Result::Error;
+
+    Sema replay(ctx, sema, declRef);
+    bool preserved = false;
+    {
+        // A later walk may reuse the declaration while another worker retains its
+        // published attributes. Rebinding local scopes must not replace their data.
+        Unittest::ScopedHeap heap;
+        SemaHelpers::declareSymbol(replay, *decl);
+        preserved             = heap.empty();
+        const auto& published = function->attributes();
+        preserved             = preserved && published.attributes.size() == 1 && published.attributes.front().params.size() == 8 && published.hasRtFlag(RtAttributeFlagsE::Inline);
+
+        // Release any replacement buffer before its isolated heap is destroyed.
+        function->ensureAttributes(ctx).attributes.clear();
+    }
+    if (!preserved)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Sema_MatchCandidateCollectionPreservesUniqueDiscoveryOrder)
 {
     constexpr MatchContext::Priority local{0, MatchContext::VisibilityTier::LocalScope};
@@ -197,7 +376,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Sema_GenericInstanceStoragePreservesIdentityAcrossGrowth)
 {
-    GenericInstanceStorage         storage;
+    GenericInstanceStorage          storage;
     std::vector<Symbol*>            instances;
     SmallVector<GenericInstanceKey> args;
     SmallVector<GenericInstanceKey> recovered;
@@ -251,12 +430,12 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Sema_AggregateTypeInterningUsesOrderedContents)
 {
     // This manager needs only handle identity, so synthetic element and name refs suffice.
-    TypeManager                                      manager;
-    constexpr size_t                                 count = 256;
-    std::array<std::array<TypeRef, count>, 3>          refs;
-    std::array<std::unordered_set<uint32_t>, 3>       hashes;
-    const std::array                                 fixedTypes = {TypeRef{1}, TypeRef{2}, TypeRef{3}, TypeRef{4}};
-    const std::array                                 fixedNames = {IdentifierRef::invalid(), IdentifierRef{2}, IdentifierRef{3}, IdentifierRef{4}};
+    TypeManager                                 manager;
+    constexpr size_t                            count = 256;
+    std::array<std::array<TypeRef, count>, 3>   refs;
+    std::array<std::unordered_set<uint32_t>, 3> hashes;
+    const std::array                            fixedTypes = {TypeRef{1}, TypeRef{2}, TypeRef{3}, TypeRef{4}};
+    const std::array                            fixedNames = {IdentifierRef::invalid(), IdentifierRef{2}, IdentifierRef{3}, IdentifierRef{4}};
 
     // Keep long common prefixes and vary types independently from names. The second
     // pass checks that table growth and temporary input lifetimes preserve interning.
@@ -264,10 +443,10 @@ SWC_TEST_BEGIN(Sema_AggregateTypeInterningUsesOrderedContents)
     {
         for (uint32_t index = 0; index < count; ++index)
         {
-            auto types   = fixedTypes;
-            auto names   = fixedNames;
-            types.back() = TypeRef{index + 4};
-            names.back() = IdentifierRef{index + 4};
+            auto types                  = fixedTypes;
+            auto names                  = fixedNames;
+            types.back()                = TypeRef{index + 4};
+            names.back()                = IdentifierRef{index + 4};
             const std::array candidates = {TypeInfo::makeAggregateArray(types), TypeInfo::makeAggregateStruct(fixedNames, types), TypeInfo::makeAggregateStruct(names, fixedTypes)};
             for (size_t kind = 0; kind < candidates.size(); ++kind)
             {
@@ -304,7 +483,7 @@ SWC_TEST_BEGIN(Sema_AggregateTypeInterningUsesOrderedContents)
     if (manager.addType(TypeInfo::makeAggregateStruct(reversedNames, fixedTypes)) == refs[2][0])
         return Result::Error;
 
-    TypeInfo copy(manager.get(refs[1][count - 1]));
+    TypeInfo       copy(manager.get(refs[1][count - 1]));
     const TypeInfo moved(std::move(copy));
     if (manager.addType(moved) != refs[1][count - 1])
         return Result::Error;
@@ -315,12 +494,12 @@ SWC_TEST_BEGIN(Sema_TypeManagerConcurrentInterningKeepsCanonicalStorage)
 {
     constexpr size_t NUM_WORKERS = 2;
     // The three families exceed one default storage page per shard, even when evenly spread.
-    constexpr size_t NUM_TYPES   = 1024;
-    constexpr size_t NUM_FIELDS  = 32;
+    constexpr size_t NUM_TYPES  = 1024;
+    constexpr size_t NUM_FIELDS = 32;
 
-    TypeManager                                                  manager;
-    std::barrier                                                 rendezvous(NUM_WORKERS);
-    std::array<std::thread, NUM_WORKERS>                           workers;
+    TypeManager                                                     manager;
+    std::barrier                                                    rendezvous(NUM_WORKERS);
+    std::array<std::thread, NUM_WORKERS>                            workers;
     std::array<std::array<TypeRef, NUM_TYPES>, NUM_WORKERS>         commonRefs;
     std::array<std::array<TypeRef, NUM_TYPES>, NUM_WORKERS>         uniqueRefs;
     std::array<std::array<const TypeInfo*, NUM_TYPES>, NUM_WORKERS> addresses;
@@ -338,7 +517,7 @@ SWC_TEST_BEGIN(Sema_TypeManagerConcurrentInterningKeepsCanonicalStorage)
                 rendezvous.arrive_and_wait();
                 commonRefs[worker][index] = manager.addType(TypeInfo::makeAggregateArray(types));
                 addresses[worker][index]  = &manager.get(commonRefs[worker][index]);
-                types.back()             = TypeRef{static_cast<uint32_t>(1000 + (worker + 1) * NUM_TYPES + index)};
+                types.back()              = TypeRef{static_cast<uint32_t>(1000 + (worker + 1) * NUM_TYPES + index)};
                 uniqueRefs[worker][index] = manager.addType(TypeInfo::makeAggregateArray(types));
             }
         });
@@ -556,12 +735,12 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Sema_CompletedFreesSummariesKeepDirectForwardingTransitive)
 {
     CompletedFreesFixture fixture(ctx);
-    auto* outer   = fixture.addFunction();
-    auto* middle  = fixture.addFunction();
-    auto* leaf    = fixture.addFunction();
-    auto* owned   = fixture.addFunction();
-    auto* carried = fixture.addFunction();
-    auto* pending = fixture.addFunction(false);
+    auto*                 outer   = fixture.addFunction();
+    auto*                 middle  = fixture.addFunction();
+    auto*                 leaf    = fixture.addFunction();
+    auto*                 owned   = fixture.addFunction();
+    auto*                 carried = fixture.addFunction();
+    auto*                 pending = fixture.addFunction(false);
     leaf->addFreesParam(2);
 
     // Reverse dependency order requires another frees iteration after middle grows.
@@ -582,18 +761,18 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
 {
     CompletedFreesFixture fixture(ctx);
-    auto* outer           = fixture.addFunction();
-    auto* middle          = fixture.addFunction();
-    auto* leaf            = fixture.addFunction();
-    auto* aliasWrapper    = fixture.addFunction();
-    auto* aliasLeaf       = fixture.addFunction();
-    auto* payloadAlias    = fixture.addFunction();
-    auto* borrowOnly      = fixture.addFunction();
-    auto* incompleteAlias = fixture.addFunction();
-    auto* unresolved      = fixture.addFunction(false);
-    auto* payloadOwner    = fixture.addFunction();
-    auto* nonAliasOwner   = fixture.addFunction();
-    auto* unresolvedOwner = fixture.addFunction();
+    auto*                 outer           = fixture.addFunction();
+    auto*                 middle          = fixture.addFunction();
+    auto*                 leaf            = fixture.addFunction();
+    auto*                 aliasWrapper    = fixture.addFunction();
+    auto*                 aliasLeaf       = fixture.addFunction();
+    auto*                 payloadAlias    = fixture.addFunction();
+    auto*                 borrowOnly      = fixture.addFunction();
+    auto*                 incompleteAlias = fixture.addFunction();
+    auto*                 unresolved      = fixture.addFunction(false);
+    auto*                 payloadOwner    = fixture.addFunction();
+    auto*                 nonAliasOwner   = fixture.addFunction();
+    auto*                 unresolvedOwner = fixture.addFunction();
     leaf->addFreesParam(2);
     aliasLeaf->addReturnBorrowsParam(2);
     aliasLeaf->addReturnsStorageParam(2);
@@ -625,15 +804,15 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Sema_NarrowRootKillsPreserveSurvivorOrder)
 {
-    SymbolVariable kept(nullptr, TokenRef::invalid(), IdentifierRef{1}, {});
-    SymbolVariable killed(nullptr, TokenRef::invalid(), IdentifierRef{2}, {});
-    SymbolVariable sameRootName(nullptr, TokenRef::invalid(), IdentifierRef{2}, {});
-    SymbolVariable other(nullptr, TokenRef::invalid(), IdentifierRef{3}, {});
-    SymbolVariable field(nullptr, TokenRef::invalid(), IdentifierRef{4}, {});
+    SymbolVariable                     kept(nullptr, TokenRef::invalid(), IdentifierRef{1}, {});
+    SymbolVariable                     killed(nullptr, TokenRef::invalid(), IdentifierRef{2}, {});
+    SymbolVariable                     sameRootName(nullptr, TokenRef::invalid(), IdentifierRef{2}, {});
+    SymbolVariable                     other(nullptr, TokenRef::invalid(), IdentifierRef{3}, {});
+    SymbolVariable                     field(nullptr, TokenRef::invalid(), IdentifierRef{4}, {});
     const std::array<const Symbol*, 1> keptPath  = {&kept};
     const std::array<const Symbol*, 1> otherPath = {&other};
     const std::array<const Symbol*, 5> deepPath  = {&kept, &field, &field, &field, &field};
-    SemaFrame                         frame;
+    SemaFrame                          frame;
     frame.addNarrowFact(keptPath, SemaNarrowFactKind::NonNull);
     frame.addNarrowFact(std::array<const Symbol*, 1>{&killed}, SemaNarrowFactKind::NonNull);
     frame.addNarrowKill(keptPath);
@@ -680,11 +859,11 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Sema_SanityOverrideSummaryPreservesOrderAndFrameInheritance)
 {
-    std::vector<RuntimeSafetyOverride> overrides = {{0, true}, {0, false}, {UINT16_MAX, false}, {0x5555, true}, {0xAAAA, true}, {0x5555, false}, {UINT16_MAX, true}};
+    std::vector<RuntimeSafetyOverride> overrides  = {{0, true}, {0, false}, {UINT16_MAX, false}, {0x5555, true}, {0xAAAA, true}, {0x5555, false}, {UINT16_MAX, true}};
     std::array<uint16_t, 20>           buildMasks = {0, UINT16_MAX, 0x5555, 0xAAAA};
     for (uint32_t bit = 0; bit < 16; ++bit)
     {
-        const auto mask = static_cast<uint16_t>(1u << bit);
+        const auto mask     = static_cast<uint16_t>(1u << bit);
         buildMasks[bit + 4] = mask;
         overrides.push_back({mask, false});
         overrides.push_back({mask, true});
@@ -736,8 +915,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Sema_RuntimeSafetySummaryPreservesHistoricalInlineDisables)
 {
-    const std::array<RuntimeSafetyOverride, 10> overrides = {{{0, true}, {0, false}, {1, false}, {1, true}, {0xAAAA, false}, {0x5555, true}, {0x8000, false}, {UINT16_MAX, true}, {0x5555, false}, {0, false}}};
-    const std::array<uint16_t, 5>              buildMasks = {0, UINT16_MAX, 0x5555, 0xAAAA, 0x8000};
+    const std::array<RuntimeSafetyOverride, 10> overrides  = {{{0, true}, {0, false}, {1, false}, {1, true}, {0xAAAA, false}, {0x5555, true}, {0x8000, false}, {UINT16_MAX, true}, {0x5555, false}, {0, false}}};
+    const std::array<uint16_t, 5>               buildMasks = {0, UINT16_MAX, 0x5555, 0xAAAA, 0x8000};
     for (size_t callerCount = 0; callerCount <= overrides.size(); ++callerCount)
     {
         SemaFrame               caller;
@@ -764,8 +943,8 @@ SWC_TEST_BEGIN(Sema_RuntimeSafetySummaryPreservesHistoricalInlineDisables)
                     combinedDisables = combinedDisables.value_or(0) | entry.whatMask;
             }
 
-            SemaFrame inlined = caller;
-            const auto disables = inlined.currentAttributes().runtimeSafetyDisables();
+            SemaFrame  inlined          = caller;
+            const auto disables         = inlined.currentAttributes().runtimeSafetyDisables();
             inlined.currentAttributes() = callee.currentAttributes();
             if (disables)
                 inlined.currentAttributes().addRuntimeSafetyOverride(static_cast<Runtime::SafetyWhat>(*disables), false);

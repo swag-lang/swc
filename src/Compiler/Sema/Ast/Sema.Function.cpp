@@ -1742,6 +1742,11 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
         const TypeRef  typeRef = sema.typeMgr().addType(ti);
         sym.setTypeRef(typeRef);
+        // Signature-only preparation can stop here before the declaring walk visits
+        // the body. Publish its deferred work before Typed wakes callers, otherwise
+        // they can consume an empty borrow summary and leave the body unanalysed.
+        if (canDelayGenericInstanceFunctionBody(sema, *this, sym, functionDeclImplContext(sema, &sym)))
+            sym.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
         sym.setTyped(sema.ctx());
 
         SWC_RESULT(SemaCheck::isValidSignature(sema, sym.parameters(), false));

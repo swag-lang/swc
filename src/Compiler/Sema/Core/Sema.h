@@ -466,6 +466,7 @@ public:
     // Every local currently known to borrow something, for the checks that start from the
     // BORROWED storage instead of the borrowing variable.
     const std::unordered_map<const SymbolVariable*, SemaEscapeInfo>& variableEscapeInfos() const { return variableEscapeInfos_; }
+    const std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash>& projectionEscapeInfos() const { return projectionEscapeInfos_; }
     void                                                             setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
     void                                                             clearVariableEscapeInfo(const SymbolVariable& symVar);
     void                                                             detachVariableOwnedPayload(const SymbolVariable& symVar);

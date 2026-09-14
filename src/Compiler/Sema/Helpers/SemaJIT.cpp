@@ -354,51 +354,48 @@ namespace
         return fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
     }
 
-    bool appendConstantFunctionJitRootsInAllocation(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, uint32_t shardIndex, uint32_t sourceOffset, bool followTypeInfoStructMethods)
+    bool appendConstantFunctionJitRootsInAllocation(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, uint32_t shardIndex, uint32_t sourceOffset)
     {
-        const DataSegment&    segment = sema.cstMgr().shardDataSegment(shardIndex);
-        DataSegmentAllocation allocation;
-        if (!segment.findAllocation(allocation, sourceOffset))
-            return false;
-
-        // Reflected constants can point back to functions through method tables.
-        // Walk each allocation once, otherwise recursive typeinfo graphs would keep
-        // rediscovering the same dependencies through their relocations.
-        const uint64_t allocationKey = (static_cast<uint64_t>(shardIndex) << 32) | allocation.offset;
-        if (!visitedAllocations.insert(allocationKey).second)
-            return false;
-
+        SmallVector<DataSegmentRef>         pending{{.shardIndex = shardIndex, .offset = sourceOffset}};
         bool                               changed = false;
         std::vector<DataSegmentRelocation> relocations;
-        segment.copyRelocations(relocations, allocation.offset, allocation.size);
-        for (const DataSegmentRelocation& relocation : relocations)
+        while (!pending.empty())
         {
-            if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
-            {
-                auto target = const_cast<SymbolFunction*>(relocation.targetSymbol);
-                if (!target || !isIncludableConstantJitDependency(*target))
-                    continue;
-                if (!seenFunctions.insert(target).second)
-                    continue;
+            const DataSegmentRef current = pending.back();
+            pending.pop_back();
+            const DataSegment&    segment = sema.cstMgr().shardDataSegment(current.shardIndex);
+            DataSegmentAllocation allocation;
+            if (!segment.findAllocation(allocation, current.offset))
+                continue;
 
-                roots.push_back(target);
-                changed = true;
+            // Nested reflection and interface tables can reach functions through any
+            // data relocation. Match the graph used to detect unpublished metadata.
+            const uint64_t allocationKey = (static_cast<uint64_t>(current.shardIndex) << 32) | allocation.offset;
+            if (!visitedAllocations.insert(allocationKey).second)
+                continue;
+
+            segment.copyRelocations(relocations, allocation.offset, allocation.size);
+            for (const DataSegmentRelocation& relocation : relocations)
+            {
+                if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
+                {
+                    const uint32_t targetShard = relocation.targetShardIndex == INVALID_REF ? current.shardIndex : relocation.targetShardIndex;
+                    pending.push_back({.shardIndex = targetShard, .offset = relocation.targetOffset});
+                }
+                else
+                {
+                    auto target = const_cast<SymbolFunction*>(relocation.targetSymbol);
+                    if (!target || !isIncludableConstantJitDependency(*target))
+                        continue;
+                    if (!seenFunctions.insert(target).second)
+                        continue;
+
+                    roots.push_back(target);
+                    changed = true;
+                }
             }
         }
-
-        if (!followTypeInfoStructMethods || allocation.size < sizeof(Runtime::TypeInfoStruct))
-            return changed;
-
-        const auto* typeInfo = segment.ptr<Runtime::TypeInfo>(allocation.offset);
-        if (!typeInfo || typeInfo->kind != Runtime::TypeInfoKind::Struct)
-            return changed;
-
-        DataSegmentRelocation methodsRelocation;
-        if (!segment.findRelocation(methodsRelocation, allocation.offset + offsetof(Runtime::TypeInfoStruct, methods.ptr), DataSegmentRelocationKind::DataSegmentOffset))
-            return changed;
-
-        const uint32_t targetShardIndex = methodsRelocation.targetShardIndex == INVALID_REF ? shardIndex : methodsRelocation.targetShardIndex;
-        return appendConstantFunctionJitRootsInAllocation(sema, roots, seenFunctions, visitedAllocations, targetShardIndex, methodsRelocation.targetOffset, false) || changed;
+        return changed;
     }
 
     bool appendConstantFunctionJitRootsFromConstant(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, const MicroRelocation& relocation)
@@ -408,7 +405,7 @@ namespace
         if (!relocation.hasConstantSource())
             return false;
 
-        return appendConstantFunctionJitRootsInAllocation(sema, roots, seenFunctions, visitedAllocations, relocation.constantShard, relocation.constantOffset, true);
+        return appendConstantFunctionJitRootsInAllocation(sema, roots, seenFunctions, visitedAllocations, relocation.constantShard, relocation.constantOffset);
     }
 
     bool appendConstantFunctionJitRootsFromCode(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, const MachineCode& code)

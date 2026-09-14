@@ -13,8 +13,12 @@ namespace
 void MicroControlFlowGraph::clear()
 {
     instructionRefs_.clear();
-    successors_.clear();
-    predecessors_.clear();
+    // Rebuilds keep overflow storage for high-fanout branches and joins.
+    for (auto& edges : successors_)
+        edges.clear();
+    for (auto& edges : predecessors_)
+        edges.clear();
+    std::ranges::fill(labelToInstructionIndex_, K_INVALID_INSTRUCTION_INDEX);
     hasUnsupportedControlFlowForCfgLiveness_ = false;
     supportsDeadCodeLiveness_                = true;
     hasLoop_                                 = false;
@@ -39,8 +43,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
     instructionRefs_.reserve(instructionCount);
     successors_.resize(instructionCount);
     predecessors_.resize(instructionCount);
-    std::vector<uint32_t> labelToInstructionIndex;
-    labelToInstructionIndex.reserve(instructionCount / 4 + 1);
+    labelToInstructionIndex_.reserve(instructionCount / 4 + 1);
 
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {
@@ -60,9 +63,9 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
             else
             {
                 const uint32_t labelIndex = static_cast<uint32_t>(labelOps[0].valueU64);
-                if (labelIndex >= labelToInstructionIndex.size())
-                    labelToInstructionIndex.resize(labelIndex + 1, K_INVALID_INSTRUCTION_INDEX);
-                labelToInstructionIndex[labelIndex] = instructionIndex;
+                if (labelIndex >= labelToInstructionIndex_.size())
+                    labelToInstructionIndex_.resize(labelIndex + 1, K_INVALID_INSTRUCTION_INDEX);
+                labelToInstructionIndex_[labelIndex] = instructionIndex;
             }
         }
     }
@@ -88,10 +91,10 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
             else
             {
                 const uint32_t targetLabelIndex = static_cast<uint32_t>(jumpOps[2].valueU64);
-                if (targetLabelIndex < labelToInstructionIndex.size() &&
-                    labelToInstructionIndex[targetLabelIndex] != K_INVALID_INSTRUCTION_INDEX)
+                if (targetLabelIndex < labelToInstructionIndex_.size() &&
+                    labelToInstructionIndex_[targetLabelIndex] != K_INVALID_INSTRUCTION_INDEX)
                 {
-                    addEdge(instructionIndex, labelToInstructionIndex[targetLabelIndex]);
+                    addEdge(instructionIndex, labelToInstructionIndex_[targetLabelIndex]);
                 }
                 else
                 {
@@ -124,14 +127,17 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
                 }
 
                 const uint32_t targetLabelIndex = static_cast<uint32_t>(jumpOps[operandIndex].valueU64);
-                if (targetLabelIndex >= labelToInstructionIndex.size() || labelToInstructionIndex[targetLabelIndex] == K_INVALID_INSTRUCTION_INDEX)
+                if (targetLabelIndex >= labelToInstructionIndex_.size() || labelToInstructionIndex_[targetLabelIndex] == K_INVALID_INSTRUCTION_INDEX)
                 {
                     supportsDeadCodeLiveness_ = false;
                     continue;
                 }
 
-                const uint32_t targetInstructionIndex = labelToInstructionIndex[targetLabelIndex];
-                if (std::ranges::find(successors, targetInstructionIndex) == successors.end())
+                const uint32_t targetInstructionIndex = labelToInstructionIndex_[targetLabelIndex];
+                // Sources are visited in order, so an edge already added by this
+                // instruction is the target's last predecessor.
+                const auto& targetPredecessors = predecessors_[targetInstructionIndex];
+                if (targetPredecessors.empty() || targetPredecessors.back() != instructionIndex)
                     addEdge(instructionIndex, targetInstructionIndex);
             }
 

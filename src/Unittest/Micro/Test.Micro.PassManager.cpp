@@ -219,6 +219,71 @@ SWC_TEST_BEGIN(MicroControlFlowGraph_KeepsEdgeOrderAcrossRebuilds)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroControlFlowGraph_RebuildsLargeBranchesAndRemovedLabels)
+{
+    MicroBuilder builder(ctx);
+    if (builder.controlFlowGraph().instructionCount())
+        return Result::Error;
+
+    std::array<MicroLabelRef, 32> targets;
+    for (auto& target : targets)
+        target = builder.createLabel();
+    const auto end = builder.createLabel();
+    std::array<MicroLabelRef, 64> repeatedTargets;
+    for (uint32_t i = 0; i < targets.size(); ++i)
+    {
+        repeatedTargets[i] = targets[i];
+        repeatedTargets[targets.size() + i] = targets[targets.size() - 1 - i];
+    }
+    builder.emitJumpReg(MicroReg::virtualIntReg(1), repeatedTargets);
+    MicroInstrRef removedLabel;
+    for (uint32_t i = 0; i < targets.size(); ++i)
+    {
+        builder.placeLabel(targets[i]);
+        if (i == 16)
+            removedLabel = builder.instructions().lastInstructionRef();
+        builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, end);
+    }
+    builder.placeLabel(end);
+    builder.emitRet();
+
+    for (uint32_t rebuild = 0; rebuild < 3; ++rebuild)
+    {
+        const auto& cfg = builder.controlFlowGraph();
+        if (cfg.instructionCount() != 67 || !cfg.supportsDeadCodeLiveness() || cfg.hasLoop())
+            return Result::Error;
+        if (cfg.successors(0).size() != targets.size() || cfg.predecessors(65).size() != targets.size())
+            return Result::Error;
+        for (uint32_t i = 0; i < targets.size(); ++i)
+        {
+            if (cfg.successors(0)[i] != 1 + 2 * i || cfg.predecessors(65)[i] != 2 + 2 * i)
+                return Result::Error;
+        }
+        builder.invalidateControlFlowGraph();
+    }
+
+    // A removed label must not retain its old instruction index in the reused table.
+    builder.instructions().erase(removedLabel);
+    const auto& cfg = builder.controlFlowGraph();
+    if (cfg.supportsDeadCodeLiveness() || cfg.instructionCount() != 66 || cfg.successors(0).size() != 31)
+        return Result::Error;
+    for (uint32_t i = 0; i < cfg.successors(0).size(); ++i)
+    {
+        const uint32_t expected = i < 16 ? 1 + 2 * i : 2 + 2 * i;
+        if (cfg.successors(0)[i] != expected)
+            return Result::Error;
+    }
+
+    const std::vector<MicroInstrRef> refs(cfg.instructionRefs().begin(), cfg.instructionRefs().end());
+    for (const auto ref : refs)
+        builder.instructions().erase(ref);
+    const auto& empty = builder.controlFlowGraph();
+    if (empty.instructionCount() || !empty.successors().empty() || !empty.predecessors().empty() || !empty.supportsDeadCodeLiveness() || empty.hasLoop())
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

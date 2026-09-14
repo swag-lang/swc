@@ -80,6 +80,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     ctx.storage          = context.instructions;
     ctx.operands         = context.operands;
     ctx.encoder          = context.encoder;
+    ctx.builder          = context.builder;
     ctx.stackPointer     = conv.stackPointer;
     ctx.framePointer     = conv.framePointer;
     ctx.localStackBase   = context.debugStackBasePhysReg;

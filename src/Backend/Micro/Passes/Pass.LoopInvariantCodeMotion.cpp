@@ -428,7 +428,7 @@ namespace
             // Pure loads/copies never touch CPU flags, but a hoisted copy+compute
             // pair inserts a flag-writing instruction at the preheader insertion
             // point, which is only sound when no flags are live across it.
-            const bool preheaderFlagsDead = MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, prevRef);
+            const bool preheaderFlagsDead = MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, prevRef, context.builder);
 
             // Classify the loop's memory writers. A call or an opaque pointer
             // store may alias anything and blocks load hoisting; a store to a
@@ -618,7 +618,7 @@ namespace
                         // a continuation may write flags. Floating arithmetic
                         // and XMM clears preserve them despite sharing opcodes.
                         if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, inst->ops(operands)) &&
-                            (!preheaderFlagsDead || !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, ref)))
+                            (!preheaderFlagsDead || !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, ref, context.builder)))
                             continue;
 
                         // A multi-def web is only the value sequence its listing

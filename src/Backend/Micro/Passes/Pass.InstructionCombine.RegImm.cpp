@@ -35,7 +35,7 @@ namespace InstructionCombine
             MicroOp  combinedOp  = MicroOp::Add;
             uint64_t combinedImm = 0;
             return tryReassociate(op, imm, useOps[2].microOp, useOps[3].valueU64, opBits, combinedOp, combinedImm) &&
-                   MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, useRef);
+                   MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, useRef, ctx.builder);
         }
 
         bool emitClearReg(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits)
@@ -83,7 +83,8 @@ namespace InstructionCombine
             // this rule sees them.
             const auto signedImm = static_cast<int64_t>(imm);
             const bool negated   = signedImm < 0;
-            const auto magnitude = static_cast<uint64_t>(negated ? -signedImm : signedImm);
+            // Unsigned negation also represents the magnitude of INT64_MIN.
+            const auto magnitude = negated ? 0ull - imm : imm;
             if (magnitude != 2 && magnitude != 3 && magnitude != 5 && magnitude != 9)
                 return false;
 
@@ -94,7 +95,7 @@ namespace InstructionCombine
 
             // The multiply writes flags the address computation does not (the
             // negation below writes its own, which the same check covers).
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref))
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
                 return false;
 
             // When dst was just copied from a source register, the address form
@@ -191,7 +192,11 @@ namespace InstructionCombine
             uint64_t combinedImm = 0;
             if (!tryReassociate(prevOps[2].microOp, prevOps[3].valueU64, op, imm, opBits, combinedOp, combinedImm))
                 return false;
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref))
+            // The result's single use says nothing about a setcc or overflow
+            // guard reading the first operation's flags between the two.
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, reaching.instRef, ctx.builder))
+                return false;
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
                 return false;
 
             if (!ctx.claimAll({ref, reaching.instRef}))
@@ -226,7 +231,7 @@ namespace InstructionCombine
         // dead RESULT does not imply dead FLAGS: constant folding can rewrite
         // every consumer of an unrolled accumulator to a constant while an
         // overflow guard still reads the flags of the now value-dead add.
-        const bool flagsDeadAfter = MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref);
+        const bool flagsDeadAfter = MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder);
 
         if (isRightIdentity(op, opBits, imm) && flagsDeadAfter && ctx.ssa && !ctx.ssa->isRegUsedAfter(dst, ref))
         {
@@ -259,7 +264,7 @@ namespace InstructionCombine
                 maskBits = MicroOpBits::B32;
 
             if (maskBits != MicroOpBits::Zero &&
-                MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref) &&
+                MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) &&
                 ctx.claimAll({ref}))
             {
                 MicroInstrOperand extendOps[4];
@@ -383,7 +388,7 @@ namespace InstructionCombine
                 return false;
 
             // The AND's flag write must be dead (the shift redefines flags).
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, reach.instRef))
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, reach.instRef, ctx.builder))
                 return false;
 
             // Drop the AND; `cur` keeps its pre-mask value, which the shift needs.

@@ -279,6 +279,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     };
     std::unordered_map<MicroReg, AddrRegInfo> addrRegOffset;
     std::unordered_set<MicroReg>              badAddrReg;
+    std::unordered_set<uint32_t>              addressAdjustments;
     // The further frame offsets a register is given by later leas or copies:
     // it may point at any of those objects, so an escape poisons them all.
     std::unordered_map<MicroReg, SmallVector<uint64_t, 2>> addrRegMoreOffsets;
@@ -303,15 +304,31 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         if (isAddrLea || isBaseCopy)
         {
             const MicroReg ar = ops[0].reg;
+            uint64_t       offset = isAddrLea ? ops[3].valueU64 : 0;
+            // An adjacent add/sub is an exact address even when its flags are
+            // live and prevent folding the pair to LEA. No access can observe
+            // the intermediate pointer between these adjacent instructions.
+            const MicroInstrRef nextRef = storage.findNextInstructionRef(it.current);
+            const MicroInstr*   next    = nextRef.isValid() ? storage.ptr(nextRef) : nullptr;
+            if (next && next->op == MicroInstrOpcode::OpBinaryRegImm && ar.isVirtualInt() && ar != frameBase)
+            {
+                const MicroInstrOperand* nextOps = next->ops(operands);
+                if (nextOps[0].reg == ar && nextOps[1].opBits == MicroOpBits::B64 && !nextOps[3].hasWideImmediateValue() &&
+                    (nextOps[2].microOp == MicroOp::Add || nextOps[2].microOp == MicroOp::Subtract))
+                {
+                    offset += nextOps[2].microOp == MicroOp::Add ? nextOps[3].valueU64 : 0ull - nextOps[3].valueU64;
+                    addressAdjustments.insert(nextRef.get());
+                }
+            }
             if (!ar.isVirtualInt() || ar == frameBase)
                 badAddrReg.insert(ar);
             else if (addrRegOffset.contains(ar))
             {
                 badAddrReg.insert(ar);
-                addrRegMoreOffsets[ar].push_back(isAddrLea ? ops[3].valueU64 : 0);
+                addrRegMoreOffsets[ar].push_back(offset);
             }
             else
-                addrRegOffset[ar] = {isAddrLea ? ops[3].valueU64 : 0, it.current};
+                addrRegOffset[ar] = {offset, it.current};
         }
     }
 
@@ -333,8 +350,21 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 if (!rref.reg || !rref.def)
                     continue;
                 const auto found = addrRegOffset.find(*rref.reg);
-                if (found != addrRegOffset.end() && it.current != found->second.defRef)
+                if (found != addrRegOffset.end() && it.current != found->second.defRef && !addressAdjustments.contains(it.current.get()))
+                {
+                    // A frame-derived pointer can cross local-object boundaries:
+                    // lowering spells an address as `copy frame; add offset`.
+                    // Its original object does not bound the modified pointer.
+                    // Only another recorded frame address has a known extent;
+                    // defer promotion until address folding resolves the rest.
+                    const MicroInstrOperand* ops = it->ops(operands);
+                    const bool knownFrameAddress = (it->op == MicroInstrOpcode::LoadAddrRegMem ||
+                                                    (it->op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64)) &&
+                                                   ops[1].reg == frameBase;
+                    if (!knownFrameAddress)
+                        return Result::Continue;
                     badAddrReg.insert(*rref.reg);
+                }
             }
         }
     }
@@ -406,9 +436,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     };
 
     // The escaped offset of a tracked register: the frame offset it was given.
-    // A register redefined by arithmetic still points inside the object it
-    // was given, by the same in-bounds reading every escape here relies on;
-    // one given a second object is escaped for both (see poisonTrackedEscape).
+    // One given a second recorded frame object is escaped for both (see
+    // poisonTrackedEscape); unbounded redefinitions were rejected above.
     auto trackedEscapeOffset = [&](const MicroReg reg, uint64_t& outOffset) -> bool {
         if (reg == frameBase)
             return false;
@@ -469,6 +498,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             continue;
 
         if (ref == frameBaseDefRef)
+            continue;
+        if (addressAdjustments.contains(ref.get()))
             continue;
         if (inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[1].reg == frameBase)
             continue;

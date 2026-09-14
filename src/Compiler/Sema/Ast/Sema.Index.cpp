@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
@@ -21,6 +22,7 @@ namespace
 {
     Result resolveIndexOperandTypeRef(Sema& sema, TypeRef& outTypeRef, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, TypeRef expectedEnumTypeRef)
     {
+        SWC_RESULT(SemaCheck::isValue(sema, nodeArgRef));
         outTypeRef                 = nodeArgView.typeRef();
         const TypeRef aliasTypeRef = nodeArgView.type()->unwrap(sema.ctx(), nodeArgView.typeRef(), TypeExpandE::Alias);
         if (aliasTypeRef.isValid())
@@ -375,6 +377,91 @@ namespace
         outRuntimeStorageTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), sema.typeMgr().typeU8()));
         return Result::Continue;
     }
+}
+
+namespace
+{
+    void bindArrayIndex(Sema& sema, TypeRef indexedTypeRef, AstNodeRef argumentRef)
+    {
+        if (indexedTypeRef.isInvalid())
+            return;
+        const TypeInfo& indexedType = sema.typeMgr().get(indexedTypeRef);
+        if (!indexedType.isArray())
+            return;
+        const TypeRef indexTypeRef = indexedType.payloadArrayIndexTypeRef();
+        if (indexTypeRef.isInvalid())
+            return;
+
+        // The array's dimension owns the index context, including when the
+        // indexing expression itself appears inside a function argument.
+        auto frame = sema.frame();
+        frame.pushBindingType(indexTypeRef);
+        SemaHelpers::preferContextualAutoMemberBindingType(sema, argumentRef);
+        sema.pushFramePopOnPostChild(frame, argumentRef);
+    }
+
+    TypeRef typeAfterSequentialIndex(Sema& sema, TypeRef indexedTypeRef, AstNodeRef argumentRef)
+    {
+        const TypeInfo& indexedType = sema.typeMgr().get(indexedTypeRef);
+        if (indexedType.isArray())
+        {
+            if (indexedType.payloadArrayDims().size() > 1)
+                return sema.typeMgr().addType(indexedType.makeArrayAfterFirstDimension());
+            return indexedType.payloadArrayElemTypeRef();
+        }
+        if (indexedType.isSlice() || indexedType.isBlockPointer() || indexedType.isTypedVariadic())
+            return indexedType.payloadTypeRef();
+        if (indexedType.isAggregateArray())
+        {
+            const SemaNodeView argument = sema.viewTypeConstant(argumentRef);
+            if (!argument.type() || !argument.cst())
+                return TypeRef::invalid();
+            const ConstantRef constantRef = resolveIndexOperandConstantRef(argument);
+            const auto&       constant    = sema.cstMgr().get(constantRef);
+            if (!constant.isInt() || !constant.getInt().fits64())
+                return TypeRef::invalid();
+            const uint64_t index = constant.getInt().as64();
+            const auto&    types = indexedType.payloadAggregate().types;
+            if (index < types.size())
+                return types[index];
+        }
+        return TypeRef::invalid();
+    }
+}
+
+Result AstIndexExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeArgRef || sema.node(nodeArgRef).is(AstNodeId::RangeExpr))
+        return Result::Continue;
+    const auto indexedView = sema.viewType(nodeExprRef);
+    if (indexedView.typeRef().isValid())
+        bindArrayIndex(sema, resolveIndexedExprTypeRef(sema, indexedView), childRef);
+    return Result::Continue;
+}
+
+Result AstIndexListExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeExprRef)
+        return Result::Continue;
+    const auto indexedView = sema.viewType(nodeExprRef);
+    if (indexedView.typeRef().isInvalid())
+        return Result::Continue;
+    TypeRef                currentTypeRef = resolveIndexedExprTypeRef(sema, indexedView);
+    SmallVector<AstNodeRef> arguments;
+    sema.ast().appendNodes(arguments, spanChildrenRef);
+    for (const AstNodeRef argumentRef : arguments)
+    {
+        if (currentTypeRef.isInvalid())
+            break;
+        currentTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), currentTypeRef);
+        if (argumentRef == childRef)
+        {
+            bindArrayIndex(sema, currentTypeRef, childRef);
+            break;
+        }
+        currentTypeRef = typeAfterSequentialIndex(sema, currentTypeRef, argumentRef);
+    }
+    return Result::Continue;
 }
 
 Result AstIndexExpr::semaPostNode(Sema& sema)

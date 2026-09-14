@@ -438,7 +438,7 @@ namespace InstructionCombine
         const MicroReg src = ops[1].reg;
         if (!dst.isVirtualInt() || !src.isVirtualInt() || dst == src)
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref))
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
             return false;
 
         for (uint32_t attempt = 0; attempt < 2; ++attempt)
@@ -481,7 +481,7 @@ namespace InstructionCombine
             // Its register must still hold that definition at the add.
             if (copyRef.isValid() && !sameValueAt(ctx, product, copyRef, ref))
                 continue;
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef))
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder))
                 continue;
             if (copyRef.isValid() ? !ctx.claimAll({ref, def.instRef, copyRef}) : !ctx.claimAll({ref, def.instRef}))
                 continue;
@@ -806,7 +806,7 @@ namespace InstructionCombine
         }
 
         // The add wrote the flags; the lea does not.
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref))
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
             return false;
 
         if (!ctx.claimAll({ref, copy.instRef}))

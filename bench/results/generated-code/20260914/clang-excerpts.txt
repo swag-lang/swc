@@ -1,0 +1,159 @@
+sha256 .LBB0_8: 74 native instructions / 5 explicit memory operations
+mov rbx, rax
+mov rdi, r10
+mov r12, rbp
+mov r10, rdx
+mov rax, rbp
+shr rax, 6
+mov rcx, rbp
+shl rcx, 26
+or rcx, rax
+mov rax, rbp
+shr rax, 11
+mov rdx, rbp
+shl rdx, 21
+or rdx, rax
+xor rdx, rcx
+mov rax, rbp
+shr rax, 25
+mov rcx, rbp
+shl rcx, 7
+or rcx, rax
+xor rcx, rdx
+mov rax, r13
+and rax, rbp
+mov edx, 2600822924
+add rdx, 1694144371
+xor rdx, rbp
+and rdx, r10
+xor rdx, rax
+add rdx, r14
+add rdx, rcx
+lea rax, [rip + KTAB]
+add rdx, qword ptr [r15 + rax]
+mov r9, r11
+add rdx, qword ptr [rsp + r15 + 176]
+mov rax, rbx
+shr rax, 2
+mov rcx, rbx
+shl rcx, 30
+or rcx, rax
+mov rax, rbx
+shr rax, 13
+mov r8, rbx
+shl r8, 19
+or r8, rax
+xor r8, rcx
+mov rax, rbx
+shr rax, 22
+mov rcx, rbx
+shl rcx, 10
+or rcx, rax
+xor rcx, r8
+mov rax, r11
+xor rax, rdi
+and rax, rbx
+mov r8, r11
+and r8, rdi
+xor r8, rax
+add r8, rcx
+mov rcx, qword ptr [rsp + 64]
+add rcx, rdx
+mov ebp, ecx
+add r8, rdx
+mov eax, r8d
+add r15, 8
+mov qword ptr [rsp + 152], r10
+mov r14, r10
+mov rsi, r13
+mov rdx, r13
+mov r13, r12
+mov qword ptr [rsp + 64], r11
+mov r11, rdi
+mov r10, rbx
+cmp r15, 512
+jne .LBB0_8
+
+leven .LBB0_100: 16 native instructions / 3 explicit memory operations
+xor r9d, r9d
+cmp al, byte ptr [rbp + r8]
+setne r9b
+add r9, rdx
+mov rdx, qword ptr [rsp + 8*r8 + 680]
+lea r10, [rdx + 1]
+cmp r10, r9
+cmovb r9, r10
+inc rcx
+cmp rcx, r9
+cmovae rcx, r9
+mov qword ptr [rsp + 8*r8 + 168], rcx
+lea r9, [r8 + 1]
+mov r8, r9
+cmp rdi, r9
+jne .LBB0_100
+
+dijkstra .LBB0_24: 16 native instructions / 8 explicit memory operations
+lea rdx, [r8 - 1]
+mov r12, rdx
+shr r12
+mov rbp, qword ptr [rbx + 8*r12]
+mov r13, qword ptr [rbx + 8*r8]
+cmp rbp, r13
+jbe .LBB0_26
+mov qword ptr [rbx + 8*r12], r13
+mov qword ptr [rbx + 8*r8], rbp
+mov r13, qword ptr [r14 + 8*r12]
+mov rbp, qword ptr [r14 + 8*r8]
+mov qword ptr [r14 + 8*r12], rbp
+mov qword ptr [r14 + 8*r8], r13
+mov r8, r12
+cmp rdx, 1
+ja .LBB0_24
+
+raytrace .LBB0_2: 46 native instructions / 6 explicit memory operations
+xorps xmm3, xmm3
+cvtsi2sd xmm3, r12
+addsd xmm3, xmm6
+divsd xmm3, xmm9
+addsd xmm3, xmm3
+addsd xmm3, xmm10
+mulsd xmm3, xmm11
+movapd xmm0, xmm3
+mulsd xmm0, xmm3
+addsd xmm0, xmm14
+addsd xmm0, xmm8
+sqrtsd xmm0, xmm0
+movapd xmm1, xmm8
+divsd xmm1, xmm0
+movapd xmm0, xmm13
+mulsd xmm0, xmm1
+mulsd xmm3, xmm1
+movsd qword ptr [rsp + 40], xmm1
+movsd qword ptr [rsp + 32], xmm0
+mov dword ptr [rsp + 48], 0
+xorpd xmm0, xmm0
+xorpd xmm1, xmm1
+xorps xmm2, xmm2
+call "?trace@@YAXNNNNNNH@Z"
+movsd xmm0, qword ptr [rip + g_OutR]
+mulsd xmm0, xmm12
+cvttsd2si rax, xmm0
+movsd xmm0, qword ptr [rip + g_OutG]
+mulsd xmm0, xmm12
+cvttsd2si rcx, xmm0
+movsd xmm0, qword ptr [rip + g_OutB]
+mulsd xmm0, xmm12
+cvttsd2si rdx, xmm0
+cmp rax, 255
+cmovge rax, r14
+cmp rcx, 255
+cmovge rcx, r14
+cmp rdx, 255
+cmovge rdx, r14
+lea rdx, [rdx + 2*rdx]
+add rax, rsi
+lea rsi, [rax + 2*rcx]
+add rsi, rdx
+inc r12
+cmp r12, 480
+jne .LBB0_2

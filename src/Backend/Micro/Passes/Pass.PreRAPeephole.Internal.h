@@ -69,7 +69,7 @@ namespace PreRaPeephole
 
         // Builders only prepare this local action. Scan the suffix only after
         // a compatible pair exists, before claiming or mutating either instruction.
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, secondRef))
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, secondRef, ctx.builder))
             return false;
 
         if (!ctx.claimAll({firstRef, secondRef}))

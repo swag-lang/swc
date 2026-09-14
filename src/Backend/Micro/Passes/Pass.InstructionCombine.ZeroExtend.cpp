@@ -270,7 +270,7 @@ namespace InstructionCombine
             return false;
 
         // The narrower operation sets the flags at 32 bits.
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, reaching.instRef))
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, reaching.instRef, ctx.builder))
             return false;
 
         if (!ctx.claimAll({reaching.instRef, ref}))

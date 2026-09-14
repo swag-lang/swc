@@ -8,7 +8,7 @@ add32 :: proc(left: u32, right: u32) -> u32 {
     return u32(((u64(left) + u64(right)) & M32))
 }
 
-rol :: proc(x: u32, k: i32) -> u32 {
+rol :: proc(x: u32, k: u32) -> u32 {
     return u32((((x << k) | (x >> (32 - k))) & M32))
 }
 

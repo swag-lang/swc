@@ -5,7 +5,7 @@ extern "c" fn printf(format: [*:0]const u8, ...) c_int;
 extern "c" fn malloc(size: usize) ?*anyopaque;
 extern "c" fn exit(code: c_int) noreturn;
 pub extern "c" fn free(ptr: ?*anyopaque) void;
-pub extern "c" fn memcmp(left: [*]const u8, right: [*]const u8, n: usize) c_int;
+pub extern "c" fn memcmp(left: *const anyopaque, right: *const anyopaque, n: usize) c_int;
 
 var seed: u64 = 12345;
 

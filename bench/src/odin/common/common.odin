@@ -5,11 +5,23 @@ import "core:math"
 import "core:sys/windows"
 
 free :: libc.free
-memcmp :: libc.memcmp
-memcpy :: libc.memcpy
-memset :: libc.memset
-strlen :: libc.strlen
 sqrt :: math.sqrt
+
+memcmp :: proc(left, right: rawptr, n: u64) -> i32 {
+    return libc.memcmp(left, right, uint(n))
+}
+
+memcpy :: proc(dst, src: rawptr, n: u64) {
+    libc.memcpy(dst, src, uint(n))
+}
+
+memset :: proc(dst: rawptr, value: i32, n: u64) {
+    libc.memset(dst, value, uint(n))
+}
+
+strlen :: proc(text: cstring) -> u64 {
+    return u64(libc.strlen(text))
+}
 
 seed: u64 = 12345
 
@@ -19,7 +31,7 @@ rnd :: proc() -> u64 {
 }
 
 now :: proc() -> f64 {
-    counter, frequency: i64
+    counter, frequency: windows.LARGE_INTEGER
     windows.QueryPerformanceCounter(&counter)
     windows.QueryPerformanceFrequency(&frequency)
     return f64(counter) / f64(frequency)

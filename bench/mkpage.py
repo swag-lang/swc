@@ -88,7 +88,7 @@ def latest_campaign():
             campaign = json.load(f)
         if campaign.get("meta", {}).get("protocol") == history.PROTOCOL:
             return campaign
-    raise SystemExit("no campaign of protocol %d in bench/results � run a campaign first"
+    raise SystemExit("no campaign of protocol %d in bench/results — run a campaign first"
                      % history.PROTOCOL)
 
 
@@ -708,7 +708,7 @@ def main():
         "> Raw milliseconds are not comparable between campaigns — the same machine drifts by "
         "more than ten",
         "> percent between sessions — so the recorded history normalizes every measurement "
-        "against ten control",
+        "against the measured control",
         "> runtimes, and states the resolution below which it can see nothing at all. See "
         "[bench/](bench) for",
         "> the method, the supported runtimes, and the rules that keep the numbers honest.",

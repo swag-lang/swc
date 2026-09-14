@@ -42,7 +42,7 @@ main :: proc() {
             text[n] = '\n'
             n += 1
         }
-        region :: ([^]u8)(REGIONS[(common.rnd() % 8)])
+        region := REGIONS[common.rnd() % 8]
         y: u64 = (2024 + (common.rnd() % 3))
         m: u64 = (1 + (common.rnd() % 12))
         d: u64 = (1 + (common.rnd() % 28))

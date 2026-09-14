@@ -1630,7 +1630,16 @@ void CodeGen::invalidateNodePayloadRegs(AstNodeRef nodeRef)
             continue;
 
         if (CodeGenNodePayload* payload = safePayload(currentRef))
+        {
             payload->reg = MicroReg::invalid();
+            // A catch in a defer can be emitted for both a try failure and a normal return.
+            // Consuming its handler belongs to one emission, not to the shared AST node.
+            if (payload->fallibleWrapperConsumed)
+            {
+                payload->fallibleWrapperConsumed = false;
+                mergeLoweringNodePayloadMetadata(*payload, currentRef);
+            }
+        }
 
         node(currentRef).collectChildrenFromAst(stack, ast());
     }

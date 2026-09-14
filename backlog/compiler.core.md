@@ -6,33 +6,76 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
-### compiler.core.043 — Resolve inferred generic calls with named arguments
+### compiler.core.038 — Measure the remaining semantic frame construction cost
 
-- Recorded: 2026-09-13 17:46
-- Evidence: Release compiler 0.1.555 and DevMode compiler 0.1.556 both reject the reduced
-  call below with `unknown symbol 'T'`, pointing at the type of `second`. The same declaration
-  and arguments pass when the call explicitly supplies `pair'(s32)`. The failure therefore
-  predates the compilation-speed changes in build 557 and does not require a large parameter
-  list. The [Release failure](../bench/results/compilation/20260913-sema-codegen/named-two-inferred-release-555.log),
-  [DevMode failure](../bench/results/compilation/20260913-sema-codegen/named-two-inferred-556.log),
-  and [explicit-call success](../bench/results/compilation/20260913-sema-codegen/named-two-explicit-556.log)
-  preserve the observations. These runs used the native compiler test suite in `devmode`,
-  with six compiler workers and a source-file filter.
+- Recorded: 2026-09-09 15:04
+- Updated: 2026-09-14 06:24 — narrowed the investigation after conditional frame copies and compact safety state landed
+- Historical evidence: Release 0.1.425 pushed 41,573 frames for a 22,800-line file and
+  259,030 for a snippet importing `core`; `SemaFrame` then occupied 1,376 bytes. Removing
+  one copy at 42 push sites was tried and reverted after three paired runs measured
+  100.0%, 102.6%, and 103.8% of baseline processor time. The earlier attribute-list shrink
+  had removed non-trivial string-vector construction and destruction, not just copy bytes.
+  Those counts and sizes describe that build, not the current implementation.
+- Current evidence: `Sema::preNode` now copies a frame only when a node introduces syntax,
+  compiler-evaluation, or generated-top-level context, directly into the scoped destination.
+  `AttributeList` now summarizes sanity and runtime-safety overrides with masks instead of
+  copying override histories (`ab595100b`, `55a30fbbf`). `SemaFrame` still owns non-trivial
+  collections for namespaces, bindings, iteration borrows, hidden symbols, and narrowing
+  facts, and `AttributeList::attributes` still stores attribute instances. The
+  [September 13 report](../bench/results/compilation/20260913-sema-codegen/README.md)
+  records the implemented reductions and their validation; it does not establish how much
+  these remaining members cost or attribute a timing gain to this entry alone.
+- Next: remeasure frame-push counts, populated-member frequency, and constructor/destructor
+  samples on the current compiler for both original workload shapes. Only select a member
+  for deferred storage or a call site for reuse if that measurement shows a material cost;
+  the reverted copy-only experiment is not evidence that the current cost is zero.
+- Complete when: current measurements either identify a bounded, worthwhile change with a
+  reproducible A/B comparison, or show that the residual cost does not justify further work.
+- Related: compiler.core.001, compiler.core.005, compiler.core.006.
 
-```swag
-#global private
-func(T) pair(first: T, second: T)->T => first + second
-#test { Swag.assert(pair(second: 2's32, first: 1) == 3) }
-```
+### compiler.core.032 — Repeated module builds publish different borrow summaries
 
-- Next: trace contextual typing of `NamedArgument` values before generic deduction and check
-  the declaration scope and bindings used to resolve dependent parameter types. Compare the
-  inferred call with the explicitly specialized callee, which can be materialized before
-  overload matching. Do not suppress an unknown-type diagnostic without establishing that
-  the type belongs to the candidate's unresolved generic parameters.
-- Complete when: inferred generic calls support reordered named arguments and mixed
-  positional/named and UFCS calls, focused regressions pass with both compiler executables,
-  and unknown or duplicate argument names retain their existing diagnostics.
+- Recorded: 2026-09-07 10:43
+- Updated: 2026-09-14 06:24 — added a later parallel-rebuild recurrence and the single-worker comparison
+- Found while: checking public-export equivalence during the standard-module compilation campaign.
+- Evidence: four complete `core` rebuilds with the same frozen Release 0.1.390 binary, identical
+  tracked sources, `devmode`, and six workers alternated between publishing and omitting
+  `BorrowSummary(0, 0, 0, 0, 1, 0)` on both `Core.Math.Curve.addKey` overloads. The foreign symbol
+  names stayed identical. Both A and B in the recorded control refer to the same executable and
+  SHA-256; one of four warm rebuild snapshots omitted the attributes. This predates the campaign's
+  compiler changes. [Raw control data](../bench/results/compilation/20260907/api-baseline-repeats.json)
+  includes the full foreign-attribute lines and commands.
+- Evidence (2026-09-09, six workers, devmode, `swc tools/std.swgs dm test core --rebuild`): the
+  same tracked sources and the same compiler binary produced seven
+  `borrowed data from local variable 'buffer' escapes through a stored call argument` errors in
+  one rebuild and none in the three that followed it, with no edit in between. The sites were
+  `core`'s own tests, `tests/serialization/tagbin_itfarray.test.swg:142` among them, on a
+  `ConcatBuffer` passed to `encoder.writeAll`. `fdf901acc` then outlived those encoders by the
+  buffers they borrow, in exactly those three files, which settles what the runs disagreed about:
+  the diagnostics were right and three rebuilds out of four failed to produce them. So the
+  instability is not a cosmetic difference in an exported attribute. It decides whether a real
+  escape is reported at all, and a suite that passes says nothing about the run that follows.
+- Evidence (2026-09-13, build 543 repeated with six workers): the compilation campaign
+  again observed varying `BorrowSummary` annotations, generated source numbering, and
+  foreign-library ordering while comparing generated APIs. Repeating the baseline compiler
+  alone also varied, so the difference could not establish a regression in build 544.
+  Separate forced single-worker rebuilds with Release 543 and DevMode 544 produced the same
+  40 generated source files with identical SHA-256 hashes. The
+  [build-544 report](../bench/results/compilation/20260913-sema-codegen/README.md)
+  and [comparison log](../bench/results/compilation/20260913-sema-codegen/api-source-comparison-544.log)
+  preserve this evidence. The single-worker match does not resolve the parallel instability.
+- Observation: `ModuleApiExport.Generate.cpp::collectMissingFunctionAttributes` serializes the
+  summary masks. `Symbol.Function.h` says body sema and the final summary fixpoint grow those
+  masks. The ordering or publication defect has not yet been isolated.
+- Next: preserve a reduced semantic-only consumer with the original invalid buffer lifetime
+  from before `fdf901acc`, then repeat parallel provider builds and compare both its diagnostic
+  and the exported summaries. The repaired Core tests now keep buffers alive and must not be
+  expected to reproduce that former lifetime error. Trace summary completion and API emission through the final
+  `SemaEscape::reportDeferredChecks` fixpoint from that difference, and reduce it to a
+  provider/consumer regression.
+- Complete when: repeated parallel provider rebuilds publish identical summaries, a consumer
+  consistently observes the corresponding invalidation contract, and a hundred consecutive `core`
+  rebuilds compile.
 
 ### compiler.core.042 — Protect generated module APIs from concurrent workspace rebuilds
 
@@ -132,40 +175,6 @@ func(T) pair(first: T, second: T)->T => first + second
 
 **Related:** compiler.core.001, compiler.core.004, compiler.core.006, compiler.optimization.029.
 
-### compiler.core.032 — Repeated module builds publish different borrow summaries
-
-- Recorded: 2026-09-07 10:43
-- Updated: 2026-09-10 19:43 — Use an intentionally invalid reduced consumer after the original Core lifetime sites were repaired.
-- Found while: checking public-export equivalence during the standard-module compilation campaign.
-- Evidence: four complete `core` rebuilds with the same frozen Release 0.1.390 binary, identical
-  tracked sources, `devmode`, and six workers alternated between publishing and omitting
-  `BorrowSummary(0, 0, 0, 0, 1, 0)` on both `Core.Math.Curve.addKey` overloads. The foreign symbol
-  names stayed identical. Both A and B in the recorded control refer to the same executable and
-  SHA-256; one of four warm rebuild snapshots omitted the attributes. This predates the campaign's
-  compiler changes. [Raw control data](../bench/results/compilation/20260907/api-baseline-repeats.json)
-  includes the full foreign-attribute lines and commands.
-- Evidence (2026-09-09, six workers, devmode, `swc tools/std.swgs dm test core --rebuild`): the
-  same tracked sources and the same compiler binary produced seven
-  `borrowed data from local variable 'buffer' escapes through a stored call argument` errors in
-  one rebuild and none in the three that followed it, with no edit in between. The sites were
-  `core`'s own tests, `tests/serialization/tagbin_itfarray.test.swg:142` among them, on a
-  `ConcatBuffer` passed to `encoder.writeAll`. `fdf901acc` then outlived those encoders by the
-  buffers they borrow, in exactly those three files, which settles what the runs disagreed about:
-  the diagnostics were right and three rebuilds out of four failed to produce them. So the
-  instability is not a cosmetic difference in an exported attribute. It decides whether a real
-  escape is reported at all, and a suite that passes says nothing about the run that follows.
-- Observation: `ModuleApiExport.Generate.cpp::collectMissingFunctionAttributes` serializes the
-  summary masks. `Symbol.Function.h` says body sema and the final summary fixpoint grow those
-  masks. The ordering or publication defect has not yet been isolated.
-- Next: preserve a reduced semantic-only consumer with the original invalid buffer lifetime
-  from before `fdf901acc`, then repeat parallel provider builds and compare both its diagnostic
-  and the exported summaries. The repaired Core tests now keep buffers alive and must not be
-  expected to reproduce that former lifetime error. Trace summary completion and API emission through the final
-  `SemaEscape::reportDeferredChecks` fixpoint from that difference, and reduce it to a
-  provider/consumer regression.
-- Complete when: repeated parallel provider rebuilds publish identical summaries, a consumer
-  consistently observes the corresponding invalidation contract, and a hundred consecutive `core`
-  rebuilds compile.
 ### compiler.core.004 — The benchmark campaign has no regression threshold on the edit-build loop
 
 - Recorded: 2026-08-09 11:30
@@ -205,21 +214,6 @@ Handing the walk the payload state its caller had just read — so a two-link ch
 **Next.** Find out why a view is rebuilt so often, rather than making each rebuild cheaper. Count how many of those 4.5 million resolutions ask about a node another resolution already answered for in the same pass, and whether a resolved reference can be remembered on the node instead of re-derived. The answer decides whether this is a memoization or a call-site problem.
 
 **Related:** compiler.core.001, compiler.core.038.
-
-### compiler.core.038 — A frame copy is not what a semantic scope push costs
-
-- Recorded: 2026-09-09 15:04
-- Updated: 2026-09-09 16:00 — the copy was removed and measured: it buys nothing
-
-**Evidence.** `SemaFrame` is 1 376 bytes and `Sema::pushFrame` stores it by copy. Instrumented on 2026-09-09 (Release 0.1.425): analyzing one 22 800-line file pushes 41 573 frames, and building one snippet module that imports `core` pushes 259 030. Each push copied the frame **twice**, because the callers spell `auto frame = sema.frame(); frame.setX(...); sema.pushFramePopOnPostNode(frame);` — the top of the stack into a local, then the local into the vector.
-
-Removing one of the two was tried and reverted. A `SemaFrame& pushFrameCopyPopOnPostNode(AstNodeRef)` that copies the top frame once, in place, was written and 42 of the 64 push sites migrated to it; the compiler suites, including the DevMode frame-count assertions, stayed green. Paired A/B against the same build, `sema --num-cores 1` on the 22 800-line file, minimum of twelve, three separate runs on an admitted machine: **100.0 %, 102.6 %, and 103.8 % of the processor time** — no gain, and possibly a small loss.
-
-The reason is that a frame is trivially copyable in the parts that dominate its size, so a copy is a 1.4 KB `memcpy`: 57 MB across a whole file, roughly 1 % of the pass. What the earlier `AttributeList` shrink actually bought (0.1.425, −3.8 %) was not the 256 bytes but the two `SmallVector<Utf8>` constructor/destructor pairs it removed from every push — 83 000 non-trivial calls. Frame *size* is not the lever; the number of **non-trivial** members a push has to construct and destroy is.
-
-**Next.** Count what a push still constructs non-trivially — the remaining `SmallVector`s of `SemaFrame` and `AttributeList` — and remove the ones a scope almost never fills, as `printMicroPassOptions` was removed. Do not spend effort on the copy count or on `frames_.reserve`: the stack never exceeds 13 frames for a file and 36 for a module build, so growth is not a cost either.
-
-**Related:** compiler.core.001, compiler.core.005, compiler.core.006.
 
 ### compiler.core.006 — Every process rebuilds the prelude state
 

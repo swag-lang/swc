@@ -43,6 +43,141 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
+
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-09-14 06:26 — Restore the checked-downcast prerequisite and separate the full unsafe surface from the binding census.
+- Area: language
+- Evidence: a short list of operations can produce a pointer to anything, and none of them is
+  subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
+  casts and intrinsics are visible, but no single marker identifies the boundary:
+  - `cast(*T) someInteger` — an arbitrary integer becomes a pointer;
+  - `cast(*Big) &small` — CLOSED on 2026-09-08: a pointer cast between two structs with no `using`
+    path either way is `sema_err_cast_unrelated_structs`, and the deliberate reinterpretation is
+    spelled `cast(*Big) cast(*void) &small`;
+  - `Swag.makeSlice(ptr, count)` / `makeString` / `makeAny` / `makeInterface` — a length paired with
+    storage that need not have it, after which every bounds check faithfully checks the lie;
+  - pointer arithmetic on `[*] T`, which has neither provenance nor extent;
+  - reading a `union` member that was not the one written, which turns an integer into a pointer
+    with no cast at all;
+  - `Swag.memcpy` / `memset` / `memmove`, whose byte count is unrelated to either operand;
+  - `#relocate` and `#nodrop`, which suspend the lifecycle;
+  - any call to a `#[Swag.Foreign]` function (compiler.safety.007).
+  Each was verified to compile and to read out of bounds with no diagnostic, except the struct-pointer
+  one, now closed.
+- Historical census (2026-09-08): the rule rejected **32 sites in 3 files** in the
+  `bin/` build exercised then, and every one of them is a Win32/COM binding -
+  `audio/driver/xaudio2.swg` (10, a COM voice handed to a base-voice entry point),
+  `gui/dragdrop.win32.swg` (7) and its test (15), which recover a Swag object from the OLE
+  interface pointer it starts with. That run reported none in its application, example, reference, or runtime selections.
+  This is historical evidence, not a census of all four current applications and tagged tests;
+  the health reset subsequently corrected a cast in Vault's explicitly tagged COM integration test.
+  Those rejected struct reinterpretations form a binding-layer boundary, and `*void` makes each
+  deliberate hop visible to `rg`. They are only one part of the unsafe operation list above;
+  their count does not measure raw memory intrinsics, foreign calls, or unchecked downcasts.
+- Consequence: Swag cannot state what its safe subset guarantees, because it has no safe subset —
+  only a set of checks with no boundary. That is the difference between "the compiler catches a lot"
+  and "this class of fault cannot occur here", and it is the difference a reader arriving from Rust
+  is actually asking about.
+- The proposed shape is Swag's. A block that swallows a page of code is the wrong unit here:
+  the operations above are single expressions, and Swag already spells a compiler instruction on an
+  expression with `#`. A modifier on the operation (`#unsafe cast(*T) addr`) plus one file-level
+  opt-in (`#global #[Swag.Unsafe]`) for a binding or codec layer would make the boundary visible
+  to `rg`. Neither spelling is implemented; affordability depends on the checked-downcast
+  prerequisite below.
+- The census the previous next action asked for, run on 2026-09-08 13:34 over `bin/` with the vendored
+  `.dep` and `.output` copies and `bin/unittests` excluded, so every number is a shipped site:
+
+  | Operation | std | apps | examples | reference | runtime | shipped |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | pointer-producing `cast` | 889 | 551 | 13 | 24 | 116 | **1593** |
+  | `Swag.makeSlice` | 348 | 55 | 2 | 11 | 10 | 426 |
+  | `Swag.makeString` | 79 | 32 | 1 | 4 | 13 | 129 |
+  | `Swag.memcpy` / `memset` / `memmove` | 27 | 25 | 0 | 12 | 20 | 84 |
+  | `Swag.makeInterface` | 35 | 2 | 0 | 3 | 3 | 43 |
+  | `#relocate` | 26 | 0 | 0 | 6 | 0 | 32 |
+  | `#nodrop` | 26 | 0 | 0 | 6 | 0 | 32 |
+  | `Swag.makeAny` | 5 | 0 | 0 | 4 | 2 | 11 |
+  | `#[Swag.Foreign]` | 9, plus 21 in the win32 family | 13 | 0 | 7 | 3 | 53 |
+
+- What the count answers is not what the question expected: the cast row is the whole
+  problem, and it is not pointer forging. Of the 551 casts in the applications, 537 name a
+  user type and 9 name a primitive; 343 of them read as `cast(*MainWnd) cxt.wnd!`,
+  `cast(*HexViewer) wnd`, `cast(*TextView) session.view!` — recovering a concrete type from
+  a base pointer in a hand-rolled hierarchy. `bin/std` is the same story, 404 user types
+  against 56 primitives, plus the opaque-handle round trip the drivers and the generic
+  containers are written with. An integer becoming a pointer is nowhere in that population.
+- Consequence for the design: the marker is unaffordable while the dominant idiom has no
+  safe spelling. Marking 1593 sites, or opting most of `bin/std` and all three applications
+  out at file level, does not draw a boundary - it moves it. The affordable order is the
+  reverse of what this entry assumed: give the downcast a checked spelling first, then count
+  what is left, and only then choose the marker.
+- The mechanism already exists, and half of it is already hand-rolled. `Swag.typeAs` and
+  `Swag.typeIs` (`bin/runtime/core.swg:21,57`) already walk the `using` graph: they iterate
+  `usingFields`, recurse into nested bases, adjust the pointer by each field's offset, and follow
+  a `using` on a pointer field. Every `case T as x` over an `any` or an interface calls them. What
+  they need is `fromType`, the CONCRETE type - exactly what a bare `*Wnd` does not carry. The
+  missing piece is one fact, not a mechanism.
+- And `Gui.Wnd` already carries that fact by hand: `late type: typeinfo` ("Runtime type of the
+  concrete window allocation"), written as `res.type = T` in the generic `Wnd.create'T`, the single
+  funnel every window is born through. The language would be sanctioning a field the library
+  already maintains, not inventing one.
+- Measured on `bin/` on 2026-09-08 15:08: 259 structs compose with `using`; the `using` member is
+  the FIRST member in 288 of 299 declarations, and in every window, view and event type, so a
+  `*Wnd` IS the address of the complete object - no offset-to-complete, no per-subobject tag, none
+  of the C++ multiple-inheritance vptr machinery. The deepest chain is 3
+  (`EditWnd` - `ScrollWnd` - `FrameWnd` - `Wnd`), and only two shipped structs carry several
+  `using` members (`Surface{native, state}`, `EditBox{wnd, minMax}`): in both, one base plus a data
+  mixin nothing ever recovers.
+- A fat pointer carrying the typeinfo beside the address was considered and rejected. Inside a
+  method of the base, `me` is already a plain `*Wnd`, so the concrete type is lost before the value
+  is ever stored; keeping it would force `children`, `parent` and every `*Wnd` parameter to widen -
+  viral, and it doubles the window tree. The tag belongs in the object.
+- What the absence costs, measured while writing this: `Wnd.revealFocus` tested
+  `parent.type == ScrollWnd`, an EQUALITY, so revealing the focus silently did nothing for all five
+  shipped viewports built by composition (`EditWnd`, `QuickWnd`, `RecentWnd`, `SheetWnd`,
+  `WidgetWall`). Fixed with `Swag.typeAs` and a regression test in
+  `bin/std/modules/gui/src/tests/scroll.test.swg`; `isEditorWnd` in `properties.keyboard.swg` had
+  the same shape and was made robust. Hand-rolling the tag makes the exact-versus-ancestor mistake
+  the default one.
+- Current source check: `Wnd` still stores `late type: typeinfo` and initializes it in
+  `Wnd.create'T`; the struct-pointer cast rule checks the static `using` relationship, without
+  validating the concrete allocation type. The checked-downcast prerequisite remains open.
+- Next: specify a checked downcast using the concrete allocation type before choosing the unsafe
+  marker. Then recount each operation family above across current `bin/`, including tagged native
+  integration tests, and distinguish safe downcasts from ABI reinterpretations and raw memory
+  operations. Use that remaining population to choose expression and file-level opt-ins; the
+  historical two production binding files do not define the whole boundary.
+- Complete when: the unsafe operation list is fixed and documented, safe code cannot reach any of
+  them without a visible marker, `bin/` compiles with the boundary enforced, and the reference
+  states which faults the safe subset excludes.
+- Related: language.design.002 narrows the union bullet rather than removing it. The census in that
+  entry found eight anonymous unions in `bin/`: two sum types that a tag would check, five C-ABI
+  bindings that must stay byte-compatible, and one deliberate bit view. The untagged form therefore
+  survives at the interop and bit-punning boundary, which is where the marker belongs and where it
+  joins compiler.safety.007. Also compiler.safety.014.
+
+### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
+
+- Recorded: 2026-09-08 07:59
+- Updated: 2026-09-14 06:26 — Distinguish shipped attribute-mask reductions from the unmeasured lifecycle analysis cost.
+- Area: compiler/backend, `Sanitizer`
+- Evidence: the lifecycle facts now survive calls, which keeps the engine's state maps
+  populated over far more of a function than before, and the transfer function gained a scan of
+  the convention's argument registers at every call. One cold `std` build with each compiler gave
+  1 min 23 s against 2 min 21 s, but the per-module split of that same pair is incoherent — `core`
+  20.6 s against 4.6 s, `pixel` 7.3 s against 56.6 s — so the run measured machine noise, not the
+  pass. No conclusion may be drawn from it in either direction.
+- The 2026-09-13 changes `ab595100b` and `55a30fbbf` precompute sanity and runtime-safety
+  override masks in `AttributeList`, removing repeated attribute scans. They do not establish the
+  cost of the lifecycle state propagation or its call-argument scan in `Sanitizer`. Their
+  [validation report](../bench/results/compilation/20260913-sema-codegen/README.md) explicitly
+  defers comparative timing; passing the safety and sanity suites is functional evidence only.
+- Next: measure the pass alone rather than a whole build: `--stats` build-phase profiling on one
+  module, DevMode compiler, three runs each, with the machine otherwise idle.
+- Complete when: the sanity pass's share of compile time is recorded before and after, and either
+  found acceptable or reduced.
+
 ### compiler.safety.008 — Dynamic bounds checking is switched off in release instead of being made cheap
 
 - Recorded: 2026-09-04 17:05
@@ -175,115 +310,6 @@ is the current scorecard.
   carrier case stay silent, and all of them are in `bin/unittests/sanity/use_after_free.swg`.
 - Related: compiler.safety.017.
 
-### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
-
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-09-10 19:35 — Preserve the dated reinterpretation census without presenting it as a current inventory.
-- Area: language
-- Evidence: a short list of operations can produce a pointer to anything, and none of them is
-  subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
-  casts and intrinsics are visible, but no single marker identifies the boundary:
-  - `cast(*T) someInteger` — an arbitrary integer becomes a pointer;
-  - `cast(*Big) &small` — CLOSED on 2026-09-08: a pointer cast between two structs with no `using`
-    path either way is `sema_err_cast_unrelated_structs`, and the deliberate reinterpretation is
-    spelled `cast(*Big) cast(*void) &small`;
-  - `Swag.makeSlice(ptr, count)` / `makeString` / `makeAny` / `makeInterface` — a length paired with
-    storage that need not have it, after which every bounds check faithfully checks the lie;
-  - pointer arithmetic on `[*] T`, which has neither provenance nor extent;
-  - reading a `union` member that was not the one written, which turns an integer into a pointer
-    with no cast at all;
-  - `Swag.memcpy` / `memset` / `memmove`, whose byte count is unrelated to either operand;
-  - `#relocate` and `#nodrop`, which suspend the lifecycle;
-  - any call to a `#[Swag.Foreign]` function (compiler.safety.007).
-  Each was verified to compile and to read out of bounds with no diagnostic, except the struct-pointer
-  one, now closed.
-- Historical census (2026-09-08): the rule rejected **32 sites in 3 files** in the
-  `bin/` build exercised then, and every one of them is a Win32/COM binding -
-  `audio/driver/xaudio2.swg` (10, a COM voice handed to a base-voice entry point),
-  `gui/dragdrop.win32.swg` (7) and its test (15), which recover a Swag object from the OLE
-  interface pointer it starts with. That run reported none in its application, example, reference, or runtime selections.
-  This is historical evidence, not a census of all four current applications and tagged tests;
-  the health reset subsequently corrected a cast in Vault's explicitly tagged COM integration test. The reinterpretation surface is therefore not spread through the
-  codebase: it is a binding-layer boundary, small enough that the marker this entry wants can be
-  written for it, and `*void` already makes each one visible to `grep`.
-- Consequence: Swag cannot state what its safe subset guarantees, because it has no safe subset —
-  only a set of checks with no boundary. That is the difference between "the compiler catches a lot"
-  and "this class of fault cannot occur here", and it is the difference a reader arriving from Rust
-  is actually asking about.
-- The shape must be Swag's, not Rust's. A block that swallows a page of code is the wrong unit here:
-  the operations above are single expressions, and Swag already spells a compiler instruction on an
-  expression with `#`. A modifier on the operation (`#unsafe cast(*T) addr`) plus one file-level
-  opt-in (`#global #[Swag.Unsafe]`) for a binding or codec layer costs application code nothing,
-  marks `bin/std`'s low-level modules once, and makes `grep` the audit tool.
-- The census the previous next action asked for, run on 2026-09-08 13:34 over `bin/` with the vendored
-  `.dep` and `.output` copies and `bin/unittests` excluded, so every number is a shipped site:
-
-  | Operation | std | apps | examples | reference | runtime | shipped |
-  | --- | --- | --- | --- | --- | --- | --- |
-  | pointer-producing `cast` | 889 | 551 | 13 | 24 | 116 | **1593** |
-  | `Swag.makeSlice` | 348 | 55 | 2 | 11 | 10 | 426 |
-  | `Swag.makeString` | 79 | 32 | 1 | 4 | 13 | 129 |
-  | `Swag.memcpy` / `memset` / `memmove` | 27 | 25 | 0 | 12 | 20 | 84 |
-  | `Swag.makeInterface` | 35 | 2 | 0 | 3 | 3 | 43 |
-  | `#relocate` | 26 | 0 | 0 | 6 | 0 | 32 |
-  | `#nodrop` | 26 | 0 | 0 | 6 | 0 | 32 |
-  | `Swag.makeAny` | 5 | 0 | 0 | 4 | 2 | 11 |
-  | `#[Swag.Foreign]` | 9, plus 21 in the win32 family | 13 | 0 | 7 | 3 | 53 |
-
-- What the count answers is not what the question expected: the cast row is the whole
-  problem, and it is not pointer forging. Of the 551 casts in the applications, 537 name a
-  user type and 9 name a primitive; 343 of them read as `cast(*MainWnd) cxt.wnd!`,
-  `cast(*HexViewer) wnd`, `cast(*TextView) session.view!` — recovering a concrete type from
-  a base pointer in a hand-rolled hierarchy. `bin/std` is the same story, 404 user types
-  against 56 primitives, plus the opaque-handle round trip the drivers and the generic
-  containers are written with. An integer becoming a pointer is nowhere in that population.
-- Consequence for the design: the marker is unaffordable while the dominant idiom has no
-  safe spelling. Marking 1593 sites, or opting most of `bin/std` and all three applications
-  out at file level, does not draw a boundary - it moves it. The affordable order is the
-  reverse of what this entry assumed: give the downcast a checked spelling first, then count
-  what is left, and only then choose the marker.
-- The mechanism already exists, and half of it is already hand-rolled. `Swag.typeAs` and
-  `Swag.typeIs` (`bin/runtime/core.swg:21,57`) already walk the `using` graph: they iterate
-  `usingFields`, recurse into nested bases, adjust the pointer by each field's offset, and follow
-  a `using` on a pointer field. Every `case T as x` over an `any` or an interface calls them. What
-  they need is `fromType`, the CONCRETE type - exactly what a bare `*Wnd` does not carry. The
-  missing piece is one fact, not a mechanism.
-- And `Gui.Wnd` already carries that fact by hand: `late type: typeinfo` ("Runtime type of the
-  concrete window allocation"), written as `res.type = T` in the generic `Wnd.create'T`, the single
-  funnel every window is born through. The language would be sanctioning a field the library
-  already maintains, not inventing one.
-- Measured on `bin/` on 2026-09-08 15:08: 259 structs compose with `using`; the `using` member is
-  the FIRST member in 288 of 299 declarations, and in every window, view and event type, so a
-  `*Wnd` IS the address of the complete object - no offset-to-complete, no per-subobject tag, none
-  of the C++ multiple-inheritance vptr machinery. The deepest chain is 3
-  (`EditWnd` - `ScrollWnd` - `FrameWnd` - `Wnd`), and only two shipped structs carry several
-  `using` members (`Surface{native, state}`, `EditBox{wnd, minMax}`): in both, one base plus a data
-  mixin nothing ever recovers.
-- A fat pointer carrying the typeinfo beside the address was considered and rejected. Inside a
-  method of the base, `me` is already a plain `*Wnd`, so the concrete type is lost before the value
-  is ever stored; keeping it would force `children`, `parent` and every `*Wnd` parameter to widen -
-  viral, and it doubles the window tree. The tag belongs in the object.
-- What the absence costs, measured while writing this: `Wnd.revealFocus` tested
-  `parent.type == ScrollWnd`, an EQUALITY, so revealing the focus silently did nothing for all five
-  shipped viewports built by composition (`EditWnd`, `QuickWnd`, `RecentWnd`, `SheetWnd`,
-  `WidgetWall`). Fixed with `Swag.typeAs` and a regression test in
-  `bin/std/modules/gui/src/tests/scroll.test.swg`; `isEditorWnd` in `properties.keyboard.swg` had
-  the same shape and was made robust. Hand-rolling the tag makes the exact-versus-ancestor mistake
-  the default one.
-- Next: recount the current reinterpretation boundary, including tagged native integration
-  tests, then give the remaining operations their marker. They are one population - a binding
-  recovering its own object from an ABI header - so a file-level opt-in on the two binding files
-  costs application code nothing and states the boundary in two places instead of thirty-two.
-  Decide between that and a per-expression `#unsafe`, then apply it and delete the `*void` hops.
-- Complete when: the unsafe operation list is fixed and documented, safe code cannot reach any of
-  them without a visible marker, `bin/` compiles with the boundary enforced, and the reference
-  states which faults the safe subset excludes.
-- Related: language.design.002 narrows the union bullet rather than removing it. The census in that
-  entry found eight anonymous unions in `bin/`: two sum types that a tag would check, five C-ABI
-  bindings that must stay byte-compatible, and one deliberate bit view. The untagged form therefore
-  survives at the interop and bit-punning boundary, which is where the marker belongs and where it
-  joins compiler.safety.007. Also compiler.safety.014.
-
 ### compiler.safety.011 — `!` and `late` stop asserting in release
 
 - Recorded: 2026-09-04 17:05
@@ -339,21 +365,6 @@ is the current scorecard.
   counterparts, or the reference explicitly limits leak detection to allocator diagnostics and
   the corpus reflects that decision.
 - Related: runtime.allocator.010, compiler.safety.018.
-
-### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
-
-- Recorded: 2026-09-08 07:59
-- Area: compiler/backend, `Sanitizer`
-- Evidence: the lifecycle facts now survive calls, which keeps the engine's per-instruction maps
-  populated over far more of a function than before, and the transfer function gained a scan of
-  the convention's argument registers at every call. One cold `std` build with each compiler gave
-  1 min 23 s against 2 min 21 s, but the per-module split of that same pair is incoherent — `core`
-  20.6 s against 4.6 s, `pixel` 7.3 s against 56.6 s — so the run measured machine noise, not the
-  pass. No conclusion may be drawn from it in either direction.
-- Next: measure the pass alone rather than a whole build: `--stats` build-phase profiling on one
-  module, DevMode compiler, three runs each, with the machine otherwise idle.
-- Complete when: the sanity pass's share of compile time is recorded before and after, and either
-  found acceptable or reduced.
 
 ### compiler.safety.018 — A release proven on one path only is never reported
 

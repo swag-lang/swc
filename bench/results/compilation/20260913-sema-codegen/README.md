@@ -595,8 +595,10 @@ whose contextual types are generic can produce `unknown symbol 'T'`. It reproduc
 [Release 555](named-two-inferred-release-555.log) and [DevMode 556](named-two-inferred-556.log);
 the same call with an [explicit type argument](named-two-explicit-556.log) succeeds. An explicit
 specialization can bypass the changed mapping, so it is not the retained regression fixture.
-The separate contextual-type problem is recorded as
-[compiler.core.043](../../../../backlog/compiler.core.md#compilercore043--resolve-inferred-generic-calls-with-named-arguments).
+The separate contextual-type problem was tracked as `compiler.core.043` and subsequently
+fixed in `8e224f4d0` and `a032e2053`. The
+[named-argument inference regression](../../../../bin/unittests/native/generics/named_argument_inference.swg)
+covers the corrected calls; the observations above remain evidence for builds 555 and 556.
 
 Both build-557 compiler executables built successfully with MSBuild `/m:6 /p:SwcCompileJobs=6`.
 Swag validation uses six workers at the script and child levels. Tool-driven test commands are

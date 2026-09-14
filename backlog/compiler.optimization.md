@@ -15,6 +15,170 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
+
+- Recorded: 2026-09-06 14:53
+- Updated: 2026-09-14 06:25 — Account for temporary renaming already shipped in the full unroller.
+- Area: compiler/backend
+- Found while: comparing current SHA-256 output with both C++ compilers, 2026-09-06.
+- Evidence: the 2026-09-07 comparison at `8d3f0498b` reproduces the earlier counts. With
+  `/O2 /EHsc /std:c++20`, clang-cl and Swag release both emit 74 instructions and five explicit
+  memory operations per compression round. MSVC emits 224 instructions and eight memory
+  operations for four rounds, or 56 / two per round; its accesses read only `KTAB` and the
+  message schedule. Counts exclude labels and do not count address-only instructions as memory.
+- Attempted 2026-09-07, reverted: bounded partial unrolling of divisible exact trip counts,
+  retaining the original counter and inserting its add/compare between cloned bodies so that
+  counter readers, forward exits, and incoming CPU flags keep their original behavior. Internal
+  labels and relocations were cloned as in the existing full unroller. Four rounds emitted
+  296 instructions / 25 memory operations (74 / 6.25 per round); two emitted 146 / 12
+  (73 / six per round). Neither approaches MSVC's register residency. The sixteen-word input
+  decode improved from 16 / five per word to 58 / 20 per four words or 30 / ten per two words,
+  but that smaller win does not justify increasing traffic in the compression loop. No timing
+  claim or correctness acceptance was made for either rejected prototype.
+- Observation: duplicating the body alone does not eliminate the carried-state frame accesses
+  described in compiler.optimization.005. The current pass only fully unrolls at most eight
+  trips; merely raising that limit is a different experiment, compiler.optimization.002.
+- Current boundary: since `1238a3c2e`, the full unroller gives independent temporaries fresh
+  names in cloned straight-line bodies. Values read before their first write, read outside the
+  body, or constrained by allocation keep their names; bodies with internal labels also keep
+  them. `native/optimizer/unroll_renames_temporaries.swg` covers carried and escaping values.
+  This is neither partial unrolling nor a solution for the compression round's carried state.
+- Next: rebaseline the compression round, trace which carried-state values acquire extra frame
+  accesses in a partial-unroll prototype, and evaluate coalescing of those values. Reuse the
+  full unroller's temporary-renaming rules instead of treating all cloned names as unchanged.
+  Compare every hot loop across the seven tasks, with counter, exit, relocation, and carried-value
+  regression coverage if a prototype improves the emitted code.
+- Complete when: grouping rounds lowers both instructions and frame traffic per compression round
+  with correctness coverage, or the remaining register-residency prerequisite is isolated.
+- Related: compiler.optimization.005, compiler.optimization.016.
+
+### compiler.optimization.016 — Independent virtual-register webs need a new normalization measurement
+
+- Recorded: 2026-08-27 07:57
+- Updated: 2026-09-14 06:25 — Separate existing unroller renaming from general def-use web normalization.
+- Intent: a normalization pass gives every def-use web of a virtual register its own fresh
+  register - the SSA property LLVM's passes get from their IR, reconstructed by renaming, with no
+  phi nodes needed because a web that spans a join keeps its one name. The lowering reuses
+  virtual registers across unrelated computations, so today a loop-invariant chain shares its
+  register with code elsewhere in the function (measured on the deblock probe: the `pass % 3`
+  chain's register carries five definitions, one outside the loop), and any pass that reasons
+  per-register - the web hoisting now in LICM first among them - must refuse the whole register.
+- Current boundary: `Pass.LoopUnroll.cpp` already renames independent temporaries in cloned
+  straight-line bodies (`1238a3c2e`, `native/optimizer/unroll_renames_temporaries.swg`). It leaves
+  carried values and bodies with internal labels unchanged; it does not normalize the original
+  function's def-use webs. That narrower transform does not retire this investigation.
+- Next: recover or reconstruct the normalization prototype and compare it with the current split
+  allocator. Splitting may change the earlier interference tradeoff; it does not prove that
+  renaming will now pay.
+- Complete when: after the pass, every virtual register's definitions form one connected def-use
+  web (verified on a corpus dump); the deblock probe's modulo chain hoists out of its x-loop; and
+  the pre-RA fixpoint shows no oscillation with copy elimination (pure renaming inserts no
+  instructions, so none is expected).
+- Attempted 2026-08-27, parked: a union-find pass over `MicroSsaState` value ids (phi unions
+  gated on transitive instruction uses so dead phis stop gluing webs, read-modify-write defs
+  unioned with their reaching def) renames soundly - 58 video functions change, both probe
+  checksums hold, and the deblock chain does hoist once the pass runs inside the pre-RA loop
+  after strength reduction, which is what creates the chain. But the corpus regresses:
+  `interpolateLuma` 1583 -> 1684 instructions and 314 -> 398 frame references, video.dll +2 KB.
+  The shared names the lowering leaves behind are accidental coalescing the hull allocator
+  depends on - splitting them multiplies concurrent hulls, and the allocator pays in spills more
+  than the loop passes earn. That result predates the split allocator now shipped here. Re-measure before treating
+  the old hull interference as a current blocker. The old session named `webrename-parked/`,
+  but no `Pass.WebRename` prototype is present in this checkout; the recorded algorithm is the
+  recoverable starting point.
+- Related: compiler.optimization.015, compiler.optimization.017; unlocks the full yield of the web hoisting shipped in LICM.
+
+### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
+
+- Recorded: 2026-08-28 15:42
+- Updated: 2026-09-14 06:25 — Identify the remaining indexed and foreach aggregate home requirement.
+- Area: compiler/sema
+- Found while: giving `Core.Math.Simd` its 4x4 and 8x8 transposes (2026-08-28).
+- Evidence: `func transpose4x4(rows: [4] U32x4)->[4] U32x4` inlined into a caller that already
+  holds the block still emitted four 128-bit loads and four stores copying the argument into a
+  fresh frame slot, then read every row back out of that copy, around the eight interleaves that
+  are the whole operation: 40 instructions and a 0x1C8 frame for eight instructions of work. The
+  same body taking `rows: *[4] U32x4` in place compiles to 28 instructions and a 0x80 frame, which
+  is what the API now does. `materializeInlineBindings` binds a by-value aggregate argument to a
+  concrete local. The current `classifyInlineBinding` already examines parameter uses and can
+  keep a direct binding; an indexed or foreach by-value aggregate still requires a home through
+  `use.indexOrFor`, even if those uses only read. Read-only syntax alone does not establish that
+  the caller's storage remains unchanged while the inlined body executes.
+- Next: in `SemaInline`, measure the homes still required by indexed/foreach aggregate uses.
+  Elide a copy only when the caller's storage remains unchanged through all reads, including
+  indirect calls and alias writes, and when copy/drop hooks and argument evaluation retain their
+  semantics. Absence of a direct assignment to the parameter is not sufficient.
+- Complete when: a proven stable, side-effect-free by-value aggregate parameter costs no copy
+  after inlining, written or indirectly mutable storage still preserves value semantics, and the value-returning shape of a block transform is as cheap as the in-place
+  one on the video corpus.
+
+### compiler.optimization.002 — Unrolling the key-stream loop still has to prove it pays
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-09-14 06:25 — Require a fresh unroll-limit measurement after temporary renaming.
+- Area: compiler/backend
+- Found while: chasing the second half of the ChaCha20 gap after the round loop stopped spilling
+- Observation: the dominant cost is the key-stream application — sixteen words XOR-ed one at a
+  time, a loop the unroller refuses because `K_MAX_TRIPS` is 8. Raising it to 16 unrolled the
+  loop and bought nothing (2026-08-22, static census, release: chacha main 627 -> 763
+  instructions, sha256 725 -> 878, every other task unchanged), because the per-element body
+  carried three instructions a constant cannot remove. Those are gone (2026-09-03): the
+  zero-extension after a 32-bit load and the `& M32` after a 64-bit add of two zero-extended
+  words fold in `Pass.InstructionCombine.ZeroExtend.cpp` (a 32-bit write clears the upper half
+  of its register, a contract `MicroInstr.h` now states), and the `load; op; store` round trip
+  folds into `xor [r9], r11`. That fold always existed on paper; two defects kept it out of
+  every loop. Every single-consumer fold counted the dead header phi of a loop-defined value
+  as a second reader (`valueHasSingleUse` now looks through phis nothing reads), and
+  legalization rewrote every memory-destination form back into registers because it read a
+  virtual register as "not an integer". The folds now leave a frame slot or a global alone
+  inside a loop, where slot promotion, the vectorizer and the instruction-pointer-relative
+  access own it (the round loop of chacha lost its SLP packing otherwise, 229 -> 483).
+- Evidence: release, static census of the bench mains, 2026-09-03: chacha 229 -> 223, sha256
+  394 -> 369 (25 zero-extensions -> 2), csvagg 699 -> 695, wordfreq 322 -> 318, dijkstra
+  276 -> 275, raytrace 115 -> 114, leven unchanged. The key-stream body alone is 24
+  instructions against 28.
+- Current boundary: `1238a3c2e` subsequently gave independent temporaries in cloned straight-line
+  bodies fresh names, with coverage in `native/optimizer/unroll_renames_temporaries.swg`.
+  `K_MAX_TRIPS` remains 8. The August/September counts above predate this change and do not
+  decide whether increasing the limit now pays; carried values are deliberately not renamed.
+- Next: re-measure chacha with the current temporary renaming and `K_MAX_TRIPS = 16` on a quiet
+  machine, and only then ask whether the SLP pass sees the sixteen `[frame + K]` loads it now has.
+- Complete when: a dynamic measurement on a quiet machine decides the unroll limit either way.
+
+### compiler.optimization.008 — The hand-written sign-bit clamps of the H.264 decoder may be retired
+
+- Recorded: 2026-08-19 14:16
+- Updated: 2026-09-14 06:25 — Account for flag-preserving branch fixes without inferring a clamp speedup.
+- Area: compiler
+- Found while: std.video.001, profiling the H.264 decoder on a 1080p30 Main stream in release.
+- Observation: `cond ? a : b`, `Swag.min`, `Swag.max`, `Swag.abs` and `Math.clamp` through them lower to a
+  compare and a conditional move: the ternary diamond converts when both arms are short, pure
+  and cannot fault (`Pass.BranchSimplify`, `convertDiamondsToConditionalMoves`), the intrinsics
+  through the single-arm conversion beside it. The select written as a statement — the
+  `if v < lo do return lo` / `if v > hi do return hi` chain — now converts too (2026-09-03,
+  `convertEarlyReturnsToSelects`): each statement is a triangle whose body leaves the function,
+  so the innermost pair folds into one return fed by a conditional move, and the fixed point
+  folds the chain from the bottom, under the diamond's rules (pure, short, one value leaving
+  each path, the compare re-issued when a path wrote the flags). What still compiles to a branch
+  is an `if`/`else` whose arms do more than produce one value.
+- Current boundary: `900480a3c` and `3cd5a5c77` corrected the treatment of instructions that
+  preserve CPU flags, including XMM clears and integer NOT. Branch and arm analysis now uses
+  `instructionActuallyDefinesCpuFlags`; a nominal opcode flag is not proof that entry flags
+  were overwritten. `Test.Micro.BranchSimplify.cpp` covers the dynamic branch and arm cases,
+  and `native/flow/string_condition_snapshot.swg` covers the string-condition failure.
+  The sign-bit helpers remain in `decode/h264/transform.swg`; these correctness fixes supply
+  no new timing evidence for replacing them.
+- Evidence: `#[Swag.PrintMicro("pre-emit")]` in release on the three-way early-return clamp:
+  15 instructions with two `jump_cond` and three `ret` before, 12 with two `cmov` and one `ret`
+  after; the nested ternary is 10. The decoder's conversion stage went from 1495 ms to about
+  470 ms over 59 frames when its clamps were rewritten branch-free by hand (3.2x, byte-identical
+  output; the sign-bit forms in `decode/h264/transform.swg`).
+- Next: re-measure the decoder's deblock and conversion loops with the clamps written as
+  statements against the hand-written sign-bit forms, and retire those if the select matches
+  them.
+- Complete when: the decoder's conversion stage measures the same with statement clamps as with
+  the sign-bit forms, and the sign-bit forms are gone.
+
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13
@@ -50,26 +214,6 @@ block, and the hot path keeps the register.
 - Complete when: remaining redundant rebuilds are removed with a sound invalidation contract,
   unchanged optimization decisions, and passing SSA/native tests.
 - Related: compiler.core.004, compiler.core.030.
-
-### compiler.optimization.038 — A vector wrapper three helpers deep stops being inlined
-
-- Recorded: 2026-09-12 22:10
-- Evidence: `std/core`'s packed operations are one machine instruction each behind a name, and a
-  caller in another module normally receives them inlined. Reached through two of the caller's own
-  `#[Swag.Inline]` helpers they are not: the H.264 weak luma deblocking filter called a local
-  helper that called another that called `Simd.subSaturating`, and the built kernel carried ten
-  calls to it, one per use, with the argument and return traffic around each. Collapsing the two
-  helpers into one removed all ten and took the kernel from 315 instructions to 272 and from 32
-  stack accesses to 24. Marking the whole `Simd` namespace `#[Swag.Inline]` changed nothing, so
-  the attribute is not what is missing.
-- Why it matters beyond one kernel: a packed operation that becomes a call costs more than the
-  work it performs, and the depth at which it happens is invisible in the source. Every consumer
-  that wraps packed work in helpers is exposed, and the fix each one finds is to flatten its own
-  code rather than to state anything about the call.
-- Next: find what stops the inliner at that depth, in the auto-inline decision rather than in the
-  attribute, and make a wrapper whose body is a single intrinsic inline from any depth.
-- Complete when: a packed operation reached through two layers of inline helpers emits no call.
-- Related: cpu.simd.035
 
 ### compiler.optimization.037 — Hoisting a constant-pool read out of a loop is undone by rematerialization
 
@@ -224,37 +368,6 @@ block, and the hot path keeps the register.
   every benchmark task before broadening the alias analysis.
 - Complete when: the remaining repeated pointer/element reads disappear with sound alias and
   control-flow proofs, or a focused experiment identifies the register-residency constraint.
-
-### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
-
-- Recorded: 2026-09-06 14:53
-- Updated: 2026-09-07 09:52 — Reject two- and four-round clones that increase frame traffic
-- Area: compiler/backend
-- Found while: comparing current SHA-256 output with both C++ compilers, 2026-09-06.
-- Evidence: the 2026-09-07 comparison at `8d3f0498b` reproduces the earlier counts. With
-  `/O2 /EHsc /std:c++20`, clang-cl and Swag release both emit 74 instructions and five explicit
-  memory operations per compression round. MSVC emits 224 instructions and eight memory
-  operations for four rounds, or 56 / two per round; its accesses read only `KTAB` and the
-  message schedule. Counts exclude labels and do not count address-only instructions as memory.
-- Attempted 2026-09-07, reverted: bounded partial unrolling of divisible exact trip counts,
-  retaining the original counter and inserting its add/compare between cloned bodies so that
-  counter readers, forward exits, and incoming CPU flags keep their original behavior. Internal
-  labels and relocations were cloned as in the existing full unroller. Four rounds emitted
-  296 instructions / 25 memory operations (74 / 6.25 per round); two emitted 146 / 12
-  (73 / six per round). Neither approaches MSVC's register residency. The sixteen-word input
-  decode improved from 16 / five per word to 58 / 20 per four words or 30 / ten per two words,
-  but that smaller win does not justify increasing traffic in the compression loop. No timing
-  claim or correctness acceptance was made for either rejected prototype.
-- Observation: duplicating the body alone does not eliminate the carried-state frame accesses
-  described in compiler.optimization.005. The current pass only fully unrolls at most eight
-  trips; merely raising that limit is a different experiment, compiler.optimization.002.
-- Next: trace which carried-state values acquire the extra frame accesses after cloning, and
-  evaluate copy coalescing or independent register webs before retrying partial unrolling.
-  Compare every hot loop across the seven tasks, with counter, exit, relocation, and carried-value
-  regression coverage if a prototype improves the emitted code.
-- Complete when: grouping rounds lowers both instructions and frame traffic per compression round
-  with correctness coverage, or the remaining register-residency prerequisite is isolated.
-- Related: compiler.optimization.005, compiler.optimization.016.
 
 ### compiler.optimization.033 — CSV aggregation retains a cross-file map-probe call
 
@@ -442,38 +555,6 @@ block, and the hot path keeps the register.
   std.video.005's validates the rewrite, and HEVC serial decode does not regress.
 - Related: std.video.005, compiler.optimization.011.
 
-### compiler.optimization.016 — Independent virtual-register webs need a new normalization measurement
-
-- Recorded: 2026-08-27 07:57
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Intent: a normalization pass gives every def-use web of a virtual register its own fresh
-  register - the SSA property LLVM's passes get from their IR, reconstructed by renaming, with no
-  phi nodes needed because a web that spans a join keeps its one name. The lowering reuses
-  virtual registers across unrelated computations, so today a loop-invariant chain shares its
-  register with code elsewhere in the function (measured on the deblock probe: the `pass % 3`
-  chain's register carries five definitions, one outside the loop), and any pass that reasons
-  per-register - the web hoisting now in LICM first among them - must refuse the whole register.
-- Next: recover or reconstruct the normalization prototype and compare it with the current split
-  allocator. Splitting may change the earlier interference tradeoff; it does not prove that
-  renaming will now pay.
-- Complete when: after the pass, every virtual register's definitions form one connected def-use
-  web (verified on a corpus dump); the deblock probe's modulo chain hoists out of its x-loop; and
-  the pre-RA fixpoint shows no oscillation with copy elimination (pure renaming inserts no
-  instructions, so none is expected).
-- Attempted 2026-08-27, parked: a union-find pass over `MicroSsaState` value ids (phi unions
-  gated on transitive instruction uses so dead phis stop gluing webs, read-modify-write defs
-  unioned with their reaching def) renames soundly - 58 video functions change, both probe
-  checksums hold, and the deblock chain does hoist once the pass runs inside the pre-RA loop
-  after strength reduction, which is what creates the chain. But the corpus regresses:
-  `interpolateLuma` 1583 -> 1684 instructions and 314 -> 398 frame references, video.dll +2 KB.
-  The shared names the lowering leaves behind are accidental coalescing the hull allocator
-  depends on - splitting them multiplies concurrent hulls, and the allocator pays in spills more
-  than the loop passes earn. That result predates the split allocator now shipped here. Re-measure before treating
-  the old hull interference as a current blocker. The old session named `webrename-parked/`,
-  but no `Pass.WebRename` prototype is present in this checkout; the recorded algorithm is the
-  recoverable starting point.
-- Related: compiler.optimization.015, compiler.optimization.017; unlocks the full yield of the web hoisting shipped in LICM.
-
 ### compiler.optimization.017 — Jump-entered loops have no general preheader normalization
 
 - Recorded: 2026-08-27 07:57
@@ -531,29 +612,6 @@ block, and the hot path keeps the register.
   the video corpus do not regress.
 - Related: compiler.optimization.015.
 
-### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
-
-- Recorded: 2026-08-28 15:42
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: compiler/sema
-- Found while: giving `Core.Math.Simd` its 4x4 and 8x8 transposes (2026-08-28).
-- Evidence: `func transpose4x4(rows: [4] U32x4)->[4] U32x4` inlined into a caller that already
-  holds the block still emitted four 128-bit loads and four stores copying the argument into a
-  fresh frame slot, then read every row back out of that copy, around the eight interleaves that
-  are the whole operation: 40 instructions and a 0x1C8 frame for eight instructions of work. The
-  same body taking `rows: *[4] U32x4` in place compiles to 28 instructions and a 0x80 frame, which
-  is what the API now does. `materializeInlineBindings` binds a by-value aggregate argument to a
-  concrete local because the callee may write to its parameter; when the inlined body never
-  assigns that parameter, the local is pure traffic and the caller's storage could be named
-  directly.
-- Next: in `SemaInline`, measure the homes still required by indexed/foreach aggregate uses.
-  Elide a copy only when the caller's storage remains unchanged through all reads, including
-  indirect calls and alias writes, and when copy/drop hooks and argument evaluation retain their
-  semantics. Absence of a direct assignment to the parameter is not sufficient.
-- Complete when: a proven stable, side-effect-free by-value aggregate parameter costs no copy
-  after inlining, written or indirectly mutable storage still preserves value semantics, and the value-returning shape of a block transform is as cheap as the in-place
-  one on the video corpus.
-
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 
 - Recorded: 2026-08-29 15:41
@@ -575,62 +633,6 @@ block, and the hot path keeps the register.
 - Complete when: the three forms carry position-precise fixed intervals, the borrow path no
   longer fires on a whole-library build, and the suites stay green.
 - Related: compiler.optimization.016.
-
-### compiler.optimization.002 — Unrolling the key-stream loop still has to prove it pays
-
-- Recorded: 2026-08-06 20:18
-- Updated: 2026-09-03 11:39 — git: Convert early-return chains into conditional moves
-- Area: compiler/backend
-- Found while: chasing the second half of the ChaCha20 gap after the round loop stopped spilling
-- Observation: the dominant cost is the key-stream application — sixteen words XOR-ed one at a
-  time, a loop the unroller refuses because `K_MAX_TRIPS` is 8. Raising it to 16 unrolled the
-  loop and bought nothing (2026-08-22, static census, release: chacha main 627 -> 763
-  instructions, sha256 725 -> 878, every other task unchanged), because the per-element body
-  carried three instructions a constant cannot remove. Those are gone (2026-09-03): the
-  zero-extension after a 32-bit load and the `& M32` after a 64-bit add of two zero-extended
-  words fold in `Pass.InstructionCombine.ZeroExtend.cpp` (a 32-bit write clears the upper half
-  of its register, a contract `MicroInstr.h` now states), and the `load; op; store` round trip
-  folds into `xor [r9], r11`. That fold always existed on paper; two defects kept it out of
-  every loop. Every single-consumer fold counted the dead header phi of a loop-defined value
-  as a second reader (`valueHasSingleUse` now looks through phis nothing reads), and
-  legalization rewrote every memory-destination form back into registers because it read a
-  virtual register as "not an integer". The folds now leave a frame slot or a global alone
-  inside a loop, where slot promotion, the vectorizer and the instruction-pointer-relative
-  access own it (the round loop of chacha lost its SLP packing otherwise, 229 -> 483).
-- Evidence: release, static census of the bench mains, 2026-09-03: chacha 229 -> 223, sha256
-  394 -> 369 (25 zero-extensions -> 2), csvagg 699 -> 695, wordfreq 322 -> 318, dijkstra
-  276 -> 275, raytrace 115 -> 114, leven unchanged. The key-stream body alone is 24
-  instructions against 28.
-- Next: re-measure chacha with `K_MAX_TRIPS = 16` on a quiet machine, and only then ask whether
-  the SLP pass sees the sixteen `[frame + K]` loads it now has.
-- Complete when: a dynamic measurement on a quiet machine decides the unroll limit either way.
-
-### compiler.optimization.008 — The hand-written sign-bit clamps of the H.264 decoder may be retired
-
-- Recorded: 2026-08-19 14:16
-- Updated: 2026-09-03 11:39 — git: Convert early-return chains into conditional moves
-- Area: compiler
-- Found while: std.video.001, profiling the H.264 decoder on a 1080p30 Main stream in release.
-- Observation: `cond ? a : b`, `Swag.min`, `Swag.max`, `Swag.abs` and `Math.clamp` through them lower to a
-  compare and a conditional move: the ternary diamond converts when both arms are short, pure
-  and cannot fault (`Pass.BranchSimplify`, `convertDiamondsToConditionalMoves`), the intrinsics
-  through the single-arm conversion beside it. The select written as a statement — the
-  `if v < lo do return lo` / `if v > hi do return hi` chain — now converts too (2026-09-03,
-  `convertEarlyReturnsToSelects`): each statement is a triangle whose body leaves the function,
-  so the innermost pair folds into one return fed by a conditional move, and the fixed point
-  folds the chain from the bottom, under the diamond's rules (pure, short, one value leaving
-  each path, the compare re-issued when a path wrote the flags). What still compiles to a branch
-  is an `if`/`else` whose arms do more than produce one value.
-- Evidence: `#[Swag.PrintMicro("pre-emit")]` in release on the three-way early-return clamp:
-  15 instructions with two `jump_cond` and three `ret` before, 12 with two `cmov` and one `ret`
-  after; the nested ternary is 10. The decoder's conversion stage went from 1495 ms to about
-  470 ms over 59 frames when its clamps were rewritten branch-free by hand (3.2x, byte-identical
-  output; the sign-bit forms in `decode/h264/transform.swg`).
-- Next: re-measure the decoder's deblock and conversion loops with the clamps written as
-  statements against the hand-written sign-bit forms, and retire those if the select matches
-  them.
-- Complete when: the decoder's conversion stage measures the same with statement clamps as with
-  the sign-bit forms, and the sign-bit forms are gone.
 
 ### compiler.optimization.027 — Binding a fallible call's result deep-copies instead of adopting the temporary
 

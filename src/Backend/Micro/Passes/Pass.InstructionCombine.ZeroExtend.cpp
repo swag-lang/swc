@@ -109,7 +109,8 @@ namespace InstructionCombine
                 case MicroInstrOpcode::ClearReg:
                     return true;
                 case MicroInstrOpcode::LoadRegImm:
-                    return ops[1].opBits == MicroOpBits::B32;
+                    return ops[1].opBits == MicroOpBits::B32 ||
+                           (ops[1].opBits == MicroOpBits::B64 && !ops[2].hasWideImmediateValue() && ops[2].valueU64 <= UINT32_MAX);
                 case MicroInstrOpcode::LoadRegReg:
                 case MicroInstrOpcode::LoadRegMem:
                     return ops[2].opBits == MicroOpBits::B32;
@@ -141,6 +142,8 @@ namespace InstructionCombine
         // settle.
         bool valueIsZeroExtended32(const Context& ctx, const uint32_t valueId, SmallVector<uint32_t>& visited, const uint32_t depth)
         {
+            if (depth >= K_MAX_PHI_DEPTH)
+                return false;
             const MicroSsaState::ValueInfo* value = ctx.ssa->valueInfo(valueId);
             if (!value)
                 return false;
@@ -165,6 +168,15 @@ namespace InstructionCombine
             }
 
             const MicroInstr* inst = ctx.storage->ptr(value->instRef);
+            if (inst && inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const auto* ops = inst->ops(*ctx.operands);
+                if (ops && ops[2].opBits == MicroOpBits::B64)
+                {
+                    const auto source = ctx.ssa->reachingDef(ops[1].reg, value->instRef);
+                    return source.valid() && valueIsZeroExtended32(ctx, source.valueId, visited, depth + 1);
+                }
+            }
             return inst && definesZeroExtended32(*inst, inst->ops(*ctx.operands), value->reg);
         }
 
@@ -191,6 +203,12 @@ namespace InstructionCombine
             moveOps[2].opBits = MicroOpBits::B64;
             ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, moveOps);
         }
+    }
+
+    bool isValueZeroExtended32(const Context& ctx, uint32_t valueId)
+    {
+        SmallVector<uint32_t> visited;
+        return ctx.ssa && valueIsZeroExtended32(ctx, valueId, visited, 0);
     }
 
     bool tryDropRedundantZeroExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

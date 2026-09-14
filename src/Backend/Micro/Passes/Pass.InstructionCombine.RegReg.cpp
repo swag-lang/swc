@@ -29,6 +29,89 @@ namespace InstructionCombine
                    info.flags.has(MicroInstrFlagsE::IsCallInstruction);
         }
 
+        // Complementary logical shifts of one value form a rotate. Keep the
+        // input reads and the left result's copies at their original positions.
+        bool tryFoldRotate(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            if (!ctx.ssa || ops[3].microOp != MicroOp::Or || !ops[1].reg.isVirtualInt())
+                return false;
+            const MicroOpBits bits = ops[2].opBits;
+            if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                return false;
+            std::array                                regs{ops[0].reg, ops[1].reg};
+            std::array                                defs{ctx.ssa->reachingDef(regs[0], ref), ctx.ssa->reachingDef(regs[1], ref)};
+            std::array                                copies{MicroInstrRef::invalid(), MicroInstrRef::invalid()};
+            std::array<MicroSsaState::ReachingDef, 2> inputs;
+            std::array<const MicroInstrOperand*, 2>   shifts;
+            std::array<const MicroInstrOperand*, 2>   inputOps;
+            for (uint32_t i = 0; i < 2; ++i)
+            {
+                if (defs[i].valid() && !defs[i].isPhi && defs[i].inst && defs[i].inst->op == MicroInstrOpcode::LoadRegReg)
+                {
+                    const auto* copy = defs[i].inst->ops(*ctx.operands);
+                    if (!copy || (copy[2].opBits != bits && copy[2].opBits != MicroOpBits::B64) ||
+                        !copy[1].reg.isVirtualInt() || ctx.ssa->transitiveInstructionUseCount(defs[i].valueId, 2) != 1)
+                        return false;
+                    copies[i] = defs[i].instRef;
+                    regs[i]   = copy[1].reg;
+                    defs[i]   = ctx.ssa->reachingDef(regs[i], copies[i]);
+                }
+                if (!defs[i].valid() || defs[i].isPhi || !defs[i].inst || defs[i].inst->op != MicroInstrOpcode::OpBinaryRegImm ||
+                    ctx.ssa->transitiveInstructionUseCount(defs[i].valueId, 2) != 1)
+                    return false;
+                shifts[i] = defs[i].inst->ops(*ctx.operands);
+                if (!shifts[i] || shifts[i][3].hasWideImmediateValue() ||
+                    (shifts[i][2].microOp != MicroOp::ShiftLeft && shifts[i][2].microOp != MicroOp::ShiftRight) ||
+                    shifts[i][3].valueU64 == 0 || shifts[i][3].valueU64 >= getNumBits(bits))
+                    return false;
+                inputs[i] = ctx.ssa->reachingDef(regs[i], defs[i].instRef);
+                if (!inputs[i].valid() || inputs[i].isPhi || !inputs[i].inst || inputs[i].inst->op != MicroInstrOpcode::LoadRegReg)
+                    return false;
+                inputOps[i] = inputs[i].inst->ops(*ctx.operands);
+                if (!inputOps[i] || inputOps[i][2].opBits != shifts[i][1].opBits || !inputOps[i][1].reg.isVirtualInt() ||
+                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defs[i].instRef, ctx.builder))
+                    return false;
+            }
+            if (regs[0] == regs[1] || shifts[0][1].opBits != shifts[1][1].opBits ||
+                shifts[0][2].microOp == shifts[1][2].microOp ||
+                shifts[0][3].valueU64 + shifts[1][3].valueU64 != getNumBits(bits) ||
+                inputOps[0][1].reg != inputOps[1][1].reg)
+                return false;
+            const auto source = ctx.ssa->reachingDef(inputOps[0][1].reg, inputs[0].instRef);
+            if (!source.valid() || ctx.ssa->reachingDef(inputOps[1][1].reg, inputs[1].instRef).valueId != source.valueId)
+                return false;
+            if (shifts[0][1].opBits != bits &&
+                (bits != MicroOpBits::B32 || shifts[0][1].opBits != MicroOpBits::B64 || !isValueZeroExtended32(ctx, source.valueId)))
+                return false;
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                return false;
+            bool          seenSecond = false;
+            MicroInstrRef cursor     = defs[0].instRef;
+            for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && cursor.isValid() && cursor != ref; ++step)
+            {
+                const auto* current = ctx.storage->ptr(cursor);
+                if (!current || isBlockBoundary(*current))
+                    return false;
+                seenSecond |= cursor == defs[1].instRef;
+                cursor = ctx.storage->findNextInstructionRef(cursor);
+            }
+            if (cursor != ref || !seenSecond ||
+                !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef, inputs[0].instRef, inputs[1].instRef,
+                               copies[0].isValid() ? copies[0] : ref, copies[1].isValid() ? copies[1] : ref}))
+                return false;
+            MicroInstrOperand rotate[4];
+            rotate[0].reg     = regs[0];
+            rotate[1].opBits  = bits;
+            rotate[2].microOp = shifts[0][2].microOp == MicroOp::ShiftLeft ? MicroOp::RotateLeft : MicroOp::RotateRight;
+            rotate[3]         = shifts[0][3];
+            ctx.emitRewrite(defs[0].instRef, MicroInstrOpcode::OpBinaryRegImm, rotate);
+            ctx.emitErase(defs[1].instRef);
+            if (copies[1].isValid())
+                ctx.emitErase(copies[1]);
+            ctx.emitErase(ref);
+            return true;
+        }
+
         // (a & b) ^ (a & c) = a & (b ^ c). Keep the two non-common
         // inputs at their original read positions and move only the common
         // input, after proving that its value survives to the final operation.
@@ -260,7 +343,7 @@ namespace InstructionCombine
         if (!ops || !ops[0].reg.isVirtualInt())
             return false;
         if (ops[0].reg != ops[1].reg)
-            return tryFactorXorOfAnds(ctx, ref, ops);
+            return tryFoldRotate(ctx, ref, ops) || tryFactorXorOfAnds(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

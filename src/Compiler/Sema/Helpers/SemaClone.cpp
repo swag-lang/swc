@@ -1057,8 +1057,8 @@ namespace
             if (sourceChildRef.isInvalid() || clonedChildRef.isInvalid())
                 continue;
 
-            const AstNode& parent = sema.node(sourceRef);
-            bool childRebinds = rebindLocals;
+            const AstNode& parent       = sema.node(sourceRef);
+            bool           childRebinds = rebindLocals;
             if (const auto* closure = parent.safeCast<AstClosureExpr>())
                 childRebinds |= sourceChildRef == closure->nodeBodyRef;
             else if (const auto* function = parent.safeCast<AstFunctionExpr>())

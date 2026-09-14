@@ -5,8 +5,168 @@
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Unittest.h"
+#include <latch>
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    class SharingLockedFile
+    {
+    public:
+        explicit SharingLockedFile(const std::string_view name) :
+            path_(Os::getTemporaryPath() / std::format("swc_sharing_{}_p{}.bin", name, Os::currentProcessId()))
+        {
+            handle_ = CreateFileW(path_.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+            if (handle_ != INVALID_HANDLE_VALUE)
+            {
+                DWORD written = 0;
+                ready_        = WriteFile(handle_, "old", 3, &written, nullptr) && written == 3;
+            }
+        }
+
+        ~SharingLockedFile()
+        {
+            release();
+            std::error_code ec;
+            fs::remove(path_, ec);
+        }
+
+        void release()
+        {
+            if (handle_ != INVALID_HANDLE_VALUE)
+                CloseHandle(handle_);
+            handle_ = INVALID_HANDLE_VALUE;
+        }
+
+        bool            ready() const { return ready_; }
+        const fs::path& path() const { return path_; }
+
+    private:
+        fs::path path_;
+        HANDLE   handle_ = INVALID_HANDLE_VALUE;
+        bool     ready_  = false;
+    };
+}
+
+SWC_FILESYSTEM_TEST_BEGIN(FileSystem_WriteWaitsForTransientSharingLock)
+{
+    SharingLockedFile file("transient");
+    if (!file.ready())
+        return Result::Error;
+
+    std::latch              entered(1);
+    Result                  result = Result::Error;
+    FileSystem::IoErrorInfo error;
+    std::jthread            writer([&] {
+        entered.count_down();
+        result = FileSystem::writeBinaryFile(file.path(), "new", 3, error);
+    });
+    entered.wait();
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    file.release();
+    writer.join();
+    if (result != Result::Continue)
+        return Result::Error;
+
+    std::string contents;
+    SWC_RESULT(FileSystem::readTextFile(file.path(), contents, error));
+    if (contents != "new")
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(FileSystem_PersistentSharingLockPreservesPreviousContents)
+{
+    SharingLockedFile file("persistent");
+    if (!file.ready())
+        return Result::Error;
+
+    FileSystem::IoErrorInfo error;
+    if (FileSystem::writeBinaryFile(file.path(), "new", 3, error) != Result::Error || error.problem != FileSystem::IoProblem::OpenWrite || error.because.empty())
+        return Result::Error;
+    file.release();
+
+    std::string contents;
+    SWC_RESULT(FileSystem::readTextFile(file.path(), contents, error));
+    if (contents != "old")
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(FileSystem_AtomicWriteWaitsForTransientSharingLock)
+{
+    SharingLockedFile file("atomic_transient");
+    if (!file.ready())
+        return Result::Error;
+
+    std::latch              entered(1);
+    Result                  result = Result::Error;
+    FileSystem::IoErrorInfo error;
+    std::jthread            writer([&] {
+        entered.count_down();
+        result = FileSystem::writeBinaryFileAtomic(file.path(), "new", 3, error);
+    });
+    entered.wait();
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    file.release();
+    writer.join();
+    if (result != Result::Continue)
+        return Result::Error;
+
+    std::string contents;
+    SWC_RESULT(FileSystem::readTextFile(file.path(), contents, error));
+    if (contents != "new")
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ConcurrentAtomicWritesKeepCompleteSnapshots)
+{
+    SharingLockedFile file("atomic_concurrent");
+    if (!file.ready())
+        return Result::Error;
+    file.release();
+
+    const std::array<std::string, 2> versions = {std::string(1024 * 1024, 'a'), std::string(2 * 1024 * 1024 + 4093, 'b')};
+    std::atomic_uint32_t             running  = 2;
+    std::atomic_bool                 failed   = false;
+    std::latch                       start(3);
+    std::array<std::jthread, 2>      writers;
+    for (size_t i = 0; i < writers.size(); ++i)
+    {
+        writers[i] = std::jthread([&, i] {
+            start.arrive_and_wait();
+            FileSystem::IoErrorInfo error;
+            for (uint32_t round = 0; round < 16; ++round)
+                if (FileSystem::writeBinaryFileAtomic(file.path(), versions[i].data(), versions[i].size(), error) != Result::Continue)
+                    if (!failed.exchange(true))
+                        fprintf(stderr, "atomic writer %zu stopped: %s\n", i, FileSystem::describeIoFailure(error).c_str());
+            running.fetch_sub(1);
+        });
+    }
+    start.arrive_and_wait();
+    do
+    {
+        std::string             contents;
+        FileSystem::IoErrorInfo error;
+        if (FileSystem::readTextFile(file.path(), contents, error) != Result::Continue)
+        {
+            if (!failed.exchange(true))
+                fprintf(stderr, "atomic reader stopped: %s\n", FileSystem::describeIoFailure(error).c_str());
+        }
+        else if (contents != "old" && contents != versions[0] && contents != versions[1])
+        {
+            if (!failed.exchange(true))
+                fprintf(stderr, "atomic reader received a mixed snapshot of %zu bytes\n", contents.size());
+        }
+    } while (running.load());
+    for (auto& writer : writers)
+        writer.join();
+    if (failed.load())
+        return Result::Error;
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(Os_FatalHostExceptionClassificationExcludesCppExceptions)
 {

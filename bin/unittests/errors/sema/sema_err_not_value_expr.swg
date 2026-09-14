@@ -15,3 +15,17 @@ var e: #decltype(s32) = 9
 
 namespace N {}
 var bad: #decltype(N) = 0     // swc-expected-error {{sema_err_not_value_expr}}
+
+func callbackTarget()->s32 => 42
+func acceptCallback(callback: func()->s32)->s32 => callback()
+
+#test
+{
+    // A function declaration needs '&' to supply a callback value.
+    discard acceptCallback(callback: callbackTarget) // swc-expected-error {{sema_err_not_value_expr}}
+}
+
+#test
+{
+    discard acceptCallback(callbackTarget) // swc-expected-error {{sema_err_not_value_expr}}
+}

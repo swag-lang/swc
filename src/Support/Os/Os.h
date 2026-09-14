@@ -79,6 +79,7 @@ namespace Os
 
     void panicBox(std::string_view expr);
     Utf8 systemError();
+    bool isFileSharingError();
 
     [[noreturn]]
     void exit(ExitCode code);

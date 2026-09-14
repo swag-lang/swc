@@ -1052,9 +1052,30 @@ namespace
         if (tryGetWorkspacePathWriteTime(outTime, dependencyManifestPath))
             return true;
 
-        // Published or hand-copied dependencies have no manifest; their newest entry is the only
-        // build date available.
-        return tryCollectLatestWorkspaceTreeWriteTime(outTime, dependencyDir);
+        // A native test imports normal dependency artifacts. Its own manifest suffix need not
+        // exist beside those artifacts, even though their normal build manifest is available.
+        if (tryGetWorkspacePathWriteTime(outTime, dependencyDir / K_WORKSPACE_ARTIFACT_MANIFEST_FILE))
+            return true;
+
+        // Mirroring creates and removes publication markers even when every input is unchanged.
+        // Directory timestamps therefore date the reader's bookkeeping, not a dependency build.
+        outTime = {};
+        std::error_code ec;
+        for (fs::recursive_directory_iterator it(dependencyDir, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                return false;
+            const bool regular = it->is_regular_file(ec);
+            if (ec)
+                return false;
+            if (!regular || isWorkspaceDependencyTempPath(it->path()) || it->path().filename() == ".swc-api-incomplete")
+                continue;
+            fs::file_time_type writeTime;
+            if (!tryGetWorkspacePathWriteTime(writeTime, it->path()))
+                return false;
+            outTime = std::max(outTime, writeTime);
+        }
+        return !ec;
     }
 
     bool workspaceApiInputsAreUpToDate(std::vector<fs::path>& outInputs, const fs::path& directory, const fs::file_time_type readTime)

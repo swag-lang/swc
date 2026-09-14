@@ -61,6 +61,7 @@ namespace FileSystem
     Result      readBinaryFile(const fs::path& path, ByteArray& outData, IoErrorInfo& error);
     Result      readTextFile(const fs::path& path, std::string& outText, IoErrorInfo& error);
     Result      writeBinaryFile(const fs::path& path, const void* data, size_t size, IoErrorInfo& error);
+    Result      writeBinaryFileAtomic(const fs::path& path, const void* data, size_t size, IoErrorInfo& error);
     bool        pathEquals(const fs::path& lhs, const fs::path& rhs);
     bool        pathStartsWith(const fs::path& path, const fs::path& prefix);
     void        setDiagnosticPath(Diagnostic& diag, const TaskContext* ctx, const fs::path& path);

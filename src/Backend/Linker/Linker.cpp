@@ -18,7 +18,7 @@ namespace
     bool writeJobArtifact(LinkJob& job, const fs::path& path, const ByteArray& bytes)
     {
         FileSystem::IoErrorInfo ioError;
-        if (FileSystem::writeBinaryFile(path, bytes.data(), bytes.size(), ioError) != Result::Continue)
+        if (FileSystem::writeBinaryFileAtomic(path, bytes.data(), bytes.size(), ioError) != Result::Continue)
         {
             job.error = Diagnostic::get(DiagnosticId::cmd_err_link_artifact_write_failed);
             job.error.addArgument(Diagnostic::ARG_PATH, Utf8(path));

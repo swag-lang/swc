@@ -429,7 +429,21 @@ TypeRef NodePayload::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
     if (value.isValid())
         value.dbgPtr = &ctx.typeMgr().get(value);
 #endif
-    return unwrapFunctionReturnTypeIfCall(*this, ctx, nodeRef, node, value);
+    // Transparent wrappers inherit the callee symbol. A zero-argument call has
+    // no argument-map entry, so its syntax must retain the result-type distinction.
+    const AstNode* expression = &node;
+    while (true)
+    {
+        AstNodeRef childRef;
+        if (expression->is(AstNodeId::NamedArgument))
+            childRef = expression->cast<AstNamedArgument>().nodeArgRef;
+        else if (expression->is(AstNodeId::ParenExpr))
+            childRef = expression->cast<AstParenExpr>().nodeExprRef;
+        else
+            break;
+        expression = &ast().node(getSubstituteRef(childRef));
+    }
+    return unwrapFunctionReturnTypeIfCall(*this, ctx, nodeRef, *expression, value);
 }
 
 void NodePayload::setType(AstNodeRef nodeRef, TypeRef ref)

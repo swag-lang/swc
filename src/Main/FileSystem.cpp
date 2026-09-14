@@ -348,13 +348,31 @@ Result FileSystem::writeBinaryFile(const fs::path& path, const void* data, const
 {
     error = {};
 
-    std::ofstream file(path, std::ios::binary | std::ios::trunc);
-    if (!file.is_open())
+    std::ofstream                         file;
+    std::chrono::steady_clock::time_point retryDeadline;
+    while (true)
     {
-        error.problem = IoProblem::OpenWrite;
-        error.because = fallbackIoBecause(error.problem);
-        return Result::Error;
+        file.open(path, std::ios::binary | std::ios::trunc);
+        if (file.is_open())
+            break;
+
+        // Scanners can briefly hold a newly built image without write sharing.
+        // Retry that lock only; a lasting lock still reports the original I/O error.
+        const bool sharingError = Os::isFileSharingError();
+        error.problem           = IoProblem::OpenWrite;
+        error.because           = fallbackIoBecause(error.problem);
+        if (!sharingError)
+            return Result::Error;
+
+        const auto now = std::chrono::steady_clock::now();
+        if (retryDeadline == std::chrono::steady_clock::time_point{})
+            retryDeadline = now + std::chrono::seconds(2);
+        if (now >= retryDeadline)
+            return Result::Error;
+        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+        file.clear();
     }
+    error = {};
 
     if (size && !file.write(static_cast<const char*>(data), static_cast<std::streamsize>(size)))
     {
@@ -372,6 +390,41 @@ Result FileSystem::writeBinaryFile(const fs::path& path, const void* data, const
     }
 
     return Result::Continue;
+}
+
+Result FileSystem::writeBinaryFileAtomic(const fs::path& path, const void* data, const size_t size, IoErrorInfo& error)
+{
+    static std::atomic_uint64_t sequence      = 0;
+    fs::path                    temporaryPath = path;
+    temporaryPath += std::format(".{}.{}.swctmp", Os::currentProcessId(), sequence.fetch_add(1, std::memory_order_relaxed));
+
+    Result result = writeBinaryFile(temporaryPath, data, size, error);
+    if (result == Result::Continue)
+    {
+        // Readers and competing writers must only see complete artifacts. A rename on the
+        // same volume replaces the directory entry without overwriting the previous bytes.
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        while (true)
+        {
+            std::error_code ec;
+            fs::rename(temporaryPath, path, ec);
+            if (!ec)
+                return Result::Continue;
+
+            // Windows also reports access denied when a reader did not share deletion.
+            const bool sharingError = ec == std::errc::permission_denied || Os::isFileSharingError();
+            error.problem           = IoProblem::Write;
+            error.because           = normalizeSystemMessage(ec);
+            result                  = Result::Error;
+            if (!sharingError || std::chrono::steady_clock::now() >= deadline)
+                break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(25));
+        }
+    }
+
+    std::error_code ec;
+    fs::remove(temporaryPath, ec);
+    return result;
 }
 
 bool FileSystem::pathEquals(const fs::path& lhs, const fs::path& rhs)

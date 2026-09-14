@@ -2558,6 +2558,7 @@ namespace
             if (bindValueTypeRef.isValid())
                 castTypeRef = bindValueTypeRef;
             SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, castTypeRef, argView));
+            SWC_RESULT(SemaCheck::isValue(sema, argValueRef));
             if (isIntrinsicAliasStorageMatch(sema, mode, selectedFn, argView.typeRef(), castTypeRef))
                 continue;
 

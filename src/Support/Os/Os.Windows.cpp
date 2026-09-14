@@ -1070,6 +1070,12 @@ namespace Os
 #endif
     }
 
+    bool isFileSharingError()
+    {
+        const DWORD error = GetLastError();
+        return error == ERROR_SHARING_VIOLATION || error == ERROR_LOCK_VIOLATION;
+    }
+
     Utf8 systemError()
     {
         const DWORD id = GetLastError();

@@ -1137,6 +1137,42 @@ SWC_TEST_BEGIN(PostRAPeephole_SelfOperand_KeepsMemoryOperandWhenWindowExhausted)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_PartialFlagWritersPreserveIncomingZero)
+{
+    const auto& conv = CallConv::get(CallConvKind::Swag);
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        const uint64_t width = getNumBits(bits);
+        for (const auto op : {MicroOp::ShiftLeft, MicroOp::ShiftRight, MicroOp::ShiftArithmeticRight, MicroOp::RotateLeft, MicroOp::RotateRight})
+        {
+            for (const uint64_t count : {0ull, 1ull, width, width + 1})
+            {
+                MicroBuilder builder(ctx);
+                builder.emitCmpRegImm(conv.intRegs[0], ApInt(0, 64), MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(conv.intRegs[1], ApInt(count, 64), op, bits);
+                builder.emitSetCondReg(conv.intRegs[2], MicroCond::Equal);
+                builder.emitRet();
+                SWC_RESULT(runPostRaPeepholePass(builder));
+                const bool keepsZero = op == MicroOp::RotateLeft || op == MicroOp::RotateRight || (count & (width - 1)) == 0;
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != (keepsZero ? 1u : 0u))
+                    return Result::Error;
+            }
+
+            MicroBuilder builder(ctx);
+            builder.emitCmpRegImm(conv.intRegs[0], ApInt(0, 64), MicroOpBits::B64);
+            builder.emitOpBinaryRegReg(conv.intRegs[1], conv.intRegs[2], op, bits);
+            builder.emitSetCondReg(conv.intRegs[3], MicroCond::Equal);
+            builder.emitRet();
+            SWC_RESULT(runPostRaPeepholePass(builder));
+            // A register count can be zero at runtime.
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 1)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

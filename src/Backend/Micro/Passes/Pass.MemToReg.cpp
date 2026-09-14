@@ -309,7 +309,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             // live and prevent folding the pair to LEA. No access can observe
             // the intermediate pointer between these adjacent instructions.
             const MicroInstrRef nextRef = storage.findNextInstructionRef(it.current);
-            const MicroInstr* next = nextRef.isValid() ? storage.ptr(nextRef) : nullptr;
+            const MicroInstr*   next    = nextRef.isValid() ? storage.ptr(nextRef) : nullptr;
             if (next && next->op == MicroInstrOpcode::OpBinaryRegImm && ar.isVirtualInt() && ar != frameBase)
             {
                 const MicroInstrOperand* nextOps = next->ops(operands);

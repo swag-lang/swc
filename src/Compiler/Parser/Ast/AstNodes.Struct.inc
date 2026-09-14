@@ -594,6 +594,7 @@ struct AstIndexExpr : AstNodeT<AstNodeId::IndexExpr>
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeArgRef}); }
     Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -609,6 +610,7 @@ struct AstIndexListExpr : AstCompoundT<AstNodeId::IndexListExpr>
         AstCompoundT::collectChildren(out, ast);
     }
     Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

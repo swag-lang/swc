@@ -398,6 +398,43 @@ SWC_TEST_BEGIN(InstCombine_Reassociate_PreservesIntermediateFlags)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroPassHelpers_PartialFlagWritersDoNotKillLiveness)
+{
+    constexpr MicroReg value = MicroReg::virtualIntReg(1);
+    constexpr MicroReg flag  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg base  = MicroReg::virtualIntReg(3);
+    for (const auto bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        const uint64_t countMask = bits == MicroOpBits::B64 ? 63 : 31;
+        for (const bool memory : {false, true})
+        {
+            for (const auto op : {MicroOp::ShiftLeft, MicroOp::ShiftRight, MicroOp::ShiftArithmeticRight, MicroOp::RotateLeft, MicroOp::RotateRight})
+            {
+                for (const uint64_t count : {0ull, 1ull, countMask + 1, countMask + 2})
+                {
+                    MicroBuilder builder(ctx);
+                    builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+                    const auto compare = builder.instructions().lastInstructionRef();
+                    if (memory)
+                        builder.emitOpBinaryMemImm(base, 1, ApInt(count, 64), op, bits);
+                    else
+                        builder.emitOpBinaryRegImm(value, ApInt(count, 64), op, bits);
+                    builder.emitSetCondReg(flag, MicroCond::Equal);
+                    builder.emitRet();
+
+                    const bool dead = op != MicroOp::RotateLeft && op != MicroOp::RotateRight && (count & countMask) != 0;
+                    if (MicroPassHelpers::areCpuFlagsDeadAfter(builder.instructions(), builder.operands(), compare) != dead ||
+                        MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(builder.instructions(), builder.operands(), compare) != dead ||
+                        MicroPassHelpers::areCpuFlagsDeadAfterInCfg(builder, compare) != dead)
+                        return Result::Error;
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_Immediate_PreservesFlagsAcrossJump)
 {
     constexpr MicroReg value = MicroReg::virtualIntReg(1);

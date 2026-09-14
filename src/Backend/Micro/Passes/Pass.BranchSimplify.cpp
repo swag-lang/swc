@@ -625,12 +625,11 @@ namespace
             if (!boolReg.isVirtual())
                 continue;
 
-            // Both successors keep observing the flags at the jump, so
-            // the compare can only go when nothing downstream reads them. A
-            // conditional move leaves the flags it read untouched, so a later
-            // reader of the same comparison is served by the comparison
-            // itself once this test is gone.
-            if (!isConditionalMove && (!builder || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*builder, jumpRef)))
+            // Jumps and conditional moves preserve the flags they read. The
+            // boolean compare can only go when no later reader observes it.
+            // Repeated selects with their own boolean compares still qualify:
+            // each next compare overwrites the flags before the next reader.
+            if (!builder || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*builder, jumpRef))
                 continue;
 
             // Readers between the setcc and the compare still see the original
@@ -1426,7 +1425,7 @@ namespace
             if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, ops))
             {
                 arm.definesFlags  = true;
-                definedFlagsSoFar = true;
+                definedFlagsSoFar |= MicroPassHelpers::instructionOverwritesCpuFlags(*inst, ops);
             }
 
             const MicroInstrUseDef* useDef = scan.ssa->instrUseDef(ref);
@@ -1738,7 +1737,7 @@ namespace
             if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, ops))
             {
                 out.definesFlags  = true;
-                definedFlagsSoFar = true;
+                definedFlagsSoFar |= MicroPassHelpers::instructionOverwritesCpuFlags(*inst, ops);
             }
 
             const MicroOpBits writeBits = armInstructionWriteBits(*inst, ops);

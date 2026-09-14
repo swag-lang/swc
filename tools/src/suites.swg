@@ -820,8 +820,8 @@ private func verifyWorkspaceSourceEditDuringBuild(context: *Context, options: *O
     return 0
 }
 
-// A local producer runs after external mirroring, then rebuilds the external DLL before the
-// consumer enters compilation. The stable export-only API cannot stand in for native freshness.
+// A local publisher runs after external mirroring, then installs a rebuilt DLL before the
+// consumer enters compilation. The unchanged public API cannot stand in for native freshness.
 private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *Options, workspace, buildCfg: string)->s32 fail
 {
     let scratch = Path.combine(workspace, ".tmp", "native-read-during-build-probe")
@@ -854,27 +854,37 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
     let providerOutput = try context.captureCompiler(producer)
     Console.print(providerOutput.toString())
 
-    let dependencyRoot = Path.combine(providerWorkspace.toString(), ".output")
-    let published      = Path.combine(dependencyRoot.toString(), "provider")
-    let exportRoot     = Path.combine(published.toString(), "export")
-    let exportConfig   = Path.combine(exportRoot.toString(), buildCfg)
-    let exported       = Path.combine(exportConfig.toString(), options.targetArch.toString())
-    for directory in [exportRoot, exportConfig, exported] do
+    let dependencyRoot  = Path.combine(providerWorkspace.toString(), ".output")
+    let published       = Path.combine(dependencyRoot.toString(), "provider")
+    let nativeOutput    = Path.combine(published.toString(), "shared-library", buildCfg, options.targetArch.toString())
+    let exportPath      = Path.combine(nativeOutput.toString(), "provider.swg")
+    let originalApi     = try File.readAllBytes(exportPath.toString())
+    let originalApiTime = (try File.info(exportPath.toString())).lastWriteTime
+
+    let replacementWorkspace = Path.combine(scratch.toString(), "replacement-workspace")
+    let replacementModules   = Path.combine(replacementWorkspace.toString(), "modules")
+    let replacementModule    = Path.combine(replacementModules.toString(), "provider")
+    let replacementSource    = Path.combine(replacementModule.toString(), "src")
+    for directory in [replacementWorkspace, replacementModules, replacementModule, replacementSource] do
         try Directory.create(directory.toString())
-    let originalApi = try File.readAllBytes(Path.combine(published.toString(), "shared-library", buildCfg, options.targetArch.toString(), "provider.swg").toString())
-    let exportPath  = Path.combine(exported.toString(), "provider.swg")
-    try File.writeAllBytes(exportPath.toString(), originalApi.toSlice())
+    try File.writeAllBytes(Path.combine(replacementModule.toString(), "module.swg").toString(), cast(const [..] u8) "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"NativeReadApi\" }\n")
+    try File.writeAllBytes(Path.combine(replacementSource.toString(), "value.swg").toString(), cast(const [..] u8) "public func value()->s32 => 2\n")
+    var replacement = workspaceModuleCommand("build", replacementWorkspace.toString(), "provider", buildCfg)
+    options.appendExtra(&replacement)
+    let replacementOutput = try context.captureCompiler(replacement)
+    Console.print(replacementOutput.toString())
+    let replacementNative = Path.combine(replacementWorkspace.toString(), ".output", "provider", "shared-library", buildCfg, options.targetArch.toString())
+    let replacementApi    = try File.readAllBytes(Path.combine(replacementNative.toString(), "provider.swg").toString())
+    if replacementApi.toSlice() != originalApi.toSlice()
+    {
+        Console.println("The rebuilt native dependency changed its public API")
+        return 1
+    }
 
     try File.writeAllBytes(Path.combine(writerModule.toString(), "module.swg").toString(), cast(const [..] u8) "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Export; cfg.moduleNamespace = \"NativeWriter\" }\n")
-    var writer = String.from("#global private\n")
-    writer.append(workspaceSourceRewrite(providerSource.toString(), "public func value()->s32 => 2\\n").toString())
-    var nested: Arguments
-    nested.add([context.compiler.toString()])
-    nested.addAll(producer)
-    nested.add(["--rebuild"])
-    writer.append(workspaceCompilerInvocation(context.compiler.toString(), joinArguments(nested.toSlice()).toString()).toString())
-    writer.append("\npublic const Marker = 1\n#run { rewriteSource(); runCompiler() }\n")
-    try File.writeAllBytes(Path.combine(writerModule.toString(), "src", "main.swg").toString(), cast(const [..] u8) writer.toString())
+    let writer     = workspaceNativePublisher(replacementNative.toString(), nativeOutput.toString())
+    let writerPath = Path.combine(writerModule.toString(), "src", "main.swg")
+    try File.writeAllBytes(writerPath.toString(), cast(const [..] u8) "public const Marker = 1\n")
     let consumerSetup = Format.toString(#raw """
         #import("writer")
         #import("provider", location: "%", link: "shared-library")
@@ -892,22 +902,35 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
 
     var command = workspaceModuleCommand("run", consumerWorkspace.toString(), "consumer", buildCfg)
     options.appendExtra(&command)
+    for warm in [false, true]
+    {
+        let output = try context.captureCompiler(command)
+        Console.print(output.toString())
+        if not Utf8.contains(output.toString(), "native-read-value=1") or (warm and not Utf8.contains(output.toString(), "consumer • up-to-date"))
+        {
+            Console.println("An unchanged native dependency did not reuse the first workspace build")
+            return 1
+        }
+    }
+
+    try File.writeAllBytes(writerPath.toString(), cast(const [..] u8) writer.toString())
     var iteration: u32
     for expected in ["1", "2", "2"]
     {
         let output = try context.captureCompiler(command)
         Console.print(output.toString())
-        let marker = Format.toString("native-read-value=%", expected)
-        if not Utf8.contains(output.toString(), marker.toString()) or (iteration == 2 and not Utf8.contains(output.toString(), "up-to-date"))
+        let currentApi     = try File.readAllBytes(exportPath.toString())
+        let currentApiTime = (try File.info(exportPath.toString())).lastWriteTime
+        if currentApi.toSlice() != originalApi.toSlice() or currentApiTime != originalApiTime
         {
-            Console.println("A dependency rebuilt after mirroring did not reach the next workspace run; expected ", marker.toString())
+            Console.println("The native dependency probe changed its stable API")
             return 1
         }
 
-        let currentApi = try File.readAllBytes(exportPath.toString())
-        if currentApi.toSlice() != originalApi.toSlice()
+        let marker = Format.toString("native-read-value=%", expected)
+        if not Utf8.contains(output.toString(), marker.toString()) or (iteration == 2 and not Utf8.contains(output.toString(), "consumer • up-to-date"))
         {
-            Console.println("The native dependency probe changed its stable API")
+            Console.println("A dependency rebuilt after mirroring did not reach the next workspace run; expected ", marker.toString())
             return 1
         }
 
@@ -917,52 +940,43 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
     return 0
 }
 
-// Runs a bounded nested compiler without a shell or standard-module imports in the fixture.
-private func workspaceCompilerInvocation(compiler, arguments: string)->String
+// WriteFile publishes fresh native bytes and their completion marker without redating the API.
+private func workspaceNativePublisher(sourceDirectory, destinationDirectory: string)->String
 {
-    var source = Format.toString(#raw """
-        struct StartupInfo
+    return Format.toString(#raw """
+        #global private
+        #[Swag.Foreign("kernel32", "CreateFileA")]
+        func createFile(path: const [*] u8, access, share: u32, security: *void?, creation, flags: u32, template: *void?)->*void?
+        #[Swag.Foreign("kernel32", "ReadFile")]
+        func readFile(file: *void?, bytes: [*] u8, count: u32, read: *u32, overlapped: *void?)->bool
+        #[Swag.Foreign("kernel32", "WriteFile")]
+        func writeFile(file: *void?, bytes: const [*] u8, count: u32, written: *u32, overlapped: *void?)->bool
+        #[Swag.Foreign("kernel32", "CloseHandle")]
+        func closeHandle(file: *void?)->bool
+        func publishFile(sourcePath, destinationPath: string)
         {
-            cb: u32
-            reserved, desktop, title: *u8?
-            x, y, xSize, ySize, xChars, yChars, fill, flags: u32
-            showWindow, reservedCount: u16
-            reservedBytes: *u8?
-            input, output, error: *void?
+            let input = createFile(sourcePath.buffer, 0x80000000, 1, null, 3, 0, null)
+            Swag.assert(cast(u64) input != Swag.U64.Max)
+            defer discard closeHandle(input)
+            let output = createFile(destinationPath.buffer, 0x40000000, 1, null, 2, 0, null)
+            Swag.assert(cast(u64) output != Swag.U64.Max)
+            defer discard closeHandle(output)
+            var bytes: [8192] u8
+            for
+            {
+                var read, written: u32
+                Swag.assert(readFile(input, cast([*] u8) &bytes, cast(u32) bytes.count, &read, null))
+                if read == 0 do break
+                Swag.assert(writeFile(output, cast(const [*] u8) &bytes, read, &written, null) and written == read)
+            }
         }
-        struct ProcessInfo { process, thread: *void?; processId, threadId: u32 }
-        #[Swag.Foreign("kernel32", "CreateProcessA")]
-        func createProcess(application: const [*] u8, command: [*] u8, processAttrs, threadAttrs: *void?, inherit: s32, flags: u32, environment: *void?, directory: const [*] u8?, startup: *StartupInfo, info: *ProcessInfo)->s32
-        #[Swag.Foreign("kernel32", "WaitForSingleObject")]
-        func waitProcess(process: *void?, milliseconds: u32)->u32
-        #[Swag.Foreign("kernel32", "GetExitCodeProcess")]
-        func exitCode(process: *void?, code: *u32)->s32
-        #[Swag.Foreign("kernel32", "TerminateProcess")]
-        func stopProcess(process: *void?, code: u32)->s32
-        func runCompiler()
+        public const Marker = 1
+        #run
         {
-            var startup: StartupInfo
-            startup.cb = cast(u32) #sizeof(StartupInfo)
-            var info: ProcessInfo
-            let application = #raw "%"
-        """, compiler)
-    source.append("\nlet commandText = #raw \"\"\"")
-    source.append(arguments)
-    source.append("\"\"\"\n")
-    source.append(#raw """
-            var command: [8192] u8
-            Swag.assert(commandText.count < command.count)
-            for index in commandText.count do command[index] = commandText[index]
-            Swag.assert(createProcess(application.buffer, cast([*] u8) &command, null, null, 0, 0x08000000, null, null, &startup, &info) != 0)
-            defer { discard closeHandle(info.thread); discard closeHandle(info.process) }
-            let completed = waitProcess(info.process, 30_000) == 0
-            if not completed do discard stopProcess(info.process, 1)
-            Swag.assert(completed)
-            var code: u32
-            Swag.assert(exitCode(info.process, &code) != 0 and code == 0)
+            publishFile(#raw "%/provider.dll", #raw "%/provider.dll")
+            publishFile(#raw "%/.swc-artifacts", #raw "%/.swc-artifacts")
         }
-        """)
-    return source
+        """, sourceDirectory, destinationDirectory, sourceDirectory, destinationDirectory)
 }
 
 // Runs the multi-module workspace suite.

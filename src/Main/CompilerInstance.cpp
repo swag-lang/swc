@@ -945,10 +945,8 @@ Result CompilerInstance::ensurePatchedGlobalFunctionBindings(TaskContext& ctx)
 
 void CompilerInstance::registerDeferredJitConstantFunction(SymbolFunction& symbol, const DataSegmentRef storage)
 {
-    const auto traceName = symbol.idRef().isValid() ? idMgr().get(symbol.idRef()).name : std::string_view{};
-    fprintf(stderr, "DEFER %p %.*s shard=%u offset=%u address=%p\n", &symbol, static_cast<int>(traceName.size()), traceName.data(), storage.shardIndex, storage.offset, symbol.jitPatchAddress());
     const std::scoped_lock lock(deferredJitConstantFunctionsMutex_);
-    void*                  address = symbol.jitPatchAddress();
+    void*                  address = symbol.jitEntryAddress();
     if (!address)
     {
         auto& slots = deferredJitConstantFunctions_[&symbol];
@@ -957,7 +955,7 @@ void CompilerInstance::registerDeferredJitConstantFunction(SymbolFunction& symbo
     }
 
     // A reflected generic method may still be compiling its own body. Keep its slot
-    // empty until patching completes, and retain the relocation for that publication.
+    // empty until its code and dependencies are executable, and retain the relocation.
     DataSegment&          segment = cstMgr().shardDataSegment(storage.shardIndex);
     DataSegmentAllocation allocation;
     SWC_FORCE_ASSERT(segment.findAllocation(allocation, storage.offset));
@@ -965,26 +963,26 @@ void CompilerInstance::registerDeferredJitConstantFunction(SymbolFunction& symbo
     *segment.ptr<void*>(storage.offset) = address;
 }
 
-void CompilerInstance::patchDeferredJitConstantFunctions(SymbolFunction& symbol)
+void CompilerInstance::publishJitFunctionEntry(SymbolFunction& symbol, void* address)
 {
-    const auto traceName = symbol.idRef().isValid() ? idMgr().get(symbol.idRef()).name : std::string_view{};
-    fprintf(stderr, "PATCH %p %.*s address=%p\n", &symbol, static_cast<int>(traceName.size()), traceName.data(), symbol.jitPatchAddress());
+    SWC_ASSERT(address != nullptr);
     const std::scoped_lock lock(deferredJitConstantFunctionsMutex_);
     const auto             it = deferredJitConstantFunctions_.find(&symbol);
-    if (it == deferredJitConstantFunctions_.end())
-        return;
-
-    void* address = symbol.jitPatchAddress();
-    SWC_ASSERT(address != nullptr);
-    for (const DataSegmentRef storage : it->second)
+    if (it != deferredJitConstantFunctions_.end())
     {
-        DataSegment&          segment = cstMgr().shardDataSegment(storage.shardIndex);
-        DataSegmentAllocation allocation;
-        SWC_FORCE_ASSERT(segment.findAllocation(allocation, storage.offset));
-        const std::scoped_lock allocationLock(segment.allocationMutex(allocation.offset));
-        *segment.ptr<void*>(storage.offset) = address;
+        for (const DataSegmentRef storage : it->second)
+        {
+            DataSegment&          segment = cstMgr().shardDataSegment(storage.shardIndex);
+            DataSegmentAllocation allocation;
+            SWC_FORCE_ASSERT(segment.findAllocation(allocation, storage.offset));
+            const std::scoped_lock allocationLock(segment.allocationMutex(allocation.offset));
+            *segment.ptr<void*>(storage.offset) = address;
+        }
+        deferredJitConstantFunctions_.erase(it);
     }
-    deferredJitConstantFunctions_.erase(it);
+    // Registration checks this address under the same lock: it either joins the
+    // pending list before publication or patches immediately afterward.
+    symbol.jitEntryAddress_.store(address, std::memory_order_release);
 }
 
 void CompilerInstance::resetPreparedJitFunctions()

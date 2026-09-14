@@ -14,6 +14,7 @@ SWC_BEGIN_NAMESPACE();
 class WarningPolicy
 {
 public:
+    bool operator==(const WarningPolicy&) const = default;
     // Stands for every warning wherever a warning list is accepted.
     static constexpr std::string_view ALL = "all";
 
@@ -37,8 +38,9 @@ public:
 private:
     struct Entry
     {
-        DiagnosticId id    = DiagnosticId::None;
-        WarningLevel level = WarningLevel::Warning;
+        bool         operator==(const Entry&) const = default;
+        DiagnosticId id                             = DiagnosticId::None;
+        WarningLevel level                          = WarningLevel::Warning;
     };
 
     SmallVector4<Entry>         levels_;

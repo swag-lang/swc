@@ -50,14 +50,16 @@ using GeneratedOperatorFlags = EnumFlags<GeneratedOperatorFlagsE>;
 
 struct AttributeParamInstance
 {
-    IdentifierRef nameIdRef   = IdentifierRef::invalid();
-    ConstantRef   valueCstRef = ConstantRef::invalid();
+    bool          operator==(const AttributeParamInstance&) const = default;
+    IdentifierRef nameIdRef                                       = IdentifierRef::invalid();
+    ConstantRef   valueCstRef                                     = ConstantRef::invalid();
 };
 
 // One attribute
 struct AttributeInstance
 {
-    const SymbolFunction*                symbol = nullptr;
+    bool                                 operator==(const AttributeInstance&) const = default;
+    const SymbolFunction*                symbol                                     = nullptr;
     SmallVector4<AttributeParamInstance> params;
 };
 
@@ -70,15 +72,16 @@ struct RuntimeSafetyOverride
 // A list of attributes
 struct AttributeList
 {
-    SmallVector4<AttributeInstance>     attributes;
-    RtAttributeFlags                    rtFlags = RtAttributeFlagsE::Zero;
-    uint64_t                            returnBorrowsParamsMask  = 0;
-    uint64_t                            storesParamsMask         = 0;
-    uint64_t                            storesIntoParamPairs     = 0;
-    uint64_t                            freesParamsMask          = 0;
-    uint64_t                            reallocatesParamsMask    = 0;
-    uint64_t                            returnsPayloadParamsMask = 0;
-    uint64_t                            returnsStorageParamsMask = 0;
+    bool                            operator==(const AttributeList&) const = default;
+    SmallVector4<AttributeInstance> attributes;
+    RtAttributeFlags                rtFlags                  = RtAttributeFlagsE::Zero;
+    uint64_t                        returnBorrowsParamsMask  = 0;
+    uint64_t                        storesParamsMask         = 0;
+    uint64_t                        storesIntoParamPairs     = 0;
+    uint64_t                        freesParamsMask          = 0;
+    uint64_t                        reallocatesParamsMask    = 0;
+    uint64_t                        returnsPayloadParamsMask = 0;
+    uint64_t                        returnsStorageParamsMask = 0;
     // These two exist for `#[Swag.PrintMicro]` and `#[Swag.PrintAst]`, which a compilation carries
     // on at most one function. Inline storage for four strings each would put 320 bytes of an
     // attribute list — a third of it — at the service of two debugging attributes, and every scope

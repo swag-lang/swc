@@ -296,8 +296,7 @@ bool SymbolFunction::tryMarkCodeGenJobScheduled() noexcept
 
 bool SymbolFunction::tryMarkJitPatchJobScheduled() noexcept
 {
-    bool expected = false;
-    return jitPatchJobScheduled_.compare_exchange_strong(expected, true, std::memory_order_acq_rel, std::memory_order_acquire);
+    return jitState_.tryAdd(JitStateE::PatchJobScheduled);
 }
 
 void SymbolFunction::appendJitOrder(SmallVector<SymbolFunction*>& out) const
@@ -361,7 +360,7 @@ void SymbolFunction::resetJitState() noexcept
     jitExecMemory_.reset();
     jitPatchedAddress_.store(nullptr, std::memory_order_release);
     jitEntryAddress_.store(nullptr, std::memory_order_release);
-    jitPatchJobScheduled_.store(false, std::memory_order_release);
+    jitState_.store(JitStateE::Zero);
     jitReadyVersion_.store(0, std::memory_order_release);
 }
 
@@ -521,6 +520,7 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
         return false;
     }
 
+    jitState_.add(JitStateE::Prepared, std::memory_order_release);
     ctx.compiler().registerPreparedJitFunction(this);
     ctx.compiler().notifyAlive();
     return true;
@@ -556,8 +556,6 @@ Result SymbolFunction::jitPatch(TaskContext& ctx)
     if (patchResult == Result::Continue)
     {
         jitPatchedAddress_.store(jitExecMemory_.entryPoint(), std::memory_order_release);
-        // Publish deferred constant slots before this function can become callable.
-        ctx.compiler().patchDeferredJitConstantFunctions(*this);
         ctx.compiler().notifyAlive();
     }
     if (patchResult == Result::Error)
@@ -579,7 +577,7 @@ void SymbolFunction::jitFinalize(TaskContext& ctx)
     JIT::finalize(jitExecMemory_);
     void* entry = jitPatchAddress();
     SWC_ASSERT(entry != nullptr);
-    jitEntryAddress_.store(entry, std::memory_order_release);
+    ctx.compiler().publishJitFunctionEntry(*this, entry);
     ctx.compiler().notifyAlive();
 }
 

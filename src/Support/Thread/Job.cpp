@@ -47,7 +47,7 @@ JobResult Job::toJobResult(const TaskContext& ctx, Result result)
         return JobResult::Sleep;
     }
 
-    return JobResult::Done;
+    return result == Result::Error ? JobResult::Error : JobResult::Done;
 }
 
 SWC_END_NAMESPACE();

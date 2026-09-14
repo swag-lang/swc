@@ -305,11 +305,16 @@ SWC_TEST_BEGIN(Sema_DeclarationReplayPreservesPublishedAttributeStorage)
     attribute.params.resize(8);
     sema.frame().currentAttributes().attributes.push_back(std::move(attribute));
     sema.frame().currentAttributes().addRtFlag(RtAttributeFlagsE::Inline);
-    SWC_RESULT(sema.prepareFunctionSignature(declRef));
+    SemaScope localScope(SemaScopeFlagsE::Local, nullptr);
+    Sema      declaration(ctx, sema, declRef);
+    declaration.frame().setLookupScope(&localScope);
+    SemaHelpers::declareSymbol(declaration, *decl);
+    SWC_RESULT(decl->semaPostNodeChild(declaration, paramsRef));
     if (!function->isDeclared() || !function->isTyped())
         return Result::Error;
 
     Sema replay(ctx, sema, declRef);
+    replay.frame().setLookupScope(&localScope);
     bool preserved = false;
     {
         // A later walk may reuse the declaration while another worker retains its
@@ -320,8 +325,9 @@ SWC_TEST_BEGIN(Sema_DeclarationReplayPreservesPublishedAttributeStorage)
         const auto& published = function->attributes();
         preserved             = preserved && published.attributes.size() == 1 && published.attributes.front().params.size() == 8 && published.hasRtFlag(RtAttributeFlagsE::Inline);
 
-        // Release any replacement buffer before its isolated heap is destroyed.
-        function->ensureAttributes(ctx).attributes.clear();
+        // A failed regression may have allocated arena-owned snapshots. Keep those
+        // allocations alive until the compiler destroys its arena.
+        heap.release();
     }
     if (!preserved)
         return Result::Error;

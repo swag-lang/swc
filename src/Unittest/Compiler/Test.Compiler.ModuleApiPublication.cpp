@@ -3,6 +3,10 @@
 #if SWC_HAS_UNITTEST
 
 #include "Compiler/ModuleApi/ModuleApi.h"
+#include "Compiler/SourceFile.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandLineParser.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Unittest.h"
@@ -59,6 +63,31 @@ namespace
         options.forwardOutput  = false;
         options.timeoutMs      = 15000;
         result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, directory.path(), &options);
+    }
+
+    Result loadScriptCachedApi(fs::path& outPath, std::string& outContent, const TaskContext& ctx, const fs::path& script)
+    {
+        CommandLine command;
+        command.command        = CommandKind::Sema;
+        command.scriptMode     = true;
+        command.silent         = true;
+        command.numCores       = 6;
+        command.moduleFilePath = script;
+        command.files.insert(script);
+        CommandLineParser::refreshBuildCfg(command);
+
+        CompilerInstance compiler(ctx.global(), command);
+        TaskContext      importCtx(compiler);
+        SWC_RESULT(compiler.runModuleSetup(importCtx));
+        for (const SourceFile* file : compiler.files())
+        {
+            if (!file->hasFlag(FileFlagsE::ImportedApi) || file->path().filename() != "value.swg")
+                continue;
+            outPath = file->path();
+            FileSystem::IoErrorInfo ioError;
+            return FileSystem::readTextFile(outPath, outContent, ioError);
+        }
+        return Result::Error;
     }
 
     constexpr std::string_view API_SOURCE      = "#global public\nconst PublicationValue = 42\n";
@@ -212,6 +241,51 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_SnapshotReplacesEqualSizeAndTimestampContent
     FileSystem::IoErrorInfo ioError;
     SWC_RESULT(FileSystem::readTextFile(path, content, ioError));
     if (content != API_SOURCE || fs::last_write_time(path, ec) != writeTime || ec)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ScriptCacheDistinguishesEqualSizeAndTimestampContents)
+{
+    ApiPublicationTestDirectory directory("ScriptCacheSameMetadata");
+    const fs::path              source = directory.apiDirectory() / "value.swg";
+    const fs::path              script = directory.path() / "consumer.swgs";
+    SWC_RESULT(writePublicationSource(source, API_SOURCE));
+    SWC_RESULT(writePublicationSource(script, "#import(\"dep\", location: \".\")\n#main {}\n"));
+
+    std::error_code ec;
+    const auto      writeTime = fs::last_write_time(source, ec);
+    if (ec)
+        return Result::Error;
+    fs::path    firstPath;
+    std::string firstContent;
+    SWC_RESULT(loadScriptCachedApi(firstPath, firstContent, ctx, script));
+    if (firstPath == source || firstContent != API_SOURCE)
+        return Result::Error;
+
+    constexpr std::string_view newContent = "#global public\nconst PublicationValue = 43\n";
+    static_assert(newContent.size() == API_SOURCE.size());
+    {
+        ModuleApi::DirectoryAccess publication;
+        Utf8                       because;
+        SWC_RESULT(publication.beginPublication(because, directory.apiDirectory()));
+        SWC_RESULT(writePublicationSource(source, newContent));
+        fs::last_write_time(source, writeTime, ec);
+        if (ec)
+            return Result::Error;
+        SWC_RESULT(publication.completePublication(because));
+    }
+
+    // The cache file itself must match the new capture. Importing from the fresh in-memory
+    // snapshot alone would hide reuse of an obsolete on-disk cache generation.
+    fs::path    secondPath;
+    std::string secondContent;
+    SWC_RESULT(loadScriptCachedApi(secondPath, secondContent, ctx, script));
+    if (secondPath == firstPath || secondContent != newContent)
+        return Result::Error;
+    FileSystem::IoErrorInfo ioError;
+    SWC_RESULT(FileSystem::readTextFile(firstPath, firstContent, ioError));
+    if (firstContent != API_SOURCE)
         return Result::Error;
 }
 SWC_TEST_END()

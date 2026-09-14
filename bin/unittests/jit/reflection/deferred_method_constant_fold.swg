@@ -6,22 +6,18 @@ struct(T) DeferredMethodProbe
     value: T
 }
 
-var MethodReads: s32
-#[Swag.NoInline]
-func reflectedMethod()->const *void?
+func reflectedMethod(type: typeinfo)->const *void?
 {
-    MethodReads += 1
-    let info = cast(const *Swag.TypeInfoStruct) #type DeferredMethodProbe's32
+    let info = cast(const *Swag.TypeInfoStruct) type
     return info.methods![0].value
 }
 
 impl DeferredMethodProbe
 {
-    #[Swag.NoInline]
     mtd get()->T
     {
         // Reflection must not wait on the generic body that is evaluating this #run.
-        const pointer = #run reflectedMethod()
+        const pointer = #run reflectedMethod(#type DeferredMethodProbe's32)
         #assert(pointer == null)
         return .value
     }
@@ -34,7 +30,7 @@ func callDeferredMethod()->bool
         return false
 
     // Reuse the already JIT-compiled reader after the method acquires an address.
-    let pointer = reflectedMethod()
+    let pointer = reflectedMethod(#type DeferredMethodProbe's32)
     if pointer == null do
         return false
     let method = cast(func(const *DeferredMethodProbe's32)->s32) pointer

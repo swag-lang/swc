@@ -19,6 +19,12 @@ Also follow its compiler CPU bound: every validation command driven by `swc.exe`
 cap both the compiler executing the script and the compiler processes the tool starts, as described
 there. Choosing a focused test reduces scope; it does not replace the worker limit.
 
+Follow the external scratch-directory rule in
+[modify-swag-codebase](../modify-swag-codebase/SKILL.md) for every campaign: logs, temporary
+workspaces, before/after snapshots, compiler copies, and experimental outputs stay outside the
+checkout, even when an in-tree path is ignored by Git. Check the command's working directory and
+default output paths before launching a temporary reproducer.
+
 ## Make Three Independent Decisions
 
 Inspect the final diff and decide, in order:

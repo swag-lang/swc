@@ -234,30 +234,29 @@ void Symbol::setExcludedByCondition(TaskContext& ctx) noexcept
 
 const AttributeList& Symbol::attributes() const
 {
-    if (attributes_ != nullptr)
-        return *attributes_;
+    const AttributeList* published = attributes_.load(std::memory_order_acquire);
+    if (published)
+        return *published;
     return EMPTY_ATTRIBUTES;
-}
-
-AttributeList& Symbol::ensureAttributes(TaskContext& ctx)
-{
-    if (attributes_ == nullptr)
-        attributes_ = ctx.compiler().allocate<AttributeList>();
-    return *attributes_;
 }
 
 void Symbol::setAttributes(TaskContext& ctx, const AttributeList& attrs)
 {
     if (attrs.empty())
     {
-        attributes_ = nullptr;
+        attributes_.store(nullptr, std::memory_order_release);
         return;
     }
 
-    if (attributes_ == nullptr)
-        attributes_ = ctx.compiler().allocate<AttributeList>();
+    const AttributeList* current = attributes_.load(std::memory_order_acquire);
+    if (current && (current == &attrs || *current == attrs))
+        return;
 
-    *attributes_ = attrs;
+    // Signature preparation and later contextual walks may publish different attributes.
+    // Arena ownership keeps every earlier snapshot alive for concurrent readers.
+    auto* published = ctx.compiler().allocate<AttributeList>();
+    *published      = attrs;
+    attributes_.store(published, std::memory_order_release);
 }
 
 void Symbol::registerCompilerIf(Sema& sema)

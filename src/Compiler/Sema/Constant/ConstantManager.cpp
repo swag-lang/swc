@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Hash.h"
@@ -224,7 +225,7 @@ namespace
         localIndex = shard.dataSegment.add(stored);
         ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-        result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
+        result                    = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
         const auto [it, inserted] = stripe.map.emplace(std::move(canonical), result);
         SWC_ASSERT(inserted);
         return it->second;
@@ -260,15 +261,15 @@ namespace
                     return normalized->second;
             }
 
-            const std::pair<std::string_view, Ref> res = shard.dataSegment.addString(value.getString());
-            ConstantValue strValue = ConstantValue::makeString(ctx, res.first);
+            const std::pair<std::string_view, Ref> res      = shard.dataSegment.addString(value.getString());
+            ConstantValue                          strValue = ConstantValue::makeString(ctx, res.first);
             if (preserveType)
                 strValue.setTypeRef(value.typeRef());
             strValue.setDataSegmentRef({.shardIndex = shardIndex, .offset = res.second});
             localIndex = shard.dataSegment.add(strValue);
             ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
             SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-            result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
+            result                            = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
             const auto [insertedIt, inserted] = stripe.map.emplace(std::move(canonical), result);
             SWC_ASSERT(inserted);
             result = insertedIt->second;
@@ -337,8 +338,8 @@ namespace
         const ConstantValue& stored = enriched ? *enriched : value;
         // The input may itself be interned and have its location enriched concurrently. Keep
         // one snapshot for locking, updates, and publication; location is not part of identity.
-        const DataSegmentRef dataRef = stored.dataSegmentRef();
-        ConstantManager::InternStripe* stripe = canDeduplicateByValue ? &internStripe(shard, stored) : nullptr;
+        const DataSegmentRef           dataRef = stored.dataSegmentRef();
+        ConstantManager::InternStripe* stripe  = canDeduplicateByValue ? &internStripe(shard, stored) : nullptr;
         if (canDeduplicateByValue && dataRef.isInvalid())
         {
             const std::shared_lock lk(stripe->mutex);
@@ -363,7 +364,7 @@ namespace
             if (canDeduplicateByValue)
             {
                 const std::unique_lock lk(stripe->mutex);
-                const auto it = stripe->map.find(stored);
+                const auto             it = stripe->map.find(stored);
                 if (it != stripe->map.end())
                 {
                     updateStoredDataSegmentRef(shard, it->second, dataRef);
@@ -374,7 +375,7 @@ namespace
                 ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
                 SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
                 canonical->setDataSegmentRef(dataRef);
-                result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
+                result                            = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
                 const auto [insertedIt, inserted] = stripe->map.emplace(std::move(canonical), result);
                 SWC_ASSERT(inserted);
                 return insertedIt->second;
@@ -875,6 +876,41 @@ bool ConstantManager::resolveDataSegmentRef(DataSegmentRef& outRef, const void* 
         return true;
     }
 
+    return false;
+}
+
+bool ConstantManager::hasUnpublishedFunctionRelocations(const void* ptr) const
+{
+    DataSegmentRef root;
+    if (!resolveDataSegmentRef(root, ptr))
+        return false;
+
+    SmallVector<DataSegmentRef>        pending{root};
+    std::unordered_set<uint64_t>       visited;
+    std::vector<DataSegmentRelocation> relocations;
+    while (!pending.empty())
+    {
+        const DataSegmentRef current = pending.back();
+        pending.pop_back();
+        const DataSegment&    segment = shardDataSegment(current.shardIndex);
+        DataSegmentAllocation allocation;
+        if (!segment.findAllocation(allocation, current.offset))
+            continue;
+        const uint64_t key = (static_cast<uint64_t>(current.shardIndex) << 32) | allocation.offset;
+        if (!visited.insert(key).second)
+            continue;
+        segment.copyRelocations(relocations, allocation.offset, allocation.size);
+        for (const DataSegmentRelocation& relocation : relocations)
+        {
+            if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
+            {
+                const uint32_t shard = relocation.targetShardIndex == INVALID_REF ? current.shardIndex : relocation.targetShardIndex;
+                pending.push_back({.shardIndex = shard, .offset = relocation.targetOffset});
+            }
+            else if (relocation.targetSymbol && !relocation.targetSymbol->isForeign() && !relocation.targetSymbol->jitEntryAddress())
+                return true;
+        }
+    }
     return false;
 }
 

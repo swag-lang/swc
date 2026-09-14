@@ -1950,10 +1950,9 @@ namespace
         return Result::Continue;
     }
 
-    // What identifies one build of a dependency: every file it holds, with its size and its
-    // modification time. It is the same evidence a copy already trusted to decide a file was
-    // unchanged, read once for the whole directory instead of once per file, and it costs one
-    // stat per file where hashing the bytes would cost a read.
+    // Native artifacts retain their size-and-time identity. Imported API bytes are already
+    // captured under publication access: include their digest so a restored timestamp cannot
+    // select an entry holding a different source generation.
     bool tryCollectDependencyCacheSignature(Utf8& outSignature, const fs::path& srcDir, const std::vector<ModuleApi::SourceSnapshot>* apiSnapshot)
     {
         std::vector<Utf8> entries;
@@ -1983,8 +1982,13 @@ namespace
         }
 
         if (apiSnapshot)
+        {
             for (const ModuleApi::SourceSnapshot& file : *apiSnapshot)
-                entries.emplace_back(std::format("{}\t{}\t{}", Utf8(file.path.lexically_relative(srcDir)).c_str(), file.content.size(), file.writeTime.time_since_epoch().count()));
+            {
+                const auto digest = sha256(std::span{reinterpret_cast<const std::byte*>(file.content.data()), file.content.size()});
+                entries.emplace_back(std::format("{}\t{}\t{}\t{}", Utf8(file.path.lexically_relative(srcDir)).c_str(), file.content.size(), file.writeTime.time_since_epoch().count(), bytesToLowerHex(digest).c_str()));
+            }
+        }
 
         // The order a directory is walked in is not part of what it holds.
         std::ranges::sort(entries);

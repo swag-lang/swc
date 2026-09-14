@@ -216,7 +216,7 @@ public:
     void                                registerNativeGlobalFunctionInitTarget(SymbolFunction* symbol);
     void                                registerPreparedJitFunction(SymbolFunction* symbol);
     void                                registerDeferredJitConstantFunction(SymbolFunction& symbol, DataSegmentRef storage);
-    void                                patchDeferredJitConstantFunctions(SymbolFunction& symbol);
+    void                                publishJitFunctionEntry(SymbolFunction& symbol, void* address);
     void                                invalidateGlobalFunctionBindings();
     Result                              ensurePatchedGlobalFunctionBindings(TaskContext& ctx);
     void                                resetPreparedJitFunctions();

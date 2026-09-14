@@ -130,6 +130,43 @@ namespace
         return storage.entries;
     }
 
+    bool hasUnpublishedFunctionArguments(Sema& sema, std::span<const JITArgument> args)
+    {
+        for (const JITArgument& arg : args)
+        {
+            const TypeInfo& type = sema.typeMgr().get(arg.typeRef);
+            if (!type.isAnyTypeInfo(sema.ctx()) && !type.isPointerOrReference())
+                continue;
+            const void* ptr = nullptr;
+            std::memcpy(&ptr, arg.valuePtr, sizeof(ptr));
+            if (sema.cstMgr().hasUnpublishedFunctionRelocations(ptr))
+                return true;
+        }
+        return false;
+    }
+
+    bool hasUnpublishedFunctionConstants(Sema& sema, const SymbolFunction& function)
+    {
+        SmallVector<SymbolFunction*> functions;
+        function.appendJitOrder(functions);
+        for (const SymbolFunction* called : functions)
+        {
+            if (called->isForeign() || called->isEmpty() || called->isAttribute())
+                continue;
+            if (!called->jitEntryAddress())
+                return true;
+            for (const MicroRelocation& relocation : called->loweredCode().codeRelocations)
+            {
+                if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
+                    continue;
+                const void* ptr = relocation.hasConstantSource() ? sema.cstMgr().shardDataSegment(relocation.constantShard).ptr<std::byte>(relocation.constantOffset) : reinterpret_cast<const void*>(relocation.targetAddress);
+                if (sema.cstMgr().hasUnpublishedFunctionRelocations(ptr))
+                    return true;
+            }
+        }
+        return false;
+    }
+
     bool buildConstCallCacheKey(Sema& sema, ConstCallCacheKey& outKey, const SymbolFunction& function, std::span<const ResolvedCallArgument> resolvedArgs, std::span<const JITArgument> args)
     {
         if (resolvedArgs.size() != args.size())
@@ -1277,10 +1314,26 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     if (!built)
         return Result::Continue;
 
+    // Runtime metadata can acquire function addresses after this semantic walk.
+    // An explicit compile-time request may inspect the current snapshot, but an
+    // optional fold must preserve the later read and must not memoize that snapshot.
+    bool       unstableMetadata = hasUnpublishedFunctionArguments(sema, payload->jitArgs.span());
+    const bool optionalFold     = !forceEvaluation && !sema.isConstExprRequired() && !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr);
+    if (unstableMetadata && optionalFold)
+        return Result::Continue;
+
+    if (!calledFn.isForeign())
+    {
+        SWC_RESULT(prepareJitFunction(sema, calledFn));
+        unstableMetadata = unstableMetadata || hasUnpublishedFunctionConstants(sema, calledFn);
+        if (unstableMetadata && optionalFold)
+            return Result::Continue;
+    }
+
     const TypeRef           exprTypeRef = calledFn.returnTypeRef();
     const JITCallResultMeta resultMeta  = computeJitCallResultMeta(sema, exprTypeRef);
     ConstCallCacheKey       cacheKey;
-    if (!forceEvaluation && buildConstCallCacheKey(sema, cacheKey, calledFn, resolvedArgs, payload->jitArgs.span()))
+    if (!forceEvaluation && !unstableMetadata && buildConstCallCacheKey(sema, cacheKey, calledFn, resolvedArgs, payload->jitArgs.span()))
     {
         if (const ConstantRef cachedRef = findConstCallCacheResult(sema, cacheKey); cachedRef.isValid())
         {
@@ -1306,8 +1359,6 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
         sema.setConstant(callRef, resultCstRef);
         return Result::Continue;
     }
-
-    SWC_RESULT(prepareJitFunction(sema, calledFn));
 
     JITExecManager::Request request;
     request.function     = &calledFn;

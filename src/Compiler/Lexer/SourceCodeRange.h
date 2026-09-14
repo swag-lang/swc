@@ -18,6 +18,8 @@ struct SourceCodeRange
 
 struct SourceCodeRef
 {
+    bool operator==(const SourceCodeRef&) const = default;
+
     SourceViewRef srcViewRef = SourceViewRef::invalid();
     TokenRef      tokRef     = TokenRef::invalid();
 

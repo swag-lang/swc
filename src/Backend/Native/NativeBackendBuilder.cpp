@@ -165,7 +165,9 @@ namespace
         auto*               hook  = Symbol::make<SymbolFunction>(builder.ctx(), nullptr, TokenRef::invalid(), idRef, syntheticFlags);
         hook->setReturnTypeRef(builder.ctx().typeMgr().typeVoid());
         hook->setCallConvKind(CallConvKind::Swag);
-        hook->ensureAttributes(builder.ctx()).setForeign(dependency.linkModuleName.view(), dependency.hookSymbolName.view(), dependency.linkModuleName.view(), CallConvKind::Swag);
+        AttributeList attributes;
+        attributes.setForeign(dependency.linkModuleName.view(), dependency.hookSymbolName.view(), dependency.linkModuleName.view(), CallConvKind::Swag);
+        hook->setAttributes(builder.ctx(), attributes);
         return hook;
     }
 
@@ -418,7 +420,7 @@ namespace
     {
         std::unordered_set           seenFunctions(functions.begin(), functions.end());
         std::unordered_set<uint64_t> visitedAllocations;
-        size_t                      nextFunctionIndex = 0;
+        size_t                       nextFunctionIndex = 0;
         return appendConstantFunctionDependencies(builder, functions, seenFunctions, visitedAllocations, nextFunctionIndex);
     }
 
@@ -1082,8 +1084,8 @@ Result NativeBackendBuilder::prepare()
                 }
                 executableFunctions.resize(uniqueRootCount);
                 std::unordered_set<uint64_t> visitedAllocations;
-                size_t                      nextCallFunctionIndex     = 0;
-                size_t                      nextConstantFunctionIndex = 0;
+                size_t                       nextCallFunctionIndex     = 0;
+                size_t                       nextConstantFunctionIndex = 0;
 
                 // Lowering is complete, so each dependency source is now immutable. Keep
                 // independent cursors to preserve the call/constant discovery order while

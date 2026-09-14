@@ -153,9 +153,8 @@ public:
 
     SymbolExtraFlagsStorage extraFlags() const noexcept { return extraFlags_.load(std::memory_order_acquire); }
 
-    bool                 hasAttributes() const noexcept { return attributes_ != nullptr; }
+    bool                 hasAttributes() const noexcept { return attributes_.load(std::memory_order_acquire) != nullptr; }
     const AttributeList& attributes() const;
-    AttributeList&       ensureAttributes(TaskContext& ctx);
     void                 setAttributes(TaskContext& ctx, const AttributeList& attrs);
 
     void registerCompilerIf(Sema& sema);
@@ -246,7 +245,7 @@ public:
     }
 
 protected:
-    AttributeList*                       attributes_  = nullptr;
+    std::atomic<const AttributeList*>    attributes_  = nullptr;
     Symbol*                              nextHomonym_ = nullptr;
     SymbolMap*                           ownerSymMap_ = nullptr;
     const AstNode*                       decl_        = nullptr;

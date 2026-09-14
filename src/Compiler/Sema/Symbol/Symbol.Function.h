@@ -269,7 +269,7 @@ public:
     void                    appendJitOrder(SmallVector<SymbolFunction*>& out) const;
     void*                   jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }
     void*                   jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
-    void*                   jitWorkAddress() const noexcept { return jitExecMemory_.entryPoint(); }
+    void*                   jitWorkAddress() const noexcept { return jitState_.has(JitStateE::Prepared) ? jitExecMemory_.entryPoint() : nullptr; }
     uint64_t                jitReadyVersion() const noexcept { return jitReadyVersion_.load(std::memory_order_acquire); }
     void                    setJitReadyVersion(uint64_t version) noexcept { jitReadyVersion_.store(version, std::memory_order_release); }
     void                    resetJitState() noexcept;
@@ -312,6 +312,14 @@ public:
 private:
     struct GenericData;
     friend class JITPatchJob;
+    friend class CompilerInstance;
+
+    enum class JitStateE : uint8_t
+    {
+        Zero              = 0,
+        PatchJobScheduled = 1 << 0,
+        Prepared          = 1 << 1,
+    };
 
     static constexpr SymbolFunctionFlags K_SEMANTIC_FLAGS = SymbolFunctionFlagsE::Closure |
                                                             SymbolFunctionFlagsE::Method |
@@ -374,9 +382,9 @@ private:
     mutable std::atomic<SymbolFunction*> closureAdapterPublished_ = nullptr;
     std::mutex                           emitMutex_;
     JITMemory                            jitExecMemory_;
-    std::atomic<void*>                   jitPatchedAddress_    = nullptr;
-    std::atomic<void*>                   jitEntryAddress_      = nullptr;
-    std::atomic_bool                     jitPatchJobScheduled_ = false;
+    std::atomic<void*>                   jitPatchedAddress_ = nullptr;
+    std::atomic<void*>                   jitEntryAddress_   = nullptr;
+    AtomicEnumFlags<JitStateE>           jitState_;
     std::atomic<uint64_t>                jitReadyVersion_{0};
     mutable std::atomic<GenericData*>    genericData_ = nullptr;
 };

@@ -414,7 +414,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         Symbol*    insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
         if (!hadOwner && symbol->ownerSymMap() == this)
         {
-            count_.store(count_.load(std::memory_order_relaxed) + 1, std::memory_order_relaxed);
+            count_.fetch_add(1, std::memory_order_relaxed);
         }
 
         return insertedSym;
@@ -430,7 +430,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         Symbol*    insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
         if (!hadOwner && symbol->ownerSymMap() == this)
         {
-            count_.store(count_.load(std::memory_order_relaxed) + 1, std::memory_order_relaxed);
+            count_.fetch_add(1, std::memory_order_relaxed);
         }
 
         return insertedSym;
@@ -442,7 +442,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         {
             if (!acceptHomonyms)
                 return e->head;
-            count_.store(count_.load(std::memory_order_relaxed) + 1, std::memory_order_relaxed);
+            count_.fetch_add(1, std::memory_order_relaxed);
             symbol->setOwnerSymMap(this);
             Symbol* insertedHead = insertSymbolOrdered(e->head, symbol);
             ctx.compiler().notifyAlive();
@@ -451,7 +451,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
 
         if (smallSize_ < SMALL_CAP)
         {
-            count_.store(count_.load(std::memory_order_relaxed) + 1, std::memory_order_relaxed);
+            count_.fetch_add(1, std::memory_order_relaxed);
             symbol->setOwnerSymMap(this);
             symbol->setNextHomonym(nullptr);
             small_[smallSize_++] = Entry{.head = symbol, .key = idRef};
@@ -476,7 +476,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         Symbol*    insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
         if (!hadOwner && symbol->ownerSymMap() == this)
         {
-            count_.store(count_.load(std::memory_order_relaxed) + 1, std::memory_order_relaxed);
+            count_.fetch_add(1, std::memory_order_relaxed);
         }
 
         return insertedSym;
@@ -492,7 +492,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
 
     Symbol*& head         = bigMap_[idRef];
     Symbol*  insertedHead = insertSymbolOrdered(head, symbol);
-    count_.store(count_.load(std::memory_order_relaxed) + 1, std::memory_order_relaxed);
+    count_.fetch_add(1, std::memory_order_relaxed);
     symbol->setOwnerSymMap(this);
     ctx.compiler().notifyAlive();
     return insertedHead;

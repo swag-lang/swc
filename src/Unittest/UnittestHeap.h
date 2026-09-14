@@ -30,6 +30,16 @@ namespace Unittest
             }
         }
 
+        // Return live allocations to the backing heap instead of destroying them.
+        void release()
+        {
+            if (!heap_)
+                return;
+            mi_theap_set_default(previous_);
+            mi_heap_delete(heap_);
+            heap_ = nullptr;
+        }
+
         bool empty() const
         {
             if (!heap_)

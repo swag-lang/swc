@@ -285,7 +285,13 @@ namespace ModuleApi
             {
                 const auto writeTime = fs::last_write_time(path, ec);
                 if (!ec && writeTime == file.writeTime)
-                    continue;
+                {
+                    // Restored timestamps do not establish that this is the captured generation.
+                    std::string             content;
+                    FileSystem::IoErrorInfo ioError;
+                    if (FileSystem::readTextFile(path, content, ioError) == Result::Continue && content == file.content)
+                        continue;
+                }
             }
             SWC_RESULT(ensureModuleApiDirectory(ctx, path.parent_path()));
             SWC_RESULT(ModuleApiExport::writeModuleApiFile(ctx, path, file.content));

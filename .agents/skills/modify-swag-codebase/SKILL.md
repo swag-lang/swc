@@ -12,6 +12,28 @@ documentation line — in the compiler sources, in `bin/`, and in every other fi
 is English; never leave French (or any other language) in the tree, whatever the
 language of the conversation.
 
+## Keep Agent Working Files Outside The Checkout
+
+Put temporary reproducers, probe scripts, logs, response files, API snapshots, baseline compiler
+copies, and experimental build outputs in a session-specific directory outside every checkout,
+for example under the operating system's temporary directory. Resolve that directory to an
+absolute path before writing files. An ignored directory inside the repository is not a scratch
+directory: do not use the repository root, `bin/`, `bin/.tmp/`, or a nested checkout-shaped tree
+for agent working files, and do not add ignore rules to hide them.
+
+Keep the project's normal build outputs in their established locations. For a preserved or
+instrumented compiler, place its copy outside the checkout and configure its resource paths
+explicitly; do not put another executable beside `bin/swc.exe` just to inherit resource lookup.
+Run temporary reproducers from the external scratch directory, with absolute compiler and source
+paths, and set output/cache directories where supported so default paths cannot create artifacts
+in the checkout. Permanent regression tests and deliberately maintained result artifacts belong
+in their documented repository locations.
+
+Before finishing, inspect `git status --short --untracked-files=all` and remove or move only the
+working files created by the current task, including ignored scratch files. Preserve unrelated
+files and the user's normal build outputs. Do not move a file still being written by a running
+command; relocate it when that command finishes.
+
 ## Admit Agent Builds And Tests By Machine Load
 
 All AI agents and worktrees share one machine. Compiler builds and project tests launched by AI

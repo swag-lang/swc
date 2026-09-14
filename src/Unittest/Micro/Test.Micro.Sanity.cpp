@@ -89,6 +89,11 @@ namespace
         Plain,
         Vector,
         IndexedStore,
+        IndexedLoad,
+        IndexedWideLoad,
+        UnknownIndexLoad,
+        IndexedSignedByte,
+        IndexedUnsignedByte,
         SelfCopy,
         SourceOverwritten,
         RegisterOverwritten,
@@ -144,6 +149,11 @@ namespace
         }
         if (scenario == WideCopyCase::Vector)
             builder.emitLoadVecRegMem(loaded, stackBase, 0, MicroOpBits::B128);
+        else if (scenario == WideCopyCase::IndexedWideLoad)
+        {
+            builder.emitLoadRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitLoadAmcRegMem(loaded, MicroOpBits::B128, stackBase, value, 8, 0, MicroOpBits::B64);
+        }
         else
             builder.emitLoadRegMem(loaded, stackBase, 0, MicroOpBits::B128);
         if (scenario == WideCopyCase::SourceOverwritten)
@@ -181,7 +191,24 @@ namespace
         else if (scenario == WideCopyCase::PartialDestinationWrite || scenario == WideCopyCase::DenseFramePartialWrite)
             builder.emitLoadMemImm(stackBase, 28, ApInt(1, 32), MicroOpBits::B32);
         builder.emitSanityInvalidate(address, 8);
-        builder.emitLoadRegMem(pointer, stackBase, 24, MicroOpBits::B64);
+        if (scenario == WideCopyCase::IndexedSignedByte || scenario == WideCopyCase::IndexedUnsignedByte)
+        {
+            builder.emitLoadMemImm(stackBase, 24, ApInt(0x80, 8), MicroOpBits::B8);
+            builder.emitLoadRegImm(value, ApInt(3, 64), MicroOpBits::B64);
+            builder.emitLoadAmcRegMem(pointer, MicroOpBits::B64, stackBase, value, 8, 0, MicroOpBits::B8);
+            const bool signedExtension                                                  = scenario == WideCopyCase::IndexedSignedByte;
+            builder.instructions().ptr(builder.instructions().lastInstructionRef())->op = signedExtension ? MicroInstrOpcode::LoadSignedExtAmcRegMem : MicroInstrOpcode::LoadZeroExtAmcRegMem;
+            builder.emitOpBinaryRegImm(pointer, ApInt(128, 64), signedExtension ? MicroOp::Add : MicroOp::Subtract, MicroOpBits::B64);
+        }
+        else if (scenario == WideCopyCase::IndexedLoad)
+        {
+            builder.emitLoadRegImm(value, ApInt(3, 64), MicroOpBits::B64);
+            builder.emitLoadAmcRegMem(pointer, MicroOpBits::B64, stackBase, value, 8, 0, MicroOpBits::B64);
+        }
+        else if (scenario == WideCopyCase::UnknownIndexLoad)
+            builder.emitLoadAmcRegMem(pointer, MicroOpBits::B64, stackBase, CallConv::get(CallConvKind::Swag).intArgRegs[0], 8, 0, MicroOpBits::B64);
+        else
+            builder.emitLoadRegMem(pointer, stackBase, 24, MicroOpBits::B64);
         builder.emitLoadRegMem(value, pointer, 0, MicroOpBits::B32);
         if (guardDone.isValid())
             builder.placeLabel(guardDone);
@@ -277,6 +304,25 @@ SWC_TEST_BEGIN(MicroSanity_TracksZeroedUpperLane)
     if (runWideCopySanity(ctx, WideCopyCase::ZeroRegister) != Result::Error)
         return Result::Error;
     if (runWideCopySanity(ctx, WideCopyCase::BooleanZeroGuard) != Result::Error)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroSanity_TracksKnownIndexedPointerLoads)
+{
+    if (runWideCopySanity(ctx, WideCopyCase::IndexedLoad) != Result::Error)
+        return Result::Error;
+    if (runWideCopySanity(ctx, WideCopyCase::IndexedWideLoad) != Result::Error)
+        return Result::Error;
+    SWC_RESULT(runWideCopySanity(ctx, WideCopyCase::UnknownIndexLoad));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroSanity_ExtendsKnownIndexedConstants)
+{
+    if (runWideCopySanity(ctx, WideCopyCase::IndexedSignedByte) != Result::Error)
+        return Result::Error;
+    if (runWideCopySanity(ctx, WideCopyCase::IndexedUnsignedByte) != Result::Error)
         return Result::Error;
 }
 SWC_TEST_END()

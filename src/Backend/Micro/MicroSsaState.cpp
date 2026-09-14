@@ -174,7 +174,6 @@ void MicroSsaState::resetForBuild(MicroStorage& storage)
     trackedRegs_.clear();
     instructionRefs_.clear();
     liveInstructionSlots_.clear();
-    blocks_.clear();
     trackedDefCount_ = 0;
     valueInfoCount_  = 0;
     phiInfoCount_    = 0;
@@ -310,12 +309,14 @@ const MicroSsaState::PhiInfo* MicroSsaState::phiInfoForValue(const uint32_t valu
 
 void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
 {
-    blocks_.clear();
     // Block discovery overwrites every entry before successor mapping reads it.
     instructionToBlock_.resize(instructionRefs_.size());
 
     if (instructionRefs_.empty())
+    {
+        blocks_.clear();
         return;
+    }
 
     std::vector<uint8_t> leaders(instructionRefs_.size(), 0);
     leaders[0] = 1;
@@ -340,19 +341,31 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
     }
 
     uint32_t instructionIndex = 0;
+    uint32_t blockCount       = 0;
     while (instructionIndex < instructionRefs_.size())
     {
-        BlockInfo block;
+        const uint32_t blockIndex = blockCount++;
+        if (blockIndex == blocks_.size())
+            blocks_.emplace_back();
+
+        // Rebuild block contents in place so high-fanout edges, dominator
+        // children and phi lists retain their overflow storage between passes.
+        BlockInfo& block = blocks_[blockIndex];
+        block.predecessors.clear();
+        block.successors.clear();
+        block.domChildren.clear();
+        block.dominanceFrontier.clear();
+        block.phis.clear();
+        block.idom             = K_INVALID_BLOCK;
         block.instructionBegin = instructionIndex;
 
-        const uint32_t blockIndex = static_cast<uint32_t>(blocks_.size());
         do
         {
             instructionToBlock_[instructionIndex++] = blockIndex;
         } while (instructionIndex < instructionRefs_.size() && !leaders[instructionIndex]);
         block.instructionEnd = instructionIndex;
-        blocks_.push_back(std::move(block));
     }
+    blocks_.resize(blockCount);
 
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {
@@ -383,7 +396,7 @@ bool MicroSsaState::computeDominators(const bool acyclic)
         return false;
     }
 
-    // buildBlocks created fresh blocks with invalid dominators and empty trees.
+    // buildBlocks reset active blocks to invalid dominators and empty trees.
     std::vector idomValues(blocks_.size(), K_INVALID_BLOCK);
 
     if (blocks_.empty())

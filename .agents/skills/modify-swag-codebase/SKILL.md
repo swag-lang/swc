@@ -28,6 +28,9 @@ For a custom MSBuild target, redirect both final outputs (`SwcOutputDir`/`OutDir
 intermediates (`IntDir`) outside the checkout. Changing `TargetName` can create extra `.pch`,
 `.ilk`, and `.recipe` files in `IntDir` even when the executable goes elsewhere. Prefer copying
 a completed normal build outside the checkout when no separate intermediate tree is needed.
+For a separate MSBuild tree, prefer a session directory such as
+`%LOCALAPPDATA%/swc-agent-builds/<session>` outside the operating system's temporary directory
+as well: MSBuild warns that temporary output or intermediate roots can impair incremental builds.
 Run temporary reproducers from the external scratch directory, with absolute compiler and source
 paths, and set output/cache directories where supported so default paths cannot create artifacts
 in the checkout. Permanent regression tests and deliberately maintained result artifacts belong

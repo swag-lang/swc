@@ -1720,7 +1720,7 @@ namespace
         }
 
         FileSystem::IoErrorInfo ioError;
-        if (FileSystem::writeBinaryFile(manifestPath, content.data(), content.size(), ioError) == Result::Continue)
+        if (FileSystem::writeBinaryFileAtomic(manifestPath, content.data(), content.size(), ioError) == Result::Continue)
             return Result::Continue;
 
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_file_write_failed);

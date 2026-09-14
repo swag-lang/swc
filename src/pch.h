@@ -8,6 +8,9 @@
 #include <bit>
 #include <bitset>
 #include <cassert>
+#include <cerrno>
+#include <charconv>
+#include <cmath>
 #include <condition_variable>
 #include <cstdint>
 #include <deque>
@@ -16,6 +19,8 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <latch>
+#include <limits>
 #include <map>
 #include <memory>
 #include <mutex>

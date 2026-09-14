@@ -6,6 +6,46 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
+
+- Recorded: 2026-08-10 12:35
+- Updated: 2026-09-14 10:43 — repeated the affected module builds after the publication fixes; the historical corruption remains unattributed
+- Area: compiler
+- Found while: rerunning `tools/tests.swgs dm --all-cfg` after an unrelated intermittent
+  semantic-completion assertion had passed on immediate focused rerun.
+- Observation: a later multi-configuration pass ended with a mimalloc corrupted-free-list report
+  and a hardware exception while type generation traversed a struct's declared methods. The same
+  compiler and sources had completed the full Release campaign immediately beforehand, and the
+  equality suites had already passed in all three build configurations, so the failure appears
+  scheduling-dependent rather than tied to one deterministic source construct.
+- Evidence: mimalloc reported a corrupted 32-byte free-list entry. The stack ran through
+  `appendImplFunctions` and `SymbolStruct::declaredMethods` in `Symbol.Struct.cpp`,
+  `findGeneratedImplicitMethod`, `findGeneratedLifecycleWrapper`, `initStruct`,
+  `TypeGen::processTypeInfo`, and then function-candidate implicit-conversion probing. The isolated
+  command is `swc tools/tests.swgs dm --all-cfg`; it failed only in a downstream standard-library
+  leg after lexer, parser, sema, JIT, safety, sanity, native, and workspace suites had passed in all
+  three configurations.
+- Current validation (2026-09-14): 100 Release 0.1.571 rebuilds of `core` completed with
+  byte-identical sets of 24 published API files. Another 20 Release and 20 DevMode rebuilds
+  of `ogl` completed without a crash. The current declared-method traversal copies impl and
+  interface lists under shared locks, and `SymbolMap::getAllSymbols` snapshots each map under
+  its corresponding lock. This session also fixed mutable attribute snapshots and lifecycle
+  pointer publication, with regression tests. These results establish non-recurrence under
+  those workloads; they do not identify the writer that caused the original free-list damage.
+- Next step: re-evaluate on the next occurrence only. The 2026-08-12 sanification pass eliminated
+  three writers able to corrupt or misread memory underneath a stack like this one: a struct
+  layout republished through transient zero and partially accumulated sizes on every post-node
+  resume (`SymbolStruct::computeLayout`, now computed into locals and published once, atomically);
+  imported native modules keeping `Swag.processInfos().args` slices into a destroyed compiler instance's
+  storage (`ensureProcessInfosRunArgs`, now interning into process-lifetime storage); and the call
+  matcher reading the signature type of a selected candidate before that type was published
+  (`Match::resolveFunctionCandidates`, which now parks until the winner is typed — caught live as
+  a `typeRef.isValid()` assertion under `finalizeAutoEnumArgs` while building the generated `ogl`
+  wrappers, one run in ~20; in Release that read returned an out-of-bounds `TypeInfo`). A mimalloc
+  report now appends the reporting thread's stack (`Allocator.cpp`), so a recurrence preserves its
+  detection stack; if one does recur, persist the failing module and stress parallel type
+  generation as originally planned.
+
 ### compiler.core.038 — Measure the remaining semantic frame construction cost
 
 - Recorded: 2026-09-09 15:04
@@ -32,50 +72,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: current measurements either identify a bounded, worthwhile change with a
   reproducible A/B comparison, or show that the residual cost does not justify further work.
 - Related: compiler.core.001, compiler.core.005, compiler.core.006.
-
-### compiler.core.032 — Repeated module builds publish different borrow summaries
-
-- Recorded: 2026-09-07 10:43
-- Updated: 2026-09-14 06:24 — added a later parallel-rebuild recurrence and the single-worker comparison
-- Found while: checking public-export equivalence during the standard-module compilation campaign.
-- Evidence: four complete `core` rebuilds with the same frozen Release 0.1.390 binary, identical
-  tracked sources, `devmode`, and six workers alternated between publishing and omitting
-  `BorrowSummary(0, 0, 0, 0, 1, 0)` on both `Core.Math.Curve.addKey` overloads. The foreign symbol
-  names stayed identical. Both A and B in the recorded control refer to the same executable and
-  SHA-256; one of four warm rebuild snapshots omitted the attributes. This predates the campaign's
-  compiler changes. [Raw control data](../bench/results/compilation/20260907/api-baseline-repeats.json)
-  includes the full foreign-attribute lines and commands.
-- Evidence (2026-09-09, six workers, devmode, `swc tools/std.swgs dm test core --rebuild`): the
-  same tracked sources and the same compiler binary produced seven
-  `borrowed data from local variable 'buffer' escapes through a stored call argument` errors in
-  one rebuild and none in the three that followed it, with no edit in between. The sites were
-  `core`'s own tests, `tests/serialization/tagbin_itfarray.test.swg:142` among them, on a
-  `ConcatBuffer` passed to `encoder.writeAll`. `fdf901acc` then outlived those encoders by the
-  buffers they borrow, in exactly those three files, which settles what the runs disagreed about:
-  the diagnostics were right and three rebuilds out of four failed to produce them. So the
-  instability is not a cosmetic difference in an exported attribute. It decides whether a real
-  escape is reported at all, and a suite that passes says nothing about the run that follows.
-- Evidence (2026-09-13, build 543 repeated with six workers): the compilation campaign
-  again observed varying `BorrowSummary` annotations, generated source numbering, and
-  foreign-library ordering while comparing generated APIs. Repeating the baseline compiler
-  alone also varied, so the difference could not establish a regression in build 544.
-  Separate forced single-worker rebuilds with Release 543 and DevMode 544 produced the same
-  40 generated source files with identical SHA-256 hashes. The
-  [build-544 report](../bench/results/compilation/20260913-sema-codegen/README.md)
-  and [comparison log](../bench/results/compilation/20260913-sema-codegen/api-source-comparison-544.log)
-  preserve this evidence. The single-worker match does not resolve the parallel instability.
-- Observation: `ModuleApiExport.Generate.cpp::collectMissingFunctionAttributes` serializes the
-  summary masks. `Symbol.Function.h` says body sema and the final summary fixpoint grow those
-  masks. The ordering or publication defect has not yet been isolated.
-- Next: preserve a reduced semantic-only consumer with the original invalid buffer lifetime
-  from before `fdf901acc`, then repeat parallel provider builds and compare both its diagnostic
-  and the exported summaries. The repaired Core tests now keep buffers alive and must not be
-  expected to reproduce that former lifetime error. Trace summary completion and API emission through the final
-  `SemaEscape::reportDeferredChecks` fixpoint from that difference, and reduce it to a
-  provider/consumer regression.
-- Complete when: repeated parallel provider rebuilds publish identical summaries, a consumer
-  consistently observes the corresponding invalidation contract, and a hundred consecutive `core`
-  rebuilds compile.
 
 ### compiler.core.042 — Protect generated module APIs from concurrent workspace rebuilds
 
@@ -227,21 +223,6 @@ Handing the walk the payload state its caller had just read — so a two-link ch
 - One snippet compilation that imports `core` no longer spends its time in the front end of that import.
 
 **Related:** compiler.core.002, compiler.core.006, compiler.core.008, compiler.core.011, compiler.core.030.
-
-### compiler.core.037 — Check source edits made while a module build is running
-
-- Recorded: 2026-09-09 07:12
-- Evidence: while profiling GUI resizing, two edits to `surface.swg` overlapped an already
-  running GUI build. A later invocation reused the resulting library although it lacked the
-  new profiling marker or shadow-scissor behavior. In one occurrence the source timestamp was
-  07:00:06 and the library timestamp 07:00:10. Touching the source after that build completed
-  caused recompilation and exposed the intended behavior. Other builds shared the checkout,
-  so this does not yet distinguish timestamp invalidation from concurrent artifact publication.
-- Next: reproduce with a controlled source edit after parsing but before artifact publication,
-  then repeat with two builders. Compare the library behavior and incremental decisions against
-  a clean build before selecting a fix.
-- Complete when: the next invocation after either overlap uses the latest source, with a
-  deterministic workspace regression test for any confirmed invalidation or publication bug.
 
 ### compiler.core.005 — Compiler memory has no attributed, enforced budget
 
@@ -447,39 +428,6 @@ definition provider and does not consume resolved compiler symbols.
 - Tests cover direct source changes, transitive loads, imports, configuration changes, corrupt entries, and concurrent cache population.
 
 **Related:** compiler.core.001, compiler.core.002, compiler.core.006, platform.portability.080.
-
-### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
-
-- Recorded: 2026-08-10 12:35
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Area: compiler
-- Found while: rerunning `tools/tests.swgs dm --all-cfg` after an unrelated intermittent
-  semantic-completion assertion had passed on immediate focused rerun.
-- Observation: a later multi-configuration pass ended with a mimalloc corrupted-free-list report
-  and a hardware exception while type generation traversed a struct's declared methods. The same
-  compiler and sources had completed the full Release campaign immediately beforehand, and the
-  equality suites had already passed in all three build configurations, so the failure appears
-  scheduling-dependent rather than tied to one deterministic source construct.
-- Evidence: mimalloc reported a corrupted 32-byte free-list entry. The stack ran through
-  `appendImplFunctions` and `SymbolStruct::declaredMethods` in `Symbol.Struct.cpp`,
-  `findGeneratedImplicitMethod`, `findGeneratedLifecycleWrapper`, `initStruct`,
-  `TypeGen::processTypeInfo`, and then function-candidate implicit-conversion probing. The isolated
-  command is `swc tools/tests.swgs dm --all-cfg`; it failed only in a downstream standard-library
-  leg after lexer, parser, sema, JIT, safety, sanity, native, and workspace suites had passed in all
-  three configurations.
-- Next step: re-evaluate on the next occurrence only. The 2026-08-12 sanification pass eliminated
-  three writers able to corrupt or misread memory underneath a stack like this one: a struct
-  layout republished through transient zero and partially accumulated sizes on every post-node
-  resume (`SymbolStruct::computeLayout`, now computed into locals and published once, atomically);
-  imported native modules keeping `Swag.processInfos().args` slices into a destroyed compiler instance's
-  storage (`ensureProcessInfosRunArgs`, now interning into process-lifetime storage); and the call
-  matcher reading the signature type of a selected candidate before that type was published
-  (`Match::resolveFunctionCandidates`, which now parks until the winner is typed — caught live as
-  a `typeRef.isValid()` assertion under `finalizeAutoEnumArgs` while building the generated `ogl`
-  wrappers, one run in ~20; in Release that read returned an out-of-bounds `TypeInfo`). A mimalloc
-  report now appends the reporting thread's stack (`Allocator.cpp`), so a recurrence names its
-  culprit directly; if one does recur, persist the failing module and stress parallel type
-  generation as originally planned.
 
 ### compiler.core.021 — A dangling reference into a destroyed compiler instance has no deterministic detector
 

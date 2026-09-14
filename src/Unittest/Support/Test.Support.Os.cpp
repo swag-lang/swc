@@ -5,7 +5,6 @@
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Unittest.h"
-#include <latch>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -14,10 +13,10 @@ namespace
     class SharingLockedFile
     {
     public:
-        explicit SharingLockedFile(const std::string_view name) :
+        explicit SharingLockedFile(const std::string_view name, const DWORD sharing = FILE_SHARE_READ) :
             path_(Os::getTemporaryPath() / std::format("swc_sharing_{}_p{}.bin", name, Os::currentProcessId()))
         {
-            handle_ = CreateFileW(path_.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+            handle_ = CreateFileW(path_.c_str(), GENERIC_READ | GENERIC_WRITE, sharing, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
             if (handle_ != INVALID_HANDLE_VALUE)
             {
                 DWORD written = 0;
@@ -48,6 +47,29 @@ namespace
         bool     ready_  = false;
     };
 }
+
+SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ReadWaitsForTransientSharingLock)
+{
+    SharingLockedFile file("read_transient", 0);
+    if (!file.ready())
+        return Result::Error;
+
+    std::latch              entered(1);
+    Result                  result = Result::Error;
+    std::string             contents;
+    FileSystem::IoErrorInfo error;
+    std::jthread            reader([&] {
+        entered.count_down();
+        result = FileSystem::readTextFile(file.path(), contents, error);
+    });
+    entered.wait();
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    file.release();
+    reader.join();
+    if (result != Result::Continue || contents != "old")
+        return Result::Error;
+}
+SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(FileSystem_WriteWaitsForTransientSharingLock)
 {

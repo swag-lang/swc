@@ -35,9 +35,9 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-14 10:43 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-14 06:26 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-14 06:25 |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-14 06:24 |
 | [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-12 20:10 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-12 19:56 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-12 19:53 |

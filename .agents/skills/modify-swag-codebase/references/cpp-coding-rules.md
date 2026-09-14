@@ -1,5 +1,12 @@
 # Swag C++ Coding Rules
 
+## Centralize Standard Library Includes
+
+- Put standard library headers, such as `<cerrno>` and `<latch>`, in `src/pch.h`, not in individual compiler `.cpp` files.
+- Keep the standard library include list in the PCH sorted, and include `pch.h` first in compiler translation units that use it.
+- Keep Windows-specific headers and includes with platform-specific ordering or macro requirements local to the Windows implementation when necessary; these are exceptions, not a reason to duplicate ordinary standard library includes.
+- Leave vendored third-party sources, such as mimalloc, under their own include conventions.
+
 ## Simplify And Clarify
 
 - Prefer named functions over lambdas used only as local functions, but only when the extracted helper adds real meaning or isolates non-trivial logic.

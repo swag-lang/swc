@@ -56,13 +56,30 @@ namespace
         outData.clear();
         error = {};
 
-        std::ifstream file(path, std::ios::binary | std::ios::ate);
-        if (!file.is_open())
+        std::ifstream                         file;
+        std::chrono::steady_clock::time_point retryDeadline;
+        while (true)
         {
-            error.problem = FileSystem::IoProblem::OpenRead;
-            error.because = fallbackIoBecause(error.problem);
-            return Result::Error;
+            file.open(path, std::ios::binary | std::ios::ate);
+            if (file.is_open())
+                break;
+
+            // During replacement Windows can report either a sharing violation or access denied.
+            const bool sharingError = Os::isFileSharingError() || errno == EACCES;
+            error.problem           = FileSystem::IoProblem::OpenRead;
+            error.because           = fallbackIoBecause(error.problem);
+            if (!sharingError)
+                return Result::Error;
+
+            const auto now = std::chrono::steady_clock::now();
+            if (retryDeadline == std::chrono::steady_clock::time_point{})
+                retryDeadline = now + std::chrono::seconds(2);
+            if (now >= retryDeadline)
+                return Result::Error;
+            std::this_thread::sleep_for(std::chrono::milliseconds(25));
+            file.clear();
         }
+        error = {};
 
         const std::streampos fileSize = file.tellg();
         if (fileSize < 0)

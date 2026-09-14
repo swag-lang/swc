@@ -1003,6 +1003,21 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     var built = workspaceModuleCommand("build", workspace.toString(), "consumer_exe", buildCfg)
     options.appendExtra(&built)
 
+    // Hold a competing writer's staging file through artifact collection, then remove it.
+    // Its disappearance must not invalidate the executable's completed publication.
+    var stagedOutput = Path.combine(workspace.toString(), ".output")
+    if not Directory.exists(stagedOutput.toString()) do
+        try Directory.create(stagedOutput.toString())
+    for part in ["consumer_exe", "executable", buildCfg, options.targetArch.toString()]
+    {
+        stagedOutput = Path.combine(stagedOutput.toString(), part)
+        if not Directory.exists(stagedOutput.toString()) do
+            try Directory.create(stagedOutput.toString())
+    }
+    let stagedArtifact = Path.combine(stagedOutput.toString(), "consumer_exe.exe.123.1.swctmp")
+    try File.writeAllBytes(stagedArtifact.toString(), cast(const [..] u8) "incomplete competing publication")
+    defer discard catch File.delete(stagedArtifact.toString())
+
     let buildOutput = try context.captureCompiler(built)
     Console.print(buildOutput.toString())
     for dependency in ["core", "win32", "xinput"] where moduleReportCount(buildOutput.toString(), dependency) != 1
@@ -1036,8 +1051,14 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         return 1
     }
 
+    try File.delete(stagedArtifact.toString())
     let warmBuildOutput = try context.captureCompiler(built)
     Console.print(warmBuildOutput.toString())
+    if not artifactReportedUpToDate(warmBuildOutput.toString(), "consumer_exe.exe")
+    {
+        Console.println("Removing a competing publication's temporary file invalidated the workspace executable.")
+        return 1
+    }
     for dependency in ["core", "win32", "xinput"] where moduleReportCount(warmBuildOutput.toString(), dependency) != 0
     {
         Console.println("Reusable workspace dependency added noise to the build report: ", dependency)

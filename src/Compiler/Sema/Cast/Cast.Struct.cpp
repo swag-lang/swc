@@ -15,7 +15,6 @@
 #include "Support/Core/ByteArray.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
-#include <limits>
 
 SWC_BEGIN_NAMESPACE();
 

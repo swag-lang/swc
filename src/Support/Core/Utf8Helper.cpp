@@ -3,7 +3,6 @@
 #include "Backend/Runtime.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Support/Report/Assert.h"
-#include <cmath>
 
 SWC_BEGIN_NAMESPACE();
 

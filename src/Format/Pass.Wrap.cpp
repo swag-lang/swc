@@ -21,7 +21,6 @@
 // it picks the break highest in the expression tree that still fits, one break
 // at a time. Revisit this choice — and only then reach for a solver — when a
 // wrapping shape has to be added that cannot be stated as one such local rule.
-#include <ranges>
 
 #include "pch.h"
 #include "Compiler/Lexer/Token.h"

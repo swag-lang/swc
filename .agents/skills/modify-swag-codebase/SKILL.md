@@ -24,6 +24,10 @@ for agent working files, and do not add ignore rules to hide them.
 Keep the project's normal build outputs in their established locations. For a preserved or
 instrumented compiler, place its copy outside the checkout and configure its resource paths
 explicitly; do not put another executable beside `bin/swc.exe` just to inherit resource lookup.
+For a custom MSBuild target, redirect both final outputs (`SwcOutputDir`/`OutDir`) and
+intermediates (`IntDir`) outside the checkout. Changing `TargetName` can create extra `.pch`,
+`.ilk`, and `.recipe` files in `IntDir` even when the executable goes elsewhere. Prefer copying
+a completed normal build outside the checkout when no separate intermediate tree is needed.
 Run temporary reproducers from the external scratch directory, with absolute compiler and source
 paths, and set output/cache directories where supported so default paths cannot create artifacts
 in the checkout. Permanent regression tests and deliberately maintained result artifacts belong

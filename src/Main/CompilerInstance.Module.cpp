@@ -1488,9 +1488,9 @@ namespace
 
             const fs::path normalizedPath = FileSystem::normalizePath(it->path());
 
-            // Skip every mode's manifest, not just this one: a manifest that listed
-            // another manifest would go stale the moment that mode was rebuilt.
-            if (workspacePathIsArtifactManifest(normalizedPath))
+            // Other manifests and a competing publisher's staging files are not artifacts:
+            // replacing or removing them must not invalidate this completed build.
+            if (workspacePathIsArtifactManifest(normalizedPath) || isWorkspaceDependencyTempPath(normalizedPath) || normalizedPath.filename() == ".swc-api-incomplete")
                 continue;
 
             fs::path relativePath = normalizedPath.lexically_relative(outDir);

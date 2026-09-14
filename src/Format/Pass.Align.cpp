@@ -1,5 +1,3 @@
-#include <numeric>
-
 #include "pch.h"
 #include "Format/FormatPassUtil.h"
 #include "Format/FormatPasses.h"

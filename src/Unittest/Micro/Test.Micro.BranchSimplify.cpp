@@ -711,6 +711,77 @@ SWC_TEST_BEGIN(BranchSimplify_SinksCompareBelowFlagWritingArm)
 }
 SWC_TEST_END()
 
+// NOT preserves the entry flags. A later conditional move still needs them,
+// so an arithmetic sibling arm cannot be speculated before it.
+SWC_TEST_BEGIN(BranchSimplify_KeepsDiamondWithFlagReadAfterBitwiseNot)
+{
+    const MicroReg vX = MicroReg::virtualIntReg(8);
+    const MicroReg vY = MicroReg::virtualIntReg(9);
+    const MicroReg vA = MicroReg::virtualIntReg(10);
+    const MicroReg vB = MicroReg::virtualIntReg(11);
+    MicroBuilder   builder(ctx);
+
+    const DiamondShape shape = openDiamond(builder, vX, vY, MicroCond::Equal);
+    builder.emitLoadRegReg(shape.result, vA, MicroOpBits::B32);
+    builder.emitOpBinaryRegImm(shape.result, ApInt(1, 32), MicroOp::Add, MicroOpBits::B32);
+    switchDiamondArm(builder, shape);
+    builder.emitLoadRegReg(shape.result, vB, MicroOpBits::B32);
+    builder.emitOpUnaryReg(shape.result, MicroOp::BitwiseNot, MicroOpBits::B32);
+    builder.emitLoadCondRegReg(shape.result, vA, MicroCond::Equal, MicroOpBits::B32);
+    closeDiamond(builder, shape);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 1)
+        return Result::Error;
+    if (countConditionalMoves(builder, MicroCond::Equal) != 1)
+        return Result::Error;
+    if (!anyJumpTargetsLabel(builder, shape.armLabel))
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The same entry-flag dependency must survive the early-return conversion.
+SWC_TEST_BEGIN(BranchSimplify_KeepsEarlyReturnWithFlagReadAfterBitwiseNot)
+{
+    const MicroReg returnReg = CallConv::get(CallConvKind::Swag).intReturn;
+    const MicroReg vX        = MicroReg::virtualIntReg(8);
+    const MicroReg vY        = MicroReg::virtualIntReg(9);
+    const MicroReg vA        = MicroReg::virtualIntReg(10);
+    const MicroReg vB        = MicroReg::virtualIntReg(11);
+    const MicroReg early     = MicroReg::virtualIntReg(12);
+    const MicroReg tail      = MicroReg::virtualIntReg(13);
+    MicroBuilder   builder(ctx);
+
+    const MicroLabelRef restLabel = builder.createLabel();
+    builder.emitCmpRegReg(vX, vY, MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, restLabel);
+    builder.emitLoadRegReg(early, vA, MicroOpBits::B32);
+    builder.emitOpBinaryRegImm(early, ApInt(1, 32), MicroOp::Add, MicroOpBits::B32);
+    builder.emitLoadRegReg(returnReg, early, MicroOpBits::B32);
+    builder.emitRet();
+    builder.placeLabel(restLabel);
+    builder.emitLoadRegReg(tail, vB, MicroOpBits::B32);
+    builder.emitOpUnaryReg(tail, MicroOp::BitwiseNot, MicroOpBits::B32);
+    builder.emitLoadCondRegReg(tail, vA, MicroCond::Equal, MicroOpBits::B32);
+    builder.emitLoadRegReg(returnReg, tail, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 1)
+        return Result::Error;
+    if (countConditionalMoves(builder, MicroCond::Equal) != 1)
+        return Result::Error;
+    if (!anyJumpTargetsLabel(builder, restLabel))
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // An arm that reads memory may fault on the path that used to skip it: the
 // branch stays.
 SWC_TEST_BEGIN(BranchSimplify_KeepsDiamondWithGuardedLoad)

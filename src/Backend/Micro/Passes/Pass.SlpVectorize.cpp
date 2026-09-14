@@ -1564,8 +1564,6 @@ namespace
             }
         }
 
-        // The packed sequence writes CPU flags, so no live flags may cross
-        // the insertion point.
         if (!flagsDeadAtInsertion(fn, firstDeletedRef))
             return false;
 

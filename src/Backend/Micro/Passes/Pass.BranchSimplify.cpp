@@ -1422,7 +1422,7 @@ namespace
             const MicroInstrDef&     info = MicroInstr::info(inst->op);
             if (info.flags.has(MicroInstrFlagsE::UsesCpuFlags) && !definedFlagsSoFar)
                 arm.readsEntryFlags = true;
-            if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+            if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, ops))
             {
                 arm.definesFlags  = true;
                 definedFlagsSoFar = true;
@@ -1733,7 +1733,7 @@ namespace
             const MicroInstrDef& info = MicroInstr::info(inst->op);
             if (info.flags.has(MicroInstrFlagsE::UsesCpuFlags) && !definedFlagsSoFar)
                 out.readsEntryFlags = true;
-            if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+            if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, ops))
             {
                 out.definesFlags  = true;
                 definedFlagsSoFar = true;

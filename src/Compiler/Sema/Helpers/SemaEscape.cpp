@@ -2654,8 +2654,11 @@ namespace
 
         if (info.sourceVar == &dstVar)
         {
+            // A self-reference is valid while the carrier stays here, but copying
+            // the carrier does not relocate its pointee. Keep the field's provenance
+            // so returning the carrier or reading that field can still escape it.
             if (projection && !projection->components.empty())
-                sema.clearProjectionEscapeInfo(*projection);
+                sema.setProjectionEscapeInfo(*projection, info);
             else
                 sema.clearVariableEscapeInfo(dstVar);
             return Result::Continue;

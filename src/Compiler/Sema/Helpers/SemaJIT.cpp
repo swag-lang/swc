@@ -132,6 +132,7 @@ namespace
 
     bool hasUnpublishedFunctionArguments(Sema& sema, std::span<const JITArgument> args)
     {
+        SmallVector<DataSegmentRef> roots;
         for (const JITArgument& arg : args)
         {
             const TypeInfo& type = sema.typeMgr().get(arg.typeRef);
@@ -139,16 +140,18 @@ namespace
                 continue;
             const void* ptr = nullptr;
             std::memcpy(&ptr, arg.valuePtr, sizeof(ptr));
-            if (sema.cstMgr().hasUnpublishedFunctionRelocations(ptr))
-                return true;
+            DataSegmentRef root;
+            if (sema.cstMgr().resolveDataSegmentRef(root, ptr))
+                roots.push_back(root);
         }
-        return false;
+        return sema.cstMgr().hasUnpublishedFunctionRelocations(roots.span());
     }
 
     bool hasUnpublishedFunctionConstants(Sema& sema, const SymbolFunction& function)
     {
         SmallVector<SymbolFunction*> functions;
         function.appendJitOrder(functions);
+        SmallVector<DataSegmentRef> roots;
         for (const SymbolFunction* called : functions)
         {
             if (called->isForeign() || called->isEmpty() || called->isAttribute())
@@ -159,12 +162,19 @@ namespace
             {
                 if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
                     continue;
-                const void* ptr = relocation.hasConstantSource() ? sema.cstMgr().shardDataSegment(relocation.constantShard).ptr<std::byte>(relocation.constantOffset) : reinterpret_cast<const void*>(relocation.targetAddress);
-                if (sema.cstMgr().hasUnpublishedFunctionRelocations(ptr))
-                    return true;
+                if (relocation.hasConstantSource())
+                {
+                    roots.push_back({.shardIndex = relocation.constantShard, .offset = relocation.constantOffset});
+                }
+                else
+                {
+                    DataSegmentRef root;
+                    if (sema.cstMgr().resolveDataSegmentRef(root, reinterpret_cast<const void*>(relocation.targetAddress)))
+                        roots.push_back(root);
+                }
             }
         }
-        return false;
+        return sema.cstMgr().hasUnpublishedFunctionRelocations(roots.span());
     }
 
     bool buildConstCallCacheKey(Sema& sema, ConstCallCacheKey& outKey, const SymbolFunction& function, std::span<const ResolvedCallArgument> resolvedArgs, std::span<const JITArgument> args)
@@ -893,10 +903,7 @@ namespace
     Result buildConstCallArguments(Sema& sema, bool& outBuilt, const SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs)
     {
         outBuilt = false;
-        if (resolvedArgs.size() != calledFn.parameters().size())
-            return Result::Continue;
-        if (hasAnyVariadicParameter(sema, calledFn))
-            return Result::Continue;
+        SWC_ASSERT(resolvedArgs.size() == calledFn.parameters().size());
 
         TaskContext& ctx = sema.ctx();
         outArgStorage.clear();
@@ -910,9 +917,6 @@ namespace
             const ResolvedCallArgument& resolvedArg = resolvedArgs[i];
             if (resolvedArg.passKind != CallArgumentPassKind::Direct)
                 return Result::Continue;
-            if (i >= calledFn.parameters().size())
-                return Result::Continue;
-
             const SymbolVariable* param = calledFn.parameters()[i];
             SWC_ASSERT(param != nullptr);
 
@@ -940,8 +944,8 @@ namespace
             if (!argCstRef.isValid())
                 return Result::Continue;
 
-            const TypeInfo&     argValueType     = sema.typeMgr().get(argValueTypeRef);
-            const ConstantValue argConstantValue = sema.cstMgr().get(argCstRef);
+            const TypeInfo&      argValueType     = sema.typeMgr().get(argValueTypeRef);
+            const ConstantValue& argConstantValue = sema.cstMgr().get(argCstRef);
             if ((argValueType.isReference() || (argValueType.isValuePointer() && !argValueType.isNullable())) &&
                 !argConstantValue.isNull() &&
                 !argConstantValue.isValuePointer() &&
@@ -1084,8 +1088,8 @@ namespace
                     return Result::Continue;
             }
 
-            const TypeInfo&     argValueType     = sema.typeMgr().get(argValueTypeRef);
-            const ConstantValue argConstantValue = sema.cstMgr().get(argCstRef);
+            const TypeInfo&      argValueType     = sema.typeMgr().get(argValueTypeRef);
+            const ConstantValue& argConstantValue = sema.cstMgr().get(argCstRef);
             if ((argValueType.isReference() || (argValueType.isValuePointer() && !argValueType.isNullable())) &&
                 !argConstantValue.isNull() &&
                 !argConstantValue.isValuePointer() &&
@@ -1305,6 +1309,9 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
 
     ///////////////////////////////////////////
     // Build payload and arguments for call folding.
+    if (resolvedArgs.size() != calledFn.parameters().size() || hasAnyVariadicParameter(sema, calledFn))
+        return Result::Continue;
+
     const auto payload = std::make_shared<JITNodePayload>();
     bool       built   = false;
     SWC_RESULT(buildConstCallArguments(sema, built, calledFn, callRef, resolvedArgs, payload->argStorage, payload->jitArgs));

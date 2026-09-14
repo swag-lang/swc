@@ -336,6 +336,78 @@ SWC_TEST_BEGIN(MicroSsa_PhiInputsFollowManyPredecessors)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroSsa_RebuildsWideBlocksAcrossShapeChanges)
+{
+    constexpr uint32_t regCount = 4;
+    MicroSsaState      ssa;
+    for (const uint32_t armCount : {8, 8, 1, 8, 0, 8})
+    {
+        MicroBuilder builder(ctx);
+        if (!armCount)
+        {
+            ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+            if (!ssa.isValid() || !ssa.phis().empty() || !ssa.values().empty())
+                return Result::Error;
+            continue;
+        }
+
+        std::array<MicroLabelRef, 8>                       targets;
+        std::array<std::array<MicroInstrRef, regCount>, 8> definitions;
+        for (uint32_t arm = 0; arm < armCount; ++arm)
+            targets[arm] = builder.createLabel();
+        const auto join = builder.createLabel();
+        builder.emitJumpReg(MicroReg::intReg(0), std::span(targets.data(), armCount));
+        for (uint32_t arm = 0; arm < armCount; ++arm)
+        {
+            builder.placeLabel(targets[arm]);
+            for (uint32_t reg = 0; reg < regCount; ++reg)
+            {
+                builder.emitLoadRegImm(MicroReg::virtualIntReg(reg), ApInt(arm * regCount + reg, 64), MicroOpBits::B64);
+                definitions[arm][reg] = builder.instructions().lastInstructionRef();
+            }
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+        }
+        builder.placeLabel(join);
+        std::array<MicroInstrRef, regCount> uses;
+        for (uint32_t reg = 0; reg < regCount; ++reg)
+        {
+            builder.emitLoadMemReg(MicroReg::intReg(2), reg * 8, MicroReg::virtualIntReg(reg), MicroOpBits::B64);
+            uses[reg] = builder.instructions().lastInstructionRef();
+        }
+        builder.emitRet();
+
+        ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+        const uint32_t phiCount = armCount > 1 ? regCount : 0;
+        if (ssa.phis().size() != phiCount || ssa.values().size() != armCount * regCount + phiCount)
+            return Result::Error;
+        for (uint32_t reg = 0; reg < regCount; ++reg)
+        {
+            const MicroReg value    = MicroReg::virtualIntReg(reg);
+            const auto     reaching = ssa.reachingDef(value, uses[reg]);
+            if (armCount == 1)
+            {
+                if (!reaching.valid() || reaching.isPhi || reaching.instRef != definitions[0][reg])
+                    return Result::Error;
+                continue;
+            }
+
+            const auto* phi = ssa.phiInfoForValue(reaching.valueId);
+            if (!reaching.isPhi || !phi || phi->incomingValueIds.size() != armCount)
+                return Result::Error;
+            for (uint32_t arm = 0; arm < armCount; ++arm)
+            {
+                uint32_t expected = MicroSsaState::K_INVALID_VALUE;
+                if (!ssa.defValue(value, definitions[arm][reg], expected) || phi->incomingValueIds[arm] != expected)
+                    return Result::Error;
+                if (ssa.transitiveInstructionUseCount(expected, 2) != 1)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroSsa_RebuildAddsFrontierAfterLinearBlocks)
 {
     constexpr MicroReg value = MicroReg::virtualIntReg(1);

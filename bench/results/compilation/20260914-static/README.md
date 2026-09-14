@@ -169,3 +169,43 @@ DevMode compiler build 601 succeeded and passed all 817 C++ fast tests plus the 
 devmode cases selected by --file-filter regalloc. Each command received fresh CPU admission;
 the memory-margin waiver and six-worker caps remain as described above. No Release compiler
 rebuild was required for this local container-construction change.
+
+## Campaign 5: reuse SSA block storage between optimization passes
+
+`MicroSsaState::buildBlocks` now resets existing blocks in place during its discovery walk.
+The predecessor, successor, dominator-child, dominance-frontier and phi lists retain their
+overflow capacity. Every active block receives new instruction bounds and an invalid initial
+dominator before edges are rebuilt; excess trailing blocks are destroyed when the graph shrinks.
+Explicit `clear()` still releases the block objects. A build with no virtual definitions skips
+block construction as before, and the next tracked build resets the retained private storage.
+
+The new `MicroSsa_RebuildsWideBlocksAcrossShapeChanges` fixture has eight branch arms and four
+registers merged at a join. Its four overflowing block lists have sizes 8 (entry successors),
+9 (entry dominator children), 8 (join predecessors), and 4 (join phis). With inline capacity 2
+and `SmallVector`'s doubling growth, those lists require 2 + 3 + 2 + 1 = 8 allocation calls
+when reconstructed from empty objects. Rebuilding the same shape in place requires none for
+these lists once their capacities exist. This is a source-derived allocation count, not a
+runtime measurement, and excludes unrelated SSA storage. The first build and later growth
+still allocate normally; retaining capacity trades allocation churn for storage held until
+shrink, explicit clear, or destruction. No per-block field or extra block walk is introduced.
+
+The fixture checks phi and value counts, ordered incoming definitions, and transitive use counts
+while rebuilding 8, 8, 1, 8, 0, then 8 arms. Existing SSA fixtures also cover changed frontiers,
+loops, disconnected roots, erased/recycled instruction slots, and builds with physical-only
+definitions. These boundaries protect the complete reset of reused block state.
+
+### Validation
+
+Candidate DevMode compiler build 602, based on 85d3600d0, built successfully and passed all
+818 C++ fast tests plus the complete native devmode suite (3,168 tests). The native tool's
+expected recovery-failure probes also passed; both validation commands returned success.
+No timing benchmark or Release compiler build was selected for this local storage-reuse change.
+Each build/test command retained fresh CPU admission and six-worker limits, with the existing
+user waiver of memory admission thresholds.
+
+The final integration includes master commit 664697acc and increments the compiler to build 603.
+That DevMode build succeeded and passed all 820 C++ fast tests plus the sanity devmode case
+selected by `--file-filter self_borrow_indexed_move.swg` (one test). The incoming indexed-load
+sanitizer change does not modify SSA construction; the complete native result above remains
+the campaign's native validation. The worktree and master source changes integrate without
+content conflicts.

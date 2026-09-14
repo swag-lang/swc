@@ -990,7 +990,7 @@ namespace
         sema.node(identifierRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
     }
 
-    void copyResolvedIdentifierSymbols(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef)
+    void copyResolvedIdentifierSymbols(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, bool rebindLocals = false)
     {
         SWC_ASSERT(sourceRef.isValid());
         SWC_ASSERT(clonedRef.isValid());
@@ -1008,6 +1008,16 @@ namespace
             const Symbol* symbol = sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).sym();
             if (!symbol)
                 symbol = sema.viewSymbol(sourceRef).sym();
+            // A cloned callable owns fresh locals and captures. Pinning its
+            // identifiers back to the source callable shares mutable storage
+            // metadata between the two independent code-generation jobs.
+            if (rebindLocals && symbol && symbol->isVariable())
+            {
+                const auto& variable = symbol->cast<SymbolVariable>();
+                if (variable.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||
+                    variable.hasExtraFlag(SymbolVariableFlagsE::Parameter) || variable.isClosureCapture())
+                    return;
+            }
             if (symbol)
             {
                 sema.setSymbol(clonedRef, symbol);
@@ -1047,7 +1057,15 @@ namespace
             if (sourceChildRef.isInvalid() || clonedChildRef.isInvalid())
                 continue;
 
-            copyResolvedIdentifierSymbols(sema, sourceChildRef, clonedChildRef);
+            const AstNode& parent       = sema.node(sourceRef);
+            bool           childRebinds = rebindLocals;
+            if (const auto* closure = parent.safeCast<AstClosureExpr>())
+                childRebinds |= sourceChildRef == closure->nodeBodyRef;
+            else if (const auto* function = parent.safeCast<AstFunctionExpr>())
+                childRebinds |= sourceChildRef == function->nodeBodyRef;
+            else if (const auto* function = parent.safeCast<AstFunctionDecl>())
+                childRebinds |= sourceChildRef == function->nodeBodyRef;
+            copyResolvedIdentifierSymbols(sema, sourceChildRef, clonedChildRef, childRebinds);
         }
 
         // A call's overload was selected against the call node, not its callee identifier, so
@@ -1068,7 +1086,7 @@ namespace
         {
             if (const Symbol* callSym = sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).sym())
             {
-                if (const auto* fn = callSym->safeCast<SymbolFunction>())
+                if (const auto* fn = callSym->safeCast<SymbolFunction>(); fn && (!rebindLocals || !fn->parentLexicalFunction()))
                     pinResolvedCallCallee(sema, clonedCallee, *fn);
             }
         }

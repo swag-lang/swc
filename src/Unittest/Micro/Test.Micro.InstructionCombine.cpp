@@ -1909,6 +1909,66 @@ SWC_TEST_BEGIN(InstCombine_VectorPlans_KeepFreshRegistersAcrossRollback)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_ComplementaryShiftsToRotate)
+{
+    for (const MicroOpBits shiftBits : {MicroOpBits::B32, MicroOpBits::B64})
+        for (const bool narrow : {false, true})
+            for (const bool leftFirst : {false, true})
+                for (const bool resultCopy : {false, true})
+                    for (uint32_t test = 0; test < 7; ++test)
+                    {
+                        if (narrow && shiftBits != MicroOpBits::B64)
+                            continue;
+                        const MicroOpBits  bits = narrow ? MicroOpBits::B32 : shiftBits;
+                        MicroBuilder       builder(ctx);
+                        constexpr MicroReg source = MicroReg::virtualIntReg(1);
+                        constexpr MicroReg alias  = MicroReg::virtualIntReg(2);
+                        constexpr MicroReg lhs    = MicroReg::virtualIntReg(3);
+                        constexpr MicroReg rhs    = MicroReg::virtualIntReg(4);
+                        constexpr MicroReg output = MicroReg::virtualIntReg(5);
+                        const MicroOp      first  = leftFirst ? MicroOp::ShiftLeft : MicroOp::ShiftRight;
+                        const MicroOp      second = leftFirst ? MicroOp::ShiftRight : MicroOp::ShiftLeft;
+                        builder.emitLoadRegMem(source, MicroReg::intReg(8), 0, narrow && test != 6 ? MicroOpBits::B32 : shiftBits);
+                        builder.emitLoadRegReg(alias, source, MicroOpBits::B64);
+                        builder.emitLoadRegReg(lhs, alias, shiftBits);
+                        builder.emitOpBinaryRegImm(lhs, ApInt(6, 64), first, shiftBits);
+                        if (test == 1)
+                            builder.emitSetCondReg(MicroReg::virtualIntReg(6), MicroCond::Zero);
+                        if (test == 3)
+                            builder.emitLoadMemReg(MicroReg::intReg(9), 0, lhs, shiftBits);
+                        if (test == 4)
+                            builder.emitLoadRegMem(alias, MicroReg::intReg(8), 8, shiftBits);
+                        builder.emitLoadRegReg(rhs, alias, shiftBits);
+                        builder.emitOpBinaryRegImm(rhs, ApInt(getNumBits(bits) - (test == 5 ? 7 : 6), 64), second, shiftBits);
+                        const MicroReg dst = resultCopy ? output : lhs;
+                        if (resultCopy)
+                            builder.emitLoadRegReg(output, lhs, shiftBits);
+                        builder.emitOpBinaryRegReg(dst, rhs, MicroOp::Or, bits);
+                        if (test == 2)
+                            builder.emitSetCondReg(MicroReg::virtualIntReg(7), MicroCond::Zero);
+                        builder.emitLoadMemReg(MicroReg::intReg(9), 8, dst, bits);
+                        builder.emitRet();
+                        SWC_RESULT(runInstCombinePass(builder));
+                        uint32_t rotates = 0;
+                        for (const MicroInstr& inst : builder.instructions().view())
+                        {
+                            const auto* ops = inst.ops(builder.operands());
+                            if (inst.op == MicroInstrOpcode::OpBinaryRegImm &&
+                                (ops[2].microOp == MicroOp::RotateLeft || ops[2].microOp == MicroOp::RotateRight))
+                            {
+                                ++rotates;
+                                if (ops[1].opBits != bits || ops[3].valueU64 != 6)
+                                    return Result::Error;
+                            }
+                        }
+                        const bool expected = test == 0 || (test == 6 && !narrow);
+                        if (rotates != (expected ? 1u : 0u))
+                            return Result::Error;
+                    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

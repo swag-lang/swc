@@ -1,8 +1,9 @@
 # Generated-code static audit - 2026-09-14
 
-Campaign 1 is verified with DevMode compiler build 597. All 18 functions
-across the seven benchmarks retain their baseline instruction and memory counts.
-This correctness campaign does not establish a performance improvement. No benchmark
+Both campaigns are verified. Campaign 2 reduces the SHA-256 compression loop
+from 72 to 54 micro instructions; the seven-program static census is recorded
+with final integrated compiler build 604. Campaign 1 corrected compiler defects
+without changing the benchmark instruction counts. No benchmark
 executable was run and no runtime timing or speed ratio was measured.
 
 The isolated worktree is `swc-generated-code-sept14`, branch
@@ -31,8 +32,8 @@ covers all seven tasks. Selected [Swag](swag-baseline-excerpts.txt) and
 The Leven reference retains two values across iterations that Swag reloads:
 the previous `row0[y + 1]` supplies the next `row0[y]`, and the previous
 `row1[y + 1]` result supplies the next `row1[y]`. SHA-256 contains complementary
-shift/OR expressions that may admit rotate instructions when source width and
-flag dependencies are proved. These are leads from the static audit.
+shift/OR expressions that admit rotate instructions when source width and
+flag dependencies are proved; campaign 2 implements that opportunity.
 
 ## Campaign 1 and verification
 
@@ -93,3 +94,51 @@ branch span from its target label through the branch. Build C++ sources to
 assembly/object files only with the flags above and separate `/Fa` and `/Fo`
 paths. Every new compiler invocation must first pass the CPU admission check;
 memory margins were explicitly waived by the user for this session.
+
+## Campaign 2 - final verification
+
+Campaign 1 was merged into master as `e612280d7` before this campaign began.
+Complementary shifts and OR now fold into a rotate when SSA proves the shared
+input, exclusive result uses, widths, and dead flags. A mixed 64/32-bit pattern
+additionally requires a zero-extended input; the proof follows copies, constants
+and bounded phi chains.
+
+| Static span | Before | Final build 604 | Explicit memory operations |
+| --- | ---: | ---: | ---: |
+| SHA-256 compression loop | 72 | 54 | 5, unchanged |
+| SHA-256 main function | 311 | 293 | 66, unchanged |
+| ChaCha add32 | 6 | 5 | 0, unchanged |
+| ChaCha quarterRound | 57 | 55 | 25, unchanged |
+
+Outside SHA-256 and the two ChaCha helpers, function counts and loop spans
+remain unchanged across all seven programs. These are static micro-instruction
+counts, not measured speedups.
+
+Build 600 passed 855 C++ tests (including 84 rotate pattern combinations) and
+the focused native rotate test. The full native suite then exposed an assertion
+in `inline/binding_visit_growth.swg`: a cloned closure could retain identifiers
+bound to the source closure's local symbols. The fix preserves fresh
+local/capture bindings inside cloned callable bodies instead of sharing mutable
+code-generation storage metadata. Build 601 passes the full native suite
+(3,169 tests and expected-failure recovery probes) and all 56 sanity tests.
+All seven release benchmark programs build successfully without execution.
+
+The user requested completion after the 17:00 cutoff. The new regression
+`inline/binding_clone_storage.swg` exercises repeated cloning, local storage,
+captures, parameters, and a nested named function. Its first run exposed a
+separate scope-validation omission: a nested `FunctionDecl` was checked against
+the enclosing function, rejecting its own parameter as an outer local. The
+validator now enters that declaration's function scope; the same test passes.
+
+Build 603 passed 856 C++ tests, 3,170 native tests with each compiler executable,
+both semantic input sets (279 valid and 294 expected-error files), 1,410 JIT
+tests, and 56 sanity tests. The five native `binding_` tests passed three times
+with six workers using each of the DevMode and Release compiler executables.
+
+After integrating master `8acd66674` (register storage, SSA buffer reuse, and
+indexed-pointer sanitizer fixes), build 604 passed 859 C++ tests,
+3,170 native tests with each compiler executable, 57 sanity tests, and
+the focused Release-compiler binding tests. Native validation includes its
+expected-failure recovery probes. Test programs use `devmode`; the final seven
+static benchmark builds use `release` and are never executed. All selected
+commands succeeded. No third campaign was started.

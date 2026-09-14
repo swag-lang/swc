@@ -206,7 +206,7 @@ namespace
     const SymbolFunction* inlineBindingValidationFunction(Sema& sema, AstNodeRef nodeRef, const SymbolFunction& currentFn)
     {
         const AstNode& node = sema.node(nodeRef);
-        if (node.isNot(AstNodeId::FunctionExpr) && node.isNot(AstNodeId::ClosureExpr))
+        if (node.isNot(AstNodeId::FunctionExpr) && node.isNot(AstNodeId::ClosureExpr) && node.isNot(AstNodeId::FunctionDecl))
             return &currentFn;
 
         const Symbol* sym = sema.viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym();

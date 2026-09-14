@@ -117,6 +117,87 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(PeWriter_ImportTablesPreserveGroupedSlots)
+{
+    LinkSection textSection;
+    textSection.name = ".text";
+    textSection.bytes.pushBack(std::byte{0xC3});
+    textSection.align = 16;
+    textSection.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Execute | LinkSectionFlagsE::Read;
+
+    LinkImage image;
+    image.sections.push_back(std::move(textSection));
+    image.symbols.push_back({.name = "entry", .sectionIndex = 0, .value = 0});
+    image.entrySymbol = "entry";
+    // Interleave DLLs, normalize an omitted extension, and retain repeated names as separate slots.
+    image.imports = {
+        {.dll = "alpha", .importName = "Odd", .symbolName = "alpha_odd"},
+        {.dll = "beta.dll", .symbolName = "beta_ordinal", .ordinal = 7, .byOrdinal = true},
+        {.dll = "alpha.dll", .symbolName = "alpha_ordinal", .ordinal = 42, .byOrdinal = true},
+        {.dll = "beta.dll", .importName = "Even", .symbolName = "beta_even"},
+        {.dll = "alpha", .importName = "Odd", .symbolName = "alpha_alias"},
+    };
+
+    ByteArray           peBytes;
+    ByteArray           pdbBytes;
+    Diagnostic          diag;
+    PEWriter            writer;
+    const LinkDebugInfo noDebugInfo;
+    if (!writer.writeImage(peBytes, pdbBytes, diag, image, noDebugInfo, {}))
+        return Result::Error;
+    PeSectionView idata;
+    PeSectionView text;
+    if (!findPeSection(idata, peBytes, ".idata") || !findPeSection(text, peBytes, ".text"))
+        return Result::Error;
+
+    // Three descriptors, then two ILTs and two IATs including their null terminators.
+    ByteArray expected(172);
+    expected.writeLe32(0, idata.rva + 60);
+    expected.writeLe32(12, idata.rva + 192);
+    expected.writeLe32(16, idata.rva + 116);
+    expected.writeLe32(20, idata.rva + 92);
+    expected.writeLe32(32, idata.rva + 202);
+    expected.writeLe32(36, idata.rva + 148);
+    for (const uint32_t offset : {60u, 116u})
+    {
+        expected.writeLe64(offset, idata.rva + 172);
+        expected.writeLe64(offset + 8, 0x800000000000002Aull);
+        expected.writeLe64(offset + 16, idata.rva + 178);
+    }
+    for (const uint32_t offset : {92u, 148u})
+    {
+        expected.writeLe64(offset, 0x8000000000000007ull);
+        expected.writeLe64(offset + 8, idata.rva + 184);
+    }
+    for (const std::string_view name : {"Odd", "Odd", "Even"})
+    {
+        expected.appendLe16(0);
+        expected.appendCString(name);
+        if (expected.size() % 2)
+            expected.pushBack(std::byte{0});
+    }
+    expected.appendCString("alpha.dll");
+    expected.appendCString("beta.dll");
+    expected.pushBack(std::byte{0});
+    if (idata.virtualSize != expected.size() || !peBytes.containsRange(idata.rawOffset, expected.size()) ||
+        std::memcmp(peBytes.data() + idata.rawOffset, expected.data(), expected.size()) != 0)
+        return Result::Error;
+
+    // Every aligned jump thunk must reference its own IAT slot, including both aliases.
+    uint32_t textOffset = 16;
+    for (const uint32_t iatOffset : {116u, 124u, 132u, 148u, 156u})
+    {
+        const size_t fileOffset = text.rawOffset + textOffset;
+        if (!peBytes.containsRange(fileOffset, 6) || peBytes[fileOffset] != std::byte{0xFF} || peBytes[fileOffset + 1] != std::byte{0x25})
+            return Result::Error;
+        const int32_t displacement = static_cast<int32_t>(peBytes.readLe32(fileOffset + 2));
+        if (static_cast<int64_t>(text.rva) + textOffset + 6 + displacement != static_cast<int64_t>(idata.rva) + iatOffset)
+            return Result::Error;
+        textOffset += 16;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PeWriter_CompressesEmbeddedDebugTable)
 {
     ByteArray text;

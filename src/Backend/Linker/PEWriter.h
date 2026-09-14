@@ -34,9 +34,8 @@ private:
 
     struct ImportThunk
     {
-        const LinkImport* import         = nullptr;
-        uint32_t          textOffset     = 0; // offset of the 6-byte thunk within .text
-        uint32_t          iatSlotInIdata = 0; // offset of the IAT slot within .idata
+        uint32_t textOffset     = 0; // offset of the 6-byte thunk within .text
+        uint32_t iatSlotInIdata = 0; // offset of the IAT slot within .idata
     };
 
     // Where a defined symbol lives: its section in sections_ and its byte offset within that section.

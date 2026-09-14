@@ -172,26 +172,6 @@ void PEWriter::buildImports()
         byDll[dll].push_back(&imp);
     }
 
-    // Append a 6-byte indirect-jump thunk per imported function to .text. The referencing code
-    // takes the address of the plain symbol, so it must resolve to this thunk.
-    OutSection& text = sections_[textIndex_];
-    for (const Utf8& dll : dllOrder)
-    {
-        for (const LinkImport* imp : byDll[dll])
-        {
-            if (text.bytes.size() % 16 != 0)
-                text.bytes.resize(Math::alignUpU32(static_cast<uint32_t>(text.bytes.size()), 16), std::byte{0});
-
-            ImportThunk thunk;
-            thunk.import     = imp;
-            thunk.textOffset = static_cast<uint32_t>(text.bytes.size());
-            text.bytes.insert(text.bytes.end(), 6, std::byte{0}); // FF 25 <disp32>, filled after layout
-            thunks_.push_back(thunk);
-
-            symbols_[imp->symbolName] = {static_cast<uint32_t>(textIndex_), thunk.textOffset};
-        }
-    }
-
     // Build the .idata section: import descriptors, ILTs, IATs, hint/name table and DLL names.
     ByteArray      idata;
     const uint32_t descCount = static_cast<uint32_t>(dllOrder.size());
@@ -202,8 +182,9 @@ void PEWriter::buildImports()
 
     struct DllLayout
     {
-        uint32_t iltOffset = 0;
-        uint32_t iatOffset = 0;
+        uint32_t iltOffset  = 0;
+        uint32_t iatOffset  = 0;
+        uint32_t nameOffset = 0;
     };
     std::vector<DllLayout> dllLayouts(descCount);
 
@@ -215,48 +196,31 @@ void PEWriter::buildImports()
     }
 
     // IATs (the loader patches these in place; they start as a copy of the ILT contents).
-    iatRva_                                                        = 0; // resolved to an RVA after layout
-    const uint32_t                                  iatStartOffset = static_cast<uint32_t>(idata.size());
-    std::unordered_map<const LinkImport*, uint32_t> iatEntryOffset;
+    iatRva_                       = 0; // resolved to an RVA after layout
+    const uint32_t iatStartOffset = static_cast<uint32_t>(idata.size());
+    OutSection&    text           = sections_[textIndex_];
+    thunks_.reserve(image_->imports.size());
     for (uint32_t d = 0; d < descCount; ++d)
     {
         dllLayouts[d].iatOffset = static_cast<uint32_t>(idata.size());
         for (const LinkImport* imp : byDll[dllOrder[d]])
         {
-            iatEntryOffset[imp] = static_cast<uint32_t>(idata.size());
+            // Emit each thunk with its IAT slot while both offsets are available.
+            if (text.bytes.size() % 16 != 0)
+                text.bytes.resize(Math::alignUpU32(static_cast<uint32_t>(text.bytes.size()), 16), std::byte{0});
+            ImportThunk thunk;
+            thunk.textOffset    = static_cast<uint32_t>(text.bytes.size());
+            thunk.iatSlotInIdata = static_cast<uint32_t>(idata.size());
+            text.bytes.insert(text.bytes.end(), 6, std::byte{0}); // FF 25 <disp32>, filled after layout
+            thunks_.push_back(thunk);
+            symbols_[imp->symbolName] = {static_cast<uint32_t>(textIndex_), thunk.textOffset};
             idata.resize(idata.size() + sizeof(uint64_t), std::byte{0});
         }
         idata.resize(idata.size() + sizeof(uint64_t), std::byte{0}); // null terminator
     }
     const uint32_t iatEndOffset = static_cast<uint32_t>(idata.size());
 
-    // Hint/name entries, shared by ILT and IAT.
-    std::unordered_map<const LinkImport*, uint32_t> hintNameOffset;
-    for (const Utf8& dll : dllOrder)
-    {
-        for (const LinkImport* imp : byDll[dll])
-        {
-            if (imp->byOrdinal)
-                continue; // imported by ordinal: no hint/name entry
-            hintNameOffset[imp] = static_cast<uint32_t>(idata.size());
-            idata.appendLe16(0); // hint
-            idata.appendCString(imp->importName.view());
-            if (idata.size() % 2 != 0)
-                idata.pushBack(std::byte{0});
-        }
-    }
-
-    // DLL name strings.
-    std::unordered_map<Utf8, uint32_t> dllNameOffset;
-    for (const Utf8& dll : dllOrder)
-    {
-        dllNameOffset[dll] = static_cast<uint32_t>(idata.size());
-        idata.appendCString(dll.view());
-        if (idata.size() % 2 != 0)
-            idata.pushBack(std::byte{0});
-    }
-
-    // Fill ILT and IAT entries (offsets to hint/name; fixed up to RVAs after layout).
+    // Emit hint/name entries and fill their ILT/IAT slots in the same pass.
     for (uint32_t d = 0; d < descCount; ++d)
     {
         uint32_t iltCursor = dllLayouts[d].iltOffset;
@@ -271,9 +235,14 @@ void PEWriter::buildImports()
             }
             else
             {
-                idata.writeLe64(iltCursor, hintNameOffset[imp]);
+                const uint32_t hintNameOffset = static_cast<uint32_t>(idata.size());
+                idata.appendLe16(0); // hint
+                idata.appendCString(imp->importName.view());
+                if (idata.size() % 2 != 0)
+                    idata.pushBack(std::byte{0});
+                idata.writeLe64(iltCursor, hintNameOffset);
                 idataRvaFixups_.push_back(iltCursor);
-                idata.writeLe64(iatCursor, hintNameOffset[imp]);
+                idata.writeLe64(iatCursor, hintNameOffset);
                 idataRvaFixups_.push_back(iatCursor);
             }
             iltCursor += sizeof(uint64_t);
@@ -281,18 +250,23 @@ void PEWriter::buildImports()
         }
     }
 
+    // DLL name strings.
+    for (uint32_t d = 0; d < descCount; ++d)
+    {
+        dllLayouts[d].nameOffset = static_cast<uint32_t>(idata.size());
+        idata.appendCString(dllOrder[d].view());
+        if (idata.size() % 2 != 0)
+            idata.pushBack(std::byte{0});
+    }
+
     // Fill the import descriptors.
     for (uint32_t d = 0; d < descCount; ++d)
     {
         const uint32_t base = descTableOffset + d * sizeof(IMAGE_IMPORT_DESCRIPTOR);
-        writeRvaFixup(idata, idataRvaFixups_, base + 0, dllLayouts[d].iltOffset);     // OriginalFirstThunk
-        writeRvaFixup(idata, idataRvaFixups_, base + 12, dllNameOffset[dllOrder[d]]); // Name
-        writeRvaFixup(idata, idataRvaFixups_, base + 16, dllLayouts[d].iatOffset);    // FirstThunk
+        writeRvaFixup(idata, idataRvaFixups_, base + 0, dllLayouts[d].iltOffset);   // OriginalFirstThunk
+        writeRvaFixup(idata, idataRvaFixups_, base + 12, dllLayouts[d].nameOffset); // Name
+        writeRvaFixup(idata, idataRvaFixups_, base + 16, dllLayouts[d].iatOffset);  // FirstThunk
     }
-
-    // Record the IAT slot offset each thunk references (the import was captured when the thunk was built).
-    for (ImportThunk& thunk : thunks_)
-        thunk.iatSlotInIdata = iatEntryOffset[thunk.import];
 
     OutSection idataSection;
     idataSection.name        = ".idata";

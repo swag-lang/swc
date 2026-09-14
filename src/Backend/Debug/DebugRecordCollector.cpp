@@ -203,9 +203,23 @@ void collectDebugRecords(NativeBackendBuilder&                      builder,
                          const bool                                 includeData,
                          CollectedDebugRecords&                     out)
 {
+    out.functions.reserve(functions.size() + (startup ? 1 : 0));
+    if (!builder.compiler().buildCfg().backend.debugInfo)
+    {
+        // Windows unwind sections need linkage names and machine code even without CodeView.
+        // Avoid collecting locals, types and constants that the object writer would discard.
+        if (startup)
+            out.functions.push_back({.symbolName = startup->symbolName, .machineCode = &startup->code});
+        for (const NativeFunctionInfo* info : functions)
+        {
+            if (info)
+                out.functions.push_back({.symbolName = info->symbolName, .machineCode = info->machineCode});
+        }
+        return;
+    }
+
     // Reserve so DebugInfoFunctionRecord's spans into functionStorage stay valid as we append.
     out.functionStorage.reserve(functions.size());
-    out.functions.reserve(functions.size() + (startup ? 1 : 0));
 
     if (startup)
         out.functions.push_back({.symbolName = startup->symbolName, .debugName = startup->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = &startup->code});

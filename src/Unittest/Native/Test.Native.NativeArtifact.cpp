@@ -4,6 +4,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/JIT/JITExecManager.h"
+#include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
@@ -614,6 +615,89 @@ SWC_TEST_BEGIN(NativeArtifact_RDataKeepsGrowingCyclicDependencies)
             return Result::Error;
         if (childRelocation == relocations.end() || childRelocation->addend != emittedRootOffset + pointerSize)
             return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(NativeArtifact_UnwindRecordsDoNotRequireCodeViewMetadata)
+{
+    std::array<CoffObject, 2> objects;
+    for (const bool debugInfo : {false, true})
+    {
+        CommandLine cmdLine = makeNativeArtifactCmdLine();
+        cmdLine.debugInfo   = debugInfo;
+        const NativeArtifactTestFixture fixture(ctx.global(), cmdLine);
+
+        MachineCode code;
+        code.bytes.pushBack(std::byte{0xC3});
+        code.unwindInfo = {std::byte{1}, std::byte{0}, std::byte{0}, std::byte{0}};
+        NativeStartupInfo startup;
+        startup.code = code;
+
+        auto* function  = makeTestFunction(*fixture.compilerCtx, "visible_function");
+        auto* parameter = makeTestGlobal(*fixture.compilerCtx, "visible_parameter", fixture.compiler->typeMgr().typeU64());
+        parameter->setDebugStackSlotSize(8);
+        parameter->setDebugStackSlotOffset(8);
+        function->parameters().push_back(parameter);
+        function->setDebugStackFrameSize(32);
+        auto* global = makeTestGlobal(*fixture.compilerCtx, "visible_global", fixture.compiler->typeMgr().typeU64());
+        // The collector sees real global metadata even when this particular object contains only code.
+        global->setGlobalStorage(DataSegmentKind::GlobalInit, 0);
+        fixture.nativeBuilder->regularGlobals.push_back(global);
+        NativeFunctionInfo                             info{.symbol = function, .machineCode = &code, .symbolName = "__visible_function", .debugName = "visible_function"};
+        const std::array<const NativeFunctionInfo*, 2> functions = {nullptr, &info};
+
+        CollectedDebugRecords records;
+        collectDebugRecords(*fixture.nativeBuilder, functions, &startup, true, records);
+        if (records.functions.size() != 2 || records.functions[0].symbolName != startup.symbolName || records.functions[0].machineCode != &startup.code ||
+            records.functions[1].symbolName != info.symbolName || records.functions[1].machineCode != &code)
+            return Result::Error;
+        if (debugInfo)
+        {
+            if (records.functionStorage.size() != 1 || records.globals.empty() || records.functions[1].debugName != info.debugName ||
+                records.functions[1].parameters.size() != 1 || records.functions[1].parameters[0].name != "visible_parameter" || records.functions[1].frameSize != 32)
+                return Result::Error;
+        }
+        else
+        {
+            if (!records.functionStorage.empty() || !records.globals.empty() || !records.constants.empty())
+                return Result::Error;
+            for (const DebugInfoFunctionRecord& record : records.functions)
+                if (!record.debugName.empty() || record.returnTypeRef.isValid() || record.sourceFile || record.frameSize || !record.parameters.empty() || !record.locals.empty() || !record.constants.empty())
+                    return Result::Error;
+        }
+
+        NativeObjDescription description;
+        description.index   = 7;
+        description.objPath = "optional-debug.obj";
+        description.startup = &startup;
+        description.functions.push_back(&info);
+        const auto writer = NativeObjFileWriter::create(*fixture.nativeBuilder);
+        ByteArray  bytes;
+        SWC_RESULT(writer->buildObjectFile(bytes, description));
+        Diagnostic  diag;
+        CoffObject& object = objects[debugInfo ? 1 : 0];
+        if (!readCoffObject(object, diag, bytes))
+            return Result::Error;
+        const bool hasSymbols = std::ranges::find(object.sections, Utf8(".debug$S"), &CoffInputSection::name) != object.sections.end();
+        const bool hasTypes   = std::ranges::find(object.sections, Utf8(".debug$T"), &CoffInputSection::name) != object.sections.end();
+        if (hasSymbols != debugInfo || hasTypes != debugInfo)
+            return Result::Error;
+    }
+
+    for (const Utf8& sectionName : {Utf8(".pdata"), Utf8(".xdata")})
+    {
+        const auto lean = std::ranges::find(objects[0].sections, sectionName, &CoffInputSection::name);
+        const auto full = std::ranges::find(objects[1].sections, sectionName, &CoffInputSection::name);
+        if (lean == objects[0].sections.end() || full == objects[1].sections.end() || lean->bytes != full->bytes || lean->characteristics != full->characteristics || lean->relocs.size() != full->relocs.size())
+            return Result::Error;
+        if (sectionName == ".pdata" && (lean->bytes.size() != 24 || lean->relocs.size() != 6 || lean->bytes.readLe32(4) != 1 || lean->bytes.readLe32(16) != 1))
+            return Result::Error;
+        if (sectionName == ".xdata" && (lean->bytes.size() != 8 || !lean->relocs.empty() || lean->bytes.readLe32(0) != 1 || lean->bytes.readLe32(4) != 1))
+            return Result::Error;
+        for (size_t i = 0; i < lean->relocs.size(); ++i)
+            if (lean->relocs[i].offset != full->relocs[i].offset || lean->relocs[i].type != full->relocs[i].type || lean->relocs[i].symbolName != full->relocs[i].symbolName)
+                return Result::Error;
     }
 }
 SWC_TEST_END()

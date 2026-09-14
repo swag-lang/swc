@@ -221,28 +221,13 @@ namespace
     {
         // Long member names (>15 chars do not fit the inline "name/" form) live in a "//" member; an
         // affected member references them with "/<decimal-offset>".
-        ByteArray         longNames;
-        std::vector<Utf8> nameField(members.size());
-        for (size_t i = 0; i < members.size(); ++i)
-        {
-            const Utf8& name = members[i].name;
-            if (name.size() <= 15)
-            {
-                nameField[i] = name;
-                nameField[i] += "/";
-            }
-            else
-            {
-                nameField[i] = std::format("/{}", longNames.size());
-                longNames.append(name.view());
-                longNames.pushBack(static_cast<std::byte>('\n'));
-            }
-        }
-
+        size_t   longNamesSize   = 0;
         uint32_t symbolCount     = 0;
         size_t   symbolNamesSize = 0;
         for (const ArchiveMemberBuild& member : members)
         {
+            if (member.name.size() > 15)
+                longNamesSize += member.name.size() + 1;
             symbolCount += static_cast<uint32_t>(member.symbols.size());
             for (const Utf8& symbol : member.symbols)
                 symbolNamesSize += symbol.size() + 1;
@@ -253,9 +238,9 @@ namespace
         // Compute each member header's file offset now that the leading members' sizes are known.
         size_t cursor = 8; // after "!<arch>\n"
         cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(linkerDataSize);
-        const bool hasLongNames = !longNames.empty();
+        const bool hasLongNames = longNamesSize != 0;
         if (hasLongNames)
-            cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(longNames.size());
+            cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(longNamesSize);
         for (ArchiveMemberBuild& member : members)
         {
             member.headerOffset = static_cast<uint32_t>(cursor);
@@ -281,9 +266,41 @@ namespace
             outBytes.pushBack(static_cast<std::byte>('\n'));
 
         if (hasLongNames)
-            appendArchiveMember(outBytes, "//", longNames.span());
-        for (size_t i = 0; i < members.size(); ++i)
-            appendArchiveMember(outBytes, nameField[i].view(), members[i].data);
+        {
+            appendMemberHeader(outBytes, "//", static_cast<uint32_t>(longNamesSize));
+            for (const ArchiveMemberBuild& member : members)
+            {
+                if (member.name.size() <= 15)
+                    continue;
+                outBytes.append(member.name.view());
+                outBytes.pushBack(static_cast<std::byte>('\n'));
+            }
+            if (longNamesSize & 1)
+                outBytes.pushBack(static_cast<std::byte>('\n'));
+        }
+
+        size_t longNameOffset = 0;
+        for (const ArchiveMemberBuild& member : members)
+        {
+            // Enough for an inline name plus slash, or a slash and any decimal size_t offset.
+            std::array<char, 32> nameField;
+            size_t               nameSize;
+            if (member.name.size() <= 15)
+            {
+                nameSize = member.name.size();
+                std::memcpy(nameField.data(), member.name.data(), nameSize);
+                nameField[nameSize++] = '/';
+            }
+            else
+            {
+                nameField[0]      = '/';
+                const auto result = std::to_chars(nameField.data() + 1, nameField.data() + nameField.size(), longNameOffset);
+                SWC_ASSERT(result.ec == std::errc{});
+                nameSize = static_cast<size_t>(result.ptr - nameField.data());
+                longNameOffset += member.name.size() + 1;
+            }
+            appendArchiveMember(outBytes, std::string_view{nameField.data(), nameSize}, member.data);
+        }
     }
 }
 

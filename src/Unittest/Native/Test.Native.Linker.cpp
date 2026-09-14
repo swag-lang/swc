@@ -146,6 +146,40 @@ SWC_TEST_BEGIN(Linker_ArchivePreservesMemberLayout)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Linker_ArchiveNamesPreserveInlineBoundariesAndOffsets)
+{
+    for (const uint32_t middleNameSize : {100u, 101u})
+    {
+        const std::vector<LinkArchiveMember> members = {
+            {.name = "", .bytes = makeArchiveTestObject("a", std::byte{0xC3})},
+            {.name = Utf8(15, 'a'), .bytes = makeArchiveTestObject("b", std::byte{0xC3})},
+            {.name = Utf8(16, 'b'), .bytes = makeArchiveTestObject("c", std::byte{0x90})},
+            {.name = Utf8(middleNameSize, 'c'), .bytes = makeArchiveTestObject("d", std::byte{0x90})},
+            {.name = Utf8(16, 'd'), .bytes = makeArchiveTestObject("e", std::byte{0x90})},
+            {.name = "end.obj", .bytes = makeArchiveTestObject("f", std::byte{0xC3})},
+        };
+        const Utf8                longNames   = Utf8(16, 'b') + "\n" + Utf8(middleNameSize, 'c') + "\n" + Utf8(16, 'd') + "\n";
+        const std::array<Utf8, 6> headerNames = {"/", "aaaaaaaaaaaaaaa/", "/0", "/17", middleNameSize == 100 ? "/118" : "/119", "end.obj/"};
+        Diagnostic                diag;
+        ByteArray                 bytes;
+        if (!buildCoffStaticArchive(bytes, diag, members) || bytes.size() != 1168 || bytes.readBe32(68) != 6 ||
+            !matchesArchiveHeader(bytes, 8, "/", 40) || !matchesArchiveHeader(bytes, 108, "//", static_cast<uint32_t>(longNames.size())))
+            return Result::Error;
+        if (std::memcmp(bytes.data() + 168, longNames.data(), longNames.size()) != 0 || bytes[303] != std::byte{'\n'})
+            return Result::Error;
+
+        // Both table sizes end at offset 304: one needs padding, the other ends on its own newline.
+        for (size_t index = 0; index < members.size(); ++index)
+        {
+            const uint32_t offset = 304 + static_cast<uint32_t>(index) * 144;
+            if (bytes.readBe32(72 + index * 4) != offset || !matchesArchiveHeader(bytes, offset, headerNames[index].view(), 83) ||
+                !std::ranges::equal(bytes.span().subspan(offset + 60, 83), members[index].bytes) || bytes[offset + 143] != std::byte{'\n'})
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Linker_ArchiveSymbolViewsFollowOwnership)
 {
     static_assert(!std::is_copy_constructible_v<Archive>);

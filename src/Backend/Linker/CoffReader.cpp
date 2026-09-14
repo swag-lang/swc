@@ -92,6 +92,158 @@ bool linkRelocKindFromCoffType(LinkRelocKind& outKind, uint16_t type)
     }
 }
 
+namespace
+{
+    bool readCoffContent(std::vector<CoffInputSymbol>& outSymbols, std::vector<CoffInputSection>* outSections, Diagnostic& outDiag, const std::span<const std::byte> bytes)
+    {
+        IMAGE_FILE_HEADER fileHeader{};
+        if (!tryReadValue(fileHeader, bytes, 0))
+        {
+            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_header);
+            return false;
+        }
+
+        if (fileHeader.Machine != IMAGE_FILE_MACHINE_AMD64)
+        {
+            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_unsupported_machine);
+            return false;
+        }
+
+        const size_t sectionTableOffset = sizeof(IMAGE_FILE_HEADER) + fileHeader.SizeOfOptionalHeader;
+        const size_t sectionCount       = fileHeader.NumberOfSections;
+        const size_t symbolTableOffset  = fileHeader.PointerToSymbolTable;
+        const size_t symbolCount        = fileHeader.NumberOfSymbols;
+        const size_t stringTableOffset  = symbolTableOffset + symbolCount * sizeof(IMAGE_SYMBOL);
+
+        // Decode the symbol table first: relocations reference symbols by record index, and we want their
+        // names. Auxiliary records keep the index space contiguous but carry no name of their own.
+        std::vector<Utf8>     recordNames(symbolCount);
+        std::vector           recordSectionNumber(symbolCount, 0);
+        std::vector<uint32_t> recordValue(symbolCount, 0);
+        for (size_t i = 0; i < symbolCount;)
+        {
+            IMAGE_SYMBOL record{};
+            if (!tryReadValue(record, bytes, symbolTableOffset + i * sizeof(IMAGE_SYMBOL)))
+            {
+                outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_symbols);
+                return false;
+            }
+
+            recordNames[i]         = symbolName(record, bytes, stringTableOffset);
+            recordSectionNumber[i] = record.SectionNumber;
+            recordValue[i]         = record.Value;
+
+            const size_t step = 1 + record.NumberOfAuxSymbols;
+            i += step;
+        }
+
+        // Validate every section and relocation, even when the caller only needs defined symbols.
+        if (outSections)
+            outSections->resize(sectionCount);
+        for (size_t s = 0; s < sectionCount; ++s)
+        {
+            IMAGE_SECTION_HEADER header{};
+            if (!tryReadValue(header, bytes, sectionTableOffset + s * sizeof(IMAGE_SECTION_HEADER)))
+            {
+                outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_section);
+                return false;
+            }
+
+            CoffInputSection* section = outSections ? &(*outSections)[s] : nullptr;
+            if (section)
+            {
+                char nameBuffer[IMAGE_SIZEOF_SHORT_NAME + 1] = {};
+                std::memcpy(nameBuffer, header.Name, IMAGE_SIZEOF_SHORT_NAME);
+                section->name            = Utf8{std::string_view{nameBuffer}};
+                section->characteristics = header.Characteristics;
+                section->isBss           = (header.Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA) != 0;
+                section->bssSize         = section->isBss ? header.SizeOfRawData : 0;
+            }
+
+            const bool isUninit = (header.Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA) != 0;
+            if (!isUninit && header.SizeOfRawData != 0 && header.PointerToRawData != 0)
+            {
+                if (!containsRange(bytes, header.PointerToRawData, header.SizeOfRawData))
+                {
+                    outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_section_out_of_bounds);
+                    return false;
+                }
+                if (section)
+                {
+                    const auto rawBegin = bytes.begin() + header.PointerToRawData;
+                    const auto rawEnd   = rawBegin + header.SizeOfRawData;
+                    section->bytes.assign(rawBegin, rawEnd);
+                }
+            }
+
+            if (header.NumberOfRelocations == 0 && (header.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL) == 0)
+                continue;
+
+            size_t   relocOffset = header.PointerToRelocations;
+            uint32_t relocCount  = header.NumberOfRelocations;
+            if (header.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL)
+            {
+                // The real count lives in the first record; skip that placeholder.
+                IMAGE_RELOCATION overflow{};
+                if (!tryReadValue(overflow, bytes, relocOffset))
+                {
+                    outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_reloc_overflow);
+                    return false;
+                }
+                relocCount = overflow.RelocCount;
+                relocOffset += sizeof(IMAGE_RELOCATION);
+                if (relocCount > 0)
+                    relocCount -= 1;
+            }
+
+            if (section)
+                section->relocs.reserve(relocCount);
+            for (uint32_t r = 0; r < relocCount; ++r)
+            {
+                IMAGE_RELOCATION reloc{};
+                if (!tryReadValue(reloc, bytes, relocOffset + r * sizeof(IMAGE_RELOCATION)))
+                {
+                    outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_relocs);
+                    return false;
+                }
+
+                if (reloc.SymbolTableIndex >= recordNames.size())
+                {
+                    outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_reloc_symbol_out_of_range);
+                    return false;
+                }
+
+                if (section)
+                {
+                    CoffInputReloc out;
+                    out.offset     = reloc.VirtualAddress;
+                    out.symbolName = recordNames[reloc.SymbolTableIndex];
+                    out.type       = reloc.Type;
+                    section->relocs.push_back(std::move(out));
+                }
+            }
+        }
+
+        // Collect the symbols this object defines (those bound to one of its sections).
+        for (size_t i = 0; i < symbolCount; ++i)
+        {
+            const int32_t sectionNumber = recordSectionNumber[i];
+            if (sectionNumber <= 0 || std::cmp_greater(sectionNumber, sectionCount))
+                continue;
+            if (recordNames[i].empty())
+                continue;
+
+            CoffInputSymbol symbol;
+            symbol.name         = std::move(recordNames[i]);
+            symbol.sectionIndex = static_cast<uint32_t>(sectionNumber - 1);
+            symbol.value        = recordValue[i];
+            outSymbols.push_back(std::move(symbol));
+        }
+
+        return true;
+    }
+}
+
 bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, const ByteArray& bytes)
 {
     return readCoffObject(outObject, outDiag, bytes.span());
@@ -100,145 +252,13 @@ bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, const ByteArray&
 bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, const std::span<const std::byte> bytes)
 {
     outObject = {};
+    return readCoffContent(outObject.definedSymbols, &outObject.sections, outDiag, bytes);
+}
 
-    IMAGE_FILE_HEADER fileHeader{};
-    if (!tryReadValue(fileHeader, bytes, 0))
-    {
-        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_header);
-        return false;
-    }
-
-    if (fileHeader.Machine != IMAGE_FILE_MACHINE_AMD64)
-    {
-        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_unsupported_machine);
-        return false;
-    }
-
-    const size_t sectionTableOffset = sizeof(IMAGE_FILE_HEADER) + fileHeader.SizeOfOptionalHeader;
-    const size_t sectionCount       = fileHeader.NumberOfSections;
-    const size_t symbolTableOffset  = fileHeader.PointerToSymbolTable;
-    const size_t symbolCount        = fileHeader.NumberOfSymbols;
-    const size_t stringTableOffset  = symbolTableOffset + symbolCount * sizeof(IMAGE_SYMBOL);
-
-    // Decode the symbol table first: relocations reference symbols by record index, and we want their
-    // names. Auxiliary records keep the index space contiguous but carry no name of their own.
-    std::vector<Utf8>     recordNames(symbolCount);
-    std::vector           recordSectionNumber(symbolCount, 0);
-    std::vector<uint32_t> recordValue(symbolCount, 0);
-    for (size_t i = 0; i < symbolCount;)
-    {
-        IMAGE_SYMBOL record{};
-        if (!tryReadValue(record, bytes, symbolTableOffset + i * sizeof(IMAGE_SYMBOL)))
-        {
-            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_symbols);
-            return false;
-        }
-
-        recordNames[i]         = symbolName(record, bytes, stringTableOffset);
-        recordSectionNumber[i] = record.SectionNumber;
-        recordValue[i]         = record.Value;
-
-        const size_t step = 1 + record.NumberOfAuxSymbols;
-        i += step;
-    }
-
-    // Decode sections, including their raw bytes and relocations.
-    outObject.sections.resize(sectionCount);
-    for (size_t s = 0; s < sectionCount; ++s)
-    {
-        IMAGE_SECTION_HEADER header{};
-        if (!tryReadValue(header, bytes, sectionTableOffset + s * sizeof(IMAGE_SECTION_HEADER)))
-        {
-            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_section);
-            return false;
-        }
-
-        CoffInputSection& section = outObject.sections[s];
-
-        char nameBuffer[IMAGE_SIZEOF_SHORT_NAME + 1] = {};
-        std::memcpy(nameBuffer, header.Name, IMAGE_SIZEOF_SHORT_NAME);
-        section.name            = Utf8{std::string_view{nameBuffer}};
-        section.characteristics = header.Characteristics;
-
-        const bool isUninit = (header.Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA) != 0;
-        if (isUninit)
-        {
-            section.isBss   = true;
-            section.bssSize = header.SizeOfRawData;
-        }
-        else if (header.SizeOfRawData != 0 && header.PointerToRawData != 0)
-        {
-            if (header.PointerToRawData + header.SizeOfRawData > bytes.size())
-            {
-                outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_section_out_of_bounds);
-                return false;
-            }
-            const auto rawBegin = bytes.begin() + header.PointerToRawData;
-            const auto rawEnd   = rawBegin + header.SizeOfRawData;
-            section.bytes.assign(rawBegin, rawEnd);
-        }
-
-        if (header.NumberOfRelocations == 0 && (header.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL) == 0)
-            continue;
-
-        size_t   relocOffset = header.PointerToRelocations;
-        uint32_t relocCount  = header.NumberOfRelocations;
-        if (header.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL)
-        {
-            // The real count lives in the first record; skip that placeholder.
-            IMAGE_RELOCATION overflow{};
-            if (!tryReadValue(overflow, bytes, relocOffset))
-            {
-                outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_reloc_overflow);
-                return false;
-            }
-            relocCount = overflow.RelocCount;
-            relocOffset += sizeof(IMAGE_RELOCATION);
-            if (relocCount > 0)
-                relocCount -= 1;
-        }
-
-        section.relocs.reserve(relocCount);
-        for (uint32_t r = 0; r < relocCount; ++r)
-        {
-            IMAGE_RELOCATION reloc{};
-            if (!tryReadValue(reloc, bytes, relocOffset + r * sizeof(IMAGE_RELOCATION)))
-            {
-                outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_relocs);
-                return false;
-            }
-
-            if (reloc.SymbolTableIndex >= recordNames.size())
-            {
-                outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_reloc_symbol_out_of_range);
-                return false;
-            }
-
-            CoffInputReloc out;
-            out.offset     = reloc.VirtualAddress;
-            out.symbolName = recordNames[reloc.SymbolTableIndex];
-            out.type       = reloc.Type;
-            section.relocs.push_back(std::move(out));
-        }
-    }
-
-    // Collect the symbols this object defines (those bound to one of its sections).
-    for (size_t i = 0; i < symbolCount; ++i)
-    {
-        const int32_t sectionNumber = recordSectionNumber[i];
-        if (sectionNumber <= 0 || std::cmp_greater(sectionNumber, sectionCount))
-            continue;
-        if (recordNames[i].empty())
-            continue;
-
-        CoffInputSymbol symbol;
-        symbol.name         = recordNames[i];
-        symbol.sectionIndex = static_cast<uint32_t>(sectionNumber - 1);
-        symbol.value        = recordValue[i];
-        outObject.definedSymbols.push_back(std::move(symbol));
-    }
-
-    return true;
+bool readCoffDefinedSymbols(std::vector<CoffInputSymbol>& outSymbols, Diagnostic& outDiag, const std::span<const std::byte> bytes)
+{
+    outSymbols.clear();
+    return readCoffContent(outSymbols, nullptr, outDiag, bytes);
 }
 
 bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const std::vector<CoffObject>& objects)

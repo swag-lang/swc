@@ -293,10 +293,10 @@ bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std:
     std::vector<ArchiveMemberBuild> members;
     members.reserve(inputMembers.size());
 
+    std::vector<CoffInputSymbol> symbols;
     for (const LinkArchiveMember& inputMember : inputMembers)
     {
-        CoffObject object;
-        if (!readCoffObject(object, outDiag, inputMember.bytes))
+        if (!readCoffDefinedSymbols(symbols, outDiag, inputMember.bytes.span()))
             return false;
 
         ArchiveMemberBuild member;
@@ -308,8 +308,9 @@ bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std:
             aliasedMemberBytes = inputMember.bytes;
             member.data        = aliasedMemberBytes.span();
         }
-        for (const CoffInputSymbol& symbol : object.definedSymbols)
-            member.symbols.push_back(symbol.name);
+        member.symbols.reserve(symbols.size());
+        for (CoffInputSymbol& symbol : symbols)
+            member.symbols.push_back(std::move(symbol.name));
         members.push_back(std::move(member));
     }
 

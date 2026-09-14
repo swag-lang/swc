@@ -2178,7 +2178,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     denseVirtualRegs_.clear();
     denseConcreteRegs_.clear();
     denseVirtualRegs_.reserve(denseReserve);
-    denseConcreteRegs_.reserve(denseReserve);
+    // Include stack/frame roles even when they are outside the allocatable pools.
+    denseConcreteRegs_.reserve(conv_->intRegs.size() + conv_->floatRegs.size() + 2);
 
     useVirtualIndices_.resize(instructionCount_);
     defVirtualIndices_.resize(instructionCount_);

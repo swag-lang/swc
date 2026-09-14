@@ -10,7 +10,8 @@ public:
 
     void clear()
     {
-        regToIndex_.clear();
+        if (regToIndex_)
+            regToIndex_->clear();
         for (auto& indices : directRegToIndex_)
             indices.clear();
         regs_.clear();
@@ -18,7 +19,8 @@ public:
 
     void reserve(const size_t regCountHint)
     {
-        regToIndex_.reserve(regCountHint);
+        // Ordinary registers use direct tables. Grow the sparse fallback only
+        // for the exceptional registers that actually need it.
         regs_.reserve(regCountHint);
     }
 
@@ -35,12 +37,14 @@ public:
             return newIndex;
         }
 
-        const auto it = regToIndex_.find(reg);
-        if (it != regToIndex_.end())
+        if (!regToIndex_)
+            regToIndex_.emplace();
+        const auto it = regToIndex_->find(reg);
+        if (it != regToIndex_->end())
             return it->second;
 
         const uint32_t newIndex = static_cast<uint32_t>(regs_.size());
-        regToIndex_.emplace(reg, newIndex);
+        regToIndex_->emplace(reg, newIndex);
         regs_.push_back(reg);
         return newIndex;
     }
@@ -50,8 +54,10 @@ public:
         if (const uint32_t* directIndex = directIndexSlot(reg))
             return *directIndex;
 
-        const auto it = regToIndex_.find(reg);
-        if (it == regToIndex_.end())
+        if (!regToIndex_)
+            return K_INVALID_INDEX;
+        const auto it = regToIndex_->find(reg);
+        if (it == regToIndex_->end())
             return K_INVALID_INDEX;
         return it->second;
     }
@@ -100,8 +106,10 @@ private:
     }
 
     std::array<std::vector<uint32_t>, K_DIRECT_KIND_COUNT> directRegToIndex_;
-    std::unordered_map<MicroReg, uint32_t>                 regToIndex_;
-    std::vector<MicroReg>                                  regs_;
+    // MSVC's empty hash map allocates buckets and a sentinel. Defer both until
+    // an exceptional register actually needs the fallback.
+    std::optional<std::unordered_map<MicroReg, uint32_t>> regToIndex_;
+    std::vector<MicroReg>                                 regs_;
 };
 
 SWC_END_NAMESPACE();

@@ -5,6 +5,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Unittest/Unittest.h"
@@ -281,6 +282,53 @@ SWC_TEST_BEGIN(MicroControlFlowGraph_RebuildsLargeBranchesAndRemovedLabels)
     if (empty.instructionCount() || !empty.successors().empty() || !empty.predecessors().empty() || !empty.supportsDeadCodeLiveness() || empty.hasLoop())
         return Result::Error;
     return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroDenseRegIndex_ReusesMixedDirectAndSparseRegisters)
+{
+    MicroDenseRegIndex index;
+    const std::array   regs = {
+        MicroReg::intReg(3),
+        MicroReg::floatReg(3),
+        MicroReg::virtualIntReg(3),
+        MicroReg::virtualFloatReg(3),
+        MicroReg::virtualIntReg(MicroReg::K_MAX_INDEX),
+        MicroReg::virtualFloatReg(MicroReg::K_MAX_INDEX),
+        MicroReg::instructionPointer(),
+        MicroReg::noBase(),
+    };
+
+    for (uint32_t round = 0; round < 3; ++round)
+    {
+        index.clear();
+        index.reserve(round ? 2 : 512);
+        if (!index.regs().empty() || index.wordCount())
+            return Result::Error;
+        for (const MicroReg reg : regs)
+            if (index.contains(reg))
+                return Result::Error;
+
+        for (uint32_t i = 0; i < regs.size(); ++i)
+            if (index.ensure(regs[i]) != i || index.ensure(regs[i]) != i)
+                return Result::Error;
+
+        // Force the fallback to grow, then verify direct and sparse lookups
+        // still share one insertion order across repeated clear/reserve cycles.
+        for (uint32_t i = 0; i < 130; ++i)
+        {
+            const MicroReg reg = MicroReg::virtualIntReg(MicroReg::K_MAX_INDEX - i - 1);
+            if (index.contains(reg) || index.ensure(reg) != regs.size() + i)
+                return Result::Error;
+        }
+        if (index.regs().size() != regs.size() + 130 || index.wordCount() != 3)
+            return Result::Error;
+        for (uint32_t i = 0; i < index.regs().size(); ++i)
+            if (index.find(index.regs()[i]) != i || index.ensure(index.regs()[i]) != i)
+                return Result::Error;
+        if (index.contains(MicroReg::virtualFloatReg(MicroReg::K_MAX_INDEX - 1)))
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

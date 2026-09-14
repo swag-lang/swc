@@ -24,7 +24,7 @@ run it and leave the machine alone, rather than run it and work beside it.
 
 ## What is measured
 
-Seven programs, written by hand and identically in swag, C++, Rust, Swift, C#, JavaScript, Lua
+Seven equivalent programs in swag, C++, Rust, Zig, D, Odin, Swift, C#, JavaScript, Lua
 and Python. None of them uses a standard library container: each reimplements its own hash
 map, heap or matrix, so the benchmark measures the compiler rather than somebody's hash
 table. `chacha` is the one written against a published specification rather than invented
@@ -32,8 +32,20 @@ here: the same ChaCha20 rounds every port implements word for word, which is wha
 fair reading of 32-bit lane arithmetic and of whatever each compiler does with it. Every port prints the same checksum, and **a campaign that reports a checksum mismatch
 has measured nothing** — fix the ports before believing any number.
 
-Fourteen runtimes in total: swag native and JIT in both configurations, two C++ compilers,
-Rust, Swift, C# ahead-of-time and jitted, V8, LuaJIT, Lua and CPython.
+Seventeen runtimes in total: swag native and JIT in both configurations, two C++ compilers,
+Rust, Zig, D through LDC, Odin, Swift, C# ahead-of-time and jitted, V8, LuaJIT, Lua and CPython.
+
+Zig, D and Odin also have hello-world programs for fixed compilation cost. Their release recipes
+are `zig build-exe -O ReleaseFast -target x86_64-windows-msvc -lc`,
+`ldc2 -O3 -release -boundscheck=off`, and `odin build -file -o:speed`.
+Zig and D disable bounds checks in these configurations. Odin retains its default checks on
+fixed arrays; raw allocated pointers carry no bounds, as in the C++ ports. All three use the
+CRT allocator and Windows performance counter. D does not use garbage-collected containers.
+
+Each Zig build clears its private local and global caches to measure a fresh compilation,
+including the standard-library code it needs, rather than retrieving a previously linked binary.
+The MSVC target uses the installed Windows SDK and runtime libraries instead of building a
+separate MinGW C runtime. Every available language is remeasured on every campaign.
 
 ## The edit-build loop
 
@@ -154,8 +166,8 @@ are re-measured every time solely as a control group.
 Raw milliseconds are not comparable across campaigns — the same machine drifts by more than
 ten percent between sessions. The oldest complete campaign recorded from a clean tree is the
 stable baseline. For each task and later campaign, the harness computes every non-Swag
-runtime's ratio to that baseline and takes their logarithmic median: ten controls for execution
-and six for compilation. That is the context factor. A Swag time is divided by the factor before
+runtime's ratio to that baseline and takes their logarithmic median, using only runtimes measured
+in both campaigns. That is the context factor. A Swag time is divided by the factor before
 it enters the history.
 
 The correction is per task because the machine can warm up during a sweep, and execution and
@@ -240,8 +252,8 @@ half recorded until the README is refreshed from the new `results/` file and its
   and `mkpage.py`. It must print `CHECK=<n> MS=<f>` and exclude data generation from the timed
   section. Confirm every port agrees on the checksum before recording anything.
 - **A new language**: add its recipe in `toolchains.py` and its id to the order lists in
-  `driver.py`. Give it the release settings its users would ship, and note whether it keeps
-  bounds checks — swag release and C++ do not, the others do.
+  `driver.py` and `mkpage.py`. Give it the release settings its users would ship, document its
+  bounds-check policy, and verify every checksum with `--quick` before recording a campaign.
 - **Never change what a task computes.** That silently resets the history, because the past
   numbers stop describing the same work.
 
@@ -250,7 +262,10 @@ half recorded until the README is refreshed from the new `results/` file and its
 MSVC and clang-cl come from Visual Studio; the others are looked up under the user profile.
 Any of them can be overridden when it lives somewhere unusual: `BENCH_VS_ROOT`, `BENCH_RUSTC`,
 `BENCH_DOTNET`, `BENCH_SWIFTC`, `BENCH_SWIFT_ROOT`, `BENCH_NODE`, `BENCH_LUA`, `BENCH_LUAJIT`,
-`BENCH_PY`, and `BENCH_SWC` for the compiler under test. A toolchain that cannot be found is
+`BENCH_PY`, `BENCH_ZIG`, `BENCH_LDC2`, `BENCH_ODIN`, and `BENCH_SWC` for the compiler under test.
+Zig, LDC and Odin are also discovered on `PATH`. Point each override at its compiler executable.
+The new ports have been checked with Zig 0.15.2, LDC 1.43.0 and Odin dev-2026-09.
+A toolchain that cannot be found is
 named and skipped, never guessed at, and the report records which ones were absent.
 
 The page follows [design-swag-identity](../.agents/skills/design-swag-identity/SKILL.md): one

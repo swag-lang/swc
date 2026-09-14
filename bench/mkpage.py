@@ -42,6 +42,9 @@ RUNTIMES = [
     ("cpp-clang-cl",       "C++ clang-cl",      "natif",     "native"),
     ("cpp-msvc",           "C++ MSVC",          "natif",     "native"),
     ("rust",               "Rust",              "natif",     "native"),
+    ("zig",                "Zig",               "native",    "native"),
+    ("d-ldc",              "D (LDC)",           "native",    "native"),
+    ("odin",               "Odin",              "native",    "native"),
     ("swift",              "Swift",             "natif",     "native"),
     ("csharp-aot",         "C# NativeAOT",      "AOT",       "managed"),
     ("csharp-jit",         "C# CoreCLR",        "JIT",       "managed"),
@@ -85,7 +88,7 @@ def latest_campaign():
             campaign = json.load(f)
         if campaign.get("meta", {}).get("protocol") == history.PROTOCOL:
             return campaign
-    raise SystemExit("no campaign of protocol %d in bench/results â€” run a campaign first"
+    raise SystemExit("no campaign of protocol %d in bench/results — run a campaign first"
                      % history.PROTOCOL)
 
 
@@ -651,9 +654,11 @@ def main():
     # ---------------------------------------------------- repository README block
     ex_cols = [("swag-release", "swc"), ("swc-jit-release", "swc JIT"),
                ("cpp-clang-cl", "clang-cl"), ("rust", "rustc"),
+               ("zig", "Zig"), ("d-ldc", "D (LDC)"), ("odin", "Odin"),
                ("luajit2.1", "LuaJIT"), ("node20", "Node 20"),
                ("python3.12", "CPython 3.12")]
-    bu_cols = [("swag-release", "swc"), ("cpp-clang-cl", "clang-cl"), ("rust", "rustc")]
+    bu_cols = [("swag-release", "swc"), ("cpp-clang-cl", "clang-cl"), ("rust", "rustc"),
+               ("zig", "Zig"), ("d-ldc", "D (LDC)"), ("odin", "Odin")]
     ex_cols = [c for c in ex_cols if c[0] in present]
     bu_cols = [c for c in bu_cols if c[0] in aot]
     readme = [
@@ -706,7 +711,7 @@ def main():
         "against ten control",
         "> runtimes, and states the resolution below which it can see nothing at all. See "
         "[bench/](bench) for",
-        "> the method, the fourteen runtimes, and the rules that keep the numbers honest.",
+        "> the method, the supported runtimes, and the rules that keep the numbers honest.",
         "",
     ]
     if write_repo_readme("\n".join(readme)):

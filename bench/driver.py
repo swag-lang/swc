@@ -48,7 +48,7 @@ for _stream in (sys.stdout, sys.stderr):
 PAT = re.compile(r"CHECK=(-?\d+)\s+MS=([\d.]+)")
 
 AOT_ORDER = ["swag-release", "swag-fast-debug", "cpp-clang-cl", "cpp-msvc",
-             "rust", "swift", "csharp-aot", "csharp-jit"]
+             "rust", "zig", "d-ldc", "odin", "swift", "csharp-aot", "csharp-jit"]
 JIT_ORDER = ["swc-jit-release", "swc-jit-fast-debug", "node20", "luajit2.1",
              "lua5.4", "python3.12"]
 
@@ -130,7 +130,7 @@ def keep_workload(acc, r):
 def run_once(cmd, env):
     r = winproc.run(cmd, cwd=tc.BENCH, env=env, pin=True)
     m = PAT.search(r["stdout"] + r["stderr"])
-    if not m:
+    if r["exit"] != 0 or not m:
         return None, (r["stdout"] + r["stderr"])[-400:], r
     return (int(m.group(1)), float(m.group(2))), None, r
 
@@ -529,16 +529,23 @@ def main():
 
     # --------------------------------------------------------------- checksums
     bad = []
+    for family in ("hello_build", "loop"):
+        for name, entry in results[family].items():
+            if entry.get("error"):
+                bad.append("%s/%s: %s" % (family, name, entry["error"]))
     for task in tasks:
         seen = {}
         for name, entry in results["tasks"][task].items():
+            for family in ("build", "run"):
+                if entry.get(family, {}).get("error"):
+                    bad.append("%s/%s/%s: %s" % (task, name, family, entry[family]["error"]))
             c = entry.get("run", {}).get("check")
             if c is not None:
                 seen.setdefault(c, []).append(name)
         if len(seen) > 1:
             bad.append("%s: %s" % (task, seen))
     if bad:
-        print("checksum disagreement across runtimes: %s" % "; ".join(bad))
+        print("campaign contains build, run or checksum errors: %s" % "; ".join(bad))
         print("campaign stopped before recording results")
         return 1
     else:

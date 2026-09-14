@@ -49,6 +49,9 @@ def discover():
         "clang_cl": os.path.join(vs, "VC", "Tools", "Llvm", "x64", "bin", "clang-cl.exe") if vs else None,
         "vswhere": r"C:\Program Files (x86)\Microsoft Visual Studio\Installer",
         "rustc": _env("BENCH_RUSTC", os.path.join(home, r".cargo\bin\rustc.exe")),
+        "zig": _env("BENCH_ZIG", shutil.which("zig")),
+        "ldc2": _env("BENCH_LDC2", shutil.which("ldc2")),
+        "odin": _env("BENCH_ODIN", shutil.which("odin")),
         "dotnet": _env("BENCH_DOTNET", r"C:\Program Files\dotnet\dotnet.exe"),
         "swiftc": _env("BENCH_SWIFTC", swift_tc),
         "swift_rt": swift_rt,
@@ -121,6 +124,26 @@ def swag_files(task, flavour):
     return files
 
 
+def systems_recipe(t, language, source, name, helpers=()):
+    """A fresh native build, including private object and compiler-cache directories."""
+    wd = os.path.join(OUT, name)
+    exe = os.path.join(wd, name + ".exe")
+    if language == "zig":
+        cmd = [t["zig"], "build-exe", source, "-O", "ReleaseFast",
+               "-target", "x86_64-windows-msvc", "-lc",
+               "-femit-bin=" + exe, "--cache-dir", os.path.join(wd, "cache"),
+               "--global-cache-dir", os.path.join(wd, "global-cache")]
+    elif language == "d-ldc":
+        cmd = [t["ldc2"], "-O3", "-release", "-boundscheck=off",
+               "-I=" + os.path.join(SRC, "d"), "-of=" + exe,
+               "-od=" + wd, source, *helpers]
+    elif language == "odin":
+        cmd = [t["odin"], "build", source, "-file", "-o:speed", "-out:" + exe]
+    else:
+        raise ValueError("unknown native toolchain: " + language)
+    return {"cmd": cmd, "exe": exe, "clean": [wd], "mkdir": [wd], "cwd": wd}
+
+
 def make_recipes(t, env, swc):
     """(id -> callable(task, name) -> recipe) for everything that builds an executable."""
     cl = resolve(env, "cl")
@@ -179,6 +202,14 @@ def make_recipes(t, env, swc):
         "cpp-clang-cl":    cpp(t["clang_cl"]),
         "cpp-msvc":        cpp(cl),
         "rust":            rust,
+        "zig":             lambda task, name: systems_recipe(
+            t, "zig", os.path.join(SRC, "zig", task + ".zig"), name),
+        "d-ldc":           lambda task, name: systems_recipe(
+            t, "d-ldc", os.path.join(SRC, "d", task + ".d"), name,
+            [os.path.join(SRC, "d", "common.d")] +
+            ([os.path.join(SRC, "d", "bytemap.d")] if task in NEEDS_MAP else [])),
+        "odin":            lambda task, name: systems_recipe(
+            t, "odin", os.path.join(SRC, "odin", task + ".odin"), name),
         "swift":           swift,
         "csharp-aot":      csharp("aot"),
         "csharp-jit":      csharp("jit"),
@@ -189,7 +220,7 @@ def make_launchers(t, dotnet_dll_runner):
     """id -> callable(exe) -> command line, for the toolchains that produced an exe."""
     return {k: (lambda e: [e]) for k in
             ["swag-release", "swag-fast-debug", "cpp-clang-cl", "cpp-msvc",
-             "rust", "swift", "csharp-aot"]} | {
+             "rust", "zig", "d-ldc", "odin", "swift", "csharp-aot"]} | {
         "csharp-jit": lambda e: [dotnet_dll_runner, e]}
 
 
@@ -217,6 +248,9 @@ def make_hello_builds(t, env, swc):
     cl = resolve(env, "cl")
     hello = os.path.join(SRC, "hello")
     return {
+        **{language: (lambda language=language, extension=extension: systems_recipe(
+            t, language, os.path.join(hello, "hello." + extension), "hello_" + language))
+           for language, extension in [("zig", "zig"), ("d-ldc", "d"), ("odin", "odin")]},
         "swag-release": lambda: {
             "cmd": [swc, "build", "--build-cfg", "release", "-n", "hello_swag",
                     "-od", os.path.join(OUT, "hellowd"), "-wd", os.path.join(OUT, "hellowd"),
@@ -372,6 +406,7 @@ def missing(t):
     """Toolchains that could not be located, by benchmark id."""
     need = {
         "cpp-msvc": t["vcvars"], "cpp-clang-cl": t["clang_cl"], "rust": t["rustc"],
+        "zig": t["zig"], "d-ldc": t["ldc2"], "odin": t["odin"],
         "swift": t["swiftc"], "csharp-aot": t["dotnet"], "csharp-jit": t["dotnet"],
         "node20": t["node"], "luajit2.1": t["luajit"], "lua5.4": t["lua"], "python3.12": t["py"],
     }

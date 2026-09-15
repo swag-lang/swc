@@ -42,6 +42,7 @@ namespace Integration
         func SetFileAttributesW(path: const [*] u16?, attributes: u32)->s32
         func GetFileAttributesW(path: const [*] u16?)->u32
         func GetLastError()->u32
+        func GetFinalPathNameByHandleW(handle: WinFsp.NativeHandle, path: [*] u16, capacity, flags: u32)->u32
     }
 
     // Only the Shell methods used by this harness are callable; the other slots retain ABI order.
@@ -201,6 +202,25 @@ namespace Integration
         return GetFileAttributesW(path16.buffer)
     }
 
+    func verifyFinalPath(path: string) fail
+    {
+        let path16 = Utf16.toZeroTerminated(path)
+
+        // Match Python's realpath: query metadata with all sharing modes and allow directories.
+        let handle = WinFsp.CreateFileW(path16.buffer, 0, 7, null, 3, 0x02000000, null)
+        try verify(handle != WinFsp.InvalidHandle, Format.toString("Windows cannot open [[%]] for path resolution", path))
+        defer discard WinFsp.CloseHandle(handle)
+
+        var buffer: [32768] u16
+        let count = GetFinalPathNameByHandleW(handle, buffer.buffer, cast(u32) buffer.count, 0)
+        try verify(count != 0 and count < buffer.count, Format.toString("Windows cannot resolve [[%]] from its handle (error %)", path, GetLastError()))
+        let resolved   = Utf8.fromUtf16(Swag.makeSlice(buffer.buffer, count))
+        let resolved16 = Utf16.toZeroTerminated(resolved)
+        let reopened   = WinFsp.CreateFileW(resolved16.buffer, 0, 7, null, 3, 0x02000000, null)
+        try verify(reopened != WinFsp.InvalidHandle, Format.toString("Windows cannot reopen the resolved path [[%]]", resolved))
+        defer discard WinFsp.CloseHandle(reopened)
+    }
+
     func removeDirectory(path: string) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
@@ -343,6 +363,11 @@ namespace Integration
         let firstRecovery = try File.readAllBytes(box.recovered)
         try verify(sameBytes(original, firstRecovery.toSlice()), "a copied file must survive a round trip through the mounted drive")
 
+        trace("FS: resolve and reopen final paths from handles")
+        try verifyFinalPath(root)
+        try verifyFinalPath(nested)
+        try verifyFinalPath(persistent)
+
         let empty = Path.combine(documents, "empty.txt")
         trace("FS: empty file")
         discard try File.writeAllBytes(empty, Swag.makeSlice(cast(const [*] u8) ("").buffer, 0))
@@ -354,6 +379,7 @@ namespace Integration
         discard try File.writeAllBytes(unicode, Swag.makeSlice(cast(const [*] u8) unicodePayload.buffer, unicodePayload.count))
         let unicodeRead = try File.readAllText(unicode)
         try verify(unicodeRead == unicodePayload, "Unicode file names and text must round-trip")
+        try verifyFinalPath(unicode)
 
         let overwrite = Path.combine(documents, "overwrite.bin")
         trace("FS: overwrite and append")

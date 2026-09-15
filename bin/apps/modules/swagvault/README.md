@@ -38,6 +38,12 @@ It keeps the driver available until the application exits, then unregisters its 
 Other Swag Vault processes and drivers awaiting deletion therefore have separate identities.
 An already installed WinFsp runtime can also be used.
 
+Each mount uses a unique WinFsp UNC name alongside its drive letter, so Windows can resolve
+file and directory handles through `GetFinalPathNameByHandleW`, as Python's `os.path.realpath`
+does. Windows classifies the drive as a network drive; WinFsp serves its files locally from the
+encrypted container without a network server. Restart the application and remount existing
+volumes after updating from a version that used local DOS-device mounts.
+
 ## Privileged integration
 
 ```text

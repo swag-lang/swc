@@ -20,7 +20,7 @@ namespace WinFsp
     const WinFspDllName          = "winfsp-x64.dll"
     const WinFspDriverName       = "winfsp-x64.sys"
     const WinFspSxsName          = "swagvault"
-    const WinFspDiskName         = "WinFsp.Disk"
+    const WinFspNetName          = "WinFsp.Net"
     const WinFspGuardianArgument = "--winfsp-guardian"
     const WaitInfinite           = 0xFFFFFFFF'u32
     const ProcessSynchronize     = 0x00100000'u32

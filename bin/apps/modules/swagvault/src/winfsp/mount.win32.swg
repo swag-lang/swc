@@ -84,9 +84,15 @@ namespace WinFsp
             let fileSystemName = Utf16.toZeroTerminated("swagvault")
             traceWinFspStage("copying filesystem name")
             Swag.memcpy(params.fileSystemName.buffer, fileSystemName.buffer, fileSystemName.count * #sizeof(u16))
+
+            // A local DOS device alone has no volume name GetFinalPathNameByHandle can resolve.
+            // A WinFsp UNC prefix supports that API without a global, privileged drive mount.
+            // Each mount owns its namespace; WinFsp routes it locally without a network server.
+            let prefix = Utf16.toZeroTerminated(Format.toString("\\swagvault\\%", Guid64.random()))
+            Swag.memcpy(params.prefix.buffer, prefix.buffer, prefix.count * #sizeof(u16))
             traceWinFspStage("FSP_FSCTL_VOLUME_PARAMS ready")
 
-            let deviceName = Utf16.toZeroTerminated(WinFspDiskName)
+            let deviceName = Utf16.toZeroTerminated(WinFspNetName)
             let fsCreate   = g_WinFsp.fsCreate
             traceWinFspStage("calling FspFileSystemCreate")
             let createStatus = fsCreate(deviceName.buffer, &params, &g_FspInterface, &.fileSystem)

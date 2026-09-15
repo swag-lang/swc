@@ -272,7 +272,7 @@ private func writeZipFixture()->String
     Swag.assert(embedded.choices[0].key == "text")
     Swag.assert(embedded.currentView != null)
 
-    let textView = cast(*TextView) embedded.currentView!
+    let textView = cast(*TextView) embedded.currentView
     completeTextReads(&host, textView)
     host.fireTimer(textView.loadTimer)
 
